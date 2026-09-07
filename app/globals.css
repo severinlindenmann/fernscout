@@ -107,6 +107,9 @@
 
   --font-display: var(--font-fredoka), ui-rounded, system-ui, sans-serif;
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  /* B733 — the mono voice for kickers, labels, pills, ids and counts. Loaded
+     in app/layout.tsx the same way --font-fredoka and --font-jakarta are. */
+  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
 }
 
 html {

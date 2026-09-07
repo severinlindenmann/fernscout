@@ -108,7 +108,27 @@ describe("the sign-in form", () => {
   test("says how long the code lasts, from the constant", () => {
     const html = render(<IdentitySignIn codeMinutes="30" onDone={() => {}} />);
     // The sentence lives on the second step; what matters here is that the
-    // number is interpolated rather than written into the locale file.
+    // number is interpolated rather than written into the locale field.
     expect(dictionaryFor("en")["home.signInSent"]).toContain("{minutes}");
+  });
+
+  /**
+   * B733's addendum — the owner did not like the plain form. The label now
+   * lives *inside* the bordered field, but it must still be a real
+   * `<label htmlFor>` wired to the input, never a placeholder standing in
+   * for one, and the reassurance line under the button has to name the real
+   * TTL rather than a written-in "ten" (B426's rule, applied to the new
+   * sentence too).
+   */
+  test("keeps a real label wired to the input, inside the field", () => {
+    const html = render(<IdentitySignIn codeMinutes="45" onDone={() => {}} />);
+    expect(html).toContain('for="identity-email"');
+    expect(html).toContain('id="identity-email"');
+    expect(html).not.toContain("placeholder=");
+  });
+
+  test("the reassurance line under the button names the real code TTL", () => {
+    const html = render(<IdentitySignIn codeMinutes="45" onDone={() => {}} />);
+    expect(html).toContain("valid for 45 minutes");
   });
 });

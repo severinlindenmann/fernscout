@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fredoka, Plus_Jakarta_Sans } from "next/font/google";
+import { Fredoka, IBM_Plex_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
@@ -14,6 +14,14 @@ const fredoka = Fredoka({
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   subsets: ["latin", "latin-ext"],
+});
+
+// B733 — the mono voice for kickers, labels, pills, ids and counts. Only
+// the two weights the mockup actually uses.
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
+  subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
 /**
@@ -74,7 +82,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await requestLocale();
 
   return (
-    <html lang={locale} className={`${fredoka.variable} ${jakarta.variable} h-full antialiased`}>
+    <html
+      lang={locale}
+      className={`${fredoka.variable} ${jakarta.variable} ${plexMono.variable} h-full antialiased`}
+    >
       {/*
         `min-w-0` is load-bearing, not tidying — B431.
 

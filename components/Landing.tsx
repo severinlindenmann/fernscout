@@ -189,83 +189,92 @@ export default function Landing({
 
   if (phase === "in" && home) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
-        {header}
-        <YourJournals email={home.email} journals={home.journals} />
-        {publicList}
-        {/* The agent block, retitled. Somebody who already has a journal is
-            not being pitched — they are being handed the line they paste in
-            when they want to write today's day. */}
-        <div className="mt-12 border-t border-navy-200 pt-8">
-          <AgentBlock docUrl={docUrl} agentUrl={agentUrl} heading={t("home.agentTitle")} />
-          <DocsLink />
-        </div>
-        <YourDevices
-          devices={home.devices}
-          onRevoke={(id) =>
-            setHome((prev) =>
-              prev ? { ...prev, devices: prev.devices.filter((d) => d.id !== id) } : prev,
-            )
-          }
-        />
-        {colophon}
-      </main>
+      // Full-bleed paper ground — B733. `cream-100` here, `cream-50` on
+      // every panel inside, so a card reads as a thing sitting on the page
+      // rather than a border on a document. Scoped to this page: nothing
+      // outside `/` and `/agent` changes ground.
+      <div className="min-h-full bg-cream-100">
+        <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
+          {header}
+          <YourJournals email={home.email} journals={home.journals} />
+          {publicList}
+          {/* The agent block, retitled. Somebody who already has a journal is
+              not being pitched — they are being handed the line they paste in
+              when they want to write today's day. */}
+          <div className="mt-12 border-t border-navy-200 pt-8">
+            <AgentBlock docUrl={docUrl} agentUrl={agentUrl} heading={t("home.agentTitle")} />
+            <DocsLink />
+          </div>
+          <YourDevices
+            devices={home.devices}
+            onRevoke={(id) =>
+              setHome((prev) =>
+                prev ? { ...prev, devices: prev.devices.filter((d) => d.id !== id) } : prev,
+              )
+            }
+          />
+          {colophon}
+        </main>
+      </div>
     );
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
-      {header}
-      {/*
-        The reader's half of the page, and it comes first — B427.
+    <div className="min-h-full bg-cream-100">
+      <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
+        {header}
+        {/*
+          The reader's half of the page, and it comes first — B427.
 
-        Two people arrive at the bare domain and only one of them was ever
-        addressed here. The card names the other one in their own words
-        ("a guest, or you were on the trip yourself") so they can recognise
-        themselves without knowing what a journal, a trip or a grant is, and
-        the form replaces it in place rather than moving them to another page:
-        somebody who has already lost one link should not be asked to follow
-        another.
-      */}
-      {signingIn ? (
-        <IdentitySignIn
-          codeMinutes={codeMinutes}
-          // The cookie is set by the server and this page renders from it, so
-          // a reload rather than a state flip — the same reason `GuestSignIn`
-          // reloads. What comes back is the signed-in order of this page.
-          onDone={() => window.location.reload()}
-        />
-      ) : (
-        offerSignIn && <ReaderInvite onSignIn={() => setSigningIn(true)} />
-      )}
-      {phase === "unknown" && expected ? (
-        /* A browser that was signed in a moment ago, waiting on the fetch.
-           Two grey blocks rather than the hero: showing the pitch here and
-           swapping it out is the flash this exists to prevent. */
-        <div aria-hidden className="mt-6 animate-pulse space-y-4">
-          <div className="h-9 w-2/3 rounded bg-cream-100" />
-          <div className="h-24 rounded-xl bg-cream-100" />
-          <div className="h-24 rounded-xl bg-cream-100" />
-        </div>
-      ) : (
-        <>
-          <LandingHero helperEnabled={helperEnabled} />
-          {/* Only when the helper is on — with it off there is no other
-              door, so this material stays where it is, open, on the first
-              screen (B732). */}
-          {helperEnabled ? (
-            <AgentDisclosure docUrl={docUrl} agentUrl={agentUrl} />
-          ) : (
-            <>
-              <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />
-              <LandingSteps />
-            </>
-          )}
-        </>
-      )}
-      {publicList}
-      <DocsLink />
-      {colophon}
-    </main>
+          Two people arrive at the bare domain and only one of them was ever
+          addressed here. The card names the other one in their own words
+          ("a guest, or you were on the trip yourself") so they can recognise
+          themselves without knowing what a journal, a trip or a grant is, and
+          the form replaces it in place rather than moving them to another page:
+          somebody who has already lost one link should not be asked to follow
+          another.
+        */}
+        {signingIn ? (
+          <IdentitySignIn
+            codeMinutes={codeMinutes}
+            // The cookie is set by the server and this page renders from it, so
+            // a reload rather than a state flip — the same reason `GuestSignIn`
+            // reloads. What comes back is the signed-in order of this page.
+            onDone={() => window.location.reload()}
+          />
+        ) : (
+          offerSignIn && <ReaderInvite onSignIn={() => setSigningIn(true)} />
+        )}
+        {phase === "unknown" && expected ? (
+          /* A browser that was signed in a moment ago, waiting on the fetch.
+             Two grey blocks rather than the hero: showing the pitch here and
+             swapping it out is the flash this exists to prevent. Cream-200
+             against a cream-100 ground, not cream-100 against itself. */
+          <div aria-hidden className="mt-6 animate-pulse space-y-4">
+            <div className="h-9 w-2/3 rounded bg-cream-200" />
+            <div className="h-24 rounded-xl bg-cream-200" />
+            <div className="h-24 rounded-xl bg-cream-200" />
+          </div>
+        ) : (
+          <>
+            <LandingHero helperEnabled={helperEnabled} />
+            {/* Only when the helper is on — with it off there is no other
+                door, so this material stays where it is, open, on the first
+                screen (B732). */}
+            {helperEnabled ? (
+              <AgentDisclosure docUrl={docUrl} agentUrl={agentUrl} />
+            ) : (
+              <>
+                <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />
+                <LandingSteps />
+              </>
+            )}
+          </>
+        )}
+        {publicList}
+        <DocsLink />
+        {colophon}
+      </main>
+    </div>
   );
 }

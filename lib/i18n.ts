@@ -798,6 +798,7 @@ export type TranslationKey =
   | "me.signInBody"
   | "me.signInCode"
   | "me.signInEmail"
+  | "me.signInHint"
   | "me.signInSend"
   | "me.signInSending"
   | "me.signInSent"

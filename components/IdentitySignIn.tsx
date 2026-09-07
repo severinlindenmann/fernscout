@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PRIMARY_BUTTON } from "@/components/LandingSections";
 import { useI18n } from "@/components/LocaleProvider";
 
 /**
@@ -95,13 +96,8 @@ export default function IdentitySignIn({
     setCode("");
   }
 
-  const field =
-    "mt-2 w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-base text-navy-900";
-  const button =
-    "mt-4 min-h-12 w-full rounded-xl bg-navy-900 px-4 py-3 text-lg font-medium text-cream-50 disabled:opacity-50";
-
   return (
-    <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+    <section className="mt-6 rounded-2xl border border-navy-200 bg-cream-50 p-5 sm:p-6">
       <h2 className="font-display text-xl font-semibold text-navy-900">{t("home.signInTitle")}</h2>
 
       {unavailable ? (
@@ -111,23 +107,44 @@ export default function IdentitySignIn({
       ) : step === "email" ? (
         <form onSubmit={requestCode}>
           <p className="mt-2 text-base leading-7 text-navy-700">{t("home.signInBody")}</p>
-          <label htmlFor="identity-email" className="mt-4 block text-base font-medium text-navy-700">
-            {t("me.signInEmail")}
-          </label>
-          <input
-            id="identity-email"
-            type="email"
-            name="email"
-            autoComplete="email"
-            required
-            autoFocus
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={field}
-          />
-          <button type="submit" disabled={busy || email === ""} className={button}>
+          {/* The inset label — B733's addendum. The label lives *inside* the
+              bordered field rather than floating above it, which is most of
+              why the mockup's version reads as one control rather than a
+              label plus a box. Still a real `<label htmlFor>`, not a
+              placeholder standing in for one. */}
+          <div className="mt-4 min-h-11 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500">
+            <label
+              htmlFor="identity-email"
+              className="block font-mono text-[11px] uppercase tracking-[0.08em] text-navy-600"
+            >
+              {t("me.signInEmail")}
+            </label>
+            <input
+              id="identity-email"
+              type="email"
+              name="email"
+              autoComplete="email"
+              inputMode="email"
+              required
+              autoFocus
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="block w-full border-0 bg-transparent p-0 text-base text-navy-900 focus:outline-none focus:ring-0"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={busy || email === ""}
+            className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
+          >
             {busy ? t("me.signInSending") : t("me.signInSend")}
           </button>
+          {/* Quiet reassurance under the control — the real TTL, not a
+              written-in "ten", so the sentence cannot outlive a change to
+              CODE_TTL_MINUTES (B426). */}
+          <p className="mt-3 text-center text-sm text-navy-600">
+            {t("me.signInHint", { minutes: codeMinutes })}
+          </p>
         </form>
       ) : (
         <form onSubmit={submitCode}>
@@ -137,30 +154,39 @@ export default function IdentitySignIn({
           <p className="mt-2 text-base leading-7 text-navy-700">
             {t("home.signInSent", { minutes: codeMinutes })}
           </p>
-          <label htmlFor="identity-code" className="mt-4 block text-base font-medium text-navy-700">
-            {t("me.signInCode")}
-          </label>
-          <input
-            id="identity-code"
-            name="code"
-            // `one-time-code` is what lets a phone offer the code from the
-            // message without the reader typing it out.
-            autoComplete="one-time-code"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={6}
-            autoFocus
-            required
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-            aria-describedby={wrong ? "identity-error" : undefined}
-            aria-invalid={wrong ? true : undefined}
-            className={`${field} font-mono text-2xl tracking-[0.3em]`}
-          />
+          <div className="mt-4 min-h-11 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500">
+            <label
+              htmlFor="identity-code"
+              className="block font-mono text-[11px] uppercase tracking-[0.08em] text-navy-600"
+            >
+              {t("me.signInCode")}
+            </label>
+            <input
+              id="identity-code"
+              name="code"
+              // `one-time-code` is what lets a phone offer the code from the
+              // message without the reader typing it out.
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={6}
+              autoFocus
+              required
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+              aria-describedby={wrong ? "identity-error" : undefined}
+              aria-invalid={wrong ? true : undefined}
+              className="block w-full border-0 bg-transparent p-0 font-mono text-2xl tracking-[0.3em] text-navy-900 focus:outline-none focus:ring-0"
+            />
+          </div>
           <p id="identity-error" role="alert" className="mt-3 text-base text-coral-600 empty:mt-0">
             {wrong ? t("me.signInWrong") : ""}
           </p>
-          <button type="submit" disabled={busy || code.length < 6} className={button}>
+          <button
+            type="submit"
+            disabled={busy || code.length < 6}
+            className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
+          >
             {busy ? t("me.signInSending") : t("me.signInSubmit")}
           </button>
           <button
