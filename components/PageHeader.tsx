@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import SiteNav from "./SiteNav";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, Menu, X } from "lucide-react";
+import SiteNav, { useNavEntries } from "./SiteNav";
 import SkipLink from "./SkipLink";
 import CurrencySwitcher from "./CurrencySwitcher";
 import LocaleSwitcher from "./LocaleSwitcher";
@@ -30,25 +31,176 @@ export default function PageHeader({
   // journal, not to the instance's landing page.
   const homeHref = active ? active.href("/") : site.base;
   const tagline = active ? localizedTrip(active.trip).tagline ?? site.tagline : site.tagline;
+  const navEntries = useNavEntries();
+  const currentSection = navEntries.find((e) => e.active);
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const wasOpen = useRef(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    // Moves focus into the panel — the container itself, since its first
+    // real control (the trip switcher, or the story link) is exactly as good
+    // a landing spot as a dedicated "skip to here" button would have been,
+    // and adding one would have been a second close affordance beside
+    // tapping outside and Escape.
+    panelRef.current?.focus();
+    const onDown = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        // Without this, the browser's own default action for the same click
+        // — moving focus onto whatever was tapped — lands after the panel's
+        // effect has already sent focus back to the button, and wins. The
+        // tap itself did nothing anyway: it landed outside every control in
+        // the header, so there is nothing here to lose by cancelling it.
+        e.preventDefault();
+        setMenuOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
+  // Focus lands back on the button for every way the panel closes — Escape,
+  // a tap outside, or a link inside it — rather than only the keyboard path,
+  // so a reader who dismissed it by touch does not lose their place either.
+  useEffect(() => {
+    if (wasOpen.current && !menuOpen) menuButtonRef.current?.focus();
+    wasOpen.current = menuOpen;
+  }, [menuOpen]);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-navy-200 bg-cream-100/95 px-4 py-3 backdrop-blur sm:px-6">
+    <header className="sticky top-0 z-30 border-b border-navy-200 bg-cream-100/95 px-4 py-2.5 backdrop-blur sm:px-6 sm:py-3">
       <SkipLink />
       {/*
-        Two rows on a phone, one from `sm` up.
+        One row on a phone, below `sm` — B770.
+
+        The four-row stack this replaced (a back link, the title, three
+        chips, seven nav icons) spent a quarter of a 390px viewport on chrome
+        before a word of the journal appeared, above a page that already
+        carries a fixed bottom day-navigator on its story pages. A bottom tab
+        bar was the other phone-native answer and was not available for the
+        same reason: two fixed bars would leave almost no reading window.
+
+        So: back, the journal's name, which section this is, and a single
+        button — everything else (the trip switcher, currency, language, and
+        the seven destinations) moves into the panel below, opened by that
+        button. `sm` and up keep the arrangement this header always had; see
+        the block after the panel.
+
+        The current section stays visible without opening the panel: a small
+        yellow-400 disc carrying that section's own icon, the same waymark
+        `SiteNav`'s tab bar already uses for "you are here" — B770 kept the
+        idiom rather than inventing a second one for the same fact.
+      */}
+      <div ref={wrapRef} className="sm:hidden">
+        <div className="flex items-center gap-1">
+          {/* See the identical link in the `sm`-and-up block below for why
+              this exists and who it is drawn for. Icon-only here — the row
+              has no room for the sentence a laptop gets — with the same
+              accessible name carried by `aria-label` instead of visible text. */}
+          {site.hasIdentity && (
+            <Link
+              href="/"
+              aria-label={t("nav.myJournals")}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-600
+                         transition-colors hover:bg-navy-200/60 hover:text-navy-900
+                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+            >
+              <ArrowLeft className="h-5 w-5" aria-hidden strokeWidth={2.4} />
+            </Link>
+          )}
+          {onHome ? (
+            <button
+              onClick={onHome}
+              className="min-w-0 flex-1 truncate text-left font-display text-lg font-semibold tracking-tight text-navy-900"
+            >
+              {site.title}
+            </button>
+          ) : (
+            <Link
+              href={homeHref}
+              className="min-w-0 flex-1 truncate font-display text-lg font-semibold tracking-tight text-navy-900"
+            >
+              {site.title}
+            </Link>
+          )}
+          {currentSection && (
+            <span
+              role="img"
+              aria-label={currentSection.label}
+              title={currentSection.label}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-yellow-400 text-yellow-950"
+            >
+              <currentSection.Icon className="h-4 w-4" aria-hidden strokeWidth={2.4} />
+            </span>
+          )}
+          <button
+            ref={menuButtonRef}
+            type="button"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-haspopup="dialog"
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu-panel"
+            aria-label={menuOpen ? t("nav.closeMenu") : t("nav.menu")}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-700
+                       transition-colors hover:bg-navy-200/60
+                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          >
+            {menuOpen ? (
+              <X className="h-5 w-5" aria-hidden strokeWidth={2.2} />
+            ) : (
+              <Menu className="h-5 w-5" aria-hidden strokeWidth={2.2} />
+            )}
+          </button>
+        </div>
+
+        {menuOpen && (
+          // In the flow, not over it — the same call `ConfirmPanel` makes and
+          // for the same reason: nothing here is urgent enough to dim the
+          // page for, so `aria-modal` stays false and Escape plus a tap
+          // outside are the whole of how it closes (handled above).
+          <div
+            id="mobile-menu-panel"
+            ref={panelRef}
+            role="dialog"
+            aria-modal="false"
+            aria-label={t("nav.menu")}
+            tabIndex={-1}
+            className="mt-3 max-h-[70vh] overflow-y-auto rounded-2xl border border-navy-200 bg-cream-50 p-3 shadow-lg"
+          >
+            {/* `children` is not repeated here: the one caller that passes any
+                (`TripStory`'s day counter) already marks it `xl:block`, so it
+                never draws below the width this panel exists for — mounting
+                a second, permanently invisible copy would be for nothing. */}
+            <div className="flex flex-wrap items-center gap-2 border-b border-navy-200 pb-3">
+              <TripSwitcher />
+              <CurrencySwitcher />
+              <LocaleSwitcher />
+            </div>
+            <div className="mt-3">
+              <SiteNav variant="list" onNavigate={() => setMenuOpen(false)} />
+            </div>
+          </div>
+        )}
+      </div>
+      {/*
+        `sm` and up: the arrangement this header has always had.
 
         Nine controls and a journal title do not fit across 390px once every
-        control is 44px tall — 373px of controls into 343px of room. The old
-        single row "solved" that by crushing the title to 32px wide, three
-        characters of somebody's name, and pushing the document 11px past the
-        screen so the whole site scrolled sideways under a thumb.
-
-        So: title and the small chips share the first line, the six navigation
-        icons take the second. Wrapping rather than an `overflow-x-auto` strip,
-        which would look tidier and clip the currency and language menus as
-        they open downward out of it. Costs about 60px of sticky header on a
-        phone; a proper mobile menu would buy that back, and is a design
-        decision rather than a contrast fix.
+        control is 44px tall — 373px of controls into 343px of room, which is
+        the whole reason the block above exists now. From `sm` there is room:
+        title and the small chips share the first line, the nav wraps to a
+        second line of its own until `lg`, where everything fits on one.
 
         The row keeps its own width rather than the 5xl content column: the
         nine controls measure ~985px, which left the title a 15px box that its
@@ -86,7 +238,7 @@ export default function PageHeader({
         itself — so the chips and the nav end up as one tight cluster at the
         row's right edge instead.
       */}
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-2">
+      <div className="mx-auto hidden max-w-7xl flex-wrap items-center gap-x-3 gap-y-2 sm:flex">
         <div className="min-w-0 flex-[1_1_12rem]">
           {/*
             The way back out of this journal — B433.

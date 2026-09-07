@@ -76,9 +76,15 @@ function markup(): string {
   );
 }
 
-/** The class list of the element wrapping the journal's title and tagline. */
+/**
+ * The class list of the element wrapping the journal's title and tagline, in
+ * the `sm`-and-up arrangement — matched on its own `flex-[1_1_…]` basis
+ * rather than by position, since B770 put a second, simpler title box ahead
+ * of it in the markup for the one-row phone header (`sm:hidden`), and a
+ * position-based match would pick that one up instead.
+ */
 function titleBoxClasses(html: string): string {
-  const match = /<div class="([^"]*)"><a [^>]*class="[^"]*truncate font-display/.exec(html);
+  const match = /<div class="(min-w-0 flex-\[1_1_[^"]*)">/.exec(html);
   if (!match) throw new Error("the header rendered no title box");
   return match[1];
 }

@@ -36,6 +36,19 @@ const LINKS: {
   },
 ];
 
+/** One destination, resolved to this reader's URLs and its own active state —
+ * B770. The single thing both the icon bar and the mobile panel's list draw
+ * from, and what `PageHeader` reads to find the current section without
+ * duplicating the active-state logic a third time. */
+export type NavEntry = {
+  href: string;
+  label: string;
+  Icon: typeof BookOpen;
+  active: boolean;
+  /** Only the last entry (`/me`) ever sets this — see the doc comment below. */
+  strangerDoor?: boolean;
+};
+
 /**
  * Labels appear from `xl`, not `lg`. With them the nav measures 529px, which
  * together with the header's chips left no room for the journal's own title —
@@ -70,7 +83,7 @@ const LINKS: {
  * outlined pill between two icon tabs reads as a broken tab, and at the end of
  * the row it reads as what it is.
  */
-export default function SiteNav() {
+export function useNavEntries(): NavEntry[] {
   const pathname = usePathname();
   const { t } = useI18n();
   const trip = useTrip();
@@ -107,7 +120,31 @@ export default function SiteNav() {
   const meLabel = strangerDoor ? t("nav.signIn") : t("me.title");
   const meHref = userHref("/me");
   const meActive = pathname === meHref;
+  const tripsHref = userHref("/trips");
+  const searchHref = userHref("/search");
 
+  const entries: NavEntry[] = links.map(({ href: path, key, Icon, also }) => {
+    const target = href(path);
+    // The story page is the base itself, so "active" is an exact match
+    // plus its day permalinks; every other page is a prefix match, plus
+    // whatever else that tab owns (see `also` on Analytics).
+    const active =
+      path === "/"
+        ? pathname === target || pathname === `${base}/` || pathname.startsWith(`${base}/day`)
+        : pathname.startsWith(target) || (also ?? []).some((p) => pathname.startsWith(href(p)));
+    return { href: target, label: t(key), Icon, active };
+  });
+  entries.push({ href: tripsHref, label: t("nav.trips"), Icon: Compass, active: pathname === tripsHref });
+  entries.push({ href: searchHref, label: t("nav.search"), Icon: Search, active: pathname === searchHref });
+  entries.push({ href: meHref, label: meLabel, Icon: UserRound, active: meActive, strangerDoor });
+
+  return entries;
+}
+
+/** The tab bar this component has always drawn — unchanged pixel for pixel,
+ * and still what `sm` and up mount. B770 only adds the `list` variant below;
+ * this one keeps every class it had. */
+function TabBar({ entries }: { entries: NavEntry[] }) {
   return (
     /*
        Wrapping, and right-aligned so a wrapped row stays under the one above
@@ -119,91 +156,76 @@ export default function SiteNav() {
        scrolled sideways, so nothing looked wrong from the outside.
     */
     <nav className="flex flex-wrap items-center justify-end gap-1">
-      {links.map(({ href: path, key, Icon, also }) => {
-        const target = href(path);
-        const label = t(key);
-        // The story page is the base itself, so "active" is an exact match
-        // plus its day permalinks; every other page is a prefix match, plus
-        // whatever else that tab owns (see `also` on Analytics).
-        const active =
-          path === "/"
-            ? pathname === target || pathname === `${base}/` || pathname.startsWith(`${base}/day`)
-            : pathname.startsWith(target) || (also ?? []).some((p) => pathname.startsWith(href(p)));
-        return (
-          <Link
-            key={path}
-            href={target}
-            title={label}
-            aria-label={label}
-            aria-current={active ? "page" : undefined}
-            className={`flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-sm font-semibold transition-colors sm:px-3 ${
-              active
-                ? "bg-yellow-400 text-yellow-950"
+      {entries.map(({ href: target, label, Icon, active, strangerDoor }) => (
+        <Link
+          key={target}
+          href={target}
+          title={label}
+          aria-label={label}
+          aria-current={active ? "page" : undefined}
+          className={`flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full text-sm font-semibold transition-colors ${
+            strangerDoor ? "border border-navy-700 px-3.5 sm:px-4" : "px-2.5 sm:px-3"
+          } ${
+            active
+              ? "bg-yellow-400 text-yellow-950"
+              : strangerDoor
+                ? "text-navy-900 hover:bg-navy-200/60"
                 : "text-navy-600 hover:bg-navy-200/60 hover:text-navy-900"
-            }`}
-          >
-            <Icon className="h-4 w-4" strokeWidth={2.2} />
-            <span className="hidden xl:inline">{label}</span>
-          </Link>
-        );
-      })}
-      <Link
-        href={userHref("/trips")}
-        title={t("nav.trips")}
-        aria-label={t("nav.trips")}
-        aria-current={pathname === userHref("/trips") ? "page" : undefined}
-        className={`flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-sm font-semibold transition-colors sm:px-3 ${
-          pathname === userHref("/trips")
-            ? "bg-yellow-400 text-yellow-950"
-            : "text-navy-600 hover:bg-navy-200/60 hover:text-navy-900"
-        }`}
-      >
-        <Compass className="h-4 w-4" strokeWidth={2.2} />
-        <span className="hidden xl:inline">{t("nav.trips")}</span>
-      </Link>
-      <Link
-        href={userHref("/search")}
-        title={t("nav.search")}
-        aria-label={t("nav.search")}
-        aria-current={pathname === userHref("/search") ? "page" : undefined}
-        className={`flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-sm font-semibold transition-colors sm:px-3 ${
-          pathname === userHref("/search")
-            ? "bg-yellow-400 text-yellow-950"
-            : "text-navy-600 hover:bg-navy-200/60 hover:text-navy-900"
-        }`}
-      >
-        <Search className="h-4 w-4" strokeWidth={2.2} />
-        <span className="hidden xl:inline">{t("nav.search")}</span>
-      </Link>
-      {/* Shown to everyone, not only to somebody already signed in.
-          Gating it on a session was a closed loop: this is the one page whose
-          purpose is helping a reader who lost their invitation email, so
-          requiring a session meant it could only be reached by a reader who
-          had not lost it. The panel greets a stranger with the truth — the
-          link somebody sends you is what lets you in.
-
-          What changes with `strangerDoor` is only how it is drawn: a word
-          instead of an outline of a head, and an outlined pill instead of a
-          flat tab. Same href, same page, same everything a signed-in reader
-          gets — see the note above the component. */}
-      <Link
-        href={meHref}
-        title={meLabel}
-        aria-label={meLabel}
-        aria-current={meActive ? "page" : undefined}
-        className={`flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full text-sm font-semibold transition-colors ${
-          strangerDoor ? "border border-navy-700 px-3.5 sm:px-4" : "px-2.5 sm:px-3"
-        } ${
-          meActive
-            ? "bg-yellow-400 text-yellow-950"
-            : strangerDoor
-              ? "text-navy-900 hover:bg-navy-200/60"
-              : "text-navy-600 hover:bg-navy-200/60 hover:text-navy-900"
-        }`}
-      >
-        <UserRound className="h-4 w-4" strokeWidth={2.2} />
-        <span className={strangerDoor ? "inline" : "hidden xl:inline"}>{meLabel}</span>
-      </Link>
+          }`}
+        >
+          <Icon className="h-4 w-4" strokeWidth={2.2} aria-hidden />
+          <span className={strangerDoor ? "inline" : "hidden xl:inline"}>{label}</span>
+        </Link>
+      ))}
     </nav>
+  );
+}
+
+/**
+ * The mobile panel's list — B770.
+ *
+ * Every row is 48px tall (`min-h-12`), well past the 44px floor, and carries
+ * its label at every width: a panel opened on purpose has room for words, so
+ * the `xl`-only labels the tab bar needs to fit seven controls into one row
+ * do not apply here. `onNavigate` closes the panel on tap, since a link
+ * inside it that left the panel open behind the new page would read as
+ * broken.
+ */
+function ListNav({ entries, onNavigate }: { entries: NavEntry[]; onNavigate?: () => void }) {
+  return (
+    <nav className="flex flex-col gap-1">
+      {entries.map(({ href: target, label, Icon, active }) => (
+        <Link
+          key={target}
+          href={target}
+          onClick={onNavigate}
+          aria-current={active ? "page" : undefined}
+          className={`flex min-h-12 items-center gap-3 rounded-xl px-3 text-base font-semibold transition-colors ${
+            active ? "bg-yellow-400 text-yellow-950" : "text-navy-700 hover:bg-cream-100"
+          }`}
+        >
+          <Icon className="h-5 w-5 shrink-0" strokeWidth={2.2} aria-hidden />
+          {label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+export default function SiteNav({
+  variant = "bar",
+  onNavigate,
+}: {
+  /** `"bar"` is the icon row this component always drew, and is what `sm`
+   * and up still mount. `"list"` is the mobile menu panel's full-width,
+   * always-labelled rows — see `ListNav` above. */
+  variant?: "bar" | "list";
+  onNavigate?: () => void;
+} = {}) {
+  const entries = useNavEntries();
+  return variant === "list" ? (
+    <ListNav entries={entries} onNavigate={onNavigate} />
+  ) : (
+    <TabBar entries={entries} />
   );
 }
