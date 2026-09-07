@@ -193,6 +193,10 @@ describe("the landing page", () => {
     const html = renderLanding("en", true);
     expect(html).toContain("<details");
     expect(html).toContain("<summary");
+    // B748 — a chevron in the summary, distinguishing it from a plain link.
+    const summary = html.slice(html.indexOf("<summary"), html.indexOf("</summary>"));
+    expect(summary).toContain("lucide-chevron-down");
+    expect(summary).toContain("group-open:rotate-180");
     // The trigger reuses the existing string rather than a new one.
     expect(html).toContain("Already have your own agent?");
     // No open attribute — closed by default.

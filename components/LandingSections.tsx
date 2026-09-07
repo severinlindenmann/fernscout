@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
+import { BookOpen, ChevronDown } from "lucide-react";
 import CopyLine from "@/components/CopyLine";
 import { flagFor } from "@/lib/flags";
 import { useI18n } from "@/components/LocaleProvider";
@@ -217,19 +217,31 @@ export function LandingHero({ helperEnabled = false }: { helperEnabled?: boolean
  * before this ticket, unmoved and unrewritten. The trigger reuses
  * `landing.helperOwnAgent` rather than a new key, because it is the same
  * sentence the removed `#handover` link used to say.
+ *
+ * The chevron is what tells a sighted reader this expands rather than
+ * navigates — B748. Underlined text with no marker read exactly like the
+ * "Read the guide" link a few hundred pixels above it, and the two do
+ * different things. Pure CSS off `<details>`'s own `open` attribute: the
+ * `group-open:` variant rotates it, no JavaScript and no state, and
+ * `motion-reduce:transition-none` drops the animation for a reader who asked
+ * for less motion — the chevron still ends up rotated, just without the turn.
  */
 export function AgentDisclosure({ docUrl, agentUrl }: { docUrl: string; agentUrl: string }) {
   const { t } = useI18n();
   return (
     <details className="group mt-6">
       <summary
-        className="flex min-h-11 cursor-pointer list-none items-center gap-1 text-sm font-semibold
+        className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-sm font-semibold
                    text-navy-700 underline decoration-navy-300 underline-offset-4
                    transition-colors hover:decoration-navy-700
                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500
                    [&::-webkit-details-marker]:hidden"
       >
         {t("landing.helperOwnAgent")}
+        <ChevronDown
+          aria-hidden="true"
+          className="h-4 w-4 shrink-0 transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
+        />
       </summary>
       <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />
       <LandingSteps helperEnabled />
