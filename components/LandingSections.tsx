@@ -97,6 +97,7 @@ export function SiteHeader({
   siteName,
   locales,
   admin,
+  helperEnabled = false,
 }: {
   siteName: string;
   locales?: string[];
@@ -115,6 +116,14 @@ export function SiteHeader({
    * `/admin` asks `isInstanceAdmin()` for itself on every request.
    */
   admin?: boolean;
+  /**
+   * Whether `/agent` can actually write on this instance — B825. Unlike
+   * `admin`, this one is for everybody: the hero's own `/agent` button
+   * (`LandingHero`) is already gated on the same flag, so a reader who
+   * scrolls past it or who arrives on a page where the hero is not the first
+   * thing shown still finds the same door up here.
+   */
+  helperEnabled?: boolean;
 }) {
   const { t } = useI18n();
   return (
@@ -132,6 +141,18 @@ export function SiteHeader({
             className="flex min-h-11 items-center rounded-full border border-transparent bg-transparent px-2.5 text-xs font-bold text-navy-600 transition-colors hover:bg-cream-100 hover:text-navy-900"
           >
             {t("home.operator")}
+          </Link>
+        )}
+        {helperEnabled && (
+          // Same treatment as the operator chip above — quiet, not the
+          // hero's yellow primary button, because this corner already has a
+          // primary action lower on the page and a second loud one here
+          // would fight it.
+          <Link
+            href="/agent"
+            className="flex min-h-11 items-center rounded-full border border-transparent bg-transparent px-2.5 text-xs font-bold text-navy-600 transition-colors hover:bg-cream-100 hover:text-navy-900"
+          >
+            {t("home.agentLink")}
           </Link>
         )}
         <LocaleSwitcher locales={locales} subtle />

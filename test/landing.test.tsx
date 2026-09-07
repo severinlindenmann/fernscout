@@ -183,6 +183,23 @@ describe("the landing page", () => {
   });
 
   /**
+   * B825 — the corner chip beside the locale switcher, for everybody rather
+   * than the operator alone. Distinct from the hero's own `/agent` button
+   * above: this one is in `SiteHeader` and carries the `home.agentLink`
+   * string ("Agent"), so it is asserted on its own rather than by the
+   * `href="/agent"` count, which the hero button also contributes to.
+   */
+  test("offers an Agent chip in the corner when the helper is on", () => {
+    const html = renderLanding("en", true);
+    expect(html).toContain(">Agent<");
+  });
+
+  test("has no Agent chip in the corner when the helper is off", () => {
+    const html = renderLanding();
+    expect(html).not.toContain(">Agent<");
+  });
+
+  /**
    * B732 — the bring-your-own-agent material moves behind a native
    * disclosure, but only when the helper is the primary door. The three
    * pieces it reveals — the instruction box, the numbered steps, and the "no

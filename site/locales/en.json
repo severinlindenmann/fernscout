@@ -396,6 +396,7 @@
   "hero.timePerCountry": "Time per country",
   "home.adminSection": "Other journals on this server",
   "home.adminSectionBody": "Not yours. You reach these because you run this server — anything published in one lands in somebody else's journal.",
+  "home.agentLink": "Agent",
   "home.agentTitle": "Your agent",
   "home.devices": "Your devices",
   "home.devicesBody": "Where you are signed in. Signing a device out ends it everywhere on this server, straight away.",

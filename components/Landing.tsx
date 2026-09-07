@@ -187,7 +187,14 @@ export default function Landing({
    */
   const offerSignIn = phase === "out" || (phase === "unknown" && !expected);
 
-  const header = <SiteHeader siteName={siteName} locales={locales} admin={home?.admin} />;
+  const header = (
+    <SiteHeader
+      siteName={siteName}
+      locales={locales}
+      admin={home?.admin}
+      helperEnabled={helperEnabled}
+    />
+  );
   const publicList = <PublicJournals journals={journals} />;
   const colophon = <Colophon repository={repository} credit={credit} legal={legal} />;
 
