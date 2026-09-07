@@ -5,6 +5,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { WRITE_DAY_CREDITS } from "@/lib/helper/model";
 import { draftsForWizard, isHelperOwner, tripsForWizard } from "@/lib/helper/server";
+import { speechProvider } from "@/lib/helper/transcribe";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { currencyOptions } from "@/lib/rates";
 
@@ -55,6 +56,7 @@ export default async function AgentWizardPage({ params }: PageProps<"/agent/[use
         // with no model at all, and the wizard draws whichever it has.
         speech: isEnabled("transcription", user),
         consentedSpeech: hasHelperConsent(user, "speech"),
+        speechProvider: speechProvider(),
       }}
     />
   );

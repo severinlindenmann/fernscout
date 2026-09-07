@@ -1,5 +1,11 @@
 import { isEnabled } from "@/lib/capabilities";
-import { HELPER_SCOPES, recordHelperConsent, revokeHelperConsent, type HelperScope } from "@/lib/helper/consent";
+import {
+  HELPER_SCOPES,
+  helperConsent,
+  recordHelperConsent,
+  revokeHelperConsent,
+  type HelperScope,
+} from "@/lib/helper/consent";
 import { HELPER_PROVIDER } from "@/lib/helper/model";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { isHelperOwner } from "@/lib/helper/server";
@@ -11,9 +17,11 @@ export const dynamic = "force-dynamic";
  *
  * Free, owner only, cookie only. `POST` records the consent the panel
  * describes, for the scope it asked about — `speech` since B686 — `words` when the body says
- * nothing, since that is what every panel before B687 meant. `DELETE` removes
- * the whole record, and the next call in either scope is refused until
- * somebody reads a panel again. There is nothing to migrate and nothing to
+ * nothing, since that is what every panel before B687 meant. `DELETE` takes
+ * back one scope — `words` when the body says nothing, same default as
+ * `POST` — and rewrites the record to whatever scopes remain (B735): the next
+ * call in *that* scope is refused until somebody reads its panel again, and
+ * every other scope is untouched. There is nothing to migrate and nothing to
  * expire: the file is the whole of it (`lib/helper/consent.ts`).
  */
 
@@ -28,9 +36,10 @@ async function gate(user: string, scope: HelperScope | "any"): Promise<Response 
   if (!(await isHelperOwner(user))) {
     return Response.json({ error: "not_your_journal" }, { status: 404 });
   }
-  // `DELETE` takes back every scope at once, so either capability being on is
-  // reason enough to let somebody withdraw — a permission that cannot be
-  // withdrawn because the other switch went off is not a permission.
+  // A `DELETE` is gated on "any" regardless of which scope it names, so
+  // either capability being on is reason enough to let somebody withdraw —
+  // a permission that cannot be withdrawn because the other switch went off
+  // is not a permission.
   const on =
     scope === "any"
       ? isEnabled("helper", user) || isEnabled("transcription", user)
@@ -59,12 +68,17 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: RouteContext<"/api/helper/[user]/consent">,
 ) {
   const { user } = await params;
+  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const scope = scopeOf(body.scope);
+  // Gated on "any" rather than this scope's own capability: a permission
+  // that could not be withdrawn because the switch happened to be off would
+  // not be a permission. The actual removal below is still scoped.
   const refused = await gate(user, "any");
   if (refused) return refused;
-  revokeHelperConsent(user);
-  return Response.json({ ok: true, consent: null });
+  revokeHelperConsent(user, scope);
+  return Response.json({ ok: true, consent: helperConsent(user) });
 }

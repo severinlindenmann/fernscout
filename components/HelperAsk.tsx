@@ -42,6 +42,7 @@ export default function HelperAsk({
   consented: initialConsent,
   speech,
   consentedSpeech,
+  speechProvider,
 }: {
   username: string;
   /** Whether this journal has already agreed to a model being spoken to
@@ -53,6 +54,9 @@ export default function HelperAsk({
   speech: boolean;
   /** Whether this journal has agreed to its owner's voice being sent. */
   consentedSpeech: boolean;
+  /** Who a recording actually goes to — B744. Passed through to
+   *  `RecordButton`, which reads it rather than assuming Deepgram. */
+  speechProvider: string;
 }) {
   const { t } = useI18n();
   const [said, setSaid] = useState("");
@@ -180,6 +184,7 @@ export default function HelperAsk({
         <RecordButton
           username={username}
           consented={consentedSpeech}
+          provider={speechProvider}
           disabled={busy}
           onText={(heard) => setSaid(heard)}
         />

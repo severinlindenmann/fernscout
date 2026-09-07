@@ -197,6 +197,7 @@ export type TranslationKey =
   | "agent.slot.title"
   | "agent.slot.trip"
   | "agent.speechConsent"
+  | "agent.speechConsentDryRun"
   | "agent.speechConsentConfirm"
   | "agent.speechConsentLabel"
   | "agent.speechDenied"

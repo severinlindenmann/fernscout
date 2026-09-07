@@ -118,13 +118,19 @@ export type WrittenDay = { title: string; prose: string; warnings: string[] };
  * Lisbon" is the exact failure this exists to prevent, whatever the picture
  * actually shows.
  */
-export const PHOTO_SYSTEM_PROMPT = `You are looking at photographs from somebody's own travel journal. For each one, suggest a short caption for the owner to keep, edit or discard — nothing you say is written anywhere by itself.
+function photoSystemPrompt(locale: string): string {
+  return `You are looking at photographs from somebody's own travel journal. For each one, suggest a short caption for the owner to keep, edit or discard — nothing you say is written anywhere by itself.
 
 The one rule, and it outranks everything else you might think makes a caption better:
 
 DESCRIBE ONLY WHAT IS VISIBLE IN THE FRAME. Do not name a place, a country, a landmark or a business — even one you recognise, even if signage in the photograph names it — because a caption is not the place to turn a guess into a fact. Never identify a person: no name, no relationship, no guess at who somebody is. You may describe what is visibly happening (someone is walking, someone is cooking) but never who. Never guess a mood, an occasion, a reason, or anything about what the day meant. A plain caption of what is actually in the frame — the colours, the setting, the action — beats a caption that reaches for any of that, and an empty caption is the correct answer for a photograph you cannot describe without guessing.
 
-Write in English. Return exactly one caption per photograph, in the same order the photographs were sent, as a plain string each — an empty string where there is nothing safe to say.`;
+Write the captions in the language identified by the locale code "${locale}" — this journal's own language. There are no notes to take a language from here, unlike a day's prose, so this is told to you rather than inferred. Return exactly one caption per photograph, in the same order the photographs were sent, as a plain string each — an empty string where there is nothing safe to say.`;
+}
+
+/** The prompt sent for a journal with no locale to ask for — kept as a named
+ *  export because it is what earlier tests and callers expected to find. */
+export const PHOTO_SYSTEM_PROMPT = photoSystemPrompt("en");
 
 const PHOTO_SCHEMA = {
   type: "object",
@@ -144,12 +150,16 @@ export type PhotoImage = { base64: string; mediaType: "image/jpeg" | "image/png"
  * Throws on anything that goes wrong, the same contract as `writeDay`: the
  * caller has already spent the credit and refunds on a throw.
  */
-export async function describePhotos(images: PhotoImage[], owner?: string): Promise<string[]> {
+export async function describePhotos(
+  images: PhotoImage[],
+  owner?: string,
+  locale = "en",
+): Promise<string[]> {
   const client = new Anthropic();
   const response = await client.messages.create({
     model: HELPER_MODEL,
     max_tokens: 200 * images.length + 200,
-    system: PHOTO_SYSTEM_PROMPT,
+    system: photoSystemPrompt(locale),
     messages: [
       {
         role: "user",
