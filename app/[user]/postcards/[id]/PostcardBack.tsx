@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 
 /**
@@ -100,6 +100,18 @@ export default function PostcardBack({
   const [state, setState] = useState<"idle" | "saving" | "saved" | "failed">(
     "idle",
   );
+  /**
+   * Whether a request is actually in the air — B892, and not the same question
+   * as `state === "saving"`.
+   *
+   * `state` goes to `"saving"` on every keystroke, 700ms before anything is
+   * sent, because the status line's promise is that it never saves silently
+   * and a pending save counts. Driving the *button* from that would disable it
+   * and flip its label to "Saving…" on every letter typed — a control
+   * flickering under the reader's own hands, which is the jumpiness this
+   * ticket is about rather than a cure for it.
+   */
+  const [inFlight, setInFlight] = useState(false);
 
   /**
    * The debounce, and the guard against an older save landing last.
@@ -112,6 +124,53 @@ export default function PostcardBack({
   const request = useRef(0);
   const first = useRef(true);
 
+  /**
+   * One save, used by the debounce below and by the button — B892.
+   *
+   * The button used to be a plain submit inside the `<form method="post">`,
+   * which meant that pressing it with JavaScript *on* did a full document
+   * post: a redirect, a page load, a flash, and the reader back at the top —
+   * to save words the debounce had already saved a moment earlier. It was the
+   * jumpiest thing on the page and it bought nothing.
+   *
+   * A `useCallback` rather than a ref written during render: the effect below
+   * already re-arms on every keystroke, since `message` is one of its
+   * dependencies, so listing this costs nothing.
+   */
+  const save = useCallback(() => {
+    const mine = ++request.current;
+    setState("saving");
+    setInFlight(true);
+    const body = new FormData();
+    body.set("message", message);
+    body.set("from", from);
+    body.set("locale", locale);
+    if (figuresSvg) {
+      // The same pair of fields the form posts: "asked" is what tells an
+      // unticked box from a form that never carried the question.
+      body.set("figures_asked", "1");
+      if (figures) body.set("figures", "on");
+    }
+    fetch(`/${username}/postcards/${id}/message`, {
+      method: "POST",
+      headers: { accept: "application/json" },
+      body,
+    })
+      .then((r) =>
+        r.ok ? r.json() : Promise.reject(new Error(String(r.status))),
+      )
+      .then((data: { result?: string }) => {
+        if (mine !== request.current) return;
+        setState(data.result === "saved" ? "saved" : "failed");
+      })
+      .catch(() => {
+        if (mine === request.current) setState("failed");
+      })
+      .finally(() => {
+        if (mine === request.current) setInFlight(false);
+      });
+  }, [username, id, message, from, locale, figures, figuresSvg]);
+
   useEffect(() => {
     if (!editable) return;
     // Nothing to save on the first render: this is what the server already has.
@@ -119,37 +178,10 @@ export default function PostcardBack({
       first.current = false;
       return;
     }
-    const mine = ++request.current;
     setState("saving");
-    const timer = setTimeout(() => {
-      const body = new FormData();
-      body.set("message", message);
-      body.set("from", from);
-      body.set("locale", locale);
-      if (figuresSvg) {
-        // The same pair of fields the form posts: "asked" is what tells an
-        // unticked box from a form that never carried the question.
-        body.set("figures_asked", "1");
-        if (figures) body.set("figures", "on");
-      }
-      fetch(`/${username}/postcards/${id}/message`, {
-        method: "POST",
-        headers: { accept: "application/json" },
-        body,
-      })
-        .then((r) =>
-          r.ok ? r.json() : Promise.reject(new Error(String(r.status))),
-        )
-        .then((data: { result?: string }) => {
-          if (mine !== request.current) return;
-          setState(data.result === "saved" ? "saved" : "failed");
-        })
-        .catch(() => {
-          if (mine === request.current) setState("failed");
-        });
-    }, 700);
+    const timer = setTimeout(save, 700);
     return () => clearTimeout(timer);
-  }, [username, id, message, from, locale, figures, figuresSvg, editable]);
+  }, [save, editable]);
 
   return (
     <>
@@ -239,6 +271,19 @@ export default function PostcardBack({
         <form
           method="post"
           action={`/${username}/postcards/${id}/message`}
+          // With JavaScript off this handler does not exist and the form posts
+          // and redirects exactly as it always did — which is the whole point
+          // of it still being a real `<form method="post" action=…>`. With
+          // JavaScript on, saving is the same `fetch` the debounce uses, so
+          // the press costs no page load. B892.
+          onSubmit={
+            editable
+              ? (e) => {
+                  e.preventDefault();
+                  save();
+                }
+              : undefined
+          }
           className="mt-6 rounded-lg border border-navy-200 bg-white px-3 py-3 sm:col-span-2"
         >
           <label className="block text-sm font-semibold text-navy-800">
@@ -296,14 +341,15 @@ export default function PostcardBack({
             </label>
           ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            {/* No `busy` prop: this is the no-JavaScript fallback form, which
-                navigates rather than fetches, so there is no state for a
-                caller to hold. `BusyButton` watches its own form's submit —
-                and where JavaScript is off, which is the case this form exists
-                for, it is a plain `<button type="submit">` and nothing here
-                matters. B867. */}
+            {/* `busy` is given now that the press is a `fetch` and there is a
+                state to report — B892. It used to self-watch, which was right
+                while the press was a document post and useless in practice:
+                the navigation threw the page away before a spinner could
+                turn. */}
             <BusyButton
               type="submit"
+              busy={inFlight}
+              busyLabel={strings.saving}
               className="min-h-11 w-full rounded-full border-2 border-navy-900 px-5 text-sm font-semibold text-navy-900 transition-colors hover:bg-navy-900 hover:text-white disabled:opacity-70 sm:w-auto"
             >
               {strings.save}
@@ -313,7 +359,10 @@ export default function PostcardBack({
               role="status"
               className={`text-xs ${state === "failed" ? "font-semibold text-coral-600" : "text-navy-600"}`}
             >
-              {state === "saving"
+              {/* Not while the button is already saying it — B892. The two
+                  sat one above the other reading "Saving…" twice. `saved` and
+                  `failed` stay here, because the button never says those. */}
+              {state === "saving" && !inFlight
                 ? strings.saving
                 : state === "saved"
                   ? strings.saved

@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import NoticeShell from "@/components/NoticeShell";
 import PageHeader from "@/components/PageHeader";
@@ -446,20 +447,28 @@ export default async function PostcardOrderPage({
                       ? t("postcard.confirm.yesOne")
                       : t("postcard.confirm.yesMany")}
                   </button>
-                  <a
+                  <Link
                     className="text-sm underline"
                     href={`/${username}/postcards/${id}#send`}
                   >
                     {t("postcard.confirm.back")}
-                  </a>
+                  </Link>
                 </form>
               </div>
             ) : (
               <div className="mt-3">
                 {/* A link, not a submit: the first press only *asks*. */}
-                <a
+                {/* `Link`, not `<a>` — B892. Both presses in this flow were
+                    full document loads: the page flashed, the reader was put
+                    back at the top, and the whole thing felt like it had gone
+                    wrong even when it had not. A soft navigation keeps
+                    `?confirm=1` in the URL, so B466's reasoning is untouched —
+                    with JavaScript off this is still an ordinary link to a
+                    server-rendered second step, and nothing can send on the
+                    first click. */}
+                <Link
                   href={
-                    sendable ? `/${username}/postcards/${id}?confirm=1#send` : undefined
+                    sendable ? `/${username}/postcards/${id}?confirm=1#send` : ""
                   }
                   aria-disabled={!sendable}
                   className={`inline-flex min-h-11 items-center rounded-full px-5 text-sm font-semibold transition-colors ${
@@ -474,7 +483,7 @@ export default async function PostcardOrderPage({
                         count: String(live.length),
                         total: String(cost),
                       })}
-                </a>
+                </Link>
                 <p className="mt-2 text-xs text-navy-600">{t("postcard.page.sendWarning")}</p>
               </div>
             )
