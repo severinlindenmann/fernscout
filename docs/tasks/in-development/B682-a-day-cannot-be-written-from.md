@@ -6,6 +6,9 @@ priority: high
 complexity: high
 area: agent, entries, media
 found: "2026-09-07T09:52:57Z"
+started: "2026-09-07T10:36:14Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T10:36:14Z"
 ---
 
 # B682 — A day cannot be written from a phone without an agent
