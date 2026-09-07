@@ -7,8 +7,7 @@ complexity: low
 area: agent, ui
 found: "2026-09-07T11:17:14Z"
 started: "2026-09-07T11:40:38Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:40:38Z"
+merged: "2026-09-07T12:17:54Z"
 ---
 
 # B711 — The preview still says draft after the day is published
