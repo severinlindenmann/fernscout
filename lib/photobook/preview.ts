@@ -382,14 +382,17 @@ function pageHtml(
     // of them signs the book off, so they no longer share a body.
     case "colophon":
       parts.push(
-        `<div style="position:absolute;left:${((spec.safeMm / (spec.size.trimWidthMm + spec.bleedMm * 2)) * 100).toFixed(3)}%;` +
-          `bottom:52%">${travellersSvg(12, page.figures)}</div>`,
-      );
-      parts.push(
         textBlock(
           spec,
           page,
-          `<h2 style="${pt(type.caption)}">${escape(page.heading)}</h2>` +
+          // In the flow, above the heading — B764. Absolutely positioned at
+          // 52% of the page they landed in the middle of a text block that
+          // starts at the *top* of the content box, so the last page had the
+          // party standing on its own colophon. Same fault as the title
+          // page's, same fix, and invisible until B740 made the figures show
+          // in the preview at all.
+          `${travellersSvg(12, page.figures)}` +
+            `<h2 style="${pt(type.caption)}">${escape(page.heading)}</h2>` +
             page.lines.map((l) => `<p style="${pt(type.body)}">${escape(l) || "&nbsp;"}</p>`).join(""),
         ),
       );
@@ -682,8 +685,14 @@ export function renderPreview(
   .copy { position:absolute; display:flex; flex-direction:column; justify-content:flex-start;
           gap:.15em; overflow:hidden; color:var(--ink); }
   .copy .stack { margin-top:auto; margin-bottom:20%; }
-  /* The title page's party, standing on the title — B756. */
-  .copy .stack > svg { margin-bottom:0.6em; }
+  /* A party standing on the block it belongs to — B756, B764.
+     align-self, because .copy is a flex column: without it the svg box is
+     stretched to the full column width and preserveAspectRatio centres the
+     drawing inside it, so the preview put the figures in the middle of a page
+     the PDF draws them at the margin of. The preview is evidence about paper
+     or it is nothing. (No backticks in here: this block is inside a template
+     literal, and one closed it — a 500 on every preview.) */
+  .copy .stack > svg, .copy > svg { margin-bottom:0.6em; align-self:flex-start; }
   .copy h1 { font-weight:700; line-height:1.12; margin:0; }
   .copy h2 { font-weight:700; margin:0 0 .35em; }
   .copy p { margin:0 0 .3em; line-height:1.5; }

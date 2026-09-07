@@ -713,13 +713,18 @@ function drawPage(
       break;
 
     case "colophon": {
+      let y = c.y + c.height * 0.42;
+      // Standing on the block's own top, not at a fraction of the page —
+      // B764, the same fault and the same fix as the title page's in B756.
+      // The eyebrow's baseline is `y + 14`, so this is where the words
+      // actually end whatever they say.
+      const blockTop = y + 14 + (type.caption * 0.72) / mm(1);
       drawTravellers(page, (xMm, yMm) => [frame.x(xMm), frame.y(yMm)], {
         x: c.x,
-        y: c.y + c.height * 0.52,
+        y: blockTop + 4,
         width: c.height * 0.17,
         height: c.height * 0.12,
       }, plan.figures);
-      let y = c.y + c.height * 0.42;
       text(page, frame, eyebrow(plan.heading), c.x, y + 14, type.caption, MUTED);
       rule(page, frame, c.x, y + 8, Math.min(c.width, 30), ACCENT);
       for (const line of plan.lines) {
