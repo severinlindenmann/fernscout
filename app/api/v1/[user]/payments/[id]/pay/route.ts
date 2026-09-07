@@ -74,6 +74,7 @@ export async function POST(
         user,
         serverSite().url,
         journal.defaultLocale,
+        journal.owner.email || undefined,
       );
     } catch (error) {
       console.error("[payments] stripe checkout session failed", error);

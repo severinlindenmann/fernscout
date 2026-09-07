@@ -104,6 +104,19 @@ export async function createCheckoutSession(
   username: string,
   baseUrl: string,
   locale?: string,
+  /**
+   * The journal owner's own address, prefilled on Stripe's contact box — B815.
+   * It is the address the checkout link was mailed to and the address the
+   * receipt has to reach, since the credits are theirs, so asking them to type
+   * it again on a phone buys nothing.
+   *
+   * **Never a value from a request.** A caller who could name it would have a
+   * way to make Stripe mail somebody who never asked, which is the same reason
+   * `/credits/purchase` mails `journal.owner.email` and nothing else. Absent
+   * where a journal names no owner, which leaves the field empty rather than
+   * failing.
+   */
+  ownerEmail?: string,
 ): Promise<string | null> {
   const back = `${baseUrl}/${username}/payment/${payment.id}`;
   const session = await stripe().checkout.sessions.create({
@@ -122,6 +135,7 @@ export async function createCheckoutSession(
         },
       },
     ],
+    ...(ownerEmail ? { customer_email: ownerEmail } : {}),
     client_reference_id: payment.id,
     metadata: { owner: payment.owner, paymentId: payment.id },
     // Both land back on our own checkout page, which reads the row and says
