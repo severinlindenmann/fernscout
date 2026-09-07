@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: trip hero, reading
 found: "2026-09-07T14:01:29Z"
+completed: "2026-09-07T14:04:51Z"
 ---
 
 # B765 — The trip masthead shows the journal's name and tagline instead of the trip's
