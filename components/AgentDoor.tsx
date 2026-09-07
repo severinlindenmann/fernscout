@@ -327,10 +327,20 @@ export default function AgentDoor({
             in with no journal, there is no `AgentHandover` to duplicate (it
             needs a journal), so the generic panel is the only offer there
             is. */}
+        {/* B804 — the panel is right and stays; what was wrong is that it sat
+            here unexplained, so a 71-year-old who has never heard the word
+            "Agent" in this sense read a block of English as her next
+            instruction. One line in front of it, ending in permission to
+            ignore it, and the block itself behind the same `<details>` the
+            intro uses for "why?" — present, findable, and no longer the thing
+            below the form that looks like the next step. */}
         {(!signedIn || journals.length === 0) && (
-          <div className="mt-2">
+          <details className="mt-2">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center text-base leading-7 text-navy-700 underline underline-offset-4">
+              {t("agent.ownAgentOptional")}
+            </summary>
             <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />
-          </div>
+          </details>
         )}
       </main>
     </div>

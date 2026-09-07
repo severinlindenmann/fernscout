@@ -62,6 +62,8 @@ const GOOD = {
   visibility: "public",
   defaultLocale: "en",
   locales: ["en"],
+  // Required since B839 — the one field a journal can never change.
+  baseCurrency: "CHF",
 };
 /** Refused by `createJournal` every time, and cheap: no journal is written. */
 const NOT_A_NAME = { ...GOOD, username: "Has Capitals" };

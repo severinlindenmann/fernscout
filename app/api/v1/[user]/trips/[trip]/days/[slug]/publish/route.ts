@@ -5,6 +5,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { balanceOf } from "@/lib/credits";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
+import { getUser } from "@/lib/users";
 import { incompleteMessage, missingFrom } from "@/lib/tracks";
 import { serverSite } from "@/lib/site";
 import { mailWouldCost, sendDayLetter } from "@/lib/digest/dayLetter";
@@ -312,6 +313,11 @@ export async function POST(
       // closed trip had just gone out to strangers.
       visibility: found.visibility,
       listed: found.listed,
+      // B805 — the journal's own language. The guide tells the agent to read
+      // this sentence out rather than paraphrase it, so a German owner was
+      // meeting an English sentence containing the untranslated word
+      // `guest` on exactly the distinction people already get wrong.
+      locale: getUser(user)?.defaultLocale,
     }),
     ...(mail ? { mail } : {}),
     ...(whatsapp ? { whatsapp } : {}),

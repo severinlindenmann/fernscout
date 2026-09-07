@@ -49,6 +49,8 @@ const BASE = {
   visibility: "public",
   defaultLocale: "en",
   locales: ["en"],
+  // Required since B839 — the one field a journal can never change.
+  baseCurrency: "CHF",
 };
 
 beforeEach(async () => {

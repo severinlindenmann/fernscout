@@ -1451,6 +1451,7 @@ export function openApiDocument() {
                     "visibility",
                     "defaultLocale",
                     "locales",
+                    "baseCurrency",
                   ],
                   properties: {
                     username: { type: "string", description: "The journal's address. Permanent." },
@@ -1517,11 +1518,24 @@ export function openApiDocument() {
                         `the journal into, as distinct from defaultLocale, the owner's own. ` +
                         `Must include defaultLocale. Each entry must be one of ${LOCALE_LIST}.`,
                     },
-                    baseCurrency: { type: "string", description: "ISO-4217. What totals are converted into for display; what was actually paid is never converted on the way in." },
+                    baseCurrency: {
+                      type: "string",
+                      // No `default`: it was `CHF`, silently, and unlike every
+                      // other field on this route there is no correcting it —
+                      // PATCH /api/v1/{user}/config refuses it. B839.
+                      description:
+                        "Required — there is no default, and this is the only field here that " +
+                        "can never be changed. ISO-4217. Every cost anywhere in the journal is " +
+                        "added up in it; what was actually paid is never converted on the way " +
+                        "in. Tell them it is permanent when you ask.",
+                    },
                     displayCurrencies: {
                       type: "array",
                       items: { type: "string" },
-                      description: "Shown beside the base currency, so a reader sees both.",
+                      description:
+                        "Shown beside the base currency, so a reader sees both. Each an " +
+                        "ISO-4217 code, and the list must include baseCurrency. Omit it to " +
+                        "offer the base currency alone.",
                     },
                     units: { type: "string", enum: ["metric", "imperial"], description: "metric or imperial — distances and temperatures." },
                   },
@@ -1547,8 +1561,9 @@ export function openApiDocument() {
             "400": {
               description:
                 "The username, title or owner name/nickname is not usable, or visibility, " +
-                "defaultLocale or locales is missing or not a value this server accepts, or " +
-                "locales does not contain defaultLocale.",
+                "defaultLocale, locales or baseCurrency is missing or not a value this server " +
+                "accepts, or locales does not contain defaultLocale, or displayCurrencies does " +
+                "not contain baseCurrency.",
             },
             "401": { description: "Missing or invalid signup token" },
             "403": { description: "This address already owns as many journals as it may" },

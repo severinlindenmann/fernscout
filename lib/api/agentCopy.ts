@@ -763,7 +763,7 @@ export type FirstQuestion = { ask: string; because: string };
  * leave the sentence above it lying — but a bare digit in running prose reads
  * like a form field. Only as far as the list could plausibly grow.
  */
-const NUMERALS = ["no", "One", "Two", "Three", "Four", "Five", "Six", "Seven"];
+const NUMERALS = ["no", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight"];
 export function numeral(n: number): string {
   return NUMERALS[n] ?? String(n);
 }
@@ -854,6 +854,15 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
         "their own words, and a day missing one is refused (B294). Two languages is a " +
         "promise to write everything twice; if they are not going to, one is the honest " +
         "answer and it can be widened later.",
+    },
+    {
+      ask: "**What they count money in** (`baseCurrency`)",
+      because:
+        "A three-letter code — every cost anywhere in this journal is added up in it. **It is " +
+        "the one field here that can never be changed**: `PATCH /api/v1/<user>/config` refuses " +
+        "it outright, because correcting it later would silently re-price every trip already " +
+        "written. It was defaulted to `CHF` and asked by nobody until B839, so tell them it is " +
+        "permanent when you ask, and send the code rather than the name — \"francs\" is `CHF`.",
     },
   ];
 }
