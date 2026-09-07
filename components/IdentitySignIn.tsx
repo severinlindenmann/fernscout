@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { PRIMARY_BUTTON } from "@/components/LandingSections";
 import { useI18n } from "@/components/LocaleProvider";
@@ -57,6 +57,19 @@ export default function IdentitySignIn({
   const reduceMotion = useReducedMotion();
   const [flying, setFlying] = useState(false);
   const [flightId, setFlightId] = useState(0);
+  /**
+   * Where the flight starts, in the panel's own coordinates — B762.
+   *
+   * The envelope is mounted against the panel rather than against the button,
+   * because a fast response swaps the email form out and anything rendered
+   * inside it is unmounted mid-flight. But it has to *leave from* the button,
+   * or the gesture does not read as a consequence of pressing it. So the
+   * button's centre is measured at send time and handed over; the panel is
+   * the positioned ancestor either way.
+   */
+  const panelRef = useRef<HTMLElement | null>(null);
+  const sendRef = useRef<HTMLButtonElement | null>(null);
+  const [origin, setOrigin] = useState<{ x: number; y: number } | null>(null);
 
   async function requestCode(event: React.FormEvent) {
     event.preventDefault();
@@ -67,8 +80,16 @@ export default function IdentitySignIn({
     // because this finishes on its own ~450ms clock rather than waiting for
     // the response. Skipped outright under reduced motion (B753).
     if (!reduceMotion) {
-      setFlightId((id) => id + 1);
-      setFlying(true);
+      const panel = panelRef.current?.getBoundingClientRect();
+      const send = sendRef.current?.getBoundingClientRect();
+      if (panel && send) {
+        setOrigin({
+          x: send.x - panel.x + send.width / 2,
+          y: send.y - panel.y + send.height / 2,
+        });
+        setFlightId((id) => id + 1);
+        setFlying(true);
+      }
     }
     const response = await fetch("/api/auth/identity/request", {
       method: "POST",
@@ -115,9 +136,20 @@ export default function IdentitySignIn({
   }
 
   return (
-    <section className="relative mt-6 overflow-hidden rounded-2xl border border-navy-200 bg-cream-50 p-5 sm:p-6">
-      {flying && <EnvelopeFly key={flightId} onDone={() => setFlying(false)} />}
-      <h2 className="font-display text-xl font-semibold text-navy-900">{t("home.signInTitle")}</h2>
+    <section
+      ref={panelRef}
+      className="relative mt-6 rounded-2xl border border-navy-200 bg-cream-50 p-5 sm:p-6"
+    >
+      {flying && origin && (
+        <EnvelopeFly
+          key={flightId}
+          origin={origin}
+          onDone={() => setFlying(false)}
+        />
+      )}
+      <h2 className="font-display text-xl font-semibold text-navy-900">
+        {t("home.signInTitle")}
+      </h2>
 
       {unavailable ? (
         <p role="alert" className="mt-2 text-base leading-7 text-navy-700">
@@ -125,7 +157,9 @@ export default function IdentitySignIn({
         </p>
       ) : step === "email" ? (
         <form onSubmit={requestCode}>
-          <p className="mt-2 text-base leading-7 text-navy-700">{t("home.signInBody")}</p>
+          <p className="mt-2 text-base leading-7 text-navy-700">
+            {t("home.signInBody")}
+          </p>
           {/* The inset label — B733's addendum. The label lives *inside* the
               bordered field rather than floating above it, which is most of
               why the mockup's version reads as one control rather than a
@@ -162,7 +196,11 @@ export default function IdentitySignIn({
               className="block w-full border-0 bg-transparent p-0 text-base text-navy-900 focus:outline-none focus:ring-0 quiet-inner-focus"
             />
           </div>
+          {/* `sendRef` is what the flight is measured from — B762. The
+              envelope itself is mounted up at the panel, because a fast
+              response swaps this form out and would unmount it mid-flight. */}
           <button
+            ref={sendRef}
             type="submit"
             disabled={busy || email === ""}
             className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
@@ -209,7 +247,11 @@ export default function IdentitySignIn({
               className="block w-full border-0 bg-transparent p-0 font-mono text-2xl tracking-[0.3em] text-navy-900 focus:outline-none focus:ring-0 quiet-inner-focus"
             />
           </div>
-          <p id="identity-error" role="alert" className="mt-3 text-base text-coral-600 empty:mt-0">
+          <p
+            id="identity-error"
+            role="alert"
+            className="mt-3 text-base text-coral-600 empty:mt-0"
+          >
             {wrong ? t("me.signInWrong") : ""}
           </p>
           <button
