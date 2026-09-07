@@ -928,7 +928,8 @@
   "postcard.page.goingMany": "{count} főnek megy",
   "postcard.page.goingOne": "1 főnek megy",
   "postcard.page.intro": "Ebből a napból: {day}. Még semmi nem készült el és semmi nem lett leterhelve.",
-  "postcard.page.introSent": "Ebből a napból: {day}. Elküldve: {when} â a nyomdában vannak.",
+  "postcard.page.introSent": "Ebből a napból: {day}. Elküldve: {when} — a nyomdában vannak.",
+  "postcard.page.introFailed": "Ebből a napból: {day}. Semmi nem készült el, és a kreditek visszakerültek.",
   "postcard.page.lost": "A rendelésből {count} főnek már nem lehet postázni — azóta visszavonták a címüket vagy a hozzájárulásukat. Nem számítanak bele és nem kerülnek pénzbe.",
   "postcard.page.lowRes": "Ez a fénykép nagyjából {dpi} dpi-vel nyomtat, a lapokhoz kívánt 300 dpi alatt — papíron kissé homályosnak fog látszani. Egy nagyobb eredeti jobban nyomtatna.",
   "postcard.page.messageLabel": "Mi áll rajta",
@@ -949,6 +950,7 @@
   "postcard.page.signed": "Aláírás",
   "postcard.page.title": "Képeslapok, küldésre készen",
   "postcard.page.titleSent": "Képeslapok, elküldve",
+  "postcard.page.titleFailed": "Képeslapok, nem lettek elküldve",
   "postcard.page.writtenIn": "Ezen a nyelven",
   "postcard.pickHint": "Koppints egy fényképre, hogy képeslapra kerüljön.",
   "postcard.pickPhoto": "Válassz egy fényképet",
@@ -1408,5 +1410,6 @@
   "agent.speechConsentDryRunShort": "Elküldi a hangodat a szerver saját próbaüzemének. Semmi nem hagyja el a szervert, és a visszakapott szöveg csak helykitöltő.",
   "agent.askConsentShort": "Elküldi a beírt mondatot egy modellnek, hogy kitalálja, melyik lépésre gondoltál. A kérdezés ingyenes.",
   "agent.statementConsentShort": "Elküldi a fájl fejlécsorát és az első öt sorát egy modellnek, hogy megmondja, melyik oszlop micsoda.",
-  "agent.pickPhotosWhy": "Amit a fényképezőgép rögzített – a nap, az időpont és a hely – kitölti a többit, és semmi nem lesz kitalálva."
+  "agent.pickPhotosWhy": "Amit a fényképezőgép rögzített – a nap, az időpont és a hely – kitölti a többit, és semmi nem lesz kitalálva.",
+  "postcard.result.providerFailed": "A nyomda minden lapot elutasított, így semmi nem lett elküldve, és a kreditek visszakerültek."
 }

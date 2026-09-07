@@ -99,6 +99,27 @@ describe("sending to Stannp", () => {
     expect(body.get("back")).toBeInstanceOf(Blob);
   });
 
+  // The bug that made every free sample look like a refusal — B435. Stannp
+  // answers a test render with `"id": 0`, and `!payload.data?.id` is true for
+  // zero, so a card that had rendered perfectly was recorded as failed and its
+  // credits given back.
+  test("id 0 is an id — a test render is not a refusal", async () => {
+    stub({ success: true, data: { id: 0, pdf: "https://…/sample.pdf", cost: "1.86", status: "test" } });
+    expect(await sendPostcard(input)).toMatchObject({ ok: true, ref: "stannp-test:0" });
+  });
+
+  test("a refusal says what the server said, never a bare status", async () => {
+    // Their failures come back 200 with the explanation in the body, so a
+    // message built from the status code alone threw away the only useful
+    // sentence in the response.
+    stub({ success: false, error: "Failed to download the front image from the URL provided" });
+    const result = await sendPostcard(input);
+    expect(result).toEqual({
+      ok: false,
+      error: "stannp refused: Failed to download the front image from the URL provided",
+    });
+  });
+
   test("a refusal is an error, not a reported send", async () => {
     stub({ success: false, error: "Insufficient balance" }, false);
     expect(await sendPostcard(input)).toEqual({ ok: false, error: "stannp refused: Insufficient balance" });

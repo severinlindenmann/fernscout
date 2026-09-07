@@ -80,13 +80,35 @@ export async function sendPostcard(input: {
     return { ok: false, error: `stannp unreachable: ${error instanceof Error ? error.message : "unknown"}` };
   }
 
-  const payload = (await response.json().catch(() => null)) as
+  const raw = await response.text();
+  let payload:
     | { success?: boolean; error?: string; data?: { id?: number | string; pdf?: string; cost?: string } }
-    | null;
+    | null = null;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    payload = null;
+  }
 
-  if (!response.ok || !payload?.success || !payload.data?.id) {
-    const said = payload?.error ?? `HTTP ${response.status}`;
+  if (!response.ok || payload?.success !== true) {
+    // Their own words when they gave any, and otherwise the body itself —
+    // never a bare status. The first version of this said `HTTP ${status}`
+    // when `error` was absent, which is how a 200 carrying a perfectly clear
+    // explanation was reported as "stannp refused: HTTP 200" and cost an
+    // afternoon. A refusal message that omits what the server said is not a
+    // refusal message.
+    const said = payload?.error ?? raw.slice(0, 300) ?? `HTTP ${response.status}`;
     return { ok: false, error: `stannp refused: ${said}` };
+  }
+
+  // **`id` is 0 on every test render**, and only on those. Checking it for
+  // truthiness — which is what this did — rejected every successful free
+  // sample as a failure, refunded the credits and recorded the order as
+  // `failed` while the card had rendered perfectly. The id is present or it
+  // is not; zero is a value.
+  const id = payload.data?.id;
+  if (id === undefined || id === null) {
+    return { ok: false, error: `stannp refused: no id in ${raw.slice(0, 200)}` };
   }
 
   return {
@@ -94,8 +116,8 @@ export async function sendPostcard(input: {
     // Prefixed with the mode, because a ledger row saying a card was sent when
     // Stannp only rendered a sample is the one thing this must not be able to
     // claim. `stannp-test:` is not a send.
-    ref: `${test ? "stannp-test" : "stannp"}:${payload.data.id}`,
-    pdf: payload.data.pdf,
-    cost: payload.data.cost,
+    ref: `${test ? "stannp-test" : "stannp"}:${id}`,
+    pdf: payload.data?.pdf,
+    cost: payload.data?.cost,
   };
 }

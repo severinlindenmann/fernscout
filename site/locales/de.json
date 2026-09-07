@@ -928,7 +928,8 @@
   "postcard.page.goingMany": "Geht an {count} Personen",
   "postcard.page.goingOne": "Geht an 1 Person",
   "postcard.page.intro": "Vom Tag {day}. Es wurde noch nichts gedruckt und nichts abgebucht.",
-  "postcard.page.introSent": "Vom Tag {day}. Am {when} gesendet â sie sind in der Druckerei.",
+  "postcard.page.introSent": "Vom Tag {day}. Am {when} gesendet — sie sind in der Druckerei.",
+  "postcard.page.introFailed": "Vom Tag {day}. Es wurde nichts gedruckt, und deine Credits sind zurück auf dem Konto.",
   "postcard.page.lost": "An {count} Personen dieser Bestellung kann nicht mehr geschickt werden — sie haben seither ihre Adresse oder ihre Zustimmung zurückgezogen. Sie zählen nicht mit und kosten nichts.",
   "postcard.page.lowRes": "Dieses Foto druckt mit etwa {dpi} dpi, unter den 300 dpi, die eine Karte braucht — auf Papier wirkt es leicht unscharf. Ein grösseres Original druckt besser.",
   "postcard.page.messageLabel": "Was daraufsteht",
@@ -949,6 +950,7 @@
   "postcard.page.signed": "Unterschrift",
   "postcard.page.title": "Postkarten, bereit zum Senden",
   "postcard.page.titleSent": "Postkarten, gesendet",
+  "postcard.page.titleFailed": "Postkarten, nicht gesendet",
   "postcard.page.writtenIn": "Geschrieben auf",
   "postcard.pickHint": "Tippe ein Foto an, um es auf eine Postkarte zu setzen.",
   "postcard.pickPhoto": "Foto auswählen",
@@ -1408,5 +1410,6 @@
   "agent.speechConsentDryRunShort": "Schickt deine Stimme an den Dry-Run dieses Servers. Nichts verlässt den Server, und der Text, der zurückkommt, ist ein Platzhalter.",
   "agent.askConsentShort": "Schickt den Satz, den du getippt hast, an ein Modell, damit es herausfindet, welchen Schritt du meinst. Fragen kostet nichts.",
   "agent.statementConsentShort": "Schickt die Überschriftenzeile dieser Datei und ihre ersten fünf Zeilen an ein Modell, damit es sagt, welche Spalte welche ist.",
-  "agent.pickPhotosWhy": "Was die Kamera aufgezeichnet hat – Tag, Uhrzeit und Ort – füllt den Rest aus, und nichts davon wird erfunden."
+  "agent.pickPhotosWhy": "Was die Kamera aufgezeichnet hat – Tag, Uhrzeit und Ort – füllt den Rest aus, und nichts davon wird erfunden.",
+  "postcard.result.providerFailed": "Die Druckerei hat alle Karten abgelehnt. Es wurde nichts gesendet, und deine Credits sind zurück auf dem Konto."
 }
