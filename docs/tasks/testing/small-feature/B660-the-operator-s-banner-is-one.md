@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: site config, landing page
 found: "2026-09-07T06:35:20Z"
+merged: "2026-09-07T06:40:02Z"
 ---
 
 # B660 — The operator's banner is one language on a multilingual instance
