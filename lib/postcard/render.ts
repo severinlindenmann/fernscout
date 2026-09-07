@@ -6,6 +6,7 @@ import {
   DIVIDER_X_MM,
   FIGURES_AREA,
   LEADING,
+  MAX_CROP_ZOOM,
   MESSAGE_PT,
   SIGNATURE_PT,
   STAMP_AREA,
@@ -143,8 +144,16 @@ const CENTRE: Crop = { x: 0.5, y: 0.5 };
  * problem, reused rather than reinvented. At `CENTRE` this is the old
  * centring formula.
  */
+const zoomOf = (crop?: Crop) => Math.min(MAX_CROP_ZOOM, Math.max(1, crop?.zoom ?? 1));
+
 function coverRect(image: JpegImage, boxWidth: number, boxHeight: number, crop: Crop = CENTRE) {
-  const scale = Math.max(boxWidth / image.width, boxHeight / image.height);
+  // Both axes by the same factor, always: `zoom` multiplies the cover scale
+  // rather than one side of it, so a crop can go closer in but never come
+  // out anisotropic. The anchor arithmetic below is untouched by it — the
+  // point of the photograph at (`crop.x`, `crop.y`) lands at that same
+  // fraction across the card whatever the zoom, which is exactly what CSS
+  // `transform-origin` does in the preview, so the two agree by construction.
+  const scale = Math.max(boxWidth / image.width, boxHeight / image.height) * zoomOf(crop);
   const width = image.width * scale;
   const height = image.height * scale;
   return {
@@ -176,12 +185,16 @@ export function renderPostcard(input: PostcardInput): RenderedPostcard {
   }
 
   const needed = requiredPixelWidth(spec);
-  const effectiveDpi = Math.floor((image.width / (spec.trimWidthMm + spec.bleedMm * 2)) * 25.4);
-  if (image.width < needed) {
+  // The pixels actually printed, not the pixels in the file: zooming in puts
+  // fewer of them across the same card, and a warning computed from the whole
+  // photograph would report the resolution of a picture nobody ordered.
+  const usedWidth = Math.round(image.width / zoomOf(input.crop));
+  const effectiveDpi = Math.floor((usedWidth / (spec.trimWidthMm + spec.bleedMm * 2)) * 25.4);
+  if (usedWidth < needed) {
     warnings.push({
       code: "low-resolution",
       detail:
-        `Photo is ${image.width}px wide; ${needed}px is needed for ${spec.dpi} DPI ` +
+        `Photo is ${usedWidth}px wide; ${needed}px is needed for ${spec.dpi} DPI ` +
         `at this size (this one prints at about ${effectiveDpi} DPI).`,
     });
   }

@@ -18,6 +18,7 @@ import {
   ORDER_TTL_MS,
 } from "@/lib/postcard/orders";
 import { sendOrder } from "@/lib/postcard/send";
+import { MAX_CROP_ZOOM } from "@/lib/postcard/spec";
 import { makeJpeg } from "./support/exif-jpeg";
 import { backToPreview } from "@/lib/postcard/redirectBack";
 
@@ -332,7 +333,7 @@ describe("repositioning the crop before it goes — B627", () => {
 
     expect(await updateOrderCrop(OWNER, made.id, { x: 0.9, y: 0.1 })).toBe(true);
     const again = await getOrder(OWNER, made.id);
-    expect(again?.payload.crop).toEqual({ x: 0.9, y: 0.1 });
+    expect(again?.payload.crop).toEqual({ x: 0.9, y: 0.1, zoom: 1 });
     // Only the crop moved — not the words, not the people, not the price.
     expect(again?.payload.message).toBe(made.payload.message);
     expect(again?.payload.recipients).toEqual(made.payload.recipients);
@@ -344,7 +345,25 @@ describe("repositioning the crop before it goes — B627", () => {
     const made = await order([contact]);
 
     await updateOrderCrop(OWNER, made.id, { x: 1.4, y: -0.3 });
-    expect((await getOrder(OWNER, made.id))?.payload.crop).toEqual({ x: 1, y: 0 });
+    expect((await getOrder(OWNER, made.id))?.payload.crop).toEqual({ x: 1, y: 0, zoom: 1 });
+  });
+
+  // The rectangle can be dragged small; how close it may print is the
+  // renderer's business and MAX_CROP_ZOOM's, not the drag handler's.
+  test("a zoom is kept between 1 and the ceiling", async () => {
+    const contact = await reader("cropzoom@example.test");
+    await grant(OWNER, 100);
+    const made = await order([contact]);
+
+    await updateOrderCrop(OWNER, made.id, { x: 0.5, y: 0.5, zoom: 2.5 });
+    expect((await getOrder(OWNER, made.id))?.payload.crop?.zoom).toBe(2.5);
+
+    await updateOrderCrop(OWNER, made.id, { x: 0.5, y: 0.5, zoom: 99 });
+    expect((await getOrder(OWNER, made.id))?.payload.crop?.zoom).toBe(MAX_CROP_ZOOM);
+
+    // Zooming *out* past the whole photograph would letterbox the card.
+    await updateOrderCrop(OWNER, made.id, { x: 0.5, y: 0.5, zoom: 0.2 });
+    expect((await getOrder(OWNER, made.id))?.payload.crop?.zoom).toBe(1);
   });
 
   test("a card that has gone cannot be recropped", async () => {

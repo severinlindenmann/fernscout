@@ -168,7 +168,7 @@ export default async function PostcardOrderPage({
   const trip = getTrip(order.payload.trip);
   const party = trip ? travellerPartyFor(trip) : [];
   const hasParty = party.length > 0;
-  const showFigures = Boolean(order.payload.figures) && hasParty;
+  const showFigures = order.payload.figures !== false && hasParty;
 
   return (
     <div className="min-h-screen">
@@ -211,6 +211,7 @@ export default async function PostcardOrderPage({
               editable={isPending(order) && !expired}
               hint={t("postcard.page.cropHint")}
               savingLabel={t("postcard.page.cropSaving")}
+              resetLabel={t("postcard.page.cropReset")}
             />
             <figcaption className="mt-1 text-xs opacity-70">
               {t("postcard.page.front")}
@@ -344,10 +345,10 @@ export default async function PostcardOrderPage({
           </form>
         ) : null}
 
-        {/* B628. Off by default and separate from the words above: this is a
+        {/* B628. On by default and separate from the words above: this is a
             drawing, not text, and the switch changes nothing else on the
             back. Shown only when there is a party to draw — a trip nobody
-            has described has nothing here to turn on. */}
+            has described has nothing here to turn off. */}
         {isPending(order) && !expired && hasParty ? (
           <form
             method="post"
