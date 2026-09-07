@@ -1521,5 +1521,13 @@
   "purchase.receipt.method.admin": "üzemeltetői jóváhagyás",
   "purchase.receipt.reference": "Hivatkozás: {id} · {date}",
   "purchase.receipt.viewAccount": "Kreditek és tárhely",
-  "purchase.receipt.footer": "Azért kapod, mert a naplódhoz kreditet vásároltak. Őrizd meg nyugtaként; számlához add meg a fenti hivatkozást."
+  "purchase.receipt.footer": "Azért kapod, mert a naplódhoz kreditet vásároltak. Őrizd meg nyugtaként; számlához add meg a fenti hivatkozást.",
+  "purchase.refund.subject": "Visszatérítve — {amount}",
+  "purchase.refund.preheader": "{amount} visszatérítve.",
+  "purchase.refund.title": "A vásárlásodat visszatérítettük",
+  "purchase.refund.body": "{amount} visszakerül arra a fizetési módra, amivel fizettél. A banktól függően néhány napig tarthat, míg megjelenik.",
+  "purchase.refund.credits": "{credits} kreditet levontunk az egyenlegedből.",
+  "purchase.refund.creditsNone": "A kreditek már elfogytak, így nem vontunk le semmit.",
+  "purchase.refund.footer": "Azért kapod, mert a naplódon egy vásárlást visszatérítettünk. Válaszolj erre az üzenetre, ha valami nem stimmel.",
+  "me.txRefunded": "Visszatérítve"
 }
