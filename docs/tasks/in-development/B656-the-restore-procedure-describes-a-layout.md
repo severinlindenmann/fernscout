@@ -48,3 +48,37 @@ it turns a wide blast radius into an unrecoverable one.
   the resulting service starts.
 - The runbook names where `RESTIC_PASSWORD` is kept.
 - The time it actually took is recorded, as the drill asks.
+
+## Done, 2026-09-07
+
+Written as `docs/disaster-recovery.md` rather than as a rewrite in place, and
+`docs/runbook.md`'s "Restore procedure" is now four lines pointing at it. Two
+copies of a restore procedure is the failure this task exists to prevent, and
+keeping the old section as prose beside a new file would have recreated it
+within a month.
+
+The drill was run, and it is recorded in the new document rather than here:
+1487 files / 556 MiB restored in a second, the dump into a scratch Postgres 17
+with real row counts, `env/fernscout.env` back with 22 variables and no
+`RESTIC_PASSWORD`, and the service booted from the restored tree serving
+journals, days and original photographs.
+
+**The first boot failed**, on `features.contacts is enabled but
+CONTACTS_ENCRYPTION_KEY is not set`. That is the argument for B653 stated by
+the software itself, and it is now a section of the document rather than a
+thing somebody rediscovers at the worst moment.
+
+Two findings that were not in the ticket and are captured rather than absorbed:
+
+- A restored copy runs with the **live SMTP credentials and WhatsApp token**
+  that now travel in the snapshot, so an unmodified rehearsal mails the
+  journal's real contacts. The document makes neutralising the outbound
+  channels a required step of the drill.
+- Restoring the dump needs a **Postgres 17** client. A v16 `pg_restore` refuses
+  it with `unsupported version (1.16) in file header`, which reads like
+  corruption and is not — written into the document so nobody concludes the
+  backup is broken.
+
+Not done: `RESTIC_PASSWORD`'s location is described as "wherever this
+instance's operator keeps secrets" rather than named. Naming a password
+manager in a public repository is not something this file should do.

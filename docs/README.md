@@ -7,7 +7,8 @@ maintained guidance for an agent; this folder is the long form for a person.
 | | |
 | --- | --- |
 | [running-locally.md](running-locally.md) | production build on your machine; the agent API end to end |
-| [runbook.md](runbook.md) | deploying to a VPS, backups, restore |
+| [runbook.md](runbook.md) | deploying to a VPS, backups, the nightly timer |
+| [disaster-recovery.md](disaster-recovery.md) | the machine is gone: what a snapshot holds, and how the journals come back |
 | [architecture.md](architecture.md) | where things live, and why they are shaped that way |
 | [ingest.md](ingest.md) | photographs, EXIF, geodata |
 | [helper.md](helper.md) | Fernscout Helper — agent tools that make content for a journal |
@@ -29,7 +30,7 @@ folder was moved to `docs/archiv/`; on 2026-09-04 it was moved back, because a
 directory called *archive* answers the wrong question. "Nobody has reviewed
 this" is a fact about provenance. *Archive* is read as a fact about currency —
 historical, superseded, safe to ignore — and none of these files are that. The
-runbook holds the live restore procedure; `config-upgrades.md` is the only
+disaster-recovery.md holds the live restore procedure; `config-upgrades.md` is the only
 place `configVersion` is explained. Thirty-odd citations in `lib/`, `scripts/`,
 `test/` and `.claude/skills/` never stopped pointing here, and the handful that
 were repointed into `archiv/` ended up telling an operator that the backup
