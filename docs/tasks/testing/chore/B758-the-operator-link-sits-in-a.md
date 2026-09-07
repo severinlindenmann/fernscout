@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: landing, ops
 found: "2026-09-07T16:00:00Z"
+merged: "2026-09-07T13:55:43Z"
 ---
 
 # B758 — The operator link sits in a section of its own rather than in the header
