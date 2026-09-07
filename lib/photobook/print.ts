@@ -45,7 +45,7 @@ import { BOOK_SIZES } from "./spec";
  * do instead: propose, never press.
  */
 
-export type PrintFailure =
+type PrintFailure =
   | "unknown_order"
   | "not_built"
   | "already_printing"
@@ -104,7 +104,7 @@ export type PrintOutcomeState = (typeof PHOTOBOOK_PRINT_OUTCOME_STATES)[number];
  * operations: nothing is claimed or spent either way, and knowing the
  * destination is a precondition of knowing the price.
  */
-export const QUOTE_CURRENCY = "CHF";
+const QUOTE_CURRENCY = "CHF";
 
 export async function printOrder(owner: string, id: string, quotedCredits: number): Promise<PrintOutcome> {
   const order = await getPhotobookOrder(owner, id);
