@@ -341,7 +341,20 @@ export default async function PostcardOrderPage({
           </ul>
         </section>
 
-        <section className="mt-8 rounded-xl border-2 border-navy-900 bg-cream-100 p-4">
+        {/* `id="send"` is the anchor every step of the send flow returns to —
+            B850. All three of them are navigations, and a navigation with no
+            fragment lands at the top of a long page: the `?confirm=1` link
+            below (the *first* press, and the one that was actually being
+            complained about), the "back" link out of the confirm panel, and the
+            303 out of the send route. The reader presses a button in this box
+            and has to end up looking at this box; anchoring the result banner
+            alone fixed only the third of the three, and did it two lines under
+            the `<h1>`, where scrolling to it and jumping to the top are the
+            same movement. */}
+        <section
+          id="send"
+          className="mt-8 scroll-mt-4 rounded-xl border-2 border-navy-900 bg-cream-100 p-4"
+        >
           {/* The outcome belongs where the button was, not at the top of the
               page — B850, second attempt. The first put an `id` on this banner
               and pointed the redirect at it, which was correct and useless: the
@@ -435,7 +448,7 @@ export default async function PostcardOrderPage({
                   </button>
                   <a
                     className="text-sm underline"
-                    href={`/${username}/postcards/${id}`}
+                    href={`/${username}/postcards/${id}#send`}
                   >
                     {t("postcard.confirm.back")}
                   </a>
@@ -446,7 +459,7 @@ export default async function PostcardOrderPage({
                 {/* A link, not a submit: the first press only *asks*. */}
                 <a
                   href={
-                    sendable ? `/${username}/postcards/${id}?confirm=1` : undefined
+                    sendable ? `/${username}/postcards/${id}?confirm=1#send` : undefined
                   }
                   aria-disabled={!sendable}
                   className={`inline-flex min-h-11 items-center rounded-full px-5 text-sm font-semibold transition-colors ${

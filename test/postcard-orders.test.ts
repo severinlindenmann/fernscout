@@ -436,10 +436,10 @@ describe("what an agent may learn", () => {
 describe("coming back from a form", () => {
   test("the location is relative, naming no host and no scheme", () => {
     const location = backToPreview("ana", "abc123", "sent").headers.get("location")!;
-    // The fragment lands the reader on the outcome rather than at the top of
-    // a long page — B850. It is part of the location and so part of this
-    // assertion; it changes nothing about the property above it.
-    expect(location).toBe("/ana/postcards/abc123?result=sent#send-result");
+    // The fragment lands the reader back on the send box rather than at the
+    // top of a long page — B850. It is part of the location and so part of
+    // this assertion; it changes nothing about the property above it.
+    expect(location).toBe("/ana/postcards/abc123?result=sent#send");
     expect(location.startsWith("/")).toBe(true);
     expect(location).not.toContain("://");
     expect(location).not.toContain("localhost");
@@ -451,7 +451,7 @@ describe("coming back from a form", () => {
 
   test("a username or id with a slash in it cannot escape the path", () => {
     const location = backToPreview("ana/../bob", "a b", "x").headers.get("location")!;
-    expect(location).toBe("/ana%2F..%2Fbob/postcards/a%20b?result=x#send-result");
+    expect(location).toBe("/ana%2F..%2Fbob/postcards/a%20b?result=x#send");
   });
 
   test("neither form route builds an absolute redirect", () => {

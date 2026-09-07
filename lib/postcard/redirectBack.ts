@@ -49,17 +49,20 @@ export function wantsJson(request: Request): boolean {
 }
 
 export function backToPreview(user: string, id: string, result: string): Response {
-  // `#send-result` so the browser lands on the answer — B850. The button is at
-  // the bottom of a long page, the redirect renders a fresh document, and the
-  // reader therefore arrived at the *top*, where the heading describes the
-  // order rather than what just happened to it. Somebody with two orders open
-  // read the other one's heading — "ready to send, nothing has been printed or
-  // charged" — immediately after sending, and reasonably concluded the button
-  // had done nothing. The banner was on the page the whole time, a screen and
-  // a half above where they were looking.
+  // `#send` so the browser lands on the box the reader pressed a button in —
+  // B850. The button is at the bottom of a long page and the redirect renders
+  // a fresh document, so without a fragment the reader arrived at the *top*,
+  // where the heading describes the order rather than what just happened to
+  // it. Somebody with two orders open read the other one's heading — "ready to
+  // send, nothing has been printed or charged" — straight after sending, and
+  // reasonably concluded the button had done nothing.
+  //
+  // The same anchor the `?confirm=1` link and the confirm panel's "back" link
+  // use, because all three are navigations in one flow and a fix that covered
+  // only this one left the *first* press still jumping to the top.
   const location =
     `/${encodeURIComponent(user)}/postcards/${encodeURIComponent(id)}` +
-    `?result=${encodeURIComponent(result)}#send-result`;
+    `?result=${encodeURIComponent(result)}#send`;
   // 303 so the browser follows with a GET: reloading the preview must not
   // repost the form — which for the send route would be a second attempt to
   // print and charge.
