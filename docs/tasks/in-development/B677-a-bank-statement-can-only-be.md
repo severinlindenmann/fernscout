@@ -21,6 +21,34 @@ TODO — the problem, not the fix.
 
 TODO
 
+## What changed while building
+
+**`lib/statements/`, not `lib/costs/`.** A `lib/costs.ts` file already exists,
+and a directory of the same name beside it is a resolution trap waiting for
+somebody's `@/lib/costs` import. The module is named for what it reads.
+
+**The row is a `Payment`, not a `Cost`.** What a bank line *is* — a date, an
+amount, a currency, a merchant's own name — with the sign the statement wrote
+and an optional `charged` for what it came to in the account's currency. The
+last of those is where a real exchange rate comes from, and reading the
+merchant's column as the cost is how a trip is recorded in the wrong currency.
+
+**The apply call is writable by anybody who may write the trip**, trip-scoped
+tokens included — unlike the import, which is the owner's. It takes rows a
+person has already agreed and puts them on days of one trip; it reads no
+statement and reaches nowhere else. Refusing it to somebody on the trip would
+have been a rule with no threat behind it.
+
+**A test fixture taught me the parser's one sharp edge.** Written with the date
+unquoted — `Jun 22, 2026,Padaria…` — every row silently vanished, because the
+comma inside the date shifted every column. A real statement quotes it. The
+contract check catches it loudly as "parse returned nothing", which is the
+right failure; the fixture is now what a bank actually writes, and says so.
+
+**The B671 route test used `costs` as its example of an unknown kind**, which
+stopped being one. It now uses a word nobody will implement, and has a sibling
+asserting that an *absent* kind is refused too.
+
 ## Acceptance
 
 TODO
@@ -95,6 +123,34 @@ person the rows, ask which are the trip's, send the second call. Its parser is
 deleted rather than kept as a fallback, for the reason B671 gave for deleting
 the CLI: the unexercised door is the one that rots.
 
+## What changed while building
+
+**`lib/statements/`, not `lib/costs/`.** A `lib/costs.ts` file already exists,
+and a directory of the same name beside it is a resolution trap waiting for
+somebody's `@/lib/costs` import. The module is named for what it reads.
+
+**The row is a `Payment`, not a `Cost`.** What a bank line *is* — a date, an
+amount, a currency, a merchant's own name — with the sign the statement wrote
+and an optional `charged` for what it came to in the account's currency. The
+last of those is where a real exchange rate comes from, and reading the
+merchant's column as the cost is how a trip is recorded in the wrong currency.
+
+**The apply call is writable by anybody who may write the trip**, trip-scoped
+tokens included — unlike the import, which is the owner's. It takes rows a
+person has already agreed and puts them on days of one trip; it reads no
+statement and reaches nowhere else. Refusing it to somebody on the trip would
+have been a rule with no threat behind it.
+
+**A test fixture taught me the parser's one sharp edge.** Written with the date
+unquoted — `Jun 22, 2026,Padaria…` — every row silently vanished, because the
+comma inside the date shifted every column. A real statement quotes it. The
+contract check catches it loudly as "parse returned nothing", which is the
+right failure; the fixture is now what a bank actually writes, and says so.
+
+**The B671 route test used `costs` as its example of an unknown kind**, which
+stopped being one. It now uses a word nobody will implement, and has a sibling
+asserting that an *absent* kind is refused too.
+
 ## Acceptance
 
 - `POST /api/v1/<user>/import` with `kind: costs` reads a real Revolut export
@@ -107,3 +163,29 @@ the CLI: the unexercised door is the one that rots.
 - `/openapi.json` documents the kind and the second route; `/agent.md` carries
   the workflow.
 - `npm run verify` and `npm run unused` pass.
+
+## What was verified
+
+Against a running dev server, over HTTP, with an invented ten-line statement
+covering a trip and the fortnight either side of it:
+
+| | |
+| --- | --- |
+| `GET /import` | two kinds, each with what it is for and its formats |
+| No `kind` | refused — *"Say what kind of data this is. Known kinds: gps, costs"* |
+| Staged, then read with the trip's window | `revolut` detected, 10 rows read, 6 spending, 1 transfer counted and left out |
+| The rent, dated a week after the trip | outside the window, absent from the totals |
+| Rates | `EUR: 0.94`, from the money the bank moved |
+| Categories anywhere in the answer | none — asserted on the response body |
+| Days carrying costs afterwards | unchanged: the import wrote nothing |
+| The second call, with agreed categories | 3 costs across 2 days; the hand-written one on the second day kept |
+| A date whose day was 07:00 and 21:00 | written on the 07:00 one |
+| A date with no day | `orphaned`, nothing written, and said so |
+| Bad rows | `invalid_costs` naming all five fields at once |
+| A GPX sent as `revolut` | `unreadable`, saying it was the format you named |
+| `format: monzo` | `unknown_format`, naming the one that exists |
+
+Then the same loop through the rewritten helper skill, which parses nothing:
+it staged the file, printed the merchants biggest-first, wrote a file of rows
+with `category: null`, **refused to send them** until a person filled them in,
+and then wrote 5 costs across 2 days keeping 4 that were already there.
