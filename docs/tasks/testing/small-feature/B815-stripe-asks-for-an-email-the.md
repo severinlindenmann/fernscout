@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: credits, payments
 found: "2026-09-07T15:35:00Z"
+merged: "2026-09-07T15:35:07Z"
 ---
 
 # B815 — Stripe asks for an email the owner has already given this server
