@@ -76,3 +76,54 @@ how it ends up with six props and a `variant`.
 - A test fails when a native dialog is reintroduced.
 - The rule is in AGENTS.md.
 - `npm run verify` passes.
+
+## What was built
+
+All five are gone. `components/ConfirmPanel.tsx` is the replacement: a panel
+in the flow, `role="dialog"` with `aria-modal="false"` and no focus trap —
+the same call `DayNotify` (B633) and `PushPrompt` already make. The confirming
+button says what it *does* ("Delete them", "Buy 5 GB", "Undo my arrangement")
+rather than "OK", so somebody who has stopped reading by the time they reach
+the buttons can still tell the two apart.
+
+**The cleanup's two dialogs are one panel.** The staged documents are a
+checkbox inside it, unticked, rather than a second dialog stacked on the
+first — which is the thing `confirm()` could not do and the reason the
+sequence read as a stutter.
+
+**The photobook's two hold their question in `pending` at the page's top
+level**, and the panel renders where the outcome notice already appears. Both
+controls live two components down (`BookLevelView`, `DayLevelView`), and
+threading a panel plus two callbacks down to sit beside each button is more
+wiring than the question is worth; both levels are in one fragment, so one
+panel serves both.
+
+**I extracted the shared component after saying I would not.** The Work
+section above argued two call sites with different shapes did not justify one;
+by the time the photobook's pair joined the storage card's there were four
+with one shape, and the alternative was copying the same markup into a second
+file. The note is left standing above rather than edited away — it was the
+right call on two and the wrong one on four.
+
+`test/no-browser-dialogs.test.ts` is the half that holds: it scans `app/` and
+`components/` for `confirm`/`alert`/`prompt`, strips comments first so the doc
+comments explaining the rule may name it, and has two tests of its own regex —
+one that it catches the five spellings, one that it does not fire on
+`onConfirm`, `confirmLabel` or `agentConfirm`. The rule is in AGENTS.md too,
+under "Working in this repository".
+
+## Acceptance — evidence
+
+- `grep -rn "window\.confirm\|window\.alert\|window\.prompt" app components`
+  returns only doc comments explaining the rule. Mechanised by
+  `test/no-browser-dialogs.test.ts`.
+- The guard test fails on a reintroduced dialog and passes on ordinary code —
+  both directions asserted rather than only the one.
+- `npm run verify` passes: 317 files, 4138 tests.
+
+**For whoever verifies this**, four buttons to press, and cancel each one
+first: Free up and Add 5 GB on `/<user>/me`, and on a trip's photobook page
+"Let the book decide, for every day" and a day's "Apply to every day". Nothing
+should happen on cancel, and no operating-system box should appear at any
+point. The one worth looking at hardest is the cleanup's checkbox — ticking it
+must be what decides whether the staged documents go.

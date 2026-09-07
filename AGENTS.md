@@ -294,6 +294,16 @@ touched since before the rename — but nothing writes it back out; ask for
   than broken when disabled. `lib/capabilities.ts` decides, and `/api/health`
   explains why something is off.
 - **Secrets never enter `site/config.json`** — environment only.
+- **The browser never asks the question.** No `window.confirm`, no `alert`, no
+  `prompt`: they render in the operating system's own type, in a box whose
+  title bar names the domain, over a page that has gone to some trouble to
+  look like somebody's travel journal — and each shows exactly one string, so
+  none of them can say what is about to be deleted, what a thing will cost, or
+  offer a second choice beside the first. A confirmation is
+  `components/ConfirmPanel.tsx`: a panel in the flow, with a button that says
+  what it *does* rather than "OK". B633 decided this and wrote it down; B661
+  and B664 each reached for `confirm()` again within the fortnight, so B668
+  made it `test/no-browser-dialogs.test.ts` as well.
 - **Nothing personal in code.** `test/depersonalised.test.ts` fails the build if
   a real name or trip id appears in `lib/`, `app/`, `components/`, `scripts/`
   or `public/`. `content/` and `site/` are where those names belong — an

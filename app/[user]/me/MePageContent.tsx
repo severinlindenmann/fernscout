@@ -25,6 +25,7 @@ import GuestSignIn from "@/components/GuestSignIn";
 import PushOptIn from "@/components/PushOptIn";
 import SignOut from "@/components/SignOut";
 import PageHeader from "@/components/PageHeader";
+import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
 import { EXTRA_STORAGE_CREDITS, formatChf, TIERS } from "@/lib/credits/pricing";
@@ -137,33 +138,49 @@ function ChannelSwitch({
 function BuyStorageButton({ username }: { username: string }) {
   const { t } = useI18n();
   const router = useRouter();
+  const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
   async function buy() {
-    if (!window.confirm(t("me.storageBuyConfirm", { credits: String(EXTRA_STORAGE_CREDITS) })))
-      return;
     setBusy(true);
     setFailed(false);
     const response = await fetch(`/api/v1/${username}/storage`, { method: "POST" }).catch(
       () => null,
     );
     setBusy(false);
-    if (response?.ok) router.refresh();
-    else setFailed(true);
+    if (response?.ok) {
+      setAsking(false);
+      router.refresh();
+    } else setFailed(true);
+  }
+
+  if (asking) {
+    return (
+      <ConfirmPanel
+        label={t("me.storageBuy", { credits: String(EXTRA_STORAGE_CREDITS) })}
+        question={t("me.storageBuyConfirm", { credits: String(EXTRA_STORAGE_CREDITS) })}
+        confirmLabel={t("me.storageBuyGo")}
+        busyLabel={t("me.storageBuyBusy")}
+        busy={busy}
+        error={failed ? t("me.storageBuyFailed") : undefined}
+        onConfirm={buy}
+        onCancel={() => setAsking(false)}
+      />
+    );
   }
 
   return (
     <>
       <button
         type="button"
-        onClick={buy}
-        disabled={busy}
-        className="inline-flex min-h-11 items-center rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-50 disabled:opacity-60"
+        onClick={() => {
+          setFailed(false);
+          setAsking(true);
+        }}
+        className="inline-flex min-h-11 items-center rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-50"
       >
-        {busy
-          ? t("me.storageBuyBusy")
-          : t("me.storageBuy", { credits: String(EXTRA_STORAGE_CREDITS) })}
+        {t("me.storageBuy", { credits: String(EXTRA_STORAGE_CREDITS) })}
       </button>
       {failed && (
         <span role="status" className="mt-1 block text-sm text-coral-600">
@@ -175,18 +192,17 @@ function BuyStorageButton({ username }: { username: string }) {
 }
 
 /**
- * Give the space back — B664.
+ * Give the space back — B664, asked in the page since B668.
  *
- * A confirmation that **names what goes and what stays** before anything is
+ * The confirmation **names what goes and what stays** before anything is
  * deleted, because the person pressing this has usually just been told their
- * journal is full and is in no mood to read carefully. A native `confirm()`
- * rather than a dialog of our own: it cannot be dismissed by a stray click, it
- * is announced by every screen reader, and this is one sentence and two
- * answers.
+ * journal is full and is in no mood to read carefully.
  *
- * The staged documents are a *second* question, asked only when there are any.
- * They are somebody's uploads rather than generated output, so they are never
- * swept along with the PDFs — see `lib/storageCleanup.ts`.
+ * The staged documents used to be a second `confirm()` stacked on the first,
+ * which read as a stutter rather than as two questions. They are a checkbox
+ * inside the one panel now, unticked: they are somebody's uploads rather than
+ * generated output, so they are never swept along with the PDFs unless
+ * somebody says so — see `lib/storageCleanup.ts`.
  */
 function CleanupButton({
   username,
@@ -197,14 +213,12 @@ function CleanupButton({
 }) {
   const { t } = useI18n();
   const router = useRouter();
+  const [asking, setAsking] = useState(false);
+  const [staged, setStaged] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
   async function clean() {
-    if (!window.confirm(t("me.storageCleanupConfirm", { size: reclaimable.human }))) return;
-    const staged =
-      reclaimable.hasStagedFiles && window.confirm(t("me.storageCleanupStaged"));
-
     setBusy(true);
     setFailed(false);
     const response = await fetch(
@@ -212,19 +226,50 @@ function CleanupButton({
       { method: "POST" },
     ).catch(() => null);
     setBusy(false);
-    if (response?.ok) router.refresh();
-    else setFailed(true);
+    if (response?.ok) {
+      setAsking(false);
+      router.refresh();
+    } else setFailed(true);
+  }
+
+  if (asking) {
+    return (
+      <ConfirmPanel
+        label={t("me.storageCleanup", { size: reclaimable.human })}
+        question={t("me.storageCleanupConfirm", { size: reclaimable.human })}
+        confirmLabel={t("me.storageCleanupGo")}
+        busyLabel={t("me.storageCleanupBusy")}
+        busy={busy}
+        error={failed ? t("me.storageCleanupFailed") : undefined}
+        onConfirm={clean}
+        onCancel={() => setAsking(false)}
+      >
+        {reclaimable.hasStagedFiles && (
+          <label className="mt-3 flex items-start gap-2 text-sm leading-6 text-navy-700">
+            <input
+              type="checkbox"
+              checked={staged}
+              onChange={(event) => setStaged(event.target.checked)}
+              className="mt-1.5 h-4 w-4 shrink-0 accent-navy-900"
+            />
+            <span>{t("me.storageCleanupStaged")}</span>
+          </label>
+        )}
+      </ConfirmPanel>
+    );
   }
 
   return (
     <>
       <button
         type="button"
-        onClick={clean}
-        disabled={busy}
-        className="inline-flex min-h-11 items-center rounded-full border border-navy-500 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-50 disabled:opacity-60"
+        onClick={() => {
+          setFailed(false);
+          setAsking(true);
+        }}
+        className="inline-flex min-h-11 items-center rounded-full border border-navy-500 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-50"
       >
-        {busy ? t("me.storageCleanupBusy") : t("me.storageCleanup", { size: reclaimable.human })}
+        {t("me.storageCleanup", { size: reclaimable.human })}
       </button>
       {failed && (
         <span role="status" className="mt-1 block text-sm text-coral-600">
