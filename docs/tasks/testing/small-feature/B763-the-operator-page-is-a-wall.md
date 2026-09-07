@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: admin, ops
 found: "2026-09-07T16:20:00Z"
+merged: "2026-09-07T14:19:02Z"
 ---
 
 # B763 — The operator page is a wall of tables that does not fit a phone
