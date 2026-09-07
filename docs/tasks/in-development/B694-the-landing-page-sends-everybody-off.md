@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: landing, docs, i18n, agent
 found: "2026-09-07T10:05:53Z"
+started: "2026-09-07T11:27:36Z"
+session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
+claimed: "2026-09-07T11:27:36Z"
 ---
 
 # B694 — The landing page sends everybody off to fetch an agent of their own
