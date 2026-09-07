@@ -99,4 +99,26 @@ describe("the desktop day path", () => {
   test("marks the day being read, for a screen reader as well as visually", () => {
     expect(render(1)).toContain('aria-current="true"');
   });
+
+  /**
+   * B554 — the desktop path used `money()`, showing only the converted
+   * figure, while the story feed and the mobile sheet (B544) lead with what
+   * was actually paid via `spend()`. A day carrying `costLocal` must show
+   * both, marked with the shared `≈`, here too.
+   */
+  test("a day with costLocal shows what was paid, not only the converted figure", () => {
+    const html = renderToStaticMarkup(
+      <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
+        <CurrencyProvider
+          options={{ base: "CHF", currencies: ["CHF", "THB"], rates: { CHF: 1, THB: 0.026 } }}
+        >
+          <GamePath
+            days={[{ ...days()[0], cost: 14, costLocal: { amount: 520, currency: "THB" } }]}
+            currentIndex={0}
+          />
+        </CurrencyProvider>
+      </LocaleProvider>,
+    );
+    expect(html).toMatch(/THB\s*520[\s\S]*≈[\s\S]*CHF\s*14/);
+  });
 });

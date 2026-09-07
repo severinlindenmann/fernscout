@@ -36,3 +36,33 @@ carries it, and call `spend(cost, costLocal)` — the shared rule in
 - A single-currency day reads the same in the sidebar as in the story feed.
 - A mixed-currency day is unchanged.
 - `npm run verify` passes.
+
+## Resolution
+
+`components/GamePath.tsx`: swapped `const { money } = useMoney()` for
+`const { spend } = useMoney()`, and the one call site,
+`` `· ${money(day.cost)}` `` → `` `· ${spend(day.cost, day.costLocal)}` ``
+(line ~257). No threading needed beyond that — `GamePath` already receives
+`days: DaySummary[]` from `app/TripStory.tsx` (`<GamePath days={index} …>`,
+where `index` is `buildStoryProps`'s own `DaySummary[]`), and `DaySummary`
+has carried `costLocal` since B544. `spend()` is the same helper
+`components/MobileDaySheet.tsx` already uses for the story feed's badge —
+one shared rule, not a third copy.
+
+Added a test to `test/day-path.test.tsx`: a day with `costLocal` now shows
+both the paid figure and the converted one, marked `≈`, matching the pattern
+already asserted for the story feed in `test/day-local-currency.test.tsx`.
+
+**Fixing this surfaced a pre-existing gap in that other test file's
+assertions**, worth recording since it looks like a regression at a glance:
+`GamePath` draws every day in the sidebar at once, not only the one open, so
+once it started using `spend()` the single-currency day's own `≈` began
+appearing in the full page's HTML *regardless* of which day the reader had
+open — including the mixed-currency and base-currency days' own test cases,
+which asserted "no `≈` anywhere on this page" when they meant "not on *this*
+day's card". Updated those two assertions in
+`test/day-local-currency.test.tsx` to check only the markup from
+`<main id="main"` onward, which is the day card actually open and excludes
+the sidebar — the tests' original intent, now correctly scoped.
+
+`npm run verify` passes with the change in place.

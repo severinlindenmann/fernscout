@@ -43,6 +43,24 @@ export const KM_PER_DEGREE = 111.32;
  */
 export const KM_PER_UNIT = DEG_PER_UNIT * KM_PER_DEGREE;
 
+/**
+ * Rounds a projected number to a fixed number of decimal places — 4, or
+ * roughly 4 metres at this projection's scale (see `KM_PER_UNIT`), thousands
+ * of times finer than a pixel on any map this draws.
+ *
+ * `Math.cos` (used for `lngScale` below) is not required by spec to be
+ * correctly rounded, so the same call can differ by a handful of ULPs
+ * between the server's V8 and the browser's — same trip, same maths,
+ * different last significant digit. React compares the server-rendered
+ * attribute string against the client's on hydration and, seeing a mismatch
+ * on the sixteenth digit, discards and re-renders the whole subtree (B500,
+ * B570). Rounding once, here, absorbs a difference that size everywhere it
+ * would otherwise resurface — the viewBox, a marker, a polyline point.
+ */
+function round(n: number): number {
+  return Math.round(n * 1e4) / 1e4;
+}
+
 export type Point = { lat: number; lng: number };
 
 /**
@@ -139,7 +157,7 @@ export function kmForUnits(units: number): number {
  */
 export function place(frame: Frame, point: Point): [number, number] {
   const [x, y] = project(point.lat, point.lng);
-  return [x * frame.lngScale, y];
+  return [round(x * frame.lngScale), round(y)];
 }
 
 /**
@@ -229,5 +247,11 @@ export function frameRoute(points: readonly Point[]): Frame {
   // uncorrected frame rather than a corrected one scrolled off its edge.
   if (w >= MAP_VIEWBOX.width * lngScale) return WHOLE_WORLD;
 
-  return { x: cx - w / 2, y: cy - h / 2, w, h, lngScale };
+  return {
+    x: round(cx - w / 2),
+    y: round(cy - h / 2),
+    w: round(w),
+    h: round(h),
+    lngScale: round(lngScale),
+  };
 }

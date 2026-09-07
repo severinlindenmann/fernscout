@@ -202,3 +202,61 @@ describe("kilometres and units", () => {
     expect(kmBetween(alps[0], alps[0])).toBe(0);
   });
 });
+
+/**
+ * B500 / B570 — MiniMap's SVG hydrated with a mismatch on the last decimal
+ * place of every projected coordinate: server and client computed the same
+ * `Math.cos` (for `lngScale`) and disagreed by a handful of ULPs, which
+ * showed up as a differing sixteenth significant figure in `viewBox` and
+ * every `cx`/`cy`. `Math.cos` is not required to be correctly rounded, so
+ * the same call can differ between two runtimes; what has to be identical is
+ * what reaches the markup, not what a trig function returns.
+ *
+ * These don't reproduce two runtimes — that would need two JS engines in one
+ * test — they assert the actual guarantee the fix makes: every number this
+ * module hands to a component is rounded to a fixed number of decimals, so
+ * two runs that disagree by less than that (any realistic `Math.cos` ULP
+ * difference is many orders of magnitude smaller) produce the exact same
+ * `Number`, and therefore the exact same string once React serialises it.
+ */
+describe("B500 / B570 — rounding absorbs cross-runtime float noise", () => {
+  const DECIMALS = 4;
+  const isRounded = (n: number) => Number.isInteger(Math.round(n * 10 ** DECIMALS + 1e-9));
+
+  test("frameRoute's viewBox numbers are all rounded to a fixed precision", () => {
+    const frame = frameRoute(alps);
+    for (const value of [frame.x, frame.y, frame.w, frame.h, frame.lngScale]) {
+      expect(isRounded(value)).toBe(true);
+    }
+  });
+
+  test("place()'s coordinates are rounded to the same precision", () => {
+    const frame = frameRoute(alps);
+    for (const point of alps) {
+      const [x, y] = place(frame, point);
+      expect(isRounded(x)).toBe(true);
+      expect(isRounded(y)).toBe(true);
+    }
+  });
+
+  test("a difference far smaller than one ULP of Math.cos still rounds identically", () => {
+    // Simulates two runtimes whose Math.cos disagreed in the sixteenth digit:
+    // one frame computed as normal, one nudged by 1e-12 — far larger than a
+    // realistic ULP gap, and still swallowed by the rounding.
+    const frame = frameRoute(alps);
+    const nudged = { ...frame, lngScale: frame.lngScale + 1e-12 };
+    for (const point of alps) {
+      expect(place(frame, point)).toEqual(place(nudged, point));
+    }
+  });
+
+  test("the same input projects to the identical string every time — the actual hydration check", () => {
+    const a = frameRoute(alps);
+    const b = frameRoute(alps.map((p) => ({ ...p })));
+    const viewBoxOf = (f: typeof a) => `${f.x} ${f.y} ${f.w} ${f.h}`;
+    expect(viewBoxOf(a)).toBe(viewBoxOf(b));
+    for (const point of alps) {
+      expect(String(place(a, point))).toBe(String(place(b, point)));
+    }
+  });
+});

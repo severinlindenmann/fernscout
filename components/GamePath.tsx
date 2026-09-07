@@ -88,7 +88,7 @@ export default function GamePath({
   onSelect?: (date: string) => void;
 }) {
   const { t, formatShortDate } = useI18n();
-  const { money } = useMoney();
+  const { spend } = useMoney();
   const activeRef = useRef<HTMLButtonElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -254,7 +254,7 @@ export default function GamePath({
             <span className="max-w-[112px] truncate text-[10px] leading-tight text-navy-600 tabular-nums">
               {formatShortDate(day.date)}
               {day.updates > 1 && ` · ${day.updates} ${t("day.updates")}`}
-              {day.cost > 0 && ` · ${money(day.cost)}`}
+              {day.cost > 0 && ` · ${spend(day.cost, day.costLocal)}`}
             </span>
           </motion.button>
         );
