@@ -1,6 +1,6 @@
 import { isOwner } from "@/lib/contacts/session";
 import { updateOrderFigures, updateOrderText } from "@/lib/postcard/orders";
-import { backToPreview } from "@/lib/postcard/redirectBack";
+import { answerJson, backToPreview, wantsJson } from "@/lib/postcard/redirectBack";
 import { defaultLocaleFor, localesFor } from "@/lib/locales";
 
 export const dynamic = "force-dynamic";
@@ -51,8 +51,15 @@ export async function POST(
     );
   }
 
+  // The page's own autosave asks for JSON; a form post takes the redirect.
+  // Every refusal below answers in whichever shape was asked for, so the two
+  // paths cannot drift into disagreeing about who may edit.
+  const json = wantsJson(request);
+  const answer = (result: string, status = 200) =>
+    json ? answerJson(result, status) : backToPreview(user, id, result);
+
   if (!(await isOwner(user))) {
-    return backToPreview(user, id, "forbidden");
+    return answer("forbidden", 403);
   }
 
   const form = await request.formData();
@@ -61,7 +68,7 @@ export async function POST(
   const asked = String(form.get("locale") ?? "").trim();
 
   if (!message || !from) {
-    return backToPreview(user, id, "empty_text");
+    return answer("empty_text", 400);
   }
 
   // Only a language this journal actually writes in. Not a free string: it is
@@ -74,5 +81,5 @@ export async function POST(
   if (saved && form.get("figures_asked")) {
     await updateOrderFigures(user, id, form.get("figures") != null);
   }
-  return backToPreview(user, id, saved ? "saved" : "already_sent");
+  return answer(saved ? "saved" : "already_sent", saved ? 200 : 409);
 }

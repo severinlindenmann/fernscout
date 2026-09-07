@@ -24,6 +24,7 @@ import { orderPhotoFile } from "@/lib/postcard/send";
 import { getTrip } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import PostcardCropper from "@/components/PostcardCropper";
+import PostcardBack from "./PostcardBack";
 
 export const dynamic = "force-dynamic";
 
@@ -178,10 +179,10 @@ export default async function PostcardOrderPage({
             happened, so an order already at the printer was headed "ready to
             send" above a line promising nothing had been printed or charged —
             directly above the banner saying it had. */}
-        <h1 className="text-2xl font-semibold">
+        <h1 className="font-display text-2xl font-semibold text-navy-900">
           {isPending(order) ? t("postcard.page.title") : t("postcard.page.titleSent")}
         </h1>
-        <p className="mt-1 text-sm opacity-70">
+        <p className="mt-1 text-sm text-navy-600">
           {isPending(order)
             ? t("postcard.page.intro", { day: dayName })
             : t("postcard.page.introSent", {
@@ -192,7 +193,7 @@ export default async function PostcardOrderPage({
 
         {typeof result === "string" && RESULTS[result] ? (
           <p
-            className="mt-4 rounded border px-3 py-2 text-sm"
+            className="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900"
             role="status"
             data-testid="send-result"
           >
@@ -214,166 +215,63 @@ export default async function PostcardOrderPage({
               resetLabel={t("postcard.page.cropReset")}
               zoomLabel={t("postcard.page.cropZoom")}
             />
-            <figcaption className="mt-1 text-xs opacity-70">
+            <figcaption className="mt-1 text-xs text-navy-600">
               {t("postcard.page.front")}
             </figcaption>
           </figure>
 
-          <figure>
-            {/* The container query container is *this* element — the card —
-                and not the paragraph inside it. B451: `containerType` was on
-                the `<p>`, so every `cqw` resolved against the message column's
-                own width and the type came out at roughly twice its real size,
-                five words to a card. */}
-            <div
-              className="relative overflow-hidden rounded border bg-white text-black"
-              style={{ aspectRatio: back.aspect, containerType: "inline-size" }}
-            >
-              <p
-                className="absolute overflow-hidden whitespace-pre-wrap"
-                style={{
-                  ...back.message,
-                  fontSize: back.font.message,
-                  lineHeight: back.font.leading,
-                }}
-              >
-                {order.payload.message}
-              </p>
-              <p
-                className="absolute text-black/50"
-                style={{
-                  left: back.message.left,
-                  bottom: "6%",
-                  fontSize: back.font.signature,
-                }}
-              >
-                {order.payload.from}
-              </p>
-              {showFigures ? (
-                <div
-                  className="absolute"
-                  style={back.figures}
-                  // The same SVG the photobook and the travellers bench draw
-                  // — `travellersSvg` is `lib/photobook/travellers.ts`'s own
-                  // browser spelling of `drawTravellers`, not a second set.
-                  dangerouslySetInnerHTML={{ __html: travellersSvg(100, party) }}
-                />
-              ) : null}
-              <span
-                className="absolute w-px bg-black/20"
-                style={{ left: back.dividerLeft, top: "8%", height: "84%" }}
-              />
-              <span className="absolute rounded-sm border border-black/20" style={back.stamp} />
-              {/* The address, drawn where the sorting machine reads it. An
-                  empty dotted box proved the half of the card that does not
-                  get it delivered. */}
-              <div
-                className="absolute"
-                style={{
-                  ...back.address,
-                  fontSize: back.font.address,
-                  lineHeight: back.font.addressLeading,
-                }}
-              >
-                {live[0] ? (
-                  <>
-                    <span className="font-semibold">{people.get(live[0])!.to.name}</span>
-                    <br />
-                    {people.get(live[0])!.to.line1}
-                    <br />
-                    {people.get(live[0])!.to.postcode} {people.get(live[0])!.to.city}
-                  </>
-                ) : null}
-              </div>
-            </div>
-            <figcaption className="mt-1 text-xs opacity-70">
-              {live.length > 1
-                ? t("postcard.page.backFirstOf", { count: String(live.length) })
-                : t("postcard.page.back")}
-            </figcaption>
-          </figure>
+          <PostcardBack
+            username={username}
+            id={id}
+            layout={back}
+            initial={{
+              message: order.payload.message,
+              from: order.payload.from,
+              locale: cardLocale,
+              figures: showFigures,
+            }}
+            locales={offered}
+            localeLabel={Object.fromEntries(offered.map((code) => [code, label(code)]))}
+            figuresSvg={hasParty ? travellersSvg(100, party) : null}
+            address={
+              live[0]
+                ? {
+                    name: people.get(live[0])!.to.name,
+                    line1: people.get(live[0])!.to.line1,
+                    postcode: people.get(live[0])!.to.postcode,
+                    city: people.get(live[0])!.to.city,
+                  }
+                : null
+            }
+            editable={isPending(order) && !expired}
+            strings={{
+              messageLabel: t("postcard.page.messageLabel"),
+              signed: t("postcard.page.signed"),
+              writtenIn: t("postcard.page.writtenIn"),
+              figuresLabel: t("postcard.page.figuresLabel"),
+              save: t("postcard.page.save"),
+              saving: t("postcard.page.saving"),
+              saved: t("postcard.page.savedNow"),
+              failed: t("postcard.page.saveFailed"),
+              sameCard: t("postcard.page.sameCard"),
+              fixed: t("postcard.page.fixed"),
+              caption:
+                live.length > 1
+                  ? t("postcard.page.backFirstOf", { count: String(live.length) })
+                  : t("postcard.page.back"),
+            }}
+          />
         </section>
-
-        {isPending(order) && !expired ? (
-          <form
-            method="post"
-            action={`/${username}/postcards/${id}/message`}
-            className="mt-6 rounded border px-4 py-3"
-          >
-            <label className="block text-sm font-semibold">
-              {t("postcard.page.messageLabel")}
-              <textarea
-                name="message"
-                rows={4}
-                maxLength={600}
-                defaultValue={order.payload.message}
-                className="mt-1 w-full rounded border px-2 py-1.5 text-sm font-normal"
-              />
-            </label>
-            <div className="mt-3 flex flex-wrap gap-3">
-              <label className="text-sm font-semibold">
-                {t("postcard.page.signed")}
-                <input
-                  name="from"
-                  defaultValue={order.payload.from}
-                  className="mt-1 block rounded border px-2 py-1.5 text-sm font-normal"
-                />
-              </label>
-              <label className="text-sm font-semibold">
-                {t("postcard.page.writtenIn")}
-                <select
-                  name="locale"
-                  defaultValue={cardLocale}
-                  className="mt-1 block rounded border px-2 py-1.5 text-sm font-normal"
-                >
-                  {offered.map((code) => (
-                    <option key={code} value={code}>
-                      {label(code)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            {/* The figures switch lives in this form rather than beside it —
-                B628, and the second pass over it. It was its own box with its
-                own save button, which read as a second decision to make and a
-                second thing to remember to press; it is one line of the same
-                "what goes on the back" question the words above are. The
-                hidden field is how the route tells "unticked" from "this form
-                did not carry the question at all". */}
-            {hasParty ? (
-              <label className="mt-3 flex items-center gap-2 text-sm font-semibold">
-                <input type="hidden" name="figures_asked" value="1" />
-                <input
-                  type="checkbox"
-                  name="figures"
-                  defaultChecked={showFigures}
-                  className="h-4 w-4"
-                />
-                {t("postcard.page.figuresLabel")}
-              </label>
-            ) : null}
-            <button type="submit" className="mt-3 rounded border px-3 py-1.5 text-sm font-medium">
-              {t("postcard.page.save")}
-            </button>
-            {/* B461. Said once, next to the language picker, because "written
-                in Deutsch" invites exactly one question — does a German reader
-                get a German card? — and the answer is no. Nothing translates
-                anything; everybody gets these words. */}
-            <p className="mt-2 text-xs opacity-70">{t("postcard.page.sameCard")}</p>
-            <p className="mt-1 text-xs opacity-70">{t("postcard.page.fixed")}</p>
-          </form>
-        ) : null}
 
         {/* B628 — the one thing left outside the form: a trip nobody has
             described has nothing to switch on, and saying so is the only
             useful thing this space can do. */}
         {isPending(order) && !expired && !hasParty ? (
-          <p className="mt-4 text-xs opacity-70">{t("postcard.page.figuresNone")}</p>
+          <p className="mt-4 text-xs text-navy-600">{t("postcard.page.figuresNone")}</p>
         ) : null}
 
         {mismatched > 0 && isPending(order) ? (
-          <p className="mt-4 rounded border px-3 py-2 text-sm">
+          <p className="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
             {mismatched === 1 && firstMismatch
               ? t("postcard.page.mismatchOne", {
                   name: people.get(firstMismatch)!.to.name,
@@ -388,13 +286,13 @@ export default async function PostcardOrderPage({
         ) : null}
 
         {resolution && !resolution.ok && isPending(order) ? (
-          <p className="mt-4 rounded border px-3 py-2 text-sm">
+          <p className="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
             {t("postcard.page.lowRes", { dpi: String(resolution.dpi) })}
           </p>
         ) : null}
 
         <section className="mt-8">
-          <h2 className="text-lg font-semibold">
+          <h2 className="font-display text-lg font-semibold text-navy-900">
             {live.length === 1
               ? t("postcard.page.goingOne")
               : t("postcard.page.goingMany", { count: String(live.length) })}
@@ -442,7 +340,7 @@ export default async function PostcardOrderPage({
           </ul>
         </section>
 
-        <section className="mt-8 rounded border px-4 py-3">
+        <section className="mt-8 rounded-xl border-2 border-navy-900 bg-cream-100 p-4">
           <p className="text-sm">
             {t("postcard.page.cost", {
               each: String(order.payload.creditsEach),
@@ -478,7 +376,7 @@ export default async function PostcardOrderPage({
             </p>
           ) : (
             confirming && sendable ? (
-              <div className="mt-3 rounded-lg border-2 border-navy-900 bg-cream-100 px-4 py-3">
+              <div className="mt-3 rounded-lg border border-navy-900 bg-white px-4 py-3">
                 <p className="font-semibold">{t("postcard.confirm.heading")}</p>
                 <p className="mt-1 text-sm">
                   {live.length === 1
@@ -543,7 +441,7 @@ export default async function PostcardOrderPage({
                         total: String(cost),
                       })}
                 </a>
-                <p className="mt-2 text-xs opacity-70">{t("postcard.page.sendWarning")}</p>
+                <p className="mt-2 text-xs text-navy-600">{t("postcard.page.sendWarning")}</p>
               </div>
             )
           )}
