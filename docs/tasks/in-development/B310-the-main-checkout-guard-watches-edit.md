@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: Agent workflow, hooks
 found: "2026-09-04T18:12:00Z"
+started: "2026-09-07T11:10:53Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T11:10:53Z"
 ---
 
 # B310 — The main-checkout guard watches Edit and Write, and a heredoc walks straight past it
@@ -79,3 +82,46 @@ system is the thing that governs that. This is about the honest accident.
   refused.
 - `AGENTS.md` no longer lets a reader believe `Edit`-matching alone enforces
   the main-checkout rule.
+
+## What was built (2026-09-07)
+
+A **PostToolUse** hook on `Bash`, not a PreToolUse one:
+`.claude/hooks/main-checkout-bash-guard.mjs`, wired in `.claude/settings.json`.
+Both are gitignored, the same decision B248 made — this guards this machine and
+no clone.
+
+**Why detection rather than prevention**, since the Why section assumed a
+matcher. Parsing the command line for write shapes is a list that is always
+missing its next entry — `tee`, `>>`, `install`, a script, an npm task, an
+editor — and every entry it does have is a false positive waiting to happen
+(`grep foo > /dev/null`). So the hook asks git *after* the call instead: is the
+shared checkout dirty in a way the rule does not allow? That reads real state
+rather than guessing at text, costs one `git status --porcelain -z`, and
+catches every mechanism at once, including the ones nobody has thought of.
+
+It cannot stop the write, which is the honest trade: PostToolUse detection that
+never misses beats PreToolUse prevention that usually does. The agent is told
+immediately, with the files named and the stash-into-a-worktree recipe, while
+it still remembers what it just ran.
+
+Allowed through, matching the Edit/Write guard exactly: anything under
+`docs/tasks/`; anything git ignores (`--porcelain` omits these already); and a
+merge, rebase, cherry-pick or bisect in progress, where a dirty tree is the
+expected middle of an operation this rule does not govern.
+
+## Evidence
+
+Driven directly against the hook, all three cases correct:
+
+| Tree state | Hook output |
+| --- | --- |
+| clean | nothing, exit 0 |
+| `lib/entries.ts` modified | blocks, names `lib/entries.ts` |
+| only `docs/tasks/INDEX.md` modified | nothing, exit 0 |
+
+## What a person should check
+
+The hook is not in the repository and a fresh clone does not have it. To see it
+work: append a line to any file under `lib/` with a Bash heredoc and watch the
+next tool result carry the refusal. `AGENTS.md` has been updated to describe the
+guard as it now is rather than as an open ticket.
