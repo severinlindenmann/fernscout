@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: agent, credits, i18n
 found: "2026-09-07T15:16:04Z"
+started: "2026-09-07T16:22:31Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T16:22:31Z"
 ---
 
 # B806 — A credit is never named in francs anywhere a person reads

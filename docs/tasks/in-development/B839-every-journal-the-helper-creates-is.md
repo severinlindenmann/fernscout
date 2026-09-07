@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: agent, signup, currency
 found: "2026-09-07T16:07:37Z"
+started: "2026-09-07T16:22:33Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T16:22:33Z"
 ---
 
 # B839 — Every journal the helper creates is priced in francs forever

@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (119)
+## backlog (111)
 
 ### security (3)
 
@@ -59,15 +59,12 @@ Do not edit them by hand; run the script.
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 | [B832](backlog/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low |
 
-### issue (34)
+### issue (27)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B766](backlog/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low |
-| [B804](backlog/issue/B804-the-bring-your-own-agent-panel.md) | The bring-your-own-agent panel reads as the next step to somebody who has no agent | ISSUE | high | low |
 | [B829](backlog/issue/B829-rewording-a-row-did-not-stop.md) | Rewording a row did not stop the wrong one matching | ISSUE | high | low |
-| [B838](backlog/issue/B838-the-helper-never-asks-which-languages.md) | The helper never asks which languages a journal is written in | ISSUE | high | low |
-| [B839](backlog/issue/B839-every-journal-the-helper-creates-is.md) | Every journal the helper creates is priced in francs forever | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
@@ -76,10 +73,6 @@ Do not edit them by hand; run the script.
 | [B787](backlog/issue/B787-the-sign-in-button-may-stay.md) | The sign-in button may stay disabled when the address is autofilled | ISSUE | medium | low |
 | [B790](backlog/issue/B790-a-journal-can-be-created-with.md) | A journal can be created with a currency that is not one, and it can never be corrected | ISSUE | medium | low |
 | [B801](backlog/issue/B801-a-request-with-the-wrong-field.md) | A request with the wrong field name is accepted and silently does nothing | ISSUE | medium | low |
-| [B805](backlog/issue/B805-the-publish-note-is-english-only.md) | The publish note is English only and is shown to people | ISSUE | medium | low |
-| [B806](backlog/issue/B806-a-credit-is-never-named-in.md) | A credit is never named in francs anywhere a person reads | ISSUE | medium | low |
-| [B809](backlog/issue/B809-two-name-fields-in-the-signup.md) | Two name fields in the signup form cannot be told apart | ISSUE | medium | low |
-| [B810](backlog/issue/B810-the-first-thing-the-product-asks.md) | The first thing the product asks a new person is what their day cost | ISSUE | medium | low |
 | [B814](backlog/issue/B814-the-one-screen-a-brand-new.md) | The one screen a brand new journal sees has no heading to land on | ISSUE | medium | low |
 | [B828](backlog/issue/B828-a-journal-may-briefly-not-exist.md) | A journal may briefly not exist while a deploy copies content | ISSUE | medium | medium |
 | [B831](backlog/issue/B831-a-buyer-who-pays-two-checkout.md) | A buyer who pays two checkout sessions for one purchase is charged twice and credited once, silently | ISSUE | medium | low |
@@ -116,11 +109,10 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (19)
+### small-feature (18)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B820](backlog/small-feature/B820-receipts-cannot-be-entered-anywhere-a.md) | Receipts cannot be entered anywhere a person can reach | FEATURE | high | medium |
 | [B10](backlog/small-feature/B10-a-journal-never-says-who-is.md) | A journal never says who is writing it | FEATURE | medium | medium |
 | [B112](backlog/small-feature/B112-local-scripts-write-straight-to-content.md) | Local scripts still write straight to content, and the one guarantee they skip is the draft rule | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
@@ -219,12 +211,20 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (3)
+## in-development (11)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B804](in-development/B804-the-bring-your-own-agent-panel.md) | The bring-your-own-agent panel reads as the next step to somebody who has no agent | ISSUE | high | low | `fdfcf5f2` |
+| [B820](in-development/B820-receipts-cannot-be-entered-anywhere-a.md) | Receipts cannot be entered anywhere a person can reach | FEATURE | high | medium | `fdfcf5f2` |
+| [B838](in-development/B838-the-helper-never-asks-which-languages.md) | The helper never asks which languages a journal is written in | ISSUE | high | low | `fdfcf5f2` |
+| [B839](in-development/B839-every-journal-the-helper-creates-is.md) | Every journal the helper creates is priced in francs forever | ISSUE | high | low | `fdfcf5f2` |
 | [B840](in-development/B840-there-is-no-way-to-find.md) | There is no way to find out what this costs before signing up | FEATURE | high | medium | `7433e107` |
 | [B108](in-development/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium | `6b9bf0a6` |
+| [B805](in-development/B805-the-publish-note-is-english-only.md) | The publish note is English only and is shown to people | ISSUE | medium | low | `fdfcf5f2` |
+| [B806](in-development/B806-a-credit-is-never-named-in.md) | A credit is never named in francs anywhere a person reads | ISSUE | medium | low | `fdfcf5f2` |
+| [B809](in-development/B809-two-name-fields-in-the-signup.md) | Two name fields in the signup form cannot be told apart | ISSUE | medium | low | `fdfcf5f2` |
+| [B810](in-development/B810-the-first-thing-the-product-asks.md) | The first thing the product asks a new person is what their day cost | ISSUE | medium | low | `fdfcf5f2` |
 | [B822](in-development/B822-a-back-arrow-returns-to-a.md) | A back arrow returns to a fixed parent rather than where the reader actually came from | ISSUE | medium | medium | `ccdd5120` |
 
 ## testing (60)

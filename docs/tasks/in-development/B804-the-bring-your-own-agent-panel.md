@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: agent, ui
 found: "2026-09-07T15:16:03Z"
+started: "2026-09-07T16:22:33Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T16:22:33Z"
 ---
 
 # B804 — The bring-your-own-agent panel reads as the next step to somebody who has no agent

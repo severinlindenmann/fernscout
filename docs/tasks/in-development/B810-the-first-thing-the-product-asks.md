@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: entries, tracks, agent
 found: "2026-09-07T15:17:57Z"
+started: "2026-09-07T16:22:32Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T16:22:32Z"
 ---
 
 # B810 — The first thing the product asks a new person is what their day cost

@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: api, i18n
 found: "2026-09-07T15:16:03Z"
+started: "2026-09-07T16:22:33Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T16:22:33Z"
 ---
 
 # B805 — The publish note is English only and is shown to people
