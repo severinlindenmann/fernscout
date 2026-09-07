@@ -19,7 +19,10 @@ import type { TranslationKey } from "@/lib/i18n";
  * What comes back from `/api/helper/<user>/ask` is one of four things, and the
  * discipline is in the difference:
  *
- * - **read** — a sentence, shown. Nothing to confirm about being told a number.
+ * - **read** — a sentence, shown, and kept on the screen as the conversation
+ *   grows. Nothing to confirm about being told a number. Since B889 this is
+ *   also what a sentence no row fits comes back as: the thread's own prose,
+ *   from a model holding read tools and nothing that writes.
  * - **open** — a screen, navigated to. It writes nothing; the screen has its
  *   own buttons.
  * - **write** — the fields, prefilled and editable, in a `ConfirmPanel`.
@@ -29,6 +32,12 @@ import type { TranslationKey } from "@/lib/i18n";
  *
  * One intent per turn: there is no queue here and no plan. "Make a trip and
  * add yesterday" does the trip, and the person asks again.
+ *
+ * **It is a thread, and it still writes nothing** — B889, round 1 of
+ * `docs/plans/2026-09-07-helper-as-an-agent.md`. Answers stack up rather than
+ * replacing one another, and the box empties after each, because the next
+ * sentence is a next sentence. The server holds the conversation itself; this
+ * holds only what to draw.
  *
  * **Quiet, and second** — B767. It opens as one sentence-case line under the
  * card's one bright button, and becomes a box when somebody taps it. An
@@ -94,6 +103,17 @@ export default function HelperAsk({
   // being broken, and closed the tab.
   const [lapsed, setLapsed] = useState(false);
   const [answer, setAnswer] = useState<Answer | null>(null);
+  /**
+   * The conversation, as this browser has seen it — B889.
+   *
+   * The real history is the server's (`lib/helper/thread.ts`); this is only
+   * what to draw, so that an answer stays on the screen while the next
+   * sentence is typed. A reload starts the drawing again and the server's
+   * conversation carries on regardless, which is the honest split: what was
+   * said is a fact about the journal, what is on the screen is a fact about
+   * this tab.
+   */
+  const [saidSoFar, setSaidSoFar] = useState<{ said: string; answer: string }[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
   const [consented, setConsented] = useState(initialConsent);
   const [consenting, setConsenting] = useState(false);
@@ -152,6 +172,10 @@ export default function HelperAsk({
       }
       if (body.kind === "read") {
         setAnswer({ kind: "read", answer: String(body.answer) });
+        setSaidSoFar((was) => [...was, { said, answer: String(body.answer) }]);
+        // The box empties, because the next thing they say is a next thing
+        // and not a correction of the last one.
+        setSaid("");
       } else if (body.kind === "write") {
         const given = (body.fields ?? []) as Field[];
         setFields(given);
@@ -226,6 +250,21 @@ export default function HelperAsk({
           {t("agent.askNotSearch")}
         </p>
       )}
+      {/* What has been said so far, oldest first — B889. Their own sentence
+          in the margin above the answer, so a thread reads as a thread. */}
+      {saidSoFar.length > 0 && (
+        <div className="mb-3 space-y-3">
+          {saidSoFar.map((exchange, index) => (
+            <div key={index}>
+              <p className="text-sm leading-6 text-navy-600">{exchange.said}</p>
+              <p className="mt-1 rounded-xl bg-cream-100 p-3 text-base leading-6 text-navy-800">
+                {exchange.answer}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* `relative`, because the microphone pins itself to this box's top
           right corner — see `RecordButton`'s `compact`. */}
       <div className="relative rounded-2xl border border-navy-200 bg-white p-2">
@@ -291,11 +330,11 @@ export default function HelperAsk({
         </div>
       )}
 
+      {/* The answer itself is drawn in the thread above; this is only the
+          announcement for a screen reader, since the list it lands in was
+          already on the page. */}
       {answer?.kind === "read" && (
-        <p
-          role="status"
-          className="mt-3 rounded-xl bg-cream-100 p-3 text-base leading-6 text-navy-800"
-        >
+        <p role="status" className="sr-only">
           {answer.answer}
         </p>
       )}
