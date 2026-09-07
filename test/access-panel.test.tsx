@@ -575,21 +575,20 @@ describe("the notifications section", () => {
  * (test/account-page.test.tsx), and two live copies of a figure is how they
  * disagree.
  */
-describe("the account card", () => {
-  test("offers the owner a link to the account page", () => {
+describe("the account page is not advertised on /me — B876", () => {
+  test("no card, and no link to it, even for the owner", () => {
+    // B821 left a card here pointing at the moved panels; B876 removed it —
+    // the menu entry is the way in, and a card whose only content is "this
+    // lives elsewhere" is a whole card to say so.
     const html = render({ viewer: owner });
-    // `&` is escaped to `&amp;` by `renderToStaticMarkup`.
-    expect(html).toContain(dictionaryFor("en")["me.accountCardTitle"].replace("&", "&amp;"));
-    expect(html).toContain('href="/alex/account"');
-    // And never the figures themselves — those are the account page's job.
+    expect(html).not.toContain('href="/alex/account"');
+  });
+
+  test("and the figures are still not here", () => {
+    // The reason the panels moved at all: two live copies of a balance is how
+    // they disagree.
+    const html = render({ viewer: owner });
     expect(html).not.toContain(dictionaryFor("en")["me.paymentTitle"]);
     expect(html).not.toContain(dictionaryFor("en")["me.storageTitle"]);
   });
-
-  test("is absent for anybody but the owner", () => {
-    const html = render({ viewer: stranger });
-    expect(html).not.toContain(dictionaryFor("en")["me.accountCardTitle"].replace("&", "&amp;"));
-    expect(html).not.toContain("/alex/account");
-  });
 });
-
