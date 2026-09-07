@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (119)
+## backlog (118)
 
 ### security (5)
 
@@ -115,7 +115,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B689](backlog/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high |
 
-### small-feature (23)
+### small-feature (22)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -131,7 +131,6 @@ Do not edit them by hand; run the script.
 | [B673](backlog/small-feature/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium |
 | [B685](backlog/small-feature/B685-the-helper-cannot-understand-a-sentence.md) | The helper cannot understand a sentence a person types at it | FEATURE | medium | medium |
 | [B694](backlog/small-feature/B694-the-landing-page-sends-everybody-off.md) | The landing page sends everybody off to fetch an agent of their own | FEATURE | medium | low |
-| [B701](backlog/small-feature/B701-the-low-resolution-warning-names-paths.md) | The low-resolution warning names paths nobody recognises and says a photograph prints soft | FEATURE | medium | low |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B05](backlog/small-feature/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
 | [B176](backlog/small-feature/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
@@ -247,7 +246,7 @@ _Nothing here._
 | [B570](in-development/B570-minimap-s-svg-hydrates-with-a.md) | MiniMap's SVG hydrates with a mismatch from floating-point rounding | ISSUE | low | low | `97b44327` |
 | [B603](in-development/B603-npm-run-dev-s-strict-mode.md) | A dev-mode-only effect race can pass or fail local browser testing for the wrong reason | ISSUE | low | low | `97b44327` |
 
-## testing (356)
+## testing (357)
 
 ### security (6)
 
@@ -473,7 +472,7 @@ _Nothing here._
 | [B665](testing/big-feature/B665-a-trip-s-map-draws-straight.md) | A trip's map draws straight lines between days, because nothing holds where somebody actually went | FEATURE | medium | high | — |
 | [B677](testing/big-feature/B677-a-bank-statement-can-only-be.md) | A bank statement can only be read on the owner's own laptop, so the parsing lives in the helper | FEATURE | medium | high | — |
 
-### small-feature (82)
+### small-feature (83)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -550,6 +549,7 @@ _Nothing here._
 | [B633](testing/small-feature/B633-there-is-no-way-for-the.md) | There is no way for the owner to send a day's notification from the day itself | FEATURE | medium | medium | — |
 | [B660](testing/small-feature/B660-the-operator-s-banner-is-one.md) | The operator's banner is one language on a multilingual instance | FEATURE | medium | low | — |
 | [B664](testing/small-feature/B664-the-owner-cannot-see-what-is.md) | The owner cannot see what is using their storage, or reclaim any of it | FEATURE | medium | medium | — |
+| [B701](testing/small-feature/B701-the-low-resolution-warning-names-paths.md) | The low-resolution warning names paths nobody recognises and says a photograph prints soft | FEATURE | medium | low | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B07](testing/small-feature/B07-paid-order-state-machine-for-print.md) | Paid-order state machine for print providers (W28 gap) | FEATURE | low | medium | — |

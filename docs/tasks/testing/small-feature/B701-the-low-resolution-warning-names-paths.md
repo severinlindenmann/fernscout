@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: photobook, order page
 found: "2026-09-07T00:00:00Z"
+merged: "2026-09-07T10:56:17Z"
 ---
 
 # B701 — The low-resolution warning names paths nobody recognises and says a photograph prints soft
