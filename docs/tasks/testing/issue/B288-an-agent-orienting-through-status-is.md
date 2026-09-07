@@ -7,8 +7,7 @@ complexity: low
 area: api, agents
 found: "2026-09-04T13:15:00Z"
 started: "2026-09-07T10:37:39Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T10:37:39Z"
+merged: "2026-09-07T11:05:30Z"
 ---
 
 # B288 — An agent orienting through status is not told a trip.md failed to load, though the trip list would tell it
