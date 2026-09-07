@@ -7,8 +7,7 @@ complexity: high
 area: maps, content-model, privacy, ingest
 found: "2026-09-07T07:49:28Z"
 started: "2026-09-07T08:00:30Z"
-session: 1d31e523-3a22-4905-82fd-39e3d55289f5
-claimed: "2026-09-07T08:00:30Z"
+merged: "2026-09-07T08:28:55Z"
 ---
 
 # B665 — A trip's map draws straight lines between days, because nothing holds where somebody actually went
