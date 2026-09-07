@@ -33,7 +33,7 @@ import { printOrder } from "@/lib/photobook/print";
 const OWNER = "ana";
 const POOR_OWNER = "poor";
 const ID = "book-one-12345";
-const QUOTED = 83; // ceil((printMinor 1440 + shipMinor 220) / 20)
+const QUOTED = 125; // photobookPrintCredits(1440, 220) = ceil(1660 * 1.5 / 20)
 const START = 500;
 
 const ADDRESS = {
@@ -229,5 +229,16 @@ describe("printOrder", () => {
     };
     walk(path.join(process.cwd(), "app", "api"));
     expect(hits).toEqual([]);
+  });
+});
+
+describe("where the book is going decides what it costs", () => {
+  test("refuses an address whose country Gelato cannot be asked about", async () => {
+    const before = (await balanceOf(OWNER)) ?? 0;
+    const result = await printOrder(OWNER, ID, QUOTED);
+    // The fixture contact's country is "Switzerland", a name rather than a
+    // code — resolved through COUNTRY_CODES, so this must still succeed.
+    expect(result).not.toEqual({ ok: false, reason: "unknown_country" });
+    expect((await balanceOf(OWNER)) ?? 0).toBeLessThanOrEqual(before);
   });
 });

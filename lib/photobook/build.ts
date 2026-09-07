@@ -73,7 +73,7 @@ export async function followerNames(owner: string): Promise<string[]> {
 /** Per volume, because each volume is a separate book with its own cover and
  * its own postage. */
 export function priceOf(book: Photobook, options: BookOptions): number {
-  return book.volumes.reduce((sum, v) => sum + photobookCredits(v.interiorPages, options.size), 0);
+  return book.volumes.reduce((sum) => sum + photobookCredits(), 0);
 }
 
 export function orderDir(owner: string, orderId: string): string {

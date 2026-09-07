@@ -1485,8 +1485,8 @@
   "pricing.rowPostcardDetail": "Printed and posted, anywhere",
   "pricing.rowStorage": "Another {size}",
   "pricing.rowStorageDetail": "Once, and it never lapses",
-  "pricing.rowPhotobook": "A printed photobook",
-  "pricing.rowPhotobookDetail": "Printed in Switzerland and posted to you — the figure depends on the page count and the size, and you see the exact total before you order",
+  "pricing.rowPhotobook": "A photobook, laid out as a PDF",
+  "pricing.rowPhotobookDetail": "Your whole trip planned into pages, with covers, ready to print — the same charge whatever the length, and yours to keep whether or not you have it printed",
   "pricing.fromCredits": "from {credits}",
   "pricing.grant": "A new journal starts with {credits}.",
   "me.paymentFree": "free",
@@ -1527,5 +1527,7 @@
   "purchase.refund.credits": "{credits} credits have been taken off your balance again.",
   "purchase.refund.creditsNone": "The credits had already been used, so nothing was taken off your balance.",
   "purchase.refund.footer": "Sent because a purchase on your journal was refunded. Reply to this message if anything looks wrong.",
-  "me.txRefunded": "Refunded"
+  "me.txRefunded": "Refunded",
+  "pricing.rowPhotobookPrint": "…printed on paper and posted",
+  "pricing.rowPhotobookPrintDetail": "Printed in Switzerland and posted to whoever you choose. Quoted for your book and your address before you order — this is a {pages}-page square softcover to a Swiss address"
 }
