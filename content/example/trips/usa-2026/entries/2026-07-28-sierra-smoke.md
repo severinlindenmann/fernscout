@@ -7,6 +7,7 @@ countryCode: "US"
 lat: 37.3614
 lng: -118.3951
 weather: true
+visibility: guest
 transportMode: "car"
 transportFrom: "Moab"
 transportTo: "Bishop"

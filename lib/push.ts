@@ -4,6 +4,7 @@ import { getDatabaseOrNull } from "./db";
 import { contactsWithReadGrant } from "./grants";
 import { pushRepo } from "./repos";
 import type { StoredSubscription } from "./repos/types";
+import type { PhotoVisibility } from "./photos";
 import type { Trip } from "./types";
 
 export type { StoredSubscription } from "./repos/types";
@@ -153,13 +154,25 @@ export async function findActiveContactId(
  * travellers on the same grounds and in the same words. If it is ever wanted,
  * it is a design, not a line — and it is not this task.
  *
+ * ## The day's own label narrows this too — B632
+ *
+ * Since B632 an update carries its own `visibility`, and it narrows against
+ * the trip's the way a photograph's does. A lock screen is the surface where
+ * that matters most: a `guest` update on an otherwise public trip would
+ * otherwise put its title and its location on every subscribed phone, which
+ * is the whole leak the label exists to close, arriving by the one channel
+ * nobody opted into reading twice. So a labelled day is asked the trip's own
+ * questions at the label's level — `private` reaches nobody, for exactly the
+ * reason a `private` trip does not, and `guest` takes the grant path even
+ * when the trip itself is open to anyone holding the link.
+ *
  * `entry` is optional because two callers ask different questions. The
  * subscribe route asks about a trip; the notify script is always announcing
  * one particular day. Pass the entry whenever there is one.
  */
 export async function subscribersFor(
   trip: Trip,
-  entry?: { test?: boolean },
+  entry?: { test?: boolean; visibility?: PhotoVisibility },
 ): Promise<StoredSubscription[]> {
   // Nobody lived it, so nobody is told about it — checked before `isOpenToLink`,
   // because a test trip is usually `public` and would sail past it (B70).
@@ -167,10 +180,11 @@ export async function subscribersFor(
   // And `private` is nobody's, grant or no grant. A journal-wide `read` grant
   // is not a key to this trip, and there is no record here of who was on it
   // (B68).
-  if (trip.visibility === "private") return [];
+  if (trip.visibility === "private" || entry?.visibility === "private") return [];
 
   const all = await listSubscriptions(trip.username);
-  if (isOpenToLink(trip)) return all;
+  // A `guest` day is a closed day, however open the trip around it is.
+  if (isOpenToLink(trip) && entry?.visibility !== "guest") return all;
 
   const handle = await getDatabaseOrNull();
   if (!handle) return [];

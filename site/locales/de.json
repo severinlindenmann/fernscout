@@ -640,6 +640,7 @@
   "nav.toJournal": "Zurück zu {title}",
   "nav.trips": "Reisen",
   "notify.button": "Deine Leser über diesen Tag informieren",
+  "notify.cancel": "Jetzt nicht",
   "notify.confirm": "Der Versand kostet {needed} Credit(s), danach bleiben dir {rest}. Jetzt senden?",
   "notify.confirmFree": "Diesen Tag jetzt an deine Leser senden?",
   "notify.failed": "Das konnte nicht gesendet werden. Es wurde nichts berechnet.",

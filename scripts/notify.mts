@@ -32,7 +32,7 @@
  */
 import webpush, { WebPushError } from "web-push";
 import { isOpenToLink, isTestContent } from "../lib/access";
-import { getAllEntries, getDefaultDay, getEntryBySlug } from "../lib/entries";
+import { AS_AUTHOR, getAllEntries, getDefaultDay, getEntryBySlug } from "../lib/entries";
 import { isGoneSubscription, removeSubscriptions, subscribersFor } from "../lib/push";
 import { currentTripRef, getTrip, getTripIds } from "../lib/trips";
 import { getDefaultUsername, getUser, getUsernames } from "../lib/users";
@@ -129,10 +129,16 @@ const dayPath = (slug: string) =>
 // ---- resolve which day this run is about -----------------------------------
 
 const slug = valueOf("--day");
-const entry = has("--latest") ? getDefaultDay(trip.ref)?.lead : getEntryBySlug(trip.ref, slug ?? "");
+// Read as the author — B632. A day carrying its own `visibility` is dropped
+// at the closed default reader, so without this the operator announcing their
+// own held-back day is told there is no such day. Who is *told* about it is
+// `subscribersFor`'s question, below, and the label narrows it there.
+const entry = has("--latest")
+  ? getDefaultDay(trip.ref, AS_AUTHOR)?.lead
+  : getEntryBySlug(trip.ref, slug ?? "", AS_AUTHOR);
 
 if (!entry) {
-  const known = getAllEntries(trip.ref).map((e) => e.slug);
+  const known = getAllEntries(trip.ref, AS_AUTHOR).map((e) => e.slug);
   fail(
     (slug ? `No entry with slug "${slug}" on ${trip.ref}.` : "Pass --day <slug> or --latest.") +
       `\nKnown slugs: ${known.join(", ") || "(none)"}`,
@@ -178,6 +184,23 @@ if (trip.visibility === "private") {
   console.log(
     `  "${trip.title}" is a guest trip, so only subscriptions tied to a contact of\n` +
       "  this journal who is active and holds a live read grant are notified.\n",
+  );
+}
+
+// The day's own label, which narrows against the trip's — B632. Said
+// separately from the trip's sentence above, because an operator looking at a
+// public trip and a recipient count of nought needs to know it was this
+// update and not the whole journey.
+if (entry.visibility === "private") {
+  console.log(
+    "  This update is marked `private` — it belongs to the people who were\n" +
+      "  there, and nothing here records who they were, so nobody is notified.\n",
+  );
+} else if (entry.visibility === "guest" && !closed) {
+  console.log(
+    "  This update is marked `guest`, so it is announced only to subscriptions\n" +
+      "  tied to an active contact holding a live read grant — not to everyone\n" +
+      "  the trip itself is open to.\n",
   );
 }
 

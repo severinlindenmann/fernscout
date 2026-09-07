@@ -26,6 +26,14 @@ type Status = {
  * owner's cookie only, refusing a bearer token outright, the same shape as
  * the postcard send button beside it.
  *
+ * The confirmation is a panel in the page rather than `window.confirm` —
+ * B633. A browser dialog arrives in the operating system's own type, with a
+ * generic title bar naming the domain, and it is the one moment this control
+ * is asking somebody to spend real money on real letters: it should look like
+ * the journal it belongs to. It also answers a question `window.confirm`
+ * cannot — what a send costs and what is left afterwards, in the page's own
+ * words.
+ *
  * Rendered unconditionally by `StoryPager`'s `DayCard` and answers `null`
  * itself when there is nothing to do — a reader who is not the owner gets a
  * `403` from the route and this renders nothing, so no flash of a button
@@ -44,6 +52,7 @@ export default function DayNotify({
   const url = `/${username}/trips/${tripId}/day/${slug}/notify`;
   const [status, setStatus] = useState<Status | null>(null);
   const [busy, setBusy] = useState(false);
+  const [asking, setAsking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -80,16 +89,15 @@ export default function DayNotify({
     );
   }
 
-  const onClick = async () => {
-    const message =
-      status.balance === null
-        ? t("notify.confirmFree")
-        : t("notify.confirm", {
-            needed: String(status.needed),
-            rest: String(status.balance - status.needed),
-          });
-    if (!window.confirm(message)) return;
+  const message =
+    status.balance === null
+      ? t("notify.confirmFree")
+      : t("notify.confirm", {
+          needed: String(status.needed),
+          rest: String(status.balance - status.needed),
+        });
 
+  const send = async () => {
     setBusy(true);
     setError(null);
     try {
@@ -99,6 +107,7 @@ export default function DayNotify({
         return;
       }
       setStatus({ ...status, alreadySent: true, pending: [] });
+      setAsking(false);
     } catch {
       setError(t("notify.failed"));
     } finally {
@@ -108,15 +117,49 @@ export default function DayNotify({
 
   return (
     <div className="mt-3">
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={busy}
-        className="rounded-full border border-navy-300 px-3 py-1.5 text-xs font-semibold text-navy-900 transition-colors hover:bg-cream-100 disabled:opacity-50"
-      >
-        {t("notify.button")}
-      </button>
-      {error && <p className="mt-1 text-xs text-coral-700">{error}</p>}
+      {asking ? (
+        // A panel in the flow of the day, not a modal over it: the question is
+        // about the day being read and covering it up to ask would take more
+        // than the question is worth — the same call `PushPrompt` makes.
+        <div
+          role="dialog"
+          aria-modal="false"
+          aria-label={t("notify.button")}
+          className="max-w-sm rounded-2xl border border-navy-200 bg-white p-4 shadow-sm"
+        >
+          <p className="text-sm leading-6 text-navy-700">{message}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={send}
+              disabled={busy}
+              className="rounded-full bg-yellow-400 px-4 py-1.5 text-xs font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:opacity-50"
+            >
+              {t("notify.button")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAsking(false)}
+              disabled={busy}
+              className="rounded-full border border-navy-300 px-4 py-1.5 text-xs font-semibold text-navy-700 transition-colors hover:bg-cream-100 disabled:opacity-50"
+            >
+              {t("notify.cancel")}
+            </button>
+          </div>
+          {error && <p className="mt-2 text-xs text-coral-700">{error}</p>}
+        </div>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => setAsking(true)}
+            className="rounded-full border border-navy-300 px-3 py-1.5 text-xs font-semibold text-navy-900 transition-colors hover:bg-cream-100"
+          >
+            {t("notify.button")}
+          </button>
+          {error && <p className="mt-1 text-xs text-coral-700">{error}</p>}
+        </>
+      )}
     </div>
   );
 }
