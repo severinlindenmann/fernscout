@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useI18n } from "@/components/LocaleProvider";
 import Why from "@/components/Why";
 
@@ -22,6 +23,14 @@ import Why from "@/components/Why";
  * over it, the same call `DayNotify` and `PushPrompt` make. Nothing this
  * codebase asks is urgent enough to cover the page up for, and a real modal is
  * a focus-management problem nobody here needs to own.
+ *
+ * **It does take focus when it mounts, once** — B795. Not a trap and not a
+ * modal: one `focus()` on the panel itself, which is what turns "the button I
+ * pressed vanished and nothing happened" into the question being read out. It
+ * is done here rather than at each of the eleven call sites because this is
+ * the codebase's answer to every question, and a focus move that half the
+ * questions have is worse than none. `Escape` cancels, for the same reason a
+ * dialog does — but never while it is busy, since the work is already away.
  *
  * The confirming button is the yellow one and it says what it *does* —
  * "Delete them", "Buy 5 GB" — never "OK". Somebody who has stopped reading by
@@ -58,12 +67,21 @@ export default function ConfirmPanel({
   children?: React.ReactNode;
 }) {
   const { t } = useI18n();
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    panel.current?.focus();
+  }, []);
   return (
     <div
+      ref={panel}
+      tabIndex={-1}
       role="dialog"
       aria-modal="false"
       aria-label={label}
-      className="max-w-md rounded-2xl border border-navy-200 bg-cream-50 p-4"
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && !busy) onCancel();
+      }}
+      className="max-w-md rounded-2xl border border-navy-200 bg-cream-50 p-4 focus:outline-none"
     >
       <p className="text-sm leading-6 text-navy-700">{question}</p>
       {details && <Why>{details}</Why>}

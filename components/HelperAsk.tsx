@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import RecordButton from "@/components/RecordButton";
 import { useI18n } from "@/components/LocaleProvider";
@@ -76,6 +76,15 @@ export default function HelperAsk({
   const [fields, setFields] = useState<Field[]>([]);
   const [consented, setConsented] = useState(initialConsent);
   const [consenting, setConsenting] = useState(false);
+
+  // The box replaces the line that opened it, so without this focus falls to
+  // `<body>` and the person is left exploring the page to find out whether
+  // anything happened — B795. The input is what they came for and it carries
+  // its own label, so it is both the announcement and the destination.
+  const box = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (open) box.current?.focus();
+  }, [open]);
 
   async function post(url: string, body?: unknown): Promise<Record<string, unknown>> {
     const response = await fetch(url, {
@@ -173,6 +182,7 @@ export default function HelperAsk({
           right corner — see `RecordButton`'s `compact`. */}
       <div className="relative rounded-2xl border border-navy-200 bg-white p-2">
         <input
+          ref={box}
           id={`ask-${username}`}
           type="text"
           value={said}
