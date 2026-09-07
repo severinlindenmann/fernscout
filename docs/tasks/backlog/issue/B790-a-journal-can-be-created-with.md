@@ -1,0 +1,44 @@
+---
+id: B790
+title: A journal can be created with a currency that is not one, and it can never be corrected
+type: ISSUE
+priority: medium
+complexity: low
+area: api, journals, currency
+found: "2026-09-07T14:43:11Z"
+---
+
+# B790 — A journal can be created with a currency that is not one, and it can never be corrected
+
+## Why
+
+B777 fixed the asymmetry one way round — create validated languages, correct
+did not. This is the same asymmetry running the other way, and it is worse
+because the field cannot be corrected at all.
+
+`app/api/v1/journals/route.ts:297-298` passes `baseCurrency` and
+`displayCurrencies` straight into `createJournal`, which writes
+`input.baseCurrency ?? "CHF"` (`lib/journals.ts:272-275`) with no
+`normalizeCurrency`, no three-letter check, and no check that
+`displayCurrencies` contains the base. `setJournalProfile`
+(`lib/journals.ts:1060-1089`) enforces all three — but `baseCurrency` is
+refused there, deliberately, because a journal's base currency is what every
+cost in it is denominated against and changing it later would silently
+re-price the past.
+
+So a journal created with `"francs"`, or `"chf "`, or nothing sensible at all,
+is stuck with it forever, and the one route that would have caught it is the
+one that never runs on it.
+
+Found while fixing B777.
+
+## Work
+
+Validate both fields in the create route against the same helpers
+`setJournalProfile` uses — imported, not copied, the way B777 now shares
+`MAINTAINED_LOCALES`. Refuse with the same words.
+
+## Acceptance
+
+A currency refused when correcting a journal is refused when creating one, and
+a test asserts the two routes share one validator.

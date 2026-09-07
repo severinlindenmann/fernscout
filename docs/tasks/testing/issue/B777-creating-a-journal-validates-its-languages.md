@@ -7,8 +7,7 @@ complexity: low
 area: api, i18n
 found: "2026-09-07T14:23:37Z"
 started: "2026-09-07T14:25:40Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T14:25:40Z"
+merged: "2026-09-07T14:43:05Z"
 ---
 
 # B777 — Creating a journal validates its languages and correcting one does not

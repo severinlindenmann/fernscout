@@ -7,8 +7,7 @@ complexity: low
 area: entries, visibility
 found: "2026-09-07T14:23:36Z"
 started: "2026-09-07T14:25:40Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T14:25:40Z"
+merged: "2026-09-07T14:43:04Z"
 ---
 
 # B775 — A guest trip's day is announced as public, in the feed and readable by anyone with the link
