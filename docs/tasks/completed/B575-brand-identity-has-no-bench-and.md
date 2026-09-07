@@ -8,6 +8,7 @@ area: docs/branding
 found: "2026-09-06T13:45:35Z"
 started: "2026-09-06T13:46:05Z"
 merged: "2026-09-06T13:55:45Z"
+completed: "2026-09-07T13:12:08Z"
 ---
 
 # B575 — Brand identity has no bench, and its numbers live in three files

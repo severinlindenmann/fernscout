@@ -7,6 +7,7 @@ complexity: low
 area: photobook, i18n
 found: "2026-09-06T13:47:14Z"
 merged: "2026-09-06T14:12:19Z"
+completed: "2026-09-07T13:12:09Z"
 ---
 
 # B576 — A German book prints English dates

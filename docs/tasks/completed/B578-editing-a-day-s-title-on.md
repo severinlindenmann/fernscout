@@ -8,6 +8,7 @@ area: fernscout-helper, publish, days
 found: "2026-09-06T14:02:08Z"
 started: "2026-09-06T14:07:42Z"
 merged: "2026-09-06T14:34:24Z"
+completed: "2026-09-07T13:12:11Z"
 ---
 
 # B578 — Editing a day's title on disk makes publish unable to find that day again

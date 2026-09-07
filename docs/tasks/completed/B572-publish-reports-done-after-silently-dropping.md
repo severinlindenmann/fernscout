@@ -8,6 +8,7 @@ area: fernscout-helper, publish, trips
 found: "2026-09-06T13:45:05Z"
 started: "2026-09-06T14:01:04Z"
 merged: "2026-09-06T14:06:48Z"
+completed: "2026-09-07T13:12:07Z"
 ---
 
 # B572 — publish reports Done after silently dropping most of an existing trip's trip.md

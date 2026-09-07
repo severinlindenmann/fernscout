@@ -8,6 +8,7 @@ area: fernscout-helper, validate-content, plan.md
 found: "2026-09-06T14:03:33Z"
 started: "2026-09-06T14:12:23Z"
 merged: "2026-09-06T14:16:33Z"
+completed: "2026-09-07T13:12:12Z"
 ---
 
 # B580 — plan.md is checked for existence and never for what is inside it

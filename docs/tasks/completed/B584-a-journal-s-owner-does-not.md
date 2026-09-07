@@ -7,6 +7,7 @@ complexity: low
 area: trips, access
 found: "2026-09-06T14:10:04Z"
 merged: "2026-09-06T14:17:49Z"
+completed: "2026-09-07T13:12:14Z"
 ---
 
 # B584 — The instance admin sees an empty trips page and is told the trip is `listed: false`

@@ -8,6 +8,7 @@ area: fernscout-helper, publish, media
 found: "2026-09-06T13:45:45Z"
 started: "2026-09-06T13:50:06Z"
 merged: "2026-09-06T14:01:04Z"
+completed: "2026-09-07T13:12:08Z"
 ---
 
 # B574 — publish --dry-run overstates the photographs it will upload

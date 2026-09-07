@@ -8,6 +8,7 @@ area: fernscout-helper, api cache, validate-content
 found: "2026-09-06T14:03:33Z"
 started: "2026-09-06T14:06:05Z"
 merged: "2026-09-06T14:12:22Z"
+completed: "2026-09-07T13:12:11Z"
 ---
 
 # B579 — A stale health cache silently switches off the media checks

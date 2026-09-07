@@ -8,6 +8,7 @@ area: fernscout-helper, model.mjs, drift
 found: "2026-09-06T14:17:36Z"
 started: "2026-09-06T18:00:10Z"
 merged: "2026-09-06T18:12:32Z"
+completed: "2026-09-07T13:12:15Z"
 ---
 
 # B585 — model.mjs still says coordinates and photos are only ever false, and the site has a third answer

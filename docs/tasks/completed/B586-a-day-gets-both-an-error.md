@@ -8,6 +8,7 @@ area: fernscout-helper, validate-content, tips
 found: "2026-09-06T14:17:37Z"
 started: "2026-09-06T18:00:11Z"
 merged: "2026-09-06T18:12:34Z"
+completed: "2026-09-07T13:12:15Z"
 ---
 
 # B586 — A day gets both an error and a tip for the same unanswered question
