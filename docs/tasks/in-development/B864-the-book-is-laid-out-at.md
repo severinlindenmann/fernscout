@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: photobook, print
 found: "2026-09-07T17:29:29Z"
+started: "2026-09-07T17:35:12Z"
+session: ce87fdc2-3f66-428c-90d3-ae9d8df84e40
+claimed: "2026-09-07T17:35:12Z"
 ---
 
 # B864 — The book is laid out at three sizes Gelato cannot print
