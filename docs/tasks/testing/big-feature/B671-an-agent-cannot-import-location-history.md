@@ -7,8 +7,7 @@ complexity: high
 area: api, gps, importers, agent-guide
 found: "2026-09-07T08:46:35Z"
 started: "2026-09-07T08:47:05Z"
-session: 1d31e523-3a22-4905-82fd-39e3d55289f5
-claimed: "2026-09-07T08:47:05Z"
+merged: "2026-09-07T09:06:52Z"
 ---
 
 # B671 — An agent cannot import location history, because the only way in is a shell on the server
