@@ -153,7 +153,13 @@ export default function BusyButton({
       // why, to somebody who cannot see the spinner turning.
       disabled={working || disabled}
       aria-busy={working || undefined}
-      className={`inline-flex items-center justify-center gap-2${className ? ` ${className}` : ""}`}
+      // `aria-busy:opacity-100!` undoes the caller's own `disabled:opacity-50`
+      // for the busy case only, and it is not cosmetic: nearly every button
+      // here fades when disabled, so the spinner arrived at half strength on a
+      // button that had already dimmed — a working control looking exactly as
+      // dead as an unavailable one. Busy and unavailable are different states
+      // and must not look the same. A plain `disabled` still fades.
+      className={`inline-flex items-center justify-center gap-2 aria-busy:opacity-100!${className ? ` ${className}` : ""}`}
       {...rest}
     >
       {working ? <Spinner /> : null}
