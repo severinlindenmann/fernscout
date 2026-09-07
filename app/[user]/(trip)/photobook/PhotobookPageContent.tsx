@@ -148,7 +148,13 @@ export default function PhotobookPageContent({
   const storageKey = `fernscout:photobook:${tripRef}`;
   const [options, setOptions, hadSaved] = usePersistedState<BookOptions>(
     storageKey,
-    initialBookOptions(locales[0] ?? DEFAULT_OPTIONS.locale, hasCosts, hasWeather),
+    initialBookOptions(
+      locales[0] ?? DEFAULT_OPTIONS.locale,
+      hasCosts,
+      hasWeather,
+      hasFigures,
+      hasTransport,
+    ),
     (saved, current) => {
       const parsed = JSON.parse(saved) as Partial<BookOptions>;
       return {
