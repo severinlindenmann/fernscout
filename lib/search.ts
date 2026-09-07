@@ -50,6 +50,7 @@ function toDoc(trip: Trip, tripBase: string, entry: Entry): SearchDoc {
     date: entry.date,
     url: `${tripBase}/day/${entry.slug}`,
     body: stripMarkdown(entry.content),
+    tags: entry.tags,
   };
 }
 

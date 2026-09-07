@@ -53,7 +53,7 @@ export default function SearchBox() {
     return index.search(trimmed, {
       prefix: true,
       fuzzy: 0.2,
-      boost: { title: 3, location: 2, tripTitle: 1.5 },
+      boost: { title: 3, tags: 3, location: 2, tripTitle: 1.5 },
     });
   }, [index, trimmed]);
 

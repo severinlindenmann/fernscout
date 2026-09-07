@@ -20,11 +20,11 @@ claimed: "2026-09-07T11:27:37Z"
 > deleted code, and "the network door" now means the REST API alone. The
 > reasoning is unchanged — the paths it names are one fewer than it says.
 
-Four write paths put `tags:` into an entry, and they are the paths an agent
-actually uses:
+Three write paths put `tags:` into an entry, and they are the paths an agent
+actually uses (a fourth, the `create_day` MCP tool, no longer exists — B298
+removed MCP, and `lib/mcp/tools.ts` with it):
 
 - `lib/api/entries.ts:115` — REST `POST /api/v1/<user>/trips/<trip>/days`
-- `lib/mcp/tools.ts:440` — the `create_day` MCP tool, with `tags` in its schema
 - `lib/ingest/entry.ts:113` — `ingest-photos --tags a,b`
 - by hand, per the `add-a-day` skill, which lists `tags:` in its field list
 
@@ -83,3 +83,42 @@ wrong index, not an error.
   `example/search-index.json` before and after.
 - Drafts stay out. `buildDocs` filters through `getAllEntries` without
   `includeDrafts`, and tagging must not become a second way in.
+
+## What was built
+
+`SearchDoc.tags: string[]` added, populated in `toDoc` (`lib/search.ts`) from
+`entry.tags` (already always `string[]`, never optional — see `lib/types.ts`).
+`"tags"` added to `SEARCH_OPTIONS.fields` in `lib/searchOptions.ts`, the one
+shared place `MiniSearch.loadJSON` in `components/SearchBox.tsx` also reads.
+
+**Boost:** `tags` got the same boost as `title` (3), in the `index.search(...,
+{ boost: {...} })` call in `SearchBox.tsx` — that boost lives at the query
+call, not in `SEARCH_OPTIONS`, so it needed no change to the shared file. A
+tag is as deliberate a label as a title.
+
+**`storeFields`: left unchanged, tags are not stored.** Nothing renders a tag
+today — no chip on a day, no result-list tag pill — so storing it would be
+payload with no reader. `fields` alone is enough for tags to affect recall and
+ranking; add `"tags"` to `storeFields` when something actually displays it (see
+item 4 below, deliberately not done here).
+
+**Item 4 (tag chip, `?tag=` search) — deliberately not done.** Captured
+instead as B716 (see backlog).
+
+## What changed while building
+
+Fixture entries in `test/fixtures/feed/creator/trips/public-2026/entries/`
+picked up `tags:` so `test/search.test.ts` could assert a tag-only match and a
+draft's tag staying out — `2026-01-02-somewhere.md` got `tags: ["sleeper-train"]`,
+`2026-01-03-draft-day.md` got `tags: ["draft-only-tag"]`.
+
+## Evidence
+
+Measured against `content/example` (the same journal the ticket's numbers
+came from), via `buildSearchIndex`/`buildSearchIndexJson`:
+
+- Before: `sleeper` → 0 hits, `wildlife` → 0 hits. Index payload 33,578 bytes.
+- After: `sleeper` → `["asia-2023/night-train-north"]` (1 hit). `wildlife` →
+  `["parks-2025/trail-ridge-road", "parks-2025/badlands-loop"]` (2 hits, both
+  of the tagged entries, nothing extra). Index payload 35,100 bytes — a 4.5%
+  increase, not disproportionate.

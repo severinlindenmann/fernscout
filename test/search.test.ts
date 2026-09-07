@@ -36,6 +36,17 @@ describe("buildSearchIndex", () => {
     expect(index.search("Public Day").length).toBeGreaterThan(0);
   });
 
+  test("finds an entry by a tag not present in its prose or title (B05)", () => {
+    const index = buildSearchIndex("creator")!;
+    const hits = index.search("sleeper-train");
+    expect(hits.map((h) => h.id)).toContain("public-2026/somewhere");
+  });
+
+  test("a tag on a draft entry is not indexed — drafts stay out via tags too", () => {
+    const index = buildSearchIndex("creator")!;
+    expect(index.search("draft-only-tag")).toEqual([]);
+  });
+
   /** The one that matters most: private content must not even be indexed. */
   test("a private trip's content is not indexed at all", () => {
     const index = buildSearchIndex("creator")!;
