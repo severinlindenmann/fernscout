@@ -5,7 +5,7 @@ import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
 import { readFor, mayReadTrip } from "@/lib/tripGate";
 import GalleryPageContent from "./GalleryPageContent";
-import { getAllMedia, getPlaces } from "@/lib/entries";
+import { getAllMedia } from "@/lib/entries";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import TripProvider from "@/components/TripProvider";
 import { postcardEntryFor } from "@/lib/postcard/entry";
@@ -34,7 +34,9 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function GalleryPage({ params }: PageProps<"/[user]/gallery">) {
+export default async function GalleryPage({
+  params,
+}: PageProps<"/[user]/gallery">) {
   const { user } = await params;
   // No current trip is a normal state, not a missing page. See lib/currentTrip.ts.
   const trip = currentTripOrRedirect(user);
@@ -64,10 +66,14 @@ export default async function GalleryPage({ params }: PageProps<"/[user]/gallery
   const photobook = await photobookEntryFor(trip);
 
   return (
-    <TripProvider trip={trip} isCurrent canPublish={canPublish} reader={read.reader}>
+    <TripProvider
+      trip={trip}
+      isCurrent
+      canPublish={canPublish}
+      reader={read.reader}
+    >
       <GalleryPageContent
         media={getAllMedia(tripId, read)}
-        places={getPlaces(tripId, read)}
         photobook={photobook}
         postcard={postcard}
       />

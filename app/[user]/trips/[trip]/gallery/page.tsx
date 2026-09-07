@@ -5,7 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import GalleryPageContent from "@/app/[user]/(trip)/gallery/GalleryPageContent";
 import { photobookEntryFor } from "@/lib/photobook/entry";
 import { postcardEntryFor } from "@/lib/postcard/entry";
-import { getAllMedia, getPlaces } from "@/lib/entries";
+import { getAllMedia } from "@/lib/entries";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
 import { getUsernames } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
@@ -14,7 +14,7 @@ export function generateStaticParams() {
   return getUsernames().flatMap((user) => {
     const current = getCurrentTrip(user)?.id;
     return getTrips(user)
-    .filter((t) => t.id !== current && t.status !== "upcoming")
+      .filter((t) => t.id !== current && t.status !== "upcoming")
       .map((t) => ({ user, trip: t.id }));
   });
 }
@@ -63,10 +63,14 @@ export default async function TripGalleryPage({
   const postcard = await postcardEntryFor(trip);
 
   return (
-    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish} reader={read.reader}>
+    <TripProvider
+      trip={trip}
+      isCurrent={false}
+      canPublish={canPublish}
+      reader={read.reader}
+    >
       <GalleryPageContent
         media={getAllMedia(trip.ref, read)}
-        places={getPlaces(trip.ref, read)}
         photobook={photobook}
         postcard={postcard}
       />

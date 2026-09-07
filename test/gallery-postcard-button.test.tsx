@@ -47,7 +47,7 @@ function tile(n: number): MediaTile {
 function markup(postcard?: { username: string; trip: string; from: string }) {
   return renderToStaticMarkup(
     <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
-      <GalleryPageContent media={[tile(1), tile(2)]} places={[]} postcard={postcard} />
+      <GalleryPageContent media={[tile(1), tile(2)]} postcard={postcard} />
     </LocaleProvider>,
   );
 }
@@ -63,15 +63,16 @@ describe("who is offered a postcard", () => {
     expect(html).not.toContain("Choose a photograph");
   });
 
-  test("the slideshow is still there for that reader", () => {
-    // The guard must not have removed the control this page already had.
-    expect(markup(undefined)).toContain("Slideshow");
+  test("the gallery does not offer the trip's slideshow — B793", () => {
+    // It rendered `SlideShow` with the trip's unfiltered `places`, so filtering
+    // the gallery to one place and pressing it played the whole trip anyway.
+    // The map carries the same control, correctly scoped to the journey.
+    expect(markup(undefined)).not.toContain("Slideshow");
   });
 
-  test("the owner gets the button, beside the slideshow", () => {
+  test("the owner gets the postcard button", () => {
     const html = markup(OWNER);
     expect(html).toContain("Send a postcard");
-    expect(html).toContain("Slideshow");
   });
 
   test("nothing in the owner's own markup carries an address", () => {
