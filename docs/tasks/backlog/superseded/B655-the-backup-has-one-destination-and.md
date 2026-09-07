@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: backup, Proton Drive, health
 found: "2026-09-07T05:44:26Z"
+superseded: "Proton dropped 2026-09-07 — the operator wants a second destination later, probably a cheap S3 bucket, not Proton Drive"
 ---
 
 # B655 — The backup has one destination, and no second copy off Backblaze
