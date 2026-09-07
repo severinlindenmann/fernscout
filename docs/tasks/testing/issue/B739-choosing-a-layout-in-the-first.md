@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: photobook, onboarding
 found: "2026-09-07T00:00:00Z"
+merged: "2026-09-07T12:48:25Z"
 ---
 
 # B739 — Choosing a layout in the first-book flow asks a question at the top of the page about days the flow itself arranged

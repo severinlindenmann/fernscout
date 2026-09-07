@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (104)
+## backlog (103)
 
 ### security (3)
 
@@ -59,13 +59,11 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B593](backlog/security/B593-a-fulfilment-instance-s-job-intake.md) | A fulfilment instance's job intake has no admission or rate control | SECURITY | medium | medium |
 
-### issue (19)
+### issue (17)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B386](backlog/issue/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
-| [B739](backlog/issue/B739-choosing-a-layout-in-the-first.md) | Choosing a layout in the first-book flow asks a question at the top of the page about days the flow itself arranged | ISSUE | high | low |
-| [B740](backlog/issue/B740-the-figures-a-book-prints-on.md) | The figures a book prints on its chapter dividers are missing from the preview, so the switch looks broken | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
@@ -154,10 +152,11 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### docs-and-skills (3)
+### docs-and-skills (4)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B747](backlog/docs-and-skills/B747-the-legal-page-does-not-name.md) | The legal page does not name Anthropic or Deepgram | DOCS | high | low |
 | [B211](backlog/docs-and-skills/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | DOCS | low | low |
 | [B717](backlog/docs-and-skills/B717-readme-md-still-says-there-is.md) | README.md still says there is no editing interface and there will not be one | DOCS | low | low |
 | [B725](backlog/docs-and-skills/B725-the-inbox-doc-says-media-is.md) | The inbox doc says media is the only kind a media route files | DOCS | low | low |
@@ -214,7 +213,7 @@ _Nothing here._
 | [B732](in-development/B732-the-landing-page-shows-the-bring.md) | The landing page shows the bring-your-own-agent instructions to everybody, including the people who came for the helper | FEATURE | medium | low | `ccdd5120` |
 | [B733](in-development/B733-the-landing-page-and-the-helper.md) | The landing page and the helper door are flat cream, while the brand they are built from has paper, panels and a yellow that leads | FEATURE | medium | medium | `ccdd5120` |
 
-## testing (434)
+## testing (436)
 
 ### security (9)
 
@@ -230,7 +229,7 @@ _Nothing here._
 | [B662](testing/security/B662-plaintext-sign-in-codes-still-reach.md) | Plaintext sign-in codes still reach the backup through content/.mail | SECURITY | medium | low | — |
 | [B239](testing/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low | — |
 
-### issue (209)
+### issue (211)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -285,6 +284,8 @@ _Nothing here._
 | [B691](testing/issue/B691-an-importer-can-pass-its-own.md) | An importer can pass its own contract check and still have the money upside down | ISSUE | high | medium | — |
 | [B692](testing/issue/B692-api-health-advertises-video-formats-on.md) | /api/health advertises video formats on a server that cannot take a clip | ISSUE | high | low | — |
 | [B698](testing/issue/B698-a-photograph-the-camera-rotated-with.md) | A photograph the camera rotated with EXIF is stretched in the book | ISSUE | high | medium | — |
+| [B739](testing/issue/B739-choosing-a-layout-in-the-first.md) | Choosing a layout in the first-book flow asks a question at the top of the page about days the flow itself arranged | ISSUE | high | low | — |
+| [B740](testing/issue/B740-the-figures-a-book-prints-on.md) | The figures a book prints on its chapter dividers are missing from the preview, so the switch looks broken | ISSUE | high | low | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
 | [B113](testing/issue/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low | — |
 | [B116](testing/issue/B116-a-test-day-inside-a-real.md) | A test day inside a real trip is unmarked in the day list and in MCP's readable summary | ISSUE | medium | low | `62683d95` |

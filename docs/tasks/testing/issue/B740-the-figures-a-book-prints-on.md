@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: photobook, preview
 found: "2026-09-07T00:00:00Z"
+merged: "2026-09-07T12:48:26Z"
 ---
 
 # B740 — The figures a book prints on its chapter dividers are missing from the preview, so the switch looks broken
