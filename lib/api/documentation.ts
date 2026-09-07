@@ -2306,14 +2306,16 @@ there is no way to get those pixels back later.
 HEIC straight off an iPhone is fine; so is anything in the table below. Send as
 many files as you like in one request, up to the per-day limit.
 
-**Or give it URLs instead of bytes**, and this server downloads them:
+**Or give it URLs instead of bytes**, and this server downloads them — clips as
+well as photographs, on the same terms as sending the bytes yourself, and with
+no request-body limit in the way since the download is this server's:
 
 \`\`\`http
 POST ${site.url}/api/v1/${example}/trips/<trip-id>/media
 Authorization: Bearer fs_agent_…
 Content-Type: application/json
 
-{"day": "lanterns-of-hoi-an", "urls": ["https://…/one.jpg", "https://…/two.jpg"]}
+{"day": "lanterns-of-hoi-an", "urls": ["https://…/one.jpg", "https://…/market.mp4"]}
 \`\`\`
 
 **https only, and public hosts only.** Anything resolving to a private,

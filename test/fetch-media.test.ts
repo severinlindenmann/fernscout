@@ -2,10 +2,10 @@ import { afterEach, describe, expect, test } from "vitest";
 import dns from "node:dns/promises";
 import dnsCallback from "node:dns";
 import net from "node:net";
-import { fetchImage, isPublicAddress, type Transport } from "@/lib/api/fetchMedia";
+import { fetchMedia, isPublicAddress, type Transport } from "@/lib/api/fetchMedia";
 
-/** Kept because the block below shadows `fetchImage` with a wrapper. */
-const directFetchImage = fetchImage;
+/** Kept because the block below shadows `fetchMedia` with a wrapper. */
+const directFetchMedia = fetchMedia;
 
 /**
  * Downloading an image from a URL an agent chose.
@@ -139,7 +139,7 @@ describe("which addresses may be reached", () => {
   });
 });
 
-describe("what fetchImage refuses outright", () => {
+describe("what fetchMedia refuses outright", () => {
   test.each([
     ["http://example.com/a.jpg", "plain http"],
     ["file:///etc/passwd", "the filesystem"],
@@ -147,13 +147,13 @@ describe("what fetchImage refuses outright", () => {
     ["ftp://example.com/a.jpg", "another protocol"],
     ["gopher://example.com/", "an obscure one"],
   ])("%s — %s", async (url) => {
-    const result = await fetchImage(url, 1024);
+    const result = await fetchMedia(url, 1024);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.problem.reason).toContain("https");
   });
 
   test("something that is not a URL at all", async () => {
-    const result = await fetchImage("../../etc/passwd", 1024);
+    const result = await fetchMedia("../../etc/passwd", 1024);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.problem.reason).toBe("not a URL");
   });
@@ -169,13 +169,13 @@ describe("what fetchImage refuses outright", () => {
     ["https://192.168.0.1/a.jpg"],
     ["https://[::1]/a.jpg"],
   ])("%s reaches nothing", async (url) => {
-    const result = await fetchImage(url, 1024);
+    const result = await fetchMedia(url, 1024);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.problem.reason).toBe("that host does not resolve to a public address");
   });
 
   test("a hostname that resolves to loopback is refused like any other", async () => {
-    const result = await fetchImage("https://localhost/a.jpg", 1024);
+    const result = await fetchMedia("https://localhost/a.jpg", 1024);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.problem.reason).toContain("public address");
   });
@@ -194,7 +194,7 @@ describe("what fetchImage refuses outright", () => {
     // A .invalid name can never resolve — RFC 2606 reserves it for exactly
     // this, so the test needs no resolver stub and cannot flake on a machine
     // whose DNS answers wildcards.
-    const result = await fetchImage("https://nothing-here.invalid/a.jpg", 1024);
+    const result = await fetchMedia("https://nothing-here.invalid/a.jpg", 1024);
     expect(result.ok).toBe(false);
     if (result.ok) return;
 
@@ -222,7 +222,7 @@ describe("what fetchImage refuses outright", () => {
       throw err;
     };
     try {
-      const result = await fetchImage("https://example.com/a.jpg", 1024);
+      const result = await fetchMedia("https://example.com/a.jpg", 1024);
       expect(result.ok).toBe(false);
       if (result.ok) return;
       expect(result.problem.reason).toContain("the name did not resolve");
@@ -242,7 +242,7 @@ describe("what fetchImage refuses outright", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (dns as any).lookup = async () => [];
     try {
-      const result = await fetchImage("https://example.com/a.jpg", 1024);
+      const result = await fetchMedia("https://example.com/a.jpg", 1024);
       expect(result.ok).toBe(false);
       if (result.ok) return;
       expect(result.problem.reason).toContain("there is no such name");
@@ -271,7 +271,7 @@ describe("what fetchImage refuses outright", () => {
     ["https://[fc00::1]/a.jpg"],
     ["https://[fe80::1]/a.jpg"],
   ])("%s is refused as an address, not because DNS failed", async (url) => {
-    const result = await fetchImage(url, 1024);
+    const result = await fetchMedia(url, 1024);
     expect(result.ok).toBe(false);
     if (result.ok) return;
     // The permanent wording. If this ever says "could not be looked up", the
@@ -283,14 +283,14 @@ describe("what fetchImage refuses outright", () => {
     // The other half: stripping brackets must not make everything private.
     // 2606:4700:4700::1111 is a public resolver; the fetch itself will fail in
     // a sandbox, so only the *reason* is asserted.
-    const result = await fetchImage("https://[2606:4700:4700::1111]/a.jpg", 1024);
+    const result = await fetchMedia("https://[2606:4700:4700::1111]/a.jpg", 1024);
     if (!result.ok) {
       expect(result.problem.reason).not.toBe("that host does not resolve to a public address");
     }
   });
 
   test("the permanent refusal's wording is unchanged, and says nothing about where", async () => {
-    const result = await fetchImage("https://10.0.0.5/a.jpg", 1024);
+    const result = await fetchMedia("https://10.0.0.5/a.jpg", 1024);
     expect(result.ok).toBe(false);
     if (result.ok) return;
 
@@ -324,12 +324,12 @@ describe("reading a response", () => {
   afterEach(() => {
     transport = undefined;
   });
-  const fetchImage = (
+  const fetchMedia = (
     url: string,
-    maxBytes: number,
+    limits: number | { image: number; video: number },
     bodyTimeoutMs?: number,
     responseTimeoutMs?: number,
-  ) => directFetchImage(url, maxBytes, bodyTimeoutMs, responseTimeoutMs, transport);
+  ) => directFetchMedia(url, limits, bodyTimeoutMs, responseTimeoutMs, transport);
 
   function respond(init: {
     status?: number;
@@ -350,17 +350,72 @@ describe("reading a response", () => {
     transport = async () =>
       respond({ headers: { "content-type": "image/jpeg" }, body: bytes });
 
-    const result = await fetchImage("https://example.com/photos/sunset.jpg", 1024);
+    const result = await fetchMedia("https://example.com/photos/sunset.jpg", 1024);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.media.filename).toBe("sunset.jpg");
     expect([...result.media.bytes]).toEqual([1, 2, 3, 4]);
   });
 
+  /**
+   * A clip, which this door refused outright until B676 — `content-type` had
+   * to start with `image/`, while the multipart door beside it had taken video
+   * since it was written and one limits table in the guide documented both.
+   */
+  test("a clip comes back, named so the pipeline can tell it is one", async () => {
+    const bytes = new Uint8Array([9, 9, 9, 9]);
+    transport = async () => respond({ headers: { "content-type": "video/mp4" }, body: bytes });
+
+    const result = await fetchMedia("https://example.com/clips/market.mp4", 1024);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.media.filename).toBe("market.mp4");
+  });
+
+  test("a clip with no extension in the URL gets one from the content type", async () => {
+    transport = async () =>
+      respond({ headers: { "content-type": "video/quicktime" }, body: new Uint8Array([1]) });
+
+    const result = await fetchMedia("https://example.com/render?id=9", 1024);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    // `.mov`, not `.jpg`: `kindOf` reads the extension, so the wrong one here
+    // hands a clip to sharp and it is refused as a broken photograph.
+    expect(result.media.filename).toMatch(/\.mov$/);
+  });
+
+  test("a clip is measured against the clip ceiling, not the photograph's", async () => {
+    const megabyte = new Uint8Array(1024 * 1024);
+    transport = async () =>
+      respond({ headers: { "content-type": "video/mp4" }, body: megabyte });
+
+    const limits = { image: 1024, video: 4 * 1024 * 1024 };
+    const clip = await fetchMedia("https://example.com/a.mp4", limits);
+    expect(clip.ok).toBe(true);
+
+    // The same bytes called a photograph are over the photograph's ceiling.
+    transport = async () =>
+      respond({ headers: { "content-type": "image/jpeg" }, body: megabyte });
+    const photo = await fetchMedia("https://example.com/a.jpg", limits);
+    expect(photo.ok).toBe(false);
+    if (photo.ok) return;
+    expect(photo.problem.reason).toMatch(/larger than/);
+  });
+
+  test("and anything that is neither is still refused", async () => {
+    transport = async () =>
+      respond({ headers: { "content-type": "text/html" }, body: new Uint8Array([1]) });
+
+    const result = await fetchMedia("https://example.com/a.jpg", 1024);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.problem.reason).toContain("not an image or a video");
+  });
+
   test("a URL with no usable extension gets one from the content type", async () => {
     transport = async () =>
       respond({ headers: { "content-type": "image/webp" }, body: new Uint8Array([1]) });
-    const result = await fetchImage("https://example.com/render?id=42", 1024);
+    const result = await fetchMedia("https://example.com/render?id=42", 1024);
     if (!result.ok) throw new Error(result.problem.reason);
     expect(result.media.filename.endsWith(".webp")).toBe(true);
   });
@@ -368,7 +423,7 @@ describe("reading a response", () => {
   test("something that is not an image is refused, whatever the URL said", async () => {
     transport = async () =>
       respond({ headers: { "content-type": "text/html" }, body: new Uint8Array([1]) });
-    const result = await fetchImage("https://example.com/a.jpg", 1024);
+    const result = await fetchMedia("https://example.com/a.jpg", 1024);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.problem.reason).toContain("not an image");
   });
@@ -384,7 +439,7 @@ describe("reading a response", () => {
         headers: { "content-type": "image/jpeg", "content-length": "4" },
         body: new Uint8Array(5000),
       });
-    const result = await fetchImage("https://example.com/a.jpg", 1024);
+    const result = await fetchMedia("https://example.com/a.jpg", 1024);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.problem.reason).toContain("larger than");
   });
@@ -412,7 +467,7 @@ describe("reading a response", () => {
         { headers: { "content-type": "image/jpeg" } },
       );
 
-    const result = await fetchImage("https://example.com/a.jpg", 1024);
+    const result = await fetchMedia("https://example.com/a.jpg", 1024);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.problem.reason).toContain("larger than 0 MB");
     // 1024 bytes at 256 a chunk: five reads settle it. The whole body is 100.
@@ -447,7 +502,7 @@ describe("reading a response", () => {
       );
 
     const started = Date.now();
-    const result = await fetchImage("https://example.com/a.jpg", 1024, 150);
+    const result = await fetchMedia("https://example.com/a.jpg", 1024, 150);
     const elapsed = Date.now() - started;
 
     expect(result.ok).toBe(false);
@@ -476,7 +531,7 @@ describe("reading a response", () => {
       });
 
     const started = Date.now();
-    const result = await fetchImage("https://example.com/a.jpg", 1024, 60_000, 150);
+    const result = await fetchMedia("https://example.com/a.jpg", 1024, 60_000, 150);
     expect(Date.now() - started).toBeLessThan(3000);
 
     expect(result.ok).toBe(false);
@@ -492,7 +547,7 @@ describe("reading a response", () => {
     transport = async () => {
       throw new TypeError("fetch failed");
     };
-    const result = await fetchImage("https://example.com/a.jpg", 1024);
+    const result = await fetchMedia("https://example.com/a.jpg", 1024);
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.problem.reason).toBe("could not be reached");
@@ -513,7 +568,7 @@ describe("reading a response", () => {
         { headers: { "content-type": "image/jpeg" } },
       );
 
-    const result = await fetchImage("https://example.com/a.jpg", 1024, 2000);
+    const result = await fetchMedia("https://example.com/a.jpg", 1024, 2000);
     expect(result.ok).toBe(true);
     if (result.ok) expect([...result.media.bytes]).toEqual([1, 2, 3, 4]);
   });
@@ -541,7 +596,7 @@ describe("reading a response", () => {
         { headers: { "content-type": "image/jpeg", "content-length": "40960" } },
       );
 
-    const result = await fetchImage("https://example.com/a.jpg", 1024);
+    const result = await fetchMedia("https://example.com/a.jpg", 1024);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.problem.reason).toContain("larger than");
     // The stream prefills one chunk when it is constructed, whoever reads it,
@@ -553,7 +608,7 @@ describe("reading a response", () => {
 
   test("an error status is refused", async () => {
     transport = async () => respond({ status: 404 });
-    const result = await fetchImage("https://example.com/a.jpg", 1024);
+    const result = await fetchMedia("https://example.com/a.jpg", 1024);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.problem.reason).toContain("404");
   });
@@ -571,7 +626,7 @@ describe("reading a response", () => {
         ? respond({ status: 302, location: "https://169.254.169.254/latest/meta-data/" })
         : respond({ headers: { "content-type": "image/jpeg" }, body: new Uint8Array([1]) });
     };
-    const result = await fetchImage("https://example.com/a.jpg", 1024);
+    const result = await fetchMedia("https://example.com/a.jpg", 1024);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.problem.reason).toContain("public address");
     // It must not have made the second request at all.
@@ -595,7 +650,7 @@ describe("reading a response", () => {
         ? respond({ status: 302, location: "https://example.net/real.png" })
         : respond({ headers: { "content-type": "image/jpeg" }, body: new Uint8Array([1]) });
     };
-    await fetchImage("https://example.com/a.jpg", 1024);
+    await fetchMedia("https://example.com/a.jpg", 1024);
     expect(seen).toEqual(["https://example.com/a.jpg", "https://example.net/real.png"]);
   });
 
@@ -612,7 +667,7 @@ describe("reading a response", () => {
         ? respond({ status: 301, location: "https://example.net/real.png" })
         : respond({ headers: { "content-type": "image/png" }, body: new Uint8Array([9]) });
     };
-    await fetchImage("https://example.com/a.jpg", 1024);
+    await fetchMedia("https://example.com/a.jpg", 1024);
     expect(seen).toHaveLength(2);
     // Real DNS, so the addresses themselves are whatever the resolver says;
     // what matters is that each hop got a non-empty, separately obtained set.
@@ -621,7 +676,7 @@ describe("reading a response", () => {
 
   test("a redirect loop gives up rather than spinning", async () => {
     transport = async () => respond({ status: 302, location: "https://example.com/again" });
-    const result = await fetchImage("https://example.com/a.jpg", 1024);
+    const result = await fetchMedia("https://example.com/a.jpg", 1024);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.problem.reason).toContain("too many redirects");
   });
@@ -634,7 +689,7 @@ describe("reading a response", () => {
         ? respond({ status: 301, location: "https://example.net/real.png" })
         : respond({ headers: { "content-type": "image/png" }, body: new Uint8Array([9]) });
     };
-    const result = await fetchImage("https://example.com/a.jpg", 1024);
+    const result = await fetchMedia("https://example.com/a.jpg", 1024);
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.media.filename).toBe("real.png");
   });
@@ -692,7 +747,7 @@ describe("a name that changes its answer between the check and the request", () 
     };
 
     try {
-      const result = await fetchImage(`https://rebind.test:${port}/a.jpg`, 1024, 500, 500);
+      const result = await fetchMedia(`https://rebind.test:${port}/a.jpg`, 1024, 500, 500);
 
       // The pin is the assertion. The request must never have asked DNS a
       // second question, and must never have reached the decoy.

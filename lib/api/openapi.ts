@@ -2666,7 +2666,10 @@ export function openApiDocument() {
                       type: "array",
                       items: { type: "string", format: "uri" },
                       description:
-                        "https URLs on public hosts. All or nothing: if any is refused, " +
+                        "https URLs on public hosts, to photographs or to clips — the same " +
+                        "formats and the same per-file ceilings as the multipart door, " +
+                        "and a `content-type` that is neither an image nor a video is " +
+                        "refused. All or nothing: if any is refused, " +
                         "nothing is written and the reply names which and why. One of " +
                         "`urls` or `inbox` is required.",
                     },

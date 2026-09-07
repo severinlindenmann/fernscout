@@ -86,7 +86,7 @@ const realLookup = dns.lookup;
  * machine with no resolver.
  *
  * Stubbed at `https.request` rather than at `globalThis.fetch` since B03. The
- * route reaches the remote host through `fetchImage`, which no longer uses
+ * route reaches the remote host through `fetchMedia`, which no longer uses
  * `fetch` — `fetch` takes no `lookup`, so it cannot be pinned to the address
  * that was checked. Everything above the socket is therefore still the real
  * code here, pin included, which is more of it than this test used to cover.
