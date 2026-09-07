@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: credits, payments
 found: "2026-09-07T15:20:00Z"
+merged: "2026-09-07T15:22:00Z"
 ---
 
 # B803 — A Stripe purchase records no payment method, because the branch that would can never be true

@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 
-### issue (27)
+### issue (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -88,7 +88,6 @@ Do not edit them by hand; run the script.
 | [B760](backlog/issue/B760-a-mapped-statement-cannot-offer-the.md) | A mapped statement cannot offer the exchange rates a known one can | ISSUE | low | low |
 | [B761](backlog/issue/B761-a-statement-with-a-preamble-line.md) | A statement with a preamble line takes the wrong row as its header | ISSUE | low | low |
 | [B784](backlog/issue/B784-the-page-still-has-two-bright.md) | The page still has two bright buttons even though the card has one | ISSUE | low | low |
-| [B803](backlog/issue/B803-a-stripe-purchase-records-no-payment.md) | A Stripe purchase records no payment method, because the branch that would can never be true | ISSUE | low | low |
 
 ### big-feature (13)
 
@@ -132,7 +131,7 @@ Do not edit them by hand; run the script.
 | [B731](backlog/small-feature/B731-a-trip-made-from-the-ask.md) | A trip made from the ask box never shows who can read it | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (4)
+### chore (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -140,6 +139,7 @@ Do not edit them by hand; run the script.
 | [B724](backlog/chore/B724-a-capability-that-needs-another-one.md) | A capability that needs another one is an if rather than a field | CHORE | low | low |
 | [B736](backlog/chore/B736-build-demo-content-mjs-still-cannot.md) | build-demo-content.mjs still cannot reproduce travelScene, per-item visibility, some captions, or six fixture days | CHORE | low | medium |
 | [B772](backlog/chore/B772-the-contacts-page-carries-no-brand.md) | The contacts page carries no brand tokens at all | CHORE | low | low |
+| [B811](backlog/chore/B811-the-payment-page-still-renders-the.md) | The payment page still renders the TWINT/card chooser under a provider, hidden with a class | CHORE | low | low |
 
 ### ops (10)
 
@@ -214,9 +214,9 @@ _Nothing here._
 | [B796](in-development/B796-a-refusal-and-the-model-s.md) | A refusal and the model's answer are both silent to a screen reader | ISSUE | medium | low | `fdfcf5f2` |
 | [B800](in-development/B800-neither-side-is-told-how-long.md) | Neither side is told how long an approval usually takes | ISSUE | low | low | `fdfcf5f2` |
 
-## testing (37)
+## testing (38)
 
-### issue (18)
+### issue (19)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -238,6 +238,7 @@ _Nothing here._
 | [B742](testing/issue/B742-the-api-docs-page-scrolls-sideways.md) | The API docs page scrolls sideways on a phone | ISSUE | low | low | — |
 | [B748](testing/issue/B748-the-disclosure-that-hides-the-agent.md) | The disclosure that hides the agent instructions looks like a link, so nothing says it opens | ISSUE | low | low | — |
 | [B779](testing/issue/B779-a-valid-token-on-a-helper.md) | A valid token on a helper route is told the journal is not theirs | ISSUE | low | low | — |
+| [B803](testing/issue/B803-a-stripe-purchase-records-no-payment.md) | A Stripe purchase records no payment method, because the branch that would can never be true | ISSUE | low | low | — |
 
 ### big-feature (3)
 
