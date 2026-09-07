@@ -248,6 +248,15 @@ uploads thirty-nine photographs and then meets a wall.
 One server change is needed: an upload that attaches an original to an existing
 media item. That is the only new capability in the media path.
 
+**Anything that is not a photograph goes to the inbox rather than being
+refused.** `lib/inbox.ts` already exists for files that belong to no day yet,
+hash-named, reachable by no URL. A person who picks a bank statement or a
+Google Timeline export out of their files has handed over something useful, and
+refusing it costs the one thing that makes the import family cheap later: the
+data is already on disk, so "you dropped a statement in — shall I read it?" is
+a screen, not an ingestion pipeline. Deciding this now costs a branch in the
+upload step; deciding it later costs a second entry point.
+
 ## 8. Rails that must not bend
 
 - Every write is `status: draft`. Publishing is a separate, labelled tap.
