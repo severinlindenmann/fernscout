@@ -27,6 +27,7 @@ const site: SiteSummary = {
   canSignIn: false,
   analyticsEnabled: true,
   helperEnabled: false,
+  isOwner: false,
 };
 
 const authors = ["Alex Berger", "Robin Berger"];

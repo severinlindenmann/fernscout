@@ -45,6 +45,7 @@ const base: SiteSummary = {
   canSignIn: false,
   analyticsEnabled: true,
   helperEnabled: false,
+  isOwner: false,
 };
 
 function markup(site: SiteSummary, locale = "en"): string {

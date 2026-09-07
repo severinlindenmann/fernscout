@@ -5,19 +5,12 @@ import MePageContent, {
   type JournalPanel,
   type TripEditPanel,
   type ManagePanel,
-  type PaymentPanel,
-  type StoragePanel,
 } from "./MePageContent";
-import { manageTokenFor, listContacts, normaliseEmail, optedInCounts } from "@/lib/contacts";
+import { manageTokenFor, listContacts, normaliseEmail } from "@/lib/contacts";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
 import { pickLocale } from "@/lib/contacts/locale";
 import { isEnabled } from "@/lib/capabilities";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
-import { balanceOf, creditsEnabled } from "@/lib/credits";
-import { EXTRA_STORAGE_CREDITS, formatChf, POSTCARD_CREDITS } from "@/lib/credits/pricing";
-import { listPayments } from "@/lib/payments";
-import { cleanupPlan } from "@/lib/storageCleanup";
-import { formatBytes, storageBreakdown, storageFor } from "@/lib/storageQuota";
 import { ownerShortName, serverSite } from "@/lib/site";
 import { resolveViewer } from "@/lib/viewer";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -111,12 +104,6 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
     }
   }
 
-  // B367. `balanceOf` answers `null` for a journal with credits switched
-  // off, which is not the same question as "zero left" — B74's rule is that
-  // the whole section is then absent rather than showing a dash or a zero,
-  // so `payment` stays `undefined` and the component never has to tell the
-  // two apart. Nothing is fetched for anyone but the owner: a stranger or a
-  // traveller has no business knowing what this journal has left to spend.
   // B619. Owner only, like everything else resolved here: the address is on
   // it, and `config.json` is not something a reader's page should be able to
   // ask about. `tagline` defaults to `""` in lib/config.ts, which is also what
@@ -151,94 +138,6 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
         }))
     : undefined;
 
-  /**
-   * Storage — B664. Owner only, and outside the `balance !== null` branch
-   * below on purpose: how full a journal is has nothing to do with whether
-   * this instance charges for sends, and an owner on an instance with credits
-   * off still wants to know. Only `canBuy` depends on that.
-   */
-  let storage: StoragePanel | undefined;
-  if (viewer.owner) {
-    const usage = await storageFor(user);
-    if (usage.limitBytes !== null) {
-      const limit = usage.limitBytes;
-      const reclaimable = await cleanupPlan(user, true);
-      storage = {
-        used: formatBytes(usage.usedBytes),
-        limit: formatBytes(limit),
-        percent: Math.round((usage.usedBytes / limit) * 100),
-        // Biggest first: the question the chart answers is "which of these is
-        // the big one", and reading it should not need a scan.
-        rows: storageBreakdown(user)
-          .filter((row) => row.bytes > 0)
-          .sort((a, b) => b.bytes - a.bytes)
-          .map((row) => ({
-            key: row.key,
-            label: row.label,
-            human: formatBytes(row.bytes),
-            // Of the allowance, not of what is used — so the bar's empty tail
-            // is the room that is left, which is the thing being asked about.
-            share: Math.min(100, (row.bytes / limit) * 100),
-          })),
-        reclaimable: {
-          human: formatBytes(reclaimable.bytes),
-          files: reclaimable.files,
-          hasStagedFiles: reclaimable.stagedFiles > 0,
-        },
-        canBuy: creditsEnabled(),
-        buyCredits: EXTRA_STORAGE_CREDITS,
-      };
-    }
-  }
-
-  let payment: PaymentPanel | undefined;
-  if (viewer.owner) {
-    const balance = await balanceOf(user);
-    if (balance !== null) {
-      // `optedInCounts` (lib/contacts) is `recipientsFor`'s own predicate,
-      // read here without a trip to ask `mayMailTrip` about — see its doc
-      // comment for why that makes this the journal-wide "up to N" rather
-      // than one trip's exact count.
-      // The owner's own address and number go in as *exclusions* — B614.
-      // `recipientsFor` always sends them their own copy and never charges
-      // for it, and a contact at the owner's own address (an owner who is
-      // also in their own guestbook) is that same free copy rather than a
-      // second, paid one.
-      const counts = optedInCounts(await listContacts(user), journal.owner);
-      const transactions = (await listPayments(user)).map((tx) => ({
-        id: tx.id,
-        credits: tx.credits,
-        amount: formatChf(tx.amountRappen),
-        status: tx.status,
-        createdAt: tx.createdAt,
-      }));
-      // What the owner may switch, and what they may not — B463. The server
-      // ceiling and the journal's own flag are two different answers and the
-      // panel needs both: a channel this server cannot offer has no switch,
-      // because there is nothing an owner could do about it, while one they
-      // have muted themselves has to stay visible to be un-muted.
-      // `isEnabled(name)` with no username is the server ceiling and nothing
-      // else — the same question `setJournalFeatures` asks before it allows a
-      // capability to be switched on — while `journal.features` is what this
-      // journal asks for. `isEnabled(name, user)` is the two together and
-      // cannot tell them apart, which is why it is not what is read here.
-      const channelState = (name: "mail" | "whatsapp") =>
-        isEnabled(name) ? journal.features[name].enabled : null;
-
-      payment = {
-        balance,
-        transactions,
-        emailRecipients: counts.email,
-        whatsappRecipients: counts.whatsapp,
-        channels: { mail: channelState("mail"), whatsapp: channelState("whatsapp") },
-        // The price of a card, where cards can be posted at all. Not a
-        // per-send estimate like the rows above: it is a flat price, and the
-        // count is whatever the owner chooses on the preview page.
-        postcardCredits: isEnabled("postcards", user) ? POSTCARD_CREDITS : null,
-      };
-    }
-  }
-
   return (
     <MePageContent
       viewer={viewer}
@@ -247,8 +146,6 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       manage={manage}
       journal={journalPanel}
       editableTrips={editableTrips}
-      payment={payment}
-      storage={storage}
       // Resolved here rather than guessed in the component: a capability is a
       // server ceiling and a journal opt-in, and the page was offering a door
       // that this journal had never opened. The panel used to take a second

@@ -60,6 +60,7 @@ const site: SiteSummary = {
   canSignIn: false,
   analyticsEnabled: true,
   helperEnabled: false,
+  isOwner: false,
 };
 
 function markup(outcome: PhotobookOutcome | null): string {

@@ -232,6 +232,18 @@ export type SiteSummary = {
    * viewer-independent — it comes from config, not from who is reading.
    */
   helperEnabled: boolean;
+  /**
+   * Whether this reader is the owner of this journal — B821.
+   *
+   * The nav needs it for the credits-and-storage destination: a page with
+   * nothing behind it for anybody else, so the row itself must be absent
+   * rather than lead to a 404 (the same rule `canSignIn` and `helperEnabled`
+   * follow). Resolved the same way `signedIn` and `hasIdentity` are —
+   * per-viewer, from the layout's own `resolveAccess` — and **not**
+   * `signedIn`: a stranger with no session at all is obviously not the
+   * owner, but so is a reader signed in as somebody else's guest.
+   */
+  isOwner: boolean;
 };
 
 /**
@@ -258,6 +270,7 @@ export function siteSummaryFor(
   isDefaultUser: boolean,
   signedIn = false,
   hasIdentity = false,
+  isOwner = false,
 ): SiteSummary {
   return {
     username: user.username,
@@ -271,6 +284,7 @@ export function siteSummaryFor(
     travellerFigures: user.travellers.map(withoutAddress),
     signedIn,
     hasIdentity,
+    isOwner,
     // Asked here rather than threaded through as a fourth positional boolean:
     // it is a property of the journal, so every caller would compute the same
     // answer, and one of them would eventually forget to.
@@ -286,9 +300,10 @@ export function siteSummary(
   isDefaultUser: boolean,
   signedIn = false,
   hasIdentity = false,
+  isOwner = false,
 ): SiteSummary | null {
   const user = getUser(username);
   return user
-    ? siteSummaryFor(user, isDefaultUser, signedIn, hasIdentity)
+    ? siteSummaryFor(user, isDefaultUser, signedIn, hasIdentity, isOwner)
     : null;
 }

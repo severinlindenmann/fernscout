@@ -12,6 +12,7 @@ import { siteSummaryFor } from "@/lib/site";
 import IdentityUpgrade from "@/components/IdentityUpgrade";
 import PushPrompt from "@/components/PushPrompt";
 import { resolveAccess } from "@/lib/auth/handshake";
+import { isOwner as resolveIsOwner } from "@/lib/contacts/session";
 import { listableTrips } from "@/lib/tripGate";
 import { getCurrentTrip, getTrips } from "@/lib/trips";
 import { currencyOptions } from "@/lib/rates";
@@ -86,6 +87,11 @@ export default async function UserLayout({ children, params }: LayoutProps<"/[us
   // identity to show for it. See app/api/auth/identity/upgrade. B459.
   const upgradeIdentity = Boolean(access.session) && !access.identity;
 
+  // Whether this reader is the owner — B821. `resolveIsOwner` re-asks
+  // `resolveAccess` itself, cheaply: it is `cache()`d per request like this
+  // one, so this costs nothing beyond the address comparison.
+  const owner = await resolveIsOwner(username);
+
   // A reader's choice from the language switcher, honoured only if this
   // journal actually offers it — otherwise a cookie set on one journal would
   // silently pick a language another one does not speak.
@@ -124,7 +130,7 @@ export default async function UserLayout({ children, params }: LayoutProps<"/[us
   );
 
   return (
-    <SiteProvider value={siteSummaryFor(user, isDefault, signedIn, hasIdentity)}>
+    <SiteProvider value={siteSummaryFor(user, isDefault, signedIn, hasIdentity, owner)}>
       {/*
         Offered on any page of this journal, once the reader has read
         something — B440. At the layout rather than inside `TripHero`, which

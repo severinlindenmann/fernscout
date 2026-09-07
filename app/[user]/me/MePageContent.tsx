@@ -1,20 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import {
-  BookMarked,
-  Check,
-  ChevronRight,
-  Pencil,
-  KeyRound,
-  Wallet,
-  UserRound,
-  Mail,
-  MessageCircle,
-  TriangleAlert,
-  ChartNoAxesColumn,
-  HardDrive,
-} from "lucide-react";
+import { useState } from "react";
+import { BookMarked, ChevronRight, Pencil, KeyRound, Wallet, UserRound, TriangleAlert, ChartNoAxesColumn } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AgentHandover from "@/components/AgentHandover";
@@ -25,444 +12,10 @@ import GuestSignIn from "@/components/GuestSignIn";
 import PushOptIn from "@/components/PushOptIn";
 import SignOut from "@/components/SignOut";
 import PageHeader from "@/components/PageHeader";
-import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
-import { EXTRA_STORAGE_CREDITS, formatChf, TIERS } from "@/lib/credits/pricing";
 import type { TranslationKey } from "@/lib/i18n";
 import type { Viewer } from "@/lib/viewer";
-
-/**
- * The tiers picker behind the Payment card's "Buy credits" button — B368/B405,
- * and a dropdown rather than a modal since B413.
- *
- * It opens as a small popover anchored under its own button, not a centred
- * `<dialog>`: `showModal()` centres against the viewport, which an ancestor's
- * transform/containment can throw off (the owner saw it land top-left), and a
- * three-item picker reads better dropping out of the button that summoned it
- * anyway. Escape and a click outside close it; focus returns to the button.
- *
- * Pressing Buy on a tier posts to the purchase route, which records a pending
- * transaction, mails the journal's own owner the payment link, and grants
- * nothing — see that route's doc comment. On success this sends the owner to
- * that payment page (B405); the email carries the same link for later.
- */
-/**
- * One channel's mute switch — B463.
- *
- * The two capabilities that spend the balance this card is about, next to the
- * balance, for the person already signed in as the owner of it. Not a settings
- * page and deliberately not the shape of one: two named channels, and the
- * route behind it (`POST /api/v1/<user>/channels`) accepts no other key.
- *
- * `router.refresh()` rather than local state, because the numbers beside it —
- * what a day costs now — are the server's and are exactly what changed.
- * Optimism here would show a total that the next navigation contradicts.
- */
-function ChannelSwitch({
-  username,
-  channel,
-  label,
-  enabled,
-}: {
-  username: string;
-  channel: "mail" | "whatsapp";
-  label: string;
-  enabled: boolean;
-}) {
-  const { t } = useI18n();
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  async function toggle() {
-    setBusy(true);
-    setFailed(false);
-    const response = await fetch(`/api/v1/${username}/channels`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ channel, enabled: !enabled }),
-    }).catch(() => null);
-    setBusy(false);
-    if (!response?.ok) {
-      setFailed(true);
-      return;
-    }
-    router.refresh();
-  }
-
-  return (
-    <span className="inline-flex shrink-0 items-center gap-2">
-      {/* The word beside it is gone — B471. `role="switch"` with `aria-checked`
-          announces on or off to a screen reader, and the control says it to
-          everybody else; repeating it in text cost the width that made the
-          switch wrap under the channel's name on a phone. The failure line
-          stays, because that one is not visible in the control. */}
-      {failed && <span className="text-sm text-coral-600">{t("me.paymentChannelFailed")}</span>}
-      <button
-        type="button"
-        role="switch"
-        aria-checked={enabled}
-        aria-label={label}
-        disabled={busy}
-        onClick={toggle}
-        // Off is `navy-500` rather than the `navy-200` the card's rules use:
-        // a border at 1.3:1 on white is a rule, not a control, and this one
-        // has to look pressable while it is off. `navy-500` is the palette's
-        // border-and-label ink (5.51:1 on white) — see apply-the-brand.
-        className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:opacity-50 ${
-          enabled ? "border-navy-900 bg-navy-900" : "border-navy-500 bg-white"
-        }`}
-      >
-        <span
-          className={`absolute top-0.5 h-4 w-4 rounded-full transition-[left] ${
-            enabled ? "left-[22px] bg-white" : "left-0.5 bg-navy-500"
-          }`}
-          aria-hidden="true"
-        />
-      </button>
-    </span>
-  );
-}
-
-/**
- * Five more gigabytes, for fifty credits — B661.
- *
- * A button rather than the tiers dialog above it, because there is one thing
- * to buy and one price. It spends immediately: `POST /api/v1/<user>/storage`
- * takes the credits and the extension exists from that moment, so the
- * confirmation is the browser's own — there is no second page to go to and
- * nothing to come back and finish. `router.refresh()` is what redraws the
- * figure above it from the server.
- */
-function BuyStorageButton({ username }: { username: string }) {
-  const { t } = useI18n();
-  const router = useRouter();
-  const [asking, setAsking] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  async function buy() {
-    setBusy(true);
-    setFailed(false);
-    const response = await fetch(`/api/v1/${username}/storage`, { method: "POST" }).catch(
-      () => null,
-    );
-    setBusy(false);
-    if (response?.ok) {
-      setAsking(false);
-      router.refresh();
-    } else setFailed(true);
-  }
-
-  if (asking) {
-    return (
-      <ConfirmPanel
-        label={t("me.storageBuy", { credits: String(EXTRA_STORAGE_CREDITS) })}
-        question={t("me.storageBuyConfirm", { credits: String(EXTRA_STORAGE_CREDITS) })}
-        confirmLabel={t("me.storageBuyGo")}
-        busyLabel={t("me.storageBuyBusy")}
-        busy={busy}
-        error={failed ? t("me.storageBuyFailed") : undefined}
-        onConfirm={buy}
-        onCancel={() => setAsking(false)}
-      />
-    );
-  }
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => {
-          setFailed(false);
-          setAsking(true);
-        }}
-        className="inline-flex min-h-11 items-center rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-50"
-      >
-        {t("me.storageBuy", { credits: String(EXTRA_STORAGE_CREDITS) })}
-      </button>
-      {failed && (
-        <span role="status" className="mt-1 block text-sm text-coral-600">
-          {t("me.storageBuyFailed")}
-        </span>
-      )}
-    </>
-  );
-}
-
-/**
- * Give the space back — B664, asked in the page since B668.
- *
- * The confirmation **names what goes and what stays** before anything is
- * deleted, because the person pressing this has usually just been told their
- * journal is full and is in no mood to read carefully.
- *
- * The staged documents used to be a second `confirm()` stacked on the first,
- * which read as a stutter rather than as two questions. They are a checkbox
- * inside the one panel now, unticked: they are somebody's uploads rather than
- * generated output, so they are never swept along with the PDFs unless
- * somebody says so — see `lib/storageCleanup.ts`.
- */
-function CleanupButton({
-  username,
-  reclaimable,
-}: {
-  username: string;
-  reclaimable: StoragePanel["reclaimable"];
-}) {
-  const { t } = useI18n();
-  const router = useRouter();
-  const [asking, setAsking] = useState(false);
-  const [staged, setStaged] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  async function clean() {
-    setBusy(true);
-    setFailed(false);
-    const response = await fetch(
-      `/api/v1/${username}/storage/cleanup${staged ? "?staged=1" : ""}`,
-      { method: "POST" },
-    ).catch(() => null);
-    setBusy(false);
-    if (response?.ok) {
-      setAsking(false);
-      router.refresh();
-    } else setFailed(true);
-  }
-
-  if (asking) {
-    return (
-      <ConfirmPanel
-        label={t("me.storageCleanup", { size: reclaimable.human })}
-        question={t("me.storageCleanupConfirm", { size: reclaimable.human })}
-        confirmLabel={t("me.storageCleanupGo")}
-        busyLabel={t("me.storageCleanupBusy")}
-        busy={busy}
-        error={failed ? t("me.storageCleanupFailed") : undefined}
-        onConfirm={clean}
-        onCancel={() => setAsking(false)}
-      >
-        {reclaimable.hasStagedFiles && (
-          <label className="mt-3 flex items-start gap-2 text-sm leading-6 text-navy-700">
-            <input
-              type="checkbox"
-              checked={staged}
-              onChange={(event) => setStaged(event.target.checked)}
-              className="mt-1.5 h-4 w-4 shrink-0 accent-navy-900"
-            />
-            <span>{t("me.storageCleanupStaged")}</span>
-          </label>
-        )}
-      </ConfirmPanel>
-    );
-  }
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => {
-          setFailed(false);
-          setAsking(true);
-        }}
-        className="inline-flex min-h-11 items-center rounded-full border border-navy-500 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-50"
-      >
-        {t("me.storageCleanup", { size: reclaimable.human })}
-      </button>
-      {failed && (
-        <span role="status" className="mt-1 block text-sm text-coral-600">
-          {t("me.storageCleanupFailed")}
-        </span>
-      )}
-    </>
-  );
-}
-
-/**
- * Which of these is the big one — B664.
- *
- * One stacked bar and a legend, rather than a table: the question an owner
- * actually has is comparative, and a column of numbers answers it slowest.
- * Colours are the brand's, in a fixed order so the same trip keeps the same
- * colour between renders; the legend carries the size in words, so the chart
- * is decoration and nothing is only available by looking at a colour.
- */
-const BAR_COLOURS = [
-  "bg-navy-900",
-  "bg-yellow-400",
-  "bg-sky-400",
-  "bg-coral-400",
-  "bg-green-500",
-  "bg-navy-500",
-  "bg-yellow-600",
-  "bg-sky-500",
-];
-
-function StorageBar({ rows }: { rows: StoragePanel["rows"] }) {
-  return (
-    <>
-      <div
-        className="mt-3 flex h-3 w-full overflow-hidden rounded-full bg-navy-200"
-        aria-hidden="true"
-      >
-        {rows.map((row, at) => (
-          <span
-            key={row.key}
-            className={BAR_COLOURS[at % BAR_COLOURS.length]}
-            style={{ width: `${row.share}%` }}
-          />
-        ))}
-      </div>
-      <ul className="mt-3 space-y-1.5">
-        {rows.map((row, at) => (
-          <li key={row.key} className="flex items-center justify-between gap-3 text-base">
-            <span className="flex min-w-0 items-center gap-2">
-              <span
-                className={`h-3 w-3 shrink-0 rounded-full ${BAR_COLOURS[at % BAR_COLOURS.length]}`}
-                aria-hidden="true"
-              />
-              <span className="truncate text-navy-700">{row.label}</span>
-            </span>
-            <span className="shrink-0 tabular-nums text-navy-900">{row.human}</span>
-          </li>
-        ))}
-      </ul>
-    </>
-  );
-}
-
-function BuyCreditsDialog({ username }: { username: string }) {
-  const { t, tn } = useI18n();
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [busyTier, setBusyTier] = useState<string | null>(null);
-  const [result, setResult] = useState<"failed" | null>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-
-  // Escape and click-outside close it — the two things a modal `<dialog>` gave
-  // for free and a popover has to wire up. Only while open, so the listeners
-  // are not attached for every owner who never presses the button.
-  useEffect(() => {
-    if (!open) return;
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-        buttonRef.current?.focus();
-      }
-    }
-    function onPointer(event: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(event.target as Node)) setOpen(false);
-    }
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("mousedown", onPointer);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("mousedown", onPointer);
-    };
-  }, [open]);
-
-  async function buy(tierId: string) {
-    setBusyTier(tierId);
-    const response = await fetch(`/api/v1/${username}/credits/purchase`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ tier: tierId }),
-    }).catch(() => null);
-    setBusyTier(null);
-
-    if (response?.ok) {
-      // The purchase created a pending transaction; go to its payment page.
-      // The same link was emailed too, so this can be finished later — B405.
-      const body = (await response.json().catch(() => null)) as { paymentUrl?: string } | null;
-      setOpen(false);
-      if (body?.paymentUrl) {
-        router.push(body.paymentUrl);
-        return;
-      }
-      setResult("failed");
-    } else {
-      setResult("failed");
-    }
-  }
-
-  return (
-    <div ref={wrapRef} className="relative">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <button
-          ref={buttonRef}
-          type="button"
-          aria-haspopup="menu"
-          aria-expanded={open}
-          onClick={() => {
-            setResult(null);
-            setOpen((o) => !o);
-          }}
-          className="inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
-        >
-          {t("me.paymentBuyTitle")}
-        </button>
-        <span className="text-sm text-navy-600">{t("me.paymentBuyBody")}</span>
-      </div>
-      {result && (
-        <span role="status" className="mt-1 block text-sm text-coral-600">
-          {t("me.paymentBuyFailed")}
-        </span>
-      )}
-
-      {/*
-        The panel stays in the DOM so it can animate both ways; `open` toggles
-        opacity + a short downward slide, and turns off pointer events and tab
-        focus while hidden. `motion-reduce` drops the slide for readers who ask
-        for less motion.
-      */}
-      <div
-        role="menu"
-        aria-label={t("me.buyDialogTitle")}
-        aria-hidden={!open}
-        className={`absolute left-0 top-full z-20 mt-2 w-[min(22rem,100%)] origin-top rounded-2xl border border-navy-200 bg-white p-4 shadow-xl transition duration-150 ease-out motion-reduce:transition-none ${
-          open
-            ? "pointer-events-auto translate-y-0 opacity-100"
-            : "pointer-events-none -translate-y-1 opacity-0"
-        }`}
-      >
-        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-navy-600">
-          {t("me.buyDialogTitle")}
-        </p>
-        <ul className="mt-2 space-y-2.5">
-          {TIERS.map((tier) => (
-            <li
-              key={tier.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-navy-200 bg-cream-50 px-4 py-3"
-            >
-              <div>
-                <p className="font-display text-base font-semibold text-navy-900">
-                  {tier.credits} {tn("me.paymentUnit", tier.credits)}
-                </p>
-                <p className="text-sm text-navy-600">
-                  {formatChf(tier.priceRappen)}
-                  {tier.discount && ` · ${t("me.buyDialogDiscount", { discount: tier.discount })}`}
-                </p>
-              </div>
-              <button
-                type="button"
-                role="menuitem"
-                tabIndex={open ? 0 : -1}
-                disabled={busyTier !== null}
-                onClick={() => buy(tier.id)}
-                className="inline-flex min-h-9 shrink-0 items-center rounded-full bg-yellow-400 px-4 text-sm font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {busyTier === tier.id ? t("me.buyDialogBusy") : t("me.buyDialogBuy")}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
 
 /** What the "Your details" panel needs to render `ContactManage` inline —
  * everything `/c/<token>` builds server-side, handed down instead of a link
@@ -825,91 +378,11 @@ export type ManagePanel = {
   dictionary: Record<string, string>;
   contact: ManageContact;
   /** B385: `whatsappCountryCode()`, resolved server-side like everything
-   * else this panel carries — see the note on `PaymentPanel` below for why
-   * that rule exists. */
+   * else this panel carries. */
   defaultCountryCode?: string;
   /** B399: `isEnabled("addressLookup", username)`, resolved server-side for
    * the same reason. */
   addressLookupEnabled?: boolean;
-};
-
-/**
- * What the Payment section needs — B367.
- *
- * Resolved entirely on the server (`app/[user]/me/page.tsx`), never here: a
- * balance and a recipient count are exactly the kind of field that rule
- * exists for, the same as `ownerName` above. `undefined` is the whole of B74
- * for this panel — credits switched off, or a reader who is not the owner —
- * and the component does not need to tell those two apart because it never
- * sees which one happened.
- */
-export type PaymentPanel = {
-  balance: number;
-  /** Contacts `active` and opted in to the email digest, journal-wide. Not
-   * one trip's count — see the long comment on this prop's caller. */
-  emailRecipients: number;
-  /** The same count for WhatsApp. A number whether or not the channel is
-   * currently on: muting it does not un-opt anybody in, and the owner
-   * switching it back on wants to see who it would reach. */
-  whatsappRecipients: number;
-  /**
-   * Whether each channel is switched on for this journal — B463.
-   *
-   * `null` is **this server cannot offer it**: no transport configured, no
-   * WhatsApp credentials. That is not a state an owner can change, so the row
-   * and its switch are absent rather than shown off — the same rule the rest
-   * of the site follows for a capability that is not there (B74).
-   *
-   * `false` is the owner having muted it, which is a state they can undo and
-   * must therefore be able to see.
-   */
-  channels: { mail: boolean | null; whatsapp: boolean | null };
-  /** What one printed card costs, or `null` where this journal does not offer
-   * postcards. The largest single thing a balance is spent on, and until B463
-   * the one panel about credits never mentioned it. */
-  postcardCredits: number | null;
-  /** Recent purchases, newest first — the history under the buy button (B413).
-   * Each is a mock transaction; an unpaid one links back to its payment page. */
-  transactions: PaymentRow[];
-};
-
-/**
- * How full this journal is, and what is filling it — B661, B664.
- *
- * Its own panel rather than a line inside Payment, and its own prop for the
- * reason that follows from that: it is about the journal and not about
- * credits, so it has to be there when charging is off. `canBuy` is the only
- * part that goes away then — an owner still wants to know they are nearly
- * full even where nothing is for sale.
- *
- * Preformatted on the server, like `PaymentRow.amount` and for the same
- * reason: the component does no arithmetic on bytes any more than on money.
- * `limit` is null where the instance sets no ceiling, and then there is
- * nothing to be near the end of.
- */
-export type StoragePanel = {
-  used: string;
-  limit: string | null;
-  percent: number | null;
-  /** One row per thing an owner could act on, biggest first, already
-   * formatted. `share` is a percentage of the *allowance* where there is one,
-   * so the bar and the number under it agree. */
-  rows: { key: string; label: string; human: string; share: number }[];
-  /** What a cleanup would take back, and roughly what it is made of. */
-  reclaimable: { human: string; files: number; hasStagedFiles: boolean };
-  canBuy: boolean;
-  buyCredits: number;
-};
-
-/** One row of the transaction history. `amount` is a preformatted CHF string
- * (server-side, from the pricing table) so the component never does money
- * arithmetic. */
-type PaymentRow = {
-  id: string;
-  credits: number;
-  amount: string;
-  status: "pending" | "requested" | "paid";
-  createdAt: string;
 };
 
 /**
@@ -920,12 +393,14 @@ type PaymentRow = {
  * loses the email, has no way back in. So: large type, few controls, no
  * jargon, and every line answers a question she would actually ask.
  *
- * It is deliberately not an account page. There is no trip creation form and
- * no entry editing, because writing happens through an agent (ROADMAP decision
- * 24) — the panel's job is to tell you what to hand one, and to let you change
- * the things that are genuinely yours rather than the journal's: your own
- * name, telephone and address, and — since B619, for the owner alone — what
- * the journal calls itself. Not a day, not a photograph, not a trip.
+ * There is no trip creation form and no entry editing, because writing
+ * happens through an agent (ROADMAP decision 24) — the panel's job is to
+ * tell you what to hand one, and to let you change the things that are
+ * genuinely yours rather than the journal's: your own name, telephone and
+ * address, and — since B619, for the owner alone — what the journal calls
+ * itself. Not a day, not a photograph, not a trip. The owner's balance and
+ * storage moved to their own page since B821 — see the card that links
+ * there rather than showing the figures again.
  */
 export default function MePageContent({
   viewer,
@@ -934,8 +409,6 @@ export default function MePageContent({
   manage,
   journal,
   editableTrips,
-  payment,
-  storage,
   canSignIn,
   codeMinutes,
   contactsEnabled,
@@ -957,12 +430,6 @@ export default function MePageContent({
   /** The trips this reader may edit — B621. Owner only, and absent for
    * everybody else, which is what leaves their rows exactly as they were. */
   editableTrips?: TripEditPanel[];
-  /** Present only for the owner — see `StoragePanel`. Absent where the
-   * instance sets no ceiling, which is the one case with nothing to show. */
-  storage?: StoragePanel;
-  /** Present only for the owner, and only when credits are switched on —
-   * see `PaymentPanel`. */
-  payment?: PaymentPanel;
   /** Whether codes can be issued at all, which is what signing in needs. */
   canSignIn: boolean;
   /** How long a code lasts, from `CODE_TTL_MINUTES` — see GuestSignIn. */
@@ -997,7 +464,7 @@ export default function MePageContent({
    */
   signinNotice?: string;
 }) {
-  const { t, tn } = useI18n();
+  const { t } = useI18n();
   const site = useSite();
   // Bumped when the handover block mints a key, so the list of live keys below
   // it reads itself again rather than showing the state from page load.
@@ -1035,38 +502,6 @@ export default function MePageContent({
    * decides whether a code is issued.
    */
   const writableTrips = viewer.owner ? [] : viewer.trips.filter((t) => t.through === "traveller");
-
-  /**
-   * The two channels a published day can cost credits on — B463.
-   *
-   * Declared here rather than inline so the table, the total and the switches
-   * are reading one list: a third channel added to one of them and not the
-   * others is exactly the bug this shape prevents.
-   */
-  const CHANNELS = payment
-    ? ([
-        {
-          key: "mail",
-          icon: Mail,
-          labelKey: "me.paymentChannelEmail",
-          recipients: payment.emailRecipients,
-        },
-        {
-          key: "whatsapp",
-          icon: MessageCircle,
-          labelKey: "me.paymentChannelWhatsapp",
-          recipients: payment.whatsappRecipients,
-        },
-      ] as const)
-    : [];
-
-  /** What one published day would cost right now — the muted channels
-   * contributing nothing, which is the whole point of being able to mute
-   * them. */
-  const dayCost = CHANNELS.reduce(
-    (total, { key, recipients }) => total + (payment?.channels[key] ? recipients : 0),
-    0,
-  );
 
   return (
     <div className="min-h-screen">
@@ -1417,248 +852,31 @@ export default function MePageContent({
               </div>
 
               {/*
-                Credits — the signature card, B367/B392. The balance is the one
-                number on the page and reads as one: a featured figure in a
-                well, the per-channel cost beside it, the flat price as a
-                caption. Absent (not zero) when `payment` is undefined — credits
-                off, or a reader who is not the owner — `page.tsx` already
-                decided, and the component never asks which. The two counts are
-                journal-wide, so "up to N" rather than a promise a private
-                trip's send would not keep.
+                Credits and storage moved to their own page — B821. This card
+                is a line and a link, never the figures again: two live
+                copies of a balance is how they disagree. Shown regardless of
+                whether there is anything behind either panel today (credits
+                off, no storage ceiling set) — it is where an owner has
+                learnt to look for both, and the page itself is what decides
+                whether there is a number to show.
               */}
-              {/*
-                Storage — B664, and its own card rather than a line inside
-                Payment. It is about the journal and not about credits, which
-                is why it is here when charging is off: an owner still wants to
-                know they are nearly full even where nothing is for sale, and
-                the cleanup button is the lever that costs nothing. Absent only
-                where the instance sets no ceiling, since a bar with no end
-                measures nothing.
-              */}
-              {storage && (
-                <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-300/50 text-navy-900">
-                      <HardDrive className="h-[18px] w-[18px]" aria-hidden="true" />
-                    </span>
-                    <h3 className="font-display text-lg font-semibold text-navy-900">
-                      {t("me.storageTitle")}
-                    </h3>
-                  </div>
-
-                  <p className="mt-4 text-base text-navy-900">
-                    {t("me.storageUsed", { used: storage.used, limit: storage.limit ?? "" })}
-                  </p>
-                  {storage.percent !== null && storage.percent >= 90 && (
-                    <p className="mt-1 text-sm leading-6 text-coral-600">
-                      {t("me.storageNearlyFull")}
-                    </p>
-                  )}
-
-                  <StorageBar rows={storage.rows} />
-
-                  {/*
-                    Nothing to say when there is nothing to do. The empty state
-                    used to be a sentence explaining that no photobooks or
-                    postcard sheets were taking space — which is a paragraph
-                    about a button that is not there, on a card whose one job
-                    is to be read at a glance. A journal with nothing to
-                    reclaim is the ordinary case, so the ordinary case is now
-                    silent and the rule stays only where it separates
-                    something.
-                  */}
-                  {(storage.reclaimable.files > 0 || storage.canBuy) && (
-                    <div className="mt-5 border-t border-navy-200 pt-4">
-                      <div className="flex flex-wrap items-center gap-3">
-                        {storage.reclaimable.files > 0 && (
-                          <CleanupButton username={username} reclaimable={storage.reclaimable} />
-                        )}
-                        {storage.canBuy && <BuyStorageButton username={username} />}
-                      </div>
-                      {storage.reclaimable.files > 0 && (
-                        <p className="mt-2 text-sm leading-6 text-navy-600">
-                          {t("me.storageCleanupBody")}
-                        </p>
-                      )}
-                    </div>
-                  )}
+              <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-300/50 text-navy-900">
+                    <Wallet className="h-[18px] w-[18px]" aria-hidden="true" />
+                  </span>
+                  <h3 className="font-display text-lg font-semibold text-navy-900">
+                    {t("me.accountCardTitle")}
+                  </h3>
                 </div>
-              )}
-
-              {payment && (
-                <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-300/50 text-navy-900">
-                      <Wallet className="h-[18px] w-[18px]" aria-hidden="true" />
-                    </span>
-                    <h3 className="font-display text-lg font-semibold text-navy-900">
-                      {t("me.paymentTitle")}
-                    </h3>
-                  </div>
-
-                  <div className="mt-4 sm:flex sm:items-stretch sm:gap-4">
-                    <div className="flex flex-col justify-center rounded-xl border border-navy-200 bg-cream-50 px-5 py-4 sm:w-44 sm:shrink-0">
-                      <span className="font-display text-4xl font-semibold tabular-nums tracking-tight text-navy-900">
-                        {payment.balance}
-                      </span>
-                      <span className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-navy-600">
-                        {tn("me.paymentUnit", payment.balance)}
-                      </span>
-                      {payment.balance === 0 && (
-                        <span className="mt-2 text-sm leading-6 text-coral-600">
-                          {t("me.paymentBalanceEmpty")}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="mt-4 sm:mt-0 sm:flex-1">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
-                        {t("me.paymentEstimateTitle")}
-                      </p>
-                      {/*
-                        A list rather than a table — B413 asked for the billing
-                        to be plain and got columns; B471 took the columns back
-                        out. Four things per row under three headings is a table
-                        that does not fit a phone: "Aktive Empfänger" wrapped to
-                        two lines and the switch wrapped under the channel's
-                        name, so the two rows were different heights and neither
-                        lined up with its own numbers.
-
-                        Nothing is compared down a column here — there are two
-                        rows and what the owner reads is each against the total
-                        under it — so a table was buying headings and paying for
-                        them in width.
-
-                        One row per channel the server can actually offer. A
-                        muted channel keeps its row, greyed and costing nothing,
-                        because the owner muted it and can put it back; a
-                        channel this server has no transport for has no row,
-                        because nothing here would change that.
-                      */}
-                      <ul className="mt-2 border-t border-navy-200">
-                        {CHANNELS.map(({ key, icon: Icon, labelKey, recipients }) => {
-                          const on = payment.channels[key];
-                          if (on === null) return null;
-                          return (
-                            <li
-                              className="flex items-center justify-between gap-3 border-b border-navy-200 py-2.5"
-                              key={key}
-                            >
-                              <div className="min-w-0">
-                                <span className="flex items-center gap-2 text-base text-navy-900">
-                                  <Icon
-                                    className="h-4 w-4 shrink-0 text-navy-600"
-                                    aria-hidden="true"
-                                  />
-                                  {t(labelKey)}
-                                </span>
-                                {/* What it would reach and what that costs, in
-                                    the quiet grey: the headings are gone, so
-                                    the count carries its own noun and the
-                                    credits their own unit. */}
-                                <span className="mt-0.5 block text-sm text-navy-500">
-                                  {tn("me.paymentUpTo", recipients, {
-                                    count: String(recipients),
-                                  })}
-                                  {" · "}
-                                  <span className={on ? "font-semibold text-navy-900" : undefined}>
-                                    {on ? recipients : 0} {tn("me.paymentUnit", on ? recipients : 0)}
-                                  </span>
-                                </span>
-                              </div>
-                              <ChannelSwitch
-                                username={username}
-                                channel={key}
-                                label={t(labelKey)}
-                                enabled={on}
-                              />
-                            </li>
-                          );
-                        })}
-                      </ul>
-                      {/*
-                        The number the owner actually came for, and the one
-                        thing the card used to make them work out themselves:
-                        what publishing a day costs right now. Directly under
-                        the switches, so muting a channel answers the question
-                        in place.
-                      */}
-                      <p className="flex items-baseline justify-between gap-3 py-2.5 text-base font-semibold text-navy-900">
-                        <span>{t("me.paymentDayTotal")}</span>
-                        <span className="tabular-nums">{dayCost}</span>
-                      </p>
-                      <p className="mt-2.5 text-sm leading-6 text-navy-600">
-                        {t("me.paymentPrices")}
-                        {payment.postcardCredits !== null && (
-                          <>
-                            {" "}
-                            {t("me.paymentPostcardPrice", {
-                              credits: String(payment.postcardCredits),
-                            })}
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* The dialog posts to the purchase route, which mails
-                      the journal's own owner and grants nothing — the only
-                      thing that may raise a balance is `grant` in
-                      lib/credits.ts, run by hand on the server. */}
-                  <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-navy-200 pt-4">
-                    <BuyCreditsDialog username={username} />
-                  </div>
-
-                  {/*
-                    The transaction history — B413. Only when there is one.
-                    A pending row is a purchase the owner started and did not
-                    finish; it stays a link back to its payment page so it can
-                    be paid (or abandoned). Nothing here is a balance change —
-                    a paid mock transaction still added no credits.
-                  */}
-                  {payment.transactions.length > 0 && (
-                    <div className="mt-5 border-t border-navy-200 pt-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
-                        {t("me.txHistoryTitle")}
-                      </p>
-                      <ul className="mt-2 divide-y divide-navy-200">
-                        {payment.transactions.map((tx) => (
-                          <li key={tx.id} className="flex items-center justify-between gap-3 py-2">
-                            <div className="min-w-0">
-                              <p className="text-base text-navy-900">
-                                {tx.credits} {tn("me.paymentUnit", tx.credits)} · {tx.amount}
-                              </p>
-                              <p className="text-sm tabular-nums text-navy-600">
-                                {tx.createdAt.slice(0, 10)}
-                              </p>
-                            </div>
-                            {tx.status === "paid" ? (
-                              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700">
-                                <Check className="h-4 w-4" aria-hidden="true" />
-                                {t("me.txPaid")}
-                              </span>
-                            ) : tx.status === "requested" ? (
-                              <Link
-                                href={`${site.base}/payment/${tx.id}`}
-                                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-navy-200 bg-cream-50 px-3 py-1 text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500"
-                              >
-                                {t("me.txAwaiting")}
-                              </Link>
-                            ) : (
-                              <Link
-                                href={`${site.base}/payment/${tx.id}`}
-                                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-coral-300 bg-coral-300/15 px-3 py-1 text-sm font-semibold text-coral-600 transition-colors hover:bg-coral-300/30"
-                              >
-                                {t("me.txPay")}
-                              </Link>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
+                <p className="mt-3 text-base leading-7 text-navy-700">{t("me.accountCardBody")}</p>
+                <Link
+                  href={`${site.base}/account`}
+                  className="mt-4 inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
+                >
+                  {t("me.accountOpen")}
+                </Link>
+              </div>
 
               {/*
                 The door for people — B79/B282. This is a button that leads to

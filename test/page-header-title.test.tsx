@@ -57,6 +57,7 @@ const site: SiteSummary = {
   canSignIn: false,
   analyticsEnabled: true,
   helperEnabled: false,
+  isOwner: false,
 };
 
 function markup(): string {
