@@ -6,6 +6,7 @@ priority: high
 complexity: high
 area: photobook, onboarding
 found: "2026-09-07T00:00:00Z"
+merged: "2026-09-07T11:49:42Z"
 ---
 
 # B704 — A first photobook opens as a wall of settings with nothing to compare them against
@@ -137,3 +138,54 @@ every answer is still changeable under "Ändern, wie das Buch gemacht wird".
 - The binding is stated with its page count rather than asked.
 - Looked at, per `check-a-drawing`: every schematic on `/docs/branding/day`
   beside B703's six, and the four screens at 390px.
+
+## Findings (2026-09-07)
+
+Built as proposed, with two things learned by looking at it.
+
+**The flow.** `FirstBookFlow.tsx`, five steps: size, words, extras, cover,
+summary. It writes `BookOptions` and holds no state of its own beyond which
+step it is on — answers land as they are made, so a phone locking half way
+through loses nothing, and leaving at any point lands on the composer exactly
+as it has always been.
+
+**When it opens.** `usePersistedState` now returns a third value, whether
+anything was stored under the key *before* this mount. That distinction is the
+whole feature and it is easy to get wrong: the hook writes on its first render,
+so asking `localStorage` a moment later always answers "saved" and nobody would
+ever see the flow. Two tests in `test/photobook-persistence.test.tsx` pin it.
+`PhotobookPageContent` renders neither the flow nor the composer while the
+answer is `null` — the server renders this branch too and cannot know, so
+anything shown there is shown for one frame and then replaced.
+`startOver` in the settings panel is the only way back in.
+
+**The drawings.** `BookShape.tsx` — six page schematics plus `FormatShape`,
+which draws the three formats at their true proportions against each other
+inside one box. A square and an A4 landscape shown at the same size is the one
+thing that picker must not do.
+
+**Two things the browser corrected.**
+
+1. The extras tiles first borrowed the settings panel's labels, so they read
+   "Include the route map" as a *heading* — a checkbox sentence with nothing to
+   check. They have their own noun labels now: "The route", "Chapters by
+   country", "Who travelled", "Numbers and charts".
+2. The cover step nested a `radiogroup` inside a `radiogroup` — the picker
+   already is one. `Question` gained a `plain` mode that omits the outer role.
+   The drawings also went from 40 to 52px: at 390px the format shapes were too
+   small to tell apart, which is the entire point of drawing them.
+
+**Verified in a browser**, per `test-in-a-browser`, at 390 × 844 against the
+demo journal's `alps-2024`: all five steps, the four "next"es, the summary
+("32 pages, so it gets a glued spine … About CHF 30.80"), finishing into the
+composer, a reload landing on the composer rather than the questions, and
+*Start from the questions again* reopening them. No console errors. Both
+sections of `/docs/branding/day` render.
+
+`npm run verify`: all four passed (4328 tests).
+
+**Left for a person:** whether the questions are the *right* five. The code
+now makes adding or dropping one cheap, and reading them on a phone is the
+only way to judge that. Also worth an eye: the floating navigation button
+overlaps the flow's bottom row at 390px — it does that over the composer too,
+so it is not this ticket's, but it is more noticeable here.

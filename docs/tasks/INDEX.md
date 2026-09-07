@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (93)
+## backlog (92)
 
 ### security (3)
 
@@ -74,13 +74,12 @@ Do not edit them by hand; run the script.
 | [B721](backlog/issue/B721-the-upload-progress-line-does-not.md) | The upload progress line does not say which day it belongs to | ISSUE | low | low |
 | [B722](backlog/issue/B722-nobody-has-checked-whether-the-consent.md) | Nobody has checked whether the consent record is in a journal export | ISSUE | low | low |
 
-### big-feature (14)
+### big-feature (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B537](backlog/big-feature/B537-a-journal-on-disk-cannot-be.md) | A journal on disk cannot be checked against the instance that will receive it | FEATURE | high | high |
-| [B704](backlog/big-feature/B704-a-first-photobook-opens-as-a.md) | A first photobook opens as a wall of settings with nothing to compare them against | FEATURE | high | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | A journal folder can be exported and never pushed back, so writing locally is a one-way trip | FEATURE | medium | high |
@@ -216,7 +215,7 @@ _Nothing here._
 | [B710](in-development/B710-the-reverse-geocoding-url-is-guessed.md) | The reverse geocoding URL is guessed from the forward one | ISSUE | low | low | `97b44327` |
 | [B711](in-development/B711-the-preview-still-says-draft-after.md) | The preview still says draft after the day is published | ISSUE | low | low | `97b44327` |
 
-## testing (411)
+## testing (412)
 
 ### security (7)
 
@@ -432,7 +431,7 @@ _Nothing here._
 | [B637](testing/issue/B637-the-fernscout-mark-on-the-car.md) | The Fernscout mark on the car sits too far off centre | ISSUE | low | low | — |
 | [B670](testing/issue/B670-kept-in-the-media-upload-response.md) | kept in the media upload response omits the video originals it stored | ISSUE | low | low | — |
 
-### big-feature (38)
+### big-feature (39)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -457,6 +456,7 @@ _Nothing here._
 | [B671](testing/big-feature/B671-an-agent-cannot-import-location-history.md) | An agent cannot import location history, because the only way in is a shell on the server | FEATURE | high | high | — |
 | [B682](testing/big-feature/B682-a-day-cannot-be-written-from.md) | A day cannot be written from a phone without an agent | FEATURE | high | high | — |
 | [B683](testing/big-feature/B683-uploading-photographs-from-a-phone-fails.md) | Uploading photographs from a phone fails halfway with no resume | FEATURE | high | high | — |
+| [B704](testing/big-feature/B704-a-first-photobook-opens-as-a.md) | A first photobook opens as a wall of settings with nothing to compare them against | FEATURE | high | high | — |
 | [B283](testing/big-feature/B283-handing-a-journal-to-an-agent.md) | Handing a journal to an agent means reading six digits down the phone, and the page offers two lines instead of a prompt | FEATURE | medium | high | — |
 | [B294](testing/big-feature/B294-the-language-switcher-offers-three-languages.md) | The language switcher offers three languages for prose that only exists in one | FEATURE | medium | high | — |
 | [B325](testing/big-feature/B325-a-day-carries-coordinates-and-a.md) | A day carries coordinates and a date but no way to say what the weather actually was | FEATURE | medium | high | — |
