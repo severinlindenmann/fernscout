@@ -1182,6 +1182,7 @@
   "agent.creating": "Indítás…",
   "agent.uploadTitle": "Fényképek",
   "agent.uploading": "{done} / {total} elküldve…",
+  "agent.uploadingFor": "{date} napjához:",
   "agent.skipPhotos": "Tovább fényképek nélkül",
   "agent.wordsTitle": "Mi történt?",
   "agent.wordsHint": "A te szavaid, a te nyelveden. Itt senki nem írja meg helyetted, és semmi nem kerül bele, amit nem mondtál.",

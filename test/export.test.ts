@@ -135,6 +135,11 @@ function seedSource() {
       "",
     ].join("\n"),
   );
+
+  write(
+    path.join(srcDir, "traveller", "helper-consent.json"),
+    JSON.stringify({ agreedAt: "2026-01-01T00:00:00.000Z", provider: "Anthropic", scopes: ["words"] }),
+  );
 }
 
 beforeEach(() => {
@@ -172,6 +177,16 @@ describe("buildUserExportZipBuffer — scope 'all'", () => {
     expect(
       fs.readdirSync(path.join(extracted, "trips", "open-2026", "entries")),
     ).toContain("2026-01-03-unpublished.md");
+  });
+
+  /** B722 — the record is the journal's own, and the owner's own full backup
+   * is where it has to travel; revoking is deleting the file, which only
+   * matters if the file was ever actually there to delete. */
+  test("carries the helper-consent record", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all");
+    const extracted = unzipInto(buffer, "all-consent");
+    expect(fs.existsSync(path.join(extracted, "helper-consent.json"))).toBe(true);
   });
 
   test("round-trips: unzip into content/<user>/, the app reads it back identically", async () => {
@@ -233,6 +248,16 @@ describe("buildUserExportZipBuffer — scope 'open-to-link'", () => {
 
     expect(entries).toContain("2026-01-02-alpha.md");
     expect(entries).not.toContain("2026-01-03-unpublished.md");
+  });
+
+  /** The anonymous, open-to-link archive is a packaging of content an
+   * unauthenticated visitor could already reach — a plain GET carries nothing
+   * that says who is asking. The owner's consent record is not that. */
+  test("does not carry the helper-consent record", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "open-to-link");
+    const extracted = unzipInto(buffer, "open-consent");
+    expect(fs.existsSync(path.join(extracted, "helper-consent.json"))).toBe(false);
   });
 
   test("excludes the closed trip entirely", async () => {

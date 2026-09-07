@@ -32,3 +32,15 @@ locales. Cheap, and it turns the cast back into something safe.
 ## Acceptance
 
 Adding a registry row with an untranslated slot fails the suite.
+
+## Work done
+
+Added `test/helper-slot-locales.test.ts`: walks every slot name across every
+`REGISTRY` row and every `MAINTAINED_LOCALES` code, reading each locale's own
+`site/locales/<code>.json` off disk directly (not the English-merged
+`dictionaryFor()`, which would hide a slot missing from one language behind
+English's copy of the same key) and asserting `agent.slot.<name>` exists there
+as a non-empty string. All 15 current checks (5 slot names × 3 locales) pass.
+Adding a registry row with a slot name absent from even one locale file now
+fails this suite. No production code changed — `components/HelperAsk.tsx:210`
+still casts, but a missing key can no longer ship silently.

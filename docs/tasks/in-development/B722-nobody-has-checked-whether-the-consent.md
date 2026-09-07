@@ -27,3 +27,29 @@ journal's export does not carry it.
 
 A journal export contains `helper-consent.json` when one exists, and a test
 asserts it.
+
+## Work done
+
+Confirmed the Why: `appendUserContent` in `lib/exportZip.ts` queued only
+`config.json` and `trips/**` — `helper-consent.json` was never included in
+either scope.
+
+`lib/helper/consent.ts:56` — exported the previously-private `consentFile()`
+so the export code can find the same path the consent module itself reads and
+writes, rather than reconstructing it.
+
+`lib/exportZip.ts` — `appendUserContent` now queues `helper-consent.json`
+**only when `scope === "all"`**. It is deliberately absent from
+`"open-to-link"`: that scope is a packaging of content an anonymous visitor
+could already reach (a plain GET carries nothing that says who is asking), and
+the consent record is not content a reader ever sees — it is the owner's own
+record of what they agreed to about the model. It belongs in the owner's own
+full backup and nowhere an unauthenticated request can reach.
+
+**Which archive variant carries it: `"all"` only. Never `"open-to-link"`.**
+
+Test: `test/export.test.ts` — seeded `helper-consent.json` in the test
+journal, added "carries the helper-consent record" under the `"all"` scope
+describe block and "does not carry the helper-consent record" under
+`"open-to-link"`. Both fail before the fix (the file was never queued at all,
+so the `"all"` case failed) and pass after.

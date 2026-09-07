@@ -210,6 +210,7 @@ export type TranslationKey =
   | "agent.titleLabel"
   | "agent.uploadTitle"
   | "agent.uploading"
+  | "agent.uploadingFor"
   | "agent.uploadingOriginals"
   | "agent.useSuggestion"
   | "agent.viewDay"

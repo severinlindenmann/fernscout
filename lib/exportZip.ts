@@ -7,6 +7,7 @@ import { ZipArchive } from "archiver";
 import { isDraft } from "./entries";
 import { isOpenToLink } from "./access";
 import { userConfigPath } from "./config";
+import { consentFile } from "./helper/consent";
 import { getTrips } from "./trips";
 import { userDir } from "./users";
 import type { Trip } from "./types";
@@ -97,6 +98,18 @@ function appendUserContent(
   const configPath = userConfigPath(username);
   if (fs.existsSync(configPath)) {
     archive.file(configPath, { name: "config.json" });
+  }
+
+  // B684 stores the model-consent record as a file beside the journal so it
+  // travels in the journal's own backup and export. That is only true of the
+  // owner's own "all" export: it names nothing about a reader, but it is a
+  // record of what the *owner* agreed to, and has no business in the
+  // anonymous "open-to-link" copy of the archive.
+  if (scope === "all") {
+    const consentPath = consentFile(username);
+    if (fs.existsSync(consentPath)) {
+      archive.file(consentPath, { name: "helper-consent.json" });
+    }
   }
 
   for (const trip of tripsForScope(username, scope)) {

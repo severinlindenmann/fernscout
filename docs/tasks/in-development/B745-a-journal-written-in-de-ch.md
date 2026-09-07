@@ -31,3 +31,20 @@ The fix is a base-language fallback: `de-CH` → `de` → English, rather than
 
 A journal with `defaultLocale: "de-CH"` reads German, and a test covers the
 narrowing.
+
+## Work done
+
+`lib/locales.ts` — `localeFiles(code)` now splits a regional tag on `-` and,
+when the base differs from the full tag, layers the base language's own
+shipped/override files underneath this tag's (still-absent) ones before
+returning. So `localeFiles("de-CH")` reads `de.json` first, then whatever a
+`de-CH.json` might someday be — English is never reached as long as the base
+language has chrome. `readDictionary`/`dictionarySignature` needed no change:
+they already just read whatever file list they are handed.
+
+Test: `test/locales.test.ts` — "a regional tag falls back to its base language
+before English" asserts `dictionaryFor("de-CH")["nav.gallery"]` equals the
+German string and differs from the English one. Fails before the fix (was
+English), passes after. `npm run verify`'s full locale suite (29 tests in that
+file) still passes, including the existing parity/fallback tests for `hr`
+(no-chrome-at-all case, unaffected).

@@ -49,7 +49,10 @@ export type HelperConsent = {
   scopes: HelperScope[];
 };
 
-function consentFile(username: string): string {
+/** Exported so a journal's own export (`lib/exportZip.ts`) can carry the
+ *  record alongside it — B722. Owner-only: the file is only ever queued into
+ *  the `"all"` export scope, never `"open-to-link"`. */
+export function consentFile(username: string): string {
   // Belt and braces: every caller has already resolved the journal, but this
   // joins a name onto a path and a name is a security boundary.
   if (!isValidUsername(username)) throw new Error(`helper: bad username "${username}"`);

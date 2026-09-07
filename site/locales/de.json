@@ -1182,6 +1182,7 @@
   "agent.creating": "Wird begonnen …",
   "agent.uploadTitle": "Fotos",
   "agent.uploading": "{done} von {total} gesendet …",
+  "agent.uploadingFor": "Für {date}:",
   "agent.skipPhotos": "Ohne Fotos weitermachen",
   "agent.wordsTitle": "Was ist passiert?",
   "agent.wordsHint": "Deine Worte, in deiner Sprache. Hier schreibt sie dir niemand, und es kommt nichts dazu, was du nicht gesagt hast.",

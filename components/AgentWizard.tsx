@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ConfirmPanel from "@/components/ConfirmPanel";
-import { drain, enqueue, outstanding, type QueueProgress } from "@/components/uploadQueue";
+import {
+  drain,
+  enqueue,
+  outstanding,
+  uploadingDaySlug,
+  type QueueProgress,
+} from "@/components/uploadQueue";
 import CurrencyProvider from "@/components/CurrencyProvider";
 import { useI18n } from "@/components/LocaleProvider";
 import RecordButton from "@/components/RecordButton";
@@ -617,12 +623,19 @@ export default function AgentWizard({
 
       {/* The queue, wherever in the wizard somebody has got to. Web copies
           first, then the originals — and the second line is the one that says
-          you may walk away, because you may. */}
+          you may walk away, because you may. A queue row is keyed to the day
+          it was picked for, so once somebody has walked on to a different
+          draft the line has to say whose originals are still climbing
+          (B721). */}
       {progress && (progress.webDone < progress.webTotal || progress.originalDone < progress.originalTotal) && (
         <p
           aria-live="polite"
           className="mt-4 rounded-2xl border border-navy-200 bg-cream-100 p-4 text-sm leading-6 text-navy-800"
         >
+          {(() => {
+            const namedDay = uploadingDaySlug(progress, draft?.slug);
+            return namedDay && `${t("agent.uploadingFor", { date: namedDay })} `;
+          })()}
           {progress.webDone < progress.webTotal
             ? t("agent.uploading", {
                 done: String(progress.webDone),

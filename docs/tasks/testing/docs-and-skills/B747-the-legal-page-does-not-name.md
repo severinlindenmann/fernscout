@@ -65,3 +65,22 @@ recording, which is B743.
   what each receives and when.
 - The "that is the whole list" sentence is true again.
 - The German page says the same things as the English one, not a subset.
+
+## Work done
+
+`site/legal/en.md` and `site/legal/de.md` — added Anthropic and Deepgram rows
+to the External services table, in the same three-column shape as the
+existing rows, and a paragraph immediately after "That is the whole list"
+covering everything the Work section asked for: reached only through the web
+helper at `/agent` (never by reading a journal, never by an owner's own
+agent); what is not sent (location history, contacts, postal addresses, no
+training); the `dry-run` speech backend sending nothing off-machine; and that
+the audio itself is never written to disk, which `test/helper-transcribe.test.ts`
+already asserts (verified: line 301 checks the raw audio bytes are not present
+in any file under the content root after a transcription).
+
+Both files carry the same structure and the same claims — German is a
+translation, not a subset. Pure prose; no code changed. `Not doing` items
+(B744, B743) left untouched. Covered by the suite passing — no dedicated test
+per the DOCS convention and this ticket's own acceptance, which is about the
+words on the page.
