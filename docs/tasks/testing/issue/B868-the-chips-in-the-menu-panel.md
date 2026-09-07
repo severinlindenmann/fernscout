@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: header, nav, a11y
 found: "2026-09-07T19:40:00Z"
+merged: "2026-09-07T17:41:25Z"
 ---
 
 # B868 — The chips in the menu panel hide their labels to fit a header row they no longer sit in
