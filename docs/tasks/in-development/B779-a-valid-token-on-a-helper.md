@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: agent, api
 found: "2026-09-07T14:23:38Z"
+started: "2026-09-07T14:25:42Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T14:25:42Z"
 ---
 
 # B779 — A valid token on a helper route is told the journal is not theirs

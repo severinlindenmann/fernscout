@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: api, weather
 found: "2026-09-07T14:23:37Z"
+started: "2026-09-07T14:25:41Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T14:25:41Z"
 ---
 
 # B778 — Asking for weather on a journal with weather off is accepted and does nothing
