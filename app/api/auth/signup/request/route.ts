@@ -1,5 +1,7 @@
 import { CODE_TTL_MINUTES, NO_JOURNAL, isEmail, issueCode, revokeCodes } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
+import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
+import { translateIn } from "@/lib/locales";
 import { sendMail } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -62,6 +64,21 @@ export async function POST(request: Request) {
   const { code } = await issueCode(NO_JOURNAL, email, "signup");
 
   /**
+   * The language the request asked for — B857.
+   *
+   * There is no journal yet and no contact record, so `accept-language` is the
+   * only thing that says anything about the reader, and English is what is
+   * left when it says nothing this instance speaks. It is the first mail this
+   * software ever sends anybody: a Hungarian speaker who cannot read it never
+   * reaches the journal the rest of the product is good at.
+   */
+  const locale = pickLocale(fromAcceptLanguage(request.headers.get("accept-language")));
+  const site = serverSite();
+  const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) =>
+    translateIn(locale, key, vars);
+  const vars = { site: site.name, code, minutes: CODE_TTL_MINUTES };
+
+  /**
    * The send is guarded, and a failure takes the code back with it.
    *
    * Unguarded, an SMTP hiccup became an unhandled throw and a framework 500
@@ -78,33 +95,20 @@ export async function POST(request: Request) {
    */
   try {
     await sendMail(
-      renderMail(email, `Your code to start a journal on ${serverSite().name}`, {
-        preheader: `Your code is ${code}`,
-        title: "Start a journal",
+      renderMail(email, t("mail.signupSubject", vars), {
+        preheader: t("mail.identityCode", vars),
+        title: t("mail.signupTitle"),
         blocks: [
-          { kind: "paragraph", text: `Your code is ${code}. It works for ${CODE_TTL_MINUTES} minutes.` },
-          {
-            kind: "paragraph",
-            text:
-              "Somebody — probably an agent working for you — asked to create a travel journal " +
-              "at this address. Give it this code and it can create one journal, once.",
-          },
+          { kind: "paragraph", text: t("mail.identityCode", vars) },
+          { kind: "paragraph", text: t("mail.signupWhat") },
           // The timestamp is what makes two identical mails tellable apart.
           // Asking again invalidates the earlier code and sends a mail that is
           // word for word the same, so without a stamp the person reads out
           // whichever is nearest and gets `invalid_code` for their trouble.
-          {
-            kind: "paragraph",
-            text:
-              `Asked for at ${requestedAt()}. If you have an older mail like this one, ` +
-              "its code no longer works — the newest is the only live one.",
-          },
-          {
-            kind: "paragraph",
-            text: "If you did not ask for this, ignore it — nothing has been created.",
-          },
+          { kind: "paragraph", text: t("mail.codeAsked", { when: requestedAt(locale) }) },
+          { kind: "paragraph", text: t("mail.signupIgnore") },
         ],
-        footer: `Sent by ${serverSite().name}.`,
+        footer: t("mail.identityFooter", vars),
       }),
     );
   } catch (err) {
@@ -125,15 +129,22 @@ export async function POST(request: Request) {
   return accepted;
 }
 
-/** `14:32 UTC on 1 September` — enough to tell two identical mails apart,
- * without pretending to know the reader's timezone. */
-function requestedAt(): string {
+/** `14:32 UTC, 1 September` — enough to tell two identical mails apart,
+ * without pretending to know the reader's timezone. The month is written in
+ * the reader's own language (B857); the comma stands in for the English "on"
+ * so no word of glue has to be translated. */
+function requestedAt(locale: string): string {
   const now = new Date();
   const time = now.toISOString().slice(11, 16);
-  const day = now.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    timeZone: "UTC",
-  });
-  return `${time} UTC on ${day}`;
+  const day = now
+    .toLocaleDateString(locale === "en" ? "en-GB" : locale, {
+      day: "numeric",
+      month: "long",
+      timeZone: "UTC",
+    })
+    // Hungarian writes the day as "szeptember 7." — full stop included — and
+    // the sentence this lands in ends with one of its own. Two in a row reads
+    // like a typo in a mail whose whole job is to look trustworthy.
+    .replace(/\.$/, "");
+  return `${time} UTC, ${day}`;
 }
