@@ -1,6 +1,6 @@
 ## Wer das hier betreibt
 
-Fernscout ist ein **Hobbyprojekt** von Severin Lindenmann, Schweiz. Es ist
+Fernscout™ ist ein **Hobbyprojekt** von Severin Lindenmann, Schweiz. Es ist
 keine Firma, es gibt keinen Support und keine zugesicherte Verfügbarkeit.
 
 Kontakt: <agent@fernscout.ch>

@@ -1,6 +1,6 @@
 ## Who runs this
 
-Fernscout is run as a **hobby project** by Severin Lindenmann, Switzerland.
+Fernscout™ is run as a **hobby project** by Severin Lindenmann, Switzerland.
 It is not a company, there is no support desk, and there is no service level
 agreement behind it.
 

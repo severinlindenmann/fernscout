@@ -31,7 +31,10 @@ export default function OpengraphImage() {
                 docs/branding/fernscout-mark.svg. ImageResponse cannot load a
                 file, so this is one of the two sanctioned inline copies — see
                 .claude/skills/apply-the-brand. If the mark changes, this changes
-                with it. */}
+                with it.
+
+                Copyright: see LICENSE, BRAND ASSETS. Not licensed as the
+                identity of another project — LICENSE, BRAND ASSETS. */}
             <path
               d="M6 25 L11.3 20.7 L15.7 19 L21 12.3 L26 8"
               fill="none"

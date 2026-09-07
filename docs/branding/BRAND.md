@@ -174,7 +174,12 @@ it cost; it does not sell them the trip back to themselves.
 
 ## 9. Trademark
 
-The code is PolyForm Shield 1.0.0. The **name and the mark are not** — see
-`TRADEMARK.md`.
-Forks are welcome and must rebrand: unregistered word mark *Fernscout* and the
-waymark device, no implication of endorsement.
+The code is PolyForm Shield 1.0.0. The **name is outside that licence and the
+drawings are narrowed inside it** — see the BRAND ASSETS section of `LICENSE`,
+and `TRADEMARK.md` for the policy. Forks are welcome and must rebrand:
+unregistered word mark *Fernscout™* and the waymark device, no implication of
+endorsement.
+
+Every asset in this folder carries a copyright notice inside the file, the PNG
+in its metadata. Keep it there when you edit one — it is the only claim that
+travels with a copy that has left the repository. B657.
