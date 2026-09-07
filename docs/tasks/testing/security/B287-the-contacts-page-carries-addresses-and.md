@@ -7,8 +7,7 @@ complexity: low
 area: contacts, headers, privacy
 found: "2026-09-04T13:05:00Z"
 started: "2026-09-07T10:37:34Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T10:37:34Z"
+merged: "2026-09-07T10:55:52Z"
 ---
 
 # B287 — The contacts page carries addresses and now invite links, and nothing in the repo pins its cache headers

@@ -7,8 +7,7 @@ complexity: low
 area: contacts, address lookup
 found: "2026-09-05T10:20:00Z"
 started: "2026-09-07T10:37:35Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T10:37:35Z"
+merged: "2026-09-07T10:55:57Z"
 ---
 
 # B415 — The address lookup offers the same address twice when OSM holds a building and a shop at it
