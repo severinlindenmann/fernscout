@@ -68,3 +68,35 @@ function with three callers, not three faults.
 - The `cm` operator for such a photograph rotates it, and the rectangle it
   fills has the photograph's own aspect ratio.
 - A book planned from EXIF-rotated originals places them in portrait slots.
+
+## Findings (2026-09-07)
+
+Cause as written above, confirmed rather than assumed: `sharp` writing
+orientation 6 onto a 400×300 JPEG gives `readJpeg` 400×300 and `.rotate()`
+300×400, and the preview's `<img>` is `BookPhoto.webSrc` — the *derivative*,
+which is upright — so a landscape `draw` box and `object-fit:fill`
+(`preview.ts:670`) is the stretch the report describes.
+
+Fixed in one function with three callers. `readJpeg` now reads the tag
+(`readExif`, already dependency-free) and reports `width`/`height` as the
+displayed size, keeping `pixelWidth`/`pixelHeight` for the `/XObject`
+dictionary, which describes the bytes. `drawImage` and `drawImageClipped` put
+the picture into its rectangle through `imageMatrix()`, a table of the eight
+orientations as `cm` operands on the unit square. So the photobook, the
+postcard front and the postcard page's resolution note were all fixed by the
+one change; nothing else needed touching.
+
+**Verified by looking**, per `check-a-drawing`: a 400×300 picture with a red
+bar down its left edge and a blue bar across its top, rendered as a postcard
+front five ways — untagged, tagged 6, tagged 8, and the same picture actually
+rotated by sharp 90° and 270°. `tagged6` rasterises identically to `really6`
+(blue down the right edge) and `tagged8` to `really8` (blue down the left), so
+the turn is the right way round and is not mirrored.
+
+`npm run verify` in the worktree: build, tsc, eslint, 4227 tests — all four
+passed.
+
+Not done here: B641's own claim that no stretch was reachable is left standing
+in that ticket's findings; it was true of the geometry it examined and wrong
+only about the dimensions handed to it. B641 stays in `testing/` — the trio
+layout and the resolution cap it added still want a person's eye.

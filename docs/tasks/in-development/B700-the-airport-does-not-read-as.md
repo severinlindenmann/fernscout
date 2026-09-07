@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: travel scene, buildings, branding bench
 found: "2026-09-07T10:45:43Z"
+started: "2026-09-07T10:46:11Z"
+session: dfdad8fc-a6fc-47f8-9531-e49449f80aae
+claimed: "2026-09-07T10:46:11Z"
 ---
 
 # B700 — The airport does not read as an airport, and has no bench of its own
