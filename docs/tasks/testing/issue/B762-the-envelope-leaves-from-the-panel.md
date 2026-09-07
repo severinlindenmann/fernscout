@@ -7,8 +7,7 @@ complexity: low
 area: auth, ui, motion
 found: "2026-09-07T16:05:00Z"
 started: "2026-09-07T13:58:55Z"
-session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
-claimed: "2026-09-07T13:58:55Z"
+merged: "2026-09-07T14:07:03Z"
 ---
 
 # B762 — The envelope leaves from the panel's corner instead of from the button, and the panel clips its flight
