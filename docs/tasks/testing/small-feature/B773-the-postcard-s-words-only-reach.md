@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: postcards, composer
 found: "2026-09-07T00:00:00Z"
+merged: "2026-09-07T14:26:40Z"
 ---
 
 # B773 — The postcard's words only reach the card when a Save button is pressed
@@ -53,3 +54,30 @@ loses it with no warning that they had to press anything.
 - Stopping typing saves within a second or so, and the page says so.
 - With JavaScript off, the form and its button behave exactly as they do now.
 - A card whose order has been sent cannot be edited by either path.
+
+## Findings (2026-09-07)
+
+`PostcardBack.tsx` is new: it owns the message, the signature, the language and
+the figures switch as state, draws the back of the card from that state, and
+renders the form under it. So the drawing follows the typing with no request at
+all — the thing the page exists for stopped being behind a button.
+
+Autosave is a 700ms debounce to the route that already existed, with the same
+newest-request-wins guard the photobook preview uses: without it a slow first
+save can report "saved" after a later one has already failed.
+
+**The route grew a second shape, not a second set of rules.** `wantsJson`
+(an `Accept: application/json` header) picks between the redirect and
+`Response.json({ result })`, and every refusal it already made — an agent's
+bearer token, a non-owner, an order that has left `draft` — answers in
+whichever shape was asked for. A form post is byte-for-byte what it was.
+
+**It still works with JavaScript off**: the same `<form method="post">`, the
+same field names, the same button. The status line never claims more than it
+knows — saving, saved, or "not saved, press the button" in coral.
+
+**Driven in a browser**: typed a new message, the drawn card updated within
+150ms with no network call, the status went *Saving… → Saved*, and a reload
+came back with the new words. Screenshot in the session.
+
+`npm run verify`: all four passed (4617 tests).

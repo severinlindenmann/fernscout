@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: postcards, brand
 found: "2026-09-07T00:00:00Z"
+merged: "2026-09-07T14:26:40Z"
 ---
 
 # B771 — The postcard page is unbranded above the send block, unlike every page the photobook shows
@@ -53,3 +54,34 @@ file. It is the surface.
 - No `opacity-70`, `text-black/50` or bare `rounded border` left on the page.
 - Looked at in a browser at 390px and at desktop width against the photobook
   composer, per `test-in-a-browser`: the two pages read as one product.
+
+## Findings (2026-09-07)
+
+The photobook composer's own vocabulary, applied above the send block: heading
+in `font-display`/`navy-900`, secondary type in `navy-600`, every notice in the
+yellow panel the photobook warns in, the message form as
+`rounded-lg border border-navy-200 bg-white`, inputs matching the settings
+panel's, and a pill save button with `min-h-11` that fills the width on a
+phone.
+
+Two decisions worth naming:
+
+- **The drawn card keeps white paper and black ink.** It is a picture of a
+  postcard, not a panel of the interface, so only its *frame* joined the rest
+  (`rounded-lg border-navy-200`, a small shadow). `text-black/50` on the
+  signature stayed for the same reason.
+- **The cost block became the photobook's order block** — heavy, cream, since
+  it is the same thing: what this costs and the button that spends. The
+  confirmation panel *inside* it inverted to white-on-cream, or a heavy panel
+  would have sat inside a heavy panel with neither reading as the louder one.
+
+**Looked at**, per `test-in-a-browser`, at 390px and at 1100px against the
+photobook composer. They read as one product now. Seeding a real order to look
+at took a contact through `requestContact` → confirm → `approveContact` →
+`updateContactByOwner`; worth knowing for the next person, since an unapproved
+or address-less contact renders the page's "going to 0 people" branch instead.
+
+`npm run verify`: all four passed (4617 tests).
+
+**Left undone:** `/[user]/contacts`, which carries zero brand tokens — B772,
+captured rather than absorbed.

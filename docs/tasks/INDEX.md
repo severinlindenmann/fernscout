@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (96)
+## backlog (95)
 
 ### security (2)
 
@@ -95,7 +95,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (22)
+### small-feature (21)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -111,7 +111,6 @@ Do not edit them by hand; run the script.
 | [B589](backlog/small-feature/B589-there-is-no-capability-for-one.md) | There is no capability for one instance to fulfil another's print jobs | FEATURE | medium | medium |
 | [B592](backlog/small-feature/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
 | [B673](backlog/small-feature/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium |
-| [B771](backlog/small-feature/B771-the-postcard-page-is-unbranded-above.md) | The postcard page is unbranded above the send block, unlike every page the photobook shows | FEATURE | medium | low |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 | [B539](backlog/small-feature/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
@@ -205,7 +204,7 @@ _Nothing here._
 | [B778](in-development/B778-asking-for-weather-on-a-journal.md) | Asking for weather on a journal with weather off is accepted and does nothing | ISSUE | medium | low | `fdfcf5f2` |
 | [B779](in-development/B779-a-valid-token-on-a-helper.md) | A valid token on a helper route is told the journal is not theirs | ISSUE | low | low | `fdfcf5f2` |
 
-## testing (18)
+## testing (20)
 
 ### issue (8)
 
@@ -227,12 +226,14 @@ _Nothing here._
 | [B746](testing/big-feature/B746-the-operator-cannot-see-what-the.md) | The operator cannot see what the instance costs to run | FEATURE | high | high | — |
 | [B689](testing/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high | — |
 
-### small-feature (5)
+### small-feature (7)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B751](testing/small-feature/B751-the-striped-handover-box-shouts-louder.md) | The striped handover box shouts louder than anything it sits beside, and it is on the page up to four times | FEATURE | medium | medium | — |
 | [B763](testing/small-feature/B763-the-operator-page-is-a-wall.md) | The operator page is a wall of tables that does not fit a phone | FEATURE | medium | medium | — |
+| [B771](testing/small-feature/B771-the-postcard-page-is-unbranded-above.md) | The postcard page is unbranded above the send block, unlike every page the photobook shows | FEATURE | medium | low | — |
+| [B773](testing/small-feature/B773-the-postcard-s-words-only-reach.md) | The postcard's words only reach the card when a Save button is pressed | FEATURE | medium | medium | — |
 | [B688](testing/small-feature/B688-a-new-visitor-cannot-make-a.md) | A new visitor cannot make a journal inside the helper | FEATURE | low | medium | — |
 | [B737](testing/small-feature/B737-the-travel-scene-s-vehicles-exist.md) | The travel scene's vehicles exist only on the web, so a book cannot show how a leg was travelled | FEATURE | low | medium | — |
 | [B753](testing/small-feature/B753-sending-a-sign-in-code-gives.md) | Sending a sign-in code gives no sign that anything was sent | FEATURE | low | low | — |
