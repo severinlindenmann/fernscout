@@ -418,9 +418,15 @@ export default function RecordButton({
   return (
     <div className="mt-3">
       <BusyButton
-        busy={disabled}
+        // Inverted once, by the codemod that made this a `BusyButton`: it took
+        // the first operand of `disabled={disabled || busy}` as the flag
+        // without checking it was one, so the button spun while it was
+        // disabled and went dead while it was working. The only one of
+        // seventy-one it got wrong, and only because this was the only
+        // `disabled=` whose busy flag was not written first.
+        busy={busy}
         type="button"
-        disabled={busy}
+        disabled={disabled}
         // The visible text is the price and then the stopwatch; the accessible
         // name is fixed and says how the control is worked — B794. A name that
         // counted seconds would be re-announced on every tick.

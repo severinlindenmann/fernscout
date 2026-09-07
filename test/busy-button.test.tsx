@@ -23,7 +23,9 @@ describe("BusyButton", () => {
     );
     expect(
       renderToStaticMarkup(<BusyButton busy={false}>Send</BusyButton>),
-    ).not.toContain("aria-busy");
+      // Not `not.toContain("aria-busy")`: the class list carries the literal
+      // `aria-busy:opacity-100!` variant, so the attribute is what to look at.
+    ).not.toContain('aria-busy="');
   });
 
   test("the spinner is there while busy and gone when it is not", () => {
