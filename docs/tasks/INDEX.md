@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (120)
+## backlog (119)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B830](backlog/security/B830-the-stripe-webhook-checks-the-amount.md) | The Stripe webhook checks the amount but not the currency, and not that the event's mode matches the key | SECURITY | high | low |
 | [B832](backlog/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low |
 
-### issue (35)
+### issue (34)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -98,7 +98,6 @@ Do not edit them by hand; run the script.
 | [B812](backlog/issue/B812-focus-is-lost-when-the-handover.md) | Focus is lost when the handover prompt appears | ISSUE | low | low |
 | [B813](backlog/issue/B813-a-denied-microphone-is-announced-politely.md) | A denied microphone is announced politely instead of as a problem | ISSUE | low | low |
 | [B833](backlog/issue/B833-the-admin-approval-queue-fills-with.md) | The /admin approval queue fills with Stripe requested rows it says were mailed but were not | ISSUE | low | low |
-| [B836](backlog/issue/B836-the-landing-corner-s-agent-chip.md) | The landing corner's Agent chip is too quiet to read as a button | ISSUE | low | low |
 
 ### big-feature (13)
 
@@ -231,9 +230,9 @@ Do not edit them by hand; run the script.
 | [B823](in-development/B823-search-finds-days-and-never-the.md) | Search finds days and never the pages, so there is no way to search your way to costs or storage | FEATURE | medium | medium | `ccdd5120` |
 | [B824](in-development/B824-the-agent-and-docs-sit-apart.md) | The agent and docs sit apart from the destinations they are listed with | ISSUE | medium | low | `ccdd5120` |
 
-## testing (55)
+## testing (56)
 
-### issue (28)
+### issue (29)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -265,6 +264,7 @@ Do not edit them by hand; run the script.
 | [B779](testing/issue/B779-a-valid-token-on-a-helper.md) | A valid token on a helper route is told the journal is not theirs | ISSUE | low | low | — |
 | [B800](testing/issue/B800-neither-side-is-told-how-long.md) | Neither side is told how long an approval usually takes | ISSUE | low | low | — |
 | [B803](testing/issue/B803-a-stripe-purchase-records-no-payment.md) | A Stripe purchase records no payment method, because the branch that would can never be true | ISSUE | low | low | — |
+| [B836](testing/issue/B836-the-landing-corner-s-agent-chip.md) | The landing corner's Agent chip is too quiet to read as a button | ISSUE | low | low | — |
 
 ### big-feature (4)
 

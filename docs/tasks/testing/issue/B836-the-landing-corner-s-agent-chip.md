@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: landing, agent
 found: "2026-09-07T18:00:00Z"
+merged: "2026-09-07T16:08:46Z"
 ---
 
 # B836 — The landing corner's Agent chip is too quiet to read as a button
