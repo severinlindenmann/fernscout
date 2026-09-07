@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Coins } from "lucide-react";
+import { Check } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
 import { useMoney } from "./CurrencyProvider";
 
@@ -47,7 +47,6 @@ export default function CurrencySwitcher() {
         title={t("currency.label")}
         className="flex min-h-11 items-center gap-1 rounded-full border border-navy-200 bg-white px-2.5 text-xs font-bold text-navy-700 transition-colors hover:border-navy-500"
       >
-        <Coins className="h-3.5 w-3.5" aria-hidden />
         {currency}
       </button>
 
