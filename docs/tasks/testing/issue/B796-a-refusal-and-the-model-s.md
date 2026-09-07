@@ -7,8 +7,7 @@ complexity: low
 area: agent, a11y
 found: "2026-09-07T14:55:06Z"
 started: "2026-09-07T15:09:33Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T15:09:33Z"
+merged: "2026-09-07T15:23:13Z"
 ---
 
 # B796 — A refusal and the model's answer are both silent to a screen reader
