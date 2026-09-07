@@ -6,7 +6,7 @@ import AccountPageContent, {
 } from "./AccountPageContent";
 import { isOwner } from "@/lib/contacts/session";
 import { optedInCounts, listContacts } from "@/lib/contacts";
-import { balanceOf, creditsEnabled } from "@/lib/credits";
+import { balanceOf, creditsEnabled, spentByReason } from "@/lib/credits";
 import { EXTRA_STORAGE_CREDITS, formatChf, POSTCARD_CREDITS } from "@/lib/credits/pricing";
 import { isEnabled } from "@/lib/capabilities";
 import { listPayments } from "@/lib/payments";
@@ -91,6 +91,7 @@ export default async function AccountPage({ params }: PageProps<"/[user]/account
 
     payment = {
       balance,
+      spent: await spentByReason(user),
       transactions,
       emailRecipients: counts.email,
       whatsappRecipients: counts.whatsapp,

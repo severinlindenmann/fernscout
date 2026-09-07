@@ -1478,5 +1478,15 @@
   "pricing.tier": "{credits} für {price}",
   "pricing.tierOff": "{off} günstiger",
   "pricing.grant": "Ein neues Journal startet mit {credits}.",
-  "me.paymentFree": "gratis"
+  "me.paymentFree": "gratis",
+  "me.spentTitle": "Wofür Credits ausgegeben wurden",
+  "me.spentAiNote": "Texte und Transkriptionen entstehen mit einem KI-Modell — Fernscout schickt dem Modell, was du beschreibst, und verrechnet pro Anfrage ein Credit.",
+  "me.spentReason.helper": "Texte vom Agenten (KI)",
+  "me.spentReason.transcription": "Sprache zu Text (KI)",
+  "me.spentReason.day_mail": "E-Mails",
+  "me.spentReason.day_whatsapp": "WhatsApp-Nachrichten",
+  "me.spentReason.digest": "Zusammenfassungen",
+  "me.spentReason.postcard": "Gedruckte Postkarten",
+  "me.spentReason.photobook": "Gedruckte Fotobücher",
+  "me.spentReason.storage": "Zusätzlicher Speicher"
 }

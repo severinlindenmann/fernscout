@@ -5,7 +5,15 @@ import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
-import { auditOwner, balanceOf, grant, ledgerFor, refund, spend } from "@/lib/credits";
+import {
+  auditOwner,
+  balanceOf,
+  grant,
+  ledgerFor,
+  refund,
+  spend,
+  spentByReason,
+} from "@/lib/credits";
 import { dialectCases } from "./support/dialects";
 
 /**
@@ -132,6 +140,21 @@ describe.each(dialectCases().map((c) => c.name))("with credits switched on (%s)"
     const rows = await ledgerFor("alice");
     expect(rows.map((r) => r.delta).sort((a, b) => a - b)).toEqual([-8, 3, 10]);
     expect(rows.find((r) => r.delta === 3)?.reason).toBe("refund");
+  });
+
+  test("spends are grouped by reason, positive, biggest first, grants excluded", async () => {
+    await grant("alice", 100);
+    await spend("alice", 3, "helper", "alice/t/a");
+    await spend("alice", 2, "helper", "alice/t/b");
+    await spend("alice", 9, "day_whatsapp", "alice/t/c");
+    await refund("alice", 1, "alice/t/a");
+
+    // The refund is a credit back, not a spend, and neither is the grant.
+    expect(await spentByReason("alice")).toEqual([
+      { reason: "day_whatsapp", credits: 9 },
+      { reason: "helper", credits: 5 },
+    ]);
+    expect(await spentByReason("nobody")).toEqual([]);
   });
 
   test("the ledger always sums to the balance", async () => {

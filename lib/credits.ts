@@ -360,6 +360,34 @@ export async function countSpends(owner: string, reason: SpendReason): Promise<n
   return Number(row?.n ?? 0);
 }
 
+/**
+ * What this journal's credits have gone on, by reason — B860.
+ *
+ * Spends only (`delta < 0`), returned as positive counts, biggest first. The
+ * account page is the one reader of it, and the reason it exists is the two
+ * model-backed reasons: `helper` and `transcription` are the only spends a
+ * person cannot see the result of on a shelf or in a mailbox, so a balance
+ * that drops without them named reads as unexplained. Grouped in SQL for the
+ * reason `usageSince` is — a busy journal is thousands of rows and the answer
+ * is at most eight lines.
+ */
+export async function spentByReason(owner: string): Promise<{ reason: string; credits: number }[]> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return [];
+  const rows = await handle.db
+    .selectFrom("credit_ledger")
+    .select((eb) => ["reason", eb.fn.sum<number>("delta").as("total")])
+    .where("owner_id", "=", owner)
+    .where("delta", "<", 0)
+    .groupBy("reason")
+    .execute();
+  return rows
+    // `sum` is a bigint on Postgres and arrives as a string; negated here so
+    // the caller renders a spend as the positive number a person would say.
+    .map((row) => ({ reason: row.reason, credits: -Number(row.total ?? 0) }))
+    .sort((a, b) => b.credits - a.credits);
+}
+
 /** Newest first. For `npm run credits -- list`; there is no reader-facing
  * view of this table and adding one is a decision, not a convenience. */
 export async function ledgerFor(owner: string, limit = 50): Promise<LedgerRow[]> {
