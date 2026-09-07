@@ -61,3 +61,25 @@ belong to the same category as each other:
 
 Both changes are in `components/PageHeader.tsx`, which B822 (the back arrows)
 is editing. Do not start these in parallel.
+
+## Done
+
+Doku left the destination list for the chips row, icon-only with its label as
+the accessible name — it is joining a set rather than arriving as a new kind
+of control. Agent kept its row shape and gained `bg-navy-900` /
+`text-cream-50`, matching B836's landing chip so the agent looks the same
+wherever it appears.
+
+Measured at 390px on `/example`:
+
+| | helper on | helper off |
+| --- | --- | --- |
+| header | 65px | 65px |
+| chips row | 60 + 65 + 56 + **44** px, one row | same |
+| Agent | 332×48, `rgb(30, 41, 59)` | absent |
+| Doku chip | 44×44 | 44×44 |
+| `scrollWidth` | 390 | 390 |
+
+Yellow still means one thing in the panel: the active destination wears it and
+nothing else does. Agent is navy directly above it, which is the distinction —
+an action, not a place.
