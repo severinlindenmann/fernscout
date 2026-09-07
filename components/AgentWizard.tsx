@@ -12,6 +12,7 @@ import {
 } from "@/components/uploadQueue";
 import CurrencyProvider from "@/components/CurrencyProvider";
 import { useI18n } from "@/components/LocaleProvider";
+import Why from "@/components/Why";
 import RecordButton from "@/components/RecordButton";
 import { DayCard } from "@/components/StoryPager";
 import { creditsForPhotos } from "@/lib/helper/credits";
@@ -195,6 +196,24 @@ function todayIso(): string {
 }
 
 /**
+ * What the picker will let somebody choose — B791.
+ *
+ * `image/*,video/*` was the whole of it, and it refused every file B689's
+ * inbox screen was built to read: a bank statement, a Google Timeline export,
+ * a GPX track. The route behind it has filed those into the inbox since it was
+ * written (`kindForExtension`, then `storeInboxFile`) — the server could take
+ * them and the picker would not offer them, so a whole shipped feature was
+ * reachable only with an API token.
+ *
+ * The extensions mirror `INBOX_FILE_EXTENSIONS` in `lib/inbox.ts`, which is
+ * server-only (it reads the filesystem) and cannot be imported into a client
+ * component; `test/agent-picker-accepts.test.ts` is what keeps the two lists
+ * from drifting. A wrong guess is not a refusal either way — the route decides
+ * — but a missing extension is a file a phone will grey out.
+ */
+export const PICKER_ACCEPT = "image/*,video/*,.csv,.pdf,.json,.txt,.gpx,.md";
+
+/**
  * A file picker whose words are ours — B768.
  *
  * `<input type="file">` draws its own button and its own "No file chosen" in
@@ -228,7 +247,7 @@ function PhotoPicker({
         id={id}
         type="file"
         multiple
-        accept="image/*,video/*"
+        accept={PICKER_ACCEPT}
         disabled={disabled}
         onChange={(event) => onPick(event.target.files)}
         className="peer sr-only"
@@ -239,11 +258,15 @@ function PhotoPicker({
         // moves a person on from it, and there is only ever one — B767.
         className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-navy-300 bg-cream-100 px-5 text-base font-semibold text-navy-800 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-500 peer-disabled:opacity-50"
       >
-        {t("agent.choosePhotos")}
+        {t("agent.chooseFiles")}
       </label>
       <p className="mt-2 text-sm text-navy-700">
         {count === 0 ? t("agent.noneChosen") : tn("agent.chosenCount", count, { count: String(count) })}
       </p>
+      {/* What may be dropped here, since it is no longer only photographs —
+          B791. The route sorts them; this stops the screen lying about what
+          is welcome. */}
+      <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.pickAnyFile")}</p>
     </div>
   );
 }
@@ -266,7 +289,36 @@ export default function AgentWizard({
 
   const [draft, setDraft] = useState<WizardDraft | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
-  const [step, setStep] = useState<WizardStep>("trip");
+
+  /**
+   * The ordinary day, unasked — B780.
+   *
+   * Nine taps was the count on the live site for one ordinary day, and the
+   * person this was built for gives up around three. The steps were not wrong;
+   * what was wrong is that the common case paid for all of them. Most days
+   * are: today, the trip that is already running, and the words — and the
+   * first two of those are facts the software already holds. **The express
+   * path skips only questions it can already answer**, which is why the test
+   * for it is arithmetic: today falls inside exactly one trip, and nothing is
+   * half-written and waiting to be resumed. Anything else — two trips
+   * overlapping, no trip running, a draft to pick up — and the long path is
+   * what opens, unchanged.
+   *
+   * What it does not skip: the preview, and the confirmation before
+   * publishing. Those are not questions the software can answer.
+   *
+   * Read once, at mount, rather than on every render: `date` below is
+   * initialised the same way and for the same reason.
+   */
+  const [express] = useState(
+    () => drafts.length === 0 && trips.filter((t) => todayIso() >= t.start && todayIso() <= t.end).length === 1,
+  );
+  /** Set the moment somebody takes the long way round from the express screen
+   *  — from then on this session is the ordinary six steps. */
+  const [long, setLong] = useState(false);
+  const quick = express && !long;
+
+  const [step, setStep] = useState<WizardStep>(express ? "words" : "trip");
 
   const [files, setFiles] = useState<File[]>([]);
   const [facts, setFacts] = useState<ExifFacts | null>(null);
@@ -277,7 +329,15 @@ export default function AgentWizard({
   const [date, setDate] = useState<string>(todayIso());
   const [trip, setTrip] = useState<string>(tripOn(trips, todayIso()) ?? trips[0]?.id ?? "");
 
-  const [title, setTitle] = useState("");
+  /** On the express path the title starts as the weekday — B780. It is the
+   *  same string `suggestion` below already offers for a day with no place
+   *  known yet, and it is measured rather than invented: it is the day being
+   *  written up. Prefilled rather than proposed because an empty required
+   *  field between a person and their own words is the tap this ticket is
+   *  about; it is an ordinary editable box and anybody may overwrite it. */
+  const [title, setTitle] = useState(() =>
+    express ? weekdayNames(locale)[new Date(`${todayIso()}T00:00:00Z`).getUTCDay()] : "",
+  );
   const [prose, setProse] = useState("");
 
   const [busy, setBusy] = useState(false);
@@ -456,46 +516,70 @@ export default function AgentWizard({
     })();
   }, [username]);
 
+  /**
+   * The day on disk, made if it is not there yet.
+   *
+   * The long path creates it on the trip-and-date screen, which is where the
+   * two facts become known. The express path (B780) knows them at mount and
+   * asks nothing, so the day is created by the first thing a person actually
+   * does — saving words, or picking photographs — rather than by their arrival
+   * on the page. That matters: opening `/agent/<user>` and walking away must
+   * not leave an empty draft behind.
+   *
+   * `on` is what the photographs said about themselves, when they said
+   * something. It is passed rather than read from state because `chooseDate`
+   * has only just been called and this closure still holds the old date.
+   */
+  const ensureDraft = useCallback(
+    async (on?: { date: string; trip: string }): Promise<WizardDraft | null> => {
+      if (draft) return draft;
+      const onTrip = on?.trip ?? trip;
+      const body = await send(base, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          trip: onTrip,
+          date: on?.date ?? date,
+          time: facts?.from,
+          lat: facts?.lat,
+          lng: facts?.lng,
+          answers,
+        }),
+      });
+      if (!body) return null;
+      return await refresh(onTrip, String(body.slug));
+    },
+    [answers, base, date, draft, facts, refresh, send, trip],
+  );
+
   const create = useCallback(async () => {
     setBusy(true);
-    const body = await send(base, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        trip,
-        date,
-        time: facts?.from,
-        lat: facts?.lat,
-        lng: facts?.lng,
-        answers,
-      }),
-    });
-    if (!body) {
+    const made = await ensureDraft();
+    setBusy(false);
+    if (!made) return;
+    if (files.length > 0) await startUploads(made.trip, made.slug, files);
+    else setStep("photos");
+  }, [ensureDraft, files, startUploads]);
+
+  const save = useCallback(async () => {
+    setBusy(true);
+    // On the express path this is where the day is first written down.
+    const day = await ensureDraft();
+    if (!day) {
       setBusy(false);
       return;
     }
-    const slug = String(body.slug);
-    const made = await refresh(trip, slug);
-    setBusy(false);
-    if (!made) return;
-    if (files.length > 0) await startUploads(trip, slug, files);
-    else setStep("photos");
-  }, [answers, base, date, facts, files, refresh, send, startUploads, trip]);
-
-  const save = useCallback(async () => {
-    if (!draft) return;
-    setBusy(true);
     const body = await send(base, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ trip: draft.trip, slug: draft.slug, title, content: prose }),
+      body: JSON.stringify({ trip: day.trip, slug: day.slug, title, content: prose }),
     });
     setBusy(false);
     if (!body) return;
     setDraft(body.draft as WizardDraft);
     setPreview((body.preview as Preview | null) ?? null);
     setStep("preview");
-  }, [base, draft, prose, send, title]);
+  }, [base, ensureDraft, prose, send, title]);
 
   const answer = useCallback(
     async (field: Track, said: "none" | "unknown") => {
@@ -525,29 +609,35 @@ export default function AgentWizard({
    * prose is always read before it lands.
    */
   const writeUp = useCallback(async () => {
-    if (!draft) return;
     setBusy(true);
+    // The express path reaches this button before the day exists (B780), so
+    // the day is written down first rather than the tap doing nothing.
+    const day = await ensureDraft();
+    if (!day) {
+      setBusy(false);
+      return;
+    }
     const body = await send(`${base}/write-day`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        trip: draft.trip,
-        date: draft.date,
+        trip: day.trip,
+        date: day.date,
         notes: prose,
         location: preview?.day.lead.location,
         country: preview?.day.lead.country,
         from: facts?.from,
         to: facts?.to,
-        photos: draft.photos,
+        photos: day.photos,
         // One key per set of notes, so a tap that times out and is tapped
         // again is answered rather than charged twice.
-        idempotency_key: `${draft.trip}/${draft.slug}/${prose.length}`,
+        idempotency_key: `${day.trip}/${day.slug}/${prose.length}`,
       }),
     });
     setBusy(false);
     if (!body) return;
     setSuggested(body.draft as Suggested);
-  }, [base, draft, facts, preview, prose, send]);
+  }, [base, ensureDraft, facts, preview, prose, send]);
 
   /** Consent, once per journal, before the first model call ever made for it. */
   const agree = useCallback(async () => {
@@ -661,11 +751,12 @@ export default function AgentWizard({
    *  of which are already on the day. The field is editable and starts empty of
    *  anything nobody measured. */
   const suggestion = useMemo(() => {
-    if (!draft) return "";
+    const on = draft?.date ?? date;
+    if (on === "") return "";
     const place = preview?.day.lead.location ?? "";
-    const weekday = weekdayNames(locale)[new Date(`${draft.date}T00:00:00Z`).getUTCDay()];
+    const weekday = weekdayNames(locale)[new Date(`${on}T00:00:00Z`).getUTCDay()];
     return place ? `${place}, ${weekday}` : weekday;
-  }, [draft, locale, preview]);
+  }, [date, draft, locale, preview]);
 
   const openDraft = useCallback(
     async (unfinished: WizardDraft) => {
@@ -690,7 +781,7 @@ export default function AgentWizard({
    * right thing is not helped by an arrow. It is absent rather than disabled
    * on the first screen and on the published day, which is an ending.
    */
-  const back = draft && !publishedUrl && !asking ? backFrom(step) : null;
+  const back = draft && !publishedUrl && !asking && !(quick && step === "words") ? backFrom(step) : null;
 
   /** Back to the trip and the date is the one that lets go of the draft. The
    *  day already created stays on disk — it is in the unfinished list above
@@ -699,6 +790,9 @@ export default function AgentWizard({
     if (to === "trip") {
       setDraft(null);
       setPreview(null);
+      // From here on this session is the long path: somebody who has asked to
+      // choose the trip is not helped by the screen deciding again for them.
+      setLong(true);
     }
     setStep(to);
   }
@@ -711,10 +805,18 @@ export default function AgentWizard({
 
       {/* Where you are, in one line. Six named steps at 390px is a wrapping
           row of chips nobody reads; the name of the step you are on and its
-          number is the whole of what a person needs. */}
-      <p className="mt-2 text-sm text-navy-600">
-        {t("agent.stepOf", { n: String(stepIndex + 1) })} · {t(STEP_LABEL[step])}
-      </p>
+          number is the whole of what a person needs.
+
+          Absent on the express path — B780. "Step 4 of 6" on a flow that is
+          three is not orientation, it is a person wondering what they missed;
+          the line below, which says which trip and which day this is going to,
+          is the honest answer to the same question. It comes back the moment
+          somebody takes the long way round. */}
+      {!quick && (
+        <p className="mt-2 text-sm text-navy-600">
+          {t("agent.stepOf", { n: String(stepIndex + 1) })} · {t(STEP_LABEL[step])}
+        </p>
+      )}
 
       {error && (
         <p className="mt-4 rounded-2xl border border-coral-600 bg-cream-100 p-4 text-sm leading-6 text-navy-800">
@@ -782,7 +884,7 @@ export default function AgentWizard({
       )}
 
       {/* ---------------------------------------------------------------- */}
-      {!draft && (
+      {!draft && step === "trip" && (
         <>
           {drafts.length > 0 && (
             <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-4 sm:p-5">
@@ -822,6 +924,9 @@ export default function AgentWizard({
                   {t("agent.pickPhotos")}
                 </h2>
                 <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.pickPhotosHint")}</p>
+                {/* B781 — the rest of what this paragraph promised, behind
+                    "why?" rather than in front of the picker. */}
+                <Why>{t("agent.pickPhotosWhy")}</Why>
                 <PhotoPicker
                   id="wizard-pick"
                   count={files.length}
@@ -917,12 +1022,53 @@ export default function AgentWizard({
       )}
 
       {/* ---------------------------------------------------------------- */}
-      {draft && step === "words" && (
+      {(draft || quick) && step === "words" && (
         <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-4 sm:p-5">
           <h2 className="font-display text-lg font-semibold text-navy-900">
             {t("agent.wordsTitle")}
           </h2>
           <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.wordsHint")}</p>
+
+          {/* B780 — the two questions the express path did not ask, answered
+              out loud, with the way to change either of them. Quiet, because
+              it is almost always right; present, because "almost" is not
+              "always" and a day written into the wrong trip is a person's
+              afternoon. */}
+          {quick && (
+            <p className="mt-3 text-sm leading-6 text-navy-700">
+              {t("agent.goingTo", {
+                trip: trips.find((option) => option.id === (draft?.trip ?? trip))?.title ?? "",
+                date: formatLongDate(draft?.date ?? date),
+              })}{" "}
+              <button
+                type="button"
+                onClick={() => goBack("trip")}
+                className="min-h-11 font-semibold text-navy-800 underline underline-offset-4"
+              >
+                {t("agent.change")}
+              </button>
+            </p>
+          )}
+
+          {/* Photographs, on the express path, are something you may add
+              rather than a step you must pass — B780. The same picker and the
+              same queue; it simply does not stand between anybody and the
+              words. */}
+          {quick && (
+            <PhotoPicker
+              id="wizard-quick-pick"
+              count={files.length}
+              disabled={busy}
+              onPick={async (list) => {
+                const chosen = Array.from(list ?? []);
+                const read = await pick(list);
+                const day = await ensureDraft(
+                  read?.date ? { date: read.date, trip: tripOn(trips, read.date) ?? trip } : undefined,
+                );
+                if (day) await startUploads(day.trip, day.slug, chosen);
+              }}
+            />
+          )}
 
           <label className="mt-4 block text-sm font-semibold text-navy-800" htmlFor="wizard-title">
             {t("agent.titleLabel")}
@@ -980,7 +1126,8 @@ export default function AgentWizard({
               {consenting ? (
                 <ConfirmPanel
                   label={t("agent.helperConsentLabel")}
-                  question={t("agent.helperConsent")}
+                  question={t("agent.helperConsentShort")}
+                  details={t("agent.helperConsent")}
                   confirmLabel={t("agent.helperConsentConfirm")}
                   busy={busy}
                   onConfirm={() => void agree()}
@@ -1061,12 +1208,13 @@ export default function AgentWizard({
 
           {/* B687 — vision, on demand, never on upload. Absent with no
               photographs on the day, and with the capability off. */}
-          {helper.enabled && draft.photos > 0 && (
+          {helper.enabled && draft && draft.photos > 0 && (
             <div className="mt-4 rounded-2xl border border-navy-200 bg-cream-50 p-4">
               {consentingPhotos ? (
                 <ConfirmPanel
                   label={t("agent.photoConsentLabel")}
-                  question={t("agent.photoConsent")}
+                  question={t("agent.photoConsentShort")}
+                  details={t("agent.photoConsent")}
                   confirmLabel={t("agent.photoConsentConfirm")}
                   busy={busy}
                   onConfirm={() => void agreePhotos()}
