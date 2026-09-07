@@ -26,6 +26,13 @@ import {
  * thumb that slides off ends the recording rather than leaving the microphone
  * running.
  *
+ * **Two interaction models on one control, and the second one is not a
+ * nicety** — B794. A keyboard fires `click` and never `pointerdown`, so for
+ * until B794 the one feature built for somebody who does not want to type was
+ * the one feature a keyboard user could not press at all. `onClick`
+ * toggles: press to start, press again to stop. See `toggle` for why the two
+ * do not fight each other.
+ *
  * **The language is chosen, never detected.** The select below is empty by
  * default, which means "whatever this journal is written in" — the server
  * decides that from the journal's own locale. It is remembered per journal so
@@ -103,18 +110,32 @@ export default function RecordButton({
   // the correct default anyway.
   const [language, setLanguage] = useState(() => remembered(username));
   const [error, setError] = useState("");
+  // What a screen reader is told, and the only thing about this button that is
+  // spoken while it runs — B794.
+  const [announced, setAnnounced] = useState("");
 
   const recorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
   const started = useRef(0);
+  // When a pointer last pressed this button, so the click that follows a
+  // press-and-hold is not read as a second, toggling press. See `toggle`.
+  const pressedAt = useRef(0);
 
   // The stopwatch, and the ceiling. A hold that reaches the cap stops itself
   // rather than being refused by the server after the fact.
+  //
+  // It ticks at 200ms so the cap is caught promptly, but only *stores* whole
+  // seconds — B794. The displayed figure was floored anyway, and the number
+  // actually charged is measured at `onstop`, so nothing is lost by it; what
+  // is gained is four re-renders a second that nobody could see. The elapsed
+  // line is not a live region either, for the same reason: a screen reader
+  // cannot speak a counter this fast, and would either flood or drop it. What
+  // it hears instead is `announced` below, once at each end of the recording.
   useEffect(() => {
     if (!recording) return;
     const timer = window.setInterval(() => {
       const elapsed = (Date.now() - started.current) / 1000;
-      setSeconds(elapsed);
+      setSeconds(Math.floor(elapsed));
       if (elapsed >= MAX_SPEECH_SECONDS) recorder.current?.stop();
     }, 200);
     return () => window.clearInterval(timer);
@@ -183,6 +204,7 @@ export default function RecordButton({
       // answer comes back.
       stream.getTracks().forEach((track) => track.stop());
       setRecording(false);
+      setAnnounced(t("agent.speechStopped"));
       const held = (Date.now() - started.current) / 1000;
       const blob = new Blob(chunks.current, { type: media.mimeType });
       chunks.current = [];
@@ -192,6 +214,7 @@ export default function RecordButton({
     started.current = Date.now();
     setSeconds(0);
     setRecording(true);
+    setAnnounced(t("agent.speechStarted"));
     media.start();
   }, [busy, recording, send, t]);
 
@@ -245,15 +268,46 @@ export default function RecordButton({
   /** Consent first, and only then does the microphone ever open. The press is
    *  also what says speaking has been chosen, which is what shows the select
    *  below — B767. */
+  function press() {
+    setSpeaking(true);
+    if (consented) void start();
+    else setConsenting(true);
+  }
+
+  /**
+   * The keyboard's way in — B794, and the whole reason this control was
+   * unreachable. Keyboard and screen-reader activation of a `<button>` fires
+   * `click` and never `pointerdown`, so a hold wired only to pointer events is
+   * not a hard interaction for somebody driving with a keyboard: it is no
+   * interaction at all. Press to start, press again to stop, which is what a
+   * native dictation button does and what the accessible name now says.
+   *
+   * A mouse or a thumb produces `pointerdown` → `pointerup` → `click`, so the
+   * trailing click would otherwise restart the recording the release just
+   * ended. The guard is the *time* of the last pointer press rather than a
+   * flag, because a flag set on `pointerdown` is not always cleared: a pointer
+   * that leaves the button ends the hold and never delivers a click, and the
+   * stale flag would then swallow the next keyboard press.
+   *
+   * ponytail: one second is comfortably longer than any pointerdown→click gap
+   * and far shorter than any real second press; a per-pointer-id ledger if
+   * that ever stops being true.
+   */
+  function toggle() {
+    if (Date.now() - pressedAt.current < 1000) return;
+    if (recording) stop();
+    else press();
+  }
+
   const hold = {
     onPointerDown: () => {
-      setSpeaking(true);
-      if (consented) void start();
-      else setConsenting(true);
+      pressedAt.current = Date.now();
+      press();
     },
     onPointerUp: stop,
     onPointerLeave: stop,
     onPointerCancel: stop,
+    onClick: toggle,
   };
 
   const heard = busy
@@ -304,6 +358,14 @@ export default function RecordButton({
     </p>
   );
 
+  /** The one thing spoken aloud about this button, and it changes twice per
+   *  recording rather than five times a second — B794. */
+  const spoken = (
+    <p role="status" className="sr-only">
+      {announced}
+    </p>
+  );
+
   // The icon in somebody else's box — no words on it, so no price on it
   // either, and nothing to read before the ask box's own line.
   if (compact) {
@@ -312,7 +374,7 @@ export default function RecordButton({
         <button
           type="button"
           disabled={disabled || busy}
-          aria-label={t("agent.speak")}
+          aria-label={t("agent.speechHow")}
           {...hold}
           className={`absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full border disabled:opacity-50 ${
             recording ? "border-coral-400 bg-cream-100 text-coral-600" : "border-navy-300 text-navy-700"
@@ -320,11 +382,8 @@ export default function RecordButton({
         >
           <Mic className="h-5 w-5" aria-hidden />
         </button>
-        {heard && (
-          <p role="status" className="mt-2 text-sm text-navy-700">
-            {heard}
-          </p>
-        )}
+        {heard && <p className="mt-2 text-sm text-navy-700">{heard}</p>}
+        {spoken}
         {chooseLanguage}
         {failed}
       </>
@@ -336,6 +395,10 @@ export default function RecordButton({
       <button
         type="button"
         disabled={disabled || busy}
+        // The visible text is the price and then the stopwatch; the accessible
+        // name is fixed and says how the control is worked — B794. A name that
+        // counted seconds would be re-announced on every tick.
+        aria-label={t("agent.speechHow")}
         {...hold}
         className={`min-h-11 w-full rounded-full border px-5 text-base font-semibold disabled:opacity-50 ${
           recording
@@ -348,6 +411,7 @@ export default function RecordButton({
         {heard ?? t("agent.speechHold", { minutes: String(MINUTES_PER_CREDIT) })}
       </button>
 
+      {spoken}
       {chooseLanguage}
       {failed}
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import {
@@ -769,6 +769,28 @@ export default function AgentWizard({
   const stepIndex = WIZARD_STEPS.indexOf(step);
 
   /**
+   * Focus follows the step — B795.
+   *
+   * Every advance here (`create`, `save`, `publish`, and going back) is a
+   * `setStep` that swaps the whole `<section>` for another. The button that
+   * was pressed stops existing, focus falls to `<body>`, and a screen reader
+   * says nothing at all — so the flow reads as a button that did nothing, six
+   * times over. Moving focus to the new screen's heading is what makes the
+   * transition audible, and it carries the step counter with it rather than
+   * needing a second live region competing for the same moment.
+   *
+   * One ref for all four screens, because exactly one of them is mounted at a
+   * time. Not on the first render: arriving at a page should leave focus at
+   * the top of the document, where the browser put it.
+   */
+  const heading = useRef<HTMLHeadingElement>(null);
+  const arrived = useRef(false);
+  useEffect(() => {
+    if (arrived.current) heading.current?.focus();
+    arrived.current = true;
+  }, [step]);
+
+  /**
    * A way back — B769.
    *
    * It costs nothing because there is nothing to unwind: `stepFor` derives the
@@ -818,8 +840,14 @@ export default function AgentWizard({
         </p>
       )}
 
+      {/* B796 — `role="alert"`, the same one `SignupWizard` has always had. A
+          bad trip, a full disk, a dead network: every one of them was silent
+          here. */}
       {error && (
-        <p className="mt-4 rounded-2xl border border-coral-600 bg-cream-100 p-4 text-sm leading-6 text-navy-800">
+        <p
+          role="alert"
+          className="mt-4 rounded-2xl border border-coral-600 bg-cream-100 p-4 text-sm leading-6 text-navy-800"
+        >
           {error}
         </p>
       )}
@@ -854,7 +882,7 @@ export default function AgentWizard({
 
       {missing.length > 0 && (
         <section className="mt-4 rounded-2xl border border-navy-200 bg-cream-100 p-4">
-          <p className="text-sm leading-6 text-navy-800">{t("agent.missingTitle")}</p>
+          <h2 className="text-sm font-semibold leading-6 text-navy-800">{t("agent.missingTitle")}</h2>
           <ul className="mt-3 space-y-3">
             {TRACKS.filter((field) => missing.includes(field)).map((field) => (
               <li key={field}>
@@ -920,7 +948,11 @@ export default function AgentWizard({
               <p className="text-base leading-7 text-navy-800">{t("agent.noTrips")}</p>
             ) : (
               <>
-                <h2 className="font-display text-lg font-semibold text-navy-900">
+                <h2
+                  ref={heading}
+                  tabIndex={-1}
+                  className="font-display text-lg font-semibold text-navy-900 focus:outline-none"
+                >
                   {t("agent.pickPhotos")}
                 </h2>
                 <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.pickPhotosHint")}</p>
@@ -992,7 +1024,11 @@ export default function AgentWizard({
       {/* ---------------------------------------------------------------- */}
       {draft && step === "photos" && (
         <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-4 sm:p-5">
-          <h2 className="font-display text-lg font-semibold text-navy-900">
+          <h2
+            ref={heading}
+            tabIndex={-1}
+            className="font-display text-lg font-semibold text-navy-900 focus:outline-none"
+          >
             {t("agent.uploadTitle")}
           </h2>
           <p className="mt-1 text-sm leading-6 text-navy-700">
@@ -1024,7 +1060,11 @@ export default function AgentWizard({
       {/* ---------------------------------------------------------------- */}
       {(draft || quick) && step === "words" && (
         <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-4 sm:p-5">
-          <h2 className="font-display text-lg font-semibold text-navy-900">
+          <h2
+            ref={heading}
+            tabIndex={-1}
+            className="font-display text-lg font-semibold text-navy-900 focus:outline-none"
+          >
             {t("agent.wordsTitle")}
           </h2>
           <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.wordsHint")}</p>
@@ -1121,8 +1161,17 @@ export default function AgentWizard({
               spoken to. Absent when the capability is off, which is the whole
               of the ticket's "absent rather than broken": everything above
               this block still writes a day with no credits spent. */}
+          {/* B796 — a polite live region, and it is the container rather than
+              the answer, because a region that mounts together with its own
+              content is not announced at all. Present from the first render,
+              so what the model sends back is spoken when it arrives — the
+              moment it matters most, the person having waited and paid a
+              credit for it. The captions block below is the same. */}
           {helper.enabled && (
-            <div className="mt-4 rounded-2xl border border-navy-200 bg-cream-50 p-4">
+            <div
+              aria-live="polite"
+              className="mt-4 rounded-2xl border border-navy-200 bg-cream-50 p-4"
+            >
               {consenting ? (
                 <ConfirmPanel
                   label={t("agent.helperConsentLabel")}
@@ -1135,9 +1184,9 @@ export default function AgentWizard({
                 />
               ) : suggested ? (
                 <>
-                  <p className="text-sm font-semibold text-navy-900">
+                  <h3 className="text-sm font-semibold text-navy-900">
                     {t("agent.helperSuggestionTitle")}
-                  </p>
+                  </h3>
                   {suggested.title !== "" && (
                     <p className="mt-2 text-base font-semibold text-navy-900">{suggested.title}</p>
                   )}
@@ -1209,7 +1258,10 @@ export default function AgentWizard({
           {/* B687 — vision, on demand, never on upload. Absent with no
               photographs on the day, and with the capability off. */}
           {helper.enabled && draft && draft.photos > 0 && (
-            <div className="mt-4 rounded-2xl border border-navy-200 bg-cream-50 p-4">
+            <div
+              aria-live="polite"
+              className="mt-4 rounded-2xl border border-navy-200 bg-cream-50 p-4"
+            >
               {consentingPhotos ? (
                 <ConfirmPanel
                   label={t("agent.photoConsentLabel")}
@@ -1222,7 +1274,7 @@ export default function AgentWizard({
                 />
               ) : captions && captions.length > 0 ? (
                 <>
-                  <p className="text-sm font-semibold text-navy-900">{t("agent.captionsTitle")}</p>
+                  <h3 className="text-sm font-semibold text-navy-900">{t("agent.captionsTitle")}</h3>
                   <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.captionsHint")}</p>
                   <ul className="mt-3 space-y-3">
                     {captions.map((row) => (
@@ -1296,7 +1348,11 @@ export default function AgentWizard({
       {/* ---------------------------------------------------------------- */}
       {draft && (step === "preview" || step === "publish") && (
         <section className="mt-6">
-          <h2 className="font-display text-lg font-semibold text-navy-900">
+          <h2
+            ref={heading}
+            tabIndex={-1}
+            className="font-display text-lg font-semibold text-navy-900 focus:outline-none"
+          >
             {t("agent.previewTitle")}
           </h2>
           <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.previewHint")}</p>
