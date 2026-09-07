@@ -206,13 +206,17 @@ export default function PageHeader({
               <Link
                 href="/docs"
                 onClick={() => setMenuOpen(false)}
-                title={t("nav.docs")}
-                aria-label={t("nav.docs")}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-navy-200
-                           bg-white text-navy-700 transition-colors hover:border-navy-500
-                           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                className="flex min-h-11 items-center gap-1 rounded-full border border-navy-200 bg-white
+                           px-3 text-sm font-semibold text-navy-700 transition-colors
+                           hover:border-navy-500 focus-visible:outline-2 focus-visible:outline-offset-2
+                           focus-visible:outline-blue-500"
               >
-                <FileText className="h-4 w-4" aria-hidden strokeWidth={2.2} />
+                <FileText
+                  className="h-4 w-4 shrink-0"
+                  aria-hidden
+                  strokeWidth={2.2}
+                />
+                {t("nav.docs")}
               </Link>
             </div>
             <div className="mt-3">

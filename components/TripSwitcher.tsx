@@ -10,7 +10,10 @@ import { useTrip } from "./TripProvider";
 import { useTripList } from "./TripListProvider";
 import type { TripStatus } from "@/lib/types";
 
-const GROUPS: { status: TripStatus; key: "trips.now" | "trips.upcoming" | "trips.past" }[] = [
+const GROUPS: {
+  status: TripStatus;
+  key: "trips.now" | "trips.upcoming" | "trips.past";
+}[] = [
   // Newest first, all the way down: what has not happened yet, then what is
   // happening, then the past in descending years. "Now" above "planned" was
   // the one step that read backwards.
@@ -48,7 +51,8 @@ export default function TripSwitcher() {
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
@@ -76,20 +80,20 @@ export default function TripSwitcher() {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t("trips.switch")}
-        className="flex min-h-11 items-center gap-1 rounded-full border border-navy-200 bg-white px-3 text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500 sm:w-[14rem] sm:justify-between"
+        className="flex min-h-11 items-center gap-1 rounded-full border border-navy-200 bg-white px-3 text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500 max-w-[13rem] sm:w-[14rem] sm:max-w-none sm:justify-between"
       >
-        {/* The icon carries the meaning when the label cannot.
+        {/* The label is shown at every width — B868.
 
-            Below sm there isn't room for both this label and the nav's icons
-            without the header itself overflowing (max-w-[10rem] still forced
-            it wide enough to push the total past 375px), so the label is
-            hidden there — which left a bare chevron next to two other round
-            buttons, saying nothing about what it opens. A chevron is a
-            direction, not a subject. The `aria-label` had it right all along;
-            this gives a sighted reader the same sentence. */}
+            It used to be `sm:inline` only, because below sm this chip shared
+            the header row with the seven nav icons and the label pushed the
+            total past 375px. B770 moved that nav into the menu panel, and
+            these chips went with it: below sm they now sit in a 332px column
+            with room to spare, so the constraint that hid the label is gone.
+            What it left behind was a suitcase and a chevron — a direction and
+            no subject — which is exactly how it read. */}
         <span className="flex min-w-0 items-center gap-1">
           <Luggage className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-          <span className="hidden truncate sm:inline">{label}</span>
+          <span className="truncate">{label}</span>
         </span>
         {/* A fixed width (B286) rather than a cap: the button's width used to
             follow the active trip's own title, so two trips with different
@@ -115,7 +119,10 @@ export default function TripSwitcher() {
             const group = trips.filter((tr) => tr.status === status);
             if (group.length === 0) return null;
             return (
-              <div key={status} className="border-b border-navy-200 last:border-b-0">
+              <div
+                key={status}
+                className="border-b border-navy-200 last:border-b-0"
+              >
                 <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wide text-navy-600">
                   {t(key)}
                 </p>
@@ -138,7 +145,9 @@ export default function TripSwitcher() {
                           : "text-navy-700 hover:bg-cream-100"
                       }`}
                     >
-                      <span className="block truncate">{localizedTrip(tr).title}</span>
+                      <span className="block truncate">
+                        {localizedTrip(tr).title}
+                      </span>
                       <span className="block text-[11px] text-navy-600">
                         {tr.start.slice(0, 4)}
                         {tr.end.slice(0, 4) !== tr.start.slice(0, 4)
