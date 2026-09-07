@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (98)
+## backlog (88)
 
 ### security (3)
 
@@ -59,7 +59,7 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B593](backlog/security/B593-a-fulfilment-instance-s-job-intake.md) | A fulfilment instance's job intake has no admission or rate control | SECURITY | medium | medium |
 
-### issue (15)
+### issue (7)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -67,17 +67,9 @@ Do not edit them by hand; run the script.
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
-| [B734](backlog/issue/B734-photo-captions-are-written-in-english.md) | Photo captions are written in English whatever language the journal is in | ISSUE | medium | low |
-| [B743](backlog/issue/B743-one-provider-name-is-recorded-for.md) | One provider name is recorded for three different consents | ISSUE | medium | low |
-| [B745](backlog/issue/B745-a-journal-written-in-de-ch.md) | A journal written in de-CH gets English chrome | ISSUE | medium | low |
 | [B709](backlog/issue/B709-every-day-must-answer-the-money.md) | Every day must answer the money question before it is written | ISSUE | low | medium |
-| [B721](backlog/issue/B721-the-upload-progress-line-does-not.md) | The upload progress line does not say which day it belongs to | ISSUE | low | low |
-| [B722](backlog/issue/B722-nobody-has-checked-whether-the-consent.md) | Nobody has checked whether the consent record is in a journal export | ISSUE | low | low |
-| [B729](backlog/issue/B729-a-new-intent-slot-can-render.md) | A new intent slot can render its own translation key | ISSUE | low | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
-| [B735](backlog/issue/B735-withdrawing-photo-consent-also-withdraws-consent.md) | Withdrawing photo consent also withdraws consent for words | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
-| [B744](backlog/issue/B744-the-speech-consent-panel-names-deepgram.md) | The speech consent panel names Deepgram even on a dry-run instance | ISSUE | low | low |
 
 ### big-feature (14)
 
@@ -148,13 +140,11 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### docs-and-skills (3)
+### docs-and-skills (1)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B747](backlog/docs-and-skills/B747-the-legal-page-does-not-name.md) | The legal page does not name Anthropic or Deepgram | DOCS | high | low |
 | [B211](backlog/docs-and-skills/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | DOCS | low | low |
-| [B725](backlog/docs-and-skills/B725-the-inbox-doc-says-media-is.md) | The inbox doc says media is the only kind a media route files | DOCS | low | low |
 
 ### superseded (28)
 
@@ -193,22 +183,32 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (13)
+## in-development (23)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B645](in-development/B645-nothing-runs-a-photograph-through-the.md) | Nothing runs a photograph through the helper's build.mjs, so nine were published sideways | ISSUE | high | medium | `97b44327` |
 | [B647](in-development/B647-publish-mjs-matches-a-day-by.md) | publish.mjs matches a day by date alone and overwrote one day with another day's content | ISSUE | high | low | `97b44327` |
 | [B648](in-development/B648-publish-dry-run-cannot-show-a.md) | publish --dry-run cannot show a plan for a trip the instance does not have yet, and --offline still hits the network | ISSUE | high | low | `97b44327` |
+| [B747](in-development/B747-the-legal-page-does-not-name.md) | The legal page does not name Anthropic or Deepgram | DOCS | high | low | `97b44327` |
 | [B108](in-development/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium | `6b9bf0a6` |
 | [B646](in-development/B646-the-helper-s-review-page-previews.md) | The helper's review page previews the originals, not the pictures that get published | ISSUE | medium | medium | `97b44327` |
 | [B649](in-development/B649-a-day-s-time-is-the.md) | A day's time: is the first file's timestamp, screenshots included, so a day went out stamped 06:44 | ISSUE | medium | low | `97b44327` |
 | [B650](in-development/B650-a-day-s-location-and-its.md) | A day's location: and its lat/lng can name towns 200 km apart and nothing says so | ISSUE | medium | low | `97b44327` |
+| [B734](in-development/B734-photo-captions-are-written-in-english.md) | Photo captions are written in English whatever language the journal is in | ISSUE | medium | low | `97b44327` |
+| [B743](in-development/B743-one-provider-name-is-recorded-for.md) | One provider name is recorded for three different consents | ISSUE | medium | low | `97b44327` |
+| [B745](in-development/B745-a-journal-written-in-de-ch.md) | A journal written in de-CH gets English chrome | ISSUE | medium | low | `97b44327` |
 | [B235](in-development/B235-seventy-one-exports-and-fifty-nine.md) | Seventy-one exports and fifty-nine exported types are used only inside their own file | CHORE | low | medium | `97b44327` |
 | [B688](in-development/B688-a-new-visitor-cannot-make-a.md) | A new visitor cannot make a journal inside the helper | FEATURE | low | medium | `fdfcf5f2` |
 | [B717](in-development/B717-readme-md-still-says-there-is.md) | README.md still says there is no editing interface and there will not be one | DOCS | low | low | `ccdd5120` |
+| [B721](in-development/B721-the-upload-progress-line-does-not.md) | The upload progress line does not say which day it belongs to | ISSUE | low | low | `97b44327` |
+| [B722](in-development/B722-nobody-has-checked-whether-the-consent.md) | Nobody has checked whether the consent record is in a journal export | ISSUE | low | low | `97b44327` |
+| [B725](in-development/B725-the-inbox-doc-says-media-is.md) | The inbox doc says media is the only kind a media route files | DOCS | low | low | `97b44327` |
 | [B726](in-development/B726-the-landing-page-tells-a-self.md) | The landing page tells a self-hoster with the helper off that the agent may be this instance's own | ISSUE | low | low | `ccdd5120` |
+| [B729](in-development/B729-a-new-intent-slot-can-render.md) | A new intent slot can render its own translation key | ISSUE | low | low | `97b44327` |
+| [B735](in-development/B735-withdrawing-photo-consent-also-withdraws-consent.md) | Withdrawing photo consent also withdraws consent for words | ISSUE | low | low | `97b44327` |
 | [B742](in-development/B742-the-api-docs-page-scrolls-sideways.md) | The API docs page scrolls sideways on a phone | ISSUE | low | low | `ccdd5120` |
+| [B744](in-development/B744-the-speech-consent-panel-names-deepgram.md) | The speech consent panel names Deepgram even on a dry-run instance | ISSUE | low | low | `97b44327` |
 | [B748](in-development/B748-the-disclosure-that-hides-the-agent.md) | The disclosure that hides the agent instructions looks like a link, so nothing says it opens | ISSUE | low | low | `ccdd5120` |
 
 ## testing (439)

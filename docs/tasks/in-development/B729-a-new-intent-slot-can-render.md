@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: agent, i18n
 found: "2026-09-07T12:16:38Z"
+started: "2026-09-07T12:55:01Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T12:55:01Z"
 ---
 
 # B729 — A new intent slot can render its own translation key

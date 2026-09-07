@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: i18n, locales
 found: "2026-09-07T12:46:57Z"
+started: "2026-09-07T12:55:01Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T12:55:01Z"
 ---
 
 # B745 — A journal written in de-CH gets English chrome
