@@ -183,7 +183,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (24)
+## in-development (23)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -198,7 +198,6 @@ _Nothing here._
 | [B734](in-development/B734-photo-captions-are-written-in-english.md) | Photo captions are written in English whatever language the journal is in | ISSUE | medium | low | `97b44327` |
 | [B743](in-development/B743-one-provider-name-is-recorded-for.md) | One provider name is recorded for three different consents | ISSUE | medium | low | `97b44327` |
 | [B745](in-development/B745-a-journal-written-in-de-ch.md) | A journal written in de-CH gets English chrome | ISSUE | medium | low | `97b44327` |
-| [B235](in-development/B235-seventy-one-exports-and-fifty-nine.md) | Seventy-one exports and fifty-nine exported types are used only inside their own file | CHORE | low | medium | `97b44327` |
 | [B688](in-development/B688-a-new-visitor-cannot-make-a.md) | A new visitor cannot make a journal inside the helper | FEATURE | low | medium | `fdfcf5f2` |
 | [B717](in-development/B717-readme-md-still-says-there-is.md) | README.md still says there is no editing interface and there will not be one | DOCS | low | low | `ccdd5120` |
 | [B721](in-development/B721-the-upload-progress-line-does-not.md) | The upload progress line does not say which day it belongs to | ISSUE | low | low | `97b44327` |
@@ -212,7 +211,7 @@ _Nothing here._
 | [B744](in-development/B744-the-speech-consent-panel-names-deepgram.md) | The speech consent panel names Deepgram even on a dry-run instance | ISSUE | low | low | `97b44327` |
 | [B748](in-development/B748-the-disclosure-that-hides-the-agent.md) | The disclosure that hides the agent instructions looks like a link, so nothing says it opens | ISSUE | low | low | `ccdd5120` |
 
-## testing (439)
+## testing (440)
 
 ### security (9)
 
@@ -587,7 +586,7 @@ _Nothing here._
 | [B686](testing/small-feature/B686-speech-cannot-be-turned-into-text.md) | Speech cannot be turned into text | FEATURE | low | medium | — |
 | [B687](testing/small-feature/B687-photographs-cannot-describe-themselves.md) | Photographs cannot describe themselves | FEATURE | low | medium | — |
 
-### chore (36)
+### chore (37)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -616,6 +615,7 @@ _Nothing here._
 | [B202](testing/chore/B202-a-postcard-recipient-s-ss-becomes.md) | A postcard recipient's ß becomes a hyphen, so a German surname loses a letter | CHORE | low | low | — |
 | [B216](testing/chore/B216-nothing-helps-an-author-find-the.md) | Nothing helps an author find the rate to freeze into a trip | CHORE | low | low | — |
 | [B226](testing/chore/B226-two-new-deploy-time-checks-run.md) | Two new deploy-time checks run only where a binary happens to exist, and CI may have neither | CHORE | low | low | — |
+| [B235](testing/chore/B235-seventy-one-exports-and-fifty-nine.md) | Seventy-one exports and fifty-nine exported types are used only inside their own file | CHORE | low | medium | — |
 | [B24](testing/chore/B24-nothing-notices-when-a-file-stops.md) | Nothing notices when a file stops being used | CHORE | low | low | — |
 | [B291](testing/chore/B291-the-day-markdown-twins-are-the.md) | The day markdown twins are the one agent-facing route the request log does not cover | CHORE | low | low | — |
 | [B314](testing/chore/B314-a-comment-beside-the-trip-route.md) | A comment beside the trip route still says a new trip defaults to private | CHORE | low | low | — |
