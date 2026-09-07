@@ -19,6 +19,7 @@ import {
   NOT_WRITABLE,
   PHOTOS_SECOND_CALL,
   PUBLISH_OFFER,
+  SECOND_LANGUAGE_COMMITMENT,
   TRANSLATIONS_REQUIRED,
   TITLE_COLLISION_EXAMPLE,
   PRIVATE_SHUTS_OUT_GUESTS,
@@ -734,6 +735,16 @@ describe("what the guide has to tell an agent before it starts", () => {
     // or an agent satisfies the refusal by translating somebody's prose.
     expect(flat(agentGuide())).toContain(flat(TRANSLATIONS_REQUIRED));
     expect(flat(instanceDocumentation())).toContain(flat(TRANSLATIONS_REQUIRED));
+  });
+
+  test("the guide and the machine contract both say what a second locale costs", () => {
+    // B855. Three doors say this now — the signup form, /agent.md and the API —
+    // and all three read one constant. A fourth hand-written copy is how they
+    // come to disagree. The route's own half is asserted in
+    // test/journal-signup.test.ts, which can actually call it.
+    expect(flat(agentGuide())).toContain(flat(SECOND_LANGUAGE_COMMITMENT));
+    const journals = JSON.stringify(openApiDocument().paths["/api/v1/journals"]);
+    expect(flat(journals)).toContain(flat(SECOND_LANGUAGE_COMMITMENT.replace(/[`*]/g, "")));
   });
 
   test("the translations sentence forbids translating unasked but permits it when asked", () => {

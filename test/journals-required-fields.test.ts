@@ -8,7 +8,7 @@ import { clearUserCache, getUser, listedUsernames } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { NO_JOURNAL, issueCode, verifyCode } from "@/lib/auth";
 import { instanceDocumentation } from "@/lib/api/documentation";
-import { firstQuestions } from "@/lib/api/agentCopy";
+import { SECOND_LANGUAGE_COMMITMENT, firstQuestions } from "@/lib/api/agentCopy";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
 
 /**
@@ -169,6 +169,46 @@ describe("defaultLocale is required", () => {
     const body = (await response.json()) as { message?: string };
     expect(body.message).toContain("German");
     expect(getUser("silent-e")).toBeNull();
+  });
+});
+
+/**
+ * B855 — accepting the choice is where the cost has to be said.
+ *
+ * A tester picked English and German because German "sounded like a normal
+ * extra option, not a leap", and met the bill at his first day, refused for
+ * want of a German translation.
+ */
+describe("a second locale says what it commits the owner to", () => {
+  test("the 201 carries it when there is more than one", async () => {
+    const token = await signupToken("two-languages@example.test");
+    const response = await create(token, {
+      ...BASE,
+      username: "zweisprachig",
+      visibility: "public",
+      defaultLocale: "de",
+      locales: ["de", "en"],
+    });
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as { localesNote?: string };
+    // The same constant the guide and the OpenAPI document read — one sentence
+    // in lib/api/agentCopy.ts, never a third hand-written copy.
+    expect(body.localesNote).toBe(SECOND_LANGUAGE_COMMITMENT);
+    expect(body.localesNote).toMatch(/every day twice/i);
+    expect(body.localesNote).toMatch(/refused/i);
+  });
+
+  test("a one-language journal is told nothing, because it owes nothing", async () => {
+    const token = await signupToken("one-language@example.test");
+    const response = await create(token, {
+      ...BASE,
+      username: "einsprachig",
+      visibility: "public",
+      defaultLocale: "en",
+      locales: ["en"],
+    });
+    expect(response.status).toBe(201);
+    expect((await response.json()).localesNote).toBeUndefined();
   });
 });
 

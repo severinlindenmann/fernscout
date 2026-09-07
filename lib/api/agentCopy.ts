@@ -153,6 +153,33 @@ export const TRANSLATIONS_REQUIRED =
   "`locales`, not the day: one `PATCH` to the journal's config, and nothing is owed.";
 
 /**
+ * What a second reader language actually costs — B855.
+ *
+ * B838 put this on the signup form, where a person ticking a checkbox reads it
+ * (`agent.readerLocalesHint` in `site/locales/*.json`, in all three languages,
+ * because a person sees it). `/agent.md` said it in its own words. The API said
+ * nothing at all, and accepted `["en", "de"]` in silence — so a tester picked a
+ * second language "because German sounded like a normal extra option, not a
+ * leap" and found out at his first day, which was refused until he produced a
+ * full German translation. On a phone at 2am that is a landmine, not a
+ * question.
+ *
+ * So the sentence lives here and the three agent-facing places read it: the
+ * `201` from `POST /api/v1/journals`, the guide, and the OpenAPI description of
+ * the field itself. Written to survive being dropped into all three, which is
+ * why it names the call rather than saying "this endpoint".
+ */
+export const SECOND_LANGUAGE_COMMITMENT =
+  "**More than one entry in `locales` is a promise to write every day twice.** Every day of " +
+  "every trip then has to exist in all of them, in the owner's own words: the day's own " +
+  "`title` and `content` are the `defaultLocale` version and `translations` holds the rest. " +
+  "A day missing one is refused — `POST .../days` answers `400` and names the language that " +
+  "is missing — so this is not a preference that shows up later, it is a bill due at the " +
+  "first day they write. One language is the honest answer for most people, and it can be " +
+  "widened afterwards with a `PATCH` to the journal's config. Say this to them **before** " +
+  "you send a second code, not after.";
+
+/**
  * What is not writable, said once so nobody has to discover it by guessing.
  *
  * B293. An agent asked to turn a trip's costs page off tried `PATCH` on the

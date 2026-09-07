@@ -471,12 +471,19 @@ export async function storeUploads(
       let source;
       try {
         source = await decodeSource(kept);
-      } catch {
+      } catch (err) {
+        // The reason travels — B869. A decoder that hands back the embedded
+        // thumbnail instead of the photograph is refused here rather than
+        // stored, and "could not be decoded" alone left the caller with
+        // nothing to act on: which file, and why, are both in that message.
         return abandon([
           {
             field: `${upload.filename}.format`,
             got: "something that could not be decoded as an image",
             expected: `a readable ${IMAGE_FORMATS.join(", ")} file`,
+            hint:
+              `Nothing was stored for this batch. ` +
+              String((err as Error).message ?? err).replace(/\s*\n\s*/g, " "),
           },
         ]);
       }

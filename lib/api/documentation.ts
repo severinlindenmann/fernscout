@@ -59,6 +59,7 @@ import {
   tripQuestions,
   wrap,
   type FirstQuestion,
+  SECOND_LANGUAGE_COMMITMENT,
 } from "./agentCopy";
 
 // The numbered/tabled rendering of a question script is the same shape for
@@ -844,6 +845,8 @@ no audience. It must include \`defaultLocale\`: a journal whose own language
 is not on offer to its own readers is refused rather than written that way
 (B277 — the field used to default silently, and one owner asked for three
 languages and was given one).
+
+${SECOND_LANGUAGE_COMMITMENT}
 
 The reply carries an **agent token for the journal it just made**, so you can
 go straight on to creating a trip — no second code. It also carries

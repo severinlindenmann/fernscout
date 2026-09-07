@@ -6,11 +6,16 @@ import { getDefaultUsername, listedUsernames } from "@/lib/users";
 import {
   LOCALE_LIST,
   PRIVATE_SHUTS_OUT_GUESTS,
+  SECOND_LANGUAGE_COMMITMENT,
   VISIBILITY_ENUM_NOTE,
   VISIBILITY_MEANING,
   VISIBILITY_NOT_A_LOCK,
 } from "@/lib/api/agentCopy";
 import { EDITABLE_DAY_FIELDS } from "@/lib/api/entries";
+
+/** Markdown emphasis is prose's, not a JSON `description`'s — the same trim
+ * `VISIBILITY_NOT_A_LOCK` gets a few lines down, done once. */
+const plain = (text: string) => text.replace(/[`*]/g, "");
 import {
   CREDIT_STEP,
   EXTRA_STORAGE_BYTES,
@@ -1602,7 +1607,10 @@ export function openApiDocument() {
                       description:
                         `Required — there is no default. Which languages a reader may switch ` +
                         `the journal into, as distinct from defaultLocale, the owner's own. ` +
-                        `Must include defaultLocale. Each entry must be one of ${LOCALE_LIST}.`,
+                        `Must include defaultLocale. Each entry must be one of ${LOCALE_LIST}. ` +
+                        // B855: the field that quietly commits the owner to writing
+                        // everything twice. Same sentence as the guide and the 201.
+                        plain(SECOND_LANGUAGE_COMMITMENT),
                     },
                     baseCurrency: {
                       type: "string",
@@ -1642,7 +1650,9 @@ export function openApiDocument() {
                 "owner's welcome mail carries a **second, standing** link to the same " +
                 "place — a different token with no expiry, not this one. `signInNote` " +
                 "carries the same instruction as one sentence, for pasting into a reply. " +
-                "Both are absent when this server has auth off.",
+                "Both are absent when this server has auth off. When `locales` has more than " +
+                "one entry the reply also carries `localesNote`: " +
+                plain(SECOND_LANGUAGE_COMMITMENT),
             },
             "400": {
               description:

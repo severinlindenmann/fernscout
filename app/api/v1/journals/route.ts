@@ -1,4 +1,4 @@
-import { LOCALE_LIST } from "@/lib/api/agentCopy";
+import { LOCALE_LIST, SECOND_LANGUAGE_COMMITMENT } from "@/lib/api/agentCopy";
 import { SESSION_SCOPE, NO_JOURNAL, issueRelayLink, openAgentSession, resolveSession, revokeSession, signInUrl } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { normalizeJournalVisibility } from "@/lib/config";
@@ -505,6 +505,17 @@ export async function POST(request: Request) {
           }
         : {}),
       documentation: `${serverSite().url}/${created.username}/documentation.txt`,
+      /**
+       * The bill for the choice this call just accepted — B855.
+       *
+       * A second language was accepted in silence, and the owner met it at
+       * their first day, refused for want of a German translation. The signup
+       * form has said this on screen since B838 and `/agent.md` says it too;
+       * saying it in the answer that accepts the choice is the third place,
+       * and all three read `SECOND_LANGUAGE_COMMITMENT` rather than repeating
+       * it. Absent for a one-language journal, which owes nothing.
+       */
+      ...(locales.length > 1 ? { localesNote: SECOND_LANGUAGE_COMMITMENT } : {}),
       visibility: created.visibility,
       token: token.token,
       expires: token.expiresAt,
