@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (121)
+## backlog (125)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 
-### issue (34)
+### issue (37)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -68,6 +68,7 @@ Do not edit them by hand; run the script.
 | [B855](backlog/issue/B855-choosing-a-second-language-commits-you.md) | Choosing a second language commits you to writing everything twice and the API never says so | ISSUE | high | low |
 | [B857](backlog/issue/B857-every-mail-this-server-sends-is.md) | Every mail this server sends is English whatever language the reader chose | ISSUE | high | medium |
 | [B869](backlog/issue/B869-a-photograph-from-an-iphone-is.md) | A photograph from an iPhone is replaced by a wrong picture and called a success | ISSUE | high | medium |
+| [B872](backlog/issue/B872-any-photograph-with-no-left-to.md) | Any photograph with no left-to-right contrast is silently dropped as a duplicate | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
@@ -96,6 +97,8 @@ Do not edit them by hand; run the script.
 | [B856](backlog/issue/B856-the-journal-visibility-answer-explains-listing.md) | The journal visibility answer explains listing but not what it decides for trips | ISSUE | low | low |
 | [B862](backlog/issue/B862-removing-a-photograph-is-one-step.md) | Removing a photograph is one step behind where you notice you want to | ISSUE | low | low |
 | [B863](backlog/issue/B863-the-upload-progress-line-calls-a.md) | The upload progress line calls a spreadsheet a photograph | ISSUE | low | low |
+| [B873](backlog/issue/B873-a-video-on-a-day-is.md) | A video on a day is dropped from the captions with no mention | ISSUE | low | low |
+| [B874](backlog/issue/B874-captions-read-like-an-inventory-of.md) | Captions read like an inventory of shapes rather than a caption | ISSUE | low | low |
 
 ### big-feature (13)
 
@@ -167,12 +170,13 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### docs-and-skills (2)
+### docs-and-skills (3)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B827](backlog/docs-and-skills/B827-the-imprint-s-data-residency-claim.md) | The imprint's data-residency claim does not mention Stripe | DOCS | high | low |
 | [B870](backlog/docs-and-skills/B870-the-api-never-reads-the-place.md) | The API never reads the place and time out of a photograph and only says so 1700 lines away | DOCS | medium | low |
+| [B871](backlog/docs-and-skills/B871-a-png-is-served-as-a.md) | A PNG is served as a JPEG and nothing says so | DOCS | low | low |
 
 ### superseded (31)
 
