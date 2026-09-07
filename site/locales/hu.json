@@ -600,7 +600,6 @@
   "me.storageCleanupConfirm": "Felszabadítasz {size}-ot? Ez törli a legenerált fényképkönyv-PDF-eket és képeslap-íveket. A fényképeid, napjaid és utazásaid érintetlenek maradnak, a kinyomtatott könyvek és feladott képeslapok megtartják a bejegyzésüket.",
   "me.storageCleanupFailed": "Ez nem sikerült. Semmi nem törlődött.",
   "me.storageCleanupStaged": "Töröljük az előkészített dokumentumokat is a bejövő mappából (PDF-ek, táblázatok és hasonlók)? Az előkészített fényképek mindig megmaradnak.",
-  "me.storageNothingToClean": "Nincs mit takarítani: nem foglal helyet legenerált fényképkönyv vagy képeslap-ív.",
   "me.storageNearlyFull": "Majdnem tele. Ha elfogy a hely, az új fényképeket elutasítjuk.",
   "me.storageTitle": "Tárhely",
   "me.storageUsed": "{used} / {limit} felhasználva",

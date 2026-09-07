@@ -1408,17 +1408,31 @@ export default function MePageContent({
 
                   <StorageBar rows={storage.rows} />
 
-                  <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-navy-200 pt-4">
-                    {storage.reclaimable.files > 0 && (
-                      <CleanupButton username={username} reclaimable={storage.reclaimable} />
-                    )}
-                    {storage.canBuy && <BuyStorageButton username={username} />}
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-navy-600">
-                    {storage.reclaimable.files > 0
-                      ? t("me.storageCleanupBody")
-                      : t("me.storageNothingToClean")}
-                  </p>
+                  {/*
+                    Nothing to say when there is nothing to do. The empty state
+                    used to be a sentence explaining that no photobooks or
+                    postcard sheets were taking space — which is a paragraph
+                    about a button that is not there, on a card whose one job
+                    is to be read at a glance. A journal with nothing to
+                    reclaim is the ordinary case, so the ordinary case is now
+                    silent and the rule stays only where it separates
+                    something.
+                  */}
+                  {(storage.reclaimable.files > 0 || storage.canBuy) && (
+                    <div className="mt-5 border-t border-navy-200 pt-4">
+                      <div className="flex flex-wrap items-center gap-3">
+                        {storage.reclaimable.files > 0 && (
+                          <CleanupButton username={username} reclaimable={storage.reclaimable} />
+                        )}
+                        {storage.canBuy && <BuyStorageButton username={username} />}
+                      </div>
+                      {storage.reclaimable.files > 0 && (
+                        <p className="mt-2 text-sm leading-6 text-navy-600">
+                          {t("me.storageCleanupBody")}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -693,7 +693,6 @@ export type TranslationKey =
   | "me.storageCleanupFailed"
   | "me.storageCleanupStaged"
   | "me.storageNearlyFull"
-  | "me.storageNothingToClean"
   | "me.storageTitle"
   | "me.storageUsed"
   | "me.strangerBody"

@@ -801,13 +801,35 @@ describe("the storage card", () => {
     expect(html).not.toContain("Add 5 GB");
   });
 
-  test("with nothing to reclaim, says so instead of offering a button", () => {
+  /** A paragraph about a button that is not there is noise on a card whose
+   * job is to be read at a glance, and a journal with nothing to reclaim is
+   * the ordinary case. So the ordinary case says nothing at all. */
+  test("with nothing to reclaim, says nothing rather than explaining itself", () => {
     const html = render({
       viewer: owner,
       storage: { ...storage, reclaimable: { human: "0 KB", files: 0, hasStagedFiles: false } },
     });
     expect(html).not.toContain("Free up");
-    expect(html).toContain("There is nothing to clean up");
+    expect(html).not.toContain("nothing to clean up");
+    // The rest of the card is untouched — this is about the empty state only.
+    expect(html).toContain("4.2 GB of 5.0 GB used");
+  });
+
+  /** With nothing to reclaim *and* nothing for sale there is no footer at
+   * all, rather than a rule under the legend separating nothing from
+   * nothing. */
+  test("drops the whole footer when there is neither a cleanup nor a purchase", () => {
+    const html = render({
+      viewer: owner,
+      storage: {
+        ...storage,
+        canBuy: false,
+        reclaimable: { human: "0 KB", files: 0, hasStagedFiles: false },
+      },
+    });
+    expect(html).not.toContain("Free up");
+    expect(html).not.toContain("Add 5 GB");
+    expect(html).toContain("The bus year");
   });
 
   test("warns past ninety per cent, and not below it", () => {
