@@ -46,6 +46,9 @@ const OPERATIONS = [
   "write_day",
   "describe_photos",
   "route_ask",
+  // B889 — one turn of the thread. Several per conversation, and a turn that
+  // calls a tool books twice: the loop re-sends everything it has.
+  "ask_thread",
   "transcribe",
   // B689 — one call per statement, whatever its length: the model returns a
   // column mapping and code applies it to every row.

@@ -8,6 +8,7 @@ import {
 } from "@/importers/costs/mapping";
 import { recordUsage, type Operation } from "../usage";
 import { intentList, REGISTRY } from "./intents";
+import { READ_TOOLS, runTool, toolList, type Turn } from "./thread";
 
 /**
  * The one place a model is spoken to — B684, and §5 of
@@ -506,5 +507,201 @@ export async function mapStatementColumns(sample: Table, owner?: string): Promis
       outgoingPositive: parsed.outgoingPositive === true,
     },
     notes: strings(parsed.notes),
+  };
+}
+
+/* -------------------------------------------------------------------------
+ * The thread — B889, round 1 of `docs/plans/2026-09-07-helper-as-an-agent.md`.
+ *
+ * The router above answers what somebody wrote a row for. This answers the
+ * rest: the conversation so far, a **tool list** instead of an intent list,
+ * and a few paragraphs of prose back in the person's own language.
+ *
+ * **It cannot change anything, and that is the round's whole point.** Every
+ * tool in `./thread.ts` reads; there is no write tool, no proposal and no
+ * credit spent, so this is the cheapest honest way to find out whether the
+ * direction is right. When somebody asks for something that would change the
+ * journal, the answer is a sentence naming the control that does it — the
+ * wizard, the tiles and the forms all still exist and all still work.
+ *
+ * **Removal language never gets here.** `refusalFor` in `./intents.ts` is
+ * matched in the route before any model is called, and a refused sentence is
+ * never written into the conversation either (`remember` in `./thread.ts`), so
+ * it cannot arrive on a later turn instead. That guard does not depend on this
+ * model's judgement and must not be moved behind it.
+ *
+ * ## What a turn costs
+ *
+ * Not measured against the API — this repository has no key, and an invented
+ * measurement would be worse than an arithmetic one. What is measured is the
+ * fixed part, which is what a next person needs in order to price it:
+ * `test/helper-thread.test.ts` counts the characters of the system prompt plus
+ * the generated tool schemas and divides by four, the usual English estimate,
+ * and fails if it grows past its ceiling. Today that prefix is ≈1,500 tokens.
+ *
+ * On top of it: the conversation (≤12 turns of a sentence or two, so a few
+ * hundred tokens), the tool results (`unfinished` and `list_trips` on a busy
+ * journal are the large ones, low hundreds), and the answer (≤400 tokens out).
+ * So **roughly 2,000–3,500 input and 100–400 output tokens per turn**, and a
+ * turn that calls a tool pays the input twice because the loop re-sends
+ * everything. At Haiku's $1/$5 per MTok that is about a third of a rappen to a
+ * rappen a turn — ten to thirty times a router turn, which is what the plan
+ * said it would be. It is booked to `ask_thread` in `lib/usage.ts`, so the
+ * real number is in the operator's own usage page rather than in this comment.
+ * ---------------------------------------------------------------------- */
+
+/** Where a turn stops, whatever the model is doing. Four is a read, a second
+ *  read it decided it needed, and an answer, with one spare. */
+const MAX_TOOL_ROUNDS = 4;
+
+/** The answer's ceiling. A paragraph or two: this is somebody's phone. */
+const THREAD_MAX_TOKENS = 700;
+
+/**
+ * The thread's system prompt. **This is the product**, like the three above it.
+ *
+ * The tool list is generated from `READ_TOOLS` for the same reason the
+ * router's menu is generated from the registry: a hand-typed list here would
+ * promise a capability nobody built.
+ *
+ * The paragraph about not writing is written as a *fact about this software*
+ * rather than as a restraint on the model, because it is one — there is no
+ * write tool in the list, so a model that decides to write anyway simply
+ * cannot. Saying so plainly is what makes it answer usefully instead of
+ * apologising.
+ */
+export function threadSystemPrompt(today: string): string {
+  return `You are the helper inside somebody's own travel journal, called Fernscout. You are talking to the person who owns it. They have said something to you, in their own words, in whatever language they speak. Today is ${today}.
+
+Answer in prose, in the language they used. Never translate anything of theirs into another language.
+
+Say what you looked at. If you read the trips, or the costs, or the storage, name that in your answer — one short clause is enough — so they can tell what your answer rests on.
+
+WHAT YOU CAN DO
+
+You can look things up. These are the tools:
+${toolList()}
+
+Call them when the answer needs one. Call more than one when it needs more than one. If a question is about the software rather than about their journal — how something works, what something is for — answer it from what is written below without calling anything.
+
+WHAT YOU CANNOT DO, AND WHAT TO SAY INSTEAD
+
+You cannot change this journal. You have no tool that writes, publishes, deletes, uploads or sends anything, so nothing you say can alter a single file. That is deliberate, not a limitation to apologise for. When they ask you to do one of those things, say plainly that you cannot do it here, and then name the control that does — briefly, in one or two sentences, so it reads as directions and not as a refusal:
+
+- Writing up a day, adding photographs to it, or correcting one already written: the day helper, which walks through the trip and date, the photographs, the words and a preview. It is the button on their own journal's page that offers to write a day.
+- Publishing a day: from that day's own preview, where they read it as their readers will see it and press once. It never happens from a sentence.
+- Making a new trip, changing its title, dates or who may read it: the trip form on their journal.
+- Costs: the costs page of the trip, or a bank statement imported there.
+- Printed postcards: proposed first, then looked at and pressed on their journal's postcards page. Nothing is printed until they press.
+- Deleting a day, a trip or the whole journal: not from here at all. Deleting a journal or a trip is asked for elsewhere and finishes in their email — the server sends a single-use link to a page with a button, and only that button deletes.
+- Inviting somebody to read, or letting a fellow traveller write: the invite links on their journal's contacts page.
+
+If they tell you something that happened — "I was in Lisbon", "we spent forty euros on lunch" — do not pretend to have written it down, because you have not. Say so in one sentence and point at where it goes. You may say what you understood, so they can carry it there.
+
+WHAT YOU MUST NEVER DO
+
+Never invent anything about their travels. No weather, no meal, no place, no person, no number that did not come from a tool or from what they told you. One invented memory presented to somebody's family as fact is not recoverable, and this journal is read by families. If you do not know, say you do not know.
+
+Never write about the weather at all, whatever they ask. This journal records weather from a measured archive at the coordinates a day already carries, and a sentence of yours would compete with a measurement.
+
+Never repeat back a location, an address or a coordinate as fact. You have no access to anybody's position history and must never claim to.
+
+Never make up a tool, a page or a button that is not named above.
+
+HOW TO WRITE
+
+Short. Plain sentences, no lists unless they asked for one, no closing line summing up what their travels mean. Two or three sentences answers most questions. They are on a phone.`;
+}
+
+/** What one turn of the thread produced. `looked` is the tools it actually
+ *  ran, in order — returned so a test can assert on it and a log can carry it,
+ *  and so the answer's claim about what it read is checkable. */
+export type ThreadAnswer = { answer: string; looked: string[] };
+
+function toolSchemas(): Anthropic.Tool[] {
+  return READ_TOOLS.map((tool) => ({
+    name: tool.name,
+    description: tool.describe,
+    input_schema: {
+      type: "object" as const,
+      properties: tool.properties,
+      required: [],
+      additionalProperties: false,
+    },
+  }));
+}
+
+/**
+ * One turn: the conversation so far, one new sentence, and a few tool calls.
+ *
+ * Throws only when the model itself fails — the route answers `502` and the
+ * person's own words are still in the box. A tool that fails is not a failure
+ * of the turn: `runTool` hands the model a value it can read, and the answer
+ * is a sentence about it.
+ */
+export async function answerInThread(
+  username: string,
+  said: string,
+  turns: Turn[],
+  today: string,
+): Promise<ThreadAnswer> {
+  const client = new Anthropic();
+  const messages: Anthropic.MessageParam[] = [
+    ...turns.map((turn) => ({ role: turn.role, content: turn.text })),
+    { role: "user" as const, content: said },
+  ];
+  const looked: string[] = [];
+
+  for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
+    const response = await client.messages.create({
+      model: HELPER_MODEL,
+      max_tokens: THREAD_MAX_TOKENS,
+      system: threadSystemPrompt(today),
+      tools: toolSchemas(),
+      messages,
+    });
+    await book(username, "ask_thread", response.usage);
+
+    const calls = response.content.filter(
+      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
+    );
+    const text = response.content
+      .map((block) => (block.type === "text" ? block.text : ""))
+      .join("")
+      .trim();
+
+    if (calls.length === 0) return { answer: text, looked };
+
+    messages.push({ role: "assistant", content: response.content });
+    const results: Anthropic.ToolResultBlockParam[] = [];
+    for (const call of calls) {
+      looked.push(call.name);
+      const { ok, result } = await runTool(username, call.name, call.input);
+      results.push({
+        type: "tool_result",
+        tool_use_id: call.id,
+        is_error: !ok,
+        content: JSON.stringify(result).slice(0, 20000),
+      });
+    }
+    messages.push({ role: "user", content: results });
+  }
+
+  // Four rounds and it is still calling tools. Rather than a fifth, ask for
+  // the answer with the tools taken away — the reads are all in the
+  // conversation by now, and a sentence about them is what was wanted.
+  const last = await client.messages.create({
+    model: HELPER_MODEL,
+    max_tokens: THREAD_MAX_TOKENS,
+    system: threadSystemPrompt(today),
+    messages,
+  });
+  await book(username, "ask_thread", last.usage);
+  return {
+    answer: last.content
+      .map((block) => (block.type === "text" ? block.text : ""))
+      .join("")
+      .trim(),
+    looked,
   };
 }

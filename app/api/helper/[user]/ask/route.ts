@@ -1,8 +1,9 @@
 import { isEnabled } from "@/lib/capabilities";
 import { hasHelperConsent, helperConsent } from "@/lib/helper/consent";
 import { intentFor, refusalFor, slotsFor, type Say } from "@/lib/helper/intents";
-import { routeAsk, UNKNOWN_INTENT } from "@/lib/helper/model";
+import { answerInThread, routeAsk, UNKNOWN_INTENT } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
+import { history, remember } from "@/lib/helper/thread";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -26,6 +27,15 @@ export const dynamic = "force-dynamic";
  * nothing to confirm about being told a number. A row that writes comes back
  * as fields to confirm, however confident the router was; the confirming is
  * the browser's job and the writing is a second call.
+ *
+ * **And a sentence no row fits goes to the thread** — B889, round 1 of
+ * `docs/plans/2026-09-07-helper-as-an-agent.md`. `answerInThread` is given the
+ * conversation so far and a list of **read** tools; it answers in prose in the
+ * person's own language and can change nothing, because there is no write tool
+ * to give it. `unknown` stays underneath, as the answer when the model fails.
+ * The refusal table above still runs first and still never depends on any
+ * model's judgement — and a refused sentence is not remembered either, so it
+ * cannot reach a model on the following turn instead.
  *
  * Cookie only, owner only, bearer refused by construction — `isHelperOwner`.
  */
@@ -152,12 +162,42 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
 
   const intent = routed.confidence >= SURE_ENOUGH ? intentFor(routed.intent) : null;
   if (!intent) {
+    /**
+     * B889 — where `unknown` used to be the end of it.
+     *
+     * A registry answers what somebody wrote a row for, and four of the
+     * owner's seven ordinary sentences had no row. So a sentence no row fits
+     * goes to the thread instead: the conversation so far, the read tools,
+     * and prose back. It still writes nothing — there is no write tool — and
+     * `unknown` survives underneath as the answer when the model itself
+     * fails, which is the screen that always works.
+     */
+    let thread;
+    try {
+      thread = await answerInThread(user, said, history(user), today);
+    } catch {
+      thread = null;
+    }
+    if (!thread || thread.answer === "") {
+      return Response.json({
+        ok: true,
+        intent: UNKNOWN_INTENT,
+        kind: UNKNOWN_INTENT,
+        slots: {},
+        confidence: routed.confidence,
+      });
+    }
+    remember(user, said, thread.answer);
     return Response.json({
       ok: true,
-      intent: UNKNOWN_INTENT,
-      kind: UNKNOWN_INTENT,
+      intent: "thread",
+      kind: "read",
       slots: {},
       confidence: routed.confidence,
+      answer: thread.answer,
+      // What it actually ran, in order — so the claim its answer makes about
+      // what it looked at is checkable from outside.
+      looked: thread.looked,
     });
   }
 
@@ -165,7 +205,12 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   const common = { ok: true, intent: intent.name, slots, confidence: routed.confidence };
 
   if (intent.kind === "read") {
-    return Response.json({ ...common, kind: "read", answer: await intent.answer(user, say) });
+    const answer = await intent.answer(user, say);
+    // A row's answer is prose too, so it belongs in the conversation: asking
+    // "how many credits" and then "and how long will that last" must not
+    // start from nothing.
+    remember(user, said, answer);
+    return Response.json({ ...common, kind: "read", answer });
   }
 
   if (intent.kind === "open") {
