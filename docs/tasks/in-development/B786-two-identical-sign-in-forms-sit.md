@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: agent, ui, auth
 found: "2026-09-07T14:32:46Z"
+started: "2026-09-07T14:46:59Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T14:46:59Z"
 ---
 
 # B786 — Two identical sign-in forms sit on top of each other and nothing says which is yours

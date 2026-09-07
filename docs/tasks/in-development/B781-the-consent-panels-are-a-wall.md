@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: agent, ui, i18n
 found: "2026-09-07T14:24:46Z"
+started: "2026-09-07T14:46:59Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T14:46:59Z"
 ---
 
 # B781 — The consent panels are a wall of text at the moment somebody wants to press a button
