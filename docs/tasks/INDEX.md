@@ -203,9 +203,11 @@ Do not edit them by hand; run the script.
 | [B386](backlog/wont-do/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
 | [B520](backlog/wont-do/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low |
 
-## open (0)
+## open (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity |
+| --- | --- | --- | --- | --- |
+| [B843](open/B843-doku-sits-in-the-destination-list.md) | Doku sits in the destination list though it leaves the journal, and Agent reads as a row rather than a button | ISSUE | medium | low |
 
 ## in-development (11)
 
