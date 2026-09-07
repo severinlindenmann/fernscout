@@ -193,9 +193,21 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/hel
   if (!getTrip(ref)) return Response.json({ error: "unknown_trip" }, { status: 404 });
   const slug = text(body.slug) ?? "";
 
+  // Captions, keyed by `src` — how a person keeps or edits what
+  // `describe-photos` (B687) suggested. `editEntry` refuses a `src` the day
+  // does not carry, so this cannot be used to invent a gallery item.
+  const captions =
+    body.captions && typeof body.captions === "object" && !Array.isArray(body.captions)
+      ? Object.fromEntries(
+          Object.entries(body.captions as Record<string, unknown>)
+            .filter((pair): pair is [string, string] => typeof pair[1] === "string"),
+        )
+      : undefined;
+
   const input: EditInput = {
     ...(text(body.title) ? { title: text(body.title) } : {}),
     ...(typeof body.content === "string" ? { content: body.content } : {}),
+    ...(captions ? { captions } : {}),
     ...declines(body.answers),
   };
   if (Object.keys(input).length === 0) {
