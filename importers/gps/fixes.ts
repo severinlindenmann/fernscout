@@ -1,4 +1,4 @@
-import { isSaneFix, parseInstant, type Fix, type Importer } from "./types";
+import { isSaneFix, parseInstant, type Fix, type GpsImporter } from "./schema";
 
 /**
  * The neutral format — the door for a tool that is not written in TypeScript.
@@ -51,7 +51,7 @@ function toMillis(value: unknown): number {
     : NaN;
 }
 
-const importer: Importer = {
+const importer: GpsImporter = {
   id: "fixes",
   label: "Plain fixes (JSON Lines: [t, lat, lon])",
 

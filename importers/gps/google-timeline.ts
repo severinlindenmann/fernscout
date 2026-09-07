@@ -1,4 +1,4 @@
-import { isSaneFix, parseGeoUri, parseInstant, type Fix, type Importer } from "./types";
+import { isSaneFix, parseGeoUri, parseInstant, type Fix, type GpsImporter } from "./schema";
 
 /**
  * Google Maps Timeline, as exported from the phone.
@@ -59,7 +59,7 @@ function fixesFrom(segment: Record<string, unknown>): Fix[] {
   return out;
 }
 
-const importer: Importer = {
+const importer: GpsImporter = {
   id: "google-timeline",
   label: "Google Maps Timeline (phone export)",
 

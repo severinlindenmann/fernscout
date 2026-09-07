@@ -5,7 +5,7 @@ import path from "node:path";
 import { appendFixes, gpsDir } from "@/lib/gps/store";
 import { deriveTrack, readExcludeZones, excludeFile, trackForTrip } from "@/lib/gps/enrich";
 import { readTrack, trackFile, trackPointCount, writeTrack } from "@/lib/gps/track";
-import type { Fix } from "@/importers/types";
+import type { Fix } from "@/importers/gps/schema";
 
 /**
  * B665 — the derived half.

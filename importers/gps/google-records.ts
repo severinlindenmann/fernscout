@@ -1,4 +1,4 @@
-import { isSaneFix, type Fix, type Importer } from "./types";
+import { isSaneFix, type Fix, type GpsImporter } from "./schema";
 
 /**
  * Google Takeout's `Records.json` — the old, account-side location history.
@@ -14,7 +14,7 @@ import { isSaneFix, type Fix, type Importer } from "./types";
  */
 const WORST_ACCURACY_M = 1000;
 
-const importer: Importer = {
+const importer: GpsImporter = {
   id: "google-records",
   label: "Google Takeout location history (Records.json)",
 

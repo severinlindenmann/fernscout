@@ -22,29 +22,31 @@ import { appendFixes } from "../lib/gps/store.ts";
 import { readExcludeZones, trackForTrip } from "../lib/gps/enrich.ts";
 import { trackPointCount, trackFile, writeTrack } from "../lib/gps/track.ts";
 import { getTrip } from "../lib/trips.ts";
-import type { Fix, Importer } from "../importers/types.ts";
+import { checkGpsImporter, type Fix, type GpsImporter } from "../importers/gps/schema.ts";
 
-const IMPORTERS_DIR = path.join(process.cwd(), "importers");
+/** Positions only. A future costs command reads `importers/costs/` — the
+ * folder is the kind, so nothing here has to filter a shared pile. */
+const IMPORTERS_DIR = path.join(process.cwd(), "importers", "gps");
 /** What `detect` is shown. Enough for any format to recognise itself, small
  * enough not to hold a gigabyte export in memory twice. */
 const HEAD_BYTES = 64 * 1024;
 
 /**
- * Every importer in `importers/`, discovered rather than listed.
+ * Every importer in `importers/gps/`, discovered rather than listed.
  *
  * The folder is the registry: drop a file in and it works, with no list here
  * to edit. That is what makes the folder's MIT licence worth anything —
  * somebody's own importer is a file they copy in, not a patch to this
  * repository.
  */
-async function loadImporters(): Promise<Importer[]> {
-  const out: Importer[] = [];
+async function loadImporters(): Promise<GpsImporter[]> {
+  const out: GpsImporter[] = [];
   for (const name of fs.readdirSync(IMPORTERS_DIR).sort()) {
-    if (!name.endsWith(".ts") || name === "types.ts") continue;
+    if (!name.endsWith(".ts") || name === "schema.ts") continue;
     const loaded: unknown = await import(
       pathToFileURL(path.join(IMPORTERS_DIR, name)).href
     );
-    const importer = (loaded as { default?: Importer }).default;
+    const importer = (loaded as { default?: GpsImporter }).default;
     if (!importer?.id || typeof importer.parse !== "function") {
       console.warn(`  ${name}: no importer exported, skipped`);
       continue;
@@ -101,11 +103,17 @@ async function commandImport(argv: string[]): Promise<void> {
   console.log(`${name} → ${chosen.label}`);
   const fixes = chosen.parse(fs.readFileSync(file, "utf8"));
   console.log(`  read ${fixes.length} fixes, ${span(fixes)}`);
-  if (fixes.length === 0)
-    throw new Error("no fixes came out — wrong importer, or an export with no positions");
+
+  // The same `checkGpsImporter` a contributor calls directly — so somebody
+  // writing an importer can point this command at their own export and be told
+  // what is wrong with it, rather than finding out from a map of the Gulf of
+  // Guinea a week later.
+  const problems = checkGpsImporter(chosen, fixes);
+  for (const problem of problems) console.log(`  ! ${problem}`);
+  if (problems.length > 0) throw new Error(`${chosen.id} does not hold up the contract`);
 
   if (dryRun) {
-    console.log("  --dry-run: nothing written");
+    console.log("  --dry-run: contract holds, nothing written");
     return;
   }
   const result = appendFixes(username, fixes);

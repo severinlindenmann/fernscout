@@ -1,11 +1,11 @@
 import { describe, expect, test } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import type { Importer } from "@/importers/types";
-import timeline from "@/importers/google-timeline";
-import records from "@/importers/google-records";
-import gpx from "@/importers/gpx";
-import fixes from "@/importers/fixes";
+import { checkGpsImporter, type GpsImporter } from "@/importers/gps/schema";
+import timeline from "@/importers/gps/google-timeline";
+import records from "@/importers/gps/google-records";
+import gpx from "@/importers/gps/gpx";
+import fixes from "@/importers/gps/fixes";
 
 /**
  * B665 — the MIT folder.
@@ -106,13 +106,15 @@ describe("google-records", () => {
   });
 });
 
-describe("gpx", () => {
-  const file = `<?xml version="1.0"?>
+const GPX_FILE = `<?xml version="1.0"?>
 <gpx version="1.1"><trk><trkseg>
   <trkpt lat="47.1" lon="8.1"><ele>410</ele><time>2026-06-22T06:00:00Z</time></trkpt>
   <trkpt lat="47.2" lon="8.2"><time>2026-06-22T06:05:00Z</time></trkpt>
   <trkpt lat="47.3" lon="8.3"></trkpt>
 </trkseg></trk></gpx>`;
+
+describe("gpx", () => {
+  const file = GPX_FILE;
 
   test("reads points with a time and skips one without", () => {
     // A fix that does not know when it happened has nowhere to go: the store
@@ -149,13 +151,16 @@ describe("fixes — the format for a tool that is not TypeScript", () => {
 
 describe("the folder is the registry", () => {
   test("every importer in it holds up the contract, without being named here", async () => {
-    const root = path.join(process.cwd(), "importers");
-    const files = fs.readdirSync(root).filter((n) => n.endsWith(".ts") && n !== "types.ts");
+    // `importers/gps/`, not `importers/` — the kind of data is the folder, so
+    // a costs importer arriving later is a sibling directory rather than a
+    // file this walk has to learn to skip.
+    const root = path.join(process.cwd(), "importers", "gps");
+    const files = fs.readdirSync(root).filter((n) => n.endsWith(".ts") && n !== "schema.ts");
     expect(files.length).toBeGreaterThan(0);
 
     const ids = new Set<string>();
     for (const name of files) {
-      const loaded = (await import(path.join(root, name))) as { default?: Importer };
+      const loaded = (await import(path.join(root, name))) as { default?: GpsImporter };
       const importer = loaded.default;
       expect(importer, `${name} exports no importer`).toBeDefined();
       expect(importer!.id).toMatch(/^[a-z0-9-]+$/);
@@ -165,6 +170,32 @@ describe("the folder is the registry", () => {
       expect(ids.has(importer!.id), `two importers called ${importer!.id}`).toBe(false);
       ids.add(importer!.id);
     }
+  });
+
+  test("checkGpsImporter names what is wrong, which is how somebody writes one", () => {
+    // The function `importers/README.md` tells a contributor to run. Each of
+    // these is a mistake somebody actually makes on a first attempt.
+    const ok = { id: "mine", label: "Mine" } as GpsImporter;
+    expect(checkGpsImporter(ok, [{ t: 1782108000000, lat: 47.1, lon: 8.1 }])).toEqual([]);
+
+    // Seconds where milliseconds were asked for: a 2026 trip lands in 1970.
+    expect(checkGpsImporter(ok, [{ t: 1782108000, lat: 47.1, lon: 8.1 }]).join(" ")).toMatch(
+      /milliseconds/,
+    );
+    // The pair the wrong way round — Zurich in the Gulf of Guinea.
+    expect(checkGpsImporter(ok, [{ t: 1782108000000, lat: 8.1, lon: 471 }]).join(" ")).toMatch(
+      /not on Earth/,
+    );
+    expect(checkGpsImporter(ok, []).join(" ")).toMatch(/returned nothing/);
+    expect(
+      checkGpsImporter({ ...ok, id: "My Tracker" }, [
+        { t: 1782108000000, lat: 47.1, lon: 8.1 },
+      ]).join(" "),
+    ).toMatch(/lowercase/);
+  });
+
+  test("every importer here passes its own check on its own fixture", () => {
+    expect(checkGpsImporter(gpx, gpx.parse(GPX_FILE))).toEqual([]);
   });
 
   test("no importer claims a file that is plainly somebody else's", () => {
