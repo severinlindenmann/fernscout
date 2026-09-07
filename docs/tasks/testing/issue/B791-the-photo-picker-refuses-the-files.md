@@ -7,8 +7,7 @@ complexity: low
 area: agent, media, importers
 found: "2026-09-07T14:43:12Z"
 started: "2026-09-07T14:46:58Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T14:46:58Z"
+merged: "2026-09-07T15:04:27Z"
 ---
 
 # B791 — The photo picker refuses the files the import screen was built to read
