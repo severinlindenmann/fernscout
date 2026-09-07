@@ -121,12 +121,41 @@ für Werbung oder zur Profilbildung.
 | **Stannp Ltd** (Grossbritannien) | Jemand bestellt eine gedruckte Postkarte | Das Foto, den Text und die Postadresse der Empfängerin |
 | **Gelato ASA** (Norwegen) | Jemand bestellt ein gedrucktes Fotobuch | Das PDF des Buchs und die Lieferadresse |
 | **Proton AG** (Schweiz) | Anmeldecodes, Einladungen, Benachrichtigungen | Die Empfängeradresse und die Nachricht |
+| **Anthropic PBC** (USA) | Jemand nutzt die Schreibhilfe unter `/agent` — um einen Tag schreiben zu lassen, Fotos beschriften zu lassen oder einen getippten Satz verstehen zu lassen | Was die Person getippt oder gesagt hat; die Angaben, die ihr eigener Tag ohnehin trägt (Datum, Ort, Land sowie Anzahl und Zeitspanne der Fotos); und für Bildunterschriften die Fotos selbst |
+| **Deepgram Inc.** (USA) | Jemand spricht mit der Schreibhilfe unter `/agent`, statt zu tippen | Die Aufnahme der Stimme und die Sprache, in der sie ist |
 | **Open-Meteo** (Deutschland) | Ein Journal hat gefragt, wie das Wetter an einem festgehaltenen Tag war | Die Koordinaten und das Datum dieses Tages — nichts über Sie |
 | **Europäische Zentralbank** (Deutschland) | Eine Reise brauchte den Wechselkurs für eine Währung, in der sie ausgegeben hat | Gar nichts — abgerufen wird ein veröffentlichtes Dokument, und es transportiert keine Frage |
 
 Das ist die vollständige Liste. Mehr ist da nicht.
 
-Die Wetterzeile unterscheidet sich von den vier darüber, und der Unterschied
+**Diese beiden Zeilen tragen eine Bedingung, die die anderen nicht haben, und
+sie gehört ausgesprochen: Zu Anthropic und zu Deepgram geht nichts, solange
+niemand die Schreibhilfe unter `/agent` benutzt.** Ein Journal zu lesen löst
+nichts aus. Ein Journal mit dem eigenen Agenten zu schreiben löst nichts aus.
+Wer seine Tage selbst tippt, verursacht keine einzige Anfrage an eine der
+beiden Firmen, und eine Leserin kann überhaupt keine auslösen.
+
+Gesendet wird, was die Person der Schreibhilfe vorgelegt hat, und die wenigen
+Angaben, die ihr eigener Tag ohnehin trägt — dieselben, die währenddessen auf
+ihrem Bildschirm stehen. **Kein Standortverlauf, keine Kontakte, keine
+E-Mail-Adressen und keine Postadressen gehen an eine der beiden, niemals.** Der
+Standortverlauf eines Journals — wo es einen führt — liegt in einem Ordner, den
+keine Anfrage erreicht, und er gehört nicht zu den Angaben, die die
+Schreibhilfe bekommt.
+
+**Die Sprachaufnahme wird nirgends gespeichert.** Sie kommt mit einer Anfrage
+an, geht an den Transkriptionsdienst und wird mit dem Ende der Anfrage
+verworfen — keine Kopie auf diesem Server, keine im Backup, keine im Export
+eines Journals. Erhalten bleibt der Text, denn der Text ist das, worum gebeten
+wurde. Eine Instanz ohne eingerichteten Transkriptionsdienst schickt die
+Aufnahme gar nicht erst weg — nichts verlässt die Maschine, und keine Firma
+hört sie.
+
+Beide werden nur für die eine angefragte Aufgabe genutzt. Keiner von beiden
+bekommt etwas zur Auswertung, für Werbung oder zur Profilbildung, und keiner
+wird gebeten, nach der Antwort noch etwas aufzubewahren.
+
+Die Wetterzeile unterscheidet sich von allen Zeilen darüber, und der Unterschied
 gehört ausgesprochen: **diese Anfrage stellt dieser Server, nicht Ihr
 Browser.** Sie wird einmal gesendet, wenn ein Tag geschrieben wird, und was
 zurückkommt, steht danach in der Datei dieses Tages — eine Seite mit
