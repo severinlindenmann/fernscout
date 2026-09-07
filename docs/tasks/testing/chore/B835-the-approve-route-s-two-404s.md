@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: payments, api
 found: "2026-09-07T16:01:37Z"
+merged: "2026-09-07T16:31:56Z"
 ---
 
 # B835 — The approve route's two 404s use different error strings

@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: credits
 found: "2026-09-07T15:58:22Z"
+merged: "2026-09-07T16:31:56Z"
 ---
 
 # B832 — refund() raises a balance but is not on the grant allowlist test

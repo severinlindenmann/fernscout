@@ -49,17 +49,16 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (112)
+## backlog (108)
 
-### security (3)
+### security (2)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
-| [B832](backlog/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low |
 
-### issue (28)
+### issue (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -75,7 +74,6 @@ Do not edit them by hand; run the script.
 | [B801](backlog/issue/B801-a-request-with-the-wrong-field.md) | A request with the wrong field name is accepted and silently does nothing | ISSUE | medium | low |
 | [B814](backlog/issue/B814-the-one-screen-a-brand-new.md) | The one screen a brand new journal sees has no heading to land on | ISSUE | medium | low |
 | [B828](backlog/issue/B828-a-journal-may-briefly-not-exist.md) | A journal may briefly not exist while a deploy copies content | ISSUE | medium | medium |
-| [B831](backlog/issue/B831-a-buyer-who-pays-two-checkout.md) | A buyer who pays two checkout sessions for one purchase is charged twice and credited once, silently | ISSUE | medium | low |
 | [B834](backlog/issue/B834-signup-grants-ten-credits-per-verified.md) | Signup grants ten credits per verified email with no per-identity cap, so credits can be farmed with disposable inboxes | ISSUE | medium | medium |
 | [B837](backlog/issue/B837-a-capability-test-passes-alone-and.md) | A capability test passes alone and fails in the full suite | ISSUE | medium | low |
 | [B842](backlog/issue/B842-a-trip-with-no-tagline-shows.md) | A trip with no tagline shows the journal's, so the journal's words are presented as the trip's | ISSUE | medium | low |
@@ -90,7 +88,6 @@ Do not edit them by hand; run the script.
 | [B784](backlog/issue/B784-the-page-still-has-two-bright.md) | The page still has two bright buttons even though the card has one | ISSUE | low | low |
 | [B812](backlog/issue/B812-focus-is-lost-when-the-handover.md) | Focus is lost when the handover prompt appears | ISSUE | low | low |
 | [B813](backlog/issue/B813-a-denied-microphone-is-announced-politely.md) | A denied microphone is announced politely instead of as a problem | ISSUE | low | low |
-| [B833](backlog/issue/B833-the-admin-approval-queue-fills-with.md) | The /admin approval queue fills with Stripe requested rows it says were mailed but were not | ISSUE | low | low |
 
 ### big-feature (13)
 
@@ -133,7 +130,7 @@ Do not edit them by hand; run the script.
 | [B731](backlog/small-feature/B731-a-trip-made-from-the-ask.md) | A trip made from the ask box never shows who can read it | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (7)
+### chore (6)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -143,7 +140,6 @@ Do not edit them by hand; run the script.
 | [B736](backlog/chore/B736-build-demo-content-mjs-still-cannot.md) | build-demo-content.mjs still cannot reproduce travelScene, per-item visibility, some captions, or six fixture days | CHORE | low | medium |
 | [B772](backlog/chore/B772-the-contacts-page-carries-no-brand.md) | The contacts page carries no brand tokens at all | CHORE | low | low |
 | [B811](backlog/chore/B811-the-payment-page-still-renders-the.md) | The payment page still renders the TWINT/card chooser under a provider, hidden with a class | CHORE | low | low |
-| [B835](backlog/chore/B835-the-approve-route-s-two-404s.md) | The approve route's two 404s use different error strings | CHORE | low | low |
 
 ### ops (10)
 
@@ -228,15 +224,16 @@ _Nothing here._
 | [B810](in-development/B810-the-first-thing-the-product-asks.md) | The first thing the product asks a new person is what their day cost | ISSUE | medium | low | `fdfcf5f2` |
 | [B822](in-development/B822-a-back-arrow-returns-to-a.md) | A back arrow returns to a fixed parent rather than where the reader actually came from | ISSUE | medium | medium | `ccdd5120` |
 
-## testing (60)
+## testing (64)
 
-### security (1)
+### security (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B830](testing/security/B830-the-stripe-webhook-checks-the-amount.md) | The Stripe webhook checks the amount but not the currency, and not that the event's mode matches the key | SECURITY | high | low | — |
+| [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (30)
+### issue (32)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -263,12 +260,14 @@ _Nothing here._
 | [B796](testing/issue/B796-a-refusal-and-the-model-s.md) | A refusal and the model's answer are both silent to a screen reader | ISSUE | medium | low | — |
 | [B818](testing/issue/B818-the-date-defaults-to-today-when.md) | The date defaults to today when you are writing up a day from three weeks ago | ISSUE | medium | low | — |
 | [B824](testing/issue/B824-the-agent-and-docs-sit-apart.md) | The agent and docs sit apart from the destinations they are listed with | ISSUE | medium | low | — |
+| [B831](testing/issue/B831-a-buyer-who-pays-two-checkout.md) | A buyer who pays two checkout sessions for one purchase is charged twice and credited once, silently | ISSUE | medium | low | — |
 | [B726](testing/issue/B726-the-landing-page-tells-a-self.md) | The landing page tells a self-hoster with the helper off that the agent may be this instance's own | ISSUE | low | low | — |
 | [B742](testing/issue/B742-the-api-docs-page-scrolls-sideways.md) | The API docs page scrolls sideways on a phone | ISSUE | low | low | — |
 | [B748](testing/issue/B748-the-disclosure-that-hides-the-agent.md) | The disclosure that hides the agent instructions looks like a link, so nothing says it opens | ISSUE | low | low | — |
 | [B779](testing/issue/B779-a-valid-token-on-a-helper.md) | A valid token on a helper route is told the journal is not theirs | ISSUE | low | low | — |
 | [B800](testing/issue/B800-neither-side-is-told-how-long.md) | Neither side is told how long an approval usually takes | ISSUE | low | low | — |
 | [B803](testing/issue/B803-a-stripe-purchase-records-no-payment.md) | A Stripe purchase records no payment method, because the branch that would can never be true | ISSUE | low | low | — |
+| [B833](testing/issue/B833-the-admin-approval-queue-fills-with.md) | The /admin approval queue fills with Stripe requested rows it says were mailed but were not | ISSUE | low | low | — |
 | [B836](testing/issue/B836-the-landing-corner-s-agent-chip.md) | The landing corner's Agent chip is too quiet to read as a button | ISSUE | low | low | — |
 
 ### big-feature (4)
@@ -307,12 +306,13 @@ _Nothing here._
 | [B815](testing/small-feature/B815-stripe-asks-for-an-email-the.md) | Stripe asks for an email the owner has already given this server | FEATURE | low | low | — |
 | [B826](testing/small-feature/B826-the-checkout-page-is-stripe-s.md) | The checkout page is Stripe's grey, on a site that has a palette | FEATURE | low | low | — |
 
-### chore (2)
+### chore (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B755](testing/chore/B755-a-fresh-clone-gets-this-instance.md) | A fresh clone gets this instance's costs and an env example missing six keys | CHORE | high | low | — |
 | [B758](testing/chore/B758-the-operator-link-sits-in-a.md) | The operator link sits in a section of its own rather than in the header | CHORE | medium | low | — |
+| [B835](testing/chore/B835-the-approve-route-s-two-404s.md) | The approve route's two 404s use different error strings | CHORE | low | low | — |
 
 ### docs-and-skills (1)
 

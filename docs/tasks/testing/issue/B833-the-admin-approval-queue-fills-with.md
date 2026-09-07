@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: admin, payments
 found: "2026-09-07T15:58:22Z"
+merged: "2026-09-07T16:31:56Z"
 ---
 
 # B833 — The /admin approval queue fills with Stripe requested rows it says were mailed but were not
