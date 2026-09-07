@@ -170,6 +170,13 @@ This is **source-available, not open source** — the non-compete clause is a
 restriction the Open Source Definition does not allow, so the term does not
 apply here and this project does not use it.
 
+**`importers/` is MIT**, and is the one part of this repository that is. It
+holds the parsers that read a location export — Google Timeline, GPX, and a
+neutral format for anybody's own tool — and they are worth sharing on their own
+terms: adding support for your own device should not mean reading a non-compete
+clause first. The IMPORTERS section at the top of `LICENSE` is the operative
+text, and `importers/README.md` is what one has to implement.
+
 The **name is outside that grant entirely** — Shield licenses copyright and
 patents, never a trademark. The **waymark and wordmark are inside it and
 narrowed**: they ship with the code so an instance can draw itself, and they

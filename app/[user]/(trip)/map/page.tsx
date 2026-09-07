@@ -8,6 +8,7 @@ import MapPageContent from "./MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
 import { getPlaces, getTripStats } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
+import { readTrack } from "@/lib/gps/track";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { currentTripRef, getTrip } from "@/lib/trips";
 import TripProvider from "@/components/TripProvider";
@@ -104,11 +105,17 @@ export default async function MapPage({ params }: PageProps<"/[user]/map">) {
   // Clipped here so the reader gets their own trip's worth of map rather than
   // the whole bundle — see the same two lines in the trip-scoped route.
   const basemap = basemapForRoute(places.length > 0 ? places : plan.stops);
+  // The ground actually covered, where the owner has derived it (B665). Read
+  // here rather than in the component: it is a file in the trip folder, behind
+  // the same gate as everything else on this page, and `mayReadTrip` above is
+  // what stands between it and a reader.
+  const track = readTrack(user, trip.id)?.segments.map((s) => s.points) ?? [];
   return (
     <TripProvider trip={trip} isCurrent canPublish={drafts.canPublish}>
       <MapPageContent
         places={places}
         plan={plan.stops}
+        track={track}
         reachedCount={plan.reachedCount}
         basemap={basemap}
         stats={{

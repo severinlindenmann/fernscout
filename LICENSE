@@ -6,6 +6,23 @@ Required Notice: The Fernscout name, wordmark and waymark logo are the
 licensor's, and this licence does not hand them over. See TRADEMARK.md.
 
 
+IMPORTERS
+---------
+
+One directory is licensed differently, and more permissively: everything in
+`importers/` is MIT, under the terms in `importers/LICENSE`. Nothing in this
+document restricts it.
+
+An importer is a small parser that turns somebody's location export — Google
+Timeline, GPX, whatever a device writes — into plain coordinates. Those are
+worth writing once and sharing, they are useful outside this project entirely,
+and a person adding support for their own device should not have to read a
+non-compete clause first. `importers/README.md` is the contract they implement.
+
+The carve-out is that directory and nothing else. Everything the importers feed
+— the store, the derivation, the maps — is under the licence below.
+
+
 BRAND ASSETS
 ------------
 
