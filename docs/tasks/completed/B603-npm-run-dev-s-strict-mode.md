@@ -8,6 +8,7 @@ area: photobook, testing
 found: "2026-09-06T14:46:31Z"
 started: "2026-09-07T10:37:32Z"
 merged: "2026-09-07T11:00:38Z"
+completed: "2026-09-07T13:12:22Z"
 ---
 
 # B603 — A dev-mode-only effect race can pass or fail local browser testing for the wrong reason

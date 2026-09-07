@@ -7,6 +7,7 @@ complexity: low
 area: trips, map
 found: "2026-09-06T14:39:19Z"
 merged: "2026-09-06T14:43:23Z"
+completed: "2026-09-07T13:12:21Z"
 ---
 
 # B600 — A teasered trip's countries are missing from the lifetime map

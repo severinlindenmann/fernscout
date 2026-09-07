@@ -8,6 +8,7 @@ area: photobook, credits
 found: "2026-09-06T14:32:19Z"
 started: "2026-09-07T11:40:40Z"
 merged: "2026-09-07T12:18:36Z"
+completed: "2026-09-07T13:12:17Z"
 ---
 
 # B595 — A photobook can be charged a price the owner never saw

@@ -8,6 +8,7 @@ area: mail, capabilities
 found: "2026-09-01"
 started: "2026-09-03T19:23:10Z"
 merged: "2026-09-03T20:03:06Z"
+completed: "2026-09-07T13:12:20Z"
 ---
 
 # B60 — A journal that switched mail off still has mail sent on its behalf

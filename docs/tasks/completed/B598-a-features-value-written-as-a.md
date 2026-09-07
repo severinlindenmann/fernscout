@@ -8,6 +8,7 @@ area: fernscout-helper, validate-content, config
 found: "2026-09-06T14:35:01Z"
 started: "2026-09-06T14:37:44Z"
 merged: "2026-09-06T14:45:34Z"
+completed: "2026-09-07T13:12:19Z"
 ---
 
 # B598 — A features value written as a bare boolean is silently ignored and nothing says so

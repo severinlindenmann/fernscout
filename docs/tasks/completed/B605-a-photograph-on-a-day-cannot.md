@@ -8,6 +8,7 @@ area: media, api
 found: "2026-09-06T15:01:20Z"
 started: "2026-09-06T15:13:16Z"
 merged: "2026-09-06T15:35:33Z"
+completed: "2026-09-07T13:12:23Z"
 ---
 
 # B605 — A photograph on a day cannot be removed over the API

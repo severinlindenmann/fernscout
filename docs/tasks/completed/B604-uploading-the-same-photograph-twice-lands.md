@@ -8,6 +8,7 @@ area: media, api
 found: "2026-09-06T15:00:58Z"
 started: "2026-09-07T09:35:44Z"
 merged: "2026-09-07T09:48:06Z"
+completed: "2026-09-07T13:12:22Z"
 ---
 
 # B604 — Uploading the same photograph twice lands it twice, and nothing can tell

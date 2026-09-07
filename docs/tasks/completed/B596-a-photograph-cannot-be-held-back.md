@@ -8,6 +8,7 @@ area: media, visibility, api, helper-repo
 found: "2026-09-06T14:34:30Z"
 started: "2026-09-06T14:35:12Z"
 merged: "2026-09-06T15:07:12Z"
+completed: "2026-09-07T13:12:18Z"
 ---
 
 # B596 — A photograph cannot be held back from readers the trip lets in

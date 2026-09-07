@@ -8,6 +8,7 @@ area: api, content model, validation
 found: "2026-09-06T15:11:52Z"
 started: "2026-09-06T15:12:43Z"
 merged: "2026-09-06T15:37:43Z"
+completed: "2026-09-07T13:12:24Z"
 ---
 
 # B608 — The file shape a journal must have is not published anywhere

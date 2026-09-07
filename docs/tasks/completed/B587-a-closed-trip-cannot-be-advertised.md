@@ -7,6 +7,7 @@ complexity: medium
 area: trips, access
 found: "2026-09-06T14:17:50Z"
 merged: "2026-09-06T14:32:39Z"
+completed: "2026-09-07T13:12:16Z"
 ---
 
 # B587 — A closed trip cannot be advertised as a locked card on the trips overview

@@ -8,6 +8,7 @@ area: api, days, fernscout-helper, publish
 found: "2026-09-06T14:35:01Z"
 started: "2026-09-06T14:37:44Z"
 merged: "2026-09-06T14:52:04Z"
+completed: "2026-09-07T13:12:19Z"
 ---
 
 # B597 — A day that declined photographs or coordinates cannot be published a second time

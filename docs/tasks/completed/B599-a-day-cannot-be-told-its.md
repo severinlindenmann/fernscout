@@ -8,6 +8,7 @@ area: api, days
 found: "2026-09-06T14:37:03Z"
 started: "2026-09-06T14:54:21Z"
 merged: "2026-09-06T15:17:02Z"
+completed: "2026-09-07T13:12:20Z"
 ---
 
 # B599 — A day cannot be told its photographs or its place are unrecorded after it exists

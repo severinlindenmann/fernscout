@@ -8,6 +8,7 @@ area: api, config
 found: "2026-09-06T15:13:00Z"
 started: "2026-09-06T15:13:16Z"
 merged: "2026-09-06T15:23:17Z"
+completed: "2026-09-07T13:12:24Z"
 ---
 
 # B607 — A config PATCH reports credits as off on a server that has it on

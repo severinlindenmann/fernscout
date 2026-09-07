@@ -8,6 +8,7 @@ area: fernscout-helper, validate-content, content model
 found: "2026-09-06T15:11:52Z"
 started: "2026-09-06T16:04:25Z"
 merged: "2026-09-06T16:16:52Z"
+completed: "2026-09-07T13:12:25Z"
 ---
 
 # B609 — The helper copies the file shape instead of reading it from the instance

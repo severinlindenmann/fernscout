@@ -207,7 +207,7 @@ _Nothing here._
 | [B737](in-development/B737-the-travel-scene-s-vehicles-exist.md) | The travel scene's vehicles exist only on the web, so a book cannot show how a leg was travelled | FEATURE | low | medium | `cd599e8c` |
 | [B744](in-development/B744-the-speech-consent-panel-names-deepgram.md) | The speech consent panel names Deepgram even on a dry-run instance | ISSUE | low | low | `97b44327` |
 
-## testing (118)
+## testing (103)
 
 ### security (2)
 
@@ -216,11 +216,10 @@ _Nothing here._
 | [B695](testing/security/B695-a-public-get-spawns-ffmpeg-api.md) | A public GET spawns ffmpeg: /api/health and /agent.md turn a cheap request into processes | SECURITY | high | low | — |
 | [B662](testing/security/B662-plaintext-sign-in-codes-still-reach.md) | Plaintext sign-in codes still reach the backup through content/.mail | SECURITY | medium | low | — |
 
-### issue (49)
+### issue (41)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B597](testing/issue/B597-a-day-that-declined-photographs-or.md) | A day that declined photographs or coordinates cannot be published a second time | ISSUE | high | low | — |
 | [B615](testing/issue/B615-the-helper-refuses-two-things-the.md) | The helper refuses two things the instance accepts | ISSUE | high | low | — |
 | [B620](testing/issue/B620-the-published-file-shape-offers-a.md) | The published file shape offers a day the option of being fake, and drops two real ones | ISSUE | high | low | — |
 | [B625](testing/issue/B625-the-installed-pwa-opens-in-english.md) | The installed PWA opens in English for a phone set to German | ISSUE | high | low | — |
@@ -237,10 +236,6 @@ _Nothing here._
 | [B739](testing/issue/B739-choosing-a-layout-in-the-first.md) | Choosing a layout in the first-book flow asks a question at the top of the page about days the flow itself arranged | ISSUE | high | low | — |
 | [B740](testing/issue/B740-the-figures-a-book-prints-on.md) | The figures a book prints on its chapter dividers are missing from the preview, so the switch looks broken | ISSUE | high | low | — |
 | [B83](testing/issue/B83-a-trip-md-the-reader-cannot.md) | A trip.md the reader cannot parse is dropped silently, so a broken trip and no trip look the same | ISSUE | high | low | — |
-| [B598](testing/issue/B598-a-features-value-written-as-a.md) | A features value written as a bare boolean is silently ignored and nothing says so | ISSUE | medium | low | — |
-| [B599](testing/issue/B599-a-day-cannot-be-told-its.md) | A day cannot be told its photographs or its place are unrecorded after it exists | ISSUE | medium | low | — |
-| [B60](testing/issue/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low | — |
-| [B604](testing/issue/B604-uploading-the-same-photograph-twice-lands.md) | Uploading the same photograph twice lands it twice, and nothing can tell | ISSUE | medium | medium | — |
 | [B616](testing/issue/B616-the-helper-is-silent-about-three.md) | The helper is silent about three things the instance refuses | ISSUE | medium | low | — |
 | [B617](testing/issue/B617-the-conformance-test-compares-a-document.md) | The conformance test compares a document about files against a validator for requests | ISSUE | medium | low | — |
 | [B624](testing/issue/B624-phone-autofill-lands-in-the-dialling.md) | Phone autofill lands in the dialling-code box, and the number field is cut off on a phone | ISSUE | medium | low | — |
@@ -257,9 +252,6 @@ _Nothing here._
 | [B707](testing/issue/B707-uploading-by-url-silently-drops-files.md) | Uploading by url silently drops files past the per-day limit | ISSUE | medium | low | — |
 | [B713](testing/issue/B713-a-test-in-the-suite-fails.md) | A test in the suite fails intermittently and verify does not name which | ISSUE | medium | medium | — |
 | [B82](testing/issue/B82-an-expired-read-grant-still-notifies.md) | An expired read grant still notifies, because push does not ask lib/grants | ISSUE | medium | low | — |
-| [B595](testing/issue/B595-a-photobook-can-be-charged-a.md) | A photobook can be charged a price the owner never saw | ISSUE | low | low | — |
-| [B603](testing/issue/B603-npm-run-dev-s-strict-mode.md) | A dev-mode-only effect race can pass or fail local browser testing for the wrong reason | ISSUE | low | low | — |
-| [B607](testing/issue/B607-a-config-patch-reports-credits-as.md) | A config PATCH reports credits as off on a server that has it on | ISSUE | low | low | — |
 | [B637](testing/issue/B637-the-fernscout-mark-on-the-car.md) | The Fernscout mark on the car sits too far off centre | ISSUE | low | low | — |
 | [B670](testing/issue/B670-kept-in-the-media-upload-response.md) | kept in the media upload response omits the video originals it stored | ISSUE | low | low | — |
 | [B697](testing/issue/B697-there-is-no-way-back-to.md) | There is no way back to the site from /agent | ISSUE | low | low | — |
@@ -270,7 +262,7 @@ _Nothing here._
 | [B742](testing/issue/B742-the-api-docs-page-scrolls-sideways.md) | The API docs page scrolls sideways on a phone | ISSUE | low | low | — |
 | [B748](testing/issue/B748-the-disclosure-that-hides-the-agent.md) | The disclosure that hides the agent instructions looks like a link, so nothing says it opens | ISSUE | low | low | — |
 
-### big-feature (15)
+### big-feature (14)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -284,25 +276,18 @@ _Nothing here._
 | [B682](testing/big-feature/B682-a-day-cannot-be-written-from.md) | A day cannot be written from a phone without an agent | FEATURE | high | high | — |
 | [B683](testing/big-feature/B683-uploading-photographs-from-a-phone-fails.md) | Uploading photographs from a phone fails halfway with no resume | FEATURE | high | high | — |
 | [B704](testing/big-feature/B704-a-first-photobook-opens-as-a.md) | A first photobook opens as a wall of settings with nothing to compare them against | FEATURE | high | high | — |
-| [B596](testing/big-feature/B596-a-photograph-cannot-be-held-back.md) | A photograph cannot be held back from readers the trip lets in | FEATURE | medium | high | — |
 | [B614](testing/big-feature/B614-the-owner-s-own-copy-of.md) | The owner's own copy of a day is charged as if they were a guest, and they cannot be reached on WhatsApp at all | FEATURE | medium | high | — |
 | [B665](testing/big-feature/B665-a-trip-s-map-draws-straight.md) | A trip's map draws straight lines between days, because nothing holds where somebody actually went | FEATURE | medium | high | — |
 | [B677](testing/big-feature/B677-a-bank-statement-can-only-be.md) | A bank statement can only be read on the owner's own laptop, so the parsing lives in the helper | FEATURE | medium | high | — |
 | [B684](testing/big-feature/B684-spoken-or-typed-notes-cannot-be.md) | Spoken or typed notes cannot be turned into a day | FEATURE | medium | high | — |
 
-### small-feature (33)
+### small-feature (27)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B608](testing/small-feature/B608-the-file-shape-a-journal-must.md) | The file shape a journal must have is not published anywhere | FEATURE | high | medium | — |
 | [B609](testing/small-feature/B609-the-helper-copies-the-file-shape.md) | The helper copies the file shape instead of reading it from the instance | FEATURE | high | medium | — |
 | [B681](testing/small-feature/B681-a-person-without-an-agent-has.md) | A person without an agent has nowhere to start | FEATURE | high | medium | — |
 | [B727](testing/small-feature/B727-the-first-book-flow-only-opens.md) | The first-book flow only opens once, is laid out for a desktop, and draws a book as a grey rectangle | FEATURE | high | medium | — |
-| [B587](testing/small-feature/B587-a-closed-trip-cannot-be-advertised.md) | A closed trip cannot be advertised as a locked card on the trips overview | FEATURE | medium | medium | — |
-| [B600](testing/small-feature/B600-a-teasered-trip-s-countries-are.md) | A teasered trip's countries are missing from the lifetime map | FEATURE | medium | low | — |
-| [B601](testing/small-feature/B601-a-reader-refused-at-the-trip.md) | A reader refused at the trip gate has no way to ask the owner to let them in | FEATURE | medium | medium | — |
-| [B605](testing/small-feature/B605-a-photograph-on-a-day-cannot.md) | A photograph on a day cannot be removed over the API | FEATURE | medium | medium | — |
-| [B606](testing/small-feature/B606-a-short-balance-kills-the-order.md) | A short balance kills the order button instead of explaining itself | FEATURE | medium | low | — |
 | [B611](testing/small-feature/B611-printing-and-whatsapp-are-opt-in.md) | Printing and WhatsApp are opt-in per journal when they are the server's decision | FEATURE | medium | low | — |
 | [B622](testing/small-feature/B622-an-agent-cannot-rename-a-trip.md) | An agent cannot rename a trip or move its dates, though the owner's own page now can | FEATURE | medium | low | — |
 | [B623](testing/small-feature/B623-the-owner-block-opens-on-a.md) | The owner block opens on a form and two paragraphs of explanation nobody rereads | FEATURE | medium | low | — |
@@ -367,7 +352,7 @@ _Nothing here._
 | [B70](testing/superseded/B70-a-test-trip-is-mailed-out.md) | A test trip is mailed out in the digest as if somebody had lived it | ISSUE | medium | low | `62683d95` |
 | [B88](testing/superseded/B88-every-stop-on-a-map-is.md) | Every stop on a map is a dot, which says nothing about where the point actually is | FEATURE | low | low | `62683d95` |
 
-## completed (484)
+## completed (499)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -488,6 +473,8 @@ _Nothing here._
 | [B572](completed/B572-publish-reports-done-after-silently-dropping.md) | publish reports Done after silently dropping most of an existing trip's trip.md | ISSUE | high | low |
 | [B577](completed/B577-selftest-mjs-exits-0-having-tested.md) | selftest.mjs exits 0 having tested nothing, because its fixtures are gitignored | ISSUE | high | low |
 | [B584](completed/B584-a-journal-s-owner-does-not.md) | The instance admin sees an empty trips page and is told the trip is `listed: false` | ISSUE | high | low |
+| [B597](completed/B597-a-day-that-declined-photographs-or.md) | A day that declined photographs or coordinates cannot be published a second time | ISSUE | high | low |
+| [B608](completed/B608-the-file-shape-a-journal-must.md) | The file shape a journal must have is not published anywhere | FEATURE | high | medium |
 | [B653](completed/B653-the-backup-set-is-everything-under.md) | The backup set is everything under DATA_DIR minus what somebody remembered to subtract | CHORE | high | medium |
 | [B72](completed/B72-a-trip-whose-dates-have-passed.md) | A trip whose dates have passed still calls itself upcoming, and hides every day written to it | ISSUE | high | medium |
 | [B73](completed/B73-a-journal-with-no-current-trip.md) | A journal with no current trip answers 404 on three of the four pages its own nav offers | ISSUE | high | low |
@@ -706,6 +693,16 @@ _Nothing here._
 | [B579](completed/B579-a-stale-health-cache-silently-switches.md) | A stale health cache silently switches off the media checks | ISSUE | medium | low |
 | [B582](completed/B582-postcards-can-only-be-started-from.md) | Postcards can only be started from the current trip's gallery | ISSUE | medium | low |
 | [B585](completed/B585-model-mjs-still-says-coordinates-and.md) | model.mjs still says coordinates and photos are only ever false, and the site has a third answer | ISSUE | medium | low |
+| [B587](completed/B587-a-closed-trip-cannot-be-advertised.md) | A closed trip cannot be advertised as a locked card on the trips overview | FEATURE | medium | medium |
+| [B596](completed/B596-a-photograph-cannot-be-held-back.md) | A photograph cannot be held back from readers the trip lets in | FEATURE | medium | high |
+| [B598](completed/B598-a-features-value-written-as-a.md) | A features value written as a bare boolean is silently ignored and nothing says so | ISSUE | medium | low |
+| [B599](completed/B599-a-day-cannot-be-told-its.md) | A day cannot be told its photographs or its place are unrecorded after it exists | ISSUE | medium | low |
+| [B60](completed/B60-a-journal-that-switched-mail-off.md) | A journal that switched mail off still has mail sent on its behalf | ISSUE | medium | low |
+| [B600](completed/B600-a-teasered-trip-s-countries-are.md) | A teasered trip's countries are missing from the lifetime map | FEATURE | medium | low |
+| [B601](completed/B601-a-reader-refused-at-the-trip.md) | A reader refused at the trip gate has no way to ask the owner to let them in | FEATURE | medium | medium |
+| [B604](completed/B604-uploading-the-same-photograph-twice-lands.md) | Uploading the same photograph twice lands it twice, and nothing can tell | ISSUE | medium | medium |
+| [B605](completed/B605-a-photograph-on-a-day-cannot.md) | A photograph on a day cannot be removed over the API | FEATURE | medium | medium |
+| [B606](completed/B606-a-short-balance-kills-the-order.md) | A short balance kills the order button instead of explaining itself | FEATURE | medium | low |
 | [B62](completed/B62-every-docs-link-in-the-readme.md) | Every docs/ link in the README points at a file that moved to docs/archiv | CHORE | medium | low |
 | [B63](completed/B63-a-wrong-restic-repository-makes-a.md) | A wrong RESTIC_REPOSITORY makes a new empty repo instead of failing | ISSUE | medium | low |
 | [B69](completed/B69-the-one-tap-sign-in-link.md) | The one-tap sign-in link always lands on the journal home, losing the page you were trying to read | ISSUE | medium | medium |
@@ -852,6 +849,9 @@ _Nothing here._
 | [B581](completed/B581-a-day-that-declined-photographs-is.md) | A day that declined photographs is still tipped to add some | ISSUE | low | low |
 | [B586](completed/B586-a-day-gets-both-an-error.md) | A day gets both an error and a tip for the same unanswered question | ISSUE | low | low |
 | [B59](completed/B59-a-new-locale-string-renders-as.md) | A new locale string renders as its own key until the server is restarted | ISSUE | low | low |
+| [B595](completed/B595-a-photobook-can-be-charged-a.md) | A photobook can be charged a price the owner never saw | ISSUE | low | low |
+| [B603](completed/B603-npm-run-dev-s-strict-mode.md) | A dev-mode-only effect race can pass or fail local browser testing for the wrong reason | ISSUE | low | low |
+| [B607](completed/B607-a-config-patch-reports-credits-as.md) | A config PATCH reports credits as off on a server that has it on | ISSUE | low | low |
 | [B61](completed/B61-the-markdown-twin-is-the-one.md) | The markdown twin is the one route that does not know a journal was deleted | ISSUE | low | low |
 | [B77](completed/B77-a-german-umlaut-loses-its-vowel.md) | A German umlaut loses its vowel in a slug, and two slugify functions disagree about the rest | ISSUE | low | low |
 | [B86](completed/B86-a-recipient-whose-name-has-no.md) | A recipient whose name has no ASCII gets an empty postcard filename, and each one overwrites the last | ISSUE | low | low |
