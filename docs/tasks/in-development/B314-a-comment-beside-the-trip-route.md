@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: api, comments
 found: "2026-09-04T16:29:20Z"
+started: "2026-09-07T10:37:32Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T10:37:32Z"
 ---
 
 # B314 — A comment beside the trip route still says a new trip defaults to private

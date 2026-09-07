@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: validation
 found: "2026-09-04T09:05:06Z"
+started: "2026-09-07T10:37:40Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T10:37:40Z"
 ---
 
 # B247 — The shape of an email address is checked by three different regexes

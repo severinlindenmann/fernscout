@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: backups
 found: "2026-09-05T13:03:44Z"
+started: "2026-09-07T10:37:33Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T10:37:33Z"
 ---
 
 # B462 — systemd logs 'multiple trigger source candidates' every backup run now that one handler serves both OnFailure and OnSuccess

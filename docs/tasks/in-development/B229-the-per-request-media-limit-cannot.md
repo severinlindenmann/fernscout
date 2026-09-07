@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: media, validation
 found: "2026-09-04T07:58:23Z"
+started: "2026-09-07T10:37:39Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T10:37:39Z"
 ---
 
 # B229 — The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice

@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: media, entries
 found: "2026-09-05T21:37:26Z"
+started: "2026-09-07T10:37:38Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T10:37:38Z"
 ---
 
 # B528 — attachGallery writes its splice without re-reading it, where editEntry refuses

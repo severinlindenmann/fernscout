@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: story, caching, drafts
 found: "2026-09-04T20:49:33Z"
+started: "2026-09-07T10:37:34Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T10:37:34Z"
 ---
 
 # B330 — story.json varies by cookie and does not say so, so a browser cache can serve one reader's drafts to the next

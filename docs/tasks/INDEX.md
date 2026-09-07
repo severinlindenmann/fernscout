@@ -49,25 +49,22 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (148)
+## backlog (118)
 
-### security (7)
+### security (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B276](backlog/security/B276-self-service-journal-creation-is-open.md) | Self-service journal creation is open to anyone on fernscout.ch, and B104 records it as never having run | SECURITY | high | low |
 | [B240](backlog/security/B240-every-owner-only-gate-is-one.md) | Every owner-only gate is one scope string away from opening | SECURITY | medium | medium |
-| [B287](backlog/security/B287-the-contacts-page-carries-addresses-and.md) | The contacts page carries addresses and now invite links, and nothing in the repo pins its cache headers | SECURITY | medium | low |
-| [B330](backlog/security/B330-story-json-varies-by-cookie-and.md) | story.json varies by cookie and does not say so, so a browser cache can serve one reader's drafts to the next | SECURITY | medium | low |
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B593](backlog/security/B593-a-fulfilment-instance-s-job-intake.md) | A fulfilment instance's job intake has no admission or rate control | SECURITY | medium | medium |
 | [B239](backlog/security/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low |
 
-### issue (45)
+### issue (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B329](backlog/issue/B329-an-owner-sees-three-of-nine.md) | An owner sees three of nine photographs on the story page and the server path is correct | ISSUE | high | medium |
 | [B386](backlog/issue/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
 | [B520](backlog/issue/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low |
 | [B645](backlog/issue/B645-nothing-runs-a-photograph-through-the.md) | Nothing runs a photograph through the helper's build.mjs, so nine were published sideways | ISSUE | high | medium |
@@ -75,42 +72,24 @@ Do not edit them by hand; run the script.
 | [B648](backlog/issue/B648-publish-dry-run-cannot-show-a.md) | publish --dry-run cannot show a plan for a trip the instance does not have yet, and --offline still hits the network | ISSUE | high | low |
 | [B244](backlog/issue/B244-approving-a-contact-never-says-which.md) | Approving a contact never says which trips the approval opened | ISSUE | medium | medium |
 | [B245](backlog/issue/B245-a-trip-s-trip-md-cannot.md) | A trip's trip.md cannot be changed after the trip is created | ISSUE | medium | medium |
-| [B252](backlog/issue/B252-the-trip-gate-says-a-journal.md) | The trip gate says a journal has no sign-in while /api/auth still issues it sessions | ISSUE | medium | low |
 | [B308](backlog/issue/B308-the-entry-document-has-tripled-and.md) | The entry document has tripled and the guide is 56KB, which is the property they were valued for | ISSUE | medium | medium |
 | [B309](backlog/issue/B309-the-gallery-page-s-rsc-payload.md) | The gallery page's RSC payload carries every entry's full prose for a slideshow nobody has opened | ISSUE | medium | medium |
 | [B310](backlog/issue/B310-the-main-checkout-guard-watches-edit.md) | The main-checkout guard watches Edit and Write, and a heredoc walks straight past it | ISSUE | medium | medium |
 | [B323](backlog/issue/B323-somebody-on-a-trip-cannot-see.md) | Somebody on a trip cannot see or revoke the writing keys they have handed out | ISSUE | medium | medium |
 | [B340](backlog/issue/B340-a-disabled-capability-answers-404-across.md) | A disabled capability answers 404 across every gated route, hiding a real refusal as no-such-route | ISSUE | medium | low |
-| [B342](backlog/issue/B342-readcostsfile-has-no-guard-around-matter.md) | readCostsFile has no guard around matter() and throws on a malformed costs.md | ISSUE | medium | low |
 | [B378](backlog/issue/B378-the-whatsapp-checkbox-is-offered-on.md) | The WhatsApp checkbox is offered on a journal with WhatsApp switched off, one line under a hint saying nothing sends there | ISSUE | medium | low |
 | [B521](backlog/issue/B521-every-photo-upload-logs-that-the.md) | every photo upload logs that the body was truncated at 10MB | ISSUE | medium | low |
-| [B528](backlog/issue/B528-attachgallery-writes-its-splice-without-re.md) | attachGallery writes its splice without re-reading it, where editEntry refuses | ISSUE | medium | low |
-| [B545](backlog/issue/B545-a-day-s-markdown-twin-omits.md) | A day's markdown twin omits the weather that is on its page | ISSUE | medium | low |
 | [B556](backlog/issue/B556-re-running-the-demo-builder-deletes.md) | Re-running the demo builder deletes fields the committed demo journal carries | ISSUE | medium | low |
 | [B646](backlog/issue/B646-the-helper-s-review-page-previews.md) | The helper's review page previews the originals, not the pictures that get published | ISSUE | medium | medium |
 | [B649](backlog/issue/B649-a-day-s-time-is-the.md) | A day's time: is the first file's timestamp, screenshots included, so a day went out stamped 06:44 | ISSUE | medium | low |
 | [B650](backlog/issue/B650-a-day-s-location-and-its.md) | A day's location: and its lat/lng can name towns 200 km apart and nothing says so | ISSUE | medium | low |
 | [B696](backlog/issue/B696-a-journal-called-agent-can-still.md) | A journal called agent can still be created on an instance with its own config | ISSUE | medium | low |
-| [B229](backlog/issue/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low |
-| [B237](backlog/issue/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low |
 | [B238](backlog/issue/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low |
-| [B241](backlog/issue/B241-an-agent-code-can-be-issued.md) | An agent code can be issued for a trip that does not exist | ISSUE | low | low |
-| [B247](backlog/issue/B247-the-shape-of-an-email-address.md) | The shape of an email address is checked by three different regexes | ISSUE | low | low |
-| [B274](backlog/issue/B274-the-self-serve-link-in-a.md) | The self-serve link in a reader's mail is labelled as a detail change when it is their standing way back | ISSUE | low | low |
-| [B288](backlog/issue/B288-an-agent-orienting-through-status-is.md) | An agent orienting through status is not told a trip.md failed to load, though the trip list would tell it | ISSUE | low | low |
 | [B388](backlog/issue/B388-resending-a-mailed-guest-invitation-has.md) | Resending a mailed guest invitation has no rate limit | ISSUE | low | low |
 | [B389](backlog/issue/B389-a-contact-s-stored-phone-number.md) | A contact's stored phone number that toE164 cannot parse is shown to the owner as if it were fine | ISSUE | low | low |
 | [B391](backlog/issue/B391-telfield-s-country-combobox-has-no.md) | TelField's country combobox has no jsdom test for keyboard/mouse interaction | ISSUE | low | low |
-| [B415](backlog/issue/B415-the-address-lookup-offers-the-same.md) | The address lookup offers the same address twice when OSM holds a building and a shop at it | ISSUE | low | low |
-| [B419](backlog/issue/B419-the-three-comboboxes-never-tell-assistive.md) | The three comboboxes never tell assistive tech which suggestion the arrow keys are on | ISSUE | low | low |
 | [B429](backlog/issue/B429-the-invite-form-shows-a-canned.md) | The invite form shows a canned mail-off line instead of the server's, losing which switch is off | ISSUE | low | low |
-| [B500](backlog/issue/B500-minimap-hydrates-with-a-mismatch-on.md) | MiniMap hydrates with a mismatch on the last decimal place of every coordinate | ISSUE | low | low |
-| [B508](backlog/issue/B508-mail-sent-from-a-dev-server.md) | Mail sent from a dev server links to the production site | ISSUE | low | low |
-| [B538](backlog/issue/B538-a-day-the-archive-has-no.md) | A day the archive has no answer for re-fetches on every PATCH | ISSUE | low | low |
-| [B554](backlog/issue/B554-the-desktop-winding-path-sidebar-shows.md) | The desktop winding-path sidebar shows a day's cost converted only, where the story feed now shows what was paid | ISSUE | low | low |
-| [B570](backlog/issue/B570-minimap-s-svg-hydrates-with-a.md) | MiniMap's SVG hydrates with a mismatch from floating-point rounding | ISSUE | low | low |
 | [B595](backlog/issue/B595-a-photobook-can-be-charged-a.md) | A photobook can be charged a price the owner never saw | ISSUE | low | low |
-| [B603](backlog/issue/B603-npm-run-dev-s-strict-mode.md) | A dev-mode-only effect race can pass or fail local browser testing for the wrong reason | ISSUE | low | low |
 | [B697](backlog/issue/B697-there-is-no-way-back-to.md) | There is no way back to the site from /agent | ISSUE | low | low |
 
 ### big-feature (18)
@@ -163,7 +142,7 @@ Do not edit them by hand; run the script.
 | [B687](backlog/small-feature/B687-photographs-cannot-describe-themselves.md) | Photographs cannot describe themselves | FEATURE | low | medium |
 | [B688](backlog/small-feature/B688-a-new-visitor-cannot-make-a.md) | A new visitor cannot make a journal inside the helper | FEATURE | low | medium |
 
-### chore (11)
+### chore (9)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -174,9 +153,7 @@ Do not edit them by hand; run the script.
 | [B226](backlog/chore/B226-two-new-deploy-time-checks-run.md) | Two new deploy-time checks run only where a binary happens to exist, and CI may have neither | CHORE | low | low |
 | [B235](backlog/chore/B235-seventy-one-exports-and-fifty-nine.md) | Seventy-one exports and fifty-nine exported types are used only inside their own file | CHORE | low | medium |
 | [B291](backlog/chore/B291-the-day-markdown-twins-are-the.md) | The day markdown twins are the one agent-facing route the request log does not cover | CHORE | low | low |
-| [B314](backlog/chore/B314-a-comment-beside-the-trip-route.md) | A comment beside the trip route still says a new trip defaults to private | CHORE | low | low |
 | [B343](backlog/chore/B343-clearmattercache-is-defined-twice-with-its.md) | clearMatterCache is defined twice, with its reasoning written out twice | CHORE | low | low |
-| [B462](backlog/chore/B462-systemd-logs-multiple-trigger-source-candidates.md) | systemd logs 'multiple trigger source candidates' every backup run now that one handler serves both OnFailure and OnSuccess | CHORE | low | low |
 | [B594](backlog/chore/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
 ### ops (15)
@@ -199,18 +176,11 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### docs-and-skills (8)
+### docs-and-skills (1)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B155](backlog/docs-and-skills/B155-nothing-in-the-repo-tells-a.md) | The README offers hosting on fernscout.ch and never says what it does not promise | DOCS | medium | low |
-| [B372](backlog/docs-and-skills/B372-a-private-trip-s-photograph-is.md) | A private trip's photograph is handed to Meta, and nothing a reader or owner sees says so | DOCS | medium | low |
 | [B211](backlog/docs-and-skills/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | DOCS | low | low |
-| [B289](backlog/docs-and-skills/B289-nothing-records-that-a-hungarian-string.md) | Nothing records that a Hungarian string cannot take a case suffix on an interpolated name | DOCS | low | low |
-| [B404](backlog/docs-and-skills/B404-a-journal-s-own-documentation-txt.md) | A journal's own documentation.txt does not say a private trip stays shut to approved guests | DOCS | low | low |
-| [B421](backlog/docs-and-skills/B421-the-live-testing-skill-sends-agents.md) | The live-testing skill sends agents to a mail directory that does not exist on the server | DOCS | low | low |
-| [B422](backlog/docs-and-skills/B422-nothing-tells-an-agent-that-the.md) | Nothing tells an agent that the owner's pages are cookie-only, so a bearer token that works on every API call renders none of them | DOCS | low | low |
-| [B555](backlog/docs-and-skills/B555-the-unconverted-costs-notice-still-tells.md) | The unconverted-costs notice still tells a reader to ask an agent to add a rate that now arrives on its own | DOCS | low | low |
 
 ### superseded (22)
 
@@ -243,12 +213,42 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (32)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B329](in-development/B329-an-owner-sees-three-of-nine.md) | An owner sees three of nine photographs on the story page and the server path is correct | ISSUE | high | medium | `97b44327` |
 | [B682](in-development/B682-a-day-cannot-be-written-from.md) | A day cannot be written from a phone without an agent | FEATURE | high | high | `fdfcf5f2` |
 | [B108](in-development/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium | `6b9bf0a6` |
+| [B155](in-development/B155-nothing-in-the-repo-tells-a.md) | The README offers hosting on fernscout.ch and never says what it does not promise | DOCS | medium | low | `97b44327` |
+| [B252](in-development/B252-the-trip-gate-says-a-journal.md) | The trip gate says a journal has no sign-in while /api/auth still issues it sessions | ISSUE | medium | low | `97b44327` |
+| [B287](in-development/B287-the-contacts-page-carries-addresses-and.md) | The contacts page carries addresses and now invite links, and nothing in the repo pins its cache headers | SECURITY | medium | low | `97b44327` |
+| [B330](in-development/B330-story-json-varies-by-cookie-and.md) | story.json varies by cookie and does not say so, so a browser cache can serve one reader's drafts to the next | SECURITY | medium | low | `97b44327` |
+| [B342](in-development/B342-readcostsfile-has-no-guard-around-matter.md) | readCostsFile has no guard around matter() and throws on a malformed costs.md | ISSUE | medium | low | `97b44327` |
+| [B372](in-development/B372-a-private-trip-s-photograph-is.md) | A private trip's photograph is handed to Meta, and nothing a reader or owner sees says so | DOCS | medium | low | `97b44327` |
+| [B528](in-development/B528-attachgallery-writes-its-splice-without-re.md) | attachGallery writes its splice without re-reading it, where editEntry refuses | ISSUE | medium | low | `97b44327` |
+| [B545](in-development/B545-a-day-s-markdown-twin-omits.md) | A day's markdown twin omits the weather that is on its page | ISSUE | medium | low | `97b44327` |
+| [B229](in-development/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low | `97b44327` |
+| [B237](in-development/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low | `97b44327` |
+| [B241](in-development/B241-an-agent-code-can-be-issued.md) | An agent code can be issued for a trip that does not exist | ISSUE | low | low | `97b44327` |
+| [B247](in-development/B247-the-shape-of-an-email-address.md) | The shape of an email address is checked by three different regexes | ISSUE | low | low | `97b44327` |
+| [B274](in-development/B274-the-self-serve-link-in-a.md) | The self-serve link in a reader's mail is labelled as a detail change when it is their standing way back | ISSUE | low | low | `97b44327` |
+| [B288](in-development/B288-an-agent-orienting-through-status-is.md) | An agent orienting through status is not told a trip.md failed to load, though the trip list would tell it | ISSUE | low | low | `97b44327` |
+| [B289](in-development/B289-nothing-records-that-a-hungarian-string.md) | Nothing records that a Hungarian string cannot take a case suffix on an interpolated name | DOCS | low | low | `97b44327` |
+| [B314](in-development/B314-a-comment-beside-the-trip-route.md) | A comment beside the trip route still says a new trip defaults to private | CHORE | low | low | `97b44327` |
+| [B404](in-development/B404-a-journal-s-own-documentation-txt.md) | A journal's own documentation.txt does not say a private trip stays shut to approved guests | DOCS | low | low | `97b44327` |
+| [B415](in-development/B415-the-address-lookup-offers-the-same.md) | The address lookup offers the same address twice when OSM holds a building and a shop at it | ISSUE | low | low | `97b44327` |
+| [B419](in-development/B419-the-three-comboboxes-never-tell-assistive.md) | The three comboboxes never tell assistive tech which suggestion the arrow keys are on | ISSUE | low | low | `97b44327` |
+| [B421](in-development/B421-the-live-testing-skill-sends-agents.md) | The live-testing skill sends agents to a mail directory that does not exist on the server | DOCS | low | low | `97b44327` |
+| [B422](in-development/B422-nothing-tells-an-agent-that-the.md) | Nothing tells an agent that the owner's pages are cookie-only, so a bearer token that works on every API call renders none of them | DOCS | low | low | `97b44327` |
+| [B462](in-development/B462-systemd-logs-multiple-trigger-source-candidates.md) | systemd logs 'multiple trigger source candidates' every backup run now that one handler serves both OnFailure and OnSuccess | CHORE | low | low | `97b44327` |
+| [B500](in-development/B500-minimap-hydrates-with-a-mismatch-on.md) | MiniMap hydrates with a mismatch on the last decimal place of every coordinate | ISSUE | low | low | `97b44327` |
+| [B508](in-development/B508-mail-sent-from-a-dev-server.md) | Mail sent from a dev server links to the production site | ISSUE | low | low | `97b44327` |
+| [B538](in-development/B538-a-day-the-archive-has-no.md) | A day the archive has no answer for re-fetches on every PATCH | ISSUE | low | low | `97b44327` |
+| [B554](in-development/B554-the-desktop-winding-path-sidebar-shows.md) | The desktop winding-path sidebar shows a day's cost converted only, where the story feed now shows what was paid | ISSUE | low | low | `97b44327` |
+| [B555](in-development/B555-the-unconverted-costs-notice-still-tells.md) | The unconverted-costs notice still tells a reader to ask an agent to add a rate that now arrives on its own | DOCS | low | low | `97b44327` |
+| [B570](in-development/B570-minimap-s-svg-hydrates-with-a.md) | MiniMap's SVG hydrates with a mismatch from floating-point rounding | ISSUE | low | low | `97b44327` |
+| [B603](in-development/B603-npm-run-dev-s-strict-mode.md) | A dev-mode-only effect race can pass or fail local browser testing for the wrong reason | ISSUE | low | low | `97b44327` |
 
 ## testing (350)
 

@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: skills, testing
 found: "2026-09-05T11:05:00Z"
+started: "2026-09-07T10:37:30Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T10:37:30Z"
 ---
 
 # B421 — The live-testing skill sends agents to a mail directory that does not exist on the server

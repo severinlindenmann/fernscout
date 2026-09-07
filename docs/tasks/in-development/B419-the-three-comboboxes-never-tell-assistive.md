@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: contacts, accessibility
 found: "2026-09-05T10:45:00Z"
+started: "2026-09-07T10:37:35Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T10:37:35Z"
 ---
 
 # B419 — The three comboboxes never tell assistive tech which suggestion the arrow keys are on

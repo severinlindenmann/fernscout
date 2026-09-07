@@ -7,6 +7,9 @@ complexity: low
 area: auth, api
 found: "2026-09-04T08:24:28Z"
 related: B240
+started: "2026-09-07T10:37:40Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T10:37:40Z"
 ---
 
 # B241 — An agent code can be issued for a trip that does not exist
