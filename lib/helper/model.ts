@@ -1,5 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
+import { intentList, REGISTRY } from "./intents";
 
 /**
  * The one place a model is spoken to — B684, and §5 of
@@ -146,4 +147,105 @@ export async function writeDay(notes: string, facts: DayFacts): Promise<WrittenD
     prose,
     warnings: strings(parsed.warnings),
   };
+}
+
+/* -------------------------------------------------------------------------
+ * The router — B685, §3 of the plan.
+ *
+ * One sentence in, a row name and some strings out. It lives in this file
+ * because this file is the one place a model is spoken to, and the prompt
+ * below is as much the product as the write-up prompt above it.
+ *
+ * **The model is handed no client, no tools and no ability to call
+ * anything.** What it returns is looked up in `./intents.ts` by code, and
+ * every write is confirmed by a person afterwards however sure it sounded.
+ * ---------------------------------------------------------------------- */
+
+/** What comes back when nothing fits. Not an error and not an apology — it
+ *  lands the person on the buttons that were already on their screen. */
+export const UNKNOWN_INTENT = "unknown";
+
+/**
+ * The router's system prompt.
+ *
+ * **The list of things it can route to is generated from the registry**
+ * (`intentList()`), which is the only reason this prompt can be trusted a
+ * month from now: a hand-typed menu here would promise a capability somebody
+ * deleted, or hide one somebody added, and neither failure looks like a bug
+ * from the outside — it looks like the helper being stupid.
+ */
+export const ROUTER_SYSTEM_PROMPT = `You are the front door of somebody's travel journal. They have typed or spoken one sentence at it. Your only job is to say which of the things below they are asking for, and to pull out the fields it needs.
+
+You do not do the thing, and you cannot: you have no tools, no access to the journal, and nothing you return happens until the person has read it on their own screen and pressed a button.
+
+The things this helper can do:
+${intentList()}
+
+The rules:
+
+Return exactly one intent. If they asked for two things, take the first one they asked for; they will be asked about the rest afterwards.
+
+If nothing above fits, or you find yourself guessing, return "${UNKNOWN_INTENT}" with no slots. That is a real answer and often the right one — it puts them back on the menu of buttons they already had. A wrong guess costs them more than no guess.
+
+Fill a slot only from what they actually said. Do not invent a title, a place, a trip or a date that is not in their sentence. An empty slot is better than a plausible one: an empty box is a box they fill in, a wrong one is a mistake they have to notice first.
+
+Dates are YYYY-MM-DD, worked out from today's date, which is given to you. A month named with no year means the nearest such month that has not yet ended. A month with no day means its first day for a start and its last day for an end.
+
+Confidence is between 0 and 1: how sure you are that this is the row they meant. Be honest and low rather than polite and high.
+
+Never write prose, an explanation or an apology. You return a row name, a few short strings, and a number.`;
+
+export type Routed = { intent: string; slots: Record<string, unknown>; confidence: number };
+
+/** Every slot name in the registry, so the schema is generated too. */
+function slotProperties(): Record<string, { type: "string" }> {
+  const out: Record<string, { type: "string" }> = {};
+  for (const row of REGISTRY) for (const slot of row.slots) out[slot.name] = { type: "string" };
+  return out;
+}
+
+function routerSchema() {
+  return {
+    type: "object",
+    properties: {
+      intent: { type: "string", enum: [...REGISTRY.map((r) => r.name), UNKNOWN_INTENT] },
+      slots: { type: "object", properties: slotProperties(), additionalProperties: false },
+      confidence: { type: "number" },
+    },
+    required: ["intent", "slots", "confidence"],
+    additionalProperties: false,
+  };
+}
+
+/**
+ * One request. Anything that does not parse comes back as `unknown`, which is
+ * a first-class answer here — a broken response and a sentence nobody
+ * understood deserve the same screen, and it is the screen that always works.
+ */
+export async function routeAsk(said: string, today: string): Promise<Routed> {
+  const client = new Anthropic();
+  const response = await client.messages.create({
+    model: HELPER_MODEL,
+    max_tokens: 300,
+    system: ROUTER_SYSTEM_PROMPT,
+    messages: [
+      { role: "user", content: `Today is ${today}.\n\nWhat they said:\n${said.trim()}` },
+    ],
+    output_config: { format: { type: "json_schema", schema: routerSchema() } },
+  });
+
+  const text = response.content
+    .map((block) => (block.type === "text" ? block.text : ""))
+    .join("")
+    .trim();
+  try {
+    const parsed = JSON.parse(text) as Record<string, unknown>;
+    return {
+      intent: typeof parsed.intent === "string" ? parsed.intent : UNKNOWN_INTENT,
+      slots: (parsed.slots ?? {}) as Record<string, unknown>,
+      confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0,
+    };
+  } catch {
+    return { intent: UNKNOWN_INTENT, slots: {}, confidence: 0 };
+  }
 }
