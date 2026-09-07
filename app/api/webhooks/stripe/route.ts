@@ -1,7 +1,7 @@
 import type Stripe from "stripe";
 import { grant } from "@/lib/credits";
 import { claimProviderPayment } from "@/lib/payments";
-import { stripe, stripeEnabled, webhookSecret } from "@/lib/stripe";
+import { stripe, stripeEnabled, stripeMode, webhookSecret } from "@/lib/stripe";
 import { getUser } from "@/lib/users";
 
 // Stripe's signature is computed over the exact bytes it sent, so nothing may
@@ -60,6 +60,22 @@ export async function POST(request: Request) {
     return new Response("bad signature", { status: 400 });
   }
 
+  // The event's mode must match the key's — B830. `whsec_…` encodes no mode,
+  // so a live key paired with a test webhook secret (or the reverse) passes
+  // signature verification while every real event is for the wrong world.
+  // That is a deploy slip that otherwise shows up only as buyers charged with
+  // no credits, silently, until someone notices — so it is loud, and it is a
+  // 400 rather than a swallowed 200, because Stripe retrying is the least of
+  // the operator's problems here.
+  const expectLive = stripeMode() === "live";
+  if (event.livemode !== expectLive) {
+    console.error(
+      `[stripe] MODE MISMATCH: event.livemode=${event.livemode} but the key is ${expectLive ? "live" : "test"}. ` +
+        "The secret key and the webhook signing secret are not the same mode — fix the deployment.",
+    );
+    return new Response("mode mismatch between key and event", { status: 400 });
+  }
+
   // Everything else Stripe may be configured to send is acknowledged and
   // ignored, so a dashboard endpoint subscribed to more than one event does
   // not accumulate failures.
@@ -74,6 +90,15 @@ export async function POST(request: Request) {
     // which this route does not subscribe to — so nothing is granted until
     // somebody adds that case, which is the safe direction to be wrong in.
     return Response.json({ ok: true, ignored: "unpaid" });
+  }
+
+  // The amount is checked against the row as a bare integer, so the currency
+  // has to be pinned too — B830. Every session this server creates is `chf`
+  // (lib/stripe.ts), so a paid session in any other currency is not one of
+  // ours to honour: 1000 of a non-rappen minor unit is not CHF 10.00.
+  if (session.currency !== "chf") {
+    console.warn(`[stripe] ignoring a paid session in ${session.currency}, not chf:`, session.id);
+    return Response.json({ ok: true, ignored: "currency" });
   }
 
   const owner = session.metadata?.owner;
@@ -121,6 +146,18 @@ export async function POST(request: Request) {
   }
 
   if (!claim.ok) {
+    if (claim.reason === "not_requested") {
+      // The row was already settled — a retried delivery, almost always, and
+      // then this is nothing. But it is ALSO what a second paid session for the
+      // same row looks like: a buyer charged twice, credited once (B831). We
+      // cannot tell the two apart from here, so we say so with the session id,
+      // at warn, rather than swallowing it — reconciliation happens in the
+      // Stripe dashboard, and this is the thread to pull.
+      console.warn(
+        `[stripe] paid session ${session.id} claimed nothing for payment ${paymentId} (already settled). ` +
+          "If this is a distinct session id from the one that granted, the buyer paid twice — reconcile in Stripe.",
+      );
+    }
     if (claim.reason === "amount_mismatch") {
       // Never retryable, and worth shouting about: a paid session naming one
       // of our rows for a different amount is either a bug in the session we
