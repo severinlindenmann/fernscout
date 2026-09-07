@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "../contentRoot";
-import type { Fix } from "../../importers/types";
+import type { Fix } from "../../importers/gps/schema";
 
 /**
  * The private position store — B665.

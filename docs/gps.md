@@ -44,9 +44,9 @@ npm run gps -- import <user> ~/Downloads/Timeline.json [--dry-run]
 npm run gps -- import <user> walk.gpx --format gpx
 ```
 
-The format is detected from the file; `--format` overrides. `--dry-run` reads
-and thins and writes nothing, which is the fastest way to check a new
-importer.
+The format is detected from the file; `--format` overrides. `--dry-run` parses,
+runs the kind's own contract check, reports what it found and writes nothing —
+which is the fastest way to check a new importer.
 
 **Thinning: a fix is kept if it is five minutes after the last kept one, or
 250 metres from it.** Time alone logs a phone fidgeting on a bedside table all
@@ -59,8 +59,15 @@ merged set, and one second holds one position.
 
 ### Adding a format
 
-`importers/` is **MIT-licensed**, unlike the rest of this repository, and it is
-its own registry: drop a file in and it works. See `importers/README.md`.
+`importers/gps/` is where a position format lives, and `importers/` is
+**MIT-licensed**, unlike the rest of this repository. The folder is its own
+registry: drop a file in and it works, with no list to edit.
+
+`importers/gps/schema.ts` is the whole contract — the row type, and
+`checkGpsImporter`, which `--dry-run` runs against your export and which names
+what is wrong in words. The kind of data is the folder, so a bank export into a
+trip's costs would be `importers/costs/` with its own `schema.ts` and its own
+command, not a file beside `gpx.ts`. See `importers/README.md`.
 
 If your tool is not TypeScript, do not write an importer — have it print JSON
 Lines and use the `fixes` format that is already there.
@@ -104,7 +111,9 @@ somebody's front door on a public map.
 
 ## What it looks like
 
-A thin line under the markers, at 40% opacity, in navy-500. The map's frame is
+A thin line under the markers — navy-500, 70% opacity, 2.2px. (0.4 and 1.5px
+was the first attempt and was *invisible* on the green basemap: the paths were
+in the DOM at the right coordinates and could not be seen at all.) The map's frame is
 still computed from the trip's stops alone — a track that wandered outside them
 must not be able to zoom the whole map out to fit itself, and the viewBox clips
 what falls outside.

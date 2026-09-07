@@ -5,15 +5,37 @@
 has heard of should be writable, publishable and copyable between instances
 without anybody having to read a licence first.
 
+## The kind of data is the folder
+
+```
+importers/
+  schema.ts       what every importer is, whatever it reads
+  gps/            positions — read by `npm run gps -- import`
+    schema.ts     ← start here: the row type, and the function that checks yours
+    google-timeline.ts  google-records.ts  gpx.ts  fixes.ts
+```
+
+**`<kind>/schema.ts` is the whole contract for that kind.** Read it, produce
+the row it names, and call the check it exports. There is nothing else to know
+and nowhere else to register.
+
+A new **format** for something already here is a file in that kind's folder. A
+new **kind** — a bank export into a trip's costs, say — is a new folder with
+its own `schema.ts` naming its own row type, and its own command reading it.
+`Cost` and `Fix` have nothing to say to each other, and one folder holding both
+would be a pile to filter rather than a place to look.
+
+`importers/schema.ts` is the whole of what they share: `Importer<Row>`, one
+generic parameter, no base class and no plugin interface.
+
 ## What an importer is
 
-One file. It turns a file somebody exported from somewhere else into plain
-position fixes:
+One file:
 
 ```ts
-import { isSaneFix, type Importer } from "./types";
+import { type GpsImporter } from "./schema";
 
-const importer: Importer = {
+const importer: GpsImporter = {
   id: "my-tracker",
   label: "My Tracker export",
   detect: (head, filename) => filename.endsWith(".mytrack"),
@@ -23,9 +45,28 @@ const importer: Importer = {
 export default importer;
 ```
 
-Drop it in this folder. Nothing registers it and no list needs editing — the
-folder *is* the registry, read at startup, and `npm run gps -- formats` will
-list it back to you.
+Drop it in `gps/`. Nothing registers it and no list needs editing — the folder
+*is* the registry, read at startup, and `npm run gps -- formats` will list it
+back to you.
+
+**Then run the check.** `<kind>/schema.ts` exports one, and it tells you what is
+wrong in words:
+
+```ts
+import { checkGpsImporter } from "./schema";
+
+const problems = checkGpsImporter(importer, importer.parse(myExport));
+// [] means it holds up. Otherwise, for instance:
+//   "3 of 812 fixes are not on Earth — first: {"t":…,"lat":8.1,"lon":471}.
+//    Latitude is ±90 and longitude ±180; a pair the wrong way round is the
+//    usual cause"
+//   "812 fixes are outside 2001–2100 — first: 1970-01-21T…Z. t is
+//    milliseconds since the epoch; seconds land in 1970"
+```
+
+`npm run gps -- import <user> <file> --dry-run` runs exactly that function
+against your real export and writes nothing, so you never have to import the
+check yourself unless you want it in your own test.
 
 That is the whole job. An importer has no network, no disk, no database and no
 idea what a journal or a trip is. Everything downstream — thinning, storage,
@@ -34,16 +75,18 @@ reachable from in here.
 
 ## The contract
 
-`types.ts` is the authority; it is forty lines and worth reading. In short:
+`schema.ts` — both of them — is the authority, and between them they are under
+a hundred and fifty lines. In short:
 
 | | |
 | --- | --- |
-| `id` | lowercase, dashes. Written into a trip's `track.json` as the credit for where the line came from, so it outlives the import |
+| `id` | lowercase, dashes, unique within its kind. `--format <id>` is how somebody overrides detection |
 | `label` | what a person calls this export |
 | `detect(head, filename)` | given the first 64 kB and the name — is this yours? |
-| `parse(text)` | every fix, in any order |
+| `parse(text)` | every row, in any order |
 
-A `Fix` is `{ t, lat, lon }`, with `t` in **milliseconds since the epoch, UTC**.
+A `Fix` — `gps/`'s row — is `{ t, lat, lon }`, with `t` in **milliseconds since
+the epoch, UTC**.
 Nothing else. No accuracy, no altitude, no speed, no mode of transport — if
 one of those ever earns its place it will be an optional field, and until then
 its absence is what keeps every importer the same size.
@@ -62,7 +105,7 @@ Three rules that are not obvious:
 ## Not writing TypeScript?
 
 Then do not write an importer. Have your script print the neutral format and
-use `fixes.ts`, which is already here:
+use `gps/fixes.ts`, which is already here:
 
 ```jsonl
 [1762410000, 47.38564, 8.21819]
@@ -75,15 +118,17 @@ One fix per line, `t` as an ISO instant or epoch seconds or milliseconds. Then
 ## Testing yours
 
 ```bash
-npm run gps -- formats                       # is it listed?
+npm run gps -- formats                         # is it listed?
 npm run gps -- import <user> <file> --dry-run  # what would it read?
 ```
 
-`--dry-run` reads and thins and writes nothing, and prints how many fixes came
-out, over what span. That is the fastest check that a new importer works: a
-count that is zero, or a span running to 1970, is the parse being wrong.
+`--dry-run` parses, runs `checkGpsImporter`, prints how many fixes came out and
+over what span, and writes nothing. A count of zero, a span running to 1970, or
+a complaint about the Earth is the parse being wrong.
 
 ## What is here
+
+**`gps/` — positions.**
 
 | | |
 | --- | --- |
@@ -92,9 +137,14 @@ count that is zero, or a span running to 1970, is the parse being wrong.
 | `gpx.ts` | GPX — Garmin, Strava, GPSLogger, OsmAnd, anything with a track |
 | `fixes.ts` | the neutral JSON Lines format above |
 
+That is the only kind so far. `costs/` is the obvious next one — a bank or card
+export read into a trip's `costs.md` — and it is a folder nobody has written
+yet rather than a promise this file is making.
+
 ## Where the data goes, and why that matters
 
-Everything an importer reads is somebody's complete location history: every
+This section is about `gps/` in particular. Everything one of those importers
+reads is somebody's complete location history: every
 address they sleep at, every place they work, everywhere they have been ill.
 Fernscout keeps it out of reach — the store it lands in is served by no route
 and is in no export, and what the site draws is a separate derived file

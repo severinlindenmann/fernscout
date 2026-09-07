@@ -175,7 +175,9 @@ holds the parsers that read a location export — Google Timeline, GPX, and a
 neutral format for anybody's own tool — and they are worth sharing on their own
 terms: adding support for your own device should not mean reading a non-compete
 clause first. The IMPORTERS section at the top of `LICENSE` is the operative
-text, and `importers/README.md` is what one has to implement.
+text, and `importers/README.md` is what one has to implement — one file per
+format, grouped by the kind of data, with `<kind>/schema.ts` as the contract
+and a check to run against your own.
 
 The **name is outside that grant entirely** — Shield licenses copyright and
 patents, never a trademark. The **waymark and wordmark are inside it and

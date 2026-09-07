@@ -164,11 +164,19 @@ it into a day, and do not copy one into a conversation. `docs/gps.md` is the
 whole of it.
 
 Getting history *in* is `importers/`, which is **MIT-licensed** while the rest
-of this repository is not: it is a folder of small parsers — Google Timeline,
-Google Takeout, GPX, and a neutral JSON Lines format for anybody's own tool —
-each turning one export into plain fixes and knowing nothing about journals.
-The folder is its own registry, so adding a format is dropping a file in.
-`importers/README.md` is the contract.
+of this repository is not: small parsers — Google Timeline, Google Takeout,
+GPX, and a neutral JSON Lines format for anybody's own tool — each turning one
+export into plain rows and knowing nothing about journals. The folder is its
+own registry, so adding a format is dropping a file in.
+
+**The kind of data is the subfolder, and each kind's `schema.ts` is its whole
+contract.** `importers/gps/schema.ts` names the row (`Fix`), and exports the
+function that checks somebody's importer against it. A second kind — a bank
+export into a trip's costs is the obvious one — is `importers/costs/` with its
+own `schema.ts` and its own command, never a file beside `gpx.ts`: a `Cost` and
+a `Fix` have nothing to say to each other. `importers/schema.ts` holds the only
+thing they share, `Importer<Row>`, and there is deliberately no plugin
+interface beneath it. `importers/README.md` is the guide.
 
 Sent mail is not in this tree. Since B636 it lives under the data dir
 instead — `<dataDir>/mail/<username>/` (and `<dataDir>/mail/.mail/` for a

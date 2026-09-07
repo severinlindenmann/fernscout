@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { appendFixes, gpsDir, readRange, thin, MIN_METRES, MIN_SECONDS } from "@/lib/gps/store";
-import type { Fix } from "@/importers/types";
+import type { Fix } from "@/importers/gps/schema";
 
 /**
  * B665 — the private half.

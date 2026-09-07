@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { gpsDir, metresBetween, readRange } from "./store";
 import type { Track, TrackSegment } from "./track";
-import type { Fix } from "../../importers/types";
+import type { Fix } from "../../importers/gps/schema";
 
 /**
  * Turning the private store into one trip's line — B665.

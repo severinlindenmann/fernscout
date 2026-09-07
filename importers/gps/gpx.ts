@@ -1,4 +1,4 @@
-import { isSaneFix, parseInstant, type Fix, type Importer } from "./types";
+import { isSaneFix, parseInstant, type Fix, type GpsImporter } from "./schema";
 
 /**
  * GPX — what every logger app, watch and handheld unit can export.
@@ -16,7 +16,7 @@ import { isSaneFix, parseInstant, type Fix, type Importer } from "./types";
 const POINT = /<(?:trkpt|rtept|wpt)\b[^>]*\blat="([^"]+)"[^>]*\blon="([^"]+)"[^>]*>([\s\S]*?)<\/(?:trkpt|rtept|wpt)>/gi;
 const TIME = /<time>([^<]+)<\/time>/i;
 
-const importer: Importer = {
+const importer: GpsImporter = {
   id: "gpx",
   label: "GPX track (Garmin, Strava, GPSLogger, OsmAnd, …)",
 
