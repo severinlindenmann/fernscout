@@ -40,7 +40,7 @@ describe("the pricing table", () => {
   });
 
   test("quotes the photobook from the smallest book the planner will bind, as an estimate", () => {
-    const from = photobookCredits(32, "square-210");
+    const from = photobookCredits(32, "square");
     const rendered = html();
     expect(rendered).toContain(String(from));
     // Said in the row itself, not only in a source comment:

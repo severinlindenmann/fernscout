@@ -887,7 +887,6 @@
   "photobook.warn.noPhotos": "Ebben a könyvben még nincs fotó.",
   "photobook.warn.textTruncated": "{count} nap rövidítve fér az oldalára. Nyiss meg egy napot, ha adnál neki egy másodikat.",
   "photobook.warn.textTruncated.one": "Egy nap rövidítve fér az oldalára. Nyisd meg, ha adnál neki egy másodikat.",
-  "photobook.fix.staple": "Inkább tűzve",
   "photobook.fix.smaller": "Kisebben nyomtatva",
   "photobook.day.applyToAllConfirm.one": "Egy másik napot kézzel rendeztél el, az is ezt az elrendezést kapja. Folytatod?",
   "photobook.resetAllConfirm.one": "Ez törli az egy általad elrendezett napot, és nem vonható vissza.",

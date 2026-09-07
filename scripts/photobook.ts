@@ -2,7 +2,7 @@
  * Turns a trip into a print-ready book.
  *
  *   npm run photobook -- --trip <id>
- *   npm run photobook -- --trip <id> --guides --size landscape-a4
+ *   npm run photobook -- --trip <id> --guides --size portrait
  *   npm run photobook -- --trip <id> --icc "/path/to/FOGRA39.icc"
  *   npm run photobook -- --providers
  *   npm run photobook -- --trip <id> --charts
@@ -32,7 +32,7 @@ import { renderCover, renderVolume } from "../lib/photobook/render.ts";
 import { DEFAULT_OPTIONS } from "../lib/photobook/options.ts";
 import { isBookLocale } from "../lib/photobook/strings.ts";
 import { renderPreview } from "../lib/photobook/preview.ts";
-import { BOOK_SIZES, SADDLE_STITCH, defaultSpec } from "../lib/photobook/spec.ts";
+import { BOOK_SIZES, defaultSpec } from "../lib/photobook/spec.ts";
 import {
   ghostscriptCommand,
   outputIntentFor,
@@ -87,14 +87,13 @@ const tripId = str("trip");
 if (!tripId) {
   fail(
     "Usage: npm run photobook -- --trip <username>/<trip-id> [--out <dir>] [--guides]\n" +
-      "       npm run photobook -- --trip <id> --binding saddle --size portrait-a4\n" +
+      "       npm run photobook -- --trip <id> --size portrait\n" +
       "       npm run photobook -- --trip <id> --icc <profile.icc>\n" +
       "       npm run photobook -- --trip <id> --locale de\n" +
       "       npm run photobook -- --trip <id> --charts\n" +
       "       npm run photobook -- --trip <id> --outline\n" +
       "       npm run photobook -- --providers\n\n" +
-      `Sizes:    ${Object.keys(BOOK_SIZES).join(", ")}\n` +
-      "Bindings: perfect (32-160 pages), saddle (4-48, right for a short trip)",
+      `Sizes: ${Object.keys(BOOK_SIZES).join(", ")}`,
   );
 }
 
@@ -122,17 +121,11 @@ if (backend !== "dry-run") {
   );
 }
 
-const sizeId = str("size") ?? "square-210";
+const sizeId = str("size") ?? "square";
 const size = BOOK_SIZES[sizeId];
 if (!size) fail(`Unknown size "${sizeId}". One of: ${Object.keys(BOOK_SIZES).join(", ")}`);
 
 const spec = defaultSpec(size);
-
-// Binding decides the page-count rule, and for a short trip it decides whether
-// the book ends in twenty blank leaves.
-const binding = str("binding") ?? "perfect";
-if (binding === "saddle") spec.pageCount = SADDLE_STITCH;
-else if (binding !== "perfect") fail(`Unknown binding "${binding}". One of: perfect, saddle`);
 // A finished book belongs to whoever it is about, next to their content and
 // their postcards, rather than in a directory shared by everyone on the
 // instance (decision 23). Gitignored there.

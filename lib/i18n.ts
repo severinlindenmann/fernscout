@@ -1228,7 +1228,6 @@ export type TranslationKey =
   | "photobook.first.text.withoutHint"
   | "photobook.first.textHint"
   | "photobook.fix.smaller"
-  | "photobook.fix.staple"
   | "photobook.getCredits"
   | "photobook.noCredits"
   | "photobook.noPhotos"

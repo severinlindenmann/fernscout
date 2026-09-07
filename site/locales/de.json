@@ -887,7 +887,6 @@
   "photobook.warn.noPhotos": "In diesem Buch sind noch keine Fotos.",
   "photobook.warn.textTruncated": "{count} Tage werden gekürzt, damit sie auf ihre Seite passen. Öffne einen Tag, um ihm eine zweite zu geben.",
   "photobook.warn.textTruncated.one": "Ein Tag wird gekürzt, damit er auf seine Seite passt. Öffne ihn, um ihm eine zweite zu geben.",
-  "photobook.fix.staple": "Lieber heften",
   "photobook.fix.smaller": "Kleiner drucken",
   "photobook.day.applyToAllConfirm.one": "Ein anderer Tag wurde von Hand gestaltet und bekommt ebenfalls dieses Layout. Weiter?",
   "photobook.resetAllConfirm.one": "Das verwirft den einen Tag, den du gestaltet hast, und lässt sich nicht rückgängig machen.",

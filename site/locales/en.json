@@ -887,7 +887,6 @@
   "photobook.warn.noPhotos": "There are no photographs in this book yet.",
   "photobook.warn.textTruncated": "{count} days are cut short to fit their page. Open a day to give it a second one.",
   "photobook.warn.textTruncated.one": "One day is cut short to fit its page. Open it to give it a second one.",
-  "photobook.fix.staple": "Staple it instead",
   "photobook.fix.smaller": "Print it smaller",
   "photobook.day.applyToAllConfirm.one": "One other day was arranged by hand and will be set to this layout too. Continue?",
   "photobook.resetAllConfirm.one": "This clears the one day you've arranged and cannot be undone.",

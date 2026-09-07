@@ -189,31 +189,24 @@ export default function BookLevelView({
   /**
    * The remedy, not the description — B549's whole point.
    *
-   * `blank-padding` is the one the planner spells out and then declines to
-   * act on: it knows a trip this short wants stapling, and used to print a
-   * paragraph telling the reader to go and find a radio button. Offered here
-   * as a button that sets it.
+   * `blank-padding` used to offer a stapled remedy here; Gelato has no
+   * saddle-stitch product, so a short trip's padding has no button to press —
+   * the planner's warning is the whole of it now.
    *
-   * The resolution pair get the honest half of the same move: a smaller page
+   * The resolution fix is the honest half of the same move: a smaller page
    * needs fewer pixels, so offering the smallest format is a real remedy —
    * but whether it clears every photograph depends on the crop, so the button
    * changes the format and lets the re-plan (400 ms later) answer. It says
    * "print it smaller", never "this will fix it".
    */
   const fixes: { key: TranslationKey; apply: () => void }[] = [];
-  if (counts.has("blank-padding") && options.binding !== "saddle") {
-    fixes.push({
-      key: "photobook.fix.staple",
-      apply: () => setOptions((o) => ({ ...o, binding: "saddle" })),
-    });
-  }
   if (
     (counts.has("low-resolution") || counts.has("no-original") || counts.has("no-large-photo")) &&
-    options.size !== "square-210"
+    options.size !== "square"
   ) {
     fixes.push({
       key: "photobook.fix.smaller",
-      apply: () => setOptions((o) => ({ ...o, size: "square-210" })),
+      apply: () => setOptions((o) => ({ ...o, size: "square" })),
     });
   }
 

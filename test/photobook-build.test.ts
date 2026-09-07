@@ -1,8 +1,8 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it, test } from "vitest";
 import { DEFAULT_OPTIONS } from "@/lib/photobook/options";
 import { specFor, priceOf } from "@/lib/photobook/build";
 import { planBook } from "@/lib/photobook/plan";
-import { BOOK_SIZES, SADDLE_STITCH, portableRule } from "@/lib/photobook/spec";
+import { BOOK_SIZES, GELATO_PAGE_RULE } from "@/lib/photobook/spec";
 import { photobookCredits } from "@/lib/credits/pricing";
 
 // planFor and buildPhotobook read the filesystem; they are exercised by the
@@ -10,14 +10,14 @@ import { photobookCredits } from "@/lib/credits/pricing";
 // harness. What is unit-tested here is the two pure decisions.
 
 describe("spec from options", () => {
-  test("the size comes from the catalogue and an unknown one falls back to the square", () => {
-    expect(specFor({ ...DEFAULT_OPTIONS, size: "landscape-a4" }).size).toBe(BOOK_SIZES["landscape-a4"]);
-    expect(specFor({ ...DEFAULT_OPTIONS, size: "nonsense" }).size).toBe(BOOK_SIZES["square-210"]);
+  it("resolves a size id, and falls back to square", () => {
+    expect(specFor({ ...DEFAULT_OPTIONS, size: "portrait" }).size).toBe(BOOK_SIZES["portrait"]);
+    expect(specFor({ ...DEFAULT_OPTIONS, size: "nonsense" }).size).toBe(BOOK_SIZES["square"]);
   });
 
-  test("saddle stitch changes the page-count rule, perfect binding keeps the portable one", () => {
-    expect(specFor({ ...DEFAULT_OPTIONS, binding: "saddle" }).pageCount).toEqual(SADDLE_STITCH);
-    expect(specFor({ ...DEFAULT_OPTIONS, binding: "perfect" }).pageCount).toEqual(portableRule());
+  it("always uses the one page rule, whatever a stored option says", () => {
+    expect(specFor({ ...DEFAULT_OPTIONS, binding: "saddle" } as never).pageCount).toEqual(GELATO_PAGE_RULE);
+    expect(specFor({ ...DEFAULT_OPTIONS, size: "large-square" }).pageCount).toEqual(GELATO_PAGE_RULE);
   });
 });
 
@@ -27,7 +27,7 @@ describe("price of a planned book", () => {
       volumes: [{ interiorPages: 40 }, { interiorPages: 60 }],
     } as unknown as ReturnType<typeof planBook>;
     expect(priceOf(book, DEFAULT_OPTIONS)).toBe(
-      photobookCredits(40, "square-210") + photobookCredits(60, "square-210"),
+      photobookCredits(40, "square") + photobookCredits(60, "square"),
     );
   });
 });

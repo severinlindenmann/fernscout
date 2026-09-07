@@ -72,7 +72,7 @@ export default function Pricing({ locale }: { locale: string }) {
   /** A book at the smallest page count the planner will bind, which is what
    *  "from" means here. See `PHOTOBOOK_BASE_CREDITS` for why it is an estimate
    *  — and why this row says so out loud rather than only in a comment. */
-  const photobookFrom = photobookCredits(32, "square-210");
+  const photobookFrom = photobookCredits(32, "square");
 
   const rows: { label: string; detail: string; credits: number; from?: boolean }[] = [
     {
