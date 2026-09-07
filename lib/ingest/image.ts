@@ -23,7 +23,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import sharp from "sharp";
-import { DHASH_HEIGHT, DHASH_WIDTH, dHash } from "./hash.ts";
+import { DHASH_GRID, dHash } from "./hash.ts";
 
 /** Longest edge of a served derivative. */
 export const MAX_EDGE = 2000;
@@ -94,11 +94,11 @@ export type DecodedSource = {
   dispose(): void;
 };
 
-/** The 9×8 greyscale grid the difference hash compares — and, incidentally,
+/** The 9×9 greyscale grid the difference hashes compare — and, incidentally,
  * the cheapest possible proof that a decoder can actually read this file. */
-async function greyGrid(file: string): Promise<Uint8Array> {
-  const raw = await sharp(file, { failOn: "error" })
-    .resize(DHASH_WIDTH, DHASH_HEIGHT, { fit: "fill" })
+async function greyGrid(input: string | Buffer): Promise<Uint8Array> {
+  const raw = await sharp(input, { failOn: "error" })
+    .resize(DHASH_GRID, DHASH_GRID, { fit: "fill" })
     .greyscale()
     .raw()
     .toBuffer();
@@ -159,6 +159,21 @@ function oriented(source: DecodedSource) {
 
 export async function perceptualHash(source: DecodedSource): Promise<string> {
   return dHash(await greyGrid(source.file));
+}
+
+/**
+ * The same hash, taken off bytes already in hand — B872.
+ *
+ * Which side of the pipeline a picture is hashed on has to match, or nothing
+ * compares. The upload path used to hash the *arriving original* and compare
+ * it against the *stored derivatives*, and those are not the same picture to a
+ * difference hash: the derivative has been rotated upright, capped at
+ * `MAX_EDGE` and re-encoded, and on anything finely textured that moves the
+ * 9×9 averages by tens of bits. A file uploaded twice therefore failed to
+ * match itself. Both sides now hash the derivative.
+ */
+export async function perceptualHashOf(bytes: Buffer): Promise<string> {
+  return dHash(await greyGrid(bytes));
 }
 
 /**

@@ -2,7 +2,13 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
-import { decodeSource, extensionFor, makeDerivative, perceptualHash } from "../ingest/image.ts";
+import {
+  decodeSource,
+  extensionFor,
+  makeDerivative,
+  perceptualHash,
+  perceptualHashOf,
+} from "../ingest/image.ts";
 import { getEntryBySlug } from "../entries";
 import { frontmatterSrc } from "../ingest/paths.ts";
 import { resolveMediaFile, tripMediaDir, tripOriginalsDir } from "../media";
@@ -15,7 +21,7 @@ import {
   type Problem,
 } from "../validate/media";
 import { VIDEO_EXTENSIONS, probeVideo, transcodeVideo, videoToolsAvailable } from "../ingest/video";
-import { isDuplicate } from "../ingest/hash.ts";
+import { contentHash, isDuplicate } from "../ingest/hash.ts";
 import { loadUserConfig } from "../config";
 import { mediaKey, type PhotoVisibility } from "../photos";
 import { storageRefusal } from "../storageQuota";
@@ -162,7 +168,16 @@ export function kindOf(filename: string): "image" | "video" {
 }
 
 /**
- * What this day already holds, as perceptual hashes — B604.
+ * One photograph already on this day, as the two questions asked of it.
+ *
+ * `sha` is the served file's own bytes — a fact, and the only thing allowed to
+ * discard an upload. `phash` is what it looks like — an opinion, and absent
+ * for a picture the hash has nothing to say about.
+ */
+type Fingerprint = { file: string; sha: string; phash?: string };
+
+/**
+ * What this day already holds, as bytes and as pictures — B604, B872.
  *
  * Read off the files rather than remembered in a ledger, and that is the
  * point: `.ingest.json` is a record of what ingest imported, so a photograph
@@ -181,7 +196,7 @@ export function kindOf(filename: string): "image" | "video" {
  * rather than per trip, which would be the same work multiplied by the number
  * of days.
  */
-async function dayFingerprints(dir: string): Promise<{ file: string; phash: string }[]> {
+async function dayFingerprints(dir: string): Promise<Fingerprint[]> {
   let names: string[];
   try {
     names = fs.readdirSync(dir);
@@ -189,14 +204,15 @@ async function dayFingerprints(dir: string): Promise<{ file: string; phash: stri
     return []; // No folder yet: the first upload to this day.
   }
 
-  const out: { file: string; phash: string }[] = [];
+  const out: Fingerprint[] = [];
   for (const name of names.sort()) {
     if (kindOf(name) === "video" || /-poster\.jpe?g$/i.test(name)) continue;
     const file = path.join(dir, name);
     try {
+      const sha = contentHash(fs.readFileSync(file));
       const source = await decodeSource(file);
       try {
-        out.push({ file: name, phash: await perceptualHash(source) });
+        out.push({ file: name, sha, phash: await perceptualHash(source) });
       } finally {
         source.dispose();
       }
@@ -466,33 +482,56 @@ export async function storeUploads(
       }
 
       /**
-       * The same photograph twice — B604.
+       * The same photograph twice — B604, and rebuilt by B872.
        *
        * `nextIndex` appends, so a resent batch used to become a second file, a
        * second `gallery:` line and a second tile, with nothing on the write
        * path ever comparing the arriving picture to what the day already had.
        * Eleven such pairs across four days were found on one real trip.
        *
-       * Perceptual rather than by bytes, because bytes do not survive the
-       * pipeline: the same photograph exported twice, or re-encoded, is a
-       * different file and an identical picture. `DUPLICATE_THRESHOLD` in
-       * lib/ingest/hash.ts is the same tightness ingest uses, and it is tight
-       * on purpose — a missed duplicate is a tile somebody deletes, while a
-       * false match silently drops a photograph nobody knows was sent.
+       * Three things changed after this dropped thirty-eight photographs on
+       * the live instance in one afternoon:
+       *
+       *  1. **The derivative is built first and everything is read off it.**
+       *     The day's fingerprints come from the files on disk, which are
+       *     derivatives; hashing the arriving *original* against them compared
+       *     two different pictures — rotated, resized and re-encoded is not the
+       *     same 9×9 grid — so a file uploaded twice could fail to match itself.
+       *  2. **Identical bytes is the only thing that discards.** That is a
+       *     fact: what is on the day is what was sent, so nothing is lost.
+       *  3. **A resemblance is an opinion, and it keeps the file.** The hash
+       *     agreeing on both axes is good evidence and it is still only
+       *     evidence, and the two ways of being wrong do not cost the same —
+       *     a second tile is deleted in ten seconds, a photograph dropped in
+       *     silence is gone. So it is said in `advice` and stored anyway.
        */
+      let derivative;
+      let original;
+      try {
+        // Measured from the decoded source rather than from `upload.bytes`,
+        // because a HEIC's own header is not something sharp can always read —
+        // `decodeSource` is what guarantees a file with legible dimensions.
+        // These are the *original's* pixels; the derivative's are below.
+        original = await sharp(source.file).metadata();
+        derivative = await makeDerivative(source);
+      } finally {
+        source.dispose();
+      }
+
+      const sha = contentHash(derivative.bytes);
       let phash: string | undefined;
       try {
-        phash = await perceptualHash(source);
+        phash = await perceptualHashOf(derivative.bytes);
       } catch {
         // Un-hashable is not a reason to refuse: it goes in unchecked.
       }
-      const already = phash && fingerprints.find((seen) => isDuplicate(seen.phash, phash!));
-      if (already) {
+
+      const identical = fingerprints.find((seen) => seen.sha === sha);
+      if (identical) {
         skipped.push({
           filename: upload.filename,
-          matched: frontmatterSrc(tripId, path.join(slug, already.file)),
+          matched: frontmatterSrc(tripId, path.join(slug, identical.file)),
         });
-        source.dispose();
         // The staged original goes too: keeping it would spend the journal's
         // quota on a photograph that is not in the day.
         staged.pop();
@@ -500,13 +539,20 @@ export async function storeUploads(
         continue;
       }
 
-      try {
-        // Measured from the decoded source rather than from `upload.bytes`,
-        // because a HEIC's own header is not something sharp can always read —
-        // `decodeSource` is what guarantees a file with legible dimensions.
-        // These are the *original's* pixels; the derivative's are below.
-        const original = await sharp(source.file).metadata();
-        const derivative = await makeDerivative(source);
+      const resembles = phash
+        ? fingerprints.find((seen) => seen.phash && isDuplicate(seen.phash, phash!))
+        : undefined;
+      if (resembles) {
+        advice.push(
+          `${upload.filename} looks like a photograph this day already has ` +
+            `(${frontmatterSrc(tripId, path.join(slug, resembles.file))}). It is not the same ` +
+            `file, so it was stored rather than left out — a resemblance is a guess, and a ` +
+            `second copy you can delete beats a picture dropped without telling you. Remove ` +
+            `one with DELETE .../media if they really are the same.`,
+        );
+      }
+
+      {
         const name = `${stem}${extensionFor(derivative.format)}`;
         fs.writeFileSync(path.join(staging, name), derivative.bytes);
         staged.push({ from: path.join(staging, name), to: path.join(mediaOut, name) });
@@ -533,9 +579,7 @@ export async function storeUploads(
           width: original.width,
           height: original.height,
         });
-        if (phash) fingerprints.push({ file: name, phash });
-      } finally {
-        source.dispose();
+        fingerprints.push({ file: name, sha, phash });
       }
       index += 1;
     }

@@ -135,8 +135,67 @@ describe("HEIC", () => {
 });
 
 describe("perceptual hashing", () => {
-  test("a hash is 64 bits of hex", () => {
-    expect(dHash(new Uint8Array(72).fill(0))).toMatch(/^[0-9a-f]{16}$/);
+  test("a hash is two axes of 64 bits, as hex", () => {
+    expect(dHash(new Uint8Array(81).fill(0))).toMatch(/^[0-9a-f]{32}$/);
+  });
+
+  /**
+   * The reproduction B872 was found by.
+   *
+   * A grid with no left-to-right variation hashes to all zeros on the
+   * horizontal axis, and used to be the whole hash — so a plain grey wall and
+   * a sky grading from blue to green came out identical, at distance 0, and
+   * the second one uploaded to a day was silently discarded as a duplicate of
+   * the first. Two things had to be true for that; neither is now.
+   */
+  test("a picture flat left-to-right is not a duplicate of every other one", () => {
+    const flat = dHash(new Uint8Array(81).fill(128));
+    // A vertical gradient: flat across, bright to dark down. `got-02.jpg` in
+    // the ticket, near enough.
+    const gradient = new Uint8Array(81);
+    for (let y = 0; y < 9; y++) for (let x = 0; x < 9; x++) gradient[y * 9 + x] = 240 - y * 25;
+    const sky = dHash(gradient);
+
+    // The horizontal axis still says nothing about either of them, and that is
+    // exactly the trap: identical, and evidence of nothing.
+    expect(flat.slice(0, 16)).toBe("0000000000000000");
+    expect(sky.slice(0, 16)).toBe("0000000000000000");
+    expect(hammingDistance(flat.slice(0, 16), sky.slice(0, 16))).toBe(0);
+
+    // The vertical axis is what tells them apart, and neither of these carries
+    // enough of anything to be called the same as something else — a plain
+    // wall and a smooth gradient both match nothing at all, including
+    // themselves. That is the point: the hash has no opinion, and the upload
+    // path treats no-opinion as "store it", so both pictures reach the day.
+    expect(isDuplicate(flat, sky)).toBe(false);
+    expect(isDuplicate(flat, flat)).toBe(false);
+    expect(isDuplicate(sky, sky)).toBe(false);
+
+    // A picture with something in it still recognises itself, which is what
+    // keeps the check worth having at all.
+    const scene = new Uint8Array(81);
+    for (let y = 0; y < 9; y++) {
+      for (let x = 0; x < 9; x++) scene[y * 9 + x] = ((x * 7 + y * 3) % 5) * 50;
+    }
+    expect(isDuplicate(dHash(scene), dHash(scene))).toBe(true);
+  });
+
+  /** Same picture, inverted: all-ones is as empty as all-zeros, because every
+   *  smooth gradient says it. */
+  test("an axis of all ones is evidence of nothing either", () => {
+    const ramp = new Uint8Array(81);
+    for (let y = 0; y < 9; y++) for (let x = 0; x < 9; x++) ramp[y * 9 + x] = 240 - x * 25;
+    const other = new Uint8Array(81);
+    for (let y = 0; y < 9; y++) for (let x = 0; x < 9; x++) other[y * 9 + x] = 200 - x * 20;
+    expect(dHash(ramp).slice(0, 16)).toBe("ffffffffffffffff");
+    expect(isDuplicate(dHash(ramp), dHash(other))).toBe(false);
+  });
+
+  /** The channel-interleaving shape that made a hash of nothing look confident:
+   *  refused, so the caller treats the file as unhashable and lets it in. */
+  test("a bitmap that is not the grid is refused rather than guessed at", () => {
+    expect(() => dHash(new Uint8Array(162).fill(0))).toThrow(/9x9/);
+    expect(() => dHash(new Uint8Array(72).fill(0))).toThrow(/9x9/);
   });
 
   test("re-encoding a photo does not change what it is", async () => {
@@ -152,7 +211,10 @@ describe("perceptual hashing", () => {
 
     const a = await perceptualHash(await decodeSource(original));
     const b = await perceptualHash(await decodeSource(reexported));
-    expect(hammingDistance(a, b)).toBeLessThanOrEqual(DUPLICATE_THRESHOLD);
+    // Per axis, because the whole string is two hashes and `isDuplicate` is
+    // what knows where the seam is.
+    expect(hammingDistance(a.slice(0, 16), b.slice(0, 16))).toBeLessThanOrEqual(DUPLICATE_THRESHOLD);
+    expect(hammingDistance(a.slice(16), b.slice(16))).toBeLessThanOrEqual(DUPLICATE_THRESHOLD);
     expect(isDuplicate(a, b)).toBe(true);
     fs.rmSync(dir, { recursive: true, force: true });
   });

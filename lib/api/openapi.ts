@@ -2784,11 +2784,15 @@ export function openApiDocument() {
                 "its dimensions are absent because for a video they describe the " +
                 "transcode, which `items` already carries. `advice` is present only when " +
                 "there is something worth saying about a batch that succeeded, today that " +
-                "a clip is long; it changed nothing and asks for nothing. `skipped` is " +
-                "the photographs this day already had: sending the same batch twice adds " +
-                "nothing the second time, and each entry names the file you sent and the " +
-                "`src` of the picture it matched, so fewer `items` than files is not a " +
-                "loss. Clips are not compared this way and a resent clip lands twice. " +
+                "a clip is long, or that a photograph looks like one this day already " +
+                "has — a likeness is stored rather than dropped, and the note names the " +
+                "`src` it resembles, because a duplicate tile is cheaper to fix than a " +
+                "picture discarded in silence. `skipped` is narrower and is the only " +
+                "thing that discards anything: photographs byte-for-byte identical to one " +
+                "this day already holds, so sending the same batch twice adds nothing the " +
+                "second time. Each entry names the file you sent and the `src` of the " +
+                "picture it matched, so fewer `items` than files is not a loss. Clips are " +
+                "not compared this way and a resent clip lands twice. " +
                 "`attached` is false only if the entry has " +
                 "no frontmatter to write into, in which case the files are still on disk " +
                 "and `items` is what to add by hand. `note` says plainly when the day is " +

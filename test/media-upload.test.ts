@@ -549,7 +549,16 @@ describe("a photograph the day already has", () => {
     expect(fs.readdirSync(path.join(tripPath(), "originals", "day-one"))).toEqual(["01.jpg"]);
   });
 
-  test("the same picture re-encoded is still the same picture", async () => {
+  /**
+   * A re-encode is a resemblance, and a resemblance is kept — B872.
+   *
+   * This used to be discarded, on the strength of a hash agreeing. The hash is
+   * better now and it is still a guess, and the two ways of being wrong do not
+   * cost the same: this asserts the file lands *and* that the caller is told
+   * what it looks like, so a real duplicate is a ten-second delete rather than
+   * a photograph nobody knew was sent.
+   */
+  test("the same picture re-encoded is kept, and said to look familiar", async () => {
     writeDay("day-one", "2026-01-01");
     const original = await paintJpeg(1200, 800);
     // What a second export of one photograph looks like: different bytes,
@@ -560,7 +569,96 @@ describe("a photograph the day already has", () => {
     await storeUploads(REF, "day-one", [{ filename: "a.jpg", bytes: original }]);
     const again = await storeUploads(REF, "day-one", [{ filename: "b.jpg", bytes: reEncoded }]);
 
-    expect((again as { skipped: unknown[] }).skipped).toHaveLength(1);
+    const result = again as { items: unknown[]; skipped: unknown[]; advice: string[] };
+    expect(result.skipped).toEqual([]);
+    expect(result.items).toHaveLength(1);
+    expect(result.advice.join(" ")).toContain("b.jpg");
+    expect(result.advice.join(" ")).toContain("01.jpg");
+  });
+
+  /**
+   * The reproduction B872 was found by, at the level a person meets it.
+   *
+   * Two photographs with nothing to tell them apart left to right — a plain
+   * wall and a sky grading top to bottom — both hashed to all zeros, sat at
+   * distance 0, and the second was discarded with `ok: true` and the words
+   * "nothing was lost". Thirty-eight went that way in one afternoon.
+   */
+  test("two pictures with no left-to-right detail both arrive", async () => {
+    writeDay("day-one", "2026-01-01");
+    const plain = await sharp({
+      create: { width: 600, height: 400, channels: 3, background: { r: 128, g: 128, b: 128 } },
+    })
+      .jpeg()
+      .toBuffer();
+    // A vertical gradient — blue at the top, green at the bottom, and nothing
+    // whatever happening across.
+    const rows = Buffer.alloc(600 * 400 * 3);
+    for (let y = 0; y < 400; y++) {
+      for (let x = 0; x < 600; x++) {
+        const at = (y * 600 + x) * 3;
+        rows[at] = 20;
+        rows[at + 1] = 60 + Math.floor((y * 160) / 400);
+        rows[at + 2] = 220 - Math.floor((y * 160) / 400);
+      }
+    }
+    const sky = await sharp(rows, { raw: { width: 600, height: 400, channels: 3 } })
+      .jpeg()
+      .toBuffer();
+
+    const first = await storeUploads(REF, "day-one", [{ filename: "plain.png", bytes: plain }]);
+    expect((first as { items: unknown[] }).items).toHaveLength(1);
+
+    const second = await storeUploads(REF, "day-one", [{ filename: "sky.jpg", bytes: sky }]);
+    expect((second as { skipped: unknown[] }).skipped).toEqual([]);
+    expect((second as { items: unknown[] }).items).toHaveLength(1);
+
+    // And a third flat picture, different again, is not swallowed by either.
+    const fog = await sharp({
+      create: { width: 600, height: 400, channels: 3, background: { r: 205, g: 205, b: 200 } },
+    })
+      .jpeg()
+      .toBuffer();
+    const third = await storeUploads(REF, "day-one", [{ filename: "fog.jpg", bytes: fog }]);
+    expect((third as { skipped: unknown[] }).skipped).toEqual([]);
+    expect(fs.readdirSync(path.join(tripPath(), "media", "day-one"))).toEqual([
+      "01.jpg",
+      "02.jpg",
+      "03.jpg",
+    ]);
+  });
+
+  /**
+   * The other half of B872, and the reason the check reads the derivative.
+   *
+   * A finely textured picture survives the resize and the JPEG encode
+   * differently from how it survives being hashed straight off the original,
+   * so the day's fingerprints (taken from the stored derivatives) and the
+   * arriving file's hash described two different pictures. One tester
+   * uploaded the same bytes four times and got four gallery entries.
+   */
+  test("the same bytes sent twice land once, however textured the picture", async () => {
+    writeDay("day-one", "2026-01-01");
+    const pixels = Buffer.alloc(500 * 400 * 3);
+    for (let y = 0; y < 400; y++) {
+      for (let x = 0; x < 500; x++) {
+        const at = (y * 500 + x) * 3;
+        const v = (x * 7 + y * 13) % 256;
+        pixels[at] = v;
+        pixels[at + 1] = (v * 3) % 256;
+        pixels[at + 2] = (v * 5) % 256;
+      }
+    }
+    const noisy = await sharp(pixels, { raw: { width: 500, height: 400, channels: 3 } })
+      .png()
+      .toBuffer();
+
+    await storeUploads(REF, "day-one", [{ filename: "texture.png", bytes: noisy }]);
+    const again = await storeUploads(REF, "day-one", [{ filename: "texture.png", bytes: noisy }]);
+
+    expect((again as { items: unknown[] }).items).toEqual([]);
+    expect((again as { skipped: { matched: string }[] }).skipped).toHaveLength(1);
+    expect(fs.readdirSync(path.join(tripPath(), "media", "day-one"))).toEqual(["01.jpg"]);
   });
 
   test("twice in one batch is the same mistake and answered the same way", async () => {
