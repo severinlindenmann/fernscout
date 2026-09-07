@@ -213,7 +213,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (24)
+## in-development (23)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -224,7 +224,6 @@ _Nothing here._
 | [B372](in-development/B372-a-private-trip-s-photograph-is.md) | A private trip's photograph is handed to Meta, and nothing a reader or owner sees says so | DOCS | medium | low | `97b44327` |
 | [B528](in-development/B528-attachgallery-writes-its-splice-without-re.md) | attachGallery writes its splice without re-reading it, where editEntry refuses | ISSUE | medium | low | `97b44327` |
 | [B545](in-development/B545-a-day-s-markdown-twin-omits.md) | A day's markdown twin omits the weather that is on its page | ISSUE | medium | low | `97b44327` |
-| [B700](in-development/B700-the-airport-does-not-read-as.md) | The airport does not read as an airport, and has no bench of its own | ISSUE | medium | low | `dfdad8fc` |
 | [B229](in-development/B229-the-per-request-media-limit-cannot.md) | The per-request media limit cannot be broken without the per-day ceiling breaking too, so one oversized batch is refused twice | ISSUE | low | low | `97b44327` |
 | [B237](in-development/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low | `97b44327` |
 | [B241](in-development/B241-an-agent-code-can-be-issued.md) | An agent code can be issued for a trip that does not exist | ISSUE | low | low | `97b44327` |
@@ -242,7 +241,7 @@ _Nothing here._
 | [B555](in-development/B555-the-unconverted-costs-notice-still-tells.md) | The unconverted-costs notice still tells a reader to ask an agent to add a rate that now arrives on its own | DOCS | low | low | `97b44327` |
 | [B603](in-development/B603-npm-run-dev-s-strict-mode.md) | A dev-mode-only effect race can pass or fail local browser testing for the wrong reason | ISSUE | low | low | `97b44327` |
 
-## testing (361)
+## testing (362)
 
 ### security (6)
 
@@ -255,7 +254,7 @@ _Nothing here._
 | [B330](testing/security/B330-story-json-varies-by-cookie-and.md) | story.json varies by cookie and does not say so, so a browser cache can serve one reader's drafts to the next | SECURITY | medium | low | — |
 | [B662](testing/security/B662-plaintext-sign-in-codes-still-reach.md) | Plaintext sign-in codes still reach the backup through content/.mail | SECURITY | medium | low | — |
 
-### issue (172)
+### issue (173)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -378,6 +377,7 @@ _Nothing here._
 | [B676](testing/issue/B676-the-urls-door-refuses-video-fetchimage.md) | The urls door refuses video: fetchImage takes only image/* content types | ISSUE | medium | low | — |
 | [B68](testing/issue/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low | — |
 | [B690](testing/issue/B690-post-api-v1-user-import-dryrun.md) | POST /api/v1/<user>/import: dryRun flag on costs import has no effect and response does not say so | ISSUE | medium | low | — |
+| [B700](testing/issue/B700-the-airport-does-not-read-as.md) | The airport does not read as an airport, and has no bench of its own | ISSUE | medium | low | — |
 | [B82](testing/issue/B82-an-expired-read-grant-still-notifies.md) | An expired read grant still notifies, because push does not ask lib/grants | ISSUE | medium | low | — |
 | [B04](testing/issue/B04-rate-limit-durability.md) | Rate-limit state is per-process, in memory, and only swept on one path | ISSUE | low | medium | — |
 | [B130](testing/issue/B130-re-approving-a-contact-leaves.md) | Re-approving a contact leaves an expired grant expired, so the approval does nothing | ISSUE | low | low | — |
