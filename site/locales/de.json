@@ -1505,5 +1505,21 @@
   "me.buyDialogAmount": "Wie viele Guthaben-Punkte",
   "me.buyDialogNoDiscount": "Von {from} bis {to}. Je mehr du auf einmal kaufst, desto günstiger wird jeder Punkt.",
   "me.buyDialogBuyAmount": "Für {price} kaufen",
-  "pricing.range": "Kaufe {from} bis {to} auf einmal — {min} pro Punkt, bei {to} noch {max}."
+  "pricing.range": "Kaufe {from} bis {to} auf einmal — {min} pro Punkt, bei {to} noch {max}.",
+  "purchase.receipt.subject": "Beleg — {credits} Credits",
+  "purchase.receipt.preheader": "{credits} Credits, {amount} — vielen Dank.",
+  "purchase.receipt.title": "Vielen Dank für deinen Kauf",
+  "purchase.receipt.body": "Deine Zahlung ist eingegangen, {credits} Credits wurden deinem Journal gutgeschrieben.",
+  "purchase.receipt.balance": "Dein Guthaben beträgt jetzt {balance} Credits.",
+  "purchase.receipt.colItem": "Position",
+  "purchase.receipt.colAmount": "Betrag",
+  "purchase.receipt.lineCredits": "{credits} Credits",
+  "purchase.receipt.lineTotal": "Bezahlt",
+  "purchase.receipt.paidWith": "Bezahlt mit {method}",
+  "purchase.receipt.method.card": "Karte",
+  "purchase.receipt.method.twint": "TWINT",
+  "purchase.receipt.method.admin": "Freigabe durch den Betreiber",
+  "purchase.receipt.reference": "Referenz {id} · {date}",
+  "purchase.receipt.viewAccount": "Credits und Speicher",
+  "purchase.receipt.footer": "Du bekommst diese Nachricht, weil für dein Journal Credits gekauft wurden. Bewahre sie als Beleg auf; für eine Rechnung genügt die Referenz oben."
 }
