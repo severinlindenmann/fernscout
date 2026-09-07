@@ -6,6 +6,9 @@ priority: medium
 complexity: high
 area: importers, api, costs
 found: "2026-09-07T09:07:35Z"
+started: "2026-09-07T09:15:40Z"
+session: 1d31e523-3a22-4905-82fd-39e3d55289f5
+claimed: "2026-09-07T09:15:40Z"
 ---
 
 # B677 — A bank statement can only be read on the owner's own laptop, so the parsing lives in the helper
