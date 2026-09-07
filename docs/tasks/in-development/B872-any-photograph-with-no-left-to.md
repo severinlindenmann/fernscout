@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: media, ingest
 found: "2026-09-07T17:37:27Z"
+started: "2026-09-07T17:41:39Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T17:41:39Z"
 ---
 
 # B872 — Any photograph with no left-to-right contrast is silently dropped as a duplicate
@@ -41,6 +44,30 @@ never know was there."* That is now happening.
 
 Found by the caption audit, which noticed a test picture had vanished before it
 could be described.
+
+## Confirmed at scale, and broken both ways
+
+A second tester, uploading 99 files to one day on the live instance, found the
+same fault independently and larger:
+
+- **38 of 38** low-detail photographs were silently discarded — 35 solid-colour
+  test images with distinct SHA-256s, plus three realistic 1600×1200 travel
+  photographs named `sky_over_mtskheta.jpg`, `fog_on_the_pass.jpg` and
+  `snow_at_kazbegi.jpg`. All three matched **one unrelated existing file** and
+  none was stored.
+- **And the opposite failure**: one group of byte-identical PNGs was not caught
+  at all — four uploads, four gallery entries.
+
+So the mechanism wrongly merges distinct photographs *and* wrongly keeps
+identical ones. It is not trustworthy in either direction.
+
+The response for every discarded file was `201 ok:true` with **"already had
+this one — nothing was lost"**. That sentence is false, and it is the part a
+person or an agent reads.
+
+Everything else in that run was sound: the 40-item cap refused cleanly and said
+what to do, an oversized file and an empty file were both refused before
+decoding, and a killed upload left nothing behind and resent safely.
 
 ## Work
 
