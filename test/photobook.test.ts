@@ -955,6 +955,8 @@ const ORDER: BookOrder = {
   },
   test: true,
   paymentRef: "test-payment-ref",
+  productUid: BOOK_SIZES.square.productUid,
+  shipmentMethodUid: "swiss_post_economy",
 };
 
 describe("provider requests", () => {
@@ -990,6 +992,21 @@ describe("provider requests", () => {
     for (const p of ["peecho", "gelato", "cloudprinter", "lulu"] as const) {
       expect(buildRequest(p, ORDER).transfer).toBe("fetches-from-url");
     }
+  });
+
+  it("sends the catalogue's own product uid, never one it built", () => {
+    const req = buildGelatoRequest({ ...ORDER, productUid: BOOK_SIZES.square.productUid });
+    const body = req.body as { items: { productUid: string; pageCount: number }[] };
+    expect(body.items[0].productUid).toBe(BOOK_SIZES.square.productUid);
+    expect(body.items[0].productUid).not.toContain("-pages_");
+    expect(body.items[0].pageCount).toBe(ORDER.pageCount);
+  });
+
+  it("names a real Swiss shipment method", () => {
+    const req = buildGelatoRequest({ ...ORDER, shipmentMethodUid: "swiss_post_economy" });
+    expect((req.body as { shipmentMethodUid: string }).shipmentMethodUid).toBe(
+      "swiss_post_economy",
+    );
   });
 
   test("Lulu's test mode points at the sandbox, which is the only free one", () => {
