@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (109)
+## backlog (108)
 
 ### security (2)
 
@@ -107,7 +107,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (21)
+### small-feature (20)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -131,7 +131,6 @@ Do not edit them by hand; run the script.
 | [B723](backlog/small-feature/B723-consent-can-only-be-withdrawn-from.md) | Consent can only be withdrawn from inside the wizard | FEATURE | low | low |
 | [B731](backlog/small-feature/B731-a-trip-made-from-the-ask.md) | A trip made from the ask box never shows who can read it | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
-| [B826](backlog/small-feature/B826-the-checkout-page-is-stripe-s.md) | The checkout page is Stripe's grey, on a site that has a palette | FEATURE | low | low |
 
 ### chore (5)
 
@@ -223,7 +222,7 @@ Do not edit them by hand; run the script.
 | [B824](in-development/B824-the-agent-and-docs-sit-apart.md) | The agent and docs sit apart from the destinations they are listed with | ISSUE | medium | low | `ccdd5120` |
 | [B825](in-development/B825-the-landing-page-corner-offers-the.md) | The landing page corner offers the operator a way in and everybody else nothing | FEATURE | medium | low | `ccdd5120` |
 
-## testing (45)
+## testing (46)
 
 ### issue (23)
 
@@ -261,7 +260,7 @@ Do not edit them by hand; run the script.
 | [B792](testing/big-feature/B792-buying-credits-goes-through-a-real.md) | Buying credits goes through a real payment provider, not an operator approving by hand | FEATURE | high | high | — |
 | [B689](testing/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high | — |
 
-### small-feature (16)
+### small-feature (17)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -281,6 +280,7 @@ Do not edit them by hand; run the script.
 | [B737](testing/small-feature/B737-the-travel-scene-s-vehicles-exist.md) | The travel scene's vehicles exist only on the web, so a book cannot show how a leg was travelled | FEATURE | low | medium | — |
 | [B753](testing/small-feature/B753-sending-a-sign-in-code-gives.md) | Sending a sign-in code gives no sign that anything was sent | FEATURE | low | low | — |
 | [B815](testing/small-feature/B815-stripe-asks-for-an-email-the.md) | Stripe asks for an email the owner has already given this server | FEATURE | low | low | — |
+| [B826](testing/small-feature/B826-the-checkout-page-is-stripe-s.md) | The checkout page is Stripe's grey, on a site that has a palette | FEATURE | low | low | — |
 
 ### chore (2)
 

@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: credits, payments, brand
 found: "2026-09-07T15:45:00Z"
+merged: "2026-09-07T15:45:57Z"
 ---
 
 # B826 — The checkout page is Stripe's grey, on a site that has a palette
