@@ -296,7 +296,10 @@ describe("what is sent", () => {
     await writeDayWithPhotos(1);
     await consent("photos");
     await call();
-    const [, locale] = describePhotos.mock.calls[0] as [unknown, string];
+    // The signature is (images, owner, locale): the owner is what the credit
+    // ledger is booked against (B7xx), the locale is this ticket's.
+    const [, owner, locale] = describePhotos.mock.calls[0] as [unknown, string, string];
+    expect(owner).toBe("alex");
     expect(locale).toBe("de");
   });
 });
