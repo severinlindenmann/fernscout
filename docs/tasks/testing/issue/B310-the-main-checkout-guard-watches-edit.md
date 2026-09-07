@@ -7,8 +7,7 @@ complexity: medium
 area: Agent workflow, hooks
 found: "2026-09-04T18:12:00Z"
 started: "2026-09-07T11:10:53Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:10:53Z"
+merged: "2026-09-07T11:19:47Z"
 ---
 
 # B310 — The main-checkout guard watches Edit and Write, and a heredoc walks straight past it
