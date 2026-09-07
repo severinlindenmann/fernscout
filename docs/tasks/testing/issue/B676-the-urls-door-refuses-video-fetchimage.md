@@ -7,8 +7,7 @@ complexity: low
 area: media API
 found: "2026-09-07T09:03:57Z"
 started: "2026-09-07T09:48:06Z"
-session: d7d9b2c7-a675-4d23-9205-0830bbf3e059
-claimed: "2026-09-07T09:48:07Z"
+merged: "2026-09-07T09:54:39Z"
 ---
 
 # B676 — The urls door refuses video: fetchImage takes only image/* content types
