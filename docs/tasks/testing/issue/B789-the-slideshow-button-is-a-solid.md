@@ -7,8 +7,7 @@ complexity: low
 area: gallery, map, brand
 found: "2026-09-07T16:45:00Z"
 started: "2026-09-07T14:38:51Z"
-session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
-claimed: "2026-09-07T14:38:51Z"
+merged: "2026-09-07T14:46:52Z"
 ---
 
 # B789 — The slideshow button is a solid navy blob that outranks the actions beside it, and the pills beside it are white on a cream page
