@@ -593,6 +593,7 @@
   "me.signInBody": "If you have read this journal before, sign in with the same email address and we will send you a six-digit code.",
   "me.signInCode": "The six-digit code",
   "me.signInEmail": "Your email address",
+  "me.signInHint": "No password. A six-digit code, valid for {minutes} minutes.",
   "me.signInSend": "Send me a code",
   "me.signInSending": "Sending…",
   "me.signInSent": "If that address has access, a code is on its way. It works for {minutes} minutes.",

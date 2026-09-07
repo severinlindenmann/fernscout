@@ -44,3 +44,34 @@ one missing call is the whole of it.
   preview, in the same place the PDF puts them.
 - Checked by looking, per `check-a-drawing`: the preview page and the
   rasterised PDF page side by side.
+
+## Findings (2026-09-07)
+
+The missing call was real, and it was the smaller half.
+
+**First: the chapter case.** `preview.ts` now draws `travellersSvg` at the
+foot of a chapter divider, matching `render.ts`'s box. `test/photobook-travellers.test.ts`
+gained a test that counts pages carrying a party against drawings in the
+preview HTML, so the next page kind that grows figures and forgets the preview
+fails there rather than on somebody's order page. Removing the fix makes it
+fail (`expected 2 to be 4`), which is how it was checked.
+
+**Then, looking at it: the figures had never been visible in the preview at
+all.** Not on the chapter divider, not on the title page, not in the colophon.
+`travellersSvg` set `height:${pct}%` on the `<svg>`, and every caller positions
+that absolutely — so the percentage resolved against a box whose own height is
+`auto`, which is circular, which is zero. Both were 0 × 0 in the DOM. The PDF
+drew them correctly the whole time, which is exactly what kept it hidden:
+nobody looks at one page in both renderers unless they are checking for this.
+That is `check-a-drawing`'s fourth trap almost word for word.
+
+Fixed in the one function: `height:${pct}cqh`. `.sheet` is
+`container-type:size`, so container units are a percentage of the printed page
+whatever the boxes between are doing — and it is the unit the preview's type
+scale already uses. Width follows from the viewBox.
+
+**Verified by looking:** the demo journal's `asia-2023` in the composer — the
+party now stands under "Switzerland" on the chapter divider and above the title
+on the title page. Both were blank before, including on `main`.
+
+`npm run verify`: all four passed (4471 tests).

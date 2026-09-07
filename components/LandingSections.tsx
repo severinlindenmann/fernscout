@@ -25,6 +25,58 @@ export type PublicJournal = {
   cover?: string;
 };
 
+/**
+ * The mono voice, shared — B733. Uppercase, letter-spaced `IBM Plex Mono`
+ * (`--font-mono`, `app/globals.css`) for the machine-ish things: kickers,
+ * labels, pills, ids and counts. One place rather than the class typed out
+ * per section, which is how it drifted before — `SiteHeader`'s own kicker
+ * carried the string by hand.
+ */
+export function Kicker({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="font-mono text-xs uppercase tracking-[0.14em] text-navy-600">{children}</p>
+  );
+}
+
+/**
+ * A small labelled fact — B733. Not a status indicator (that is still a
+ * plain word in prose; a pill that lies about being a control is worse than
+ * none), just the mockup's `.pill`: a bordered, rounded mono chip that reads
+ * as an instrument rather than a sentence.
+ */
+export function Pill({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-navy-200 bg-cream-100 px-2.5 py-1 font-mono text-[11px] text-navy-600">
+      {children}
+    </span>
+  );
+}
+
+/**
+ * The primary action, shared — B733. `yellow-400` with a `yellow-600` edge
+ * and `yellow-950` text: the waymark colour doing the job the waymark does.
+ * Text on `yellow-400` is `navy-900` or `yellow-950` and nothing else —
+ * `yellow-950` here clears AAA. Callers add their own width/margin.
+ */
+export const PRIMARY_BUTTON =
+  "inline-flex min-h-14 items-center justify-center rounded-xl border border-yellow-600 bg-yellow-400 px-6 " +
+  "text-lg font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
+
+/**
+ * A section title sitting on a rule — B733's "visible structure". Used
+ * where a section previously carried its own `border-t` above it; this puts
+ * the line directly under the heading instead, which is what makes the page
+ * read as an instrument rather than a document.
+ */
+export function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="border-b border-navy-200 pb-3 font-display text-xl font-semibold text-navy-900">
+      {children}
+    </h2>
+  );
+}
+
 /** The GitHub mark. Inline because lucide-react carries no brand icons. */
 function GithubMark({ className }: { className?: string }) {
   return (
@@ -44,7 +96,9 @@ function GithubMark({ className }: { className?: string }) {
 export function SiteHeader({ siteName, locales }: { siteName: string; locales?: string[] }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <p className="pt-3 font-mono text-xs uppercase tracking-[0.2em] text-navy-600">{siteName}</p>
+      <div className="pt-3">
+        <Kicker>{siteName}</Kicker>
+      </div>
       <LocaleSwitcher locales={locales} subtle />
     </div>
   );
@@ -77,7 +131,7 @@ export function ReaderInvite({ onSignIn }: { onSignIn: () => void }) {
   return (
     <section
       aria-labelledby="reader-invite"
-      className="mt-6 overflow-hidden rounded-2xl border border-navy-200 border-l-8 border-l-yellow-400 bg-cream-100 p-5 sm:p-6"
+      className="mt-6 overflow-hidden rounded-2xl border border-navy-200 border-l-8 border-l-yellow-400 bg-cream-50 p-5 sm:p-6"
     >
       <h2
         id="reader-invite"
@@ -94,10 +148,7 @@ export function ReaderInvite({ onSignIn }: { onSignIn: () => void }) {
       <button
         type="button"
         onClick={onSignIn}
-        className="mt-4 inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-navy-900 px-6
-                   text-lg font-semibold text-cream-50 transition-colors hover:bg-navy-700
-                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500
-                   sm:w-auto"
+        className={`mt-4 w-full sm:w-auto ${PRIMARY_BUTTON}`}
       >
         {t("home.inviteAction")}
       </button>
@@ -118,16 +169,20 @@ export function ReaderInvite({ onSignIn }: { onSignIn: () => void }) {
 }
 
 /**
- * The first screen — B694.
+ * The first screen — B694, trimmed further by B732.
  *
  * `helperEnabled` decides which door is primary. Off (the default, and what
  * every self-hoster has today) this renders exactly as it always has: the
  * headline and the lede, with the instruction box and its copy button as the
  * next thing on the page. On, a button to `/agent` — the hosted wizard — is
- * the primary call to action, and a quiet line under it sends anyone who
- * already has an agent down to the instruction box rather than hiding it.
- * One page, two arrangements — see `Landing.tsx` for where the flag comes
- * from.
+ * the primary call to action, and everything the other audience needs is one
+ * tap away in `AgentDisclosure`, which `Landing.tsx` renders directly below
+ * this. One page, two arrangements — see `Landing.tsx` for where the flag
+ * comes from.
+ *
+ * The quiet `#handover` link this used to carry is gone: B732 turned what it
+ * pointed at into the disclosure's own `<summary>`, so a second line saying
+ * the same thing here would be noise above it.
  */
 export function LandingHero({ helperEnabled = false }: { helperEnabled?: boolean }) {
   const { t } = useI18n();
@@ -138,29 +193,47 @@ export function LandingHero({ helperEnabled = false }: { helperEnabled?: boolean
       </h1>
       <p className="mt-4 text-lg leading-7 text-navy-700">{t("landing.lede")}</p>
       {helperEnabled && (
-        <>
-          <Link
-            href="/agent"
-            className="mt-6 inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-navy-900 px-6
-                       text-lg font-semibold text-cream-50 transition-colors hover:bg-navy-700
-                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500
-                       sm:w-auto"
-          >
-            {t("landing.helperCta")}
-          </Link>
-          <p className="mt-3">
-            <a
-              href="#handover"
-              className="text-sm text-navy-700 underline decoration-navy-300 underline-offset-4
-                         transition-colors hover:decoration-navy-700
-                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-            >
-              {t("landing.helperOwnAgent")}
-            </a>
-          </p>
-        </>
+        <Link href="/agent" className={`mt-6 w-full sm:w-auto ${PRIMARY_BUTTON}`}>
+          {t("landing.helperCta")}
+        </Link>
       )}
     </>
+  );
+}
+
+/**
+ * The bring-your-own-agent material, behind one tap — B732.
+ *
+ * With the helper on, the first screen a visitor scrolls through used to be a
+ * copyable prompt, three numbered steps about seven-day tokens, and a
+ * paragraph about there being no CMS — none of which the person who just
+ * pressed "Start writing" needs. A native `<details>` rather than `useState`:
+ * it is keyboard-operable and findable by the browser's own find-in-page for
+ * free, and this is already a client component for other reasons so there is
+ * no cost to *not* reaching for state here.
+ *
+ * What it reveals — `AgentBlock` and `LandingSteps`, which itself carries the
+ * `landing.noEditor` paragraph — is exactly what sat directly on the page
+ * before this ticket, unmoved and unrewritten. The trigger reuses
+ * `landing.helperOwnAgent` rather than a new key, because it is the same
+ * sentence the removed `#handover` link used to say.
+ */
+export function AgentDisclosure({ docUrl, agentUrl }: { docUrl: string; agentUrl: string }) {
+  const { t } = useI18n();
+  return (
+    <details className="group mt-6">
+      <summary
+        className="flex min-h-11 cursor-pointer list-none items-center gap-1 text-sm font-semibold
+                   text-navy-700 underline decoration-navy-300 underline-offset-4
+                   transition-colors hover:decoration-navy-700
+                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500
+                   [&::-webkit-details-marker]:hidden"
+      >
+        {t("landing.helperOwnAgent")}
+      </summary>
+      <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />
+      <LandingSteps />
+    </details>
   );
 }
 
@@ -292,10 +365,8 @@ export function DocsLink() {
 export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
   const { t, tn } = useI18n();
   return (
-    <section className="mt-12 border-t border-navy-200 pt-8">
-      <h2 className="font-display text-xl font-semibold text-navy-900">
-        {t("landing.publicTitle")}
-      </h2>
+    <section className="mt-12">
+      <SectionHeading>{t("landing.publicTitle")}</SectionHeading>
 
       {journals.length === 0 ? (
         <p className="mt-3 text-base leading-6 text-navy-700">{t("landing.publicNone")}</p>
@@ -305,7 +376,7 @@ export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
             <li key={journal.username}>
               <Link
                 href={`/${journal.username}`}
-                className="group block h-full overflow-hidden rounded-xl border border-navy-200 bg-white
+                className="group block h-full overflow-hidden rounded-xl border border-navy-200 bg-cream-50
                            transition-colors hover:border-navy-700
                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
               >

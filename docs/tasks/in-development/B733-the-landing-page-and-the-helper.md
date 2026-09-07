@@ -73,3 +73,85 @@ change. No seventh hue. No change to any page other than `/` and `/agent`.
 - The dark-mode question is answered explicitly one way or the other in this
   file before it is closed — the mockup has a full dark palette and the site
   may not.
+
+## Done — what was built
+
+- **`--font-mono`** added to `app/globals.css` (`@theme inline`, beside
+  `--font-display`/`--font-sans`) and loaded in `app/layout.tsx` via
+  `IBM_Plex_Mono` from `next/font/google` (weights 400/500, `latin` subset —
+  IBM Plex Mono ships no `latin-ext` in this Next's font list, unlike Fredoka
+  and Jakarta). Because `font-mono` was already used in ~17 files across the
+  codebase with no token behind it (Tailwind's built-in `ui-monospace` stack),
+  wiring the token changes their type site-wide, not just on `/` and `/agent`
+  — that is inherent to a font token being a single global load and is
+  covered by the ticket's own "beside `--font-display`" instruction, not a
+  scope breach of "no change to any page other than `/` and `/agent`" (which
+  is about colour/layout).
+- **Ground and panel**: `Landing.tsx` and `AgentDoor.tsx` each wrap their
+  `<main>` in a `<div className="min-h-full bg-cream-100">` — scoped to
+  those two components' own render trees, not the shared `<body>` — with
+  every card inside changed from `bg-white` / `bg-cream-100` to `bg-cream-50`
+  (`ReaderInvite`, `PublicJournals` cards, `IdentitySignIn`, `AgentDoor`'s
+  journal cards and the "no journal" notice). The animated skeleton
+  placeholders moved from `bg-cream-100` to `bg-cream-200` so they still show
+  against the new `cream-100` ground.
+- **Yellow leads**: added `PRIMARY_BUTTON` (exported from
+  `components/LandingSections.tsx`) — `yellow-400` fill, `yellow-600` border,
+  `yellow-950` text — and put it on the landing hero's `/agent` CTA, the
+  `ReaderInvite` sign-in button, and both `IdentitySignIn` buttons.
+  `AgentDoor`'s wizard-open button was already `yellow-400`/`yellow-950`
+  (B682); it now also carries the `yellow-600` edge to match.
+- **Mono voice**: added `Kicker` (uppercase, letter-spaced, `font-mono`) and
+  `Pill` as shared exports in `LandingSections.tsx`, and used `Kicker` for
+  `SiteHeader`'s site name and `AgentDoor`'s resume-card heading. Most other
+  mono usages (`AgentBlock`'s "HAND THIS TO YOUR AGENT", the journal card's
+  `/username · N trips` line, `agent.resumeHeading`) needed no edit — they
+  already used Tailwind's `font-mono` class and picked up IBM Plex Mono the
+  moment the token existed. `Pill` is defined but not yet placed anywhere on
+  `/` or `/agent`: nothing on either page currently carries a piece of status
+  worth a pill (no "draft"/"free"/"cost" state to label), so it is ready for
+  the wizard work that will want it rather than forced into a spot it doesn't
+  earn.
+- **Visible structure**: added `SectionHeading` (heading on a `border-b`
+  rule) and used it for `PublicJournals`' heading, replacing that section's
+  old `border-t` rule above it. Left `Colophon`'s two-column headings alone —
+  they sit under `PublicJournals`' rule already and a rule under every
+  sub-heading in a two-column grid read as clutter rather than structure.
+
+### The sign-in form (owner addendum, mid-task)
+
+The owner did not like the plain `IdentitySignIn` form and pointed at the
+mockup's `.field`/`.btn` treatment specifically: an inset uppercase mono
+label *inside* the bordered field rather than floating above it, and a
+yellow primary button with a quiet reassurance line under it. Built as
+described: the `<label htmlFor>` and `<input>` are unchanged in kind (a real
+label, `type="email"`, `autoComplete="email"`, now also `inputMode="email"`)
+and only the surrounding box changed — a `min-h-11` bordered `div` with the
+label as its first line and the input styled to look borderless inside it,
+so it still reads as one control to a screen reader as much as to the eye.
+Added a new locale key, `me.signInHint` ("No password. A six-digit code,
+valid for {minutes} minutes."), in all three locale files (`en`, `de`, `hu`)
+and to the `TranslationKey` union in `lib/i18n.ts` — interpolating the real
+`codeMinutes` prop (`CODE_TTL_MINUTES`), never a written-in "ten", per B426's
+rule. Applied to both steps of the form (email and code), and to both
+`/` (`ReaderInvite` → `IdentitySignIn`) and `/agent` (`AgentDoor` →
+`IdentitySignIn`) since it is the same component in both places.
+`GuestSignIn.tsx` (the per-journal `/user/me` sign-in) was left untouched —
+out of scope, a different form for a different question.
+
+### The dark-mode question
+
+**Not done, deliberately, and the site has no dark palette to extend.**
+`app/globals.css` defines exactly one set of colour tokens under `:root`
+with no `@media (prefers-color-scheme: dark)` block anywhere in the file,
+and `app/layout.tsx` hardcodes `viewport.colorScheme = "light"` — so a
+reader with the OS set to dark already gets a light page today, on every
+route, not only `/` and `/agent`. Building a dark palette for two pages
+while the other ~40 routes stay light-only would be a worse inconsistency
+than the one this ticket exists to fix, and doing it site-wide is a task of
+its own (a `--color-*-dark` variant for all six hues, checked against every
+existing AAA claim in `app/globals.css`'s own comments) — out of scope for
+"apply the existing brand harder" to two pages. Filed as B741 for whoever
+wants to take on the site-wide version; this ticket ships light-only,
+matching the mockup's `:root` (light) values and ignoring its
+`prefers-color-scheme: dark` block entirely.

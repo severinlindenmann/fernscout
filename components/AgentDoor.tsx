@@ -3,7 +3,7 @@
 import Link from "next/link";
 import AgentHandover from "@/components/AgentHandover";
 import HelperAsk from "@/components/HelperAsk";
-import { AgentBlock } from "@/components/LandingSections";
+import { AgentBlock, Kicker } from "@/components/LandingSections";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import { useI18n } from "@/components/LocaleProvider";
 import type { WizardDraft } from "@/lib/helper/draft";
@@ -73,94 +73,113 @@ export default function AgentDoor({
   const { t, tn, formatLongDate } = useI18n();
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
-      <h1 className="font-display text-[clamp(1.5rem,5vw,2.25rem)] font-semibold leading-tight text-navy-900">
-        {t("agent.title")}
-      </h1>
-      <p className="mt-3 text-lg leading-7 text-navy-700">{t("agent.intro")}</p>
-
-      {!signedIn && (
-        // Reloads on success, like the same form on `/` — the page re-renders
-        // from the cookie the server just set rather than the client
-        // pretending to know what it now opens.
-        <IdentitySignIn codeMinutes={codeMinutes} onDone={() => window.location.reload()} />
-      )}
-
-      {signedIn && journals.length === 0 && (
-        <p className="mt-6 rounded-2xl border border-navy-200 bg-cream-100 p-5 text-base leading-7 text-navy-800 sm:p-6">
-          {t("agent.noJournal")}
+    // Full-bleed paper ground — B733, the same two-step as `/`: `cream-100`
+    // behind, `cream-50` on every card. Scoped to this page.
+    <div className="min-h-full bg-cream-100">
+      <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
+        <h1 className="font-display text-[clamp(1.5rem,5vw,2.25rem)] font-semibold leading-tight text-navy-900">
+          {t("agent.title")}
+        </h1>
+        <p className="mt-3 text-lg leading-7 text-navy-700">
+          {t("agent.intro")}
         </p>
-      )}
 
-      {signedIn && journals.length > 0 && (
-        <div className="mt-8 space-y-6">
-          {journals.map((journal) => (
-            <section
-              key={journal.username}
-              className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6"
-            >
-              <h2 className="font-display text-xl font-semibold text-navy-900">{journal.title}</h2>
+        {!signedIn && (
+          // Reloads on success, like the same form on `/` — the page re-renders
+          // from the cookie the server just set rather than the client
+          // pretending to know what it now opens.
+          <IdentitySignIn
+            codeMinutes={codeMinutes}
+            onDone={() => window.location.reload()}
+          />
+        )}
 
-              {/* The accelerator, and only ever that — B685. With the
+        {signedIn && journals.length === 0 && (
+          <p className="mt-6 rounded-2xl border border-navy-200 bg-cream-50 p-5 text-base leading-7 text-navy-800 sm:p-6">
+            {t("agent.noJournal")}
+          </p>
+        )}
+
+        {signedIn && journals.length > 0 && (
+          <div className="mt-8 space-y-6">
+            {journals.map((journal) => (
+              <section
+                key={journal.username}
+                className="rounded-2xl border border-navy-200 bg-cream-50 p-5 sm:p-6"
+              >
+                <h2 className="font-display text-xl font-semibold text-navy-900">
+                  {journal.title}
+                </h2>
+
+                {/* The accelerator, and only ever that — B685. With the
                   capability off it is simply not here, and everything below
                   works exactly as it did. */}
-              {journal.helper && (
-                <HelperAsk
-                  username={journal.username}
-                  consented={journal.consented}
-                  speech={journal.speech}
-                  consentedSpeech={journal.consentedSpeech}
-                />
-              )}
+                {journal.helper && (
+                  <HelperAsk
+                    username={journal.username}
+                    consented={journal.consented}
+                    speech={journal.speech}
+                    consentedSpeech={journal.consentedSpeech}
+                  />
+                )}
 
-              {/* The resume card — B682. It is above the "write a day" button
+                {/* The resume card — B682. It is above the "write a day" button
                   rather than below it because somebody who left a day
                   half-written on a bus came back for that day, not to start
                   another one. What it can say is what is on disk: the date,
                   how many photographs reached the day, and whether anybody has
                   written the words yet. */}
-              {journal.drafts.length > 0 && (
-                <div className="mt-4 rounded-xl border border-navy-200 bg-cream-100 p-4">
-                  <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-navy-600">
-                    {t("agent.resumeHeading")}
-                  </h3>
-                  <ul className="mt-2 space-y-1">
-                    {journal.drafts.slice(0, 3).map((draft) => (
-                      <li key={`${draft.trip}/${draft.slug}`} className="text-sm text-navy-700">
-                        <span className="font-semibold text-navy-900">
-                          {formatLongDate(draft.date)}
-                        </span>
-                        {" · "}
-                        {draft.photos > 0
-                          ? tn("agent.photoCount", draft.photos, { count: String(draft.photos) })
-                          : t("agent.noPhotosYet")}
-                        {!draft.written && ` · ${t("agent.noWordsYet")}`}
-                      </li>
-                    ))}
-                  </ul>
+                {journal.drafts.length > 0 && (
+                  <div className="mt-4 rounded-xl border border-navy-200 bg-cream-100 p-4">
+                    <Kicker>{t("agent.resumeHeading")}</Kicker>
+                    <ul className="mt-2 space-y-1">
+                      {journal.drafts.slice(0, 3).map((draft) => (
+                        <li
+                          key={`${draft.trip}/${draft.slug}`}
+                          className="text-sm text-navy-700"
+                        >
+                          <span className="font-semibold text-navy-900">
+                            {formatLongDate(draft.date)}
+                          </span>
+                          {" · "}
+                          {draft.photos > 0
+                            ? tn("agent.photoCount", draft.photos, {
+                                count: String(draft.photos),
+                              })
+                            : t("agent.noPhotosYet")}
+                          {!draft.written && ` · ${t("agent.noWordsYet")}`}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <Link
+                  href={`/agent/${encodeURIComponent(journal.username)}`}
+                  className="mt-4 inline-flex min-h-11 items-center rounded-full border border-yellow-600 bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
+                >
+                  {journal.drafts.length > 0
+                    ? t("agent.resumeOpen")
+                    : t("agent.wizardOpen")}
+                </Link>
+
+                <div className="mt-6 border-t border-navy-200 pt-6">
+                  <AgentHandover
+                    username={journal.username}
+                    siteUrl={siteUrl}
+                  />
                 </div>
-              )}
+              </section>
+            ))}
+          </div>
+        )}
 
-              <Link
-                href={`/agent/${encodeURIComponent(journal.username)}`}
-                className="mt-4 inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
-              >
-                {journal.drafts.length > 0 ? t("agent.resumeOpen") : t("agent.wizardOpen")}
-              </Link>
-
-              <div className="mt-6 border-t border-navy-200 pt-6">
-                <AgentHandover username={journal.username} siteUrl={siteUrl} />
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
-
-      {(!signedIn || journals.length === 0) && (
-        <div className="mt-2">
-          <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />
-        </div>
-      )}
-    </main>
+        {(!signedIn || journals.length === 0) && (
+          <div className="mt-2">
+            <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />
+          </div>
+        )}
+      </main>
+    </div>
   );
 }

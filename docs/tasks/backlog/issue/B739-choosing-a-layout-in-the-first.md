@@ -53,3 +53,32 @@ the flow is the thing that wrote them.
 - Opening the questions again on a book whose days *were* arranged by hand
   asks once, underneath the cards, and only names those days.
 - Nothing in the flow raises the panel at the top of the page.
+
+## Findings (2026-09-07)
+
+Both halves, as written.
+
+`PhotobookPageContent` gained `applyLayoutToEveryDay` — the apply with no
+question — and `applyLayoutToAll` is now that plus the confirmation, so the day
+controls are untouched and the flow takes the plain one. The flow asks its own
+question, in `ConfirmPanel`, directly under the layout cards.
+
+**What it asks about is the difference that matters.** The flow snapshots, in a
+`useState` initialiser, how many days carried a layout override *when it
+opened*. That is the only honest count: it is about to write layouts onto every
+day itself, and by the second tap the composer's own guard would have been
+warning about the flow's previous tap. Empty is the normal case — a book nobody
+has opened, or one arranged only through these questions — and then nothing is
+ever asked, which is what the owner met. Answering once sets `mayOverwrite` and
+every later choice goes straight through.
+
+Two tests in `test/photobook-first-book.test.tsx`: three layouts in a row on a
+fresh book ask nothing and apply three times; a book with a hand-arranged day
+asks once, applies nothing until answered, and then stops asking. The test file
+now renders inside `LocaleProvider`, because `ConfirmPanel` reads its own
+cancel label from the dictionary.
+
+**Verified in a browser** at 390px: three layout taps in a row on the demo
+journal's `asia-2023`, no question, nothing at the top of the page.
+
+`npm run verify`: all four passed (4471 tests).

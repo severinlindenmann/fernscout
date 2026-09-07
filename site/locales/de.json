@@ -593,6 +593,7 @@
   "me.signInBody": "Wenn du dieses Tagebuch schon einmal gelesen hast, melde dich mit derselben E-Mail-Adresse an — wir schicken dir einen sechsstelligen Code.",
   "me.signInCode": "Der sechsstellige Code",
   "me.signInEmail": "Deine E-Mail-Adresse",
+  "me.signInHint": "Kein Passwort. Ein sechsstelliger Code, {minutes} Minuten gültig.",
   "me.signInSend": "Code schicken",
   "me.signInSending": "Wird geschickt…",
   "me.signInSent": "Wenn diese Adresse Zugang hat, ist ein Code unterwegs. Er gilt {minutes} Minuten.",

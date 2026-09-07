@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (99)
+## backlog (104)
 
 ### security (3)
 
@@ -59,7 +59,7 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B593](backlog/security/B593-a-fulfilment-instance-s-job-intake.md) | A fulfilment instance's job intake has no admission or rate control | SECURITY | medium | medium |
 
-### issue (16)
+### issue (19)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -70,6 +70,8 @@ Do not edit them by hand; run the script.
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
 | [B734](backlog/issue/B734-photo-captions-are-written-in-english.md) | Photo captions are written in English whatever language the journal is in | ISSUE | medium | low |
+| [B743](backlog/issue/B743-one-provider-name-is-recorded-for.md) | One provider name is recorded for three different consents | ISSUE | medium | low |
+| [B745](backlog/issue/B745-a-journal-written-in-de-ch.md) | A journal written in de-CH gets English chrome | ISSUE | medium | low |
 | [B709](backlog/issue/B709-every-day-must-answer-the-money.md) | Every day must answer the money question before it is written | ISSUE | low | medium |
 | [B721](backlog/issue/B721-the-upload-progress-line-does-not.md) | The upload progress line does not say which day it belongs to | ISSUE | low | low |
 | [B722](backlog/issue/B722-nobody-has-checked-whether-the-consent.md) | Nobody has checked whether the consent record is in a journal export | ISSUE | low | low |
@@ -79,13 +81,15 @@ Do not edit them by hand; run the script.
 | [B735](backlog/issue/B735-withdrawing-photo-consent-also-withdraws-consent.md) | Withdrawing photo consent also withdraws consent for words | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B742](backlog/issue/B742-the-api-docs-page-scrolls-sideways.md) | The API docs page scrolls sideways on a phone | ISSUE | low | low |
+| [B744](backlog/issue/B744-the-speech-consent-panel-names-deepgram.md) | The speech consent panel names Deepgram even on a dry-run instance | ISSUE | low | low |
 
-### big-feature (13)
+### big-feature (14)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B537](backlog/big-feature/B537-a-journal-on-disk-cannot-be.md) | A journal on disk cannot be checked against the instance that will receive it | FEATURE | high | high |
+| [B746](backlog/big-feature/B746-the-operator-cannot-see-what-the.md) | The operator cannot see what the instance costs to run | FEATURE | high | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | A journal folder can be exported and never pushed back, so writing locally is a one-way trip | FEATURE | medium | high |
@@ -98,7 +102,7 @@ Do not edit them by hand; run the script.
 | [B689](backlog/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (20)
+### small-feature (21)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -122,6 +126,7 @@ Do not edit them by hand; run the script.
 | [B723](backlog/small-feature/B723-consent-can-only-be-withdrawn-from.md) | Consent can only be withdrawn from inside the wizard | FEATURE | low | low |
 | [B731](backlog/small-feature/B731-a-trip-made-from-the-ask.md) | A trip made from the ask box never shows who can read it | FEATURE | low | low |
 | [B737](backlog/small-feature/B737-the-travel-scene-s-vehicles-exist.md) | The travel scene's vehicles exist only on the web, so a book cannot show how a leg was travelled | FEATURE | low | medium |
+| [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
 ### chore (4)
 
@@ -194,7 +199,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (11)
+## in-development (10)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -208,9 +213,8 @@ _Nothing here._
 | [B659](in-development/B659-the-only-backup-is-on-the.md) | The only backup is on the machine it is backing up | CHORE | medium | medium | `97b44327` |
 | [B732](in-development/B732-the-landing-page-shows-the-bring.md) | The landing page shows the bring-your-own-agent instructions to everybody, including the people who came for the helper | FEATURE | medium | low | `ccdd5120` |
 | [B733](in-development/B733-the-landing-page-and-the-helper.md) | The landing page and the helper door are flat cream, while the brand they are built from has paper, panels and a yellow that leads | FEATURE | medium | medium | `ccdd5120` |
-| [B686](in-development/B686-speech-cannot-be-turned-into-text.md) | Speech cannot be turned into text | FEATURE | low | medium | `fdfcf5f2` |
 
-## testing (433)
+## testing (434)
 
 ### security (9)
 
@@ -484,7 +488,7 @@ _Nothing here._
 | [B677](testing/big-feature/B677-a-bank-statement-can-only-be.md) | A bank statement can only be read on the owner's own laptop, so the parsing lives in the helper | FEATURE | medium | high | — |
 | [B684](testing/big-feature/B684-spoken-or-typed-notes-cannot-be.md) | Spoken or typed notes cannot be turned into a day | FEATURE | medium | high | — |
 
-### small-feature (91)
+### small-feature (92)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -578,6 +582,7 @@ _Nothing here._
 | [B368](testing/small-feature/B368-there-is-no-way-to-ask.md) | There is no way to ask for more credits, and the payment provider does not exist yet | FEATURE | low | medium | — |
 | [B475](testing/small-feature/B475-the-nightly-status-mail-is-a.md) | The nightly status mail is a wall of monospace while every other letter this instance sends is designed | FEATURE | low | medium | — |
 | [B634](testing/small-feature/B634-the-travel-scene-has-no-airport.md) | The travel scene has no airport | FEATURE | low | low | — |
+| [B686](testing/small-feature/B686-speech-cannot-be-turned-into-text.md) | Speech cannot be turned into text | FEATURE | low | medium | — |
 | [B687](testing/small-feature/B687-photographs-cannot-describe-themselves.md) | Photographs cannot describe themselves | FEATURE | low | medium | — |
 
 ### chore (35)

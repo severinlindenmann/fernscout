@@ -63,3 +63,35 @@ ruled out a second landing page.
   docs` sits below the public journals.
 - The disclosure works with a keyboard alone, and the summary is a 44px target
   at 390px.
+
+## Done
+
+Built as specced. `AgentDisclosure` (new export, `components/LandingSections.tsx`)
+is a `<details className="group mt-6">` wrapping `AgentBlock` + `LandingSteps`
+(which itself carries the `noEditor` paragraph, unchanged) behind a
+`<summary className="... min-h-11 ...">` carrying `landing.helperOwnAgent` —
+no new locale key. `Landing.tsx` renders it only when `helperEnabled`;
+`AgentBlock`/`LandingSteps` render directly and open, as before, when it is
+off. `DocsLink` moved to after `{publicList}` in the signed-out branch of
+`Landing.tsx` (it was already after `publicList` in the signed-in branch).
+
+The `#handover` anchor is gone rather than repointed: `LandingHero`'s old
+`<a href="#handover">` said the same sentence the new `<summary>` says, one
+scroll away — keeping both would have been the link and its own destination
+repeating themselves. `AgentBlock`'s internal `id="handover"` (on its `<h2>`,
+for its own `aria-labelledby`) is untouched; nothing external points at it
+any more, but it costs nothing to leave.
+
+Verified in a real browser at 390px, both arrangements — see B733's entry for
+the screenshot session (both tickets were built and checked together, since
+B733 touches the same files this ticket just changed). Confirmed with the
+helper on: closed state shows only the hero, CTA and the closed disclosure;
+clicking the summary reveals the instruction box, the three numbered steps
+and the "no CMS" paragraph unchanged; `scrollWidth` was 390 in both states,
+no horizontal overflow.
+
+Test coverage added in `test/landing.test.tsx`: disclosure present/absent by
+`helperEnabled`, closed by default, its content still in the static markup
+either way (a `<details>` renders its children regardless of `open`), and
+`Read the docs` ordered after `Public journals on this server` in both
+arrangements.
