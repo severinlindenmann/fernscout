@@ -65,9 +65,10 @@ sudo chown fernscout:fernscout /var/lib/fernscout
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
-sudo apt install -y nodejs git build-essential python3 ffmpeg
+sudo apt install -y nodejs git build-essential python3 ffmpeg libheif-examples
 node -v            # expect v24.x
 ffmpeg -version    # expect 7.x
+heif-convert --help  # expect usage, not "command not found"
 ```
 
 **`ffmpeg` is what makes video possible, and leaving it out is a real choice.**
@@ -78,6 +79,21 @@ at both doors and photographs are unaffected. A deploy says which you have, and
 about 100 MB of codecs; a journal that is only ever photographs does not need
 it, and a server that skips it should skip it knowingly rather than find out
 from an owner whose video would not upload.
+
+**`libheif-examples` is what makes an iPhone photograph possible, and it is not
+optional in the same way.** It gives `heif-convert`, the first entry in
+ingest's decoder chain. sharp's prebuilt libvips reads a HEIC container but has
+no HEVC decoder (patent licensing), so without `heif-convert` the commonest
+camera format on earth reaches `ffmpeg`, which either fails outright or — B869
+— hands back the file's embedded thumbnail. That used to be stored and reported
+as a success; it is now refused with the reason, so a box without this package
+turns every iPhone upload into a refusal rather than a wrong picture. Install
+it.
+
+**Restart the app after installing it.** The decoder probe is cached for the
+life of the process (`findHeifDecoder` in `lib/ingest/image.ts`), so a server
+that gained the binary while running keeps answering with whatever was on
+`PATH` at boot.
 
 `build-essential` and `python3` are for node-gyp: `better-sqlite3` compiles
 from source, and `package.json`'s `allowScripts` block means `npm ci` actually

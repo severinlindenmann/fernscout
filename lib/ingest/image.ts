@@ -58,6 +58,14 @@ const HEIF_DECODERS: { command: string; args: (input: string, output: string) =>
 let heifDecoderChecked = false;
 let heifDecoder: (typeof HEIF_DECODERS)[number] | null = null;
 
+/**
+ * Probed once per process, and cached — including the "none of them" answer.
+ *
+ * That matters on a server: install `libheif-examples` on a box that is
+ * already serving and every request keeps using the decoder that was on PATH
+ * at boot, or none at all. **Restart the app after installing a decoder.**
+ * `docs/runbook.md` names the package beside ffmpeg for the same reason.
+ */
 function findHeifDecoder() {
   if (heifDecoderChecked) return heifDecoder;
   heifDecoderChecked = true;
@@ -133,6 +141,44 @@ export async function decodeSource(file: string): Promise<DecodedSource> {
   if (run.status !== 0 || !fs.existsSync(temp)) {
     fs.rmSync(path.dirname(temp), { recursive: true, force: true });
     throw new UndecodableImageError(file, `${failure} (${decoder.command} could not convert it)`);
+  }
+
+  /**
+   * The decoder answered — but with the right picture? B869.
+   *
+   * A HEIC carries an embedded thumbnail beside the photograph, and a decoder
+   * that cannot read the HEVC payload can still hand back the thumbnail and
+   * exit 0. That is the worst shape a media pipeline has: a 1600×1200
+   * photograph replaced by a 512×512 strip of sky, stored, and reported as a
+   * `201` with confident dimensions in both `items` and `kept`.
+   *
+   * sharp reads the container's *declared* size even when it cannot decode a
+   * pixel of it, so the two numbers can be compared, and disagreeing is proof
+   * that what came back is not this picture. Compared as an unordered pair
+   * because every decoder above applies the EXIF rotation, which legitimately
+   * swaps the two.
+   *
+   * Best effort on the declared side only: a file whose header sharp cannot
+   * read at all has nothing to check against, and refusing those would refuse
+   * formats this has no opinion about.
+   */
+  const [got, declared] = await Promise.all([
+    sharp(temp).metadata().catch(() => undefined),
+    sharp(file).metadata().catch(() => undefined),
+  ]);
+  const pair = (m?: { width?: number; height?: number }) =>
+    m?.width && m.height ? [Math.min(m.width, m.height), Math.max(m.width, m.height)] : undefined;
+  const a = pair(declared);
+  const b = pair(got);
+  if (a && b && (a[0] !== b[0] || a[1] !== b[1])) {
+    fs.rmSync(path.dirname(temp), { recursive: true, force: true });
+    throw new UndecodableImageError(
+      file,
+      `${decoder.command} returned a ${got!.width}×${got!.height} image for a file that ` +
+        `declares ${declared!.width}×${declared!.height}, so what it decoded is not this ` +
+        `photograph — most likely the embedded thumbnail, because it could not read the ` +
+        `image data itself`,
+    );
   }
 
   return {
