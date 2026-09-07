@@ -76,15 +76,10 @@ export async function POST(
   const outcome = await sendDayLetter(user, ref, slug, { resend: true });
   if (!outcome.ok) {
     return Response.json(
-      {
-        error: outcome.reason,
-        message: capabilityMessage(outcome.reason),
-        ...(outcome.reason === "no_credits"
-          ? { needed: outcome.needed, balance: outcome.balance }
-          : {}),
-      },
-      // B366: an empty balance is billing, not a bad request.
-      { status: outcome.reason === "no_credits" ? 402 : 400 },
+      { error: outcome.reason, message: capabilityMessage(outcome.reason) },
+      // This answered 402 for an empty balance until B840 (B366 put it there).
+      // A letter costs nothing now, so every reason left is a bad request.
+      { status: 400 },
     );
   }
 
@@ -100,8 +95,6 @@ function capabilityMessage(reason: string): string {
       return "Mail is switched off for this server or this journal, so no letter can be sent.";
     case "contacts_off":
       return "Contacts are not enabled for this journal, so there is nobody to write to.";
-    case "no_credits":
-      return "This journal does not have enough credits left to send this letter. Nothing was sent.";
     default:
       return `"${reason}" — nothing was sent.`;
   }

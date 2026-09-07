@@ -3,7 +3,6 @@ import fs from "node:fs";
 import { isEnabled, hasSwitchedOff } from "../capabilities";
 import { maySeePhoto, type ReaderLevel } from "../photos";
 import { isOpenToLink, isTestContent } from "../access";
-import { balanceOf, refund, spend } from "../credits";
 import {
   listContacts,
   manageTokenFor,
@@ -134,29 +133,7 @@ type DayLetterRecipient = {
   /** Null for the owner's own copy — there is nothing to unsubscribe from
    * one's own journal. */
   manageToken: string | null;
-  /**
-   * The owner's own copy, which is sent and not billed — B614.
-   *
-   * A credit is what it costs to reach *somebody else*. The letter to the
-   * author of the journal is the journal reporting what it just published,
-   * and metering that charged a person to read their own writing — on a
-   * journal with no guests it was the whole bill, which is what made it
-   * visible on `/{user}/me`.
-   *
-   * A flag on the recipient rather than a subtraction at the till, because
-   * this list is walked four times — quoted by `mailWouldCost`, charged,
-   * sent, refunded — and every one of those has to agree about which copies
-   * are free. `chargeable()` below is the single answer.
-   */
-  free: boolean;
 };
-
-/** What a send actually costs: one credit per recipient who is not the
- * owner's own free copy. Used by the quote, the charge and the refund, so the
- * three cannot drift. */
-function chargeable(recipients: { free: boolean }[]): number {
-  return recipients.filter((r) => !r.free).length;
-}
 
 async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRecipient[]> {
   const owner = trip.username;
@@ -170,9 +147,7 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRec
   const out: DayLetterRecipient[] = [];
   const seen = new Set<string>();
 
-  // The owner, always — it is their journal and their record that it went,
-  // and free since B614 for the same reason: a credit is what it costs to
-  // reach somebody else.
+  // The owner, always — it is their journal and their record that it went.
   if (user.owner.email) {
     seen.add(user.owner.email.trim().toLowerCase());
     out.push({
@@ -182,7 +157,6 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRec
       showCosts: true,
       reader: "person",
       manageToken: null,
-      free: true,
     });
   }
 
@@ -212,7 +186,6 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRec
       showCosts: mayMailCosts(trip, isTraveller, isGrantHolder),
       reader: isTraveller ? "person" : "guest",
       manageToken: manageTokenFor(owner, contact.id),
-      free: false,
     });
   }
 
@@ -410,8 +383,10 @@ type DayLetterSkipReason =
   | "not_published"
   | "test_content"
   | "mail_off"
-  | "contacts_off"
-  | "no_credits";
+  /** `no_credits` was here until B840, and is gone with the charge: a letter
+   *  costs nothing, so there is no balance for one to refuse on. WhatsApp
+   *  keeps its own. */
+  | "contacts_off";
 
 export type DayLetterOutcome =
   | {
@@ -423,10 +398,6 @@ export type DayLetterOutcome =
   | {
       ok: false;
       reason: DayLetterSkipReason;
-      /** Only set for `reason === "no_credits"`, so a client can say
-       * something useful rather than just the word "no_credits". */
-      needed?: number;
-      balance?: number;
     };
 
 /**
@@ -441,21 +412,24 @@ export type DayLetterOutcome =
  * (B272: mail is best-effort everywhere).
  */
 /**
- * How many credits a send to this trip would take, without sending anything —
- * B366.
+ * How many people a send to this trip would reach, without sending anything —
+ * B366, and **a count of people rather than of credits since B840**.
  *
- * The publish route has to refuse *before* `publishDraft` writes to disk, so it
- * needs the count while the day is still a draft, and `sendDayLetter` cannot
- * give it one because it declines to render a letter for an unpublished day.
- * Hence a second entry point — but **not** a second answer: it calls the same
- * `recipientsFor` the charge itself calls, so the number quoted in a `402` and
- * the number actually debited cannot drift. A hand-rolled "count the contacts
- * who opted in" beside it is precisely the duplication `mayMailTrip`'s doc
- * comment above is an essay about.
+ * It was `mailWouldCost`, and it existed so the publish route could refuse
+ * *before* `publishDraft` wrote to disk: it needs the figure while the day is
+ * still a draft, and `sendDayLetter` cannot give it one because it declines to
+ * render a letter for an unpublished day. Hence a second entry point — but
+ * **not** a second answer: it calls the same `recipientsFor` the send itself
+ * calls, so what is quoted and what actually happens cannot drift. A
+ * hand-rolled "count the contacts who opted in" beside it is precisely the
+ * duplication `mayMailTrip`'s doc comment above is an essay about.
  *
- * One credit per *paid* recipient — `chargeable`, not `length`, since B614
- * made the owner's own copy free. If that ever stops being true, that
- * function is the one place to change.
+ * Nothing refuses on this number any more, because a letter is free. It is
+ * still the honest answer to "who would hear about this", which is what the
+ * account panel prints and what `test/entry-visibility.test.ts` uses to prove
+ * a day held back from part of the trip is held back from their inbox too —
+ * the leak that whole feature exists to close, wearing an inbox instead of a
+ * URL. Reintroducing a price makes this the function to multiply.
  *
  * Zero for a trip or journal that does not exist, and zero for content nobody
  * lived — which is a `test: true` trip **or** a `test: true` day inside an
@@ -469,31 +443,30 @@ export type DayLetterOutcome =
  * the bug; it stays optional only so a caller that genuinely has no day in
  * hand — none exists today — is not forced to invent one.
  */
-export async function mailWouldCost(owner: string, ref: string, slug?: string): Promise<number> {
+export async function mailWouldReach(owner: string, ref: string, slug?: string): Promise<number> {
   const user = getUser(owner);
   const trip = getTrip(ref);
   if (!user || !trip) return 0;
   const recipients = await recipientsFor(trip, user);
   if (slug !== undefined) {
-    // `AS_AUTHOR`, not the closed default — this is the owner asking what
-    // *their own* send would cost, and a day they have held back from some
-    // of the list is exactly the case being quoted. Reading it at `public`
-    // would make a held-back day answer "no such day" and quote zero, which
-    // is the wrong direction to be wrong in for a price.
+    // `AS_AUTHOR`, not the closed default — this is the owner asking about
+    // *their own* send, and a day they have held back from some of the list is
+    // exactly the case being asked about. Reading it at `public` would make a
+    // held-back day answer "no such day" and report nobody, which is the wrong
+    // direction to be wrong in.
     const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
-    // A day that does not exist has no send and therefore no cost; the route
-    // has already answered 404 for it long before this.
+    // A day that does not exist has no send and therefore reaches nobody; the
+    // route has already answered 404 for it long before this.
     if (!entry) return 0;
     if (isTestContent(trip, entry)) return 0;
-    // B632 — the same narrowing a page applies, applied to who gets billed:
-    // a recipient the day's own label refuses is a recipient who is not
-    // getting a letter, so quoting them in would overcharge for a send that
-    // reaches fewer inboxes than the trip alone would suggest.
-    return chargeable(recipients.filter((r) => maySeePhoto(entry.visibility, r.reader)));
+    // B632 — the same narrowing a page applies, applied to who gets a letter:
+    // a recipient the day's own label refuses is a recipient whose inbox this
+    // day does not reach, and saying otherwise here would be the leak.
+    return recipients.filter((r) => maySeePhoto(entry.visibility, r.reader)).length;
   } else if (trip.test === true) {
     return 0;
   }
-  return chargeable(recipients);
+  return recipients.length;
 }
 
 export async function sendDayLetter(
@@ -531,22 +504,21 @@ export async function sendDayLetter(
     maySeePhoto(entry.visibility, r.reader),
   );
 
-  // One credit per paid recipient, charged for the whole list before the first
-  // letter leaves — B366. All or nothing: an insufficient balance sends
-  // nothing rather than reaching some of the list and not the rest.
-  const needed = chargeable(recipients);
-  const ledgerRef = `${ref}/${slug}`;
-  if (!(await spend(owner, needed, "day_mail", ledgerRef))) {
-    return { ok: false, reason: "no_credits", needed, balance: (await balanceOf(owner)) ?? 0 };
-  }
+  // Nothing is charged here — B840. It used to be one credit per recipient,
+  // taken for the whole list before the first letter left, all or nothing.
+  // A letter costs about a hundredth of a Rappen to deliver and a credit is
+  // CHF 0.20, so a day announced to twenty people came to CHF 4 — and every
+  // one of those addresses had been approved by hand by the owner, so the
+  // fan-out the meter was guarding against could not happen anyway. The
+  // charge, the refund and the `no_credits` refusal went with it; `day_mail`
+  // stays in `SpendReason` so ledgers written before this still read.
+  //
+  // `dayWhatsapp.ts` deliberately still charges: Meta invoices per message.
 
   const base = serverSite().url;
 
   const sent: { email: string }[] = [];
   const failed: { email: string; error: string }[] = [];
-  /** Failures among the copies that were *paid* for. The owner's own copy was
-   * free, so refunding it would not give a credit back — it would mint one. */
-  let owed = 0;
 
   for (const recipient of recipients) {
     try {
@@ -558,18 +530,12 @@ export async function sendDayLetter(
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       failed.push({ email: recipient.email, error: message });
-      if (!recipient.free) owed++;
     }
   }
 
-  // Give back only for sends that did not happen — never a blanket reversal.
-  // A letter that was delivered is spent whatever happens afterwards.
-  if (owed > 0) await refund(owner, owed, ledgerRef);
-
-  // Recorded whatever the cost was — B633. `chargeable` can be zero (a
-  // journal with only its free owner copy) and the ledger writes nothing for
-  // a zero spend, so this is the one place "has this day been announced"
-  // can be answered from.
+  // Recorded whatever happened — B633. Nothing bills for a letter, and the
+  // ledger therefore has no row for one, so this is the only place "has this
+  // day been announced" can be answered from.
   await recordNotified(owner, trip.id, slug, "mail");
 
   return { ok: true, resend: options.resend === true, sent, failed };

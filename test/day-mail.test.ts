@@ -7,9 +7,9 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { issueCode, verifyCode, tripWriteScope } from "@/lib/auth";
-import { balanceOf, grant } from "@/lib/credits";
+import { balanceOf, grant, ledgerFor } from "@/lib/credits";
 import { requestContact, confirmContact, approveContact } from "@/lib/contacts";
-import { mailWouldCost, sendDayLetter } from "@/lib/digest/dayLetter";
+import { mailWouldReach, sendDayLetter } from "@/lib/digest/dayLetter";
 import { getEntryBySlug } from "@/lib/entries";
 import type { Locale } from "@/lib/types";
 
@@ -697,15 +697,19 @@ describe("mail is best-effort", () => {
 });
 
 /**
- * B614 — the owner's own copy is sent and not billed.
+ * B614 made the owner's own copy free; **B840 made every copy free.**
  *
- * `recipientsFor` has always added it ("it is their journal and their record
- * that it went") and `sendDayLetter` used to charge for it, so on a journal
- * with no guests at all the entire quoted bill was the author being charged a
- * credit to read their own writing — and `/{user}/me` said "bis zu 1 Person ·
- * 1 Guthaben-Punkt" over an empty guest list, which is what made it visible.
+ * A letter to a reader costs about a hundredth of a Rappen to deliver, and a
+ * credit is CHF 0.20 — so announcing one day to a family of twenty came to
+ * CHF 4, which is the most ordinary thing anybody does here priced like a
+ * printed object. Every address on the list was approved by hand by the owner,
+ * so there is no fan-out for the meter to be defending against.
+ *
+ * What these tests hold down is that "free" means *sent and not charged*, in
+ * both directions: nothing is debited, and nothing is refunded either — a
+ * refund for a letter that was never paid for would mint a credit.
  */
-describe("the owner's own copy is free — B614", () => {
+describe("every copy is free — B614, then B840", () => {
   test("a journal with no guests can publish a day on an empty balance", async () => {
     enableCredits();
     writeTrip("solo", { visibility: "public" });
@@ -713,7 +717,8 @@ describe("the owner's own copy is free — B614", () => {
     // Deliberately no `grant`: there is not even a credits row for this
     // journal, which is the state a new one is in.
 
-    expect(await mailWouldCost(OWNER, "alex/solo", slug)).toBe(0);
+    // The owner alone: no guests on this journal at all.
+    expect(await mailWouldReach(OWNER, "alex/solo", slug)).toBe(1);
 
     const outcome = await sendDayLetter(OWNER, "alex/solo", slug);
     expect(outcome.ok).toBe(true);
@@ -724,7 +729,27 @@ describe("the owner's own copy is free — B614", () => {
     expect(await balanceOf(OWNER)).toBe(0);
   });
 
-  test("the owner's own letter failing refunds nothing", async () => {
+  test("a journal with readers and an empty balance still sends to all of them", async () => {
+    enableCredits();
+    writeTrip("family", { visibility: "public" });
+    const { slug } = writeEntry("family", { date: "2026-09-10", slug: "family-day" });
+    await addReader("one@example.test", "en");
+    await addReader("two@example.test", "en");
+    await addReader("three@example.test", "en");
+    // No grant at all: three readers used to be three credits, and this was
+    // the send that refused outright.
+
+    expect(await mailWouldReach(OWNER, "alex/family", slug)).toBe(4);
+
+    const outcome = await sendDayLetter(OWNER, "alex/family", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    // Three readers and the owner's own copy.
+    expect(outcome.sent).toHaveLength(4);
+    expect(await balanceOf(OWNER)).toBe(0);
+  });
+
+  test("a letter that fails refunds nothing", async () => {
     enableCredits();
     writeTrip("flaky-owner", { visibility: "public" });
     const { slug } = writeEntry("flaky-owner", {
@@ -732,7 +757,9 @@ describe("the owner's own copy is free — B614", () => {
       slug: "flaky-owner-day",
     });
     await addReader("guest@example.test", "en");
-    // One paid reader, and the owner's free copy on top.
+    // A balance that must come back untouched: nothing was charged for these
+    // letters, so a failure has nothing to give back. Refunding one would not
+    // return a credit — it would mint one.
     await grant(OWNER, 1);
 
     const real = fs.writeFileSync.bind(fs);
@@ -748,37 +775,36 @@ describe("the owner's own copy is free — B614", () => {
     if (!outcome.ok) return;
     expect(outcome.failed).toHaveLength(1);
     expect(outcome.sent).toHaveLength(1);
-    // The one credit was for the guest, whose letter went out. Refunding the
-    // owner's failure would not return a credit — it would mint one.
-    expect(await balanceOf(OWNER)).toBe(0);
+    expect(await balanceOf(OWNER)).toBe(1);
   });
 });
 
-describe("credits — B366", () => {
-  test("an insufficient balance refuses the whole send, and nothing is written", async () => {
+describe("credits — B366, and what B840 stopped charging for", () => {
+  test("an empty balance never refuses a letter, and never writes a ledger row", async () => {
     enableCredits();
     writeTrip("billed", { visibility: "public" });
     const { slug } = writeEntry("billed", { date: "2026-09-10", slug: "billed-day" });
     await addReader("one@example.test", "en");
     await addReader("two@example.test", "en");
     await addReader("three@example.test", "en");
-    // Three readers = 3 needed; only 2 granted. The owner's own copy is a
-    // fourth letter and not a fourth credit — B614.
+    // Three readers used to be three credits, and two in the bank used to be
+    // the refusal this test asserted. Now the balance is beside the point.
     await grant(OWNER, 2);
 
     const outcome = await sendDayLetter(OWNER, "alex/billed", slug);
-    expect(outcome.ok).toBe(false);
-    if (outcome.ok) return;
-    expect(outcome.reason).toBe("no_credits");
-    expect(outcome.needed).toBe(3);
-    expect(outcome.balance).toBe(2);
-    expect(mailFiles()).toHaveLength(0);
-    // Refusing must not have touched the balance.
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.sent).toHaveLength(4);
+    expect(mailFiles()).toHaveLength(4);
     expect(await balanceOf(OWNER)).toBe(2);
+    // `spend(owner, 0, …)` is a documented no-op that writes nothing, so the
+    // ledger has only the grant on it — the check that this is genuinely free
+    // rather than charged-and-refunded.
+    expect((await ledgerFor(OWNER)).map((row) => row.reason)).toEqual(["grant"]);
   });
 
   /**
-   * B379. `mailWouldCost` takes a trip ref and no slug, so it can see a
+   * B379. `mailWouldReach` takes a trip ref and no slug, so it can see a
    * `test: true` *trip* and not a `test: true` *day* inside an ordinary one —
    * while `sendDayLetter` refuses the second with `test_content` before it
    * charges anything. The publish pre-flight therefore quotes a price for a
@@ -797,7 +823,7 @@ describe("credits — B366", () => {
     await addReader("two@example.test", "en");
     await grant(OWNER, 0 + 1); // one credit: fewer than the two paid readers
 
-    expect(await mailWouldCost(OWNER, "alex/proving-ground", slug)).toBe(0);
+    expect(await mailWouldReach(OWNER, "alex/proving-ground", slug)).toBe(0);
 
     // And the send itself still refuses for the right reason, charging nothing.
     const outcome = await sendDayLetter(OWNER, "alex/proving-ground", slug);
@@ -808,14 +834,12 @@ describe("credits — B366", () => {
     expect(await balanceOf(OWNER)).toBe(1);
   });
 
-  test("exactly enough credits sends everything and leaves the balance at zero", async () => {
+  test("a send leaves the balance exactly where it found it", async () => {
     enableCredits();
     writeTrip("paid", { visibility: "public" });
     const { slug } = writeEntry("paid", { date: "2026-09-10", slug: "paid-day" });
     await addReader("one@example.test", "en");
     await addReader("two@example.test", "en");
-    // Two readers = 2 needed, and three letters go out: the owner's own copy
-    // is sent and free.
     await grant(OWNER, 2);
 
     const outcome = await sendDayLetter(OWNER, "alex/paid", slug);
@@ -823,10 +847,10 @@ describe("credits — B366", () => {
     if (!outcome.ok) return;
     expect(outcome.sent).toHaveLength(3);
     expect(outcome.failed).toHaveLength(0);
-    expect(await balanceOf(OWNER)).toBe(0);
+    expect(await balanceOf(OWNER)).toBe(2);
   });
 
-  test("a recipient whose send fails is refunded — never a blanket reversal", async () => {
+  test("a recipient whose send fails costs nothing and refunds nothing", async () => {
     enableCredits();
     writeTrip("flaky-credits", { visibility: "public" });
     const { slug } = writeEntry("flaky-credits", {
@@ -835,7 +859,6 @@ describe("credits — B366", () => {
     });
     await addReader("bad@example.test", "en");
     await addReader("good@example.test", "en");
-    // Two readers = 2 needed; the owner's own copy is free.
     await grant(OWNER, 2);
 
     const real = fs.writeFileSync.bind(fs);
@@ -852,27 +875,28 @@ describe("credits — B366", () => {
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.failed).toHaveLength(1);
-    // 2 spent up front, 1 refunded for the one that did not go out.
-    expect(await balanceOf(OWNER)).toBe(1);
+    // Nothing was spent, so nothing is given back. The failure is reported and
+    // the balance is untouched in both directions.
+    expect(await balanceOf(OWNER)).toBe(2);
+    expect((await ledgerFor(OWNER)).map((row) => row.reason)).toEqual(["grant"]);
   });
 
-  test("the publish pre-flight refuses at 402 and leaves the day a draft", async () => {
+  test("the publish pre-flight lets a mail-only send through on an empty balance", async () => {
     enableCredits();
     writeTrip("preflight", { visibility: "public" });
     writeEntry("preflight", { date: "2026-09-10", slug: "preflight-day", draft: true });
     await addReader("one@example.test", "en");
     await addReader("two@example.test", "en");
-    // Two readers = 2 needed; only 1 granted.
-    await grant(OWNER, 1);
+    // Not a credit to its name. This used to be a 402 that left the day a
+    // draft, which meant an empty balance could stop somebody publishing.
 
     const token = await agentToken();
     const result = await publish(token, "preflight", "preflight-day", { send_mail: true });
-    expect(result.status).toBe(402);
-    expect(result.body).toMatchObject({ error: "no_credits", needed: 2, balance: 1 });
-    expect(
-      getEntryBySlug("alex/preflight", "preflight-day", { includeDrafts: true })?.draft,
-    ).toBe(true);
-    expect(mailFiles()).toHaveLength(0);
+    expect(result.status).toBe(200);
+    expect(result.body.status).toBe("published");
+    expect(getEntryBySlug("alex/preflight", "preflight-day")?.draft).toBeUndefined();
+    // Owner plus the two readers.
+    expect(mailFiles()).toHaveLength(3);
   });
 
   test("both channels are checked together — passing each alone is not enough", async () => {
@@ -905,13 +929,13 @@ describe("credits — B366", () => {
       draft: true,
     });
 
-    // Twelve contacts opted into both channels: mail costs 12 and WhatsApp
-    // costs 12 — the owner's own copy of each goes out free (B614), and this
-    // journal's config has no `owner.tel` for the WhatsApp one to go to
-    // anyway. Either channel alone fits comfortably in a balance of 20, but
-    // together they need 24, which is the property this ticket calls out:
-    // checking the two channels separately would let this publish and only
-    // half-send.
+    // Twelve contacts opted into both channels. Since B840 the mail half of
+    // that costs nothing and the WhatsApp half still costs twelve, so the
+    // pre-flight's sum is 0 + 12 — which is the property this ticket calls
+    // out, unchanged: it adds the channels it was asked for before it
+    // publishes anything, rather than checking them one at a time and
+    // half-sending. A free channel contributing zero is a case worth holding
+    // down, because "free" and "not counted" are easy to confuse in a sum.
     for (let i = 0; i < 12; i++) {
       const email = `reader${i}@example.test`;
       await requestContact(OWNER, {
@@ -929,7 +953,7 @@ describe("credits — B366", () => {
       if (!confirmed.ok) throw new Error("confirmation failed");
       await approveContact(OWNER, confirmed.contact.id);
     }
-    await grant(OWNER, 20);
+    await grant(OWNER, 8);
 
     const token = await agentToken();
     const result = await publish(token, "combined", slug, {
@@ -939,8 +963,8 @@ describe("credits — B366", () => {
 
     expect(result.status).toBe(402);
     expect(result.body.error).toBe("no_credits");
-    expect(result.body.needed).toBe(24);
-    expect(result.body.balance).toBe(20);
+    expect(result.body.needed).toBe(12);
+    expect(result.body.balance).toBe(8);
     expect(
       getEntryBySlug("alex/combined", slug, { includeDrafts: true })?.draft,
     ).toBe(true);

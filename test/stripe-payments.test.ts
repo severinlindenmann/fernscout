@@ -57,7 +57,7 @@ function writeJournal(user: string) {
 async function requested(): Promise<{ id: string; credits: number; amount: number }> {
   const { createPayment, submitRequest } = await import("@/lib/payments");
   const { tierFor } = await import("@/lib/credits/pricing");
-  const tier = tierFor("100")!;
+  const tier = tierFor("200")!;
   const p = await createPayment(OWNER, tier);
   if (!p) throw new Error("no payment");
   const r = await submitRequest(OWNER, p.id, null);

@@ -108,8 +108,19 @@ export type CreateJournalResult =
   | { ok: false; error: string; message: string; next?: string };
 
 /** How many journals one address may own. Not a licensing rule — a brake on
- * the obvious abuse of an endpoint anybody with an email can reach. */
-export const MAX_JOURNALS_PER_EMAIL = 3;
+ * the obvious abuse of an endpoint anybody with an email can reach.
+ *
+ * **One, since B840.** It was three, which promised something no part of this
+ * software supports: there is no way to switch between journals you own, no
+ * way to buy a second, and nothing anywhere that names the number — so three
+ * only ever meant "two abandoned experiments are possible". The pricing table
+ * says one journal, and this is what makes that true rather than a claim.
+ *
+ * B92's other half is now load bearing rather than optional: at a cap of one,
+ * somebody who deletes their journal has a free slot and cannot use it for the
+ * only name they want, because the tombstone reserves it against everybody
+ * including them. Until that lands, deleting is one way. */
+export const MAX_JOURNALS_PER_EMAIL = 1;
 
 /** Journals this address already owns, by reading what is on disk. */
 export function journalsOwnedBy(email: string): string[] {
@@ -235,9 +246,14 @@ export function createJournal(input: NewJournal): CreateJournalResult {
     return {
       ok: false,
       error: "too_many_journals",
+      // Reads right at a cap of one, which is what it is — "already owns 1
+      // journals (alex)" was what the plural-only sentence produced. B840.
       message:
-        `This address already owns ${owned.length} journals (${owned.join(", ")}), ` +
-        `which is the limit on this server.`,
+        owned.length === 1
+          ? `This address already owns "${owned[0]}", and one journal per address is the ` +
+            `limit on this server.`
+          : `This address already owns ${owned.length} journals (${owned.join(", ")}), ` +
+            `which is the limit on this server.`,
       // Safe to be specific here in a way the taken-name refusal is not: the
       // caller has already proved they can read this address, and the reply
       // names the journals it owns anyway.

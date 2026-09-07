@@ -352,18 +352,18 @@ describe("the surfaces that walk every entry", () => {
    * approved contact of the journal, which is exactly the leak this whole
    * feature exists to close, wearing an inbox instead of a URL.
    *
-   * `mailWouldCost` is the safe half to test without a mail transport: it
-   * shares `recipientsFor` with the actual send, so a lower quote here is the
-   * same recipients being excluded there. The approved contact (`GUEST`) is
-   * not a traveller, so an unlabelled update on this open trip reaches them
-   * (one billable recipient beside the owner's free copy) and a
-   * `private`-labelled one does not (zero).
+   * `mailWouldReach` is the safe half to test without a mail transport: it
+   * shares `recipientsFor` with the actual send, so a smaller answer here is
+   * the same recipients being excluded there. The approved contact (`GUEST`)
+   * is not a traveller, so an unlabelled update on this open trip reaches
+   * them (two letters, theirs and the owner's) and a `private`-labelled one
+   * does not (the owner's alone).
    */
   test("a private update is quoted, and would send, to fewer recipients than an ordinary one on the same trip", async () => {
-    const { mailWouldCost } = await import("@/lib/digest/dayLetter");
+    const { mailWouldReach } = await import("@/lib/digest/dayLetter");
     const ref = `${OWNER}/open-2026`;
-    expect(await mailWouldCost(OWNER, ref, "arrival")).toBe(1);
-    expect(await mailWouldCost(OWNER, ref, "arrival-private-note")).toBe(0);
+    expect(await mailWouldReach(OWNER, ref, "arrival")).toBe(2);
+    expect(await mailWouldReach(OWNER, ref, "arrival-private-note")).toBe(1);
   });
 });
 

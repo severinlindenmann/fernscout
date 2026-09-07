@@ -7,7 +7,7 @@ import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import { incompleteMessage, missingFrom } from "@/lib/tracks";
 import { serverSite } from "@/lib/site";
-import { mailWouldCost, sendDayLetter } from "@/lib/digest/dayLetter";
+import { sendDayLetter } from "@/lib/digest/dayLetter";
 import { mailSummary } from "@/lib/api/dayMail";
 import { whatsappSummary } from "@/lib/api/dayWhatsapp";
 import { readPublishFlags } from "@/lib/api/publishFlags";
@@ -182,12 +182,13 @@ export async function POST(
    * from going negative; this check only keeps the *common* case from
    * publishing a day it cannot afford to announce.
    */
-  if (sendMailRequested || sendWhatsappRequested) {
+  if (sendWhatsappRequested) {
     const balance = await balanceOf(user);
     if (balance !== null) {
-      const needed =
-        (sendMailRequested ? await mailWouldCost(user, ref, slug) : 0) +
-        (sendWhatsappRequested ? await whatsappWouldCost(user, ref, slug) : 0);
+      // Mail was a term in this sum until B840 and is not one now: a letter
+      // costs nothing, so `send_mail` on its own can never fail for money and
+      // must not be able to hold up a publish. WhatsApp still can.
+      const needed = await whatsappWouldCost(user, ref, slug);
       if (needed > balance) {
         return Response.json(
           {

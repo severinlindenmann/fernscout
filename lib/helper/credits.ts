@@ -9,8 +9,11 @@
  */
 
 /** One credit buys a caption for this many photographs, rounding up — never a
- *  fractional spend (`lib/credits.ts` throws on one). */
-const PHOTOS_PER_CREDIT = 10;
+ *  fractional spend (`lib/credits.ts` throws on one).
+ *
+ *  Exported since B840 so the pricing table can print the number that charges
+ *  rather than a second copy of it in a translation string. */
+export const PHOTOS_PER_CREDIT = 10;
 
 /** Zero photographs cost zero credits; the route refuses the call outright
  *  before it would ever compute this. */

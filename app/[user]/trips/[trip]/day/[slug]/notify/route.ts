@@ -10,7 +10,7 @@ import {
   releaseChannelClaim,
   type NotifyChannel,
 } from "@/lib/digest/dayNotify";
-import { mailWouldCost, sendDayLetter } from "@/lib/digest/dayLetter";
+import { sendDayLetter } from "@/lib/digest/dayLetter";
 import { sendDayWhatsapp, whatsappWouldCost } from "@/lib/digest/dayWhatsapp";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -76,9 +76,9 @@ async function statusFor(owner: string, tripParam: string, slug: string): Promis
   const already = await notifiedChannelsFor(owner, trip.id, slug);
   const pending = CHANNELS.filter((c) => !already.has(c) && channelEnabled(c, owner));
 
-  const needed =
-    (pending.includes("mail") ? await mailWouldCost(owner, ref, slug) : 0) +
-    (pending.includes("whatsapp") ? await whatsappWouldCost(owner, ref, slug) : 0);
+  // Mail was a term in this sum until B840; a letter costs nothing now, so
+  // what the button quotes is the WhatsApp half or nothing at all.
+  const needed = pending.includes("whatsapp") ? await whatsappWouldCost(owner, ref, slug) : 0;
   const balance = creditsEnabled() ? await balanceOf(owner) : null;
 
   return { ref, trip, pending, reachable, needed, balance, short: balance !== null && needed > balance };

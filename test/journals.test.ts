@@ -329,7 +329,8 @@ describe("journal visibility", () => {
     ) as Record<string, unknown>;
     expect(written.visibility).toBeUndefined();
 
-    make("quiet", { visibility: "guest" });
+    // A second address, because one address owns one journal — B840.
+    make("quiet", { visibility: "guest", ownerEmail: "quiet@example.test" });
     const hidden = JSON.parse(
       fs.readFileSync(path.join(dir, "quiet", "config.json"), "utf8"),
     ) as Record<string, unknown>;
@@ -1078,7 +1079,13 @@ describe("the trip fields that had no writer", () => {
 
   describe("translations — the trip's title in the journal's other languages", () => {
     test("is written for a language the journal speaks, and reads back", () => {
-      make("reisender", { defaultLocale: "de", locales: ["de", "en"] });
+      // Its own address: the outer beforeEach already made one for OWNER, and
+      // one address owns one journal — B840.
+      make("reisender", {
+        defaultLocale: "de",
+        locales: ["de", "en"],
+        ownerEmail: "reisender@example.test",
+      });
       const result = createTrip("reisender", {
         ...DATES,
         id: "japan-2027",
@@ -1121,7 +1128,13 @@ describe("the trip fields that had no writer", () => {
     });
 
     test("a locale entry saying nothing is refused, because the reader drops it", () => {
-      make("reisender", { defaultLocale: "de", locales: ["de", "en"] });
+      // Its own address: the outer beforeEach already made one for OWNER, and
+      // one address owns one journal — B840.
+      make("reisender", {
+        defaultLocale: "de",
+        locales: ["de", "en"],
+        ownerEmail: "reisender@example.test",
+      });
       const result = createTrip("reisender", {
         ...DATES,
         id: "empty",

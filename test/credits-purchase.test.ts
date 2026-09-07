@@ -187,7 +187,7 @@ describe("what a 200 actually does", () => {
     const before = mailFiles().length;
 
     as(null);
-    const result = await purchase({ tier: "100" }, await ownerToken());
+    const result = await purchase({ tier: "200" }, await ownerToken());
     expect(result.status).toBe(200);
 
     expect(mailFiles()).toHaveLength(before + 1);

@@ -7,9 +7,15 @@
  * same table a mail and a dead payment page both quote. Nothing here touches
  * a balance or a database.
  *
- * Base price is CHF 0.20/credit, with a volume discount at the two larger
- * tiers. Always integer rappen — never a float for money, and never a price
- * computed in a component.
+ * Base price is CHF 0.20/credit, with one volume discount at the larger tier.
+ * Always integer rappen — never a float for money, and never a price computed
+ * in a component.
+ *
+ * **Two tiers, not three — B840.** There were three, discounted 0/10/20%, and
+ * a person at the till had to compare three unit prices to answer "how much is
+ * a credit". The deepest discount also gave the most margin away to the people
+ * who buy most. Fifty for CHF 10.00 stays exactly `EXTRA_STORAGE_CREDITS`, so
+ * "buy credits, then buy storage" is still one purchase of one amount.
  */
 
 export type CreditTier = {
@@ -26,24 +32,28 @@ export type CreditTier = {
 
 export const TIERS: readonly CreditTier[] = [
   { id: "50", credits: 50, priceRappen: 1000, discount: "" },
-  { id: "100", credits: 100, priceRappen: 1800, discount: "10%" },
-  { id: "200", credits: 200, priceRappen: 3200, discount: "20%" },
+  { id: "200", credits: 200, priceRappen: 3600, discount: "10%" },
 ];
 
 /**
- * What one printed, posted postcard costs the sender — B434.
+ * What one printed, posted postcard costs the sender — B434, repriced by B840.
  *
- * Fifteen credits is CHF 3.00 at the base tier. A card costs us roughly EUR 2
- * to print and post, so the margin is about a franc, and it is deliberately
- * not thinner: postage to a non-European address is more than to a Swiss one,
- * the exchange rate moves, and a card the printer spoils has to be reprinted
- * at our expense rather than the sender's.
+ * Twenty credits is CHF 4.00 at the base tier, against roughly CHF 2 to print
+ * and post. It was fifteen, and about a franc of margin was too thin for what
+ * this actually is: postage to a non-European address is more than to a Swiss
+ * one, the exchange rate moves, and a card the printer spoils is reprinted at
+ * our expense rather than the sender's — one spoiled card ate two sales.
+ *
+ * The comparison a person actually makes is buying a card and a stamp: around
+ * CHF 2 for the card plus CHF 1.20 domestic or CHF 2.00 international postage.
+ * CHF 4.00 sits at or just under that, for something they did not have to find
+ * a postbox for, and inside the CHF 3-4 the postcard apps charge for one card.
  *
  * Here rather than in `lib/credits.ts` for the same reason the tiers are: that
  * file is `server-only` and the preview page has to render `15 × 4 = 60`
  * before anybody presses anything. Nothing about this number is secret.
  */
-export const POSTCARD_CREDITS = 15;
+export const POSTCARD_CREDITS = 20;
 
 export function tierFor(id: string): CreditTier | undefined {
   return TIERS.find((tier) => tier.id === id);
@@ -53,7 +63,7 @@ export function tierFor(id: string): CreditTier | undefined {
  * What one printed photobook costs the owner — and every number here is a
  * guess.
  *
- * A postcard's fifteen credits came from a known unit cost. This one cannot,
+ * A postcard's twenty credits came from a known unit cost. This one cannot,
  * because no photobook has ever been ordered from this instance and Gelato's
  * price endpoint needs an account and a real `productUid`. So the shape is
  * right — a fixed cost for the cover, binding and postage, plus a per-page
@@ -61,12 +71,26 @@ export function tierFor(id: string): CreditTier | undefined {
  * magnitudes are arithmetic against `docs/providers/photobook.md`'s
  * order-of-magnitude figures.
  *
+ * **The base was 90 until B840, and 90 was too low.** Gelato publishes no
+ * per-page rate; what they do publish is "from $11.85" for a softcover with
+ * the first 30 inner pages included, at their *smallest* format — ours is
+ * 210 x 210, perfect bound, 32 to 160 pages. Estimating from that plus
+ * European shipping puts a 52-page book at roughly CHF 25 landed, against
+ * which the old base priced it at CHF 38.80: about a third, and one reprint
+ * of a spoiled book wiped out three sales. At 160 the same book is CHF 52.80,
+ * which is roughly twice landed cost — the same multiple the postcard carries
+ * — and sits above the DIY photobook shops' softcovers and below their
+ * hardcovers. That is the deliberate position: this book arrives laid out.
+ *
+ * It is still an estimate, and the pricing table on `/` says so in as many
+ * words rather than only here. B841 is the real quote.
+ *
  * `PHOTOBOOK_PRICING_VERIFIED` is how that is said in the data rather than
  * only in a comment, the same discipline `BINDING_PROFILES` uses.
  * `test/photobook-pricing.test.ts` asserts it, so the day somebody puts a real
  * quote in is a day they have to change a test on purpose.
  */
-export const PHOTOBOOK_BASE_CREDITS = 90;
+export const PHOTOBOOK_BASE_CREDITS = 160;
 export const PHOTOBOOK_PAGE_CREDITS = 2;
 export const PHOTOBOOK_PRICING_VERIFIED = false;
 
