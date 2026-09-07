@@ -31,7 +31,7 @@ import { isPlottable } from "@/lib/mapFrame";
 import { useWorldLand } from "./useWorldLand";
 import { TRANSPORT_STYLE } from "@/lib/transport";
 import { flagFor } from "@/lib/flags";
-import { buildNarratedCut, firstSentence, type NarratedCutSlide } from "@/lib/narratedCut";
+import { buildNarratedCut, type NarratedCutSlide } from "@/lib/narratedCut";
 import { useWakeLock } from "./useWakeLock";
 import { useI18n } from "./LocaleProvider";
 import type { PlaceView } from "./WorldMap";
@@ -84,7 +84,7 @@ export default function SlideShow({
   onClose: () => void;
   startPlaceKey?: string;
 }) {
-  const { t, formatShortDate, formatLongDate, localized } = useI18n();
+  const { t, formatShortDate, formatLongDate, locale } = useI18n();
 
   const narratedSlides = useMemo<NarratedCutSlide[]>(
     () => buildNarratedCut(places.flatMap((p) => p.entries)),
@@ -252,9 +252,10 @@ export default function SlideShow({
 
   if (total === 0) return null;
 
-  const narratedLocalized = narratedStep ? localized(narratedStep.entry) : undefined;
-  const narratedSentence = narratedLocalized ? firstSentence(narratedLocalized.content) : "";
-  const narratedHeadline = narratedSentence || narratedLocalized?.title || "";
+  // The one sentence per day, in every locale the journal reads in, is
+  // computed once on the server (`lib/entries.ts`'s `PlaceEntry.headline`,
+  // B309) rather than shipping each day's full prose here to extract from.
+  const narratedHeadline = narratedStep?.entry.headline[locale] ?? "";
 
   const showingFullMedia = fullStep?.kind === "media";
   const fullPlace = fullStep?.place;

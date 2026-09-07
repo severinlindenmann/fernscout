@@ -327,6 +327,26 @@ describe("content nobody lived", () => {
 });
 
 describe("the documents an agent reads", () => {
+  // B308: `/documentation.txt` was 3.7KB when B256 made it self-sufficient for
+  // signup, on the strength of being "small enough to be fetched and read".
+  // It reached 25.1KB and `/agent.md` reached 129.9KB before this test
+  // existed — nothing stopped the growth, because nothing measured it. These
+  // ceilings are not the target size; they are a tripwire so the next
+  // well-argued paragraph has to make a trade (what does this replace?)
+  // rather than simply fitting. Raise them with a reason in the commit, the
+  // same way a `required` field earns a place in `openapi.ts`. B311 is the
+  // structural fix (splitting the guide by task); this test only stops
+  // silent growth in the meantime.
+  test("the instance document stays small enough to fetch and read as a fallback", () => {
+    const bytes = Buffer.byteLength(instanceDocumentation(), "utf8");
+    expect(bytes).toBeLessThan(30 * 1024);
+  });
+
+  test("the agent guide stays within a ceiling that has to be argued past", () => {
+    const bytes = Buffer.byteLength(agentGuide(), "utf8");
+    expect(bytes).toBeLessThan(135 * 1024);
+  });
+
   test("the instance document lists every journal", () => {
     const doc = instanceDocumentation();
     expect(doc.startsWith("# Fernscout")).toBe(true);

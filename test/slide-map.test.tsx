@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { SlideMap } from "@/components/SlideShow";
 import type { PlaceView as SlideMapPlace } from "@/components/WorldMap";
-import type { Entry } from "@/lib/types";
+import type { PlaceEntry } from "@/lib/types";
 
 /**
  * B268. `SlideMap` projects `places` through `project()` directly rather than
@@ -23,7 +23,7 @@ function place(location: string, lat: number, lng: number): SlideMapPlace {
     lastDate: "2024-09-12",
     nights: 1,
     mediaCount: 1,
-    entries: [{ slug: location.toLowerCase(), date: "2024-09-12" } as Entry],
+    entries: [{ slug: location.toLowerCase(), date: "2024-09-12" } as unknown as PlaceEntry],
   };
 }
 

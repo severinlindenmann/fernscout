@@ -102,6 +102,38 @@ export type MediaTile = {
 };
 
 /**
+ * One entry as a map marker's or a slideshow slide's detail panel needs it —
+ * not the whole `Entry`.
+ *
+ * `Place.entries`/`PlaceView.entries` (`lib/entries.ts`, `components/WorldMap.tsx`)
+ * used to carry the full `Entry[]`, prose and every language's `translations`
+ * included, for a photograph tile's day and a slideshow narration nobody had
+ * opened yet — the same shape of leak `MediaTile` fixed for the grid (B87),
+ * still open on this second path (B309). `headline` is the fix for the prose:
+ * the slideshow reads one sentence per day, extracted from the entry's own
+ * content, so this carries that sentence (or the title, when a day has no
+ * prose) pre-extracted per language rather than the language's whole content.
+ * Keyed by locale, present for the journal's written locale and for every
+ * locale the entry has been translated into — a locale asked for that is
+ * neither reads `headline[writtenLocale]`, the same fallback
+ * `LocaleProvider.localized` already applies to `content`.
+ */
+export type PlaceEntry = {
+  slug: string;
+  date: string;
+  time?: string;
+  location: string;
+  country: string;
+  countryCode?: string;
+  transport?: Transport;
+  cover?: string;
+  gallery: GalleryItem[];
+  headline: Record<string, string>;
+  /** See `Entry.draft` — a place built from drafts needs to say so. */
+  draft?: boolean;
+};
+
+/**
  * What a page needs to offer "send a postcard" — B441, and `undefined` for
  * everybody who may not.
  *

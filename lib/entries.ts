@@ -8,7 +8,16 @@ import { loadUserConfig } from "./config";
 import { normalizeCurrency } from "./currency";
 import { mediaWithOwner, parseTripRef, tripDir } from "./trips";
 import { hasHappened } from "./tripTime";
-import type { Day, Entry, EntryTranslations, GalleryItem, MediaTile, TravelSceneVariant } from "./types";
+import { firstSentence } from "./narratedCut";
+import type {
+  Day,
+  Entry,
+  EntryTranslations,
+  GalleryItem,
+  MediaTile,
+  PlaceEntry,
+  TravelSceneVariant,
+} from "./types";
 import { TRAVEL_SCENE_VARIANTS } from "./validate/entry";
 import { parseWeather } from "./weather";
 import { parseUnrecorded, parseWithout } from "./tracks";
@@ -435,15 +444,57 @@ export type Place = {
   countryCode?: string;
   lat: number;
   lng: number;
-  entries: Entry[];
+  entries: PlaceEntry[];
   firstDate: string;
   lastDate: string;
   nights: number;
   mediaCount: number;
 };
 
+/** Same fallback as `readAllEntries`'s `owner`/`baseCurrency` lookup above,
+ * for the journal's offered languages rather than its currency. Every locale
+ * the journal reads in, so a reader's locale always finds a `headline` below
+ * without the client having to know the journal's written language to fall
+ * back correctly. */
+function localesOf(ref: string): { writtenLocale: string; locales: string[] } {
+  const owner = parseTripRef(ref)?.username;
+  if (!owner) return { writtenLocale: "en", locales: ["en"] };
+  const config = loadUserConfig(owner);
+  return { writtenLocale: config.defaultLocale, locales: config.locales };
+}
+
+/**
+ * `Entry` narrowed to what a map marker's or a slideshow slide's detail
+ * panel reads — see `PlaceEntry`'s docblock (B309). `headline` is
+ * precomputed here, once, for every locale the journal reads in, rather than
+ * shipping the day's full prose to the client so a locale switch or the
+ * slideshow's narration can extract a sentence from it there.
+ */
+function toPlaceEntry(entry: Entry, languages: { writtenLocale: string; locales: string[] }): PlaceEntry {
+  const { writtenLocale, locales } = languages;
+  const headline: Record<string, string> = {};
+  for (const locale of new Set([writtenLocale, ...locales])) {
+    const tr = locale === writtenLocale ? undefined : entry.translations?.[locale];
+    headline[locale] = firstSentence(tr?.content ?? entry.content) || (tr?.title ?? entry.title);
+  }
+  return {
+    slug: entry.slug,
+    date: entry.date,
+    time: entry.time,
+    location: entry.location,
+    country: entry.country,
+    countryCode: entry.countryCode,
+    transport: entry.transport,
+    cover: entry.cover,
+    gallery: entry.gallery,
+    headline,
+    draft: entry.draft,
+  };
+}
+
 export function getPlaces(ref: string, options?: ReadOptions): Place[] {
   const places: Place[] = [];
+  const languages = localesOf(ref);
 
   for (const day of getDays(ref, options)) {
     const lead = day.lead;
@@ -452,6 +503,7 @@ export function getPlaces(ref: string, options?: ReadOptions): Place[] {
     // Distinct from B339 below: that is a day that *has* coordinates and an
     // empty name. This is a day with nothing to plot, full stop.
     if (!Number.isFinite(lead.lat) || !Number.isFinite(lead.lng)) continue;
+    const entries = day.entries.map((e) => toPlaceEntry(e, languages));
     const last = places.at(-1);
     // Merged only when the day actually names where it was. `location:` is
     // optional, so an unnamed day arrives as `""` — and `"" === ""` held, which
@@ -460,7 +512,7 @@ export function getPlaces(ref: string, options?: ReadOptions): Place[] {
     // days from Bangkok to Hanoi drew a single dot on Bangkok (B339). An empty
     // location means *unknown*, not *unchanged*: it starts its own place.
     if (last && lead.location && last.location === lead.location && last.country === lead.country) {
-      last.entries.push(...day.entries);
+      last.entries.push(...entries);
       last.lastDate = day.date;
       last.mediaCount += day.entries.reduce((n, e) => n + e.gallery.length, 0);
       continue;
@@ -472,7 +524,7 @@ export function getPlaces(ref: string, options?: ReadOptions): Place[] {
       countryCode: lead.countryCode,
       lat: lead.lat,
       lng: lead.lng,
-      entries: [...day.entries],
+      entries,
       firstDate: day.date,
       lastDate: day.date,
       nights: 0,
