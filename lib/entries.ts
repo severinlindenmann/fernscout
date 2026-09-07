@@ -365,6 +365,7 @@ function readAllEntries(ref: string): Entry[] {
       // by hand into a shape the door would have refused must not render as
       // though the door had accepted it.
       weather: parseWeather(data.weatherData),
+      weatherAsked: data.weather === true || undefined,
       // What this day says it deliberately does not have — B531. Parsed the
       // permissive way round: a word here this code does not know says
       // nothing it can act on, and dropping it is not a reason to refuse a

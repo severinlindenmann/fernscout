@@ -57,3 +57,27 @@ opinion about files.
   "smuggled past the type system" test does) leaves the day on disk unchanged
   and readable.
 - `npm run verify` green.
+
+## Resolution
+
+Confirmed still live: `attachGallery` wrote `spliced` straight to disk with no
+parse check, unlike `editEntry`. Added the same guard `lib/api/entries.ts:706`
+runs before `editEntry`'s write — `matter(spliced).data` in a `try/catch`,
+refusing with `bug: true` and a sentence naming what would have happened
+(`lib/api/entries.ts`, in `attachGallery`, just before the `fileUnchangedSince`
+check). The return type gained `bug?: boolean` on its `ok: false` branch; the
+media route already forwards only `.ok`/`.error` to callers, so no route
+change was needed for the guard to take effect — it already takes the
+existing `attached: false` path.
+
+`quoteScalar` protects every scalar it is asked to quote; `width`/`height` are
+still written unquoted (`width: ${item.width}`) because they are typed as
+numbers — a value smuggled past the type system there is exactly the gap this
+guard closes, and is what the new test exercises.
+
+Test: `test/photo-captions.test.ts`, "an item smuggled past the type system
+that would write unparseable YAML is refused, and the day is unchanged" —
+fails against the old code (the file would be written with broken YAML and
+the assertion on `result.ok`/`onDisk()` would fail), passes now.
+
+`npm run verify` green (see final report).

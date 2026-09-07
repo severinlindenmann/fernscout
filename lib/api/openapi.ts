@@ -3352,7 +3352,14 @@ export function openApiDocument() {
             "**`inbox`** counts what is staged and belongs to no day yet (B663), with the " +
             "call that lists it. A non-zero count is the first thing to act on for a trip " +
             "somebody has just come back from — the photographs are already here. Absent for " +
-            "a trip-scoped token, which the inbox route refuses.",
+            "a trip-scoped token, which the inbox route refuses.\n\n" +
+            "**`malformed`** names a trip on disk with a `trip.md` too broken to parse (B83) — " +
+            "the same list `GET .../trips` carries, so writing a trip and reading this back " +
+            "cannot disagree about whether it took. `next` puts fixing one ahead of the draft " +
+            "queue: a broken file is a thing you may have just caused and can fix yourself, " +
+            "where the drafts are a person's decision. Present for an owner token only — a " +
+            "trip-scoped token learns nothing about the rest of the journal, malformed or not " +
+            "— and absent entirely when there is nothing broken.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
           ],
