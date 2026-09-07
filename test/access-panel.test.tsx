@@ -154,16 +154,19 @@ describe("the reason beside each trip", () => {
     return render({ viewer });
   }
 
+  // B887 turned these from sentences into tags. What is asserted is unchanged
+  // and is the point of B41: the wording is `resolveViewer`'s answer, never
+  // this component's, so an owner must not be told they were merely there.
   test("an owner is told the journal is theirs, not that they were there", () => {
     const html = seeing("owner", true);
-    expect(html).toContain("it is in your journal");
-    expect(html).not.toContain("you were on this trip");
+    expect(html).toContain(dictionaryFor("en")["me.tagOwner"]);
+    expect(html).not.toContain(dictionaryFor("en")["me.tagTraveller"]);
   });
 
   test("a traveller who is not the owner still reads that they were on it", () => {
     const html = seeing("traveller", false);
-    expect(html).toContain("you were on this trip");
-    expect(html).not.toContain("it is in your journal");
+    expect(html).toContain(dictionaryFor("en")["me.tagTraveller"]);
+    expect(html).not.toContain(dictionaryFor("en")["me.tagOwner"]);
   });
 });
 
