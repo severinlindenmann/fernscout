@@ -29,8 +29,33 @@ import { VIDEO_MAX_SECONDS } from "../validate/media.ts";
 export const MAX_SECONDS = VIDEO_MAX_SECONDS;
 
 /** Clips are capped well below the photo size: motion hides detail, and this
- * is the difference between a 4 MB file and a 40 MB one. */
+ * is the difference between a 4 MB file and a 40 MB one — see
+ * `MAX_VIDEO_BITRATE`, which is the half of that claim that actually holds it
+ * up. */
 export const MAX_EDGE = 1280;
+
+/**
+ * A ceiling on the served bitrate, in bits per second — B679.
+ *
+ * `-crf` targets a *quality* and has no upper bound by design: it spends
+ * whatever a busy frame costs. On real footage that came out between 3.7 and
+ * 5.1 Mbps, which is ~38 MB for every minute of clip, sent again to every
+ * reader who opens the day. Survivable while a clip could be 90 seconds; not
+ * once it can be five minutes, which at that rate is a 190 MB download on
+ * somebody's mobile data.
+ *
+ * 1.6 Mbps of video (about 1.75 with the audio) was chosen by looking: the
+ * two real clips this was measured on are indistinguishable from the
+ * unbounded encode at full size, including the busiest frame in either of
+ * them, at a third of the bytes. The crf stays, so an easy clip still comes
+ * out smaller than the cap rather than being inflated to meet it — this only
+ * bites where the old encode was most expensive.
+ *
+ * `bufsize` is twice the rate, the usual pairing: it is how far the encoder
+ * may run over before it has to pay it back, and one second of headroom is
+ * what keeps a cut or a pan from visibly falling apart.
+ */
+export const MAX_VIDEO_BITRATE = 1_600_000;
 
 export const VIDEO_EXTENSIONS = new Set([".mp4", ".mov", ".m4v", ".webm", ".avi", ".mkv"]);
 
@@ -212,10 +237,11 @@ export class ClipTooLongError extends Error {
 export function transcodeVideo(
   input: string,
   output: string,
-  options: { maxSeconds?: number; maxEdge?: number; crf?: number } = {},
+  options: { maxSeconds?: number; maxEdge?: number; crf?: number; maxBitrate?: number } = {},
 ): TranscodeResult {
   const maxSeconds = options.maxSeconds ?? MAX_SECONDS;
   const maxEdge = options.maxEdge ?? MAX_EDGE;
+  const maxBitrate = options.maxBitrate ?? MAX_VIDEO_BITRATE;
 
   const probe = probeVideo(input);
   if (!probe) throw new Error(`ffprobe could not read ${path.basename(input)}.`);
@@ -242,6 +268,9 @@ export function transcodeVideo(
       "-profile:v", "high",
       "-preset", "veryfast",
       "-crf", String(options.crf ?? 24),
+      // The ceiling the crf does not have. See `MAX_VIDEO_BITRATE`.
+      "-maxrate", String(maxBitrate),
+      "-bufsize", String(maxBitrate * 2),
       "-pix_fmt", "yuv420p",
       "-movflags", "+faststart",
       "-map_metadata", "-1",
