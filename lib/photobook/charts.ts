@@ -35,18 +35,23 @@ import { measure } from "./text.ts";
 export type Rgb = { r: number; g: number; b: number };
 
 /**
- * The palette, and the only copy of it.
+ * The accent, in two weights of one hue — B702.
  *
- * `render.ts` reads these rather than keeping its own constants, and
- * `preview.ts` turns them into CSS with `cssTone`. Two ink tables would be two
- * things to keep in step, and the composer would eventually be showing a page
- * in colours the press was never asked for.
+ * The ochre is the waymark's own (`--color-yellow-600`, `#d69b0a`); it used to
+ * be `#2b5c85`, a blue belonging to nothing here.
  *
- * RGB because that is what the PDF writer can honestly emit, and chosen to
- * survive conversion to CMYK: nothing more saturated than a four-colour press
- * can hold, and a soft near-black rather than a flat key plate.
+ * Two weights because one constant cannot do both of this accent's jobs.
+ * `ACCENT` carries *ink*: the rule under a heading, the route line, a day's
+ * location, the eyebrow on the cover — small type at caption size, which at
+ * the bright ochre would be about 3:1 against paper and therefore not
+ * readable. `TINT_BASE` fills *areas*, where the bright one is exactly right
+ * and where nothing has to be read out of it.
+ *
+ * Same hue, two lightnesses, so a chart and the rule above it still look like
+ * one book.
  */
-const ACCENT: Rgb = { r: 0.17, g: 0.36, b: 0.52 };
+const ACCENT: Rgb = { r: 0.561, g: 0.396, b: 0.078 };
+const TINT_BASE: Rgb = { r: 0.839, g: 0.608, b: 0.039 };
 
 /**
  * Six tints of the one accent, darkest first.
@@ -59,12 +64,24 @@ const ACCENT: Rgb = { r: 0.17, g: 0.36, b: 0.52 };
 function tintOf(index: number): Rgb {
   const t = Math.min(Math.max(index, 0), 5) * 0.145;
   return {
-    r: ACCENT.r + (1 - ACCENT.r) * t,
-    g: ACCENT.g + (1 - ACCENT.g) * t,
-    b: ACCENT.b + (1 - ACCENT.b) * t,
+    r: TINT_BASE.r + (1 - TINT_BASE.r) * t,
+    g: TINT_BASE.g + (1 - TINT_BASE.g) * t,
+    b: TINT_BASE.b + (1 - TINT_BASE.b) * t,
   };
 }
 
+/**
+ * The palette, and the only copy of it.
+ *
+ * `render.ts` reads these rather than keeping its own constants, and
+ * `preview.ts` turns them into CSS with `cssTone`. Two ink tables would be two
+ * things to keep in step, and the composer would eventually be showing a page
+ * in colours the press was never asked for.
+ *
+ * RGB because that is what the PDF writer can honestly emit, and chosen to
+ * survive conversion to CMYK: nothing more saturated than a four-colour press
+ * can hold, and a soft near-black rather than a flat key plate.
+ */
 export const PALETTE = {
   ink: { r: 0.106, g: 0.129, b: 0.161 },
   muted: { r: 0.42, g: 0.45, b: 0.49 },
@@ -72,8 +89,9 @@ export const PALETTE = {
   /** The empty part of a bar's track. Lighter than `rule`, so a bar drawn in
    * `rule` — the budget, against what was spent — still reads as a bar. */
   track: { r: 0.92, g: 0.92, b: 0.93 },
-  /** A wash behind a row: present, never competing with the type. */
-  faint: { r: 0.87, g: 0.9, b: 0.93 },
+  /** A wash behind a row: present, never competing with the type. Warm, so it
+   * belongs to the same book as the accent above it — it was a blue-grey. */
+  faint: { r: 0.976, g: 0.945, b: 0.867 },
   accent: ACCENT,
   paper: { r: 1, g: 1, b: 1 },
   tint0: tintOf(0),
@@ -220,7 +238,8 @@ function barRows(
       y,
       width: most > 0 ? Math.max((row.value / most) * box.width, 0) : 0,
       height: barMm,
-      tone: row.tone ?? "accent",
+      /** A bar is a fill; the ink accent is for rules and type — B702. */
+      tone: row.tone ?? "tint0",
     });
     y -= gapMm;
   }
@@ -245,7 +264,8 @@ export function columns(
   plot: RectMm,
   data: Column[],
   scale: { min: number; max: number },
-  tone: Tone = "accent",
+  /** A fill, so a tint rather than the ink accent — B702. */
+  tone: Tone = "tint0",
 ): ChartShape[] {
   if (data.length === 0) return [];
   const span = scale.max - scale.min || 1;
@@ -488,7 +508,7 @@ export function transportShapes(
       y: barY,
       width: (mode.days / most) * box.width,
       height: 1.2,
-      tone: "accent",
+      tone: "tint0",
     });
     y -= rowMm;
   }
@@ -661,7 +681,7 @@ export function costsShapes(
     y -= 10;
     const rows: BarRow[] = [
       { label: labels.budgeted, valueText: money(costs.budget.total), value: costs.budget.total, tone: "tint4" },
-      { label: labels.spent, valueText: money(costs.total), value: costs.total, tone: "accent" },
+      { label: labels.spent, valueText: money(costs.total), value: costs.total, tone: "tint0" },
     ];
     const bars = barRows(box, y, rows, type, {
       barMm: 3.5,

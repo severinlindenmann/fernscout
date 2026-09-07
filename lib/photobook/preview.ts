@@ -606,7 +606,13 @@ export function renderPreview(
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escape(book.title)} — photobook preview</title>
 <style>
-  :root { color-scheme: light dark; --ink:#1b2129; --muted:#6b7280; --accent:#2c5c85; --paper:#fff; --bg:#e7e5e1; }
+  /* Three of these are the printed inks and are read from the one palette
+     rather than written again — B702. This block used to hardcode
+     \`--accent:#2c5c85\`, which was not even the same blue the PDF was drawing
+     beside it, so the composer showed a page in a colour the press was never
+     asked for. \`--paper\` and \`--bg\` are the screen's own, not the book's. */
+  :root { color-scheme: light dark; --ink:${cssTone("ink")}; --muted:${cssTone("muted")};
+          --accent:${cssTone("accent")}; --paper:#fff; --bg:#e7e5e1; }
   @media (prefers-color-scheme: dark) { :root { --bg:#17181a; } }
   * { box-sizing: border-box; }
   body { margin:0; padding:2rem; background:var(--bg); color:var(--ink);
