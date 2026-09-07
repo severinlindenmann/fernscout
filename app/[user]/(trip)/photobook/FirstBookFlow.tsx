@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import ConfirmPanel from "@/components/ConfirmPanel";
 import { mediaLoader } from "@/components/mediaLoader";
 import { creditsInRappen, formatChf } from "@/lib/credits/pricing";
 import type { TranslationKey } from "@/lib/i18n";
@@ -123,7 +124,7 @@ export default function FirstBookFlow({
   hasFigures,
   hadSaved,
   preview,
-  applyLayoutToAll,
+  applyLayoutToEveryDay,
   setDayExcluded,
   onDone,
   t,
@@ -149,9 +150,18 @@ export default function FirstBookFlow({
   /** The planned book, for the last step's page count, binding and price.
    * `null` while the debounced preview is still on its way. */
   preview: PreviewState;
-  /** The composer's own "every day like this", reused rather than reimplemented
-   * — it is the one that asks before overwriting days somebody has arranged. */
-  applyLayoutToAll: (layout: DayLayout) => void;
+  /**
+   * "Every day like this", applied without asking — B739.
+   *
+   * The composer's own `applyLayoutToAll` asks first, through the panel at the
+   * top of the page, and both halves of that are wrong here: the question
+   * scrolls off the top of a screen the flow fills, and it counts the flow's
+   * *own* previous tap as work somebody did by hand. Nine days arranged by
+   * choosing "one big picture" a moment ago are not nine days to warn about.
+   * So the flow takes the plain version and asks its own question, below the
+   * cards, about the days that were arranged before it opened.
+   */
+  applyLayoutToEveryDay: (layout: DayLayout) => void;
   setDayExcluded: (date: string, excluded: boolean) => void;
   onDone: () => void;
   t: T;
@@ -180,6 +190,33 @@ export default function FirstBookFlow({
    * `auto` is where every book starts and what most should stay.
    */
   const [everyDay, setEveryDay] = useState<DayLayout>("auto");
+
+  /**
+   * The days that were already arranged by hand when these questions opened —
+   * B739.
+   *
+   * A snapshot, taken once in the initialiser, because the flow is about to
+   * start writing layouts itself and every one of those would otherwise look
+   * like somebody's own work by the next tap. Empty is the normal case (a book
+   * nobody has opened, or one arranged only through these questions), and then
+   * nothing is ever asked.
+   */
+  const [handArranged] = useState(
+    () => days.filter((d) => options.days[d.date]?.layout !== undefined).length,
+  );
+  /** Set once the owner has answered, or once there was nothing to ask. */
+  const [mayOverwrite, setMayOverwrite] = useState(handArranged === 0);
+  /** The layout waiting on that answer. */
+  const [asking, setAsking] = useState<DayLayout | null>(null);
+
+  const chooseLayout = (layout: DayLayout) => {
+    if (!mayOverwrite) {
+      setAsking(layout);
+      return;
+    }
+    setEveryDay(layout);
+    applyLayoutToEveryDay(layout);
+  };
 
   const extras = EXTRAS.filter(
     (e) =>
@@ -276,16 +313,32 @@ export default function FirstBookFlow({
               <Card
                 key={layout}
                 chosen={everyDay === layout}
-                onChoose={() => {
-                  setEveryDay(layout);
-                  applyLayoutToAll(layout);
-                }}
+                onChoose={() => chooseLayout(layout)}
                 label={t(LAYOUT_LABEL[layout])}
               >
                 <LayoutShape layout={layout} />
               </Card>
             ))}
           </div>
+          {/* Underneath the cards it is about, and asked once — B739. */}
+          {asking && (
+            <div className="mt-3">
+              <ConfirmPanel
+                label={t("photobook.first.layout")}
+                question={t("photobook.first.layoutOverwrite", {
+                  count: String(handArranged),
+                })}
+                confirmLabel={t("photobook.day.applyToAllGo")}
+                onConfirm={() => {
+                  setMayOverwrite(true);
+                  setEveryDay(asking);
+                  applyLayoutToEveryDay(asking);
+                  setAsking(null);
+                }}
+                onCancel={() => setAsking(null)}
+              />
+            </div>
+          )}
         </Question>
       )}
 

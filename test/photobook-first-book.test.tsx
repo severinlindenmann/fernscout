@@ -2,6 +2,7 @@
 import { act, useEffect, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, test } from "vitest";
+import LocaleProvider from "@/components/LocaleProvider";
 import FirstBookFlow from "@/app/[user]/(trip)/photobook/FirstBookFlow";
 import { initialBookOptions, type BookOptions } from "@/lib/photobook/options";
 
@@ -18,14 +19,16 @@ import { initialBookOptions, type BookOptions } from "@/lib/photobook/options";
 // environment says so; the flag is the documented way to say it.
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-/** Filled by the test that watches `setDayExcluded`. */
+/** Filled by the tests that watch `setDayExcluded` and the layout apply. */
 let mountedExcluded: string[] | undefined;
+let mountedLayouts: string[] | undefined;
 
 let root: Root | undefined;
 let container: HTMLDivElement | undefined;
 
 afterEach(() => {
   mountedExcluded = undefined;
+  mountedLayouts = undefined;
   act(() => root?.unmount());
   container?.remove();
   root = undefined;
@@ -41,14 +44,19 @@ const DAYS = [
 ];
 
 /** Renders the flow over real state, and hands back what the options are now. */
-function mount(over: Partial<Parameters<typeof FirstBookFlow>[0]> = {}) {
+function mount(
+  over: Partial<Parameters<typeof FirstBookFlow>[0]> = {},
+  /** The arrangement this book already has. A day carrying a `layout` is one
+   * somebody arranged before the questions opened — B739. */
+  initial: BookOptions = INITIAL(),
+) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   const seen: { options: BookOptions; done: boolean } = { options: INITIAL(), done: false };
 
   function Host() {
-    const [options, setOptions] = useState<BookOptions>(INITIAL());
+    const [options, setOptions] = useState<BookOptions>(initial);
     // In an effect rather than during the render: what this test asserts on is
     // the options as they actually landed, which is the same thing the effect
     // sees, and writing to it mid-render is the lint rule's own example of
@@ -68,7 +76,7 @@ function mount(over: Partial<Parameters<typeof FirstBookFlow>[0]> = {}) {
         hasFigures
         hadSaved={false}
         preview={null}
-        applyLayoutToAll={() => {}}
+        applyLayoutToEveryDay={() => mountedLayouts?.push('applied')}
         setDayExcluded={(date) => mountedExcluded?.push(date)}
         onDone={() => {
           seen.done = true;
@@ -79,7 +87,16 @@ function mount(over: Partial<Parameters<typeof FirstBookFlow>[0]> = {}) {
     );
   }
 
-  act(() => root!.render(<Host />));
+  // `ConfirmPanel` reads its cancel label from the dictionary, so the flow's
+  // own question needs a provider around it — the keys are echoed back, which
+  // is what every assertion here matches on.
+  act(() =>
+    root!.render(
+      <LocaleProvider locale="en" dictionary={{}}>
+        <Host />
+      </LocaleProvider>,
+    ),
+  );
   return seen;
 }
 
@@ -151,6 +168,37 @@ describe("the first-book questions", () => {
     goTo("photobook.first.extras");
     expect(container!.textContent).not.toContain("photobook.first.extras.numbers");
     expect(container!.textContent).toContain("photobook.first.extras.map");
+  });
+
+  // B739. The flow writes a layout onto every day the moment one is chosen,
+  // so by the second tap nine days carry an override — the composer's own
+  // guard would then warn about work the flow itself had just done.
+  test("choosing one layout after another asks nothing on a book nobody arranged", () => {
+    const applied: string[] = [];
+    mountedLayouts = applied;
+    mount();
+    goTo("photobook.first.layout");
+    act(() => tile("photobook.day.layout.grid").click());
+    act(() => tile("photobook.day.layout.hero").click());
+    expect(applied).toHaveLength(2);
+    expect(container!.textContent).not.toContain("photobook.first.layoutOverwrite");
+  });
+
+  test("but a day arranged before the questions opened is asked about, once, in place", () => {
+    const applied: string[] = [];
+    mountedLayouts = applied;
+    // A day arranged by hand before any of this — the flow snapshots that at
+    // mount, so it has to be in the options the first render sees.
+    mount({}, { ...INITIAL(), days: { "2026-01-01": { layout: "grid" } } });
+    goTo("photobook.first.layout");
+    act(() => tile("photobook.day.layout.hero").click());
+    expect(applied).toHaveLength(0);
+    expect(container!.textContent).toContain("photobook.first.layoutOverwrite");
+    act(() => tile("photobook.day.applyToAllGo").click());
+    expect(applied).toHaveLength(1);
+    // Asked once: the next choice goes straight through.
+    act(() => tile("photobook.day.layout.pair").click());
+    expect(applied).toHaveLength(2);
   });
 
   test("a saved arrangement is met with an offer to carry on, not a question", () => {

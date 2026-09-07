@@ -403,6 +403,16 @@ function pageHtml(
       break;
 
     case "chapter":
+      // The party, arriving in this country — B727, and missing here until
+      // B740. `render.ts` draws them at 6% of the content box from the foot;
+      // this is the same place, spelled as CSS. A page kind drawn in one
+      // renderer and not the other is the exact drift `charts.ts` opens by
+      // warning about, and the owner's report was "I turned the figures on and
+      // I do not see any" — they were in the PDF and nowhere they could look.
+      parts.push(
+        `<div style="position:absolute;left:${((spec.safeMm / (spec.size.trimWidthMm + spec.bleedMm * 2)) * 100).toFixed(3)}%;` +
+          `bottom:8%">${travellersSvg(14, page.figures)}</div>`,
+      );
       parts.push(
         textBlock(
           spec,

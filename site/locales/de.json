@@ -704,6 +704,7 @@
   "photobook.first.resume.againHint": "Deine bisherigen Antworten sind schon eingetragen.",
   "photobook.first.layout": "Wie soll ein Tag aussehen?",
   "photobook.first.layoutHint": "Dieselbe Anordnung für jeden Tag. Einzelne Tage kannst du danach immer noch ändern — tippe auf ihre Doppelseite.",
+  "photobook.first.layoutOverwrite": "Du hast {count} Tage schon von Hand gestaltet. Wenn jedes Tag dieses Layout bekommt, werden die überschrieben.",
   "photobook.first.days": "Welche Tage kommen ins Buch?",
   "photobook.first.daysHint": "{included} von {total} Tagen. Lass die weg, an denen ihr nur gefahren seid.",
   "photobook.first.language": "In welcher Sprache?",

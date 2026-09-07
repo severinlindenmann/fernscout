@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { drawTravellers, travellersSvg } from "@/lib/photobook/travellers";
+import { planBook, type BookDay, type BookSource } from "@/lib/photobook/plan";
+import { renderPreview } from "@/lib/photobook/preview";
+import { defaultSpec } from "@/lib/photobook/spec";
+import { DEFAULT_OPTIONS } from "@/lib/photobook/options";
 import { PdfBuilder } from "@/lib/postcard/pdf";
 import { figureShapes } from "@/lib/travellers/shapes";
 import { HAIR_STYLES, OUTFITS, type Figure } from "@/lib/travellers/vocabulary";
@@ -119,5 +123,77 @@ describe("the printed party stands as the party on the site stands", () => {
     const adult = operatorsFor([{ skin: "medium" }]);
     const child = operatorsFor([{ skin: "medium", age: "child" }]);
     expect(child).not.toBe(adult);
+  });
+});
+
+
+/**
+ * B740 — every page that carries figures must draw them in *both* renderers.
+ *
+ * B727 taught `render.ts` to put the party at the foot of a chapter divider
+ * and left `preview.ts` alone, so the switch was on, the PDF had them, and the
+ * only thing an owner can look at showed nothing. This counts pages against
+ * drawings rather than asserting one page, so the next kind that grows figures
+ * and forgets the preview fails here rather than on somebody's order page.
+ */
+describe("figures reach the preview, not only the PDF", () => {
+  const SPEC = defaultSpec();
+  const PARTY = [{ skin: "deep" as const }, { skin: "light" as const }];
+
+  const day = (i: number, country: string): BookDay => ({
+    date: new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10),
+    title: `Day ${i + 1}`,
+    location: "Somewhere",
+    country,
+    countryCode: country.slice(0, 2).toUpperCase(),
+    lat: 13.7,
+    lng: 100.5,
+    paragraphs: ["A day."],
+    photos: [],
+  });
+
+  const source: BookSource = {
+    trip: { id: "t", title: "A trip", start: "2026-01-01", end: "2026-01-04", intro: "" },
+    figures: PARTY,
+    travellers: ["A", "B"],
+    days: [day(0, "Thailand"), day(1, "Thailand"), day(2, "Laos"), day(3, "Laos")],
+    route: [],
+    madeOn: "2026-09-07",
+  };
+
+  /** How many pages the plan says carry a party, and how many the preview
+   * actually draws one on. */
+  function counts(includeFigureMarks: boolean) {
+    const book = planBook(source, SPEC, { ...DEFAULT_OPTIONS, includeFigureMarks });
+    const pages = book.volumes[0].pages.filter(
+      (p) => "figures" in p && Array.isArray(p.figures) && p.figures.length > 0,
+    ).length;
+    const html = renderPreview(book, "", (f) => f);
+    const drawn = html.split('aria-hidden="true"').length - 1;
+    return { pages, drawn };
+  }
+
+  it("with the switch on, the two chapter dividers join the title page and the colophon", () => {
+    const { pages, drawn } = counts(true);
+    // Title, colophon, and one divider per country.
+    expect(pages).toBe(4);
+    expect(drawn).toBe(pages);
+  });
+
+  // B740's second half: they were drawn, at nothing by nothing. A percentage
+  // height on an absolutely positioned `<svg>` resolves against a box whose
+  // own height is `auto`.
+  it("the drawing has a height to be seen at", () => {
+    // Container units, because a percentage resolves against an absolutely
+    // positioned parent whose own height is `auto` — which is zero, which is
+    // what the figures were.
+    expect(travellersSvg(14, PARTY)).toContain("height:14cqh");
+    expect(travellersSvg(14, PARTY)).not.toContain("height:14%");
+  });
+
+  it("with it off, the same two pages as before it existed", () => {
+    const { pages, drawn } = counts(false);
+    expect(pages).toBe(2);
+    expect(drawn).toBe(pages);
   });
 });

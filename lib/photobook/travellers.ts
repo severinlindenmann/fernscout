@@ -303,9 +303,23 @@ export function travellersSvg(heightPct: number, party: Figure[] = []): string {
       );
     })
     .join("");
+  // `cqh`, not `%` — B740.
+  //
+  // The height used to be a percentage, and every caller positions this
+  // absolutely: a percentage height then resolves against a box whose own
+  // height is `auto`, which is circular, which is zero. So the figures have
+  // been 0 x 0 in the preview since they were added, on the title page and in
+  // the colophon both. The PDF drew them all along, which is exactly what
+  // made it invisible — nobody looks at one page in both renderers unless
+  // they are checking for this.
+  //
+  // `.sheet` is `container-type:size` (see `previewCss`), so `cqh` is a
+  // percentage of the printed page whatever the boxes in between are doing —
+  // the same unit the type scale already uses here. Width follows from the
+  // viewBox.
   return (
     `<svg viewBox="0 0 ${layout.width.toFixed(2)} ${layout.height.toFixed(2)}" ` +
-    `style="height:${heightPct}%;display:block" xmlns="http://www.w3.org/2000/svg" ` +
+    `style="height:${heightPct}cqh;display:block" xmlns="http://www.w3.org/2000/svg" ` +
     `aria-hidden="true">${inner}</svg>`
   );
 }
