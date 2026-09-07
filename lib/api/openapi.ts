@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/agentCopy";
 import { EDITABLE_DAY_FIELDS } from "@/lib/api/entries";
 import { EXTRA_STORAGE_BYTES, EXTRA_STORAGE_CREDITS } from "@/lib/credits/pricing";
+import { INBOX_FILE_EXTENSIONS, INBOX_KINDS } from "@/lib/inbox";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
 // Every enum below is imported rather than typed out. A hand-written list
@@ -2232,6 +2233,109 @@ export function openApiDocument() {
           },
         },
       },
+      "/api/v1/{user}/inbox": {
+        get: {
+          summary: "Everything staged, and what was said about it",
+          description:
+            "The journal's inbox: files that have been uploaded and belong to no day yet. " +
+            "Grouped by kind — " +
+            `${INBOX_KINDS.join(", ")} — with each file's id, the name it arrived under, its ` +
+            "size, and whatever the uploader said about it (`description`, `caption`, `lat`, " +
+            "`lon`, `takenAt`, `tags`; absent means nobody said).\n\n" +
+            "Make this call before writing days for a trip somebody has just come back from: " +
+            "the pictures are usually here already. Filing one into a day is " +
+            "`POST /api/v1/{user}/trips/{trip}/media` with `inbox`.\n\n" +
+            "**A trip-scoped token is refused** — the bucket belongs to the journal, and " +
+            "showing it would show files staged for trips you are not on.",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            "200": { description: "What is staged, by kind" },
+            "401": { description: "No live token — authenticate" },
+            "403": { description: "A different journal's token, or one scoped to a trip" },
+          },
+        },
+        post: {
+          summary: "Stage files that belong to no day yet",
+          description:
+            "The one upload door that does **not** ask which day a file is for. That is what " +
+            "it is for: a camera emptied on the evening it happened, when the days that will " +
+            "hold the pictures are still unwritten.\n\n" +
+            "multipart/form-data. `files` may repeat; `meta` and `kind` may repeat alongside " +
+            "it, one per file and in the same order. Everything on `meta` is optional and " +
+            "every field of it is **what you were told** — never what you concluded from " +
+            "looking at the file. A file with no description is normal; an invented one is " +
+            "not recoverable.\n\n" +
+            "**Duplicates are free.** A file is named by a hash of its own bytes, so the same " +
+            "file sent twice is stored once and the second call answers with the first one's " +
+            "id and `duplicate: true`. Two different files sharing a name both survive.\n\n" +
+            "Counts against the journal's storage ceiling like everything else — see " +
+            "`storage` in `GET /api/v1/{user}/status`.",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: {
+            required: true,
+            content: {
+              "multipart/form-data": {
+                schema: {
+                  type: "object",
+                  required: ["files"],
+                  properties: {
+                    files: {
+                      type: "array",
+                      items: { type: "string", format: "binary" },
+                      description:
+                        `Repeatable. Images and video as the media route takes them, plus ` +
+                        `${[...INBOX_FILE_EXTENSIONS].join(", ")} for the documents nothing ` +
+                        "reads yet.",
+                    },
+                    kind: {
+                      type: "array",
+                      items: { type: "string", enum: [...INBOX_KINDS] },
+                      description:
+                        "Optional, one per file and in the same order. Which folder it goes " +
+                        "in. Left out, it is worked out from the extension: a picture or a " +
+                        "clip is `media`, a document is `files`. Say `photobook` or " +
+                        "`postcards` for artwork meant for a printed thing.",
+                    },
+                    meta: {
+                      type: "array",
+                      items: { type: "string" },
+                      description:
+                        "Optional, one JSON object per file and in the same order: " +
+                        "`description`, `caption`, `lat`, `lon`, `takenAt`, `tags`. All " +
+                        "optional. Only what somebody told you.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "201": { description: "Staged. Each item carries its id and its sidecar" },
+            "400": { description: "A file was refused — kind, size, or no room left" },
+            "401": { description: "No live token — authenticate" },
+            "403": { description: "A different journal's token, or one scoped to a trip" },
+            "413": { description: "The whole request is too big to buffer" },
+          },
+        },
+      },
+      "/api/v1/{user}/inbox/{id}": {
+        delete: {
+          summary: "Take one staged file back out",
+          description:
+            "No confirmation code: nothing staged has ever been on the site and nobody has " +
+            "read it. A photograph already filed into a day is a different route, and that " +
+            "one does ask. The file and its sidecar go together.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "Gone" },
+            "403": { description: "A different journal's token, or one scoped to a trip" },
+            "404": { description: "Nothing staged under that id" },
+          },
+        },
+      },
       "/api/v1/{user}/trips/{trip}/media": {
         post: {
           summary: "Upload photographs or video to a day, and add them to it",
@@ -2312,7 +2416,7 @@ export function openApiDocument() {
               "application/json": {
                 schema: {
                   type: "object",
-                  required: ["day", "urls"],
+                  required: ["day"],
                   properties: {
                     day: { type: "string" },
                     urls: {
@@ -2320,7 +2424,20 @@ export function openApiDocument() {
                       items: { type: "string", format: "uri" },
                       description:
                         "https URLs on public hosts. All or nothing: if any is refused, " +
-                        "nothing is written and the reply names which and why.",
+                        "nothing is written and the reply names which and why. One of " +
+                        "`urls` or `inbox` is required.",
+                    },
+                    inbox: {
+                      type: "array",
+                      items: { type: "string" },
+                      description:
+                        "Ids from `GET /api/v1/{user}/inbox` — files already staged in this " +
+                        "journal, which is how photographs get in before the days that will " +
+                        "hold them exist. They are **moved**: the file goes into the day and " +
+                        "leaves the inbox, so a written day owns its pictures. A caption on " +
+                        "the staged file is used unless `captions` gives one here. An id " +
+                        "that names nothing staged, or names something that is not a " +
+                        "photograph, refuses the whole call and writes nothing.",
                     },
                     captions: {
                       type: "array",
@@ -2913,7 +3030,11 @@ export function openApiDocument() {
             "included, not only its photographs. A `limitBytes` of `null` means this " +
             "instance sets no ceiling — never that the answer is unknown. Present for a " +
             "trip-scoped token too, because the whole journal's ceiling is what refuses a " +
-            "trip's photographs. `POST /api/v1/{user}/storage` is how the owner raises it.",
+            "trip's photographs. `POST /api/v1/{user}/storage` is how the owner raises it.\n\n" +
+            "**`inbox`** counts what is staged and belongs to no day yet (B663), with the " +
+            "call that lists it. A non-zero count is the first thing to act on for a trip " +
+            "somebody has just come back from — the photographs are already here. Absent for " +
+            "a trip-scoped token, which the inbox route refuses.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
           ],

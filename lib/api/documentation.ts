@@ -2007,6 +2007,60 @@ approved through a buddy link may write too and is not in it.
 be looser; it is held to the same line so there is one answer to who may edit a
 trip's own fields rather than two.
 
+### When the pictures arrive before the days: the inbox
+
+\`\`\`http
+POST ${site.url}/api/v1/${example}/inbox
+Authorization: Bearer fs_agent_…
+Content-Type: multipart/form-data
+
+files=@DSC_4471.HEIC
+files=@DSC_4472.HEIC
+meta={"description": "The lanterns going up on the bridge", "lat": 15.88, "lon": 108.33}
+meta={}
+\`\`\`
+
+Every other door here makes a file name the day it belongs to. This one does
+not, and that is the whole point: somebody comes back from a week away with two
+hundred photographs and none of the days are written yet. Put them here, then
+write the days, then file them.
+
+\`\`\`http
+GET ${site.url}/api/v1/${example}/inbox
+\`\`\`
+
+lists everything staged, by kind — \`media\` for pictures and clips, \`files\`
+for documents, \`photobook\` and \`postcards\` for artwork — with whatever was
+said about each one. **Ask for this before you write days for a trip somebody
+has just got back from.** The pictures are often already there, and a day
+written without them is a day somebody has to come back to.
+
+Filing one is the media call below, with \`inbox\` instead of \`files\`:
+
+\`\`\`http
+POST ${site.url}/api/v1/${example}/trips/<trip-id>/media
+Content-Type: application/json
+
+{"day": "lanterns-of-hoi-an", "inbox": ["a3f1c2b4d5e6-dsc-4471.heic"]}
+\`\`\`
+
+That **moves** the file: it goes into the day and leaves the inbox, so the
+bucket empties as the trip gets written and nothing is stored twice.
+
+**Everything on \`meta\` is optional, and every field of it is what you were
+told.** Not what the photograph looks like to you. A staged file with no
+description is completely normal; an invented one is somebody's memory
+replaced with your guess, and nobody downstream can tell which it was.
+
+**Which day a picture belongs to is not yours to decide either.** The inbox
+makes it *possible* to sort two hundred files into days; it does not make it
+your call. Ask.
+
+**The same file twice costs nothing.** A staged file is named by a hash of its
+own bytes, so re-sending one you already sent answers with the same id and
+\`duplicate: true\` rather than a second copy. Retry a half-finished batch
+freely.
+
 ### Photographs and video
 
 \`\`\`http

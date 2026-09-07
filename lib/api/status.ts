@@ -8,6 +8,7 @@ import { balanceOf } from "@/lib/credits";
 import { getTrips } from "@/lib/trips";
 import { serverSite } from "@/lib/site";
 import { storageFor } from "@/lib/storageQuota";
+import { listInbox } from "@/lib/inbox";
 import { getUser } from "@/lib/users";
 
 /**
@@ -82,8 +83,26 @@ export async function draftQueue(
   );
 }
 
+/** How much is waiting in the inbox, without listing it. */
+function inboxSummary(user: string, base: string) {
+  const items = Object.values(listInbox(user)).flat();
+  return {
+    count: items.length,
+    bytes: items.reduce((n, item) => n + item.bytes, 0),
+    url: `GET ${base}/api/v1/${user}/inbox`,
+  };
+}
+
 /** What to do next, in the order an agent should care about it. */
-function nextStep(drafts: number, trips: number, scoped: boolean): string {
+function nextStep(drafts: number, trips: number, scoped: boolean, staged = 0): string {
+  if (drafts === 0 && staged > 0 && trips > 0) {
+    return (
+      `${staged} ${staged === 1 ? "file is" : "files are"} staged in the inbox and belong to no ` +
+      "day yet. Read them with `inbox.url`, ask the person which day each one is from — never " +
+      "decide that from the picture — then write the days and file them with `inbox` on " +
+      "`POST .../media`."
+    );
+  }
   if (drafts > 0) {
     return (
       `${drafts} ${drafts === 1 ? "day is" : "days are"} written and not on the site. ` +
@@ -146,6 +165,10 @@ export async function journalStatus(user: string, session: Session) {
   // reads to know whether a send will be charged. So it is reported from the
   // *server* answer, `resolveCapabilities()` with no username, and still
   // carries a reason when off, the same shape as the four above. B397.
+  // Walked once and used twice — the block below and the `next` line both
+  // want it, and it is a directory read per kind.
+  const staged = scoped ? null : inboxSummary(user, base);
+
   const serverCredits = resolveCapabilities().credits;
   features.credits = serverCredits.enabled
     ? { enabled: true }
@@ -209,6 +232,20 @@ export async function journalStatus(user: string, session: Session) {
      * the ceiling off; `null` there means "no limit", never "unknown".
      */
     storage: await storageFor(user),
-    next: nextStep(drafts.length, trips.length, scoped),
+    /*
+     * What is staged and belongs to no day yet — B663.
+     *
+     * Here because an agent that does not know the inbox has anything in it
+     * writes a day without its photographs, and somebody has to come back to
+     * it. A count and a byte total only: the files themselves are a call away
+     * and are usually the longer half of this response.
+     *
+     * Absent for a trip-scoped token, like the balance and for the same
+     * reason: the bucket is the journal's, and the route that lists it
+     * refuses that token outright — reporting a number it cannot then read
+     * would be an invitation to a 403.
+     */
+    ...(staged ? { inbox: staged } : {}),
+    next: nextStep(drafts.length, trips.length, scoped, staged?.count ?? 0),
   };
 }

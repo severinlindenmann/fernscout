@@ -131,6 +131,12 @@ content/
                               for an upcoming trip (optional)
         media/                derivatives served to the browser
         .ingest.json          what ingest has already imported (do not edit)
+    inbox/                    files that belong to no day yet — B663.
+      media/ files/           `media/` is destined for a gallery, `files/` is
+      photobook/ postcards/   documents nothing reads yet. Each file is named
+                              by a hash of its own bytes, with its facts in a
+                              `<name>.meta.json` sidecar beside it. Nothing
+                              here is reachable by URL. See lib/inbox.ts.
     postcards/ photobooks/    generated output (gitignored)
 ```
 

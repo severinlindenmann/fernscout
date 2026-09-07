@@ -2,7 +2,9 @@ import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser, refuse
 import { attachGallery, detachGallery, isPublished } from "@/lib/api/entries";
 import { storeUploads, type KeptOriginal, type UploadCandidate } from "@/lib/api/media";
 import { getTrip, mediaWithOwner, tripRef } from "@/lib/trips";
+import fs from "node:fs";
 import { fetchImage } from "@/lib/api/fetchMedia";
+import { findInboxFile, removeInboxFile } from "@/lib/inbox";
 import { getUser } from "@/lib/users";
 import {
   IMAGE_MAX_BYTES,
@@ -161,10 +163,93 @@ export async function POST(
     const wrongDay = dayProblem(day);
     if (wrongDay) return wrongDay;
 
+    /**
+     * The third door: files already staged in the journal's inbox — B663.
+     *
+     * Handled before `urls` because it is the *cheap* one — the bytes are
+     * already on this disk, with whatever the uploader said about them beside
+     * them — and because it is the one that changes the order of work: a
+     * person can hand over two hundred photographs on the evening they
+     * happened and write the days a week later.
+     *
+     * It **moves** rather than copies. The file goes through the ordinary
+     * pipeline into the trip and leaves the inbox, so a day that has been
+     * written owns its photographs and the bucket shrinks as it is emptied.
+     * A caption on the sidecar becomes the gallery item's caption unless this
+     * call gives one, because that is what it was written for.
+     */
+    const inbox = Array.isArray(body?.inbox)
+      ? body.inbox.filter((id): id is string => typeof id === "string")
+      : [];
+    if (inbox.length > 0) {
+      // Captions and visibility are positional here too, over the ids in the
+      // order they were sent — the same convention `urls` uses below, parsed
+      // here against this list's length rather than that one's.
+      const said = captionsFor(body?.captions, inbox.length);
+      if (!said.ok) {
+        return Response.json({ error: "invalid_media", problems: [said.problem] }, { status: 400 });
+      }
+      const shown = visibilitiesFor(body?.visibility, inbox.length);
+      if (!shown.ok) {
+        return Response.json({ error: "invalid_media", problems: [shown.problem] }, { status: 400 });
+      }
+
+      const staged: UploadCandidate[] = [];
+      const missing: string[] = [];
+      for (const [at, id] of inbox.entries()) {
+        const found = findInboxFile(user, id);
+        if (!found || found.entry.kind !== "media") {
+          missing.push(id);
+          continue;
+        }
+        staged.push({
+          filename: found.entry.filename,
+          bytes: fs.readFileSync(found.file),
+          caption: said.captions[at] || found.entry.caption,
+          visibility: shown.visibilities[at],
+        });
+      }
+      if (missing.length > 0) {
+        return Response.json(
+          {
+            error: "unknown_inbox_file",
+            missing,
+            message:
+              `Nothing staged under ${missing.map((m) => `"${m}"`).join(", ")} — or it is not a ` +
+              `photograph. GET /api/v1/${user}/inbox for what is there. Nothing was written.`,
+          },
+          { status: 400 },
+        );
+      }
+
+      const written = await storeUploads(ref, day, staged);
+      if (!written.ok) {
+        return Response.json({ error: "invalid_media", problems: written.problems }, { status: 400 });
+      }
+      // Only once the files are in the trip. The other order would delete
+      // somebody's only copy on a batch that then failed to store.
+      for (const id of inbox) removeInboxFile(user, id);
+
+      const attached = attachGallery(ref, day, written.items);
+      return stored(
+        ref,
+        day,
+        withOwner(written.items, user),
+        written.kept,
+        attached.ok,
+        attached.ok ? undefined : attached.error,
+      );
+    }
+
     const urls = Array.isArray(body?.urls) ? body.urls.filter((u): u is string => typeof u === "string") : [];
     if (urls.length === 0) {
       return Response.json(
-        { error: "expected_urls", hint: 'Send {"day": "...", "urls": ["https://…"]}, or multipart bytes.' },
+        {
+          error: "expected_urls",
+          hint:
+            'Send {"day": "...", "urls": ["https://…"]}, or {"day": "...", "inbox": ["<id>"]} ' +
+            "for files already staged in this journal's inbox, or multipart bytes.",
+        },
         { status: 400 },
       );
     }
