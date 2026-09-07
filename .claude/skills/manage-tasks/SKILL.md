@@ -34,6 +34,7 @@ docs/tasks/backlog/
   ops/               OPS — an engagement against the running instance
   docs-and-skills/   DOCS — the deliverable is words somebody reads
   superseded/        overtaken by other work; see `superseded:` below
+  wont-do/           a person decided against it; see `wontDo:` below
 ```
 
 **You never choose the folder, and you never move a file into one by hand.**
@@ -194,13 +195,28 @@ unrelated jobs:
   demo content an agent learns the model from. Code may change; what makes it
   DOCS is that the change is to what is understood, not to what runs.
 
-**`superseded:`** is the one field that overrides the type. It carries what
-overtook the task — an id, or in a sentence what was found — and files it under
-`superseded/`. Use it when a task turns out to be done, wrong, or about code
-that no longer exists. It is not `completed/`: nothing here claims a person
-verified anything, and the task keeps its file and its id because ids are
-forever. Say what overtook it in the body as well, under `## Why`, so the next
-reader does not re-derive it.
+**`superseded:`** overrides the type. It carries what overtook the task — an
+id, or in a sentence what was found — and files it under `superseded/`. Use it
+when a task turns out to be done, wrong, or about code that no longer exists.
+It is not `completed/`: nothing here claims a person verified anything, and the
+task keeps its file and its id because ids are forever. Say what overtook it in
+the body as well, under `## Why`, so the next reader does not re-derive it.
+
+**`wontDo:`** is the other closing field, and it says something different:
+**a person decided this should not be built.** The behaviour is wanted as it
+is, the cost is not worth it, or the premise was wrong. It files under
+`wont-do/`.
+
+Keep the two apart. A superseded ticket points at the work that replaced it,
+and the next agent may usefully go and read that; a wont-do ticket points at
+nothing and is meant *not* to be picked up again by an agent hunting for
+something useful. Filing a decision-against as `superseded` is how a settled
+question gets reopened three weeks later. `superseded` wins if both are set.
+
+**`wontDo` is a person's word.** Set it when you have been told to, and put
+their reasoning in the body. Your own view that a ticket is not worth building
+is a note in the file and a sentence to the person — not a closure you make
+yourself.
 
 **The title is the problem, not the fix.** "X-Forwarded-For is taken on trust"
 survives being wrong about the remedy; "Add header_up to the Caddyfile" does
