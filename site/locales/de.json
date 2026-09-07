@@ -1482,7 +1482,7 @@
   "pricing.rowStorage": "Weitere {size}",
   "pricing.rowStorageDetail": "Einmalig, und läuft nie ab",
   "pricing.rowPhotobook": "Ein gedrucktes Fotobuch",
-  "pricing.rowPhotobookDetail": "Eine Schätzung — sie hängt von Seitenzahl und Format ab, und du siehst den genauen Betrag vor der Bestellung",
+  "pricing.rowPhotobookDetail": "In der Schweiz gedruckt und an dich verschickt — der Betrag hängt von Seitenzahl und Format ab, und du siehst die genaue Summe vor der Bestellung",
   "pricing.fromCredits": "ab {credits}",
   "pricing.grant": "Ein neues Journal startet mit {credits}.",
   "me.paymentFree": "gratis",

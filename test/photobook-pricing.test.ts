@@ -4,14 +4,21 @@ import {
   PHOTOBOOK_PAGE_CREDITS,
   PHOTOBOOK_PRICING_VERIFIED,
   photobookCredits,
+  priceRappen,
 } from "@/lib/credits/pricing";
 
 describe("what a photobook costs", () => {
-  test("nobody has confirmed these numbers against a provider", () => {
-    // They came from nowhere but arithmetic. When Gelato's price endpoint has
-    // answered for a real productUid, change this to true in the same commit
-    // that puts the real numbers in — this test is the reminder.
-    expect(PHOTOBOOK_PRICING_VERIFIED).toBe(false);
+  test("is no longer an estimate", () => {
+    // Gelato's price endpoint has answered for a real productUid — B841.
+    // This flips back to false only if the basis is ever thrown away.
+    expect(PHOTOBOOK_PRICING_VERIFIED).toBe(true);
+  });
+
+  test("covers the measured landed cost of a 52-page square book", () => {
+    const landedChf = 6.04 + 0.161 * 52 + 8.52; // 22.92, Zurich, ex-VAT
+    const charged = priceRappen(photobookCredits(52, "square")) / 100;
+    expect(charged).toBeGreaterThan(landedChf);
+    expect(charged).toBeLessThan(landedChf * 2);
   });
 
   test("a base plus a page term, always a whole number of credits", () => {

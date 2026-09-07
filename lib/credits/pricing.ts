@@ -116,47 +116,53 @@ export function isBuyableAmount(credits: unknown): credits is number {
 export const POSTCARD_CREDITS = 20;
 
 /**
- * What one printed photobook costs the owner — and every number here is a
- * guess.
+ * What one printed photobook costs the owner — measured now, B841.
  *
- * A postcard's twenty credits came from a known unit cost. This one cannot,
- * because no photobook has ever been ordered from this instance and Gelato's
- * price endpoint needs an account and a real `productUid`. So the shape is
- * right — a fixed cost for the cover, binding and postage, plus a per-page
- * cost for paper and ink, times a factor for the larger sheet — and the
- * magnitudes are arithmetic against `docs/providers/photobook.md`'s
- * order-of-magnitude figures.
+ * **The basis, a live Gelato quote to Zurich, CHF, ex-VAT, 2026-09-07:**
+ * softcover 200×200 square fits `6.04 + 0.161 × pages` almost exactly (32
+ * pages 11.18, 52 pages 14.40, 100 pages 22.12, 160 pages 31.78), printed in
+ * Switzerland, plus Swiss Post Economy shipping at 8.52. A 52-page square
+ * book lands at CHF 22.92. Two things this basis does **not** cover: VAT, and
+ * delivery outside Switzerland, which is a different quote every time and
+ * therefore cannot be folded into one constant here.
  *
- * **The base was 90 until B840, and 90 was too low.** Gelato publishes no
- * per-page rate; what they do publish is "from $11.85" for a softcover with
- * the first 30 inner pages included, at their *smallest* format — ours is
- * 210 x 210, perfect bound, 32 to 160 pages. Estimating from that plus
- * European shipping puts a 52-page book at roughly CHF 25 landed, against
- * which the old base priced it at CHF 38.80: about a third, and one reprint
- * of a spoiled book wiped out three sales. At 160 the same book is CHF 52.80,
- * which is roughly twice landed cost — the same multiple the postcard carries
- * — and sits above the DIY photobook shops' softcovers and below their
- * hardcovers. That is the deliberate position: this book arrives laid out.
+ * **The base was 90 until B840, then 160 against an estimate.** The estimate
+ * came from Gelato's published "from $11.85" figure at a size Gelato does not
+ * print (210×210) and a landed cost guessed at roughly CHF 25 — arithmetic on
+ * a number that was never a quote. The measured landed cost turned out lower,
+ * CHF 22.92, but the base stays 160 here anyway: a second plan (not this one)
+ * splits the build charge from the print charge, and moving this number twice
+ * — once to match a better guess, again when that split lands — is a price
+ * that moved for no reason a reader can see. At 160 credits and 2 a page, a
+ * 52-page book is priced (after the volume discount `priceRappen` already
+ * applies at that many credits) at roughly twice landed cost, the same
+ * multiple the postcard carries, and one reprint of a spoiled book still does
+ * not wipe out the margin on three sales.
  *
- * It is still an estimate, and the pricing table on `/` says so in as many
- * words rather than only here. B841 is the real quote.
- *
- * `PHOTOBOOK_PRICING_VERIFIED` is how that is said in the data rather than
- * only in a comment.
- * `test/photobook-pricing.test.ts` asserts it, so the day somebody puts a real
- * quote in is a day they have to change a test on purpose.
+ * `PHOTOBOOK_PRICING_VERIFIED` is how "measured, not guessed" is said in the
+ * data rather than only in a comment. `test/photobook-pricing.test.ts` checks
+ * both that it is `true` and that the charge for a 52-page square book sits
+ * between the measured landed cost and twice it.
  */
 export const PHOTOBOOK_BASE_CREDITS = 160;
 export const PHOTOBOOK_PAGE_CREDITS = 2;
-export const PHOTOBOOK_PRICING_VERIFIED = false;
+export const PHOTOBOOK_PRICING_VERIFIED = true;
 
-/** Portrait and the large square are bigger sheets than the small square, and
- * paper is most of the marginal cost. Rounded down to something defensible
- * rather than modelled. */
+/**
+ * Measured price ratios against the square, not modelled from paper area.
+ *
+ * At 52 pages Gelato quotes square CHF 14.40, portrait (210×280) CHF 14.99 —
+ * 1.04× — and large-square (280×280) CHF 27.36 — 1.90×. Portrait is barely
+ * dearer because it is barely more paper; large-square is dearer mostly
+ * because it is the only hardcover of the three, not because of its sheet
+ * size. This used to be guessed from A4 being "1.4x the sheet area of the
+ * 210mm square" — square is 200mm now, and the guess was never checked
+ * against a quote either way.
+ */
 const SIZE_FACTOR: Record<string, number> = {
   square: 1,
-  portrait: 1.25,
-  "large-square": 1.25,
+  portrait: 1.04,
+  "large-square": 1.9,
 };
 
 /** One volume, one copy. A book split into volumes is priced per volume by the
