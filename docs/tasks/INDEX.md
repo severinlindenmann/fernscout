@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (96)
+## backlog (98)
 
 ### security (2)
 
@@ -58,18 +58,20 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 
-### issue (17)
+### issue (19)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B766](backlog/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low |
 | [B781](backlog/issue/B781-the-consent-panels-are-a-wall.md) | The consent panels are a wall of text at the moment somebody wants to press a button | ISSUE | high | low |
+| [B786](backlog/issue/B786-two-identical-sign-in-forms-sit.md) | Two identical sign-in forms sit on top of each other and nothing says which is yours | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
 | [B782](backlog/issue/B782-asking-what-you-have-spent-answers.md) | Asking what you have spent answers with app credits | ISSUE | medium | low |
 | [B783](backlog/issue/B783-an-unrecognised-question-is-answered-with.md) | An unrecognised question is answered with silence | ISSUE | medium | low |
 | [B785](backlog/issue/B785-an-agent-facing-english-refusal-is.md) | An agent-facing English refusal is shown to a person on a German screen | ISSUE | medium | low |
+| [B787](backlog/issue/B787-the-sign-in-button-may-stay.md) | The sign-in button may stay disabled when the address is autofilled | ISSUE | medium | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B750](backlog/issue/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low |
