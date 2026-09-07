@@ -1412,5 +1412,21 @@
   "agent.askConsentShort": "Elküldi a beírt mondatot egy modellnek, hogy kitalálja, melyik lépésre gondoltál. A kérdezés ingyenes.",
   "agent.statementConsentShort": "Elküldi a fájl fejlécsorát és az első öt sorát egy modellnek, hogy megmondja, melyik oszlop micsoda.",
   "agent.pickPhotosWhy": "Amit a fényképezőgép rögzített – a nap, az időpont és a hely – kitölti a többit, és semmi nem lesz kitalálva.",
-  "postcard.result.providerFailed": "A nyomda minden lapot elutasított, így semmi nem lett elküldve, és a kreditek visszakerültek."
+  "postcard.result.providerFailed": "A nyomda minden lapot elutasított, így semmi nem lett elküldve, és a kreditek visszakerültek.",
+  "credits.worth": "Egy kredit nagyjából {one}; {credits} kredit ára {price}.",
+  "cost.currency": "Pénznem",
+  "cost.addHeading": "Írd be, mibe került ez a nap",
+  "cost.addHint": "Egy blokk egyszerre. Itt semmit nem találunk ki — ha nem tudod, hagyd üresen.",
+  "cost.addButton": "Beírom",
+  "cost.addBusy": "Mentés…",
+  "cost.added": "Bekerült ide: {date}.",
+  "cost.addNone": "Ehhez a naphoz még semmi sincs feljegyezve.",
+  "cost.addOn": "Már ezen a napon",
+  "cost.addNoDay": "A(z) {date} naphoz még nincs megírt nap, így nincs mihez hozzátenni. Írd meg előbb azt a napot.",
+  "cost.addFailed": "Ez nem mentődött el: {error}",
+  "agent.assumed": "Ez a nap egyelőre azt mondja: {fields}. Semmit nem találtunk ki — csak még senki nem kérdezte meg.",
+  "agent.assumedCosts": "senki nem jegyezte fel, mibe került",
+  "agent.assumedCoordinates": "senki nem jegyezte fel, hol volt",
+  "agent.assumedPhotos": "a fényképek nincsenek kéznél",
+  "agent.assumedChange": "Mondok mást"
 }

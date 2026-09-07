@@ -1412,5 +1412,21 @@
   "agent.askConsentShort": "Schickt den Satz, den du getippt hast, an ein Modell, damit es herausfindet, welchen Schritt du meinst. Fragen kostet nichts.",
   "agent.statementConsentShort": "Schickt die Überschriftenzeile dieser Datei und ihre ersten fünf Zeilen an ein Modell, damit es sagt, welche Spalte welche ist.",
   "agent.pickPhotosWhy": "Was die Kamera aufgezeichnet hat – Tag, Uhrzeit und Ort – füllt den Rest aus, und nichts davon wird erfunden.",
-  "postcard.result.providerFailed": "Die Druckerei hat alle Karten abgelehnt. Es wurde nichts gesendet, und deine Credits sind zurück auf dem Konto."
+  "postcard.result.providerFailed": "Die Druckerei hat alle Karten abgelehnt. Es wurde nichts gesendet, und deine Credits sind zurück auf dem Konto.",
+  "credits.worth": "Ein Guthabenpunkt ist etwa {one} wert; {credits} Punkte kosten {price}.",
+  "cost.currency": "Währung",
+  "cost.addHeading": "Eintragen, was dieser Tag gekostet hat",
+  "cost.addHint": "Ein Beleg nach dem anderen. Hier wird nichts geraten — wenn du es nicht weisst, lass es offen.",
+  "cost.addButton": "Eintragen",
+  "cost.addBusy": "Wird eingetragen …",
+  "cost.added": "Beim {date} eingetragen.",
+  "cost.addNone": "Für diesen Tag ist noch nichts aufgeschrieben.",
+  "cost.addOn": "Schon an diesem Tag",
+  "cost.addNoDay": "Für den {date} ist noch kein Tag geschrieben, also gibt es nichts, wozu das gehören könnte. Schreib zuerst diesen Tag.",
+  "cost.addFailed": "Das wurde nicht gespeichert: {error}",
+  "agent.assumed": "Vorerst sagt dieser Tag: {fields}. Nichts davon ist erfunden — es hat nur noch niemand gefragt.",
+  "agent.assumedCosts": "niemand hat aufgeschrieben, was es gekostet hat",
+  "agent.assumedCoordinates": "niemand hat aufgeschrieben, wo es war",
+  "agent.assumedPhotos": "niemand hat die Fotos zur Hand",
+  "agent.assumedChange": "Etwas anderes sagen"
 }

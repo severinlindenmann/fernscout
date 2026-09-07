@@ -7,8 +7,7 @@ complexity: medium
 area: navigation, ux
 found: "2026-09-07T17:40:00Z"
 started: "2026-09-07T16:20:43Z"
-session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
-claimed: "2026-09-07T16:20:43Z"
+merged: "2026-09-07T16:46:11Z"
 ---
 
 # B822 — A back arrow returns to a fixed parent rather than where the reader actually came from

@@ -89,6 +89,8 @@ describe("the helper routes", () => {
     .filter((file) => file.endsWith("route.ts"))
     .map((file) => fs.readFileSync(path.join(dir, file), "utf8"));
 
+  // Fifteen since B820 added `day/costs` — the receipt a person types in
+  // themselves, which is the first thing in this family that writes money.
   // Fourteen since B816 added the takedown — `day/unpublish`, the verb that
   // makes a published day something the browser can still act on.
   // Thirteen before that, since B689 added the four the inbox screen needs: reading a
@@ -101,8 +103,8 @@ describe("the helper routes", () => {
   // where the guard is asserted — and it earned that on the B685/B687 merge,
   // where two branches built in parallel each updated it to a number that was
   // right on its own branch and wrong on main.
-  test("there are fourteen of them, and each is guarded", () => {
-    expect(sources).toHaveLength(14);
+  test("there are fifteen of them, and each is guarded", () => {
+    expect(sources).toHaveLength(15);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

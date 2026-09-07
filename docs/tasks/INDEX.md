@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (109)
+## backlog (110)
 
 ### security (2)
 
@@ -58,12 +58,13 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 
-### issue (26)
+### issue (27)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B766](backlog/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low |
 | [B829](backlog/issue/B829-rewording-a-row-did-not-stop.md) | Rewording a row did not stop the wrong one matching | ISSUE | high | low |
+| [B846](backlog/issue/B846-a-payment-method-not-yet-activated.md) | A payment method not yet activated on the Stripe account fails the whole checkout, not just that method | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
@@ -211,7 +212,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B843](open/B843-doku-sits-in-the-destination-list.md) | Doku sits in the destination list though it leaves the journal, and Agent reads as a row rather than a button | ISSUE | medium | low |
 
-## in-development (11)
+## in-development (10)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -225,9 +226,8 @@ Do not edit them by hand; run the script.
 | [B806](in-development/B806-a-credit-is-never-named-in.md) | A credit is never named in francs anywhere a person reads | ISSUE | medium | low | `fdfcf5f2` |
 | [B809](in-development/B809-two-name-fields-in-the-signup.md) | Two name fields in the signup form cannot be told apart | ISSUE | medium | low | `fdfcf5f2` |
 | [B810](in-development/B810-the-first-thing-the-product-asks.md) | The first thing the product asks a new person is what their day cost | ISSUE | medium | low | `fdfcf5f2` |
-| [B822](in-development/B822-a-back-arrow-returns-to-a.md) | A back arrow returns to a fixed parent rather than where the reader actually came from | ISSUE | medium | medium | `ccdd5120` |
 
-## testing (65)
+## testing (66)
 
 ### security (2)
 
@@ -236,7 +236,7 @@ Do not edit them by hand; run the script.
 | [B830](testing/security/B830-the-stripe-webhook-checks-the-amount.md) | The Stripe webhook checks the amount but not the currency, and not that the event's mode matches the key | SECURITY | high | low | — |
 | [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (33)
+### issue (34)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -262,6 +262,7 @@ Do not edit them by hand; run the script.
 | [B793](testing/issue/B793-the-gallery-s-slideshow-button-ignores.md) | The gallery's slideshow button ignores the gallery's own filter and duplicates the map's | ISSUE | medium | low | — |
 | [B796](testing/issue/B796-a-refusal-and-the-model-s.md) | A refusal and the model's answer are both silent to a screen reader | ISSUE | medium | low | — |
 | [B818](testing/issue/B818-the-date-defaults-to-today-when.md) | The date defaults to today when you are writing up a day from three weeks ago | ISSUE | medium | low | — |
+| [B822](testing/issue/B822-a-back-arrow-returns-to-a.md) | A back arrow returns to a fixed parent rather than where the reader actually came from | ISSUE | medium | medium | — |
 | [B824](testing/issue/B824-the-agent-and-docs-sit-apart.md) | The agent and docs sit apart from the destinations they are listed with | ISSUE | medium | low | — |
 | [B831](testing/issue/B831-a-buyer-who-pays-two-checkout.md) | A buyer who pays two checkout sessions for one purchase is charged twice and credited once, silently | ISSUE | medium | low | — |
 | [B842](testing/issue/B842-a-trip-with-no-tagline-shows.md) | A trip with no tagline shows the journal's, so the journal's words are presented as the trip's | ISSUE | medium | low | — |
