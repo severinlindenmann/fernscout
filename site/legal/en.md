@@ -114,8 +114,20 @@ advertising or profiling.
 | **Proton AG** (Switzerland) | Sign-in codes, invitations, notifications | The recipient's address and the message |
 | **Open-Meteo** (Germany) | A journal asked what the weather was on a day it recorded | The coordinates and the date of that day — nothing about you |
 | **European Central Bank** (Germany) | A trip needed the exchange rate for a currency it spent in | Nothing at all — the request is for a published document and carries no question |
+| **Anthropic** (United States) | Somebody used the web helper at `/agent` | What was typed or said, the handful of facts the day already carries (date, place, country, photograph count and times) and, when the helper is asked to describe a photograph, the photograph itself |
+| **Deepgram** (United States) | Somebody spoke to the web helper at `/agent` instead of typing | The raw audio of their voice |
 
 That is the whole list. There is nobody else.
+
+**Anthropic and Deepgram are reached only when somebody uses the web helper at
+`/agent`.** Reading a journal never causes a request to either, and an owner
+writing through their own agent never does either — those go straight from
+that agent to the journal, with no model of ours in between. What is not sent
+to either: no location history, no contacts, no postal addresses, and nothing
+either receives is used to train a model. On an instance running the helper's
+`dry-run` speech backend, nothing reaches Deepgram at all — the transcript is
+produced on the machine. And whichever backend is running, the audio itself is
+never stored: this software writes it to no file, and a test asserts that.
 
 The weather row is different from the four above it and the difference is
 worth stating plainly: **that request is made by this server, not by your

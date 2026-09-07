@@ -114,6 +114,15 @@ describe("dictionaries", () => {
     expect(Object.keys(dictionariesFor("ana")).sort()).toEqual(["de", "en"]);
     expect(Object.keys(dictionariesFor("bea")).sort()).toEqual(["en", "hr"]);
   });
+
+  /** B745: a regional tag ships no dictionary of its own, but its base
+   *  language does — narrowing to English throws that away for no reason. */
+  test("a regional tag falls back to its base language before English", () => {
+    const de = dictionaryFor("de");
+    const swiss = dictionaryFor("de-CH");
+    expect(swiss["nav.gallery"]).toBe(de["nav.gallery"]);
+    expect(swiss["nav.gallery"]).not.toBe(dictionaryFor("en")["nav.gallery"]);
+  });
 });
 
 describe("translate", () => {

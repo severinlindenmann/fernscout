@@ -123,8 +123,22 @@ für Werbung oder zur Profilbildung.
 | **Proton AG** (Schweiz) | Anmeldecodes, Einladungen, Benachrichtigungen | Die Empfängeradresse und die Nachricht |
 | **Open-Meteo** (Deutschland) | Ein Journal hat gefragt, wie das Wetter an einem festgehaltenen Tag war | Die Koordinaten und das Datum dieses Tages — nichts über Sie |
 | **Europäische Zentralbank** (Deutschland) | Eine Reise brauchte den Wechselkurs für eine Währung, in der sie ausgegeben hat | Gar nichts — abgerufen wird ein veröffentlichtes Dokument, und es transportiert keine Frage |
+| **Anthropic** (USA) | Jemand hat den Web-Helfer unter `/agent` benutzt | Was getippt oder gesagt wurde, die Handvoll Fakten, die der Tag ohnehin schon trägt (Datum, Ort, Land, Anzahl und Zeitpunkte der Fotos), und — wenn der Helfer gebeten wird, ein Foto zu beschreiben — das Foto selbst |
+| **Deepgram** (USA) | Jemand hat mit dem Web-Helfer unter `/agent` gesprochen statt getippt | Die rohe Tonaufnahme der Stimme |
 
 Das ist die vollständige Liste. Mehr ist da nicht.
+
+**Anthropic und Deepgram werden nur erreicht, wenn jemand den Web-Helfer unter
+`/agent` benutzt.** Ein Journal zu lesen löst nie eine Anfrage an eine der
+beiden aus, und eine Besitzerin, die über den eigenen Agenten schreibt, auch
+nicht — der geht direkt vom eigenen Agenten ins Journal, ohne dass unser
+Modell dazwischensteht. Was an keine der beiden geht: kein Standortverlauf,
+keine Kontakte, keine Postadressen, und nichts, was sie bekommen, wird zum
+Training eines Modells verwendet. Auf einer Instanz, die die `dry-run`-Variante
+der Spracherkennung des Helfers verwendet, erreicht Deepgram gar nichts — die
+Abschrift entsteht auf der Maschine selbst. Und unabhängig davon, welche
+Variante läuft: die Tonaufnahme selbst wird nie gespeichert — diese Software
+schreibt sie in keine Datei, und ein Test stellt das sicher.
 
 Die Wetterzeile unterscheidet sich von den vier darüber, und der Unterschied
 gehört ausgesprochen: **diese Anfrage stellt dieser Server, nicht Ihr

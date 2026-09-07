@@ -82,7 +82,24 @@ export type QueueProgress = {
   /** Something worth putting on the screen: a refused file, or a connection
    *  that has not come back. Never fatal — the rows stay on disk. */
   error: string | null;
+  /** The day these rows were picked for — `null` when the queue is empty.
+   *  A queue row is keyed to its own day, so this is what lets the wizard
+   *  say which day a progress line is about when it is not the one on
+   *  screen (B721). */
+  slug: string | null;
 };
+
+/**
+ * The day a progress line should name, or `null` when it needs none.
+ *
+ * A queue row is keyed to the day it was picked for, and the queue empties in
+ * the background while somebody walks on to a different draft — so the line
+ * says which day it is about only once that stops being obvious from what is
+ * already on screen (B721).
+ */
+export function uploadingDaySlug(progress: QueueProgress, onScreenSlug: string | undefined): string | null {
+  return progress.slug && progress.slug !== onScreenSlug ? progress.slug : null;
+}
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -308,6 +325,7 @@ export async function drain(
         originalDone: rows.filter((r) => r.originalDone).length,
         originalTotal: rows.length,
         error,
+        slug: rows[0]?.slug ?? null,
       });
     };
     report();

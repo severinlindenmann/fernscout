@@ -58,7 +58,15 @@ export type Dictionary = Record<string, string>;
 function localeFiles(code: string): string[] {
   const shipped = path.join(siteRoot(), "locales", `${code}.json`);
   const own = path.join(contentRoot(), "locales", `${code}.json`);
-  return own === shipped ? [shipped] : [shipped, own];
+  const files = own === shipped ? [shipped] : [shipped, own];
+  // A regional tag ("de-CH") ships no dictionary of its own — only the base
+  // language ("de") does. Layer the base language's files underneath this
+  // tag's own, so a journal written in "de-CH" reads German chrome rather
+  // than falling straight through to English (B745). The base's files come
+  // first so this tag's own (still-absent) files would win were they ever
+  // added.
+  const base = code.split("-")[0];
+  return base === code ? files : [...localeFiles(base), ...files];
 }
 
 /** Cached against what the files on disk currently are — see `dictionarySignature`. */

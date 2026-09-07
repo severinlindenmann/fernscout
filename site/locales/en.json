@@ -1181,6 +1181,7 @@
   "agent.creating": "Starting…",
   "agent.uploadTitle": "Photographs",
   "agent.uploading": "{done} of {total} sent…",
+  "agent.uploadingFor": "For {date}:",
   "agent.skipPhotos": "Carry on without photographs",
   "agent.wordsTitle": "What happened?",
   "agent.wordsHint": "Your words, in your language. Nothing here writes them for you, and nothing is added that you did not say.",

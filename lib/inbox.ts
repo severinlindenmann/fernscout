@@ -58,8 +58,10 @@ import { VIDEO_EXTENSIONS } from "./ingest/video";
  * What a file is *for*, which is what decides where it goes next.
  *
  * A flat folder would make an agent guess. `media` is destined for a day's
- * gallery and is the only kind the media route will file; the other three are
- * held for the pipelines that will read them.
+ * gallery and is the only kind `POST /api/v1/<user>/inbox` will file; the
+ * other three are held for the pipelines that will read them. (The helper's
+ * own media route is a separate door and also files `files`, for anything
+ * that is not a photograph or a video — B683.)
  */
 export const INBOX_KINDS = ["media", "files", "photobook", "postcards"] as const;
 export type InboxKind = (typeof INBOX_KINDS)[number];
