@@ -320,10 +320,10 @@ with no restart and no rebuild.
 
 ## Checking a change before you push
 
-The four that must pass:
+The checks that must pass:
 
 ```bash
-npm run verify         # build → tsc → eslint → vitest, stopping at the first failure
+npm run verify         # build → tsc → eslint → vitest → knip, stopping at the first failure
 ```
 
 The build looks like the expensive one to run first, and it is. It still goes
