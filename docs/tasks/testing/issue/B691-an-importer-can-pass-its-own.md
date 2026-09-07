@@ -7,8 +7,7 @@ complexity: medium
 area: importers, costs
 found: "2026-09-07T09:58:57Z"
 started: "2026-09-07T09:59:26Z"
-session: 1d31e523-3a22-4905-82fd-39e3d55289f5
-claimed: "2026-09-07T09:59:26Z"
+merged: "2026-09-07T10:07:45Z"
 ---
 
 # B691 — An importer can pass its own contract check and still have the money upside down

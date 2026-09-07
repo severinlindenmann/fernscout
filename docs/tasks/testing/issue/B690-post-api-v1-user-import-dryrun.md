@@ -7,8 +7,7 @@ complexity: low
 area: API
 found: "2026-09-07T09:54:25Z"
 started: "2026-09-07T09:59:27Z"
-session: 1d31e523-3a22-4905-82fd-39e3d55289f5
-claimed: "2026-09-07T09:59:27Z"
+merged: "2026-09-07T10:07:45Z"
 ---
 
 # B690 — POST /api/v1/<user>/import: dryRun flag on costs import has no effect and response does not say so
