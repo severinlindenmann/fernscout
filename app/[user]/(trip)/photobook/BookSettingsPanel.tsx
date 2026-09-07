@@ -216,6 +216,7 @@ export default function BookSettingsPanel({
             ["includeCosts", "photobook.option.costs"],
             ["includeCharts", "photobook.option.charts"],
             ["includeFigureMarks", "photobook.option.figureMarks"],
+            ["includeVehicles", "photobook.option.vehicles"],
           ] as const
         ).map(([key, label]) => (
           <label key={key} className="flex items-center gap-2 text-sm text-navy-700">

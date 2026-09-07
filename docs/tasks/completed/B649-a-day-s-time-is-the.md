@@ -7,8 +7,7 @@ complexity: low
 area: helper: icloud-export
 found: "2026-09-06T19:33:10Z"
 started: "2026-09-07T12:46:01Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T12:46:01Z"
+completed: "2026-09-07T13:19:11Z"
 ---
 
 # B649 — A day's time: is the first file's timestamp, screenshots included, so a day went out stamped 06:44
@@ -49,3 +48,12 @@ export when the count said it was left out.
 A day whose earliest file is a screenshot is stamped with the time of its first
 real photograph, and a day of screenshots alone still gets some sensible time
 rather than crashing.
+
+## Done
+`first` is now `withGps ?? list[0]` in `build.mjs` — a day's `time:` comes from
+the first photo carrying GPS, falling back to the first file only when no photo
+in the day has coordinates at all. Covered by `build.metadata.test.mjs`: a
+screenshot-then-real-photo day picks the real photo's time, and an
+all-screenshot day still produces a sensible time rather than crashing.
+Checked `query.mjs`/`export.mjs` screenshot filtering for a separate bug and
+found none.

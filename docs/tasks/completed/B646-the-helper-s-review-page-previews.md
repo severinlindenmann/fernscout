@@ -7,8 +7,7 @@ complexity: medium
 area: helper: icloud-export, review
 found: "2026-09-06T19:32:50Z"
 started: "2026-09-07T12:46:00Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T12:46:00Z"
+completed: "2026-09-07T13:19:10Z"
 ---
 
 # B646 — The helper's review page previews the originals, not the pictures that get published
@@ -51,3 +50,12 @@ it leaves the finding half-open.
 A photograph whose derivative differs from its original — start with a sideways
 one — looks the same on the review page as it does in `content/`, at `/img/` and
 at `/full/`.
+
+## Done
+Took the "right" fix. New `.claude/skills/icloud-export/bake.mjs` holds one
+`ensureBaked()` (resize -> orient -> strip), cached per max-edge under
+`export/<trip>/baked/<edge>/`. `build.mjs` and `review.mjs` both call it, and
+`review.mjs` bakes every photo before serving thumbnails or `/full/`, so the
+preview reads the same file `build.mjs` publishes. No SKILL.md command-order
+change needed — baking happens inside `review.mjs`. `review.test.mjs` proves it
+with a byte-for-byte comparison of the previewed and published files.

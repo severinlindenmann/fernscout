@@ -66,6 +66,7 @@ const EXTRAS: {
   { id: "names", shape: "names", label: "photobook.first.extras.names", hint: "photobook.first.extras.namesHint2", keys: ["includeNames"] },
   { id: "numbers", shape: "numbers", label: "photobook.first.extras.numbers", hint: "photobook.first.extras.numbersHint", keys: ["includeCosts", "includeCharts"] },
   { id: "figures", shape: "figures", label: "photobook.first.extras.figures", hint: "photobook.first.extras.figuresHint", keys: ["includeFigureMarks"] },
+  { id: "vehicles", shape: "vehicles", label: "photobook.first.extras.vehicles", hint: "photobook.first.extras.vehiclesHint", keys: ["includeVehicles"] },
 ];
 
 /** Each language named in itself — a German owner looks for "Deutsch". The
@@ -122,6 +123,7 @@ export default function FirstBookFlow({
   hasCosts,
   hasWeather,
   hasFigures,
+  hasTransport,
   hadSaved,
   preview,
   applyLayoutToEveryDay,
@@ -143,6 +145,9 @@ export default function FirstBookFlow({
   /** Whether anybody has been described, and there are therefore figures to
    * draw. Same rule. */
   hasFigures: boolean;
+  /** Whether any day says how it was travelled, and there is therefore a
+   * transport page for a vehicle to stand on. */
+  hasTransport: boolean;
   /** Whether an arrangement was already saved, which is the only difference
    * between a flow that opens on a question and one that opens on an offer to
    * carry on. */
@@ -223,7 +228,10 @@ export default function FirstBookFlow({
       (e.id !== "numbers" || hasCosts || hasWeather) &&
       // The figures are drawn from the party, and `buildBookSource` empties
       // that when "who travelled" is off — so this switch would draw nothing.
-      (e.id !== "figures" || (hasFigures && options.includeNames)),
+      (e.id !== "figures" || (hasFigures && options.includeNames)) &&
+      // Same rule for the vehicles: they are drawn on the transport page, and
+      // a trip that never said how it moved does not get one.
+      (e.id !== "vehicles" || hasTransport),
   );
 
   const set = <K extends keyof BookOptions>(key: K, value: BookOptions[K]) =>

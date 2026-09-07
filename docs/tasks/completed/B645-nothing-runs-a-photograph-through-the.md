@@ -7,8 +7,7 @@ complexity: medium
 area: helper: icloud-export, media
 found: "2026-09-06T19:32:40Z"
 started: "2026-09-07T12:45:59Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T12:45:59Z"
+completed: "2026-09-07T13:19:09Z"
 ---
 
 # B645 — Nothing runs a photograph through the helper's build.mjs, so nine were published sideways
@@ -71,3 +70,15 @@ the whole assertion.
 `node .claude/skills/shared/selftest.mjs` (or a sibling media selftest) runs the
 orientation fixtures through `build.mjs` and fails if `bakeOrientation` is
 removed, and if `exiftool` is missing it says so rather than passing.
+
+## Done
+Fixed and verified in the fernscout-helper repo. `bakeOrientation()` was already
+correct; the gap was coverage. Added 8 committed fixtures
+(`.claude/skills/shared/fixtures/orientation/`, one per EXIF Orientation value,
+generation recipe in the test file) and `.claude/skills/icloud-export/build.test.mjs`,
+which runs the real `build.mjs` against them and checks output dimensions and the
+absent tag. Guards for missing `exiftool`/`sips` — fails loudly rather than
+silently passing. Confirmed by disabling `bakeOrientation()` that the test catches
+the regression (4/8 checks fail on dimension swap). `build.mjs` is the only place
+in the repo running `exiftool -all=`, so no sibling bug. Wired into
+`node .claude/skills/shared/selftest.mjs`. `--media-only` not built (out of scope).

@@ -90,6 +90,16 @@ export type BookOptions = {
    */
   includeFigureMarks: boolean;
   /**
+   * The way each leg was travelled, drawn on the transport page — B737.
+   *
+   * The travel scene's own vehicles (`lib/travel/vehicleShapes.ts`), which the
+   * site has drawn on its front page since long before the book could. Off by
+   * default like every other switch that adds ink, and it adds no page of its
+   * own: the transport page already exists when a trip records how it moved,
+   * and this puts a bus beside the word "bus" on it.
+   */
+  includeVehicles: boolean;
+  /**
    * The photograph on the front cover, as a `MediaTile.src`.
    *
    * Absent means the planner picks, which is what every book did before this
@@ -233,6 +243,7 @@ export const DEFAULT_OPTIONS: BookOptions = {
   includeCosts: true,
   includeCharts: false,
   includeFigureMarks: false,
+  includeVehicles: false,
   focalPoints: {},
 };
 
@@ -441,6 +452,8 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
    */
   const figureMarks =
     raw.includeFigureMarks === undefined ? false : bool("includeFigureMarks");
+  /** Optional for the same reason as the line above — B737 is newer still. */
+  const vehicles = raw.includeVehicles === undefined ? false : bool("includeVehicles");
 
   const flags = {
     includeText: bool("includeText"),
@@ -458,6 +471,7 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
     !days ||
     !focalPoints ||
     figureMarks === null ||
+    vehicles === null ||
     Object.values(flags).some((v) => v === null)
   ) {
     return null;
@@ -479,6 +493,7 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
     includeCosts: flags.includeCosts as boolean,
     includeCharts: flags.includeCharts as boolean,
     includeFigureMarks: figureMarks,
+    includeVehicles: vehicles,
     ...(cover !== undefined ? { cover } : {}),
   };
 }

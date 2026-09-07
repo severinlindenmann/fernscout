@@ -26,15 +26,28 @@ const n = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(2).replace
 
 function attrs(shape: Extract<Shape, { kind: Exclude<Shape["kind"], "group"> }>): string {
   const out: string[] = [];
+  // A stroke is not a path's alone — B737's spoked wheel is a stroked circle,
+  // and the two branches below used to fire for `kind === "path"` only, so it
+  // came out with neither a fill nor a stroke and drew nothing at all.
+  const stroke = "stroke" in shape ? shape.stroke : undefined;
   if ("fill" in shape && shape.fill) out.push(`fill="${paint(shape.fill)}"`);
-  else if (shape.kind === "path" && shape.stroke) out.push(`fill="none"`);
-  if (shape.kind === "path" && shape.stroke) {
-    out.push(`stroke="${paint(shape.stroke)}"`);
-    out.push(`stroke-width="${n(shape.width ?? 1)}"`);
+  else if (stroke) out.push(`fill="none"`);
+  if (stroke) {
+    out.push(`stroke="${paint(stroke)}"`);
+    out.push(`stroke-width="${n("width" in shape ? (shape.width ?? 1) : 1)}"`);
     out.push(`stroke-linecap="round"`);
   }
   if (shape.opacity !== undefined) out.push(`opacity="${shape.opacity}"`);
   return out.length ? ` ${out.join(" ")}` : "";
+}
+
+/**
+ * `Shape[]` → SVG markup. Exported since B737, when the vehicles wanted the
+ * same spelling — `components/travel/Vehicle.tsx` renders its body and its
+ * wheels through this rather than keeping a second copy of the drawing as JSX.
+ */
+export function shapesToSvg(shapes: Shape[]): string {
+  return toSvg(shapes);
 }
 
 function toSvg(shapes: Shape[]): string {

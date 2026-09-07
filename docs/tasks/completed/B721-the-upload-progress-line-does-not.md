@@ -7,8 +7,7 @@ complexity: low
 area: agent, ui
 found: "2026-09-07T11:44:11Z"
 started: "2026-09-07T12:55:02Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T12:55:02Z"
+completed: "2026-09-07T13:19:13Z"
 ---
 
 # B721 — The upload progress line does not say which day it belongs to

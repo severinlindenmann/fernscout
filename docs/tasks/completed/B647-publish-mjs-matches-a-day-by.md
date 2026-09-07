@@ -7,8 +7,7 @@ complexity: low
 area: helper: publish
 found: "2026-09-06T19:32:57Z"
 started: "2026-09-07T12:46:00Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T12:46:00Z"
+completed: "2026-09-07T13:19:10Z"
 ---
 
 # B647 — publish.mjs matches a day by date alone and overwrote one day with another day's content
@@ -59,3 +58,17 @@ back a slug that came from the date-alone branch.
 A trip folder with two entries on one date, against an instance holding one day
 on that date, creates a second day rather than overwriting the first, and writes
 no `slug:` into either file from a guess. `--dry-run` says the same.
+
+## Done
+`localByDate` added beside the existing `byDate`; the date-alone guess now fires
+only when exactly one local entry AND exactly one remote day share the date. A
+guessed match's slug is never written back (`recordSlug` skipped when guessed).
+
+**What it now refuses:** guessing when two or more local entries share a date,
+regardless of how many remote days do — both are created rather than one
+overwriting the other. **What is unchanged:** a genuinely unambiguous guess (one
+local, one remote) still fires and still applies, just is never recorded to disk.
+
+`.claude/skills/publish/publish.test.mjs` reproduces the exact shape that lost
+data (two local entries, one remote day) against a fake in-process HTTP server,
+and was verified to fail against the pre-fix code.

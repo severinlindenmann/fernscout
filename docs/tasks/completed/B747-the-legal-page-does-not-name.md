@@ -8,6 +8,7 @@ area: legal
 found: "2026-09-07T13:10:00Z"
 started: "2026-09-07T12:55:01Z"
 merged: "2026-09-07T13:14:23Z"
+completed: "2026-09-07T13:19:12Z"
 ---
 
 # B747 — The legal page does not name Anthropic or Deepgram

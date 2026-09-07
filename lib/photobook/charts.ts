@@ -27,6 +27,7 @@
 
 import { mm, type RectMm } from "./spec.ts";
 import { measure } from "./text.ts";
+import { VEHICLE_BOX, type PrintableMode } from "../travel/vehicleShapes.ts";
 
 // ---------------------------------------------------------------------------
 // Ink
@@ -141,6 +142,21 @@ export type ChartShape =
   /** The same run of points, closed down to `baselineY` and filled. */
   | { kind: "area"; points: PointMm[]; baselineY: number; tone: Tone }
   | { kind: "dot"; x: number; y: number; radiusMm: number; tone: Tone }
+  /**
+   * One of the travel scene's vehicles, drawn from `lib/travel/vehicleShapes.ts`
+   * — B737.
+   *
+   * A shape rather than something the renderers reach for themselves, because
+   * that is what this file is *for*: both of them already walk this list, so a
+   * car lands in the PDF and in the preview from one decision about where it
+   * goes. `x`/`y` are the bottom-left corner, wheels on `y`; the height follows
+   * from the mode's own proportions.
+   *
+   * It carries no `tone`: a vehicle brings its own palette, the same flat
+   * illustration colours the site draws it in, and tinting it would make it a
+   * chart element rather than a picture of a bus.
+   */
+  | { kind: "vehicle"; mode: PrintableMode; x: number; y: number; widthMm: number }
   | {
       kind: "text";
       /** The left edge. Right-aligned text is resolved here so both renderers
@@ -480,12 +496,21 @@ export type TransportMode = { mode: string; label: string; days: number };
  * the page carries a handful of rows, and hung from the head it reads as a
  * page somebody forgot to finish.
  */
+/** Whether this mode has a drawing. `walk` has none — a leg on foot is the
+ * party itself crossing, which is what the travel scene does with it too. */
+function isPrintable(mode: string): mode is PrintableMode {
+  return mode in VEHICLE_BOX;
+}
+
 export function transportShapes(
   box: RectMm,
   heading: string,
   modes: TransportMode[],
   note: string | undefined,
   type: TypeScale,
+  /** Draw each way of travelling as well as naming it — B737. Off unless the
+   * owner asked, like every other switch that adds ink. */
+  vehicles = false,
 ): ChartShape[] {
   const rowMm = ptToMm(type.display) + 9;
   const blockMm = 14 + modes.length * rowMm + (note ? 8 : 0);
@@ -510,6 +535,20 @@ export function transportShapes(
       height: 1.2,
       tone: "tint0",
     });
+    // The vehicle itself, standing on its row's bar at the outer edge — B737.
+    // Sized by the box's own proportions rather than to a common width: a
+    // train is three times the length of a bicycle and drawing them the same
+    // width would say they are the same thing.
+    if (vehicles && isPrintable(mode.mode)) {
+      const widthMm = Math.min(box.width * 0.32, VEHICLE_BOX[mode.mode].width * 0.14);
+      shapes.push({
+        kind: "vehicle",
+        mode: mode.mode,
+        x: box.x + box.width - widthMm,
+        y: barY + 2.4,
+        widthMm,
+      });
+    }
     y -= rowMm;
   }
 

@@ -7,8 +7,7 @@ complexity: low
 area: helper: publish
 found: "2026-09-06T19:33:03Z"
 started: "2026-09-07T12:46:01Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T12:46:01Z"
+completed: "2026-09-07T13:19:10Z"
 ---
 
 # B648 — publish --dry-run cannot show a plan for a trip the instance does not have yet, and --offline still hits the network
@@ -53,3 +52,14 @@ Two fixes, independent:
 `publish --dry-run` on a trip the instance does not have prints the whole plan —
 the trip, its days, its photograph counts — and exits 0. `--dry-run --offline`
 makes no request at all.
+
+## Done
+Added the missing `offline` guard on `GET .../days` (matching the two guards
+already elsewhere in the file), and a 404 there is treated as an empty list when
+the trip was not on the instance before this run. Three checks in
+`publish.test.mjs`: dry-run on a brand-new trip prints the plan and exits 0, no
+refusal printed, and `--dry-run --offline` makes no request to that endpoint.
+
+Not fixed, and worth knowing: other calls earlier in the script (journal status,
+trip list) still hit the network under `--offline`. Pre-existing, out of this
+ticket's scope, untouched.

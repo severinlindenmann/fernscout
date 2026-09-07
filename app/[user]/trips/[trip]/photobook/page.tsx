@@ -59,6 +59,10 @@ export default async function TripPhotobookPage({
         [...getAllMedia(trip.ref, AS_AUTHOR)]
           .reverse()
           .filter((m) => m.type === "image")}
+        // Whether any day says how it was travelled — B737. The transport
+        // page only exists when one does, so the vehicles switch is offered
+        // only where it would draw something, like the two before it.
+        hasTransport={days.some((d) => d.lead.transport !== undefined)}
         days={days.map((d) => ({
           date: d.date,
           title: d.lead.title,

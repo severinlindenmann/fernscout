@@ -33,6 +33,7 @@ import {
 import { landPaths } from "./worldland.ts";
 import { graticuleStep } from "./graticule.ts";
 import { cssTone, type ChartShape } from "./charts.ts";
+import { vehicleSvg } from "./vehicles.ts";
 import { travellersSvg } from "./travellers.ts";
 
 function escape(text: string): string {
@@ -97,6 +98,13 @@ function chartSvg(spec: BookSpec, shapes: readonly ChartShape[]): string {
   const parts: string[] = [];
 
   for (const shape of shapes) {
+    if (shape.kind === "vehicle") {
+      // The vehicle carries its own palette, so it is placed rather than
+      // toned — B737. `vehicleSvg` puts the group where the shape says, in
+      // the same millimetres every other shape here is written in.
+      parts.push(vehicleSvg(shape.mode, X(shape.x), Y(shape.y), shape.widthMm));
+      continue;
+    }
     const colour = cssTone(shape.tone);
     switch (shape.kind) {
       case "rect":
@@ -351,7 +359,7 @@ function pageHtml(
     case "title":
       parts.push(
         `<div style="position:absolute;left:${((spec.safeMm / (spec.size.trimWidthMm + spec.bleedMm * 2)) * 100).toFixed(3)}%;` +
-          `bottom:52%">${travellersSvg(20, page.figures)}</div>`,
+          `bottom:40%">${travellersSvg(20, page.figures)}</div>`,
       );
       parts.push(
         textBlock(

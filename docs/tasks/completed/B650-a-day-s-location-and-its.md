@@ -7,8 +7,7 @@ complexity: low
 area: helper: icloud-export
 found: "2026-09-06T19:33:10Z"
 started: "2026-09-07T12:46:02Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T12:46:02Z"
+completed: "2026-09-07T13:19:11Z"
 ---
 
 # B650 — A day's location: and its lat/lng can name towns 200 km apart and nothing says so
@@ -38,3 +37,11 @@ line is the whole fix.
 
 Building a day whose `location:` and `withGps` photograph name different places
 prints a line naming both. A day where they agree prints nothing.
+
+## Done
+One warning line in `build.mjs`, printed when a day's `location:` (the most
+common place across its photos) differs from the place named by the photo its
+`lat`/`lng` actually came from. Neither value is changed and nothing fails —
+the point is that the disagreement stops being silent. Covered by
+`build.metadata.test.mjs`: a mismatch prints a line naming both towns,
+agreement prints nothing.
