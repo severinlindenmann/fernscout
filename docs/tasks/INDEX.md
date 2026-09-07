@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (104)
+## backlog (98)
 
 ### security (2)
 
@@ -58,13 +58,11 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 
-### issue (23)
+### issue (19)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B766](backlog/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low |
-| [B794](backlog/issue/B794-speech-cannot-be-started-from-a.md) | Speech cannot be started from a keyboard at all | ISSUE | high | low |
-| [B795](backlog/issue/B795-focus-disappears-every-time-a-screen.md) | Focus disappears every time a screen changes | ISSUE | high | medium |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
@@ -73,7 +71,6 @@ Do not edit them by hand; run the script.
 | [B785](backlog/issue/B785-an-agent-facing-english-refusal-is.md) | An agent-facing English refusal is shown to a person on a German screen | ISSUE | medium | low |
 | [B787](backlog/issue/B787-the-sign-in-button-may-stay.md) | The sign-in button may stay disabled when the address is autofilled | ISSUE | medium | low |
 | [B790](backlog/issue/B790-a-journal-can-be-created-with.md) | A journal can be created with a currency that is not one, and it can never be corrected | ISSUE | medium | low |
-| [B796](backlog/issue/B796-a-refusal-and-the-model-s.md) | A refusal and the model's answer are both silent to a screen reader | ISSUE | medium | low |
 | [B801](backlog/issue/B801-a-request-with-the-wrong-field.md) | A request with the wrong field name is accepted and silently does nothing | ISSUE | medium | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
@@ -84,7 +81,6 @@ Do not edit them by hand; run the script.
 | [B760](backlog/issue/B760-a-mapped-statement-cannot-offer-the.md) | A mapped statement cannot offer the exchange rates a known one can | ISSUE | low | low |
 | [B761](backlog/issue/B761-a-statement-with-a-preamble-line.md) | A statement with a preamble line takes the wrong row as its header | ISSUE | low | low |
 | [B784](backlog/issue/B784-the-page-still-has-two-bright.md) | The page still has two bright buttons even though the card has one | ISSUE | low | low |
-| [B800](backlog/issue/B800-neither-side-is-told-how-long.md) | Neither side is told how long an approval usually takes | ISSUE | low | low |
 
 ### big-feature (13)
 
@@ -104,13 +100,11 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (21)
+### small-feature (19)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B435](backlog/small-feature/B435-no-print-provider-can-actually-post.md) | No print provider can actually post a card — print.one is unevaluated and unwired | FEATURE | high | medium |
-| [B798](backlog/small-feature/B798-a-reader-must-copy-a-code.md) | A reader must copy a code by hand before a magic link she gets anyway | FEATURE | high | low |
-| [B799](backlog/small-feature/B799-nothing-on-the-page-you-just.md) | Nothing on the page you just published offers to show it to anybody | FEATURE | high | low |
 | [B10](backlog/small-feature/B10-a-journal-never-says-who-is.md) | A journal never says who is writing it | FEATURE | medium | medium |
 | [B112](backlog/small-feature/B112-local-scripts-write-straight-to-content.md) | Local scripts still write straight to content, and the one guarantee they skip is the draft rule | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
@@ -199,12 +193,18 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (8)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B794](in-development/B794-speech-cannot-be-started-from-a.md) | Speech cannot be started from a keyboard at all | ISSUE | high | low | `fdfcf5f2` |
+| [B795](in-development/B795-focus-disappears-every-time-a-screen.md) | Focus disappears every time a screen changes | ISSUE | high | medium | `fdfcf5f2` |
 | [B797](in-development/B797-nothing-in-the-header-leads-to.md) | Nothing in the header leads to the agent, and the signed-in landing repeats the invitation in a block of its own | FEATURE | high | medium | `ccdd5120` |
+| [B798](in-development/B798-a-reader-must-copy-a-code.md) | A reader must copy a code by hand before a magic link she gets anyway | FEATURE | high | low | `fdfcf5f2` |
+| [B799](in-development/B799-nothing-on-the-page-you-just.md) | Nothing on the page you just published offers to show it to anybody | FEATURE | high | low | `fdfcf5f2` |
 | [B108](in-development/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium | `6b9bf0a6` |
+| [B796](in-development/B796-a-refusal-and-the-model-s.md) | A refusal and the model's answer are both silent to a screen reader | ISSUE | medium | low | `fdfcf5f2` |
+| [B800](in-development/B800-neither-side-is-told-how-long.md) | Neither side is told how long an approval usually takes | ISSUE | low | low | `fdfcf5f2` |
 
 ## testing (36)
 

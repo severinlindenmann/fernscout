@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: contacts, ui
 found: "2026-09-07T14:58:57Z"
+started: "2026-09-07T15:09:34Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T15:09:34Z"
 ---
 
 # B799 — Nothing on the page you just published offers to show it to anybody

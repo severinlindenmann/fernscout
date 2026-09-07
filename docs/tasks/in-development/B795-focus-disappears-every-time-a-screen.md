@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: agent, a11y
 found: "2026-09-07T14:55:05Z"
+started: "2026-09-07T15:09:32Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T15:09:32Z"
 ---
 
 # B795 — Focus disappears every time a screen changes
