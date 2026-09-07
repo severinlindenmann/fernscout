@@ -7,8 +7,7 @@ complexity: medium
 area: media, api
 found: "2026-09-06T15:00:58Z"
 started: "2026-09-07T09:35:44Z"
-session: d7d9b2c7-a675-4d23-9205-0830bbf3e059
-claimed: "2026-09-07T09:35:44Z"
+merged: "2026-09-07T09:48:06Z"
 ---
 
 # B604 — Uploading the same photograph twice lands it twice, and nothing can tell
