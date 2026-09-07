@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: header, nav
 found: "2026-09-07T20:20:00Z"
+merged: "2026-09-07T18:50:38Z"
 ---
 
 # B886 — The trip chip shows a title long enough to truncate, which says less than a fixed label would

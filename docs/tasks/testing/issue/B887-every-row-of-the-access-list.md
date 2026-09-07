@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: me, access
 found: "2026-09-07T20:20:00Z"
+merged: "2026-09-07T18:50:39Z"
 ---
 
 # B887 — Every row of the access list repeats a sentence where a tag would do

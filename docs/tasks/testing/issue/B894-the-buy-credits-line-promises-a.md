@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: account, credits, copy
 found: "2026-09-07T20:35:00Z"
+merged: "2026-09-07T18:50:41Z"
 ---
 
 # B894 — The buy-credits line promises a mail with a price, which is not what the button does
