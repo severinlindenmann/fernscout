@@ -4,6 +4,11 @@ import CurrencyProvider from "@/components/CurrencyProvider";
 import { DayCard } from "@/components/StoryPager";
 import LayoutShape from "@/app/[user]/(trip)/photobook/LayoutShape";
 import { DAY_LAYOUTS } from "@/lib/photobook/options";
+import BookShape, {
+  FormatShape,
+  type BookShapeKind,
+} from "@/app/[user]/(trip)/photobook/BookShape";
+import { BOOK_SIZES } from "@/lib/photobook/spec";
 import type { Day, DaySummary, Entry } from "@/lib/types";
 
 /**
@@ -143,6 +148,10 @@ const CASES: { id: string; title: string; why: string; day: Day; summary: DaySum
   },
 ];
 
+/** Every whole-book shape, so adding one to `BookShape` and forgetting the
+ * bench is a thing `tsc` notices. */
+const BOOK_SHAPES: BookShapeKind[] = ["text", "noText", "map", "chapters", "names", "numbers"];
+
 export default function DayBench() {
   return (
     <CurrencyProvider options={CURRENCY}>
@@ -200,6 +209,39 @@ export default function DayBench() {
                   <LayoutShape layout={layout} />
                 </span>
                 <span className="mt-1 block font-semibold">{layout}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* The level above: what a whole-book decision looks like — B704.
+            Same idiom on purpose, so somebody who has seen the day picker
+            recognises these. */}
+        <section>
+          <h2 className="font-display text-lg font-semibold text-navy-900">
+            The photobook&apos;s whole-book questions
+          </h2>
+          <p className="mt-1 mb-4 text-sm text-navy-600">
+            The drawings the first-book flow asks its questions with. The three formats
+            are at their true proportions against each other — a square and an A4
+            landscape shown in the same box would be the one thing that picker must not
+            do. The rest are the pages each answer adds.
+          </p>
+          <ul className="flex flex-wrap items-end gap-6 text-navy-800">
+            {Object.keys(BOOK_SIZES).map((id) => (
+              <li key={id} className="text-center text-xs">
+                <span className="block [&>svg]:h-24 [&>svg]:w-24">
+                  <FormatShape sizeId={id} />
+                </span>
+                <span className="mt-1 block font-semibold">{id}</span>
+              </li>
+            ))}
+            {BOOK_SHAPES.map((kind) => (
+              <li key={kind} className="text-center text-xs">
+                <span className="block [&>svg]:h-24 [&>svg]:w-24">
+                  <BookShape kind={kind} />
+                </span>
+                <span className="mt-1 block font-semibold">{kind}</span>
               </li>
             ))}
           </ul>

@@ -51,6 +51,7 @@ export default function DayLevelView({
   locales,
   resetBook,
   canReset,
+  startOver,
   sliceHtml,
   ratio,
   t,
@@ -83,6 +84,8 @@ export default function DayLevelView({
   locales: string[];
   resetBook: () => void;
   canReset: boolean;
+  /** Reopen the first-book questions — B704. */
+  startOver: () => void;
   sliceHtml: string | null;
   /** One spread's shape, from the plan — the frame is sized from it rather
    * than from a fraction of the viewport, so nothing scrolls inside it. */
@@ -117,6 +120,7 @@ export default function DayLevelView({
             locales={locales}
             resetBook={resetBook}
             canReset={canReset}
+            startOver={startOver}
             t={t}
           />
         </div>
