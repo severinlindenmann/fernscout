@@ -42,6 +42,15 @@ in a **German data centre**. Nothing is replicated to another country, and
 there is no cloud storage account, no CDN and no third-party database behind
 it. Backups stay on European infrastructure.
 
+**Paying for credits is the one exception, and only if you do it.** When you
+buy credits, the payment is handled by **Stripe** — you enter your card or
+TWINT details on Stripe's own page, not on this one, and Stripe processes them
+on its own systems, which are outside this server and may be outside Europe.
+The amount, and the email address the receipt goes to, are shared with Stripe
+for that payment; nothing else about your journal is. If you never buy credits,
+Stripe is never involved. What Stripe does with payment data is covered by
+[Stripe's privacy policy](https://stripe.com/privacy).
+
 ## Tracking, and what little there is of it
 
 There is **no third-party analytics** on this site. No Google Analytics, no

@@ -44,6 +44,16 @@ repliziert; es gibt keinen Cloud-Speicher, kein CDN und keine
 Drittanbieter-Datenbank dahinter. Auch die Backups bleiben auf europäischer
 Infrastruktur.
 
+**Das Bezahlen von Credits ist die eine Ausnahme – und nur, wenn du es tust.**
+Wenn du Credits kaufst, wird die Zahlung über **Stripe** abgewickelt: Du gibst
+deine Karten- oder TWINT-Daten auf Stripes eigener Seite ein, nicht auf dieser,
+und Stripe verarbeitet sie auf eigenen Systemen, die ausserhalb dieses Servers
+und möglicherweise ausserhalb Europas liegen. Der Betrag und die
+E-Mail-Adresse, an die die Quittung geht, werden für diese Zahlung an Stripe
+weitergegeben; sonst nichts über dein Journal. Wenn du nie Credits kaufst, ist
+Stripe nie beteiligt. Was Stripe mit den Zahlungsdaten macht, regelt
+[Stripes Datenschutzerklärung](https://stripe.com/privacy).
+
 ## Tracking, und das wenige davon
 
 Es gibt auf dieser Seite **kein Analytics von Dritten**. Kein Google Analytics,
