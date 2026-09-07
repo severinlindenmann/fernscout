@@ -84,3 +84,120 @@ the destinations are. This is the arrangement on a phone and nothing else.
 - Checked on a day page (which also has the bottom bar), the trips index, and
   the gallery — at 390px.
 - `docs/ROADMAP.md` J9 is updated to say it is done, or why it is not.
+
+## Result
+
+Built in `.claude/worktrees/b770-mobile-header`, branch `b770-mobile-header`.
+
+**The plan, decided before building.** Below `sm`, `PageHeader` renders a
+second, simpler row instead of the four-row stack: back (icon-only), the
+journal's title, a non-interactive badge carrying the current section's icon,
+and a menu button. Everything the old chips-and-nav rows carried — the trip
+switcher, currency, language, and the seven destinations — moves into a panel
+that opens below the row when the button is pressed. `sm` and up render the
+exact markup the header already had; nothing there changed.
+
+**The current section.** Kept the existing idiom rather than inventing one:
+the same `yellow-400` disc the tab bar already uses for "you are here", now
+also drawn as a small standalone badge (`role="img"`, `aria-label` from the
+same translated string) next to the title. It reads the same active-state
+computation the tab bar does — `useNavEntries()`, pulled out of `SiteNav.tsx`
+so both draw from one answer rather than two that could disagree. The badge
+is not a link: tapping the current page's own icon to navigate to the page
+you are already on had nothing to do, so it is excluded from the ≥44px
+requirement by being non-interactive rather than by being undersized.
+
+**The panel.** Built as `ConfirmPanel` argues a confirmation should be: in the
+flow rather than over it (`aria-modal="false"`, no backdrop dimming the page),
+closed by Escape or a tap outside — the same `ref` + `mousedown`/`keydown`
+pattern `TripSwitcher`, `CurrencySwitcher` and `LocaleSwitcher` already use,
+scaled from a small anchored dropdown to a full-width panel. Two things this
+ticket asked for beyond what those three do: focus moves into the panel
+(`panelRef.current.focus()`, `tabIndex={-1}` on the container) when it opens,
+and returns to the menu button on every way it closes — Escape, an outside
+tap, or a link tapped inside it. The outside-tap case needed
+`e.preventDefault()` on the closing `mousedown`: without it the browser's own
+default focus-change for that same click lands *after* the panel's effect has
+already sent focus back to the button, and wins, leaving focus on whatever
+page content happened to be under the tap. Caught by a Playwright script
+before it reached the report — see below.
+
+Deliberately did not animate the panel open/close. The ticket allowed either;
+an entry/exit transition needs a two-phase mount (visible after the state
+change, unmounted only after the transition ends) to animate the close, which
+is real complexity for something the acceptance criteria do not ask for.
+`prefers-reduced-motion` is therefore moot here — nothing animates to reduce.
+
+**`SiteNav.tsx`.** Refactored rather than duplicated: `useNavEntries()` now
+computes the seven destinations, their hrefs and their active state once, and
+`SiteNav` draws them one of two ways — `variant="bar"` (default, unchanged
+pixel-for-pixel from before this ticket, and what `sm` and up still mount) or
+`variant="list"` (new: full-width 48px rows, label always visible, used only
+inside the mobile panel). One array, two renderers, rather than a second copy
+of the active-state logic living in `PageHeader.tsx`.
+
+**Two new translation keys** — `nav.menu` ("Menu") and `nav.closeMenu`
+("Close menu") — added to all three shipped locales and regenerated into
+`lib/i18n.ts` with `npm run i18n:keys`.
+
+**Measured**, 390×844, `/example` (Chromium via Playwright, reduced motion off
+where it mattered — the panel does not animate, so it did not matter here):
+
+| | Before (per J9's own numbers) | After, measured |
+| --- | --- | --- |
+| Header height, closed | 121px (four rows by the time this was filed) | 65px — a 46% cut, under the "at most half" bar |
+| Menu button | — | 44×44 |
+| Back link (icon-only) | — | 44×44 |
+| Trip / currency / language chips (in panel) | 36–44 tall | 44 tall (60×44, 65×44, 56×44) |
+| Nav rows (in panel, `list` variant) | 36×44 | 332×48 |
+
+Keyboard/focus, scripted and confirmed: Tab to the menu button, Enter opens
+the panel and moves focus into it; Escape closes it and returns focus to the
+button; a tap outside the header closes it and returns focus to the button
+(after the `preventDefault` fix above); tapping a nav link inside the panel
+closes it and navigates. `test/no-browser-dialogs.test.ts` passes unchanged —
+nothing here is a `window.confirm`/`alert`/`prompt`.
+
+**Screenshots** taken and read back, closed and open, on a day page (with the
+bottom day-navigator still in place and unaffected), `/example/trips`, and
+`/example/gallery`. All read correctly: single row, badge showing the right
+section per page, panel listing all six destinations plus the three
+switchers, active row highlighted.
+
+**Tests touched.** `test/page-header-title.test.tsx`'s `titleBoxClasses()`
+matched the title box by DOM position, which broke once a second, simpler
+title box exists ahead of it for the phone layout; changed it to match on the
+`flex-[1_1_…]` basis instead, which is unique to the `sm`-and-up box the test
+is actually about. `test/site-nav.test.tsx` needed no changes — the default
+`bar` variant is byte-for-byte what `SiteNav` always rendered.
+
+`npm run verify` — build, `tsc`, `eslint`, `vitest` — passed clean: 366 test
+files, 4616 tests passed, 3 skipped (Postgres-only, unrelated). Only
+pre-existing eslint warnings (unused vars elsewhere in the tree), zero errors.
+
+`docs/ROADMAP.md` J9 updated to **Done — B770**, with the same before/after
+numbers.
+
+Nothing found while building that was not already this ticket's scope.
+
+## Checked before merge
+
+Measured independently at 390px on `/example`, rather than taken on report:
+
+| | |
+| --- | --- |
+| header, closed | **65px** (was 121px) |
+| header, panel open | 480px |
+| Escape | closes, and focus returns to the menu button |
+| `scrollWidth` | 390 — no sideways scroll |
+
+**One acceptance line was not met and is now fixed.** The journal title in the
+mobile row is a `<button>` (it calls `onHome`), and it measured 274×**28** —
+interactive, and under the 44px floor this ticket set for itself. Everything
+the rework *added* cleared 44; the title was inherited and kept its old text-
+sized box. It now carries `min-h-11` and centres its text, which changes
+nothing visually and gives it the hit area the rest of the row has.
+
+After that, the only element in the header under 44px is the "Skip to content"
+link at 1×1 — the standard visually-hidden skip target, which becomes full
+size on focus. That is correct and is not a violation.
