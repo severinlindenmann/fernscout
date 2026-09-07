@@ -203,7 +203,10 @@ export default async function PostcardOrderPage({
 
         {typeof result === "string" && RESULTS[result] ? (
           <p
-            className="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900"
+            // `scroll-mt-4` so the anchor `backToPreview` sends the reader to
+            // does not park this flush against the top edge — B850.
+            id="send-result"
+            className="mt-4 scroll-mt-4 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900"
             role="status"
             data-testid="send-result"
           >
