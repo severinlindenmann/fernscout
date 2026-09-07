@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useReducedMotion } from "motion/react";
 import { PRIMARY_BUTTON } from "@/components/LandingSections";
 import { useI18n } from "@/components/LocaleProvider";
+import EnvelopeFly from "@/components/EnvelopeFly";
 
 /**
  * The way in, from the front door — B426.
@@ -47,11 +49,27 @@ export default function IdentitySignIn({
   const [busy, setBusy] = useState(false);
   const [wrong, setWrong] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
+  // The envelope — B753. `flying` mounts it; `flightId` gives each send its
+  // own key so a second send while the first flight is still finishing
+  // restarts it rather than reusing a component mid-animation. It lives on
+  // the whole panel (below), not inside the email form alone, so a fast
+  // response that flips `step` to "code" does not unmount it mid-flight.
+  const reduceMotion = useReducedMotion();
+  const [flying, setFlying] = useState(false);
+  const [flightId, setFlightId] = useState(0);
 
   async function requestCode(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
     setUnavailable(false);
+    // Starts on the send itself, independent of whatever the request answers
+    // — a failed send still shows its error with nothing flying over it,
+    // because this finishes on its own ~450ms clock rather than waiting for
+    // the response. Skipped outright under reduced motion (B753).
+    if (!reduceMotion) {
+      setFlightId((id) => id + 1);
+      setFlying(true);
+    }
     const response = await fetch("/api/auth/identity/request", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -97,7 +115,8 @@ export default function IdentitySignIn({
   }
 
   return (
-    <section className="mt-6 rounded-2xl border border-navy-200 bg-cream-50 p-5 sm:p-6">
+    <section className="relative mt-6 overflow-hidden rounded-2xl border border-navy-200 bg-cream-50 p-5 sm:p-6">
+      {flying && <EnvelopeFly key={flightId} onDone={() => setFlying(false)} />}
       <h2 className="font-display text-xl font-semibold text-navy-900">{t("home.signInTitle")}</h2>
 
       {unavailable ? (
@@ -112,7 +131,10 @@ export default function IdentitySignIn({
               why the mockup's version reads as one control rather than a
               label plus a box. Still a real `<label htmlFor>`, not a
               placeholder standing in for one. */}
-          <div className="mt-4 min-h-11 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500">
+          {/* One focus indicator, on the wrapper — B752. The ring alone is
+              enough; a border colour change stacked on top of it read as a
+              second, thicker edge with nothing between them. */}
+          <div className="mt-4 min-h-11 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 focus-within:ring-2 focus-within:ring-blue-500">
             <label
               htmlFor="identity-email"
               className="block font-mono text-[11px] uppercase tracking-[0.08em] text-navy-600"
@@ -129,7 +151,15 @@ export default function IdentitySignIn({
               autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="block w-full border-0 bg-transparent p-0 text-base text-navy-900 focus:outline-none focus:ring-0"
+              // `.quiet-inner-focus` (app/globals.css) beats
+              // app/globals.css:264's global `:focus-visible` rule for this
+              // input only — the wrapper above is already showing focus, so
+              // a second outline painted inside it read as a box within a
+              // box (B752). A Tailwind `focus-visible:outline-none` utility
+              // cannot do this: it lives in `@layer utilities`, and an
+              // unlayered rule like the global one always wins over a
+              // layered one regardless of specificity or order.
+              className="block w-full border-0 bg-transparent p-0 text-base text-navy-900 focus:outline-none focus:ring-0 quiet-inner-focus"
             />
           </div>
           <button
@@ -154,7 +184,7 @@ export default function IdentitySignIn({
           <p className="mt-2 text-base leading-7 text-navy-700">
             {t("home.signInSent", { minutes: codeMinutes })}
           </p>
-          <div className="mt-4 min-h-11 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500">
+          <div className="mt-4 min-h-11 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 focus-within:ring-2 focus-within:ring-blue-500">
             <label
               htmlFor="identity-code"
               className="block font-mono text-[11px] uppercase tracking-[0.08em] text-navy-600"
@@ -176,7 +206,7 @@ export default function IdentitySignIn({
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
               aria-describedby={wrong ? "identity-error" : undefined}
               aria-invalid={wrong ? true : undefined}
-              className="block w-full border-0 bg-transparent p-0 font-mono text-2xl tracking-[0.3em] text-navy-900 focus:outline-none focus:ring-0"
+              className="block w-full border-0 bg-transparent p-0 font-mono text-2xl tracking-[0.3em] text-navy-900 focus:outline-none focus:ring-0 quiet-inner-focus"
             />
           </div>
           <p id="identity-error" role="alert" className="mt-3 text-base text-coral-600 empty:mt-0">

@@ -266,3 +266,18 @@ body {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* B752. This file's own CSS is unlayered, and Tailwind's utilities load
+   inside `@layer utilities` — an unlayered rule always beats a layered one,
+   at any specificity, so `focus-visible:outline-none` on an element can never
+   turn the rule above back off. Most controls should never try; the one
+   exception is an input sitting inside a wrapper that already draws its own
+   focus indicator (`IdentitySignIn`'s email and code fields, inside a
+   `focus-within:ring-2` box) — there the input's own outline painted a
+   second, inner rectangle rather than nothing. This class is what actually
+   silences it: also unlayered, so it competes on the same terms, and more
+   specific than the bare pseudo-class above so it wins regardless of source
+   order. */
+.quiet-inner-focus:focus-visible {
+  outline: none;
+}
