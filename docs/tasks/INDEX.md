@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (106)
+## backlog (107)
 
 ### security (4)
 
@@ -166,7 +166,7 @@ Do not edit them by hand; run the script.
 | [B712](backlog/docs-and-skills/B712-the-helper-routes-are-undocumented-in.md) | The helper routes are undocumented in the agent guide | DOCS | medium | low |
 | [B211](backlog/docs-and-skills/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | DOCS | low | low |
 
-### superseded (26)
+### superseded (27)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -182,6 +182,7 @@ Do not edit them by hand; run the script.
 | [B341](backlog/superseded/B341-a-malformed-plan-md-throws-uncaught.md) | A malformed plan.md throws uncaught out of getPlan, crashing the trip and map pages | ISSUE | medium | low |
 | [B369](backlog/superseded/B369-whatsapp-announcements-are-sent-without-being.md) | WhatsApp announcements are sent without being charged, because B365 landed after the ledger | CHORE | medium | low |
 | [B43](backlog/superseded/B43-guests-are-told-a-day-exists.md) | Guests are told a day exists in a batched list of links, and never sent the day itself | FEATURE | medium | high |
+| [B521](backlog/superseded/B521-every-photo-upload-logs-that-the.md) | every photo upload logs that the body was truncated at 10MB | ISSUE | medium | low |
 | [B583](backlog/superseded/B583-postcards-can-only-be-started-from.md) | Duplicate capture of B582 | ISSUE | medium | low |
 | [B588](backlog/superseded/B588-a-print-capability-with-no-real.md) | A print capability with no real provider looks the same as one that can post | FEATURE | medium | medium |
 | [B602](backlog/superseded/B602-a-reader-refused-at-the-trip.md) | A reader refused at the trip gate has no way to ask the owner to let them in | FEATURE | medium | medium |
@@ -201,7 +202,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (13)
+## in-development (12)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -211,7 +212,6 @@ _Nothing here._
 | [B245](in-development/B245-a-trip-s-trip-md-cannot.md) | A trip's trip.md cannot be changed after the trip is created | ISSUE | medium | medium | `97b44327` |
 | [B340](in-development/B340-a-disabled-capability-answers-404-across.md) | A disabled capability answers 404 across every gated route, hiding a real refusal as no-such-route | ISSUE | medium | low | `97b44327` |
 | [B378](in-development/B378-the-whatsapp-checkbox-is-offered-on.md) | The WhatsApp checkbox is offered on a journal with WhatsApp switched off, one line under a hint saying nothing sends there | ISSUE | medium | low | `97b44327` |
-| [B521](in-development/B521-every-photo-upload-logs-that-the.md) | every photo upload logs that the body was truncated at 10MB | ISSUE | medium | low | `97b44327` |
 | [B556](in-development/B556-re-running-the-demo-builder-deletes.md) | Re-running the demo builder deletes fields the committed demo journal carries | ISSUE | medium | low | `97b44327` |
 | [B684](in-development/B684-spoken-or-typed-notes-cannot-be.md) | Spoken or typed notes cannot be turned into a day | FEATURE | medium | high | `fdfcf5f2` |
 | [B239](in-development/B239-a-guessed-voter-id-returns-another.md) | A guessed voter id returns another reader's picks across a journal | SECURITY | low | low | `97b44327` |

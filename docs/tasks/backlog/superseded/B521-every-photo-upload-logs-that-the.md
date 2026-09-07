@@ -7,9 +7,6 @@ complexity: low
 area: media upload, proxy, next config
 superseded: "fixed by B523 — next.config.ts sets proxyClientMaxBodySize"
 found: "2026-09-05T21:12:00Z"
-started: "2026-09-07T11:06:00Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:06:00Z"
 ---
 
 # B521 — every photo upload logs that the body was truncated at 10MB
