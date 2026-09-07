@@ -179,3 +179,25 @@ pre-existing eslint warnings (unused vars elsewhere in the tree), zero errors.
 numbers.
 
 Nothing found while building that was not already this ticket's scope.
+
+## Checked before merge
+
+Measured independently at 390px on `/example`, rather than taken on report:
+
+| | |
+| --- | --- |
+| header, closed | **65px** (was 121px) |
+| header, panel open | 480px |
+| Escape | closes, and focus returns to the menu button |
+| `scrollWidth` | 390 — no sideways scroll |
+
+**One acceptance line was not met and is now fixed.** The journal title in the
+mobile row is a `<button>` (it calls `onHome`), and it measured 274×**28** —
+interactive, and under the 44px floor this ticket set for itself. Everything
+the rework *added* cleared 44; the title was inherited and kept its old text-
+sized box. It now carries `min-h-11` and centres its text, which changes
+nothing visually and gives it the hit area the rest of the row has.
+
+After that, the only element in the header under 44px is the "Skip to content"
+link at 1×1 — the standard visually-hidden skip target, which becomes full
+size on focus. That is correct and is not a violation.

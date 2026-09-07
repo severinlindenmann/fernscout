@@ -30,7 +30,9 @@ export default function PageHeader({
   // Outside a trip (the trip list, search, join) the logo still belongs to the
   // journal, not to the instance's landing page.
   const homeHref = active ? active.href("/") : site.base;
-  const tagline = active ? localizedTrip(active.trip).tagline ?? site.tagline : site.tagline;
+  const tagline = active
+    ? (localizedTrip(active.trip).tagline ?? site.tagline)
+    : site.tagline;
   const navEntries = useNavEntries();
   const currentSection = navEntries.find((e) => e.active);
 
@@ -122,7 +124,8 @@ export default function PageHeader({
           {onHome ? (
             <button
               onClick={onHome}
-              className="min-w-0 flex-1 truncate text-left font-display text-lg font-semibold tracking-tight text-navy-900"
+              className="flex min-h-11 min-w-0 flex-1 items-center truncate text-left font-display
+                         text-lg font-semibold tracking-tight text-navy-900"
             >
               {site.title}
             </button>
@@ -141,7 +144,11 @@ export default function PageHeader({
               title={currentSection.label}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-yellow-400 text-yellow-950"
             >
-              <currentSection.Icon className="h-4 w-4" aria-hidden strokeWidth={2.4} />
+              <currentSection.Icon
+                className="h-4 w-4"
+                aria-hidden
+                strokeWidth={2.4}
+              />
             </span>
           )}
           <button
@@ -268,7 +275,11 @@ export default function PageHeader({
                          font-semibold text-navy-600 transition-colors hover:text-navy-900
                          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
             >
-              <ArrowLeft className="h-3.5 w-3.5" aria-hidden strokeWidth={2.4} />
+              <ArrowLeft
+                className="h-3.5 w-3.5"
+                aria-hidden
+                strokeWidth={2.4}
+              />
               <span className="truncate">{t("nav.myJournals")}</span>
             </Link>
           )}
@@ -287,7 +298,9 @@ export default function PageHeader({
               {site.title}
             </Link>
           )}
-          <p className="hidden truncate text-xs text-navy-600 sm:block">{tagline}</p>
+          <p className="hidden truncate text-xs text-navy-600 sm:block">
+            {tagline}
+          </p>
         </div>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {children}
