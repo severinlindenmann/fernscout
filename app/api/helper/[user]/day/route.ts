@@ -5,6 +5,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { NO_PROSE } from "@/lib/helper/draft";
 import { dayForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/helper/server";
 import { requestLocale } from "@/lib/locales";
+import { parsePhotoVisibility } from "@/lib/photos";
 import { missingFrom, TRACKS, UNKNOWN, type Track } from "@/lib/tracks";
 import { getTrip, tripRef } from "@/lib/trips";
 
@@ -211,10 +212,28 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/hel
         )
       : undefined;
 
+  // Holding one photograph back, keyed by `src` exactly as the captions are —
+  // B596's label, reached from the browser for the first time by B851. The
+  // gentler half of "take that picture out": `null` clears the label, and
+  // there is no `public` to send, so nothing here can widen what the trip
+  // already decided. `parsePhotoVisibility` is the same parser the file
+  // reader uses, so an unrecognised word lands closed rather than being
+  // dropped.
+  const photoVisibility =
+    body.photoVisibility && typeof body.photoVisibility === "object" && !Array.isArray(body.photoVisibility)
+      ? Object.fromEntries(
+          Object.entries(body.photoVisibility as Record<string, unknown>).map(([src, said]) => [
+            src,
+            said === null ? null : (parsePhotoVisibility(said) ?? null),
+          ]),
+        )
+      : undefined;
+
   const input: EditInput = {
     ...(text(body.title) ? { title: text(body.title) } : {}),
     ...(typeof body.content === "string" ? { content: body.content } : {}),
     ...(captions ? { captions } : {}),
+    ...(photoVisibility ? { photoVisibility } : {}),
     ...declines(body.answers),
   };
   if (Object.keys(input).length === 0) {

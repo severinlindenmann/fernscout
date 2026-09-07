@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronUp, ChevronDown, LayoutDashboard } from "lucide-react";
 import GamePath from "@/components/GamePath";
+import HelperAskHere from "@/components/HelperAskHere";
 import InviteToRead from "@/components/InviteToRead";
 import LatestDayButton from "@/components/LatestDayButton";
 import MobileDaySheet from "@/components/MobileDaySheet";
@@ -547,7 +548,13 @@ export default function TripStory({
               day, and a second one under the story would be the same control
               twice on one screen. */}
           {onOverview && trip?.canPublish && (
-            <InviteToRead username={trip.trip.username} />
+            <>
+              <InviteToRead username={trip.trip.username} />
+              {/* B844 — the journal home and the trip overview are the other
+                  two pages an owner actually stands on. Same owner check,
+                  same reason. */}
+              <HelperAskHere username={trip.trip.username} />
+            </>
           )}
 
           {/* Desktop keeps its own nav; on mobile it lives in the bottom bar. */}

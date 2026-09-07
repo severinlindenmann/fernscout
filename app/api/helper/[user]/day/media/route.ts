@@ -1,7 +1,7 @@
-import { attachGallery } from "@/lib/api/entries";
+import { attachGallery, detachGallery } from "@/lib/api/entries";
 import { attachOriginal, storeUploads } from "@/lib/api/media";
 import { loadUserConfig } from "@/lib/config";
-import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
+import { dayForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/helper/server";
 import { kindForExtension, storeInboxFile } from "@/lib/inbox";
 import { storageFor } from "@/lib/storageQuota";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -64,6 +64,68 @@ export async function GET(
     imageBytes: limits.imageBytes,
     videoBytes: limits.videoBytes,
     itemsPerDay: limits.itemsPerDay,
+  });
+}
+
+/**
+ * Take one photograph off a day — B851.
+ *
+ * `DELETE /api/v1/<user>/trips/<trip>/media` has done this since B605 and
+ * nothing in a browser called it, so a picture, once uploaded, could not be
+ * removed by the person whose journal it was. B816's day takedown was the only
+ * remedy on the screen and it is the wrong size: a friend asking to come out
+ * of one photograph got the whole day taken off the site.
+ *
+ * `detachGallery` is the same function that route calls, so every rule about
+ * what a removal *is* — the derivative and the kept original deleted, the
+ * `gallery:` block spliced, a `src` the day does not carry refused — lives in
+ * one place. What differs, as everywhere under `/api/helper`, is only the
+ * credential: cookie, owner, never a bearer token.
+ *
+ * **It does not come back**, and the screen says so before the button rather
+ * than after it. Hiding is the other request and it is a `PATCH` with
+ * `photoVisibility` on `../route.ts`; the two are deliberately separate
+ * controls, because "take my face off the internet" and "delete my friend's
+ * only photograph of the harbour" are not the same sentence.
+ */
+export async function DELETE(
+  request: Request,
+  { params }: RouteContext<"/api/helper/[user]/day/media">,
+) {
+  const { user } = await params;
+  if (!(await isHelperOwner(user))) {
+    return notYourJournal(request, user);
+  }
+
+  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!body) return Response.json({ error: "invalid_json" }, { status: 400 });
+
+  const tripId = String(body.trip ?? "").trim();
+  const ref = tripRef(user, tripId);
+  if (!getTrip(ref)) return Response.json({ error: "unknown_trip" }, { status: 404 });
+
+  const day = String(body.day ?? "").trim();
+  const src = Array.isArray(body.src)
+    ? body.src.filter((one): one is string => typeof one === "string")
+    : [];
+  if (src.length === 0) return Response.json({ error: "expected_src" }, { status: 400 });
+
+  const removed = detachGallery(ref, day, src);
+  if (!removed.ok) {
+    return Response.json(
+      { error: removed.error, ...(removed.error === "unknown_media" ? { problems: removed.problems } : {}) },
+      { status: removed.error === "unknown_day" ? 404 : 400 },
+    );
+  }
+
+  // The day as it is now, the same answer every other write here gives, so
+  // the wizard re-reads disk rather than patching its own idea of the gallery.
+  const draft = dayForWizard(user, tripId, day);
+  return Response.json({
+    ok: true,
+    removed: removed.removed.map((item) => item.src),
+    draft,
+    preview: previewOf(user, tripId, day),
   });
 }
 

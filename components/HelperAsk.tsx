@@ -49,6 +49,7 @@ export default function HelperAsk({
   speech,
   consentedSpeech,
   speechProvider,
+  onJournal = false,
 }: {
   username: string;
   /** Whether this journal has already agreed to a model being spoken to
@@ -63,6 +64,20 @@ export default function HelperAsk({
   /** Who a recording actually goes to — B744. Passed through to
    *  `RecordButton`, which reads it rather than assuming Deepgram. */
   speechProvider: string;
+  /**
+   * Whether this is one of the journal's own pages rather than `/agent` —
+   * B844.
+   *
+   * Two words change, and both are about what is *beside* the box. On the
+   * door it opens with "Or ask me something", because the alternative is the
+   * buttons directly under it; on a day or a trip page there are no such
+   * buttons, and the alternative a person has already found is Search. So the
+   * line names what this box is for, and a second line names the difference
+   * in one word each: **Search finds. Asking changes.** They are deliberately
+   * not one control — merging them is what made "fix a typo in tuesday"
+   * return six day cards.
+   */
+  onJournal?: boolean;
 }) {
   const { t } = useI18n();
   // Closed until somebody asks for it — B767. The one thing this card is for
@@ -177,6 +192,8 @@ export default function HelperAsk({
     }
   }
 
+  const opener = onJournal ? t("agent.askHereOpen") : t("agent.askOpen");
+
   if (!open) {
     return (
       <button
@@ -184,13 +201,19 @@ export default function HelperAsk({
         onClick={() => setOpen(true)}
         className="mt-4 min-h-11 text-base text-navy-700 underline underline-offset-4 transition-colors hover:text-navy-900"
       >
-        {t("agent.askOpen")}
+        {opener}
       </button>
     );
   }
 
   return (
     <div className="mt-4">
+      {/* One word each, and only where Search is the thing a person has
+          already tried — B844. Not a merge and not a link: the two boxes stay
+          two boxes, and this says which is which. */}
+      {onJournal && (
+        <p className="mb-2 text-sm leading-6 text-navy-600">{t("agent.askNotSearch")}</p>
+      )}
       {/* `relative`, because the microphone pins itself to this box's top
           right corner — see `RecordButton`'s `compact`. */}
       <div className="relative rounded-2xl border border-navy-200 bg-white p-2">
@@ -199,7 +222,7 @@ export default function HelperAsk({
           id={`ask-${username}`}
           type="text"
           value={said}
-          aria-label={t("agent.askOpen")}
+          aria-label={opener}
           onChange={(event) => setSaid(event.target.value)}
           onKeyDown={(event) => {
             if (event.key !== "Enter" || said.trim() === "" || busy) return;

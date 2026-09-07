@@ -6,6 +6,7 @@ import { useTrip } from "@/components/TripProvider";
 import { useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import DayNotify from "./DayNotify";
+import HelperAskHere from "./HelperAskHere";
 import InviteToRead from "./InviteToRead";
 import DayReactions from "./DayReactions";
 import DayWeather from "./DayWeather";
@@ -370,6 +371,10 @@ export function DayCard({
                   </Link>
                 </p>
               )}
+              {/* B844 — the same owner check, one line below the link that
+                  already does the commonest version of this by hand. The box
+                  takes the sentence somebody was going to type into Search. */}
+              <HelperAskHere username={trip.trip.username} />
             </>
           )}
         </div>
