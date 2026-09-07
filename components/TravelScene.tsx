@@ -59,8 +59,36 @@ const VEHICLE_ICON = {
  * the sea, and a boat rides *in* it. Getting this wrong is the difference
  * between a ferry and a ferry buried to its windows.
  */
-const STAND_ON = { rail: 30, road: 30, water: 58, sky: 26, path: 26 } as const;
+/* Where a party's feet go, per surface. Every value but `sky` is a height
+ * within the band `Ground` draws; a flight draws no band at all
+ * (`GROUND_HEIGHT.sky` is 0), so 26 there stood them in mid-air over the ridge
+ * and over the skyline they were meant to be standing in — B705. The ground on
+ * a flight leg is where `Hills` and both `Cityscape`s sit, which is the bottom
+ * of the frame. */
+const STAND_ON = { rail: 30, road: 30, water: 58, sky: 4, path: 26 } as const;
 const RIDE_ON = { rail: 8, road: 10, water: 14, sky: 60, path: 0 } as const;
+
+/*
+ * The four moments a leg with a vehicle in it has, as fractions of the leg.
+ *
+ * Before B706 there were none of these: the vehicle crossed the frame on its
+ * own clock and the party faded out where they stood, so a bus drove past the
+ * people it was meant to be carrying and nobody ever boarded anything. The
+ * shape now is stop, board, cross, stop, step off — and the camera pan runs
+ * between the two stops, because that is exactly when anyone is moving.
+ */
+const BOARD = 0.2;   // the vehicle has stopped beside them; they get in
+const DEPART = 0.26; // aboard, and pulling away
+const ARRIVE = 0.8;  // stopped at the far end
+const ALIGHT = 0.88; // out, and standing in the new place
+
+/** Where the vehicle waits at each end, as a share of the frame. The party
+ * stands at PARTY_FROM, so the near stop overlaps them a little — the vehicle
+ * draws over the party, which is what makes them disappear *into* it. */
+const STOP_FROM = "14%";
+const STOP_TO = "58%";
+const PARTY_FROM = "6%";
+const PARTY_TO = "64%";
 
 /** How wide each vehicle is drawn in the full scene. A train is a train
  * because it is long; a motorbike is small because it is. */
@@ -317,7 +345,11 @@ export default function TravelScene({
    * this curve times their own distance. Nearer means further, which is the
    * parallax; sharing the curve is what keeps them one world.
    */
-  const travel = useTransform(p, [0.16, 0.9], [0, 1], {
+  /*
+   * The pan runs between the two stops and nowhere else — see BOARD/ALIGHT
+   * above. On foot there is nothing to stop, so it runs the old bracket.
+   */
+  const travel = useTransform(p, onFoot ? [0.16, 0.9] : [DEPART, ARRIVE], [0, 1], {
     // Eased at both ends rather than clamped-linear: a world that starts
     // moving at full speed on one frame is the single most mechanical thing
     // an animation like this can do.
@@ -355,20 +387,40 @@ export default function TravelScene({
    */
   const vehicleX = useTransform(
     p,
-    [0.16, 0.34, 0.76, 0.97],
-    ["-24%", "34%", "44%", "112%"],
+    [0.04, BOARD, DEPART, 0.42, 0.7, ARRIVE, ALIGHT, 1],
+    ["-32%", STOP_FROM, STOP_FROM, "34%", "44%", STOP_TO, STOP_TO, "124%"],
+    {
+      // Eased per segment, because the two stops are the point: it decelerates
+      // into the near one, holds, accelerates away, and settles into the far
+      // one. Linear throughout and it slides to a halt like a puck.
+      ease: [
+        cubicBezier(0.2, 0, 0.2, 1), // in, and braking
+        cubicBezier(0, 0, 1, 1), // stopped
+        cubicBezier(0.5, 0, 0.6, 1), // pulling away
+        cubicBezier(0, 0, 1, 1),
+        cubicBezier(0.4, 0, 0.2, 1), // braking again
+        cubicBezier(0, 0, 1, 1), // stopped
+        cubicBezier(0.5, 0, 0.5, 1), // and gone
+      ],
+      clamp: true,
+    },
   );
+  /* A flight is on the ground at both stops — 50 against `RIDE_ON.sky` of 60
+   * puts it beside the party rather than ten metres over their heads — and
+   * climbs only between them. */
   const vehicleY = useTransform(
     p,
-    [0.2, 0.42, 0.7, 0.9],
-    isFlight ? [10, -70, -70, 10] : [0, 0, 0, 0],
+    [BOARD, 0.42, 0.7, ARRIVE],
+    isFlight ? [50, -70, -70, 50] : [0, 0, 0, 0],
   );
   const vehicleRotate = useTransform(
     p,
-    [0.2, 0.4, 0.72, 0.9],
-    isFlight ? [-7, -13, 9, 2] : [0, 0, 0, 0],
+    [BOARD, DEPART, 0.4, 0.72, ARRIVE],
+    isFlight ? [0, -7, -13, 9, 0] : [0, 0, 0, 0, 0],
   );
-  const vehicleOpacity = useTransform(p, [0.12, 0.24, 0.86, 0.97], [0, 1, 1, 0]);
+  // It arrives before it stops and leaves after it goes, so both ends of the
+  // fade are off in the wings rather than over the party.
+  const vehicleOpacity = useTransform(p, [0.02, 0.1, 0.96, 1], [0, 1, 1, 0]);
   // A hull has no wheels; the swell is what carries it. Small and slow — a
   // boat that bobs like a cork reads as a toy.
   const hullY = useTransform(
@@ -378,39 +430,46 @@ export default function TravelScene({
   );
 
   /*
-   * The party keeps still until the camera does, then leaves.
+   * The party stands, boards, and steps off — they no longer leave under
+   * their own steam at all.
    *
    * On foot there is no vehicle, so they are what the camera follows: they
    * hold near the middle of the frame for the whole crossing while the path
    * goes past under them, which is the same treatment every other mode gives
    * its vehicle.
    *
-   * Otherwise they are part of the world being left behind, so they leave on
-   * the pan — drifting left with the ground and the departure town, fading as
-   * they go. They used to walk *rightwards* out of frame while everything
-   * around them scrolled the other way, which is the departure gesture the
-   * scene was built with and is also two directions of travel at once. The
-   * rate they leave at is the same rate the town does, because they are
-   * standing in it.
+   * Otherwise they wait at PARTY_FROM for the vehicle to pull up, go as it
+   * pulls away, and are standing at PARTY_TO when it stops at the far end.
+   * Two earlier versions had them walking rightwards out of frame while the
+   * world scrolled the other way (two directions of travel at once), and then
+   * drifting left with the town they were standing in — which was in time
+   * with the world but meant nobody ever got on board anything. B706.
    */
-  const afloat = surface === "water";
   const peopleX = useTransform(
-    onFoot ? p : travel,
-    onFoot ? [0.16, 0.34, 0.76, 0.97] : [0, 1],
-    onFoot ? ["6%", "34%", "44%", "104%"] : ["6%", "-34%"],
+    p,
+    onFoot ? [0.16, 0.34, 0.76, 0.97] : [0, BOARD, ARRIVE, 1],
+    onFoot
+      ? ["6%", "34%", "44%", "104%"]
+      : // They stand where they stand until they board, and are back on their
+        // feet at the far stop. The move between the two happens while they
+        // are inside the vehicle and invisible, which is why it can be a
+        // straight interpolation and not a walk.
+        [PARTY_FROM, PARTY_FROM, PARTY_TO, PARTY_TO],
   );
   /*
-   * Two clocks, because the party's two moments answer to different things.
-   *
-   * They fade *in* on the leg's own clock — they are standing there from the
-   * first frame, before the camera has moved at all. They fade *out* on the
-   * pan, because leaving is what the pan is. Keyed to the pan alone they were
-   * invisible for the whole of the opening hold, since `travel` is still zero
-   * there; keyed to the leg alone they lingered after the town had gone.
+   * One clock now, and it is the leg's own: every moment the party has is a
+   * moment the vehicle also has, so both read from `p`. It used to fade them
+   * out on the pan instead, which was the right answer while leaving *was*
+   * the pan and is the wrong one now that boarding is.
    */
-  const peopleOpacity = useTransform([p, travel], ([leg, pan]: number[]) => {
+  const peopleOpacity = useTransform(p, (leg: number) => {
     if (onFoot) return ramp(leg, 0, 0.08) * (1 - ramp(leg, 0.9, 1));
-    return ramp(leg, 0.01, 0.09) * (1 - ramp(pan, afloat ? 0.05 : 0.15, afloat ? 0.3 : 0.5));
+    // Standing there from the first frame, gone once the doors are shut, back
+    // on the pavement at the far end and staying — a leg that has arrived is
+    // the party in the new place, not an empty street.
+    const before = ramp(leg, 0.01, 0.08) * (1 - ramp(leg, BOARD, DEPART));
+    const after = ramp(leg, ARRIVE + 0.02, ALIGHT);
+    return Math.max(before, after);
   });
 
   /*
