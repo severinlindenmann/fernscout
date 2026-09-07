@@ -38,3 +38,21 @@ short; this is a README, not a guide.
 still asserts there is no CMS/web form/upload widget (ROADMAP decision 24 is
 unchanged), and the wording is consistent with `AGENTS.md`'s post-B262
 amendment of decision 24.
+
+## Done
+
+`README.md`'s opening claim, right under the tagline, went from "There is no
+editing interface, and there will not be one" to "There is no CMS, no web
+form, no upload widget, and there will not be one," with a clause naming the
+hosted helper at `/agent` for people who don't bring their own agent. Matches
+the current `AGENTS.md` phrasing ("There is no CMS, and there will not be one
+(ROADMAP decision 24): no form that maps fields onto frontmatter, no upload
+widget with its own idea of what a day is") and decision 24's third
+amendment, which is careful that the helper "holds none of a CMS's shape"
+and still writes drafts through the same API, publishing separately. Kept
+the README's own brevity — one added clause, not a paragraph.
+
+No test covers README prose; checked by grep that nothing else in
+`lib/`, `app/`, `components/` asserts the old sentence against this file
+specifically (nothing did — the other occurrences of the old sentence are in
+completed task files and doc comments outside this ticket's scope).

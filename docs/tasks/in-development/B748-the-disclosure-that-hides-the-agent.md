@@ -49,3 +49,25 @@ decided both.
 - It still opens with a keyboard alone, and still reports its state to a
   screen reader.
 - Checked at 390px.
+
+## Done
+
+Added a `lucide-react` `ChevronDown` inside `AgentDisclosure`'s `<summary>`
+(`components/LandingSections.tsx`), rotated with the Tailwind `group-open:`
+variant off `<details>`'s own `open` attribute — no `useState`, no
+JavaScript beyond what `<details>` already does natively.
+`motion-reduce:transition-none` drops the 200ms rotation for
+`prefers-reduced-motion: reduce`; the chevron still ends up flipped, only
+without the animated turn. Left the underline in place — the chevron alone
+was enough to read as "this expands" rather than "this navigates" once
+compared side by side with the "New here? Read the guide" link above it in a
+screenshot; changing the underline too felt like solving a problem the
+screenshot didn't show. Added an assertion in `test/landing.test.tsx` that
+the `<summary>` markup carries `lucide-chevron-down` and
+`group-open:rotate-180`.
+
+Verified at 390px with a real headless Chromium (helper on via
+`site/config.json`): closed state shows the chevron pointing down beside
+"Already have your own agent? Guide for agents"; clicking the summary
+reveals the disclosure content and the chevron now points up. Config and
+local DB copy were reverted before committing; `git status` was clean.
