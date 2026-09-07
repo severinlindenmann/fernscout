@@ -61,7 +61,7 @@ function flatten(colour: Rgb, opacity: number): Rgb {
 }
 
 /** Maps a point in the component's viewBox to a point on the page. */
-export type Place = (vx: number, vy: number) => [number, number];
+type Place = (vx: number, vy: number) => [number, number];
 
 /** The circle-to-bezier constant: four arcs of this length approximate a
  *  circle to within a quarter of a percent, far below a printer's resolution. */

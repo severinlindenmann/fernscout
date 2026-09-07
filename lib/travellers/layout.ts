@@ -61,7 +61,7 @@ export function frontRank(figures: Figure[]): boolean[] {
   return figures.map(() => false);
 }
 
-export type Placement = {
+type Placement = {
   /** Index into the original `figures` array. */
   index: number;
   figure: Figure;

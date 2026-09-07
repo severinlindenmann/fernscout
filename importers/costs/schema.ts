@@ -20,8 +20,6 @@
  */
 import type { Importer } from "../schema";
 
-export { parseInstant } from "../schema";
-
 export type Payment = {
   /** ISO calendar date, `YYYY-MM-DD`. A cost belongs to a day, not an instant:
    * that is the granularity a journal records and the one a statement gives. */

@@ -25,8 +25,8 @@ import { RETENTION_DAYS, type ViewKind } from "./record";
  * person occasionally. Add a rollup when a real journal makes it slow.
  */
 
-export type DayCount = { day: string; opens: number; visitors: number };
-export type Named = { id: string; label: string; opens: number; visitors: number };
+type DayCount = { day: string; opens: number; visitors: number };
+type Named = { id: string; label: string; opens: number; visitors: number };
 
 export type VisitorReport = {
   days: number;

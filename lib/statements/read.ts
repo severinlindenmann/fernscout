@@ -44,7 +44,7 @@ export type CostsOutcome = {
   skipped: { transfers: number; incoming: number };
 };
 
-export type PaymentView = {
+type PaymentView = {
   date: string;
   description: string;
   /** Positive: what was spent. The sign belongs to the statement, not to a

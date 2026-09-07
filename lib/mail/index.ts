@@ -390,7 +390,7 @@ class SmtpTransport implements MailTransport {
   }
 }
 
-export function senderAddress(): string {
+function senderAddress(): string {
   return process.env.MAIL_FROM ?? `Fernscout <no-reply@${hostOf(loadServerConfig().site.url)}>`;
 }
 

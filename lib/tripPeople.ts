@@ -93,7 +93,7 @@ export async function isPersonOn(trip: Trip, email: string | undefined | null): 
  * run (`lib/db`), and it degrades in the right direction: the file's own list
  * still works, and nobody is let in by an absence.
  */
-export async function redeemedPeopleOf(username: string, tripId: string): Promise<string[]> {
+async function redeemedPeopleOf(username: string, tripId: string): Promise<string[]> {
   return (await redeemedContactsOf(username, tripId)).map((row) => row.email);
 }
 
@@ -485,7 +485,7 @@ export async function revokeTripPlaces(username: string, contactId: string): Pro
 /** Every trip this contact has asked to join or been let onto, granted or
  * not — for the owner deciding, and for telling somebody what they are
  * waiting on. */
-export async function tripPlacesOf(
+async function tripPlacesOf(
   username: string,
   contactId: string,
 ): Promise<{ tripId: string; grantedAt: string | null; revokedAt: string | null }[]> {

@@ -55,7 +55,7 @@ import { sendPostcardReceipt } from "./receipt";
  * API route that calls this, the answer is no — see `lib/postcard/orders.ts`.
  */
 
-export type SendFailure =
+type SendFailure =
   | "unknown_order"
   | "postcards_off"
   | "contacts_off"

@@ -904,7 +904,7 @@ export type StoragePanel = {
 /** One row of the transaction history. `amount` is a preformatted CHF string
  * (server-side, from the pricing table) so the component never does money
  * arithmetic. */
-export type PaymentRow = {
+type PaymentRow = {
   id: string;
   credits: number;
   amount: string;

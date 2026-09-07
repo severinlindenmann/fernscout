@@ -7,7 +7,7 @@ const FILE = "reactions";
 
 const EMPTY: Votes = {};
 
-export { migrateKeys, type Votes } from "./votes";
+export { migrateKeys } from "./votes";
 
 function countsFor(day: Record<string, Reaction> | undefined): DayCounts {
   const out: DayCounts = {};
@@ -18,7 +18,7 @@ function countsFor(day: Record<string, Reaction> | undefined): DayCounts {
 }
 
 /** Read the raw vote map with keys already scoped to a trip. */
-export async function readVotes(currentTripId: string): Promise<Votes> {
+async function readVotes(currentTripId: string): Promise<Votes> {
   return migrateKeys(await readStore<Votes>(FILE, EMPTY), currentTripId);
 }
 

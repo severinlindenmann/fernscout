@@ -32,7 +32,7 @@ import { project, MAP_VIEWBOX } from "./mapProjection.mjs";
 export const DEG_PER_UNIT = 360 / MAP_VIEWBOX.width;
 
 /** Kilometres per degree along a meridian — the WGS84 mean, near enough. */
-export const KM_PER_DEGREE = 111.32;
+const KM_PER_DEGREE = 111.32;
 
 /**
  * Kilometres one viewBox unit spans, in a latitude-corrected frame.

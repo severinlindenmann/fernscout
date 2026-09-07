@@ -25,7 +25,7 @@ export type EcbSnapshot = {
   rates: RateTable;
 };
 
-export function ecbCachePath(): string {
+function ecbCachePath(): string {
   // Shipped in the checkout, because it arrives by `git pull` the way the code
   // does. An instance's own copy under CONTENT_DIR still wins — that is where
   // this file lived before B510, and an instance that has one keeps working.

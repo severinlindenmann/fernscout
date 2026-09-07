@@ -84,7 +84,7 @@ export type IngestOptions = {
   onProgress?: (message: string) => void;
 };
 
-export type IngestedEntry = {
+type IngestedEntry = {
   /** Path of the markdown file, ready to show a person — see `displayPath`. */
   file: string;
   created: boolean;
@@ -213,7 +213,7 @@ async function pooled<T, R>(
  * rather than silently skipped so it lands in the run's `failed` list next to
  * whatever else went wrong with a file — the existing `pooled()` catch below
  * already turns any `analyse` throw into exactly that. */
-export class MediaLimitError extends Error {
+class MediaLimitError extends Error {
   constructor(problems: MediaProblem[]) {
     super(problems.map((p) => `${p.field} — got ${p.got}, expected ${p.expected}`).join("; "));
     this.name = "MediaLimitError";

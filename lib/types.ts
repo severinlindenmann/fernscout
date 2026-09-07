@@ -163,7 +163,7 @@ export type PhotobookEntry = {
   trip: string;
 };
 
-export type Transport = {
+type Transport = {
   mode: TransportMode;
   from: string;
   to: string;
@@ -186,7 +186,7 @@ export type TravelSceneVariant = "default" | "quick" | "skip";
  * in a language we ship no chrome for, and that must work. */
 export type EntryTranslations = Record<string, { title?: string; content?: string }>;
 
-export type EntryCost = {
+type EntryCost = {
   label: string;
   /** As spent, in `currency`. Never converted at write time. */
   amount: number;

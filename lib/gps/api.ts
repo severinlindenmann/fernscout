@@ -205,6 +205,6 @@ export function deriveTripTrack(
 
 /** Whether this trip has a line at all, for a status answer. Says if, never
  * where. */
-export function hasTrack(username: string, tripId: string): boolean {
+function hasTrack(username: string, tripId: string): boolean {
   return readTrack(username, tripId) !== undefined;
 }

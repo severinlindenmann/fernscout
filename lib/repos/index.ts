@@ -3,7 +3,7 @@ import { fileReactionRepo } from "./reactionsFile";
 import { filePushRepo } from "./pushFile";
 import type { PushRepo, ReactionRepo } from "./types";
 
-export type { PushRepo, ReactionRepo, StoredSubscription, VoteResult } from "./types";
+export type { PushRepo, ReactionRepo } from "./types";
 
 /**
  * Which backend a repository gets.

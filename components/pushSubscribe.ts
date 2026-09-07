@@ -19,7 +19,7 @@
  * Built over an explicit ArrayBuffer so the result is a Uint8Array<ArrayBuffer>,
  * which is what BufferSource requires — Uint8Array.from() widens to
  * ArrayBufferLike and no longer satisfies it. */
-export function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
+function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
   const raw = atob(padded.replace(/-/g, "+").replace(/_/g, "/"));
   const bytes = new Uint8Array(new ArrayBuffer(raw.length));

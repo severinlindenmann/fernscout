@@ -28,7 +28,7 @@ export const SWIPE_DISTANCE = 60;
 export const SWIPE_VELOCITY = 400;
 
 /** Below this, nothing is a gesture — it is a tap that moved. */
-export const SWIPE_MIN_DISTANCE = 16;
+const SWIPE_MIN_DISTANCE = 16;
 
 export type SwipeIntent = "prev" | "next" | null;
 

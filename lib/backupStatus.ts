@@ -42,9 +42,9 @@ import { dataDir } from "./dataDir";
 
 export const DEFAULT_MAX_AGE_HOURS = 36;
 
-export type BackupState = "ok" | "stale" | "failing" | "unknown";
+type BackupState = "ok" | "stale" | "failing" | "unknown";
 
-export type SecondaryBackupStatus = {
+type SecondaryBackupStatus = {
   /** `ok` recent success; `stale` too old; `unknown` never configured, or
    *  never copied successfully yet. Never `failing` — a secondary destination
    *  cannot turn the primary's own `state` red (B659, following B655). */
@@ -98,11 +98,11 @@ function readStamp(file: string): { at: Date; detail?: string } | null {
   return detail === undefined ? { at } : { at, detail: detail.trim() };
 }
 
-export function successStampPath(dir = dataDir()): string {
+function successStampPath(dir = dataDir()): string {
   return path.join(dir, ".backup-last-success");
 }
 
-export function failureStampPath(dir = dataDir()): string {
+function failureStampPath(dir = dataDir()): string {
   return path.join(dir, ".backup-last-failure");
 }
 

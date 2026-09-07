@@ -87,7 +87,7 @@ function isDraftEntry(file: string): boolean {
  * caller decides how to consume the resulting stream (buffered for a test or
  * a CLI write, or piped straight into an HTTP response body).
  */
-export function appendUserContent(
+function appendUserContent(
   archive: ZipArchive,
   username: string,
   scope: ExportScope,

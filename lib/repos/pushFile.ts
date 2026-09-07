@@ -3,7 +3,7 @@ import type { PushRepo, StoredSubscription } from "./types";
 
 const FILE = "push-subscriptions";
 
-export type Subs = Record<string, StoredSubscription>;
+type Subs = Record<string, StoredSubscription>;
 
 const EMPTY: Subs = {};
 
@@ -16,7 +16,7 @@ function keyOf(username: string, endpoint: string): string {
 }
 
 /** Read the raw map, keyed by `username\0endpoint`. */
-export async function readSubscriptions(): Promise<Subs> {
+async function readSubscriptions(): Promise<Subs> {
   return readStore<Subs>(FILE, EMPTY);
 }
 

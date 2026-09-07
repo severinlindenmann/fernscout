@@ -24,7 +24,7 @@ export type PrimitiveType = "string" | "number" | "boolean" | "array" | "object"
  * One of the eight closed kinds — see the table in W41. Anything that does
  * not fit becomes a `NamedCheck` instead of a ninth kind.
  */
-export type Assert =
+type Assert =
   | { assert: "type"; type: PrimitiveType }
   | { assert: "enum"; values: readonly (string | number | boolean)[] }
   /**
@@ -81,7 +81,7 @@ export type Rule = Assert & {
  * `id`; this document's job is only to say **that it exists**, so a client
  * that has not implemented one can say so rather than silently skipping it.
  */
-export type NamedCheck = {
+type NamedCheck = {
   kind: "named";
   id: string;
   because: string;
@@ -89,7 +89,7 @@ export type NamedCheck = {
   where?: readonly FileName[];
 };
 
-export type FileDescription = {
+type FileDescription = {
   what: string;
   api: string;
   optional?: boolean;

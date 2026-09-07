@@ -71,7 +71,7 @@ function findHeifDecoder() {
   return heifDecoder;
 }
 
-export class UndecodableImageError extends Error {
+class UndecodableImageError extends Error {
   constructor(file: string, detail: string) {
     super(
       `Could not decode ${path.basename(file)}: ${detail}\n` +

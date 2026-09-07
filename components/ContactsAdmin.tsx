@@ -34,7 +34,7 @@ const FIELD =
   "mt-2 w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-lg text-navy-900";
 const LABEL = "block text-base font-medium text-navy-700";
 
-export type AdminAddress = {
+type AdminAddress = {
   name: string;
   line1: string;
   line2: string;

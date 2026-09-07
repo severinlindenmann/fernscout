@@ -44,7 +44,7 @@ import type {
 } from "./plan.ts";
 
 /** `/media/<trip>/a/b.jpg` → the file on disk inside that trip. */
-export function mediaFileFor(ref: string, src: string): string {
+function mediaFileFor(ref: string, src: string): string {
   // Entry frontmatter keeps media trip-relative; the reader prefixes the
   // username, so a src may arrive either way. Accept both.
   const tripId = ref.includes("/") ? ref.slice(ref.indexOf("/") + 1) : ref;

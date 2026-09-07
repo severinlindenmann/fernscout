@@ -67,7 +67,7 @@ function clump(fill: string, r: number, radius: number, from: number, to: number
 }
 
 /** Styles with a part drawn *behind* the body. */
-export const BEHIND: ReadonlySet<string> = new Set([
+const BEHIND: ReadonlySet<string> = new Set([
   "long",
   "braids",
   "ponytail",
@@ -308,9 +308,6 @@ function accessory(name: string): Shape[] {
   }
 }
 
-/** How much taller or shorter this figure is — `age`, and nothing else. */
-export { AGE_SCALE } from "./vocabulary";
-
 /**
  * One figure, in the 64×96 viewBox, y downwards.
  *
@@ -385,5 +382,3 @@ export function figureShapes(figure: Figure, options: { head?: boolean } = {}): 
     ...(figure.accessories ?? []).flatMap(accessory),
   ];
 }
-
-export { K };

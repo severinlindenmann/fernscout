@@ -42,8 +42,8 @@ export const TAG_MAX_LENGTH = 30;
  * them: a long title is a sentence, and a very long day is a few thousand
  * words.
  */
-export const TITLE_MAX_LENGTH = 200;
-export const CONTENT_MAX_LENGTH = 100_000;
+const TITLE_MAX_LENGTH = 200;
+const CONTENT_MAX_LENGTH = 100_000;
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -89,7 +89,7 @@ export type Problem = {
   hint?: string;
 };
 
-export type EntryCostInput = {
+type EntryCostInput = {
   label?: unknown;
   amount?: unknown;
   currency?: unknown;

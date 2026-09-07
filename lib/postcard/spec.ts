@@ -8,7 +8,7 @@
  */
 
 /** PDF user space is 1/72 inch. */
-export const MM_TO_PT = 72 / 25.4;
+const MM_TO_PT = 72 / 25.4;
 
 export function mm(value: number): number {
   return value * MM_TO_PT;

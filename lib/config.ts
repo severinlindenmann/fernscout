@@ -89,7 +89,7 @@ export const OPERATOR_ONLY_FEATURES = [
  * declares no owner cannot be written to by anyone. That is the safe state,
  * and the state a freshly cloned repository is in.
  */
-export type Owner = {
+type Owner = {
   name: string;
   nickname: string;
   email?: string;
@@ -279,7 +279,7 @@ export type ServerConfig = {
   media: MediaLimits;
 };
 
-export type FeatureConfig = {
+type FeatureConfig = {
   enabled: boolean;
   /** Feature-specific settings — `transport`, `provider`, and so on. */
   [key: string]: unknown;

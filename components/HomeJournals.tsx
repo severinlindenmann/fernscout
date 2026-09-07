@@ -15,7 +15,7 @@ import { tellWorkerSignedOut } from "@/lib/signedOut";
  * separately and never serve one reader's list to the next.
  */
 
-export type HomeTrip = {
+type HomeTrip = {
   id: string;
   title: string;
   href: string;

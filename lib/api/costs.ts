@@ -24,8 +24,8 @@ import { costLines, type CostInput } from "./entries";
  * hand-written `costs.md` keeps its formatting, comments and key order.
  */
 
-export type CostsBudgetInput = { total: number; days: number; currency?: string };
-export type CostsItemInput = { label: string; amount: number; category?: string; currency?: string };
+type CostsBudgetInput = { total: number; days: number; currency?: string };
+type CostsItemInput = { label: string; amount: number; category?: string; currency?: string };
 
 /** The body of `PUT .../costs` — the whole file. `budget` is required there
  * (see `validateCostsPut`); this type does not enforce that, the validator
@@ -118,7 +118,7 @@ function spliceBlock(lines: string[], closing: number, key: string, newLines: st
  * frontmatter block to splice into, the caller's cue to leave a hand-shaped
  * file alone and say so.
  */
-export function spliceCostsFields(markdown: string, input: CostsEditInput): string | null {
+function spliceCostsFields(markdown: string, input: CostsEditInput): string | null {
   const lines = markdown.split("\n");
   if (lines[0]?.trim() !== "---") return null;
   let closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");

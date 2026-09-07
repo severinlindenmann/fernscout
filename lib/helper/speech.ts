@@ -40,7 +40,7 @@ export type SpeechLanguage = (typeof SPEECH_LANGUAGES)[number];
  *
  * Whole numbers only: `lib/credits.ts` throws on a fractional spend.
  */
-export const SECONDS_PER_CREDIT = 300;
+const SECONDS_PER_CREDIT = 300;
 
 /** How long one hold may be. Longer than the five-minute video cap (B670)
  *  because the price ladder above expects recordings past five minutes; past

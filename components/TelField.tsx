@@ -47,7 +47,7 @@ import { COUNTRIES, countryName, flagOf, matchesName } from "@/lib/countries";
  * and its test are otherwise unchanged by the move.
  */
 export const DIAL_CODES = COUNTRIES;
-export { countryName, flagOf };
+export { flagOf };
 
 /**
  * Every entry this picker offers, sorted by name and — when `query` is

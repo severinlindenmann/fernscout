@@ -54,7 +54,7 @@ import { looksLikeBot, visitorHash } from "./visitor";
 /** The closed list. Mirrored in the `kind` comment in lib/db/schema.ts and in
  * the OpenAPI-free page; there is no second copy to drift because nothing
  * outside this module constructs one. */
-export const VIEW_KINDS = ["journal", "trip", "day", "gallery", "map", "photobook"] as const;
+const VIEW_KINDS = ["journal", "trip", "day", "gallery", "map", "photobook"] as const;
 
 export type ViewKind = (typeof VIEW_KINDS)[number];
 

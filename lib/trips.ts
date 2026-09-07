@@ -76,7 +76,7 @@ export function parseTripRef(ref: TripRef): { username: string; tripId: string }
   return { username, tripId };
 }
 
-export function tripsDir(username: string): string {
+function tripsDir(username: string): string {
   return path.join(contentRoot(), username, "trips");
 }
 

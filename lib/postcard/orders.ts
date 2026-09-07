@@ -155,7 +155,7 @@ export type OrderPayload = {
 /** `draft | submitted | printed | failed`, the vocabulary `001-initial`
  * already documents for this table. `submitted` is the claimed-but-not-yet-
  * confirmed middle, which is what makes a double press cost one card. */
-export type OrderStatus = "draft" | "submitted" | "printed" | "failed";
+type OrderStatus = "draft" | "submitted" | "printed" | "failed";
 
 export type PostcardOrder = {
   id: string;

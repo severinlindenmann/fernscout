@@ -24,7 +24,7 @@ import { getTripIds, tripRef } from "./trips";
 import { hasWeather, weatherDays } from "./weatherStats";
 
 /** Whether this one trip has readings worth a page. */
-export function hasWeatherData(ref: string, options?: ReadOptions): boolean {
+function hasWeatherData(ref: string, options?: ReadOptions): boolean {
   return hasWeather(weatherDays(getDays(ref, options)));
 }
 
@@ -36,7 +36,7 @@ export function hasWeatherData(ref: string, options?: ReadOptions): boolean {
  * of a journal, so a draft-only trip's readings must not put a tab in the nav
  * that a stranger would otherwise not get.
  */
-export function weatherAvailable(username: string): boolean {
+function weatherAvailable(username: string): boolean {
   return (
     isEnabled("weather", username) &&
     getTripIds(username).some((id) => hasWeatherData(tripRef(username, id)))

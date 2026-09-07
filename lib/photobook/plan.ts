@@ -401,7 +401,7 @@ export type BookPage = { number: number; side: PageSide; from?: BookPageOption }
   | { kind: "blank" }
 );
 
-export type CoverPlan = {
+type CoverPlan = {
   /** back cover + spine + front cover + bleed on all four edges. */
   widthMm: number;
   heightMm: number;
@@ -1732,7 +1732,7 @@ function materialise(
 // The route map, in the same equirectangular space as lib/worldLand.json
 // ---------------------------------------------------------------------------
 
-export function projectEquirectangular(lat: number, lng: number): { x: number; y: number } {
+function projectEquirectangular(lat: number, lng: number): { x: number; y: number } {
   return {
     x: ((lng + 180) / 360) * MAP_SPACE.width,
     y: ((90 - lat) / 180) * MAP_SPACE.height,

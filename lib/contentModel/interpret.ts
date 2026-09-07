@@ -65,7 +65,7 @@ function get(doc: Record<string, unknown>, path: string): { present: boolean; va
  * `openapi.json` is what `test/content-model.test.ts` does separately, with
  * `crosscheckAgainstOpenApi` below — a fixture object has no opinion on it.
  */
-export function interpretRule(rule: Rule, doc: Record<string, unknown>): InterpretedProblem[] {
+function interpretRule(rule: Rule, doc: Record<string, unknown>): InterpretedProblem[] {
   const { present, value } = get(doc, rule.path);
   const problems: InterpretedProblem[] = [];
   const path = rule.path || "(root)";

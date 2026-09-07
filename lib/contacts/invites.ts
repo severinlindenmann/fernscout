@@ -143,8 +143,8 @@ function toKind(value: string | null | undefined): InviteKind {
  * "both still need an expiry and a revoke" is the point of leaving the shared
  * password behind.
  */
-export const INVITE_TTL_DAYS = 30;
-export const MAX_INVITE_TTL_DAYS = 365;
+const INVITE_TTL_DAYS = 30;
+const MAX_INVITE_TTL_DAYS = 365;
 
 /** `days` from now, as the ISO string the column stores. */
 export function inviteExpiry(days: number = INVITE_TTL_DAYS): string {
@@ -152,12 +152,12 @@ export function inviteExpiry(days: number = INVITE_TTL_DAYS): string {
   return new Date(Date.now() + clamped * 86_400_000).toISOString();
 }
 
-export function generateInviteToken(): string {
+function generateInviteToken(): string {
   return `fs_inv_${crypto.randomBytes(18).toString("base64url")}`;
 }
 
 /** The URL to send someone. Built here so no caller invents its own shape. */
-export function inviteUrl(base: string, username: string, token: string): string {
+function inviteUrl(base: string, username: string, token: string): string {
   return `${base}/${username}/i/${token}`;
 }
 

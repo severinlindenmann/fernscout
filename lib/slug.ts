@@ -68,10 +68,10 @@ const COMBINING_MARKS = /[̀-ͯ]/g;
  * A slug is one path segment, so it is also a filename. Sixty characters is
  * long enough for any real title and short enough to stay readable in a URL.
  */
-export const SLUG_MAX_LENGTH = 60;
+const SLUG_MAX_LENGTH = 60;
 
 /** What a title with no ASCII left in it is called. */
-export const SLUG_FALLBACK = "entry";
+const SLUG_FALLBACK = "entry";
 
 export function slugify(text: string): string {
   // Compose first. The table matches whole letters, and macOS hands over

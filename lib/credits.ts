@@ -57,7 +57,7 @@ import { getDatabaseOrNull, newId, nowIso } from "./db";
 
 /** `grant` is one of these too, but it is deliberately not in the union a
  * send can pass — see `SpendReason`. */
-export type LedgerReason =
+type LedgerReason =
   | "grant"
   | "day_mail"
   | "day_whatsapp"

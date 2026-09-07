@@ -318,7 +318,7 @@ export async function requestDeletion(
 
 /** Where the confirmation page lives. One place, so the mail and the route
  * cannot disagree about the shape of it. */
-export function deletionUrl(base: string, username: string, token: string): string {
+function deletionUrl(base: string, username: string, token: string): string {
   return `${base.replace(/\/$/, "")}/${username}/delete/${token}`;
 }
 
@@ -581,7 +581,7 @@ function dropMediaCache(): void {
  * the worst kind. Reversed, so children go before the `users` rows they point
  * at.
  */
-export async function deleteJournal(username: string, requestedBy: string): Promise<void> {
+async function deleteJournal(username: string, requestedBy: string): Promise<void> {
   const summary = summarise({ kind: "journal", username });
   const dir = userDir(username);
   // Rendered before the config is removed — afterwards there is no journal to
@@ -627,7 +627,7 @@ export async function deleteJournal(username: string, requestedBy: string): Prom
  * left to write them into — but it is a difference, and it is said out loud in
  * the confirmation mail rather than discovered afterwards.
  */
-export async function deleteTrip(
+async function deleteTrip(
   username: string,
   tripId: string,
   requestedBy: string,

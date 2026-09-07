@@ -65,7 +65,7 @@ type Index = {
 
 let cached: Index | null = null;
 
-export class MissingGeodataError extends Error {
+class MissingGeodataError extends Error {
   constructor(file: string) {
     super(
       `The offline place index is missing (${file}).\n` +

@@ -183,7 +183,7 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<WhatsappReci
 }
 
 /** Why nothing was attempted. Every case is an ordinary answer, not a bug. */
-export type DayWhatsappSkipReason =
+type DayWhatsappSkipReason =
   | "unknown_trip"
   | "unknown_day"
   | "not_published"
