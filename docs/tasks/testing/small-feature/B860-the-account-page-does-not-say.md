@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: account page
 found: "2026-09-07T17:14:18Z"
+merged: "2026-09-07T17:23:04Z"
 ---
 
 # B860 — The account page does not say what credits went on AI
