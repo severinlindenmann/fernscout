@@ -53,6 +53,7 @@ function remembered(username: string): string {
 export default function RecordButton({
   username,
   consented: initialConsent,
+  provider,
   disabled,
   onText,
 }: {
@@ -60,6 +61,10 @@ export default function RecordButton({
   /** Whether this journal has already agreed to its owner's voice being sent
    *  — the `speech` scope, and never inferred from the other two. */
   consented: boolean;
+  /** Who the recording actually goes to — `speechProvider()`, read on the
+   *  server, since the client never has the config to answer this itself.
+   *  `"dry-run"` on an instance with no transcriber configured — B744. */
+  provider: string;
   disabled?: boolean;
   /** What was said, once. The host decides where it goes; nothing here writes
    *  anything anywhere. */
@@ -195,7 +200,11 @@ export default function RecordButton({
     return (
       <ConfirmPanel
         label={t("agent.speechConsentLabel")}
-        question={t("agent.speechConsent", { minutes: String(MINUTES_PER_CREDIT) })}
+        question={
+          provider === "dry-run"
+            ? t("agent.speechConsentDryRun", { minutes: String(MINUTES_PER_CREDIT) })
+            : t("agent.speechConsent", { provider, minutes: String(MINUTES_PER_CREDIT) })
+        }
         confirmLabel={t("agent.speechConsentConfirm")}
         busy={busy}
         onConfirm={() => void agree()}

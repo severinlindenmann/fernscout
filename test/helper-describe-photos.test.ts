@@ -277,6 +277,28 @@ describe("what is sent", () => {
     // be, so a much bigger payload here would mean the original leaked in.
     expect(Buffer.from(images[0].base64, "base64").byteLength).toBeLessThan(200_000);
   });
+
+  // B734 — a caption has no notes to take a language from, so the journal's
+  // own locale has to be told to the model rather than inferred.
+  test("the journal's own locale reaches describePhotos, not a hard-coded English", async () => {
+    fs.writeFileSync(
+      path.join(dir, "alex", "config.json"),
+      JSON.stringify({
+        title: "Alex",
+        tagline: "t",
+        owner: { name: "A B", nickname: "A", email: OWNER_EMAIL },
+        defaultLocale: "de",
+        locales: ["de"],
+        baseCurrency: "CHF",
+      }),
+    );
+    clearUserCache();
+    await writeDayWithPhotos(1);
+    await consent("photos");
+    await call();
+    const [, locale] = describePhotos.mock.calls[0] as [unknown, string];
+    expect(locale).toBe("de");
+  });
 });
 
 describe("with the capability off", () => {

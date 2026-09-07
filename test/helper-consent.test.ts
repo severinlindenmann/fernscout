@@ -1,0 +1,115 @@
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import {
+  hasHelperConsent,
+  helperConsent,
+  recordHelperConsent,
+  revokeHelperConsent,
+} from "@/lib/helper/consent";
+
+/**
+ * Consent storage — B743 and B735.
+ *
+ * **B743**: `providers` is a map keyed by scope, because a person consents to
+ * a provider for a purpose, not to a provider globally. A file written before
+ * the split (a single top-level `provider`) still reads, and reads as that
+ * same name for every scope it already lists — never wider than what was
+ * actually agreed to.
+ *
+ * **B735**: `revokeHelperConsent` takes a scope and rewrites rather than
+ * deletes, unless the scope taken back was the last one standing.
+ */
+
+let dir: string;
+
+beforeEach(() => {
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-helper-consent-"));
+  process.env.CONTENT_DIR = dir;
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
+});
+
+afterEach(() => {
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+function consentFile(): string {
+  return path.join(dir, "alex", "helper-consent.json");
+}
+
+describe("B743 — a provider per scope", () => {
+  test("words and speech each keep their own provider", () => {
+    recordHelperConsent("alex", "Anthropic", "words");
+    recordHelperConsent("alex", "Deepgram", "speech");
+
+    const consent = helperConsent("alex");
+    expect(consent?.scopes.sort()).toEqual(["speech", "words"]);
+    expect(consent?.providers.words).toBe("Anthropic");
+    expect(consent?.providers.speech).toBe("Deepgram");
+  });
+
+  test("re-consenting to one scope with a new provider leaves the other alone", () => {
+    recordHelperConsent("alex", "Anthropic", "words");
+    recordHelperConsent("alex", "Deepgram", "speech");
+
+    recordHelperConsent("alex", "SomeOtherModel", "words");
+
+    const consent = helperConsent("alex");
+    expect(consent?.providers.words).toBe("SomeOtherModel");
+    expect(consent?.providers.speech).toBe("Deepgram");
+  });
+
+  test("a pre-B743 file with one top-level provider is read, never widened", () => {
+    fs.writeFileSync(
+      consentFile(),
+      JSON.stringify({
+        agreedAt: "2026-01-01T00:00:00.000Z",
+        provider: "Anthropic",
+        scopes: ["words", "photos"],
+      }),
+    );
+
+    const consent = helperConsent("alex");
+    expect(consent?.scopes.sort()).toEqual(["photos", "words"]);
+    // Read as the same provider for every scope the old file already listed —
+    // and nothing else. A scope the old file never granted must not appear.
+    expect(consent?.providers.words).toBe("Anthropic");
+    expect(consent?.providers.photos).toBe("Anthropic");
+    expect(consent?.providers.speech).toBeUndefined();
+    expect(hasHelperConsent("alex", "speech")).toBe(false);
+  });
+});
+
+describe("B735 — withdrawing one scope leaves the others standing", () => {
+  test("revoking photos leaves words consent in place, and genuinely removes photos", () => {
+    recordHelperConsent("alex", "Anthropic", "words");
+    recordHelperConsent("alex", "Anthropic", "photos");
+    expect(hasHelperConsent("alex", "words")).toBe(true);
+    expect(hasHelperConsent("alex", "photos")).toBe(true);
+
+    revokeHelperConsent("alex", "photos");
+
+    // Not widened, not silently kept: photos is genuinely gone...
+    expect(hasHelperConsent("alex", "photos")).toBe(false);
+    expect(helperConsent("alex")?.providers.photos).toBeUndefined();
+    // ...and words — the one nobody asked to withdraw — still stands.
+    expect(hasHelperConsent("alex", "words")).toBe(true);
+    expect(helperConsent("alex")?.providers.words).toBe("Anthropic");
+  });
+
+  test("revoking the last scope removes the file entirely", () => {
+    recordHelperConsent("alex", "Anthropic", "words");
+    revokeHelperConsent("alex", "words");
+
+    expect(helperConsent("alex")).toBeNull();
+    expect(fs.existsSync(consentFile())).toBe(false);
+  });
+
+  test("revoking a scope nobody agreed to is a no-op on the others", () => {
+    recordHelperConsent("alex", "Anthropic", "words");
+    revokeHelperConsent("alex", "speech");
+
+    expect(hasHelperConsent("alex", "words")).toBe(true);
+  });
+});

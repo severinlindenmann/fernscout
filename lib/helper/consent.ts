@@ -30,9 +30,16 @@ import { isValidUsername, userDir } from "../users";
  * **B686 adds a third, `speech`.** Audio is neither of the other two: it is
  * the person's own voice, and it names a *second* provider — the transcriber,
  * not the model. So it is asked for separately and never inferred from
- * either. `provider` below therefore names whoever the most recently agreed
- * panel named; each panel names its own provider in its own words before the
- * yes, which is where a person actually reads it.
+ * either.
+ *
+ * **B743 makes `providers` a map keyed by scope.** A person consents to a
+ * provider *for a purpose*, not to a provider globally: `words` and `photos`
+ * go to Anthropic, `speech` goes to Deepgram, and a single `provider` string
+ * meant that agreeing to speech silently overwrote the record of who the
+ * words consent named. A file written before this split carries a single
+ * `provider` naming whoever the most recently agreed panel named; it is read
+ * as that same provider for every scope the file already lists — never
+ * widened onto a scope it did not already carry.
  */
 
 export const HELPER_SCOPES = ["words", "photos", "speech"] as const;
@@ -41,9 +48,11 @@ export type HelperScope = (typeof HELPER_SCOPES)[number];
 export type HelperConsent = {
   /** When consent was last given or extended, as a whole UTC instant. */
   agreedAt: string;
-  /** Who the words would be going to, recorded as it stood at the time — so a
-   *  change of provider is not silently covered by an old yes. */
-  provider: string;
+  /** Who each scope's words, photographs or voice would be going to,
+   *  recorded as it stood when that scope was agreed to — so a change of
+   *  provider is not silently covered by an old yes. Keyed by scope, since
+   *  `words`/`photos` and `speech` do not share a provider (B743). */
+  providers: Partial<Record<HelperScope, string>>;
   /** What was actually agreed to. Never widened by anything but a fresh POST
    *  naming the new scope. */
   scopes: HelperScope[];
@@ -58,12 +67,25 @@ function consentFile(username: string): string {
 
 export function helperConsent(username: string): HelperConsent | null {
   try {
-    const raw = JSON.parse(fs.readFileSync(consentFile(username), "utf8")) as Partial<HelperConsent>;
-    if (typeof raw.agreedAt !== "string" || typeof raw.provider !== "string") return null;
+    const raw = JSON.parse(fs.readFileSync(consentFile(username), "utf8")) as Partial<HelperConsent> & {
+      provider?: unknown;
+    };
+    if (typeof raw.agreedAt !== "string") return null;
     const scopes = Array.isArray(raw.scopes)
       ? raw.scopes.filter((s): s is HelperScope => (HELPER_SCOPES as readonly string[]).includes(s))
       : (["words"] as HelperScope[]); // pre-B687 file: the only thing the old panel ever asked about.
-    return { agreedAt: raw.agreedAt, provider: raw.provider, scopes };
+    let providers: Partial<Record<HelperScope, string>>;
+    if (raw.providers && typeof raw.providers === "object") {
+      providers = raw.providers;
+    } else if (typeof raw.provider === "string") {
+      // Pre-B743 file: one provider named for the whole record. Read as that
+      // same name for every scope this file already lists — it never widens
+      // what was agreed to, only says who each already-granted scope named.
+      providers = Object.fromEntries(scopes.map((s) => [s, raw.provider as string]));
+    } else {
+      return null;
+    }
+    return { agreedAt: raw.agreedAt, providers, scopes };
   } catch {
     // No file, unreadable file, or nonsense in it: all three mean "nobody has
     // said yes here", which is the only safe reading of a missing consent.
@@ -79,7 +101,8 @@ export function hasHelperConsent(username: string, scope: HelperScope): boolean 
 
 /** Records a scope, adding it to whatever this journal had already agreed to
  *  rather than replacing it — agreeing to "photos" does not require
- *  re-agreeing to "words". */
+ *  re-agreeing to "words". Each scope keeps its own provider (B743), so
+ *  re-consenting to one scope with a new provider never touches another's. */
 export function recordHelperConsent(
   username: string,
   provider: string,
@@ -87,11 +110,28 @@ export function recordHelperConsent(
 ): HelperConsent {
   const existing = helperConsent(username);
   const scopes = existing?.scopes.includes(scope) ? existing.scopes : [...(existing?.scopes ?? []), scope];
-  const consent: HelperConsent = { agreedAt: new Date().toISOString(), provider, scopes };
+  const providers = { ...existing?.providers, [scope]: provider };
+  const consent: HelperConsent = { agreedAt: new Date().toISOString(), providers, scopes };
   fs.writeFileSync(consentFile(username), `${JSON.stringify(consent, null, 2)}\n`);
   return consent;
 }
 
-export function revokeHelperConsent(username: string): void {
-  fs.rmSync(consentFile(username), { force: true });
+/**
+ * Takes back one scope, rewriting the file to the scopes that remain — B735.
+ * The whole file is only removed once the last scope is gone, so withdrawing
+ * photo consent leaves a standing words consent (and vice versa) rather than
+ * silently taking both.
+ */
+export function revokeHelperConsent(username: string, scope: HelperScope): void {
+  const existing = helperConsent(username);
+  if (!existing) return;
+  const scopes = existing.scopes.filter((s) => s !== scope);
+  if (scopes.length === 0) {
+    fs.rmSync(consentFile(username), { force: true });
+    return;
+  }
+  const providers = { ...existing.providers };
+  delete providers[scope];
+  const consent: HelperConsent = { agreedAt: existing.agreedAt, providers, scopes };
+  fs.writeFileSync(consentFile(username), `${JSON.stringify(consent, null, 2)}\n`);
 }

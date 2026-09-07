@@ -24,6 +24,10 @@ export type AgentJournal = {
    * above: speech is a second provider and its own switch. */
   speech: boolean;
   consentedSpeech: boolean;
+  /** Who a recording actually goes to — `speechProvider()`, read on the
+   *  server — so the consent panel names the real backend rather than
+   *  assuming Deepgram (B744). */
+  speechProvider: string;
 };
 
 /**
@@ -120,6 +124,7 @@ export default function AgentDoor({
                     consented={journal.consented}
                     speech={journal.speech}
                     consentedSpeech={journal.consentedSpeech}
+                    speechProvider={journal.speechProvider}
                   />
                 )}
 

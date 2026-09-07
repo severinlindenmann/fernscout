@@ -273,7 +273,7 @@ describe("the door", () => {
 
   test("the sentence is not sent before somebody has consented", async () => {
     const { revokeHelperConsent } = await import("@/lib/helper/consent");
-    revokeHelperConsent("alex");
+    revokeHelperConsent("alex", "words");
     const refused = await read(await ask("how much storage"));
     expect(refused.status).toBe(403);
     expect(refused.body.error).toBe("consent_required");

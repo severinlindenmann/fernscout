@@ -66,6 +66,9 @@ type HelperState = {
    *  journal may have speech with no model or a model with no speech. */
   speech: boolean;
   consentedSpeech: boolean;
+  /** Who a recording actually goes to — B744. Read on the server
+   *  (`speechProvider()`), since the wizard has no config to read it from. */
+  speechProvider: string;
   /** Whether the journal has separately agreed to photographs leaving the
    *  machine — B687. Never inferred from `consented` above. */
   consentedPhotos: boolean;
@@ -484,20 +487,23 @@ export default function AgentWizard({
     await writeUp();
   }, [send, username, writeUp]);
 
-  /** Taking it back, from either panel that asked. Deletes the whole record on
-   *  the journal — both scopes, since there is one file — and the next call in
-   *  either one asks again. */
-  const withdraw = useCallback(async () => {
-    setBusy(true);
-    const body = await send(`/api/helper/${encodeURIComponent(username)}/consent`, {
-      method: "DELETE",
-    });
-    setBusy(false);
-    if (body) {
-      setConsented(false);
-      setConsentedPhotos(false);
-    }
-  }, [send, username]);
+  /** Taking it back, one scope at a time — B735. Only the scope asked about
+   *  is removed; the other consent, if there is one, stands. */
+  const withdraw = useCallback(
+    async (scope: "words" | "photos") => {
+      setBusy(true);
+      const body = await send(`/api/helper/${encodeURIComponent(username)}/consent`, {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ scope }),
+      });
+      setBusy(false);
+      if (!body) return;
+      if (scope === "words") setConsented(false);
+      else setConsentedPhotos(false);
+    },
+    [send, username],
+  );
 
   /**
    * Ask the model to caption the photographs already on this day.
@@ -851,6 +857,7 @@ export default function AgentWizard({
             <RecordButton
               username={username}
               consented={helper.consentedSpeech}
+              provider={helper.speechProvider}
               disabled={busy}
               onText={(said) =>
                 // Appended, never replacing: somebody who has already written
@@ -937,7 +944,7 @@ export default function AgentWizard({
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => void withdraw()}
+                      onClick={() => void withdraw("words")}
                       className="mt-2 min-h-11 text-sm font-semibold text-navy-600 underline disabled:opacity-50"
                     >
                       {t("agent.helperWithdraw")}
@@ -1012,7 +1019,7 @@ export default function AgentWizard({
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => void withdraw()}
+                      onClick={() => void withdraw("photos")}
                       className="mt-2 min-h-11 text-sm font-semibold text-navy-600 underline disabled:opacity-50"
                     >
                       {t("agent.helperWithdraw")}

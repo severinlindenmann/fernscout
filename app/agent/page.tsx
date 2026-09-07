@@ -5,6 +5,7 @@ import { isEnabled } from "@/lib/capabilities";
 import AgentDoor from "@/components/AgentDoor";
 import { hasHelperConsent, helperConsent } from "@/lib/helper/consent";
 import { draftsForWizard } from "@/lib/helper/server";
+import { speechProvider } from "@/lib/helper/transcribe";
 import { journalsFor } from "@/lib/home";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
@@ -76,6 +77,7 @@ export default async function AgentPage() {
         // B686: the microphone, on its own switch and its own consent.
         speech: isEnabled("transcription", journal.username),
         consentedSpeech: hasHelperConsent(journal.username, "speech"),
+        speechProvider: speechProvider(),
       }))}
     />
   );

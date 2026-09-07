@@ -4,6 +4,7 @@ import { refund, spend } from "@/lib/credits";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { describePhotos, HELPER_PROVIDER, type PhotoImage } from "@/lib/helper/model";
 import { isHelperOwner } from "@/lib/helper/server";
+import { defaultLocaleFor } from "@/lib/locales";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { resizedCopy, resolveMediaFile } from "@/lib/media";
@@ -118,7 +119,13 @@ export async function POST(
       }
     }
 
-    const captions = sendable.length > 0 ? await describePhotos(sendable.map((s) => s.image)) : [];
+    const captions =
+      sendable.length > 0
+        ? await describePhotos(
+            sendable.map((s) => s.image),
+            defaultLocaleFor(user),
+          )
+        : [];
     const bySrc = photos.map((item) => ({ src: item.src, caption: "" }));
     sendable.forEach((sent, i) => {
       bySrc[sent.index].caption = captions[i] ?? "";
