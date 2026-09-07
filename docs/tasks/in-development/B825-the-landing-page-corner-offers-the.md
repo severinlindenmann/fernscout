@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: landing, agent
 found: "2026-09-07T17:40:00Z"
+started: "2026-09-07T15:37:14Z"
+session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
+claimed: "2026-09-07T15:37:14Z"
 ---
 
 # B825 — The landing page corner offers the operator a way in and everybody else nothing
