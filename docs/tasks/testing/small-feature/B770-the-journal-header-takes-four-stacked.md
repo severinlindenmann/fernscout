@@ -7,8 +7,7 @@ complexity: medium
 area: header, mobile, a11y
 found: "2026-09-07T16:15:00Z"
 started: "2026-09-07T14:07:48Z"
-session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
-claimed: "2026-09-07T14:07:48Z"
+merged: "2026-09-07T14:34:45Z"
 ---
 
 # B770 — The journal header takes four stacked rows on a phone before any content starts
