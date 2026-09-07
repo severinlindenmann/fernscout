@@ -86,7 +86,10 @@ async function reloadConfig() {
 
 async function redeem(
   body: Record<string, unknown>,
-): Promise<{ status: number; body: { status?: string; error?: string; message?: string } }> {
+): Promise<{
+  status: number;
+  body: { status?: string; error?: string; message?: string; reason?: string };
+}> {
   const { POST } = await import("@/app/api/contacts/redeem/route");
   const response = await POST(
     new Request("https://example.test/api/contacts/redeem", {
@@ -169,6 +172,10 @@ describe("a guest link redeemed on a server with mail off", () => {
     // server is correct — the message must not point at the journal instead.
     expect(result.body.message).toContain("server");
     expect(result.body.message).not.toContain("journal");
+    // B429: `reason` carries the same distinction machine-readably, for
+    // `redeemOutcome` to pick the right sentence for the reader in front of
+    // the form rather than one canned line for both switches.
+    expect(result.body.reason).toBe("server");
   });
 
   /** The other half of the cost, and the one nobody would have noticed: the
@@ -221,6 +228,7 @@ describe("a guest link redeemed with the journal's own mail off, server mail on"
       expect(result.body.error).toBe("mail_disabled");
       expect(result.body.message).toContain("journal");
       expect(result.body.message).not.toContain("This server cannot send");
+      expect(result.body.reason).toBe("journal");
     } finally {
       writeJournalConfig(true);
       writeServerConfig(false);

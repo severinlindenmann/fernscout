@@ -797,14 +797,21 @@ export async function getContact(owner: string, id: string): Promise<ContactReco
  * `revokeContact` marked comes back rather than staying shut with the response
  * still saying `ok`. The owner pressing approve on somebody they blocked is
  * the whole of what it takes, and the whole of what can do it — the blocked
- * person's own routes back all refuse before they reach here. What this
- * function still does not do is *say* which trips it opened; the ids come back
- * from `approveTripPlaces` and are dropped on the floor, which is B244.
+ * person's own routes back all refuse before they reach here.
+ *
+ * **Says which trips it opened, since B244.** The ids come back from
+ * `approveTripPlaces` in `tripsOpened`, empty when the approval opened
+ * nothing (a journal-wide read grant only, or a re-approval that opened
+ * nothing new) — never omitted, so a caller can tell "opened nothing" from
+ * "didn't ask". `contact` is still null on the same two refusals as before
+ * (`getContact` finds nothing, or the address is unconfirmed); the wrapper
+ * only appears on success, so `approveContact(...)` staying `null` on
+ * refusal is unchanged for every caller that only checks that.
  */
 export async function approveContact(
   owner: string,
   id: string,
-): Promise<ContactRecord | null> {
+): Promise<{ contact: ContactRecord; tripsOpened: string[] } | null> {
   const contact = await getContact(owner, id);
   if (!contact) return null;
   if (!contact.confirmedAt) return null;
@@ -867,9 +874,15 @@ export async function approveContact(
 
   // Every trip they asked to join, opened by the same click. Returns the ids
   // rather than nothing so a caller can say which trips were opened.
-  await approveTripPlaces(owner, id);
+  const tripsOpened = await approveTripPlaces(owner, id);
 
-  return getContact(owner, id);
+  const updated = await getContact(owner, id);
+  // Cannot actually be null — the row was read at the top of this function
+  // and only ever updated above, never deleted — but the type of
+  // `getContact` is honest about every caller, so this one states the
+  // invariant rather than asserting past it.
+  if (!updated) return null;
+  return { contact: updated, tripsOpened };
 }
 
 /**

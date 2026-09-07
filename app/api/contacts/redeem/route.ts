@@ -173,6 +173,12 @@ export async function POST(request: Request) {
     return Response.json(
       {
         error: "mail_disabled",
+        // B429: which switch, machine-readably — `redeemOutcome` reads this
+        // to pick between two reader-facing sentences rather than the one
+        // canned line both used to collapse into. `message` below still
+        // carries the full, human sentence for anything reading this
+        // response directly.
+        reason: mailOff,
         // B407: name the switch that is actually off, and point at the one
         // that can be changed. A journal's own `features.mail.enabled: false`
         // is not the server's problem, and telling an owner to look at a
@@ -308,7 +314,8 @@ export async function POST(request: Request) {
   const preapproved =
     (await preapprovedEmailFor(username, confirmed.contact.createdVia)) === confirmed.contact.email;
   const status = preapproved
-    ? ((await approveContact(username, confirmed.contact.id))?.status ?? confirmed.contact.status)
+    ? ((await approveContact(username, confirmed.contact.id))?.contact.status ??
+      confirmed.contact.status)
     : confirmed.contact.status;
 
   // Both best-effort (B272), same as `/api/contacts/confirm` — see there.

@@ -51,3 +51,25 @@ note that the number is not currently messageable, next to the number
 itself. The same contact with `defaultCountryCode: "41"` configured, or with
 a `tel` of `"+41 76 561 31 50"`, renders with no such note. A contact with no
 `tel` at all is unaffected (the whole block is still absent, as today).
+
+## Resolution
+
+Confirmed against current code: `<dd>{postal.tel}</dd>` had no other check.
+
+`components/ContactsAdmin.tsx` — the tel row now renders
+`isMessageable(postal.tel, defaultCountryCode)` and, when false, an inline
+note (`contact.telNotMessageable`) beside the number, never in place of it.
+`defaultCountryCode` (already a prop of the top-level `ContactsAdmin`, wired
+by `app/[user]/contacts/page.tsx` since B385) is threaded down through the
+new `ContactGroup` → `ContactRow` prop chain that did not carry it before.
+
+**Test**: `test/contact-whatsapp-gating.test.tsx` — four cases: a national
+number with no configured default country (flagged), the same number with a
+default country configured (not flagged), an already-international number
+(not flagged), and no `tel` at all (no row, no note). All pass.
+
+**What this tells a non-owner caller**: nothing — `ContactsAdmin` only
+renders behind `isOwner`'s cookie-session gate (`app/[user]/contacts`), and
+an agent bearer token never reaches this page (AGENTS.md: "an agent token
+reaches `/api/…` and never a rendered page"). The number itself was already
+shown to the owner; this only adds a note about whether it works.

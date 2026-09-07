@@ -52,3 +52,37 @@ Calling `resend` for the same contact id more than a small number of times in
 a short window is refused (429 or similar) rather than mailing again every
 time. A test drives it past the limit and asserts the mail count stops
 growing.
+
+## Resolution
+
+Confirmed against current code: `case "resend"` (`app/api/contacts/admin/
+route.ts`) had no throttle of any kind, unlike `redeem`'s `clientIp`-keyed one
+a level up.
+
+Added `rateLimitFor("contact-resend", contact.id, { max: 3, windowMs: 60 *
+60 * 1000 })` right after the `already_confirmed`/`no_invite` checks and
+before the mail is sent, matching the shape already used by e.g.
+`app/api/v1/[user]/payments/[id]/pay/route.ts`. Refuses with `429
+too_many_requests` and a `Retry-After` header, same as every other
+rate-limited route here — not silently dropping the mail.
+
+Keyed on `contact.id` rather than the caller's IP, deliberately: the harm this
+guards against is real mail landing repeatedly in *one address's* inbox, not
+load on this server from one IP — an owner calling from home and from their
+phone should still be limited together.
+
+**Contract**: `app/api/contacts/admin/route.ts` is not under `app/api/v1/` or
+`app/api/auth/`, so it is out of scope for `lib/api/openapi.ts` —
+`test/openapi-contract.test.ts` and `test/api-route-schemas.test.ts` both scan
+only those two trees. Nothing to add there.
+
+**Test**: `test/contacts-admin-invite.test.ts`, new case "is refused past a
+small number of calls in a window" — creates a pending row (which sends one
+mail), calls `resend` three more times (all `200`), then a fourth (`429
+too_many_requests`), and asserts no fourth mail landed on disk. Passes.
+
+**What this tells a non-owner caller**: nothing — `guard()` still requires the
+owner's own agent token or guest cookie before `resend` is reachable at all;
+this only bounds what an already-authenticated owner session can do per
+contact, which is the scenario the Why section names (a compromised or
+scripted session).

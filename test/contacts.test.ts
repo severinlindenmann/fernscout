@@ -809,8 +809,10 @@ describe("approval", () => {
   test("makes the contact active and writes exactly one grant", async () => {
     const { contact } = await signUpAndConfirm("ana", "oma@example.test");
     const approved = await approveContact("ana", contact.id);
-    expect(approved?.status).toBe("active");
-    expect(approved?.approvedAt).not.toBeNull();
+    expect(approved?.contact.status).toBe("active");
+    expect(approved?.contact.approvedAt).not.toBeNull();
+    // No trip named — nothing was asked for one.
+    expect(approved?.tripsOpened).toEqual([]);
 
     // Approving twice must not stack up grants.
     await approveContact("ana", contact.id);
@@ -976,7 +978,7 @@ describe("the owner adding a guest", () => {
     const { contact } = await signUpAndConfirm("u", "before@example.com", {
       createdVia: "owner",
     });
-    expect((await approveContact("u", contact.id))?.status).toBe("active");
+    expect((await approveContact("u", contact.id))?.contact.status).toBe("active");
 
     const after = await updateContactByOwner("u", contact.id, { email: "after@example.com" });
     expect(after?.status).toBe("pending");

@@ -134,7 +134,7 @@ async function reader(email: string, wantsPostcard = true, address: unknown = AD
   const confirmed = await confirmContact(OWNER, email, code);
   if (!confirmed.ok) throw new Error("confirm failed");
   const approved = await approveContact(OWNER, contactId!);
-  if (!approved || approved.status !== "active") throw new Error("approve failed");
+  if (!approved || approved.contact.status !== "active") throw new Error("approve failed");
   return contactId!;
 }
 

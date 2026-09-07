@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     (await preapprovedEmailFor(username, result.contact.createdVia)) === result.contact.email;
 
   const status = preapproved
-    ? ((await approveContact(username, result.contact.id))?.status ?? result.contact.status)
+    ? ((await approveContact(username, result.contact.id))?.contact.status ?? result.contact.status)
     : result.contact.status;
 
   // B350: a pre-approved address has just proved itself, in this browser, and

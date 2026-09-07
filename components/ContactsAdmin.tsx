@@ -12,6 +12,7 @@ import { countryName, resolveCountry } from "@/lib/countries";
 import type { ContactRelationship } from "@/lib/contacts/relationships";
 import { LOCALE_LABEL, plural, telHintKey, translate, type TranslationKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
+import { isMessageable } from "@/lib/whatsapp/phone";
 
 /**
  * Who is waiting, who is in, and when they last looked (C6).
@@ -275,9 +276,12 @@ function ContactRow({
   busy,
   act,
   onEdit,
+  onApprove,
   highlighted = false,
   locale,
   locales,
+  defaultCountryCode,
+  approvedTrips,
 }: {
   contact: AdminContact;
   /** How they came to be here, already in words — see `viaLabel`. Resolved by
@@ -293,6 +297,10 @@ function ContactRow({
   busy: boolean;
   act: (body: Record<string, unknown>) => void;
   onEdit: (contact: AdminContact) => void;
+  /** B244 — Approve is the one button here that has something to report
+   * back, so it goes through its own handler instead of the fire-and-forget
+   * `act` every other button uses. */
+  onApprove: (contact: AdminContact) => void;
   /** The admin's own locale — B402: what `postal.country` is named in, the
    * same way `CountryField` names it in the form's own locale. */
   locale: Locale;
@@ -304,6 +312,20 @@ function ContactRow({
    * data, everything else about it is identical to any other pending
    * contact. */
   highlighted?: boolean;
+  /** B385/B389: `whatsappCountryCode()` — the operator's own configured
+   * fallback for a national number. Used to tell whether the number on this
+   * row is currently messageable at all. */
+  defaultCountryCode?: string;
+  /**
+   * B244 — what the last approve click on *this* contact opened, kept in the
+   * parent rather than here: a successful approve moves the row from the
+   * pending group to the approved one, which is a different `<ContactGroup>`
+   * subtree and would unmount a note held in this component's own state
+   * before anybody read it. `undefined` means nobody has just pressed
+   * Approve; `[]` is a real answer — "opened nothing" — and must not read as
+   * that same "nothing to say" case.
+   */
+  approvedTrips?: string[];
 }) {
   // Owner-facing copy, not the guest form's first-person "Send me…" — this
   // list is read by the owner, about somebody else.
@@ -422,7 +444,16 @@ function ContactRow({
         {postal?.tel && (
           <>
             <dt>{t("contact.tel")}</dt>
-            <dd>{postal.tel}</dd>
+            <dd>
+              {postal.tel}
+              {/* B389 — a number `toE164` cannot parse (no `+`, no configured
+                  default country) is silently skipped by the WhatsApp send
+                  loop; say so here rather than let it read like every other
+                  number on the page. */}
+              {!isMessageable(postal.tel, defaultCountryCode) && (
+                <span className="ml-2 text-navy-500">{t("contact.telNotMessageable")}</span>
+              )}
+            </dd>
           </>
         )}
       </dl>
@@ -448,11 +479,23 @@ function ContactRow({
           <button
             type="button"
             disabled={busy}
-            onClick={() => act({ action: "approve", id: contact.id })}
+            onClick={() => onApprove(contact)}
             className="rounded-xl bg-navy-900 px-4 py-2 text-base text-cream-50 disabled:opacity-50"
           >
             {t("contact.adminApprove")}
           </button>
+        )}
+        {/* B244 — the strongest thing this click does, said rather than left
+            for the owner to infer from the row changing colour. Absent
+            unless this contact was just approved this page-load; `[]` still
+            renders, with its own "opened nothing" sentence, rather than
+            silently saying nothing at all. */}
+        {approvedTrips && (
+          <p className="mt-2 w-full text-base text-navy-700">
+            {approvedTrips.length === 0
+              ? t("contact.adminApprovedNoTrip")
+              : t("contact.adminApprovedTrips", { trips: approvedTrips.join(", ") })}
+          </p>
         )}
         {contact.status === "active" && (
           <button
@@ -609,7 +652,11 @@ export function GuestForm({
    * tick boxes describes a channel that does not exist here. */
   pushEnabled?: boolean;
   /** B376: whether this server can act on a WhatsApp update at all —
-   * `isEnabled("whatsapp", username)`. Only changes the phone hint's wording. */
+   * `isEnabled("whatsapp", username)`. Changes the phone hint's wording, and
+   * — since B378 — gates the checkbox itself: offering it on a journal where
+   * nothing will ever send there tells the owner something untrue. A row
+   * that already carries `wantsWhatsapp: true` from before the switch was
+   * turned off keeps it — this hides what is offered, not what is stored. */
   whatsappEnabled?: boolean;
   /** B385: `whatsappCountryCode()`, seeding only a brand-new guest's blank
    * dialling code — see `fieldsFor`. */
@@ -865,6 +912,7 @@ export function GuestForm({
           <span>{t("contact.adminWantsPostcard")}</span>
         </label>
         )}
+        {whatsappEnabled && (
         <label className="flex items-start gap-3 text-base text-navy-900">
           <input
             type="checkbox"
@@ -874,6 +922,7 @@ export function GuestForm({
           />
           <span>{t("contact.adminWantsWhatsapp")}</span>
         </label>
+        )}
         {/*
           The fourth channel, said rather than offered — B453.
 
@@ -931,9 +980,12 @@ function ContactGroup({
   busy,
   act,
   onEdit,
+  onApprove,
   highlightId,
   locale,
   locales,
+  defaultCountryCode,
+  approvedTripsByContact,
 }: {
   title: string;
   rows: AdminContact[];
@@ -950,10 +1002,17 @@ function ContactGroup({
   busy: boolean;
   act: (body: Record<string, unknown>) => void;
   onEdit: (contact: AdminContact) => void;
+  /** B244 — see `ContactRow`'s own note. */
+  onApprove: (contact: AdminContact) => void;
   highlightId?: string;
   /** B402 — see `ContactRow`'s own note on both of these. */
   locale: Locale;
   locales: string[];
+  /** B389 — see `ContactRow`'s own note. */
+  defaultCountryCode?: string;
+  /** B244 — see `ContactRow`'s own note. Keyed by contact id, so only the row
+   * just approved renders anything different. */
+  approvedTripsByContact?: Record<string, string[]>;
 }) {
   return (
     <section className="mt-10">
@@ -972,9 +1031,12 @@ function ContactGroup({
               busy={busy}
               act={act}
               onEdit={onEdit}
+              onApprove={onApprove}
               highlighted={contact.id === highlightId}
               locale={locale}
               locales={locales}
+              defaultCountryCode={defaultCountryCode}
+              approvedTrips={approvedTripsByContact?.[contact.id]}
               key={contact.id}
             />
           ))}
@@ -1281,6 +1343,19 @@ export default function ContactsAdmin({
     return response;
   }
 
+  // B244 — keyed by contact id rather than a single "last approved" slot, so
+  // approving a second row does not erase what the first one's note said.
+  const [approvedTripsByContact, setApprovedTripsByContact] = useState<Record<string, string[]>>(
+    {},
+  );
+
+  async function approve(contact: AdminContact) {
+    const response = await act({ action: "approve", id: contact.id });
+    const body = (await response?.json().catch(() => null)) as { tripsOpened?: string[] } | null;
+    if (!body) return;
+    setApprovedTripsByContact((previous) => ({ ...previous, [contact.id]: body.tripsOpened ?? [] }));
+  }
+
   /**
    * Everybody but the owner — B621.
    *
@@ -1417,9 +1492,12 @@ export default function ContactsAdmin({
         busy={busy}
         act={act}
         onEdit={setFormTarget}
+        onApprove={approve}
         highlightId={highlightId}
         locale={locale}
         locales={locales}
+        defaultCountryCode={defaultCountryCode}
+        approvedTripsByContact={approvedTripsByContact}
       />
       <ContactGroup
         title={t("contact.adminApproved")}
@@ -1430,9 +1508,12 @@ export default function ContactsAdmin({
         busy={busy}
         act={act}
         onEdit={setFormTarget}
+        onApprove={approve}
         highlightId={highlightId}
         locale={locale}
         locales={locales}
+        defaultCountryCode={defaultCountryCode}
+        approvedTripsByContact={approvedTripsByContact}
       />
       {other.length > 0 && (
         <ContactGroup
@@ -1444,9 +1525,12 @@ export default function ContactsAdmin({
           busy={busy}
           act={act}
           onEdit={setFormTarget}
+          onApprove={approve}
           highlightId={highlightId}
           locale={locale}
           locales={locales}
+          defaultCountryCode={defaultCountryCode}
+          approvedTripsByContact={approvedTripsByContact}
         />
       )}
 

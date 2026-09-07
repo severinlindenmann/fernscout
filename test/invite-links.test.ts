@@ -170,7 +170,7 @@ async function approve(email: string) {
   const contact = await contactFor(email);
   if (!contact) throw new Error(`no contact for ${email}`);
   const done = await approveContact(OWNER, contact.id);
-  if (!done || done.status !== "active") throw new Error(`approval failed for ${email}`);
+  if (!done || done.contact.status !== "active") throw new Error(`approval failed for ${email}`);
 }
 
 async function tripsByRef() {

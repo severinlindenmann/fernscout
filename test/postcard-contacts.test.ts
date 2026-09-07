@@ -84,7 +84,7 @@ async function activeContact(
   const confirmed = await confirmContact(OWNER, email, code);
   if (!confirmed.ok) throw new Error(`confirm failed for ${email}`);
   const approved = await approveContact(OWNER, contactId!);
-  if (!approved || approved.status !== "active") throw new Error(`approve failed for ${email}`);
+  if (!approved || approved.contact.status !== "active") throw new Error(`approve failed for ${email}`);
   return contactId!;
 }
 

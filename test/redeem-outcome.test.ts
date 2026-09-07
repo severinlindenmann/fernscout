@@ -9,10 +9,19 @@ import { redeemOutcome } from "@/lib/contacts/redeemOutcome";
  * without a DOM the same way `codeConfirmErrorKey` is.
  */
 describe("redeemOutcome", () => {
-  test("mail_disabled becomes the no-mail error", () => {
+  test("mail_disabled names which switch is off — B429", () => {
+    expect(
+      redeemOutcome({ ok: false, status: 503 }, { error: "mail_disabled", reason: "journal" }),
+    ).toEqual({ kind: "error", error: "invite.noMailJournal" });
+    expect(
+      redeemOutcome({ ok: false, status: 503 }, { error: "mail_disabled", reason: "server" }),
+    ).toEqual({ kind: "error", error: "invite.noMailServer" });
+    // No `reason` at all (an older server, or a malformed response) falls
+    // back to the server-side sentence rather than throwing — the safer of
+    // the two guesses, since it never tells the reader to blame the owner.
     expect(redeemOutcome({ ok: false, status: 503 }, { error: "mail_disabled" })).toEqual({
       kind: "error",
-      error: "invite.noMail",
+      error: "invite.noMailServer",
     });
   });
 

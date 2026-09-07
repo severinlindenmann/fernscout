@@ -63,7 +63,7 @@ async function letInAsBuddy(tripId: string, email: string, name: string): Promis
   await claimTripPlace(OWNER, tripId, contact.id, null);
   await approveTripPlaces(OWNER, contact.id);
   const done = await approveContact(OWNER, contact.id);
-  if (!done || done.status !== "active") throw new Error(`approval failed for ${email}`);
+  if (!done || done.contact.status !== "active") throw new Error(`approval failed for ${email}`);
 }
 
 beforeAll(async () => {
