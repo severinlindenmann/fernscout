@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ConfirmPanel from "@/components/ConfirmPanel";
+import { drain, enqueue, outstanding, type QueueProgress } from "@/components/uploadQueue";
 import CurrencyProvider from "@/components/CurrencyProvider";
 import { useI18n } from "@/components/LocaleProvider";
 import { DayCard } from "@/components/StoryPager";
@@ -33,14 +34,22 @@ import type { Day, DaySummary } from "@/lib/types";
  * question about where somebody got to — see `stepFor`. Close the tab on the
  * bus and the only thing lost is which photographs had not been sent yet.
  *
+ * ## Photographs go through a queue, not through this component
+ *
+ * `components/uploadQueue.ts` (B683) holds the files in IndexedDB and sends a
+ * 2000px copy of each before any full-size original, so the day is readable
+ * within seconds of the first few landing and a killed tab resumes rather than
+ * starting again. The one thing this file owes that queue is the check that
+ * happens *before* it starts: the journal's remaining room against what is
+ * about to be sent, so nobody uploads thirty-nine photographs and then meets a
+ * wall. Everything after that is a progress line the person can walk away from.
+ *
  * ## What it deliberately does not do
  *
- * Uploads are one request per file, in order, with no queue and no resume:
- * that is B683, and half a queue is worse than none. There is no model, no
- * consent panel and no price label anywhere, because there is nothing here to
- * consent to and nothing to charge for — this whole flow runs with every
- * optional capability switched off and zero credits spent, which is the
- * ticket's acceptance test.
+ * There is no model, no consent panel and no price label anywhere, because
+ * there is nothing here to consent to and nothing to charge for — this whole
+ * flow runs with every optional capability switched off and zero credits
+ * spent, which is the ticket's acceptance test.
  */
 
 type Preview = { day: Day; summary: DaySummary; dayIndex: number };
@@ -165,7 +174,7 @@ export default function AgentWizard({
   const [prose, setProse] = useState("");
 
   const [busy, setBusy] = useState(false);
-  const [sent, setSent] = useState(0);
+  const [progress, setProgress] = useState<QueueProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [missing, setMissing] = useState<Track[]>([]);
   const [answers, setAnswers] = useState<Partial<Record<Track, "none" | "unknown">>>({});
@@ -254,29 +263,78 @@ export default function AgentWizard({
     [chooseDate],
   );
 
-  /** Send the photographs one at a time, counting what landed. The count shown
-   *  afterwards is the day's own, not this loop's — a re-picked photograph the
-   *  server recognised is not a second copy. */
-  const upload = useCallback(
-    async (tripId: string, slug: string, list: File[]) => {
-      setBusy(true);
-      setSent(0);
-      for (const [at, file] of list.entries()) {
-        const form = new FormData();
-        form.set("trip", tripId);
-        form.set("day", slug);
-        form.set("file", file);
-        const done = await send(`${base}/media`, { method: "POST", body: form });
-        if (!done) break;
-        setSent(at + 1);
-      }
+  /**
+   * Empty the queue, refreshing the day the moment its web copies have landed.
+   *
+   * That refresh is what makes the two phases visible: the count on the day
+   * goes right while the originals are still climbing, so a person on a bad
+   * connection sees a finished day rather than a spinner. The originals carry
+   * on behind whatever step they have walked on to.
+   */
+  const runQueue = useCallback(
+    async (tripId: string, slug: string) => {
+      let readable = false;
+      await drain(username, (state) => {
+        setProgress(state);
+        if (!readable && state.webTotal > 0 && state.webDone === state.webTotal) {
+          readable = true;
+          void refresh(tripId, slug);
+        }
+      });
       await refresh(tripId, slug);
+      setProgress((state) => (state && state.error ? state : null));
+    },
+    [refresh, username],
+  );
+
+  /**
+   * The one storage check, before any of it starts — B683.
+   *
+   * Per file it would be thirty-nine successful uploads and a wall; asked once
+   * against the whole pick it is a sentence somebody can act on while they
+   * still have every photograph in front of them. `storeUploads` still refuses
+   * on its own if the sums change underneath, and that is the guard; this is
+   * the courtesy.
+   */
+  const startUploads = useCallback(
+    async (tripId: string, slug: string, list: File[]) => {
+      if (list.length === 0) return;
+      setBusy(true);
+      const room = await send(`${base}/media`, { method: "GET" });
+      if (!room) {
+        setBusy(false);
+        return;
+      }
+      const needed = list.reduce((n, file) => n + file.size, 0);
+      const left = room.remainingBytes as number | null;
+      if (left !== null && needed > left) {
+        const mb = (n: number) => String(Math.max(1, Math.round(n / (1024 * 1024))));
+        setError(t("agent.noRoom", { needed: mb(needed), left: mb(left) }));
+        setBusy(false);
+        return;
+      }
+
+      await enqueue(username, tripId, slug, list);
       setFiles([]);
       setBusy(false);
+      // Straight on to the words. The queue is on disk and does not need this
+      // component to stay on the photographs step to keep going.
       setStep("words");
+      void runQueue(tripId, slug);
     },
-    [base, refresh, send],
+    [base, runQueue, send, t, username],
   );
+
+  /** An upload that did not finish before the tab died, picked up on arrival.
+   *  The rows carry their own trip and day, so nothing here has to know which
+   *  one they belong to. */
+  useEffect(() => {
+    void (async () => {
+      const owed = await outstanding(username).catch(() => []);
+      if (owed.length === 0) return;
+      await drain(username, setProgress);
+    })();
+  }, [username]);
 
   const create = useCallback(async () => {
     setBusy(true);
@@ -300,9 +358,9 @@ export default function AgentWizard({
     const made = await refresh(trip, slug);
     setBusy(false);
     if (!made) return;
-    if (files.length > 0) await upload(trip, slug, files);
+    if (files.length > 0) await startUploads(trip, slug, files);
     else setStep("photos");
-  }, [answers, base, date, facts, files, refresh, send, trip, upload]);
+  }, [answers, base, date, facts, files, refresh, send, startUploads, trip]);
 
   const save = useCallback(async () => {
     if (!draft) return;
@@ -389,6 +447,27 @@ export default function AgentWizard({
       {error && (
         <p className="mt-4 rounded-2xl border border-coral-600 bg-cream-100 p-4 text-sm leading-6 text-navy-800">
           {error}
+        </p>
+      )}
+
+      {/* The queue, wherever in the wizard somebody has got to. Web copies
+          first, then the originals — and the second line is the one that says
+          you may walk away, because you may. */}
+      {progress && (progress.webDone < progress.webTotal || progress.originalDone < progress.originalTotal) && (
+        <p
+          aria-live="polite"
+          className="mt-4 rounded-2xl border border-navy-200 bg-cream-100 p-4 text-sm leading-6 text-navy-800"
+        >
+          {progress.webDone < progress.webTotal
+            ? t("agent.uploading", {
+                done: String(progress.webDone),
+                total: String(progress.webTotal),
+              })
+            : t("agent.uploadingOriginals", {
+                done: String(progress.originalDone),
+                total: String(progress.originalTotal),
+              })}
+          {progress.error && ` — ${t("agent.failed", { error: progress.error })}`}
         </p>
       )}
 
@@ -539,21 +618,15 @@ export default function AgentWizard({
               ? tn("agent.onTheDay", draft.photos, { count: String(draft.photos) })
               : t("agent.noPhotosYet")}
           </p>
-          {busy && (
-            <p className="mt-2 text-sm text-navy-600">
-              {t("agent.uploading", { done: String(sent), total: String(files.length) })}
-            </p>
-          )}
           <input
             type="file"
             multiple
             accept="image/*,video/*"
             disabled={busy}
             onChange={async (event) => {
-              const read = await pick(event.target.files);
-              if (read && event.target.files) {
-                await upload(draft.trip, draft.slug, Array.from(event.target.files));
-              }
+              const chosen = Array.from(event.target.files ?? []);
+              await pick(event.target.files);
+              await startUploads(draft.trip, draft.slug, chosen);
             }}
             className="mt-3 block w-full text-sm text-navy-700 file:mr-3 file:min-h-11 file:rounded-full file:border-0 file:bg-cream-100 file:px-5 file:text-base file:font-semibold file:text-navy-800"
           />

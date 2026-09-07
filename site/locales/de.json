@@ -1151,5 +1151,7 @@
   "agent.missingPhotos": "Fotos",
   "agent.answerNone": "Es gab nichts",
   "agent.answerUnknown": "Niemand hat es",
+  "agent.uploadingOriginals": "Die Originale in voller Größe laufen noch — {done} von {total}. Schreib ruhig weiter; sie werden von selbst fertig.",
+  "agent.noRoom": "Dafür ist kein Platz: {needed} MB zu senden, {left} MB frei in diesem Journal. Schick weniger, oder mach zuerst Platz.",
   "agent.failed": "Das hat nicht geklappt: {error}"
 }

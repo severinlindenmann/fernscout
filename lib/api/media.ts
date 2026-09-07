@@ -629,3 +629,125 @@ export function deleteMediaFiles(ref: string, item: GalleryItem): void {
     }
   }
 }
+
+/**
+ * Put the untouched original beside a photograph that is already on a day —
+ * B683.
+ *
+ * The one new capability in the media path, and it exists because of the
+ * hotel connection. `storeUploads` takes a file once and writes both halves of
+ * it: the derivative the browser reads and the original the photobook prints
+ * from. That is right for an agent pushing a folder over a wired line and
+ * wrong for a phone, where the 50 MB HEIC is the reason the day is unreadable
+ * for twenty minutes. So the wizard sends a 2000px copy first — one ordinary
+ * `storeUploads` call, nothing here changed for it — and the real file
+ * follows against the item that call created.
+ *
+ * **It replaces rather than adds.** `storeUploads` has already written the web
+ * copy into `originals/` under this stem, because it does not know one is
+ * coming; leaving it would mean two files for one photograph, both counted
+ * against the journal's ceiling, and `deleteMediaFiles` removing a stem's
+ * worth of them either way. The extensions differ (`01.jpg` in front of
+ * `01.heic`), so the stem is what identifies the pair — the same rule
+ * `deleteMediaFiles` already reads originals by.
+ *
+ * `src` arrives from a browser, so it is a security boundary: it is resolved
+ * through `resolveMediaFile`, which refuses anything outside `tripMediaDir`,
+ * and the derivative it names has to actually exist. An original with no
+ * photograph in front of it is bytes nothing can reach and nobody can delete.
+ */
+export async function attachOriginal(
+  ref: string,
+  src: string,
+  filename: string,
+  bytes: Buffer,
+): Promise<{ ok: true; stored: string } | { ok: false; problems: Problem[] }> {
+  const parsed = parseTripRef(ref);
+  if (!parsed) {
+    return { ok: false, problems: [{ field: "trip", got: ref, expected: "<user>/<trip-id>" }] };
+  }
+  const { username, tripId } = parsed;
+
+  const segments = mediaKey(src).split("/");
+  const derivative = segments[0] === tripId ? resolveMediaFile(username, segments) : null;
+  if (!derivative || segments.length < 3) {
+    return {
+      ok: false,
+      problems: [
+        {
+          field: "src",
+          got: src,
+          expected: "the `src` of a photograph already on this day, as the web copy's upload returned it",
+        },
+      ],
+    };
+  }
+
+  const limits = loadUserConfig(username).media;
+  const problems = validateMediaBatch(
+    [
+      {
+        name: filename,
+        kind: kindOf(filename),
+        format: path.extname(filename).replace(".", "").toLowerCase().replace("jpg", "jpeg"),
+        bytes: bytes.byteLength,
+      },
+    ],
+    limits,
+  );
+  if (problems.length > 0) return { ok: false, problems };
+
+  const rest = segments.slice(1);
+  const dirs = rest.slice(0, -1);
+  const stem = path.basename(rest[rest.length - 1], path.extname(rest[rest.length - 1]));
+
+  // The same containment `deleteMediaFiles` applies before it scans a
+  // stem-matched directory, for the same reason: `dirs` comes off a `src`, and
+  // this one arrived in a request.
+  const originalsRoot = path.resolve(tripOriginalsDir(ref));
+  const originalsDir = path.resolve(originalsRoot, ...dirs);
+  if (originalsDir !== originalsRoot && !originalsDir.startsWith(originalsRoot + path.sep)) {
+    return { ok: false, problems: [{ field: "src", got: src, expected: "a path inside this trip" }] };
+  }
+
+  // What the web copy left under this stem comes off the ledger: the journal
+  // is not charged twice for one photograph.
+  let siblings: string[] = [];
+  try {
+    siblings = fs.readdirSync(originalsDir);
+  } catch {
+    // First original into this day's folder.
+  }
+  const superseded = siblings.filter((s) => path.basename(s, path.extname(s)) === stem);
+  const freed = superseded.reduce((n, s) => {
+    try {
+      return n + fs.statSync(path.join(originalsDir, s)).size;
+    } catch {
+      return n;
+    }
+  }, 0);
+
+  const refusal = await storageRefusal(username, Math.max(0, bytes.byteLength - freed));
+  if (refusal) {
+    return { ok: false, problems: [{ field: "media", got: "no room left in this journal", expected: refusal }] };
+  }
+
+  const name = `${stem}${path.extname(filename).toLowerCase()}`;
+  fs.mkdirSync(originalsDir, { recursive: true });
+  // Written under a temporary name and renamed, so a connection that dies
+  // halfway cannot leave a truncated file standing where the real original
+  // should be — which would look like a kept original and print like a ruin.
+  const staged = path.join(originalsDir, `.${stem}.part`);
+  fs.writeFileSync(staged, bytes);
+  fs.renameSync(staged, path.join(originalsDir, name));
+  for (const old of superseded) {
+    if (old === name) continue;
+    try {
+      fs.unlinkSync(path.join(originalsDir, old));
+    } catch {
+      // Already gone.
+    }
+  }
+
+  return { ok: true, stored: name };
+}
