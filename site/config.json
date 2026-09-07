@@ -52,6 +52,15 @@
     ]
   },
   "features": {
+    "reactions": {
+      "enabled": false
+    },
+    "costs": {
+      "enabled": false
+    },
+    "push": {
+      "enabled": false
+    },
     "mail": {
       "enabled": false,
       "transport": "file"
@@ -69,6 +78,9 @@
     "auth": {
       "enabled": false
     },
+    "signup": {
+      "enabled": false
+    },
     "contacts": {
       "enabled": false
     },
@@ -80,8 +92,28 @@
       "enabled": false,
       "provider": "dry-run"
     },
+    "logging": {
+      "enabled": false
+    },
     "credits": {
       "enabled": false
+    },
+    "addressLookup": {
+      "enabled": false,
+      "provider": "photon"
+    },
+    "weather": {
+      "enabled": false
+    },
+    "analytics": {
+      "enabled": false
+    },
+    "helper": {
+      "enabled": false
+    },
+    "transcription": {
+      "enabled": false,
+      "backend": "dry-run"
     }
   },
   "costs": {
@@ -94,12 +126,12 @@
     "transcriptionPerThousandMinutesRappen": 344,
     "fixedMonthly": [
       {
-        "label": "Hetzner VPS",
-        "rappen": 5000
+        "label": "Your server, per month",
+        "rappen": 0
       },
       {
-        "label": "Domain (fernscout.ch, CHF 20/year)",
-        "rappen": 167
+        "label": "Your domain, per month",
+        "rappen": 0
       }
     ]
   }
