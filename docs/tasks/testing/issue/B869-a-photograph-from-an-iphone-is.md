@@ -7,8 +7,7 @@ complexity: medium
 area: media, ingest
 found: "2026-09-07T17:36:50Z"
 started: "2026-09-07T18:41:32Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T18:41:32Z"
+merged: "2026-09-07T19:07:22Z"
 ---
 
 # B869 — A photograph from an iPhone is replaced by a wrong picture and called a success

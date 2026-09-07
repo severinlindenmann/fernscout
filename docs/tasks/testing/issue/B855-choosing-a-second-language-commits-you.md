@@ -7,8 +7,7 @@ complexity: low
 area: api, journals, i18n
 found: "2026-09-07T17:09:24Z"
 started: "2026-09-07T18:41:34Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T18:41:34Z"
+merged: "2026-09-07T19:07:22Z"
 ---
 
 # B855 — Choosing a second language commits you to writing everything twice and the API never says so
