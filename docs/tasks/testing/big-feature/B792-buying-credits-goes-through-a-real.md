@@ -6,6 +6,7 @@ priority: high
 complexity: high
 area: credits, payments
 found: "2026-09-07T14:45:13Z"
+merged: "2026-09-07T15:04:51Z"
 ---
 
 # B792 — Buying credits goes through a real payment provider, not an operator approving by hand
