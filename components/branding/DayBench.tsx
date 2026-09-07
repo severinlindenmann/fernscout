@@ -2,6 +2,8 @@
 
 import CurrencyProvider from "@/components/CurrencyProvider";
 import { DayCard } from "@/components/StoryPager";
+import LayoutShape from "@/app/[user]/(trip)/photobook/LayoutShape";
+import { DAY_LAYOUTS } from "@/lib/photobook/options";
 import type { Day, DaySummary, Entry } from "@/lib/types";
 
 /**
@@ -175,6 +177,33 @@ export default function DayBench() {
             <DayCard day={c.day} summary={c.summary} dayIndex={i} />
           </section>
         ))}
+
+        {/* Not a day card, and here anyway — B703. These are the six shapes the
+            photobook's day picker offers, drawn rather than named, and a
+            drawing is the one thing no test can check. The picker is six of
+            them at 28px in a row on a phone; this is the same component large
+            enough to argue about. */}
+        <section>
+          <h2 className="font-display text-lg font-semibold text-navy-900">
+            The photobook&apos;s day layouts
+          </h2>
+          <p className="mt-1 mb-4 text-sm text-navy-600">
+            What each arrangement in the photobook composer&apos;s layout picker looks
+            like. Schematic on purpose: the question is how many frames and how big,
+            not which photograph. A grey block filling the frame is a full-bleed hero;
+            the rules underneath are the day&apos;s prose.
+          </p>
+          <ul className="flex flex-wrap gap-6 text-navy-800">
+            {DAY_LAYOUTS.map((layout) => (
+              <li key={layout} className="text-center text-xs">
+                <span className="block [&>svg]:h-24 [&>svg]:w-24">
+                  <LayoutShape layout={layout} />
+                </span>
+                <span className="mt-1 block font-semibold">{layout}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
     </CurrencyProvider>
   );

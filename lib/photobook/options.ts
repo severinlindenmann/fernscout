@@ -172,6 +172,22 @@ export type DayPlan = {
    * unaffected.
    */
   excluded?: boolean;
+  /**
+   * Leave *this day's* prose out, while the rest of the book keeps its text
+   * — B703.
+   *
+   * Absent means "as the book says", which is `BookOptions.includeText`.
+   * `false` is the only other value that means anything: a day narrows the
+   * book's decision and never widens it, so `text: true` on a book printed
+   * without text prints nothing extra. That direction is deliberate — the
+   * book-level switch is the one an owner sets once, and a day should not be
+   * able to smuggle prose past it.
+   *
+   * It exists because a trip usually has two or three days whose words are
+   * logistics — *drove four hours, arrived late* — among twenty that are
+   * worth printing, and the only choice before this was all of them or none.
+   */
+  text?: boolean;
 };
 
 export type DayLayout =
@@ -322,6 +338,10 @@ function parseDays(input: unknown): Record<string, DayPlan> | null {
       if (typeof day.excluded !== "boolean") return null;
       plan.excluded = day.excluded;
     }
+    if (day.text !== undefined) {
+      if (typeof day.text !== "boolean") return null;
+      plan.text = day.text;
+    }
     // A day carrying none of these is the planner's again, and saying so by
     // leaving it out keeps the posted body honest about what was actually
     // chosen.
@@ -330,7 +350,8 @@ function parseDays(input: unknown): Record<string, DayPlan> | null {
       plan.photos !== undefined ||
       plan.hero !== undefined ||
       plan.runOn !== undefined ||
-      plan.excluded !== undefined
+      plan.excluded !== undefined ||
+      plan.text !== undefined
     ) {
       out[date] = plan;
     }

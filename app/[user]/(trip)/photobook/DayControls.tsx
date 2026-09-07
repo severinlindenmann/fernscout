@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, Crop, Star } from "lucide-react";
 import { mediaLoader } from "@/components/mediaLoader";
+import LayoutShape from "./LayoutShape";
 import type { TranslationKey } from "@/lib/i18n";
 import { DAY_LAYOUTS, type DayLayout, type DayPlan, type Focal } from "@/lib/photobook/options";
 import type { MediaTile } from "@/lib/types";
@@ -36,6 +37,8 @@ export default function DayControls({
   focalOf,
   setDayLayout,
   setDayRunOn,
+  setDayText,
+  bookPrintsText,
   setDayExcluded,
   setHero,
   movePhoto,
@@ -57,6 +60,10 @@ export default function DayControls({
   focalOf: (src: string) => Focal;
   setDayLayout: (date: string, layout: DayLayout) => void;
   setDayRunOn: (date: string, runOn: boolean) => void;
+  /** Leave this day's prose out while the book keeps its own — B703. */
+  setDayText: (date: string, wanted: boolean) => void;
+  /** Whether the book prints prose at all, i.e. `BookOptions.includeText`. */
+  bookPrintsText: boolean;
   /** Leave the whole day out of the book, or put it back — B564. */
   setDayExcluded: (date: string, excluded: boolean) => void;
   setHero: (date: string, src: string) => void;
@@ -122,12 +129,13 @@ export default function DayControls({
             role="radio"
             aria-checked={layout === option}
             onClick={() => setDayLayout(day.date, option)}
-            className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
+            className={`flex min-h-11 flex-col items-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-semibold ${
               layout === option
                 ? "border-yellow-600 bg-yellow-400 text-yellow-950"
                 : "border-navy-200 text-navy-700"
             }`}
           >
+            <LayoutShape layout={option} />
             {t(LAYOUT_LABEL[option])}
           </button>
         ))}
@@ -148,6 +156,25 @@ export default function DayControls({
           <span>
             <span className="block font-semibold text-navy-800">{t("photobook.day.runOn")}</span>
             <span className="block text-navy-600">{t("photobook.day.runOnHint")}</span>
+          </span>
+        </label>
+      )}
+
+      {/* One day's words, independently of the book's — B703. Shown only when
+          the book is printing text at all: on a book with `includeText` off
+          there is nothing here to take away, and a box that cannot change
+          anything is worse than no box. */}
+      {bookPrintsText && (
+        <label className="mt-2 flex items-start gap-2 text-xs text-navy-700">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={plan?.text !== false}
+            onChange={(e) => setDayText(day.date, e.target.checked)}
+          />
+          <span>
+            <span className="block font-semibold text-navy-800">{t("photobook.day.text")}</span>
+            <span className="block text-navy-600">{t("photobook.day.textHint")}</span>
           </span>
         </label>
       )}
