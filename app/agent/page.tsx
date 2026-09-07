@@ -62,6 +62,11 @@ export default async function AgentPage() {
       agentUrl={`${site.url}/agent.md`}
       codeMinutes={CODE_TTL_MINUTES}
       signedIn={Boolean(identity)}
+      identityEmail={identity?.email ?? null}
+      // B688: absent rather than broken — off, the wizard does not render at
+      // all and a plain sentence says so, the same discipline every other
+      // capability here follows.
+      signupEnabled={isEnabled("signup")}
       journals={owned.map((journal) => ({
         username: journal.username,
         title: journal.title,

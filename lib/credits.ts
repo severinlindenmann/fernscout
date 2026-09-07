@@ -28,13 +28,17 @@ import { getDatabaseOrNull, newId, nowIso } from "./db";
  *
  * ## The two properties everything else is arranged around
  *
- * **1. Nothing reachable over HTTP may increase a balance.** `grant` is
- * exported for exactly one caller, `scripts/grant-credits.ts`, which needs a
- * shell on the server. There is deliberately no API route, no server action
- * and no form that grants — a credit card is downstream of this number, and a
- * grant path that a request can reach is a card that a request can spend.
- * `test/credits.test.ts` asserts that nothing under `app/` imports it, because
- * a rule stated in a comment is a rule until somebody is in a hurry.
+ * **1. A balance only ever increases where the amount is fixed and the event
+ * is one this server already verified.** `grant` is exported for two callers.
+ * `scripts/grant-credits.ts` needs a shell on the server, after money has
+ * actually arrived. `POST /api/v1/journals` (B688) is the one HTTP path: it
+ * grants `SIGNUP_CREDIT_GRANT` exactly once, only after `createJournal` has
+ * actually written a journal to disk under a freshly spent signup token — the
+ * same one-journal-per-token guarantee `test/signup-token.test.ts` already
+ * checks — so there is no request shape that grants twice or grants an amount
+ * a caller chose. Nothing else grants: no form, no other route, no amount a
+ * request gets to name. `test/credits.test.ts` asserts the whole allowlist,
+ * because a rule stated in a comment is a rule until somebody is in a hurry.
  *
  * **2. A balance never goes below zero, under concurrency.** `spend` is one
  * conditional `UPDATE … SET balance = balance - :n WHERE owner_id = :u AND
@@ -250,15 +254,22 @@ export async function refund(owner: string, n: number, ref: string): Promise<voi
   });
 }
 
+/** The first grant a new journal ever sees — B688, plan §6's "a free grant on
+ * signup". Fixed rather than configurable: a number a request could name
+ * would be property 1's whole exception swallowed by its own loophole. */
+export const SIGNUP_CREDIT_GRANT = 20;
+
 /**
- * Put credits into a journal. **Operator only.**
+ * Put credits into a journal. **Operator only, or the signup route.**
  *
  * The one function in this module that increases a balance, and the reason
- * property 1 above is stated as loudly as it is. Its only caller is
- * `scripts/grant-credits.ts`, run by somebody with a shell on the server after
- * money has actually arrived. It must never gain an HTTP caller: B368's "buy
- * credits" button mails information and grants nothing, precisely so that this
- * stays true.
+ * property 1 above is stated as loudly as it is. `scripts/grant-credits.ts`
+ * is run by somebody with a shell on the server after money has actually
+ * arrived. `POST /api/v1/journals` is the one other caller (B688), and it may
+ * only ever pass `SIGNUP_CREDIT_GRANT` and only once a journal exists — see
+ * property 1. A third caller must not appear casually: B368's "buy credits"
+ * button mails information and grants nothing, precisely so that this stays
+ * narrow.
  *
  * Ignores the capability switch — an operator granting credits to a journal
  * before switching charging on is the ordinary order of operations, and a
