@@ -23,15 +23,27 @@ import type { PostalAddress } from "./render.ts";
  * The phone number never crosses into `PostalAddress`: it is not part of what
  * an envelope needs, and `lib/postcard/render.ts`'s own type has no field for
  * it.
+ *
+ * `requireConsent` exists for `lib/photobook/recipients.ts`, which shares
+ * this same shape but not this same gate: `wantsPostcard` is consent to
+ * *postcards*, and a photobook posted to yourself must not require having
+ * ticked that box. Postcard call sites below never pass it, so their
+ * behaviour is unchanged.
  */
-async function eligible(
+export async function eligible(
   owner: string,
+  requireConsent = true,
 ): Promise<{ id: string; to: PostalAddress; locale: string | null }[]> {
   const contacts = await listContacts(owner);
   const out: { id: string; to: PostalAddress; locale: string | null }[] = [];
   for (const contact of contacts) {
     const postal = contact.postalAddress;
-    if (contact.status !== "active" || !contact.wantsPostcard || !postal || !isPostable(postal)) {
+    if (
+      contact.status !== "active" ||
+      (requireConsent && !contact.wantsPostcard) ||
+      !postal ||
+      !isPostable(postal)
+    ) {
       continue;
     }
     out.push({
