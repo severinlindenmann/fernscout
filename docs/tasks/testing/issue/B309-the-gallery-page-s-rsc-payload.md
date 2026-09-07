@@ -7,8 +7,7 @@ complexity: medium
 area: gallery, performance
 found: "2026-09-04T16:03:02Z"
 started: "2026-09-07T11:40:31Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:40:31Z"
+merged: "2026-09-07T12:04:15Z"
 ---
 
 # B309 — The gallery page's RSC payload carries every entry's full prose for a slideshow nobody has opened

@@ -7,8 +7,7 @@ complexity: medium
 area: agent docs
 found: "2026-09-04T15:33:58Z"
 started: "2026-09-07T11:40:30Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:40:30Z"
+merged: "2026-09-07T12:04:12Z"
 ---
 
 # B308 — The entry document has tripled and the guide is 56KB, which is the property they were valued for
