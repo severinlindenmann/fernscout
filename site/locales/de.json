@@ -1145,5 +1145,16 @@
   "agent.missingPhotos": "Fotos",
   "agent.answerNone": "Es gab nichts",
   "agent.answerUnknown": "Niemand hat es",
+  "agent.helperHint": "Wenn du das nicht selbst ausformulieren willst, können deine Worte von oben zu einem Tag geordnet werden. Es kommt nichts dazu, was du nicht gesagt hast, und du liest das Ergebnis, bevor irgendetwas übernommen wird.",
+  "agent.helperWrite": "Für mich ausformulieren · {credits} Guthaben",
+  "agent.helperWorking": "Wird geschrieben…",
+  "agent.helperWithdraw": "Diese Erlaubnis zurückziehen",
+  "agent.helperConsentLabel": "Meine Worte an das Modell senden",
+  "agent.helperConsent": "Damit gehen die Worte, die du oben getippt hast, und die Angaben, die dieser Tag schon trägt — Datum, Reise, Ort, Anzahl der Fotos — an Anthropic, wo das Modell läuft. Sonst nichts: keine Fotos, kein Standortverlauf, keine Kontakte, keine Adresse von irgendwem und keine Reise, die du nicht geöffnet hast. Was zurückkommt, liest und änderst du; gespeichert wird nichts, bis du speicherst. Jede Ausformulierung kostet ein Guthaben. Deine Worte werden für kein Modelltraining verwendet. Das gilt für dieses Journal, bis du es zurückziehst.",
+  "agent.helperConsentConfirm": "Ja, meine Worte senden",
+  "agent.helperSuggestionTitle": "Was daraus geworden ist",
+  "agent.helperWarnings": "Bewusst weggelassen",
+  "agent.helperUse": "Diese Worte übernehmen",
+  "agent.helperDiscard": "Bei meinen bleiben",
   "agent.failed": "Das hat nicht geklappt: {error}"
 }

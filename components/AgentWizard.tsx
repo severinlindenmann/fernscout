@@ -45,6 +45,16 @@ import type { Day, DaySummary } from "@/lib/types";
 
 type Preview = { day: Day; summary: DaySummary; dayIndex: number };
 
+/** What the model layer is, from the browser's side — B684. `enabled: false`
+ *  is the whole of "absent rather than broken": no button, no panel, no fetch,
+ *  and every other step of this wizard unchanged. */
+type HelperState = { enabled: boolean; consented: boolean; credits: number };
+
+/** What came back from one write-up, held for review and saved by nobody.
+ *  Keeping it beside the fields rather than in them is the point: the person's
+ *  own words stay on the screen until they say otherwise. */
+type Suggested = { title: string; prose: string; warnings: string[] };
+
 /** What the picked photographs said about themselves, before anything is sent. */
 type ExifFacts = {
   count: number;
@@ -139,12 +149,14 @@ export default function AgentWizard({
   trips,
   drafts,
   currency,
+  helper,
 }: {
   username: string;
   trips: WizardTrip[];
   /** Every unfinished day in the journal, for the resume list. */
   drafts: WizardDraft[];
   currency: CurrencyOptions;
+  helper: HelperState;
 }) {
   const { t, tn, formatLongDate, locale } = useI18n();
 
@@ -171,6 +183,12 @@ export default function AgentWizard({
   const [answers, setAnswers] = useState<Partial<Record<Track, "none" | "unknown">>>({});
   const [asking, setAsking] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
+
+  // B684 — the model layer, and the three states it can be in: never asked,
+  // asking, and holding an answer nobody has accepted yet.
+  const [consented, setConsented] = useState(helper.consented);
+  const [consenting, setConsenting] = useState(false);
+  const [suggested, setSuggested] = useState<Suggested | null>(null);
 
   const base = `/api/helper/${encodeURIComponent(username)}/day`;
 
@@ -337,6 +355,63 @@ export default function AgentWizard({
     },
     [answers, base, draft, send],
   );
+
+  /**
+   * Ask the model to write the notes up, and show what it said.
+   *
+   * Nothing is saved here and nothing is overwritten: the answer lands in
+   * `suggested`, beside the textarea rather than in it, and the person either
+   * takes it or keeps what they wrote. That is the plan's rule that returned
+   * prose is always read before it lands.
+   */
+  const writeUp = useCallback(async () => {
+    if (!draft) return;
+    setBusy(true);
+    const body = await send(`${base}/write-day`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        trip: draft.trip,
+        date: draft.date,
+        notes: prose,
+        location: preview?.day.lead.location,
+        country: preview?.day.lead.country,
+        from: facts?.from,
+        to: facts?.to,
+        photos: draft.photos,
+        // One key per set of notes, so a tap that times out and is tapped
+        // again is answered rather than charged twice.
+        idempotency_key: `${draft.trip}/${draft.slug}/${prose.length}`,
+      }),
+    });
+    setBusy(false);
+    if (!body) return;
+    setSuggested(body.draft as Suggested);
+  }, [base, draft, facts, preview, prose, send]);
+
+  /** Consent, once per journal, before the first model call ever made for it. */
+  const agree = useCallback(async () => {
+    setBusy(true);
+    const body = await send(`/api/helper/${encodeURIComponent(username)}/consent`, {
+      method: "POST",
+    });
+    setBusy(false);
+    if (!body) return;
+    setConsented(true);
+    setConsenting(false);
+    await writeUp();
+  }, [send, username, writeUp]);
+
+  /** Taking it back, from the same panel that asked. Deletes the record on the
+   *  journal; the next write-up asks again. */
+  const withdraw = useCallback(async () => {
+    setBusy(true);
+    const body = await send(`/api/helper/${encodeURIComponent(username)}/consent`, {
+      method: "DELETE",
+    });
+    setBusy(false);
+    if (body) setConsented(false);
+  }, [send, username]);
 
   const publish = useCallback(async () => {
     if (!draft) return;
@@ -605,6 +680,94 @@ export default function AgentWizard({
             onChange={(event) => setProse(event.target.value)}
             className="mt-1 w-full rounded-xl border border-navy-300 bg-white p-3 text-base leading-7 text-navy-900"
           />
+
+          {/* B684 — the model, and the only place in this wizard where one is
+              spoken to. Absent when the capability is off, which is the whole
+              of the ticket's "absent rather than broken": everything above
+              this block still writes a day with no credits spent. */}
+          {helper.enabled && (
+            <div className="mt-4 rounded-2xl border border-navy-200 bg-cream-50 p-4">
+              {consenting ? (
+                <ConfirmPanel
+                  label={t("agent.helperConsentLabel")}
+                  question={t("agent.helperConsent")}
+                  confirmLabel={t("agent.helperConsentConfirm")}
+                  busy={busy}
+                  onConfirm={() => void agree()}
+                  onCancel={() => setConsenting(false)}
+                />
+              ) : suggested ? (
+                <>
+                  <p className="text-sm font-semibold text-navy-900">
+                    {t("agent.helperSuggestionTitle")}
+                  </p>
+                  {suggested.title !== "" && (
+                    <p className="mt-2 text-base font-semibold text-navy-900">{suggested.title}</p>
+                  )}
+                  <p className="mt-2 whitespace-pre-wrap text-base leading-7 text-navy-800">
+                    {suggested.prose}
+                  </p>
+                  {suggested.warnings.length > 0 && (
+                    <div className="mt-3 rounded-xl border border-navy-200 bg-white p-3">
+                      <p className="text-sm font-semibold text-navy-900">
+                        {t("agent.helperWarnings")}
+                      </p>
+                      <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6 text-navy-700">
+                        {suggested.warnings.map((warning) => (
+                          <li key={warning}>{warning}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (suggested.title !== "") setTitle(suggested.title);
+                        setProse(suggested.prose);
+                        setSuggested(null);
+                      }}
+                      className="min-h-11 rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950"
+                    >
+                      {t("agent.helperUse")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSuggested(null)}
+                      className="min-h-11 rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-800"
+                    >
+                      {t("agent.helperDiscard")}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm leading-6 text-navy-700">{t("agent.helperHint")}</p>
+                  <button
+                    type="button"
+                    disabled={busy || prose.trim() === "" || prose.trim() === NO_PROSE}
+                    onClick={() => (consented ? void writeUp() : setConsenting(true))}
+                    className="mt-3 min-h-11 w-full rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-800 disabled:opacity-50"
+                  >
+                    {/* The price is on the button, before the tap. */}
+                    {busy
+                      ? t("agent.helperWorking")
+                      : t("agent.helperWrite", { credits: String(helper.credits) })}
+                  </button>
+                  {consented && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void withdraw()}
+                      className="mt-2 min-h-11 text-sm font-semibold text-navy-600 underline disabled:opacity-50"
+                    >
+                      {t("agent.helperWithdraw")}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           <button
             type="button"

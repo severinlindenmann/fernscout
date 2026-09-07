@@ -50,6 +50,12 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   // visitor salt is generated in memory and never configured, which is what
   // makes it un-persistable by construction rather than by policy.
   analytics: { env: [], db: true },
+  // B684. The key is environment-only — it is a bearer credential that spends
+  // the operator's money at a model provider, and `site/config.json` is a file
+  // people commit. The database is `credits`' storage rather than the
+  // helper's own: nothing here writes a row except the ledger, and a spend
+  // nobody could record would be a free model call with no trace.
+  helper: { env: ["ANTHROPIC_API_KEY"], db: true },
 };
 
 /** Transport and provider choices carry their own credential requirements.
@@ -221,6 +227,20 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
     ) {
       return { name, enabled: false, reason: `not enabled by ${username}` };
     }
+  }
+
+  // B684. The one capability that requires another. Every model call is
+  // metered, and `spend` with charging switched off succeeds without writing
+  // anything — so a helper on top of a credits that is off is not a cheaper
+  // helper, it is an unmetered one billed to the operator with no ledger to
+  // find it in. Refusing to come on is the honest answer, and `/api/health`
+  // says which of the two switches to throw.
+  if (name === "helper" && !resolveOne("credits").enabled) {
+    return {
+      name,
+      enabled: false,
+      reason: "features.helper is enabled but features.credits is not (every model call is metered)",
+    };
   }
 
   const base = REQUIREMENTS[name];

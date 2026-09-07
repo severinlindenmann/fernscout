@@ -1145,5 +1145,16 @@
   "agent.missingPhotos": "Photographs",
   "agent.answerNone": "There was none",
   "agent.answerUnknown": "Nobody has it",
+  "agent.helperHint": "If you would rather not shape this yourself, the words above can be tidied into a day for you. Nothing is added that you did not say, and you read what comes back before any of it is kept.",
+  "agent.helperWrite": "Write it up for me · {credits} credit",
+  "agent.helperWorking": "Writing…",
+  "agent.helperWithdraw": "Withdraw this permission",
+  "agent.helperConsentLabel": "Send my words to the model",
+  "agent.helperConsent": "This sends the words you typed above, and the facts already on this day — the date, the trip, the place, how many photographs — to Anthropic, who run the model. Nothing else goes: not your photographs, not your location history, not your contacts, not anybody's address, and not a trip you did not open. What comes back is shown to you to read and change; nothing is saved until you save it. Each write-up costs one credit. Your words are not used to train anybody's model. This is remembered for this journal until you withdraw it.",
+  "agent.helperConsentConfirm": "Yes, send my words",
+  "agent.helperSuggestionTitle": "What it made of your notes",
+  "agent.helperWarnings": "Left out on purpose",
+  "agent.helperUse": "Use these words",
+  "agent.helperDiscard": "Keep my own",
   "agent.failed": "That did not work: {error}"
 }
