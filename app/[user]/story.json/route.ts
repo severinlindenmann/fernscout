@@ -77,6 +77,14 @@ export async function GET(request: Request, { params }: RouteContext<"/[user]/st
       // enough that a correction shows up, long enough that paging back and
       // forth over the same stretch costs one request.
       "Cache-Control": "private, max-age=60, stale-while-revalidate=600",
+      // `private` keeps a shared cache from storing this at all, but the
+      // body still varies by session cookie (drafts, costs — see `readFor`
+      // and `mayViewCosts` above), and the browser's *own* cache is shared
+      // between every session on one device. Without this, signing out and
+      // back in as somebody else on the same tablet can be answered from
+      // what the previous reader was handed, for up to the window above —
+      // B330.
+      Vary: "Cookie",
     },
   });
 }

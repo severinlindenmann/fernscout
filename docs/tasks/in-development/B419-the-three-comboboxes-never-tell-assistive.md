@@ -58,3 +58,33 @@ on the input to the highlighted option's id, and clearing the highlight
 removes it. Verified in a browser with VoiceOver or equivalent announcing each
 option as it is reached — this one cannot be closed by a unit test until B391
 lands.
+
+## Triage
+
+Confirmed against current code: `CountryField.tsx` and `TelField.tsx` both
+already set `aria-activedescendant={open && active ? \`${listId}-${…}\` :
+undefined}` with a stable `id={\`${listId}-${…}\`}` on each option.
+`AddressLookupField.tsx` had neither — options had no `id` at all, and the
+input carried `aria-expanded`/`aria-controls`/`aria-autocomplete` but no
+`aria-activedescendant`.
+
+Fixed in `components/AddressLookupField.tsx`: each `<li role="option">` now
+gets `id={\`${listId}-${i}\`}`, and the input gets
+`aria-activedescendant={enabled && showList ? \`${listId}-${highlight}\` :
+undefined}` — absent whenever the list isn't shown (disabled, closed, or no
+suggestions), present and pointing at the highlighted row otherwise, matching
+the other two fields' pattern exactly.
+
+**B391 has landed since this ticket was filed** (jsdom is available per-file
+via `// @vitest-environment jsdom`, see `test/photobook-persistence.test.tsx`
+for precedent), so this is closable by a unit test after all, ahead of the
+"needs a browser" caveat the ticket was filed with.
+
+Test: `test/address-lookup-field-a11y.test.tsx` (new) — mounts the real
+component in jsdom via `createRoot`/`act`, stubs `fetch`, types a query,
+and asserts `aria-activedescendant` points at the first option's id before
+any key is pressed, moves to the second option's id after `ArrowDown`, and is
+absent entirely when the field is disabled. Confirmed it fails without the
+component change (stashed and reran) and passes with it. A VoiceOver pass is
+still worth doing before this is fully closed in a browser, but the
+mechanical half — the attribute tracking the highlight — is now pinned.

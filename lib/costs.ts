@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import { isEnabled } from "./capabilities";
-import { getAllEntries, getDays, type ReadOptions } from "./entries";
+import { clearMatterCache, getAllEntries, getDays, type ReadOptions } from "./entries";
 import { getTrip, getTripIds, tripDir, tripRef } from "./trips";
 import { hasBegun } from "./tripTime";
 import { loadUserConfig } from "./config";
@@ -56,7 +56,12 @@ export function costsFilePath(tripId: string): string {
 }
 
 /**
- * The file, parsed and un-converted — `null` when there is none.
+ * The file, parsed and un-converted — `null` when there is none, and also
+ * when the file exists but its frontmatter will not parse: every caller
+ * below already treats `null` as "no costs.md", so a malformed one degrades
+ * to that rather than throwing out of the nav, the trip page, the costs API
+ * route or the sitemap (B342 — same shape as `readAllEntries`, B236, and
+ * `readPlanFile`, B313).
  *
  * Exported since B295: the costs API's `GET` reads back exactly this, the
  * same object every other reader in this file works from, rather than a
@@ -65,7 +70,18 @@ export function costsFilePath(tripId: string): string {
 export function readCostsFile(tripId: string) {
   const file = costsFilePath(tripId);
   if (!fs.existsSync(file)) return null;
-  return matter(fs.readFileSync(file, "utf8"));
+  try {
+    return matter(fs.readFileSync(file, "utf8"));
+  } catch (err) {
+    // See `clearMatterCache`'s doc comment (lib/entries.ts) for why this
+    // call is not optional here: matter() caches a parse by raw content
+    // before it parses, so a throwing call leaves a stale, non-throwing
+    // result under this file's bytes for the next reader to find. B312.
+    clearMatterCache();
+    const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
+    console.warn(`[costs] ${file}: its frontmatter could not be parsed: ${why}`);
+    return null;
+  }
 }
 
 /**

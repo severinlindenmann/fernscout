@@ -45,6 +45,11 @@ export async function GET(
       "Cache-Control": email
         ? "private, max-age=60, stale-while-revalidate=600"
         : "public, max-age=300, stale-while-revalidate=3600",
+      // Same reasoning as `story.json` (B330): the reader-scoped branch
+      // above is keyed on the request's cookie, and `private` only keeps a
+      // shared/CDN cache out — a browser's own cache is shared between every
+      // session on one device and keys purely on the URL without this.
+      ...(email ? { Vary: "Cookie" } : {}),
     },
   });
 }

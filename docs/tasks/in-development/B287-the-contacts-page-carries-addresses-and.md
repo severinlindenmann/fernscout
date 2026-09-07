@@ -69,3 +69,49 @@ owner copies it is theirs, and B280 and B283 both say so in their own text.
 - Both paths answer with `Cache-Control` containing `no-store`, set by this
   repository rather than inherited, and a test asserts it.
 - The four checks pass.
+
+## Triage
+
+Confirmed against the code, then against the live instance
+(`curl -sI https://fernscout.ch/example/contacts` and `/example/me`,
+signed out — the real headers, not a curl of a dev server):
+
+```
+HTTP/2 200
+cache-control: private, no-cache, no-store, max-age=0, must-revalidate
+content-security-policy: default-src 'self'; …
+referrer-policy: strict-origin-when-cross-origin
+strict-transport-security: max-age=63072000; includeSubDomains
+x-content-type-options: nosniff
+x-frame-options: DENY
+```
+
+Identical for both paths. As the Why section predicted: already `no-store` in
+practice, purely from Next's own default for a `dynamic = "force-dynamic"`
+route — nothing in this repository asserted it.
+
+**Fix**: added a `headers()` rule in `next.config.ts` (after the media-route
+block) pinning `Cache-Control: no-store` for `source: "/:user/contacts"` and
+`source: "/:user/me"` explicitly, so a framework default changing under a
+future Next upgrade cannot quietly widen either page's cacheability.
+
+**Not done**: `Referrer-Policy: no-referrer` for these two paths — left as the
+"consider" it was filed as. The baseline `strict-origin-when-cross-origin`
+already strips the path on a cross-origin navigation (the origin alone
+leaking is the residual risk, and neither page has an outbound link a reader
+would follow from it in the first place), and narrowing it is a second
+`next.config.ts` rule with no test-observable failure mode today. Left for a
+follow-up if it turns out to matter.
+
+**Second hole checked (per instructions to re-read the auth/visibility
+surface once more)**: nothing else on these two pages relies on the framework
+default the way `Cache-Control` did — both already declare
+`export const dynamic = "force-dynamic"` and `metadata.robots = { index:
+false, follow: false }` in the page files themselves, so those two are pinned
+in source already, not inherited.
+
+Test: `test/security-headers.test.ts`, new `describe("the two pages that
+carry addresses and credentials (B287)")` block — reads `next.config.ts`'s
+`headers()` return value the same way the existing CSP/HSTS assertions do,
+and fails without the new rules (confirmed by stashing the `next.config.ts`
+change and re-running).

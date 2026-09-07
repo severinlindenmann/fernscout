@@ -51,3 +51,19 @@ business at the address, not the address, and the form has nowhere to put it.
 The query above returns Bahnhofstrasse 12, 8001 Zurich once. A test with a
 stubbed provider returning two features that differ only in `osm_key` gets one
 result back.
+
+## Triage
+
+Confirmed against current code: `lookupAddresses` (`lib/addressLookup.ts`)
+mapped every `type: "house"` feature straight into `out` with no dedup. There
+is no separate post-mapping "cap" in the code as written — `MAX_RESULTS` (8)
+is sent to the provider as the `limit` query param (line ~100), not applied
+locally after mapping — so "before the cap" reduces to "while building
+`out`". Fixed with a `Set<string>` keyed on `line1|postcode|city|country`,
+skipping a feature whose key was already seen, keeping the first occurrence
+(the building, ahead of the shop, matching the live example in the Why
+section).
+
+Test: added to `test/address-lookup.test.ts` — two stubbed features
+differing only in `osm_key`/`name` (Photon's own distinguishing fields, which
+the mapped shape drops) collapse to one result.

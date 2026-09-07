@@ -164,6 +164,7 @@ export default function AddressLookupField({
         aria-expanded={enabled ? showList : undefined}
         aria-controls={enabled ? listId : undefined}
         aria-autocomplete={enabled ? "list" : undefined}
+        aria-activedescendant={enabled && showList ? `${listId}-${highlight}` : undefined}
         aria-label={enabled ? label : undefined}
         value={value}
         onChange={(e) => {
@@ -190,6 +191,7 @@ export default function AddressLookupField({
             {suggestions.map((suggestion, i) => (
               <li
                 key={`${suggestion.line1}-${suggestion.postcode}-${suggestion.city}-${i}`}
+                id={`${listId}-${i}`}
                 role="option"
                 aria-selected={i === highlight}
                 className={`cursor-pointer px-4 py-2 text-base ${i === highlight ? "bg-cream-100" : ""}`}

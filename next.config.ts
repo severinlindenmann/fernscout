@@ -187,6 +187,21 @@ const nextConfig: NextConfig = {
         source: "/:user/media/:path*",
         headers: [{ key: "Content-Security-Policy", value: mediaCsp }],
       },
+      {
+        // B287: `/:user/contacts` carries decrypted postal addresses and, since
+        // B280, live invite URLs — each one a credential. `/:user/me` carries a
+        // handover credential since B283. Both pages already set
+        // `dynamic = "force-dynamic"`, which makes Next default to
+        // `no-store` — this pins that default explicitly, so a framework
+        // upgrade changing it cannot quietly leave either page cacheable on
+        // a shared laptop, a corporate middlebox, or a browser's back button.
+        source: "/:user/contacts",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
+        source: "/:user/me",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
     ];
   },
   images: {

@@ -103,6 +103,24 @@ describe("the baseline headers on a document", () => {
   });
 });
 
+describe("the two pages that carry addresses and credentials (B287)", () => {
+  test("/:user/contacts is pinned no-store, not merely defaulted", async () => {
+    const all = await rules();
+    const rule = all.find((r) => r.source === "/:user/contacts");
+    expect(rule, "next.config.ts must pin Cache-Control for /:user/contacts").toBeDefined();
+    const cc = rule!.headers.find((h) => h.key.toLowerCase() === "cache-control")?.value;
+    expect(cc).toContain("no-store");
+  });
+
+  test("/:user/me is pinned no-store, not merely defaulted", async () => {
+    const all = await rules();
+    const rule = all.find((r) => r.source === "/:user/me");
+    expect(rule, "next.config.ts must pin Cache-Control for /:user/me").toBeDefined();
+    const cc = rule!.headers.find((h) => h.key.toLowerCase() === "cache-control")?.value;
+    expect(cc).toContain("no-store");
+  });
+});
+
 describe("an SVG served out of somebody's content folder", () => {
   let dir: string;
 
