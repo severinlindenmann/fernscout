@@ -7,8 +7,7 @@ complexity: low
 area: trips, entries, plan
 found: "2026-09-04T22:05:12Z"
 started: "2026-09-07T11:06:09Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:06:09Z"
+merged: "2026-09-07T11:21:22Z"
 ---
 
 # B343 — clearMatterCache is defined twice, with its reasoning written out twice
