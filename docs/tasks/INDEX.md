@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (110)
+## backlog (111)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 
-### issue (27)
+### issue (28)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -89,6 +89,7 @@ Do not edit them by hand; run the script.
 | [B784](backlog/issue/B784-the-page-still-has-two-bright.md) | The page still has two bright buttons even though the card has one | ISSUE | low | low |
 | [B812](backlog/issue/B812-focus-is-lost-when-the-handover.md) | Focus is lost when the handover prompt appears | ISSUE | low | low |
 | [B813](backlog/issue/B813-a-denied-microphone-is-announced-politely.md) | A denied microphone is announced politely instead of as a problem | ISSUE | low | low |
+| [B847](backlog/issue/B847-the-beta-banner-takes-three-lines.md) | The beta banner takes three lines and a lot of height on a phone | ISSUE | low | low |
 
 ### big-feature (13)
 
