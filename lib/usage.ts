@@ -38,11 +38,11 @@ import { getDatabaseOrNull, newId, nowIso } from "./db";
 
 /** Who is billed. A closed list; the column is text for the reason every
  *  other status column in this schema is. */
-export const PROVIDERS = ["anthropic", "deepgram"] as const;
-export type Provider = (typeof PROVIDERS)[number];
+const PROVIDERS = ["anthropic", "deepgram"] as const;
+type Provider = (typeof PROVIDERS)[number];
 
 /** Which call site spent it, so a bill can be attributed to a feature. */
-export const OPERATIONS = [
+const OPERATIONS = [
   "write_day",
   "describe_photos",
   "route_ask",
