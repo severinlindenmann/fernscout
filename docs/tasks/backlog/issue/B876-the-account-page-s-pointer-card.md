@@ -5,28 +5,13 @@ type: ISSUE
 priority: low
 complexity: low
 area: account, me
-<<<<<<< HEAD
 found: "2026-09-07T17:41:41Z"
-=======
-found: "2026-09-07T19:45:00Z"
->>>>>>> b-me-pointer
 ---
 
 # B876 — The account page's pointer card on /me is a whole card to say a menu entry exists
 
 ## Why
 
-<<<<<<< HEAD
-TODO — the problem, not the fix.
-
-## Work
-
-TODO
-
-## Acceptance
-
-TODO
-=======
 The owner: *"remove that one from /me"*, pointing at the "Guthaben & Speicher"
 card.
 
@@ -61,4 +46,3 @@ the whole job.
 - The figures are still only on the account page.
 - The nav entry still reaches it.
 - No orphaned locale keys.
->>>>>>> b-me-pointer
