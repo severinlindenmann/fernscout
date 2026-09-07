@@ -7,7 +7,12 @@
     "repository": "https://github.com/severinlindenmann/fernscout",
     "banner": {
       "enabled": true,
-      "text": "Beta – Testphase: Einige Funktionen sind noch unvollständig, und Datenverlust ist nicht auszuschliessen."
+      "text": "Beta – Testphase: Einige Funktionen sind noch unvollständig, und Datenverlust ist nicht auszuschliessen.",
+      "translations": {
+        "de": "Beta – Testphase: Einige Funktionen sind noch unvollständig, und Datenverlust ist nicht auszuschliessen.",
+        "en": "Beta – testing phase: some features are still incomplete, and data loss cannot be ruled out.",
+        "hu": "Béta – tesztidőszak: egyes funkciók még nem teljesek, és az adatvesztés sem zárható ki."
+      }
     },
     "credit": {
       "name": "Severin Lindenmann",

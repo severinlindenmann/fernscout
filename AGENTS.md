@@ -85,8 +85,10 @@ checkout, where a `git pull` is the whole update:
 site/
   config.json                 server config — site name, URL, default user,
                               reserved usernames, an optional `banner` across
-                              the landing page (`enabled` + `text`, the
-                              operator's own words, untranslated),
+                              the landing page (`enabled` + `text`, plus an
+                              optional `translations` map of locale to text —
+                              the operator's own words in whatever languages
+                              they wrote them, `text` for every other reader),
                               capability switches, and the
                               `media` block: how large uploads may be, how many
                               per day, an optional per-journal byte quota, and
