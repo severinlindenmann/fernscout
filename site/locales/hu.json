@@ -1145,5 +1145,7 @@
   "agent.missingPhotos": "Fényképek",
   "agent.answerNone": "Nem volt ilyen",
   "agent.answerUnknown": "Senkinél nincs meg",
+  "agent.uploadingOriginals": "A teljes méretű másolatok még töltődnek — {done} / {total}. Nyugodtan írj tovább; maguktól befejeződnek.",
+  "agent.noRoom": "Ennyinek nincs hely: {needed} MB küldendő, {left} MB szabad ebben a naplóban. Küldj kevesebbet, vagy előbb szabadíts fel helyet.",
   "agent.failed": "Ez nem sikerült: {error}"
 }

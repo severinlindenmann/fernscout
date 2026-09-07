@@ -1145,5 +1145,7 @@
   "agent.missingPhotos": "Photographs",
   "agent.answerNone": "There was none",
   "agent.answerUnknown": "Nobody has it",
+  "agent.uploadingOriginals": "The full-size copies are still going up — {done} of {total}. Carry on writing; they finish on their own.",
+  "agent.noRoom": "There is not room for these: {needed} MB to send, {left} MB left in this journal. Send fewer, or free some space first.",
   "agent.failed": "That did not work: {error}"
 }
