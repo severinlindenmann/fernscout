@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: media API
 found: "2026-09-07T08:38:57Z"
+merged: "2026-09-07T08:53:40Z"
 ---
 
 # B670 — kept in the media upload response omits the video originals it stored

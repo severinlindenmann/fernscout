@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: media serving
 found: "2026-09-07T08:38:56Z"
+merged: "2026-09-07T08:53:40Z"
 ---
 
 # B669 — Video is served without Range support, so a clip cannot be scrubbed
