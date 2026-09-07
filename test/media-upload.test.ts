@@ -231,19 +231,21 @@ describe("what it refuses", () => {
   });
 
   /**
-   * B209 — the pair, in one refusal.
+   * B229 — one cause, one problem.
    *
-   * More items than a day may hold, sent in one call to an empty day, breaks
-   * *both* rules: the request-level one in `validateMediaBatch` and the
-   * day-level one here. They used to arrive with the identical `expected`
-   * string, so the refusal read as one rule stated twice and neither remedy
-   * was legible.
+   * More items than a day may hold, sent in one call to an empty day, used to
+   * break *two* rules at once: the request-level one in `validateMediaBatch`
+   * and the day-level one here, both firing on every batch this size because
+   * `existing` (zero, for an empty day) is never negative — B209 had already
+   * made the two say different things, but B229 is the finding that one of
+   * them never fires alone and does not need to exist. This is the ticket's
+   * own acceptance: one oversized batch, one problem about the count.
    *
    * Matched on text rather than on position, per B71. No image is decoded:
    * validation refuses the batch before anything is opened, so these are
    * bytes with the right extension and nothing else.
    */
-  test("a batch bigger than a day says both what the request broke and what the day holds", async () => {
+  test("a batch bigger than a day says what the day holds, once", async () => {
     const many = Array.from({ length: MAX_ITEMS_PER_DAY + 1 }, () => ({
       filename: "a.jpg",
       bytes: Buffer.from("not decoded — the batch is refused first"),
@@ -253,19 +255,11 @@ describe("what it refuses", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
 
-    const request = only(result.problems, "the size of the request", (p) =>
-      p.expected.includes("in one request"),
-    );
+    expect(result.problems.filter((p) => p.expected.includes("items in one day"))).toHaveLength(1);
     const day = only(result.problems, "what the day holds", (p) =>
       p.expected.includes("in one day"),
     );
-
-    expect(request.expected).not.toBe(day.expected);
-    expect(request.got).toBe(`${MAX_ITEMS_PER_DAY + 1} items in one request`);
     expect(day.got).toBe(`${MAX_ITEMS_PER_DAY + 1} items in this day`);
-    // The remedy that does not work is refused in words rather than left to be
-    // inferred: the day could not hold them however they are split.
-    expect(request.expected).toContain("splitting this batch will not help");
     expect(day.expected).toContain("This day already holds 0");
   });
 

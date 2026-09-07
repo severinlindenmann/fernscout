@@ -64,3 +64,26 @@ will tune.
   fetches.
 - A test that fails before the change: two PATCHes of unrelated fields against
   a day the provider answers nothing for, asserting one fetch and not two.
+
+## Resolution
+
+Took the second option named in Work: `PATCH .../days/<slug>`
+(`app/api/v1/[user]/trips/[trip]/days/[slug]/route.ts`) now calls
+`fillDayWeatherQuietly` only when the patch's own keys include `weather`,
+`lat`, `lng` or `date` — reusing the `keys` array the route already computes
+for the `unwritable` check just above, no new field. `POST .../days`
+(create) is unchanged: a fresh day's first write is exactly the case that
+should always try.
+
+Test: `test/weather-patch-refetch.test.ts`, two tests —
+"a PATCH touching only unrelated fields does not re-fetch weather the
+provider has already answered nothing for" (creates a day with `weather:
+true` and coordinates against a provider that answers nothing, then two
+content-only PATCHes; asserts `fetch` called once total, from the create) and
+"a PATCH that adds coordinates to a day asking for weather still fetches"
+(creates a day with `weather: true` and no coordinates, then PATCHes in
+`lat`/`lng`; asserts exactly one fetch, from that PATCH). Both fail against
+the pre-fix code (the first would see two extra fetches; verified the fix by
+running the file before and after the route change).
+
+`npm run verify` green (see final report).

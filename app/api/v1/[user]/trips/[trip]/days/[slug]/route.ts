@@ -234,7 +234,17 @@ export async function PATCH(
   // B325, the same call the create route makes and for the same reasons: a
   // day that has just acquired `weather: true`, or a coordinate it did not
   // have, is a day that can now be looked up. It cannot fail this edit.
-  await fillDayWeatherQuietly(ref, result.slug);
+  //
+  // B538 — only when the patch actually touches a field the lookup depends
+  // on. Without this, a day the archive has no answer for (no row yet, a
+  // coordinate over open water, a provider outage) re-fetched on every PATCH
+  // for as long as the answer stayed missing — ten prose corrections meant
+  // ten requests to open-meteo.com for an edit that never came near the
+  // weather. The sweep (`npm run weather:update`) is what exists for the
+  // "not yet answered" case; it runs on a timer, not per keystroke.
+  if (keys.some((key) => key === "weather" || key === "lat" || key === "lng" || key === "date")) {
+    await fillDayWeatherQuietly(ref, result.slug);
+  }
   // B543, the same call: an edit may add a cost, or change one's currency,
   // that the trip's `rates:` table does not cover yet.
   await fillTripRatesQuietly(ref);

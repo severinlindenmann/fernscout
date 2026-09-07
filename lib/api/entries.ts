@@ -656,7 +656,7 @@ export function attachGallery(
   ref: string,
   slug: string,
   items: GalleryItem[],
-): { ok: true; attached: number } | { ok: false; error: string } {
+): { ok: true; attached: number } | { ok: false; error: string; bug?: boolean } {
   if (items.length === 0) return { ok: true, attached: 0 };
 
   const dir = path.join(tripDir(ref), "entries");
@@ -682,6 +682,25 @@ export function attachGallery(
       error:
         `"${slug}" has no frontmatter block to write a gallery into. The photographs ` +
         `are on disk under this day; add them to the entry by hand.`,
+    };
+  }
+
+  // B528 — the same guard `editEntry` runs before every write: a splice that
+  // produces text `gray-matter` cannot parse back would be written silently
+  // otherwise, and a day written unparseable is invisible at every reading
+  // path and undeletable through the API (see B204). The photographs are
+  // already on disk by this point, so the refusal below can say so.
+  try {
+    void matter(spliced).data;
+  } catch (err) {
+    const said = err instanceof Error ? err.message.split("\n")[0] : String(err);
+    return {
+      ok: false,
+      bug: true,
+      error:
+        `Attaching these photographs would leave "${slug}" unparseable (${said}), so nothing ` +
+        `was written. The photographs are already stored (see \`kept\`) — this is a bug; ` +
+        "please report it.",
     };
   }
 

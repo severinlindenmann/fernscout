@@ -111,6 +111,40 @@ beforeEach(() => {
       "",
     ].join("\n"),
   );
+
+  // B545 — a day that asked for weather and has a reading, and one that
+  // asked and has none yet.
+  fs.writeFileSync(
+    path.join(tripPath, "entries", "2026-01-04-mit-wetter.md"),
+    [
+      "---",
+      'title: "Mit Wetter"',
+      'date: "2026-01-04"',
+      'location: "Somewhere"',
+      'country: "Nowhere"',
+      "weather: true",
+      'weatherData: { tempMax: 18, tempMin: 2, precipitation: 2.9, source: "open-meteo", recordedAt: "2026-01-05T04:00:00Z" }',
+      "---",
+      "",
+      "Prose.",
+      "",
+    ].join("\n"),
+  );
+  fs.writeFileSync(
+    path.join(tripPath, "entries", "2026-01-05-ohne-antwort.md"),
+    [
+      "---",
+      'title: "Ohne Antwort"',
+      'date: "2026-01-05"',
+      'location: "Somewhere"',
+      'country: "Nowhere"',
+      "weather: true",
+      "---",
+      "",
+      "Prose.",
+      "",
+    ].join("\n"),
+  );
 });
 
 afterEach(() => {
@@ -168,6 +202,35 @@ describe("B371: a translated day", () => {
     expect(data.translations.en.content).toContain("In English, over two");
     expect(data.translations.en.content).toContain("paragraphs.");
     expect(content.trim()).toBe("Auf Deutsch.");
+  });
+
+  // B545 — the twin is sold as the source that produced the page, and the
+  // page shows weather; the twin did not mention it at all.
+  test("a day with a weather reading shows the request and the reading, with provenance", async () => {
+    const response = await markdownTwin("alex", "now-2026", "mit-wetter");
+    const { data } = matter(await response.text());
+    expect(data.weather).toBe(true);
+    expect(data.weatherData.tempMax).toBe(18);
+    expect(data.weatherData.source).toBe("open-meteo");
+    expect(data.weatherData.recordedAt).toBeTruthy();
+  });
+
+  test("a day that asked and has no answer yet shows the request and no weatherData line", async () => {
+    const response = await markdownTwin("alex", "now-2026", "ohne-antwort");
+    const body = await response.text();
+    const { data } = matter(body);
+    expect(data.weather).toBe(true);
+    expect(data.weatherData).toBeUndefined();
+    expect(body).not.toContain("weatherData");
+  });
+
+  test("a day that never asked shows neither line", async () => {
+    const response = await markdownTwin("alex", "now-2026", "today");
+    const body = await response.text();
+    const { data } = matter(body);
+    expect(data.weather).toBeUndefined();
+    expect(data.weatherData).toBeUndefined();
+    expect(body).not.toContain("weather");
   });
 });
 

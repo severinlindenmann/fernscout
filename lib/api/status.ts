@@ -5,7 +5,7 @@ import type { FeatureName } from "@/lib/config";
 import { listDrafts, tripSummary } from "@/lib/api/entries";
 import { writableTrips } from "@/lib/api/auth";
 import { balanceOf } from "@/lib/credits";
-import { getTrips } from "@/lib/trips";
+import { getMalformedTrips, getTrips } from "@/lib/trips";
 import { serverSite } from "@/lib/site";
 import { storageFor } from "@/lib/storageQuota";
 import { listInbox } from "@/lib/inbox";
@@ -94,7 +94,17 @@ function inboxSummary(user: string, base: string) {
 }
 
 /** What to do next, in the order an agent should care about it. */
-function nextStep(drafts: number, trips: number, scoped: boolean, staged = 0): string {
+function nextStep(drafts: number, trips: number, scoped: boolean, staged = 0, malformed = 0): string {
+  // Ahead of the draft queue on purpose — B288. A broken trip.md is a thing
+  // the agent may have just caused, and can fix; the drafts below are a
+  // thing only a person can decide.
+  if (malformed > 0) {
+    return (
+      `${malformed} ${malformed === 1 ? "trip has" : "trips have"} a broken trip.md and are not ` +
+      "visible on the site or in `trips` above. Fix the file named in `malformed`, then read " +
+      "this again to confirm it loads."
+    );
+  }
   if (drafts === 0 && staged > 0 && trips > 0) {
     return (
       `${staged} ${staged === 1 ? "file is" : "files are"} staged in the inbox and belong to no ` +
@@ -140,6 +150,10 @@ export async function journalStatus(user: string, session: Session) {
 
   const trips = await writableTrips(session, getTrips(user));
   const drafts = await draftQueue(user, session, base);
+  // Same terms `app/api/v1/[user]/trips/route.ts` already sets — owner
+  // tokens only, and `getMalformedTrips` rather than a second reader, so the
+  // two cannot come to disagree about what a broken trip.md looks like — B288.
+  const malformed = scoped ? [] : getMalformedTrips(user);
 
   const resolved = resolveCapabilities(user);
   // `null` both when charging is off and when this token is scoped to a trip
@@ -197,6 +211,9 @@ export async function journalStatus(user: string, session: Session) {
     },
     drafts: { count: drafts.length, items: drafts },
     trips: trips.map((t) => tripSummary(user, t.id)).filter(Boolean),
+    // Owner tokens only, matching `GET .../trips` — a trip-scoped token
+    // learns nothing about the rest of the journal, malformed or not. B288.
+    ...(malformed.length > 0 ? { malformed } : {}),
     features,
     // Only where there is somewhere for a redemption to land. `contacts` off
     // means no queue, so `POST /invites` answers 404 — an absent key is the
@@ -246,6 +263,6 @@ export async function journalStatus(user: string, session: Session) {
      * would be an invitation to a 403.
      */
     ...(staged ? { inbox: staged } : {}),
-    next: nextStep(drafts.length, trips.length, scoped, staged?.count ?? 0),
+    next: nextStep(drafts.length, trips.length, scoped, staged?.count ?? 0, malformed.length),
   };
 }

@@ -88,39 +88,19 @@ describe("a day's worth", () => {
     expect(problems.map((p) => p.field)).toEqual(["01.jpg.format", "02.jpg.size"]);
   });
 
-  test("too many items for one day is its own problem", () => {
-    const many = Array.from({ length: MAX_ITEMS_PER_DAY + 1 }, (_, i) => ({
-      name: `${i}.jpg`,
-      kind: "image" as const,
-    }));
-    const problems = validateMediaBatch(many);
-    expect(problems).toHaveLength(1);
-    expect(problems[0]).toMatchObject({
-      field: "media",
-      got: `${MAX_ITEMS_PER_DAY + 1} items in one request`,
-    });
-    expect(validateMediaBatch(many.slice(0, MAX_ITEMS_PER_DAY))).toEqual([]);
-  });
-
   /**
-   * B209 — this refusal and `storeUploads`' day ceiling used to read `at most
-   * 40 per day` alike, so an agent could not tell which rule it had broken.
-   *
-   * The half asserted here is that this one is about *the request*, and that
-   * it does not offer the remedy that does not work: the day ceiling counts
-   * what is on disk plus what arrived, so a batch this size cannot be rescued
-   * by sending it in parts. The other half of the pair is asserted against the
-   * real writer in `test/media-upload.test.ts`.
+   * B229 — this used to be its own problem, word for word `storeUploads`'
+   * day-ceiling refusal until B209 gave them different wording. Both fire
+   * together on every oversized batch, including the first upload of an
+   * empty day (`existing` is zero there), so one mistake produced two
+   * entries in `problems`. The count is now judged once, in `storeUploads`
+   * — asserted against the real writer in `test/media-upload.test.ts`.
    */
-  test("says it is about one request, and does not advise splitting the batch", () => {
+  test("a batch over the day's ceiling is not its own problem here — only the day knows what else it holds", () => {
     const many = Array.from({ length: MAX_ITEMS_PER_DAY + 1 }, (_, i) => ({
       name: `${i}.jpg`,
       kind: "image" as const,
     }));
-    const [problem] = validateMediaBatch(many);
-    expect(problem.expected).toContain(`at most ${MAX_ITEMS_PER_DAY} items in one request`);
-    expect(problem.expected).toContain("more than one day");
-    // The words the day ceiling owns, and this one must not borrow.
-    expect(problem.expected).not.toContain("This day already holds");
+    expect(validateMediaBatch(many)).toEqual([]);
   });
 });

@@ -237,6 +237,15 @@ export type Entry = {
    */
   weather?: DayWeather;
   /**
+   * Whether this day asked for a lookup at all — B538. `weather` above is
+   * the *answer*, and is absent for a day that asked and has none yet just
+   * as much as for a day that never asked; a caller that needs to tell those
+   * two apart (B545's markdown twin, so an agent can see whether its own
+   * `weather: true` was read at all) needs the request itself, not only the
+   * outcome.
+   */
+  weatherAsked?: boolean;
+  /**
    * What this day deliberately does not have — B531.
    *
    * `without: [costs]` is what `"costs": false` on the write call becomes, and

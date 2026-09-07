@@ -59,3 +59,35 @@ Not this task: the wording of either refusal. B209 did that.
 - One oversized batch produces one problem about the count, not two — or the
   file records the decision that both should stay and why.
 - `/agent.md`'s limits table matches whatever is decided.
+
+## Resolution
+
+Confirmed `storeUploads` is `validateMediaBatch`'s only production caller
+(ingest uses `validateMediaItem` per file) and that `existing` in
+`storeUploads` (`readdirSync(mediaOut).length`) is never negative — so
+`items.length > limits.itemsPerDay` is never true without
+`existing + items.length > limits.itemsPerDay` also being true, including on
+the first upload of an empty day (`existing === 0`, where the two conditions
+coincide exactly).
+
+Decided: the request rule goes. Removed the count check from
+`validateMediaBatch` (`lib/validate/media.ts`), which is now every item's own
+problems and nothing else; the day ceiling in `storeUploads`
+(`lib/api/media.ts`) is the only place a count is judged.
+
+Updated `/agent.md`'s limits table (`lib/api/documentation.ts`): the "per
+request" row no longer states an item count (there is none any more) and now
+only carries the body-size ceiling; the "per day" row keeps the "splitting
+will not help" note that used to live on the request row, since that is still
+true and now has nowhere else to live.
+
+Updated the two tests that asserted the old behaviour:
+`test/validate-media.test.ts` ("too many items for one day is its own
+problem" and the B209 pair test) replaced by one test asserting
+`validateMediaBatch` returns no count problem at all for an oversized batch;
+`test/media-upload.test.ts`'s "a batch bigger than a day says both what the
+request broke and what the day holds" rewritten as "...says what the day
+holds, once", asserting exactly one problem naming the count. Both fail
+against the pre-fix code (which asserted two problems, one from each rule).
+
+`npm run verify` green (see final report).

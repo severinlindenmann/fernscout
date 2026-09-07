@@ -71,3 +71,34 @@ deliberately rather than by omission.
 - A day with no weather shows neither, and no empty line where they would go.
 - A test in `test/markdown-twin*.test.ts` covers both, since the promise the
   twin makes is the thing being fixed.
+
+## Resolution
+
+`Entry` (`lib/types.ts`) had no field for "this day asked" as distinct from
+"this day has a reading" — `entry.weather` is only ever the parsed
+`weatherData` (`parseWeather(data.weatherData)` in `lib/entries.ts`), and a
+day that asked but has no answer yet reads exactly like a day that never
+asked. Added `weatherAsked?: boolean`, set from `data.weather === true` at
+the same spot `entry.weather` is set (`lib/entries.ts`).
+
+`render()` in `lib/api/markdownTwin.ts` now emits `weather: true` when
+`entry.weatherAsked`, and a `weatherData:` line via the existing `weatherLine`
+helper (`lib/weather.ts`) when `entry.weather` is present — the same
+formatter `lib/api/weather.ts` splices into the file on write, so there is
+one formatter rather than a second one that could drift from it. Provenance
+(`source`, `recordedAt`) is part of `DayWeather` and therefore always present
+when the line is.
+
+Decided the "say it in words too" question in Work: left it as `source:
+"open-meteo"` inside `weatherData` and nothing more. The twin is served as
+`text/markdown` to agents, not rendered to a reader, so CC BY's "link beside
+any location the data are displayed" is not engaged here the way it is on the
+HTML page (which already credits Open-Meteo in prose).
+
+Test: `test/markdown-twin.test.ts`, three new tests under "the trip-scoped
+twin" — a day with a reading shows both lines with provenance, a day that
+asked and has no answer shows `weather: true` and no `weatherData`, and a day
+that never asked shows neither. All three fail against the pre-fix `render()`
+(it has no reference to `entry.weather` or `entry.weatherAsked` at all).
+
+`npm run verify` green (see final report).

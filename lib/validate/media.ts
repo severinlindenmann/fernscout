@@ -212,34 +212,25 @@ export function validateMediaItem(item: MediaCandidate, limits: Limits = BUILT_I
 }
 
 /**
- * Every item's own problems, plus the batch-level one: more items in this one
- * request than a day may hold at all.
+ * Every item's own problems — format, size, dimensions, duration.
  *
- * **This sentence is about the request; `storeUploads`' ceiling is about the
- * day, and until B209 they were word for word the same** — `at most 40 per
- * day`, with `got` differing only in a trailing phrase. An agent reading the
- * refusal could not tell "send fewer in one call" from "this day is full", and
- * those have different remedies.
- *
- * What is said here has to be careful, because the two are not independent:
- * the day ceiling counts what is on disk *plus* what arrived, so it fires
- * whenever this one does. A batch over the limit therefore cannot be rescued
- * by splitting it — the day could not hold the items either way — and this
- * message must not advise that. It says the items belong on more than one day.
- * See B209, and the capture it references for the redundancy itself.
+ * There used to be a batch-level problem here too: more items in one request
+ * than a day may hold at all. B209 found that its wording was word-for-word
+ * `storeUploads`' own day-ceiling refusal (`existing + uploads.length >
+ * limits.itemsPerDay`), and B229 found the deeper reason why: `existing` is a
+ * count of files already on disk and is never negative, so `items.length >
+ * limits.itemsPerDay` on its own is never true without
+ * `existing + items.length > limits.itemsPerDay` also being true — including
+ * on the first upload of a day, where `existing` is zero and the two
+ * conditions coincide exactly. `storeUploads` is this function's only
+ * production caller (ingest validates one file at a time, through
+ * `validateMediaItem`), so there was no caller for which the request-level
+ * rule ever fired on its own: one oversized batch produced two problems about
+ * one cause. The day ceiling in `storeUploads` is now the only place a count
+ * is judged.
  */
 export function validateMediaBatch(items: MediaCandidate[], limits: Limits = BUILT_IN): Problem[] {
-  const problems = items.flatMap((item) => validateMediaItem(item, limits));
-  if (items.length > limits.itemsPerDay) {
-    problems.push({
-      field: "media",
-      got: `${items.length} items in one request`,
-      expected:
-        `at most ${limits.itemsPerDay} items in one request. That is also all one day may ` +
-        `hold, so splitting this batch will not help — these belong on more than one day.`,
-    });
-  }
-  return problems;
+  return items.flatMap((item) => validateMediaItem(item, limits));
 }
 
 /**

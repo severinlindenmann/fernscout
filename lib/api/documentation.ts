@@ -1026,6 +1026,11 @@ trip you may write to, every draft waiting — with the call that would publish
 each one — and what to do next. You should not have to go hunting across the
 routes below to find out what exists.
 
+If a \`trip.md\` you just wrote is too broken to parse, it shows up here too,
+under \`malformed\` — the same list \`GET .../trips\` carries — so a write that
+did not take is something you find out from the first call rather than by the
+trip quietly not existing anywhere you look. Owner tokens only.
+
 Two things it will not tell you, and nothing else will either. **The owner's
 email address is returned by no call**; if your token has expired, ask the
 person. And there is **no history**: nothing records why a day was left as a
@@ -2423,8 +2428,8 @@ about is not held back on a hunch.
 | --- | --- |
 | images | ${IMAGE_FORMATS.join(", ")} — at most ${(IMAGE_MAX_BYTES / 1024 / 1024).toFixed(0)} MB, ${IMAGE_MAX_EDGE}px on the longest edge |
 | video | ${videoRow()} |
-| per day | at most ${MAX_ITEMS_PER_DAY} items, counting what the day already holds |
-| per request | at most ${MAX_ITEMS_PER_DAY} items — the same number, so a batch too big for one call is too big for one day, and splitting it will not help — **and at most ${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(0)} MB of body**, which is the limit you will actually meet |
+| per day | at most ${MAX_ITEMS_PER_DAY} items, counting what the day already holds — a batch too big for one call is too big for one day either way, so splitting it will not help |
+| per request | **at most ${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(0)} MB of body**, which is the limit you will actually meet |
 | per journal | a storage ceiling over the whole journal folder — photobooks and all, not only photographs. \`GET /api/v1/<user>/status\` carries \`storage\`: what is used, what is allowed, what is left. Read it before a big batch; one that would go past the ceiling is refused whole and nothing is written |
 | tags | lowercase letters, digits and single hyphens, up to ${TAG_MAX_LENGTH} characters |
 | transport | ${TRANSPORT_MODES.join(", ")} |

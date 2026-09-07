@@ -140,8 +140,8 @@ describe("a caption arrives with the photograph", () => {
    * first. `galleryLines` now quotes with the shared `quoteScalar`, which
    * cannot emit invalid YAML whatever it is handed.
    *
-   * `attachGallery` does *not* re-read what it wrote, the way `editEntry`
-   * does — see B528.
+   * `attachGallery` now re-reads what it wrote, the same guard `editEntry`
+   * runs — see B528 and the "unparseable" test below.
    */
   test("a caption full of control characters still writes a day that reads back", async () => {
     const nasty = "bell\u0007 vertical\u000b form\u000c escape\u001b nul\u0000 end";
@@ -166,6 +166,24 @@ describe("a caption arrives with the photograph", () => {
     expect(getEntryBySlug(REF, DAY, { includeDrafts: true })?.gallery[0]?.caption).toBe(
       'a\ttab and a "quote"',
     );
+  });
+
+  // B528 — `width` is written unquoted (`width: ${item.width}`), which is
+  // fine for the number the type says it is and unparseable YAML for
+  // anything else. `quoteScalar` cannot save a field it is never asked to
+  // quote, which is exactly why `attachGallery` needs its own guard rather
+  // than trusting the escaper alone — the same reasoning `editEntry` already
+  // acted on.
+  test("an item smuggled past the type system that would write unparseable YAML is refused, and the day is unchanged", async () => {
+    const before = onDisk();
+    const written = await storeUploads(REF, DAY, [{ filename: "one.jpg", bytes: await jpeg() }]);
+    if (!written.ok) throw new Error(JSON.stringify(written.problems));
+    const sneaky = [{ ...written.items[0], width: "1: [" as unknown as number }];
+    const result = attachGallery(REF, DAY, sneaky);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.bug).toBe(true);
+    expect(onDisk()).toBe(before);
   });
 });
 

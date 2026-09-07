@@ -6,6 +6,7 @@ import { mayReadTrip, readerLevelFor } from "../tripGate";
 import { currentTripRef, getTrip, getTrips, tripRef } from "../trips";
 import type { Entry, Trip } from "../types";
 import { translationLines } from "./entries";
+import { weatherLine } from "../weather";
 
 /**
  * The markdown twin of a day page.
@@ -183,6 +184,15 @@ function render(entry: Entry, trip: Trip): string {
     ...(Number.isFinite(entry.lat) ? [`lat: ${entry.lat}`] : []),
     ...(Number.isFinite(entry.lng) ? [`lng: ${entry.lng}`] : []),
     ...(entry.gallery.length ? [`photos: ${entry.gallery.length}`] : []),
+    // B545 — the twin is sold as the source that produced the page, and the
+    // page shows weather. `weather: true` is the request, on its own line
+    // exactly as the frontmatter carries it, so an agent that asked for a
+    // lookup can tell it was read at all even before an answer exists;
+    // `weatherLine` is the same formatter `lib/api/weather.ts` splices into
+    // the file, so a reading here carries the `source` and `recordedAt` a
+    // reader needs to trust it, never a second, divergent formatter.
+    ...(entry.weatherAsked ? ["weather: true"] : []),
+    ...(entry.weather ? [weatherLine(entry.weather)] : []),
     ...(invented ? ["test: true"] : []),
     // B371: the twin is sold as the source that produced the page, so a day
     // written in several languages has to carry the rest of them too — same
