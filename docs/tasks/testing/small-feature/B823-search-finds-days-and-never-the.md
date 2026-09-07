@@ -7,8 +7,7 @@ complexity: medium
 area: search
 found: "2026-09-07T17:40:00Z"
 started: "2026-09-07T15:37:14Z"
-session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
-claimed: "2026-09-07T15:37:14Z"
+merged: "2026-09-07T16:16:29Z"
 ---
 
 # B823 — Search finds days and never the pages, so there is no way to search your way to costs or storage

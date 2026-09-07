@@ -7,8 +7,7 @@ complexity: low
 area: header, nav
 found: "2026-09-07T17:40:00Z"
 started: "2026-09-07T15:37:13Z"
-session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
-claimed: "2026-09-07T15:37:13Z"
+merged: "2026-09-07T16:16:28Z"
 ---
 
 # B824 — The agent and docs sit apart from the destinations they are listed with
