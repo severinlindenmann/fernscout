@@ -20,8 +20,15 @@ describe("the trip masthead — B765", () => {
     expect(SOURCE).not.toMatch(/const heading = active\.isCurrent \? site\.title/);
   });
 
-  test("a trip with no tagline still falls back to the journal's", () => {
-    expect(SOURCE).toMatch(/const subheading = localized\.tagline \?\? site\.tagline;/);
+  test("a trip with no tagline shows none — it does not borrow the journal's", () => {
+    // B765 kept the fallback so the masthead never had a gap. B842 removed it:
+    // the heading above this line is the *trip's* title, so the line under it
+    // reads as the trip's subtitle, and a journal tagline describing its
+    // authors was being presented as a description of one journey. It was also
+    // the same words twice on screen, since PageHeader renders that tagline
+    // under the journal's own name directly above.
+    expect(SOURCE).toMatch(/const subheading = localized\.tagline;/);
+    expect(SOURCE).not.toMatch(/localized\.tagline \?\? site\.tagline/);
   });
 
   test("the journal's own name is still rendered, by PageHeader", () => {
