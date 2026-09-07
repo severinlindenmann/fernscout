@@ -450,6 +450,7 @@
   "landing.metaDescription": "Markdown and photographs in a folder you own. Read it in a browser; write it through an agent.",
   "landing.metaTitle": "{name} — a travel journal your agent writes",
   "landing.noEditor": "There is still no web form, no CMS, no upload widget — the folder is yours. The agent is the editor, whether it's this instance's or your own.",
+  "landing.noEditorNoHelper": "There is still no web form, no CMS, no upload widget — the folder is yours. The agent is the editor.",
   "landing.noTracking": "No analytics, no trackers",
   "landing.publicNone": "No journals yet. Copy content/example to content/<your-name> and reload.",
   "landing.publicTitle": "Public journals on this server",

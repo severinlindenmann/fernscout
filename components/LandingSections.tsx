@@ -232,7 +232,7 @@ export function AgentDisclosure({ docUrl, agentUrl }: { docUrl: string; agentUrl
         {t("landing.helperOwnAgent")}
       </summary>
       <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />
-      <LandingSteps />
+      <LandingSteps helperEnabled />
     </details>
   );
 }
@@ -308,8 +308,16 @@ export function AgentBlock({
   );
 }
 
-/** The three steps for bring-your-own-agent, and the promise that there is no CMS. */
-export function LandingSteps() {
+/**
+ * The three steps for bring-your-own-agent, and the promise that there is no
+ * CMS.
+ *
+ * `helperEnabled` picks which close the last line gets — "whether it's this
+ * instance's or your own" is only true where `/agent` can actually write
+ * (B726). Off, the sentence stops one clause earlier rather than claiming an
+ * agent this instance does not host.
+ */
+export function LandingSteps({ helperEnabled = false }: { helperEnabled?: boolean }) {
   const { t } = useI18n();
   const steps = [
     { title: t("landing.step1"), body: t("landing.step1Body") },
@@ -335,7 +343,7 @@ export function LandingSteps() {
       </ol>
 
       <p className="mt-6 border-l-2 border-yellow-400 pl-4 text-base leading-6 text-navy-900">
-        {t("landing.noEditor")}
+        {t(helperEnabled ? "landing.noEditor" : "landing.noEditorNoHelper")}
       </p>
     </>
   );

@@ -275,6 +275,22 @@ describe("the landing page", () => {
    * and this suite renders to static markup, so the sentence is asserted from
    * the dictionary the component interpolates, and the button from the markup.
    */
+  /**
+   * B726 — `landing.noEditor` used to end "whether it's this instance's or
+   * your own" on every arrangement, which is only true where `helper` is on.
+   * The helper-off page must not claim this instance hosts an agent.
+   */
+  test("with the helper off, no sentence claims this instance hosts an agent", () => {
+    const html = renderLanding();
+    expect(html).toMatch(/no CMS/i);
+    expect(html).not.toMatch(/whether it.{0,8}s this instance.{0,8}s or your own/i);
+  });
+
+  test("with the helper on, the closing clause names both possible agents", () => {
+    const html = renderLanding("en", true);
+    expect(html).toMatch(/whether it.{0,8}s this instance.{0,8}s or your own/i);
+  });
+
   test("hands over an instruction, not a bare link", () => {
     const instruction = translate(dictionaryFor("en"), "landing.instruction", {
       docUrl: "https://fernscout.test/documentation.txt",
