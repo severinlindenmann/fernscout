@@ -7,8 +7,7 @@ complexity: medium
 area: agent, costs
 found: "2026-09-07T15:30:52Z"
 started: "2026-09-07T16:22:31Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T16:22:31Z"
+merged: "2026-09-07T16:50:54Z"
 ---
 
 # B820 — Receipts cannot be entered anywhere a person can reach
