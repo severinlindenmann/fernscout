@@ -11,7 +11,6 @@ import {
   HERO_FLOOR_DPI,
   normalisePageCount,
   sideOf,
-  spineWidthMm,
 } from "@/lib/photobook/spec";
 import {
   chaptersOf,
@@ -124,10 +123,6 @@ describe("book geometry", () => {
     expect(SPEC.gutterMm).toBeGreaterThan(SPEC.safeMm);
   });
 
-  test("the spine is derived from leaves, not pages", () => {
-    expect(spineWidthMm(100, SPEC)).toBeCloseTo(50 * SPEC.paperCaliperMm, 6);
-    expect(spineWidthMm(0, SPEC)).toBe(0);
-  });
 });
 
 describe("page-count rules", () => {

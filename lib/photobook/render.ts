@@ -786,11 +786,16 @@ export function renderVolume(
 }
 
 /**
- * The cover, as one wide page: back cover, spine, front cover.
+ * The cover, as one wide page: back cover, spine, front cover — and, for a
+ * hardcover case, the wrap around the boards and a joint either side of the
+ * spine that a softcover has neither of.
  *
  * Every provider below wants the cover as its own file, because it is printed
- * on different stock on a different machine. The spine width comes from the
- * interior page count, which is why the interior has to be planned first.
+ * on different stock on a different machine. The whole shape comes from
+ * `cover.geometry` (`lib/photobook/coverGeometry.ts`, B885) rather than from
+ * `spec.size` and a bare spine width — a softcover's `wrapMm` and `joint` are
+ * 0 and absent, which is what makes the two cases one code path rather than
+ * a branch.
  */
 export function renderCover(
   volume: BookVolume,
@@ -799,50 +804,65 @@ export function renderCover(
 ): RenderedVolume {
   const { images, missing } = loadAll(volume, options);
   const cover = volume.cover;
+  const geometry = cover.geometry;
   const builder = new PdfBuilder(options.document ?? {});
-  const page = builder.addPage(mm(cover.widthMm), mm(cover.heightMm), {
-    x: mm(spec.bleedMm),
-    y: mm(spec.bleedMm),
-    width: mm(cover.widthMm - spec.bleedMm * 2),
-    height: mm(cover.heightMm - spec.bleedMm * 2),
+  const page = builder.addPage(mm(geometry.sheetWidthMm), mm(geometry.sheetHeightMm), {
+    x: mm(geometry.wrapMm + geometry.bleedMm),
+    y: mm(geometry.wrapMm + geometry.bleedMm),
+    width: mm(geometry.sheetWidthMm - (geometry.wrapMm + geometry.bleedMm) * 2),
+    height: mm(geometry.sheetHeightMm - (geometry.wrapMm + geometry.bleedMm) * 2),
   });
-  const frame = frameFor(spec);
   const type = typeScale(spec);
-  const trimW = spec.size.trimWidthMm;
-  const trimH = spec.size.trimHeightMm;
-  const frontX = trimW + cover.spineWidthMm;
 
-  PdfBuilder.drawRect(page, 0, 0, mm(cover.widthMm), mm(cover.heightMm), PAPER);
+  // Trim-relative coordinates from here on, with the origin at the back
+  // panel's own corner — inset from the sheet edge by the wrap (0 for
+  // softcover) and the bleed, exactly as `frameFor` insets by the bleed alone
+  // for an interior page.
+  const inset = geometry.wrapMm + geometry.bleedMm;
+  const frame: Frame = { x: (v) => mm(inset + v), y: (v) => mm(inset + v), len: mm };
+
+  const panelW = geometry.back.widthMm;
+  const panelH = geometry.back.heightMm;
+  const jointW = geometry.joint?.widthMm ?? 0;
+  const spineW = geometry.spineWidthMm;
+  const spineX0 = panelW + jointW;
+  const spineX1 = spineX0 + spineW;
+  const frontX = spineX1 + jointW;
+  const rightEdge = frontX + panelW;
+
+  PdfBuilder.drawRect(page, 0, 0, mm(geometry.sheetWidthMm), mm(geometry.sheetHeightMm), PAPER);
 
   const photo = cover.frontPhoto ? images.get(cover.frontPhoto.file) : null;
   if (photo && cover.frontPhoto) {
-    // Front panel, full bleed on three edges and up to the spine on the fourth.
-    const slot = { x: frontX, y: -spec.bleedMm, width: trimW + spec.bleedMm, height: trimH + spec.bleedMm * 2 };
+    // Front panel, full bleed (and, for a hardcover, full wrap) on three
+    // edges and up to the spine's joint on the fourth.
+    const slot = { x: frontX, y: -inset, width: panelW + inset, height: panelH + inset * 2 };
     const draw = coverRect(photo, slot);
     PdfBuilder.drawImageClipped(page, photo, rect(frame, slot), rect(frame, draw));
     // A solid band for the title rather than type dropped straight onto a
     // photograph: transparency is the first thing a PDF/X preflight rejects,
     // and a knocked-out band is honest ink.
-    // Up to the top bleed, not to the trim: a band that stops at the trim
-    // leaves a sliver of photograph above it that only appears once the cover
-    // is cut, and only on some copies.
+    // Up to the outer edge, not to the panel's own edge: a band that stops
+    // there leaves a sliver of photograph above it that only appears once
+    // the cover is cut (or, for a hardcover, wrapped), and only on some
+    // copies.
     const band = {
       x: frontX,
-      y: trimH - 46,
-      width: trimW + spec.bleedMm,
-      height: 46 + spec.bleedMm,
+      y: panelH - 46,
+      width: panelW + inset,
+      height: 46 + inset,
     };
     const b = rect(frame, band);
     PdfBuilder.drawRect(page, b.x, b.y, b.width, b.height, PAPER);
   }
 
-  let y = trimH - 18;
-  for (const line of wrap(cover.title, type.heading, mm(trimW - spec.safeMm * 2), "bold")) {
+  let y = panelH - 18;
+  for (const line of wrap(cover.title, type.heading, mm(panelW - spec.safeMm * 2), "bold")) {
     text(page, frame, line, frontX + spec.safeMm, y, type.heading, INK, "F2");
     y -= (type.heading * 1.2) / mm(1);
   }
   if (cover.subtitle) {
-    for (const line of wrap(cover.subtitle, type.caption, mm(trimW - spec.safeMm * 2)).slice(0, 2)) {
+    for (const line of wrap(cover.subtitle, type.caption, mm(panelW - spec.safeMm * 2)).slice(0, 2)) {
       text(page, frame, line, frontX + spec.safeMm, y, type.caption, MUTED, "F3");
       y -= (type.caption * 1.4) / mm(1);
     }
@@ -850,7 +870,7 @@ export function renderCover(
   text(page, frame, eyebrow(cover.dates), frontX + spec.safeMm, y - 2, type.caption, ACCENT);
 
   // Back panel.
-  let by = trimH - 24;
+  let by = panelH - 24;
   for (const line of cover.backLines) {
     text(page, frame, line, spec.safeMm, by, type.body, INK);
     by -= (type.body * 1.5) / mm(1);
@@ -859,12 +879,12 @@ export function renderCover(
 
   // Spine, but only when there is enough of it to read. Below about 6 mm the
   // binding tolerance is wider than the type, and text creeps onto the covers.
-  if (cover.spineWidthMm >= 6) {
+  if (spineW >= 6) {
     PdfBuilder.drawTextRotated(
       page,
       toWinAnsi(cover.spineText),
-      frame.x(trimW + cover.spineWidthMm / 2 + type.caption / mm(1) / 2),
-      frame.y(trimH / 2 - measure(cover.spineText, type.caption) / mm(1) / 2),
+      frame.x(spineX0 + spineW / 2 + type.caption / mm(1) / 2),
+      frame.y(panelH / 2 - measure(cover.spineText, type.caption) / mm(1) / 2),
       type.caption,
       90,
       INK,
@@ -873,11 +893,15 @@ export function renderCover(
   }
 
   if (options.guides) {
-    for (const x of [0, trimW, trimW + cover.spineWidthMm, trimW * 2 + cover.spineWidthMm]) {
-      PdfBuilder.drawLine(page, frame.x(x), frame.y(-spec.bleedMm), frame.x(x), frame.y(trimH + spec.bleedMm), 0.3, GUIDE);
+    // Every panel boundary — back/joint, joint/spine, spine/joint,
+    // joint/front — de-duplicated so a softcover (no joint, `jointW` 0) draws
+    // the same four lines it always did.
+    const xs = [...new Set([0, panelW, spineX0, spineX1, frontX, rightEdge])];
+    for (const x of xs) {
+      PdfBuilder.drawLine(page, frame.x(x), frame.y(-inset), frame.x(x), frame.y(panelH + inset), 0.3, GUIDE);
     }
-    PdfBuilder.drawLine(page, frame.x(-spec.bleedMm), frame.y(0), frame.x(trimW * 2 + cover.spineWidthMm + spec.bleedMm), frame.y(0), 0.3, GUIDE);
-    PdfBuilder.drawLine(page, frame.x(-spec.bleedMm), frame.y(trimH), frame.x(trimW * 2 + cover.spineWidthMm + spec.bleedMm), frame.y(trimH), 0.3, GUIDE);
+    PdfBuilder.drawLine(page, frame.x(-inset), frame.y(0), frame.x(rightEdge + inset), frame.y(0), 0.3, GUIDE);
+    PdfBuilder.drawLine(page, frame.x(-inset), frame.y(panelH), frame.x(rightEdge + inset), frame.y(panelH), 0.3, GUIDE);
   }
 
   return { pdf: builder.build(), pages: 1, missing };

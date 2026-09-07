@@ -42,11 +42,11 @@ import {
   normalisePageCount,
   requiredPixels,
   sideOf,
-  spineWidthMm,
   type BookSpec,
   type PageSide,
   type RectMm,
 } from "./spec.ts";
+import { computeCoverGeometry, type CoverGeometry } from "./coverGeometry.ts";
 import { formatDate, formatDateRange, wrap } from "./text.ts";
 import { isPlottable } from "../mapFrame.ts";
 import { DEFAULT_OPTIONS, type BookOptions, type DayLayout, type Focal } from "./options.ts";
@@ -402,10 +402,16 @@ export type BookPage = { number: number; side: PageSide; from?: BookPageOption }
 );
 
 type CoverPlan = {
-  /** back cover + spine + front cover + bleed on all four edges. */
+  /** back cover + spine + front cover + bleed (and, for a hardcover, wrap and
+   * joints) on all four edges — the same numbers as `geometry`, kept
+   * top-level for callers that only want the sheet size. */
   widthMm: number;
   heightMm: number;
   spineWidthMm: number;
+  /** The whole shape a hardcover needs and a softcover doesn't: wrap, joints,
+   * and the board panel's own size. `render.ts` lays the cover out from this
+   * rather than from `spec.size` and a bare spine width — B885. */
+  geometry: CoverGeometry;
   frontPhoto?: BookPhoto;
   title: string;
   subtitle?: string;
@@ -2045,11 +2051,12 @@ function coverFor(
   frontPhoto: BookPhoto | undefined,
   s: BookStrings,
 ): CoverPlan {
-  const spine = spineWidthMm(interiorPages, spec);
+  const geometry = computeCoverGeometry(spec, interiorPages);
   return {
-    widthMm: spec.size.trimWidthMm * 2 + spine + spec.bleedMm * 2,
-    heightMm: spec.size.trimHeightMm + spec.bleedMm * 2,
-    spineWidthMm: spine,
+    widthMm: geometry.sheetWidthMm,
+    heightMm: geometry.sheetHeightMm,
+    spineWidthMm: geometry.spineWidthMm,
+    geometry,
     frontPhoto,
     title: source.trip.title,
     subtitle: volume.of > 1 ? fill(s.volume, { index: String(volume.index), of: String(volume.of) }) : source.trip.tagline,
@@ -2238,6 +2245,7 @@ export function planBook(
       .flatMap((d) => (d.kind === "photos" ? d.photos : []))
       .at(0);
 
+    const cover = coverFor(source, spec, materialised.length, meta, chosenCover ?? firstPhoto, s);
     return {
       index: meta.index,
       of: meta.of,
@@ -2247,8 +2255,8 @@ export function planBook(
           : source.trip.title,
       pages: materialised,
       interiorPages: materialised.length,
-      spineWidthMm: spineWidthMm(materialised.length, spec),
-      cover: coverFor(source, spec, materialised.length, meta, chosenCover ?? firstPhoto, s),
+      spineWidthMm: cover.spineWidthMm,
+      cover,
     };
   });
 
