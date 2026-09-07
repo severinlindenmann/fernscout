@@ -6,6 +6,7 @@ import { analyticsCardsFor } from "@/lib/analytics";
 import { serverSite } from "@/lib/site";
 import { listedUsernames } from "@/lib/users";
 import { defaultLocaleFor, localesFor } from "@/lib/locales";
+import { DOCS_PAGES } from "@/lib/docs";
 
 /**
  * Per request, for the same reason as feed.xml and search-index.json: a
@@ -36,6 +37,30 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }
     return map;
   };
+
+  /**
+   * The instance's own pages, ahead of anybody's journey — B879.
+   *
+   * Everything below this is somebody's trip, and until this block existed
+   * that was the whole sitemap: a crawler was offered eighty-four days and
+   * nothing that says what the software is. The list is `DOCS_PAGES` rather
+   * than a copy of it, because that constant is already what the hub and the
+   * inner nav render, so a page added there is a page this gains for free.
+   *
+   * `/agent` is deliberately absent: it sets `robots: { index: false }` of its
+   * own, since signed in it names the reader's journal. A sitemap entry for a
+   * page that asks not to be indexed is a sitemap that argues with itself.
+   */
+  out.push({ url: base, lastModified: new Date(), changeFrequency: "weekly", priority: 1 });
+  out.push({ url: `${base}/docs`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 });
+  for (const page of DOCS_PAGES) {
+    out.push({
+      url: `${base}${page.href}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    });
+  }
 
   // Per user, and only their public trips. Building this from getAllTrips()
   // would be one filter away from listing somebody else's private journal.

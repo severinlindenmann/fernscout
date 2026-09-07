@@ -56,7 +56,10 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: { canonical: url },
+    // The day's own source, one URL along from the page — B879. The twin
+    // exists for both of a day's paths (app/api/md/[user]/[...path]), and an
+    // agent handed the HTML had no way to learn that until this link.
+    alternates: { canonical: url, types: { "text/markdown": `${url}.md` } },
     openGraph: {
       type: "article",
       title: shared,
