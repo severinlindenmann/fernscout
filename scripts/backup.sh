@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 #
-# Nightly backup: the database (if any), $DATA_DIR and content/, pushed
-# off-VPS with restic. Run it from systemd on the VPS itself — see
-# deploy/fernscout-backup.{service,timer}. It calls the locally installed
-# Postgres dump and reads DATA_DIR/content straight off disk).
+# Nightly backup: an explicit allowlist of what this instance cannot recreate
+# on its own, pushed off-VPS with restic. Run it from systemd on the VPS
+# itself — see deploy/fernscout-backup.{service,timer}.
 #
 #   sudo systemctl start fernscout-backup      # one run, now
 #   systemctl status fernscout-backup          # how the LAST run ended
@@ -17,21 +16,71 @@
 #
 # See docs/runbook.md for the restore procedure and the timed restore drill.
 #
+# --- The backup set (W42, B653) ---------------------------------------------
+# An explicit allowlist, not "everything under DATA_DIR minus what somebody
+# remembered to subtract" — that shape grew by default: an npm cache and a
+# stray tarball were forty per cent of one night's snapshot, and two
+# root-owned files nobody needed made two more nights fail (B651). The layout
+# a snapshot holds is now fixed:
+#
+#   db/postgres.dump        the pg_dump, when DATABASE_URL is postgres://…
+#   db/fernscout.db         the SQLite file DATABASE_URL=sqlite:… points at
+#                            (lib/db/url.ts), plus its -wal/-shm sidecars if
+#                            present. Staged with `sqlite3 .backup` where that
+#                            binary is on PATH — a transactionally consistent
+#                            snapshot safe to take while the app keeps writing
+#                            — and with a plain file copy otherwise, which is
+#                            CRASH-CONSISTENT ONLY; see stage_sqlite below.
+#   content/                CONTENT_DIR, staged HERE regardless of where it
+#                            physically sits. On a deployment where CONTENT_DIR
+#                            is nested inside DATA_DIR this used to land at
+#                            data/content instead — that no longer happens,
+#                            because DATA_DIR itself is not staged wholesale
+#                            any more. Generated per-trip output
+#                            (content/<user>/postcards, .../photobooks) is
+#                            stripped back out after staging: the orders are
+#                            rows in the database and the photographs are
+#                            already in content/, so what is lost is a PDF
+#                            that can be produced again.
+#   config/config.json      $DATA_DIR/config.json
+#   state/<name>.json       every OTHER top-level *.json file under DATA_DIR
+#                            — the convention `lib/store.ts` writes to
+#                            (`readStore`/`updateStore`, `<name>.json` at the
+#                            root of DATA_DIR: reactions.json,
+#                            push-subscriptions.json today, and whatever the
+#                            next store calls itself). This is deliberately a
+#                            pattern rather than two hardcoded names, so a new
+#                            store lib/store.ts adds is backed up without this
+#                            script changing — see stage_json_stores below for
+#                            why that is still an allowlist and not a return
+#                            to subtraction.
+#   env/fernscout.env       $ENV_FILE (default /etc/fernscout/env), with
+#                            RESTIC_PASSWORD stripped — see step 6 below.
+#
+# Every top-level entry under DATA_DIR that is none of the above is named on
+# stdout as skipped, on every run — see "Say what else is under DATA_DIR"
+# below. That line is what makes it safe to grow this set by naming things
+# rather than by exception: a new directory that matters gets one line of
+# output per night until somebody adds it here.
+#
 # Required env (systemd reads it from /etc/fernscout/env via EnvironmentFile):
 #   RESTIC_REPOSITORY   e.g. s3:https://s3.eu-central-003.backblazeb2.com/fernscout-backups
 #   RESTIC_PASSWORD     encrypts the repo; losing it means losing the backups
-#   DATA_DIR            same directory the app writes to (reactions,
-#                        push subscriptions, and — once W06 lands — the
-#                        SQLite file at $DATA_DIR/fernscout.db)
+#   DATA_DIR            same directory the app writes to: config.json, the
+#                        sqlite file and its own JSON stores when that is the
+#                        dialect, and the two backup stamp files
 # Optional:
-#   DATABASE_URL         only dumped if it starts with postgres:// or
-#                         postgresql://; sqlite:… needs nothing extra, the
-#                         file already lives under DATA_DIR
+#   DATABASE_URL         postgres://… is dumped with pg_dump; sqlite:… is
+#                         staged from DATA_DIR/fernscout.db (see db/ above);
+#                         unset means no database dump at all, and the app's
+#                         state lives entirely in the JSON stores instead
 #   CONTENT_DIR           default: <repo>/content
+#   ENV_FILE              default: /etc/fernscout/env — staged as
+#                         env/fernscout.env, RESTIC_PASSWORD stripped
 #   BACKUP_KEEP_DAILY     default: 14 — passed to `restic forget --prune`
 #   BACKUP_INIT_IF_MISSING  default: 0. With 1, a missing repository is created
 #                         instead of refused. Off for the nightly timer on
-#                         purpose — see step 4.
+#                         purpose — see step 8.
 #   APP_DIR               default: the directory this script lives in, minus
 #                         /scripts
 #
@@ -41,13 +90,19 @@
 # and deploy/fernscout-alert@.service writes the matching .backup-last-failure.
 #
 # A file that cannot be read is *not* allowed to cost the night's backup, and
-# is *not* allowed to pass for a success either — see `stage_tree` below (B114).
+# is *not* allowed to pass for a success either — see `stage_tree` below
+# (B114). That machinery now only guards the paths this set actually claims:
+# an unreadable file under content/ still makes the run fail, exactly as
+# before. An unreadable stray anywhere else under DATA_DIR is simply not
+# staged at all — it is named in the skipped-entries log and has no bearing
+# on whether the run succeeds (B651).
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="${APP_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 CONTENT_DIR="${CONTENT_DIR:-$APP_DIR/content}"
+ENV_FILE="${ENV_FILE:-/etc/fernscout/env}"
 
 : "${DATA_DIR:?DATA_DIR must be set to the same directory the app writes to}"
 : "${RESTIC_REPOSITORY:?RESTIC_REPOSITORY must be set — see .env.example}"
@@ -88,7 +143,7 @@ log "staging in $STAGING_DIR"
 #      `OnFailure=` alert fires and /api/health reports `backup.state:
 #      "failing"`. The snapshot is still pushed first, and tagged `partial`.
 #
-# That is deliberately both halves. What is under DATA_DIR should all be
+# That is deliberately both halves. What this set claims should all be
 # readable (the runbook's ownership rule), so an unreadable file is an
 # operator error somebody has to fix and the run says so by failing — but it
 # says so *after* saving everything it could, not instead of.
@@ -113,7 +168,9 @@ unreadable_paths() (
 
 # is_inside <child> <ancestor> — true when <child> is <ancestor> or sits under
 # it. Both are resolved first, so a symlinked CONTENT_DIR is answered by where
-# it points rather than by how it was spelled.
+# it points rather than by how it was spelled. Used below only to keep the
+# skipped-entries log from naming CONTENT_DIR as skipped when it happens to
+# sit inside DATA_DIR — it is not skipped, it is staged as content/ by step 2.
 is_inside() {
   local child ancestor
   child="$(cd "$1" 2>/dev/null && pwd -P)" || return 1
@@ -204,11 +261,103 @@ stage_tree() {
   SKIPPED_TOTAL=$(( SKIPPED_TOTAL + missing ))
 }
 
+# stage_file <label> <source> <destination> — the single-file counterpart to
+# stage_tree, for the two files in the set that are not directories. Same two
+# outcomes as stage_tree, simplified because there is no tree to diff: absent
+# is only ever a WARNING (there was nothing to lose), unreadable counts toward
+# SKIPPED_TOTAL because — unlike a stray beside it — this file IS the set.
+stage_file() {
+  local label="$1" src="$2" dest="$3"
+  if [[ ! -e "$src" ]]; then
+    log "WARNING: $label ($src) does not exist"
+    return 0
+  fi
+  if [[ ! -r "$src" ]]; then
+    log "WARNING: $label ($src) could not be staged (not readable) and is NOT in tonight's snapshot"
+    SKIPPED_TOTAL=$(( SKIPPED_TOTAL + 1 ))
+    return 0
+  fi
+  mkdir -p "$(dirname "$dest")"
+  cp -a "$src" "$dest"
+}
+
+# stage_sqlite <source> <destination> — the SQLite file backing
+# DATABASE_URL=sqlite:… (lib/db/url.ts). Absent and unreadable behave exactly
+# like stage_file; what is different is *how* a readable one is copied.
+#
+# A plain `cp` of a live database can catch a write mid-flight and restore as
+# silent corruption that opens fine and reads wrong — the database equivalent
+# of the torn photograph B114 already guards content/ against, except here
+# nothing would even flag it as partial. `sqlite3 "$src" ".backup '$dest'"`
+# uses SQLite's own online-backup API — the same one an embedding library like
+# better-sqlite3 (`lib/db/client.ts`) would call internally — which takes a
+# transactionally consistent snapshot without needing to stop the app.
+# `better-sqlite3` itself is a Node module, not a binary this shell script
+# could invoke, so `sqlite3` on PATH is the one thing actually checked.
+#
+# Without it, the fallback is `cp` plus the `-wal`/`-shm` sidecars — WAL mode
+# is what `lib/db/client.ts` turns on for every sqlite file, so a fresh write
+# often lives in `-wal` rather than in the main file yet. Copying all three
+# gives SQLite enough to replay the WAL on open and recover a clean crash, but
+# that is CRASH-CONSISTENT, not the transactional guarantee `.backup` gives —
+# said here and on stdout, not left to look equivalent.
+stage_sqlite() {
+  local src="$1" dest="$2"
+  if [[ ! -e "$src" ]]; then
+    return 0   # not this deployment's dialect (or no DB at all) — nothing to warn about
+  fi
+  if [[ ! -r "$src" ]]; then
+    log "WARNING: sqlite database ($src) could not be staged (not readable) and is NOT in tonight's snapshot"
+    SKIPPED_TOTAL=$(( SKIPPED_TOTAL + 1 ))
+    return 0
+  fi
+  mkdir -p "$(dirname "$dest")"
+  if command -v sqlite3 >/dev/null 2>&1; then
+    if sqlite3 "$src" ".backup '$dest'"; then
+      log "staged sqlite database ($src) as db/fernscout.db via 'sqlite3 .backup' — transactionally consistent, safe to take while the app keeps writing"
+      return 0
+    fi
+    log "WARNING: 'sqlite3 .backup' failed on $src — falling back to a plain file copy"
+  else
+    log "WARNING: sqlite3 is not installed on this host — staging $src with a plain file copy instead of SQLite's own online-backup API"
+  fi
+  log "WARNING: this copy of $src is CRASH-CONSISTENT ONLY, not transactionally clean: a write landing mid-copy can be split between the main file and its -wal sidecar. SQLite replays the WAL on open, which recovers a clean crash, but that is not the guarantee 'sqlite3 .backup' gives. Install sqlite3 on this host to get it."
+  cp -a "$src" "$dest"
+  local sidecar
+  for sidecar in -wal -shm; do
+    if [[ -e "${src}${sidecar}" ]]; then
+      cp -a "${src}${sidecar}" "${dest}${sidecar}"
+    fi
+  done
+}
+
+# stage_json_stores <data_dir> <destination_dir> — every top-level *.json file
+# under DATA_DIR except config.json, which step 3 already claims. This is the
+# whole of lib/store.ts's own convention (`readStore`/`updateStore` write
+# `<dataDir>/<name>.json` and nowhere else), so the pattern — not two
+# hardcoded filenames — is what keeps this an allowlist: a new store the app
+# starts writing tomorrow is picked up here without this script changing,
+# at the cost of also picking up an unrelated *.json a person drops in
+# DATA_DIR by hand. Between "a new store silently missing from every backup"
+# and "an unrelated file backed up by mistake", this takes the second.
+stage_json_stores() {
+  local data_dir="$1" dest_dir="$2"
+  [[ -d "$data_dir" ]] || return 0
+  shopt -s nullglob
+  local f name
+  for f in "$data_dir"/*.json; do
+    name="${f##*/}"
+    if [[ "$name" == "config.json" ]]; then continue; fi
+    stage_file "state/$name" "$f" "$dest_dir/$name"
+  done
+  shopt -u nullglob
+}
+
 # --- 1. Database dump, if this deployment has one -------------------------
 # The prototype tier (docs/ROADMAP.md §2.2) has no DATABASE_URL and Postgres is
 # not even installed — that's not a failure, there is simply nothing to dump.
-# The sqlite:… dialect needs no separate dump either: the file lives at
-# $DATA_DIR/fernscout.db and is picked up by step 2 below.
+# The sqlite:… dialect needs no pg_dump either: step 2 below stages the file
+# itself, from $DATA_DIR/fernscout.db.
 if [[ "${DATABASE_URL:-}" == postgres://* || "${DATABASE_URL:-}" == postgresql://* ]]; then
   log "dumping Postgres with the local pg_dump"
   mkdir -p "$STAGING_DIR/db"
@@ -220,47 +369,100 @@ if [[ "${DATABASE_URL:-}" == postgres://* || "${DATABASE_URL:-}" == postgresql:/
   fi
   log "dump written: $(du -h "$STAGING_DIR/db/postgres.dump" | cut -f1)"
 else
-  log "no Postgres DATABASE_URL set — skipping DB dump (sqlite, if any, is under DATA_DIR)"
+  log "no Postgres DATABASE_URL set — skipping pg_dump (sqlite, if any, is staged next)"
 fi
 
-# --- 2. DATA_DIR (reactions, push subscriptions, sqlite file) -------------
-if [[ -d "$DATA_DIR" ]]; then
-  log "staging DATA_DIR ($DATA_DIR)"
-  stage_tree "DATA_DIR" "$DATA_DIR" "$STAGING_DIR/data"
-  # Sent mail (B636) lives under DATA_DIR/mail so the sweep in lib/mail keeps
-  # owning it, but it is transient, plaintext, sign-in-code-carrying content
-  # that must never leave the box — so it is staged and then dropped, rather
-  # than pushed off-site and kept for BACKUP_KEEP_DAILY generations.
-  rm -rf "$STAGING_DIR/data/mail"
-else
-  log "WARNING: DATA_DIR ($DATA_DIR) does not exist — nothing to back up there yet"
-fi
+# --- 2. The SQLite file, if this deployment uses that dialect --------------
+stage_sqlite "$DATA_DIR/fernscout.db" "$STAGING_DIR/db/fernscout.db"
 
 # --- 3. content/ (the canonical, git-tracked trip data) --------------------
 # Backed up anyway even though it's in git: an uncommitted edit made straight
 # on the VPS (or media that was rsynced but never committed, see ROADMAP A9)
 # is exactly the kind of state a "just re-clone the repo" recovery
-# would silently lose.
+# would silently lose — and `content/originals` exists nowhere else at all.
 #
-# Unless it is already in the DATA_DIR stage. This deployment sets
-# CONTENT_DIR=/var/lib/fernscout/content with DATA_DIR=/var/lib/fernscout, so
-# step 2 has just copied the whole tree — staging it again cost ~320 MiB of
-# disk and the time to write it, and counted every unreadable path twice, which
-# is how B401's two files were reported as "4 path(s) missing" (B444). The
-# separate stage still matters for the un-nested layout .env.example gives,
-# where CONTENT_DIR is the git checkout and DATA_DIR is somewhere else.
+# Always staged at content/, whatever CONTENT_DIR's actual path is. Older
+# runs skipped this stage when CONTENT_DIR was nested inside DATA_DIR, to
+# avoid staging the same bytes twice under data/ (B444) — that reason is gone
+# now that DATA_DIR is not staged wholesale, so there is nothing left to double
+# up against.
 if [[ ! -d "$CONTENT_DIR" ]]; then
   log "WARNING: content dir ($CONTENT_DIR) does not exist"
-elif [[ -d "$DATA_DIR" ]] && is_inside "$CONTENT_DIR" "$DATA_DIR"; then
-  # Said out loud every night: an operator reading this log must not conclude
-  # the journals are missing from the snapshot. They are, under data/.
-  log "content/ ($CONTENT_DIR) is inside DATA_DIR — already staged at data/, not copying it twice"
 else
   log "staging content/ ($CONTENT_DIR)"
   stage_tree "content/" "$CONTENT_DIR" "$STAGING_DIR/content"
+  # Generated per-trip output, stripped back out after staging rather than
+  # never staged in the first place: the two directories are nested at
+  # content/<user>/postcards and content/<user>/photobooks, inside the tree
+  # stage_tree just copied wholesale, not a top-level entry a bigger allowlist
+  # could leave out for free. The orders live in the database and the
+  # photographs are already in content/, so what is lost here is a PDF that
+  # can be produced again.
+  find "$STAGING_DIR/content" -mindepth 2 -maxdepth 2 -type d \( -name postcards -o -name photobooks \) -exec rm -rf {} +
 fi
 
-# --- 4. Push to off-VPS storage with restic --------------------------------
+# --- 4. config/config.json --------------------------------------------------
+stage_file "config.json" "$DATA_DIR/config.json" "$STAGING_DIR/config/config.json"
+
+# --- 5. state/*.json (every other top-level JSON file lib/store.ts owns) ----
+stage_json_stores "$DATA_DIR" "$STAGING_DIR/state"
+
+# --- 6. env/fernscout.env, minus the key to this backup ---------------------
+# Everything needed to rebuild the service travels — DATABASE_URL, SMTP
+# credentials, VAPID keys, FERNSCOUT_ADMIN_EMAIL, the object-storage
+# credentials for RESTIC_REPOSITORY itself — except RESTIC_PASSWORD. A backup
+# that carries the password which decrypts it is no use to somebody holding
+# only the backup, and is a wider blast radius if the repository leaks; that
+# one secret is the operator's to keep elsewhere (docs/runbook.md).
+#
+# `grep -v '^RESTIC_PASSWORD='`, not a substring match: the file is one
+# KEY=value per line, and anchoring on the whole `KEY=` prefix is what stops
+# this from also eating a comment that merely mentions the name, or a
+# neighbouring variable whose value happens to contain the string. A
+# multi-line value would need more care than this — nothing here writes one.
+if [[ ! -e "$ENV_FILE" ]]; then
+  log "WARNING: env file ($ENV_FILE) does not exist — a restore from tonight's snapshot would have no environment to start the service with"
+elif [[ ! -r "$ENV_FILE" ]]; then
+  log "WARNING: env file ($ENV_FILE) could not be staged (not readable) and is NOT in tonight's snapshot"
+  SKIPPED_TOTAL=$(( SKIPPED_TOTAL + 1 ))
+else
+  mkdir -p "$STAGING_DIR/env"
+  grep -v '^RESTIC_PASSWORD=' "$ENV_FILE" > "$STAGING_DIR/env/fernscout.env" || true
+  log "staged env file ($ENV_FILE) as env/fernscout.env, RESTIC_PASSWORD stripped"
+fi
+
+# --- 7. Say what else is under DATA_DIR, and is not in this backup ---------
+# The allowlist's own safeguard (W42): the failure mode it trades for is a
+# new directory joining DATA_DIR and being silently left out, and this is the
+# one place that catches it. One line per entry, every run, until somebody
+# either adds the entry above or decides out loud that it never belonged.
+#
+# Four kinds of entry are claimed elsewhere and must not also be named here:
+# config.json (step 4), every other top-level *.json file (step 5 — the whole
+# point of stage_json_stores is that this check does not need their names),
+# fernscout.db and its -wal/-shm sidecars (step 2), and CONTENT_DIR itself
+# when it happens to sit inside DATA_DIR (step 3).
+if [[ -d "$DATA_DIR" ]]; then
+  shopt -s nullglob dotglob
+  for entry in "$DATA_DIR"/*; do
+    entry_name="${entry##*/}"
+    case "$entry_name" in
+      *.json) continue ;;
+      fernscout.db|fernscout.db-wal|fernscout.db-shm) continue ;;
+    esac
+    if [[ -d "$CONTENT_DIR" ]] && is_inside "$CONTENT_DIR" "$entry"; then continue; fi
+    if [[ -d "$entry" ]]; then
+      log "skipped $entry_name/ (not in the backup set)"
+    else
+      log "skipped $entry_name (not in the backup set)"
+    fi
+  done
+  shopt -u nullglob dotglob
+else
+  log "WARNING: DATA_DIR ($DATA_DIR) does not exist — nothing to check it against the backup set"
+fi
+
+# --- 8. Push to off-VPS storage with restic --------------------------------
 #
 # The probe, and why it is this careful (B63).
 #
@@ -410,7 +612,7 @@ restic backup "$STAGING_DIR" \
 log "pruning snapshots older than ${BACKUP_KEEP_DAILY} daily generations"
 restic forget --tag fernscout --keep-daily "$BACKUP_KEEP_DAILY" --prune
 
-# --- 4b. Does this repository hold what somebody thinks it holds? ----------
+# --- 8b. Does this repository hold what somebody thinks it holds? ----------
 # The probe above catches a path that is empty. It cannot catch a path that
 # happens to hold a *different* repository the credentials can read — an old
 # one, a neighbouring prefix in the same bucket — which reads as `present` and
@@ -430,7 +632,7 @@ if [[ -n "$snapshot_count" ]]; then
   fi
 fi
 
-# --- 4c. Did everything actually get in? -----------------------------------
+# --- 8c. Did everything actually get in? -----------------------------------
 # Everything that could be saved is now off-site, which is the whole reason
 # staging tolerates an unreadable file rather than aborting on one. What must
 # not follow is a green light: a snapshot missing paths is not the backup
@@ -438,11 +640,11 @@ fi
 if (( SKIPPED_TOTAL > 0 )); then
   log "ERROR: the snapshot was pushed, but $SKIPPED_TOTAL path(s) are missing from it — the WARNING lines above name every one."
   log "ERROR: not recording this run as a success: no .backup-last-success stamp, and a non-zero exit so the unit's OnFailure= alert fires and /api/health reports backup.state=failing."
-  log "ERROR: everything under DATA_DIR and content/ must be readable by the user this unit runs as (usually 'fernscout'). Fix the ownership on the paths above and re-run."
+  log "ERROR: content/, config.json, the sqlite database, the JSON stores and the env file must all be readable by the user this unit runs as (usually 'fernscout'). Fix the ownership on the paths above and re-run."
   exit 1
 fi
 
-# --- 5. Record that it worked ----------------------------------------------
+# --- 9. Record that it worked ----------------------------------------------
 # The last line of a successful run, deliberately: everything above it can
 # still exit non-zero, and a stamp written early would say a backup succeeded
 # that never pushed a snapshot. Written to DATA_DIR because that is the one

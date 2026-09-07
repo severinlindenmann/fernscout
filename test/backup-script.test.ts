@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
+import Database from "better-sqlite3";
 import { POSTGRES_HOWTO, freshDatabase, postgresConfigured } from "./support/dialects";
 import { TABLE_NAMES, parseDatabaseUrl } from "@/lib/db";
 import { announceSkip } from "./support/announce";
@@ -14,9 +15,17 @@ import { announceSkip } from "./support/announce";
  *
  * This is the automatable half of B21. What it covers:
  *
- *   - staging `DATA_DIR` and `content/`, pushing a snapshot, and restoring it
- *     into a scratch directory byte-for-byte (including a file that exists in
+ *   - staging exactly the allowlist — `content/`, `config/config.json`,
+ *     `env/fernscout.env` — pushing a snapshot, and restoring it into a
+ *     scratch directory byte-for-byte (including a file that exists in
  *     neither git nor the journal export: an `originals/` photograph);
+ *   - since B653, that the set is an allowlist and not "everything under
+ *     DATA_DIR minus what somebody remembered to subtract": an npm cache, a
+ *     stray tarball and the app's own JSON state under DATA_DIR are all named
+ *     on stdout as skipped rather than silently included, RESTIC_PASSWORD
+ *     never survives staging the env file, and generated per-trip output
+ *     (`postcards/`, `photobooks/`) nested inside content/ is stripped back
+ *     out even though the stage that copies it is wholesale;
  *   - the restore path the runbook actually documents — the snapshot keeps the
  *     staging directory's absolute path, so `docs/runbook.md` step 2
  *     locates it by name;
@@ -29,10 +38,12 @@ import { announceSkip } from "./support/announce";
  *   - and, since B63, the repository probe: the two shapes of "no repository
  *     here" — *absent*, and *cannot see it* — must not be confused, because
  *     one may create a repository and the other must never be allowed to;
- *   - and, since B114, a `DATA_DIR` with something unreadable in it: the run
+ *   - and, since B114, a `content/` with something unreadable in it: the run
  *     stages what it can, names what it could not, and refuses to call that a
  *     success — one stray file may cost neither the night's backup nor the
- *     truth about it;
+ *     truth about it. Since B653 that machinery only guards the paths the
+ *     allowlist claims: an unreadable stray *beside* config.json no longer
+ *     makes the run partial, because it is never staged at all (B651);
  *   - and, since B115, the bound on that probe: a repository that does not
  *     answer must give up in seconds and read as *unreachable*, never as
  *     absent. B180 made that case run on a machine with no coreutils, by
@@ -63,6 +74,7 @@ function haveBinary(bin: string, args: string[] = ["--version"]): boolean {
 const RESTIC = haveBinary("restic", ["version"]);
 const PG_DUMP = haveBinary("pg_dump");
 const PG_RESTORE = haveBinary("pg_restore");
+const SQLITE3 = haveBinary("sqlite3");
 const IS_ROOT = typeof process.getuid === "function" && process.getuid() === 0;
 // B115. `timeout` is coreutils: on the VPS, and not on macOS without
 // `brew install coreutils`. The script falls back to an unwrapped probe when
@@ -176,13 +188,14 @@ function digestTree(dir: string, skip: (rel: string) => boolean = () => false): 
   return out;
 }
 
-/** The B64 stamp files, which live in `DATA_DIR` and are therefore inside the
- * snapshot — but are written *after* it, so a snapshot always carries the
- * previous run's stamp and can never equal the live directory. That is correct
- * (a stamp written before the push would claim a backup that never happened),
- * and it is why the round-trip comparison skips them rather than chasing the
- * timestamps. */
-const isStamp = (rel: string) => rel === ".backup-last-success" || rel === ".backup-last-failure";
+/** The two generated-output directories the backup set strips out of
+ * content/<user>/ (postcards, photobooks) — excluded here too, so comparing
+ * the source content tree against the staged one is not comparing apples to
+ * a smaller pile of apples. */
+const isGeneratedOutput = (rel: string) => {
+  const parts = rel.split(path.sep);
+  return parts.length >= 2 && (parts[1] === "postcards" || parts[1] === "photobooks");
+};
 
 describe.runIf(RESTIC)("scripts/backup.sh", () => {
   let scratch: string;
@@ -192,6 +205,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
   let staging: string;
   let stubBin: string;
   let shimBin: string;
+  let envFile: string;
 
   const PASSWORD = "backup-drill-password";
 
@@ -210,6 +224,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     // script down the Postgres branch in tests that are not about it.
     const inherited: NodeJS.ProcessEnv = { ...process.env };
     delete inherited.DATABASE_URL;
+    delete inherited.ENV_FILE;
     const env: NodeJS.ProcessEnv = {
       ...inherited,
       DATA_DIR: dataDir,
@@ -217,6 +232,8 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
       RESTIC_REPOSITORY: repo,
       RESTIC_PASSWORD: PASSWORD,
       BACKUP_STAGING_DIR: staging,
+      // Never the real /etc/fernscout/env — a fixture, always overridable.
+      ENV_FILE: envFile,
       ...extra,
     };
     const result = spawnSync("bash", [BACKUP_SH], { encoding: "utf8", env });
@@ -337,6 +354,28 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     return { PATH: dir };
   }
 
+  /**
+   * A PATH holding what `scripts/backup.sh` needs and **no `sqlite3`**, so
+   * `stage_sqlite`'s fallback branch runs for the real reason on any machine,
+   * whether or not this one happens to have `sqlite3` installed. `timeout` (or
+   * `gtimeout`) is included where present, so this is a test of the sqlite
+   * fallback alone and not also, incidentally, of the unbounded probe.
+   */
+  function withoutSqlite3(): Record<string, string> {
+    const dir = path.join(scratch, "no-sqlite3-bin");
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+      for (const bin of [...BACKUP_NEEDS, "timeout", "gtimeout"]) {
+        const found = spawnSync("sh", ["-c", `command -v ${bin}`], { encoding: "utf8" });
+        const resolved = (found.stdout ?? "").trim();
+        if (!resolved) continue; // timeout/gtimeout may genuinely be absent — not this test's concern
+        fs.symlinkSync(resolved, path.join(dir, bin));
+      }
+      expect(fs.existsSync(path.join(dir, "sqlite3")), "the pruned PATH is the whole point").toBe(false);
+    }
+    return { PATH: dir };
+  }
+
   beforeAll(() => {
     scratch = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-backup-"));
     dataDir = path.join(scratch, "data");
@@ -352,26 +391,40 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     fs.mkdirSync(shimBin, { recursive: true });
     fs.writeFileSync(path.join(shimBin, "timeout"), TIMEOUT_SHIM, { mode: 0o755 });
 
-    // DATA_DIR: what the app writes — reaction state, a push subscription, and
-    // the SQLite file, which is binary and must survive as bytes.
+    // DATA_DIR. Four things are claimed by the allowlist and must survive:
+    // config.json, the two JSON stores lib/store.ts writes at the top level
+    // (reactions.json, and a differently-named one to prove the rule is a
+    // pattern and not two hardcoded filenames), and the sqlite file a
+    // sqlite:… deployment keeps here. Everything else — sent mail (B636), an
+    // npm cache, a stray tarball — is NOT in the set (B653), and exists only
+    // to prove the skipped-entries log names it and the run does not choke
+    // on it.
     fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(path.join(dataDir, "config.json"), JSON.stringify({ title: "Alex's journal" }));
     fs.writeFileSync(
       path.join(dataDir, "reactions.json"),
       JSON.stringify({ "alex/kyrgyzstan-2026": { "2026-06-01-over-the-pass": { heart: 7 } } }),
     );
-    fs.writeFileSync(
-      path.join(dataDir, "push-subscriptions.json"),
-      JSON.stringify([{ endpoint: "https://example.invalid/push/abc", keys: { p256dh: "k", auth: "a" } }]),
-    );
-    fs.writeFileSync(path.join(dataDir, "fernscout.db"), crypto.randomBytes(4096));
+    fs.writeFileSync(path.join(dataDir, "custom-store.json"), JSON.stringify({ note: "a store lib/store.ts adds later" }));
 
-    // Sent mail (B636) lives under DATA_DIR/mail — plaintext, sign-in codes
-    // and deletion links among it — and must never reach a snapshot.
+    // A real database, the same way lib/db/client.ts makes one — WAL mode
+    // included — not a bag of random bytes standing in for one. `sqlite3
+    // .backup` and better-sqlite3's own reader both have opinions about the
+    // file being an actual database.
+    const seedDb = new Database(path.join(dataDir, "fernscout.db"));
+    seedDb.pragma("journal_mode = WAL");
+    seedDb.exec("CREATE TABLE demo (id INTEGER PRIMARY KEY, note TEXT)");
+    seedDb.prepare("INSERT INTO demo (note) VALUES (?)").run("seeded for the backup round trip");
+    seedDb.close();
+
     fs.mkdirSync(path.join(dataDir, "mail", "alex"), { recursive: true });
     fs.writeFileSync(
       path.join(dataDir, "mail", "alex", "2026-06-01T00-00-00-000Z-code.eml"),
       "To: alex@example.test\r\nSubject: Your code\r\n\r\n123456\r\n",
     );
+    fs.mkdirSync(path.join(dataDir, "home", ".npm"), { recursive: true });
+    fs.writeFileSync(path.join(dataDir, "home", ".npm", "cache-entry"), "not the app's data\n");
+    fs.writeFileSync(path.join(dataDir, "example-before-b325.tgz"), "not the app's data either\n");
 
     // content/: an uncommitted edit, and an original that is in neither git nor
     // the export — the two things "just re-clone the repo" would silently lose.
@@ -381,6 +434,27 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     fs.writeFileSync(path.join(trip, "trip.md"), "---\ntitle: Kyrgyzstan\n---\n\nedited on the box, never committed\n");
     fs.writeFileSync(path.join(trip, "entries", "2026-06-01-over-the-pass.md"), "---\ndate: 2026-06-01\n---\n\nUp early.\n");
     fs.writeFileSync(path.join(trip, "originals", "DSCF1234.RAF"), crypto.randomBytes(64 * 1024));
+
+    // Generated per-trip output (postcards/, photobooks/), nested inside
+    // content/<user>/ — must never leave the staged tree even though the
+    // stage is a wholesale copy of CONTENT_DIR. The orders are rows in the
+    // database; only the PDF would be lost, and it can be produced again.
+    const userDir = path.join(contentDir, "alex");
+    fs.mkdirSync(path.join(userDir, "postcards", "order-1"), { recursive: true });
+    fs.writeFileSync(path.join(userDir, "postcards", "order-1", "front.jpg"), crypto.randomBytes(1024));
+    fs.mkdirSync(path.join(userDir, "photobooks", "order-2"), { recursive: true });
+    fs.writeFileSync(path.join(userDir, "photobooks", "order-2", "book.pdf"), crypto.randomBytes(1024));
+
+    // /etc/fernscout/env, as a fixture the test points ENV_FILE at rather than
+    // ever reading the real file. One variable a restored service would need,
+    // and RESTIC_PASSWORD, which must never survive staging.
+    envFile = path.join(scratch, "fake-fernscout-env");
+    fs.writeFileSync(
+      envFile,
+      ["DATABASE_URL=postgres://fernscout@127.0.0.1:5432/fernscout", "RESTIC_PASSWORD=do-not-back-this-up", "SMTP_HOST=mail.example.invalid", ""].join(
+        "\n",
+      ),
+    );
 
     // Initialised by hand, once, before anything runs — which is exactly what
     // the runbook now tells an operator to do. Since B63 the script refuses to
@@ -394,7 +468,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
   });
 
   test(
-    "backs up DATA_DIR and content/, and restores them byte-identical",
+    "backs up exactly the allowlist — content/, config/config.json, state/*.json, db/fernscout.db, env/fernscout.env",
     () => {
       const run = runBackup();
       expect(run.stderr + run.stdout).toContain("done");
@@ -403,15 +477,13 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
 
       const staged = restoreLatest("roundtrip");
 
-      // B636: DATA_DIR/mail is staged (so the sweep still owns it) and then
-      // dropped before the push, so the source and the restored tree
-      // legitimately differ by exactly that subtree.
-      const isStampOrMail = (rel: string) => isStamp(rel) || rel === "mail" || rel.startsWith(`mail${path.sep}`);
-      expect(digestTree(path.join(staged, "data"), isStampOrMail)).toEqual(
-        digestTree(dataDir, isStampOrMail),
+      // The whole point of the allowlist: nothing under DATA_DIR arrives
+      // except what is named above. No data/ directory at all any more.
+      expect(fs.existsSync(path.join(staged, "data"))).toBe(false);
+
+      expect(digestTree(path.join(staged, "content"), isGeneratedOutput)).toEqual(
+        digestTree(contentDir, isGeneratedOutput),
       );
-      expect(fs.existsSync(path.join(staged, "data", "mail"))).toBe(false);
-      expect(digestTree(path.join(staged, "content"))).toEqual(digestTree(contentDir));
 
       // Named explicitly, because these are the acceptance criteria in B21 and
       // an equality assertion over a tree is easy to satisfy with two empty
@@ -424,9 +496,39 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
       expect(fs.readFileSync(path.join(restoredContent, trip, "originals", "DSCF1234.RAF"))).toEqual(
         fs.readFileSync(path.join(contentDir, trip, "originals", "DSCF1234.RAF")),
       );
-      expect(JSON.parse(fs.readFileSync(path.join(staged, "data", "reactions.json"), "utf8"))).toEqual({
+
+      expect(JSON.parse(fs.readFileSync(path.join(staged, "config", "config.json"), "utf8"))).toEqual({
+        title: "Alex's journal",
+      });
+
+      // The two JSON stores, staged by pattern rather than by name — proof
+      // that a store lib/store.ts adds later (custom-store.json here, standing
+      // in for one that does not exist yet) is backed up without this script
+      // knowing its name in advance.
+      expect(JSON.parse(fs.readFileSync(path.join(staged, "state", "reactions.json"), "utf8"))).toEqual({
         "alex/kyrgyzstan-2026": { "2026-06-01-over-the-pass": { heart: 7 } },
       });
+      expect(JSON.parse(fs.readFileSync(path.join(staged, "state", "custom-store.json"), "utf8"))).toEqual({
+        note: "a store lib/store.ts adds later",
+      });
+
+      // The sqlite database, staged as db/fernscout.db — openable and holding
+      // the row seeded above, not merely a file of the right name.
+      const restoredDb = new Database(path.join(staged, "db", "fernscout.db"), { readonly: true });
+      try {
+        expect(restoredDb.prepare("SELECT note FROM demo").get()).toEqual({
+          note: "seeded for the backup round trip",
+        });
+      } finally {
+        restoredDb.close();
+      }
+      if (SQLITE3) {
+        expect(run.stdout).toContain("via 'sqlite3 .backup' — transactionally consistent");
+      }
+
+      const stagedEnv = fs.readFileSync(path.join(staged, "env", "fernscout.env"), "utf8");
+      expect(stagedEnv).toContain("SMTP_HOST=mail.example.invalid");
+      expect(stagedEnv).not.toContain("RESTIC_PASSWORD");
 
       // The staging directory is scratch, not state: the script's EXIT trap
       // clears it, or the next run's `rm -rf` would be doing it blind.
@@ -436,11 +538,78 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
   );
 
   test(
+    "without sqlite3 on PATH, the database falls back to a plain copy that carries its -wal/-shm sidecars, and says plainly this is crash-consistent only",
+    () => {
+      // A dedicated DATA_DIR: the shared fixture's fernscout.db is a real
+      // database seeded for the primary round-trip test, and asserting the
+      // fallback log lines against it would depend on whether this machine
+      // happens to have sqlite3 — the whole point of withoutSqlite3() is that
+      // this test does not.
+      const nestedData = fs.mkdtempSync(path.join(scratch, "sqlite-fallback-"));
+      const dbPath = path.join(nestedData, "fernscout.db");
+      fs.writeFileSync(dbPath, "not really sqlite, just bytes to copy\n");
+      fs.writeFileSync(`${dbPath}-wal`, "wal frames not yet checkpointed\n");
+      fs.writeFileSync(`${dbPath}-shm`, "shared-memory index\n");
+      fs.writeFileSync(path.join(nestedData, "config.json"), "{}\n");
+
+      const run = runBackup({ DATA_DIR: nestedData, ...withoutSqlite3() });
+      expect(run.status, run.stdout + run.stderr).toBe(0);
+      expect(run.stdout).toContain("sqlite3 is not installed on this host");
+      expect(run.stdout).toContain("CRASH-CONSISTENT ONLY");
+
+      const staged = restoreLatest("sqlite-fallback");
+      expect(fs.readFileSync(path.join(staged, "db", "fernscout.db"), "utf8")).toBe(
+        "not really sqlite, just bytes to copy\n",
+      );
+      expect(fs.readFileSync(path.join(staged, "db", "fernscout.db-wal"), "utf8")).toBe(
+        "wal frames not yet checkpointed\n",
+      );
+      expect(fs.readFileSync(path.join(staged, "db", "fernscout.db-shm"), "utf8")).toBe("shared-memory index\n");
+    },
+    180_000,
+  );
+
+  test(
+    "generated postcards/ and photobooks/ nested under content/ never reach the snapshot",
+    () => {
+      const run = runBackup();
+      expect(run.status).toBe(0);
+
+      const staged = restoreLatest("no-generated-output");
+      expect(fs.existsSync(path.join(staged, "content", "alex", "postcards"))).toBe(false);
+      expect(fs.existsSync(path.join(staged, "content", "alex", "photobooks"))).toBe(false);
+      // Its sibling, the real payload, must still be there — this is an
+      // exclusion of two named directories, not of everything beside them.
+      expect(fs.existsSync(path.join(staged, "content", "alex", "trips", "kyrgyzstan-2026", "trip.md"))).toBe(true);
+    },
+    180_000,
+  );
+
+  test(
+    "everything under DATA_DIR that is not claimed by the allowlist is named as skipped",
+    () => {
+      const run = runBackup();
+      expect(run.status).toBe(0);
+
+      expect(run.stdout).toContain("skipped home/ (not in the backup set)");
+      expect(run.stdout).toContain("skipped example-before-b325.tgz (not in the backup set)");
+      expect(run.stdout).toContain("skipped mail/ (not in the backup set)");
+      // The four things the allowlist actually claims must never appear here
+      // — the log would be lying about its own set otherwise.
+      expect(run.stdout).not.toContain("skipped config.json");
+      expect(run.stdout).not.toContain("skipped reactions.json");
+      expect(run.stdout).not.toContain("skipped custom-store.json");
+      expect(run.stdout).not.toContain("skipped fernscout.db");
+    },
+    180_000,
+  );
+
+  test(
     "no DATABASE_URL is not a failure — the prototype tier has no database",
     () => {
       const run = runBackup();
       expect(run.status).toBe(0);
-      expect(run.stdout).toContain("skipping DB dump");
+      expect(run.stdout).toContain("skipping pg_dump");
     },
     180_000,
   );
@@ -973,17 +1142,17 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
   // chmod is advisory to root: as root every file reads, so the case cannot be
   // set up at all. Same guard, same reason, as the unwritable-repository test.
   test.skipIf(IS_ROOT)(
-    "one unreadable file under DATA_DIR is named and skipped, not allowed to abort the run",
+    "one unreadable file under content/ is named and skipped, not allowed to abort the run",
     () => {
       // A clean run first, so there is a success stamp for the partial run to
       // be caught leaving alone.
       expect(runBackup().status).toBe(0);
       const stampBefore = readStamp(successStamp());
       expect(stampBefore).not.toBeNull();
-      // The shape found on the live server on 2026-09-01: a root-owned stray
-      // an operator left in DATA_DIR. `cp -a` under `set -e` used to stop the
-      // whole run here, before anything had been pushed.
-      const stray = path.join(dataDir, "root-owned-stray.txt");
+      // The shape B114 exists for, now under the one tree the set actually
+      // stages: a root-owned stray under content/. `cp -a` under `set -e`
+      // used to stop the whole run here, before anything had been pushed.
+      const stray = path.join(contentDir, "root-owned-stray.txt");
       fs.writeFileSync(stray, "left behind by an operator\n");
       fs.chmodSync(stray, 0o000);
 
@@ -1000,7 +1169,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
         // 2. The offending path is named. Before this it was not: the run died
         //    on cp's stderr and the journal never said which file.
         expect(run.stdout).toContain(stray);
-        expect(run.stdout).toContain("1 path(s) under DATA_DIR could not be staged");
+        expect(run.stdout).toContain("1 path(s) under content/ could not be staged");
 
         // 3. And it is not a success. Skipping is tolerated, being told it was
         //    fine is not: non-zero exit so the unit's OnFailure= alert fires,
@@ -1012,9 +1181,8 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
         // 4. Everything readable is in that snapshot — a partial backup that
         //    quietly dropped its neighbours would be no better than none.
         const staged = restoreLatest("partial");
-        expect(fs.existsSync(path.join(staged, "data", "reactions.json"))).toBe(true);
-        expect(fs.existsSync(path.join(staged, "data", "fernscout.db"))).toBe(true);
-        expect(fs.existsSync(path.join(staged, "data", "root-owned-stray.txt"))).toBe(false);
+        expect(fs.existsSync(path.join(staged, "config", "config.json"))).toBe(true);
+        expect(fs.existsSync(path.join(staged, "content", "root-owned-stray.txt"))).toBe(false);
         expect(
           fs.existsSync(path.join(staged, "content", "alex", "trips", "kyrgyzstan-2026", "originals", "DSCF1234.RAF")),
         ).toBe(true);
@@ -1027,13 +1195,42 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
   );
 
   test.skipIf(IS_ROOT)(
-    "an unreadable directory is named too, rather than staged as an empty one",
+    "an unreadable file beside config.json does NOT make the run partial (B651)",
+    () => {
+      // The exact shape of B651: two root-owned `config.json.bak` files
+      // nobody needed made two nights fail. Under the allowlist that stray
+      // is simply not staged at all — it is not config.json, so it is never
+      // looked at, and it shows up only in the skipped-entries log.
+      const stray = path.join(dataDir, "config.json.bak-b365");
+      fs.writeFileSync(stray, "{}\n");
+      fs.chmodSync(stray, 0o000);
+
+      try {
+        const run = runBackup();
+
+        expect(run.status, run.stdout + run.stderr).toBe(0);
+        expect(run.stdout).not.toContain("could not be staged");
+        expect(run.stdout).not.toContain("will be tagged 'partial'");
+        expect(run.stdout).toContain("skipped config.json.bak-b365 (not in the backup set)");
+
+        const staged = restoreLatest("stray-beside-config");
+        expect(fs.existsSync(path.join(staged, "config", "config.json"))).toBe(true);
+      } finally {
+        fs.chmodSync(stray, 0o600);
+        fs.rmSync(stray, { force: true });
+      }
+    },
+    180_000,
+  );
+
+  test.skipIf(IS_ROOT)(
+    "an unreadable directory under content/ is named too, rather than staged as an empty one",
     () => {
       // The case a tree comparison alone cannot see: `cp` creates the
       // directory at the destination and only then fails to read it, so both
       // trees contain it and nothing looks wrong. What is inside it is not
       // merely missing, it cannot even be enumerated — so the run says so.
-      const locked = path.join(dataDir, "locked-subdir");
+      const locked = path.join(contentDir, "locked-subdir");
       fs.mkdirSync(locked, { recursive: true });
       fs.writeFileSync(path.join(locked, "inside.json"), "{}");
       fs.chmodSync(locked, 0o000);
@@ -1050,7 +1247,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
         // is exactly why the warning has to exist.
         const listed = restic(["ls", "latest"]);
         expect(listed.status).toBe(0);
-        expect(listed.stdout).toContain("/data/locked-subdir");
+        expect(listed.stdout).toContain("/content/locked-subdir");
         expect(listed.stdout).not.toContain("locked-subdir/inside.json");
       } finally {
         fs.chmodSync(locked, 0o700);
@@ -1158,63 +1355,40 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     180_000,
   );
 
-  // --- B444: content/ inside DATA_DIR is one tree, not two ------------------
+  // --- B444/B653: content/ nested inside DATA_DIR is still content/ ---------
   //
-  // The fixture above keeps DATA_DIR and CONTENT_DIR apart, which is the layout
-  // .env.example gives and every other test here exercises. The VPS does not:
+  // .env.example keeps DATA_DIR and CONTENT_DIR apart; the VPS does not —
   // DATA_DIR=/var/lib/fernscout with CONTENT_DIR=/var/lib/fernscout/content.
+  // The old subtractive script staged this at data/content and skipped a
+  // second copy (B444); the allowlist has only ever one place content/ can
+  // land, so there is nothing left to double up against and no skip to log.
 
   test(
-    "content/ inside DATA_DIR is staged once, and is still in the snapshot",
+    "content/ nested inside DATA_DIR lands at content/, not data/content, and is not logged as skipped",
     () => {
       const nestedData = fs.mkdtempSync(path.join(scratch, "nested-"));
       const nestedContent = path.join(nestedData, "content");
       const trip = path.join(nestedContent, "alex", "trips", "kyrgyzstan-2026");
       fs.mkdirSync(trip, { recursive: true });
-      fs.writeFileSync(path.join(nestedData, "reactions.json"), "{}\n");
+      fs.writeFileSync(path.join(nestedData, "config.json"), '{"title":"nested"}\n');
       fs.writeFileSync(path.join(trip, "trip.md"), "---\ntitle: Kyrgyzstan\n---\n\nnested layout\n");
 
       const run = runBackup({ DATA_DIR: nestedData, CONTENT_DIR: nestedContent });
-      expect(run.status).toBe(0);
-      expect(run.stdout).toContain("already staged at data/, not copying it twice");
-      expect(run.stdout, "the second stage must not have run").not.toContain(`staging content/ (${nestedContent})`);
+      expect(run.status, run.stdout + run.stderr).toBe(0);
+      expect(run.stdout).toContain(`staging content/ (${nestedContent})`);
+      // CONTENT_DIR's own top-level entry under DATA_DIR ("content") is not
+      // a stray — it is what step 2 just staged — so the skip-log must not
+      // claim it was left out.
+      expect(run.stdout).not.toContain("skipped content");
 
-      // Said out loud, because the whole risk of skipping a stage is an
-      // operator reading the log and concluding the journals were left out.
       const staged = restoreLatest("nested");
+      expect(fs.existsSync(path.join(staged, "data"))).toBe(false);
       expect(
-        fs.readFileSync(path.join(staged, "data", "content", "alex", "trips", "kyrgyzstan-2026", "trip.md"), "utf8"),
+        fs.readFileSync(path.join(staged, "content", "alex", "trips", "kyrgyzstan-2026", "trip.md"), "utf8"),
       ).toContain("nested layout");
-      expect(fs.existsSync(path.join(staged, "content")), "no second copy of the same bytes").toBe(false);
-    },
-    180_000,
-  );
-
-  test.skipIf(IS_ROOT)(
-    "an unreadable file under a nested content/ is counted once, not twice",
-    () => {
-      // B401 on the live server: two stray root-owned files were reported as
-      // "4 path(s) missing", because both stages found both of them. The
-      // arithmetic was right and an operator could not reconcile it against a
-      // WARNING list naming two files.
-      const nestedData = fs.mkdtempSync(path.join(scratch, "nested-unreadable-"));
-      const nestedContent = path.join(nestedData, "content");
-      fs.mkdirSync(nestedContent, { recursive: true });
-      fs.writeFileSync(path.join(nestedContent, "config.json"), "{}\n");
-      const stray = path.join(nestedContent, "config.json.bak-b365");
-      fs.writeFileSync(stray, "{}\n");
-      fs.chmodSync(stray, 0o000);
-
-      try {
-        const run = runBackup({ DATA_DIR: nestedData, CONTENT_DIR: nestedContent });
-
-        expect(run.status).not.toBe(0);
-        expect(run.stdout).toContain("1 path(s) under DATA_DIR could not be staged");
-        expect(run.stdout).toContain("this snapshot is incomplete (1 path(s) missing)");
-        expect(run.stdout).toContain("but 1 path(s) are missing from it");
-      } finally {
-        fs.chmodSync(stray, 0o600);
-      }
+      expect(JSON.parse(fs.readFileSync(path.join(staged, "config", "config.json"), "utf8"))).toEqual({
+        title: "nested",
+      });
     },
     180_000,
   );
@@ -1236,7 +1410,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
       // uppercase before lowercase, en_US.UTF-8 does not. macOS comm does not
       // check its input's order, so this asserts the same thing there and only
       // bites on Linux — which is what CI and the VPS both are.
-      const stray = path.join(dataDir, "root-owned-stray.txt");
+      const stray = path.join(contentDir, "root-owned-stray.txt");
       fs.writeFileSync(stray, "left behind by an operator\n");
       fs.chmodSync(stray, 0o000);
 
@@ -1246,12 +1420,11 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
         expect(run.stdout + run.stderr, "comm must read the input the way it was sorted").not.toContain(
           "not in sorted order",
         );
-        expect(run.stdout).toContain("1 path(s) under DATA_DIR could not be staged");
+        expect(run.stdout).toContain("1 path(s) under content/ could not be staged");
         expect(run.stdout).toContain(stray);
         // The readable neighbours must not be swept in with it. This is the
         // half that was actually wrong on the live server.
-        expect(run.stdout).not.toContain(path.join(dataDir, "reactions.json"));
-        expect(run.stdout).not.toContain(path.join(dataDir, "fernscout.db"));
+        expect(run.stdout).not.toContain(path.join(contentDir, "alex", "trips", "kyrgyzstan-2026", "trip.md"));
       } finally {
         fs.chmodSync(stray, 0o600);
         fs.rmSync(stray, { force: true });
