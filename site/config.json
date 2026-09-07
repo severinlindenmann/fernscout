@@ -132,6 +132,10 @@
       {
         "label": "Your domain, per month",
         "rappen": 0
+      },
+      {
+        "label": "Stannp postcard subscription (USD 15), per month",
+        "rappen": 1207
       }
     ]
   }

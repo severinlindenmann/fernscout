@@ -1,5 +1,6 @@
 import { isTestContent } from "@/lib/access";
 import { isEnabled } from "@/lib/capabilities";
+import { loadServerConfig } from "@/lib/config";
 import { balanceOf, creditsEnabled } from "@/lib/credits";
 import { POSTCARD_CREDITS } from "@/lib/credits/pricing";
 import { isOwner } from "@/lib/contacts/session";
@@ -183,7 +184,11 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
   // language asserted confidently is worse than the sensible default.
   const locale = str(body.locale) || getUser(user)?.defaultLocale || "en";
 
-  const provider = "dry-run";
+  // The operator's choice, not this route's — B435. It was hardcoded to
+  // `dry-run` while `dry-run` was the only thing wired, which meant an
+  // instance that had configured a real provider silently rehearsed instead.
+  const configured = loadServerConfig().features.postcards.provider;
+  const provider = typeof configured === "string" ? configured : "dry-run";
   const order = await createOrder(user, {
     trip: ref,
     day,

@@ -20,6 +20,7 @@ import {
   type RecipientResult,
 } from "./orders";
 import { renderPostcard, type PostalAddress, type PostcardWarning } from "./render";
+import { sendPostcard as sendViaStannp } from "./stannp";
 import { sendPostcardReceipt } from "./receipt";
 
 /**
@@ -135,23 +136,31 @@ function readPhoto(order: PostcardOrder): Uint8Array | null {
 /**
  * Hand one card to a printer.
  *
- * Only `dry-run` exists today: it writes the print-ready files and calls
- * nobody, which is the whole pipeline minus the account and is what lets this
- * flow be developed and tested on a fresh clone. A real provider is B435, and
- * until one is wired an instance configured for one fails closed here rather
- * than quietly writing files and reporting a send.
+ * `dry-run` writes the print-ready files and calls nobody, which is the whole
+ * pipeline minus the account and is what lets this flow be developed and
+ * tested on a fresh clone with no key. `stannp` really posts — subject to
+ * `features.postcards.live`, which is off unless an operator said otherwise
+ * and which makes every request a free sample render (see ./stannp.ts).
+ *
+ * Anything else fails closed rather than quietly writing files and reporting a
+ * send, which is the failure that looks fine in the logs.
  */
 async function handToProvider(
   provider: string,
   owner: string,
   orderId: string,
   base: string,
+  to: PostalAddress,
   front: Uint8Array,
   back: Uint8Array,
   both: Uint8Array,
 ): Promise<{ ok: boolean; ref?: string; error?: string }> {
+  if (provider === "stannp") {
+    const result = await sendViaStannp({ to, front, back, paymentRef: orderId });
+    return result.ok ? { ok: true, ref: result.ref } : { ok: false, error: result.error };
+  }
   if (provider !== "dry-run") {
-    return { ok: false, error: `provider "${provider}" is not wired up yet (B435)` };
+    return { ok: false, error: `provider "${provider}" is not wired up` };
   }
   const dir = orderDir(owner, orderId);
   fs.mkdirSync(dir, { recursive: true });
@@ -231,6 +240,7 @@ export async function sendOrder(owner: string, id: string): Promise<SendOutcome>
       owner,
       id,
       bases[index].base,
+      to,
       front,
       back,
       both.pdf,
