@@ -7,8 +7,7 @@ complexity: low
 area: api, health
 found: "2026-09-07T10:00:34Z"
 started: "2026-09-07T10:01:02Z"
-session: d7d9b2c7-a675-4d23-9205-0830bbf3e059
-claimed: "2026-09-07T10:01:02Z"
+merged: "2026-09-07T10:06:44Z"
 ---
 
 # B692 — /api/health advertises video formats on a server that cannot take a clip

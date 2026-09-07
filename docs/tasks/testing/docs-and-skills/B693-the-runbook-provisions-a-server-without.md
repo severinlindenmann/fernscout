@@ -7,8 +7,7 @@ complexity: low
 area: ops, docs
 found: "2026-09-07T10:00:34Z"
 started: "2026-09-07T10:01:03Z"
-session: d7d9b2c7-a675-4d23-9205-0830bbf3e059
-claimed: "2026-09-07T10:01:03Z"
+merged: "2026-09-07T10:06:45Z"
 ---
 
 # B693 — The runbook provisions a server without ffmpeg, and the deploy never mentions it
