@@ -34,7 +34,9 @@ export type PublicJournal = {
  */
 function Kicker({ children }: { children: React.ReactNode }) {
   return (
-    <p className="font-mono text-xs uppercase tracking-[0.14em] text-navy-600">{children}</p>
+    <p className="font-mono text-xs uppercase tracking-[0.14em] text-navy-600">
+      {children}
+    </p>
   );
 }
 
@@ -80,7 +82,13 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 /** The GitHub mark. Inline because lucide-react carries no brand icons. */
 function GithubMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 16 16" className={className} fill="currentColor" aria-hidden focusable="false">
+    <svg
+      viewBox="0 0 16 16"
+      className={className}
+      fill="currentColor"
+      aria-hidden
+      focusable="false"
+    >
       <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
     </svg>
   );
@@ -144,13 +152,16 @@ export function SiteHeader({
           </Link>
         )}
         {helperEnabled && (
-          // Same treatment as the operator chip above — quiet, not the
-          // hero's yellow primary button, because this corner already has a
-          // primary action lower on the page and a second loud one here
-          // would fight it.
+          // Filled, unlike the operator chip beside it — B836. It was drawn
+          // quiet to stay out of the hero's way and read as a label rather
+          // than a control. Navy rather than the hero's yellow: the hero's
+          // "start writing" leads to the same place, and two yellow buttons
+          // for one destination on one screen is a repetition, not emphasis.
+          // Navy is also what the agent control wears inside a journal, so
+          // the thing has one look wherever it appears.
           <Link
             href="/agent"
-            className="flex min-h-11 items-center rounded-full border border-transparent bg-transparent px-2.5 text-xs font-bold text-navy-600 transition-colors hover:bg-cream-100 hover:text-navy-900"
+            className="flex min-h-11 items-center rounded-full bg-navy-900 px-3.5 text-xs font-bold text-cream-50 transition-colors hover:bg-navy-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
           >
             {t("home.agentLink")}
           </Link>
@@ -241,16 +252,25 @@ export function ReaderInvite({ onSignIn }: { onSignIn: () => void }) {
  * pointed at into the disclosure's own `<summary>`, so a second line saying
  * the same thing here would be noise above it.
  */
-export function LandingHero({ helperEnabled = false }: { helperEnabled?: boolean }) {
+export function LandingHero({
+  helperEnabled = false,
+}: {
+  helperEnabled?: boolean;
+}) {
   const { t } = useI18n();
   return (
     <>
       <h1 className="mt-4 font-display text-[clamp(1.75rem,6vw,2.75rem)] font-semibold leading-[1.12] text-navy-900">
         {t("landing.hero")}
       </h1>
-      <p className="mt-4 text-lg leading-7 text-navy-700">{t("landing.lede")}</p>
+      <p className="mt-4 text-lg leading-7 text-navy-700">
+        {t("landing.lede")}
+      </p>
       {helperEnabled && (
-        <Link href="/agent" className={`mt-6 w-full sm:w-auto ${PRIMARY_BUTTON}`}>
+        <Link
+          href="/agent"
+          className={`mt-6 w-full sm:w-auto ${PRIMARY_BUTTON}`}
+        >
           {t("landing.helperCta")}
         </Link>
       )}
@@ -283,7 +303,13 @@ export function LandingHero({ helperEnabled = false }: { helperEnabled?: boolean
  * `motion-reduce:transition-none` drops the animation for a reader who asked
  * for less motion — the chevron still ends up rotated, just without the turn.
  */
-export function AgentDisclosure({ docUrl, agentUrl }: { docUrl: string; agentUrl: string }) {
+export function AgentDisclosure({
+  docUrl,
+  agentUrl,
+}: {
+  docUrl: string;
+  agentUrl: string;
+}) {
   const { t } = useI18n();
   return (
     <details className="group mt-6">
@@ -344,10 +370,15 @@ export function AgentBlock({
       aria-labelledby="handover"
       className="mt-8 rounded-2xl border border-navy-200 bg-cream-50 px-5 py-5 sm:px-6"
     >
-      <h2 id="handover" className="font-display text-xl font-semibold text-navy-900">
+      <h2
+        id="handover"
+        className="font-display text-xl font-semibold text-navy-900"
+      >
         {heading ?? t("landing.handTitle")}
       </h2>
-      <p className="mt-1 text-base leading-7 text-navy-700">{t("landing.handBody")}</p>
+      <p className="mt-1 text-base leading-7 text-navy-700">
+        {t("landing.handBody")}
+      </p>
       {/* The instruction itself, visible — the same string, from the same
           key, that the button below copies. B255: a postal-style address
           and a sentence fragment used to sit here, showing a different
@@ -394,7 +425,11 @@ export function AgentBlock({
  * (B726). Off, the sentence stops one clause earlier rather than claiming an
  * agent this instance does not host.
  */
-export function LandingSteps({ helperEnabled = false }: { helperEnabled?: boolean }) {
+export function LandingSteps({
+  helperEnabled = false,
+}: {
+  helperEnabled?: boolean;
+}) {
   const { t } = useI18n();
   const steps = [
     { title: t("landing.step1"), body: t("landing.step1Body") },
@@ -408,11 +443,16 @@ export function LandingSteps({ helperEnabled = false }: { helperEnabled?: boolea
           <li key={step.title} className="grid grid-cols-[1.75rem_1fr] gap-x-3">
             {/* Numbered because it genuinely is a sequence — the code cannot
                 be exchanged before it is requested. */}
-            <span aria-hidden="true" className="font-mono text-sm leading-6 text-coral-600">
+            <span
+              aria-hidden="true"
+              className="font-mono text-sm leading-6 text-coral-600"
+            >
               {String(i + 1).padStart(2, "0")}
             </span>
             <div>
-              <h3 className="text-base font-semibold leading-6 text-navy-900">{step.title}</h3>
+              <h3 className="text-base font-semibold leading-6 text-navy-900">
+                {step.title}
+              </h3>
               <p className="text-base leading-6 text-navy-700">{step.body}</p>
             </div>
           </li>
@@ -454,7 +494,9 @@ export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
       <SectionHeading>{t("landing.publicTitle")}</SectionHeading>
 
       {journals.length === 0 ? (
-        <p className="mt-3 text-base leading-6 text-navy-700">{t("landing.publicNone")}</p>
+        <p className="mt-3 text-base leading-6 text-navy-700">
+          {t("landing.publicNone")}
+        </p>
       ) : (
         <ul className="mt-5 grid gap-4 sm:grid-cols-2">
           {journals.map((journal) => (
@@ -485,7 +527,9 @@ export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
                   </p>
                   <p className="mt-2 font-mono text-xs text-navy-600">
                     /{journal.username} ·{" "}
-                    {tn("landing.trips", journal.trips, { count: String(journal.trips) })}
+                    {tn("landing.trips", journal.trips, {
+                      count: String(journal.trips),
+                    })}
                   </p>
                 </div>
               </Link>
@@ -517,13 +561,17 @@ export function Colophon({
           <h2 className="font-display text-base font-semibold text-navy-900">
             {t("landing.readers")}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-navy-700">{t("landing.readersBody")}</p>
+          <p className="mt-2 text-sm leading-6 text-navy-700">
+            {t("landing.readersBody")}
+          </p>
         </div>
         <div>
           <h2 className="font-display text-base font-semibold text-navy-900">
             {t("landing.selfHost")}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-navy-700">{t("landing.selfHostBody")}</p>
+          <p className="mt-2 text-sm leading-6 text-navy-700">
+            {t("landing.selfHostBody")}
+          </p>
           <div className="mt-3 flex flex-col gap-2">
             {repository && (
               <a
@@ -556,36 +604,38 @@ export function Colophon({
       {(credit || legal) && (
         <footer className="mt-12 border-t border-navy-200 pt-6 text-sm text-navy-600">
           {credit && (
-          <p>
-          {/* Split on the {name} token rather than appending the link after
+            <p>
+              {/* Split on the {name} token rather than appending the link after
               the sentence: German ends "von {name}" and Hungarian puts it
               after a dash, and a name glued to the end would be wrong in both
               the moment a translator moves it. */}
-          {(() => {
-            const flag = flagFor("", credit.countryCode);
-            const [before, after = ""] = t("landing.madeBy", {
-              flag: flag || "",
-              name: "\u0000",
-            }).split("\u0000");
-            const name = credit.url ? (
-              <a
-                href={credit.url}
-                className="font-semibold text-navy-900 underline decoration-blue-500 decoration-2 underline-offset-4"
-              >
-                {credit.name}
-              </a>
-            ) : (
-              <span className="font-semibold text-navy-900">{credit.name}</span>
-            );
-            return (
-              <>
-                {before}
-                {name}
-                {after}
-              </>
-            );
-          })()}
-          </p>
+              {(() => {
+                const flag = flagFor("", credit.countryCode);
+                const [before, after = ""] = t("landing.madeBy", {
+                  flag: flag || "",
+                  name: "\u0000",
+                }).split("\u0000");
+                const name = credit.url ? (
+                  <a
+                    href={credit.url}
+                    className="font-semibold text-navy-900 underline decoration-blue-500 decoration-2 underline-offset-4"
+                  >
+                    {credit.name}
+                  </a>
+                ) : (
+                  <span className="font-semibold text-navy-900">
+                    {credit.name}
+                  </span>
+                );
+                return (
+                  <>
+                    {before}
+                    {name}
+                    {after}
+                  </>
+                );
+              })()}
+            </p>
           )}
           {/*
             What this instance can honestly say about itself, in the place a
