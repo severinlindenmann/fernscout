@@ -5,10 +5,8 @@ import { useTrip } from "@/components/TripProvider";
 
 import { useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import DayNotify from "./DayNotify";
-import HelperAskHere from "./HelperAskHere";
-import InviteToRead from "./InviteToRead";
 import DayReactions from "./DayReactions";
+import OwnerTools from "./OwnerTools";
 import DayWeather from "./DayWeather";
 import DraftNotice from "./DraftNotice";
 import TestNotice from "./TestNotice";
@@ -339,45 +337,27 @@ export function DayCard({
         {/* Keyed on the lead slug, which is also what #day-… links use. */}
         <div className="mt-10 border-t border-navy-200 pt-4">
           <DayReactions daySlug={lead.slug} />
-          {/* Owner only, and only once the day is actually on the site —
-              `canPublish` is exactly `isOwner`, see `lib/tripGate.ts`.
-              `DayNotify` asks the server the rest: a draft, a test day, or a
-              journal with nothing to send it on all answer with nothing to
-              show, so no draft-specific gating is duplicated here. */}
-          {trip?.canPublish && (
-            <>
-              <DayNotify username={trip.trip.username} tripId={trip.trip.id} slug={lead.slug} />
-              {/* B799 — the day she has just published is where offering to
-                  show it to somebody belongs. A *guest* link, and only ever
-                  that: see `InviteToRead`, which hides itself on a journal
-                  with contacts switched off. */}
-              <InviteToRead username={trip.trip.username} />
-              {/* B816 — the way back into a day that is already on the site.
-                  Before this the browser went read-only the moment a day was
-                  published: a typo, a forgotten photograph and a friend asking
-                  to come out of a picture all needed an agent or the API.
-
-                  Owner only (this whole block is), and only on a published
-                  day — a draft has its own banner above and is in the resume
-                  list. It opens the wizard on the day's lead update, which is
-                  the one the page is named for. */}
-              {!allDraft && (
-                <p className="mt-4 text-sm">
-                  <Link
-                    href={`/agent/${encodeURIComponent(trip.trip.username)}?trip=${encodeURIComponent(trip.trip.id)}&slug=${lead.slug}&date=${day.date}`}
-                    className="font-semibold text-navy-800 underline underline-offset-4"
-                  >
-                    {t("agent.correctDay")}
-                  </Link>
-                </p>
-              )}
-              {/* B844 — the same owner check, one line below the link that
-                  already does the commonest version of this by hand. The box
-                  takes the sentence somebody was going to type into Search. */}
-              <HelperAskHere username={trip.trip.username} />
-            </>
-          )}
         </div>
+
+        {/* Below the reactions row is the owner's side of the page, and until
+            B877 it did not look like one: four controls in three weights, each
+            added by a different ticket, with nothing saying a reader sees none
+            of them. One block now — and the same block the trip overview
+            renders, which is what stops the two drifting apart again.
+
+            `canPublish` is exactly `isOwner`, see `lib/tripGate.ts`. Each
+            control still asks the server its own remaining question. */}
+        {trip?.canPublish && (
+          <OwnerTools
+            username={trip.trip.username}
+            day={{
+              tripId: trip.trip.id,
+              slug: lead.slug,
+              date: day.date,
+              published: !allDraft,
+            }}
+          />
+        )}
       </div>
     </article>
   );

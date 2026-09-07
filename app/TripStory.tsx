@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronUp, ChevronDown, LayoutDashboard } from "lucide-react";
 import GamePath from "@/components/GamePath";
-import HelperAskHere from "@/components/HelperAskHere";
-import InviteToRead from "@/components/InviteToRead";
+import OwnerTools from "@/components/OwnerTools";
 import LatestDayButton from "@/components/LatestDayButton";
 import MobileDaySheet from "@/components/MobileDaySheet";
 import PageHeader from "@/components/PageHeader";
@@ -543,18 +542,13 @@ export default function TripStory({
             }
           />
 
-          {/* B799, the trip page's own copy of the day card's offer. On the
+          {/* The same owner block the day card renders — B877. On the
               overview only: paging through the trip already shows it on every
-              day, and a second one under the story would be the same control
-              twice on one screen. */}
+              day, and a second one under the story would be the same controls
+              twice on one screen. No `day` here, so the two day-specific tiles
+              are simply not in the grid. */}
           {onOverview && trip?.canPublish && (
-            <>
-              <InviteToRead username={trip.trip.username} />
-              {/* B844 — the journal home and the trip overview are the other
-                  two pages an owner actually stands on. Same owner check,
-                  same reason. */}
-              <HelperAskHere username={trip.trip.username} />
-            </>
+            <OwnerTools username={trip.trip.username} />
           )}
 
           {/* Desktop keeps its own nav; on mobile it lives in the bottom bar. */}
