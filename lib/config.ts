@@ -277,6 +277,50 @@ export type ServerConfig = {
   features: Record<FeatureName, FeatureConfig>;
   /** How much media this instance accepts. A ceiling — see lib/mediaLimits.ts. */
   media: MediaLimits;
+  /**
+   * What running this instance costs, for the operator's dashboard — B746.
+   *
+   * **Config rather than code, because these are prices and prices move.** A
+   * provider re-rates a model, a server plan changes, a domain renews at a
+   * different figure; none of that should be a deploy, and none of it is
+   * anybody's secret. `FERNSCOUT_CONFIG` means the deployed instance's real
+   * numbers never travel in the repository to somebody else's.
+   *
+   * Everything here is optional and everything defaults to zero. A fresh
+   * clone that has priced nothing shows a dashboard of real usage against a
+   * cost of nothing, which is honest — an invented default price would read
+   * as a measurement.
+   *
+   * All money is in **rappen**, integer, the same rule `lib/credits/pricing.ts`
+   * keeps: never a float for money.
+   */
+  costs: CostConfig;
+};
+
+/**
+ * The price list `/admin` multiplies usage by — B746.
+ *
+ * Token prices are per **million** tokens, which is how every provider quotes
+ * them; storing them per-token would be a fraction of a rappen and unwritable
+ * as an integer. Keyed by the model string the `usage` rows actually carry, so
+ * a model swapped next month re-prices nothing that came before it.
+ */
+export type CostConfig = {
+  /** Per model id: cost per million input and output tokens, in rappen. */
+  models: Record<string, { inputPerMillionRappen: number; outputPerMillionRappen: number }>;
+  /**
+   * Per **thousand minutes** of audio transcribed, in rappen.
+   *
+   * Not per minute, for the same reason tokens are priced per million: a
+   * minute of Deepgram Nova-3 is about a third of a rappen, and an integer
+   * field priced per minute could only hold zero or a number three times too
+   * large. The unit is the smallest one whose price is a whole rappen.
+   */
+  transcriptionPerThousandMinutesRappen: number;
+  /** What is owed every month whether anybody writes a day or not — the
+   *  server, and a domain divided down from its yearly price. Each is a
+   *  label and a figure, so an operator adds a line without a code change. */
+  fixedMonthly: { label: string; rappen: number }[];
 };
 
 type FeatureConfig = {
@@ -764,9 +808,79 @@ export function parseServerConfig(raw: unknown): ServerConfig {
     users: { reserved },
     features: parseFeatures(src.features, problems),
     media: parseMediaLimits(src.media),
+    costs: parseCosts(src.costs, problems),
   };
   if (problems.length > 0) throw new ConfigError(problems, serverConfigPath());
   return config;
+}
+
+/** A whole, non-negative number of rappen, or a recorded problem. Money is
+ *  never a float here, for the reason `lib/credits/pricing.ts` gives. */
+function rappen(value: unknown, where: string, problems: string[]): number {
+  if (value === undefined) return 0;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    problems.push(`${where} must be a whole number of rappen, zero or more`);
+    return 0;
+  }
+  return value;
+}
+
+/**
+ * The cost block — B746. Absent is normal and means "nothing has been priced",
+ * which renders as a cost of zero rather than as a guess.
+ */
+function parseCosts(raw: unknown, problems: string[]): CostConfig {
+  const empty: CostConfig = { models: {}, transcriptionPerThousandMinutesRappen: 0, fixedMonthly: [] };
+  if (raw === undefined || raw === null) return empty;
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    problems.push("costs must be an object, or absent");
+    return empty;
+  }
+  const src = raw as Record<string, unknown>;
+
+  const models: CostConfig["models"] = {};
+  const modelsRaw = src.models;
+  if (modelsRaw !== undefined) {
+    if (typeof modelsRaw !== "object" || modelsRaw === null || Array.isArray(modelsRaw)) {
+      problems.push("costs.models must be an object keyed by model id, or absent");
+    } else {
+      for (const [id, entry] of Object.entries(modelsRaw as Record<string, unknown>)) {
+        const row = (typeof entry === "object" && entry !== null ? entry : {}) as Record<string, unknown>;
+        models[id] = {
+          inputPerMillionRappen: rappen(row.inputPerMillionRappen, `costs.models.${id}.inputPerMillionRappen`, problems),
+          outputPerMillionRappen: rappen(row.outputPerMillionRappen, `costs.models.${id}.outputPerMillionRappen`, problems),
+        };
+      }
+    }
+  }
+
+  const fixedMonthly: CostConfig["fixedMonthly"] = [];
+  const fixedRaw = src.fixedMonthly;
+  if (fixedRaw !== undefined) {
+    if (!Array.isArray(fixedRaw)) {
+      problems.push("costs.fixedMonthly must be a list of { label, rappen }, or absent");
+    } else {
+      fixedRaw.forEach((entry, i) => {
+        const row = (typeof entry === "object" && entry !== null ? entry : {}) as Record<string, unknown>;
+        const label = typeof row.label === "string" ? row.label.trim() : "";
+        if (label === "") {
+          problems.push(`costs.fixedMonthly[${i}].label must be a name for the cost`);
+          return;
+        }
+        fixedMonthly.push({ label, rappen: rappen(row.rappen, `costs.fixedMonthly[${i}].rappen`, problems) });
+      });
+    }
+  }
+
+  return {
+    models,
+    transcriptionPerThousandMinutesRappen: rappen(
+      src.transcriptionPerThousandMinutesRappen,
+      "costs.transcriptionPerThousandMinutesRappen",
+      problems,
+    ),
+    fixedMonthly,
+  };
 }
 
 /**

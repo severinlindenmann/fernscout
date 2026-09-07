@@ -1,5 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
+import { recordUsage, type Operation } from "../usage";
 import { intentList, REGISTRY } from "./intents";
 
 /**
@@ -61,6 +62,34 @@ The title is short — a few words, no punctuation at the end — and names some
 
 Use warnings to name, one short sentence each, anything you deliberately did not write: something you were unsure about, something that read like a fact you could not confirm, weather you left out, a gap you noticed. Say nothing there about your own limitations, only about this day. If there is nothing to say, return an empty list.`;
 
+/**
+ * Book what the call consumed — B746.
+ *
+ * One helper rather than three copies, and it takes the whole response so a
+ * call site cannot record the wrong half of it. `owner` is optional because
+ * the tests in this file call these functions with no journal behind them;
+ * with none, there is nothing to attribute and nothing is written.
+ *
+ * `recordUsage` never throws, so this needs no `try` of its own — see
+ * property 1 in `lib/usage.ts`. The person has their answer by the time this
+ * runs and must keep it whatever happens here.
+ */
+async function book(
+  owner: string | undefined,
+  operation: Operation,
+  usage: { input_tokens?: number | null; output_tokens?: number | null } | undefined,
+): Promise<void> {
+  if (!owner) return;
+  await recordUsage({
+    owner,
+    provider: "anthropic",
+    model: HELPER_MODEL,
+    operation,
+    inputTokens: usage?.input_tokens ?? 0,
+    outputTokens: usage?.output_tokens ?? 0,
+  });
+}
+
 /** The day's own facts, as context the prose may not exceed. Every one of
  *  these is already on the person's screen; none of them comes from `gps/`. */
 export type DayFacts = {
@@ -115,7 +144,7 @@ export type PhotoImage = { base64: string; mediaType: "image/jpeg" | "image/png"
  * Throws on anything that goes wrong, the same contract as `writeDay`: the
  * caller has already spent the credit and refunds on a throw.
  */
-export async function describePhotos(images: PhotoImage[]): Promise<string[]> {
+export async function describePhotos(images: PhotoImage[], owner?: string): Promise<string[]> {
   const client = new Anthropic();
   const response = await client.messages.create({
     model: HELPER_MODEL,
@@ -135,6 +164,7 @@ export async function describePhotos(images: PhotoImage[]): Promise<string[]> {
     ],
     output_config: { format: { type: "json_schema", schema: PHOTO_SCHEMA } },
   });
+  await book(owner, "describe_photos", response.usage);
 
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))
@@ -196,7 +226,7 @@ function strings(value: unknown): string[] {
  * refunds on a throw, so failing loudly is the honest outcome and a half-empty
  * draft is not.
  */
-export async function writeDay(notes: string, facts: DayFacts): Promise<WrittenDay> {
+export async function writeDay(notes: string, facts: DayFacts, owner?: string): Promise<WrittenDay> {
   const client = new Anthropic();
   const response = await client.messages.create({
     model: HELPER_MODEL,
@@ -205,6 +235,7 @@ export async function writeDay(notes: string, facts: DayFacts): Promise<WrittenD
     messages: [{ role: "user", content: buildPrompt(notes, facts) }],
     output_config: { format: { type: "json_schema", schema: SCHEMA } },
   });
+  await book(owner, "write_day", response.usage);
 
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))
@@ -293,7 +324,7 @@ function routerSchema() {
  * a first-class answer here — a broken response and a sentence nobody
  * understood deserve the same screen, and it is the screen that always works.
  */
-export async function routeAsk(said: string, today: string): Promise<Routed> {
+export async function routeAsk(said: string, today: string, owner?: string): Promise<Routed> {
   const client = new Anthropic();
   const response = await client.messages.create({
     model: HELPER_MODEL,
@@ -304,6 +335,7 @@ export async function routeAsk(said: string, today: string): Promise<Routed> {
     ],
     output_config: { format: { type: "json_schema", schema: routerSchema() } },
   });
+  await book(owner, "route_ask", response.usage);
 
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))

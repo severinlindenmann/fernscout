@@ -105,7 +105,7 @@ export async function POST(
 
   let written;
   try {
-    written = await writeDay(notes, facts);
+    written = await writeDay(notes, facts, user);
   } catch {
     // The credit bought nothing, so it is given back. Nothing about the
     // failure is passed on: what a provider says when it is unhappy is not
