@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import BusyButton from "@/components/BusyButton";
 
 /**
  * "Add credits" — B746, and it does not add credits.
@@ -30,14 +31,23 @@ export default function AdminGrant({ journals }: { journals: string[] }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ user, credits: Number(credits) }),
       });
-      const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+      const body = (await response.json().catch(() => ({}))) as Record<
+        string,
+        unknown
+      >;
       setSaid(
         response.ok
           ? {
               ok: true,
               text: `A confirmation mail is on its way to the operator. ${credits} credits reach ${user} when that link is opened — not before.`,
             }
-          : { ok: false, text: typeof body.message === "string" ? body.message : `Refused (${response.status}).` },
+          : {
+              ok: false,
+              text:
+                typeof body.message === "string"
+                  ? body.message
+                  : `Refused (${response.status}).`,
+            },
       );
     } catch {
       setSaid({ ok: false, text: "The request did not reach the server." });
@@ -47,7 +57,10 @@ export default function AdminGrant({ journals }: { journals: string[] }) {
   }
 
   return (
-    <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-[1fr_8rem_auto] sm:items-end">
+    <form
+      onSubmit={submit}
+      className="mt-4 grid gap-3 sm:grid-cols-[1fr_8rem_auto] sm:items-end"
+    >
       <label className="block text-sm text-navy-700">
         Journal
         <select
@@ -74,15 +87,21 @@ export default function AdminGrant({ journals }: { journals: string[] }) {
           className="mt-1 w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-navy-900"
         />
       </label>
-      <button
+      <BusyButton
+        busy={busy}
         type="submit"
-        disabled={busy || !user}
+        disabled={!user}
         className="rounded-lg bg-navy-900 px-4 py-2 font-semibold text-white disabled:opacity-50"
+        busyLabel="Sending…"
       >
-        {busy ? "Sending…" : "Send confirmation mail"}
-      </button>
+        Send confirmation mail
+      </BusyButton>
       {said ? (
-        <p className={`text-sm sm:col-span-3 ${said.ok ? "text-navy-700" : "text-red-700"}`}>{said.text}</p>
+        <p
+          className={`text-sm sm:col-span-3 ${said.ok ? "text-navy-700" : "text-red-700"}`}
+        >
+          {said.text}
+        </p>
       ) : null}
     </form>
   );

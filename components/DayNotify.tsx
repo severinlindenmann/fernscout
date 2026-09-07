@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { creditWorth } from "@/lib/credits/pricing";
 import { useI18n } from "./LocaleProvider";
 
@@ -82,7 +83,10 @@ export default function DayNotify({
   if (status.short) {
     return (
       <p className="mt-3 text-xs text-coral-700">
-        {t("notify.short", { needed: String(status.needed), balance: String(status.balance) })}{" "}
+        {t("notify.short", {
+          needed: String(status.needed),
+          balance: String(status.balance),
+        })}{" "}
         <a className="font-semibold underline" href={`/${username}/me`}>
           {t("photobook.getCredits")}
         </a>
@@ -136,25 +140,27 @@ export default function DayNotify({
               there is a spend: a free send has no unit to explain. Computed
               from `TIERS`, never typed. */}
           {status.balance !== null && (
-            <p className="mt-2 text-xs leading-5 text-navy-600">{t("credits.worth", creditWorth())}</p>
+            <p className="mt-2 text-xs leading-5 text-navy-600">
+              {t("credits.worth", creditWorth())}
+            </p>
           )}
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button
+            <BusyButton
+              busy={busy}
               type="button"
               onClick={send}
-              disabled={busy}
               className="rounded-full bg-yellow-400 px-4 py-1.5 text-xs font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:opacity-50"
             >
               {t("notify.button")}
-            </button>
-            <button
+            </BusyButton>
+            <BusyButton
+              busy={busy}
               type="button"
               onClick={() => setAsking(false)}
-              disabled={busy}
               className="rounded-full border border-navy-300 px-4 py-1.5 text-xs font-semibold text-navy-700 transition-colors hover:bg-cream-100 disabled:opacity-50"
             >
               {t("notify.cancel")}
-            </button>
+            </BusyButton>
           </div>
           {error && <p className="mt-2 text-xs text-coral-700">{error}</p>}
         </div>

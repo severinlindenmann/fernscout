@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import AddressLookupField from "./AddressLookupField";
 import CountryField from "./CountryField";
 import TelField, { joinTel, splitTel } from "./TelField";
@@ -120,7 +121,10 @@ export default function ContactManage({
   // all; an existing (even unparseable) one is never overridden.
   const [cc, setCc] = useState(() => {
     const parsed = splitTel(contact.address.tel);
-    return parsed.cc || (contact.address.tel.trim() === "" ? (defaultCountryCode ?? "") : "");
+    return (
+      parsed.cc ||
+      (contact.address.tel.trim() === "" ? (defaultCountryCode ?? "") : "")
+    );
   });
   const [wantsDigest, setWantsDigest] = useState(contact.wantsEmailDigest);
   const [wantsPostcard, setWantsPostcard] = useState(contact.wantsPostcard);
@@ -147,7 +151,9 @@ export default function ContactManage({
   if (deleted) {
     return (
       <div className={className} lang={locale}>
-        <h1 className="font-display text-3xl text-navy-900">{t("contact.deleted")}</h1>
+        <h1 className="font-display text-3xl text-navy-900">
+          {t("contact.deleted")}
+        </h1>
       </div>
     );
   }
@@ -157,11 +163,15 @@ export default function ContactManage({
       <h1 className="font-display text-3xl leading-tight text-navy-900 sm:text-4xl">
         {t("contact.manageTitle")}
       </h1>
-      <p className="mt-3 text-lg leading-relaxed text-navy-700">{t("contact.manageIntro")}</p>
+      <p className="mt-3 text-lg leading-relaxed text-navy-700">
+        {t("contact.manageIntro")}
+      </p>
       <p className="mt-2 text-base text-navy-600">
         {`${contact.email} — ${t(STATUS_KEY[contact.status])}`}
       </p>
-      <p className="mt-2 text-sm text-navy-500">{t("contact.manageLinkCaption")}</p>
+      <p className="mt-2 text-sm text-navy-500">
+        {t("contact.manageLinkCaption")}
+      </p>
 
       <form
         className="mt-8"
@@ -243,7 +253,12 @@ export default function ContactManage({
               id="manage-name"
               className={FIELD}
               value={address.name}
-              onChange={(e) => setAddress((previous) => ({ ...previous, name: e.target.value }))}
+              onChange={(e) =>
+                setAddress((previous) => ({
+                  ...previous,
+                  name: e.target.value,
+                }))
+              }
             />
           </div>
           <div className="mt-4">
@@ -254,7 +269,9 @@ export default function ContactManage({
               id="manage-line1"
               className={FIELD}
               value={address.line1}
-              onChange={(value) => setAddress((previous) => ({ ...previous, line1: value }))}
+              onChange={(value) =>
+                setAddress((previous) => ({ ...previous, line1: value }))
+              }
               onPick={(suggestion) =>
                 setAddress((previous) => ({
                   ...previous,
@@ -269,7 +286,7 @@ export default function ContactManage({
               locale={locale}
               label={t("contact.addrLine1")}
               attribution={t("contact.addressLookupAttribution")}
-            unavailable={t("contact.addressLookupUnavailable")}
+              unavailable={t("contact.addressLookupUnavailable")}
             />
           </div>
           {(
@@ -288,7 +305,10 @@ export default function ContactManage({
                 className={FIELD}
                 value={address[field]}
                 onChange={(e) =>
-                  setAddress((previous) => ({ ...previous, [field]: e.target.value }))
+                  setAddress((previous) => ({
+                    ...previous,
+                    [field]: e.target.value,
+                  }))
                 }
               />
             </div>
@@ -301,7 +321,9 @@ export default function ContactManage({
               id="manage-country"
               value={address.country}
               locales={locales}
-              onChange={(code) => setAddress((previous) => ({ ...previous, country: code }))}
+              onChange={(code) =>
+                setAddress((previous) => ({ ...previous, country: code }))
+              }
               label={t("contact.addrCountry")}
               searchPlaceholder={t("contact.addrCountrySearchPlaceholder")}
               noMatches={t("contact.addrCountryNoMatches")}
@@ -351,46 +373,52 @@ export default function ContactManage({
           </p>
         )}
 
-        <button
+        <BusyButton
+          busy={busy}
           type="submit"
-          disabled={busy}
           className="mt-8 w-full rounded-xl bg-navy-900 px-4 py-4 text-lg font-medium text-cream-50 disabled:opacity-50"
+          busyLabel={t("contact.working")}
         >
-          {busy ? t("contact.working") : t("contact.save")}
-        </button>
+          {t("contact.save")}
+        </BusyButton>
       </form>
 
       {!isOwner && (
         <>
-        <hr className="my-10 border-navy-200" />
+          <hr className="my-10 border-navy-200" />
 
-        <button
-          type="button"
-          disabled={busy}
-          onClick={async () => {
-            const ok = await post({ action: "unsubscribe" }, "contact.unsubscribed");
-            if (ok) {
-              setWantsDigest(false);
-              setWantsPostcard(false);
-            }
-          }}
-          className="w-full rounded-xl border border-navy-200 px-4 py-3 text-lg text-navy-900"
-        >
-          {t("contact.unsubscribe")}
-        </button>
+          <BusyButton
+            busy={busy}
+            type="button"
+            onClick={async () => {
+              const ok = await post(
+                { action: "unsubscribe" },
+                "contact.unsubscribed",
+              );
+              if (ok) {
+                setWantsDigest(false);
+                setWantsPostcard(false);
+              }
+            }}
+            className="w-full rounded-xl border border-navy-200 px-4 py-3 text-lg text-navy-900"
+          >
+            {t("contact.unsubscribe")}
+          </BusyButton>
 
-        <p className="mt-8 text-base text-navy-600">{t("contact.deleteHint")}</p>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={async () => {
-            const ok = await post({ action: "delete" }, "contact.deleted");
-            if (ok) setDeleted(true);
-          }}
-          className="mt-3 w-full rounded-xl border border-coral-400 px-4 py-3 text-lg text-coral-600"
-        >
-          {t("contact.deleteMe")}
-        </button>
+          <p className="mt-8 text-base text-navy-600">
+            {t("contact.deleteHint")}
+          </p>
+          <BusyButton
+            busy={busy}
+            type="button"
+            onClick={async () => {
+              const ok = await post({ action: "delete" }, "contact.deleted");
+              if (ok) setDeleted(true);
+            }}
+            className="mt-3 w-full rounded-xl border border-coral-400 px-4 py-3 text-lg text-coral-600"
+          >
+            {t("contact.deleteMe")}
+          </BusyButton>
         </>
       )}
     </div>

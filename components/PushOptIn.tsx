@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { Bell, BellOff, BellRing } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
 import { useTrip } from "./TripProvider";
@@ -102,7 +103,9 @@ export default function PushOptIn({
       // no VAPID key should ever need to exist. Checking this before the iOS
       // Home Screen test also means a disabled deployment shows no install
       // hint either, on any device.
-      const res = await fetch(`/api/push/subscribe?user=${encodeURIComponent(username)}`)
+      const res = await fetch(
+        `/api/push/subscribe?user=${encodeURIComponent(username)}`,
+      )
         .then((r) => r.json())
         .catch(() => null);
       if (cancelled) return;
@@ -120,7 +123,9 @@ export default function PushOptIn({
         return;
       }
       const supported =
-        "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+        "serviceWorker" in navigator &&
+        "PushManager" in window &&
+        "Notification" in window;
       if (!supported) {
         if (!cancelled) setState("unsupported");
         return;
@@ -154,7 +159,9 @@ export default function PushOptIn({
         (await navigator.serviceWorker.getRegistration()) ??
         (await Promise.race([
           navigator.serviceWorker.ready.catch(() => null),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), WORKER_WAIT_MS)),
+          new Promise<null>((resolve) =>
+            setTimeout(() => resolve(null), WORKER_WAIT_MS),
+          ),
         ]));
       if (cancelled) return;
       if (!registered) {
@@ -227,7 +234,9 @@ export default function PushOptIn({
         <h2 className="font-display text-2xl font-semibold tracking-tight text-navy-900">
           {heading.title}
         </h2>
-        <p className="mt-1.5 text-base leading-7 text-navy-600">{heading.lede}</p>
+        <p className="mt-1.5 text-base leading-7 text-navy-600">
+          {heading.lede}
+        </p>
         {children}
       </section>
     ) : (
@@ -240,7 +249,11 @@ export default function PushOptIn({
   // again cannot work until they do — B446. The heading stays for these: they
   // are the answer to "why can I not turn this on", which is a question the
   // heading is what makes somebody ask.
-  if (state === "needs-install" || state === "blocked" || state === "unavailable") {
+  if (
+    state === "needs-install" ||
+    state === "blocked" ||
+    state === "unavailable"
+  ) {
     return inSection(
       <p className="mt-3 max-w-md text-[11px] leading-relaxed text-navy-500">
         {t(
@@ -274,14 +287,14 @@ export default function PushOptIn({
 
   return inSection(
     <div className="mt-3">
-      <button
+      <BusyButton
+        busy={state === "working"}
         onClick={enable}
-        disabled={state === "working"}
         className="inline-flex items-center gap-1.5 rounded-full border border-navy-200 bg-white px-3 py-1.5 text-xs font-semibold text-navy-700 transition-colors hover:border-navy-500 disabled:opacity-50"
       >
         <Bell className="h-3.5 w-3.5" aria-hidden />
         {state === "working" ? t("push.working") : t("push.enable")}
-      </button>
+      </BusyButton>
       {state === "failed" && (
         <p className="mt-1.5 text-[11px] text-coral-600">{t("push.failed")}</p>
       )}

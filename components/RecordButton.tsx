@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { Mic } from "lucide-react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
@@ -149,25 +150,33 @@ export default function RecordButton({
         const base64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onerror = () => reject(new Error("read"));
-          reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+          reader.onload = () =>
+            resolve(String(reader.result).split(",")[1] ?? "");
           reader.readAsDataURL(blob);
         });
-        const response = await fetch(`/api/helper/${encodeURIComponent(username)}/transcribe`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            audio: base64,
-            mediaType: blob.type,
-            seconds: held,
-            language,
-            locale,
-            // One key per recording, so a tap that times out and is retried is
-            // answered rather than charged twice.
-            idempotency_key: `${started.current}/${blob.size}`,
-          }),
-        });
-        const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
-        if (!response.ok) throw new Error(String(body.error ?? response.status));
+        const response = await fetch(
+          `/api/helper/${encodeURIComponent(username)}/transcribe`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              audio: base64,
+              mediaType: blob.type,
+              seconds: held,
+              language,
+              locale,
+              // One key per recording, so a tap that times out and is retried is
+              // answered rather than charged twice.
+              idempotency_key: `${started.current}/${blob.size}`,
+            }),
+          },
+        );
+        const body = (await response.json().catch(() => ({}))) as Record<
+          string,
+          unknown
+        >;
+        if (!response.ok)
+          throw new Error(String(body.error ?? response.status));
         const said = String(body.text ?? "").trim();
         if (said !== "") onText(said);
       } catch (thrown) {
@@ -225,11 +234,14 @@ export default function RecordButton({
   async function agree() {
     setBusy(true);
     try {
-      const response = await fetch(`/api/helper/${encodeURIComponent(username)}/consent`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ scope: "speech" }),
-      });
+      const response = await fetch(
+        `/api/helper/${encodeURIComponent(username)}/consent`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ scope: "speech" }),
+        },
+      );
       if (!response.ok) throw new Error(String(response.status));
       setConsented(true);
       setConsenting(false);
@@ -254,8 +266,13 @@ export default function RecordButton({
         }
         details={
           provider === "dry-run"
-            ? t("agent.speechConsentDryRun", { minutes: String(MINUTES_PER_CREDIT) })
-            : t("agent.speechConsent", { provider, minutes: String(MINUTES_PER_CREDIT) })
+            ? t("agent.speechConsentDryRun", {
+                minutes: String(MINUTES_PER_CREDIT),
+              })
+            : t("agent.speechConsent", {
+                provider,
+                minutes: String(MINUTES_PER_CREDIT),
+              })
         }
         confirmLabel={t("agent.speechConsentConfirm")}
         busy={busy}
@@ -335,7 +352,10 @@ export default function RecordButton({
         onChange={(event) => {
           setLanguage(event.target.value);
           try {
-            window.localStorage.setItem(`fs.speech.${username}`, event.target.value);
+            window.localStorage.setItem(
+              `fs.speech.${username}`,
+              event.target.value,
+            );
           } catch {
             // A browser with no storage still records; it just forgets.
           }
@@ -371,13 +391,18 @@ export default function RecordButton({
   if (compact) {
     return (
       <>
+        {/* Not a `BusyButton` — B867 deliberately stops here. A round 44px
+            icon button has room for its icon and nothing beside it, and this
+            one already reports what it is doing through the icon itself. */}
         <button
           type="button"
           disabled={disabled || busy}
           aria-label={t("agent.speechHow")}
           {...hold}
           className={`absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full border disabled:opacity-50 ${
-            recording ? "border-coral-400 bg-cream-100 text-coral-600" : "border-navy-300 text-navy-700"
+            recording
+              ? "border-coral-400 bg-cream-100 text-coral-600"
+              : "border-navy-300 text-navy-700"
           }`}
         >
           <Mic className="h-5 w-5" aria-hidden />
@@ -392,9 +417,10 @@ export default function RecordButton({
 
   return (
     <div className="mt-3">
-      <button
+      <BusyButton
+        busy={disabled}
         type="button"
-        disabled={disabled || busy}
+        disabled={busy}
         // The visible text is the price and then the stopwatch; the accessible
         // name is fixed and says how the control is worked — B794. A name that
         // counted seconds would be re-announced on every tick.
@@ -408,8 +434,9 @@ export default function RecordButton({
       >
         {/* The price is on the button, before the hold — on the wizard's own
             words step, where speaking is the thing that step is for. */}
-        {heard ?? t("agent.speechHold", { minutes: String(MINUTES_PER_CREDIT) })}
-      </button>
+        {heard ??
+          t("agent.speechHold", { minutes: String(MINUTES_PER_CREDIT) })}
+      </BusyButton>
 
       {spoken}
       {chooseLanguage}

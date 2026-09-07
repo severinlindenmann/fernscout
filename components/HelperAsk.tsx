@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import RecordButton from "@/components/RecordButton";
 import { useI18n } from "@/components/LocaleProvider";
@@ -113,13 +114,19 @@ export default function HelperAsk({
     else setError(t("agent.failed", { error: message }));
   }
 
-  async function post(url: string, body?: unknown): Promise<Record<string, unknown>> {
+  async function post(
+    url: string,
+    body?: unknown,
+  ): Promise<Record<string, unknown>> {
     const response = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body ?? {}),
     });
-    const json = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    const json = (await response.json().catch(() => ({}))) as Record<
+      string,
+      unknown
+    >;
     if (!response.ok) throw new Error(String(json.error ?? response.status));
     return json;
   }
@@ -130,12 +137,15 @@ export default function HelperAsk({
     setLapsed(false);
     setAnswer(null);
     try {
-      const body = await post(`/api/helper/${encodeURIComponent(username)}/ask`, {
-        said,
-        // Their today, not the server's: "in March" is answered from where
-        // the person is standing.
-        today: new Date().toISOString().slice(0, 10),
-      });
+      const body = await post(
+        `/api/helper/${encodeURIComponent(username)}/ask`,
+        {
+          said,
+          // Their today, not the server's: "in March" is answered from where
+          // the person is standing.
+          today: new Date().toISOString().slice(0, 10),
+        },
+      );
       if (body.kind === "open") {
         window.location.href = String(body.href);
         return;
@@ -212,7 +222,9 @@ export default function HelperAsk({
           already tried — B844. Not a merge and not a link: the two boxes stay
           two boxes, and this says which is which. */}
       {onJournal && (
-        <p className="mb-2 text-sm leading-6 text-navy-600">{t("agent.askNotSearch")}</p>
+        <p className="mb-2 text-sm leading-6 text-navy-600">
+          {t("agent.askNotSearch")}
+        </p>
       )}
       {/* `relative`, because the microphone pins itself to this box's top
           right corner — see `RecordButton`'s `compact`. */}
@@ -252,14 +264,16 @@ export default function HelperAsk({
         )}
 
         <div className="mt-2 flex justify-end">
-          <button
+          <BusyButton
+            busy={busy}
             type="button"
-            disabled={busy || said.trim() === ""}
+            disabled={said.trim() === ""}
             onClick={() => (consented ? void ask() : setConsenting(true))}
             className="min-h-11 rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-800 transition-colors hover:bg-cream-100 disabled:opacity-50"
+            busyLabel={t("agent.askWorking")}
           >
-            {busy ? t("agent.askWorking") : t("agent.askGo")}
-          </button>
+            {t("agent.askGo")}
+          </BusyButton>
         </div>
       </div>
 
@@ -278,7 +292,10 @@ export default function HelperAsk({
       )}
 
       {answer?.kind === "read" && (
-        <p role="status" className="mt-3 rounded-xl bg-cream-100 p-3 text-base leading-6 text-navy-800">
+        <p
+          role="status"
+          className="mt-3 rounded-xl bg-cream-100 p-3 text-base leading-6 text-navy-800"
+        >
           {answer.answer}
         </p>
       )}
@@ -315,7 +332,9 @@ export default function HelperAsk({
                     onChange={(event) =>
                       setFields((was) =>
                         was.map((one, n) =>
-                          n === index ? { ...one, value: event.target.value } : one,
+                          n === index
+                            ? { ...one, value: event.target.value }
+                            : one,
                         ),
                       )
                     }
@@ -329,7 +348,10 @@ export default function HelperAsk({
       )}
 
       {lapsed && (
-        <p role="status" className="mt-3 rounded-xl bg-cream-100 p-3 text-base leading-6 text-navy-800">
+        <p
+          role="status"
+          className="mt-3 rounded-xl bg-cream-100 p-3 text-base leading-6 text-navy-800"
+        >
           {t("agent.askLapsed")}{" "}
           <a
             href={`/${encodeURIComponent(username)}/me`}

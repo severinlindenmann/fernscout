@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { useReducedMotion } from "motion/react";
 import { PRIMARY_BUTTON } from "@/components/LandingSections";
 import { useI18n } from "@/components/LocaleProvider";
@@ -199,14 +200,16 @@ export default function IdentitySignIn({
           {/* `sendRef` is what the flight is measured from — B762. The
               envelope itself is mounted up at the panel, because a fast
               response swaps this form out and would unmount it mid-flight. */}
-          <button
+          <BusyButton
+            busy={busy}
             ref={sendRef}
             type="submit"
-            disabled={busy || email === ""}
+            disabled={email === ""}
             className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
+            busyLabel={t("me.signInSending")}
           >
-            {busy ? t("me.signInSending") : t("me.signInSend")}
-          </button>
+            {t("me.signInSend")}
+          </BusyButton>
           {/* Quiet reassurance under the control — the real TTL, not a
               written-in "ten", so the sentence cannot outlive a change to
               CODE_TTL_MINUTES (B426). */}
@@ -254,13 +257,15 @@ export default function IdentitySignIn({
           >
             {wrong ? t("me.signInWrong") : ""}
           </p>
-          <button
+          <BusyButton
+            busy={busy}
             type="submit"
-            disabled={busy || code.length < 6}
+            disabled={code.length < 6}
             className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
+            busyLabel={t("me.signInSending")}
           >
-            {busy ? t("me.signInSending") : t("me.signInSubmit")}
-          </button>
+            {t("me.signInSubmit")}
+          </BusyButton>
           <button
             type="button"
             onClick={() => {

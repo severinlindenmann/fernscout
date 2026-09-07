@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import BusyButton from "@/components/BusyButton";
 
 /**
  * The back of the card, and the form that writes it — B773.
@@ -81,7 +82,12 @@ export default function PostcardBack({
    * there is no switch to show either. */
   figuresSvg: string | null;
   /** The first recipient's address, already resolved to lines. */
-  address: { name: string; line1: string; postcode: string; city: string } | null;
+  address: {
+    name: string;
+    line1: string;
+    postcode: string;
+    city: string;
+  } | null;
   /** False once the order has left `draft`, or once it has expired: the card
    * is then a record of what was sent rather than something to change. */
   editable: boolean;
@@ -91,7 +97,9 @@ export default function PostcardBack({
   const [from, setFrom] = useState(initial.from);
   const [locale, setLocale] = useState(initial.locale);
   const [figures, setFigures] = useState(initial.figures);
-  const [state, setState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const [state, setState] = useState<"idle" | "saving" | "saved" | "failed">(
+    "idle",
+  );
 
   /**
    * The debounce, and the guard against an older save landing last.
@@ -129,7 +137,9 @@ export default function PostcardBack({
         headers: { accept: "application/json" },
         body,
       })
-        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+        .then((r) =>
+          r.ok ? r.json() : Promise.reject(new Error(String(r.status))),
+        )
         .then((data: { result?: string }) => {
           if (mine !== request.current) return;
           setState(data.result === "saved" ? "saved" : "failed");
@@ -197,7 +207,10 @@ export default function PostcardBack({
             className="absolute w-px bg-black/20"
             style={{ left: layout.dividerLeft, top: "8%", height: "84%" }}
           />
-          <span className="absolute rounded-sm border border-black/20" style={layout.stamp} />
+          <span
+            className="absolute rounded-sm border border-black/20"
+            style={layout.stamp}
+          />
           <div
             className="absolute"
             style={{
@@ -217,7 +230,9 @@ export default function PostcardBack({
             ) : null}
           </div>
         </div>
-        <figcaption className="mt-1 text-xs text-navy-600">{strings.caption}</figcaption>
+        <figcaption className="mt-1 text-xs text-navy-600">
+          {strings.caption}
+        </figcaption>
       </figure>
 
       {editable ? (
@@ -281,12 +296,18 @@ export default function PostcardBack({
             </label>
           ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <button
+            {/* No `busy` prop: this is the no-JavaScript fallback form, which
+                navigates rather than fetches, so there is no state for a
+                caller to hold. `BusyButton` watches its own form's submit —
+                and where JavaScript is off, which is the case this form exists
+                for, it is a plain `<button type="submit">` and nothing here
+                matters. B867. */}
+            <BusyButton
               type="submit"
-              className="min-h-11 w-full rounded-full border-2 border-navy-900 px-5 text-sm font-semibold text-navy-900 transition-colors hover:bg-navy-900 hover:text-white sm:w-auto"
+              className="min-h-11 w-full rounded-full border-2 border-navy-900 px-5 text-sm font-semibold text-navy-900 transition-colors hover:bg-navy-900 hover:text-white disabled:opacity-70 sm:w-auto"
             >
               {strings.save}
-            </button>
+            </BusyButton>
             {/* Never silent, and never claiming more than it knows. */}
             <span
               role="status"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { Check, HardDrive, Mail, MessageCircle, Undo2, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -88,7 +89,15 @@ function ChannelSwitch({
           everybody else; repeating it in text cost the width that made the
           switch wrap under the channel's name on a phone. The failure line
           stays, because that one is not visible in the control. */}
-      {failed && <span className="text-sm text-coral-600">{t("me.paymentChannelFailed")}</span>}
+      {failed && (
+        <span className="text-sm text-coral-600">
+          {t("me.paymentChannelFailed")}
+        </span>
+      )}
+      {/* Not a `BusyButton` — B867 deliberately stops here. This is a 24px
+          switch, and there is nowhere in it for a spinner to go that is not on
+          top of the thing it is reporting about. `disabled` still stops the
+          second press, which is the half that matters. */}
       <button
         type="button"
         role="switch"
@@ -135,9 +144,9 @@ function BuyStorageButton({ username }: { username: string }) {
   async function buy() {
     setBusy(true);
     setFailed(false);
-    const response = await fetch(`/api/v1/${username}/storage`, { method: "POST" }).catch(
-      () => null,
-    );
+    const response = await fetch(`/api/v1/${username}/storage`, {
+      method: "POST",
+    }).catch(() => null);
     setBusy(false);
     if (response?.ok) {
       setAsking(false);
@@ -149,7 +158,9 @@ function BuyStorageButton({ username }: { username: string }) {
     return (
       <ConfirmPanel
         label={t("me.storageBuy", { credits: String(EXTRA_STORAGE_CREDITS) })}
-        question={t("me.storageBuyConfirm", { credits: String(EXTRA_STORAGE_CREDITS) })}
+        question={t("me.storageBuyConfirm", {
+          credits: String(EXTRA_STORAGE_CREDITS),
+        })}
         confirmLabel={t("me.storageBuyGo")}
         busyLabel={t("me.storageBuyBusy")}
         busy={busy}
@@ -307,7 +318,10 @@ function StorageBar({ rows }: { rows: StoragePanel["rows"] }) {
       </div>
       <ul className="mt-3 space-y-1.5">
         {rows.map((row, at) => (
-          <li key={row.key} className="flex items-center justify-between gap-3 text-base">
+          <li
+            key={row.key}
+            className="flex items-center justify-between gap-3 text-base"
+          >
             <span className="flex min-w-0 items-center gap-2">
               <span
                 className={`h-3 w-3 shrink-0 rounded-full ${BAR_COLOURS[at % BAR_COLOURS.length]}`}
@@ -315,7 +329,9 @@ function StorageBar({ rows }: { rows: StoragePanel["rows"] }) {
               />
               <span className="truncate text-navy-700">{row.label}</span>
             </span>
-            <span className="shrink-0 tabular-nums text-navy-900">{row.human}</span>
+            <span className="shrink-0 tabular-nums text-navy-900">
+              {row.human}
+            </span>
           </li>
         ))}
       </ul>
@@ -361,7 +377,8 @@ function BuyCreditsDialog({ username }: { username: string }) {
       }
     }
     function onPointer(event: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(event.target as Node)) setOpen(false);
+      if (wrapRef.current && !wrapRef.current.contains(event.target as Node))
+        setOpen(false);
     }
     document.addEventListener("keydown", onKey);
     document.addEventListener("mousedown", onPointer);
@@ -384,7 +401,9 @@ function BuyCreditsDialog({ username }: { username: string }) {
     if (response?.ok) {
       // The purchase created a pending transaction; go to its payment page.
       // The same link was emailed too, so this can be finished later — B405.
-      const body = (await response.json().catch(() => null)) as { paymentUrl?: string } | null;
+      const body = (await response.json().catch(() => null)) as {
+        paymentUrl?: string;
+      } | null;
       setOpen(false);
       if (body?.paymentUrl) {
         router.push(body.paymentUrl);
@@ -474,18 +493,19 @@ function BuyCreditsDialog({ username }: { username: string }) {
                   to: String(MAX_CREDITS),
                 })}
           </p>
-          <button
+          <BusyButton
             type="button"
             role="menuitem"
             tabIndex={open ? 0 : -1}
-            disabled={busy}
+            busy={busy}
             onClick={() => buy()}
             className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-yellow-400 px-4 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
+            busyLabel={t("me.buyDialogBusy")}
           >
-            {busy
-              ? t("me.buyDialogBusy")
-              : t("me.buyDialogBuyAmount", { price: formatChf(priceRappen(credits)) })}
-          </button>
+            {t("me.buyDialogBuyAmount", {
+              price: formatChf(priceRappen(credits)),
+            })}
+          </BusyButton>
         </div>
       </div>
     </div>
@@ -581,7 +601,11 @@ export default function AccountPageContent({
   return (
     <div className="min-h-screen">
       <PageHeader />
-      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <main
+        id="main"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
+      >
         <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
           {t("account.title")}
         </h1>
@@ -599,10 +623,15 @@ export default function AccountPageContent({
               </div>
 
               <p className="mt-4 text-base text-navy-900">
-                {t("me.storageUsed", { used: storage.used, limit: storage.limit ?? "" })}
+                {t("me.storageUsed", {
+                  used: storage.used,
+                  limit: storage.limit ?? "",
+                })}
               </p>
               {storage.percent !== null && storage.percent >= 90 && (
-                <p className="mt-1 text-sm leading-6 text-coral-600">{t("me.storageNearlyFull")}</p>
+                <p className="mt-1 text-sm leading-6 text-coral-600">
+                  {t("me.storageNearlyFull")}
+                </p>
               )}
 
               <StorageBar rows={storage.rows} />
@@ -611,7 +640,10 @@ export default function AccountPageContent({
                 <div className="mt-5 border-t border-navy-200 pt-4">
                   <div className="flex flex-wrap items-center gap-3">
                     {storage.reclaimable.files > 0 && (
-                      <CleanupButton username={username} reclaimable={storage.reclaimable} />
+                      <CleanupButton
+                        username={username}
+                        reclaimable={storage.reclaimable}
+                      />
                     )}
                     {storage.canBuy && <BuyStorageButton username={username} />}
                   </div>
@@ -656,42 +688,59 @@ export default function AccountPageContent({
                     {t("me.paymentEstimateTitle")}
                   </p>
                   <ul className="mt-2 border-t border-navy-200">
-                    {CHANNELS.map(({ key, icon: Icon, labelKey, recipients, costs }) => {
-                      const on = payment.channels[key];
-                      if (on === null) return null;
-                      return (
-                        <li
-                          className="flex items-center justify-between gap-3 border-b border-navy-200 py-2.5"
-                          key={key}
-                        >
-                          <div className="min-w-0">
-                            <span className="flex items-center gap-2 text-base text-navy-900">
-                              <Icon className="h-4 w-4 shrink-0 text-navy-600" aria-hidden="true" />
-                              {t(labelKey)}
-                            </span>
-                            <span className="mt-0.5 block text-sm text-navy-500">
-                              {tn("me.paymentUpTo", recipients, { count: String(recipients) })}
-                              {" · "}
-                              <span className={on ? "font-semibold text-navy-900" : undefined}>
-                                {costs ? (
-                                  <>
-                                    {on ? recipients : 0} {tn("me.paymentUnit", on ? recipients : 0)}
-                                  </>
-                                ) : (
-                                  t("me.paymentFree")
-                                )}
+                    {CHANNELS.map(
+                      ({ key, icon: Icon, labelKey, recipients, costs }) => {
+                        const on = payment.channels[key];
+                        if (on === null) return null;
+                        return (
+                          <li
+                            className="flex items-center justify-between gap-3 border-b border-navy-200 py-2.5"
+                            key={key}
+                          >
+                            <div className="min-w-0">
+                              <span className="flex items-center gap-2 text-base text-navy-900">
+                                <Icon
+                                  className="h-4 w-4 shrink-0 text-navy-600"
+                                  aria-hidden="true"
+                                />
+                                {t(labelKey)}
                               </span>
-                            </span>
-                          </div>
-                          <ChannelSwitch
-                            username={username}
-                            channel={key}
-                            label={t(labelKey)}
-                            enabled={on}
-                          />
-                        </li>
-                      );
-                    })}
+                              <span className="mt-0.5 block text-sm text-navy-500">
+                                {tn("me.paymentUpTo", recipients, {
+                                  count: String(recipients),
+                                })}
+                                {" · "}
+                                <span
+                                  className={
+                                    on
+                                      ? "font-semibold text-navy-900"
+                                      : undefined
+                                  }
+                                >
+                                  {costs ? (
+                                    <>
+                                      {on ? recipients : 0}{" "}
+                                      {tn(
+                                        "me.paymentUnit",
+                                        on ? recipients : 0,
+                                      )}
+                                    </>
+                                  ) : (
+                                    t("me.paymentFree")
+                                  )}
+                                </span>
+                              </span>
+                            </div>
+                            <ChannelSwitch
+                              username={username}
+                              channel={key}
+                              label={t(labelKey)}
+                              enabled={on}
+                            />
+                          </li>
+                        );
+                      },
+                    )}
                   </ul>
                   <p className="flex items-baseline justify-between gap-3 py-2.5 text-base font-semibold text-navy-900">
                     <span>{t("me.paymentDayTotal")}</span>
@@ -702,7 +751,9 @@ export default function AccountPageContent({
                     {payment.postcardCredits !== null && (
                       <>
                         {" "}
-                        {t("me.paymentPostcardPrice", { credits: String(payment.postcardCredits) })}
+                        {t("me.paymentPostcardPrice", {
+                          credits: String(payment.postcardCredits),
+                        })}
                       </>
                     )}
                   </p>
@@ -720,7 +771,10 @@ export default function AccountPageContent({
                   </p>
                   <ul className="mt-2 divide-y divide-navy-200">
                     {payment.spent.map(({ reason, credits }) => (
-                      <li key={reason} className="flex items-baseline justify-between gap-3 py-2">
+                      <li
+                        key={reason}
+                        className="flex items-baseline justify-between gap-3 py-2"
+                      >
                         <span className="text-base text-navy-900">
                           {t(`me.spentReason.${reason}` as TranslationKey)}
                         </span>
@@ -730,7 +784,9 @@ export default function AccountPageContent({
                       </li>
                     ))}
                   </ul>
-                  <p className="mt-2.5 text-sm leading-6 text-navy-600">{t("me.spentAiNote")}</p>
+                  <p className="mt-2.5 text-sm leading-6 text-navy-600">
+                    {t("me.spentAiNote")}
+                  </p>
                 </div>
               )}
 
@@ -741,10 +797,14 @@ export default function AccountPageContent({
                   </p>
                   <ul className="mt-2 divide-y divide-navy-200">
                     {payment.transactions.map((tx) => (
-                      <li key={tx.id} className="flex items-center justify-between gap-3 py-2">
+                      <li
+                        key={tx.id}
+                        className="flex items-center justify-between gap-3 py-2"
+                      >
                         <div className="min-w-0">
                           <p className="text-base text-navy-900">
-                            {tx.credits} {tn("me.paymentUnit", tx.credits)} · {tx.amount}
+                            {tx.credits} {tn("me.paymentUnit", tx.credits)} ·{" "}
+                            {tx.amount}
                           </p>
                           <p className="text-sm tabular-nums text-navy-600">
                             {tx.createdAt.slice(0, 10)}
