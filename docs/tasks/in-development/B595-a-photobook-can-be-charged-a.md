@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: photobook, credits
 found: "2026-09-06T14:32:19Z"
+started: "2026-09-07T11:40:40Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T11:40:40Z"
 ---
 
 # B595 — A photobook can be charged a price the owner never saw

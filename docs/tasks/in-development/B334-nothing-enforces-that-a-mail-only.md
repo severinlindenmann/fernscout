@@ -7,6 +7,9 @@ complexity: medium
 area: mail, contacts, consent
 found: "2026-09-04T21:25:11Z"
 related: B315
+started: "2026-09-07T11:40:28Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T11:40:28Z"
 ---
 
 # B334 — Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right

@@ -49,41 +49,25 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (104)
+## backlog (86)
 
-### security (4)
+### security (2)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B276](backlog/security/B276-self-service-journal-creation-is-open.md) | Self-service journal creation is open to anyone on fernscout.ch, and B104 records it as never having run | SECURITY | high | low |
-| [B240](backlog/security/B240-every-owner-only-gate-is-one.md) | Every owner-only gate is one scope string away from opening | SECURITY | medium | medium |
-| [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B593](backlog/security/B593-a-fulfilment-instance-s-job-intake.md) | A fulfilment instance's job intake has no admission or rate control | SECURITY | medium | medium |
 
-### issue (20)
+### issue (6)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B386](backlog/issue/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
 | [B645](backlog/issue/B645-nothing-runs-a-photograph-through-the.md) | Nothing runs a photograph through the helper's build.mjs, so nine were published sideways | ISSUE | high | medium |
 | [B647](backlog/issue/B647-publish-mjs-matches-a-day-by.md) | publish.mjs matches a day by date alone and overwrote one day with another day's content | ISSUE | high | low |
 | [B648](backlog/issue/B648-publish-dry-run-cannot-show-a.md) | publish --dry-run cannot show a plan for a trip the instance does not have yet, and --offline still hits the network | ISSUE | high | low |
-| [B308](backlog/issue/B308-the-entry-document-has-tripled-and.md) | The entry document has tripled and the guide is 56KB, which is the property they were valued for | ISSUE | medium | medium |
-| [B309](backlog/issue/B309-the-gallery-page-s-rsc-payload.md) | The gallery page's RSC payload carries every entry's full prose for a slideshow nobody has opened | ISSUE | medium | medium |
-| [B323](backlog/issue/B323-somebody-on-a-trip-cannot-see.md) | Somebody on a trip cannot see or revoke the writing keys they have handed out | ISSUE | medium | medium |
 | [B646](backlog/issue/B646-the-helper-s-review-page-previews.md) | The helper's review page previews the originals, not the pictures that get published | ISSUE | medium | medium |
 | [B649](backlog/issue/B649-a-day-s-time-is-the.md) | A day's time: is the first file's timestamp, screenshots included, so a day went out stamped 06:44 | ISSUE | medium | low |
 | [B650](backlog/issue/B650-a-day-s-location-and-its.md) | A day's location: and its lat/lng can name towns 200 km apart and nothing says so | ISSUE | medium | low |
-| [B696](backlog/issue/B696-a-journal-called-agent-can-still.md) | A journal called agent can still be created on an instance with its own config | ISSUE | medium | low |
-| [B707](backlog/issue/B707-uploading-by-url-silently-drops-files.md) | Uploading by url silently drops files past the per-day limit | ISSUE | medium | low |
-| [B713](backlog/issue/B713-a-test-in-the-suite-fails.md) | A test in the suite fails intermittently and verify does not name which | ISSUE | medium | medium |
-| [B391](backlog/issue/B391-telfield-s-country-combobox-has-no.md) | TelField's country combobox has no jsdom test for keyboard/mouse interaction | ISSUE | low | low |
-| [B595](backlog/issue/B595-a-photobook-can-be-charged-a.md) | A photobook can be charged a price the owner never saw | ISSUE | low | low |
-| [B697](backlog/issue/B697-there-is-no-way-back-to.md) | There is no way back to the site from /agent | ISSUE | low | low |
-| [B708](backlog/issue/B708-a-day-of-videos-hits-the.md) | A day of videos hits the per-day item limit early | ISSUE | low | low |
-| [B709](backlog/issue/B709-every-day-must-answer-the-money.md) | Every day must answer the money question before it is written | ISSUE | low | medium |
-| [B710](backlog/issue/B710-the-reverse-geocoding-url-is-guessed.md) | The reverse geocoding URL is guessed from the forward one | ISSUE | low | low |
-| [B711](backlog/issue/B711-the-preview-still-says-draft-after.md) | The preview still says draft after the day is published | ISSUE | low | low |
 
 ### big-feature (14)
 
@@ -104,7 +88,7 @@ Do not edit them by hand; run the script.
 | [B689](backlog/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (19)
+### small-feature (20)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -127,13 +111,12 @@ Do not edit them by hand; run the script.
 | [B686](backlog/small-feature/B686-speech-cannot-be-turned-into-text.md) | Speech cannot be turned into text | FEATURE | low | medium |
 | [B687](backlog/small-feature/B687-photographs-cannot-describe-themselves.md) | Photographs cannot describe themselves | FEATURE | low | medium |
 | [B688](backlog/small-feature/B688-a-new-visitor-cannot-make-a.md) | A new visitor cannot make a journal inside the helper | FEATURE | low | medium |
+| [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (5)
+### chore (3)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B363](backlog/chore/B363-the-letter-s-permission-gate-is.md) | The letter's permission gate is a second copy of the site's, and nothing holds them together | CHORE | medium | medium |
-| [B541](backlog/chore/B541-build-demo-content-mjs-no-longer.md) | build-demo-content.mjs no longer reproduces the demo it is supposed to generate | CHORE | medium | medium |
 | [B659](backlog/chore/B659-the-only-backup-is-on-the.md) | The only backup is on the machine it is backing up | CHORE | medium | medium |
 | [B235](backlog/chore/B235-seventy-one-exports-and-fifty-nine.md) | Seventy-one exports and fifty-nine exported types are used only inside their own file | CHORE | low | medium |
 | [B594](backlog/chore/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
@@ -155,11 +138,10 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### docs-and-skills (2)
+### docs-and-skills (1)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B712](backlog/docs-and-skills/B712-the-helper-routes-are-undocumented-in.md) | The helper routes are undocumented in the agent guide | DOCS | medium | low |
 | [B211](backlog/docs-and-skills/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | DOCS | low | low |
 
 ### superseded (28)
@@ -199,15 +181,34 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (5)
+## in-development (24)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B386](in-development/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium | `97b44327` |
 | [B683](in-development/B683-uploading-photographs-from-a-phone-fails.md) | Uploading photographs from a phone fails halfway with no resume | FEATURE | high | high | `fdfcf5f2` |
 | [B108](in-development/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium | `6b9bf0a6` |
+| [B240](in-development/B240-every-owner-only-gate-is-one.md) | Every owner-only gate is one scope string away from opening | SECURITY | medium | medium | `97b44327` |
+| [B308](in-development/B308-the-entry-document-has-tripled-and.md) | The entry document has tripled and the guide is 56KB, which is the property they were valued for | ISSUE | medium | medium | `97b44327` |
+| [B309](in-development/B309-the-gallery-page-s-rsc-payload.md) | The gallery page's RSC payload carries every entry's full prose for a slideshow nobody has opened | ISSUE | medium | medium | `97b44327` |
+| [B323](in-development/B323-somebody-on-a-trip-cannot-see.md) | Somebody on a trip cannot see or revoke the writing keys they have handed out | ISSUE | medium | medium | `97b44327` |
+| [B334](in-development/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium | `97b44327` |
+| [B363](in-development/B363-the-letter-s-permission-gate-is.md) | The letter's permission gate is a second copy of the site's, and nothing holds them together | CHORE | medium | medium | `97b44327` |
+| [B541](in-development/B541-build-demo-content-mjs-no-longer.md) | build-demo-content.mjs no longer reproduces the demo it is supposed to generate | CHORE | medium | medium | `97b44327` |
 | [B684](in-development/B684-spoken-or-typed-notes-cannot-be.md) | Spoken or typed notes cannot be turned into a day | FEATURE | medium | high | `fdfcf5f2` |
 | [B694](in-development/B694-the-landing-page-sends-everybody-off.md) | The landing page sends everybody off to fetch an agent of their own | FEATURE | medium | low | `ccdd5120` |
+| [B696](in-development/B696-a-journal-called-agent-can-still.md) | A journal called agent can still be created on an instance with its own config | ISSUE | medium | low | `97b44327` |
+| [B707](in-development/B707-uploading-by-url-silently-drops-files.md) | Uploading by url silently drops files past the per-day limit | ISSUE | medium | low | `97b44327` |
+| [B712](in-development/B712-the-helper-routes-are-undocumented-in.md) | The helper routes are undocumented in the agent guide | DOCS | medium | low | `97b44327` |
+| [B713](in-development/B713-a-test-in-the-suite-fails.md) | A test in the suite fails intermittently and verify does not name which | ISSUE | medium | medium | `97b44327` |
 | [B05](in-development/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low | `ccdd5120` |
+| [B391](in-development/B391-telfield-s-country-combobox-has-no.md) | TelField's country combobox has no jsdom test for keyboard/mouse interaction | ISSUE | low | low | `97b44327` |
+| [B595](in-development/B595-a-photobook-can-be-charged-a.md) | A photobook can be charged a price the owner never saw | ISSUE | low | low | `97b44327` |
+| [B697](in-development/B697-there-is-no-way-back-to.md) | There is no way back to the site from /agent | ISSUE | low | low | `97b44327` |
+| [B708](in-development/B708-a-day-of-videos-hits-the.md) | A day of videos hits the per-day item limit early | ISSUE | low | low | `97b44327` |
+| [B709](in-development/B709-every-day-must-answer-the-money.md) | Every day must answer the money question before it is written | ISSUE | low | medium | `97b44327` |
+| [B710](in-development/B710-the-reverse-geocoding-url-is-guessed.md) | The reverse geocoding URL is guessed from the forward one | ISSUE | low | low | `97b44327` |
+| [B711](in-development/B711-the-preview-still-says-draft-after.md) | The preview still says draft after the day is published | ISSUE | low | low | `97b44327` |
 
 ## testing (408)
 

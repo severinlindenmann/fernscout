@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: docs, api, agent
 found: "2026-09-07T11:17:15Z"
+started: "2026-09-07T11:40:42Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T11:40:42Z"
 ---
 
 # B712 — The helper routes are undocumented in the agent guide

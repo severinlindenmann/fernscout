@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: addressLookup
 found: "2026-09-07T11:17:13Z"
+started: "2026-09-07T11:40:37Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T11:40:37Z"
 ---
 
 # B710 — The reverse geocoding URL is guessed from the forward one
