@@ -7,8 +7,7 @@ complexity: low
 area: contacts
 found: "2026-09-07T14:58:57Z"
 started: "2026-09-07T15:09:34Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T15:09:34Z"
+merged: "2026-09-07T15:30:07Z"
 ---
 
 # B800 — Neither side is told how long an approval usually takes

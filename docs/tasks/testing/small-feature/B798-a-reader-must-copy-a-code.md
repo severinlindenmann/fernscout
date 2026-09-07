@@ -7,8 +7,7 @@ complexity: low
 area: contacts, auth
 found: "2026-09-07T14:58:56Z"
 started: "2026-09-07T15:09:33Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T15:09:33Z"
+merged: "2026-09-07T15:30:06Z"
 ---
 
 # B798 — A reader must copy a code by hand before a magic link she gets anyway
