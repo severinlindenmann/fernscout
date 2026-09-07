@@ -5,6 +5,7 @@ type: ISSUE
 priority: high
 complexity: medium
 area: lib/whatsapp, contacts, opt-out
+wontDo: "the three approved templates work and a recipient can opt out in the app"
 found: "2026-09-05T00:15:00Z"
 ---
 
@@ -191,3 +192,16 @@ Also still open from the Work section, and not built: mentioning the opt-out at
 the guestbook checkbox, on the manage page and on the click-to-chat page. That
 is copy rather than mechanism, and it was left out so it does not get confused
 with the Meta-gated half above.
+
+## Closed 2026-09-07
+
+Marked wont-do by the owner. Three Meta templates are approved and working, and
+a recipient can already opt out from inside the app, so the fourth-variable
+unsubscribe link is not worth a new template version and a fresh approval
+round for each language.
+
+The code half is merged and inert: `templateFor()` accepts
+`{name, manageLink: true}` and `sendDayWhatsapp()` appends the manage URL only
+when that flag is set. Nothing sends it today. If a template is ever rebuilt
+with a fourth variable, setting the flag is all that is needed — see
+`test/whatsapp.test.ts`.

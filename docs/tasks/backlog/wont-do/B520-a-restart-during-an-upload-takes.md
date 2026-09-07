@@ -5,10 +5,8 @@ type: ISSUE
 priority: high
 complexity: low
 area: systemd, deploy, availability
+wontDo: "the operator does not want it — a bounded restart is not worth proving"
 found: "2026-09-05T21:10:00Z"
-started: "2026-09-07T11:05:58Z"
-merged: "2026-09-07T11:23:38Z"
-completed: "2026-09-07T13:11:37Z"
 ---
 
 # B520 — a restart during an upload takes the site down for ninety seconds
@@ -131,3 +129,10 @@ updated unit via `install-units.sh` and reloads systemd), then verify with
 an upload deliberately in flight — `sudo systemctl restart fernscout` while
 uploading, checking `journalctl -u fernscout` shows a clean stop within 20s
 rather than a SIGKILL after 90.
+
+## Closed 2026-09-07
+
+Marked wont-do by the owner: the bounded-shutdown change (TimeoutStopSec=20,
+KillMode=mixed) did ship and is live, but nobody is going to stage an upload
+mid-restart to watch it. The code half stands; the proving was the part judged
+not worth the time.

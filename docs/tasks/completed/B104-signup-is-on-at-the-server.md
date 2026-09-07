@@ -7,6 +7,7 @@ complexity: medium
 area: signup, ops, capabilities
 found: "2026-09-03"
 related: B102, B103, B105, B106, B107, B108, B109, B110
+completed: "2026-09-07T13:43:07Z"
 ---
 
 # B104 — Signup is on at the server and off in every journal, so no account has ever been created on the live site
@@ -79,3 +80,48 @@ same shape: an engagement whose output is other tasks.
 - One backlog task per new defect, referencing B104.
 - The test journal deleted through the mail-gated flow, its URLs answering
   `410`, and its name shown still reserved.
+
+## Reiterated and closed 2026-09-07
+
+**The premise was wrong, and the owner was right to say so.** There is no
+per-journal signup switch, and there could not usefully be one: signup is what
+*creates* a journal, so at the moment it runs there is no journal whose config
+could have gated it.
+
+Confirmed in code — every call site asks the server-wide question and none
+takes a username:
+
+```
+app/api/auth/signup/request/route.ts:24   isEnabled("signup")
+app/api/auth/signup/verify/route.ts:15    isEnabled("signup")
+app/api/v1/journals/route.ts:51           isEnabled("signup")
+app/agent/page.tsx:70                     isEnabled("signup")
+```
+
+`lib/capabilities.ts:29` declares it as `{ env: ["SESSION_SECRET"], db: true }`
+— an instance-level requirement, with no per-user field.
+
+What produced the original reading was the old `/api/health`, which printed a
+per-journal capability posture for *every* capability including ones that have
+no per-journal meaning, so `signup` appeared as "not enabled by example, by
+sevi…". That output is gone since B473. The line was noise, not a finding.
+
+**Checked live the same day:**
+
+```
+POST /api/auth/signup/request  →  202  "POST /api/auth/signup/verify …"
+POST /api/v1/journals          →  401  missing_token, "Start at POST /api/auth/signup/request."
+```
+
+Signup is on, reachable, and answering — not switched off anywhere.
+
+**The one work item this ticket had is therefore void**: there is nothing to
+"enable for the journal level the flow needs". Open signup is also a decision
+the owner has now taken deliberately — fernscout.ch is a public service and
+stays open (see B276).
+
+What was genuinely worth doing here — walking the flow as a stranger and
+checking the five edge cases — belongs to the tickets that already own each
+one: **B32** (taken username), **B55** (signup token re-use), **B92** (one
+address, three journals), **B75/B76** (what an empty new journal shows). They
+stand on their own and do not need this ticket as a wrapper.

@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: signup, capabilities, ops
 found: "2026-09-04T12:25:00Z"
+completed: "2026-09-07T13:43:08Z"
 ---
 
 # B276 — Self-service journal creation is open to anyone on fernscout.ch, and B104 records it as never having run
@@ -86,3 +87,23 @@ here. If the answer is "open with bounds", those are captures of their own.
   `404`, and `POST /api/v1/journals` does too.
 - B104's Why no longer claims the flow has never run, and its Work no longer
   begins by enabling a journal-level switch that does not gate it.
+
+## Closed 2026-09-07 — open on purpose
+
+The owner's decision: fernscout.ch is a **public service**, and self-service
+journal creation staying open to anyone is intended, not an oversight.
+
+Verified the same day that it is genuinely on and reachable, so this is a
+decision about behaviour that exists rather than about behaviour nobody has
+checked:
+
+```
+POST /api/auth/signup/request  ->  202
+POST /api/v1/journals          ->  401 missing_token
+```
+
+What this ticket asked — "is it meant to be open?" — is answered. What remains
+worth caring about is not the switch but the abuse surface behind it, and that
+is per-ticket work rather than a reason to close the door: rate limits on the
+signup routes, the storage quota per journal (`lib/storageQuota.ts`), and the
+reserved-username list (B696, which just added `agent`, `docs`, `legal`, `s`).

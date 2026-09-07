@@ -58,3 +58,23 @@ A test posts a fixture PDF and job metadata at the intake route with
 price computed from this instance's table (not the request), and a pay
 button; the same request with `accept` off is refused; an unpaid job older
 than its TTL is swept and its artefact deleted.
+
+## Absorbed B593 (2026-09-07)
+
+B593 was a separate capture — "a fulfilment instance's job intake has no
+admission or rate control" — and the owner folded it in here rather than
+leaving it to be built afterwards.
+
+**This is a requirement of the route, not a follow-up to it.** A print-job
+intake that accepts anything from anyone is an open endpoint that turns another
+instance's disk and print budget into a stranger's, so admission and rate
+control belong in the first commit that answers a request, not the second:
+
+- **Admission** — the intake must know which instances it will accept jobs
+  from, and refuse the rest. Not "authenticated" alone: an address proving who
+  it is does not make it welcome.
+- **Rate control** — per sending instance, and on bytes as well as job count,
+  because one accepted sender can still be a runaway loop.
+- The refusals belong in `lib/api/openapi.ts` beside the success, per AGENTS.md.
+
+B593 keeps its file and its id and is filed under `superseded/`.

@@ -7,6 +7,7 @@ complexity: medium
 area: contacts, invites, ops, capabilities
 found: "2026-09-03"
 related: B102, B103, B104, B106, B107, B108, B109, B110
+completed: "2026-09-07T13:43:08Z"
 ---
 
 # B105 — Contacts is on at the server and off in every journal, so no invitation has ever been carried through on the live site
@@ -84,3 +85,16 @@ same shape: an engagement whose output is other tasks.
 - B33, B37, B41, B44, B45, B74, B79, B80 and B98 each confirmed or contradicted.
 - One backlog task per new defect, referencing B105.
 - Every grant revoked and the test journal deleted at the end.
+
+## Closed 2026-09-07
+
+The owner confirms contacts is meant to be on, and `/api/health` reports
+`contacts: enabled` on fernscout.ch.
+
+The same misreading that produced B104 produced this one: the old `/api/health`
+printed a per-journal posture line for every capability, which is where "off in
+every journal" came from. That output went away with B473.
+
+The live-drive half — issuing a guest link, walking somebody through approval,
+checking a private trip stays shut to an approved guest — is the contacts part
+of the `test-the-live-site` campaign and does not need this ticket to hold it.

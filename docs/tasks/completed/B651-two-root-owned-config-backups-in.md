@@ -109,3 +109,20 @@ What is **not** done, and cannot be done from a worktree, is the live half:
    afterward (same check B457 asks for).
 
 None of steps 1-4 were run from this session — no server access here.
+
+## Closed 2026-09-07
+
+The owner's answer: `/var/lib/fernscout/config.json.bak` and
+`config.json.bak-b325` are **deliberate development backups of the config**,
+and they stay. Nothing to chown, nothing to delete.
+
+The half that was a real defect is already fixed and needs nothing on the
+server: since B653 the backup set is an allowlist, so `config.json` is staged
+by exact name (`scripts/backup.sh:432`) and anything else sitting directly
+under `DATA_DIR` — these two files included — is logged as skipped and cannot
+fail the run's exit code (`scripts/backup.sh:472-486`).
+
+So the files that used to break a nightly backup now simply are not in it,
+which is the correct outcome for a hand-made copy nobody asked to have backed
+up. `docs/runbook.md` gained the guidance to edit as `sudo -u fernscout` and
+keep safety copies outside the content root.

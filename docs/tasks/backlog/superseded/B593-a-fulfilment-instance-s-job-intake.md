@@ -5,6 +5,7 @@ type: SECURITY
 priority: medium
 complexity: medium
 area: self-hosting, postcards, photobook
+superseded: "folded into B590 — one ticket for the intake and its admission control"
 found: "2026-09-06T14:29:18Z"
 ---
 
@@ -42,3 +43,15 @@ exceeds the rate limit is refused with a named reason (matching the
 review (`claude-security`, per AGENTS.md) of the finished route finds no way
 to spend the fulfilment operator's storage or money without the admission
 step.
+
+## Folded into B590 (2026-09-07)
+
+Closed by the owner's decision to keep the fulfilment intake as one piece of
+work. Admission and rate control are not a separate feature bolted onto a
+route that accepts print jobs — they are part of what "accepts print jobs"
+has to mean, and splitting them invited building the route first and the
+control later, which is the order that ships an open endpoint.
+
+**B590 now owns both.** Whoever builds it must carry this ticket's
+requirement: the intake needs admission control and a rate limit from its
+first commit, not as a follow-up.

@@ -49,21 +49,18 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (88)
+## backlog (86)
 
-### security (3)
+### security (1)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B276](backlog/security/B276-self-service-journal-creation-is-open.md) | Self-service journal creation is open to anyone on fernscout.ch, and B104 records it as never having run | SECURITY | high | low |
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
-| [B593](backlog/security/B593-a-fulfilment-instance-s-job-intake.md) | A fulfilment instance's job intake has no admission or rate control | SECURITY | medium | medium |
 
-### issue (9)
+### issue (8)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B386](backlog/issue/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
 | [B756](backlog/issue/B756-a-party-of-five-overlaps-the.md) | A party of five overlaps the title it was moved onto, and the vehicles cannot be found on a real book | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
@@ -123,7 +120,7 @@ Do not edit them by hand; run the script.
 | [B724](backlog/chore/B724-a-capability-that-needs-another-one.md) | A capability that needs another one is an if rather than a field | CHORE | low | low |
 | [B736](backlog/chore/B736-build-demo-content-mjs-still-cannot.md) | build-demo-content.mjs still cannot reproduce travelScene, per-item visibility, some captions, or six fixture days | CHORE | low | medium |
 
-### ops (12)
+### ops (10)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -131,8 +128,6 @@ Do not edit them by hand; run the script.
 | [B102](backlog/ops/B102-mail-is-switched-on-at-fernscout.md) | Mail is switched on at fernscout.ch and nothing records that a message has ever arrived | OPS | high | medium |
 | [B103](backlog/ops/B103-sign-in-is-switched-on-at.md) | Sign-in is switched on at fernscout.ch and no one has been through the code flow there end to end | OPS | high | medium |
 | [B403](backlog/ops/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium |
-| [B104](backlog/ops/B104-signup-is-on-at-the-server.md) | Signup is on at the server and off in every journal, so no account has ever been created on the live site | OPS | medium | medium |
-| [B105](backlog/ops/B105-contacts-is-on-at-the-server.md) | Contacts is on at the server and off in every journal, so no invitation has ever been carried through on the live site | OPS | medium | medium |
 | [B106](backlog/ops/B106-push-has-never-been-switched-on.md) | Push has never been switched on anywhere, so nothing has proved a notification reaches a phone | OPS | medium | medium |
 | [B107](backlog/ops/B107-postcards-have-only-ever-run-from.md) | Postcards have only ever run from a laptop CLI, never as a capability of the deployed site | OPS | medium | medium |
 | [B437](backlog/ops/B437-no-postcard-has-ever-been-posted.md) | No postcard has ever been posted through a real provider account | OPS | medium | medium |
@@ -146,7 +141,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B211](backlog/docs-and-skills/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | DOCS | low | low |
 
-### superseded (28)
+### superseded (29)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -165,6 +160,7 @@ Do not edit them by hand; run the script.
 | [B521](backlog/superseded/B521-every-photo-upload-logs-that-the.md) | every photo upload logs that the body was truncated at 10MB | ISSUE | medium | low |
 | [B583](backlog/superseded/B583-postcards-can-only-be-started-from.md) | Duplicate capture of B582 | ISSUE | medium | low |
 | [B588](backlog/superseded/B588-a-print-capability-with-no-real.md) | A print capability with no real provider looks the same as one that can post | FEATURE | medium | medium |
+| [B593](backlog/superseded/B593-a-fulfilment-instance-s-job-intake.md) | A fulfilment instance's job intake has no admission or rate control | SECURITY | medium | medium |
 | [B602](backlog/superseded/B602-a-reader-refused-at-the-trip.md) | A reader refused at the trip gate has no way to ask the owner to let them in | FEATURE | medium | medium |
 | [B654](backlog/superseded/B654-whether-restic-can-drive-rclone-s.md) | Whether restic can drive rclone's Proton Drive backend well enough to trust it | OPS | medium | medium |
 | [B655](backlog/superseded/B655-the-backup-has-one-destination-and.md) | The backup has one destination, and no second copy off Backblaze | CHORE | medium | medium |
@@ -178,6 +174,13 @@ Do not edit them by hand; run the script.
 | [B613](backlog/superseded/B613-the-guide-says-an-unknown-caption.md) | The guide says an unknown caption src is ignored; it is refused | ISSUE | low | low |
 | [B715](backlog/superseded/B715-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 | [B90](backlog/superseded/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
+
+### wont-do (2)
+
+| # | Finding | Type | Priority | Complexity |
+| --- | --- | --- | --- | --- |
+| [B386](backlog/wont-do/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
+| [B520](backlog/wont-do/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low |
 
 ## open (0)
 
@@ -224,7 +227,7 @@ _Nothing here._
 | --- | --- | --- | --- | --- | --- |
 | [B717](testing/docs-and-skills/B717-readme-md-still-says-there-is.md) | README.md still says there is no editing interface and there will not be one | DOCS | low | low | — |
 
-## completed (614)
+## completed (616)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -258,6 +261,7 @@ _Nothing here._
 | [B265](completed/B265-a-day-with-no-coordinates-puts.md) | A day with no coordinates puts NaN through every map on the site | ISSUE | high | low |
 | [B266](completed/B266-a-day-cannot-be-edited-after.md) | A day cannot be edited after it is written, and the agent that tried published fifteen of them | ISSUE | high | medium |
 | [B272](completed/B272-a-transient-mail-failure-tells-a.md) | A transient mail failure tells a reader their code was wrong and loses the owner's notification for good | ISSUE | high | medium |
+| [B276](completed/B276-self-service-journal-creation-is-open.md) | Self-service journal creation is open to anyone on fernscout.ch, and B104 records it as never having run | SECURITY | high | low |
 | [B277](completed/B277-the-reader-languages-stay-optional-at.md) | The reader languages stay optional at creation, so a journal asked for three gets one | ISSUE | high | low |
 | [B279](completed/B279-a-page-rendered-its-raw-locale.md) | A page rendered its raw locale keys to a reader instead of any text at all | ISSUE | high | medium |
 | [B295](completed/B295-a-trip-budget-can-only-be.md) | A trip budget can only be written by hand, so an agent cannot give a trip its costs page | FEATURE | high | medium |
@@ -324,7 +328,6 @@ _Nothing here._
 | [B506](completed/B506-nobody-has-looked-at-the-photobook.md) | Nobody has looked at the photobook composer or the drawn travellers in a browser | OPS | high | medium |
 | [B509](completed/B509-a-photobook-order-charges-before-it.md) | A photobook order charges before it builds, so an interrupted build takes the money | ISSUE | high | medium |
 | [B511](completed/B511-the-composer-has-one-default-and.md) | The composer has one default and no way to nudge it | FEATURE | high | medium |
-| [B520](completed/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low |
 | [B523](completed/B523-a-request-body-over-10-mib.md) | A request body over 10 MiB is refused as expected_multipart, and the cap is documented nowhere | ISSUE | high | low |
 | [B524](completed/B524-travellers-and-people-can-be-set.md) | travellers and people can be set when a trip is created and never again | FEATURE | high | medium |
 | [B525](completed/B525-the-trip-script-asks-about-what.md) | The trip script asks about what is repairable and stays quiet about what is permanent | DOCS | high | low |
@@ -391,6 +394,8 @@ _Nothing here._
 | [B84](completed/B84-npm-run-ingest-does-not-start.md) | npm run ingest does not start, because a lib import omits the extension Node needs | ISSUE | high | low |
 | [B02](completed/B02-response-security-headers.md) | No security headers on any response, and SVG is still served inline | SECURITY | medium | low |
 | [B09](completed/B09-links-to-docs-moved-into-archiv.md) | Links to docs moved into archiv no longer resolve | CHORE | medium | low |
+| [B104](completed/B104-signup-is-on-at-the-server.md) | Signup is on at the server and off in every journal, so no account has ever been created on the live site | OPS | medium | medium |
+| [B105](completed/B105-contacts-is-on-at-the-server.md) | Contacts is on at the server and off in every journal, so no invitation has ever been carried through on the live site | OPS | medium | medium |
 | [B111](completed/B111-signup-codes-are-written-outside-the.md) | Signup codes are written outside the content directory, where nobody is looking for them | ISSUE | medium | low |
 | [B113](completed/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low |
 | [B114](completed/B114-one-unreadable-file-under-data-dir.md) | One unreadable file under DATA_DIR aborts the whole backup | ISSUE | medium | low |
