@@ -7,8 +7,7 @@ complexity: low
 area: backup, mail, content root
 found: "2026-09-07T06:47:12Z"
 started: "2026-09-07T07:04:29Z"
-session: e5f23c58-bb87-4175-ad7b-5d3aed93169f
-claimed: "2026-09-07T07:04:29Z"
+merged: "2026-09-07T07:12:29Z"
 ---
 
 # B662 — Plaintext sign-in codes still reach the backup through content/.mail
