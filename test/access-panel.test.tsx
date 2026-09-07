@@ -1,6 +1,10 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import MePageContent, { type ManagePanel, type PaymentPanel } from "@/app/[user]/me/MePageContent";
+import MePageContent, {
+  type ManagePanel,
+  type PaymentPanel,
+  type StoragePanel,
+} from "@/app/[user]/me/MePageContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";
@@ -69,6 +73,7 @@ function render(
     ownerName?: string;
     manage?: ManagePanel;
     payment?: PaymentPanel;
+    storage?: StoragePanel;
   } = {},
 ) {
   return renderToStaticMarkup(
@@ -89,6 +94,7 @@ function render(
           ownerName={"ownerName" in over ? over.ownerName : "Robin"}
           manage={over.manage}
           payment={over.payment}
+          storage={over.storage}
         />
           </TripListProvider>
         </CurrencyProvider>
@@ -590,7 +596,6 @@ describe("the payment section", () => {
     channels: { mail: true, whatsapp: true },
     postcardCredits: null,
     transactions: [],
-    storage: { used: "1.0 GB", limit: "5.0 GB", percent: 20 },
   };
 
   test("renders for the owner", () => {
@@ -748,5 +753,70 @@ describe("the payment section", () => {
   test("is absent for a reader with no session at all", () => {
     const html = render({ viewer: stranger, payment });
     expect(html).not.toContain(dictionaryFor("en")["me.paymentTitle"]);
+  });
+});
+
+/**
+ * Storage — B664, and its own card rather than a line inside Payment.
+ *
+ * The two things worth asserting are the two the panel exists for: an owner
+ * can see *which* of their things is the big one, and the lever that costs
+ * nothing is offered before the one that costs money.
+ */
+describe("the storage card", () => {
+  const storage: StoragePanel = {
+    used: "4.2 GB",
+    limit: "5.0 GB",
+    percent: 84,
+    rows: [
+      { key: "trip:bus-2026", label: "The bus year", human: "3.0 GB", share: 60 },
+      { key: "photobooks", label: "Photobooks", human: "1.0 GB", share: 20 },
+    ],
+    reclaimable: { human: "1.0 GB", files: 6, hasStagedFiles: false },
+    canBuy: true,
+    buyCredits: 50,
+  };
+
+  test("names every row and its size, not only the colours", () => {
+    const html = render({ viewer: owner, storage });
+    expect(html).toContain("The bus year");
+    expect(html).toContain("3.0 GB");
+    expect(html).toContain("Photobooks");
+    expect(html).toContain("4.2 GB of 5.0 GB used");
+  });
+
+  test("offers the cleanup before the purchase, and says what it takes", () => {
+    const html = render({ viewer: owner, storage });
+    expect(html).toContain("Free up 1.0 GB");
+    expect(html).toContain("Add 5 GB for 50 credits");
+    expect(html.indexOf("Free up")).toBeLessThan(html.indexOf("Add 5 GB"));
+  });
+
+  /** An owner on an instance that does not charge still wants the figure and
+   * still wants the cleanup — only the purchase is absent. */
+  test("is there with credits off; only the buy button is not", () => {
+    const html = render({ viewer: owner, storage: { ...storage, canBuy: false } });
+    expect(html).toContain("4.2 GB of 5.0 GB used");
+    expect(html).toContain("Free up 1.0 GB");
+    expect(html).not.toContain("Add 5 GB");
+  });
+
+  test("with nothing to reclaim, says so instead of offering a button", () => {
+    const html = render({
+      viewer: owner,
+      storage: { ...storage, reclaimable: { human: "0 KB", files: 0, hasStagedFiles: false } },
+    });
+    expect(html).not.toContain("Free up");
+    expect(html).toContain("There is nothing to clean up");
+  });
+
+  test("warns past ninety per cent, and not below it", () => {
+    expect(render({ viewer: owner, storage })).not.toContain("Nearly full");
+    expect(render({ viewer: owner, storage: { ...storage, percent: 95 } })).toContain("Nearly full");
+  });
+
+  /** A stranger has no business knowing how full somebody's journal is. */
+  test("is absent for a reader who is not the owner", () => {
+    expect(render({ viewer: stranger })).not.toContain("4.2 GB");
   });
 });

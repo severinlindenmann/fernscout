@@ -6,16 +6,18 @@ import MePageContent, {
   type TripEditPanel,
   type ManagePanel,
   type PaymentPanel,
+  type StoragePanel,
 } from "./MePageContent";
 import { manageTokenFor, listContacts, normaliseEmail, optedInCounts } from "@/lib/contacts";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
 import { pickLocale } from "@/lib/contacts/locale";
 import { isEnabled } from "@/lib/capabilities";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
-import { balanceOf } from "@/lib/credits";
-import { formatChf, POSTCARD_CREDITS } from "@/lib/credits/pricing";
+import { balanceOf, creditsEnabled } from "@/lib/credits";
+import { EXTRA_STORAGE_CREDITS, formatChf, POSTCARD_CREDITS } from "@/lib/credits/pricing";
 import { listPayments } from "@/lib/payments";
-import { formatBytes, storageFor } from "@/lib/storageQuota";
+import { cleanupPlan } from "@/lib/storageCleanup";
+import { formatBytes, storageBreakdown, storageFor } from "@/lib/storageQuota";
 import { ownerShortName, serverSite } from "@/lib/site";
 import { resolveViewer } from "@/lib/viewer";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -149,6 +151,46 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
         }))
     : undefined;
 
+  /**
+   * Storage — B664. Owner only, and outside the `balance !== null` branch
+   * below on purpose: how full a journal is has nothing to do with whether
+   * this instance charges for sends, and an owner on an instance with credits
+   * off still wants to know. Only `canBuy` depends on that.
+   */
+  let storage: StoragePanel | undefined;
+  if (viewer.owner) {
+    const usage = await storageFor(user);
+    if (usage.limitBytes !== null) {
+      const limit = usage.limitBytes;
+      const reclaimable = await cleanupPlan(user, true);
+      storage = {
+        used: formatBytes(usage.usedBytes),
+        limit: formatBytes(limit),
+        percent: Math.round((usage.usedBytes / limit) * 100),
+        // Biggest first: the question the chart answers is "which of these is
+        // the big one", and reading it should not need a scan.
+        rows: storageBreakdown(user)
+          .filter((row) => row.bytes > 0)
+          .sort((a, b) => b.bytes - a.bytes)
+          .map((row) => ({
+            key: row.key,
+            label: row.label,
+            human: formatBytes(row.bytes),
+            // Of the allowance, not of what is used — so the bar's empty tail
+            // is the room that is left, which is the thing being asked about.
+            share: Math.min(100, (row.bytes / limit) * 100),
+          })),
+        reclaimable: {
+          human: formatBytes(reclaimable.bytes),
+          files: reclaimable.files,
+          hasStagedFiles: reclaimable.stagedFiles > 0,
+        },
+        canBuy: creditsEnabled(),
+        buyCredits: EXTRA_STORAGE_CREDITS,
+      };
+    }
+  }
+
   let payment: PaymentPanel | undefined;
   if (viewer.owner) {
     const balance = await balanceOf(user);
@@ -180,7 +222,6 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       // capability to be switched on — while `journal.features` is what this
       // journal asks for. `isEnabled(name, user)` is the two together and
       // cannot tell them apart, which is why it is not what is read here.
-      const usage = await storageFor(user);
       const channelState = (name: "mail" | "whatsapp") =>
         isEnabled(name) ? journal.features[name].enabled : null;
 
@@ -194,17 +235,6 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
         // per-send estimate like the rows above: it is a flat price, and the
         // count is whatever the owner chooses on the preview page.
         postcardCredits: isEnabled("postcards", user) ? POSTCARD_CREDITS : null,
-        // Bytes formatted here, like the money above and for the same reason
-        // — B661. `percent` is what decides whether the card warns, against
-        // the limit that actually applies to this journal, purchases included.
-        storage: {
-          used: formatBytes(usage.usedBytes),
-          limit: usage.limitBytes === null ? null : formatBytes(usage.limitBytes),
-          percent:
-            usage.limitBytes === null
-              ? null
-              : Math.round((usage.usedBytes / usage.limitBytes) * 100),
-        },
       };
     }
   }
@@ -218,6 +248,7 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       journal={journalPanel}
       editableTrips={editableTrips}
       payment={payment}
+      storage={storage}
       // Resolved here rather than guessed in the component: a capability is a
       // server ceiling and a journal opt-in, and the page was offering a door
       // that this journal had never opened. The panel used to take a second

@@ -6,6 +6,7 @@ import { countSpends } from "./credits";
 import { loadUserConfig, serverMediaCeiling } from "./config";
 import { mediaOriginalsRoot } from "./media";
 import { getUser, userDir } from "./users";
+import { getTrips, tripDir } from "./trips";
 import { EXTRA_STORAGE_BYTES } from "./credits/pricing";
 import { sendTransactional } from "./mail";
 import { renderMail } from "./mail/template";
@@ -47,7 +48,7 @@ export type StorageUsage = {
 };
 
 /** Every byte under a directory. Missing is zero, not an error. */
-function dirBytes(at: string): number {
+export function dirBytes(at: string): number {
   let total = 0;
   let entries: fs.Dirent[];
   try {
@@ -94,6 +95,44 @@ export function formatBytes(n: number): string {
  */
 async function purchasedBytes(username: string): Promise<number> {
   return (await countSpends(username, "storage")) * EXTRA_STORAGE_BYTES;
+}
+
+/**
+ * What is actually taking the space — B664.
+ *
+ * One row per thing an owner could act on: each trip by name, the inbox, the
+ * generated photobooks and postcards, and whatever is left. The rows sum to
+ * `journalBytes` exactly, and `other` is what makes that true — a breakdown
+ * that quietly loses a few megabytes is one nobody can reason from, and
+ * `config.json` and anything somebody dropped in by hand are real bytes.
+ *
+ * Walked, like everything else here. It is a directory read per trip, on a
+ * page one person opens.
+ */
+export type StorageRow = { key: string; label: string; bytes: number };
+
+export function storageBreakdown(username: string): StorageRow[] {
+  const originals = mediaOriginalsRoot();
+  const rows: StorageRow[] = [];
+
+  for (const trip of getTrips(username)) {
+    const bytes =
+      dirBytes(tripDir(trip.ref)) +
+      // Where an instance keeps originals on another disk they are still this
+      // trip's bytes, and still the owner's.
+      (originals ? dirBytes(path.join(originals, username, trip.id)) : 0);
+    rows.push({ key: `trip:${trip.id}`, label: trip.title, bytes });
+  }
+
+  const dir = userDir(username);
+  rows.push({ key: "inbox", label: "Staged files", bytes: dirBytes(path.join(dir, "inbox")) });
+  rows.push({ key: "photobooks", label: "Photobooks", bytes: dirBytes(path.join(dir, "photobooks")) });
+  rows.push({ key: "postcards", label: "Postcards", bytes: dirBytes(path.join(dir, "postcards")) });
+
+  const counted = rows.reduce((n, row) => n + row.bytes, 0);
+  rows.push({ key: "other", label: "Everything else", bytes: Math.max(0, journalBytes(username) - counted) });
+
+  return rows;
 }
 
 /**
