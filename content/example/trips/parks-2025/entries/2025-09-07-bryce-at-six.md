@@ -14,15 +14,15 @@ gallery:
   - src: "/media/parks-2025/bryce-at-six/01.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 778
   - src: "/media/parks-2025/bryce-at-six/02.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1007
   - src: "/media/parks-2025/bryce-at-six/03.jpg"
     type: "image"
-    width: 1067
-    height: 1600
+    width: 1600
+    height: 952
 tags: ["utah", "national-parks", "sunrise"]
 costs:
   - { label: "Fuel", amount: 38, category: "transport", currency: "USD" }

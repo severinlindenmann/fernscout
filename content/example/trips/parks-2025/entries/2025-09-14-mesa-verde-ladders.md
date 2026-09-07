@@ -14,15 +14,15 @@ gallery:
   - src: "/media/parks-2025/mesa-verde-ladders/01.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1284
   - src: "/media/parks-2025/mesa-verde-ladders/02.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1066
   - src: "/media/parks-2025/mesa-verde-ladders/03.jpg"
     type: "image"
-    width: 1067
-    height: 1600
+    width: 1600
+    height: 1066
 tags: ["colorado", "national-parks", "history"]
 costs:
   - { label: "Fuel", amount: 40, category: "transport", currency: "USD" }

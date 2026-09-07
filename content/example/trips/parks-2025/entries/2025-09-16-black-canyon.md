@@ -14,11 +14,11 @@ gallery:
   - src: "/media/parks-2025/black-canyon/01.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1200
   - src: "/media/parks-2025/black-canyon/02.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1200
 tags: ["colorado", "national-parks", "canyons"]
 costs:
   - { label: "Fuel", amount: 45, category: "transport", currency: "USD" }

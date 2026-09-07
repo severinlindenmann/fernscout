@@ -14,15 +14,15 @@ gallery:
   - src: "/media/parks-2025/trail-ridge-road/01.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1066
   - src: "/media/parks-2025/trail-ridge-road/02.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1066
   - src: "/media/parks-2025/trail-ridge-road/03.jpg"
     type: "image"
-    width: 1067
-    height: 1600
+    width: 1600
+    height: 1066
 tags: ["colorado", "national-parks", "wildlife"]
 costs:
   - { label: "Fuel", amount: 49, category: "transport", currency: "USD" }

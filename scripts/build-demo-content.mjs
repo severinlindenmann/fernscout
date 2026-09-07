@@ -44,6 +44,16 @@ const ROOT = path.join(import.meta.dirname, "..");
 // exists for that — nothing else should need it.
 const OUT_ARG = process.argv.find((a) => a.startsWith("--out="));
 const USER = OUT_ARG ? path.resolve(OUT_ARG.slice("--out=".length)) : path.join(ROOT, "content", "example");
+
+/**
+ * Where the committed journal lives, regardless of where this run is writing.
+ *
+ * `photos.json` is **source**, not output: it is the list of real photographs
+ * a trip has in git, and a `--out=` run into a scratch directory still has to
+ * read it or it would regenerate the frontmatter against photographs that are
+ * not there. B211.
+ */
+const SOURCE = path.join(ROOT, "content", "example");
 const WITH_MEDIA = process.argv.includes("--media");
 const FORCE = process.argv.includes("--force");
 
@@ -1123,8 +1133,15 @@ function quote(value) {
 
 function galleryBlock(trip, day) {
   const items = [];
+  // A trip with committed photographs takes its dimensions from the files that
+  // are actually there, not from the shape the seeder would have asked Picsum
+  // for — otherwise the frontmatter describes a photograph nobody has. B211.
+  const committed = committedPhotos(trip)?.[day.slug];
   for (let i = 1; i <= day.photos; i++) {
-    const shape = SHAPES[(i - 1) % SHAPES.length];
+    const real = committed?.[i - 1];
+    const shape = real
+      ? { w: real.width, h: real.height }
+      : SHAPES[(i - 1) % SHAPES.length];
     // A caption on some photographs and not on others, which is the real
     // shape of a journal — most pictures have nothing said about them, and a
     // demo where every one carries a line would not show that the layout
@@ -1349,6 +1366,24 @@ function writeTrip(trip) {
   for (const day of trip.days) writeEntry(trip, day);
 }
 
+/**
+ * A trip whose photographs are real, committed, and of the places its days
+ * name — `photos.json` beside the trip, written by
+ * `scripts/fetch-demo-photos.mjs`. B211.
+ *
+ * Only `parks-2025` has one so far. Everywhere else still falls through to
+ * Picsum below, which is fine for a trip nobody reads for its pictures but was
+ * not fine for the one the README shows: it labelled a seascape "Wind Cave
+ * National Park" and a frog "Laramie", and `content/example/` is also what an
+ * agent reads to learn the content model — a geotagged day whose gallery has
+ * nothing to do with its coordinates teaches that the two are unrelated.
+ */
+function committedPhotos(trip) {
+  const file = path.join(SOURCE, "trips", trip.id, "photos.json");
+  if (!fs.existsSync(file)) return null;
+  return JSON.parse(fs.readFileSync(file, "utf8")).days ?? null;
+}
+
 async function fetchPhoto(seed, shape, dest) {
   const url = `https://picsum.photos/seed/${seed}/${shape.w}/${shape.h}`;
   const res = await fetch(url, { redirect: "follow" });
@@ -1357,6 +1392,15 @@ async function fetchPhoto(seed, shape, dest) {
 }
 
 async function media(trip) {
+  // A trip with committed photographs keeps them: re-downloading would put
+  // the seascapes back. The files are in git beside the entries, so there is
+  // nothing to fetch and nothing to write.
+  const committed = committedPhotos(trip);
+  if (committed) {
+    console.log(`  photographs: kept ${Object.values(committed).flat().length} committed (photos.json)`);
+    return;
+  }
+
   for (const day of trip.days) {
     // A draft written before the trip has no photographs yet, and an empty
     // media folder is a folder somebody later wonders about.

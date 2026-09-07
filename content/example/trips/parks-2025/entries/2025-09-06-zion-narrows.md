@@ -15,16 +15,16 @@ gallery:
     caption: "The water going over, and the spray coming straight back up"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1066
   - src: "/media/parks-2025/zion-narrows/02.jpg"
     caption: "Steps down into the fog, and nothing at the bottom of them"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1066
   - src: "/media/parks-2025/zion-narrows/03.jpg"
     type: "image"
-    width: 1067
-    height: 1600
+    width: 1600
+    height: 919
 tags: ["utah", "national-parks", "hiking", "water"]
 costs:
   - { label: "Fuel", amount: 44, category: "transport", currency: "USD" }

@@ -97,3 +97,55 @@ The three ends considered, so they do not have to be reconstructed:
 3. Keep Picsum and name it as a placeholder in the README and the demo. Costs
    nothing and removes the surprise, but the screenshots still show a seascape
    captioned as a national park.
+
+## Done 2026-09-07
+
+**Public-domain photographs, of the places the days name.** All 43 photographs
+on `parks-2025` replaced from Wikimedia Commons, public domain or CC0 only —
+nothing with an attribution obligation, which is what the ticket ruled out.
+
+`scripts/fetch-demo-photos.mjs` is the fetcher. Two things in it matter:
+
+- **The licence is re-checked, not trusted.** The search asks for
+  `haslicense:unrestricted`, and every candidate is then tested again against
+  an allowlist in the script (`Public domain`, `CC0`, `PD-*`, `No
+  restrictions`). Commons' park categories are mostly CC BY-SA Flickr imports,
+  so the filter is doing real work.
+- **A candidate whose own title does not name the place is dropped.** Without
+  that guard the search returned a public-domain photograph of *Steens
+  Mountain, Oregon* for the Escalante day and FEMA firefighting equipment for
+  Denver. Swapping a random wrong photograph for a specific wrong one is not
+  progress, so the day is reported short rather than filled. An `AVOID` list
+  drops the survey documentation, orbital imagery and railroad archives that
+  are correctly named and still not what a traveller saw — every entry on it
+  came back from a real query.
+
+`content/example/trips/parks-2025/photos.json` records, per photograph, its
+title, its licence and its Commons page. Public domain needs no attribution;
+recording where each came from is cheap and means nobody has to re-derive it.
+
+**The generator no longer overwrites them.** `build-demo-content.mjs` reads
+`photos.json` when a trip has one — `media()` keeps the committed files rather
+than re-downloading, and `galleryBlock()` takes its `width`/`height` from the
+real files instead of the shape it would have asked Picsum for. The manifest is
+read from `content/example/` rather than from `--out=`, because it is source:
+a regen into a scratch directory still has to know what photographs exist.
+Every other trip still uses Picsum, which is fine for trips nobody reads for
+their pictures.
+
+Sizes: 1600px longest edge, re-encoded through sharp/mozjpeg, EXIF stripped —
+the demo should not ship somebody else's GPS tags. 12.7 MB for 43 photographs,
+against 7.5 MB before; the old ones were smaller because they were arbitrary
+Picsum crops rather than photographs of anything.
+
+### Not perfect, and worth saying
+
+A few days got the best public-domain photograph of the right place rather than
+the ideal one — Wind Cave is two botanical close-ups, Needles is a ranger at
+work, Capitol Reef leans on archive material. They are of the place their
+caption names, which is what the acceptance asked for and what was broken. If
+someone wants a nicer set later, the fetcher's per-day queries are the one
+place to edit.
+
+`test/build-demo-content-regen.test.ts` (B541's) passes, so the generator still
+reproduces what is committed.

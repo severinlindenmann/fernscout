@@ -13,12 +13,12 @@ transportTo: "Escalante"
 gallery:
   - src: "/media/parks-2025/escalante-backroad/01.jpg"
     type: "image"
-    width: 1600
-    height: 1067
+    width: 1506
+    height: 1600
   - src: "/media/parks-2025/escalante-backroad/02.jpg"
     type: "image"
     width: 1600
-    height: 1067
+    height: 1063
 tags: ["utah", "backroads", "desert"]
 costs:
   - { label: "Fuel", amount: 41, category: "transport", currency: "USD" }
