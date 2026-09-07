@@ -7,8 +7,7 @@ complexity: high
 area: agent, importers, costs
 found: "2026-09-07T09:53:02Z"
 started: "2026-09-07T13:26:08Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T13:26:08Z"
+merged: "2026-09-07T13:57:50Z"
 ---
 
 # B689 — A bank statement or a timeline export cannot be handed over on the web
