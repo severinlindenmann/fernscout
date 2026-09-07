@@ -9,7 +9,7 @@ import {
 } from "@/lib/api/entries";
 import { confirmationMatches, confirmationRequired } from "@/lib/agentConfirm";
 import { fillTripRatesQuietly } from "@/lib/api/tripRates";
-import { fillDayWeatherQuietly } from "@/lib/api/weather";
+import { fillDayWeatherQuietly, weatherOffRefusal } from "@/lib/api/weather";
 import { AS_AUTHOR, getAllEntries } from "@/lib/entries";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -126,6 +126,11 @@ export async function POST(
   if (problems.length > 0) {
     return Response.json({ error: "invalid_entry", problems }, { status: 400 });
   }
+
+  // B778 — asked for before anything is written, because the lookup that
+  // would answer it is off. See `weatherOffRefusal`.
+  const weatherOff = weatherOffRefusal(user, body);
+  if (weatherOff) return Response.json(weatherOff, { status: 400 });
 
   /**
    * What this trip keeps, and what this day says about it — B531.

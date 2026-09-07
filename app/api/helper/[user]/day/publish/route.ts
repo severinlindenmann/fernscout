@@ -1,6 +1,6 @@
 import { factsOfEntry, publishDraft } from "@/lib/api/entries";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
-import { isHelperOwner } from "@/lib/helper/server";
+import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { serverSite } from "@/lib/site";
 import { missingFrom } from "@/lib/tracks";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -32,7 +32,7 @@ export async function POST(
 ) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
-    return Response.json({ error: "not_your_journal" }, { status: 404 });
+    return notYourJournal(request);
   }
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;

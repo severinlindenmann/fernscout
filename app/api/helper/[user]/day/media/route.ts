@@ -1,7 +1,7 @@
 import { attachGallery } from "@/lib/api/entries";
 import { attachOriginal, storeUploads } from "@/lib/api/media";
 import { loadUserConfig } from "@/lib/config";
-import { isHelperOwner } from "@/lib/helper/server";
+import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { kindForExtension, storeInboxFile } from "@/lib/inbox";
 import { storageFor } from "@/lib/storageQuota";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -48,12 +48,12 @@ export const dynamic = "force-dynamic";
  * whole ticket is about.
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: RouteContext<"/api/helper/[user]/day/media">,
 ) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
-    return Response.json({ error: "not_your_journal" }, { status: 404 });
+    return notYourJournal(request);
   }
   const usage = await storageFor(user);
   const limits = loadUserConfig(user).media;
@@ -73,7 +73,7 @@ export async function POST(
 ) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
-    return Response.json({ error: "not_your_journal" }, { status: 404 });
+    return notYourJournal(request);
   }
 
   const form = await request.formData().catch(() => null);

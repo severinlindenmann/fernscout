@@ -306,6 +306,12 @@ export async function POST(
       date: entry.date,
       url: `${serverSite().url}/${user}`,
       test: isTestContent(found, entry),
+      // B775 — what this day actually became, which is the trip's question
+      // and not the day's. A `guest` or `private` trip is in no feed, no
+      // search index and behind a gate; saying otherwise told an owner their
+      // closed trip had just gone out to strangers.
+      visibility: found.visibility,
+      listed: found.listed,
     }),
     ...(mail ? { mail } : {}),
     ...(whatsapp ? { whatsapp } : {}),

@@ -1,4 +1,4 @@
-import { isHelperOwner } from "@/lib/helper/server";
+import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { removeInboxFile } from "@/lib/inbox";
 
 export const dynamic = "force-dynamic";
@@ -18,12 +18,12 @@ export const dynamic = "force-dynamic";
  * `next` text; a person reading a screen needs a button.
  */
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: RouteContext<"/api/helper/[user]/inbox/[id]">,
 ) {
   const { user, id } = await params;
   if (!(await isHelperOwner(user))) {
-    return Response.json({ error: "not_your_journal" }, { status: 404 });
+    return notYourJournal(request);
   }
   if (!removeInboxFile(user, id)) {
     return Response.json({ error: "unknown_inbox_file" }, { status: 404 });

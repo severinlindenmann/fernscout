@@ -3,7 +3,7 @@ import { creditsForPhotos } from "@/lib/helper/credits";
 import { refund, spend } from "@/lib/credits";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { describePhotos, HELPER_PROVIDER, type PhotoImage } from "@/lib/helper/model";
-import { isHelperOwner } from "@/lib/helper/server";
+import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { defaultLocaleFor } from "@/lib/locales";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
@@ -53,7 +53,7 @@ export async function POST(
 ) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
-    return Response.json({ error: "not_your_journal" }, { status: 404 });
+    return notYourJournal(request);
   }
   if (!isEnabled("helper", user)) {
     return Response.json({ error: "helper_unavailable" }, { status: 404 });

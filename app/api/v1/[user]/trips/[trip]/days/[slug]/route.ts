@@ -2,7 +2,7 @@ import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser, refuse
 import { isTestContent } from "@/lib/access";
 import { EDITABLE_DAY_FIELDS, editEntry, type EditInput } from "@/lib/api/entries";
 import { fillTripRatesQuietly } from "@/lib/api/tripRates";
-import { fillDayWeatherQuietly } from "@/lib/api/weather";
+import { fillDayWeatherQuietly, weatherOffRefusal } from "@/lib/api/weather";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import { validateEntryEdit } from "@/lib/validate/entry";
@@ -224,6 +224,12 @@ export async function PATCH(
   if (problems.length > 0) {
     return Response.json({ error: "invalid_entry", problems }, { status: 400 });
   }
+
+  // B778 — the same refusal the create route makes, for the same reason: this
+  // answered `200 {"changed":["weather"]}` for a lookup that could never
+  // happen, and the only way to find out was to re-read the day and guess why.
+  const weatherOff = weatherOffRefusal(user, body);
+  if (weatherOff) return Response.json(weatherOff, { status: 400 });
 
   const result = editEntry(ref, slug, body as EditInput);
   if (!result.ok) {

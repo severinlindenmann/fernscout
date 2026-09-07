@@ -36,10 +36,16 @@ const FALLBACK_LOCALE = "en";
  * which would be written into a config or a trip's `translations:` and then
  * match nothing for the rest of the journal's life.
  *
- * Used by the two doors that now write locales — `setJournalProfile` here and
+ * Used by the two doors that write locales — `setJournalProfile` and
  * `createTrip`'s `translations:` block (B207, B220). One copy, because the two
  * disagreeing about what a locale is would put a translation in a journal that
  * cannot render it.
+ *
+ * A journal's own `locales`/`defaultLocale` are narrower than this since
+ * B777: shape here, and then `MAINTAINED_LOCALES` in `setJournalProfile`, the
+ * same check `POST /api/v1/journals` already made. A trip's `translations:`
+ * stays shape-only — content in a language this software ships no menus for
+ * renders fine, while chrome in one does not.
  */
 export const LOCALE_TAG_RE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 
