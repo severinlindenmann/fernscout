@@ -7,8 +7,7 @@ complexity: medium
 area: landing, agent, brand
 found: "2026-09-07T13:20:00Z"
 started: "2026-09-07T12:20:26Z"
-session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
-claimed: "2026-09-07T12:20:26Z"
+merged: "2026-09-07T12:50:46Z"
 ---
 
 # B733 — The landing page and the helper door are flat cream, while the brand they are built from has paper, panels and a yellow that leads

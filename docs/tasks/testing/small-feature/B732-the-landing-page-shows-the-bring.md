@@ -7,8 +7,7 @@ complexity: low
 area: landing, agent
 found: "2026-09-07T13:10:00Z"
 started: "2026-09-07T12:17:50Z"
-session: ccdd5120-0eb0-4abf-b76e-a6fd8e5005d8
-claimed: "2026-09-07T12:17:50Z"
+merged: "2026-09-07T12:50:45Z"
 ---
 
 # B732 — The landing page shows the bring-your-own-agent instructions to everybody, including the people who came for the helper
