@@ -4,7 +4,9 @@ import Pricing from "@/components/Pricing";
 import {
   EXTRA_STORAGE_CREDITS,
   POSTCARD_CREDITS,
-  TIERS,
+  BASE_RAPPEN_PER_CREDIT,
+  MAX_CREDITS,
+  MIN_CREDITS,
   creditsInRappen,
   formatChf,
   photobookCredits,
@@ -46,14 +48,13 @@ describe("the pricing table", () => {
     expect(rendered).toContain("An estimate");
   });
 
-  test("carries every tier, and no tier that was dropped", () => {
+  test("states the range it sells and both ends of the per-credit price", () => {
     const rendered = html();
-    for (const tier of TIERS) {
-      expect(rendered).toContain(`${tier.credits} for ${formatChf(tier.priceRappen)}`);
-    }
-    // The 100-credit tier went with B840. A stale row here would be a price
-    // the purchase route refuses.
-    expect(rendered).not.toContain("100 for");
+    // B854 replaced the tier rows with the range the slider covers. A page
+    // still naming a fixed tier would be naming a purchase the route refuses.
+    expect(rendered).toContain(String(MIN_CREDITS));
+    expect(rendered).toContain(String(MAX_CREDITS));
+    expect(rendered).toContain(formatChf(BASE_RAPPEN_PER_CREDIT));
   });
 
   test("prints what one credit is worth in francs, not only in credits", () => {

@@ -1463,7 +1463,7 @@
   "pricing.freeImporters": "Open-source importers for your history",
   "pricing.freeExport": "Export everything, whenever you like",
   "pricing.creditsTitle": "Credits",
-  "pricing.creditsLede": "{price} each. Paid in advance, and they never expire.",
+  "pricing.creditsLede": "From {price} each, less the more you buy at once. Paid in advance, and they never expire.",
   "pricing.rowHelp": "Writing help",
   "pricing.rowHelpDetail": "A day written up, or {photos} photographs captioned, or {minutes} minutes of speech, or one bank statement read",
   "pricing.rowWhatsapp": "A WhatsApp message",
@@ -1475,8 +1475,10 @@
   "pricing.rowPhotobook": "A printed photobook",
   "pricing.rowPhotobookDetail": "An estimate — it depends on the page count and the size, and you see the exact figure before you order",
   "pricing.fromCredits": "from {credits}",
-  "pricing.tier": "{credits} for {price}",
-  "pricing.tierOff": "{off} off",
   "pricing.grant": "A new journal starts with {credits}.",
-  "me.paymentFree": "free"
+  "me.paymentFree": "free",
+  "me.buyDialogAmount": "How many credits",
+  "me.buyDialogNoDiscount": "From {from} to {to}. The more you buy at once, the less each one costs.",
+  "me.buyDialogBuyAmount": "Buy for {price}",
+  "pricing.range": "Buy {from} to {to} at a time — {min} each, down to {max} at {to}."
 }

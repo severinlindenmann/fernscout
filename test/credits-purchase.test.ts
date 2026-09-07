@@ -149,7 +149,7 @@ describe("who may ask", () => {
   test("an unauthenticated caller gets 403 and nothing is sent", async () => {
     as(null);
     const before = mailFiles().length;
-    const result = await purchase({ tier: "50" });
+    const result = await purchase({ credits: 50 });
     expect(result.status).toBe(403);
     expect(mailFiles()).toHaveLength(before);
   });
@@ -157,7 +157,7 @@ describe("who may ask", () => {
   test("a guest (signed in, but not the owner) gets 403", async () => {
     as(await guestToken());
     const before = mailFiles().length;
-    const result = await purchase({ tier: "50" });
+    const result = await purchase({ credits: 50 });
     expect(result.status).toBe(403);
     expect(mailFiles()).toHaveLength(before);
     as(null);
@@ -166,14 +166,14 @@ describe("who may ask", () => {
   test("a traveller (an agent token scoped to a trip, not the owner) gets 403", async () => {
     as(null);
     const before = mailFiles().length;
-    const result = await purchase({ tier: "50" }, await travellerToken());
+    const result = await purchase({ credits: 50 }, await travellerToken());
     expect(result.status).toBe(403);
     expect(mailFiles()).toHaveLength(before);
   });
 
   test("the owner gets 200", async () => {
     as(null);
-    const result = await purchase({ tier: "50" }, await ownerToken());
+    const result = await purchase({ credits: 50 }, await ownerToken());
     expect(result.status).toBe(200);
   });
 });
@@ -187,7 +187,7 @@ describe("what a 200 actually does", () => {
     const before = mailFiles().length;
 
     as(null);
-    const result = await purchase({ tier: "200" }, await ownerToken());
+    const result = await purchase({ credits: 200 }, await ownerToken());
     expect(result.status).toBe(200);
 
     expect(mailFiles()).toHaveLength(before + 1);
@@ -197,15 +197,25 @@ describe("what a 200 actually does", () => {
     expect(ledgerAfter).toEqual(ledgerBefore);
   });
 
-  test("an unknown tier is 400 and sends nothing", async () => {
+  test("an amount out of range is 400 and sends nothing", async () => {
     const before = mailFiles().length;
     as(null);
-    const result = await purchase({ tier: "999" }, await ownerToken());
+    const result = await purchase({ credits: 5000 }, await ownerToken());
     expect(result.status).toBe(400);
+    expect(result.body.error).toBe("invalid_amount");
     expect(mailFiles()).toHaveLength(before);
   });
 
-  test("an absent tier is 400 and sends nothing", async () => {
+  test("an amount off the step is 400 and sends nothing — never rounded to one that is", async () => {
+    const before = mailFiles().length;
+    as(null);
+    const result = await purchase({ credits: 137 }, await ownerToken());
+    expect(result.status).toBe(400);
+    expect(result.body.error).toBe("invalid_amount");
+    expect(mailFiles()).toHaveLength(before);
+  });
+
+  test("an absent amount is 400 and sends nothing", async () => {
     const before = mailFiles().length;
     as(null);
     const result = await purchase({}, await ownerToken());
@@ -217,7 +227,7 @@ describe("what a 200 actually does", () => {
     const before = mailFiles();
     as(null);
     const result = await purchase(
-      { tier: "50", email: "somebody-else@example.test" },
+      { credits: 50, email: "somebody-else@example.test" },
       await ownerToken(),
     );
     expect(result.status).toBe(200);

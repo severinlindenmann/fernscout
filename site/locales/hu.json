@@ -1463,7 +1463,7 @@
   "pricing.freeImporters": "Nyílt forrású importálók az előzményeidhez",
   "pricing.freeExport": "Bármikor exportálhatsz mindent",
   "pricing.creditsTitle": "Kredit",
-  "pricing.creditsLede": "{price} darabja. Előre fizetve, és sosem jár le.",
+  "pricing.creditsLede": "{price}-tól darabja, és minél többet veszel egyszerre, annál olcsóbb. Előre fizetve, és sosem jár le.",
   "pricing.rowHelp": "Írási segítség",
   "pricing.rowHelpDetail": "Egy megírt nap, vagy {photos} fénykép feliratozása, vagy {minutes} perc beszéd, vagy egy bankkivonat beolvasása",
   "pricing.rowWhatsapp": "Egy WhatsApp-üzenet",
@@ -1475,8 +1475,10 @@
   "pricing.rowPhotobook": "Egy nyomtatott fotókönyv",
   "pricing.rowPhotobookDetail": "Becslés — az oldalszámtól és a mérettől függ, és a pontos összeget a rendelés előtt látod",
   "pricing.fromCredits": "{credits}-tól",
-  "pricing.tier": "{credits} ennyiért: {price}",
-  "pricing.tierOff": "{off} kedvezmény",
   "pricing.grant": "Egy új napló {credits} kredittel indul.",
-  "me.paymentFree": "ingyenes"
+  "me.paymentFree": "ingyenes",
+  "me.buyDialogAmount": "Hány kredit",
+  "me.buyDialogNoDiscount": "{from}-tól {to}-ig. Minél többet veszel egyszerre, annál olcsóbb darabja.",
+  "me.buyDialogBuyAmount": "Megveszem {price}-ért",
+  "pricing.range": "Egyszerre {from} és {to} között vehetsz — darabja {min}, {to} felett {max}."
 }

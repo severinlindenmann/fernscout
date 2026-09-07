@@ -9,7 +9,13 @@ import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";
 import TripListProvider from "@/components/TripListProvider";
 import { dictionaryFor } from "@/lib/locales";
-import { POSTCARD_CREDITS, TIERS, formatChf } from "@/lib/credits/pricing";
+import {
+  MAX_CREDITS,
+  MIN_CREDITS,
+  POSTCARD_CREDITS,
+  formatChf,
+  priceRappen,
+} from "@/lib/credits/pricing";
 import type { SiteSummary } from "@/lib/site";
 
 /**
@@ -152,16 +158,17 @@ describe("the payment section", () => {
     expect(html).not.toContain("A printed postcard");
   });
 
-  test("offers every tier behind the buy button, none of them disabled", () => {
+  test("offers a slider over the whole buyable range, and prices where it stands", () => {
     const html = render({ payment });
     expect(html).toContain(dictionaryFor("en")["me.paymentBuyTitle"]);
     expect(html).not.toContain('disabled=""');
-    // Read off TIERS rather than typed out: B840 dropped the middle one, and
-    // a list of prices beside the list of prices is how the two disagree.
-    for (const tier of TIERS) {
-      expect(html).toContain(`${tier.credits} credits`);
-      expect(html).toContain(formatChf(tier.priceRappen));
-    }
+    // B854: the two fixed buttons became one `<input type="range">`. The
+    // bounds are the module's, not literals — a slider that offers an amount
+    // the purchase route refuses is the failure worth catching here.
+    expect(html).toContain(`min="${MIN_CREDITS}"`);
+    expect(html).toContain(`max="${MAX_CREDITS}"`);
+    // And the price shown is the price that amount is actually charged.
+    expect(html).toContain(formatChf(priceRappen(50)));
   });
 
   /** `payment` is `undefined` when credits are switched off — B74: the

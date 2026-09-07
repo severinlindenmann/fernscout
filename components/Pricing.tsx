@@ -1,13 +1,16 @@
 import { Check } from "lucide-react";
 import { SIGNUP_CREDIT_GRANT } from "@/lib/credits";
 import {
+  BASE_RAPPEN_PER_CREDIT,
   EXTRA_STORAGE_BYTES,
   EXTRA_STORAGE_CREDITS,
+  MAX_CREDITS,
+  MIN_CREDITS,
   POSTCARD_CREDITS,
-  TIERS,
   creditsInRappen,
   formatChf,
   photobookCredits,
+  priceRappen,
 } from "@/lib/credits/pricing";
 import { serverMediaCeiling } from "@/lib/config";
 import { formatBytes } from "@/lib/storageQuota";
@@ -150,14 +153,17 @@ export default function Pricing({ locale }: { locale: string }) {
               </li>
             ))}
           </ul>
+          {/* The range and both ends of the per-credit price, from the price
+              function itself — B854 replaced a list of tiers with a slider, so
+              there are no rows left to print, and "from X down to Y" is the
+              honest summary of a curve. */}
           <p className="mt-3 text-sm leading-6 text-navy-600">
-            {TIERS.map(
-              (tier) =>
-                t("pricing.tier", {
-                  credits: String(tier.credits),
-                  price: formatChf(tier.priceRappen),
-                }) + (tier.discount ? ` (${t("pricing.tierOff", { off: tier.discount })})` : ""),
-            ).join(" · ")}
+            {t("pricing.range", {
+              from: String(MIN_CREDITS),
+              to: String(MAX_CREDITS),
+              min: formatChf(BASE_RAPPEN_PER_CREDIT),
+              max: formatChf(Math.round(priceRappen(MAX_CREDITS) / MAX_CREDITS)),
+            })}
           </p>
           <p className="mt-1 text-sm leading-6 text-navy-600">
             {t("pricing.grant", { credits: String(SIGNUP_CREDIT_GRANT) })}

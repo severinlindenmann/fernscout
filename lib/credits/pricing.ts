@@ -7,33 +7,93 @@
  * same table a mail and a dead payment page both quote. Nothing here touches
  * a balance or a database.
  *
- * Base price is CHF 0.20/credit, with one volume discount at the larger tier.
- * Always integer rappen — never a float for money, and never a price computed
- * in a component.
+ * Base price is CHF 0.20/credit. Always integer rappen — never a float for
+ * money, and never a price computed in a component.
  *
- * **Two tiers, not three — B840.** There were three, discounted 0/10/20%, and
- * a person at the till had to compare three unit prices to answer "how much is
- * a credit". The deepest discount also gave the most margin away to the people
- * who buy most. Fifty for CHF 10.00 stays exactly `EXTRA_STORAGE_CREDITS`, so
- * "buy credits, then buy storage" is still one purchase of one amount.
+ * **An amount, not a list — B854.** There were three fixed tiers, then two
+ * (B840), and every amount that was not one of them was unbuyable: somebody
+ * needing eighty credits for a photobook had to buy two hundred, and somebody
+ * wanting to try one write-up had to buy fifty. A list also makes the volume
+ * discount an announcement rather than an incentive — it appears at one
+ * boundary and nowhere else, so there is nothing to find by asking for more.
+ *
+ * So the price is a function of the amount, and the account page is a slider
+ * over it. `priceRappen` is the only thing that computes a price, and the
+ * purchase route calls it rather than reading a number from the request: an
+ * amount a caller may name is fine, a price a caller may name is a way to buy
+ * five hundred credits for a franc.
  */
 
-export type CreditTier = {
-  /** The URL segment (`/credits/pay/<id>`) and the purchase route's `tier`
-   * field. The credit count as a string: already unique, so it needs no
-   * separate id of its own. */
-  id: string;
-  credits: number;
-  priceRappen: number;
-  /** A display string, e.g. `"10%"`. Empty for the base tier, which carries
-   * no discount. */
-  discount: string;
-};
+/** The amount a person may buy in one purchase, and the granularity of the
+ *  slider over it. Ten is enough to try the helper on a day; five hundred is
+ *  two photobooks and change, which is more than anybody has yet spent in a
+ *  year. The step keeps the slider to fifty positions and the prices to
+ *  figures somebody can read back to you. */
+export const MIN_CREDITS = 10;
+export const MAX_CREDITS = 500;
+export const CREDIT_STEP = 10;
 
-export const TIERS: readonly CreditTier[] = [
-  { id: "50", credits: 50, priceRappen: 1000, discount: "" },
-  { id: "200", credits: 200, priceRappen: 3600, discount: "10%" },
-];
+/** CHF 0.20. The price of the first fifty credits, and the most anybody ever
+ *  pays for one — every larger purchase pays less per credit. */
+export const BASE_RAPPEN_PER_CREDIT = 20;
+
+/** Where the discount starts, and where it stops growing. Below the first
+ *  number there is none; at the second it is `MAX_DISCOUNT`. */
+export const DISCOUNT_FROM = 50;
+const MAX_DISCOUNT = 0.2;
+
+/**
+ * The share taken off the base price at this amount — `0` to `0.2`.
+ *
+ * Flat to fifty, then logarithmic: each *doubling* of the order buys the same
+ * further slice of discount, which is the shape a volume discount actually
+ * has (the cost being amortised — a payment fee, a support question — does not
+ * halve every time the order does). Fifty pays CHF 0.20 a credit, a hundred
+ * CHF 0.188, two hundred CHF 0.176, five hundred CHF 0.16.
+ *
+ * **Smooth on purpose.** Banded discounts make the total jump as somebody
+ * drags past a boundary, and the jump is always downwards — a slider that
+ * sometimes charges less for more is one people stop trusting. Here every
+ * extra credit costs strictly more than nothing and strictly less than the
+ * one before it, which `test/credit-price.test.ts` asserts across the whole
+ * range rather than at a handful of points.
+ */
+export function discountFor(credits: number): number {
+  if (credits <= DISCOUNT_FROM) return 0;
+  const span = Math.log(MAX_CREDITS / DISCOUNT_FROM);
+  return MAX_DISCOUNT * (Math.log(credits / DISCOUNT_FROM) / span);
+}
+
+/** What this many credits costs, in whole rappen. The one place a price is
+ *  computed; everything else — the slider, the dialog, the mail, the payment
+ *  page, Stripe — asks this. */
+export function priceRappen(credits: number): number {
+  return Math.round(credits * BASE_RAPPEN_PER_CREDIT * (1 - discountFor(credits)));
+}
+
+/** `0.06` -> `"6%"`. Whole percents: a discount printed as "6.02%" reads as a
+ *  number somebody computed rather than an offer. */
+export function discountLabel(credits: number): string {
+  return `${Math.round(discountFor(credits) * 100)}%`;
+}
+
+/**
+ * Whether this is an amount somebody may actually buy — B854.
+ *
+ * The step is enforced as well as the range, and that is not fussiness: the
+ * slider can only produce multiples of ten, so an amount that is not one came
+ * from somewhere else, and the honest answer to a request nothing in the
+ * product can make is to refuse it rather than to price it.
+ */
+export function isBuyableAmount(credits: unknown): credits is number {
+  return (
+    typeof credits === "number" &&
+    Number.isInteger(credits) &&
+    credits >= MIN_CREDITS &&
+    credits <= MAX_CREDITS &&
+    credits % CREDIT_STEP === 0
+  );
+}
 
 /**
  * What one printed, posted postcard costs the sender — B434, repriced by B840.
@@ -54,10 +114,6 @@ export const TIERS: readonly CreditTier[] = [
  * before anybody presses anything. Nothing about this number is secret.
  */
 export const POSTCARD_CREDITS = 20;
-
-export function tierFor(id: string): CreditTier | undefined {
-  return TIERS.find((tier) => tier.id === id);
-}
 
 /**
  * What one printed photobook costs the owner — and every number here is a
@@ -114,12 +170,14 @@ export function photobookCredits(pages: number, sizeId: string): number {
  *
  * A price stated only in credits is a price nobody can judge, and "154
  * credits" was on the order step three times with no way to tell whether that
- * was a coffee or a car. Valued at the *base* tier — the most anybody ever
- * pays per credit — so the figure is the ceiling and buying in bulk can only
- * make it cheaper. Say "about": the two larger tiers really do pay less.
+ * was a coffee or a car. Valued at `BASE_RAPPEN_PER_CREDIT` — the most anybody
+ * ever pays per credit — so the figure is a ceiling and a larger purchase can
+ * only have made it cheaper. Say "about", and never `priceRappen`: this is
+ * what a credit already in the balance was worth, not what buying this many
+ * costs today.
  */
 export function creditsInRappen(credits: number): number {
-  return Math.round((credits * TIERS[0].priceRappen) / TIERS[0].credits);
+  return credits * BASE_RAPPEN_PER_CREDIT;
 }
 
 /** `1800` -> `"CHF 18.00"`. The tiers are priced in CHF regardless of a
@@ -161,13 +219,19 @@ export const EXTRA_STORAGE_BYTES = 5 * 1024 ** 3;
  *
  * Three strings rather than one sentence, because the sentence is a
  * translation and belongs in `site/locales/`. Every number here is arithmetic
- * on `TIERS` — nothing about a price is ever typed into a locale file, which
- * is what `test/credit-worth.test.ts` holds this to.
+ * on the price function — nothing about a price is ever typed into a locale
+ * file, which is what `test/credit-worth.test.ts` holds this to.
+ *
+ * `DISCOUNT_FROM` is the example amount rather than a round number picked for
+ * the sentence: it is the largest purchase that still pays the base rate, so
+ * "50 credits cost CHF 10.00" is both true and the simplest true thing to
+ * say. Quote a discounted amount here and the sentence quietly stops
+ * multiplying.
  */
 export function creditWorth(): { one: string; credits: string; price: string } {
   return {
     one: formatChf(creditsInRappen(1)),
-    credits: String(TIERS[0].credits),
-    price: formatChf(TIERS[0].priceRappen),
+    credits: String(DISCOUNT_FROM),
+    price: formatChf(priceRappen(DISCOUNT_FROM)),
   };
 }

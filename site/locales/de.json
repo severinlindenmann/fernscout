@@ -1463,7 +1463,7 @@
   "pricing.freeImporters": "Quelloffene Importer für deine Verläufe",
   "pricing.freeExport": "Alles exportieren, wann immer du willst",
   "pricing.creditsTitle": "Guthaben",
-  "pricing.creditsLede": "{price} pro Punkt. Im Voraus bezahlt, und sie verfallen nie.",
+  "pricing.creditsLede": "Ab {price} pro Punkt, günstiger je mehr du auf einmal kaufst. Im Voraus bezahlt, und sie verfallen nie.",
   "pricing.rowHelp": "Schreibhilfe",
   "pricing.rowHelpDetail": "Ein geschriebener Tag, oder {photos} beschriftete Fotos, oder {minutes} Minuten Sprache, oder ein gelesener Kontoauszug",
   "pricing.rowWhatsapp": "Eine WhatsApp-Nachricht",
@@ -1475,8 +1475,10 @@
   "pricing.rowPhotobook": "Ein gedrucktes Fotobuch",
   "pricing.rowPhotobookDetail": "Eine Schätzung — sie hängt von Seitenzahl und Format ab, und du siehst den genauen Betrag vor der Bestellung",
   "pricing.fromCredits": "ab {credits}",
-  "pricing.tier": "{credits} für {price}",
-  "pricing.tierOff": "{off} günstiger",
   "pricing.grant": "Ein neues Journal startet mit {credits}.",
-  "me.paymentFree": "gratis"
+  "me.paymentFree": "gratis",
+  "me.buyDialogAmount": "Wie viele Guthaben-Punkte",
+  "me.buyDialogNoDiscount": "Von {from} bis {to}. Je mehr du auf einmal kaufst, desto günstiger wird jeder Punkt.",
+  "me.buyDialogBuyAmount": "Für {price} kaufen",
+  "pricing.range": "Kaufe {from} bis {to} auf einmal — {min} pro Punkt, bei {to} noch {max}."
 }

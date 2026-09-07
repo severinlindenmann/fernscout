@@ -1,5 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { creditWorth, creditsInRappen, formatChf, TIERS } from "@/lib/credits/pricing";
+import {
+  BASE_RAPPEN_PER_CREDIT,
+  DISCOUNT_FROM,
+  creditWorth,
+  creditsInRappen,
+  formatChf,
+  priceRappen,
+} from "@/lib/credits/pricing";
 import { dictionaryFor, installedLocales } from "@/lib/locales";
 import { translate } from "@/lib/i18n";
 
@@ -13,17 +20,17 @@ import { translate } from "@/lib/i18n";
  * moment somebody is asked to spend one.
  *
  * The property worth holding: every figure in that sentence comes out of
- * `TIERS`. A price typed into a locale file is a price that will be wrong the
+ * the price function. A price typed into a locale file is a price that will be wrong the
  * day the table changes, in three languages at once, with nothing failing.
  */
 
 describe("the credit sentence", () => {
-  test("every figure in it is arithmetic on TIERS", () => {
+  test("every figure in it is arithmetic on the price function", () => {
     const worth = creditWorth();
     expect(worth.one).toBe(formatChf(creditsInRappen(1)));
-    expect(worth.one).toBe(formatChf(Math.round(TIERS[0].priceRappen / TIERS[0].credits)));
-    expect(worth.credits).toBe(String(TIERS[0].credits));
-    expect(worth.price).toBe(formatChf(TIERS[0].priceRappen));
+    expect(worth.one).toBe(formatChf(BASE_RAPPEN_PER_CREDIT));
+    expect(worth.credits).toBe(String(DISCOUNT_FROM));
+    expect(worth.price).toBe(formatChf(priceRappen(DISCOUNT_FROM)));
   });
 
   test("no language has the price typed into it", () => {
@@ -33,7 +40,7 @@ describe("the credit sentence", () => {
       for (const slot of ["{one}", "{credits}", "{price}"]) {
         expect(template, `${locale} is missing ${slot}`).toContain(slot);
       }
-      // No figure of any kind: the tiers are the only source of one.
+      // No figure of any kind: the price function is the only source of one.
       expect(template, locale).not.toMatch(/\d/);
     }
   });
@@ -42,8 +49,8 @@ describe("the credit sentence", () => {
     for (const locale of installedLocales()) {
       const said = translate(dictionaryFor(locale), "credits.worth", creditWorth());
       expect(said, locale).toContain(formatChf(creditsInRappen(1)));
-      expect(said, locale).toContain(String(TIERS[0].credits));
-      expect(said, locale).toContain(formatChf(TIERS[0].priceRappen));
+      expect(said, locale).toContain(String(DISCOUNT_FROM));
+      expect(said, locale).toContain(formatChf(priceRappen(DISCOUNT_FROM)));
     }
   });
 });

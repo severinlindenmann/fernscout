@@ -1,7 +1,6 @@
 import "server-only";
 import crypto from "node:crypto";
 import { getDatabaseOrNull, newId, nowIso } from "./db";
-import { type CreditTier } from "./credits/pricing";
 
 /**
  * The mock payment ledger — B405.
@@ -90,22 +89,31 @@ function toPayment(row: {
 }
 
 /**
- * Start a purchase. Amount and credits come from the tier — a fixed table —
- * never from anything a caller supplied, so no request can conjure a cheaper
- * price or more credits.
+ * Start a purchase.
+ *
+ * **The caller passes both the amount and the price, and the price must be
+ * `priceRappen(credits)`** — B854 replaced the fixed tier table with a
+ * function, so the guarantee moved rather than went away: the route computes
+ * the price from the amount it validated, and nothing a request body carries
+ * reaches either field. Passing a price a request supplied would be a way to
+ * buy five hundred credits for a franc.
  *
  * The id is a random token and is the whole link: unguessable, and worth
  * nothing beyond viewing and mock-paying this one transaction (which adds no
  * credits).
  */
-export async function createPayment(owner: string, tier: CreditTier): Promise<Payment | null> {
+export async function createPayment(
+  owner: string,
+  credits: number,
+  amountRappen: number,
+): Promise<Payment | null> {
   const handle = await getDatabaseOrNull();
   if (!handle) return null;
   const row = {
     id: newId(),
     owner_id: owner,
-    credits: tier.credits,
-    amount_rappen: tier.priceRappen,
+    credits,
+    amount_rappen: amountRappen,
     status: "pending",
     method: null as string | null,
     created_at: nowIso(),
