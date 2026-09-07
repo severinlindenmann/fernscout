@@ -7,8 +7,7 @@ complexity: low
 area: auth, capabilities
 found: "2026-09-04T09:53:52Z"
 started: "2026-09-07T10:37:41Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T10:37:41Z"
+merged: "2026-09-07T11:08:37Z"
 ---
 
 # B252 — The trip gate says a journal has no sign-in while /api/auth still issues it sessions

@@ -7,8 +7,7 @@ complexity: low
 area: contacts, rate-limiting
 found: "2026-09-04T08:12:03Z"
 started: "2026-09-07T10:37:41Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T10:37:41Z"
+merged: "2026-09-07T11:08:38Z"
 ---
 
 # B237 — A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation
