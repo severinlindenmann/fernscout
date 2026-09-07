@@ -77,3 +77,25 @@ it; this only stops the understanding being stored twice.
 - Its reasoning appears once.
 - `npm run unused` reports no new unused file, dependency or import.
 - `npm run verify`.
+
+## Work done
+
+Created `lib/matterCache.ts` — imports only `gray-matter`, holds the merged
+doc comment and the one-line function. `lib/entries.ts` now imports it and
+re-exports `clearMatterCache` under the same name (kept, since `lib/costs.ts`,
+`lib/plan.ts`, `lib/api/entries.ts`, `lib/api/weather.ts` and several tests
+all import it from `./entries` / `@/lib/entries` already — re-exporting was
+cheaper than touching six import sites for no behavioural change). `lib/trips.ts`
+dropped its private copy and now imports the same function directly from
+`lib/matterCache.ts`, so the two modules import a shared leaf rather than each
+other — no cycle, as the ticket predicted.
+
+The four "See `clearMatterCache`..." pointer comments at each catch site
+(`lib/entries.ts`, `lib/trips.ts`, `lib/costs.ts`, `lib/plan.ts`,
+`lib/api/weather.ts`, `lib/api/entries.ts`×2) now point at
+`lib/matterCache.ts`, where the reasoning actually lives, rather than
+`lib/entries.ts`.
+
+`npm run unused` stayed clean (exit 0) — the new module is reached from both
+`lib/entries.ts` and `lib/trips.ts`, so knip does not flag it. `npm run verify`
+passed.

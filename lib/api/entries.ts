@@ -1522,7 +1522,7 @@ export function listDrafts(
       // Same failure `readAllEntries` guards against (B236): a file that
       // will not parse must not blank out the review queue for every other
       // draft in the trip. Skipped and logged rather than thrown; see
-      // `clearMatterCache` in lib/entries.ts for why that call is needed too.
+      // `clearMatterCache` in lib/matterCache.ts for why that call is needed too.
       clearMatterCache();
       const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
       console.warn(`[entries] ${ref}/entries/${file}: its frontmatter could not be parsed: ${why}`);
@@ -1701,7 +1701,7 @@ export function isPublished(ref: string, slug: string): boolean {
     // and `isDraft` already treats anything other than exactly that line as
     // published (see its own comment) — so "cannot be read" is answered the
     // same way "read, and not a draft" is, rather than thrown. B236. See
-    // `clearMatterCache` in lib/entries.ts for why that call is needed too.
+    // `clearMatterCache` in lib/matterCache.ts for why that call is needed too.
     clearMatterCache();
     const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
     console.warn(`[entries] ${ref}/entries/${match}: its frontmatter could not be parsed: ${why}`);

@@ -60,3 +60,44 @@ be required of a laptop.
 
 Found while building B203 and B66. Same class as B180, B181 and B195: a test
 that never runs the thing it claims to test.
+
+## Work done
+
+**Chose: install the binaries in CI**, for both checks — not the loud-skip
+fallback — because both are single, cheaply-verifiable installs and this is
+exactly the shape `backup-drill`'s restic install already established as this
+project's pattern for "the keeper needs a real binary CI does not ship".
+
+- **`systemd-analyze`**: `ubuntu-latest` is GitHub's real Ubuntu VM image, not
+  a container — it boots with systemd as PID 1 — so the `systemd` package
+  (and `systemd-analyze` with it) ships in the base image already; nothing to
+  install. Rather than trust that silently (which is the exact failure mode
+  this ticket is about), the `test` job now has a step that runs
+  `systemd-analyze --version` and fails the whole job if it is missing, so a
+  future runner-image change that ever drops it is caught loudly instead of
+  the keeper quietly going back to skipping. I could not run an actual
+  `ubuntu-latest` job to confirm this from here (no GitHub Actions runner in
+  this environment) — the assertion step is what makes that unnecessary going
+  forward: CI will say so on the first run either way.
+- **Caddy**: installed as a single static binary in the `test` job, before
+  `npx vitest run`, the same way `backup-drill` installs restic — downloaded
+  from the pinned GitHub release (`v2.11.4`), verified against the sha512 from
+  that release's own `_checksums.txt` (Caddy publishes sha512, not sha256).
+  Added as `.github/workflows/ci.yml`'s `test` job steps, so both matrix legs
+  (sqlite, postgres) run `test/check-caddy.test.ts`'s fixture keeper — the
+  redundancy is harmless; the install is a few seconds.
+
+Verified locally: ran the same curl+sha512sum+install shell logic outside CI
+against the pinned release and confirmed the checksum matches (the checksum
+in the workflow was read directly from the release's own checksums file, not
+computed once and trusted). Did not have a Linux CI runner to execute the
+actual GitHub Actions job, so "a CI run shows X executing" per the acceptance
+line will only be confirmed once this merges and CI runs — this is CI
+configuration, so a local `npm run verify` cannot exercise the `test` job's
+new steps at all; the workflow YAML was validated for syntax with `js-yaml`.
+
+Not done: a deliberately-stale `test/fixtures/caddy/expected.json` fails CI
+(the acceptance's third line) is unchanged from before this ticket — that
+already fails locally whenever Caddy is installed and was not itself part of
+what was silently skipping; only the *running it at all in CI* half was
+missing, which the Caddy install above now supplies.

@@ -75,7 +75,7 @@ function readPlanFile(file: string, tripId: string): PlannedStop[] {
   try {
     parsed = matter(fs.readFileSync(file, "utf8"));
   } catch (err) {
-    // See `clearMatterCache`'s doc comment (lib/entries.ts) for why this
+    // See `clearMatterCache`'s doc comment (lib/matterCache.ts) for why this
     // call is not optional here: matter() caches a parse by raw content
     // before it parses, so a throwing call leaves a stale, non-throwing
     // result under this file's bytes for the next reader to find. B312.

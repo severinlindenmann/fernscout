@@ -105,12 +105,41 @@ jobs:
       # Setting only the latter meant the "postgres" leg quietly ran the SQLite
       # path against a Postgres URL and tested nothing extra at all.
       POSTGRES_TEST_URL: ${{ matrix.postgres_test_url }}
+      # Pinned the same way RESTIC_VERSION is below: this suite reads Caddy's
+      # own `adapt` output byte for byte (test/check-caddy.test.ts), so CI and
+      # a laptop need to be running the same release. The checksum is from
+      # the release's own `_checksums.txt` (sha512, not sha256 — that is the
+      # algorithm Caddy publishes).
+      CADDY_VERSION: "2.11.4"
+      CADDY_SHA512: "8220d1f013b6f27510247b2360c9e0ca9f018feebd82515f07635318b34ff9777ccc8fd0b6e6f2486ce3a33fe389fbb7db12d05baa474f4587509fb4f5ebf1c9"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+      # B226. `test/systemd-units.test.ts`'s `systemd-analyze verify` half —
+      # the authority on the B203 defect — is `skipIf(!HAS_ANALYZE)` and was
+      # never confirmed to run in CI. `ubuntu-latest` is a full systemd VM,
+      # not a container, so the binary ships in the base image; this asserts
+      # that rather than trusting it, so a runner-image change that ever
+      # drops it fails loudly here instead of the keeper going quiet again.
+      - name: systemd-analyze must be on this runner, or the B203 keeper silently stops running
+        run: systemd-analyze --version
+      # B226. `test/check-caddy.test.ts`'s fixture keeper —
+      # `skipIf(!HAS_CADDY)` — ran on a maintainer's laptop and nowhere else,
+      # which is exactly the shape B180 and B195 were filed about. A single
+      # static binary, installed the same way `backup-drill` below installs
+      # restic.
+      - name: Install Caddy
+        run: |
+          set -euo pipefail
+          url="https://github.com/caddyserver/caddy/releases/download/v${CADDY_VERSION}/caddy_${CADDY_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL "$url" -o caddy.tar.gz
+          echo "${CADDY_SHA512}  caddy.tar.gz" | sha512sum -c -
+          tar -xzf caddy.tar.gz caddy
+          sudo install -m 0755 caddy /usr/local/bin/caddy
+          rm -f caddy.tar.gz caddy
       - run: npm ci
       - run: npx vitest run
 
