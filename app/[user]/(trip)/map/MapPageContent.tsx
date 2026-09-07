@@ -78,7 +78,7 @@ export default function MapPageContent({
           {hasPlaces && (
             <button
               onClick={() => setShowing(true)}
-              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-navy-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-navy-700"
+              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-navy-200 bg-white px-4 text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500"
             >
               <Clapperboard className="h-4 w-4" />
               {t("show.start")}
