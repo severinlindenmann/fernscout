@@ -32,7 +32,7 @@ export type PublicJournal = {
  * per section, which is how it drifted before — `SiteHeader`'s own kicker
  * carried the string by hand.
  */
-export function Kicker({ children }: { children: React.ReactNode }) {
+function Kicker({ children }: { children: React.ReactNode }) {
   return (
     <p className="font-mono text-xs uppercase tracking-[0.14em] text-navy-600">{children}</p>
   );
