@@ -198,7 +198,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (10)
+## in-development (9)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -209,11 +209,10 @@ _Nothing here._
 | [B646](in-development/B646-the-helper-s-review-page-previews.md) | The helper's review page previews the originals, not the pictures that get published | ISSUE | medium | medium | `97b44327` |
 | [B649](in-development/B649-a-day-s-time-is-the.md) | A day's time: is the first file's timestamp, screenshots included, so a day went out stamped 06:44 | ISSUE | medium | low | `97b44327` |
 | [B650](in-development/B650-a-day-s-location-and-its.md) | A day's location: and its lat/lng can name towns 200 km apart and nothing says so | ISSUE | medium | low | `97b44327` |
-| [B659](in-development/B659-the-only-backup-is-on-the.md) | The only backup is on the machine it is backing up | CHORE | medium | medium | `97b44327` |
 | [B732](in-development/B732-the-landing-page-shows-the-bring.md) | The landing page shows the bring-your-own-agent instructions to everybody, including the people who came for the helper | FEATURE | medium | low | `ccdd5120` |
 | [B733](in-development/B733-the-landing-page-and-the-helper.md) | The landing page and the helper door are flat cream, while the brand they are built from has paper, panels and a yellow that leads | FEATURE | medium | medium | `ccdd5120` |
 
-## testing (436)
+## testing (437)
 
 ### security (9)
 
@@ -586,7 +585,7 @@ _Nothing here._
 | [B686](testing/small-feature/B686-speech-cannot-be-turned-into-text.md) | Speech cannot be turned into text | FEATURE | low | medium | — |
 | [B687](testing/small-feature/B687-photographs-cannot-describe-themselves.md) | Photographs cannot describe themselves | FEATURE | low | medium | — |
 
-### chore (35)
+### chore (36)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -605,6 +604,7 @@ _Nothing here._
 | [B541](testing/chore/B541-build-demo-content-mjs-no-longer.md) | build-demo-content.mjs no longer reproduces the demo it is supposed to generate | CHORE | medium | medium | — |
 | [B610](testing/chore/B610-model-mjs-is-still-the-helper.md) | model.mjs is still the helper's source of truth for the file shape | CHORE | medium | medium | — |
 | [B636](testing/chore/B636-sent-mail-is-kept-in-the.md) | Sent mail is kept in the content folder, which is what gets backed up | CHORE | medium | low | — |
+| [B659](testing/chore/B659-the-only-backup-is-on-the.md) | The only backup is on the machine it is backing up | CHORE | medium | medium | — |
 | [B66](testing/chore/B66-a-merged-caddyfile-drifts-silently-because.md) | A merged Caddyfile drifts silently, because nothing checks the running config against what the release expects | CHORE | medium | medium | — |
 | [B667](testing/chore/B667-the-importer-folder-is-flat-so.md) | The importer folder is flat, so it only ever describes one kind of data | CHORE | medium | low | — |
 | [B08](testing/chore/B08-serve-webp-alongside-jpeg-with-picture.md) | Serve WebP alongside JPEG with <picture> in the gallery (W30 gap) | CHORE | low | low | — |
