@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import AgentHandover from "@/components/AgentHandover";
+import HelperAsk from "@/components/HelperAsk";
 import { AgentBlock } from "@/components/LandingSections";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import { useI18n } from "@/components/LocaleProvider";
@@ -13,6 +14,11 @@ export type AgentJournal = {
   /** Everything unfinished in this journal, newest first — B682's resume card.
    * Empty for a journal with nothing waiting, which is the ordinary case. */
   drafts: WizardDraft[];
+  /** Whether the `helper` capability is on for this journal — B685. Off, the
+   * ask box is absent and the buttons below it are the whole interface. */
+  helper: boolean;
+  /** Whether this journal has already agreed to a model being spoken to. */
+  consented: boolean;
 };
 
 /**
@@ -89,6 +95,13 @@ export default function AgentDoor({
               className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6"
             >
               <h2 className="font-display text-xl font-semibold text-navy-900">{journal.title}</h2>
+
+              {/* The accelerator, and only ever that — B685. With the
+                  capability off it is simply not here, and everything below
+                  works exactly as it did. */}
+              {journal.helper && (
+                <HelperAsk username={journal.username} consented={journal.consented} />
+              )}
 
               {/* The resume card — B682. It is above the "write a day" button
                   rather than below it because somebody who left a day

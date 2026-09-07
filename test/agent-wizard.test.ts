@@ -67,11 +67,12 @@ describe("the helper routes", () => {
     .filter((file) => file.endsWith("route.ts"))
     .map((file) => fs.readFileSync(path.join(dir, file), "utf8"));
 
-  // Five since B684 added the write-up and the consent it needs. The count is
-  // spelled out rather than inferred so that a sixth route has to be thought
-  // about here, which is where the guard is asserted.
-  test("there are five of them, and each is guarded", () => {
-    expect(sources).toHaveLength(5);
+  // Seven since B685 added the intent router and the trip its one write
+  // intent lands on. The count is spelled out rather than inferred so that
+  // the next route has to be thought about here, which is where the guard is
+  // asserted.
+  test("there are seven of them, and each is guarded", () => {
+    expect(sources).toHaveLength(7);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }
