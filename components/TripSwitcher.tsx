@@ -91,14 +91,16 @@ export default function TripSwitcher() {
             and the title stays on the wider header, where there is room for
             it.
 
-            The word is `trips.switch`, which was already this button's
-            `aria-label` — so the visible and accessible names finally say the
-            same thing. Not "Reisen": that is `nav.trips`, a destination in
-            the same panel that lists every journey, and two controls sharing
-            a name while doing different jobs is worse than a long one. */}
+            The word is `trips.chip` — "Reisen" / "Trips" — asked for twice
+            by the owner after "Reise wechseln" proved too long again on a
+            phone. It repeats `nav.trips`, a destination in the same panel
+            that lists every journey; that duplicate name is a real cost and
+            was raised and overruled, which B886 records. The `aria-label`
+            stays `trips.switch`, so a screen reader still hears what the
+            control does rather than a word shared with something else. */}
         <span className="flex min-w-0 items-center gap-1">
           <Luggage className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-          <span className="truncate sm:hidden">{t("trips.switch")}</span>
+          <span className="truncate sm:hidden">{t("trips.chip")}</span>
           <span className="hidden truncate sm:inline">{label}</span>
         </span>
         {/* A fixed width (B286) rather than a cap: the button's width used to
