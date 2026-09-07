@@ -11,9 +11,16 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 # Fernscout, for agents
 
 A self-hostable travel journal. **The content is markdown and photographs in a
-folder the author owns.** There is no editing interface — no web form, no upload
-widget, no CMS — and there will not be one (ROADMAP decision 24). Reading happens
-in a browser; writing happens through an agent, which is why this file exists.
+folder the author owns.** There is no CMS, and there will not be one (ROADMAP
+decision 24): no form that maps fields onto frontmatter, no upload widget with
+its own idea of what a day is. Writing happens through an agent — and since
+B681/B682, a person with no agent of their own can reach one anyway, through a
+guided web helper at `/agent` that writes through the same API this file
+describes. Reading happens in a browser and, now, so does describing a day out
+loud to the helper; nothing about what a browser is allowed to *do* on the
+owner's behalf without a model in front of it has changed. This file exists for
+the agent on either side of that: the one you are, and the one the helper
+runs.
 
 Two ways in, and they are the same content behind two doors:
 
@@ -25,16 +32,21 @@ Two ways in, and they are the same content behind two doors:
 ## The one rule
 
 **The agent is the editor.** It writes, it publishes, it corrects. There is no
-web form and no CMS to fall back on, so if an agent will not do a thing on the
-owner's behalf, the thing cannot be done at all — which is why the rule is
-stated as a capability and not as a restraint.
+form and no CMS to fall back on — the web helper at `/agent` is a face on an
+agent, not an exception to this rule, since a model is what turns what a
+person describes into a day and the wizard never lets a person set a field
+directly the way a CMS would. So if no agent, human-driven or the helper's
+own, will do a thing on the owner's behalf, the thing cannot be done at all —
+which is why the rule is stated as a capability and not as a restraint.
 
 **What an agent writes arrives as a draft.** `status: draft` in the
 frontmatter, and every reading path filters it out in `lib/entries.ts`. It is
 the default so that a person can read a day back before it is on the site — a
 courtesy to them, not a gate against you. `POST .../days` has no `status`
 argument and no publish-on-create, for exactly that reason: writing and
-publishing are two calls so there is a moment in between.
+publishing are two calls so there is a moment in between. The web helper at
+`/agent` writes through this same call and arrives at the same draft; it has
+no shortcut around it.
 
 **Publishing is the second call, and it is yours to make when asked:**
 `POST /api/v1/<user>/trips/<trip>/days/<slug>/publish`. Owner only — a
@@ -42,7 +54,8 @@ trip-scoped token writes days into its trip and cannot put them on the site,
 because being on the bus is not the same as deciding what the
 journal says. B28 is why it exists: the person deciding is often somebody who
 has never seen the folder, and telling them to delete a line from a file was
-advice with nowhere to go.
+advice with nowhere to go. The helper is not exempt: it makes this same call,
+as a separate, labelled tap in its own flow, and never on create.
 
 Nothing in the code can tell whether the person actually asked, so that part is
 instruction and not a guarantee: **ask, in words, and wait for an answer.** "It
@@ -377,8 +390,9 @@ imported by name. B24.
 ### Changing a route means changing the contract
 
 **`/openapi.json` and `/agent.md` are the product, for everybody who is not
-standing in this checkout.** There is no editing interface (decision 24), so an
-agent over the network has the document and nothing else — no source to read,
+standing in this checkout.** There is no CMS (decision 24), so an agent
+over the network — whether it is somebody's own, or the model behind the web
+helper at `/agent` — has the document and nothing else — no source to read,
 no colleague to ask. A field the code accepts and the document does not
 describe is a field nobody outside will ever use; a field the document promises
 and the code drops is worse, because the caller is told it worked.
