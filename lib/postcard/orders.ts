@@ -1,6 +1,7 @@
 import "server-only";
 import { getDatabaseOrNull, newId, nowIso } from "../db";
 import { POSTCARD_CREDITS } from "../credits/pricing";
+import { MAX_CROP_ZOOM } from "./spec";
 
 /**
  * A postcard order: what an agent builds, and what a person presses Send on —
@@ -79,8 +80,13 @@ export type RecipientResult = {
  * A crop's anchor, both axes 0–1 — the same shape B513 gave the photobook's
  * own `focalPoints`, reused rather than reinvented: `x` is a fraction across
  * the photograph, `y` a fraction down it. Absent means centre.
+ *
+ * `zoom` is the one thing B513's shape did not have: 1 (or absent) is the
+ * plain cover-crop, and above that the same rectangle is scaled up about the
+ * anchor, so the anchored point of the photograph stays where it is on the
+ * card. Both axes scale together — nothing here can stretch a photograph.
  */
-export type Crop = { x: number; y: number };
+export type Crop = { x: number; y: number; zoom?: number };
 
 export type OrderPayload = {
   /** The qualified trip ref, `<username>/<trip-id>`. */
@@ -105,10 +111,13 @@ export type OrderPayload = {
   /**
    * Print the trip's traveller figures beside the signature — B628.
    *
-   * Off by default and absent on every order made before this existed, which
-   * is what keeps the back "exactly as it is now" for anybody who does not
-   * ask. Only the preview page's own toggle (`updateOrderFigures`) ever sets
-   * this — an agent proposing an order has no way to see the result, the same
+   * **Absent means on**, and absent is every order nobody has touched the
+   * switch on: a trip that describes its travellers has said who it is, and
+   * a card from that trip printing the party beside the signature is what the
+   * description was written for. Only `false` — the preview page's own
+   * toggle, `updateOrderFigures` — turns it off, and a trip with no
+   * `travellers:` draws nothing whatever this says. An agent proposing an
+   * order has no way to see the result, so it never sets this, the same
    * reasoning `crop` was given.
    */
   figures?: boolean;
@@ -245,6 +254,7 @@ export async function updateOrderCrop(owner: string, id: string, crop: Crop): Pr
   const clamped: Crop = {
     x: Math.min(1, Math.max(0, crop.x)),
     y: Math.min(1, Math.max(0, crop.y)),
+    zoom: Math.min(MAX_CROP_ZOOM, Math.max(1, crop.zoom ?? 1)),
   };
   const result = await handle.db
     .updateTable("print_orders")

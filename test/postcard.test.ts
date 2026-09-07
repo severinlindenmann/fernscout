@@ -250,6 +250,43 @@ describe("the front photograph's crop — B627", () => {
     // covers the box exactly whatever `x` says.
     expect(top.x).toBeCloseTo(0, 6);
   });
+
+  // The rectangle the owner drags is a zoom as well as a position — B627's
+  // second half. What must hold is that it scales both sides by one factor
+  // and leaves the anchored point of the photograph where it was on the card.
+  test("zoom scales both sides by the same factor, and never below the box", () => {
+    const plain = frontCm(render({ crop: { x: 0.5, y: 0.5 } }).pdf);
+    const close = frontCm(render({ crop: { x: 0.5, y: 0.5, zoom: 2 } }).pdf);
+    // Two decimals, not more: the operands are written into the page stream
+    // rounded to thousandths.
+    expect(close.w).toBeCloseTo(plain.w * 2, 2);
+    expect(close.h).toBeCloseTo(plain.h * 2, 2);
+
+    // A zoom below 1 would leave the card short of photograph; the renderer
+    // refuses it rather than letterboxing, the same way the drag handler does.
+    const out = frontCm(render({ crop: { x: 0.5, y: 0.5, zoom: 0.25 } }).pdf);
+    expect(out).toEqual(plain);
+  });
+
+  test("the anchored point stays put on the card whatever the zoom", () => {
+    // The point of the photograph at `x` sits at fraction `x` across the
+    // card: rect.x + x · rect.width is the same page coordinate at any zoom,
+    // which is what lets the browser preview it with `transform-origin`.
+    const at = (zoom: number) => {
+      const r = frontCm(render({ crop: { x: 0.25, y: 0.5, zoom } }).pdf);
+      return r.x + 0.25 * r.w;
+    };
+    expect(at(3)).toBeCloseTo(at(1), 2);
+  });
+
+  test("a zoomed crop reports the resolution it actually prints", () => {
+    const photo = render({ crop: { x: 0.5, y: 0.5 } }).photo;
+    const zoomed = render({ crop: { x: 0.5, y: 0.5, zoom: 2 } }).photo;
+    // Same file, half the pixels across the card.
+    expect(zoomed.width).toBe(photo.width);
+    expect(zoomed.effectiveDpi).toBeLessThan(photo.effectiveDpi);
+    expect(Math.abs(zoomed.effectiveDpi - photo.effectiveDpi / 2)).toBeLessThan(1);
+  });
 });
 
 /**

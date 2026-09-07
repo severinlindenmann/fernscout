@@ -130,3 +130,13 @@ export const ADDRESS_LEADING_PT = 14;
 export function fontFraction(points: number, spec: PostcardSpec = A6_LANDSCAPE): number {
   return points / mm(spec.trimWidthMm + spec.bleedMm * 2);
 }
+
+/**
+ * How far into a photograph a crop may be dragged — B627. Beyond about four
+ * times, a phone photograph on an A6 card is mush, and the low-resolution
+ * warning `renderPostcard` computes is what says so out loud.
+ *
+ * Here rather than beside `Crop` in `orders.ts`, because the drag control in
+ * the browser needs the same ceiling and `orders.ts` is `server-only`.
+ */
+export const MAX_CROP_ZOOM = 4;

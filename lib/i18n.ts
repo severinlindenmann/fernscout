@@ -911,6 +911,7 @@ export type TranslationKey =
   | "postcard.page.buy"
   | "postcard.page.cost"
   | "postcard.page.cropHint"
+  | "postcard.page.cropReset"
   | "postcard.page.cropSaving"
   | "postcard.page.dayWithTitle"
   | "postcard.page.expiredOn"

@@ -114,7 +114,9 @@ export function orderPhotoFile(order: PostcardOrder): string | null {
  * reasoning `orderPhotoFile` already applies to the photograph.
  */
 function figuresFor(order: PostcardOrder): Figure[] {
-  if (!order.payload.figures) return [];
+  // Absent means on — see `OrderPayload.figures`. Only an explicit `false`,
+  // which is the owner having unticked the box, prints a bare back.
+  if (order.payload.figures === false) return [];
   const trip = getTrip(order.payload.trip);
   if (!trip) return [];
   return travellerPartyFor(trip);

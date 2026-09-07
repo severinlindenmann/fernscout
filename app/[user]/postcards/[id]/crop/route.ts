@@ -49,20 +49,26 @@ export async function POST(
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
 
-  let body: { x?: unknown; y?: unknown };
+  let body: { x?: unknown; y?: unknown; zoom?: unknown };
   try {
-    body = (await request.json()) as { x?: unknown; y?: unknown };
+    body = (await request.json()) as { x?: unknown; y?: unknown; zoom?: unknown };
   } catch {
     return Response.json({ error: "invalid_request" }, { status: 400 });
   }
 
   const x = Number(body.x);
   const y = Number(body.y);
-  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+  // Absent means 1: a client that only knows how to pan is still saying "the
+  // whole cover-crop", not "no zoom at all", and every order made before
+  // B627's rectangle existed reads back the same way.
+  const zoom = body.zoom === undefined ? 1 : Number(body.zoom);
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(zoom)) {
     return Response.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  const saved = await updateOrderCrop(user, id, { x, y });
+  // `updateOrderCrop` clamps; out-of-range is a drag against the edge of the
+  // frame, not a malformed request.
+  const saved = await updateOrderCrop(user, id, { x, y, zoom });
   if (!saved) return Response.json({ error: "already_sent" }, { status: 409 });
   return Response.json({ ok: true });
 }
