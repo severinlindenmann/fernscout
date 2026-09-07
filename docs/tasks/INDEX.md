@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (115)
+## backlog (117)
 
 ### security (2)
 
@@ -111,7 +111,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (20)
+### small-feature (21)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -126,6 +126,7 @@ Do not edit them by hand; run the script.
 | [B592](backlog/small-feature/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
 | [B673](backlog/small-feature/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium |
 | [B852](backlog/small-feature/B852-a-journal-s-languages-units-and.md) | A journal's languages, units and currencies cannot be changed anywhere | FEATURE | medium | medium |
+| [B860](backlog/small-feature/B860-the-account-page-does-not-say.md) | The account page does not say what credits went on AI | FEATURE | medium | low |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 | [B539](backlog/small-feature/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
@@ -169,7 +170,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B827](backlog/docs-and-skills/B827-the-imprint-s-data-residency-claim.md) | The imprint's data-residency claim does not mention Stripe | DOCS | high | low |
 
-### superseded (30)
+### superseded (31)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -192,6 +193,7 @@ Do not edit them by hand; run the script.
 | [B602](backlog/superseded/B602-a-reader-refused-at-the-trip.md) | A reader refused at the trip gate has no way to ask the owner to let them in | FEATURE | medium | medium |
 | [B654](backlog/superseded/B654-whether-restic-can-drive-rclone-s.md) | Whether restic can drive rclone's Proton Drive backend well enough to trust it | OPS | medium | medium |
 | [B655](backlog/superseded/B655-the-backup-has-one-destination-and.md) | The backup has one destination, and no second copy off Backblaze | CHORE | medium | medium |
+| [B861](backlog/superseded/B861-the-account-page-does-not-say.md) | The account page does not say what credits went on AI | FEATURE | medium | low |
 | [B89](backlog/superseded/B89-nothing-that-costs-the-operator-money.md) | Nothing that costs the operator money can be paid for, so every paid feature is dry-run only | FEATURE | medium | high |
 | [B176](backlog/superseded/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
 | [B243](backlog/superseded/B243-npm-run-postcard-prints-four-lines.md) | npm run postcard prints four lines of Node module-type warning before its own first line | ISSUE | low | low |
