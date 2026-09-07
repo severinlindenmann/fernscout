@@ -295,6 +295,17 @@ export async function GET(request: Request) {
       itemsPerDay: MAX_ITEMS_PER_DAY,
       requestMaxBytes: REQUEST_MAX_BYTES,
       captionMaxChars: CAPTION_MAX_CHARS,
+      /**
+       * Everything one journal may hold, `content/<user>/` and all — B661.
+       *
+       * The instance's own ceiling, before anything a journal has bought and
+       * before its own config narrows it; `GET /api/v1/<user>/status` carries
+       * the number that actually applies to a caller, and how much of it is
+       * left. `null` means this instance sets no ceiling.
+       */
+      perJournalBytes: configOk
+        ? loadServerConfig().media.perUserBytes
+        : DEFAULT_MEDIA_LIMITS.perUserBytes,
     },
     /**
      * How many printed photobook orders a journal keeps on disk before older

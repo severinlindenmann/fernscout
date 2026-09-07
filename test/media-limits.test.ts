@@ -38,15 +38,17 @@ describe("reading a media block", () => {
     );
   });
 
-  test("a quota is off unless asked for, and null turns it back off", () => {
-    expect(parseMediaLimits({}).perUserBytes).toBeNull();
+  /** B661: the quota ships **on** — it used to default to null, which is how
+   * an instance that had never thought about it could fill its own disk. Null
+   * is still how an instance opts out on purpose. */
+  test("a quota ships at five gigabytes, and null opts out", () => {
+    expect(parseMediaLimits({}).perUserBytes).toBe(5 * 1024 ** 3);
     expect(parseMediaLimits({ perUserBytes: 1_000 }).perUserBytes).toBe(1_000);
     expect(parseMediaLimits({ perUserBytes: null }, { ...DEFAULT_MEDIA_LIMITS, perUserBytes: 5 })
       .perUserBytes).toBeNull();
   });
 
-  /** B483: photobook retention is on by default, unlike the byte quota above —
-   * a book nobody bounds is the bug this shipped to fix. */
+  /** B483: photobook retention is on by default, like the byte quota above. */
   test("photobook retention ships with a default, and null opts all the way out", () => {
     expect(parseMediaLimits({}).photobookOrdersPerUser).toBe(
       DEFAULT_MEDIA_LIMITS.photobookOrdersPerUser,

@@ -91,7 +91,11 @@ site/
                               they wrote them, `text` for every other reader),
                               capability switches, and the
                               `media` block: how large uploads may be, how many
-                              per day, an optional per-journal byte quota, and
+                              per day, the per-journal storage ceiling
+                              (`perUserBytes`, 5 GB unless said otherwise — it
+                              counts the whole of `content/<user>/`, and an
+                              owner buys past it 5 GB at a time with credits;
+                              lib/storageQuota.ts, B661), and
                               how many printed photobook orders stay on disk
                               (docs/providers/photobook.md, B483).
                               A user's own config.json may narrow these, never

@@ -927,20 +927,31 @@ export function loadUserConfig(username: string): UserConfig {
   const signature = `${fileSignature(file)}/${fileSignature(serverConfigPath())}`;
   const cached = userCache.get(file);
   if (cached && cached.signature === signature) return cached.value;
-  const parsed = parseUserConfig(
-    username,
-    readJson(
-      file,
-      `Every user needs a config.json — see content/example/config.json.`,
-    ),
+  const raw = readJson(
+    file,
+    `Every user needs a config.json — see content/example/config.json.`,
   );
+  const parsed = parseUserConfig(username, raw);
   // Narrowed here rather than at parse time: the ceiling belongs to the
   // server, and a user config parsed on its own has no way to see it. Asking
   // for more than the instance allows is not an error — it is a preference the
   // instance cannot honour, and the instance's number wins.
+  // Re-read against the instance's own numbers rather than against the
+  // shipped defaults — B661. `parseUserConfig` cannot see the ceiling (see its
+  // note), so a field this journal says nothing about came back as the
+  // *default*, and `narrowest` then took the smaller of the default and the
+  // instance's. That was invisible while every default was also the shipped
+  // maximum; it stopped being invisible when `perUserBytes` gained one, since
+  // an operator who had switched the ceiling off entirely still got the 5 GB
+  // default imposed on every journal that had never mentioned storage.
+  // Absent now means "whatever the instance says", which is what it reads as.
+  const ceiling = serverMediaCeiling();
   const config: UserConfig = {
     ...parsed,
-    media: narrowest(serverMediaCeiling(), parsed.media),
+    media: narrowest(
+      ceiling,
+      parseMediaLimits((raw as { media?: unknown } | null)?.media, ceiling),
+    ),
   };
   userCache.set(file, { signature, value: config });
   return config;
@@ -955,7 +966,7 @@ export function loadUserConfig(username: string): UserConfig {
  * is a supported thing to do — a test does precisely that. A journal with no
  * instance around it gets the defaults rather than an exception.
  */
-function serverMediaCeiling(): MediaLimits {
+export function serverMediaCeiling(): MediaLimits {
   try {
     return loadServerConfig().media;
   } catch {

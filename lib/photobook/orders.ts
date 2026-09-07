@@ -160,7 +160,7 @@ export async function getPhotobookOrder(owner: string, id: string): Promise<Phot
  * asks that every *shipped* key exists in every locale, not that every key is
  * reachable.
  */
-export const PHOTOBOOK_OUTCOME_STATES = ["done", "duplicate", "no_credits", "no_photos", "failed"] as const;
+export const PHOTOBOOK_OUTCOME_STATES = ["done", "duplicate", "no_credits", "no_photos", "no_room", "failed"] as const;
 export type PhotobookOutcomeState = (typeof PHOTOBOOK_OUTCOME_STATES)[number];
 
 function isOutcomeState(value: string): value is PhotobookOutcomeState {

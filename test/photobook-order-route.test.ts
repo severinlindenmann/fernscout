@@ -5,6 +5,11 @@ vi.mock("@/lib/capabilities", () => ({ isEnabled: vi.fn().mockReturnValue(true) 
 vi.mock("@/lib/credits", () => ({
   spend: vi.fn(),
   balanceOf: vi.fn().mockResolvedValue(null),
+  // The route asks the storage guard before it claims an order (B661), and
+  // that reads the ledger for storage purchases. Zero: these fixtures have no
+  // ceiling to be near, so the guard passes and the money path below is what
+  // is under test, unchanged.
+  countSpends: vi.fn().mockResolvedValue(0),
 }));
 vi.mock("@/lib/photobook/receipt", () => ({ sendPhotobookReceipt: vi.fn() }));
 // Partial mocks — both modules export helpers the *other* describe block

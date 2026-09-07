@@ -44,64 +44,107 @@ Cost of leaving it: the failure mode is a full disk on the VPS, which takes
 down every journal on it, and the first symptom is somebody else's upload
 failing.
 
+
 ## Work
 
-**A quota over the whole journal folder, not over media.** Count
-`content/<username>/` — one walk, `dirBytes` in `lib/statusReport.ts:69` and
-`journalMediaBytes` in `lib/api/media.ts:90` are the same walk written twice
-and should become one shared helper. Walked, not tracked in a counter, for
-the reason both files already give: the content is a folder somebody owns and
-edits by hand. Default it to 5 GB in `DEFAULT_MEDIA_LIMITS` — the current
-`null` stays parseable so an instance can opt out, but shipped-off is what
-put us here.
+Built as described below; where it differs from the capture, the reason is
+given.
 
-**Enforce it at every write into `content/<user>/`, not just uploads.** Find
-them: media upload, `lib/api/fetchMedia.ts`, photobook and postcard
-generation, day and trip writes. One guard function that all of them call —
-one `over quota` check in the shared helper is a smaller diff than a check in
-each caller, and a path nobody updated is a path that walks past the ceiling.
-Refuse with a problem that names bytes held, the ceiling, and how to raise
-it.
+**A quota over the whole journal folder.** `lib/storageQuota.ts` is the new
+module and the only thing that answers "how big is this journal" — one walk of
+`content/<username>/`, plus that user's subtree of `MEDIA_ORIGINALS_DIR` where
+an instance has moved originals to another disk. It replaces the two walks
+that said different things: `journalMediaBytes` in `lib/api/media.ts` (gone)
+and `dirBytes` in `lib/statusReport.ts` (now imported from here, so the
+operator's nightly mail and the upload gate count the same bytes).
 
-**Mail the owner at low and at full.** Low is a threshold (90% is the
-starting proposal) and each notice fires once per crossing, not per upload —
-whatever holds that state, it is not a file under `content/`. `lib/mail`
-already has the transport, the templates and the file backend, so nothing
-here needs a paid account to build or test.
+`DEFAULT_MEDIA_LIMITS.perUserBytes` is 5 GB rather than `null`. `null` still
+parses, for an instance that would rather take the risk.
 
-**Sell 5 GB more, once, for 50 credits.** 50 credits is CHF 10.00 at the base
-tier and is already a tier id in `TIERS` (`lib/credits/pricing.ts:28`), so
-the money is arithmetic that exists. Lifetime, repeatable, additive: each
-purchase spends 50 credits via `spend()` and raises this journal's ceiling by
-5 GB permanently. The extra bytes are journal state and belong beside the
-balance in the database, not in a config file a `git pull` overwrites — and
-they must be a **grant on top of** `perUserBytes` rather than a rewrite of
-it, so the server's ceiling still means something (`narrowest()` composes the
-two levels today and must keep composing).
+**One guard, at the two doors that write real bytes.** `storageRefusal()`
+returns the sentence to refuse with, or null. `storeUploads` calls it — so
+both the multipart and the by-URL upload paths go through it, since they share
+that one function — and `app/[user]/photobook/order/route.ts` calls it before
+it claims an order, which is the non-upload door and the one that was writing
+hundreds of megabytes past every ceiling. A refused book redirects to a new
+`no_room` outcome with its own message in all three languages.
 
-**Not doing:** subscriptions or recurring billing — a one-time lifetime
-purchase only, said out loud so the schema is not designed around a renewal
-nobody is building. Not touching the per-file and per-day limits, which
-already work. Not counting the database, mail (`<dataDir>/mail/`, outside
-`content/` since B636) or anything outside the journal folder.
+**Markdown writes are deliberately not gated.** A day is kilobytes, and a
+journal that could not correct a typo because its photographs had filled the
+disk would be held hostage by the thing it is being asked to fix.
 
-Contract: a new or changed route goes in `lib/api/openapi.ts`, and the
-journal's held bytes and its ceiling must be readable back — `/api/v1/<user>/status`
-is where an agent would look before an upload, and `/api/health` is where a
-limit belongs so a caller reads it before hitting it.
+**Mail at 90% and at full**, to the address in the journal's own
+`config.json`, transactional so an empty balance cannot silence it. Once a day
+per journal and level, by `rateLimitFor` — deliberately not a table: the state
+is in memory, so a restart lets one more notice through, and the failure mode
+is a duplicate mail rather than a silence. Marked `ponytail:` in the source.
+
+**5 GB for 50 credits, and no new table.** `EXTRA_STORAGE_CREDITS = 50` is
+CHF 10.00 at the base tier and is already the smallest tier's price, so buying
+credits and then buying storage is one purchase of one amount. `POST
+/api/v1/<user>/storage` spends through `credits.spend` with a new `storage`
+reason; `credit_ledger` is append-only and already the record of every
+purchase, so `countSpends(user, "storage") × 5 GB` **is** the extension —
+lifetime because nothing exists that could end it, and repeatable because the
+rows add up. Purchased bytes are added on top of the narrowed config ceiling,
+never instead of it.
+
+**The route refuses a bearer token outright**, the way the postcard send route
+does. `isOwner` alone would have let a journal-scoped agent token through; an
+agent that has just been refused an upload should report it rather than spend
+the owner's credits to get past it.
+
+**One bug found on the way, fixed here** (`lib/config.ts`): a user's media
+block was parsed against the *shipped defaults* and only then narrowed against
+the instance's, so a field a journal said nothing about arrived as the default
+and `narrowest` took the smaller of the two. Invisible while every default was
+also the shipped maximum; not invisible once `perUserBytes` had one, since an
+operator who had switched the ceiling off entirely still got 5 GB imposed on
+every journal. `loadUserConfig` now parses the raw block against the ceiling.
+
+**Not done:** subscriptions or recurring billing — one-off purchases only.
+No change to the per-file or per-day limits. Nothing outside the journal
+folder is counted: not the database, and not `<dataDir>/mail/`.
+
+Contract: `POST /api/v1/{user}/storage` is in `lib/api/openapi.ts` with its
+four refusals, `/status` documents its new `storage` block, `/api/health`
+carries `media.perJournalBytes` so a caller reads the ceiling before meeting
+it, and `/agent.md` says both that the ceiling exists and that buying past it
+is the owner's call and not an agent's.
 
 ## Acceptance
 
-- With a 5 GB default and a journal holding more, every write path into
-  `content/<user>/` refuses, naming held bytes, the ceiling and the remedy.
-  A test asserts a *non-media* write (a photobook) is refused too.
-- `GET /api/v1/<user>/status` reports bytes held and bytes allowed; both are
-  in `lib/api/openapi.ts`, and `npm run verify` passes.
-- Crossing 90%, and then reaching full, each writes one mail into
-  `<dataDir>/mail/<user>/`; a second upload past the same threshold writes
-  none.
-- Buying the extension spends 50 credits and raises this journal's ceiling by
-  5 GB; buying twice raises it by 10 GB; a balance under 50 refuses and
-  spends nothing.
-- The server's `media.perUserBytes` ceiling still narrows a user config that
-  asks for more, with purchased bytes on top.
+Every line demonstrated by `test/storage-quota.test.ts` (13 tests) unless
+said otherwise. `npm run verify` passes: 310 files, 4036 tests.
+
+- **Refusal at every byte-writing door.** "every byte under the journal,
+  photobooks and markdown included" proves the count is the folder; "a write
+  that would go past the ceiling is refused" proves the refusal names the
+  total it would reach. The non-media door is asserted at the source level —
+  "ordering a photobook asks the same guard uploads do" — in the shape
+  `test/postcard-orders.test.ts` already uses, because building a book in a
+  test costs tens of seconds and a headless renderer.
+- **`/status` reports it, and the contract is honest.**
+  `test/openapi-contract.test.ts` and `test/api-route-schemas.test.ts` pass
+  with the new route and its documented refusals.
+- **One mail per crossing.** "crossing the warning line mails once, not once
+  per upload" and "being refused mails too, and only once" — each asserts a
+  second attempt writes no second `.eml`.
+- **The purchase.** "fifty credits add five gigabytes, and buying twice adds
+  twice"; "a balance too small buys nothing and changes no ceiling"; "what was
+  refused before the purchase is allowed after it".
+- **The server's ceiling still narrows.** "a journal cannot widen its own
+  ceiling by asking" — a journal asking for a gigabyte against an instance
+  ceiling of 10 000 bytes gets 10 000.
+- **Not an agent's to buy.** "a bearer token is refused, and nothing is
+  charged".
+
+**For whoever verifies this**, two things a test cannot answer:
+
+1. **A journal already over 5 GB starts refusing uploads the moment this
+   deploys.** Check the live instance's sizes (`npm run status`) before
+   shipping, and set `media.perUserBytes` in the operator's `FERNSCOUT_CONFIG`
+   if any journal is close.
+2. Open `/<user>/me` as an owner with credits on: the Payment card should show
+   a "Storage" line with used-of-allowed, a red note past 90%, and a button
+   that buys 5 GB and redraws the figure.

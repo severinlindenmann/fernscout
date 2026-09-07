@@ -63,6 +63,8 @@ export type LedgerReason =
   | "day_whatsapp"
   | "digest"
   | "postcard"
+  | "photobook"
+  | "storage"
   | "refund";
 
 /**
@@ -76,7 +78,17 @@ export type LedgerReason =
  * or four weekly digests" — a distinction that costs one string here and
  * cannot be recovered later from rows that never carried it.
  */
-export type SpendReason = "day_mail" | "day_whatsapp" | "digest" | "postcard" | "photobook";
+export type SpendReason =
+  | "day_mail"
+  | "day_whatsapp"
+  | "digest"
+  | "postcard"
+  | "photobook"
+  /** More disk, bought once and for good — B661. The one spend that buys the
+   * journal something rather than reaching somebody, and the reason it is
+   * counted rather than merely logged: `purchasedBytes` in
+   * `lib/storageQuota.ts` reads these rows back as the extension itself. */
+  | "storage";
 
 export type LedgerRow = {
   id: string;
@@ -280,6 +292,27 @@ export async function grant(owner: string, n: number, note?: string): Promise<vo
       })
       .execute();
   });
+}
+
+/**
+ * How many times this journal has been charged for one thing.
+ *
+ * The ledger is append-only and is already the record of every purchase, so a
+ * repeatable one-off — storage, today — needs no column of its own: the count
+ * of its rows *is* how much was bought. Refunds do not subtract here, and are
+ * not meant to: `refund` is its own reason, for sends that did not happen.
+ */
+export async function countSpends(owner: string, reason: SpendReason): Promise<number> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return 0;
+  const row = await handle.db
+    .selectFrom("credit_ledger")
+    .select((eb) => eb.fn.countAll<number>().as("n"))
+    .where("owner_id", "=", owner)
+    .where("reason", "=", reason)
+    .executeTakeFirst();
+  // `count` is a bigint on Postgres, which `pg` hands back as a string.
+  return Number(row?.n ?? 0);
 }
 
 /** Newest first. For `npm run credits -- list`; there is no reader-facing

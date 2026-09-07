@@ -11,6 +11,7 @@ import { IMAGE_FORMATS, validateMediaBatch, type MediaCandidate, type Problem } 
 import { VIDEO_EXTENSIONS, probeVideo, transcodeVideo, videoToolsAvailable } from "../ingest/video";
 import { loadUserConfig } from "../config";
 import { mediaKey, type PhotoVisibility } from "../photos";
+import { storageRefusal } from "../storageQuota";
 import type { GalleryItem } from "../types";
 
 /**
@@ -73,46 +74,6 @@ export type KeptOriginal = {
 export type UploadResult =
   | { ok: true; items: GalleryItem[]; kept: KeptOriginal[] }
   | { ok: false; problems: Problem[] };
-
-function megabytes(bytes: number): string {
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-/**
- * Every byte of media one journal holds, derivatives and originals alike.
- *
- * Walked rather than tracked in a counter: a counter is a second source of
- * truth that drifts the first time somebody deletes a file by hand, which on
- * a system whose whole premise is "your content is a folder you own" is not a
- * hypothetical. The walk costs a stat per file and only runs when an instance
- * has actually set a quota.
- */
-function journalMediaBytes(username: string): number {
-  let total = 0;
-  const walk = (at: string) => {
-    let entries: fs.Dirent[];
-    try {
-      entries = fs.readdirSync(at, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const entry of entries) {
-      const full = path.join(at, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else
-        try {
-          total += fs.statSync(full).size;
-        } catch {
-          // Vanished between readdir and stat. Not our byte to count.
-        }
-    }
-  };
-  for (const trip of getTrips(username)) {
-    walk(tripMediaDir(trip.ref));
-    walk(tripOriginalsDir(trip.ref));
-  }
-  return total;
-}
 
 /**
  * A slug good enough to be a directory name, from whatever was sent.
@@ -267,19 +228,17 @@ export async function storeUploads(
     });
   }
 
-  // The journal's total allowance, if it has one. Counted across every trip
-  // and including the originals, because those are the bytes actually on the
-  // disk somebody is paying for.
-  if (limits.perUserBytes !== null) {
-    const held = journalMediaBytes(parseTripRef(ref)!.username);
-    const incoming = uploads.reduce((n, u) => n + u.bytes.byteLength, 0);
-    if (held + incoming > limits.perUserBytes) {
-      problems.push({
-        field: "media",
-        got: `${megabytes(held + incoming)} in this journal`,
-        expected: `at most ${megabytes(limits.perUserBytes)}`,
-      });
-    }
+  // The journal's whole allowance — every byte under `content/<user>/`, not
+  // only this trip's photographs. `lib/storageQuota.ts` owns the question, and
+  // owns telling the owner when the answer is getting close; it is the same
+  // guard the photobook order route calls, so a journal cannot be full for one
+  // and roomy for the other.
+  const refusal = await storageRefusal(
+    parseTripRef(ref)!.username,
+    uploads.reduce((n, u) => n + u.bytes.byteLength, 0),
+  );
+  if (refusal) {
+    problems.push({ field: "media", got: "no room left in this journal", expected: refusal });
   }
 
   if (problems.length > 0) return { ok: false, problems };

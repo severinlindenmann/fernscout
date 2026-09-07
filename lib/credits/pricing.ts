@@ -104,3 +104,23 @@ export function creditsInRappen(credits: number): number {
 export function formatChf(rappen: number): string {
   return `CHF ${(rappen / 100).toFixed(2)}`;
 }
+
+/**
+ * More room, bought once — B661.
+ *
+ * Five gigabytes on top of whatever ceiling the instance sets, for fifty
+ * credits: CHF 10.00 at the base tier, and deliberately the exact price of the
+ * smallest tier so that "buy credits, then buy storage" is one purchase of one
+ * amount rather than arithmetic somebody has to do at the till.
+ *
+ * **Lifetime, and repeatable.** It does not renew and it cannot lapse, so
+ * nothing here has an expiry date and nothing sweeps one — the ledger row is
+ * the whole record (`purchasedBytes` in `lib/storageQuota.ts`). A
+ * subscription would need a second answer to "what happens to the photographs
+ * when it stops", and that is a decision nobody has made.
+ */
+export const EXTRA_STORAGE_CREDITS = 50;
+
+/** What those fifty credits buy. Binary gigabytes, like every other byte
+ * figure this software prints. */
+export const EXTRA_STORAGE_BYTES = 5 * 1024 ** 3;
