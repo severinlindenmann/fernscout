@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: photobook, brand
 found: "2026-09-07T00:00:00Z"
+merged: "2026-09-07T11:12:54Z"
 ---
 
 # B702 — The book's charts, route and rules are drawn in a blue that is not a brand colour
@@ -51,3 +52,33 @@ Two more things sit alongside it and are the same fault:
   composer and the PDF together.
 - A checkbox anywhere on the site is not OS blue.
 - Looked at: `/docs/branding/print` and a rendered book, per `check-a-drawing`.
+
+## Findings (2026-09-07)
+
+Built as written, and the two-weight decision turned out to be load-bearing
+rather than cautious: rendered with the bright ochre as the only accent, the
+daily-cost bars came out a muddy olive-brown, because `columns()` and
+`barRows()` both *defaulted* to `accent` — they are fills and had been drawing
+themselves in the ink. Both defaults are now `tint0`, along with the transport
+bar and the "spent" row. What is left in `accent` is the four things that are
+genuinely ink: the rule under a panel heading, the route polyline, the day
+count on the transport page, and the location line and cover eyebrow.
+
+- `ACCENT` `#8f6514`, `TINT_BASE` `#d69b0a` (`--color-yellow-600`), tints
+  lightening from the latter. `PALETTE.faint` is now a warm cream.
+- `preview.ts` reads `--ink`, `--muted` and `--accent` from `cssTone()`. Its
+  hardcoded `#2c5c85` was not even the same blue the PDF drew beside it.
+- `accent-color: var(--color-yellow-600)` on `:root` in `app/globals.css`.
+
+**Verified by looking**, per `check-a-drawing`: a five-day book with costs,
+weather, a route and charts rendered through the real `planBook`/`renderVolume`
+and rasterised with `pdftoppm`. The costs summary, the day-by-day and
+what-each-day-cost charts, the weather page, the route map and a day page were
+each looked at. Warm throughout, the route legible in bronze on the grey land,
+and nothing blue anywhere.
+
+`npm run verify`: all four passed (4270 tests).
+
+**Left for a person:** the `accent-color` line is one CSS declaration and was
+not opened in a browser — worth a glance at the photobook settings panel that
+prompted this, where six checkboxes should now be ochre rather than OS blue.
