@@ -77,7 +77,7 @@ function sessionEvent(paymentId: string, amount: number, over: Record<string, un
         payment_status: "paid",
         amount_total: amount,
         currency: "chf",
-        payment_method_types: ["twint"],
+        payment_method_types: ["card", "twint"],
         client_reference_id: paymentId,
         metadata: { owner: OWNER, paymentId },
         ...over,
@@ -201,8 +201,12 @@ describe("the webhook", () => {
     const { getPayment } = await import("@/lib/payments");
     const row = await getPayment(OWNER, p.id);
     expect(row?.status).toBe("paid");
-    // What the buyer actually reached for, taken from the session.
-    expect(row?.method).toBe("twint");
+    // Reading which method was used needs Stripe, and the key here is not a
+    // real one — so the lookup fails, and the point of the assertion is that
+    // failing it costs nothing: the credits are granted and the row is paid,
+    // with the label left null rather than invented (B803). Which method a
+    // real purchase records is checked against the live sandbox, not here.
+    expect(row?.method).toBe(null);
   });
 
   test("refuses a paid session whose total is not the row's", async () => {
