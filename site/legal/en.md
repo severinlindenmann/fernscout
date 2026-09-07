@@ -112,12 +112,38 @@ advertising or profiling.
 | **Stannp Ltd** (United Kingdom) | Somebody ordered a printed postcard | The photograph, the message and the recipient's postal address |
 | **Gelato ASA** (Norway) | Somebody ordered a printed photobook | The book's PDF and the delivery address |
 | **Proton AG** (Switzerland) | Sign-in codes, invitations, notifications | The recipient's address and the message |
+| **Anthropic PBC** (United States) | Somebody used the writing helper at `/agent` — to have a day written up, to have photographs captioned, or to have one typed sentence understood | What they typed or said; the facts their own day already carries (its date, place, country, and how many photographs are on it and between which times); and, for captions, the photographs themselves |
+| **Deepgram Inc.** (United States) | Somebody spoke to the helper at `/agent` instead of typing | The recording of their voice, and the language it is in |
 | **Open-Meteo** (Germany) | A journal asked what the weather was on a day it recorded | The coordinates and the date of that day — nothing about you |
 | **European Central Bank** (Germany) | A trip needed the exchange rate for a currency it spent in | Nothing at all — the request is for a published document and carries no question |
 
 That is the whole list. There is nobody else.
 
-The weather row is different from the four above it and the difference is
+**Those two rows carry a condition the others do not, and it is worth stating
+plainly: nothing reaches Anthropic or Deepgram unless somebody uses the writing
+helper at `/agent`.** Reading a journal never does. Writing one through your own
+agent never does. An author who types their own days never causes a
+single request to either company, and a reader cannot cause one at all.
+
+What is sent is what the person put in front of the helper, and the few facts
+their own day already carries — the ones already on their screen while they use
+it. **No location history, no contacts, no email addresses and no postal
+addresses are sent to either, ever.** A journal's position history, where it
+keeps one, is held in a folder no request of any kind can reach, and it is not
+among the facts the helper is given.
+
+**The voice recording is never stored.** It arrives in one request, goes to the
+transcription provider, and is dropped when the request ends — no copy is
+written to this server, to a backup or to a journal's own export. What is kept
+is the text, because the text is what the person asked for. An instance that
+has not configured a transcription provider does not send the audio anywhere at
+all — nothing leaves the machine, and no company hears it.
+
+Both are used only for the one request that was asked for. Neither is sent
+anything for analysis, advertising or profiling, and neither is asked to hold
+anything after it has answered.
+
+The weather row is different from every row above it and the difference is
 worth stating plainly: **that request is made by this server, not by your
 browser.** It is sent once, when a day is written, and what comes back is
 stored in that day's own file — so reading a page that shows the weather
