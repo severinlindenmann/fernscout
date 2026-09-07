@@ -380,8 +380,10 @@ export function availableProviders(): Record<ProviderName, { ready: boolean; not
       note: "Request builder written and tested. Needs PEECHO_API_KEY, a configured offering, and public file URLs.",
     },
     gelato: {
-      ready: false,
-      note: "Request builder written and tested, against a measured catalogue. Needs GELATO_API_KEY and a placed order to confirm the create-order shape.",
+      ready: Boolean(process.env.GELATO_API_KEY),
+      note: process.env.GELATO_API_KEY
+        ? "Wired, against a measured catalogue. The create-order shape is still unconfirmed — only the quote endpoint has been called live."
+        : "Request builder written and tested, against a measured catalogue. Needs GELATO_API_KEY and a placed order to confirm the create-order shape.",
     },
     cloudprinter: {
       ready: false,
