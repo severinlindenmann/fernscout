@@ -1,9 +1,15 @@
-import { authenticate, errorResponse, outOfScope, ownsUser, writableTrips } from "@/lib/api/auth";
+import {
+  authenticate,
+  errorResponse,
+  mayActAsOwner,
+  outOfScope,
+  ownsUser,
+  writableTrips,
+} from "@/lib/api/auth";
 import { tripSummary } from "@/lib/api/entries";
 import { getMalformedTrips, getTrips } from "@/lib/trips";
 import { createTrip } from "@/lib/tripWrite";
 import { checkAgainstContract } from "@/lib/api/contract";
-import { SESSION_SCOPE } from "@/lib/auth";
 import { serverSite } from "@/lib/site";
 import { TRACKS, TRACK_ROWS } from "@/lib/tracks";
 
@@ -26,7 +32,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
   // succeeding and every read pretending the trip is not there (B83). Owner
   // tokens only: a trip-scoped token learns nothing about the rest of the
   // journal, malformed or not, for the same reason it sees only its own trip.
-  const malformed = auth.session.scope === SESSION_SCOPE.agent ? getMalformedTrips(user) : [];
+  const malformed = mayActAsOwner(auth.session, user) ? getMalformedTrips(user) : [];
 
   // Only the trips this token can actually reach. A trip-scoped token listing
   // the whole journal would tell somebody who came on one trip what else its
@@ -76,7 +82,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
   if (!ownsUser(auth.session, user)) {
     return outOfScope(auth.session, user);
   }
-  if (auth.session.scope !== SESSION_SCOPE.agent) {
+  if (!mayActAsOwner(auth.session, user)) {
     return Response.json(
       {
         error: "out_of_scope",

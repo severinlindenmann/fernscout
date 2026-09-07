@@ -102,3 +102,55 @@ enforcement of a rule that already holds, plus the test that says so.
 - A refusal is logged with the contact and the reason, and is never a silent
   no-op.
 - `npm run verify`.
+
+## Found and fixed (2026-09-07)
+
+Confirmed the six senders in the Why table still exist under those names (in
+`lib/contacts/mail.ts`, plus the digest's own loop in
+`lib/digest/dayLetter.ts`), each still correct today for the reason stated,
+and none of them sharing a gate.
+
+Added `mayMailContact(contact, { allowUnconfirmed? })` in
+`lib/contacts/mail.ts` — `true` when `contact.confirmedAt` is set or the
+caller names the exception, `false` (with a `console.warn` naming the address
+and the reason) otherwise. Wired in:
+
+- `sendCodeMail` — calls it with `{ allowUnconfirmed: true }` (the passcode
+  itself; there is nothing yet to have confirmed).
+- `sendInviteMail` — calls it with `{ allowUnconfirmed: true }` (the owner
+  directly handing somebody a link).
+- `sendConfirmedMail` — calls it plainly; returns `null` if refused.
+- `sendApprovedMail` — calls it plainly; returns `null` if refused.
+- `notifyOwnerOfRequest` — does **not** call it. Left a comment saying why:
+  the recipient is `config.json`'s `owner.email`, never `contact.email`, so
+  there is no `confirmed_at` on the actual recipient to be asking about. A
+  different question, not an exception — per the ticket's own instruction.
+- The digest's recipient loop (`recipientsFor` in `lib/digest/dayLetter.ts`,
+  called from `sendDayLetter`) — added a `mayMailContact(contact)` check
+  alongside the existing `status !== "active"` / `wantsEmailDigest` filters,
+  so the fact "unreachable without `confirmed_at`" is enforced rather than
+  merely true today.
+
+Owner mail elsewhere (`lib/journals.ts`'s welcome mail, `lib/deletions.ts`'s
+deletion link, the signup code) was not touched: none of it addresses a
+`contact`, all of it targets an address from `config.json` or a signup
+address proving a *new* journal, so there is no contact row for the gate to
+ask about — same reasoning as `notifyOwnerOfRequest`.
+
+`test/mail-confirmed-gate.test.ts` is the acceptance test, in two halves:
+
+- Direct unit tests of `mayMailContact` (confirmed passes, unconfirmed is
+  refused, the named opt-out overrides), including the literal case the
+  acceptance line asks for — a hypothetical sixth sender that forgets to opt
+  out is refused.
+- An enumeration test: every function in `lib/contacts/mail.ts` and
+  `lib/digest/dayLetter.ts` that calls `sendMail(` must also call
+  `mayMailContact(` — directly, or by calling a same-file helper that does
+  (`sendDayLetter` → `recipientsFor`) — except `notifyOwnerOfRequest`, which
+  is named on an explicit allowlist with the reason above. Verified by hand:
+  adding a new exported function that calls `sendMail(` without the gate
+  fails this test; removing the check inside `mayMailContact` fails the unit
+  tests.
+
+`npm run verify` passes. No OpenAPI change — nothing here is a route or a
+request field, only which sends actually leave the server.

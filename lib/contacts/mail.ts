@@ -19,6 +19,49 @@ import { listInvites, type InviteKind } from "./invites";
 import { pickLocale } from "./locale";
 
 /**
+ * The one gate every contact-addressed send must pass through — B334.
+ *
+ * Nothing enforced that a mail only ever goes to a confirmed address; six
+ * senders each happened to be right on their own — `sendConfirmedMail` and
+ * `sendApprovedMail` because the calls that trigger them cannot happen before
+ * `confirmed_at` is set, `sendDayLetter`'s per-recipient loop because it only
+ * ever iterates contacts already filtered to `status === "active"`, which is
+ * unreachable without it. Six separate arguments, and not one line of code
+ * that would stop a seventh sender from being wrong. This is that line.
+ *
+ * **The two mails whose whole purpose is to reach an unproven address name
+ * that at the call site.** `sendCodeMail` is the passcode itself, and
+ * `sendInviteMail` is the owner directly handing somebody a link — both pass
+ * `{ allowUnconfirmed: true }` rather than being quietly exempted by some rule
+ * about "transactional" mail, so a reader can grep for the two exceptions
+ * instead of having to trust a comment that they are the only ones.
+ *
+ * Owner mail — the welcome mail, the deletion link, `notifyOwnerOfRequest` —
+ * does not call this at all: it is not addressed to a *contact*, there is no
+ * `confirmed_at` to ask about, and the recipient is `config.json`'s own
+ * `owner.email` rather than an address a stranger typed into a form. That is
+ * a different question, not an exception to this one.
+ *
+ * Refuses loudly rather than silently dropping: a refusal is logged with the
+ * address and the reason, the way `sendDayLetter`'s own skips are, so a
+ * caller that gets `false` back can decide what "not sent" means to it
+ * instead of a swallowed exception burning a real event.
+ */
+export function mayMailContact(
+  contact: Pick<ContactRecord, "email" | "confirmedAt">,
+  options: { allowUnconfirmed?: boolean } = {},
+): boolean {
+  if (options.allowUnconfirmed) return true;
+  if (contact.confirmedAt) return true;
+  console.warn(
+    `[contacts] refused to mail ${contact.email}: address has not confirmed via the passcode ` +
+      "flow (confirmed_at is null). Pass { allowUnconfirmed: true } if this send's whole " +
+      "purpose is to reach an unproven address, and say why at the call site.",
+  );
+  return false;
+}
+
+/**
  * The five letters this feature writes.
  *
  * Each one is written in the *recipient's* language, which is the whole point
@@ -74,6 +117,9 @@ export async function sendCodeMail(
   locale: Locale,
   code: string,
 ) {
+  // The one named exception (B334): an unconfirmed address is the whole point
+  // of a passcode mail — there is nothing yet to have confirmed.
+  mayMailContact({ email: to, confirmedAt: null }, { allowUnconfirmed: true });
   return sendMail(
     renderMail(
       to,
@@ -120,6 +166,9 @@ export async function sendInviteMail(
     tripTitle?: string | null;
   },
 ): Promise<SendResult | null> {
+  // The other named exception (B334): this is the owner directly handing
+  // somebody a link, before that address has proved anything at all.
+  mayMailContact({ email: input.email, confirmedAt: null }, { allowUnconfirmed: true });
   const buddy = input.kind === "buddy";
   const vars = {
     title: user.title,
@@ -169,6 +218,7 @@ export async function sendConfirmedMail(
   contact: ContactRecord,
   manageToken: string,
 ): Promise<SendResult | null> {
+  if (!mayMailContact(contact)) return null;
   const locale = pickLocale(contact.locale, user.defaultLocale);
   const manage = manageUrl(baseUrl(), username, manageToken);
   try {
@@ -230,6 +280,10 @@ export async function notifyOwnerOfRequest(
   user: UserConfig,
   contact: ContactRecord,
 ): Promise<boolean> {
+  // Does not call `mayMailContact` (B334): this letter is addressed to
+  // `user.owner.email` from `config.json`, never to `contact.email` — the
+  // owner is not the contact confirming, so there is no `confirmed_at` on the
+  // recipient to be asking about. A different question, not an exception.
   if (!user.owner.email) return false;
   const locale = pickLocale(user.defaultLocale);
   // B349 — a buddy link is asking for write access to a trip, not to
@@ -338,6 +392,7 @@ export async function sendApprovedMail(
   user: UserConfig,
   contact: ContactRecord,
 ): Promise<SendResult | null> {
+  if (!mayMailContact(contact)) return null;
   const locale = pickLocale(contact.locale, user.defaultLocale);
   try {
     // Recomputed rather than carried around: the manage token is derived from

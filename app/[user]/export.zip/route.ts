@@ -1,6 +1,5 @@
 import { Readable } from "node:stream";
-import { authenticate, ownsUser } from "@/lib/api/auth";
-import { SESSION_SCOPE } from "@/lib/auth";
+import { authenticate, mayActAsOwner } from "@/lib/api/auth";
 import { createUserExportArchive } from "@/lib/exportZip";
 import { getUser } from "@/lib/users";
 
@@ -44,22 +43,17 @@ export async function GET(request: Request, { params }: RouteContext<"/[user]/ex
    * the journal, every `costs.md`, and every unpublished draft, to somebody
    * who had been let onto one trip.
    *
-   * The second question is what the token may *do*, and this draws the line
-   * where `PATCH /api/v1/<user>/config` and `DELETE /api/v1/<user>` draw it:
-   * the unqualified `write:content` that only the journal's owner is issued.
-   * Not `isOwner()` from `lib/contacts/session.ts` — that compares addresses
-   * and needs a request-scoped lookup this route does not otherwise do, and
-   * the scope check is the same line every other journal-wide route in the API
-   * already uses. Consistency is worth more here than the marginally stronger
-   * test.
+   * `mayActAsOwner` (B240) is the second question, asked the same way every
+   * other owner-only route in the API asks it: the unqualified `write:content`
+   * scope *and* the address behind the token matching `config.json`'s own
+   * `owner.email`, so a scope minted wrong on its own is still not enough.
    *
    * A trip-scoped token falls through to `open-to-link`, exactly as an
    * anonymous caller does. Refusing it outright would say something about the
    * journal it does not need to say, and the public archive is content it
    * could already have fetched. A per-trip archive is a feature, not this fix.
    */
-  const wholeJournal =
-    auth.ok && ownsUser(auth.session, user) && auth.session.scope === SESSION_SCOPE.agent;
+  const wholeJournal = auth.ok && mayActAsOwner(auth.session, user);
 
   const archive = createUserExportArchive(user, wholeJournal ? "all" : "open-to-link");
   // Errors also propagate through the stream itself; this only prevents a

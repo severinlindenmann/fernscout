@@ -1,5 +1,4 @@
-import { authenticate, errorResponse, outOfScope, ownsUser } from "@/lib/api/auth";
-import { SESSION_SCOPE } from "@/lib/auth";
+import { authenticate, errorResponse, mayActAsOwner, outOfScope, ownsUser } from "@/lib/api/auth";
 import {
   INBOX_KINDS,
   kindForExtension,
@@ -93,7 +92,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
 
   const { user } = await params;
   if (!ownsUser(auth.session, user)) return outOfScope(auth.session, user);
-  if (auth.session.scope !== SESSION_SCOPE.agent) return needsJournalScope(user);
+  if (!mayActAsOwner(auth.session, user)) return needsJournalScope(user);
 
   const items = listInbox(user);
   const counts = Object.fromEntries(
@@ -124,7 +123,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
 
   const { user } = await params;
   if (!ownsUser(auth.session, user)) return outOfScope(auth.session, user);
-  if (auth.session.scope !== SESSION_SCOPE.agent) return needsJournalScope(user);
+  if (!mayActAsOwner(auth.session, user)) return needsJournalScope(user);
 
   const journal = getUser(user);
   if (!journal) return Response.json({ error: "unknown_user" }, { status: 404 });

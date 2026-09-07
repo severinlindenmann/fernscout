@@ -80,3 +80,62 @@ see B231 for the route that misread it.
   session whose scope was somehow widened is *still* refused because the
   address does not match.
 - All four checks pass.
+
+## Found and fixed (2026-09-07)
+
+The stale-reference note at the top was right: there is no `lib/mcp/`. The
+scope check `session.scope !== SESSION_SCOPE.agent` (or its inverse) existed
+at these fourteen locations, all in the write API, all following the same
+`ownsUser(...)` → `... scope check ...` shape:
+
+- `app/api/v1/[user]/route.ts` (DELETE the journal)
+- `app/api/v1/[user]/config/route.ts` (GET, PATCH — two)
+- `app/api/v1/[user]/inbox/route.ts` (GET, POST — two)
+- `app/api/v1/[user]/inbox/[id]/route.ts` (DELETE)
+- `app/api/v1/[user]/import/route.ts` (GET, POST — two)
+- `app/api/v1/[user]/trips/route.ts` (POST, plus a second, non-refusal use at
+  line 29 gating whether `getMalformedTrips` is disclosed at all)
+- `app/api/v1/[user]/trips/[trip]/route.ts` (DELETE, PATCH — two)
+- `app/api/v1/[user]/trips/[trip]/rates/route.ts` (PUT)
+- `app/api/v1/[user]/trips/[trip]/visibility/route.ts` (PUT)
+- `app/api/v1/[user]/trips/[trip]/track/route.ts` (POST)
+- `app/api/v1/[user]/trips/[trip]/days/[slug]/publish/route.ts` (POST)
+- `app/api/v1/[user]/trips/[trip]/days/[slug]/send-mail/route.ts` (POST)
+- `app/api/v1/[user]/trips/[trip]/days/[slug]/send-whatsapp/route.ts` (POST)
+- `lib/api/tripParty.ts` (`resolveTripOwner`, the shared resolver behind the
+  `people`, `travellers` and `tracks` routes — three more call sites for one
+  code location)
+
+Two more turned up during the sweep that also disclose owner-only
+information on a scope compare, outside `app/api/`:
+
+- `lib/api/status.ts:149` (`journalStatus`) — gates the malformed-trips list
+  and the credit balance shown by `GET /api/v1/<user>/status`.
+- `app/[user]/export.zip/route.ts:62` — gates whether the *whole* archive or
+  only the public one is streamed. Its own long comment explicitly argued for
+  keeping the scope-only check "for consistency" rather than reaching for
+  `isOwner()`; that argument is why this ticket exists, so it was folded in
+  rather than left as the fifteenth exception.
+
+**Chose the narrower option the ticket floated**: `mayActAsOwner(session,
+username)` in `lib/api/auth.ts`, rather than switching every gate to
+`isOwner()` from `lib/contacts/session.ts`. It asks both things `isOwner` asks
+for a browser credential — `ownsUser` (which journal) and `session.scope ===
+SESSION_SCOPE.agent` (not a trip-scoped token) — plus a third, independent
+check: `session.email` against `getUser(username)?.owner.email` (or the
+instance admin). That third check is what a scope-minting bug like B230 could
+not also falsify, since it reads a fact from the journal's own `config.json`
+rather than from the token's own metadata a second time. Every one of the
+fourteen-plus-two sites above now calls it in place of the raw comparison; the
+messages at each refusal are unchanged.
+
+`test/owner-gate.test.ts` is the acceptance test: a unit-test half
+(`mayActAsOwner` itself, including the defense-in-depth case — a session
+scoped as the unqualified owner token but whose address does not match the
+journal's `owner.email` is still refused) and an enumeration half — a source
+scan asserting no file outside `lib/api/auth.ts` still contains the literal
+comparison `session.scope !== SESSION_SCOPE.agent` (or `===`). Verified by
+hand that re-introducing the raw compare at one call site makes the scan fail.
+
+`npm run verify` passes. No OpenAPI change: no refusal's status code or `error`
+value changed, only how it is computed.

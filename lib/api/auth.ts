@@ -3,6 +3,7 @@ import { isAdminEmail } from "../admin";
 import { SESSION_SCOPE, resolveSession, type Session } from "../auth";
 import { isEnabled } from "../capabilities";
 import { tripWriteVerdict } from "../tripPeople";
+import { getUser } from "../users";
 import type { Trip } from "../types";
 
 /**
@@ -84,6 +85,39 @@ export function outOfScope(session: Session, username: string): Response {
 export function ownsUser(session: Session, username: string): boolean {
   if (session.owner === username) return true;
   return session.scope === "write:content" && isAdminEmail(session.email);
+}
+
+/**
+ * The one question every owner-only gate in the write API asks — B240.
+ *
+ * `ownsUser` answers "which journal is this token for"; a trip-scoped token
+ * (`write:trip:<id>`) passes it too, since it belongs to the same journal as
+ * the one it may write one trip into. Deleting the journal, creating a trip,
+ * changing `config.json`, deriving a track — none of that is a trip's to
+ * decide, so fourteen call sites each re-asked `session.scope !==
+ * SESSION_SCOPE.agent` on their own. That is a single string compared against
+ * a value minted at sign-in: one defect in `/api/auth/verify` that widens a
+ * scope (B230) opens every one of them at once.
+ *
+ * This asks a second, independent question on top of the scope: does the
+ * *address* on the session match `config.json`'s own `owner.email` (or the
+ * instance admin, B480)? A minting bug can hand out the wrong scope string; it
+ * cannot also rewrite the journal's config file to agree with it. So even a
+ * session whose scope was somehow widened to the unqualified `write:content`
+ * is still refused here unless the address behind it is the one the journal
+ * actually names as its owner.
+ *
+ * `isOwner` in `lib/contacts/session.ts` asks the same question of a *browser*
+ * credential (a cookie, or a bearer token read from a raw `Request`); this is
+ * its sibling for a `Session` already resolved by `authenticate()`, so the
+ * write API is not made to import the contacts module for it.
+ */
+export function mayActAsOwner(session: Session, username: string): boolean {
+  if (!ownsUser(session, username)) return false;
+  if (session.scope !== SESSION_SCOPE.agent) return false;
+  if (isAdminEmail(session.email)) return true;
+  const ownerEmail = getUser(username)?.owner.email;
+  return Boolean(ownerEmail) && session.email === ownerEmail;
 }
 
 /**

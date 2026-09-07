@@ -65,3 +65,50 @@ contortion, do 1 and write down what stopped you.
 Either one function decides who may read a trip and the mail path calls it, or
 a test fails when the two disagree about any combination of visibility,
 travellership and grant.
+
+## Found and fixed (2026-09-07)
+
+Read `lib/digest/dayLetter.ts` and `lib/tripGate.ts`/`lib/access.ts` in full.
+The Why's description of both pairs still matches the code exactly:
+`mayMailTrip` is `isOpenToLink || traveller || (not private && granted)`, and
+`mayMailCosts` is `isEnabled("costs") && (costsVisibility public ||
+traveller || (not private && granted))` — the same shape `maySeeCosts(trip,
+isGuestOf(trip))` inlines. Neither had moved since the ticket was filed;
+`test/day-mail.test.ts` still only pins their own output, never comparing
+against `lib/tripGate.ts`.
+
+**Chose 1 (the parity test), not 2 (extraction), matching the instruction to
+prefer the smaller change unless extraction is obviously clean — it is not.**
+The two pairs cannot be reduced to one shared pure core without a change of
+behaviour, not just of shape: `recipientsFor` (the mail side) includes the
+owner's own copy *before* either wrapper is ever called — unconditionally,
+for free, and without asking either function — while `mayReadTrip` and
+`isGuestOf` each have their own `isOwner` branch baked into the same function
+that does the traveller/guest logic. A shared `(trip, isTraveller, isGuest)`
+core would need a fourth boolean (`isOwner`) threaded through both call
+sites, and the mail side would have to pass `false` for a case that never
+actually reaches it — a parameter kept alive for a caller that cannot use it.
+That is the "contortion" the ticket asked to name rather than build around.
+
+Built `test/day-mail-parity.test.ts` instead: a table over every
+`{visibility, costsVisibility}` combination and three viewers (a traveller, an
+approved journal guest, a signed-in stranger — the owner is excluded, and the
+test's own comment says why), asserting `mayMailTrip(trip, isTraveller,
+granted)` equals `await mayReadTrip(trip)` and `mayMailCosts(trip,
+isTraveller, granted)` equals `await mayViewCosts(trip)` for the same
+session, for every row. `mayMailCosts` was not exported before this — exported
+it (with a comment saying why) so the test calls the real function rather
+than re-deriving its formula, which would not have caught drift in the
+formula itself.
+
+Verified by hand that the test catches drift: temporarily removed the
+`trip.visibility === "private"` branch from `mayMailTrip` and the suite failed
+on exactly the rows that branch protects (`guest` viewer on a `private`
+trip), then restored it and confirmed all pass.
+
+Updated the doc comment above both functions in `dayLetter.ts` to point at
+the new test instead of the nonexistent "B346" placeholder, and to say
+explicitly why extraction was not the choice.
+
+`npm run verify` passes. No OpenAPI change — this is entirely inside the mail
+layer.

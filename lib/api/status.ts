@@ -1,9 +1,8 @@
 import type { Session } from "@/lib/auth";
-import { SESSION_SCOPE } from "@/lib/auth";
 import { resolveCapabilities } from "@/lib/capabilities";
 import type { FeatureName } from "@/lib/config";
 import { listDrafts, tripSummary } from "@/lib/api/entries";
-import { writableTrips } from "@/lib/api/auth";
+import { mayActAsOwner, writableTrips } from "@/lib/api/auth";
 import { balanceOf } from "@/lib/credits";
 import { getMalformedTrips, getTrips } from "@/lib/trips";
 import { serverSite } from "@/lib/site";
@@ -146,7 +145,7 @@ export async function journalStatus(user: string, session: Session) {
   const site = serverSite();
   const base = site.url;
   const journal = getUser(user);
-  const scoped = session.scope !== SESSION_SCOPE.agent;
+  const scoped = !mayActAsOwner(session, user);
 
   const trips = await writableTrips(session, getTrips(user));
   const drafts = await draftQueue(user, session, base);

@@ -1,5 +1,4 @@
-import { authenticate, errorResponse, outOfScope, ownsUser } from "@/lib/api/auth";
-import { SESSION_SCOPE } from "@/lib/auth";
+import { authenticate, errorResponse, mayActAsOwner, outOfScope, ownsUser } from "@/lib/api/auth";
 import { deriveTripTrack } from "@/lib/gps/api";
 import { getTrip, tripRef } from "@/lib/trips";
 
@@ -33,7 +32,7 @@ export async function POST(
 
   const { user, trip: tripId } = await params;
   if (!ownsUser(auth.session, user)) return outOfScope(auth.session, user);
-  if (auth.session.scope !== SESSION_SCOPE.agent) {
+  if (!mayActAsOwner(auth.session, user)) {
     return Response.json(
       {
         error: "out_of_scope",

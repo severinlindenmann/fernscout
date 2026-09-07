@@ -1,5 +1,4 @@
-import { authenticate, errorResponse, outOfScope, ownsUser } from "@/lib/api/auth";
-import { SESSION_SCOPE } from "@/lib/auth";
+import { authenticate, errorResponse, mayActAsOwner, outOfScope, ownsUser } from "@/lib/api/auth";
 import { findInboxFile, removeInboxFile } from "@/lib/inbox";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +21,7 @@ export async function DELETE(
 
   const { user, id } = await params;
   if (!ownsUser(auth.session, user)) return outOfScope(auth.session, user);
-  if (auth.session.scope !== SESSION_SCOPE.agent) {
+  if (!mayActAsOwner(auth.session, user)) {
     return Response.json(
       {
         error: "out_of_scope",

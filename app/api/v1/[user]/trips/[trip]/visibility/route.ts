@@ -1,6 +1,5 @@
-import { authenticate, errorResponse, outOfScope, ownsUser } from "@/lib/api/auth";
+import { authenticate, errorResponse, mayActAsOwner, outOfScope, ownsUser } from "@/lib/api/auth";
 import { patchTripVisibility, readTripVisibility } from "@/lib/api/tripVisibility";
-import { SESSION_SCOPE } from "@/lib/auth";
 import { getTrip, tripRef } from "@/lib/trips";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +25,7 @@ async function resolve(request: Request, user: string, trip: string) {
    * only the owner could write `visibility:` there — and this is that same
    * door, opened after the fact.
    */
-  if (auth.session.scope !== SESSION_SCOPE.agent) {
+  if (!mayActAsOwner(auth.session, user)) {
     return {
       ok: false as const,
       response: Response.json(

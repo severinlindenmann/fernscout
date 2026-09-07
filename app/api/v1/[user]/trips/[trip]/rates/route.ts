@@ -1,6 +1,5 @@
-import { authenticate, errorResponse, outOfScope, ownsUser } from "@/lib/api/auth";
+import { authenticate, errorResponse, mayActAsOwner, outOfScope, ownsUser } from "@/lib/api/auth";
 import { patchTripRates, readTripRates } from "@/lib/api/tripRates";
-import { SESSION_SCOPE } from "@/lib/auth";
 import { getTrip, tripRef } from "@/lib/trips";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +28,7 @@ async function resolve(request: Request, user: string, trip: string) {
    * draws the same line: only the owner could write `rates:` at creation, so
    * only the owner can amend it afterwards.
    */
-  if (auth.session.scope !== SESSION_SCOPE.agent) {
+  if (!mayActAsOwner(auth.session, user)) {
     return {
       ok: false as const,
       response: Response.json(
