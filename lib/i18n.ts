@@ -1088,6 +1088,8 @@ export type TranslationKey =
   | "notify.failed"
   | "notify.sent"
   | "notify.short"
+  | "owner.onlyYou"
+  | "owner.onlyYouBody"
   | "pager.back"
   | "pager.continue"
   | "pager.skip"

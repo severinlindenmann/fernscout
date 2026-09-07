@@ -114,14 +114,14 @@ async function dayPage(canPublish: boolean) {
 describe("the ask box, where the owner actually is", () => {
   test("an owner on a day page is offered it", async () => {
     const host = await dayPage(true);
-    expect(host.textContent).toContain("Or ask for a change to this journal");
+    expect(host.textContent).toContain("Ask for anything else, in your own words");
     expect(fetched.some((url) => url.includes("/api/helper/alex/ask"))).toBe(true);
   });
 
   test("it is not Search, and says so in a word each", async () => {
     const host = await dayPage(true);
     const opener = [...host.querySelectorAll("button")].find((button) =>
-      button.textContent?.includes("Or ask for a change"),
+      button.textContent?.includes("Ask for anything else"),
     ) as HTMLButtonElement;
     act(() => opener.click());
     expect(host.textContent).toContain("Search finds. Asking changes.");
@@ -129,10 +129,10 @@ describe("the ask box, where the owner actually is", () => {
 
   test("a reader is offered nothing, and the journal is not even asked about", async () => {
     const host = await dayPage(false);
-    expect(host.textContent).not.toContain("Or ask for a change to this journal");
+    expect(host.textContent).not.toContain("Ask for anything else, in your own words");
     // The correction link is the neighbouring owner-only control; if it were
     // showing, the gate under test would be the wrong one.
-    expect(host.textContent).not.toContain("Correct or take down this day");
+    expect(host.textContent).not.toContain("Correct or take down");
     expect(fetched.some((url) => url.includes("/api/helper/alex/ask"))).toBe(false);
   });
 });
