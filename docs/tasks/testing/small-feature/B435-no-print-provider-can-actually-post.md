@@ -7,8 +7,7 @@ complexity: medium
 area: postcards
 found: "2026-09-05T10:12:20Z"
 started: "2026-09-07T15:51:05Z"
-session: 1ea1a367-e67d-471a-8e59-cae9a95a23ab
-claimed: "2026-09-07T15:51:05Z"
+merged: "2026-09-07T16:03:51Z"
 ---
 
 # B435 — No print provider can actually post a card — Stannp is built but never called
