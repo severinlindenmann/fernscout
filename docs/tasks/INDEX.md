@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (101)
+## backlog (102)
 
 ### security (2)
 
@@ -84,12 +84,13 @@ Do not edit them by hand; run the script.
 | [B761](backlog/issue/B761-a-statement-with-a-preamble-line.md) | A statement with a preamble line takes the wrong row as its header | ISSUE | low | low |
 | [B784](backlog/issue/B784-the-page-still-has-two-bright.md) | The page still has two bright buttons even though the card has one | ISSUE | low | low |
 
-### big-feature (13)
+### big-feature (14)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B537](backlog/big-feature/B537-a-journal-on-disk-cannot-be.md) | A journal on disk cannot be checked against the instance that will receive it | FEATURE | high | high |
+| [B792](backlog/big-feature/B792-buying-credits-goes-through-a-real.md) | Buying credits goes through a real payment provider, not an operator approving by hand | FEATURE | high | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | A journal folder can be exported and never pushed back, so writing locally is a one-way trip | FEATURE | medium | high |
