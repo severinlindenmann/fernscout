@@ -1,5 +1,6 @@
 import "server-only";
 import { loadServerConfig } from "../config";
+import { recordUsage } from "../usage";
 import type { SpeechLanguage } from "./speech";
 
 /**
@@ -63,6 +64,7 @@ export async function transcribeAudio(
   audio: Buffer,
   mediaType: string,
   language: SpeechLanguage,
+  owner?: string,
 ): Promise<Transcript> {
   if (speechBackend() !== "deepgram") {
     return { text: DRY_RUN_TRANSCRIPT, seconds: 0 };
@@ -91,8 +93,22 @@ export async function transcribeAudio(
   };
   const text = body.results?.channels?.[0]?.alternatives?.[0]?.transcript;
   if (typeof text !== "string") throw new Error("deepgram: no transcript in the answer");
-  return {
-    text: text.trim(),
-    seconds: typeof body.metadata?.duration === "number" ? body.metadata.duration : 0,
-  };
+  const seconds = typeof body.metadata?.duration === "number" ? body.metadata.duration : 0;
+
+  // What the instance was billed — B746. Deepgram's own measured duration, not
+  // the caller's claim, for the same reason the route reconciles the charge
+  // against it. `recordUsage` never throws; the transcript survives whatever
+  // this does. Only on the real backend: dry-run talks to nobody and is billed
+  // for nothing.
+  if (owner) {
+    await recordUsage({
+      owner,
+      provider: "deepgram",
+      model: DEEPGRAM_MODEL,
+      operation: "transcribe",
+      seconds,
+    });
+  }
+
+  return { text: text.trim(), seconds };
 }

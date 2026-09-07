@@ -83,5 +83,24 @@
     "credits": {
       "enabled": false
     }
+  },
+  "costs": {
+    "models": {
+      "claude-haiku-4-5": {
+        "inputPerMillionRappen": 80,
+        "outputPerMillionRappen": 400
+      }
+    },
+    "transcriptionPerThousandMinutesRappen": 344,
+    "fixedMonthly": [
+      {
+        "label": "Hetzner VPS",
+        "rappen": 5000
+      },
+      {
+        "label": "Domain (fernscout.ch, CHF 20/year)",
+        "rappen": 167
+      }
+    ]
   }
 }

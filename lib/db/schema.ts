@@ -489,6 +489,31 @@ export type AnalyticsEventsTable = {
   occurred_at: string;
 };
 
+/**
+ * One call to a paid provider, and what it consumed — B746.
+ *
+ * See `023-usage` for why this exists beside `credit_ledger` rather than
+ * being read off it: the ledger records what a journal was *charged*, this
+ * records what the instance was *billed*, and the two are different numbers
+ * in different units.
+ */
+export type UsageTable = {
+  id: string;
+  /** The username whose journal the request was made for. */
+  owner_id: string;
+  /** `anthropic` | `deepgram`. The closed list is PROVIDERS in lib/usage.ts. */
+  provider: string;
+  /** The model or product billed — `claude-haiku-4-5`, `nova-3`. */
+  model: string;
+  /** `write_day` | `describe_photos` | `route_ask` | `transcribe`. */
+  operation: string;
+  input_tokens: Generated<number>;
+  output_tokens: Generated<number>;
+  /** Audio seconds, as the provider measured them. */
+  seconds: Generated<number>;
+  created_at: string;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -508,6 +533,7 @@ export type Database = {
   payments: PaymentsTable;
   analytics_events: AnalyticsEventsTable;
   day_notifications: DayNotificationsTable;
+  usage: UsageTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -531,4 +557,5 @@ export const TABLE_NAMES = [
   "payments",
   "analytics_events",
   "day_notifications",
+  "usage",
 ] as const satisfies readonly (keyof Database)[];

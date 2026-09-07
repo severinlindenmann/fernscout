@@ -82,7 +82,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
 
   let routed;
   try {
-    routed = await routeAsk(said, today);
+    routed = await routeAsk(said, today, user);
   } catch {
     return Response.json({ error: "model_failed" }, { status: 502 });
   }

@@ -21,7 +21,13 @@ import { type CreditTier } from "./credits/pricing";
  */
 
 export type PaymentStatus = "pending" | "requested" | "paid";
-export type PaymentMethod = "twint" | "card";
+/**
+ * How a purchase was settled. `admin` is not a way to pay — it is the operator
+ * granting credits by hand from `/admin` (B746), recorded as a zero-franc
+ * transaction so it lands in the same queue, spends the same single-use
+ * token, and is reconciled from the same table as a real purchase.
+ */
+export type PaymentMethod = "twint" | "card" | "admin";
 
 export type Payment = {
   id: string;
@@ -34,7 +40,16 @@ export type Payment = {
   paidAt: string | null;
 };
 
-const METHODS: readonly PaymentMethod[] = ["twint", "card"];
+const METHODS: readonly PaymentMethod[] = ["twint", "card", "admin"];
+
+/** What a buyer may choose. `admin` is deliberately absent: it is the
+ *  operator's own method, and a request that could name it would be a way to
+ *  file a zero-franc purchase for any number of credits. `/api/v1/.../pay`
+ *  validates against this, `/admin` sets `admin` itself. */
+export const BUYER_METHODS: readonly PaymentMethod[] = ["twint", "card"];
+export function isBuyerMethod(v: unknown): v is PaymentMethod {
+  return typeof v === "string" && (BUYER_METHODS as readonly string[]).includes(v);
+}
 export function isPaymentMethod(v: unknown): v is PaymentMethod {
   return typeof v === "string" && (METHODS as readonly string[]).includes(v);
 }
@@ -121,6 +136,50 @@ export async function getPayment(owner: string, id: string): Promise<Payment | n
     .where("owner_id", "=", owner)
     .executeTakeFirst();
   return row ? toPayment(row) : null;
+}
+
+/**
+ * The operator grants credits by hand — B746.
+ *
+ * **This grants nothing.** It files a zero-franc transaction already in the
+ * `requested` state and mints the same single-use approval token an ordinary
+ * purchase mints; the credits land only when the mailed link is opened and
+ * `claimApproval` + `grant` run in the approve route, which stays the one and
+ * only HTTP path that raises a balance. `test/credits.test.ts` is unchanged
+ * and `GRANT_ALLOWED` does not widen, which is the whole reason this is shaped
+ * as a payment rather than as a second grant route.
+ *
+ * **Why `credits` may be any number here, when `createPayment` takes only a
+ * fixed tier.** The tier exists so a *buyer's* request cannot conjure a
+ * cheaper price or more credits. The caller here is the instance admin
+ * (`lib/admin.ts`), who is the person the approval mail goes to and the
+ * person who reconciles the money — there is no price to undercut, because
+ * there is no price. The protection that matters is unchanged: the admin
+ * cannot grant by asking, only by opening what was mailed to the operator.
+ */
+export async function createAdminGrant(
+  owner: string,
+  credits: number,
+): Promise<{ payment: Payment; token: string } | null> {
+  if (!Number.isInteger(credits) || credits <= 0) return null;
+  const handle = await getDatabaseOrNull();
+  if (!handle) return null;
+  const token = crypto.randomBytes(32).toString("base64url");
+  const row = {
+    id: newId(),
+    owner_id: owner,
+    credits,
+    amount_rappen: 0,
+    status: "requested",
+    method: "admin" as string | null,
+    created_at: nowIso(),
+    paid_at: null as string | null,
+  };
+  await handle.db
+    .insertInto("payments")
+    .values({ ...row, requested_at: nowIso(), approve_token_hash: hashToken(token) })
+    .execute();
+  return { payment: toPayment(row), token };
 }
 
 export type SubmitResult =

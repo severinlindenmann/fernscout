@@ -783,6 +783,7 @@ the record and never corrected, so do not update one to match what shipped.
 | `/<user>/invite/guest/<token>` | where a guest link lands |
 | `/<user>/invite/buddy/<token>` | where a buddy link lands |
 | `DELETE /api/v1/<user>` and `…/trips/<trip>` | ask to delete — see below |
+| `/admin` | what the instance costs to run — operator only, see below |
 
 **One address can sit above all of this, and it is not in any config file.**
 `FERNSCOUT_ADMIN_EMAIL` in the environment names the instance's operator, and
@@ -792,6 +793,31 @@ does not set it behaves as though `lib/admin.ts` were not there. It is
 deliberately not a role, a rank or a row in a table: one address, read from the
 environment on each call, so it is an operations decision rather than something
 a journal's own file can widen. B480.
+
+**That address has one page of its own, and it is the only thing on this
+instance that is about the instance** — `/admin`, B746. What a month of model
+calls, speech, print orders and sends actually cost, priced from a `costs`
+block in `site/config.json` that the operator edits without a deploy, plus
+every journal's balance and its ledger. It reads a **cookie** and never a
+bearer token, and it asks `resolveIdentity` rather than `resolveAccess`,
+because the question is instance-wide and one journal's own session must not
+answer it. With `FERNSCOUT_ADMIN_EMAIL` unset it is a 404 for everybody, which
+is how every other instance behaves.
+
+The numbers behind it come from a `usage` table (`lib/usage.ts`) that records
+tokens and audio seconds — units, never money, so a period can be re-costed
+when a price changes — and `recordUsage` **never throws**: a person has already
+spent a credit and been given their day by the time it runs, and losing the day
+to an accounting insert would be trading the product for the bookkeeping.
+
+**Its "add credits" button does not add credits**, and that is the same shape as
+deleting. `lib/credits.ts`'s property 1 stands unchanged — nothing reachable
+over HTTP raises a balance — so the button files a zero-franc transaction and
+mails the operator the single-use approval link an ordinary purchase mints.
+`app/api/v1/[user]/payments/[id]/approve/route.ts` is still the only file in the
+codebase that imports `grant`, and `GRANT_ALLOWED` in `test/credits.test.ts` did
+not widen to make this work. Report it as a mail waiting, never as credits
+added.
 
 Agent tokens arrive in `Authorization: Bearer` and nowhere else; guest sessions
 arrive in a cookie and nowhere else. The two are not interchangeable, and

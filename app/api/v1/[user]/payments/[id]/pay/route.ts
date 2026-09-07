@@ -2,7 +2,7 @@ import { formatChf } from "@/lib/credits/pricing";
 import { loadServerConfig } from "@/lib/config";
 import { sendTransactional } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
-import { isPaymentMethod, submitRequest } from "@/lib/payments";
+import { isBuyerMethod, submitRequest } from "@/lib/payments";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
@@ -47,7 +47,9 @@ export async function POST(
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const method = body.method;
-  if (!isPaymentMethod(method)) {
+  // isBuyerMethod, not isPaymentMethod: "admin" is a real method but the
+  // operator's own, and a buyer naming it would file a zero-franc purchase.
+  if (!isBuyerMethod(method)) {
     return Response.json({ error: "bad_method", message: 'Choose "twint" or "card".' }, { status: 400 });
   }
 

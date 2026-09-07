@@ -126,7 +126,7 @@ export async function POST(
 
   let transcript;
   try {
-    transcript = await transcribeAudio(audio, mediaType, language);
+    transcript = await transcribeAudio(audio, mediaType, language, user);
   } catch {
     // The credit bought nothing, so it goes back. What a provider says when it
     // is unhappy is not something to render on somebody's phone.
