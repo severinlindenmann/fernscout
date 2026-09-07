@@ -450,6 +450,10 @@ type PaymentsTable = {
    * keeps approval from crediting twice. */
   granted: Generated<number>;
   requested_at: string | null;
+  /** The latest Stripe checkout session id this payment is being paid through,
+   *  so `.../pay` can reuse an open session rather than opening a rival — B831.
+   *  Null on the manual approval path and before the first Stripe session. */
+  provider_ref: string | null;
 };
 
 /**

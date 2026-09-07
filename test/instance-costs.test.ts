@@ -353,9 +353,9 @@ describe("money coming in", () => {
   test("takings count real purchases and skip grants made by hand", () => {
     expect(
       takings([
-        { id: "a", owner: "alice", credits: 50, amountRappen: 1000, status: "paid", method: "twint", createdAt: "", paidAt: "", requestedAt: null },
-        { id: "b", owner: "alice", credits: 50, amountRappen: 0, status: "paid", method: "admin", createdAt: "", paidAt: "", requestedAt: null },
-        { id: "c", owner: "bob", credits: 100, amountRappen: 1800, status: "paid", method: "card", createdAt: "", paidAt: "", requestedAt: null },
+        { id: "a", owner: "alice", credits: 50, amountRappen: 1000, status: "paid", method: "twint", createdAt: "", paidAt: "", requestedAt: null, providerRef: null },
+        { id: "b", owner: "alice", credits: 50, amountRappen: 0, status: "paid", method: "admin", createdAt: "", paidAt: "", requestedAt: null, providerRef: null },
+        { id: "c", owner: "bob", credits: 100, amountRappen: 1800, status: "paid", method: "card", createdAt: "", paidAt: "", requestedAt: null, providerRef: null },
       ]),
     ).toBe(2800);
   });

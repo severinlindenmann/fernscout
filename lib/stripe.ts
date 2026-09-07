@@ -168,7 +168,7 @@ export async function createCheckoutSession(
   /** What this instance calls itself, for the checkout page's heading — the
    *  operator's own `site.name`, not whatever the Stripe account is named. */
   siteName = "Fernscout",
-): Promise<string | null> {
+): Promise<{ id: string; url: string } | null> {
   const back = `${baseUrl}/${username}/payment/${payment.id}`;
   const session = await stripe().checkout.sessions.create({
     mode: "payment",
@@ -196,5 +196,7 @@ export async function createCheckoutSession(
     cancel_url: back,
     locale: locale === "de" ? "de" : locale === "hu" ? "hu" : "en",
   });
-  return session.url;
+  // The id comes back so the pay route can store it and reuse this session
+  // next time rather than opening a rival to it — B831.
+  return session.url ? { id: session.id, url: session.url } : null;
 }

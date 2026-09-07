@@ -22,6 +22,7 @@ import * as identity from "./019-identity";
 import * as analytics from "./021-analytics";
 import * as dayNotifications from "./022-day-notifications";
 import * as usage from "./023-usage";
+import * as paymentProviderRef from "./024-payment-provider-ref";
 
 /**
  * Every migration, listed by hand.
@@ -59,6 +60,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "021-analytics": analytics,
   "022-day-notifications": dayNotifications,
   "023-usage": usage,
+  "024-payment-provider-ref": paymentProviderRef,
 };
 
 export const migrationProvider: MigrationProvider = {

@@ -238,4 +238,47 @@ describe("the grant path is not reachable over HTTP", () => {
       expect(fs.readFileSync(full, "utf8")).toMatch(/\bgrant\b/);
     }
   });
+
+  // B832. `refund` raises a balance too, so it deserves the same mechanised
+  // guard as `grant` — the invariant "only sanctioned code adds credits" was
+  // enforced for one of the two raising functions and merely asserted in a
+  // comment for the other. Every caller today refunds exactly what a matching
+  // spend took, on provider failure, so there is no free-credit path — but a
+  // future route that refunds a caller-named amount with no matching spend
+  // would mint credits and no test would fail. This makes adding a refund
+  // caller a deliberate, reviewed act, the same way adding a grant caller is.
+  const REFUND_ALLOWED = [
+    "app/api/helper/[user]/statement/route.ts",
+    "app/api/helper/[user]/day/write-day/route.ts",
+    "app/api/helper/[user]/day/describe-photos/route.ts",
+    "app/api/helper/[user]/transcribe/route.ts",
+  ];
+
+  test("only the sanctioned routes import refund from lib/credits", () => {
+    const offenders: string[] = [];
+    const walk = (d: string): void => {
+      for (const item of fs.readdirSync(d, { withFileTypes: true })) {
+        const full = path.join(d, item.name);
+        if (item.isDirectory()) walk(full);
+        else if (/\.(ts|tsx)$/.test(item.name)) {
+          const src = fs.readFileSync(full, "utf8");
+          for (const m of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["'][^"']*credits["']/g)) {
+            const named = m[1].split(",").map((s) => s.trim().split(/\s+as\s+/)[0].trim());
+            const rel = path.relative(process.cwd(), full);
+            if (named.includes("refund") && !REFUND_ALLOWED.includes(rel)) offenders.push(rel);
+          }
+        }
+      }
+    };
+    walk(path.join(process.cwd(), "app"));
+    expect(offenders).toEqual([]);
+  });
+
+  test("the allowed refund importers exist and import refund (allowlist not stale)", () => {
+    for (const rel of REFUND_ALLOWED) {
+      const full = path.join(process.cwd(), rel);
+      expect(fs.existsSync(full)).toBe(true);
+      expect(fs.readFileSync(full, "utf8")).toMatch(/\brefund\b/);
+    }
+  });
 });
