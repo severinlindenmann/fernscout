@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
+import Database from "better-sqlite3";
 import { POSTGRES_HOWTO, freshDatabase, postgresConfigured } from "./support/dialects";
 import { TABLE_NAMES, parseDatabaseUrl } from "@/lib/db";
 import { announceSkip } from "./support/announce";
@@ -73,6 +74,7 @@ function haveBinary(bin: string, args: string[] = ["--version"]): boolean {
 const RESTIC = haveBinary("restic", ["version"]);
 const PG_DUMP = haveBinary("pg_dump");
 const PG_RESTORE = haveBinary("pg_restore");
+const SQLITE3 = haveBinary("sqlite3");
 const IS_ROOT = typeof process.getuid === "function" && process.getuid() === 0;
 // B115. `timeout` is coreutils: on the VPS, and not on macOS without
 // `brew install coreutils`. The script falls back to an unwrapped probe when
@@ -352,6 +354,28 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     return { PATH: dir };
   }
 
+  /**
+   * A PATH holding what `scripts/backup.sh` needs and **no `sqlite3`**, so
+   * `stage_sqlite`'s fallback branch runs for the real reason on any machine,
+   * whether or not this one happens to have `sqlite3` installed. `timeout` (or
+   * `gtimeout`) is included where present, so this is a test of the sqlite
+   * fallback alone and not also, incidentally, of the unbounded probe.
+   */
+  function withoutSqlite3(): Record<string, string> {
+    const dir = path.join(scratch, "no-sqlite3-bin");
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+      for (const bin of [...BACKUP_NEEDS, "timeout", "gtimeout"]) {
+        const found = spawnSync("sh", ["-c", `command -v ${bin}`], { encoding: "utf8" });
+        const resolved = (found.stdout ?? "").trim();
+        if (!resolved) continue; // timeout/gtimeout may genuinely be absent — not this test's concern
+        fs.symlinkSync(resolved, path.join(dir, bin));
+      }
+      expect(fs.existsSync(path.join(dir, "sqlite3")), "the pruned PATH is the whole point").toBe(false);
+    }
+    return { PATH: dir };
+  }
+
   beforeAll(() => {
     scratch = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-backup-"));
     dataDir = path.join(scratch, "data");
@@ -367,19 +391,32 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     fs.mkdirSync(shimBin, { recursive: true });
     fs.writeFileSync(path.join(shimBin, "timeout"), TIMEOUT_SHIM, { mode: 0o755 });
 
-    // DATA_DIR: config.json is the one file in the allowlist. Everything else
-    // here is deliberately NOT in the set (B653) — the file-store state a
-    // no-database deployment would otherwise keep here, sent mail (B636), and
-    // a couple of things that should never have been backed up in the first
-    // place (an npm cache, a stray tarball). All of it exists only to prove
-    // the skipped-entries log names it and the run does not choke on it.
+    // DATA_DIR. Four things are claimed by the allowlist and must survive:
+    // config.json, the two JSON stores lib/store.ts writes at the top level
+    // (reactions.json, and a differently-named one to prove the rule is a
+    // pattern and not two hardcoded filenames), and the sqlite file a
+    // sqlite:… deployment keeps here. Everything else — sent mail (B636), an
+    // npm cache, a stray tarball — is NOT in the set (B653), and exists only
+    // to prove the skipped-entries log names it and the run does not choke
+    // on it.
     fs.mkdirSync(dataDir, { recursive: true });
     fs.writeFileSync(path.join(dataDir, "config.json"), JSON.stringify({ title: "Alex's journal" }));
     fs.writeFileSync(
       path.join(dataDir, "reactions.json"),
       JSON.stringify({ "alex/kyrgyzstan-2026": { "2026-06-01-over-the-pass": { heart: 7 } } }),
     );
-    fs.writeFileSync(path.join(dataDir, "fernscout.db"), crypto.randomBytes(4096));
+    fs.writeFileSync(path.join(dataDir, "custom-store.json"), JSON.stringify({ note: "a store lib/store.ts adds later" }));
+
+    // A real database, the same way lib/db/client.ts makes one — WAL mode
+    // included — not a bag of random bytes standing in for one. `sqlite3
+    // .backup` and better-sqlite3's own reader both have opinions about the
+    // file being an actual database.
+    const seedDb = new Database(path.join(dataDir, "fernscout.db"));
+    seedDb.pragma("journal_mode = WAL");
+    seedDb.exec("CREATE TABLE demo (id INTEGER PRIMARY KEY, note TEXT)");
+    seedDb.prepare("INSERT INTO demo (note) VALUES (?)").run("seeded for the backup round trip");
+    seedDb.close();
+
     fs.mkdirSync(path.join(dataDir, "mail", "alex"), { recursive: true });
     fs.writeFileSync(
       path.join(dataDir, "mail", "alex", "2026-06-01T00-00-00-000Z-code.eml"),
@@ -431,7 +468,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
   });
 
   test(
-    "backs up exactly the allowlist — content/, config/config.json, env/fernscout.env — byte-identical",
+    "backs up exactly the allowlist — content/, config/config.json, state/*.json, db/fernscout.db, env/fernscout.env",
     () => {
       const run = runBackup();
       expect(run.stderr + run.stdout).toContain("done");
@@ -441,7 +478,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
       const staged = restoreLatest("roundtrip");
 
       // The whole point of the allowlist: nothing under DATA_DIR arrives
-      // except config.json. No data/ directory at all any more.
+      // except what is named above. No data/ directory at all any more.
       expect(fs.existsSync(path.join(staged, "data"))).toBe(false);
 
       expect(digestTree(path.join(staged, "content"), isGeneratedOutput)).toEqual(
@@ -464,6 +501,31 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
         title: "Alex's journal",
       });
 
+      // The two JSON stores, staged by pattern rather than by name — proof
+      // that a store lib/store.ts adds later (custom-store.json here, standing
+      // in for one that does not exist yet) is backed up without this script
+      // knowing its name in advance.
+      expect(JSON.parse(fs.readFileSync(path.join(staged, "state", "reactions.json"), "utf8"))).toEqual({
+        "alex/kyrgyzstan-2026": { "2026-06-01-over-the-pass": { heart: 7 } },
+      });
+      expect(JSON.parse(fs.readFileSync(path.join(staged, "state", "custom-store.json"), "utf8"))).toEqual({
+        note: "a store lib/store.ts adds later",
+      });
+
+      // The sqlite database, staged as db/fernscout.db — openable and holding
+      // the row seeded above, not merely a file of the right name.
+      const restoredDb = new Database(path.join(staged, "db", "fernscout.db"), { readonly: true });
+      try {
+        expect(restoredDb.prepare("SELECT note FROM demo").get()).toEqual({
+          note: "seeded for the backup round trip",
+        });
+      } finally {
+        restoredDb.close();
+      }
+      if (SQLITE3) {
+        expect(run.stdout).toContain("via 'sqlite3 .backup' — transactionally consistent");
+      }
+
       const stagedEnv = fs.readFileSync(path.join(staged, "env", "fernscout.env"), "utf8");
       expect(stagedEnv).toContain("SMTP_HOST=mail.example.invalid");
       expect(stagedEnv).not.toContain("RESTIC_PASSWORD");
@@ -471,6 +533,38 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
       // The staging directory is scratch, not state: the script's EXIT trap
       // clears it, or the next run's `rm -rf` would be doing it blind.
       expect(fs.existsSync(staging)).toBe(false);
+    },
+    180_000,
+  );
+
+  test(
+    "without sqlite3 on PATH, the database falls back to a plain copy that carries its -wal/-shm sidecars, and says plainly this is crash-consistent only",
+    () => {
+      // A dedicated DATA_DIR: the shared fixture's fernscout.db is a real
+      // database seeded for the primary round-trip test, and asserting the
+      // fallback log lines against it would depend on whether this machine
+      // happens to have sqlite3 — the whole point of withoutSqlite3() is that
+      // this test does not.
+      const nestedData = fs.mkdtempSync(path.join(scratch, "sqlite-fallback-"));
+      const dbPath = path.join(nestedData, "fernscout.db");
+      fs.writeFileSync(dbPath, "not really sqlite, just bytes to copy\n");
+      fs.writeFileSync(`${dbPath}-wal`, "wal frames not yet checkpointed\n");
+      fs.writeFileSync(`${dbPath}-shm`, "shared-memory index\n");
+      fs.writeFileSync(path.join(nestedData, "config.json"), "{}\n");
+
+      const run = runBackup({ DATA_DIR: nestedData, ...withoutSqlite3() });
+      expect(run.status, run.stdout + run.stderr).toBe(0);
+      expect(run.stdout).toContain("sqlite3 is not installed on this host");
+      expect(run.stdout).toContain("CRASH-CONSISTENT ONLY");
+
+      const staged = restoreLatest("sqlite-fallback");
+      expect(fs.readFileSync(path.join(staged, "db", "fernscout.db"), "utf8")).toBe(
+        "not really sqlite, just bytes to copy\n",
+      );
+      expect(fs.readFileSync(path.join(staged, "db", "fernscout.db-wal"), "utf8")).toBe(
+        "wal frames not yet checkpointed\n",
+      );
+      expect(fs.readFileSync(path.join(staged, "db", "fernscout.db-shm"), "utf8")).toBe("shared-memory index\n");
     },
     180_000,
   );
@@ -492,19 +586,20 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
   );
 
   test(
-    "everything under DATA_DIR that is not config.json is named as skipped",
+    "everything under DATA_DIR that is not claimed by the allowlist is named as skipped",
     () => {
       const run = runBackup();
       expect(run.status).toBe(0);
 
       expect(run.stdout).toContain("skipped home/ (not in the backup set)");
       expect(run.stdout).toContain("skipped example-before-b325.tgz (not in the backup set)");
-      expect(run.stdout).toContain("skipped reactions.json (not in the backup set)");
-      expect(run.stdout).toContain("skipped fernscout.db (not in the backup set)");
       expect(run.stdout).toContain("skipped mail/ (not in the backup set)");
-      // config.json is the one entry actually in the set — it must not be
-      // named as skipped, or the log would be lying about its own allowlist.
+      // The four things the allowlist actually claims must never appear here
+      // — the log would be lying about its own set otherwise.
       expect(run.stdout).not.toContain("skipped config.json");
+      expect(run.stdout).not.toContain("skipped reactions.json");
+      expect(run.stdout).not.toContain("skipped custom-store.json");
+      expect(run.stdout).not.toContain("skipped fernscout.db");
     },
     180_000,
   );
@@ -514,7 +609,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", () => {
     () => {
       const run = runBackup();
       expect(run.status).toBe(0);
-      expect(run.stdout).toContain("skipping DB dump");
+      expect(run.stdout).toContain("skipping pg_dump");
     },
     180_000,
   );

@@ -6,9 +6,40 @@ priority: high
 complexity: low
 area: backup, DR, scripts/backup.sh
 found: "2026-09-07T06:05:44Z"
+superseded: covered by B653 itself — the allowlist now stages the sqlite file and lib/store.ts's JSON stores
 ---
 
 # B658 — The B653 backup allowlist drops a no-database deployment's own state
+
+> **Superseded, 2026-09-07.** Filed as a separate capture on the reasoning
+> that a second problem found while building B653 should never be scope
+> quietly absorbed into the ticket in hand — but the coordinator overrode that
+> for this one: `scripts/backup.sh` ships to other people's servers,
+> `DATABASE_URL=sqlite:…` and an unset `DATABASE_URL` are both deployment
+> shapes `docs/runbook.md` documents as valid, and shipping an allowlist that
+> silently drops somebody's entire database on either shape is a data-loss
+> regression in the design, not a scope question worth deferring. Fixed inside
+> B653 instead. Nothing left open here.
+>
+> What landed: `stage_sqlite()` in `scripts/backup.sh` stages
+> `$DATA_DIR/fernscout.db` (+ `-wal`/`-shm` sidecars) as `db/fernscout.db`,
+> preferring `sqlite3 "$src" ".backup '$dest'"` — a transactionally consistent
+> snapshot safe to take while the app keeps writing — and falling back to a
+> plain file copy, explicitly logged as CRASH-CONSISTENT ONLY, where `sqlite3`
+> is not on PATH. `stage_json_stores()` stages every top-level `*.json` file
+> under `DATA_DIR` except `config.json` as `state/<name>.json` — a pattern
+> match on `lib/store.ts`'s own convention (`pathFor(name) =
+> dataDir()/<name>.json`, `lib/store.ts:44`) rather than the two names
+> (`reactions.json`, `push-subscriptions.json`) that exist today, so a future
+> store is backed up without a script change. The skipped-entries log
+> excludes all of the above by name so it keeps telling the truth about what
+> it did not stage. Covered in `test/backup-script.test.ts`: a round trip that
+> reopens the restored sqlite database and re-parses the restored JSON stores,
+> and a dedicated test (PATH pruned of `sqlite3`) proving the `-wal`/`-shm`
+> fallback copies the sidecars and logs the crash-consistency caveat.
+>
+> `docs/runbook.md`'s own backup-contents line is still B656's to update —
+> unaffected by this resolution.
 
 ## Why
 
