@@ -61,3 +61,16 @@ log line rather than a behaviour.
 
 Somebody who greps the journal for that sentence lands on the explanation
 without opening a task.
+
+## Done, 2026-09-07
+
+Added a comment in `deploy/fernscout-backup.service`, right after the
+`OnSuccess=` directive (matching the `[Unit]`-not-`[Service]` note style
+already there from B203): quotes the exact warning line, says what systemd is
+declining to do (set `MONITOR_EXIT_STATUS` and siblings, since it cannot
+attribute the exit status to one of two identical triggers), why
+`scripts/alert.sh` does not care (it asks `systemctl show` for `Result`/
+`ExecMainStatus` directly), and explicitly declines the two-unit split as
+not worth the price (one script, one template vs. one log line).
+
+`npm run verify` passed (no test touches this file).

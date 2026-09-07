@@ -25,6 +25,18 @@ OnFailure=fernscout-alert@%n.service
 # Same handler, same instance name. `scripts/alert.sh` asks systemd which of
 # the two ran it, and treats anything it cannot prove was a success as a
 # failure. In [Unit] for the reason above — [Service] would swallow it.
+#
+# Because both directives name the same unit, every run logs:
+#   fernscout-alert@fernscout-backup.service.service: multiple trigger source
+#   candidates for exit status propagation (fernscout-backup.service,
+#   fernscout-backup.service), skipping.
+# That is systemd declining to set MONITOR_EXIT_STATUS and its siblings in the
+# handler's own environment, since it cannot say which of two identical
+# triggers to attribute the status to. Harmless here: `scripts/alert.sh` never
+# reads those variables, it asks `systemctl show` for Result and
+# ExecMainStatus directly. Splitting into two handler units would silence it,
+# at the cost of the one script and one template this duplication buys — not
+# doing that; the price is a log line, not a behaviour (B462).
 OnSuccess=fernscout-alert@%n.service
 
 [Service]

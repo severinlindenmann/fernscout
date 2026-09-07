@@ -39,3 +39,16 @@ shared copy the other two already read from rather than a fourth restatement.
 
 `curl -s https://fernscout.ch/<user>/documentation.txt` contains the
 private-shuts-out-guests sentence.
+
+## Done, 2026-09-07
+
+Added `...wrap(PRIVATE_SHUTS_OUT_GUESTS.replace(/\`/g, ""), 78)` to
+`userDocumentation()` in `lib/api/documentation.ts`, right after the
+Endpoints list and before "## The guide" — reading from the same
+`lib/api/agentCopy.ts` constant `instanceDocumentation()` and `agentGuide()`
+already use, per the Work section's ask, rather than a fourth restatement.
+Backticks stripped the same way `instanceDocumentation()` already does its
+own copy of this sentence, since this document is served as plain text
+(`app/[user]/documentation.txt/route.ts`).
+
+`npm run verify` passed.

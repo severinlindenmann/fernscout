@@ -58,3 +58,17 @@ two modes can honestly disagree.
 - `test-in-a-browser`'s skill doc mentions the dev/production divergence for
   effect races (Strict Mode double-invocation) and says to confirm a
   persistence-style finding under a production build before reporting it.
+
+## Done, 2026-09-07
+
+Added a paragraph to `.claude/skills/test-in-a-browser/SKILL.md`'s "What this
+cannot tell you" section, naming B603's own bug as the worked example: names
+Strict Mode's dev-only double effect invocation, says to cross-check a
+persistence/effect-ordering finding against `npm run build && npm run start`
+on the same port before reporting it as real, and the converse the ticket
+also asked for — that a "looks fine" under `next dev` is not automatically
+trustworthy either, since the same double invocation is what would have
+caught this bug sooner. No detection mechanism added, per the ticket's own
+scope.
+
+`npm run verify` passed.

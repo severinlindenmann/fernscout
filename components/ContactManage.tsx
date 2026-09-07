@@ -161,6 +161,7 @@ export default function ContactManage({
       <p className="mt-2 text-base text-navy-600">
         {`${contact.email} — ${t(STATUS_KEY[contact.status])}`}
       </p>
+      <p className="mt-2 text-sm text-navy-500">{t("contact.manageLinkCaption")}</p>
 
       <form
         className="mt-8"
@@ -335,7 +336,12 @@ export default function ContactManage({
               checked={wantsWhatsapp}
               onChange={(e) => setWantsWhatsapp(e.target.checked)}
             />
-            <span>{t("contact.wantsWhatsapp")}</span>
+            <span>
+              {t("contact.wantsWhatsapp")}
+              <span className="mt-1 block text-sm text-navy-500">
+                {t("contact.wantsWhatsappHint")}
+              </span>
+            </span>
           </label>
         </div>
 

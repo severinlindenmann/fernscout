@@ -536,6 +536,8 @@ export function userDocumentation(username: string): string | null {
     `- [Feed](${root}/feed.xml): public entries as RSS`,
     `- [Export](${root}/export.zip): the whole journal as markdown and photographs`,
     "",
+    ...wrap(PRIVATE_SHUTS_OUT_GUESTS.replace(/`/g, ""), 78),
+    "",
     "## The guide",
     "",
     `- [Agent guide](${base()}/agent.md): the full instructions, with examples`,
@@ -1088,6 +1090,12 @@ group chat. If the person has not said which they meant, ask.
 address and lands in the owner's queue at \`${site.url}/${example}/contacts\`;
 the owner approves each person by hand. So report a link as *an invitation to
 ask*, never as "your sister now has access".
+
+**You cannot look at that queue yourself.** \`${example}/contacts\` and
+\`${example}/me\` are the owner's own pages, and they authenticate from a
+browser cookie session only — the bearer token that drives every call above
+renders neither. Tell the owner a request is waiting and where to look;
+do not try to confirm it by fetching the page.
 
 **Naming \`email\` changes that, on purpose.** The owner is no longer handing
 over a link for somebody to open eventually — they are typing an address and
@@ -1653,6 +1661,12 @@ offer it:
   sentences somebody else already wrote. You cannot compose this message, and
   a request to "say something different this time" needs a new template and
   a day's wait.
+- **The photograph reaches Meta, even for a private trip.** The template's
+  image header means the day's first photograph is uploaded to Meta's servers
+  before the message goes — unlike mail, which inlines the bytes so a private
+  trip's picture never leaves the gate. That is true for every trip's
+  visibility, closed ones included; there is no channel that skips the
+  upload.
 
 The reply is shaped like mail's, under \`whatsapp\` instead of \`mail\`, and
 carries counts rather than numbers — a failure names its reason against a

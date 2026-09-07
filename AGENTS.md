@@ -771,6 +771,16 @@ caller asked for, which is also what makes a *new* kind refused everywhere by
 default. That is decision 24: reading the site on your phone must not put a
 credential that can rewrite it in your pocket.
 
+**The converse holds too: an agent token reaches `/api/…` and never a
+rendered page.** The owner's own pages — `/<user>/contacts` and `/<user>/me`
+among them — authenticate from a cookie session only, with no `request`
+argument for `isOwner` to read a bearer token from. A token that drives every
+write on a trip renders none of these pages; an agent that wants to *see* one
+needs a browser session, obtained the way a person gets one. This is also why
+a ticket's acceptance line about what a *page shows* cannot be closed by an
+agent over the API — write it against the browser explicitly, or against the
+API state that drives the render.
+
 **A third browser credential says who you are and opens nothing.** Since B410
 an `fs_identity` cookie is bound to an address and to no journal — the
 `NO_JOURNAL` (`"*"`) sentinel in `owner_id`, which `USERNAME_RE` can never

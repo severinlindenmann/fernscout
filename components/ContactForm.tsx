@@ -447,7 +447,12 @@ export default function ContactForm({
                 checked={wantsWhatsapp}
                 onChange={(e) => setWantsWhatsapp(e.target.checked)}
               />
-              <span>{t("contact.wantsWhatsapp")}</span>
+              <span>
+                {t("contact.wantsWhatsapp")}
+                <span className="mt-1 block text-sm text-navy-500">
+                  {t("contact.wantsWhatsappHint")}
+                </span>
+              </span>
             </label>
           </div>
 
@@ -530,6 +535,8 @@ export default function ContactForm({
             >
                 {t("contact.manageLink")}
               </a>
+              <br />
+              <span className="text-sm text-navy-500">{t("contact.manageLinkCaption")}</span>
             </p>
           )}
         </div>
