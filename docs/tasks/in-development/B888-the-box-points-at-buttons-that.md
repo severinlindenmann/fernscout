@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: agent, i18n
 found: "2026-09-07T18:24:54Z"
+started: "2026-09-07T18:25:43Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T18:25:43Z"
 ---
 
 # B888 — The box points at buttons that are not on the screen
