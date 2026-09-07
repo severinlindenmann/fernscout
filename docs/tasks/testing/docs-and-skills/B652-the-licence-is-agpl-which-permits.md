@@ -7,8 +7,7 @@ complexity: medium
 area: Licensing
 found: "2026-09-07T05:08:19Z"
 started: "2026-09-07T05:08:44Z"
-session: 8586d32c-3638-4930-b52e-b524af859a77
-claimed: "2026-09-07T05:08:44Z"
+merged: "2026-09-07T05:17:12Z"
 ---
 
 # B652 — The licence is AGPL, which permits a commercial competitor
