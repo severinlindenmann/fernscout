@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
+import ConfirmPanel from "@/components/ConfirmPanel";
 import type { TranslationKey } from "@/lib/i18n";
 import {
   DEFAULT_OPTIONS,
@@ -158,6 +159,23 @@ export default function PhotobookPageContent({
   /** Level 1 (`null`) or level 2, on a day — B534. Front matter has no
    * controls of its own (B563) so it does not drill. */
   const [drill, setDrill] = useState<Drill>(null);
+
+  /**
+   * The question a destructive control is waiting on — B668.
+   *
+   * Held here rather than beside each button because both controls live
+   * several components down (`BookLevelView`, `DayLevelView`) and the panel is
+   * rendered once, at the top of the page, where the outcome notice already
+   * appears. Threading a panel and its two callbacks down two levels to sit
+   * beside a button would be more wiring than the question is worth, and both
+   * levels are in the same fragment, so one panel covers both.
+   */
+  const [pending, setPending] = useState<{
+    label: string;
+    question: string;
+    confirmLabel: string;
+    act: () => void;
+  } | null>(null);
   /** Which photograph's crop is being adjusted, by `src` — B513. A src is
    * unique across the whole book, so one flag (not one per day) is enough. */
   const [focalEditing, setFocalEditing] = useState<string | null>(null);
@@ -329,9 +347,9 @@ export default function PhotobookPageContent({
    *
    * Eighteen days of choices is an evening's work, so this asks first — in
    * words, naming how many days are about to be undone, rather than a bare
-   * "are you sure?" that could mean anything. `window.confirm` rather than a
-   * dialog of our own: this is the one native primitive built for exactly
-   * "say what happens, then let the person stop it".
+   * "are you sure?" that could mean anything. The question is a panel at the
+   * top of the book rather than `window.confirm` since B668; see
+   * `components/ConfirmPanel.tsx` for why.
    *
    * Clearing `days` and `focalPoints` is the whole fix for `localStorage` too:
    * the effect above writes `options` on every change, so the stored
@@ -341,8 +359,12 @@ export default function PhotobookPageContent({
   const resetBook = () => {
     const count = Object.keys(options.days).length;
     if (count === 0 && Object.keys(options.focalPoints).length === 0) return;
-    if (!window.confirm(tn("photobook.resetAllConfirm", count, { count: String(count) }))) return;
-    setOptions((o) => ({ ...o, days: {}, focalPoints: {} }));
+    setPending({
+      label: t("photobook.resetAll"),
+      question: tn("photobook.resetAllConfirm", count, { count: String(count) }),
+      confirmLabel: t("photobook.resetAllGo"),
+      act: () => setOptions((o) => ({ ...o, days: {}, focalPoints: {} })),
+    });
   };
 
   /**
@@ -364,19 +386,26 @@ export default function PhotobookPageContent({
    * for.
    */
   const applyLayoutToAll = (layout: DayLayout) => {
+    const apply = () =>
+      setOptions((o) => {
+        const next = { ...o.days };
+        for (const d of days) next[d.date] = { ...next[d.date], layout };
+        return { ...o, days: next };
+      });
     const overridden = days.filter(
       (d) => options.days[d.date]?.layout !== undefined && options.days[d.date]?.layout !== layout,
     ).length;
-    if (
-      overridden > 0 &&
-      !window.confirm(tn("photobook.day.applyToAllConfirm", overridden, { count: String(overridden) }))
-    ) {
+    if (overridden === 0) {
+      apply();
       return;
     }
-    setOptions((o) => {
-      const next = { ...o.days };
-      for (const d of days) next[d.date] = { ...next[d.date], layout };
-      return { ...o, days: next };
+    setPending({
+      label: t("photobook.day.applyToAll"),
+      question: tn("photobook.day.applyToAllConfirm", overridden, {
+        count: String(overridden),
+      }),
+      confirmLabel: t("photobook.day.applyToAllGo"),
+      act: apply,
     });
   };
 
@@ -512,6 +541,23 @@ export default function PhotobookPageContent({
               >
                 {t(OUTCOME_MESSAGE[outcome.state])}
               </p>
+            )}
+
+            {/* The question, where the outcome notice appears — B668. Both
+                levels are in this fragment, so one panel serves both. */}
+            {pending && (
+              <div className="mt-6">
+                <ConfirmPanel
+                  label={pending.label}
+                  question={pending.question}
+                  confirmLabel={pending.confirmLabel}
+                  onConfirm={() => {
+                    pending.act();
+                    setPending(null);
+                  }}
+                  onCancel={() => setPending(null)}
+                />
+              </div>
             )}
 
             <BookLevelView
