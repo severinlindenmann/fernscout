@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (101)
+## backlog (100)
 
 ### security (3)
 
@@ -100,7 +100,7 @@ Do not edit them by hand; run the script.
 | [B689](backlog/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (21)
+### small-feature (20)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -120,7 +120,6 @@ Do not edit them by hand; run the script.
 | [B539](backlog/small-feature/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
 | [B666](backlog/small-feature/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 | [B675](backlog/small-feature/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
-| [B686](backlog/small-feature/B686-speech-cannot-be-turned-into-text.md) | Speech cannot be turned into text | FEATURE | low | medium |
 | [B688](backlog/small-feature/B688-a-new-visitor-cannot-make-a.md) | A new visitor cannot make a journal inside the helper | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 | [B723](backlog/small-feature/B723-consent-can-only-be-withdrawn-from.md) | Consent can only be withdrawn from inside the wizard | FEATURE | low | low |
@@ -196,7 +195,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (8)
+## in-development (9)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -208,6 +207,7 @@ _Nothing here._
 | [B732](in-development/B732-the-landing-page-shows-the-bring.md) | The landing page shows the bring-your-own-agent instructions to everybody, including the people who came for the helper | FEATURE | medium | low | `ccdd5120` |
 | [B733](in-development/B733-the-landing-page-and-the-helper.md) | The landing page and the helper door are flat cream, while the brand they are built from has paper, panels and a yellow that leads | FEATURE | medium | medium | `ccdd5120` |
 | [B391](in-development/B391-telfield-s-country-combobox-has-no.md) | TelField's country combobox has no jsdom test for keyboard/mouse interaction | ISSUE | low | low | `97b44327` |
+| [B686](in-development/B686-speech-cannot-be-turned-into-text.md) | Speech cannot be turned into text | FEATURE | low | medium | `fdfcf5f2` |
 
 ## testing (428)
 

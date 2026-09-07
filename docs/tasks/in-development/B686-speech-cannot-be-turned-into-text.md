@@ -6,6 +6,9 @@ priority: low
 complexity: medium
 area: agent, capabilities
 found: "2026-09-07T09:53:00Z"
+started: "2026-09-07T12:24:06Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T12:24:06Z"
 ---
 
 # B686 — Speech cannot be turned into text
