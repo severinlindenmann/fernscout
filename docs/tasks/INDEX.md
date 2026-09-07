@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (128)
+## backlog (129)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 
-### issue (38)
+### issue (37)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -69,7 +69,6 @@ Do not edit them by hand; run the script.
 | [B857](backlog/issue/B857-every-mail-this-server-sends-is.md) | Every mail this server sends is English whatever language the reader chose | ISSUE | high | medium |
 | [B869](backlog/issue/B869-a-photograph-from-an-iphone-is.md) | A photograph from an iPhone is replaced by a wrong picture and called a success | ISSUE | high | medium |
 | [B875](backlog/issue/B875-a-skipped-upload-claims-nothing-was.md) | A skipped upload claims nothing was lost when something was | ISSUE | high | low |
-| [B884](backlog/issue/B884-the-spine-is-computed-40-percent.md) | The spine is computed 40 percent too narrow and the cover artwork will creep | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
@@ -119,11 +118,12 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (20)
+### small-feature (21)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B858](backlog/small-feature/B858-the-two-questions-people-ask-most.md) | The two questions people ask most have no answer | FEATURE | high | low |
+| [B885](backlog/small-feature/B885-a-hardcover-case-is-rendered-as.md) | A hardcover case is rendered as though it were a softcover | FEATURE | high | medium |
 | [B10](backlog/small-feature/B10-a-journal-never-says-who-is.md) | A journal never says who is writing it | FEATURE | medium | medium |
 | [B112](backlog/small-feature/B112-local-scripts-write-straight-to-content.md) | Local scripts still write straight to content, and the one guarantee they skip is the draft rule | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
@@ -181,7 +181,7 @@ Do not edit them by hand; run the script.
 | [B870](backlog/docs-and-skills/B870-the-api-never-reads-the-place.md) | The API never reads the place and time out of a photograph and only says so 1700 lines away | DOCS | medium | low |
 | [B871](backlog/docs-and-skills/B871-a-png-is-served-as-a.md) | A PNG is served as a JPEG and nothing says so | DOCS | low | low |
 
-### superseded (31)
+### superseded (32)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -190,6 +190,7 @@ Do not edit them by hand; run the script.
 | [B65](backlog/superseded/B65-the-deployed-server-has-no-backup.md) | Every backup of the deployed server sits on the same machine it is backing up | OPS | high | medium |
 | [B658](backlog/superseded/B658-the-b653-backup-allowlist-drops-a.md) | The B653 backup allowlist drops a no-database deployment's own state | ISSUE | high | low |
 | [B680](backlog/superseded/B680-a-person-without-an-agent-has.md) | A person without an agent has nowhere to start | FEATURE | high | medium |
+| [B884](backlog/superseded/B884-the-spine-is-computed-40-percent.md) | The spine is computed 40 percent too narrow and the cover artwork will creep | ISSUE | high | low |
 | [B06](backlog/superseded/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B14](backlog/superseded/B14-postcards-cannot-address-themselves-from-the.md) | Postcards cannot address themselves from the contacts that hold the addresses | FEATURE | medium | medium |
 | [B260](backlog/superseded/B260-the-mcp-resource-advertises-no-authorization.md) | The MCP resource advertises no authorization server, so a connector cannot get a token by itself | FEATURE | medium | high |

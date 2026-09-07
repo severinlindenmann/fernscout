@@ -5,6 +5,7 @@ type: ISSUE
 priority: high
 complexity: low
 area: photobook, print
+superseded: "B885 — the spine stops being computed at all; cover geometry comes from Gelato"
 found: "2026-09-07T18:08:32Z"
 ---
 
