@@ -43,6 +43,7 @@ import {
 } from "./plan.ts";
 import { measure, toWinAnsi, wrap } from "./text.ts";
 import { drawTravellers } from "./travellers.ts";
+import { drawVehicle } from "./vehicles.ts";
 import { graticuleStep } from "./graticule.ts";
 import { PALETTE, rgbOf, type ChartShape } from "./charts.ts";
 import { landPaths, toPdfPath } from "./worldland.ts";
@@ -198,6 +199,11 @@ function drawShapes(page: Page, frame: Frame, shapes: readonly ChartShape[]) {
   const n = (v: number) => v.toFixed(3);
   const point = (p: { x: number; y: number }) => `${n(frame.x(p.x))} ${n(frame.y(p.y))}`;
   for (const shape of shapes) {
+    if (shape.kind === "vehicle") {
+      // Its own palette, so it is placed rather than toned — B737.
+      drawVehicle(page, frame, shape.mode, shape.x, shape.y, shape.widthMm);
+      continue;
+    }
     const colour = rgbOf(shape.tone);
     switch (shape.kind) {
       case "rect": {
@@ -532,7 +538,11 @@ function drawPage(
       // mark rather than an illustration. See lib/photobook/travellers.ts.
       drawTravellers(page, (xMm, yMm) => [frame.x(xMm), frame.y(yMm)], {
         x: c.x,
-        y: c.y + c.height * 0.52,
+        // Standing *on* the title block rather than floating above it — B749.
+        // At 0.52 there was a band of paper between the party and the words
+        // they belong to (the title's own baseline is at 0.34 below), and two
+        // things on a page with nothing between them read as two decisions.
+        y: c.y + c.height * 0.4,
         // Left-aligned with the title rather than centred over it: everything
         // else on this page hangs off the same margin, and a centred mark
         // above ranged-left type reads as two decisions instead of one.

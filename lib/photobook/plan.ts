@@ -1404,9 +1404,13 @@ function materialise(
   volume: { index: number; of: number },
   warnings: BookWarning[],
   s: BookStrings,
-  /** `BookOptions.includeFigureMarks` — the one option this needs and the
-   * only reason to hand it the whole object. B727. */
-  figureMarks: boolean,
+  /**
+   * The two switches that add a *drawing* to a page this function already
+   * makes — B727 and B737. Named rather than handed the whole `BookOptions`,
+   * because this is the only thing `materialise` needs from it and a wider
+   * argument invites reading more of it here than belongs here.
+   */
+  marks: { figures: boolean; vehicles: boolean },
 ): BookPage {
   const side = sideOf(number);
   const type = typeScale(spec);
@@ -1475,7 +1479,11 @@ function materialise(
         countryCode: draft.chapter.countryCode,
         dates: formatDateRange(days[0].date, days[days.length - 1].date, s),
         stats: `${days.length} ${days.length === 1 ? "day" : "days"} · ${photos} ${photos === 1 ? "photograph" : "photographs"}`,
-        figures: figureMarks ? source.figures : [],
+        // Once per book, not once per country — B749. Three appearances is
+        // the most any book makes of them now (here, the title page and the
+        // colophon), however many countries it crosses; six identical
+        // drawings in a four-country book was the complaint.
+        figures: marks.figures && draft.index === 1 ? source.figures : [],
         index: draft.index,
         of: draft.of,
       };
@@ -1617,7 +1625,7 @@ function materialise(
         heading: s.transport,
         modes,
         note,
-        shapes: transportShapes(c, s.transport, modes, note, type),
+        shapes: transportShapes(c, s.transport, modes, note, type, marks.vehicles),
       };
     }
 
@@ -2219,7 +2227,10 @@ export function planBook(
     }
 
     const materialised = pages.map((draft, n) =>
-      materialise(draft, n + 1, spec, source, meta, warnings, s, options.includeFigureMarks),
+      materialise(draft, n + 1, spec, source, meta, warnings, s, {
+        figures: options.includeFigureMarks,
+        vehicles: options.includeVehicles,
+      }),
     );
 
     const firstPhoto = chapterBlocks

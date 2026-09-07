@@ -74,6 +74,7 @@ function mount(
         hasCosts
         hasWeather
         hasFigures
+        hasTransport
         hadSaved={false}
         preview={null}
         applyLayoutToEveryDay={() => mountedLayouts?.push('applied')}

@@ -74,6 +74,7 @@ export default function PhotobookPageContent({
   hasCosts,
   hasWeather,
   hasFigures,
+  hasTransport,
   balance,
   locales,
   outcome,
@@ -95,6 +96,9 @@ export default function PhotobookPageContent({
   /** Whether anybody has been described, so the flow can offer the figures
    * switch only where it would draw something — B727. */
   hasFigures: boolean;
+  /** Whether any day records how it was travelled — the same rule for the
+   * vehicles switch, B737. */
+  hasTransport: boolean;
   balance: number | null;
   /** The languages this journal offers, from its own config. The picker is
    * hidden entirely where there is only one. */
@@ -634,6 +638,7 @@ export default function PhotobookPageContent({
                 hasCosts={hasCosts}
                 hasWeather={hasWeather}
                 hasFigures={hasFigures}
+                hasTransport={hasTransport}
                 hadSaved={hadSaved === true}
                 preview={preview}
                 applyLayoutToEveryDay={applyLayoutToEveryDay}

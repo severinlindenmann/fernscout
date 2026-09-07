@@ -77,6 +77,7 @@ function markup(outcome: PhotobookOutcome | null): string {
               hasCosts={false}
               hasWeather={false}
               hasFigures={false}
+              hasTransport={false}
               balance={100}
               locales={["en"]}
               outcome={outcome}

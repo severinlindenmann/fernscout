@@ -59,7 +59,10 @@ export type BookShapeKind =
   | "numbers"
   /** The party walking in at the foot of a chapter divider —
    * `includeFigureMarks`, B727. */
-  | "figures";
+  | "figures"
+  /** The way each leg was travelled, drawn on the transport page —
+   * `includeVehicles`, B737. */
+  | "vehicles";
 
 const SHAPES: Record<BookShapeKind, React.ReactNode> = {
   text: (
@@ -124,6 +127,23 @@ const SHAPES: Record<BookShapeKind, React.ReactNode> = {
         </g>
       ))}
       <rect x="6" y="21.6" width="12" height="0.6" {...ink(0.2)} />
+    </>
+  ),
+  vehicles: (
+    <>
+      {/* The transport page: a row per way of travelling, each with its own
+          drawing at the outer edge. */}
+      <rect x={PAD} y={PAD} width="10" height="2" {...ink(0.3)} />
+      {[9, 13.5, 18].map((y, i) => (
+        <g key={y}>
+          <rect x={PAD} y={y} width={W - PAD * 2} height="0.8" {...ink(0.2)} />
+          <rect x={PAD} y={y} width={(W - PAD * 2) * [0.8, 0.55, 0.3][i]} height="0.8" {...ink(0.45)} />
+          {/* a body and two wheels — a vehicle at 3mm */}
+          <rect x={W - PAD - 6} y={y - 3} width="6" height="2.2" rx="0.8" {...ink(0.55)} />
+          <circle cx={W - PAD - 4.6} cy={y - 0.6} r="0.8" fill="currentColor" opacity="0.55" />
+          <circle cx={W - PAD - 1.4} cy={y - 0.6} r="0.8" fill="currentColor" opacity="0.55" />
+        </g>
+      ))}
     </>
   ),
   numbers: (

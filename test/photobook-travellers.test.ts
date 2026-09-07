@@ -173,10 +173,11 @@ describe("figures reach the preview, not only the PDF", () => {
     return { pages, drawn };
   }
 
-  it("with the switch on, the two chapter dividers join the title page and the colophon", () => {
+  // B749: once per book, not once per country. Four countries used to mean
+  // six identical drawings; three is the ceiling now, whatever the trip.
+  it("with the switch on, only the first divider joins the title page and the colophon", () => {
     const { pages, drawn } = counts(true);
-    // Title, colophon, and one divider per country.
-    expect(pages).toBe(4);
+    expect(pages).toBe(3);
     expect(drawn).toBe(pages);
   });
 
