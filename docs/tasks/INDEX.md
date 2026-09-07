@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (92)
+## backlog (93)
 
 ### security (3)
 
@@ -59,7 +59,7 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B593](backlog/security/B593-a-fulfilment-instance-s-job-intake.md) | A fulfilment instance's job intake has no admission or rate control | SECURITY | medium | medium |
 
-### issue (10)
+### issue (11)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -73,6 +73,7 @@ Do not edit them by hand; run the script.
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B721](backlog/issue/B721-the-upload-progress-line-does-not.md) | The upload progress line does not say which day it belongs to | ISSUE | low | low |
 | [B722](backlog/issue/B722-nobody-has-checked-whether-the-consent.md) | Nobody has checked whether the consent record is in a journal export | ISSUE | low | low |
+| [B726](backlog/issue/B726-the-landing-page-tells-a-self.md) | The landing page tells a self-hoster with the helper off that the agent may be this instance's own | ISSUE | low | low |
 
 ### big-feature (13)
 
