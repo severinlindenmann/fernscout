@@ -1083,5 +1083,18 @@
   "visitors.howRetention": "Einträge werden nach etwa {days} Tagen gelöscht.",
   "me.visitorsTitle": "Wer mitliest",
   "me.visitorsBody": "Wie oft dein Journal, deine Reisen und deine Tage geöffnet wurden — gezählt ohne Cookies, und ohne dass jemand von einem Tag zum nächsten verfolgt wird.",
-  "me.visitors": "Ansehen, wer mitliest"
+  "me.visitors": "Ansehen, wer mitliest",
+  "agent.metaTitle": "{name} — mit deinem Agenten schreiben",
+  "agent.metaDescription": "Melde dich an und gib deinem Agenten eine Berechtigung, den heutigen Tag zu schreiben – oder nutze dieselbe Tür mit deinem eigenen.",
+  "agent.title": "Mit deinem Agenten schreiben",
+  "agent.intro": "Hier meldest du dich an, um einen Tag zu beginnen, oder übergibst das Reisetagebuch einem eigenen Agenten. Alles, was er schreibt, wartet als Entwurf, bis du es veröffentlichst.",
+  "agent.noJournal": "Du besitzt auf diesem Server noch kein Reisetagebuch. Frag die Person, die ihn betreibt, dir eines anzulegen – oder bring unten deinen eigenen Agenten mit und folge der Anleitung, um eines zu erstellen.",
+  "agent.wizardTitle": "Einen Tag schreiben",
+  "agent.wizardComingSoon": "Die Schritte unten sind noch nicht gebaut. Diese Tür ist offen, der Assistent kommt als Nächstes.",
+  "agent.stepTrip": "Reise auswählen",
+  "agent.stepDate": "Datum wählen",
+  "agent.stepPhotos": "Fotos hinzufügen",
+  "agent.stepWords": "Text schreiben",
+  "agent.stepPreview": "Vorschau",
+  "agent.stepPublish": "Veröffentlichen"
 }

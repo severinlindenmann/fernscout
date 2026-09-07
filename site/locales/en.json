@@ -1083,5 +1083,18 @@
   "visitors.howRetention": "Rows are deleted after about {days} days.",
   "me.visitorsTitle": "Who is reading",
   "me.visitorsBody": "How often your journal, your trips and your days were opened — counted without cookies, and without anybody being followed from one day to the next.",
-  "me.visitors": "See who is reading"
+  "me.visitors": "See who is reading",
+  "agent.metaTitle": "{name} — write with your agent",
+  "agent.metaDescription": "Sign in, and hand your agent a credential to write today's day — or use the same door with your own.",
+  "agent.title": "Write with your agent",
+  "agent.intro": "This is where you sign in to start a day, or hand the journal to an agent of your own. Everything it writes waits as a draft until you publish it.",
+  "agent.noJournal": "You don't own a journal on this server yet. Ask whoever runs it to make you one — or bring your own agent below and follow the guide to create one.",
+  "agent.wizardTitle": "Write a day",
+  "agent.wizardComingSoon": "The steps below aren't built yet. This door is open; the wizard is next.",
+  "agent.stepTrip": "Choose a trip",
+  "agent.stepDate": "Pick a date",
+  "agent.stepPhotos": "Add photographs",
+  "agent.stepWords": "Write it up",
+  "agent.stepPreview": "Preview",
+  "agent.stepPublish": "Publish"
 }

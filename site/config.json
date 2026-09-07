@@ -23,6 +23,7 @@
   "users": {
     "reserved": [
       "api",
+      "agent",
       "media",
       "_next",
       "static",

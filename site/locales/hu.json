@@ -1083,5 +1083,18 @@
   "visitors.howRetention": "A sorok körülbelül {days} nap után törlődnek.",
   "me.visitorsTitle": "Ki olvassa",
   "me.visitorsBody": "Hányszor nyitották meg a naplódat, az utaidat és a napjaidat — sütik nélkül számolva, úgy, hogy senkit sem követünk napról napra.",
-  "me.visitors": "Megnézem, ki olvassa"
+  "me.visitors": "Megnézem, ki olvassa",
+  "agent.metaTitle": "{name} — írj az ügynököddel",
+  "agent.metaDescription": "Jelentkezz be, és add az ügynöködnek a mai nap megírásához szükséges jogosultságot – vagy használd ugyanezt az ajtót a sajátoddal.",
+  "agent.title": "Írj az ügynököddel",
+  "agent.intro": "Itt jelentkezel be, hogy elkezdj egy napot, vagy átadd az útinaplót a saját ügynöködnek. Amit ír, piszkozatként vár, amíg te közzé nem teszed.",
+  "agent.noJournal": "Még nincs saját útinaplód ezen a szerveren. Kérd meg az üzemeltetőt, hogy hozzon létre neked egyet – vagy hozd magaddal a saját ügynöködet lent, és kövesd az útmutatót egy létrehozásához.",
+  "agent.wizardTitle": "Egy nap megírása",
+  "agent.wizardComingSoon": "A lenti lépések még nincsenek megépítve. Ez az ajtó nyitva van, a varázsló következik.",
+  "agent.stepTrip": "Utazás kiválasztása",
+  "agent.stepDate": "Dátum kiválasztása",
+  "agent.stepPhotos": "Fotók hozzáadása",
+  "agent.stepWords": "Szöveg megírása",
+  "agent.stepPreview": "Előnézet",
+  "agent.stepPublish": "Közzététel"
 }
