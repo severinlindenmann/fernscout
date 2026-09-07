@@ -304,9 +304,31 @@ export async function POST(
     }
 
     const limits = getUser(user)!.media;
+
+    // Refused, not silently trimmed — B707. This used to be
+    // `urls.slice(0, limits.itemsPerDay)`, which answered 201 for a batch
+    // that had already dropped the tail: the multipart form refuses the same
+    // overage with `MAX_ITEMS_PER_DAY` above, and this door owes the caller
+    // the same word.
+    if (urls.length > MAX_ITEMS_PER_DAY) {
+      return Response.json(
+        {
+          error: "invalid_media",
+          problems: [
+            {
+              field: "urls",
+              got: `${urls.length} items`,
+              expected: `at most ${MAX_ITEMS_PER_DAY} per request`,
+            },
+          ],
+        },
+        { status: 400 },
+      );
+    }
+
     const fetched: UploadCandidate[] = [];
     const failures: { url: string; reason: string }[] = [];
-    for (const [at, url] of urls.slice(0, limits.itemsPerDay).entries()) {
+    for (const [at, url] of urls.entries()) {
       // Per kind, since B676: a clip fetched from a URL is allowed what a clip
       // is allowed, not what a photograph is.
       const got = await fetchMedia(url, { image: limits.imageBytes, video: limits.videoBytes });

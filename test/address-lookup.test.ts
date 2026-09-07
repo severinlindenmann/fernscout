@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { lookupAddresses } from "@/lib/addressLookup";
+import { addressLookupEndpoints, lookupAddresses, reversePlace } from "@/lib/addressLookup";
 import { clearConfigCache } from "@/lib/config";
 
 /**
@@ -177,5 +177,73 @@ describe("lookupAddresses", () => {
     );
     const results = await lookupAddresses("Bahnhofstrasse 12 Zurich", "de");
     expect(results).toEqual([{ line1: "Bahnhofstrasse 12", postcode: "8001", city: "Zürich", country: "CH" }]);
+  });
+});
+
+/**
+ * B710 — `reverseUrl` used to be guessed from `url` unconditionally
+ * (`/api/` → `/reverse`), true of Photon and nothing else guaranteed. An
+ * instance can now say the real one.
+ */
+describe("reverseUrl", () => {
+  test("defaults to the forward URL's own guess, unchanged", () => {
+    expect(addressLookupEndpoints()).toEqual({
+      url: "https://photon.komoot.io/api/",
+      reverseUrl: "https://photon.komoot.io/reverse",
+    });
+  });
+
+  test("an instance can point it at a different path", () => {
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "F", url: "https://example.test" },
+        users: { reserved: [] },
+        features: {
+          addressLookup: {
+            enabled: true,
+            url: "https://geo.example/forward",
+            reverseUrl: "https://geo.example/backward",
+          },
+        },
+      }),
+    );
+    clearConfigCache();
+
+    expect(addressLookupEndpoints()).toEqual({
+      url: "https://geo.example/forward",
+      reverseUrl: "https://geo.example/backward",
+    });
+  });
+
+  test("reversePlace fetches the configured reverseUrl, not a guess", async () => {
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "F", url: "https://example.test" },
+        users: { reserved: [] },
+        features: {
+          addressLookup: {
+            enabled: true,
+            url: "https://geo.example/forward",
+            reverseUrl: "https://geo.example/backward",
+          },
+        },
+      }),
+    );
+    clearConfigCache();
+
+    let requested = "";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (target: URL) => {
+        requested = target.toString();
+        return new Response(JSON.stringify({ features: [{ properties: { city: "Zürich", country: "Schweiz", countrycode: "CH" } }] }));
+      }),
+    );
+
+    const place = await reversePlace(47.36, 8.54, "de");
+    expect(place).toEqual({ location: "Zürich", country: "Schweiz", countryCode: "CH" });
+    expect(requested.startsWith("https://geo.example/backward")).toBe(true);
   });
 });

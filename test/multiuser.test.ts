@@ -107,6 +107,14 @@ describe("users", () => {
     }
     expect(isUsableUsername("ana")).toBe(true);
   });
+
+  test("reserves agent, docs, legal and s in code even when a custom config omits them (B696)", () => {
+    // The server config here (line ~68) only reserves "admin" — this must
+    // still hold, because ALWAYS_RESERVED is code-level and additive under it.
+    for (const shadow of ["agent", "docs", "legal", "s"]) {
+      expect(isUsableUsername(shadow)).toBe(false);
+    }
+  });
 });
 
 describe("config is split by owner", () => {

@@ -37,3 +37,32 @@ rather than refusing it.
 
 Posting more urls than `itemsPerDay` returns a refusal naming the limit and the
 count, and writes nothing. A test covers both forms of the route.
+
+## Resolution
+
+`app/api/v1/[user]/trips/[trip]/media/route.ts` — the `urls` branch now
+refuses `urls.length > MAX_ITEMS_PER_DAY` before fetching anything, the same
+shape of `invalid_media`/400 the multipart branch already answers with (it
+checks `files.length > MAX_ITEMS_PER_DAY` a little further down in the same
+file). `urls.slice(0, limits.itemsPerDay)` is gone; nothing is silently
+trimmed any more.
+
+One correction to the ticket's own reading: the refusal now compares against
+`MAX_ITEMS_PER_DAY` (the request-level constant the multipart form uses,
+currently 40), not `limits.itemsPerDay` (the day's own remaining room, which
+`storeUploads`' day ceiling still enforces separately and refuses with a
+different message once the files are actually written). That mirrors the
+multipart form exactly — see the comment `lib/validate/media.ts:213-225`
+(B209/B229) on why the per-request cap and the day-ceiling are deliberately
+two different checks with two different messages, and why collapsing them
+would resurrect a bug those tickets closed.
+
+Checked for the same silent-slice shape elsewhere: `lib/ingest/index.ts:511`
+also caps a day's cluster at `MAX_ITEMS_PER_DAY`, but it already names every
+skipped file in `skipped` rather than dropping them quietly — not the same
+bug, nothing to fix there.
+
+Test: `test/media-url-upload.test.ts` — "a batch of urls bigger than the
+per-day limit / is refused, not silently trimmed". Confirmed it fails before
+the fix (answers `could_not_fetch` from an attempted real fetch instead of
+`invalid_media`) and passes after.

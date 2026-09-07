@@ -34,3 +34,25 @@ enumerate them.
 
 A day holding ten videos counts as ten items, not thirty, and the limit refuses
 at the right number. A test with a video fixture asserts it.
+
+## Resolution
+
+`lib/api/media.ts` — `storeUploads` now reads `existing` from the entry's own
+gallery (`entry.gallery.length`, off `getEntryBySlug`, which it already calls
+to check the day exists) instead of `fs.readdirSync(mediaOut).length`. The
+gallery frontmatter is what "item" means everywhere else on a day (the day
+page, `story.json`, this same ceiling's own error message), and it is
+unaffected by however many derivative files one item leaves beside it.
+
+Test: `test/media-upload.test.ts` — added "a day of videos counts items, not
+the poster and format files beside them," which attaches three video gallery
+items with two files each (six files on disk) under an `itemsPerDay: 5`
+config and asserts a fourth upload still has room. Confirmed it fails before
+the fix (six files trips the old file-counting ceiling) and passes after.
+
+Also rewrote the neighbouring "per-day ceiling" test, which used to call
+`storeUploads` in a loop without ever calling `attachGallery` — a fixture that
+happened to only exercise the old, file-counting behaviour and would have
+falsely reported the day as always full under the new, gallery-counting one
+had it been left unattached. It now attaches each upload, matching what the
+route (the only production caller) actually does.

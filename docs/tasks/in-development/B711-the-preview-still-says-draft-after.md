@@ -31,3 +31,20 @@ outcome panel appears.
 ## Acceptance
 
 Nothing on the screen calls a published day a draft.
+
+## Resolution
+
+`components/AgentWizard.tsx` — the preview `DayCard` (which draws
+`DraftNotice` whenever every entry in `preview.day` is `draft`) is now only
+rendered while `!publishedUrl`. `preview` is fetched once, before publishing,
+and is never re-read afterwards; rather than adding a re-fetch just to redraw
+a card the outcome panel immediately replaces, the card is dropped once
+`publishedUrl` is set — the option AGENTS.md's own ticket text named as
+acceptable ("drop the preview once the outcome panel appears").
+
+Test: `test/agent-wizard.test.ts` — new "the preview card, once published"
+block, asserting the render guard `preview && !publishedUrl` is present at
+the source (this suite has no component-render harness — see
+`test/agent-shell.test.ts` and `test/docs-shell.test.tsx` for the same
+source-assertion style already used here). Confirmed it fails against the
+pre-fix source and passes after.
