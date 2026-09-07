@@ -19,6 +19,7 @@ export type SearchDoc = {
   date: string;
   url: string;
   body: string;
+  tags: string[];
 };
 
 /**
@@ -29,6 +30,6 @@ export type SearchDoc = {
  */
 export const SEARCH_OPTIONS: Options<SearchDoc> = {
   idField: "id",
-  fields: ["title", "location", "country", "tripTitle", "body"],
+  fields: ["title", "location", "country", "tripTitle", "body", "tags"],
   storeFields: ["title", "location", "country", "tripTitle", "date", "url"],
 };
