@@ -7,8 +7,7 @@ complexity: low
 area: agent, ui, i18n
 found: "2026-09-07T14:05:38Z"
 started: "2026-09-07T14:06:07Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T14:06:07Z"
+merged: "2026-09-07T14:29:47Z"
 ---
 
 # B768 — The file picker speaks the browser's language, not the journal's

@@ -7,8 +7,7 @@ complexity: low
 area: agent, ui
 found: "2026-09-07T14:05:40Z"
 started: "2026-09-07T14:06:07Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T14:06:07Z"
+merged: "2026-09-07T14:29:48Z"
 ---
 
 # B769 — There is no way back a step in the wizard

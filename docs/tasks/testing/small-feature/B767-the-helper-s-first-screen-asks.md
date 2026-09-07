@@ -7,8 +7,7 @@ complexity: medium
 area: agent, ui, credits
 found: "2026-09-07T14:04:47Z"
 started: "2026-09-07T14:05:15Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T14:05:15Z"
+merged: "2026-09-07T14:29:47Z"
 ---
 
 # B767 — The helper's first screen asks a person to make four decisions before they have done anything
