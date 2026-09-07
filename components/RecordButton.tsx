@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Mic } from "lucide-react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
 import {
@@ -30,6 +31,18 @@ import {
  * decides that from the journal's own locale. It is remembered per journal so
  * somebody who speaks a different language than they write in says so once.
  * See `lib/helper/speech.ts` for why detection is not on offer.
+ *
+ * It is also not on the screen until somebody has reached for the microphone
+ * — B767. Offered up front it is a question about ASR language codes wearing
+ * a friendly label, asked of a person who has not decided to speak yet and
+ * whose default is already right. `speaking` is that decision, and a person
+ * who never presses the button never sees the select at all.
+ *
+ * **`compact` is the icon inside the ask box** (B767), where the microphone is
+ * a second way to fill one field rather than the point of the screen: no
+ * label, no price, 44px, and everything it has to say — consent, the elapsed
+ * seconds, the language, an error — rendered in normal flow below the box by
+ * the caller's own container rather than floating over it.
  */
 
 /** Language names in their own language, the same convention `LOCALE_LABEL`
@@ -55,6 +68,7 @@ export default function RecordButton({
   consented: initialConsent,
   provider,
   disabled,
+  compact,
   onText,
 }: {
   username: string;
@@ -66,6 +80,10 @@ export default function RecordButton({
    *  `"dry-run"` on an instance with no transcriber configured — B744. */
   provider: string;
   disabled?: boolean;
+  /** An icon inside somebody else's box rather than a button of its own —
+   *  B767. The host must be `relative`, since the icon pins itself to the
+   *  host's top right corner. */
+  compact?: boolean;
   /** What was said, once. The host decides where it goes; nothing here writes
    *  anything anywhere. */
   onText: (said: string) => void;
@@ -74,6 +92,9 @@ export default function RecordButton({
   const [consented, setConsented] = useState(initialConsent);
   const [consenting, setConsenting] = useState(false);
   const [recording, setRecording] = useState(false);
+  // Whether speaking has been chosen at all — B767. False until the first
+  // press, and the only thing that puts the language select on the screen.
+  const [speaking, setSpeaking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [seconds, setSeconds] = useState(0);
   // Lazily, and never from an effect: the remembered choice is read once when
@@ -213,33 +234,33 @@ export default function RecordButton({
     );
   }
 
-  return (
-    <div className="mt-3">
-      <button
-        type="button"
-        disabled={disabled || busy}
-        // Consent first, and only then does the microphone ever open.
-        onPointerDown={() => (consented ? void start() : setConsenting(true))}
-        onPointerUp={stop}
-        onPointerLeave={stop}
-        onPointerCancel={stop}
-        className={`min-h-11 w-full rounded-full border px-5 text-base font-semibold disabled:opacity-50 ${
-          recording
-            ? "border-coral-400 bg-cream-100 text-coral-600"
-            : "border-navy-300 text-navy-800"
-        }`}
-      >
-        {busy
-          ? t("agent.speechWorking")
-          : recording
-            ? tn("agent.speechRecording", creditsForSeconds(seconds), {
-                seconds: String(Math.floor(seconds)),
-                credits: String(creditsForSeconds(seconds)),
-              })
-            : /* The price is on the button, before the hold. */
-              t("agent.speechHold", { minutes: String(MINUTES_PER_CREDIT) })}
-      </button>
+  /** Consent first, and only then does the microphone ever open. The press is
+   *  also what says speaking has been chosen, which is what shows the select
+   *  below — B767. */
+  const hold = {
+    onPointerDown: () => {
+      setSpeaking(true);
+      if (consented) void start();
+      else setConsenting(true);
+    },
+    onPointerUp: stop,
+    onPointerLeave: stop,
+    onPointerCancel: stop,
+  };
 
+  const heard = busy
+    ? t("agent.speechWorking")
+    : recording
+      ? tn("agent.speechRecording", creditsForSeconds(seconds), {
+          seconds: String(Math.floor(seconds)),
+          credits: String(creditsForSeconds(seconds)),
+        })
+      : null;
+
+  /** Only once speaking has been chosen — the default is already the journal's
+   *  own language, so this is a correction and never a question. */
+  const chooseLanguage = speaking && (
+    <>
       <label
         htmlFor={`speech-language-${username}`}
         className="mt-2 block text-sm font-semibold text-navy-800"
@@ -266,12 +287,61 @@ export default function RecordButton({
           </option>
         ))}
       </select>
+    </>
+  );
 
-      {error && (
-        <p role="status" className="mt-2 text-sm text-coral-600">
-          {error}
-        </p>
-      )}
+  const failed = error && (
+    <p role="status" className="mt-2 text-sm text-coral-600">
+      {error}
+    </p>
+  );
+
+  // The icon in somebody else's box — no words on it, so no price on it
+  // either, and nothing to read before the ask box's own line.
+  if (compact) {
+    return (
+      <>
+        <button
+          type="button"
+          disabled={disabled || busy}
+          aria-label={t("agent.speak")}
+          {...hold}
+          className={`absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full border disabled:opacity-50 ${
+            recording ? "border-coral-400 bg-cream-100 text-coral-600" : "border-navy-300 text-navy-700"
+          }`}
+        >
+          <Mic className="h-5 w-5" aria-hidden />
+        </button>
+        {heard && (
+          <p role="status" className="mt-2 text-sm text-navy-700">
+            {heard}
+          </p>
+        )}
+        {chooseLanguage}
+        {failed}
+      </>
+    );
+  }
+
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        disabled={disabled || busy}
+        {...hold}
+        className={`min-h-11 w-full rounded-full border px-5 text-base font-semibold disabled:opacity-50 ${
+          recording
+            ? "border-coral-400 bg-cream-100 text-coral-600"
+            : "border-navy-300 text-navy-800"
+        }`}
+      >
+        {/* The price is on the button, before the hold — on the wizard's own
+            words step, where speaking is the thing that step is for. */}
+        {heard ?? t("agent.speechHold", { minutes: String(MINUTES_PER_CREDIT) })}
+      </button>
+
+      {chooseLanguage}
+      {failed}
     </div>
   );
 }

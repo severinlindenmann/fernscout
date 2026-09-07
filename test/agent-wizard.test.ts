@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { NO_PROSE, isWritten, stepFor, type WizardDraft } from "@/lib/helper/draft";
+import { backFrom, NO_PROSE, isWritten, stepFor, type WizardDraft } from "@/lib/helper/draft";
 
 /**
  * The wizard at `/agent/<user>` — B682.
@@ -40,6 +40,28 @@ describe("where a half-finished day resolves to", () => {
 
   test("a finished day lands on the preview, never on publish", () => {
     expect(stepFor(draft({ photos: 8, written: true }))).toBe("preview");
+  });
+});
+
+/**
+ * The way back — B769.
+ *
+ * The audience is somebody who is not sure they pressed the right thing, and
+ * the absence of a back button is what turns a small mistake into abandoning
+ * the page. It is derived rather than remembered, like everything else here.
+ */
+describe("where a way back leads", () => {
+  test("the first screen has none — absent, not disabled", () => {
+    expect(backFrom("trip")).toBeNull();
+    // The trip and the date are asked on one screen; see `stepFor`.
+    expect(backFrom("date")).toBeNull();
+  });
+
+  test("every other step names the one before it", () => {
+    expect(backFrom("photos")).toBe("trip");
+    expect(backFrom("words")).toBe("photos");
+    expect(backFrom("preview")).toBe("words");
+    expect(backFrom("publish")).toBe("words");
   });
 });
 

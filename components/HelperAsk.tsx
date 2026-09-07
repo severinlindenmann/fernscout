@@ -28,6 +28,12 @@ import type { TranslationKey } from "@/lib/i18n";
  *
  * One intent per turn: there is no queue here and no plan. "Make a trip and
  * add yesterday" does the trip, and the person asks again.
+ *
+ * **Quiet, and second** — B767. It opens as one sentence-case line under the
+ * card's one bright button, and becomes a box when somebody taps it. An
+ * accelerator that shouts is not an accelerator; the person this card is for
+ * came to write a day, and a text box asking what they would like to do is a
+ * question they have no basis to answer before they have done anything.
  */
 
 type Field = { name: string; value: string; date: boolean };
@@ -59,6 +65,10 @@ export default function HelperAsk({
   speechProvider: string;
 }) {
   const { t } = useI18n();
+  // Closed until somebody asks for it — B767. The one thing this card is for
+  // is writing a day, and a text box competing with that button is a second
+  // decision offered to somebody who has not made the first one.
+  const [open, setOpen] = useState(false);
   const [said, setSaid] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -145,19 +155,28 @@ export default function HelperAsk({
     }
   }
 
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-4 min-h-11 text-base text-navy-700 underline underline-offset-4 transition-colors hover:text-navy-900"
+      >
+        {t("agent.askOpen")}
+      </button>
+    );
+  }
+
   return (
     <div className="mt-4">
-      <label
-        htmlFor={`ask-${username}`}
-        className="font-mono text-[11px] uppercase tracking-[0.18em] text-navy-600"
-      >
-        {t("agent.askLabel")}
-      </label>
-      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+      {/* `relative`, because the microphone pins itself to this box's top
+          right corner — see `RecordButton`'s `compact`. */}
+      <div className="relative rounded-2xl border border-navy-200 bg-white p-2">
         <input
           id={`ask-${username}`}
           type="text"
           value={said}
+          aria-label={t("agent.askOpen")}
           onChange={(event) => setSaid(event.target.value)}
           onKeyDown={(event) => {
             if (event.key !== "Enter" || said.trim() === "" || busy) return;
@@ -165,30 +184,38 @@ export default function HelperAsk({
             else setConsenting(true);
           }}
           placeholder={t("agent.askPlaceholder")}
-          className="min-h-11 w-full rounded-full border border-navy-300 bg-white px-4 text-base text-navy-900 placeholder:text-navy-500"
+          className={`min-h-11 w-full rounded-full bg-transparent px-3 text-base text-navy-900 placeholder:text-navy-500 ${
+            speech ? "pr-14" : ""
+          }`}
         />
-        <button
-          type="button"
-          disabled={busy || said.trim() === ""}
-          onClick={() => (consented ? void ask() : setConsenting(true))}
-          className="min-h-11 shrink-0 rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-800 transition-colors hover:bg-cream-100 disabled:opacity-50"
-        >
-          {busy ? t("agent.askWorking") : t("agent.askGo")}
-        </button>
-      </div>
 
-      {/* B686 — the same record button the wizard's words step mounts, so the
-          microphone drives the whole product rather than one field. What comes
-          back fills the box; it is not asked until the person presses Ask. */}
-      {speech && (
-        <RecordButton
-          username={username}
-          consented={consentedSpeech}
-          provider={speechProvider}
-          disabled={busy}
-          onText={(heard) => setSaid(heard)}
-        />
-      )}
+        {/* B686 — the same record button the wizard's words step mounts, so the
+            microphone drives the whole product rather than one field. What comes
+            back fills the box; it is not asked until the person presses Ask.
+            An icon inside the box since B767, rather than a second full-width
+            button competing with the one that writes a day. */}
+        {speech && (
+          <RecordButton
+            username={username}
+            consented={consentedSpeech}
+            provider={speechProvider}
+            disabled={busy}
+            compact
+            onText={(heard) => setSaid(heard)}
+          />
+        )}
+
+        <div className="mt-2 flex justify-end">
+          <button
+            type="button"
+            disabled={busy || said.trim() === ""}
+            onClick={() => (consented ? void ask() : setConsenting(true))}
+            className="min-h-11 rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-800 transition-colors hover:bg-cream-100 disabled:opacity-50"
+          >
+            {busy ? t("agent.askWorking") : t("agent.askGo")}
+          </button>
+        </div>
+      </div>
 
       {consenting && (
         <div className="mt-3">
