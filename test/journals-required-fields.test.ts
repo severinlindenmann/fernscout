@@ -52,7 +52,15 @@ function create(token: string, body: Record<string, unknown>) {
   );
 }
 
-const BASE = { title: "A journal", ownerName: "Robin Traveller", ownerNickname: "Robin" };
+const BASE = {
+  title: "A journal",
+  ownerName: "Robin Traveller",
+  ownerNickname: "Robin",
+  // Required since B839, for the same reason the three above it are: the
+  // route refuses a journal whose currency nobody was asked about. Its own
+  // cases are in the last describe block.
+  baseCurrency: "CHF",
+};
 
 beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-required-fields-"));
@@ -288,5 +296,97 @@ describe("the journal script cannot offer a value this route refuses", () => {
       });
       expect(response.status, `locale "${code}" must be accepted`).toBe(201);
     }
+  });
+});
+
+/**
+ * B839 — the same silent shape as B263 and B277, one field further on, and
+ * the worst of the three because it is the only one nothing can correct.
+ *
+ * `baseCurrency` was defaulted to `CHF` in `createJournal` and asked by
+ * nobody: not this route, not the helper's signup form, not `/agent.md`'s
+ * onboarding script. `setJournalProfile` refuses it for ever after — every
+ * cost in the journal is denominated against it — so a journal created in
+ * silence is priced in francs permanently.
+ *
+ * B790 is the validation half and lands with it: a code that is not a code
+ * must be refused here, since the correcting route that would catch it never
+ * runs on this field.
+ */
+describe("B839 — the currency nobody can change is the currency everybody is asked", () => {
+  test("it is required, and the refusal says it is permanent", async () => {
+    const token = await signupToken("no-currency@example.test");
+    const { baseCurrency: _omitted, ...withoutCurrency } = BASE;
+    const response = await create(token, {
+      ...withoutCurrency,
+      username: "silent-cur",
+      visibility: "public",
+      defaultLocale: "en",
+      locales: ["en"],
+    });
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as { message?: string };
+    expect(body.message).toMatch(/baseCurrency is required/i);
+    expect(body.message).toMatch(/never be changed/i);
+    expect(getUser("silent-cur")).toBeNull();
+  });
+
+  test("a name is not a code — B790, the field the correcting route never sees", async () => {
+    // `"chf "` is deliberately not here: `normalizeCurrency` trims and
+    // upper-cases, so it is a code with whitespace round it rather than a
+    // non-code, and the correcting route accepts it too. What must be
+    // refused is a word that is not a code at all.
+    for (const [n, bad] of ["francs", "EURO", "", "ch"].entries()) {
+      const token = await signupToken(`bad-currency-${n}@example.test`);
+      const response = await create(token, {
+        ...BASE,
+        baseCurrency: bad,
+        username: `bad-cur-${n}`,
+        visibility: "public",
+        defaultLocale: "en",
+        locales: ["en"],
+      });
+      expect(response.status, `${JSON.stringify(bad)} must be refused`).toBe(400);
+      expect(getUser(`bad-cur-${n}`)).toBeNull();
+    }
+  });
+
+  test("a code in the wrong case is written upper, and is what the journal counts in", async () => {
+    const token = await signupToken("lower-currency@example.test");
+    const response = await create(token, {
+      ...BASE,
+      baseCurrency: "huf",
+      username: "counts-in-huf",
+      visibility: "public",
+      defaultLocale: "hu",
+      locales: ["hu"],
+    });
+    expect(response.status).toBe(201);
+    expect(getUser("counts-in-huf")?.baseCurrency).toBe("HUF");
+    expect(getUser("counts-in-huf")?.displayCurrencies).toContain("HUF");
+  });
+
+  test("the script asks it too, and says it is permanent", () => {
+    // The eighth question. An agent creating a journal faces the same
+    // permanent choice in the same silence the form did, so the fix is not
+    // helper-only.
+    const question = firstQuestions("https://t.test").find((q) => q.ask.includes("baseCurrency"));
+    expect(question, "the script must ask what they count money in").toBeDefined();
+    expect(question?.because).toMatch(/never be changed/i);
+  });
+
+  test("displayCurrencies without the base is refused rather than written unloadable", async () => {
+    const token = await signupToken("mismatched-currency@example.test");
+    const response = await create(token, {
+      ...BASE,
+      baseCurrency: "EUR",
+      displayCurrencies: ["CHF"],
+      username: "silent-disp",
+      visibility: "public",
+      defaultLocale: "en",
+      locales: ["en"],
+    });
+    expect(response.status).toBe(400);
+    expect(getUser("silent-disp")).toBeNull();
   });
 });

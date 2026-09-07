@@ -18,6 +18,8 @@ import {
   isDraft,
 } from "../entries";
 import { countryCodeFor } from "../flags";
+import type { TranslationKey } from "../i18n";
+import { translateIn } from "../locales";
 // The same splicer ingest uses. One way of writing a gallery into an entry
 // that already exists, so the two doors cannot drift apart in how they format
 // it or in what they preserve of a file somebody has since edited.
@@ -1412,43 +1414,48 @@ export function publishNotice(input: {
    * — half of the old sentence true and half of it not.
    */
   listed?: boolean;
+  /**
+   * The journal's own language — B805.
+   *
+   * The guide tells the agent to read this sentence out rather than
+   * paraphrase it, which is right and which also means it reaches the person
+   * verbatim. In English, to a German owner, including the word `guest` —
+   * met as an untranslated English noun inside an otherwise German flow, on
+   * exactly the distinction (a guest of the journal, not of the trip) this
+   * project already knows people get wrong.
+   *
+   * Defaults to English so the two doors that do not know a journal — and
+   * the tests written before this — read as they always did.
+   */
+  locale?: string;
 }): string {
-  const head = `"${input.title}" (${input.date}) is on ${input.url}.`;
-  const tail =
-    `Taking it down again removes it from the site, not from the people who have ` +
-    `already read it.`;
+  const t = (key: TranslationKey, vars?: Record<string, string>) =>
+    translateIn(input.locale ?? "en", key, vars);
+
+  const head = t("publish.head", { title: input.title, date: input.date, url: input.url });
+  const tail = t("publish.tail");
 
   if (input.visibility !== "public") {
     // Nothing about the feed, the search index or a link: none of them
     // applies to a closed trip, and naming them here is what made the old
     // sentence frightening. Who can read it is the whole answer.
-    const who =
-      input.visibility === "guest"
-        ? "you and the people you have approved into this journal"
-        : "you and the people listed on the trip";
-    const marked = input.test
-      ? ` It is marked test: true — content nobody lived — so the page says so in a banner.`
-      : "";
-    return (
-      `${head} The trip is ${input.visibility}, so it can be read by ${who}, and by nobody ` +
-      `else.${marked} ${tail}`
-    );
+    //
+    // The visibility itself is a *word*, not the raw value: `guest` is the
+    // vocabulary of the config file, and a person reading this sentence in
+    // German needs the German for it.
+    const who = t(input.visibility === "guest" ? "publish.whoGuest" : "publish.whoPrivate");
+    const closed = t("publish.closed", {
+      visibility: t(input.visibility === "guest" ? "publish.visibilityGuest" : "publish.visibilityPrivate"),
+      who,
+    });
+    return [head, closed, ...(input.test ? [t("publish.testClosed")] : []), tail].join(" ");
   }
 
   if (input.test) {
-    return (
-      `${head} It is marked test: true — content nobody lived — so the page says so in a ` +
-      `banner and it is kept out of the feed, the search index and the sitemap. Anyone ` +
-      `with the link can still read it. ${tail}`
-    );
+    return [head, t("publish.testPublic"), tail].join(" ");
   }
 
-  return input.listed === false
-    ? `${head} It is in the journal and anyone with the link can read it, but the trip is ` +
-        `listed: false, so it is kept out of the feed, the search index and the sitemap — ` +
-        `it is found by being given the link, not by looking. ${tail}`
-    : `${head} It is in the journal, the feed and the search index, and anyone with ` +
-        `the link can read it. ${tail}`;
+  return [head, t(input.listed === false ? "publish.unlisted" : "publish.listed"), tail].join(" ");
 }
 
 /**

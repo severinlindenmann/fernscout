@@ -140,6 +140,39 @@ describe("B775 — what publishing a day actually did", () => {
     expect(notice).toContain("test: true");
     expect(notice).not.toMatch(/feed|search index|link/i);
   });
+
+  /* ------------------------------------------------------------ B805 --- */
+
+  /**
+   * The note is written for an agent to relay and `/agent.md` tells it to
+   * read the sentence out rather than paraphrase — so it reaches the person
+   * verbatim, and until B805 that meant a German owner met an English
+   * sentence containing the English word `guest`, on exactly the distinction
+   * (a guest of the journal, not of the trip) this project already knows
+   * people get wrong.
+   */
+  test("a German journal's note is German, including the word for who can read it", () => {
+    const notice = publishNotice({ ...day, visibility: "guest", listed: false, locale: "de" });
+    expect(notice).toContain("nur für Gäste");
+    expect(notice).toContain("die du in dieses Journal aufgenommen hast");
+    // No English left in it at all — not the vocabulary word, not the tail.
+    expect(notice).not.toMatch(/\bguest\b|\bpublic\b|\bprivate\b/i);
+    expect(notice).not.toMatch(/can be read by|Taking it down/);
+  });
+
+  test("every visibility answers in German without falling back to an English word", () => {
+    for (const visibility of VISIBILITIES) {
+      const notice = publishNotice({ ...day, visibility, listed: true, locale: "de" });
+      expect(notice, visibility).not.toMatch(/\bguest\b|\bpublic\b|\bprivate\b/i);
+      expect(notice, visibility).toContain("Lanterns");
+    }
+  });
+
+  test("no locale still reads exactly as it always did — the two doors that know no journal", () => {
+    expect(publishNotice({ ...day, visibility: "guest", listed: false })).toContain(
+      "The trip is guest",
+    );
+  });
 });
 
 /* ---------------------------------------------------------------- B777 --- */

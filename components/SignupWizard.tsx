@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { PRIMARY_BUTTON } from "@/components/LandingSections";
 import { useI18n } from "@/components/LocaleProvider";
-import { MAINTAINED_LOCALES } from "@/lib/i18n";
+import { LOCALE_LABEL, MAINTAINED_LOCALES } from "@/lib/i18n";
 
 /** Same shape as `USERNAME_RE` in `lib/users.ts` — checked again here only so
  * a person sees why the button is disabled before they press it. The server
@@ -35,6 +35,28 @@ type Step =
  * person from nothing to a signed-in owner of an empty journal with one
  * trip — `onSignedIn` hands the username to the page, which sends them into
  * the wizard that already exists for writing the first day.
+ *
+ * **This form is `/agent.md`'s onboarding script, drawn.** That script opens
+ * "ask all of the questions below, in order, once, before your first call. Do
+ * not start on a guess", and it is `firstQuestions()` in `lib/api/agentCopy.ts`
+ * — one list, so the two doors cannot drift. Where they stand now:
+ *
+ * | The script asks | Here |
+ * | --- | --- |
+ * | email address | the first step |
+ * | the journal's address (`username`) | asked, with the hint above the field, because it is permanent (B809) |
+ * | what the journal is called (`title`) | asked |
+ * | public or guest (`visibility`) | asked |
+ * | their name and what the site calls them (`ownerName`, `ownerNickname`) | asked, as two labelled questions — never one inferred from the other (B809) |
+ * | which language they write in (`defaultLocale`) | asked — until B838 it was read off the browser and never put |
+ * | which languages a reader may switch into (`locales`) | asked — until B838 it was hardcoded to `[defaultLocale]`, which is B277 by construction |
+ * | what they count money in (`baseCurrency`) | asked — B839 added it to both, since it is the one field nothing can change afterwards |
+ *
+ * Everything else `POST /api/v1/journals` accepts — `tagline`,
+ * `startLocation`, `units`, `displayCurrencies` — is absent here on purpose:
+ * each is correctable later at `PATCH /api/v1/<user>/config`, and a question
+ * with a good default and a way back does not belong in front of somebody who
+ * has not written a day yet.
  */
 export default function SignupWizard({
   email: prefillEmail,
@@ -69,9 +91,23 @@ export default function SignupWizard({
   const [ownerName, setOwnerName] = useState("");
   const [ownerNickname, setOwnerNickname] = useState("");
   const [visibility, setVisibility] = useState<"public" | "guest">("public");
-  const [defaultLocale] = useState(
+  /** The browser's language is the *starting point* of the question, never
+   * the answer to it — B838. A German speaker on a phone somebody else set
+   * up in English is the exact person tested twice on this instance. */
+  const [defaultLocale, setDefaultLocale] = useState(
     (MAINTAINED_LOCALES as readonly string[]).includes(locale) ? locale : "en",
   );
+  /** The *extra* languages a reader may switch into — `defaultLocale` is
+   * always sent as well and is not in here, so changing the answer above
+   * cannot leave a journal whose own language is not on offer to its
+   * readers (which `POST /api/v1/journals` refuses outright). */
+  const [extraLocales, setExtraLocales] = useState<string[]>([]);
+  /** Empty, required, and deliberately not guessed — B839. It is the one
+   * field `setJournalProfile` refuses for ever after, so a value prefilled
+   * from a language ("de" is Germany, Austria *and* Switzerland) would be a
+   * permanent decision nobody was asked about. The examples are in the hint
+   * and the datalist, where they are visible without being chosen. */
+  const [baseCurrency, setBaseCurrency] = useState("");
 
   const [agentToken, setAgentToken] = useState("");
   const [signInUrl, setSignInUrl] = useState("");
@@ -136,7 +172,8 @@ export default function SignupWizard({
         ownerNickname,
         visibility,
         defaultLocale,
-        locales: [defaultLocale],
+        locales: [defaultLocale, ...extraLocales],
+        baseCurrency,
       },
       signupToken,
     );
@@ -268,7 +305,11 @@ export default function SignupWizard({
               className={input}
             />
           </div>
-          <div className={field}>
+          {/* B809 — above the field, not below it. A tester chose an address
+              and only then read that it was going to be a web address, which
+              is the one thing here that cannot be corrected afterwards. */}
+          <p className="mt-4 text-sm leading-6 text-navy-600">{t("agent.usernameHint")}</p>
+          <div className={`${field} mt-2`}>
             <label className={label} htmlFor="signup-username">
               {t("agent.usernameLabel")}
             </label>
@@ -280,7 +321,12 @@ export default function SignupWizard({
               className={input}
             />
           </div>
-          <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.usernameHint")}</p>
+          {/* B809 — two name fields a tester could not tell apart, so he put
+              "Kevin" in both. They are genuinely two things: `owner.name` is
+              the byline on a trip, `owner.nickname` is what the site says in
+              a sentence. `/agent.md` is emphatic that both are asked and
+              neither is inferred from the other, so the answer is to say
+              what each is for rather than to collapse them. */}
           <div className={field}>
             <label className={label} htmlFor="signup-owner-name">
               {t("agent.ownerNameLabel")}
@@ -293,6 +339,7 @@ export default function SignupWizard({
               className={input}
             />
           </div>
+          <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.ownerNameHint")}</p>
           <div className={field}>
             <label className={label} htmlFor="signup-owner-nickname">
               {t("agent.ownerNicknameLabel")}
@@ -305,6 +352,92 @@ export default function SignupWizard({
               className={input}
             />
           </div>
+          <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.ownerNicknameHint")}</p>
+
+          {/* B838, first half — which language the owner writes in. It was
+              read off the browser and never asked, so a German speaker whose
+              phone is in English got an English journal. */}
+          <p className={`${label} mt-5`}>{t("agent.localeLabel")}</p>
+          <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.localeHint")}</p>
+          <div className="mt-2 space-y-2">
+            {MAINTAINED_LOCALES.map((code) => (
+              <label
+                key={code}
+                className="flex min-h-11 items-center gap-3 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 text-sm text-navy-800"
+              >
+                <input
+                  type="radio"
+                  name="signup-locale"
+                  value={code}
+                  checked={defaultLocale === code}
+                  onChange={() => {
+                    setDefaultLocale(code);
+                    // Whatever the new one is, it is no longer an *extra*.
+                    setExtraLocales((prev) => prev.filter((c) => c !== code));
+                  }}
+                />
+                {LOCALE_LABEL[code] ?? code}
+              </label>
+            ))}
+          </div>
+
+          {/* B838, second half — the different question, and the one that
+              was hardcoded to `[defaultLocale]`, which is B277 reproduced by
+              construction: a journal with no switcher and no page to add one
+              from. The hint says what a second language commits somebody to
+              (B294), because it is a promise to write everything twice. */}
+          <p className={`${label} mt-5`}>{t("agent.readerLocalesLabel")}</p>
+          <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.readerLocalesHint")}</p>
+          <div className="mt-2 space-y-2">
+            {MAINTAINED_LOCALES.filter((code) => code !== defaultLocale).map((code) => (
+              <label
+                key={code}
+                className="flex min-h-11 items-center gap-3 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 text-sm text-navy-800"
+              >
+                <input
+                  type="checkbox"
+                  name="signup-reader-locales"
+                  value={code}
+                  checked={extraLocales.includes(code)}
+                  onChange={(e) =>
+                    setExtraLocales((prev) =>
+                      e.target.checked ? [...prev, code] : prev.filter((c) => c !== code),
+                    )
+                  }
+                />
+                {LOCALE_LABEL[code] ?? code}
+              </label>
+            ))}
+          </div>
+
+          {/* B839 — the one permanent field, asked at the one moment it can
+              still be answered. `setJournalProfile` refuses it for ever
+              after, on purpose: every cost in the journal is denominated
+              against it. */}
+          <p className="mt-5 text-sm leading-6 text-navy-600">{t("agent.currencyHint")}</p>
+          <div className={`${field} mt-2`}>
+            <label className={label} htmlFor="signup-currency">
+              {t("agent.currencyLabel")}
+            </label>
+            <input
+              id="signup-currency"
+              required
+              maxLength={3}
+              // Native, so a phone offers the right keyboard and the browser
+              // says why the button will not go — the server checks it too.
+              pattern="[A-Za-z]{3}"
+              autoComplete="off"
+              list="signup-currency-codes"
+              value={baseCurrency}
+              onChange={(e) => setBaseCurrency(e.target.value.toUpperCase())}
+              className={input}
+            />
+          </div>
+          <datalist id="signup-currency-codes">
+            {["EUR", "CHF", "HUF", "GBP", "USD"].map((code) => (
+              <option key={code} value={code} />
+            ))}
+          </datalist>
 
           <p className={`${label} mt-5`}>{t("agent.visibilityLabel")}</p>
           <div className="mt-2 space-y-2">
@@ -327,7 +460,14 @@ export default function SignupWizard({
 
           <button
             type="submit"
-            disabled={busy || !title || !USERNAME_RE.test(username) || !ownerName || !ownerNickname}
+            disabled={
+              busy ||
+              !title ||
+              !USERNAME_RE.test(username) ||
+              !ownerName ||
+              !ownerNickname ||
+              !/^[A-Z]{3}$/.test(baseCurrency)
+            }
             className={`mt-5 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
           >
             {busy ? t("agent.creatingJournal") : t("agent.createJournal")}

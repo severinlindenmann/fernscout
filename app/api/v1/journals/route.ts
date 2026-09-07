@@ -2,6 +2,7 @@ import { LOCALE_LIST } from "@/lib/api/agentCopy";
 import { SESSION_SCOPE, NO_JOURNAL, issueRelayLink, openAgentSession, resolveSession, revokeSession, signInUrl } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { normalizeJournalVisibility } from "@/lib/config";
+import { normalizeCurrency } from "@/lib/currency";
 import { creditsEnabled, grant, SIGNUP_CREDIT_GRANT } from "@/lib/credits";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
 import { createJournal, sendWelcome } from "@/lib/journals";
@@ -267,6 +268,73 @@ export async function POST(request: Request) {
     );
   }
 
+  // Required, and the strictest of the lot, because it is the only field on
+  // this route that nothing can ever correct — B839. `setJournalProfile`
+  // refuses `baseCurrency` on purpose: every cost in the journal is
+  // denominated against it, and changing it later would silently re-price
+  // the past. Until now it was defaulted to CHF in `createJournal` and asked
+  // by nobody — not this route, not the helper's signup, not the guide's
+  // script — so every journal made anywhere on this instance was priced in
+  // francs for ever and its owner was never asked.
+  //
+  // Validated with the same `normalizeCurrency` the correction route uses
+  // (B790), so "francs", "chf " and "" are refused here rather than written
+  // to a field that can never be put right.
+  const rawCurrency = str("baseCurrency");
+  if (rawCurrency === undefined) {
+    return refuse(
+      {
+        error: "invalid_request",
+        message:
+          "baseCurrency is required — the three-letter code every cost in this journal is " +
+          "added up in. It is the one field that can never be changed afterwards: it is what " +
+          "every total is denominated against, so correcting it later would silently re-price " +
+          "the past, and PATCH /api/v1/<user>/config refuses it for that reason. There is no " +
+          "default worth picking for somebody: ask what they count money in, and say that it " +
+          "is permanent.",
+      },
+      400,
+    );
+  }
+  const baseCurrency = normalizeCurrency(rawCurrency);
+  if (!baseCurrency) {
+    return refuse(
+      {
+        error: "invalid_request",
+        message:
+          `baseCurrency must be a three-letter currency code, got ${JSON.stringify(rawCurrency)}. ` +
+          'Send the code, not the name — "francs" is "CHF" and "euro" is "EUR".',
+      },
+      400,
+    );
+  }
+  // The same check `setJournalProfile` makes when a journal's display list is
+  // corrected: a list without the base currency is a config `lib/config.ts`
+  // refuses to load.
+  const displayCurrencies = list("displayCurrencies")?.map((code) => normalizeCurrency(code));
+  if (displayCurrencies?.some((code) => !code)) {
+    return refuse(
+      {
+        error: "invalid_request",
+        message:
+          "displayCurrencies is a list of three-letter codes — which currencies a reader can " +
+          "see the totals in. Leave it out to offer the base currency alone.",
+      },
+      400,
+    );
+  }
+  if (displayCurrencies && !displayCurrencies.includes(baseCurrency)) {
+    return refuse(
+      {
+        error: "invalid_request",
+        message:
+          `displayCurrencies must include baseCurrency (${baseCurrency}) — every total is ` +
+          "computed in it, and a list without it is a config the site refuses to load.",
+      },
+      400,
+    );
+  }
+
   // Optional — absent means metric — but not a field to coerce whatever
   // arrives into that default. `"Metric"` (B553) used to become `metric`
   // silently, the same typo `visibility` and `defaultLocale` on this same
@@ -294,8 +362,8 @@ export async function POST(request: Request) {
     startLocation: str("startLocation"),
     defaultLocale,
     locales,
-    baseCurrency: str("baseCurrency"),
-    displayCurrencies: list("displayCurrencies"),
+    baseCurrency,
+    displayCurrencies,
     units,
   });
 
