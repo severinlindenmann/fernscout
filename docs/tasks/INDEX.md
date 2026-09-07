@@ -205,7 +205,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B822](open/B822-a-back-arrow-returns-to-a.md) | A back arrow returns to a fixed parent rather than where the reader actually came from | ISSUE | medium | medium |
 
-## in-development (12)
+## in-development (11)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -220,9 +220,8 @@ Do not edit them by hand; run the script.
 | [B821](in-development/B821-credits-and-storage-are-buried-on.md) | Credits and storage are buried on the account page with everything else | FEATURE | medium | medium | `ccdd5120` |
 | [B823](in-development/B823-search-finds-days-and-never-the.md) | Search finds days and never the pages, so there is no way to search your way to costs or storage | FEATURE | medium | medium | `ccdd5120` |
 | [B824](in-development/B824-the-agent-and-docs-sit-apart.md) | The agent and docs sit apart from the destinations they are listed with | ISSUE | medium | low | `ccdd5120` |
-| [B825](in-development/B825-the-landing-page-corner-offers-the.md) | The landing page corner offers the operator a way in and everybody else nothing | FEATURE | medium | low | `ccdd5120` |
 
-## testing (46)
+## testing (47)
 
 ### issue (23)
 
@@ -260,7 +259,7 @@ Do not edit them by hand; run the script.
 | [B792](testing/big-feature/B792-buying-credits-goes-through-a-real.md) | Buying credits goes through a real payment provider, not an operator approving by hand | FEATURE | high | high | — |
 | [B689](testing/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high | — |
 
-### small-feature (17)
+### small-feature (18)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -276,6 +275,7 @@ Do not edit them by hand; run the script.
 | [B763](testing/small-feature/B763-the-operator-page-is-a-wall.md) | The operator page is a wall of tables that does not fit a phone | FEATURE | medium | medium | — |
 | [B771](testing/small-feature/B771-the-postcard-page-is-unbranded-above.md) | The postcard page is unbranded above the send block, unlike every page the photobook shows | FEATURE | medium | low | — |
 | [B773](testing/small-feature/B773-the-postcard-s-words-only-reach.md) | The postcard's words only reach the card when a Save button is pressed | FEATURE | medium | medium | — |
+| [B825](testing/small-feature/B825-the-landing-page-corner-offers-the.md) | The landing page corner offers the operator a way in and everybody else nothing | FEATURE | medium | low | — |
 | [B688](testing/small-feature/B688-a-new-visitor-cannot-make-a.md) | A new visitor cannot make a journal inside the helper | FEATURE | low | medium | — |
 | [B737](testing/small-feature/B737-the-travel-scene-s-vehicles-exist.md) | The travel scene's vehicles exist only on the web, so a book cannot show how a leg was travelled | FEATURE | low | medium | — |
 | [B753](testing/small-feature/B753-sending-a-sign-in-code-gives.md) | Sending a sign-in code gives no sign that anything was sent | FEATURE | low | low | — |
