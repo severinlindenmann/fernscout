@@ -12,6 +12,7 @@ import {
   VIDEO_FORMATS,
   VIDEO_MAX_BYTES,
   VIDEO_MAX_SECONDS,
+  VIDEO_SHORT_SECONDS,
 } from "../validate/media";
 import { TAG_MAX_LENGTH, TRANSPORT_MODES, TRAVEL_SCENE_VARIANTS } from "../validate/entry";
 import { COST_CATEGORIES } from "../costFormat";
@@ -2271,7 +2272,7 @@ about is not held back on a hunch.
 | | |
 | --- | --- |
 | images | ${IMAGE_FORMATS.join(", ")} — at most ${(IMAGE_MAX_BYTES / 1024 / 1024).toFixed(0)} MB, ${IMAGE_MAX_EDGE}px on the longest edge |
-| video | ${VIDEO_FORMATS.join(", ")} — at most ${(VIDEO_MAX_BYTES / 1024 / 1024).toFixed(0)} MB and ${VIDEO_MAX_SECONDS}s. Needs ffmpeg on the server; if it is missing the refusal says so |
+| video | ${VIDEO_FORMATS.join(", ")} — at most ${(VIDEO_MAX_BYTES / 1024 / 1024).toFixed(0)} MB and ${VIDEO_MAX_SECONDS}s. Longer than about ${VIDEO_SHORT_SECONDS}s still goes in whole — nothing is cut — and the response says so in \`advice\`, because a short clip is the one a reader watches and the one that costs them less on mobile data. Needs ffmpeg on the server; if it is missing the refusal says so |
 | per day | at most ${MAX_ITEMS_PER_DAY} items, counting what the day already holds |
 | per request | at most ${MAX_ITEMS_PER_DAY} items — the same number, so a batch too big for one call is too big for one day, and splitting it will not help — **and at most ${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(0)} MB of body**, which is the limit you will actually meet |
 | per journal | a storage ceiling over the whole journal folder — photobooks and all, not only photographs. \`GET /api/v1/<user>/status\` carries \`storage\`: what is used, what is allowed, what is left. Read it before a big batch; one that would go past the ceiling is refused whole and nothing is written |
