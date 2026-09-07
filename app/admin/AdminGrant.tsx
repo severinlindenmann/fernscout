@@ -16,7 +16,7 @@ import BusyButton from "@/components/BusyButton";
  * panel instead.
  */
 export default function AdminGrant({ journals }: { journals: string[] }) {
-  const [user, setUser] = useState(journals[0] ?? "");
+  const [user, setUser] = useState(journals.length === 1 ? journals[0] : "");
   const [credits, setCredits] = useState("50");
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<{ ok: boolean; text: string } | null>(null);
@@ -59,23 +59,30 @@ export default function AdminGrant({ journals }: { journals: string[] }) {
   return (
     <form
       onSubmit={submit}
-      className="mt-4 grid gap-3 sm:grid-cols-[1fr_8rem_auto] sm:items-end"
+      className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem] sm:items-end"
     >
-      <label className="block text-sm text-navy-700">
+      {/* An `<input list>` rather than a `<select>`: the list of journals only
+          grows, and a select of forty is a picker you scroll rather than one
+          you choose from. The datalist filters as you type, is the platform's
+          own control on every browser, and — unlike a select, whose intrinsic
+          width is its longest option — it cannot push the row wider than the
+          column it was given. */}
+      <label className="block min-w-0 text-sm text-navy-700">
         Journal
-        <select
+        <input
+          list="admin-grant-journals"
           value={user}
           onChange={(event) => setUser(event.target.value)}
+          placeholder="Type to find a journal"
           className="mt-1 w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-navy-900"
-        >
+        />
+        <datalist id="admin-grant-journals">
           {journals.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
+            <option key={name} value={name} />
           ))}
-        </select>
+        </datalist>
       </label>
-      <label className="block text-sm text-navy-700">
+      <label className="block min-w-0 text-sm text-navy-700">
         Credits
         <input
           type="number"
@@ -90,15 +97,15 @@ export default function AdminGrant({ journals }: { journals: string[] }) {
       <BusyButton
         busy={busy}
         type="submit"
-        disabled={!user}
-        className="rounded-lg bg-navy-900 px-4 py-2 font-semibold text-white disabled:opacity-50"
+        disabled={!journals.includes(user)}
+        className="rounded-lg bg-navy-900 px-4 py-2 font-semibold text-white disabled:opacity-50 sm:col-span-2 sm:justify-self-start"
         busyLabel="Sending…"
       >
         Send confirmation mail
       </BusyButton>
       {said ? (
         <p
-          className={`text-sm sm:col-span-3 ${said.ok ? "text-navy-700" : "text-red-700"}`}
+          className={`text-sm sm:col-span-2 ${said.ok ? "text-navy-700" : "text-red-700"}`}
         >
           {said.text}
         </p>

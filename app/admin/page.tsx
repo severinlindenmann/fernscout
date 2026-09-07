@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AdminGrant from "./AdminGrant";
+import Journals from "./Journals";
 import AdminRefund from "./AdminRefund";
 import { isInstanceAdmin } from "@/lib/adminGate";
 import { creditsEnabled, ledgerFor } from "@/lib/credits";
@@ -70,7 +71,7 @@ function Lines({ title, lines, note }: { title: string; lines: CostLine[]; note?
                   )}
                 </span>
               </div>
-              <p className="mt-0.5 break-words font-mono text-xs text-navy-500">
+              <p className="mt-0.5 [overflow-wrap:anywhere] font-mono text-xs text-navy-500">
                 {line.detail}
                 {line.calls > 0 ? ` · ${line.calls} ${line.calls === 1 ? "call" : "calls"}` : ""}
               </p>
@@ -205,35 +206,24 @@ export default async function AdminPage() {
             Credits are switched off on this instance, so there are no balances to show.
           </p>
         ) : null}
-        <div className="mt-3 space-y-2">
-          {data.journals.map((journal) => (
-            <details key={journal.username} className="rounded-2xl border border-navy-200 bg-white">
-              {/* Name and money on one line whatever the width — an `ml-auto`
-                  inside a flex-wrap put the cost under the username on a
-                  phone, which is where it stopped being a summary. The two
-                  smaller facts wrap underneath, where wrapping is harmless. */}
-              <summary className="cursor-pointer list-none px-4 py-3">
-                <span className="flex items-baseline justify-between gap-3">
-                  <span className="min-w-0 break-words font-display font-semibold text-navy-900">
-                    {journal.username}
-                  </span>
-                  <span className="shrink-0 font-mono text-sm text-navy-900">
-                    {formatChf(journal.rappen)}
-                  </span>
-                </span>
-                <span className="mt-0.5 block font-mono text-xs text-navy-500">
-                  {journal.balance === null ? "no credits on this instance" : `${journal.balance} credits`}
-                  {` · ${journal.spent} spent of ${journal.granted} granted`}
-                </span>
-              </summary>
-              {/* The purchases and the ledger, read only when the row is
-                  opened — a journal with a long history should not cost
-                  anything to *not* look at. */}
-              <Purchases username={journal.username} />
-              <Ledger username={journal.username} />
-            </details>
-          ))}
-        </div>
+        {/* The rows, their search and their sort live in `Journals`; the
+            purchases and the ledger are still rendered here, on the server,
+            and handed over as the opened panel. */}
+        <Journals
+          rows={data.journals.map((journal) => ({
+            username: journal.username,
+            rappen: journal.rappen,
+            balance: journal.balance,
+            spent: journal.spent,
+            granted: journal.granted,
+            panel: (
+              <>
+                <Purchases username={journal.username} />
+                <Ledger username={journal.username} />
+              </>
+            ),
+          }))}
+        />
       </section>
 
       <section className="mt-10 border-t border-navy-200 pt-6">
@@ -292,7 +282,7 @@ function Awaiting({ payments }: { payments: Payment[] }) {
                 {payment.method === "admin" ? "by hand" : formatChf(payment.amountRappen)}
               </span>
             </div>
-            <p className="mt-0.5 break-words font-mono text-xs text-navy-500">
+            <p className="mt-0.5 [overflow-wrap:anywhere] font-mono text-xs text-navy-500">
               asked {(payment.requestedAt ?? payment.createdAt).slice(0, 16).replace("T", " ")}
               {payment.method && payment.method !== "admin" ? ` · ${payment.method}` : ""}
             </p>
@@ -328,7 +318,7 @@ async function Purchases({ username }: { username: string }) {
                 {payment.method === "admin" ? "by hand" : formatChf(payment.amountRappen)}
               </span>
             </div>
-            <p className="mt-0.5 break-words font-mono text-xs text-navy-500">
+            <p className="mt-0.5 [overflow-wrap:anywhere] font-mono text-xs text-navy-500">
               {payment.status}
               {` · ${(payment.paidAt ?? payment.createdAt).slice(0, 10)} · ${payment.id}`}
             </p>
@@ -368,7 +358,7 @@ async function Ledger({ username }: { username: string }) {
               {row.delta > 0 ? `+${row.delta}` : row.delta}
             </span>
           </div>
-          <p className="mt-0.5 break-words font-mono text-xs text-navy-500">
+          <p className="mt-0.5 [overflow-wrap:anywhere] font-mono text-xs text-navy-500">
             {row.createdAt.slice(0, 16).replace("T", " ")}
             {row.ref || row.note ? ` · ${row.ref ?? row.note}` : ""}
           </p>
