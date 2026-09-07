@@ -2,9 +2,10 @@ import { formatChf } from "@/lib/credits/pricing";
 import { loadServerConfig } from "@/lib/config";
 import { sendTransactional } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
-import { isBuyerMethod, submitRequest } from "@/lib/payments";
+import { getPayment, isBuyerMethod, submitRequest } from "@/lib/payments";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
+import { createCheckoutSession, stripeEnabled } from "@/lib/stripe";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +47,51 @@ export async function POST(
   }
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+
+  // --- The provider path, when one is configured (B792) -------------------
+  //
+  // Stripe's own page is where the buyer chooses between TWINT, a wallet and a
+  // card, so the request's `method` is ignored here and the webhook records
+  // what was actually used. No operator mail: nobody is being asked to approve
+  // anything, and `.../approve` stays for the operator's own zero-franc grants
+  // from /admin.
+  //
+  // A second press makes a second session rather than refusing. Checkout
+  // sessions expire, so the person who wandered off and came back needs a
+  // fresh one — and `claimProviderPayment` is what makes only one of them able
+  // to grant.
+  if (stripeEnabled()) {
+    const requested = await submitRequest(user, id, null);
+    if (!requested.ok) return Response.json({ error: "unknown_payment" }, { status: 404 });
+    const payment = requested.payment ?? (await getPayment(user, id));
+    if (!payment) return Response.json({ error: "unknown_payment" }, { status: 404 });
+
+    let url: string | null = null;
+    try {
+      url = await createCheckoutSession(
+        payment,
+        { credits: payment.credits },
+        user,
+        serverSite().url,
+        journal.defaultLocale,
+      );
+    } catch (error) {
+      console.error("[payments] stripe checkout session failed", error);
+    }
+    // A row left at `requested` with no session is the honest outcome of a
+    // provider outage: nothing was charged, and pressing Pay again retries.
+    if (!url) return Response.json({ error: "provider_unavailable" }, { status: 502 });
+
+    return Response.json({
+      ok: true,
+      status: "requested",
+      transactionId: id,
+      url,
+      creditsAdded: 0,
+    });
+  }
+
+  // --- No provider: the operator approves by hand (B425) ------------------
   const method = body.method;
   // isBuyerMethod, not isPaymentMethod: "admin" is a real method but the
   // operator's own, and a buyer naming it would file a zero-franc purchase.

@@ -11,8 +11,10 @@ import { getUser } from "@/lib/users";
 export const dynamic = "force-dynamic";
 
 /**
- * "Buy credits" — B368, the front half of a purchase with no payment
- * provider behind it yet.
+ * "Buy credits" — B368, the front half of a purchase. Since B792 there is a
+ * payment provider behind the other half where one is configured, and the
+ * operator approving a mail by hand where one is not; neither is reachable
+ * from here.
  *
  * **This route grants nothing.** It does not import `grant` from
  * `lib/credits.ts`, does not touch `credits.balance`, and writes no ledger
@@ -20,8 +22,13 @@ export const dynamic = "force-dynamic";
  * `grant`, and this is the route most likely to have broken that. All it
  * does is record a **pending** transaction (`lib/payments.ts`) and mail the
  * journal's own owner a link to its payment page (`/<user>/payment/<id>`) —
- * B405. Paying there is a mock that adds nothing either; a real provider's
- * verified webhook is the only future thing that will grant.
+ * B405. Paying there does not grant either: the provider's signed webhook
+ * does, or the operator's single-use approval link does. Both are two more
+ * steps away from anything a caller of this route holds.
+ *
+ * **The URL it answers with is absolute** (B792). Its second caller is an
+ * agent over the API, whose whole use for this route is handing the link to a
+ * person in a chat window — and a path is not something a person can open.
  *
  * **The recipient is `journal.owner.email`, never a value from the request
  * body.** A request that named a different address would be a way to make
@@ -145,7 +152,11 @@ export async function POST(
   return Response.json({
     ok: true,
     transactionId: payment.id,
-    paymentUrl: `/${user}/payment/${payment.id}`,
+    // Absolute, not a path — B792. An agent's whole use for this route is
+    // handing the link to a person in a chat window, and a person cannot open
+    // "/ana/payment/xyz". The browser overlay that also calls this ignores it
+    // and navigates itself.
+    paymentUrl: payUrl,
     tier: tier.id,
     credits: tier.credits,
     priceRappen: tier.priceRappen,

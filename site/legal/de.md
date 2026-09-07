@@ -3,6 +3,8 @@
 Fernscout™ ist ein **Hobbyprojekt** von Severin Lindenmann, Schweiz. Es ist
 keine Firma, es gibt keinen Support und keine zugesicherte Verfügbarkeit.
 
+Severin Lindenmann, Feldweg 18, 5512 Wohlenschwil, Schweiz
+
 Kontakt: <agent@fernscout.ch>
 
 Der Quellcode ist öffentlich und vollständig einsehbar auf

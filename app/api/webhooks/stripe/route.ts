@@ -1,0 +1,137 @@
+import type Stripe from "stripe";
+import { grant } from "@/lib/credits";
+import { claimProviderPayment } from "@/lib/payments";
+import { stripe, stripeEnabled, webhookSecret } from "@/lib/stripe";
+import { getUser } from "@/lib/users";
+
+// Stripe's signature is computed over the exact bytes it sent, so nothing may
+// re-encode this body — and `constructEvent` needs node crypto.
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
+ * Stripe tells us a purchase was paid — B792.
+ *
+ * **This is the second HTTP path in the codebase that raises a balance**, and
+ * `test/credits.test.ts` names it in `GRANT_ALLOWED` alongside the operator
+ * approval route. It earns that the same way the other two do: a credential
+ * this server verified, and a claim that can be spent only once.
+ *
+ *   1. **The signature is the whole authentication.** `constructEvent` checks
+ *      an HMAC over the raw bytes against `STRIPE_WEBHOOK_SECRET`, inside a
+ *      replay window. There is no session, no bearer token and no owner
+ *      argument to trust; a body somebody posts by hand fails here and grants
+ *      nothing. This route lives outside `/api/v1` for exactly that reason —
+ *      the caller is Stripe, not a person and not an agent.
+ *   2. **The row decides the amount, not the event.** The credits come from
+ *      our own `payments` row, and `claimProviderPayment` refuses when the
+ *      session's total does not match it.
+ *   3. **`claimProviderPayment` is one conditional UPDATE.** Stripe delivers
+ *      at least once and retries anything that is not a 2xx, so a repeat is
+ *      normal traffic rather than an attack — and the claim is what makes it
+ *      free.
+ *
+ * Between the claim and the `grant` is the same crash window the approval
+ * route documents: the purchase would read as settled with the balance
+ * unmoved. It fails **closed**, and the recovery is `npm run credits -- grant`.
+ *
+ * A 500 is a request for a retry, so anything that might succeed later (the
+ * database being down) answers 500, and anything that never will (an event for
+ * a journal that no longer exists) answers 200 — otherwise Stripe retries it
+ * for three days.
+ */
+export async function POST(request: Request) {
+  if (!stripeEnabled()) {
+    // Nothing here is reachable on an instance with no provider. Not a 404 for
+    // secrecy — the endpoint is not a secret — but because there is genuinely
+    // no such route on this deployment.
+    return new Response("no payment provider is configured", { status: 404 });
+  }
+
+  const signature = request.headers.get("stripe-signature");
+  const raw = await request.text();
+  if (!signature) return new Response("missing signature", { status: 400 });
+
+  let event: Stripe.Event;
+  try {
+    event = stripe().webhooks.constructEvent(raw, signature, webhookSecret());
+  } catch (error) {
+    console.warn("[stripe] rejected a webhook:", (error as Error).message);
+    return new Response("bad signature", { status: 400 });
+  }
+
+  // Everything else Stripe may be configured to send is acknowledged and
+  // ignored, so a dashboard endpoint subscribed to more than one event does
+  // not accumulate failures.
+  if (event.type !== "checkout.session.completed") {
+    return Response.json({ ok: true, ignored: event.type });
+  }
+
+  const session = event.data.object;
+  if (session.payment_status !== "paid") {
+    // `checkout.session.completed` also fires for asynchronous methods that
+    // have not settled yet. Those arrive again as `async_payment_succeeded`,
+    // which this route does not subscribe to — so nothing is granted until
+    // somebody adds that case, which is the safe direction to be wrong in.
+    return Response.json({ ok: true, ignored: "unpaid" });
+  }
+
+  const owner = session.metadata?.owner;
+  const paymentId = session.metadata?.paymentId ?? session.client_reference_id;
+  if (!owner || !paymentId) {
+    console.warn("[stripe] a paid session carried no payment reference:", session.id);
+    return Response.json({ ok: true, ignored: "no_reference" });
+  }
+  if (!getUser(owner)) return Response.json({ ok: true, ignored: "unknown_journal" });
+
+  // What the buyer actually reached for, for the transaction list. Stripe
+  // sends the list this session was *offered*; one entry means it is also the
+  // one that was used, and more than one means we do not know from here — and
+  // guessing which is worse than leaving it as it was.
+  // Checked against the two we offer rather than against the whole vocabulary:
+  // "admin" is a real `PaymentMethod` and is the operator's own, so a session
+  // must never be able to name it.
+  const offered = session.payment_method_types ?? [];
+  const method =
+    offered.length === 1 && (offered[0] === "card" || offered[0] === "twint")
+      ? offered[0]
+      : null;
+
+  let claim;
+  try {
+    claim = await claimProviderPayment(owner, paymentId, session.amount_total ?? -1, method);
+  } catch (error) {
+    // A database that is down is a retry, not a lost purchase.
+    console.error("[stripe] could not claim a paid session:", error);
+    return new Response("could not record the payment", { status: 500 });
+  }
+
+  if (!claim.ok) {
+    if (claim.reason === "amount_mismatch") {
+      // Never retryable, and worth shouting about: a paid session naming one
+      // of our rows for a different amount is either a bug in the session we
+      // created or somebody's attempt at one.
+      console.error(
+        `[stripe] session ${session.id} paid ${session.amount_total} against payment ${paymentId}, which is for a different amount`,
+      );
+    }
+    // Already granted, or nothing to grant. Acknowledged: retrying changes
+    // nothing.
+    return Response.json({ ok: true, ignored: claim.reason });
+  }
+
+  try {
+    await grant(owner, claim.credits, `purchase ${paymentId} stripe ${session.id}`);
+  } catch (error) {
+    // The row is already marked paid and granted, so a retry will not grant
+    // again — this is the documented fail-closed window, and it needs a human
+    // and `npm run credits -- grant`.
+    console.error(
+      `[stripe] CREDITS NOT GRANTED for ${owner} payment ${paymentId} (${claim.credits} credits) — grant by hand:`,
+      error,
+    );
+    return new Response("could not grant", { status: 500 });
+  }
+
+  return Response.json({ ok: true, granted: claim.credits });
+}

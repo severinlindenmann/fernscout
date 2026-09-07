@@ -829,13 +829,28 @@ spent a credit and been given their day by the time it runs, and losing the day
 to an accounting insert would be trading the product for the bookkeeping.
 
 **Its "add credits" button does not add credits**, and that is the same shape as
-deleting. `lib/credits.ts`'s property 1 stands unchanged — nothing reachable
-over HTTP raises a balance — so the button files a zero-franc transaction and
-mails the operator the single-use approval link an ordinary purchase mints.
-`app/api/v1/[user]/payments/[id]/approve/route.ts` is still the only file in the
-codebase that imports `grant`, and `GRANT_ALLOWED` in `test/credits.test.ts` did
-not widen to make this work. Report it as a mail waiting, never as credits
-added.
+deleting. `lib/credits.ts`'s property 1 stands unchanged — nothing a *caller*
+can reach over HTTP raises a balance — so the button files a zero-franc
+transaction and mails the operator the single-use approval link an ordinary
+purchase mints. Report it as a mail waiting, never as credits added.
+
+**Buying credits is Stripe, and the key is the only switch** — B792. `POST
+/api/v1/<user>/credits/purchase` (owner only, and an owner's agent token counts)
+files a pending transaction and answers with an absolute `paymentUrl`; the
+person opens it, and `.../payments/<id>/pay` sends them to a hosted checkout
+page for TWINT, a wallet or a card. Nothing an agent holds can pay, and nothing
+it holds can grant: `POST /api/webhooks/stripe` is what grants, from Stripe's
+own signature over the raw body and a once-only claim on the row
+(`claimProviderPayment`). That webhook is one of the three files `GRANT_ALLOWED`
+in `test/credits.test.ts` names, beside the operator approval route and the
+one-off grant a new journal gets at signup — and that list is the whole of it.
+
+`sk_test_…` is Stripe's sandbox and `sk_live_…` is real money — there is
+deliberately no `sandbox: true` beside the key, because a flag beside a
+credential is a flag that can disagree with it. `/api/health` prints the mode
+it read. With no `STRIPE_SECRET_KEY`, purchases fall back to the operator
+approving a mail by hand (B425), which is what keeps this developable with no
+Stripe account. `lib/stripe.ts`.
 
 Agent tokens arrive in `Authorization: Bearer` and nowhere else; guest sessions
 arrive in a cookie and nowhere else. The two are not interchangeable, and
