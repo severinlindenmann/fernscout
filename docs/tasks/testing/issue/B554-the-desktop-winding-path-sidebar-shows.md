@@ -7,8 +7,7 @@ complexity: low
 area: costs, currency, ui
 found: "2026-09-06T09:12:12Z"
 started: "2026-09-07T10:37:37Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T10:37:37Z"
+merged: "2026-09-07T10:56:41Z"
 ---
 
 # B554 — The desktop winding-path sidebar shows a day's cost converted only

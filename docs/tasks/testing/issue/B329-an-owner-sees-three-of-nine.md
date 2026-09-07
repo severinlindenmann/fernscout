@@ -7,8 +7,7 @@ complexity: medium
 area: media, viewer
 found: "2026-09-04T18:41:32Z"
 started: "2026-09-07T10:37:37Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T10:37:37Z"
+merged: "2026-09-07T10:56:42Z"
 ---
 
 # B329 — An owner sees three of nine photographs on the story page and the server path is correct
