@@ -497,7 +497,7 @@ type AnalyticsEventsTable = {
  * records what the instance was *billed*, and the two are different numbers
  * in different units.
  */
-export type UsageTable = {
+type UsageTable = {
   id: string;
   /** The username whose journal the request was made for. */
   owner_id: string;
