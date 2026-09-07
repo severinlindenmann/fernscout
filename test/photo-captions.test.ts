@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import sharp from "sharp";
+import { paintJpeg } from "./support/pictures";
 import matter from "gray-matter";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
@@ -37,11 +37,7 @@ const REF = "alex/asia-2026";
 const DAY = "lanterns-of-hoi-an";
 const tripPath = () => path.join(dir, "alex", "trips", "asia-2026");
 
-async function jpeg(): Promise<Buffer> {
-  return sharp({ create: { width: 400, height: 300, channels: 3, background: { r: 8, g: 80, b: 120 } } })
-    .jpeg()
-    .toBuffer();
-}
+const jpeg = () => paintJpeg(400, 300);
 
 function writeDay() {
   fs.writeFileSync(
@@ -110,10 +106,15 @@ afterEach(() => {
 
 describe("a caption arrives with the photograph", () => {
   test("what was sent is what the day carries, and what reads back", async () => {
-    const bytes = await jpeg();
+    // Two pictures, not one buffer twice: since B604 the same photograph sent
+    // twice lands once, which is a different test from this one.
     const written = await storeUploads(REF, DAY, [
-      { filename: "one.jpg", bytes, caption: "The lanterns going up on the bridge" },
-      { filename: "two.jpg", bytes },
+      {
+        filename: "one.jpg",
+        bytes: await jpeg(),
+        caption: "The lanterns going up on the bridge",
+      },
+      { filename: "two.jpg", bytes: await jpeg() },
     ]);
     if (!written.ok) throw new Error(JSON.stringify(written.problems));
     expect(attachGallery(REF, DAY, written.items)).toEqual({ ok: true, attached: 2 });
@@ -203,10 +204,9 @@ describe("captionsFor: positional, and refused rather than misaligned", () => {
 
 describe("correcting a caption is a splice, not a rewrite", () => {
   async function dayWithTwoPhotographs() {
-    const bytes = await jpeg();
     const written = await storeUploads(REF, DAY, [
-      { filename: "one.jpg", bytes, caption: "First, as told" },
-      { filename: "two.jpg", bytes },
+      { filename: "one.jpg", bytes: await jpeg(), caption: "First, as told" },
+      { filename: "two.jpg", bytes: await jpeg() },
     ]);
     if (!written.ok) throw new Error(JSON.stringify(written.problems));
     attachGallery(REF, DAY, written.items);
