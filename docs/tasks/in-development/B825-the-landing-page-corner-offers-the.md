@@ -83,3 +83,21 @@ line fully closed.
 Screenshots (helper off — unchanged corner with locale switcher only; helper
 on — Agent chip visible, hero's "Start writing" unaffected) were reviewed and
 matched expectations; not attached to this file.
+
+## The three-chip case, measured after the build
+
+The build could not exercise it — no admin session was available in that
+environment — and it is the acceptance line most likely to fail, because a
+wrapped corner is the fault the owner had just complained about in the journal
+header. Measured instead by cloning the Agent chip in the live DOM into the
+operator's position, so the markup, classes and fonts are the real ones:
+
+| chip | width | height |
+| --- | --- | --- |
+| Betrieb | 66px | 44px |
+| Agent | 58px | 44px |
+| EN | 56px | 44px |
+
+All three sit on one baseline at 390px (`distinctRows: 1`), and the row's own
+height is 44px with three chips exactly as with two. It fits, with room to
+spare. The acceptance line is closed.
