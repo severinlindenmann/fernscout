@@ -8,4 +8,4 @@ status: past
 visibility: public
 ---
 
-The public trip.
+The public trip. PUBLICTRIPINTRO — a word that appears nowhere else.
