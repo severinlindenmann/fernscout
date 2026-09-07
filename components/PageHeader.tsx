@@ -205,8 +205,8 @@ export default function PageHeader({
               neither mean anything (the two-yellows trap the ticket names).
               Docs sits beside it, quieter, per request 3.
             */}
-            {site.helperEnabled && (
-              <div className="flex flex-col gap-2 border-b border-navy-200 pb-3">
+            <div className="flex flex-col gap-2 border-b border-navy-200 pb-3">
+              {site.helperEnabled && (
                 <Link
                   href="/agent"
                   onClick={() => setMenuOpen(false)}
@@ -217,18 +217,18 @@ export default function PageHeader({
                   <Bot className="h-5 w-5" aria-hidden strokeWidth={2.2} />
                   {t("nav.agent")}
                 </Link>
-                <Link
-                  href="/docs"
-                  onClick={() => setMenuOpen(false)}
-                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold
+              )}
+              <Link
+                href="/docs"
+                onClick={() => setMenuOpen(false)}
+                className="flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold
                              text-navy-600 transition-colors hover:bg-cream-100 hover:text-navy-900
                              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-                >
-                  <FileText className="h-4 w-4" aria-hidden strokeWidth={2.2} />
-                  {t("nav.docs")}
-                </Link>
-              </div>
-            )}
+              >
+                <FileText className="h-4 w-4" aria-hidden strokeWidth={2.2} />
+                {t("nav.docs")}
+              </Link>
+            </div>
             {/* `children` is not repeated here: the one caller that passes any
                 (`TripStory`'s day counter) already marks it `xl:block`, so it
                 never draws below the width this panel exists for — mounting
@@ -370,28 +370,30 @@ export default function PageHeader({
             icon only, per request 3.
           */}
           {site.helperEnabled && (
-            <>
-              <Link
-                href="/agent"
-                className="flex min-h-11 items-center gap-2 rounded-full bg-navy-900 px-4 text-sm font-semibold
+            <Link
+              href="/agent"
+              className="flex min-h-11 items-center gap-2 rounded-full bg-navy-900 px-4 text-sm font-semibold
                            text-cream-50 transition-colors hover:bg-navy-800
                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-              >
-                <Bot className="h-4 w-4" aria-hidden strokeWidth={2.2} />
-                {t("nav.agent")}
-              </Link>
-              <Link
-                href="/docs"
-                title={t("nav.docs")}
-                aria-label={t("nav.docs")}
-                className="flex h-11 w-11 items-center justify-center rounded-full text-navy-600
+            >
+              <Bot className="h-4 w-4" aria-hidden strokeWidth={2.2} />
+              {t("nav.agent")}
+            </Link>
+          )}
+          {/* Docs is NOT gated — `/docs` needs no capability, and gating it
+              alongside the agent left a self-hoster with the helper off (the
+              default) no route to the documentation at all once the landing
+              page's own link was removed. B802. */}
+          <Link
+            href="/docs"
+            title={t("nav.docs")}
+            aria-label={t("nav.docs")}
+            className="flex h-11 w-11 items-center justify-center rounded-full text-navy-600
                            transition-colors hover:bg-navy-200/60 hover:text-navy-900
                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-              >
-                <FileText className="h-4 w-4" aria-hidden strokeWidth={2.2} />
-              </Link>
-            </>
-          )}
+          >
+            <FileText className="h-4 w-4" aria-hidden strokeWidth={2.2} />
+          </Link>
         </div>
         <div className="flex w-full grow justify-end lg:w-auto lg:grow-0">
           <SiteNav />

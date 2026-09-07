@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: landing, docs
 found: "2026-09-07T15:13:02Z"
+superseded: fixed inside B797 before it merged — Docs is no longer gated on the helper
 ---
 
 # B802 — Signed-in landing has no docs link when helper is off (B797)
@@ -59,3 +60,17 @@ explicitly if that path is taken.
   restored landing link.
 - A signed-in reader on `/`, on an instance with `helper` on, is not shown
   the docs link twice (header symbol only, as B797 intended).
+
+## Superseded, 2026-09-07
+
+Fixed in B797 itself rather than left for later. The cause was an acceptance
+line in B797 that said "with the helper capability off, neither appears" —
+which was right for the agent and wrong for the docs. `/docs` needs no
+capability, so gating it beside the agent left a self-hoster with the helper
+off, which is the default, no route to the documentation at all once the
+landing page's own link was removed.
+
+The two are now split in `components/PageHeader.tsx`, in both the mobile panel
+and the desktop row: the agent entry is gated on `helper`, the docs symbol is
+always there. Measured with the helper off: no `/agent` link, one `/docs` link
+at 332×44, header still 65px.

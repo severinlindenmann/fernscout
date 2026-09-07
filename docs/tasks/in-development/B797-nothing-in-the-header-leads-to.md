@@ -169,3 +169,26 @@ silently expanded scope.
 `npm run verify` (build → tsc → eslint → vitest): all four stages passed,
 4658 tests passed (3 pre-existing skips, unrelated to this change), 0 new
 lint errors (33 pre-existing warnings, none touched by this diff).
+
+## Corrected before merge: Docs is not gated
+
+This ticket's own acceptance said *"with the `helper` capability off, neither
+appears"*. That was right for the agent and wrong for the docs, and building it
+literally produced a regression: `/docs` needs no capability, so gating it
+beside the agent left a self-hoster with the helper off — the default — with no
+route to the documentation at all, because the landing page's own `DocsLink`
+had just been removed on the strength of the header carrying it.
+
+The two are now split in both arrangements: the agent entry is gated on
+`helper`, the docs symbol always renders. B802 captured the regression and is
+superseded by this fix.
+
+Measured at 390px, `/example`:
+
+| | header | `/agent` | `/docs` |
+| --- | --- | --- | --- |
+| helper off | 65px | absent | 332×44 |
+| helper on | 65px | 332×56 | 332×44 |
+
+The header did not grow — B770 left it at 65px and it is still 65px in both
+states, because the agent entry lives in the panel rather than the row.
