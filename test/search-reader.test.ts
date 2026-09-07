@@ -357,3 +357,48 @@ describe("the destinations in the index", () => {
     expect(anonymousJson).not.toContain(`/${OWNER}/account`);
   });
 });
+
+/**
+ * B890 — the journal-scoped destinations, and the trips themselves.
+ *
+ * Same discipline as the account page above: `/contacts` is the owner's own
+ * page, so search must not be the surface that tells anybody else it exists.
+ * `/me` is every signed-in reader's, and `/trips` is everybody's.
+ */
+describe("journal-scoped destinations and trip rows", () => {
+  test("the owner finds their contacts page; nobody else does", async () => {
+    expect(await jsonFor("owner")).toContain(`/${OWNER}/contacts`);
+    for (const viewer of ["buddy", "guest", "stranger"]) {
+      expect(await jsonFor(viewer)).not.toContain(`/${OWNER}/contacts`);
+    }
+    const { buildSearchIndexJson } = await import("@/lib/search");
+    expect(buildSearchIndexJson(OWNER)!).not.toContain(`/${OWNER}/contacts`);
+  });
+
+  test("every signed-in reader finds their access page, and the anonymous index does not carry it", async () => {
+    for (const viewer of ["owner", "buddy", "guest", "stranger"]) {
+      expect(await jsonFor(viewer)).toContain(`/${OWNER}/me`);
+    }
+    const { buildSearchIndexJson } = await import("@/lib/search");
+    expect(buildSearchIndexJson(OWNER)!).not.toContain(`/${OWNER}/me`);
+  });
+
+  test("a closed trip's own row reaches only a reader who may open it", async () => {
+    expect(await jsonFor("owner")).toContain("trip:secret-2026");
+    for (const viewer of ["guest", "stranger"]) {
+      expect(await jsonFor(viewer)).not.toContain("trip:secret-2026");
+    }
+  });
+
+  test("the documentation is in everybody's index, signed in or not", async () => {
+    const { buildSearchIndexJson } = await import("@/lib/search");
+    for (const json of [
+      buildSearchIndexJson(OWNER)!,
+      await jsonFor("stranger"),
+      await jsonFor("owner"),
+    ]) {
+      expect(json).toContain("/docs/guide/guest");
+      expect(json).toContain("/docs/api");
+    }
+  });
+});

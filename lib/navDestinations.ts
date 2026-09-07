@@ -43,6 +43,28 @@ export const TRIP_DESTINATIONS: NavDestination[] = [
   },
 ];
 
+/**
+ * Journal-scoped: resolved against the journal's own base rather than a
+ * trip's — B890. These are the header rows that belong to the reader rather
+ * than to any one trip, and each carries the reader level it needs, because
+ * search must never offer a page the reader would only be refused at.
+ *
+ * `/search` itself is deliberately absent: a row whose only destination is
+ * the page you are already typing into is noise.
+ */
+export const JOURNAL_DESTINATIONS: {
+  destination: NavDestination;
+  /** Who may find it: everyone, anybody who proved an address, or the owner. */
+  level: "public" | "reader" | "owner";
+}[] = [
+  { destination: { path: "/trips", labelKey: "nav.trips", synonymsKey: "search.tripsTerms" }, level: "public" },
+  { destination: { path: "/me", labelKey: "me.title", synonymsKey: "search.meTerms" }, level: "reader" },
+  {
+    destination: { path: "/contacts", labelKey: "contact.adminTitle", synonymsKey: "search.contactsTerms" },
+    level: "owner",
+  },
+];
+
 /** Journal-scoped and owner-only — B821. Not in `TRIP_DESTINATIONS`: it
  * belongs to the journal rather than to one trip, and search must never
  * offer it to anybody but the owner (see lib/search.ts). */

@@ -12,10 +12,18 @@ import type { Options } from "minisearch";
  */
 export type SearchDoc = {
   id: string;
-  /** "day" for an entry, "page" for a destination — Gallery, Costs, the
-   * account page — indexed beside them (B823). The client renders the two
-   * differently: a page result has no date or location to show. */
-  kind: "day" | "page";
+  /**
+   * What kind of thing this row points at, because the client renders the
+   * four differently — a page has no date to show, a doc belongs to no trip.
+   *
+   * - `day`  — an entry (B05).
+   * - `page` — a destination: Gallery, Analytics, the account page (B823),
+   *   or a journal-scoped row like `/trips` (B890).
+   * - `trip` — the trip itself, found by its own title, tagline or intro
+   *   rather than obliquely through one of its days (B890).
+   * - `doc`  — a documentation page, `DOCS_PAGES` in lib/docs.ts (B890).
+   */
+  kind: "day" | "page" | "trip" | "doc";
   title: string;
   location: string;
   country: string;

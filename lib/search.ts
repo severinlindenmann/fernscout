@@ -3,10 +3,16 @@ import MiniSearch from "minisearch";
 import { isIndexable } from "./access";
 import { analyticsAvailable } from "./analytics";
 import { isOwner } from "./contacts/session";
+import { DOCS_PAGES, isGuide, readGuide } from "./docs";
 import { getAllEntries } from "./entries";
 import { localesFor, translateIn } from "./locales";
 import { stripMarkdown } from "./markdownText";
-import { ACCOUNT_DESTINATION, TRIP_DESTINATIONS, type NavDestination } from "./navDestinations";
+import {
+  ACCOUNT_DESTINATION,
+  JOURNAL_DESTINATIONS,
+  TRIP_DESTINATIONS,
+  type NavDestination,
+} from "./navDestinations";
 import { SEARCH_OPTIONS, type SearchDoc } from "./searchOptions";
 import { isTravellerOn, mayReadTrip, readFor } from "./tripGate";
 import { getCurrentTrip, getTrips } from "./trips";
@@ -107,9 +113,10 @@ function pageDoc(
  * draws for a reader who can open the trip, drafts and closed trips alike —
  * see lib/navDestinations.ts. */
 function tripPageDocs(username: string, trip: Trip, tripBase: string): SearchDoc[] {
-  const destinations = analyticsAvailable(username)
-    ? TRIP_DESTINATIONS
-    : TRIP_DESTINATIONS.filter((d) => d.path !== "/analytics");
+  // "/" is the trip itself, and `tripDoc` is already that row (B890).
+  const destinations = TRIP_DESTINATIONS.filter(
+    (d) => d.path !== "/" && (d.path !== "/analytics" || analyticsAvailable(username)),
+  );
   return destinations.map((dest) => {
     // Same rule `userHref` in components/SiteNav.tsx follows: the story page
     // is the trip's base itself, with no trailing slash.
@@ -118,9 +125,115 @@ function tripPageDocs(username: string, trip: Trip, tripBase: string): SearchDoc
   });
 }
 
+/**
+ * The trip itself, as its own row — B890.
+ *
+ * Before this, a trip could only be found through one of its days: the
+ * `tripTitle` field of `toDoc`. That is no answer for a trip whose days are
+ * all drafts, or which has none yet, and it is no answer for the words that
+ * only ever appear in `trip.md` — the tagline and the intro paragraph, which
+ * are usually where the trip actually says what it was.
+ *
+ * Carries no location and no country of its own: a trip spans them, and
+ * putting the first one here would say something the file does not.
+ */
+function tripDoc(username: string, trip: Trip, tripBase: string): SearchDoc {
+  // The trip's own page *is* the Story destination — same URL — so the Story
+  // row's words live here rather than in a second row pointing at the same
+  // place. Two results for one destination is how a reader learns to stop
+  // reading the second half of a result list.
+  const story = new Set<string>();
+  for (const code of localesFor(username)) story.add(translateIn(code, "nav.story"));
+  return {
+    id: `trip:${trip.id}`,
+    kind: "trip",
+    title: trip.title,
+    location: "",
+    country: "",
+    tripTitle: "",
+    date: trip.start,
+    url: tripBase,
+    body: `${trip.tagline ?? ""}\n\n${stripMarkdown(trip.intro)}`,
+    tags: [],
+    terms: [...story].join(" "),
+  };
+}
+
+/**
+ * The documentation pages — B890.
+ *
+ * Public, and identical in both builders: `/docs` is the same seven pages for
+ * a stranger and for the owner, so there is nothing here to gate. The three
+ * guides carry their whole markdown as `body` (in every language this journal
+ * offers, since a reader searching in German should find the German guide's
+ * words), which is what makes "wie melde ich mich an" land on the guest
+ * guide rather than nowhere. The four technical pages carry their label
+ * only: their prose is `README.md` and `CONTRIBUTING.md` read at request
+ * time, English, and about running the software rather than about this
+ * journal — indexing all of it into every journal's payload would cost every
+ * reader for a question almost none of them are asking.
+ *
+ * `body` is indexed and never stored (see lib/searchOptions.ts), so the cost
+ * of a guide is its vocabulary, not its prose.
+ */
+function docsDocs(username: string): SearchDoc[] {
+  const locales = localesFor(username);
+  return DOCS_PAGES.map((page) => {
+    const words = new Set<string>();
+    const bodies: string[] = [];
+    for (const code of locales) {
+      words.add(translateIn(code, page.labelKey));
+      words.add(translateIn(code, "search.docsTerms"));
+      if (isGuide(page.id)) {
+        words.add(translateIn(code, `guides.${page.id}.lede`));
+        bodies.push(stripMarkdown(readGuide(page.id, code).markdown));
+      }
+    }
+    return {
+      id: `doc:${page.id}`,
+      kind: "doc" as const,
+      title: translateIn(locales[0], page.labelKey),
+      location: "",
+      country: "",
+      tripTitle: "",
+      date: "",
+      url: page.href,
+      body: bodies.join("\n"),
+      tags: [],
+      terms: [...words].join(" "),
+    };
+  });
+}
+
+/**
+ * The journal-scoped destinations this reader may actually open — B890.
+ *
+ * `level` is the whole gate, and it is deliberately the same shape as the one
+ * `ACCOUNT_DESTINATION` already had: a row nobody but the owner may open must
+ * not be findable by anybody else, because search would otherwise be the one
+ * surface that tells a stranger this journal has a contacts page.
+ */
+function journalPageDocs(username: string, level: "public" | "reader" | "owner"): SearchDoc[] {
+  const allowed =
+    level === "owner"
+      ? ["public", "reader", "owner"]
+      : level === "reader"
+        ? ["public", "reader"]
+        : ["public"];
+  return JOURNAL_DESTINATIONS.filter((row) => allowed.includes(row.level)).map((row) =>
+    pageDoc(
+      username,
+      `page:${row.destination.path}`,
+      row.destination,
+      `/${username}${row.destination.path}`,
+      "",
+    ),
+  );
+}
+
 function buildDocs(username: string): SearchDoc[] {
   const currentId = getCurrentTrip(username)?.id;
-  const docs: SearchDoc[] = [];
+  const docs: SearchDoc[] = [...docsDocs(username), ...journalPageDocs(username, "public")];
 
   for (const trip of getTrips(username)) {
     if (!isIndexable(trip)) continue;
@@ -130,6 +243,7 @@ function buildDocs(username: string): SearchDoc[] {
     if (trip.status === "upcoming") continue;
 
     const tripBase = tripBaseFor(username, trip, currentId);
+    docs.push(tripDoc(username, trip, tripBase));
     docs.push(...tripPageDocs(username, trip, tripBase));
 
     for (const entry of getAllEntries(trip.ref)) {
@@ -195,7 +309,13 @@ async function includeInReaderIndex(trip: Trip, request?: Request): Promise<bool
  */
 async function buildDocsForReader(username: string, request?: Request): Promise<SearchDoc[]> {
   const currentId = getCurrentTrip(username)?.id;
-  const docs: SearchDoc[] = [];
+  const owner = await isOwner(username, request);
+  // This builder only ever runs for a reader who proved an address (see the
+  // route handler), so "reader" is the floor here rather than "public".
+  const docs: SearchDoc[] = [
+    ...docsDocs(username),
+    ...journalPageDocs(username, owner ? "owner" : "reader"),
+  ];
 
   for (const trip of getTrips(username)) {
     if (trip.status === "upcoming") continue;
@@ -205,6 +325,7 @@ async function buildDocsForReader(username: string, request?: Request): Promise<
     if (!(await includeInReaderIndex(trip, request))) continue;
 
     const tripBase = tripBaseFor(username, trip, currentId);
+    docs.push(tripDoc(username, trip, tripBase));
     docs.push(...tripPageDocs(username, trip, tripBase));
     const { read } = await readFor(trip, request);
 
@@ -221,7 +342,7 @@ async function buildDocsForReader(username: string, request?: Request): Promise<
    * search can never tell a stranger this journal even has one. Never added
    * to the public builder above — an anonymous reader is never the owner.
    */
-  if (await isOwner(username, request)) {
+  if (owner) {
     docs.push(
       pageDoc(username, "page:account", ACCOUNT_DESTINATION, `/${username}/account`, ""),
     );
