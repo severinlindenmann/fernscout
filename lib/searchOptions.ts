@@ -12,6 +12,10 @@ import type { Options } from "minisearch";
  */
 export type SearchDoc = {
   id: string;
+  /** "day" for an entry, "page" for a destination — Gallery, Costs, the
+   * account page — indexed beside them (B823). The client renders the two
+   * differently: a page result has no date or location to show. */
+  kind: "day" | "page";
   title: string;
   location: string;
   country: string;
@@ -20,6 +24,14 @@ export type SearchDoc = {
   url: string;
   body: string;
   tags: string[];
+  /**
+   * Extra words indexed but never shown — B823. Empty for a day. A page
+   * carries its own label in every locale the journal offers, plus whatever
+   * synonyms `lib/navDestinations.ts` names for it ("Kosten", "Ausgaben",
+   * "Budget" all meaning the costs page), so a reader typing in a language
+   * other than the chrome's current one still finds it.
+   */
+  terms: string;
 };
 
 /**
@@ -30,6 +42,6 @@ export type SearchDoc = {
  */
 export const SEARCH_OPTIONS: Options<SearchDoc> = {
   idField: "id",
-  fields: ["title", "location", "country", "tripTitle", "body", "tags"],
-  storeFields: ["title", "location", "country", "tripTitle", "date", "url"],
+  fields: ["title", "location", "country", "tripTitle", "body", "tags", "terms"],
+  storeFields: ["kind", "title", "location", "country", "tripTitle", "date", "url"],
 };

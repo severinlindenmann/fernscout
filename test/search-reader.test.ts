@@ -321,3 +321,39 @@ describe("the prerendered public JSON", () => {
     expect(json).not.toContain(PROVING);
   });
 });
+
+/**
+ * B823 — destinations, not only days, are searchable.
+ *
+ * The account page (B821) is the sharpest case: an index built once and
+ * served to everybody must not tell a stranger this journal even has a
+ * storage page. This fixture's journal offers English only
+ * (`writeConfigs` above), so the word checked is the ticket's own example in
+ * that language, "storage" — `search.accountTerms` in site/locales/en.json.
+ */
+describe("the destinations in the index", () => {
+  test("a trip's own pages (Gallery, Map) are searchable for a reader who may open it", async () => {
+    const json = await jsonFor("stranger");
+    // No trip in this fixture is `status: current`, so `open-2026` keeps its
+    // own trip-scoped URLs rather than the bare journal ones.
+    expect(json).toContain(`/${OWNER}/trips/open-2026/gallery`);
+    expect(json).toContain(`/${OWNER}/trips/open-2026/map`);
+  });
+
+  test("the owner's search finds the account page", async () => {
+    const json = await jsonFor("owner");
+    expect(json).toContain(`/${OWNER}/account`);
+    expect(json.toLowerCase()).toContain("storage");
+  });
+
+  test("nobody else's search finds it — not a fellow traveller, not an approved guest, not a stranger", async () => {
+    for (const viewer of ["buddy", "guest", "stranger"]) {
+      const json = await jsonFor(viewer);
+      expect(json).not.toContain(`/${OWNER}/account`);
+    }
+    // And not in the anonymous, prerendered index either.
+    const { buildSearchIndexJson } = await import("@/lib/search");
+    const anonymousJson = buildSearchIndexJson(OWNER)!;
+    expect(anonymousJson).not.toContain(`/${OWNER}/account`);
+  });
+});
