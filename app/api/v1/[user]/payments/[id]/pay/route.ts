@@ -2,10 +2,10 @@ import { formatChf } from "@/lib/credits/pricing";
 import { loadServerConfig } from "@/lib/config";
 import { sendTransactional } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
-import { getPayment, isBuyerMethod, submitRequest } from "@/lib/payments";
+import { attachCheckoutSession, getPayment, isBuyerMethod, submitRequest } from "@/lib/payments";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
-import { createCheckoutSession, stripeEnabled } from "@/lib/stripe";
+import { createCheckoutSession, stripe, stripeEnabled } from "@/lib/stripe";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -56,10 +56,12 @@ export async function POST(
   // anything, and `.../approve` stays for the operator's own zero-franc grants
   // from /admin.
   //
-  // A second press makes a second session rather than refusing. Checkout
-  // sessions expire, so the person who wandered off and came back needs a
-  // fresh one — and `claimProviderPayment` is what makes only one of them able
-  // to grant.
+  // A second press reuses the session the first press opened, if it is still
+  // open — B831. Opening a fresh one each time let a distracted buyer end up
+  // with two payable sessions for one row and pay both: charged twice,
+  // credited once (the row grants at most once). `claimProviderPayment` still
+  // backstops the grant, but money must not move twice, so at most one session
+  // is payable at a time.
   if (stripeEnabled()) {
     const requested = await submitRequest(user, id, null);
     if (!requested.ok) return Response.json({ error: "unknown_payment" }, { status: 404 });
@@ -67,19 +69,38 @@ export async function POST(
     if (!payment) return Response.json({ error: "unknown_payment" }, { status: 404 });
 
     let url: string | null = null;
-    try {
-      url = await createCheckoutSession(
-        payment,
-        { credits: payment.credits },
-        user,
-        serverSite().url,
-        journal.defaultLocale,
-        journal.owner.email || undefined,
-        serverSite().name,
-      );
-    } catch (error) {
-      console.error("[payments] stripe checkout session failed", error);
+
+    // Reuse the last session if Stripe still says it is open (unpaid, not
+    // expired). Any failure to look it up just falls through to a fresh one.
+    if (payment.providerRef) {
+      try {
+        const prior = await stripe().checkout.sessions.retrieve(payment.providerRef);
+        if (prior.status === "open" && prior.url) url = prior.url;
+      } catch (error) {
+        console.warn("[payments] could not reuse prior checkout session", error);
+      }
     }
+
+    if (!url) {
+      try {
+        const session = await createCheckoutSession(
+          payment,
+          { credits: payment.credits },
+          user,
+          serverSite().url,
+          journal.defaultLocale,
+          journal.owner.email || undefined,
+          serverSite().name,
+        );
+        if (session) {
+          url = session.url;
+          await attachCheckoutSession(user, id, session.id);
+        }
+      } catch (error) {
+        console.error("[payments] stripe checkout session failed", error);
+      }
+    }
+
     // A row left at `requested` with no session is the honest outcome of a
     // provider outage: nothing was charged, and pressing Pay again retries.
     if (!url) return Response.json({ error: "provider_unavailable" }, { status: 502 });

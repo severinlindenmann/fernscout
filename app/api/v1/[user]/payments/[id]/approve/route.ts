@@ -56,9 +56,14 @@ export async function POST(
   if (!claim.ok) {
     // Unknown id, foreign id, not-a-request, or wrong/spent token — all one
     // answer, no oracle. A wrong token is the common case; 403 says "not yours
-    // to approve" without revealing which of the reasons it was.
-    const status = claim.reason === "unknown" ? 404 : 403;
-    return Response.json({ error: claim.reason }, { status });
+    // to approve" without revealing which of the reasons it was. The unknown
+    // case answers `unknown_payment`, the same string a missing journal and
+    // the pay route both use (B835) — two different 404 strings on one route
+    // were a needless tell.
+    if (claim.reason === "unknown") {
+      return Response.json({ error: "unknown_payment" }, { status: 404 });
+    }
+    return Response.json({ error: claim.reason }, { status: 403 });
   }
 
   // The one grant. Recorded in the ledger with the payment id, so an operator

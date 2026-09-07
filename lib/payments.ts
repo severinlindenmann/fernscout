@@ -42,6 +42,9 @@ export type Payment = {
    *  Null on a `pending` row, which nobody is waiting on. B774 reads it to say
    *  how long a queued purchase has been sitting there. */
   requestedAt: string | null;
+  /** The latest Stripe checkout session this row is being paid through, so a
+   *  second Pay reuses it rather than opening a rival — B831. */
+  providerRef: string | null;
 };
 
 const METHODS: readonly PaymentMethod[] = ["twint", "card", "admin"];
@@ -70,6 +73,7 @@ function toPayment(row: {
   // Optional because two callers build the row literal themselves rather than
   // reading it back, and neither has stamped it at that point.
   requested_at?: string | null;
+  provider_ref?: string | null;
 }): Payment {
   return {
     id: row.id,
@@ -81,6 +85,7 @@ function toPayment(row: {
     createdAt: row.created_at,
     paidAt: row.paid_at,
     requestedAt: row.requested_at ?? null,
+    providerRef: row.provider_ref ?? null,
   };
 }
 
@@ -117,6 +122,24 @@ export async function createPayment(owner: string, tier: CreditTier): Promise<Pa
  * where the id is `userB`'s resolves to `null` here, the same answer as an id
  * that never existed — no cross-journal read, no existence oracle.
  */
+/**
+ * Remember which Stripe checkout session a payment is being paid through — B831.
+ *
+ * The pay route calls this after it creates (or reuses) a session, so the next
+ * press can find an open session rather than opening a second payable one.
+ * Owner-scoped like every write here; a no-op if the row is not this owner's.
+ */
+export async function attachCheckoutSession(owner: string, id: string, sessionId: string): Promise<void> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return;
+  await handle.db
+    .updateTable("payments")
+    .set({ provider_ref: sessionId })
+    .where("id", "=", id)
+    .where("owner_id", "=", owner)
+    .execute();
+}
+
 /**
  * A journal's recent transactions, newest first — for the history under the
  * Payment card (B413). Owner-facing only; the caller gates on ownership.
@@ -213,6 +236,11 @@ export async function paymentsAwaiting(): Promise<Payment[]> {
     .selectFrom("payments")
     .selectAll()
     .where("status", "=", "requested")
+    // Only rows a token was actually minted and mailed for — B833. A Stripe
+    // row is `requested` too, but it is settled by webhook and has no token,
+    // so listing it here would grow the queue without bound under a sentence
+    // ("mailed to you with a link that approves it") that is false for it.
+    .where("approve_token_hash", "is not", null)
     .orderBy("requested_at", "asc")
     .execute();
   return rows.map(toPayment);
@@ -295,14 +323,20 @@ export async function submitRequest(
     return { ok: true, payment: existing, token: "", alreadyRequested: true };
   }
 
-  const token = crypto.randomBytes(32).toString("base64url");
+  // A token is minted only on the manual approval path — B833. The Stripe path
+  // (method null) is settled by a signed webhook, never by this token, so
+  // minting one there put a hash on the row that nothing could ever spend and
+  // parked the row in the operator's /admin queue under a sentence promising a
+  // mail that was never sent. No method, no token, no queue entry.
+  const manual = method !== null;
+  const token = manual ? crypto.randomBytes(32).toString("base64url") : "";
   await handle.db
     .updateTable("payments")
     .set({
       status: "requested",
       method,
       requested_at: nowIso(),
-      approve_token_hash: hashToken(token),
+      approve_token_hash: manual ? hashToken(token) : null,
     })
     .where("id", "=", id)
     .where("owner_id", "=", owner)

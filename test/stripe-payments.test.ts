@@ -173,6 +173,27 @@ describe("the sandbox switch is the key itself", () => {
   });
 });
 
+describe("the operator approval queue (B833)", () => {
+  test("excludes Stripe rows, which have no approval token, and keeps manual ones", async () => {
+    const { createPayment, submitRequest, paymentsAwaiting } = await import("@/lib/payments");
+    const { tierFor } = await import("@/lib/credits/pricing");
+
+    // A Stripe-path request (method null) mints no token — it settles by
+    // webhook — so it must not sit in the operator's queue.
+    const stripeRow = await createPayment(OWNER, tierFor("50")!);
+    await submitRequest(OWNER, stripeRow!.id, null);
+
+    // A manual request (a named method) does mint a token and does belong.
+    const manualRow = await createPayment(OWNER, tierFor("50")!);
+    await submitRequest(OWNER, manualRow!.id, "twint");
+
+    const queue = await paymentsAwaiting();
+    const ids = queue.map((p) => p.id);
+    expect(ids).toContain(manualRow!.id);
+    expect(ids).not.toContain(stripeRow!.id);
+  });
+});
+
 describe("the webhook", () => {
   test("refuses a body with no signature, and grants nothing", async () => {
     const p = await requested();
