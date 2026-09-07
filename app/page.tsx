@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Landing from "@/components/Landing";
+import Pricing from "@/components/Pricing";
 import { isEnabled } from "@/lib/capabilities";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { publicJournals } from "@/lib/home";
@@ -70,7 +71,8 @@ export default async function Root() {
   // bannerFor(). Same locale rule as the tab title above, and for the same
   // reason: a German page with an English warning across the top of it is the
   // bug B225 fixed, one element higher.
-  const banner = bannerFor(await requestLocale());
+  const locale = await requestLocale();
+  const banner = bannerFor(locale);
 
   return (
     <>
@@ -121,6 +123,12 @@ export default async function Root() {
         // note on CODE_TTL_MINUTES.
         codeMinutes={CODE_TTL_MINUTES}
         helperEnabled={helperEnabled}
+        // Rendered here and handed over, because `Landing` is a client
+        // component and `Pricing` is a server one: it reads a price from the
+        // `server-only` module that charges it rather than having a dozen
+        // numbers drilled through as props. Absent — not empty — on an
+        // instance that charges nothing at all. B840.
+        pricing={isEnabled("credits") ? <Pricing locale={locale} /> : null}
       />
     </>
   );

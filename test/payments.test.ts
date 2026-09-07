@@ -100,7 +100,7 @@ async function reset(operatorEmail: string | undefined) {
 async function requestWithToken(owner = OWNER): Promise<{ id: string; token: string }> {
   const { createPayment, submitRequest } = await import("@/lib/payments");
   const { tierFor } = await import("@/lib/credits/pricing");
-  const p = await createPayment(owner, tierFor("100")!);
+  const p = await createPayment(owner, tierFor("200")!);
   if (!p) throw new Error("no payment");
   const r = await submitRequest(owner, p.id, "twint");
   if (!r.ok) throw new Error("submit failed");
@@ -110,7 +110,7 @@ async function requestWithToken(owner = OWNER): Promise<{ id: string; token: str
 async function newPending(owner = OWNER) {
   const { createPayment } = await import("@/lib/payments");
   const { tierFor } = await import("@/lib/credits/pricing");
-  const p = await createPayment(owner, tierFor("100")!);
+  const p = await createPayment(owner, tierFor("200")!);
   if (!p) throw new Error("no payment");
   return p;
 }
@@ -198,10 +198,10 @@ describe("approving grants the credits, exactly once", () => {
 
     const res = await approveRoute(OWNER, id, { token });
     expect(res.status).toBe(200);
-    expect(res.body.creditsGranted).toBe(100);
+    expect(res.body.creditsGranted).toBe(200);
     // Balance rose by exactly the tier, one new ledger row (the grant), and the
     // buyer got a confirmation.
-    expect(await balanceOf(OWNER)).toBe(balanceBefore + 100);
+    expect(await balanceOf(OWNER)).toBe(balanceBefore + 200);
     expect((await ledgerFor(OWNER)).length).toBe(ledgerBefore + 1);
     expect(mailFiles().length).toBe(buyerMailBefore + 1);
 

@@ -277,28 +277,27 @@ describe("two presses at once", () => {
   });
 });
 
-describe("too few credits", () => {
-  test("the quote says so and nothing is spent", async () => {
+describe("an empty balance — B840", () => {
+  test("a mail-only announcement quotes nothing and goes out anyway", async () => {
     writeServerConfig({ credits: true });
     // No grant at all: a journal with no `credits` row has a balance of
-    // zero, which is what every journal starts with (`lib/credits.ts`).
+    // zero, which is what every journal starts with (`lib/credits.ts`). This
+    // used to quote one credit, answer 402 and send nothing.
     await addReader();
     writeEntry({ slug: "day-one" });
 
     const { GET, POST } = await route();
 
     const status = await (await GET(req("GET"), paramsFor("day-one"))).json();
-    expect(status).toMatchObject({ ok: true, needed: 1, balance: 0, short: true });
+    expect(status).toMatchObject({ ok: true, needed: 0, balance: 0, short: false });
 
     const response = await POST(req("POST"), paramsFor("day-one"));
-    expect(response.status).toBe(402);
-    const body = await response.json();
-    expect(body).toMatchObject({ error: "no_credits", needed: 1, balance: 0 });
+    expect(response.status).toBe(200);
 
-    // Nothing charged, nothing sent, nothing recorded.
+    // Sent, and still nothing charged: the reader and the owner both got one.
     expect(await balanceOf(OWNER)).toBe(0);
-    expect(mailFiles()).toEqual([]);
+    expect(mailFiles()).toHaveLength(2);
     const still = await (await GET(req("GET"), paramsFor("day-one"))).json();
-    expect(still.alreadySent).toBe(false);
+    expect(still.alreadySent).toBe(true);
   });
 });

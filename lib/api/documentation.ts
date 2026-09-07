@@ -1724,15 +1724,16 @@ and a \`test: true\` day sends nothing at all, whatever the flag says. The
 count comes back, never the addresses; a send that failed shows up as a
 count and a reason, not only in a server log a person never opens (B272).
 
-**Sending may cost credits, and an empty balance stops the publish.** Where
-this server charges for sends — B366 — one credit goes per email and one per
-WhatsApp message, counting everybody but the owner: their own copy of a day
-goes out on both channels and is free, so a journal with no guests yet can
-publish on an empty balance. Both requested channels are priced together,
-against one balance, **before** anything is published: a journal that cannot cover the
-whole send gets **402** with \`needed\` and \`balance\`, the day stays a draft,
-and nothing is sent. It is all-or-nothing, so half a mailing list is never the
-outcome.
+**Email to readers is free. WhatsApp may cost credits, and an empty balance
+stops a publish that asks for it.** A letter costs nothing whatever the size of
+the readership — B840 — so \`send_mail\` on its own is never refused for money
+and never has to be checked against a balance first. Where this server charges
+for sends (B366), one credit goes per WhatsApp message, counting everybody but
+the owner: their own copy goes out free on both channels. The requested
+channels are priced together, against one balance, **before** anything is
+published: a journal that cannot cover the whole send gets **402** with
+\`needed\` and \`balance\`, the day stays a draft, and nothing is sent. It is
+all-or-nothing, so half a mailing list is never the outcome.
 
 \`GET /api/v1/${example}/status\` carries \`credits.balance\` when the server
 bills; read it before you publish with either flag rather than discovering an
@@ -1748,7 +1749,7 @@ in a browser, at a payment provider, and the credits land when the provider
 tells this server they did. Owner-only, like every other credits call.
 
 So the honest report is: *"that send needs N credits and the balance is M —
-here is a link to buy 100 for CHF 18.00, open it when you like."* Hand over the
+here is a link to buy more, open it when you like."* Hand over the
 URL. Do not say credits were added, and do not press on and retry the send.
 
 The tiers are fixed and this instance's are:

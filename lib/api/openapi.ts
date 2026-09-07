@@ -1716,17 +1716,19 @@ export function openApiDocument() {
             "`flagsIgnoredMessage` naming which key was present but not a boolean. Absence of " +
             "the key stays silent — that is the honest \"did not ask\" — only a present, " +
             "wrong-typed value is called out.\n\n" +
-            "**Sending costs credits where this server charges for them** — B366, one per " +
-            "email and one per WhatsApp message. Both requested channels are priced " +
-            "together against one balance *before* anything is published: if the journal " +
-            "cannot cover the whole send, this answers **402** with `needed` and `balance`, " +
-            "the day stays a draft and nothing is sent. It is all-or-nothing, so a partial " +
+            "**Email to readers is free; WhatsApp costs credits where this server charges " +
+            "for them.** A letter costs nothing whatever the size of the readership (B840), " +
+            "so `send_mail` on its own can never be refused for money. `send_whatsapp` is " +
+            "one credit per message (B366). The requested channels are priced together " +
+            "against one balance *before* anything is published: if the journal cannot " +
+            "cover the whole send, this answers **402** with `needed` and `balance`, the " +
+            "day stays a draft and nothing is sent. It is all-or-nothing, so a partial " +
             "delivery is never the outcome. A publish with neither flag is never charged " +
-            "and never refused for credits. `GET /api/v1/{user}/status` carries the balance; " +
-            "read it first rather than discovering an empty account here. Only the journal's " +
-            "owner can add credits, and only from a shell on the server — there is no " +
-            "purchase call, so a 402 is a message to pass on, never something to retry " +
-            "around.",
+            "and never refused for credits. `GET /api/v1/{user}/status` carries the " +
+            "balance; read it first rather than discovering an empty account here. Nothing " +
+            "an agent holds can add credits — `POST /api/v1/{user}/credits/purchase` " +
+            "answers with a link for the owner to open — so a 402 is a message to pass on, " +
+            "never something to retry around.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
             { name: "trip", in: "path", required: true, schema: { type: "string" } },
@@ -1769,8 +1771,9 @@ export function openApiDocument() {
             "400": { description: "The day could not be published — the body says why" },
             "402": {
               description:
-                "Not enough credits for the send this call asked for. Nothing was " +
-                "published and nothing was charged; `needed` and `balance` say by how much.",
+                "Not enough credits for the send this call asked for — which since B840 " +
+                "means `send_whatsapp`, mail being free. Nothing was published and nothing " +
+                "was charged; `needed` and `balance` say by how much.",
             },
             "401": { description: "Missing or invalid token" },
             "403": {
@@ -1797,7 +1800,10 @@ export function openApiDocument() {
             "whole of the safeguard, so ask in words before calling it a second time, the " +
             "same discipline as `/publish` itself. The response says `resend: true` and how " +
             "many letters went; never who to. A `test: true` day, or one still a draft, " +
-            "refuses outright rather than sending nothing quietly.",
+            "refuses outright rather than sending nothing quietly.\n\n" +
+            "**Free, whatever the size of the readership.** This answered 402 on an empty " +
+            "balance until B840; it no longer costs credits and no longer refuses for " +
+            "them. `/send-whatsapp` still does.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
             { name: "trip", in: "path", required: true, schema: { type: "string" } },
@@ -1808,14 +1814,6 @@ export function openApiDocument() {
             "400": {
               description:
                 "Content nobody lived, or mail/contacts is not enabled here — the body says which",
-            },
-            "402": {
-              description:
-                "Not enough credits for this send, where the server charges for them " +
-                "(B366). Nothing was sent and nothing was charged; `needed` and `balance` " +
-                "say by how much. Only the owner can add credits, from a shell on the " +
-                "server — there is no purchase call, so this is a message to pass on " +
-                "rather than something to retry around.",
             },
             "401": { description: "Missing or invalid token" },
             "403": {

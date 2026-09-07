@@ -9,6 +9,7 @@ import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";
 import TripListProvider from "@/components/TripListProvider";
 import { dictionaryFor } from "@/lib/locales";
+import { POSTCARD_CREDITS, TIERS, formatChf } from "@/lib/credits/pricing";
 import type { SiteSummary } from "@/lib/site";
 
 /**
@@ -119,16 +120,21 @@ describe("the payment section", () => {
     expect(html).not.toContain("up to 2");
   });
 
-  test("totals what one published day costs right now", () => {
+  test("totals what one published day costs right now — the free channel adding nothing", () => {
     const html = render({ payment });
     expect(html).toContain(dictionaryFor("en")["me.paymentDayTotal"]);
-    expect(html).toContain(">7<");
+    // Five email readers and two on WhatsApp. Email costs nothing since B840,
+    // so the day is two credits and the email row says so in words rather
+    // than printing a zero.
+    expect(html).toContain(">2<");
+    expect(html).toContain(dictionaryFor("en")["me.paymentFree"]);
   });
 
   test("a muted channel still has a row, and costs nothing", () => {
     const html = render({ payment: { ...payment, channels: { mail: true, whatsapp: false } } });
     expect(html).toContain("up to 2");
-    expect(html).toContain(">5<");
+    // Only the paid channel is muted, and the free one never added anything.
+    expect(html).toContain(">0<");
   });
 
   test("both channels muted means a day costs nothing at all", () => {
@@ -137,8 +143,8 @@ describe("the payment section", () => {
   });
 
   test("names the price of a printed postcard where cards can be sent", () => {
-    const html = render({ payment: { ...payment, postcardCredits: 15 } });
-    expect(html).toContain("A printed postcard is 15 credits per card.");
+    const html = render({ payment: { ...payment, postcardCredits: POSTCARD_CREDITS } });
+    expect(html).toContain(`A printed postcard is ${POSTCARD_CREDITS} credits per card.`);
   });
 
   test("says nothing about postcards on a journal that does not offer them", () => {
@@ -146,16 +152,16 @@ describe("the payment section", () => {
     expect(html).not.toContain("A printed postcard");
   });
 
-  test("offers the three tiers behind the buy button, none of them disabled", () => {
+  test("offers every tier behind the buy button, none of them disabled", () => {
     const html = render({ payment });
     expect(html).toContain(dictionaryFor("en")["me.paymentBuyTitle"]);
     expect(html).not.toContain('disabled=""');
-    expect(html).toContain("50 credits");
-    expect(html).toContain("CHF 10.00");
-    expect(html).toContain("100 credits");
-    expect(html).toContain("CHF 18.00");
-    expect(html).toContain("200 credits");
-    expect(html).toContain("CHF 32.00");
+    // Read off TIERS rather than typed out: B840 dropped the middle one, and
+    // a list of prices beside the list of prices is how the two disagree.
+    for (const tier of TIERS) {
+      expect(html).toContain(`${tier.credits} credits`);
+      expect(html).toContain(formatChf(tier.priceRappen));
+    }
   });
 
   /** `payment` is `undefined` when credits are switched off — B74: the

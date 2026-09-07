@@ -504,18 +504,26 @@ export default function AccountPageContent({
           icon: Mail,
           labelKey: "me.paymentChannelEmail",
           recipients: payment.emailRecipients,
+          // B840 — email to a reader the owner approved by hand costs a
+          // hundredth of a Rappen to deliver, and is no longer charged for.
+          // The row still says how many people it reaches, because that is
+          // the number the owner is actually asking about.
+          costs: false,
         },
         {
           key: "whatsapp",
           icon: MessageCircle,
           labelKey: "me.paymentChannelWhatsapp",
           recipients: payment.whatsappRecipients,
+          // Meta invoices per message, so this one does.
+          costs: true,
         },
       ] as const)
     : [];
 
   const dayCost = CHANNELS.reduce(
-    (total, { key, recipients }) => total + (payment?.channels[key] ? recipients : 0),
+    (total, { key, recipients, costs }) =>
+      total + (costs && payment?.channels[key] ? recipients : 0),
     0,
   );
 
@@ -597,7 +605,7 @@ export default function AccountPageContent({
                     {t("me.paymentEstimateTitle")}
                   </p>
                   <ul className="mt-2 border-t border-navy-200">
-                    {CHANNELS.map(({ key, icon: Icon, labelKey, recipients }) => {
+                    {CHANNELS.map(({ key, icon: Icon, labelKey, recipients, costs }) => {
                       const on = payment.channels[key];
                       if (on === null) return null;
                       return (
@@ -614,7 +622,13 @@ export default function AccountPageContent({
                               {tn("me.paymentUpTo", recipients, { count: String(recipients) })}
                               {" · "}
                               <span className={on ? "font-semibold text-navy-900" : undefined}>
-                                {on ? recipients : 0} {tn("me.paymentUnit", on ? recipients : 0)}
+                                {costs ? (
+                                  <>
+                                    {on ? recipients : 0} {tn("me.paymentUnit", on ? recipients : 0)}
+                                  </>
+                                ) : (
+                                  t("me.paymentFree")
+                                )}
                               </span>
                             </span>
                           </div>

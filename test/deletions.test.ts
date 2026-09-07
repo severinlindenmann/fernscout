@@ -103,11 +103,14 @@ afterEach(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-function makeJournal(username = "anna") {
+/** One address owns one journal (B840), so a test that wants a second journal
+ *  has to give it an owner of its own — which is what these tests mean anyway:
+ *  the point is somebody else's journal, not a second one of Anna's. */
+function makeJournal(username = "anna", ownerEmail = OWNER) {
   const created = createJournal({
     username,
     title: "Anna's journal",
-    ownerEmail: OWNER,
+    ownerEmail,
     ownerName: "Anna Traveller",
     ownerNickname: "Anna",
   });
@@ -327,7 +330,7 @@ describe("who may ask", () => {
 
   test("a token for another journal cannot reach this one", async () => {
     const anna = makeJournal("anna");
-    makeJournal("bruno");
+    makeJournal("bruno", "bruno@example.test");
     const brunosToken = await tokenFor("bruno", "bruno@example.test");
 
     const response = await deleteJournalRoute(request(`https://t.test/api/v1/${anna}`, brunosToken), {
@@ -429,7 +432,7 @@ describe("the link", () => {
 
   test("a token issued for one journal will not delete another", async () => {
     const anna = makeJournal("anna");
-    const bruno = makeJournal("bruno");
+    const bruno = makeJournal("bruno", "bruno@example.test");
     makeTrip(anna);
     makeTrip(bruno);
     await requestDeletion({ kind: "journal", username: anna });

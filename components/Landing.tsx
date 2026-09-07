@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   AgentBlock,
   AgentDisclosure,
@@ -85,6 +85,7 @@ export default function Landing({
   legal,
   codeMinutes,
   helperEnabled = false,
+  pricing,
 }: {
   siteName: string;
   docUrl: string;
@@ -112,6 +113,12 @@ export default function Landing({
    * bring-your-own instruction box, further down either way. Defaults to
    * off, which is every instance's answer today. */
   helperEnabled?: boolean;
+  /** The pricing table, rendered by the page and handed over — B840. A server
+   * component (`components/Pricing.tsx`) because every price it prints is
+   * read from the `server-only` module that charges it, which is why it
+   * arrives as an element rather than as data. `null` on an instance with
+   * credits switched off, where nothing costs anything. */
+  pricing?: ReactNode;
 }) {
   const { t } = useI18n();
   const [phase, setPhase] = useState<Phase>("unknown");
@@ -293,6 +300,12 @@ export default function Landing({
                 <LandingSteps />
               </>
             )}
+            {/* Below the pitch and above the journals: what it costs is the
+                second question somebody asks, and the answer belongs before
+                they go looking at other people's holidays. Inside this
+                branch rather than beside it, so it is not sitting under the
+                skeleton while a signed-in reader's own page loads. B840. */}
+            {pricing}
           </>
         )}
         {publicList}

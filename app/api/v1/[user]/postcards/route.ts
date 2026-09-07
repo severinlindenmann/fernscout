@@ -49,7 +49,7 @@ export const dynamic = "force-dynamic";
 
 /** Enough to write to everybody who could plausibly be on a list, and few
  * enough that a mistake is a mistake rather than a catastrophe: at
- * `POSTCARD_CREDITS` each, this caps one order at 375 credits. */
+ * `POSTCARD_CREDITS` each, this caps one order at 500 credits. */
 const MAX_RECIPIENTS = 25;
 
 /** A postcard, not a letter. `renderPostcard` reports truncation rather than
