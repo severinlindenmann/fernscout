@@ -2289,12 +2289,14 @@ Days written before this field existed do not carry it.
 
 **The body limit is the one that bites, and it is not the per-file limit.**
 Forty photographs may go in one call and each may be ${(IMAGE_MAX_BYTES / 1024 / 1024).toFixed(0)} MB, but the request
-carrying them may not exceed ${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(0)} MB in total — so a phone's originals go
-three or four to a call, not forty. Sending more is answered \`413 body_too_large\`
-with the cap and what arrived; nothing is written, and the day appends across as
-many calls as you like. A *single* file larger than ${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(0)} MB cannot come through
-this door at all — that is the one case where the per-file allowance above is
-not reachable over the network, and \`npm run ingest\` on the server is the way in.
+carrying them may not exceed ${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(0)} MB in total, so a batch of phone
+originals is several calls rather than one. Sending more is answered
+\`413 body_too_large\` with the cap and what arrived; nothing is written, and the
+day appends across as many calls as you like. The cap sits above the largest
+single file allowed above, so anything the per-file limits accept can be sent —
+one large clip is simply a call of its own. \`npm run ingest\`, run on the server
+against a folder, has no ceiling at all and is still the way to move a card's
+worth of files at once.
 
 These are this instance's defaults, from lib/validate/. An operator can change
 any of them in the \`media\` block of \`site/config.json\`, and a journal may

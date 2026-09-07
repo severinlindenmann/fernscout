@@ -135,7 +135,7 @@ function nextIndex(dir: string): number {
  * wrongly is caught downstream — a "video" that will not probe and an "image"
  * that will not decode are both refused with a message that names the file.
  */
-function kindOf(filename: string): "image" | "video" {
+export function kindOf(filename: string): "image" | "video" {
   return VIDEO_EXTENSIONS.has(path.extname(filename).toLowerCase()) ? "video" : "image";
 }
 

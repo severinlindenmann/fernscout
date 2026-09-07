@@ -7,7 +7,7 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { issueCode, verifyCode } from "@/lib/auth";
-import { IMAGE_MAX_BYTES, REQUEST_MAX_BYTES } from "@/lib/validate/media";
+import { IMAGE_MAX_BYTES, REQUEST_MAX_BYTES, VIDEO_MAX_BYTES } from "@/lib/validate/media";
 import nextConfig from "@/next.config";
 import { POST } from "@/app/api/v1/[user]/trips/[trip]/media/route";
 
@@ -81,6 +81,14 @@ describe("the request-body cap", () => {
     expect(REQUEST_MAX_BYTES).toBeGreaterThan(IMAGE_MAX_BYTES);
   });
 
+  test("and above the per-clip cap, which for a long time it was not", () => {
+    // The same fault as the one above, one file type over: video was
+    // advertised at 200 MB while the body cap stood at 64, so the largest clip
+    // the documentation promised could not be sent through this door at all.
+    // Both moved together; this is what keeps them moving together.
+    expect(REQUEST_MAX_BYTES).toBeGreaterThan(VIDEO_MAX_BYTES);
+  });
+
   test("is the number Next actually enforces, not a second one written in prose", () => {
     expect(nextConfig.experimental?.proxyClientMaxBodySize).toBe(REQUEST_MAX_BYTES);
   });
@@ -105,9 +113,56 @@ describe("the request-body cap", () => {
     expect(body.error).toBe("body_too_large");
     // Not `expected_multipart`, which is the refusal that cost the reporting
     // run three wrong hypotheses.
-    expect(String(body.message)).toMatch(/64\.0 MB/);
+    // The cap from the constant, never a number typed here: this test exists
+    // to prove the refusal names the real limit, and a literal would go on
+    // passing after the limit moved.
+    expect(String(body.message)).toContain(
+      `${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(1)} MB`,
+    );
     expect(JSON.stringify(body.problems)).toMatch(/in one request/);
   });
+
+  /**
+   * A clip between the two caps is not an oversized photograph.
+   *
+   * The per-file pre-check measured every file against `IMAGE_MAX_BYTES`,
+   * which was harmless while nothing over 64 MB could reach the route at all,
+   * and is the difference between landing and being refused now that a clip
+   * may be 500 MB — in a message naming a limit that was never the one for it.
+   *
+   * Both files are really that big. `File.size` is a prototype getter and the
+   * FormData a Request is built from does not keep an instance that lies about
+   * it, so a claimed size is a test that passes for the wrong reason.
+   */
+  test("the per-file cap is the one for that kind of file", async () => {
+    const token = await ownerToken();
+    fs.writeFileSync(
+      path.join(dir, "alex", "trips", "reise", "entries", "2026-09-02-tag.md"),
+      ["---", 'title: "Tag"', 'date: "2026-09-02"', "---", "", "Words.", ""].join("\n"),
+    );
+
+    const overImageCap = new Uint8Array(IMAGE_MAX_BYTES + 1);
+    const form = new FormData();
+    form.set("day", "tag");
+    form.append("files", new File([overImageCap], "clip.mp4", { type: "video/mp4" }));
+    form.append("files", new File([overImageCap], "photo.jpg", { type: "image/jpeg" }));
+
+    const response = await POST(
+      new Request("https://t.test/api/v1/alex/trips/reise/media", {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}` },
+        body: form,
+      }),
+      { params: Promise.resolve({ user: "alex", trip: "reise" }) },
+    );
+    const body = (await response.json()) as Record<string, unknown>;
+
+    // The photograph is the one over its cap; the clip of the same size is not.
+    expect(response.status).toBe(400);
+    expect(JSON.stringify(body)).toContain("for a photograph");
+    expect(JSON.stringify(body)).toContain("photo.jpg");
+    expect(JSON.stringify(body)).not.toContain("clip.mp4");
+  }, 60_000);
 
   test("a body under it is not refused for its size", async () => {
     const token = await ownerToken();
