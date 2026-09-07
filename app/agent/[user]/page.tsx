@@ -51,6 +51,10 @@ export default async function AgentWizardPage({ params }: PageProps<"/agent/[use
         consented: hasHelperConsent(user, "words"),
         consentedPhotos: hasHelperConsent(user, "photos"),
         credits: WRITE_DAY_CREDITS,
+        // B686. A second switch and a second yes: an instance may run speech
+        // with no model at all, and the wizard draws whichever it has.
+        speech: isEnabled("transcription", user),
+        consentedSpeech: hasHelperConsent(user, "speech"),
       }}
     />
   );

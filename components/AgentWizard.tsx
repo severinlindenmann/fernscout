@@ -6,6 +6,7 @@ import ConfirmPanel from "@/components/ConfirmPanel";
 import { drain, enqueue, outstanding, type QueueProgress } from "@/components/uploadQueue";
 import CurrencyProvider from "@/components/CurrencyProvider";
 import { useI18n } from "@/components/LocaleProvider";
+import RecordButton from "@/components/RecordButton";
 import { DayCard } from "@/components/StoryPager";
 import { creditsForPhotos } from "@/lib/helper/credits";
 import { NO_PROSE, stepFor, WIZARD_STEPS, type WizardDraft, type WizardStep } from "@/lib/helper/draft";
@@ -61,6 +62,10 @@ type Preview = { day: Day; summary: DaySummary; dayIndex: number };
 type HelperState = {
   enabled: boolean;
   consented: boolean;
+  /** B686 — the transcriber is its own capability and its own consent, so a
+   *  journal may have speech with no model or a model with no speech. */
+  speech: boolean;
+  consentedSpeech: boolean;
   /** Whether the journal has separately agreed to photographs leaving the
    *  machine — B687. Never inferred from `consented` above. */
   consentedPhotos: boolean;
@@ -838,6 +843,22 @@ export default function AgentWizard({
             onChange={(event) => setProse(event.target.value)}
             className="mt-1 w-full rounded-xl border border-navy-300 bg-white p-3 text-base leading-7 text-navy-900"
           />
+
+          {/* B686 — talking instead of typing, and it lands in the same box
+              the typing does. Its own capability: speech works with the model
+              switched off, and the model works with no microphone. */}
+          {helper.speech && (
+            <RecordButton
+              username={username}
+              consented={helper.consentedSpeech}
+              disabled={busy}
+              onText={(said) =>
+                // Appended, never replacing: somebody who has already written
+                // half a day and then says the rest keeps both halves.
+                setProse((was) => (was.trim() === "" || was.trim() === NO_PROSE ? said : `${was}\n\n${said}`))
+              }
+            />
+          )}
 
           {/* B684 — the model, and the only place in this wizard where one is
               spoken to. Absent when the capability is off, which is the whole

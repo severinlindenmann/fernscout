@@ -32,6 +32,7 @@ export const FEATURE_NAMES = [
   "weather",
   "analytics",
   "helper",
+  "transcription",
 ] as const;
 
 export type FeatureName = (typeof FEATURE_NAMES)[number];
@@ -67,6 +68,12 @@ export const OPERATOR_ONLY_FEATURES = [
   // machine at all — is `lib/helper/consent.ts`, which is a person reading a
   // panel rather than a flag in a file nobody sees.
   "helper",
+  // B686. Speech is the same claim again, one supplier further along: the
+  // transcriber spends the operator's key, so a journal has nothing to
+  // consent to *here*. What it does consent to — its owner's own voice
+  // leaving the machine — is the `speech` scope in lib/helper/consent.ts,
+  // which is a person reading a panel rather than a flag in a file.
+  "transcription",
 ] as const satisfies readonly FeatureName[];
 
 /**
@@ -366,6 +373,12 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // lib/capabilities.ts for why the last of those is a requirement rather
   // than a nicety.
   helper: { enabled: false },
+  // B686. Off by default like every optional capability, and off means no
+  // record button anywhere: the wizard and the ask box take typed words
+  // exactly as they did before. `dry-run` is the backend a checkout without a
+  // Deepgram account gets, and it returns a canned transcript rather than
+  // failing — see lib/helper/transcribe.ts.
+  transcription: { enabled: false, backend: "dry-run" },
 };
 
 /**

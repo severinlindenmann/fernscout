@@ -1230,5 +1230,16 @@
   "agent.captionsTitle": "Suggested captions",
   "agent.captionsHint": "Read each one, and keep it or discard it. Nothing has been saved yet.",
   "agent.captionEmpty": "Nothing to say about this one.",
+  "agent.speechHold": "Hold to talk · 1 credit per {minutes} minutes",
+  "agent.speechRecording": "Listening… {seconds}s · {credits} credits",
+  "agent.speechRecording.one": "Listening… {seconds}s · {credits} credit",
+  "agent.speechWorking": "Turning that into words…",
+  "agent.speechLanguage": "The language you are speaking",
+  "agent.speechLanguageDefault": "Whatever this journal is written in",
+  "agent.speechConsentLabel": "Send my voice to be written down",
+  "agent.speechConsent": "This sends the recording you are about to make — your voice, and nothing else — to Deepgram, who turn it into text. Not your photographs, not your location history, not your contacts, not anybody's address. The recording is not kept: it is transcribed and dropped, and no copy of it is written down anywhere on this server. The words come back into the box for you to read and change, and nothing is saved until you save it. It costs one credit per {minutes} started minutes. Your voice is not used to train anybody's model. This is remembered for this journal until you withdraw it, separately from consent to send your words or your photographs.",
+  "agent.speechConsentConfirm": "Yes, send my voice",
+  "agent.speechUnsupported": "This browser cannot record audio. Type instead — everything else works the same.",
+  "agent.speechDenied": "The microphone was not given. Allow it in your browser's settings, or type instead.",
   "agent.failed": "That did not work: {error}"
 }

@@ -66,6 +66,7 @@ export type LedgerReason =
   | "photobook"
   | "storage"
   | "helper"
+  | "transcription"
   | "refund";
 
 /**
@@ -96,7 +97,13 @@ export type SpendReason =
    * *before* the call and refunded when the call fails, because a credit that
    * bought nothing is not spent; `lib/idempotency.ts` is what stops a retry
    * charging twice. */
-  | "helper";
+  | "helper"
+  /** One recording turned into text — B686. Its own value rather than
+   * `helper` for the reason `digest` is its own value above: the ledger is
+   * what an operator reconciles a bill against, and two suppliers are two
+   * bills. Charged per *started* minute, before the call, refunded when the
+   * call fails. */
+  | "transcription";
 
 export type LedgerRow = {
   id: string;

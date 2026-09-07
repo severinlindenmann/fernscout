@@ -57,6 +57,13 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   // helper's own: nothing here writes a row except the ledger, and a spend
   // nobody could record would be a free model call with no trace.
   helper: { env: ["ANTHROPIC_API_KEY"], db: true },
+  // B686. The key is environment-only for the same reason the helper's is,
+  // and the database is again `credits`' storage rather than this
+  // capability's own: a minute of somebody's voice is metered, and a spend
+  // nobody could record would be an unmetered call billed to the operator.
+  // Backend-specific env is in `configuredEnv` below, so `dry-run` needs
+  // nothing at all.
+  transcription: { env: [], db: true },
 };
 
 /** Transport and provider choices carry their own credential requirements.
@@ -80,6 +87,18 @@ const TRANSPORT_ENV: Record<string, readonly string[]> = {
 const WHATSAPP_BACKEND_ENV: Record<string, readonly string[]> = {
   "dry-run": [],
   cloud: ["WHATSAPP_ACCESS_TOKEN", "WHATSAPP_PHONE_NUMBER_ID"],
+};
+
+/**
+ * What each transcription backend needs — B686. Beside `WHATSAPP_BACKEND_ENV`
+ * rather than imported from `lib/helper/transcribe.ts`, which is
+ * `server-only`: this module is read from places a `server-only` import would
+ * poison, and a two-row table is cheaper than that risk. The names are the
+ * ones `speechBackend()` dispatches on.
+ */
+const SPEECH_BACKEND_ENV: Record<string, readonly string[]> = {
+  "dry-run": [],
+  deepgram: ["DEEPGRAM_API_KEY"],
 };
 
 const PROVIDER_ENV: Record<string, readonly string[]> = {
@@ -176,6 +195,17 @@ function configuredEnv(name: FeatureName, feature: Record<string, unknown>): {
     }
     return { env };
   }
+  if (name === "transcription") {
+    const backend = optionOf(feature, "backend") ?? "dry-run";
+    const env = SPEECH_BACKEND_ENV[backend];
+    if (!env) {
+      return {
+        env: [],
+        problem: `features.transcription.backend "${backend}" is unknown (expected one of: ${Object.keys(SPEECH_BACKEND_ENV).join(", ")})`,
+      };
+    }
+    return { env };
+  }
   if (name === "postcards" || name === "photobook") {
     const provider = optionOf(feature, "provider") ?? "dry-run";
     const env = PROVIDER_ENV[provider];
@@ -252,6 +282,19 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
       name,
       enabled: false,
       reason: "features.helper is enabled but features.credits is not (every model call is metered)",
+    };
+  }
+
+  // B686. The same argument, for the same reason: a minute of transcription
+  // is metered, and `spend` with charging off succeeds without writing
+  // anything — so speech on top of a credits that is off is not cheaper
+  // speech, it is unmetered speech billed to the operator.
+  if (name === "transcription" && !resolveOne("credits").enabled) {
+    return {
+      name,
+      enabled: false,
+      reason:
+        "features.transcription is enabled but features.credits is not (every minute is metered)",
     };
   }
 
