@@ -256,8 +256,24 @@ export async function refund(owner: string, n: number, ref: string): Promise<voi
 
 /** The first grant a new journal ever sees — B688, plan §6's "a free grant on
  * signup". Fixed rather than configurable: a number a request could name
- * would be property 1's whole exception swallowed by its own loophole. */
-export const SIGNUP_CREDIT_GRANT = 20;
+ * would be property 1's whole exception swallowed by its own loophole.
+ *
+ * **Ten, and the number is chosen against `POSTCARD_CREDITS` rather than
+ * picked for generosity.** Signing up is self-service — an email address and a
+ * code, five an hour per IP — so this grant is mintable by anyone willing to
+ * hold a throwaway inbox. That is fine while it only buys things this server
+ * computes: ten days written, or a hundred photographs captioned, or fifty
+ * minutes of speech. It stops being fine the moment it reaches something a
+ * printer invoices the operator for, because then a signup is a way to spend
+ * somebody else's money. A posted postcard is fifteen credits and about two
+ * euros of real cost; a photobook is ninety and up.
+ *
+ * So the rule is: **the signup grant stays strictly below the cheapest spend
+ * that leaves the building.** `test/credits.test.ts` asserts it, because this
+ * is exactly the number somebody raises to be welcoming without noticing what
+ * it unlocks. Raising it means either finding another way to keep granted
+ * credits away from the printers, or accepting the invoice. */
+export const SIGNUP_CREDIT_GRANT = 10;
 
 /**
  * Put credits into a journal. **Operator only, or the signup route.**

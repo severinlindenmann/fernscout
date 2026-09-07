@@ -6,6 +6,7 @@ import { POST } from "@/app/api/v1/journals/route";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { balanceOf, ledgerFor, SIGNUP_CREDIT_GRANT } from "@/lib/credits";
+import { POSTCARD_CREDITS, photobookCredits } from "@/lib/credits/pricing";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { NO_JOURNAL, issueCode, verifyCode } from "@/lib/auth";
 
@@ -117,5 +118,29 @@ describe("the free grant, with credits off", () => {
 
     // creditsEnabled() is false, so balanceOf reports "no such number" too.
     expect(await balanceOf("wanderer")).toBe(null);
+  });
+});
+
+/**
+ * The one property that decides how large the welcome may be — B688.
+ *
+ * Signing up is self-service: an email address and a six-digit code, five an
+ * hour per IP. So whatever a new journal is given, anybody willing to hold a
+ * throwaway inbox can mint. That is harmless while it buys only things this
+ * server computes, and stops being harmless the moment it reaches something a
+ * printer sends the operator an invoice for.
+ *
+ * This test is here because the failure is silent and arrives as a bill: the
+ * grant is exactly the number somebody raises to be more welcoming, and
+ * nothing about raising it looks like opening a way to spend somebody else's
+ * money.
+ */
+describe("the signup grant cannot buy anything physical", () => {
+  test("is strictly less than a posted postcard", () => {
+    expect(SIGNUP_CREDIT_GRANT).toBeLessThan(POSTCARD_CREDITS);
+  });
+
+  test("is strictly less than the smallest photobook", () => {
+    expect(SIGNUP_CREDIT_GRANT).toBeLessThan(photobookCredits(20, "a5"));
   });
 });
