@@ -95,3 +95,65 @@ true.
   other people's.
 - No request parameter can widen what a caller sees; a test covers a non-owner
   asking for somebody else's rows and getting their own.
+
+## Triage / what was built
+
+`guard()` in `app/api/v1/[user]/keys/route.ts` used to be `isOwner` or `403`.
+It is now: owner (sees/revokes everything, unchanged) **or** a caller who has
+proved an address — a `resolveAccess` cookie (guest/identity) or, since a
+buddy typically drives an agent rather than a browser, a trip-scoped
+**bearer** `agent` token (`callerEmail()`, mirroring `isOwner`'s own admin
+bearer fallback) — who sees/revokes only rows whose `email` matches theirs.
+Only a caller who has proved no address at all still gets the owner's
+`forbidden`. The filter is entirely server-side, from the resolved address;
+`GET` takes no query parameters at all, so there is nothing to widen it with.
+
+`lib/auth/index.ts`'s `listSessions()` now also selects `sessions.scope` (it
+already selected `email`, which was simply never read by the route before).
+`GET`'s response carries `scope` on every row (in `tripWriteScope`'s
+vocabulary, so a trip-bound key can be told apart from a journal-wide one) and
+`email` **only for the owner's view** — a non-owner's rows are already
+implicitly theirs, so repeating the address back says nothing new and would
+be one more thing to accidentally leak later.
+
+`components/AgentKeys.tsx` (unchanged) is now also rendered inside the
+buddy's own section of `/{user}/me` (`app/[user]/me/MePageContent.tsx`,
+beside `BuddyHandover`), since it already fetches/revokes through this same
+route and a non-owner viewer now gets a legitimate (filtered) answer from it.
+
+`me.buddyKeyWarning` (B320) changed in all three locales from "ask whoever
+keeps this journal" to "revoke it below yourself" — it is rendered directly
+above the list.
+
+### What this now tells a caller who is not entitled
+
+- No proven address at all (no cookie, no bearer token for this journal):
+  `403 forbidden`, the same shape whether the journal exists or not (B340
+  still holds for the owner path specifically).
+- A proven address, but a `revoke` id that is not theirs (including the
+  owner's, or the journal not existing): `404 unknown_key` — indistinguishable
+  from an id that never existed, so a guess learns nothing either way.
+- Sign-in switched off on the journal: `409 auth_disabled`, same as before.
+
+### Contract
+
+`/api/v1/{user}/keys` GET and POST both rewritten in `lib/api/openapi.ts` to
+describe the owner/non-owner split, the new `403`/`404` semantics, and the
+`scope`/`email` fields. `test/openapi-contract.test.ts` passes.
+
+### Tests
+
+`test/handover.test.ts`: the old single "nobody but the owner may look, or
+revoke" assertion (which encoded the *previous*, now-intentionally-changed
+behaviour) was split into "a caller with no credential at all may not look,
+or revoke" plus a new `describe("a buddy's own keys", …)` block covering: a
+buddy's token lists only their own row; `?email=<owner>` on the query string
+changes nothing; a buddy can revoke their own key and it stops writing
+immediately; a buddy revoking the owner's (or another buddy's) id gets `404`
+and the target key is unaffected; the owner's own list still shows every
+address in the journal. 30/30 pass.
+
+Not done: no UI surfacing of `scope`/`email` beyond what `AgentKeys.tsx`
+already rendered (kind, expiry, last-seen) — the Work section only said
+"probably yes, consider it"; the API carries both fields already so a future
+UI pass is additive, not another route change.

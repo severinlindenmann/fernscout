@@ -1283,6 +1283,10 @@ export default function MePageContent({
                 email={viewer.email}
                 trips={writableTrips}
               />
+              {/* B323: what B320's own warning used to say to ask the owner
+                  for. A buddy sees and revokes the keys issued to their own
+                  address here, without waiting on anybody else. */}
+              <AgentKeys username={username} />
             </div>
           </section>
         )}

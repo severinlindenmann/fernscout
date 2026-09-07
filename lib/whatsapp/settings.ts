@@ -45,18 +45,40 @@ export function whatsappCountryCode(): string | undefined {
  * sitting there, and it keeps working until the new one is approved, which
  * means the wording can change with no window where announcements fail.
  */
-export function templateFor(locale: string, fallbackLocale: string): { name: string; language: string } | null {
+export type WhatsappTemplateSetting = { name: string; language: string; manageLink: boolean };
+
+/**
+ * A configured template entry: a bare name (the original shape, B365), or
+ * `{ name, manageLink: true }` once an approved template has a fourth body
+ * variable for the self-serve manage link — B386.
+ *
+ * A journal cannot merely start sending a fourth `{{4}}` because the code
+ * changed; Meta rejects a body whose parameter count does not match what was
+ * approved. So `manageLink` stays `false` (the field's absence, for every
+ * template configured before this) until a person with access to the Meta
+ * Business Manager has approved a new template *version* carrying the extra
+ * variable and repointed this entry at its name — see `docs/tasks/` B386 for
+ * exactly what to author. Flipping this on for a template that still has
+ * three variables makes every send in that language fail.
+ */
+function entryFor(value: unknown): { name: string; manageLink: boolean } | null {
+  if (typeof value === "string" && value.trim() !== "") return { name: value, manageLink: false };
+  if (typeof value === "object" && value !== null) {
+    const name = (value as Record<string, unknown>).name;
+    const manageLink = (value as Record<string, unknown>).manageLink === true;
+    if (typeof name === "string" && name.trim() !== "") return { name, manageLink };
+  }
+  return null;
+}
+
+export function templateFor(locale: string, fallbackLocale: string): WhatsappTemplateSetting | null {
   const configured = loadServerConfig().features.whatsapp.templates;
   if (typeof configured !== "object" || configured === null) return null;
   const table = configured as Record<string, unknown>;
 
-  const exact = table[locale];
-  if (typeof exact === "string" && exact.trim() !== "") {
-    return { name: exact, language: locale };
-  }
-  const fallback = table[fallbackLocale];
-  if (typeof fallback === "string" && fallback.trim() !== "") {
-    return { name: fallback, language: fallbackLocale };
-  }
+  const exact = entryFor(table[locale]);
+  if (exact) return { name: exact.name, language: locale, manageLink: exact.manageLink };
+  const fallback = entryFor(table[fallbackLocale]);
+  if (fallback) return { name: fallback.name, language: fallbackLocale, manageLink: fallback.manageLink };
   return null;
 }

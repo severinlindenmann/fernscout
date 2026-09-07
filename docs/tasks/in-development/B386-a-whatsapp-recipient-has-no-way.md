@@ -72,3 +72,94 @@ say nothing about how to stop.
 - A person who gets a WhatsApp announcement can reach a working unsubscribe
   without needing an email from the same journal.
 - Using it clears `wants_whatsapp`, so the next publish does not try or bill.
+
+## Triage / what was built — Option 1, in the body
+
+Went with the **body** rather than a second URL button: this codebase's own
+comment on `WhatsappMessage.buttonPath` (`lib/whatsapp/types.ts`) records that
+"Meta permits exactly one [dynamic] variable" for a URL button, learned the
+hard way (the template-versioning gotcha `templateFor`'s doc comment
+describes at length). A body parameter has no such constraint — the template
+already carries three (`{{1}}` name, `{{2}}` trip, `{{3}}` day title) — so
+adding a fourth avoids relying on an unverified assumption about button
+variable limits.
+
+**This is genuinely half code, half Meta — read this before assuming it is
+done.** A currently-approved template has exactly three body variables. Meta
+counts them and rejects a send whose body array has a different length than
+what was approved, so the code cannot simply start sending four. Because of
+that, the change is **entirely inert until a person acts**:
+
+- `lib/whatsapp/settings.ts`: `features.whatsapp.templates` entries may now be
+  either the old bare string (`"fernscout_day_published"`, unchanged
+  behaviour — 3 body parameters, no manage link) or
+  `{ "name": "…", "manageLink": true }`. `manageLink` defaults to `false` for
+  every existing entry, so **merging and deploying this change alone sends
+  exactly the same three-parameter messages as today.**
+- `lib/digest/dayWhatsapp.ts` computes a per-recipient `manageUrl` for every
+  send regardless (a contact's own `manageUrl(base, owner, manageTokenFor(...))`
+  self-serve page — the same one the mail footer already links, so this
+  reuses the *contact.id*-keyed token rather than an email; the owner's own
+  free copy, which has no contact row, points at their own `/{user}/me`) but
+  only appends it as a fourth body parameter (`asParameter(recipient.manageUrl, …)`)
+  when `templateFor(...).manageLink` is `true`.
+
+**What a person with Meta Business Manager access has to do, precisely, for
+each language currently configured:**
+
+1. Create a **new template version** (never edit or delete the approved one —
+   see `templateFor`'s own doc comment on why: a deleted name is reserved for
+   30 days) whose body text ends with a fourth placeholder, e.g. appending a
+   line such as `{{4}}` to stop the announcements at any time. Submit it for
+   approval.
+2. Once approved, edit `site/config.json` (or this instance's
+   `FERNSCOUT_CONFIG`) so the locale's `features.whatsapp.templates` entry
+   becomes `{ "name": "<new template name>", "manageLink": true }`.
+3. Repeat per language. A language whose entry is left as a bare string (or
+   `manageLink` absent/`false`) keeps sending the old three-parameter message
+   — this is deliberately per-template, not a single on/off switch, since
+   each language's template is a separate Meta asset approved on its own.
+
+Until step 1–2 happen for a language, `sendDayWhatsapp` for that language
+behaves exactly as before B386 — three parameters, no manage link reaching
+that reader. This was a deliberate choice over shipping code that would break
+production sends the moment it deployed.
+
+### Acceptance, checked against what actually shipped
+
+- **"No shipped copy claims a reply does anything, in any language."** Already
+  true before this ticket — the footer was removed at template-recreation
+  time (see Why). Verified again: no "reply STOP"/"Abbestellen"/"Abmelden"
+  wording anywhere in `site/locales/*.json`, `lib/`, `components/`, `app/`.
+- **"A person who gets a WhatsApp announcement can reach a working
+  unsubscribe without needing an email from the same journal."** Done, but
+  **only for a language whose template has been reapproved with `manageLink`
+  and whose config entry has been flipped** — see above. Until then this
+  criterion is not met for real sends; the code path is built and tested,
+  the Meta template is not.
+- **"Using it clears `wants_whatsapp`, so the next publish does not try or
+  bill."** Already true — the link is `manageUrl`, the existing self-serve
+  page (`app/[user]/c/[token]/page.tsx` → `ContactManage`), which already
+  writes `wants_whatsapp` off when unticked. No new code needed for this
+  half; it was reused rather than built.
+
+### Not done
+
+The Work section's other ask — "say what the opt-out is wherever consent is
+asked: the guestbook checkbox, the manage page, and the click-to-chat page" —
+was left alone. It is not in the Acceptance list above, it is copy-only (no
+mechanism), and touches three separate surfaces across three languages;
+scoping it into this already Meta-gated ticket risked conflating "the
+mechanism doesn't exist yet" with "the wording is incomplete". Filed as its
+own follow-up would be reasonable if wanted.
+
+### Tests
+
+`test/whatsapp.test.ts`, new `describe("a way to stop the messages — B386")`:
+an ordinary (`manageLink` absent) template still sends exactly 3 body
+parameters and never leaks the manage token; a template configured with
+`manageLink: true` sends 4, the 4th containing the contact's own manage token
+and `/{user}/c/`; the owner's own free copy (no contact row) gets
+`https://.../{user}/me` instead. All existing whatsapp tests (37 total across
+`whatsapp.test.ts` + `contact-whatsapp-gating.test.tsx`) still pass unchanged,
+which is the proof that the default (`manageLink` absent) really is a no-op.

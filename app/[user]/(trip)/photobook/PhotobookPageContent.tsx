@@ -37,6 +37,9 @@ const OUTCOME_MESSAGE: Record<Exclude<PhotobookOutcomeState, "done">, Translatio
   no_photos: "photobook.noPhotos",
   no_room: "photobook.noRoom",
   failed: "photobook.failed",
+  // B595: the trip changed price between the preview and the press. Nothing
+  // was charged — the fix is to look at the preview again.
+  stale_preview: "photobook.stalePreview",
 };
 
 /**

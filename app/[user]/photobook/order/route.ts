@@ -90,6 +90,16 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
   }
   const options = parseOptions(optionsInput, Object.keys(BOOK_SIZES));
   const parsed = parseTripRef(trip);
+  // What `preview/route.ts` last quoted this page, in credits — B595. Not
+  // trusted as the price to charge; only as the number to check a fresh
+  // `priceOf` against below, so a caller cannot lower their own price by
+  // sending a smaller one. A missing or non-numeric value fails that check
+  // exactly like a mismatch: there is no previewed price to have agreed with.
+  const previewedCreditsRaw = form.get("previewedCredits");
+  const previewedCredits =
+    typeof previewedCreditsRaw === "string" && previewedCreditsRaw.trim() !== ""
+      ? Number(previewedCreditsRaw)
+      : NaN;
   // `ORDER_ID_RE` here, before the id reaches anything that joins it into a
   // path — `claimOrder`, and later `buildPhotobook`/`orderDir` — is not
   // optional. `orderDir()` trusts the id it is given; this is the boundary
@@ -127,6 +137,32 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
   }
 
   /**
+   * The owner is charged exactly the price their own screen showed them, or
+   * not charged at all — B595.
+   *
+   * `preview/route.ts` plans and prices the same way this route does, from
+   * the same `trip` and `options` the form below carries back — but between
+   * that response rendering and this press, the trip on disk can change: a
+   * day published, a photograph added, kept-original pages toggled. Re-
+   * planning here (above) and pricing again is therefore not guaranteed to
+   * agree with what was quoted, and paying the new number without having
+   * seen it is exactly what B595 is about.
+   *
+   * So the previewed price travels with the form (`previewedCredits`,
+   * `BookLevelView.tsx`) and is compared against a fresh `priceOf` on *this*
+   * plan before anything is claimed or spent. Three ways this can fail, and
+   * all three answer the same `stale_preview` rather than a guess: the field
+   * is missing (an old tab, or a form built by hand), the trip changed and
+   * the number no longer matches, or — the same thing from the other side —
+   * the plan itself is stale. The page's own answer to all three is to ask
+   * for the preview again, which quotes the real, current price.
+   */
+  const currentCredits = priceOf(book, options);
+  if (!Number.isFinite(previewedCredits) || previewedCredits !== currentCredits) {
+    return back_("stale_preview");
+  }
+
+  /**
    * A full journal cannot be printed into — B661.
    *
    * The PDFs land under `content/<user>/photobooks/`, are tens to hundreds of
@@ -144,7 +180,7 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
     return back_("no_room");
   }
 
-  const credits = priceOf(book, options);
+  const credits = currentCredits;
   const payload = {
     trip,
     options,

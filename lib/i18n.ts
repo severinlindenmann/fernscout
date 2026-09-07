@@ -1055,6 +1055,7 @@ export type TranslationKey =
   | "photobook.size.portrait"
   | "photobook.size.square"
   | "photobook.spine"
+  | "photobook.stalePreview"
   | "photobook.start"
   | "photobook.summary"
   | "photobook.summaryVolumes"
