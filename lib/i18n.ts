@@ -689,7 +689,6 @@ export type TranslationKey =
   | "home.neverUsed"
   | "home.none"
   | "home.operator"
-  | "home.operatorBody"
   | "home.ownerHint"
   | "home.revoke"
   | "home.role.guest"
