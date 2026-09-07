@@ -144,7 +144,7 @@ Do not edit them by hand; run the script.
 | [B731](backlog/small-feature/B731-a-trip-made-from-the-ask.md) | A trip made from the ask box never shows who can read it | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (8)
+### chore (7)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -155,7 +155,6 @@ Do not edit them by hand; run the script.
 | [B772](backlog/chore/B772-the-contacts-page-carries-no-brand.md) | The contacts page carries no brand tokens at all | CHORE | low | low |
 | [B811](backlog/chore/B811-the-payment-page-still-renders-the.md) | The payment page still renders the TWINT/card chooser under a provider, hidden with a class | CHORE | low | low |
 | [B859](backlog/chore/B859-nothing-proves-a-refused-journal-creation.md) | Nothing proves a refused journal creation leaves no journal behind | CHORE | low | low |
-| [B881](backlog/chore/B881-recordprint-is-exported-and-nothing-calls.md) | recordPrint is exported and nothing calls it, so knip fails on main | CHORE | low | low |
 
 ### ops (10)
 
@@ -180,7 +179,7 @@ Do not edit them by hand; run the script.
 | [B870](backlog/docs-and-skills/B870-the-api-never-reads-the-place.md) | The API never reads the place and time out of a photograph and only says so 1700 lines away | DOCS | medium | low |
 | [B871](backlog/docs-and-skills/B871-a-png-is-served-as-a.md) | A PNG is served as a JPEG and nothing says so | DOCS | low | low |
 
-### superseded (33)
+### superseded (34)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -216,6 +215,7 @@ Do not edit them by hand; run the script.
 | [B613](backlog/superseded/B613-the-guide-says-an-unknown-caption.md) | The guide says an unknown caption src is ignored; it is refused | ISSUE | low | low |
 | [B715](backlog/superseded/B715-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 | [B802](backlog/superseded/B802-signed-in-landing-has-no-docs.md) | Signed-in landing has no docs link when helper is off (B797) | ISSUE | low | low |
+| [B881](backlog/superseded/B881-recordprint-is-exported-and-nothing-calls.md) | recordPrint is exported and nothing calls it, so knip fails on main | CHORE | low | low |
 | [B90](backlog/superseded/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 
 ### wont-do (2)

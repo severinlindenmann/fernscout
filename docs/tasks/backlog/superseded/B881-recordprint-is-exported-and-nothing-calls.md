@@ -5,6 +5,7 @@ type: CHORE
 priority: low
 complexity: low
 area: photobook
+superseded: "Fixed on main by 6ca95ad1, which dropped the export keyword. `npm run unused` is clean; recordPrint remains as dead code with an eslint warning until Gelato's printOrder calls it."
 found: "2026-09-07T17:51:59Z"
 ---
 
