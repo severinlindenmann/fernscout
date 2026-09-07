@@ -33,11 +33,6 @@
     "test/**/*.test.{ts,tsx}",
     "test/fixtures/**/*.{ts,tsx}",
     "vitest.config.mts",
-    // The importer folder is its own registry: `scripts/gps.mts` reads the
-    // directory and imports what it finds, so nothing names one statically.
-    // Dropping a file in is the whole installation procedure — see
-    // importers/README.md — which is exactly what knip cannot see.
-    "importers/**/*.ts",
     // Each migration is imported as a namespace and handed to Kysely whole
     // (`lib/db/migrations/index.ts`), which never names `up` or `down`. They
     // are entered by the migration runner, and nothing can see that statically.

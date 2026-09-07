@@ -13,6 +13,8 @@ import {
 import { EDITABLE_DAY_FIELDS } from "@/lib/api/entries";
 import { EXTRA_STORAGE_BYTES, EXTRA_STORAGE_CREDITS } from "@/lib/credits/pricing";
 import { INBOX_FILE_EXTENSIONS, INBOX_KINDS } from "@/lib/inbox";
+import { IMPORT_KINDS } from "@/lib/gps/api";
+import { GPS_FORMATS } from "@/importers/gps";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
 // Every enum below is imported rather than typed out. A hand-written list
@@ -2334,6 +2336,153 @@ export function openApiDocument() {
             "200": { description: "Gone" },
             "403": { description: "A different journal's token, or one scoped to a trip" },
             "404": { description: "Nothing staged under that id" },
+          },
+        },
+      },
+      "/api/v1/{user}/import": {
+        get: {
+          summary: "What can be imported, and in which formats",
+          description:
+            "The kinds of data this instance can read, and who wrote each format it " +
+            `understands. One kind today: ${IMPORT_KINDS.join(", ")}. A kind is what the ` +
+            "data *is*; a format is who wrote it.\n\n" +
+            "This is the only `GET` in the import feature, and it describes the door rather " +
+            "than what is behind it. **Nothing anywhere hands back a position.** A location " +
+            "history is every address somebody sleeps at and every place they work; what a " +
+            "reader ever sees is the derived line for one trip, drawn behind that trip's own " +
+            "gate.\n\n" +
+            "**A trip-scoped token is refused** on all of these — the history belongs to the " +
+            "journal, not to the trip you came on.",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            "200": { description: "The kinds, their formats, and the size limit" },
+            "401": { description: "No live token — authenticate" },
+            "403": { description: "A different journal's token, or one scoped to a trip" },
+          },
+        },
+        post: {
+          summary: "Read an export into the journal's own data",
+          description:
+            "Takes a file somebody exported from somewhere else — Google Maps Timeline, a " +
+            "Takeout `Records.json`, a GPX track, or plain JSON Lines from a tool of your " +
+            "own — and reads it into the journal.\n\n" +
+            "**Three ways to hand over the bytes.** `inbox` names a file already staged with " +
+            "`POST /api/v1/{user}/inbox` and is the normal path for a real export; " +
+            "multipart `file` is a one-shot; `text` is for a handful of lines pasted in. The " +
+            "import leaves the staged file where it is — deleting it is " +
+            "`DELETE /api/v1/{user}/inbox/{id}`, and worth doing, because it is the " +
+            "unthinned original.\n\n" +
+            "**Leave `format` out and the file is recognised from its contents.** Name one " +
+            "only when detection gets it wrong, or when you wrote the importer.\n\n" +
+            "**Positions are thinned on the way in** — one kept per five minutes or 250 " +
+            "metres, whichever comes first — so importing the same export twice changes " +
+            "nothing, and importing overlapping exports does not double anything.\n\n" +
+            "Nothing is drawn by this call. `POST /api/v1/{user}/trips/{trip}/track` is what " +
+            "turns what is now stored into one trip's line.",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    kind: {
+                      type: "string",
+                      enum: [...IMPORT_KINDS],
+                      description:
+                        "What the data is. Optional while there is one kind; name it anyway.",
+                    },
+                    format: {
+                      type: "string",
+                      enum: [...GPS_FORMATS],
+                      description:
+                        "Who wrote the file. Left out, it is detected from the contents.",
+                    },
+                    inbox: {
+                      type: "string",
+                      description:
+                        "The id of a file already staged in the inbox. The normal path.",
+                    },
+                    text: {
+                      type: "string",
+                      description:
+                        "A small export inline, instead of `inbox`. JSON Lines of " +
+                        "`[t, lat, lon]` is the format for anything you generated yourself.",
+                    },
+                    dryRun: {
+                      type: "boolean",
+                      description:
+                        "Parse, check and report without writing anything. This is how you " +
+                        "test an importer you wrote — it runs the same contract check the " +
+                        "format's own `schema.ts` exports.",
+                    },
+                  },
+                },
+              },
+              "multipart/form-data": {
+                schema: {
+                  type: "object",
+                  required: ["file"],
+                  properties: {
+                    file: { type: "string", format: "binary" },
+                    kind: { type: "string", enum: [...IMPORT_KINDS] },
+                    format: { type: "string", enum: [...GPS_FORMATS] },
+                    dryRun: { type: "string", enum: ["true", "false"] },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Read. Says which format, whether it was detected, how many rows and over " +
+                "what span, and — unless `dryRun` — how many the store holds now",
+            },
+            "400": {
+              description:
+                "`unknown_kind`, `unknown_format`, `unreadable`, `contract` (what came out " +
+                "does not hold up — the problems are listed in words), `no_file`, or " +
+                "`storage_full`",
+            },
+            "401": { description: "No live token — authenticate" },
+            "403": { description: "A different journal's token, or one scoped to a trip" },
+            "404": { description: "No such journal, or no such file in the inbox" },
+            "413": { description: "The whole request is too big to buffer" },
+          },
+        },
+      },
+      "/api/v1/{user}/trips/{trip}/track": {
+        post: {
+          summary: "Draw this trip's line from the imported history",
+          description:
+            "Derives the ground actually covered on this trip and writes it into the trip, " +
+            "where the map draws it faintly under the day markers.\n\n" +
+            "Four things happen, and three are about what does *not* come out: the line is " +
+            "**clipped to the trip's dates** (everything outside is the rest of somebody's " +
+            "life), the owner's **private zones are cut out** and the line broken there, a " +
+            "**gap of more than two hours is left as a gap** rather than joined — a flight " +
+            "is a hole in the data, not a straight line across a continent — and the rest is " +
+            "simplified to a few thousand points.\n\n" +
+            "Answers with counts and never with a coordinate. Safe to run again whenever " +
+            "more history has been imported; it rewrites one file. A trip with nothing " +
+            "stored for its dates writes nothing and leaves any existing line alone.\n\n" +
+            "**Owner only, and a trip-scoped token is refused even for its own trip**: " +
+            "deriving reads the owner's whole history across those dates.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": {
+              description:
+                "Segments, points and how many private zones were applied. `written: false` " +
+                "means nothing was stored for these dates",
+            },
+            "401": { description: "No live token — authenticate" },
+            "403": { description: "A different journal's token, or one scoped to a trip" },
+            "404": { description: "No such trip" },
           },
         },
       },

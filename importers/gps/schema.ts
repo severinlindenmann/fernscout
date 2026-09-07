@@ -77,7 +77,11 @@ export function checkGpsImporter(importer: GpsImporter, fixes: Fix[]): string[] 
   if (!importer.label) say("label is empty — it is what the CLI lists");
 
   if (fixes.length === 0) {
-    say("parse returned nothing: the wrong importer, or an export with no positions");
+    say(
+      "parse returned nothing. Either this is the wrong importer for the file, or the " +
+        "export holds no positions — or every row was skipped as implausible, which is " +
+        "what happens to a file whose latitude and longitude are the wrong way round",
+    );
     return problems;
   }
 
