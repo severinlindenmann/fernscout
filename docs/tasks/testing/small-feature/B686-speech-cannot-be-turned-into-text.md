@@ -90,3 +90,47 @@ and charges nothing a test cannot assert. With a real key, a sentence spoken in
 Swiss German is transcribed as Swiss German — not as German — because the
 journal's locale said so, and a Hungarian journal gets Hungarian. No audio file
 exists on disk afterwards, and the ledger shows the minutes.
+
+## Verified against the real Deepgram API, 2026-09-07
+
+Run from a scratch worktree with `transcription.backend: "deepgram"` and a real
+key, signed in as the demo journal's owner. Audio was synthesised with macOS
+`say` (German, Hungarian, English) because nobody here can record on demand.
+
+**Directly against the provider**, which is what settles the design:
+
+| audio | `language=` | conf | transcript |
+| --- | --- | --- | --- |
+| Hungarian | `hu` | 0.98 | "Ma reggel felsétáltunk a várhoz. Meredeket volt, mind gondoltuk." |
+| Hungarian | `multi` (auto-detect) | 0.67 | "Moragger versieht alt un cavarhos, m'erede que volt, mint gondoltuk." |
+| German | `de` / `de-CH` | 1.00 | "Wir sind heute Morgen zur Bord hinaufgelaufen…" |
+| English | `en` | 1.00 | "We walked up to the castle this morning…" |
+
+Automatic detection turns clean Hungarian into gibberish and returns `200` while
+doing it. That is the failure this ticket was written to avoid, now measured
+rather than argued.
+
+**Through our own route**, `POST /api/helper/example/transcribe`:
+
+- `de-CH`, `hu` and `en` each transcribed correctly, `spent: 1` each.
+- Without consent: `403 consent_required`. Consent for `speech` recorded
+  separately from `words`.
+- Without credits: `no_credits`, before any provider call.
+- No `language` given → the journal's own `defaultLocale` was used (`en`).
+- `language: "fr"` → `unsupported_language`, listing the four. Not approximated.
+- A `Bearer` token → `not_your_journal`.
+- Ledger: three rows, `-1 transcription example/speech/5s` each.
+- **No audio anywhere on disk afterwards** — nothing under `content/` or the
+  data dir, no `.wav`/`.webm`/`.ogg`/`.m4a` written at all.
+
+**Not proven here, and still open for whoever verifies this:**
+
+- **Swiss German dialect accuracy.** macOS has no `de-CH` voice, so `de-CH` was
+  sent standard-German audio. It proves the code is accepted and passed
+  through; it does not prove Deepgram transcribes Schwyzerdütsch well. That
+  needs a real Swiss German speaker, on the deployed instance.
+- **Real phone audio.** Synthesised speech is clean studio audio with no
+  background noise and flatters any recogniser. A bus, a wind, a restaurant is
+  the real test.
+- The record button itself at 390px — `MediaRecorder`, hold-to-talk, the
+  language select — was never driven in a browser.
