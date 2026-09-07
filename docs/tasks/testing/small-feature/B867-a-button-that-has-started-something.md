@@ -7,8 +7,7 @@ complexity: medium
 area: ui
 found: "2026-09-07T17:35:20Z"
 started: "2026-09-07T17:35:44Z"
-session: 1ea1a367-e67d-471a-8e59-cae9a95a23ab
-claimed: "2026-09-07T17:35:44Z"
+merged: "2026-09-07T18:05:07Z"
 ---
 
 # B867 — A button that has started something slow looks exactly like one that has not
