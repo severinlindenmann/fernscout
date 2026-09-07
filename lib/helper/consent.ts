@@ -27,6 +27,14 @@ import { isValidUsername, userDir } from "../users";
  * is read as `["words"]`, because that is the only thing the old panel ever
  * asked about.
  *
+ * **B689 adds a fourth, `statement`.** A bank statement is not "your words":
+ * it is a record of somebody's whole financial life for the period it covers,
+ * most of which has nothing to do with any trip, and a person who agreed to
+ * send the sentence they typed has said nothing about it. What actually
+ * leaves is narrow — the header row and five sample rows, never the file —
+ * and the panel says exactly that, which is only a promise worth making
+ * because it is asked for on its own.
+ *
  * **B686 adds a third, `speech`.** Audio is neither of the other two: it is
  * the person's own voice, and it names a *second* provider — the transcriber,
  * not the model. So it is asked for separately and never inferred from
@@ -35,7 +43,7 @@ import { isValidUsername, userDir } from "../users";
  * yes, which is where a person actually reads it.
  */
 
-export const HELPER_SCOPES = ["words", "photos", "speech"] as const;
+export const HELPER_SCOPES = ["words", "photos", "speech", "statement"] as const;
 export type HelperScope = (typeof HELPER_SCOPES)[number];
 
 export type HelperConsent = {

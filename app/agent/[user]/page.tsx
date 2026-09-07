@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import AgentWizard from "@/components/AgentWizard";
 import { isEnabled } from "@/lib/capabilities";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { WRITE_DAY_CREDITS } from "@/lib/helper/model";
-import { draftsForWizard, isHelperOwner, tripsForWizard } from "@/lib/helper/server";
+import { draftsForWizard, inboxForWizard, isHelperOwner, tripsForWizard } from "@/lib/helper/server";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { currencyOptions } from "@/lib/rates";
 
@@ -37,7 +38,15 @@ export default async function AgentWizardPage({ params }: PageProps<"/agent/[use
   const { user } = await params;
   if (!(await isHelperOwner(user))) notFound();
 
+  // B689 — the door to the inbox screen, and only when there is something
+  // behind it. A file somebody handed over and nothing ever read is the exact
+  // failure that screen exists to end, so the link is a count rather than a
+  // permanent menu item nobody looks at.
+  const waiting = inboxForWizard(user).length;
+  const locale = await requestLocale();
+
   return (
+    <>
     <AgentWizard
       username={user}
       trips={tripsForWizard(user)}
@@ -57,5 +66,13 @@ export default async function AgentWizardPage({ params }: PageProps<"/agent/[use
         consentedSpeech: hasHelperConsent(user, "speech"),
       }}
     />
+    {waiting > 0 && (
+      <p className="mx-auto w-full max-w-2xl px-4 pb-8 text-sm text-navy-700">
+        <Link href={`/agent/${user}/inbox`} className="font-semibold underline">
+          {translateIn(locale, "agent.inboxLink", { count: String(waiting) })}
+        </Link>
+      </p>
+    )}
+    </>
   );
 }

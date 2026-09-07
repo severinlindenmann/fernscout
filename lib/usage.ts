@@ -41,7 +41,15 @@ export const PROVIDERS = ["anthropic", "deepgram"] as const;
 export type Provider = (typeof PROVIDERS)[number];
 
 /** Which call site spent it, so a bill can be attributed to a feature. */
-export const OPERATIONS = ["write_day", "describe_photos", "route_ask", "transcribe"] as const;
+export const OPERATIONS = [
+  "write_day",
+  "describe_photos",
+  "route_ask",
+  "transcribe",
+  // B689 — one call per statement, whatever its length: the model returns a
+  // column mapping and code applies it to every row.
+  "map_statement",
+] as const;
 export type Operation = (typeof OPERATIONS)[number];
 
 export type UsageRecord = {
