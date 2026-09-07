@@ -2522,16 +2522,24 @@ what you meant to send and upload the difference. Counting instead is how the
 same photograph gets uploaded twice and another one silently never arrives.
 Days written before this field existed do not carry it.
 
-**Sending the same photograph twice adds it once.** A batch that fails halfway,
-or a retry after a network error, can be sent again as it was: each arriving
-photograph is compared against the ones this day already holds, and a match is
-left out rather than appended. The 201 carries \`skipped\` — what you sent, and
-the \`src\` of the picture it matched — so a response with fewer \`items\` than
-you sent files is telling you the day already had them, not that anything was
-lost. The comparison is by what the picture looks like rather than by its bytes,
-because the same photograph exported twice is a different file; it is per day,
-so the same picture on two days is kept, that being a thing people do on
-purpose. Clips are not compared, and a clip sent twice lands twice.
+**Sending the same file twice adds it once.** A batch that fails halfway, or a
+retry after a network error, can be sent again as it was: an arriving
+photograph that is byte-for-byte one this day already holds is left out rather
+than appended. The 201 carries \`skipped\` — what you sent, and the \`src\` of
+the picture it matched — so a response with fewer \`items\` than you sent files
+is telling you the day already had those exact files, not that anything was
+lost. It is per day, so the same picture on two days is kept, that being a
+thing people do on purpose. Clips are not compared, and a clip sent twice
+lands twice.
+
+**A photograph that merely *resembles* one already here is kept, not dropped.**
+The server compares what pictures look like as well as what bytes they are, but
+a resemblance is a guess and the two ways of being wrong do not cost the same:
+a second tile in the gallery is deleted in ten seconds, while a photograph
+discarded in silence is gone. So a likeness is stored and named in \`advice\`,
+with the \`src\` of the picture it looks like — delete one of them if they
+really are the same. The same photograph exported twice, at a different size or
+quality, is the case this covers.
 
 **The body limit is the one that bites, and it is not the per-file limit.**
 Forty photographs may go in one call and each may be ${(IMAGE_MAX_BYTES / 1024 / 1024).toFixed(0)} MB, but the request

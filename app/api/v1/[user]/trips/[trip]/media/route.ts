@@ -133,11 +133,20 @@ function stored(
     : `${error} The originals in \`kept\` are stored either way.`;
   // Said before anything else, because a 201 carrying fewer items than files
   // were sent reads as loss until this sentence explains it — B604.
+  //
+  // What it may claim is exactly what was checked — B875. It used to say
+  // "nothing was lost" about a *resemblance*, and thirty-eight photographs
+  // were lost behind that sentence (B872). A file is left out now only when
+  // the picture already on the day is byte-for-byte the one that arrived, so
+  // the sentence is a fact about those bytes and about nothing else.
+  const one = skipped.length === 1;
   const skippedNote =
     skipped.length > 0
-      ? `${skipped.length} of them ${skipped.length === 1 ? "was" : "were"} already on this ` +
-        `day and ${skipped.length === 1 ? "was" : "were"} left out rather than added twice — ` +
-        `\`skipped\` names each one and the photograph it matched. Nothing was lost. `
+      ? `${skipped.length} of them ${one ? "was" : "were"} byte-for-byte identical to a ` +
+        `photograph already on this day — the same file, not a resemblance — so ${one ? "it was" : "they were"} ` +
+        `left out rather than stored twice. \`skipped\` names each one and the photograph it ` +
+        `matched, and what is on the day is exactly what you sent, so nothing is missing. ` +
+        `A picture that merely looks like one already here is stored, and said so in \`advice\`. `
       : "";
   return Response.json(
     {

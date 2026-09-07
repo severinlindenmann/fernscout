@@ -159,14 +159,21 @@ export function withExif(jpeg: Buffer, fixture: ExifFixture): Buffer {
  * A JPEG whose pixels depend on `seed`.
  *
  * Drawn as a coarse grid of blocks rather than a few small shapes, because the
- * difference hash only ever sees a 9×8 thumbnail: detail finer than that
+ * difference hash only ever sees a 9×9 thumbnail: detail finer than that
  * averages away, and two "different" photos would come out as duplicates. The
  * grid is the same at any size, which is what makes a resized copy hash the
  * same as its original — exactly the property the dedupe tests are checking.
+ *
+ * One block per hash cell, in both directions — B872. It was 5×4, drawn when
+ * the hash was horizontal only and read a 9×8 grid; a block boundary landing
+ * a quarter of the way into a hash cell is a bit that flips when the picture
+ * is resampled, and the vertical axis (4 rows into 9 samples) flipped up to
+ * eight of them on a 3× downscale. That is the fixture aliasing against the
+ * hash rather than anything about the photograph, and 9×9 removes it.
  */
 export async function makeJpeg(seed: number, width = 160, height = 120): Promise<Buffer> {
-  const columns = 5;
-  const rows = 4;
+  const columns = 9;
+  const rows = 9;
   // A tiny linear congruential generator: same seed, same picture, every run.
   let state = (seed * 2654435761) % 4294967296;
   const random = () => {
@@ -174,10 +181,27 @@ export async function makeJpeg(seed: number, width = 160, height = 120): Promise
     return state / 2147483648;
   };
 
+  // Seven levels, 36 apart, and never the same as the block to the left or
+  // above — B872. Two neighbours drawn at the same level make a comparison
+  // that noise decides, so the bit flips when the picture is re-encoded and
+  // the fixture, not the hash, is what the dedupe test then measures.
+  const levels: number[] = [];
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < columns; x++) {
+      const left = x > 0 ? levels[y * columns + x - 1] : -1;
+      const above = y > 0 ? levels[(y - 1) * columns + x] : -1;
+      let level: number;
+      do {
+        level = 18 + Math.floor(random() * 7) * 36;
+      } while (level === left || level === above);
+      levels.push(level);
+    }
+  }
+
   const cells: string[] = [];
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < columns; x++) {
-      const level = Math.floor(random() * 256);
+      const level = levels[y * columns + x];
       cells.push(
         `<rect x="${(x * width) / columns}" y="${(y * height) / rows}" ` +
           `width="${width / columns}" height="${height / rows}" ` +
