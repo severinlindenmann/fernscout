@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: admin, credits
 found: "2026-09-07T17:43:36Z"
+merged: "2026-09-07T17:52:38Z"
 ---
 
 # B878 — An operator cannot refund a purchase

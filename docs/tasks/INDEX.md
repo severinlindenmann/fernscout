@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (128)
+## backlog (127)
 
 ### security (2)
 
@@ -118,7 +118,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (21)
+### small-feature (20)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -133,7 +133,6 @@ Do not edit them by hand; run the script.
 | [B592](backlog/small-feature/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
 | [B673](backlog/small-feature/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium |
 | [B852](backlog/small-feature/B852-a-journal-s-languages-units-and.md) | A journal's languages, units and currencies cannot be changed anywhere | FEATURE | medium | medium |
-| [B878](backlog/small-feature/B878-an-operator-cannot-refund-a-purchase.md) | An operator cannot refund a purchase | FEATURE | medium | medium |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 | [B539](backlog/small-feature/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
@@ -240,7 +239,7 @@ _Nothing here._
 | [B867](in-development/B867-a-button-that-has-started-something.md) | A button that has started something slow looks exactly like one that has not | FEATURE | medium | medium | `1ea1a367` |
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 
-## testing (87)
+## testing (88)
 
 ### security (2)
 
@@ -311,7 +310,7 @@ _Nothing here._
 | [B816](testing/big-feature/B816-a-published-day-cannot-be-corrected.md) | A published day cannot be corrected or taken down without an agent | FEATURE | high | high | — |
 | [B689](testing/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high | — |
 
-### small-feature (29)
+### small-feature (30)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -339,6 +338,7 @@ _Nothing here._
 | [B825](testing/small-feature/B825-the-landing-page-corner-offers-the.md) | The landing page corner offers the operator a way in and everybody else nothing | FEATURE | medium | low | — |
 | [B860](testing/small-feature/B860-the-account-page-does-not-say.md) | The account page does not say what credits went on AI | FEATURE | medium | low | — |
 | [B866](testing/small-feature/B866-a-completed-purchase-sends-no-receipt.md) | A completed purchase sends no receipt to the buyer | FEATURE | medium | low | — |
+| [B878](testing/small-feature/B878-an-operator-cannot-refund-a-purchase.md) | An operator cannot refund a purchase | FEATURE | medium | medium | — |
 | [B688](testing/small-feature/B688-a-new-visitor-cannot-make-a.md) | A new visitor cannot make a journal inside the helper | FEATURE | low | medium | — |
 | [B737](testing/small-feature/B737-the-travel-scene-s-vehicles-exist.md) | The travel scene's vehicles exist only on the web, so a book cannot show how a leg was travelled | FEATURE | low | medium | — |
 | [B753](testing/small-feature/B753-sending-a-sign-in-code-gives.md) | Sending a sign-in code gives no sign that anything was sent | FEATURE | low | low | — |
