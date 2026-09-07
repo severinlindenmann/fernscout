@@ -7,8 +7,7 @@ complexity: medium
 area: credits, payments, account
 found: "2026-09-07T17:05:00Z"
 started: "2026-09-07T17:08:01Z"
-session: 7433e107-d963-451a-931e-3ed819d59771
-claimed: "2026-09-07T17:08:01Z"
+merged: "2026-09-07T17:26:39Z"
 ---
 
 # B854 — Credits are sold in two fixed amounts, so nobody can buy the amount they actually want
