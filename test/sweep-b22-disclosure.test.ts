@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { fetchImage, type Transport } from "@/lib/api/fetchMedia";
+import { fetchMedia, type Transport } from "@/lib/api/fetchMedia";
 
 /**
  * Two smaller findings from the B22 sweep, now asserting the fix.
@@ -314,7 +314,7 @@ describe("B233 — the https-only rule is not re-applied after a redirect", () =
   test("a redirect to an http URL is refused, and never requested", async () => {
     const { transport, seen } = redirectingTo("http://example.com:8080/next.jpg");
 
-    const result = await fetchImage(
+    const result = await fetchMedia(
       "https://example.com/first.jpg",
       1024,
       60_000,
@@ -336,7 +336,7 @@ describe("B233 — the https-only rule is not re-applied after a redirect", () =
    * is fixed and the **port** is not, and this asserts the second so the file
    * and its documentation cannot come apart again in the opposite direction.
    *
-   * Restricting to 443 was considered and rejected. `fetchImage` is called
+   * Restricting to 443 was considered and rejected. `fetchMedia` is called
    * with a URL the agent chose, so a redirect reaches no port the original URL
    * could not have named directly — and `test/fetch-media.test.ts` drives the
    * B03 pin against a real listener on an ephemeral port, which the rule would
@@ -345,7 +345,7 @@ describe("B233 — the https-only rule is not re-applied after a redirect", () =
   test("a redirect to https on another port is followed, deliberately", async () => {
     const { transport, seen } = redirectingTo("https://example.net:8443/next.jpg");
 
-    const result = await fetchImage(
+    const result = await fetchMedia(
       "https://example.com/first.jpg",
       1024,
       60_000,
@@ -361,7 +361,7 @@ describe("B233 — the https-only rule is not re-applied after a redirect", () =
   test("a redirect that stays on https is still followed", async () => {
     const { transport, seen } = redirectingTo("https://example.net/next.jpg");
 
-    const result = await fetchImage(
+    const result = await fetchMedia(
       "https://example.com/first.jpg",
       1024,
       60_000,
@@ -377,7 +377,7 @@ describe("B233 — the https-only rule is not re-applied after a redirect", () =
   test("the same URL is refused when supplied directly", async () => {
     const { transport } = redirectingTo("https://example.com/never.jpg");
 
-    const plain = await fetchImage("http://example.com/a.jpg", 1024, 60_000, 15_000, transport);
+    const plain = await fetchMedia("http://example.com/a.jpg", 1024, 60_000, 15_000, transport);
     expect(plain.ok).toBe(false);
     if (plain.ok) return;
     expect(plain.problem.reason).toContain("only https:");

@@ -58,9 +58,23 @@ const MAX_REDIRECTS = 3;
 const BODY_TIMEOUT_MS = 60_000;
 
 /**
+ * The same 875 KB/s the number above describes, applied to whatever the
+ * ceiling actually is — B676.
+ *
+ * 60 seconds was chosen against a 50 MB ceiling. A clip may be ten times that,
+ * and a fixed minute would refuse a download that was proceeding perfectly
+ * well at the rate this file calls acceptable. The floor stays a minute so a
+ * small file gets no less patience than before.
+ */
+function bodyBudgetFor(limits: number | { image: number; video: number }): number {
+  const largest = typeof limits === "number" ? limits : Math.max(limits.image, limits.video);
+  return Math.max(BODY_TIMEOUT_MS, Math.round(largest / 875));
+}
+
+/**
  * Whether this URL is one the transport may be handed, or why not.
  *
- * One line that used to live at the top of `fetchImage`, asked once, *before*
+ * One line that used to live at the top of `fetchMedia`, asked once, *before*
  * the redirect loop — so it governed the URL the caller supplied and no hop
  * after it. `pinnedRequest` builds its request from `url.port || 443` and
  * never looks at `url.protocol`, so a `302` to `http://host:8080/x` produced a
@@ -74,7 +88,7 @@ const BODY_TIMEOUT_MS = 60_000;
  * a real capability — a self-hoster whose photographs sit on `:8443` has a
  * legitimate URL this endpoint would stop fetching, and
  * `test/fetch-media.test.ts` cannot even drive the B03 pin end to end without
- * an ephemeral port. And it buys nothing here: `fetchImage` is called with a
+ * an ephemeral port. And it buys nothing here: `fetchMedia` is called with a
  * URL the agent chose, so a redirect can reach no port that the original URL
  * could not have named directly. The port question is orthogonal to this
  * ticket, not part of it.
@@ -353,12 +367,12 @@ function pinnedLookup(addresses: string[]): net.LookupFunction {
  *
  * - **Redirects are never followed.** Not an option that could be set wrongly;
  *   `https.request` has no redirect logic at all, and the 3xx comes back to
- *   the loop in `fetchImage` so the next hop is re-checked and re-pinned.
+ *   the loop in `fetchMedia` so the next hop is re-checked and re-pinned.
  * - **TLS is still verified against the name**, not against the pinned
  *   address: `servername` carries the original hostname into SNI and
  *   certificate validation. Pinning changes where the packets go, not who has
  *   to prove they are the host.
- * - **The abort signal reaches the socket**, so the timeouts in `fetchImage`
+ * - **The abort signal reaches the socket**, so the timeouts in `fetchMedia`
  *   let go of the connection rather than only of our reader.
  *
  * The `IncomingMessage` is wrapped back into a `Response` so the reading code
@@ -380,7 +394,7 @@ async function pinnedRequest(
       : url.hostname;
 
   /**
-   * Unreachable from `fetchImage`, which now asks this at every hop — and
+   * Unreachable from `fetchMedia`, which now asks this at every hop — and
    * here anyway, because this function opens a TLS socket from `url.port ||
    * 443` and would happily do it for an `http:` URL a future caller handed
    * it. The rule belongs where the socket is, not only where the loop is.
@@ -441,15 +455,28 @@ export type Transport = (
   signal: AbortSignal,
 ) => Promise<Response>;
 
+/**
+ * The name the rest of the pipeline will read, and it has to carry the right
+ * extension — B676.
+ *
+ * `kindOf` in lib/api/media.ts decides photograph or clip from the extension
+ * alone, so a clip that came back named `.jpg` would be handed to sharp and
+ * refused as a broken photograph. That is why this is not merely cosmetic.
+ */
 function filenameFrom(url: URL, contentType: string): string {
   const last = url.pathname.split("/").filter(Boolean).at(-1) ?? "";
-  if (/\.(jpe?g|png|heic|heif|webp)$/i.test(last)) return last;
-  const extension =
-    /png/.test(contentType) ? ".png"
-    : /webp/.test(contentType) ? ".webp"
-    : /hei[cf]/.test(contentType) ? ".heic"
-    : ".jpg";
-  return `${last.replace(/[^a-zA-Z0-9._-]/g, "") || "image"}${extension}`;
+  if (/\.(jpe?g|png|heic|heif|webp|mp4|mov|m4v|webm)$/i.test(last)) return last;
+  const video = contentType.startsWith("video/");
+  const extension = video
+    ? /quicktime/.test(contentType) ? ".mov"
+      : /webm/.test(contentType) ? ".webm"
+      : ".mp4"
+    : /png/.test(contentType) ? ".png"
+      : /webp/.test(contentType) ? ".webp"
+      : /hei[cf]/.test(contentType) ? ".heic"
+      : ".jpg";
+  const stem = last.replace(/[^a-zA-Z0-9._-]/g, "") || (video ? "clip" : "image");
+  return `${stem}${extension}`;
 }
 
 /**
@@ -464,12 +491,19 @@ function filenameFrom(url: URL, contentType: string): string {
  * Two clocks, because they bound different things (B136): `TIMEOUT_MS` to get
  * a response at all, and `bodyTimeoutMs` for the body that follows it.
  */
-export async function fetchImage(
+export async function fetchMedia(
   raw: string,
-  maxBytes: number,
+  /**
+   * How many bytes are allowed, either flatly or per kind — B676.
+   *
+   * A pair, because what arrived is only known once the response has said so:
+   * a photograph and a clip have ceilings an order of magnitude apart, and one
+   * number for both is the photograph's, which refuses every real clip.
+   */
+  limits: number | { image: number; video: number },
   /** Overridable so a test can assert the budget without waiting a minute for
    * it. Nothing in the application passes it. */
-  bodyTimeoutMs: number = BODY_TIMEOUT_MS,
+  bodyTimeoutMs: number = bodyBudgetFor(limits),
   /** The other clock, overridable for the same reason. */
   responseTimeoutMs: number = TIMEOUT_MS,
   /** See `Transport`. Nothing in the application passes it either. */
@@ -569,9 +603,32 @@ export async function fetchImage(
   if (!response.ok) return refuse(`answered ${response.status}`);
 
   const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
-  if (!contentType.startsWith("image/")) {
-    return refuse(`is ${contentType || "of unknown type"}, not an image`);
+  /**
+   * Video too, since B676.
+   *
+   * The multipart door has taken clips since it was written and this one
+   * refused them, while one limits table in the guide documented both — so an
+   * agent that read the guide, sent a clip's URL and was told it "is video/mp4,
+   * not an image" had been refused by a door the document says is open.
+   *
+   * Everything valuable in this module is about *where* the bytes come from —
+   * the pinned transport, the per-hop address check, the two clocks, the size
+   * enforced while reading — and none of it is specific to what the bytes are.
+   */
+  const kind = contentType.startsWith("video/")
+    ? "video"
+    : contentType.startsWith("image/")
+      ? "image"
+      : null;
+  if (!kind) {
+    return refuse(`is ${contentType || "of unknown type"}, not an image or a video`);
   }
+
+  // The ceiling for what actually arrived, which cannot be known before the
+  // response says what it is: a clip is allowed an order of magnitude more
+  // than a photograph, and passing the photograph's number for both refused
+  // every real clip at 50 MB.
+  const maxBytes = typeof limits === "number" ? limits : limits[kind];
 
   const tooBig = () => refuse(`is larger than ${(maxBytes / 1024 / 1024).toFixed(0)} MB`);
 

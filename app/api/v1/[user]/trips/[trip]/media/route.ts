@@ -9,7 +9,7 @@ import {
 } from "@/lib/api/media";
 import { getTrip, mediaWithOwner, tripRef } from "@/lib/trips";
 import fs from "node:fs";
-import { fetchImage } from "@/lib/api/fetchMedia";
+import { fetchMedia } from "@/lib/api/fetchMedia";
 import { findInboxFile, removeInboxFile } from "@/lib/inbox";
 import { getUser } from "@/lib/users";
 import {
@@ -307,7 +307,9 @@ export async function POST(
     const fetched: UploadCandidate[] = [];
     const failures: { url: string; reason: string }[] = [];
     for (const [at, url] of urls.slice(0, limits.itemsPerDay).entries()) {
-      const got = await fetchImage(url, limits.imageBytes);
+      // Per kind, since B676: a clip fetched from a URL is allowed what a clip
+      // is allowed, not what a photograph is.
+      const got = await fetchMedia(url, { image: limits.imageBytes, video: limits.videoBytes });
       if (got.ok) {
         fetched.push({
           ...got.media,
