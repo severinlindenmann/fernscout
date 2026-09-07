@@ -2434,9 +2434,12 @@ export function openApiDocument() {
                     dryRun: {
                       type: "boolean",
                       description:
-                        "Parse, check and report without writing anything. This is how you " +
-                        "test an importer you wrote — it runs the same contract check the " +
-                        "format's own `schema.ts` exports.",
+                        "`gps` only: parse, check and report without writing anything. This " +
+                        "is how you test an importer you wrote — it runs the same contract " +
+                        "check the format's own `schema.ts` exports. A `costs` import never " +
+                        "writes in the first place, so the flag changes nothing there; it " +
+                        "is accepted, and the answer says so rather than leaving you to " +
+                        "wonder whether the read happened.",
                     },
                   },
                 },

@@ -44,10 +44,27 @@ export type Payment = {
   /** Which account or card, where the statement says. */
   account?: string;
   /**
-   * What it actually cost in the account's own currency, when the payment was
-   * in another one. This is where a real exchange rate comes from — the money
-   * the bank moved, divided by the money the merchant received — rather than
-   * from any published table.
+   * What it actually cost in the **account's** own currency, when the payment
+   * was in another one. This is where a real exchange rate comes from — the
+   * money the bank moved, divided by the money the merchant received — rather
+   * than from any published table.
+   *
+   * **The direction, with numbers, because prose about it is not enough.** A
+   * €50 debit for a $60 purchase is:
+   *
+   * ```
+   * { amount: -60, currency: "USD", charged: { amount: -50, currency: "EUR" } }
+   *      ↑ what the merchant charged        ↑ what left the account
+   * ```
+   *
+   * The other way round gives a rate that is upside down and a day's total in
+   * the foreign currency, and both look like perfectly ordinary numbers on the
+   * page. Written out like this because an agent handed the paragraph above
+   * described it correctly and then implemented the inverse — see B691.
+   *
+   * `checkCostsImporter` catches it now: an account has **one** currency, so
+   * every `charged.currency` in a file has to be the same one, and it has to
+   * match the rows that carry no `charged` at all.
    */
   charged?: { amount: number; currency: string };
   /**
@@ -131,6 +148,61 @@ export function checkCostsImporter(importer: CostsImporter, rows: Payment[]): st
     say(
       "every row is positive. A statement's outgoing payments are negative here — if this " +
         "importer strips the sign, nothing downstream can tell a payment from a refund",
+    );
+
+  problems.push(...accountCurrencyProblems(rows));
+
+  return problems;
+}
+
+/**
+ * The one check that catches `amount` and `charged` the wrong way round —
+ * B691.
+ *
+ * A rate cannot be sanity-checked on its own: for USD against EUR, 1.2 and
+ * 0.83 are both perfectly ordinary numbers, and an inverted importer produces
+ * one of them with total confidence. The signal has to come from somewhere
+ * else, and it does:
+ *
+ * **A statement is one account, and an account has one currency.** `charged`
+ * is what left *that* account, so every `charged.currency` in a file is the
+ * same one — and the rows with no `charged` at all are already in it, because
+ * a payment in the account's own currency needs no conversion.
+ *
+ * Two things follow, and an inverted importer breaks both. It puts the
+ * *merchant's* currency in `charged`, so a file with a dollar purchase and a
+ * pound purchase comes out with two different `charged.currency` values; and
+ * they disagree with the domestic rows, which still carry the account's.
+ */
+function accountCurrencyProblems(rows: Payment[]): string[] {
+  const problems: string[] = [];
+  const converted = rows.filter((r) => r.charged !== undefined);
+  if (converted.length === 0) return problems;
+
+  const chargedIn = [...new Set(converted.map((r) => r.charged!.currency))];
+  if (chargedIn.length > 1)
+    problems.push(
+      `\`charged\` names ${chargedIn.length} different currencies (${chargedIn.join(", ")}), ` +
+        "and it is what left one account, so there can only be one. This is what `amount` " +
+        "and `charged` the wrong way round looks like: `amount` is what the merchant " +
+        "charged, `charged` is what the account paid",
+    );
+
+  // A row that needed no conversion is already in the account's currency, so
+  // it is the honest answer to "which one is the account's".
+  const domestic = [...new Set(rows.filter((r) => r.charged === undefined).map((r) => r.currency))];
+  if (domestic.length === 1 && chargedIn.length >= 1 && !chargedIn.includes(domestic[0]))
+    problems.push(
+      `the rows that needed no conversion are in ${domestic[0]}, so that is the account's ` +
+        `currency — but \`charged\` says ${chargedIn.join(", ")}. \`charged\` is what left ` +
+        "the account; `amount` is what the merchant charged. They look swapped",
+    );
+
+  const same = converted.filter((r) => r.charged!.currency === r.currency);
+  if (same.length === converted.length)
+    problems.push(
+      "every `charged` is in the same currency as the payment itself, which means it says " +
+        "nothing. Leave it off when the payment needed no conversion",
     );
 
   return problems;

@@ -164,6 +164,15 @@ rows of `{date, amount, currency, description}` with the sign the statement
 wrote, and **no category** — what a payment was *for* is the owner's decision,
 which is why a `costs` import writes nothing by itself.
 
+**Get `amount` and `charged` the right way round.** `amount` is what the
+merchant charged; `charged` is what left the account. A €50 debit for a $60
+purchase is `amount: -60, currency: "USD", charged: { amount: -50, currency:
+"EUR" }`. The inverse gives an upside-down exchange rate and a day total in the
+wrong currency, and both look like ordinary numbers — so `checkCostsImporter`
+tests it the only way that works: an account has one currency, so every
+`charged.currency` in a file must be the same, and must match the rows that
+carry no `charged` at all.
+
 ## Where the data goes, and why that matters
 
 This section is about `gps/` in particular. Everything one of those importers
