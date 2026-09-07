@@ -10,22 +10,27 @@ without anybody having to read a licence first.
 ```
 importers/
   schema.ts       what every importer is, whatever it reads
-  gps/            positions — read by `POST /api/v1/<user>/import`
+  gps/            positions — `{"kind": "gps"}`
     schema.ts     ← start here: the row type, and the function that checks yours
     index.ts      the list the server bundles — add your file here too
     google-timeline.ts  google-records.ts  gpx.ts  fixes.ts
+  costs/          bank statements — `{"kind": "costs"}`
+    schema.ts     Payment, and its own check
+    index.ts      revolut.ts
 ```
+
+Both are read by the same call, `POST /api/v1/<user>/import`, keyed by kind.
 
 **`<kind>/schema.ts` is the whole contract for that kind.** Read it, produce
 the row it names, call the check it exports, and add your file to that kind's
 `index.ts`. There is nothing else to know.
 
-A new **format** for something already here is a file in that kind's folder. A
-new **kind** — a bank export into a trip's costs, say — is a new folder with
-its own `schema.ts` naming its own row type, and its own writer behind the
-same `POST /api/v1/<user>/import` — the same call with a different `kind`.
-`Cost` and `Fix` have nothing to say to each other, and one folder holding both
-would be a pile to filter rather than a place to look.
+A new **format** for something already here is a file in that kind's folder — a
+Monzo statement goes in `costs/`, a Strava export in `gps/`. A new **kind** is a
+new folder with its own `schema.ts` naming its own row type, and its own writer
+behind the same call. `Payment` and `Fix` have nothing to say to each other,
+and one folder holding both would be a pile to filter rather than a place to
+look.
 
 `importers/schema.ts` is the whole of what they share: `Importer<Row>`, one
 generic parameter, no base class and no plugin interface.
@@ -148,9 +153,16 @@ machine the journal lives on.
 | `gpx.ts` | GPX — Garmin, Strava, GPSLogger, OsmAnd, anything with a track |
 | `fixes.ts` | the neutral JSON Lines format above |
 
-That is the only kind so far. `costs/` is the obvious next one — a bank or card
-export read into a trip's `costs.md` — and it is a folder nobody has written
-yet rather than a promise this file is making.
+**`costs/` — bank statements.**
+
+| | |
+| --- | --- |
+| `revolut.ts` | a Revolut consolidated statement, as the app exports it |
+
+One bank, and the shape of the next one is written down rather than guessed at:
+rows of `{date, amount, currency, description}` with the sign the statement
+wrote, and **no category** — what a payment was *for* is the owner's decision,
+which is why a `costs` import writes nothing by itself.
 
 ## Where the data goes, and why that matters
 

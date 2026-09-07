@@ -8,6 +8,7 @@ import {
   isRefusal,
   type ImportKind,
 } from "@/lib/gps/api";
+import { readStatement } from "@/lib/statements/read";
 import { storageRefusal } from "@/lib/storageQuota";
 import { getUser } from "@/lib/users";
 import { REQUEST_MAX_BYTES } from "@/lib/validate/media";
@@ -18,10 +19,17 @@ export const dynamic = "force-dynamic";
 /**
  * Importing somebody's own data — B671.
  *
- * One door, keyed by **kind** and **format**. `kind` is what the data *is*
- * (`gps` today; a bank export into a trip's costs would be `costs`), and
- * `format` is who wrote it (`google-timeline`, `gpx`, …). A second kind is
- * then the same call with different words rather than a second route to learn.
+ * One door, keyed by **kind** and **format**. `kind` is what the data *is* —
+ * `gps` for a location history, `costs` for a bank statement — and `format` is
+ * who wrote it (`google-timeline`, `gpx`, `revolut`, …). The second kind
+ * arrived in B677 and needed no second route, which is what the shape was for.
+ *
+ * **The two kinds end differently, and that is deliberate.** Positions are
+ * written into the journal's store as they are read: a coordinate is a
+ * measurement, and there is nothing about it to decide. A statement is read
+ * and *reported* — it covers the trip and the fortnight either side of it, and
+ * what each line was for is an editorial decision. Nothing reaches a trip
+ * until a person sends rows back to `POST …/trips/<trip>/costs/import`.
  *
  * There was a CLI for this and it is gone. The owner of a hosted journal has
  * no shell on the machine, and an agent never has one, so a capability whose
@@ -71,14 +79,18 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
     maxBytes: REQUEST_MAX_BYTES,
     next:
       `Put the export in the inbox (\`POST /api/v1/${user}/inbox\`, kind \`files\`), then ` +
-      `\`POST /api/v1/${user}/import\` with \`{"kind": "gps", "inbox": "<id>"}\`. Leave ` +
-      "`format` out and the file is recognised from its own contents. Add " +
-      '`"dryRun": true` to see what would be read without writing anything. ' +
-      `Then \`POST /api/v1/${user}/trips/<trip>/track\` to draw one trip's line from it.`,
+      `\`POST /api/v1/${user}/import\` with \`{"kind": "…", "inbox": "<id>"}\`. Say the kind; ` +
+      "leave `format` out and the file is recognised from its own contents. " +
+      `A \`gps\` import is stored as it is read, and \`POST /api/v1/${user}/trips/<trip>/track\` ` +
+      "then draws one trip's line from it. A `costs` import writes nothing at all: it " +
+      "reports the payments, you agree the categories with the person, and " +
+      `\`POST /api/v1/${user}/trips/<trip>/costs/import\` puts the agreed rows on the days.`,
   });
 }
 
 type Body = {
+  from?: unknown;
+  to?: unknown;
   kind?: unknown;
   format?: unknown;
   inbox?: unknown;
@@ -212,21 +224,25 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
   const { text, filename, body } = source;
 
   const kind = typeof body.kind === "string" ? body.kind : undefined;
-  if (kind !== undefined && !(IMPORT_KINDS as readonly string[]).includes(kind)) {
+  if (kind === undefined || !(IMPORT_KINDS as readonly string[]).includes(kind)) {
+    // **Absent is refused, not guessed.** While there was one kind this
+    // defaulted to it, which was fine and stopped being fine the moment a
+    // second arrived (B677): reading somebody's bank statement as positions,
+    // or their location history as money, is not a mistake to make quietly.
     return Response.json(
       {
         error: "unknown_kind",
         message:
-          `No such kind ${JSON.stringify(kind)}. Known kinds: ${IMPORT_KINDS.join(", ")}. ` +
-          "A kind is what the data *is*; the format is who wrote it.",
+          (kind === undefined
+            ? "Say what kind of data this is. "
+            : `No such kind ${JSON.stringify(kind)}. `) +
+          `Known kinds: ${IMPORT_KINDS.join(", ")}. A kind is what the data *is*; the ` +
+          `format is who wrote it. GET /api/v1/${user}/import lists both.`,
       },
       { status: 400 },
     );
   }
-  // One kind exists, so absent means that one. When there are two, absent has
-  // to become a refusal rather than a guess — importing a bank statement as
-  // positions is not a mistake to make quietly.
-  const chosenKind: ImportKind = (kind as ImportKind) ?? "gps";
+  const chosenKind = kind as ImportKind;
 
   const dryRun = body.dryRun === true;
   if (!dryRun) {
@@ -240,10 +256,39 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
     }
   }
 
-  const result = importGps(user, text, filename, {
-    format: typeof body.format === "string" ? body.format : undefined,
-    dryRun,
-  });
+  const format = typeof body.format === "string" ? body.format : undefined;
+
+  if (chosenKind === "costs") {
+    // A statement is read and reported, never written into a trip by itself —
+    // it covers the trip and the fortnight either side of it, and the category
+    // on each line is a person's decision. `dryRun` therefore changes nothing
+    // here, and saying so is more honest than accepting it silently.
+    const statement = readStatement(text, filename, {
+      format,
+      from: typeof body.from === "string" ? body.from : undefined,
+      to: typeof body.to === "string" ? body.to : undefined,
+    });
+    if ("refusal" in statement) {
+      return Response.json(
+        { error: statement.refusal, message: statement.message, problems: statement.problems },
+        { status: 400 },
+      );
+    }
+    return Response.json({
+      ...statement,
+      next:
+        `Nothing has been written. Agree the categories — one decision per merchant covers ` +
+        `every payment to it, and the list is sorted biggest first — then send the rows to ` +
+        `POST /api/v1/${user}/trips/<trip>/costs/import. Never choose a category yourself: ` +
+        "a statement says what was paid, never what it was for." +
+        (Object.keys(statement.rates).length > 0
+          ? ` The rates above are what the money actually cost; PUT them to ` +
+            `/api/v1/${user}/trips/<trip>/rates if the trip has none.`
+          : ""),
+    });
+  }
+
+  const result = importGps(user, text, filename, { format, dryRun });
 
   if (isRefusal(result)) {
     return Response.json(

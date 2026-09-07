@@ -1857,6 +1857,58 @@ a budget is trip content, and the people on a trip are the people who spent
 the money. Per-day spending is a different field entirely: \`costs\` on
 \`POST .../days\`, above, which this door does not touch.
 
+### What the trip actually cost, from a bank statement
+
+A statement is the other half of a budget: the budget is what somebody meant to
+spend, and this is what left their account.
+
+\`\`\`http
+POST ${site.url}/api/v1/${example}/import
+Content-Type: application/json
+
+{"kind": "costs", "inbox": "<id>", "from": "<trip start>", "to": "<trip end>"}
+\`\`\`
+
+Stage the statement in the inbox first, exactly as for a location history — a
+\`.csv\` lands in \`files/\`. The date window is worth sending: a statement
+covers the trip *and* the fortnight either side of it, and the totals and rates
+that come back describe whatever window you asked for.
+
+**It writes nothing.** What comes back is the spending grouped by day, the
+merchants biggest-first, the money that was not spending (transfers, money
+coming in) counted rather than hidden, and — the number nobody can look up —
+what a unit of each foreign currency **actually cost**, taken from the money
+the bank moved rather than from any published table.
+
+Then the part that is not yours:
+
+**Agree the categories, merchant by merchant.** The list comes back sorted
+biggest first because one decision about a merchant covers every payment to it.
+A statement says what was paid, never what it was for; \`other\` is a real
+answer and a good one, and a plausible category you chose yourself is exactly
+the kind of fiction nobody catches later. Ask.
+
+**Then ask which rows were the trip's at all.** The rent is in there. So is the
+phone bill.
+
+\`\`\`http
+POST ${site.url}/api/v1/${example}/trips/<trip-id>/costs/import
+Content-Type: application/json
+
+{"rows": [
+  {"date": "2026-06-22", "label": "Padaria Central", "amount": 11.65,
+   "currency": "CHF", "category": "food"}
+]}
+\`\`\`
+
+That **adds** to each day — costs somebody wrote by hand stay, and sending the
+same rows twice writes them twice. A date whose day nobody has written yet
+comes back in \`orphaned\` and nothing is recorded for it; the cost is never
+moved to a neighbouring day.
+
+The rates the import worked out are not written either. If the trip has none,
+they are the numbers to send to the rates door below.
+
 ### The trip's exchange rates
 
 \`createTrip\` could only ever write \`rates:\` once, at the moment a trip is
@@ -2075,9 +2127,13 @@ GET ${site.url}/api/v1/${example}/import
 \`\`\`
 
 Answers with the kinds of data this instance reads and the formats it knows.
-A **kind** is what the data *is* (\`gps\`); a **format** is who wrote it
-(\`google-timeline\`, \`google-records\`, \`gpx\`, \`fixes\`). The same call
-shape will take a bank export into a trip's costs when that kind exists.
+A **kind** is what the data *is* — \`gps\` for a location history, \`costs\`
+for a bank statement — and a **format** is who wrote it (\`google-timeline\`,
+\`google-records\`, \`gpx\`, \`fixes\`, \`revolut\`).
+
+**Say the kind.** An absent one is refused rather than guessed at: reading
+somebody's bank statement as positions, or their location history as money, is
+not a mistake to make quietly.
 
 Stage the export in the inbox as above — it is a \`.json\` or a \`.gpx\`, so it
 lands in \`files/\` — and then:
