@@ -121,3 +121,67 @@ export async function lookupAddresses(query: string, locale: string): Promise<Ad
   }
   return out;
 }
+
+/** What a coordinate turns into: a place a day can be labelled with, never a
+ *  street address. See `reversePlace`. */
+export type ReversePlace = { location: string; country: string; countryCode: string };
+
+/**
+ * The reverse of the above: coordinates in, a place name out — B682.
+ *
+ * The wizard at `/agent` has a latitude and a longitude out of a photograph's
+ * EXIF and needs somewhere to put on the day. This is the only route to that
+ * name that is not a guess: the alternative was an agent writing down where it
+ * thought the picture was taken, which is the one thing AGENTS.md forbids
+ * outright.
+ *
+ * Same provider, same capability, same "never throws, `null` is a failure"
+ * contract as `lookupAddresses`. It asks the provider's `reverse` endpoint,
+ * derived from the configured `/api/` URL, so a self-hosted Photon needs no
+ * second setting.
+ *
+ * `type: "house"` is *not* required here, unlike the address search: the whole
+ * point is the town rather than the doorstep, and a day labelled with a street
+ * number would be worse than one labelled with a city.
+ */
+export async function reversePlace(
+  lat: number,
+  lng: number,
+  locale: string,
+): Promise<ReversePlace | null> {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const lang = SUPPORTED_LANGS.has(locale) ? locale : "en";
+  const key = process.env.ADDRESS_LOOKUP_API_KEY;
+
+  let target: URL;
+  try {
+    target = new URL(providerConfig().url.replace(/\/api\/?$/, "/reverse"));
+  } catch {
+    return null;
+  }
+  target.searchParams.set("lat", String(lat));
+  target.searchParams.set("lon", String(lng));
+  target.searchParams.set("limit", "1");
+  target.searchParams.set("lang", lang);
+  if (key) target.searchParams.set("key", key);
+
+  let body: { features?: { properties?: Record<string, string> }[] };
+  try {
+    const response = await fetch(target, { signal: AbortSignal.timeout(5000) });
+    if (!response.ok) return null;
+    body = (await response.json()) as typeof body;
+  } catch {
+    return null;
+  }
+
+  const p = body.features?.[0]?.properties ?? {};
+  // The town, then whatever the provider could name — a district, a mountain,
+  // a region. Anything but nothing, which is what a day with no place shows.
+  const location = p.city || p.name || p.state || p.country || "";
+  if (location === "") return null;
+  return {
+    location,
+    country: p.country ?? "",
+    countryCode: (p.countrycode ?? "").toUpperCase(),
+  };
+}

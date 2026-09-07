@@ -1,20 +1,19 @@
 "use client";
 
+import Link from "next/link";
 import AgentHandover from "@/components/AgentHandover";
 import { AgentBlock } from "@/components/LandingSections";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import { useI18n } from "@/components/LocaleProvider";
+import type { WizardDraft } from "@/lib/helper/draft";
 
-export type AgentJournal = { username: string; title: string };
-
-const WIZARD_STEPS = [
-  "agent.stepTrip",
-  "agent.stepDate",
-  "agent.stepPhotos",
-  "agent.stepWords",
-  "agent.stepPreview",
-  "agent.stepPublish",
-] as const;
+export type AgentJournal = {
+  username: string;
+  title: string;
+  /** Everything unfinished in this journal, newest first — B682's resume card.
+   * Empty for a journal with nothing waiting, which is the ordinary case. */
+  drafts: WizardDraft[];
+};
 
 /**
  * The door at `/agent`, signed out and signed in — B681.
@@ -27,8 +26,9 @@ const WIZARD_STEPS = [
  * `AgentBlock` — the base URL and the guide, nothing personal.
  *
  * **Signed in**, each owned journal gets its own card: a heading naming it,
- * a row of disabled buttons standing in for the wizard steps B682 fills in,
- * and — this is the same panel, now that a journal is known — `AgentHandover`
+ * whatever is unfinished in it, the way into the wizard B682 built at
+ * `/agent/<user>`, and — this is the same panel, now that a journal is known —
+ * `AgentHandover`
  * in place of the generic block, because `AgentHandover` already builds
  * exactly what the ticket asks for: a starter prompt from the journal, the
  * site's base URL and a minted handover credential. There is deliberately no
@@ -59,7 +59,7 @@ export default function AgentDoor({
   /** The reader's own journals — `role: "owner"` only, see the page. */
   journals: AgentJournal[];
 }) {
-  const { t } = useI18n();
+  const { t, tn, formatLongDate } = useI18n();
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
@@ -90,22 +90,40 @@ export default function AgentDoor({
             >
               <h2 className="font-display text-xl font-semibold text-navy-900">{journal.title}</h2>
 
-              <h3 className="mt-4 font-mono text-[11px] uppercase tracking-[0.18em] text-navy-600">
-                {t("agent.wizardTitle")}
-              </h3>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {WIZARD_STEPS.map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    disabled
-                    className="min-h-11 rounded-full border border-navy-200 bg-cream-100 px-4 text-base text-navy-500"
-                  >
-                    {t(key)}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-3 text-sm leading-6 text-navy-600">{t("agent.wizardComingSoon")}</p>
+              {/* The resume card — B682. It is above the "write a day" button
+                  rather than below it because somebody who left a day
+                  half-written on a bus came back for that day, not to start
+                  another one. What it can say is what is on disk: the date,
+                  how many photographs reached the day, and whether anybody has
+                  written the words yet. */}
+              {journal.drafts.length > 0 && (
+                <div className="mt-4 rounded-xl border border-navy-200 bg-cream-100 p-4">
+                  <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-navy-600">
+                    {t("agent.resumeHeading")}
+                  </h3>
+                  <ul className="mt-2 space-y-1">
+                    {journal.drafts.slice(0, 3).map((draft) => (
+                      <li key={`${draft.trip}/${draft.slug}`} className="text-sm text-navy-700">
+                        <span className="font-semibold text-navy-900">
+                          {formatLongDate(draft.date)}
+                        </span>
+                        {" · "}
+                        {draft.photos > 0
+                          ? tn("agent.photoCount", draft.photos, { count: String(draft.photos) })
+                          : t("agent.noPhotosYet")}
+                        {!draft.written && ` · ${t("agent.noWordsYet")}`}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <Link
+                href={`/agent/${encodeURIComponent(journal.username)}`}
+                className="mt-4 inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
+              >
+                {journal.drafts.length > 0 ? t("agent.resumeOpen") : t("agent.wizardOpen")}
+              </Link>
 
               <div className="mt-6 border-t border-navy-200 pt-6">
                 <AgentHandover username={journal.username} siteUrl={siteUrl} />
