@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: helper: publish
 found: "2026-09-06T19:32:57Z"
+started: "2026-09-07T12:46:00Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T12:46:00Z"
 ---
 
 # B647 — publish.mjs matches a day by date alone and overwrote one day with another day's content

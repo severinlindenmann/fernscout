@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: helper: icloud-export
 found: "2026-09-06T19:33:10Z"
+started: "2026-09-07T12:46:02Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T12:46:02Z"
 ---
 
 # B650 — A day's location: and its lat/lng can name towns 200 km apart and nothing says so

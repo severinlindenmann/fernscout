@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: helper: icloud-export, media
 found: "2026-09-06T19:32:40Z"
+started: "2026-09-07T12:45:59Z"
+session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
+claimed: "2026-09-07T12:45:59Z"
 ---
 
 # B645 — Nothing runs a photograph through the helper's build.mjs, so nine were published sideways
