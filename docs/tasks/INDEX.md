@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (85)
+## backlog (84)
 
 ### security (1)
 
@@ -111,11 +111,10 @@ Do not edit them by hand; run the script.
 | [B731](backlog/small-feature/B731-a-trip-made-from-the-ask.md) | A trip made from the ask box never shows who can read it | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (4)
+### chore (3)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B755](backlog/chore/B755-a-fresh-clone-gets-this-instance.md) | A fresh clone gets this instance's costs and an env example missing six keys | CHORE | high | low |
 | [B594](backlog/chore/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B724](backlog/chore/B724-a-capability-that-needs-another-one.md) | A capability that needs another one is an if rather than a field | CHORE | low | low |
 | [B736](backlog/chore/B736-build-demo-content-mjs-still-cannot.md) | build-demo-content.mjs still cannot reproduce travelScene, per-item visibility, some captions, or six fixture days | CHORE | low | medium |
@@ -192,7 +191,7 @@ _Nothing here._
 | [B709](in-development/B709-every-day-must-answer-the-money.md) | Every day must answer the money question before it is written | ISSUE | low | medium | `97b44327` |
 | [B753](in-development/B753-sending-a-sign-in-code-gives.md) | Sending a sign-in code gives no sign that anything was sent | FEATURE | low | low | `ccdd5120` |
 
-## testing (8)
+## testing (9)
 
 ### issue (4)
 
@@ -215,6 +214,12 @@ _Nothing here._
 | --- | --- | --- | --- | --- | --- |
 | [B688](testing/small-feature/B688-a-new-visitor-cannot-make-a.md) | A new visitor cannot make a journal inside the helper | FEATURE | low | medium | — |
 | [B737](testing/small-feature/B737-the-travel-scene-s-vehicles-exist.md) | The travel scene's vehicles exist only on the web, so a book cannot show how a leg was travelled | FEATURE | low | medium | — |
+
+### chore (1)
+
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B755](testing/chore/B755-a-fresh-clone-gets-this-instance.md) | A fresh clone gets this instance's costs and an env example missing six keys | CHORE | high | low | — |
 
 ### docs-and-skills (1)
 
