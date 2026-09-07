@@ -5,7 +5,7 @@ import MiniMap from "@/components/MiniMap";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 import { kmForUnits } from "@/lib/mapFrame";
-import type { Entry } from "@/lib/types";
+import type { PlaceEntry } from "@/lib/types";
 
 /**
  * What the map draws at the scale of one trip.
@@ -34,7 +34,7 @@ function stop(location: string, lat: number, lng: number): PlaceView {
     lastDate: "2024-09-12",
     nights: 1,
     mediaCount: 1,
-    entries: [{ slug: location.toLowerCase(), date: "2024-09-12" } as Entry],
+    entries: [{ slug: location.toLowerCase(), date: "2024-09-12" } as unknown as PlaceEntry],
   };
 }
 
@@ -154,7 +154,7 @@ describe("a long leg bends toward the nearer pole", () => {
   function flightBetween(a: PlaceView, b: PlaceView) {
     const arriving: PlaceView = {
       ...b,
-      entries: [{ slug: b.key, date: "2023-01-09", transport: { mode: "flight", from: a.location, to: b.location } } as unknown as Entry],
+      entries: [{ slug: b.key, date: "2023-01-09", transport: { mode: "flight", from: a.location, to: b.location } } as unknown as PlaceEntry],
     };
     return renderToStaticMarkup(
       <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>

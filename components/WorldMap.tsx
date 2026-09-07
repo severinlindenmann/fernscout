@@ -13,7 +13,7 @@ import { flagFor } from "@/lib/flags";
 import { useI18n } from "./LocaleProvider";
 import { useTrip } from "./TripProvider";
 import type { Basemap } from "@/lib/basemap";
-import type { Entry, PlannedStop, TransportMode } from "@/lib/types";
+import type { PlaceEntry, PlannedStop, TransportMode } from "@/lib/types";
 
 export type PlaceView = {
   key: string;
@@ -26,7 +26,7 @@ export type PlaceView = {
   lastDate: string;
   nights: number;
   mediaCount: number;
-  entries: Entry[];
+  entries: PlaceEntry[];
 };
 
 type Leg = { from: PlaceView; to: PlaceView; mode: TransportMode };

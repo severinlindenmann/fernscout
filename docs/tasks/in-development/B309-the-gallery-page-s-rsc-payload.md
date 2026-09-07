@@ -70,3 +70,63 @@ already merged.
   acceptance check did for `getAllMedia`.
 - The slideshow's narration and the map's place detail panel still show the
   same text they do today once opened.
+
+## Done (2026-09-07)
+
+Followed B87's exact pattern: a new light type, `PlaceEntry` (`lib/types.ts`),
+replaces `Entry` in `Place.entries`/`PlaceView.entries`. It carries `slug`,
+`date`, `time`, `location`, `country`, `countryCode`, `transport`, `cover`,
+`gallery` and `draft` — everything `WorldMap.tsx` and `SlideShow.tsx` actually
+read off an entry (grepped `\.entries` in both first, per the Work note above)
+— and drops `title`, `content` and `translations` entirely.
+
+The one field that needed real thought rather than just narrowing: the
+slideshow's narrated cut reads one sentence of prose per day
+(`lib/narratedCut.ts`'s `firstSentence`), and that sentence is picked in the
+*reader's own locale* (`useI18n().localized`, previously called with the raw
+`Entry`). Dropping `content`/`translations` outright would have silently
+broken localisation, which the Acceptance line above rules out. So
+`PlaceEntry` carries `headline: Record<string, string>` instead — one
+sentence (or the day's title, when it has none) precomputed *once, on the
+server*, for every locale the journal is configured to read in
+(`lib/entries.ts`'s new `toPlaceEntry`/`localesOf`) — rather than shipping
+each language's whole prose to the client so a locale switch or the
+slideshow can extract a sentence from it there. Every locale the journal
+offers is covered (not only the ones actually translated), so a reader's
+locale always has a `headline[locale]` and the client never has to fall back
+to a "written locale" it does not carry.
+
+`components/SlideShow.tsx` now reads `narratedStep.entry.headline[locale]`
+directly instead of calling `localized()` + `firstSentence()` on raw content;
+`lib/narratedCut.ts`'s `NarratedCutSlide.entry` is typed `PlaceEntry`, not
+`Entry`. `components/WorldMap.tsx`'s `PlaceView.entries` is `PlaceEntry[]`.
+`GalleryPageContent` and `MapPageContent` needed no change — they already
+only re-export the type, they don't read entry fields themselves.
+
+**Before/after**: no page-weight number taken (would need a running instance
+with a fixture trip, which is more setup than this ticket's time budget
+covered) — instead pinned at the data layer, the same level B87's own
+verification used a real fetch for and this task's Why section used a real
+fetch for too. `test/place-entry-projection.test.ts` is new: it writes a day
+whose English `content` and German `translations.de.content` each carry two
+sentences, calls `getPlaces()`, and asserts (a) the returned `PlaceEntry` has
+no `content`, `translations` or `title` key at all — `JSON.stringify`d, the
+day's second sentence in either language is absent from the whole `Place` —
+and (b) `headline.en`/`headline.de` each carry exactly the first sentence.
+That is the shape of proof the ticket's own "grep the HTML" acceptance check
+was reaching for, one layer down: nothing above `getPlaces` can leak content
+it was never handed.
+
+**Not done, and worth naming honestly**: acceptance's own two bullets (fetch
+`/[user]/gallery` and `/[user]/map` against a running instance and grep the
+HTML) were not re-run — `test/place-entry-projection.test.ts` proves the data
+`getPlaces` hands to the page no longer contains the prose, and the type
+change on `PlaceView`/`GalleryPageContent`/`MapPageContent` means the page
+components have nothing left to leak even if they wanted to (there is no
+`Entry` in scope to serialise), but a live-fetch confirmation the way the Why
+section did for the original bug was not repeated. `npm run verify` passes in
+full otherwise (build, tsc, eslint, all 341 test files, 4366 tests).
+
+`test/narratedCut.test.ts`, `test/world-map.test.tsx`, `test/map-page.test.tsx`
+and `test/slide-map.test.tsx` fixtures updated for the new type (`PlaceEntry`
+instead of `Entry`) — no behavioural change to what they assert.

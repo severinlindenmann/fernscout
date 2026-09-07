@@ -1,21 +1,16 @@
 import { describe, expect, test } from "vitest";
 import { buildNarratedCut, firstSentence } from "@/lib/narratedCut";
-import type { Entry } from "@/lib/types";
+import type { PlaceEntry } from "@/lib/types";
 
-function entry(overrides: Partial<Entry>): Entry {
+function entry(overrides: Partial<PlaceEntry>): PlaceEntry {
   return {
     slug: "e",
-    title: "Title",
     date: "2026-01-01",
     location: "Somewhere",
     country: "Nowhereland",
-    lat: 0,
-    lng: 0,
     cover: undefined,
     gallery: [],
-    tags: [],
-    costs: [],
-    content: "",
+    headline: { en: "Title" },
     ...overrides,
   };
 }

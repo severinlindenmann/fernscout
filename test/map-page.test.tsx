@@ -9,7 +9,7 @@ import { dictionaryFor } from "@/lib/locales";
 import { kmForUnits } from "@/lib/mapFrame";
 import type { PlaceView } from "@/components/WorldMap";
 import type { SiteSummary } from "@/lib/site";
-import type { Entry, PlannedStop } from "@/lib/types";
+import type { PlaceEntry, PlannedStop } from "@/lib/types";
 
 /**
  * What the map page draws, and for which of the two kinds of trip.
@@ -65,7 +65,7 @@ const place: PlaceView = {
   lastDate: "2027-04-10",
   nights: 2,
   mediaCount: 4,
-  entries: [{ slug: "kyoto-in-april", date: "2027-04-08" } as Entry],
+  entries: [{ slug: "kyoto-in-april", date: "2027-04-08" } as unknown as PlaceEntry],
 };
 
 const travelled = { tripDays: 3, places: 1, countries: 1, totalMedia: 4 };

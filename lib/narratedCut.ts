@@ -1,4 +1,4 @@
-import type { Entry, GalleryItem } from "./types";
+import type { GalleryItem, PlaceEntry } from "./types";
 
 /** One day, told in a single slide: where we were and the day's best shot. */
 export type NarratedCutSlide = {
@@ -11,10 +11,12 @@ export type NarratedCutSlide = {
    * text-only card rather than being skipped, so a video-only or
    * yet-to-be-photographed day still gets its turn. */
   photo?: GalleryItem;
-  /** The day's lead entry — its title/content is where the one sentence
-   * comes from. Kept as the whole entry (rather than pre-extracting the
-   * sentence here) so the caller can localise it first via `useI18n().localized`. */
-  entry: Entry;
+  /**
+   * The day's lead entry, projected — `headline` already carries the one
+   * sentence for every locale the journal reads in (B309), so the caller
+   * looks it up by the active locale rather than localising raw prose here.
+   */
+  entry: PlaceEntry;
 };
 
 /**
@@ -27,8 +29,8 @@ export type NarratedCutSlide = {
  * map `Place`), so this takes a flat entry list rather than a `Day[]` and
  * groups it itself.
  */
-export function buildNarratedCut(entries: Entry[]): NarratedCutSlide[] {
-  const days: Entry[][] = [];
+export function buildNarratedCut(entries: PlaceEntry[]): NarratedCutSlide[] {
+  const days: PlaceEntry[][] = [];
   for (const entry of entries) {
     const last = days.at(-1);
     if (last && last[0].date === entry.date) {
@@ -68,7 +70,7 @@ export function buildNarratedCut(entries: Entry[]): NarratedCutSlide[] {
  * 5. `undefined` when the day has no photos at all (a video-only day, or one
  *    with no gallery yet) — the caller renders a text-only slide.
  */
-function bestPhotoForDay(dayEntries: Entry[]): GalleryItem | undefined {
+function bestPhotoForDay(dayEntries: PlaceEntry[]): GalleryItem | undefined {
   for (const entry of dayEntries) {
     if (!entry.cover) continue;
     const declared = entry.gallery.find((g) => g.src === entry.cover);
