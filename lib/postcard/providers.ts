@@ -62,9 +62,14 @@ export type PreparedRequest = {
  * nothing called it, and the moment something did, a second field list beside
  * this one would have been a list that disagreed with it within a month.
  */
-export function buildStannpRequest(order: PostcardOrder, region: "eu" | "us" = "eu"): PreparedRequest {
+export function buildStannpRequest(
+  order: PostcardOrder,
+  region: "eu" | "us" = "eu",
+): PreparedRequest {
   if (!order.paymentRef) {
-    throw new Error("postcard provider: refusing to build a request with no recorded payment");
+    throw new Error(
+      "postcard provider: refusing to build a request with no recorded payment",
+    );
   }
   return {
     provider: "stannp",
@@ -77,7 +82,8 @@ export function buildStannpRequest(order: PostcardOrder, region: "eu" | "us" = "
       // Stannp lays a white border over the front unless this is zero, which
       // would crop into art rendered to the bleed. B435.
       padding: "0",
-      "recipient[firstname]": order.to.name.split(" ").slice(0, -1).join(" ") || order.to.name,
+      "recipient[firstname]":
+        order.to.name.split(" ").slice(0, -1).join(" ") || order.to.name,
       "recipient[lastname]": order.to.name.split(" ").slice(-1).join(" "),
       "recipient[address1]": order.to.line1,
       ...(order.to.line2 ? { "recipient[address2]": order.to.line2 } : {}),
@@ -124,13 +130,19 @@ function swissPostStatus(): { usable: boolean; reason: string } {
 }
 
 /** Providers that can be used today, with no account, for development. */
-export function availableProviders(): Record<ProviderName, { ready: boolean; note: string }> {
+export function availableProviders(): Record<
+  ProviderName,
+  { ready: boolean; note: string }
+> {
   return {
-    "dry-run": { ready: true, note: "Writes print-ready files to ./out/postcards. No account." },
+    "dry-run": {
+      ready: true,
+      note: "Writes print-ready files to ./out/postcards. No account.",
+    },
     stannp: {
       ready: Boolean(process.env.STANNP_API_KEY),
       note: process.env.STANNP_API_KEY
-        ? "Wired. Posts unless features.postcards.live is true, in which case it prints and dispatches."
+        ? "Wired. Renders a free sample of every card unless features.postcards.live is true, in which case it prints and dispatches real paper."
         : "Wired, but STANNP_API_KEY is unset and a funded account is needed.",
     },
     swisspost: { ready: false, note: swissPostStatus().reason },
