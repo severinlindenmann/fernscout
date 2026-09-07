@@ -45,8 +45,22 @@ export type VideoFormat = (typeof VIDEO_FORMATS)[number];
 export const IMAGE_MAX_BYTES = 50 * 1024 * 1024;
 export const IMAGE_MAX_EDGE = 8000;
 
-/** A travel journal, not a channel. */
-export const VIDEO_MAX_SECONDS = 90;
+/**
+ * A travel journal, not a channel — but the cap is a backstop and not an
+ * editorial opinion.
+ *
+ * It was 90 seconds, which refused a great many clips people actually had:
+ * a phone records until you stop it, and "trim it first" is a sentence with
+ * nowhere to go for somebody handing photographs to an agent. Five minutes is
+ * long enough that almost nothing real is refused.
+ *
+ * `VIDEO_SHORT_SECONDS` is the other half, and it is the half that used to be
+ * done by refusing. Past it the upload still succeeds and the response says
+ * plainly that a short clip is the better thing to put on a day — advice a
+ * person can take or ignore, rather than a wall.
+ */
+export const VIDEO_MAX_SECONDS = 5 * 60;
+export const VIDEO_SHORT_SECONDS = 60;
 export const VIDEO_MAX_BYTES = 200 * 1024 * 1024;
 
 export const MAX_ITEMS_PER_DAY = 40;

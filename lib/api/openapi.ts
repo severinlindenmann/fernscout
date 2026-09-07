@@ -36,6 +36,7 @@ import {
   VIDEO_FORMATS,
   VIDEO_MAX_BYTES,
   VIDEO_MAX_SECONDS,
+  VIDEO_SHORT_SECONDS,
 } from "@/lib/validate/media";
 
 /**
@@ -2380,7 +2381,10 @@ export function openApiDocument() {
                         `Video: ${VIDEO_FORMATS.join(", ")}. At most ` +
                         `${IMAGE_MAX_BYTES / 1024 / 1024} MB and ${IMAGE_MAX_EDGE} px on the ` +
                         `long edge for a picture, ${VIDEO_MAX_BYTES / 1024 / 1024} MB and ` +
-                        `${VIDEO_MAX_SECONDS} seconds for a clip, ${MAX_ITEMS_PER_DAY} items ` +
+                        `${VIDEO_MAX_SECONDS} seconds for a clip — though about ` +
+                        `${VIDEO_SHORT_SECONDS}s is the clip a reader watches, and a longer ` +
+                        `one is taken whole and mentioned in \`advice\` rather than cut — ` +
+                        `${MAX_ITEMS_PER_DAY} items ` +
                         `on one day, and ${REQUEST_MAX_BYTES / 1024 / 1024} MB in one ` +
                         "request — which is the limit a batch of phone originals meets " +
                         "first, so send them in batches rather than all at once. Send the " +
@@ -2465,7 +2469,12 @@ export function openApiDocument() {
                 "and its width/height are that copy's. `kept` is the original stored " +
                 "untouched for print, with the dimensions you sent — the two differ on " +
                 "purpose, and `kept` is how you confirm the full-resolution file survived " +
-                "rather than taking it on trust. `attached` is false only if the entry has " +
+                "rather than taking it on trust — a clip is in `kept` like a photograph, and " +
+                "its dimensions are absent because for a video they describe the " +
+                "transcode, which `items` already carries. `advice` is present only when " +
+                "there is something worth saying about a batch that succeeded, today that " +
+                "a clip is long; it changed nothing and asks for nothing. " +
+                "`attached` is false only if the entry has " +
                 "no frontmatter to write into, in which case the files are still on disk " +
                 "and `items` is what to add by hand. `note` says plainly when the day is " +
                 "already published, so anyone reading it can now see the addition.",

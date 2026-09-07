@@ -17,9 +17,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import type { ExifDateTime } from "./exif.ts";
+import { VIDEO_MAX_SECONDS } from "../validate/media.ts";
 
-/** Longer than this and it is a film, not a clip. */
-export const MAX_SECONDS = 30;
+/**
+ * Longer than this and it is a film, not a clip.
+ *
+ * The same number the API door enforces, imported rather than repeated: two
+ * limits for one question is how a folder imports what an upload refuses.
+ * `npm run ingest --max-video-seconds` still narrows it per run.
+ */
+export const MAX_SECONDS = VIDEO_MAX_SECONDS;
 
 /** Clips are capped well below the photo size: motion hides detail, and this
  * is the difference between a 4 MB file and a 40 MB one. */

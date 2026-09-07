@@ -8,7 +8,7 @@ import { clearUserCache } from "@/lib/users";
 import { storeUploads } from "@/lib/api/media";
 import { attachGallery } from "@/lib/api/entries";
 import { getEntryBySlug } from "@/lib/entries";
-import { MAX_ITEMS_PER_DAY, type Problem } from "@/lib/validate/media";
+import { MAX_ITEMS_PER_DAY, VIDEO_SHORT_SECONDS, type Problem } from "@/lib/validate/media";
 
 /**
  * Media arriving over the network.
@@ -432,7 +432,54 @@ describe("video", () => {
     const served = path.join(tripPath(), "media", "day-one");
     expect(fs.readdirSync(served).sort()).toEqual(["01-poster.jpg", "01.mp4"]);
     expect(fs.readdirSync(path.join(tripPath(), "originals", "day-one"))).toEqual(["01.mp4"]);
+
+    // B670: and the response says so. The original of a clip was staged like
+    // every other upload's and reported in `kept` like none of them, so a
+    // response promising "what was stored untouched" listed the photographs
+    // and left an agent to conclude the video's original had been dropped.
+    const kept = (result as { kept: { filename: string; bytes: number }[] }).kept;
+    expect(kept).toHaveLength(1);
+    expect(kept[0].filename).toBe("clip.mp4");
+    expect(kept[0].bytes).toBe(fs.statSync(source).size);
+
+    // A two-second clip is short, so there is nothing to advise about.
+    expect((result as { advice: string[] }).advice).toEqual([]);
   }, 30_000);
+
+  /**
+   * A long clip is taken, and spoken about.
+   *
+   * It used to be refused at 90 seconds, which is a wall in front of somebody
+   * holding the only copy of the thing that happened. The cap is five minutes
+   * now and the old refusal survives as one sentence on a 201: the files are
+   * in the day either way, and trimming is the person's call.
+   */
+  test("a clip past the short mark lands whole, with advice", async () => {
+    const { videoToolsAvailable } = await import("@/lib/ingest/video");
+    if (!videoToolsAvailable()) return;
+
+    const source = path.join(dir, "long.mp4");
+    const { spawnSync } = await import("node:child_process");
+    const made = spawnSync("ffmpeg", ["-nostdin", "-v", "error", "-f", "lavfi",
+      "-i", "testsrc=size=160x120:rate=10", "-t", String(VIDEO_SHORT_SECONDS + 5),
+      "-preset", "ultrafast", "-pix_fmt", "yuv420p", source]);
+    if (made.status !== 0) throw new Error(`could not make a test clip: ${made.stderr}`);
+
+    writeDay("day-one", "2026-01-01");
+    const result = await storeUploads(REF, "day-one", [
+      { filename: "long.mp4", bytes: fs.readFileSync(source) },
+    ]);
+    expect(result.ok).toBe(true);
+
+    const advice = (result as { advice: string[] }).advice;
+    expect(advice).toHaveLength(1);
+    expect(advice[0]).toContain("long.mp4");
+
+    // Taken whole: nothing was cut to make it short.
+    const { probeVideo } = await import("@/lib/ingest/video");
+    const served = probeVideo(path.join(tripPath(), "media", "day-one", "01.mp4"));
+    expect(served!.durationSeconds).toBeGreaterThan(VIDEO_SHORT_SECONDS);
+  }, 120_000);
 });
 
 /**

@@ -7,7 +7,13 @@ import { getEntryBySlug } from "../entries";
 import { frontmatterSrc } from "../ingest/paths.ts";
 import { resolveMediaFile, tripMediaDir, tripOriginalsDir } from "../media";
 import { getTrips, parseTripRef, tripDir } from "../trips";
-import { IMAGE_FORMATS, validateMediaBatch, type MediaCandidate, type Problem } from "../validate/media";
+import {
+  IMAGE_FORMATS,
+  VIDEO_SHORT_SECONDS,
+  validateMediaBatch,
+  type MediaCandidate,
+  type Problem,
+} from "../validate/media";
 import { VIDEO_EXTENSIONS, probeVideo, transcodeVideo, videoToolsAvailable } from "../ingest/video";
 import { loadUserConfig } from "../config";
 import { mediaKey, type PhotoVisibility } from "../photos";
@@ -72,7 +78,7 @@ export type KeptOriginal = {
 };
 
 export type UploadResult =
-  | { ok: true; items: GalleryItem[]; kept: KeptOriginal[] }
+  | { ok: true; items: GalleryItem[]; kept: KeptOriginal[]; advice: string[] }
   | { ok: false; problems: Problem[] };
 
 /**
@@ -262,6 +268,8 @@ export async function storeUploads(
   const staged: { from: string; to: string }[] = [];
   const items: GalleryItem[] = [];
   const originals: KeptOriginal[] = [];
+  /** Said about a batch that succeeded — see the long-clip note below. */
+  const advice: string[] = [];
   let index = nextIndex(mediaOut);
 
   /** Give up, leaving the trip exactly as it was. */
@@ -316,6 +324,30 @@ export async function storeUploads(
           { from: path.join(staging, name), to: path.join(mediaOut, name) },
           { from: path.join(staging, poster), to: path.join(mediaOut, poster) },
         );
+        /**
+         * B670. The original of a clip is staged like any other upload's, and
+         * was the one kind never reported back — so a response promising
+         * "what was stored untouched for print" listed the photographs and
+         * silently dropped the video, and an agent checking its own work read
+         * that as the file having been thrown away. No `width`/`height`: for
+         * a video those come from the probe and describe the transcode, which
+         * `items` already carries.
+         */
+        originals.push({ filename: upload.filename, bytes: upload.bytes.byteLength });
+        /**
+         * And the advice that replaced a refusal. Long clips are accepted now
+         * (see `VIDEO_MAX_SECONDS`); saying which one was long, once, is what
+         * is left of the old wall — the person can trim it and send it again,
+         * or leave it, and either is a real answer.
+         */
+        if (probe.durationSeconds > VIDEO_SHORT_SECONDS) {
+          advice.push(
+            `${upload.filename} is ${probe.durationSeconds.toFixed(0)}s. It went in as it is — ` +
+              `nothing was cut — but a clip of about ${VIDEO_SHORT_SECONDS}s or less is the one ` +
+              `people actually watch, and it costs a reader on mobile data far less. Trim it and ` +
+              `send it again if that suits the day better.`,
+          );
+        }
         items.push({
           // Trip-relative, like every other item pushed here — see the doc
           // comment on the image branch below for why, and where the
@@ -401,7 +433,7 @@ export async function storeUploads(
     fs.rmSync(staging, { recursive: true, force: true });
   }
 
-  return { ok: true, items, kept: originals };
+  return { ok: true, items, kept: originals, advice };
 }
 
 /**

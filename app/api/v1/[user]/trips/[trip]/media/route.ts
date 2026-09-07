@@ -101,6 +101,13 @@ function stored(
   kept: KeptOriginal[],
   attached: boolean,
   error?: string,
+  /**
+   * What is worth saying about a batch that landed — today, that a clip is
+   * long. It is advice and not a refusal, so it rides on the 201 rather than
+   * turning into one: the files are in the day either way, and the person
+   * decides whether to trim and send again.
+   */
+  advice: string[] = [],
 ) {
   const published = isPublished(ref, day);
   const attachedNote = attached
@@ -123,6 +130,7 @@ function stored(
        */
       kept,
       attached,
+      ...(advice.length > 0 ? { advice } : {}),
       // Same honesty PATCH gives a prose edit to a published day (B266): say
       // plainly that readers already see it, rather than let a 201 imply the
       // change is still private. See B393.
@@ -238,6 +246,7 @@ export async function POST(
         written.kept,
         attached.ok,
         attached.ok ? undefined : attached.error,
+        written.advice,
       );
     }
 
@@ -300,6 +309,7 @@ export async function POST(
       written.kept,
       attached.ok,
       attached.ok ? undefined : attached.error,
+      written.advice,
     );
   }
 
@@ -433,6 +443,7 @@ export async function POST(
     result.kept,
     attached.ok,
     attached.ok ? undefined : attached.error,
+    result.advice,
   );
 }
 
