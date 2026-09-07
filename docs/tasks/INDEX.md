@@ -49,16 +49,18 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (110)
+## backlog (114)
 
-### security (2)
+### security (4)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
+| [B830](backlog/security/B830-the-stripe-webhook-checks-the-amount.md) | The Stripe webhook checks the amount but not the currency, and not that the event's mode matches the key | SECURITY | high | low |
+| [B832](backlog/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low |
 
-### issue (28)
+### issue (30)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -79,6 +81,7 @@ Do not edit them by hand; run the script.
 | [B810](backlog/issue/B810-the-first-thing-the-product-asks.md) | The first thing the product asks a new person is what their day cost | ISSUE | medium | low |
 | [B814](backlog/issue/B814-the-one-screen-a-brand-new.md) | The one screen a brand new journal sees has no heading to land on | ISSUE | medium | low |
 | [B828](backlog/issue/B828-a-journal-may-briefly-not-exist.md) | A journal may briefly not exist while a deploy copies content | ISSUE | medium | medium |
+| [B831](backlog/issue/B831-a-buyer-who-pays-two-checkout.md) | A buyer who pays two checkout sessions for one purchase is charged twice and credited once, silently | ISSUE | medium | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B750](backlog/issue/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low |
@@ -90,6 +93,7 @@ Do not edit them by hand; run the script.
 | [B784](backlog/issue/B784-the-page-still-has-two-bright.md) | The page still has two bright buttons even though the card has one | ISSUE | low | low |
 | [B812](backlog/issue/B812-focus-is-lost-when-the-handover.md) | Focus is lost when the handover prompt appears | ISSUE | low | low |
 | [B813](backlog/issue/B813-a-denied-microphone-is-announced-politely.md) | A denied microphone is announced politely instead of as a problem | ISSUE | low | low |
+| [B833](backlog/issue/B833-the-admin-approval-queue-fills-with.md) | The /admin approval queue fills with Stripe requested rows it says were mailed but were not | ISSUE | low | low |
 
 ### big-feature (13)
 
