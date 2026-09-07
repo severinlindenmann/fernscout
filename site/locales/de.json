@@ -1244,5 +1244,16 @@
   "agent.captionsTitle": "Vorgeschlagene Bildunterschriften",
   "agent.captionsHint": "Lies jede einzelne und übernimm oder verwirf sie. Es ist noch nichts gespeichert.",
   "agent.captionEmpty": "Dazu gibt es nichts zu sagen.",
+  "agent.speechHold": "Zum Sprechen halten · 1 Guthaben pro {minutes} Minuten",
+  "agent.speechRecording": "Hört zu… {seconds}s · {credits} Guthaben",
+  "agent.speechRecording.one": "Hört zu… {seconds}s · {credits} Guthaben",
+  "agent.speechWorking": "Wird zu Worten…",
+  "agent.speechLanguage": "Die Sprache, die du sprichst",
+  "agent.speechLanguageDefault": "Die Sprache dieses Journals",
+  "agent.speechConsentLabel": "Meine Stimme aufschreiben lassen",
+  "agent.speechConsent": "Damit geht die Aufnahme, die du gleich machst — deine Stimme und sonst nichts — an Deepgram, wo sie zu Text wird. Nicht deine Fotos, nicht dein Standortverlauf, nicht deine Kontakte, keine Adresse von irgendwem. Die Aufnahme wird nicht aufbewahrt: sie wird transkribiert und verworfen, und auf diesem Server bleibt keine Kopie davon zurück. Die Worte landen im Feld, du liest und änderst sie, und gespeichert wird erst, was du speicherst. Es kostet ein Guthaben pro angefangene {minutes} Minuten. Deine Stimme wird für kein Modell zum Training verwendet. Das gilt für dieses Journal, bis du es zurückziehst — getrennt von der Erlaubnis für deine Worte und für deine Fotos.",
+  "agent.speechConsentConfirm": "Ja, meine Stimme senden",
+  "agent.speechUnsupported": "Dieser Browser kann nichts aufnehmen. Tipp es stattdessen — alles andere funktioniert gleich.",
+  "agent.speechDenied": "Das Mikrofon wurde nicht freigegeben. Erlaube es in den Browser-Einstellungen, oder tipp es stattdessen.",
   "agent.failed": "Das hat nicht geklappt: {error}"
 }

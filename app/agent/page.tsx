@@ -3,7 +3,7 @@ import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { resolveIdentity } from "@/lib/auth/handshake";
 import { isEnabled } from "@/lib/capabilities";
 import AgentDoor from "@/components/AgentDoor";
-import { helperConsent } from "@/lib/helper/consent";
+import { hasHelperConsent, helperConsent } from "@/lib/helper/consent";
 import { draftsForWizard } from "@/lib/helper/server";
 import { journalsFor } from "@/lib/home";
 import { requestLocale, translateIn } from "@/lib/locales";
@@ -73,6 +73,9 @@ export default async function AgentPage() {
         // B685: the ask box, and whether it has to ask for consent first.
         helper: isEnabled("helper", journal.username),
         consented: Boolean(helperConsent(journal.username)),
+        // B686: the microphone, on its own switch and its own consent.
+        speech: isEnabled("transcription", journal.username),
+        consentedSpeech: hasHelperConsent(journal.username, "speech"),
       }))}
     />
   );

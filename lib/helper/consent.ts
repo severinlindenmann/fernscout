@@ -26,9 +26,16 @@ import { isValidUsername, userDir } from "../users";
  * anything". A file written before this split carries no `scopes` at all; it
  * is read as `["words"]`, because that is the only thing the old panel ever
  * asked about.
+ *
+ * **B686 adds a third, `speech`.** Audio is neither of the other two: it is
+ * the person's own voice, and it names a *second* provider — the transcriber,
+ * not the model. So it is asked for separately and never inferred from
+ * either. `provider` below therefore names whoever the most recently agreed
+ * panel named; each panel names its own provider in its own words before the
+ * yes, which is where a person actually reads it.
  */
 
-export const HELPER_SCOPES = ["words", "photos"] as const;
+export const HELPER_SCOPES = ["words", "photos", "speech"] as const;
 export type HelperScope = (typeof HELPER_SCOPES)[number];
 
 export type HelperConsent = {

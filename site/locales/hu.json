@@ -1244,5 +1244,16 @@
   "agent.captionsTitle": "Javasolt feliratok",
   "agent.captionsHint": "Olvasd el mindegyiket, és tartsd meg vagy vesd el. Még semmi nincs elmentve.",
   "agent.captionEmpty": "Erről nincs mit mondani.",
+  "agent.speechHold": "Tartsd nyomva a beszédhez · 1 kredit {minutes} percenként",
+  "agent.speechRecording": "Hallgat… {seconds}s · {credits} kredit",
+  "agent.speechRecording.one": "Hallgat… {seconds}s · {credits} kredit",
+  "agent.speechWorking": "Szavakká alakítja…",
+  "agent.speechLanguage": "Amilyen nyelven beszélsz",
+  "agent.speechLanguageDefault": "Amilyen nyelven ez a napló íródik",
+  "agent.speechConsentLabel": "A hangom leírása",
+  "agent.speechConsentConfirm": "Igen, menjen a hangom",
+  "agent.speechConsent": "Ezzel a most készülő felvétel — a hangod, és semmi más — a Deepgramhoz kerül, ahol szöveggé alakítják. Nem a fényképeid, nem a helyadataid, nem a névjegyeid, senkinek a címe. A felvétel nem marad meg: leírják, aztán eldobják, és ezen a szerveren egyetlen másolat sem marad belőle. A szavak visszakerülnek a mezőbe, elolvasod és átírod, és csak az mentődik, amit te mentesz. Minden megkezdett {minutes} perc egy kreditbe kerül. A hangod semmilyen modell tanítására nem használják. Ez a naplóra érvényes, amíg vissza nem vonod — külön a szavaidra és a fényképeidre adott engedélytől.",
+  "agent.speechUnsupported": "Ez a böngésző nem tud hangot rögzíteni. Írd be inkább — minden más ugyanúgy működik.",
+  "agent.speechDenied": "A mikrofon nem lett engedélyezve. Engedélyezd a böngésző beállításaiban, vagy írd be inkább.",
   "agent.failed": "Ez nem sikerült: {error}"
 }

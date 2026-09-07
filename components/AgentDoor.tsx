@@ -19,6 +19,11 @@ export type AgentJournal = {
   helper: boolean;
   /** Whether this journal has already agreed to a model being spoken to. */
   consented: boolean;
+  /** Whether the `transcription` capability is on, and whether the journal has
+   * agreed to its owner's voice being sent — B686. Both separate from the two
+   * above: speech is a second provider and its own switch. */
+  speech: boolean;
+  consentedSpeech: boolean;
 };
 
 /**
@@ -100,7 +105,12 @@ export default function AgentDoor({
                   capability off it is simply not here, and everything below
                   works exactly as it did. */}
               {journal.helper && (
-                <HelperAsk username={journal.username} consented={journal.consented} />
+                <HelperAsk
+                  username={journal.username}
+                  consented={journal.consented}
+                  speech={journal.speech}
+                  consentedSpeech={journal.consentedSpeech}
+                />
               )}
 
               {/* The resume card — B682. It is above the "write a day" button

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
+import RecordButton from "@/components/RecordButton";
 import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
 
@@ -39,12 +40,19 @@ type Answer =
 export default function HelperAsk({
   username,
   consented: initialConsent,
+  speech,
+  consentedSpeech,
 }: {
   username: string;
   /** Whether this journal has already agreed to a model being spoken to
    *  (`lib/helper/consent.ts`). Read on the server, so the panel is not shown
    *  to somebody who has already read it. */
   consented: boolean;
+  /** Whether the `transcription` capability is on for this journal — B686.
+   *  Off, the box takes typed sentences exactly as it did. */
+  speech: boolean;
+  /** Whether this journal has agreed to its owner's voice being sent. */
+  consentedSpeech: boolean;
 }) {
   const { t } = useI18n();
   const [said, setSaid] = useState("");
@@ -164,6 +172,18 @@ export default function HelperAsk({
           {busy ? t("agent.askWorking") : t("agent.askGo")}
         </button>
       </div>
+
+      {/* B686 — the same record button the wizard's words step mounts, so the
+          microphone drives the whole product rather than one field. What comes
+          back fills the box; it is not asked until the person presses Ask. */}
+      {speech && (
+        <RecordButton
+          username={username}
+          consented={consentedSpeech}
+          disabled={busy}
+          onText={(heard) => setSaid(heard)}
+        />
+      )}
 
       {consenting && (
         <div className="mt-3">
