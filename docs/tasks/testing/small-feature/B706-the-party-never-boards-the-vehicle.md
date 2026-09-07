@@ -7,8 +7,7 @@ complexity: medium
 area: travel scene
 found: "2026-09-07T11:07:07Z"
 started: "2026-09-07T11:07:34Z"
-session: dfdad8fc-a6fc-47f8-9531-e49449f80aae
-claimed: "2026-09-07T11:07:34Z"
+merged: "2026-09-07T11:14:58Z"
 ---
 
 # B706 — The party never boards — the vehicle and the people are two animations that ignore each other
@@ -41,3 +40,26 @@ about.
   vehicle stops → party back beside it.
 - Held at any moment, the party is never mid-air on a flight and never
   standing on open water.
+
+## What shipped
+
+Four named fractions at the top of `components/TravelScene.tsx` — `BOARD`,
+`DEPART`, `ARRIVE`, `ALIGHT` — and every layer reads from them instead of from
+its own hand-tuned numbers:
+
+- `vehicleX` gained two dwells and a per-segment ease, so it brakes into the
+  near stop, holds, pulls away, and settles into the far one.
+- `peopleX` holds at 6% until BOARD and is at 64% by ARRIVE; the move between
+  the two happens while they are inside the vehicle and invisible.
+- `peopleOpacity` is one clock now (`p`), not two: in at the start, out over
+  BOARD→DEPART, back over ARRIVE→ALIGHT, and it stays — an arrived leg is the
+  party standing in the new place rather than an empty street.
+- `travel` runs DEPART→ARRIVE, so the world moves when and only when they do.
+- `vehicleY`/`vehicleRotate` put a flight on the ground for both stops and
+  climbing only between them.
+
+The vehicle is drawn after the party, so it covers them at the stop — which is
+what makes them disappear *into* it rather than beside it.
+
+Looked at on `/docs/branding/animation` as contact sheets of held moments for
+`bus`, `flight`, `boat` and `walk` (unchanged — no vehicle to board).

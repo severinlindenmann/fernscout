@@ -195,7 +195,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (24)
+## in-development (22)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -212,8 +212,6 @@ _Nothing here._
 | [B457](in-development/B457-root-owned-config-json-bak-files.md) | Root-owned config.json.bak files keep appearing in the content root, and each one fails a nightly backup | OPS | medium | low | `97b44327` |
 | [B521](in-development/B521-every-photo-upload-logs-that-the.md) | every photo upload logs that the body was truncated at 10MB | ISSUE | medium | low | `97b44327` |
 | [B556](in-development/B556-re-running-the-demo-builder-deletes.md) | Re-running the demo builder deletes fields the committed demo journal carries | ISSUE | medium | low | `97b44327` |
-| [B705](in-development/B705-the-party-hovers-above-the-ground.md) | The party hovers above the ground on a flight leg | ISSUE | medium | low | `dfdad8fc` |
-| [B706](in-development/B706-the-party-never-boards-the-vehicle.md) | The party never boards — the vehicle and the people are two animations that ignore each other | FEATURE | medium | medium | `dfdad8fc` |
 | [B216](in-development/B216-nothing-helps-an-author-find-the.md) | Nothing helps an author find the rate to freeze into a trip | CHORE | low | low | `97b44327` |
 | [B226](in-development/B226-two-new-deploy-time-checks-run.md) | Two new deploy-time checks run only where a binary happens to exist, and CI may have neither | CHORE | low | low | `97b44327` |
 | [B238](in-development/B238-npm-run-seed-example-creates-a.md) | npm run seed:example creates a journal beside the code rather than in the content root | ISSUE | low | low | `97b44327` |
@@ -224,7 +222,7 @@ _Nothing here._
 | [B389](in-development/B389-a-contact-s-stored-phone-number.md) | A contact's stored phone number that toE164 cannot parse is shown to the owner as if it were fine | ISSUE | low | low | `97b44327` |
 | [B429](in-development/B429-the-invite-form-shows-a-canned.md) | The invite form shows a canned mail-off line instead of the server's, losing which switch is off | ISSUE | low | low | `97b44327` |
 
-## testing (384)
+## testing (386)
 
 ### security (6)
 
@@ -237,7 +235,7 @@ _Nothing here._
 | [B330](testing/security/B330-story-json-varies-by-cookie-and.md) | story.json varies by cookie and does not say so, so a browser cache can serve one reader's drafts to the next | SECURITY | medium | low | — |
 | [B662](testing/security/B662-plaintext-sign-in-codes-still-reach.md) | Plaintext sign-in codes still reach the backup through content/.mail | SECURITY | medium | low | — |
 
-### issue (185)
+### issue (186)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -364,6 +362,7 @@ _Nothing here._
 | [B68](testing/issue/B68-a-journal-guest-is-push-notified.md) | A journal guest is push-notified about a private trip they cannot open | ISSUE | medium | low | — |
 | [B690](testing/issue/B690-post-api-v1-user-import-dryrun.md) | POST /api/v1/<user>/import: dryRun flag on costs import has no effect and response does not say so | ISSUE | medium | low | — |
 | [B700](testing/issue/B700-the-airport-does-not-read-as.md) | The airport does not read as an airport, and has no bench of its own | ISSUE | medium | low | — |
+| [B705](testing/issue/B705-the-party-hovers-above-the-ground.md) | The party hovers above the ground on a flight leg | ISSUE | medium | low | — |
 | [B82](testing/issue/B82-an-expired-read-grant-still-notifies.md) | An expired read grant still notifies, because push does not ask lib/grants | ISSUE | medium | low | — |
 | [B04](testing/issue/B04-rate-limit-durability.md) | Rate-limit state is per-process, in memory, and only swept on one path | ISSUE | low | medium | — |
 | [B130](testing/issue/B130-re-approving-a-contact-leaves.md) | Re-approving a contact leaves an expired grant expired, so the approval does nothing | ISSUE | low | low | — |
@@ -467,7 +466,7 @@ _Nothing here._
 | [B665](testing/big-feature/B665-a-trip-s-map-draws-straight.md) | A trip's map draws straight lines between days, because nothing holds where somebody actually went | FEATURE | medium | high | — |
 | [B677](testing/big-feature/B677-a-bank-statement-can-only-be.md) | A bank statement can only be read on the owner's own laptop, so the parsing lives in the helper | FEATURE | medium | high | — |
 
-### small-feature (84)
+### small-feature (85)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -546,6 +545,7 @@ _Nothing here._
 | [B664](testing/small-feature/B664-the-owner-cannot-see-what-is.md) | The owner cannot see what is using their storage, or reclaim any of it | FEATURE | medium | medium | — |
 | [B701](testing/small-feature/B701-the-low-resolution-warning-names-paths.md) | The low-resolution warning names paths nobody recognises and says a photograph prints soft | FEATURE | medium | low | — |
 | [B702](testing/small-feature/B702-the-book-s-charts-route-and.md) | The book's charts, route and rules are drawn in a blue that is not a brand colour | FEATURE | medium | low | — |
+| [B706](testing/small-feature/B706-the-party-never-boards-the-vehicle.md) | The party never boards — the vehicle and the people are two animations that ignore each other | FEATURE | medium | medium | — |
 | [B87](testing/small-feature/B87-a-gallery-page-renders-every-photograph.md) | A gallery page renders every photograph in the trip at once | FEATURE | medium | medium | — |
 | [B91](testing/small-feature/B91-an-agent-must-make-five-calls.md) | An agent must make five calls to learn what it may do here, and the guide does not say to make any of them first | FEATURE | medium | medium | — |
 | [B07](testing/small-feature/B07-paid-order-state-machine-for-print.md) | Paid-order state machine for print providers (W28 gap) | FEATURE | low | medium | — |

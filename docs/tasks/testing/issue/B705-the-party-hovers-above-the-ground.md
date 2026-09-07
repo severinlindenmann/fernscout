@@ -7,8 +7,7 @@ complexity: low
 area: travel scene
 found: "2026-09-07T11:07:06Z"
 started: "2026-09-07T11:07:33Z"
-session: dfdad8fc-a6fc-47f8-9531-e49449f80aae
-claimed: "2026-09-07T11:07:33Z"
+merged: "2026-09-07T11:14:57Z"
 ---
 
 # B705 — The party hovers above the ground on a flight leg
@@ -33,3 +32,10 @@ hovering".
 
 - At mode `flight` the party's feet are on the same line as the skyline's
   ground strip, not above it.
+
+## What shipped
+
+`STAND_ON.sky` 26 → 4, and a comment saying why the other four values are not
+the same kind of number: they are heights inside the band `Ground` draws, and
+a flight draws no band, so 4 is the line `Hills` and both `Cityscape`s already
+sit on. Looked at on `/docs/branding/animation`, mode `flight`, held at 3%.
