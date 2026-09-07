@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: photobook, print
 found: "2026-09-07T00:00:00Z"
+merged: "2026-09-07T14:09:11Z"
 ---
 
 # B764 — The colophon's figures stand in the middle of its own text
@@ -44,3 +45,33 @@ is coincidence rather than design.
   in the preview and in the PDF.
 - Checked against the demo journal, per the reporter's own request — a first
   visit to `example/asia-2023`, which has a party of five.
+
+## Findings (2026-09-07)
+
+Fixed the way B756 fixed the title page, and one thing more that only showed
+up once the party was in the right place.
+
+- **The preview** draws the party inside the colophon's own block, above the
+  heading. The browser does the arithmetic; overlap is impossible.
+- **The PDF** places them off the block's own top — the eyebrow's baseline
+  plus its cap height, plus 4mm — rather than at `0.52` of the content box.
+  It was never quite overlapping there, but 5mm of clearance was arithmetic
+  nobody had chosen.
+- **They were centred, and the PDF draws them at the margin.** `.copy` is a
+  flex column, so without `align-self:flex-start` the svg box stretches to the
+  full column and `preserveAspectRatio` centres the drawing inside it. The
+  preview was showing the party in the middle of a page the printer would put
+  at the left. Both pages now measure the same left edge for the figures and
+  for the text (title 29/29, colophon 20/20).
+
+One self-inflicted stop on the way: the CSS lives in a template literal and
+the comment I wrote had backticks in it, which closed the string and 500'd
+every preview. Caught immediately by the dev log; the comment now says so.
+
+**Checked against the demo, as the reporter asked.** A first visit to
+`example/asia-2023` — a party of five — with nothing touched: the colophon's
+figures sit above "COLOPHON" with the whole block beneath them, and the title
+page is unchanged from B756. The PDF's colophon rasterised and looked at
+separately.
+
+`npm run verify`: all four passed (4613 tests).
