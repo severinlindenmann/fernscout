@@ -212,6 +212,7 @@ export default async function PostcardOrderPage({
               hint={t("postcard.page.cropHint")}
               savingLabel={t("postcard.page.cropSaving")}
               resetLabel={t("postcard.page.cropReset")}
+              zoomLabel={t("postcard.page.cropZoom")}
             />
             <figcaption className="mt-1 text-xs opacity-70">
               {t("postcard.page.front")}
@@ -333,6 +334,25 @@ export default async function PostcardOrderPage({
                 </select>
               </label>
             </div>
+            {/* The figures switch lives in this form rather than beside it —
+                B628, and the second pass over it. It was its own box with its
+                own save button, which read as a second decision to make and a
+                second thing to remember to press; it is one line of the same
+                "what goes on the back" question the words above are. The
+                hidden field is how the route tells "unticked" from "this form
+                did not carry the question at all". */}
+            {hasParty ? (
+              <label className="mt-3 flex items-center gap-2 text-sm font-semibold">
+                <input type="hidden" name="figures_asked" value="1" />
+                <input
+                  type="checkbox"
+                  name="figures"
+                  defaultChecked={showFigures}
+                  className="h-4 w-4"
+                />
+                {t("postcard.page.figuresLabel")}
+              </label>
+            ) : null}
             <button type="submit" className="mt-3 rounded border px-3 py-1.5 text-sm font-medium">
               {t("postcard.page.save")}
             </button>
@@ -345,31 +365,10 @@ export default async function PostcardOrderPage({
           </form>
         ) : null}
 
-        {/* B628. On by default and separate from the words above: this is a
-            drawing, not text, and the switch changes nothing else on the
-            back. Shown only when there is a party to draw — a trip nobody
-            has described has nothing here to turn off. */}
-        {isPending(order) && !expired && hasParty ? (
-          <form
-            method="post"
-            action={`/${username}/postcards/${id}/figures`}
-            className="mt-4 rounded border px-4 py-3"
-          >
-            <label className="flex items-center gap-2 text-sm font-semibold">
-              <input
-                type="checkbox"
-                name="figures"
-                defaultChecked={showFigures}
-                className="h-4 w-4"
-              />
-              {t("postcard.page.figuresLabel")}
-            </label>
-            <button type="submit" className="mt-3 rounded border px-3 py-1.5 text-sm font-medium">
-              {t("postcard.page.save")}
-            </button>
-            <p className="mt-2 text-xs opacity-70">{t("postcard.page.figuresHint")}</p>
-          </form>
-        ) : isPending(order) && !expired ? (
+        {/* B628 — the one thing left outside the form: a trip nobody has
+            described has nothing to switch on, and saying so is the only
+            useful thing this space can do. */}
+        {isPending(order) && !expired && !hasParty ? (
           <p className="mt-4 text-xs opacity-70">{t("postcard.page.figuresNone")}</p>
         ) : null}
 

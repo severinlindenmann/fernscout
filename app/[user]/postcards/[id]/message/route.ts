@@ -1,5 +1,5 @@
 import { isOwner } from "@/lib/contacts/session";
-import { updateOrderText } from "@/lib/postcard/orders";
+import { updateOrderFigures, updateOrderText } from "@/lib/postcard/orders";
 import { backToPreview } from "@/lib/postcard/redirectBack";
 import { defaultLocaleFor, localesFor } from "@/lib/locales";
 
@@ -21,6 +21,13 @@ export const dynamic = "force-dynamic";
  * an `Authorization` header is refused outright rather than falling through.
  * An agent that wants to change the words has the honest route: compose another
  * order. This is the page's own form.
+ *
+ * **The figures switch rides along** — B628's second pass. It used to be its
+ * own form and its own route, which made one question about what goes on the
+ * back into two boxes and two save buttons. `figures_asked` is what
+ * distinguishes "unticked" from "this form did not carry the question",
+ * which is the case for a trip that describes nobody: an absent checkbox must
+ * not read as an answer.
  *
  * Editing does not send and cannot send. It is refused once the order leaves
  * `draft`, so a correction arriving while a send is in flight changes no row
@@ -64,5 +71,8 @@ export async function POST(
   const locale = localesFor(user).includes(asked) ? asked : defaultLocaleFor(user);
 
   const saved = await updateOrderText(user, id, { message, from, locale });
+  if (saved && form.get("figures_asked")) {
+    await updateOrderFigures(user, id, form.get("figures") != null);
+  }
   return backToPreview(user, id, saved ? "saved" : "already_sent");
 }
