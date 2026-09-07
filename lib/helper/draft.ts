@@ -67,3 +67,22 @@ export function stepFor(draft: WizardDraft | null): WizardStep {
   if (!draft.written) return "words";
   return "preview";
 }
+
+/**
+ * The step a way back leads to, or `null` on the first screen — B769.
+ *
+ * Cheap for the same reason `stepFor` is: nothing is unwound, because nothing
+ * about where somebody is standing is written down. Going back shows an
+ * earlier screen; the day on disk, and the photographs still climbing out of
+ * the queue, carry on exactly as they were.
+ *
+ * `"publish"` leads back to the words rather than the preview, because the
+ * preview is what a person is looking at when they reach it — the two are one
+ * screen, as `stepFor`'s own note about `"date"` explains for the other pair.
+ */
+export function backFrom(step: WizardStep): "trip" | "photos" | "words" | null {
+  if (step === "trip" || step === "date") return null;
+  if (step === "photos") return "trip";
+  if (step === "words") return "photos";
+  return "words";
+}

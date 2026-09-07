@@ -15,7 +15,14 @@ import { useI18n } from "@/components/LocaleProvider";
 import RecordButton from "@/components/RecordButton";
 import { DayCard } from "@/components/StoryPager";
 import { creditsForPhotos } from "@/lib/helper/credits";
-import { NO_PROSE, stepFor, WIZARD_STEPS, type WizardDraft, type WizardStep } from "@/lib/helper/draft";
+import {
+  backFrom,
+  NO_PROSE,
+  stepFor,
+  WIZARD_STEPS,
+  type WizardDraft,
+  type WizardStep,
+} from "@/lib/helper/draft";
 import type { WizardTrip } from "@/lib/helper/server";
 import { weekdayNames, type TranslationKey } from "@/lib/i18n";
 import { isoDate, isoTime, readExif, wallClockMs } from "@/lib/ingest/exif";
@@ -113,6 +120,14 @@ const TRACK_LABEL: Record<Track, TranslationKey> = {
   photos: "agent.missingPhotos",
 };
 
+/** Where a way back leads, said as a place rather than as an arrow — B769.
+ *  Only the three steps `backFrom` can return. */
+const BACK_LABEL: Record<"trip" | "photos" | "words", TranslationKey> = {
+  trip: "agent.backToStart",
+  photos: "agent.backToPhotos",
+  words: "agent.backToWords",
+};
+
 const STEP_LABEL: Record<WizardStep, TranslationKey> = {
   trip: "agent.stepTrip",
   date: "agent.stepDate",
@@ -177,6 +192,60 @@ function todayIso(): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/**
+ * A file picker whose words are ours — B768.
+ *
+ * `<input type="file">` draws its own button and its own "No file chosen" in
+ * the *browser's* locale, from strings no CSS and no attribute can reach. So
+ * the input is still the control — still focusable, still in the accessibility
+ * tree, `sr-only` being the clipped-rect technique rather than `display: none`
+ * — and a `<label>` in front of it carries our text. Clicking a label opens
+ * the picker because that is what a label does; `peer-focus-visible` puts the
+ * focus ring on the label when the input behind it has focus, which is the one
+ * thing hiding an input otherwise costs.
+ *
+ * The count replaces "No file chosen" and is better than it anyway: the
+ * browser names one file and says nothing about twelve.
+ */
+function PhotoPicker({
+  id,
+  count,
+  disabled,
+  onPick,
+}: {
+  id: string;
+  /** How many files are chosen right now — 0 says so in words. */
+  count: number;
+  disabled?: boolean;
+  onPick: (files: FileList | null) => void;
+}) {
+  const { t, tn } = useI18n();
+  return (
+    <div className="mt-3">
+      <input
+        id={id}
+        type="file"
+        multiple
+        accept="image/*,video/*"
+        disabled={disabled}
+        onChange={(event) => onPick(event.target.files)}
+        className="peer sr-only"
+      />
+      <label
+        htmlFor={id}
+        // Quiet on both screens: the bright thing on a step is the one that
+        // moves a person on from it, and there is only ever one — B767.
+        className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-navy-300 bg-cream-100 px-5 text-base font-semibold text-navy-800 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-500 peer-disabled:opacity-50"
+      >
+        {t("agent.choosePhotos")}
+      </label>
+      <p className="mt-2 text-sm text-navy-700">
+        {count === 0 ? t("agent.noneChosen") : tn("agent.chosenCount", count, { count: String(count) })}
+      </p>
+    </div>
+  );
 }
 
 export default function AgentWizard({
@@ -608,6 +677,32 @@ export default function AgentWizard({
 
   const stepIndex = WIZARD_STEPS.indexOf(step);
 
+  /**
+   * A way back — B769.
+   *
+   * It costs nothing because there is nothing to unwind: `stepFor` derives the
+   * step from the draft on disk, so going back is showing an earlier screen
+   * and never an edit. The day stays exactly as it is, and photographs already
+   * in the queue keep climbing behind whichever screen is on top — the
+   * progress line above follows the person rather than the step.
+   *
+   * It names where it goes, because somebody who is not sure they pressed the
+   * right thing is not helped by an arrow. It is absent rather than disabled
+   * on the first screen and on the published day, which is an ending.
+   */
+  const back = draft && !publishedUrl && !asking ? backFrom(step) : null;
+
+  /** Back to the trip and the date is the one that lets go of the draft. The
+   *  day already created stays on disk — it is in the unfinished list above
+   *  and can be picked up or left; nothing here deletes anybody's day. */
+  function goBack(to: WizardStep) {
+    if (to === "trip") {
+      setDraft(null);
+      setPreview(null);
+    }
+    setStep(to);
+  }
+
   return (
     <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
       <h1 className="font-display text-[clamp(1.375rem,5vw,2rem)] font-semibold leading-tight text-navy-900">
@@ -617,7 +712,7 @@ export default function AgentWizard({
       {/* Where you are, in one line. Six named steps at 390px is a wrapping
           row of chips nobody reads; the name of the step you are on and its
           number is the whole of what a person needs. */}
-      <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.18em] text-navy-600">
+      <p className="mt-2 text-sm text-navy-600">
         {t("agent.stepOf", { n: String(stepIndex + 1) })} · {t(STEP_LABEL[step])}
       </p>
 
@@ -727,12 +822,10 @@ export default function AgentWizard({
                   {t("agent.pickPhotos")}
                 </h2>
                 <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.pickPhotosHint")}</p>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*,video/*"
-                  onChange={(event) => void pick(event.target.files)}
-                  className="mt-3 block w-full text-sm text-navy-700 file:mr-3 file:min-h-11 file:rounded-full file:border-0 file:bg-yellow-400 file:px-5 file:text-base file:font-semibold file:text-yellow-950"
+                <PhotoPicker
+                  id="wizard-pick"
+                  count={files.length}
+                  onPick={(list) => void pick(list)}
                 />
                 {reading && <p className="mt-2 text-sm text-navy-600">{t("agent.readingPhotos")}</p>}
                 {facts && (
@@ -802,17 +895,15 @@ export default function AgentWizard({
               ? tn("agent.onTheDay", draft.photos, { count: String(draft.photos) })
               : t("agent.noPhotosYet")}
           </p>
-          <input
-            type="file"
-            multiple
-            accept="image/*,video/*"
+          <PhotoPicker
+            id="wizard-add"
+            count={files.length}
             disabled={busy}
-            onChange={async (event) => {
-              const chosen = Array.from(event.target.files ?? []);
-              await pick(event.target.files);
+            onPick={async (list) => {
+              const chosen = Array.from(list ?? []);
+              await pick(list);
               await startUploads(draft.trip, draft.slug, chosen);
             }}
-            className="mt-3 block w-full text-sm text-navy-700 file:mr-3 file:min-h-11 file:rounded-full file:border-0 file:bg-cream-100 file:px-5 file:text-base file:font-semibold file:text-navy-800"
           />
           <button
             type="button"
@@ -1116,13 +1207,6 @@ export default function AgentWizard({
             <div className="mt-5 flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => setStep("words")}
-                className="min-h-11 rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-800"
-              >
-                {t("agent.backToWords")}
-              </button>
-              <button
-                type="button"
                 disabled={!draft.written}
                 onClick={() => setAsking(true)}
                 className="min-h-11 rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 disabled:opacity-50"
@@ -1132,6 +1216,16 @@ export default function AgentWizard({
             </div>
           )}
         </section>
+      )}
+
+      {back && (
+        <button
+          type="button"
+          onClick={() => goBack(back)}
+          className="mt-6 min-h-11 text-base text-navy-700 underline underline-offset-4 transition-colors hover:text-navy-900"
+        >
+          {t(BACK_LABEL[back])}
+        </button>
       )}
     </main>
   );

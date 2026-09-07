@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { resolveIdentity } from "@/lib/auth/handshake";
+import { balanceOf } from "@/lib/credits";
 import { isEnabled } from "@/lib/capabilities";
 import AgentDoor from "@/components/AgentDoor";
 import { hasHelperConsent, helperConsent } from "@/lib/helper/consent";
@@ -56,6 +57,29 @@ export default async function AgentPage() {
     ? (await journalsFor(identity.email)).filter((journal) => journal.role === "owner")
     : [];
 
+  const journals = await Promise.all(
+    owned.map(async (journal) => ({
+      username: journal.username,
+      title: journal.title,
+      // Read here rather than in the card, because the card is a client
+      // component and this is a directory walk — and because it is the same
+      // read `GET /api/v1/<user>/drafts` makes, which is what makes the
+      // resume card and an agent's own queue agree about what is waiting.
+      drafts: draftsForWizard(journal.username),
+      // B685: the ask box, and whether it has to ask for consent first.
+      helper: isEnabled("helper", journal.username),
+      consented: Boolean(helperConsent(journal.username)),
+      // B686: the microphone, on its own switch and its own consent.
+      speech: isEnabled("transcription", journal.username),
+      consentedSpeech: hasHelperConsent(journal.username, "speech"),
+      speechProvider: speechProvider(),
+      // B767: not to show the balance, but to know whether it is low enough
+      // to say so. `null` where credits are off, which the card reads as
+      // "there is no such number here" and draws nothing.
+      credits: await balanceOf(journal.username),
+    })),
+  );
+
   return (
     <AgentDoor
       siteUrl={site.url}
@@ -68,22 +92,7 @@ export default async function AgentPage() {
       // all and a plain sentence says so, the same discipline every other
       // capability here follows.
       signupEnabled={isEnabled("signup")}
-      journals={owned.map((journal) => ({
-        username: journal.username,
-        title: journal.title,
-        // Read here rather than in the card, because the card is a client
-        // component and this is a directory walk — and because it is the same
-        // read `GET /api/v1/<user>/drafts` makes, which is what makes the
-        // resume card and an agent's own queue agree about what is waiting.
-        drafts: draftsForWizard(journal.username),
-        // B685: the ask box, and whether it has to ask for consent first.
-        helper: isEnabled("helper", journal.username),
-        consented: Boolean(helperConsent(journal.username)),
-        // B686: the microphone, on its own switch and its own consent.
-        speech: isEnabled("transcription", journal.username),
-        consentedSpeech: hasHelperConsent(journal.username, "speech"),
-        speechProvider: speechProvider(),
-      }))}
+      journals={journals}
     />
   );
 }

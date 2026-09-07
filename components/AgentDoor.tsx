@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AgentHandover from "@/components/AgentHandover";
 import HelperAsk from "@/components/HelperAsk";
-import { AgentBlock, Kicker } from "@/components/LandingSections";
+import { AgentBlock } from "@/components/LandingSections";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import SignupWizard from "@/components/SignupWizard";
 import { useI18n } from "@/components/LocaleProvider";
@@ -30,7 +30,17 @@ export type AgentJournal = {
    *  server — so the consent panel names the real backend rather than
    *  assuming Deepgram (B744). */
   speechProvider: string;
+  /** What this journal has left, or `null` where credits are switched off —
+   * `balanceOf()`. Read here only so the card can say when it is nearly gone
+   * (B767); the number itself lives on the account page, and no button on
+   * this screen carries a price. */
+  credits: number | null;
 };
+
+/** Below this, and only below this, the balance is worth a line on the door.
+ * A day costs nothing to write; what runs out is the model and the
+ * microphone, and five is about two of those. */
+const LOW_CREDITS = 5;
 
 /**
  * The door at `/agent`, signed out and signed in — B681.
@@ -43,8 +53,11 @@ export type AgentJournal = {
  * `AgentBlock` — the base URL and the guide, nothing personal.
  *
  * **Signed in**, each owned journal gets its own card: a heading naming it,
- * whatever is unfinished in it, the way into the wizard B682 built at
- * `/agent/<user>`, and — this is the same panel, now that a journal is known —
+ * one bright button into the wizard B682 built at `/agent/<user>` — the only
+ * bright thing on the card, and the whole of B767's answer to a screen that
+ * asked for four decisions before anybody had done anything — then the ask
+ * box, quietly, then whatever else is unfinished, and — this is the same
+ * panel, now that a journal is known —
  * `AgentHandover`
  * in place of the generic block, because `AgentHandover` already builds
  * exactly what the ticket asks for: a starter prompt from the journal, the
@@ -159,9 +172,37 @@ export default function AgentDoor({
                   {journal.title}
                 </h2>
 
+                {/* B767 — the balance is off this screen, and earns one line
+                  only when it is nearly gone. A number nobody is about to
+                  spend is a number that makes somebody hesitate; what it
+                  costs is said in the panel that confirms the spending. */}
+                {journal.credits !== null && journal.credits <= LOW_CREDITS && (
+                  <p className="mt-2 text-sm text-navy-700">
+                    {tn("agent.creditsLow", journal.credits, {
+                      count: String(journal.credits),
+                    })}
+                  </p>
+                )}
+
+                {/* The one bright thing on the card — B767. It says what the
+                  person came to do, and where a day was left half-written it
+                  says that instead and names the day, because somebody with
+                  unfinished work does not want a second decision. */}
+                <Link
+                  href={`/agent/${encodeURIComponent(journal.username)}`}
+                  className="mt-4 inline-flex min-h-11 items-center rounded-full border border-yellow-600 bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
+                >
+                  {journal.drafts.length > 0
+                    ? t("agent.resumeDay", {
+                        date: formatLongDate(journal.drafts[0].date),
+                      })
+                    : t("agent.wizardOpen")}
+                </Link>
+
                 {/* The accelerator, and only ever that — B685. With the
-                  capability off it is simply not here, and everything below
-                  works exactly as it did. */}
+                  capability off it is simply not here, and everything above
+                  works exactly as it did. Below the button since B767: it is
+                  a second way in, not the first thing to read. */}
                 {journal.helper && (
                   <HelperAsk
                     username={journal.username}
@@ -172,17 +213,18 @@ export default function AgentDoor({
                   />
                 )}
 
-                {/* The resume card — B682. It is above the "write a day" button
-                  rather than below it because somebody who left a day
-                  half-written on a bus came back for that day, not to start
-                  another one. What it can say is what is on disk: the date,
-                  how many photographs reached the day, and whether anybody has
-                  written the words yet. */}
-                {journal.drafts.length > 0 && (
+                {/* The rest of what is unfinished — B682, narrowed by B767 to
+                  the days the button above does not already name. What it can
+                  say is what is on disk: the date, how many photographs
+                  reached the day, and whether anybody has written the words
+                  yet. */}
+                {journal.drafts.length > 1 && (
                   <div className="mt-4 rounded-xl border border-navy-200 bg-cream-100 p-4">
-                    <Kicker>{t("agent.resumeHeading")}</Kicker>
+                    <p className="text-sm font-semibold text-navy-800">
+                      {t("agent.resumeHeading")}
+                    </p>
                     <ul className="mt-2 space-y-1">
-                      {journal.drafts.slice(0, 3).map((draft) => (
+                      {journal.drafts.slice(1, 4).map((draft) => (
                         <li
                           key={`${draft.trip}/${draft.slug}`}
                           className="text-sm text-navy-700"
@@ -202,15 +244,6 @@ export default function AgentDoor({
                     </ul>
                   </div>
                 )}
-
-                <Link
-                  href={`/agent/${encodeURIComponent(journal.username)}`}
-                  className="mt-4 inline-flex min-h-11 items-center rounded-full border border-yellow-600 bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
-                >
-                  {journal.drafts.length > 0
-                    ? t("agent.resumeOpen")
-                    : t("agent.wizardOpen")}
-                </Link>
 
                 <div className="mt-6 border-t border-navy-200 pt-6">
                   <AgentHandover
