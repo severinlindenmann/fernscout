@@ -61,3 +61,41 @@ allowed to finish.
 - Still skipped entirely under `prefers-reduced-motion: reduce`, and a failed
   send still shows its error with nothing flying over it.
 - Checked at 390px, mid-flight.
+
+## What changed while building
+
+**The obvious fix was wrong, and the original code said why.** The first
+attempt moved `EnvelopeFly` inside a `relative` wrapper around the button.
+That gives the right origin and breaks the flight: a fast response swaps the
+email form out, and anything rendered inside it unmounts mid-flight. The
+component's own comment already recorded this — it was mounted at panel level
+*deliberately* — and the local 404 (auth off in a dev checkout) made it
+reproduce every time.
+
+So the envelope stays mounted against the panel, and the **button's centre is
+measured at send time** (`sendRef` and `panelRef`, `getBoundingClientRect`
+differenced) and handed over as an `origin` prop. The panel is the positioned
+ancestor either way; only the coordinates changed.
+
+**`overflow-hidden` came off the panel**, which is what was trimming the
+flight. Nothing else there needed it — the children meeting the rounded corner
+carry their own radii.
+
+**The raw hex is gone**: `#fffaf0`, `#1e293b`, `#c2334a`, `#3fa9c4` became
+`var(--color-cream-50)`, `var(--color-navy-900)`, `var(--color-coral-600)`,
+`var(--color-sky-500)`.
+
+## Evidence
+
+Measured at 390px with `reducedMotion: 'no-preference'` — note that headless
+Chrome defaults to `reduce`, which is why an earlier attempt to film this
+found nothing and looked like a broken component:
+
+| | |
+| --- | --- |
+| button box | x 45, y 555, 300×56 — centre **(195, 583)** |
+| envelope, first frame | top-left (176, 570), 40×27 — centre **(196, 583)** |
+| envelope, next frame | (181, 564) — up and to the right |
+| under `prefers-reduced-motion: reduce` | no envelope in the DOM at all |
+
+`npm run verify`: all four stages, 365 files, 4613 tests.
