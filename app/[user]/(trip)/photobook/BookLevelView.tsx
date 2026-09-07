@@ -60,10 +60,11 @@ function countByCode(warnings: { code: string; count?: number }[]): Map<string, 
 }
 
 /**
- * Which photographs each code's warnings name, gathered across every
- * warning that carries the list — B642. `low-resolution` names one
+ * Which photographs each code's warnings are about, gathered across every
+ * warning that carries the list — B642. `low-resolution` carries one
  * photograph per warning; this collects them all so the reader sees which
- * ones, not only how many.
+ * ones, not only how many. Since B701 they are `webSrc`s and are shown as
+ * pictures: a path under `content/` named the file but not the photograph.
  */
 function photosByCode(warnings: { code: string; photos?: string[] }[]): Map<string, string[]> {
   const photos = new Map<string, string[]>();
@@ -74,12 +75,32 @@ function photosByCode(warnings: { code: string; photos?: string[] }[]): Map<stri
   return photos;
 }
 
-/** The photographs a warning names, as one string for `{photos}` — the first
- * three, named, and however many more there are. Matches the truncation the
- * planner's own `detail` already uses for the same list (`source.ts`). */
-function namePhotos(labels: string[]): string {
-  const shown = labels.slice(0, 3).join(", ");
-  return labels.length > 3 ? `${shown}, …` : shown;
+/**
+ * The photographs one warning is about, as pictures — B701.
+ *
+ * Eight of them, because the row is an illustration of the sentence above it
+ * and not a gallery; the sentence's own count is what says how many there
+ * are. Ordinary `<img>` rather than `next/image`: these are already-sized
+ * derivatives from this journal, drawn at 48px, and the loader would buy
+ * nothing.
+ */
+function PhotoRow({ srcs }: { srcs: string[] }) {
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-1.5">
+      {/* Deduplicated: one photograph printed on two pages is two warnings and
+          still one picture to look at. */}
+      {[...new Set(srcs)].slice(0, 8).map((src) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={src}
+          src={src}
+          alt=""
+          loading="lazy"
+          className="h-12 w-12 rounded border border-yellow-300 object-cover"
+        />
+      ))}
+    </div>
+  );
 }
 
 /**
@@ -243,10 +264,8 @@ export default function BookLevelView({
               const photos = photosOf.get(code);
               return (
                 <li key={code}>
-                  {tn(key, count, {
-                    count: String(count),
-                    ...(photos ? { photos: namePhotos(photos) } : {}),
-                  })}
+                  {tn(key, count, { count: String(count) })}
+                  {photos && photos.length > 0 && <PhotoRow srcs={photos} />}
                 </li>
               );
             })}

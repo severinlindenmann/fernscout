@@ -333,6 +333,23 @@ describe("a photograph that is too small", () => {
     expect(warning!.detail).toContain("800px");
     expect(warning!.detail).toMatch(/about \d+ DPI/);
   });
+
+  // B701: the order page shows the photographs rather than naming files, so
+  // the warning has to carry something a browser can fetch. `detail` keeps
+  // the path — that string is the developer's.
+  test("carries the photograph's web copy, for the page to show it", () => {
+    const small = photo({ file: "web-sized.jpg", width: 800, height: 600, webSrc: "/u/media/x/01.jpg" });
+    const book = planBook(source([day(0, { photos: [small] })]), SPEC);
+    const warning = book.warnings.find((w) => w.code === "low-resolution");
+    expect(warning!.photos).toEqual(["/u/media/x/01.jpg"]);
+  });
+
+  test("names no photograph it cannot show", () => {
+    const small = photo({ file: "web-sized.jpg", width: 800, height: 600 });
+    const book = planBook(source([day(0, { photos: [small] })]), SPEC);
+    const warning = book.warnings.find((w) => w.code === "low-resolution");
+    expect(warning!.photos).toEqual([]);
+  });
 });
 
 describe("B502: the automatic hero skips a photograph too small to fill the page", () => {
