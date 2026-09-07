@@ -7,8 +7,7 @@ complexity: medium
 area: agent, media
 found: "2026-09-07T09:53:01Z"
 started: "2026-09-07T11:47:01Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T11:47:01Z"
+merged: "2026-09-07T12:21:55Z"
 ---
 
 # B687 — Photographs cannot describe themselves
