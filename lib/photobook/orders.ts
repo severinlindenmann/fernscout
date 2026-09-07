@@ -352,6 +352,36 @@ export async function claimForPrint(owner: string, id: string): Promise<boolean>
   return Number(result.numUpdatedRows ?? 0) === 1;
 }
 
+/**
+ * Writes the agent's proposal — who a printed book should go to, and what it
+ * was quoted at — onto a built order. Charges nothing and prints nothing:
+ * `printOrder` (the owner's press) re-quotes and compares against
+ * `quotedCredits` before it claims or spends anything, so a stale proposal
+ * here costs nobody money, it only makes the button on the order page refuse
+ * once and ask for a fresh one.
+ *
+ * Gated on `status = 'printed'` — the same read this row will be re-checked
+ * against at press time — so a book not yet built, or one already sent to the
+ * printer, cannot be handed a proposal that looks live.
+ */
+export async function proposePrint(
+  owner: string,
+  id: string,
+  payload: PhotobookPayload,
+): Promise<boolean> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return false;
+  const result = await handle.db
+    .updateTable("print_orders")
+    .set({ payload: JSON.stringify(payload), updated_at: nowIso() })
+    .where("id", "=", id)
+    .where("owner_id", "=", owner)
+    .where("kind", "=", "photobook")
+    .where("status", "=", "printed")
+    .executeTakeFirst();
+  return Number(result.numUpdatedRows ?? 0) === 1;
+}
+
 /** Records a submitted print: who it is for, what it cost, and Gelato's own id. */
 export async function recordPrint(
   owner: string,

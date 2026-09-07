@@ -41,7 +41,10 @@ export const ERROR_CODES: Record<string, string> = {
   missing_day: "The day this call names does not exist yet. Write the day first, then send this.",
   unknown_invite: "No invite of that id, or it has been revoked.",
   unknown_key: "No credential of that id. GET the keys list for the ids this journal has.",
-  unknown_order: "No postcard order of that id.",
+  unknown_order: "No order of that id — a postcard order or a photobook order, whichever this route deals in.",
+  not_built: "This photobook has not finished being built yet, or is already at the printer. Wait for the build to finish, or ask about a different order.",
+  unknown_contact: "That is not a contact this journal can post something to: not an approved contact with an address on file. There is no way to address it to anybody else — that is deliberate.",
+  unknown_country: "The recipient's country is not one this server's printer can quote postage to. Ask the owner to correct the contact's address.",
   unknown_payment: "No payment of that id.",
   invalid_amount:
     "Not a number of credits this server sells — out of range, not a whole number, or off the " +
@@ -114,6 +117,7 @@ export const ERROR_CODES: Record<string, string> = {
   signup_disabled: "This server does not take new journals.",
   contacts_disabled: "This server has contacts off, so invitations and approvals are unavailable.",
   postcards_disabled: "This server has postcards off.",
+  photobook_disabled: "This journal does not have photobooks switched on. /api/health says which capabilities are on and why.",
   credits_disabled: "This server has credits off.",
   mail_disabled: "This server cannot send mail, so anything that would have been mailed has not been.",
   mail_failed: "The mail could not be sent. Nothing else about the call failed; tell the person, and do not retry in a loop.",
