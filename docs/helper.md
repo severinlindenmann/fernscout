@@ -1,15 +1,17 @@
 # Fernscout Helper
 
-**A journal is markdown and photographs in a folder you own, and there is no
-editing interface — no web form, no upload widget, no CMS, and there will not be
-one (ROADMAP decision 24). Writing happens through an agent.** That is a clean
-answer to "who owns this content" and an unhelpful one to "I have ten days of
-holiday photos on my laptop and no idea where to start."
+**A journal is markdown and photographs in a folder you own, and there is still
+no web form, no upload widget, no CMS — and there will not be one (ROADMAP
+decision 24). Writing happens through an agent.** That is a clean answer to
+"who owns this content" and an unhelpful one to "I have ten days of holiday
+photos on my laptop and no idea where to start" — unless the instance you are
+on hosts an agent for you at `/agent`, in which case that is the shorter path.
 
 [**Fernscout Helper**](https://github.com/severinlindenmann/fernscout-helper) is
-the answer to the second question: a separate, MIT-licensed repository of tools
-an agent runs on your own machine, which extract what you already have, ask for
-what only you know, and write it out in this project's own content format.
+the answer for anybody who would rather run their own: a separate,
+MIT-licensed repository of tools an agent runs on your own machine, which
+extract what you already have, ask for what only you know, and write it out in
+this project's own content format.
 
 It is not part of this software and it is not required to use it. Nothing it
 produces depends on it afterwards — the output is `trip.md`, `costs.md` and

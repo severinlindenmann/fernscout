@@ -102,7 +102,7 @@ afterEach(() => {
 });
 
 /** Mirrors app/page.tsx, which is a thin wrapper around this component. */
-function renderLanding(locale = "en") {
+function renderLanding(locale = "en", helperEnabled = false) {
   const journals = getUsernames().flatMap((username) => {
     const user = getUser(username);
     if (!user) return [];
@@ -119,6 +119,7 @@ function renderLanding(locale = "en") {
         codeMinutes="30"
       journals={journals}
         locales={installedLocales()}
+        helperEnabled={helperEnabled}
       />
     </LocaleProvider>,
   );
@@ -161,8 +162,24 @@ describe("the landing page", () => {
 
   test("states the rule the whole design rests on", () => {
     const html = renderLanding();
-    expect(html).toMatch(/no editing interface/i);
+    expect(html).toMatch(/no CMS/i);
     expect(html).toMatch(/draft/i);
+  });
+
+  test("keeps the agent instruction primary when the helper is off", () => {
+    // renderLanding() passes no `helperEnabled`, so this is every instance's
+    // answer today — the /agent CTA must not appear, and the page is the one
+    // it always was.
+    const html = renderLanding();
+    expect(html).not.toContain('href="/agent"');
+  });
+
+  test("leads with /agent when the helper is on, bring-your-own still reachable", () => {
+    const html = renderLanding("en", true);
+    expect(html).toContain('href="/agent"');
+    // The instruction box and its copy button are still on the page, further
+    // down — nothing about the helper being on removes the other door.
+    expect(html).toContain("Copy instruction");
   });
 
   test("invites the reader into the public journals", () => {

@@ -79,6 +79,7 @@ export default function Landing({
   credit,
   legal,
   codeMinutes,
+  helperEnabled = false,
 }: {
   siteName: string;
   docUrl: string;
@@ -101,6 +102,11 @@ export default function Landing({
   /** How long a sign-in code lasts, from `CODE_TTL_MINUTES` — B426. Passed
    * because this is a client component and `lib/auth` is server-only. */
   codeMinutes: string;
+  /** Whether `/agent` can actually write on this instance — B694. Decides
+   * whether the hero's primary door is the hosted wizard or the
+   * bring-your-own instruction box, further down either way. Defaults to
+   * off, which is every instance's answer today. */
+  helperEnabled?: boolean;
 }) {
   const { t } = useI18n();
   const [phase, setPhase] = useState<Phase>("unknown");
@@ -242,7 +248,7 @@ export default function Landing({
         </div>
       ) : (
         <>
-          <LandingHero />
+          <LandingHero helperEnabled={helperEnabled} />
           <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />
           <LandingSteps />
           <DocsLink />

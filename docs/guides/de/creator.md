@@ -1,11 +1,12 @@
 Das ist dein Reisetagebuch. Diese Seite erklärt, wie du hineinschreibst, wer
 was sieht, und wie du andere hineinlässt.
 
-Das Überraschendste zuerst: **es gibt hier keine Bearbeitungsoberfläche, und
-es wird auch keine geben.** Kein Formular, kein Upload-Feld, kein
-Admin-Bereich. Du schreibst, indem du mit einem Agenten sprichst — Claude oder
-einem anderen Assistenten, der Anweisungen befolgen und Webanfragen stellen
-kann — und er schreibt die Tage für dich.
+Das Überraschendste zuerst: **es gibt hier weiterhin kein Formular, kein
+Upload-Feld, keinen Admin-Bereich — und wird es auch nicht geben.** Geschrieben
+wird durch einen Agenten: Wenn diese Instanz einen hostet, findest du ihn unter
+`/agent`. Sonst sprichst du mit deinem eigenen — Claude oder einem anderen
+Assistenten, der Anweisungen befolgen und Webanfragen stellen kann — und er
+schreibt die Tage für dich.
 
 ## Warum das so ist
 
@@ -19,6 +20,9 @@ müsste.
 Es heisst auch: dein Tagebuch steckt hier nicht fest. Die Dateien gehören dir.
 
 ## Anfangen
+
+Wenn `/agent` hier verfügbar ist, führt dich das direkt durch — kein eigener
+Agent nötig. Ansonsten:
 
 1. Kopiere auf der Startseite die Anweisung aus dem gestrichelten Kasten.
 2. Füge sie bei deinem Agenten ein.

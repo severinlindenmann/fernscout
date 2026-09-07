@@ -600,6 +600,8 @@ export type TranslationKey =
   | "landing.copyInstruction"
   | "landing.docs"
   | "landing.handTitle"
+  | "landing.helperCta"
+  | "landing.helperOwnAgent"
   | "landing.hero"
   | "landing.hostedIn"
   | "landing.instruction"

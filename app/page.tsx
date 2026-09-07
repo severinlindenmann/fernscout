@@ -48,6 +48,19 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+/**
+ * Whether `/agent` can actually write on this instance — B694.
+ *
+ * ponytail: `helper` is not a `FeatureName` yet — `docs/plans/2026-09-07-web-helper-agent.md`
+ * calls for it (`isEnabled("helper")`) but adding it to `lib/config.ts`'s
+ * `FEATURE_NAMES` is B684's, in flight alongside this ticket. Hardcoding
+ * `false` is also the only honest answer today: the capability does not
+ * exist on any instance yet, so a hero pointing at `/agent` as primary would
+ * be the "worse than no button" case the plan itself warns about. Once B684
+ * merges, replace this with `isEnabled("helper")`.
+ */
+const helperEnabled = false;
+
 export default async function Root() {
   const site = serverSite();
   // The notice is the operator's own words in the reader's language — see
@@ -97,6 +110,7 @@ export default async function Root() {
         // three locale files cannot outlive a change to it — see B426 and the
         // note on CODE_TTL_MINUTES.
         codeMinutes={CODE_TTL_MINUTES}
+        helperEnabled={helperEnabled}
       />
     </>
   );

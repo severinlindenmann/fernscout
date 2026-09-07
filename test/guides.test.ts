@@ -262,12 +262,21 @@ describe("what the guides have to cover", () => {
     }
   });
 
-  /** The creator guide's whole premise, and the project's decision 24. */
+  /**
+   * The creator guide's whole premise, and the project's decision 24 — there
+   * is still no CMS. The German file was reworded for B694, which is also
+   * why it has its own arm here rather than sharing the others': it now says
+   * "kein Formular" (no form) rather than naming the old "Bearbeitungsoberfläche"
+   * directly, since that phrase used to read as a promise this instance now
+   * breaks by hosting `/agent`.
+   */
   test("every creator guide says there is no editing screen", () => {
     for (const locale of LOCALES) {
-      expect(read(locale, "creator"), locale).toMatch(
-        /no editing screen|keine Bearbeitungsoberfläche|nincs szerkesztőfelület/i,
-      );
+      const pattern =
+        locale === "de"
+          ? /kein Formular|kein CMS/i
+          : /no editing screen|nincs szerkesztőfelület/i;
+      expect(read(locale, "creator"), locale).toMatch(pattern);
     }
   });
 });
