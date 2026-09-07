@@ -7,8 +7,7 @@ complexity: low
 area: me-page, photobook, docs
 found: "2026-09-07T08:45:00Z"
 started: "2026-09-07T08:35:42Z"
-session: 52155fa5-6d95-440e-9de1-0e41d34e7f3d
-claimed: "2026-09-07T08:35:42Z"
+merged: "2026-09-07T08:45:34Z"
 ---
 
 # B668 — Five confirmations arrive as browser dialogs rather than as the page
