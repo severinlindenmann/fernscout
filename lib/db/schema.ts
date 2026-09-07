@@ -34,7 +34,7 @@
 
 import type { Generated } from "kysely";
 
-export type UsersTable = {
+type UsersTable = {
   id: string;
   owner_id: string;
   email: string;
@@ -48,7 +48,7 @@ export type UsersTable = {
   last_login_at: string | null;
 };
 
-export type SessionsTable = {
+type SessionsTable = {
   id: string;
   owner_id: string;
   user_id: string;
@@ -76,7 +76,7 @@ export type SessionsTable = {
   ip: string | null;
 };
 
-export type LoginCodesTable = {
+type LoginCodesTable = {
   id: string;
   owner_id: string;
   email: string;
@@ -122,7 +122,7 @@ export type LoginCodesTable = {
   attempts: number;
 };
 
-export type ContactsTable = {
+type ContactsTable = {
   id: string;
   owner_id: string;
   /** May hold ciphertext once W10 turns on `CONTACTS_ENCRYPTION_KEY`. */
@@ -175,7 +175,7 @@ export type ContactsTable = {
  * is true of all three kinds below, and it is what makes a link safe to put in
  * a group chat.
  */
-export type ContactInvitesTable = {
+type ContactInvitesTable = {
   id: string;
   owner_id: string;
   /**
@@ -230,7 +230,7 @@ export type ContactInvitesTable = {
  * people let in is `visibility: private`; that is the whole mechanism, and
  * there is deliberately no narrower one to reach for.
  */
-export type AccessGrantsTable = {
+type AccessGrantsTable = {
   id: string;
   owner_id: string;
   contact_id: string;
@@ -255,7 +255,7 @@ export type AccessGrantsTable = {
  * `lib/grants.ts`, so "live" means one thing across this table and
  * `access_grants`.
  */
-export type TripPeopleTable = {
+type TripPeopleTable = {
   id: string;
   owner_id: string;
   trip_id: string;
@@ -270,7 +270,7 @@ export type TripPeopleTable = {
   expires_at: string | null;
 };
 
-export type PushSubscriptionsTable = {
+type PushSubscriptionsTable = {
   id: string;
   owner_id: string;
   /** Null until W12 ties a browser to a known reader. */
@@ -283,7 +283,7 @@ export type PushSubscriptionsTable = {
   last_seen_at: string | null;
 };
 
-export type ReactionsTable = {
+type ReactionsTable = {
   id: string;
   owner_id: string;
   trip_id: string;
@@ -295,7 +295,7 @@ export type ReactionsTable = {
   updated_at: string;
 };
 
-export type JobsTable = {
+type JobsTable = {
   id: string;
   owner_id: string;
   /** `digest` | `push` | `print` | … */
@@ -313,7 +313,7 @@ export type JobsTable = {
   updated_at: string;
 };
 
-export type TrackingPointsTable = {
+type TrackingPointsTable = {
   id: string;
   owner_id: string;
   trip_id: string | null;
@@ -331,7 +331,7 @@ export type TrackingPointsTable = {
   created_at: string;
 };
 
-export type PrintOrdersTable = {
+type PrintOrdersTable = {
   id: string;
   owner_id: string;
   /** `postcard` | `photobook`. */
@@ -357,7 +357,7 @@ export type PrintOrdersTable = {
  * `008-deletions`. The token lives in the owner's mailbox and nowhere else;
  * this row holds its hash, the exact target, and the moment it was spent.
  */
-export type DeletionRequestsTable = {
+type DeletionRequestsTable = {
   id: string;
   owner_id: string;
   /** `journal` | `trip`. */
@@ -391,7 +391,7 @@ export type DeletionRequestsTable = {
  * A journal with no row here has a balance of zero, which is what every
  * journal starts with. Nothing back-fills.
  */
-export type CreditsTable = {
+type CreditsTable = {
   owner_id: string;
   balance: Generated<number>;
   updated_at: string;
@@ -406,7 +406,7 @@ export type CreditsTable = {
  * (`SUM(delta)` against `credits.balance`) cannot be got wrong by forgetting
  * a sign at one call site.
  */
-export type CreditLedgerTable = {
+type CreditLedgerTable = {
   id: string;
   owner_id: string;
   delta: number;
@@ -423,7 +423,7 @@ export type CreditLedgerTable = {
  * See `022-day-notifications` for why this exists beside `credit_ledger`
  * rather than being read off it.
  */
-export type DayNotificationsTable = {
+type DayNotificationsTable = {
   id: string;
   owner_id: string;
   trip_id: string;
@@ -433,7 +433,7 @@ export type DayNotificationsTable = {
   sent_at: string;
 };
 
-export type PaymentsTable = {
+type PaymentsTable = {
   id: string;
   owner_id: string;
   credits: number;
@@ -469,7 +469,7 @@ export type PaymentsTable = {
  * a number `site/legal/*.md` states to readers. If you change it there, change
  * it here, and the other way round.
  */
-export type AnalyticsEventsTable = {
+type AnalyticsEventsTable = {
   id: string;
   owner_id: string;
   /** `journal` | `trip` | `day` | `gallery` | `map` | `photobook`. Text

@@ -35,11 +35,11 @@ function describe(value: unknown): string {
  * list is wider (it also accepts tif/tiff/avif, which sharp happens to open
  * too); this is the smaller, documented set the agent guide promises. */
 export const IMAGE_FORMATS = ["jpeg", "png", "heic", "heif", "webp"] as const;
-export type ImageFormat = (typeof IMAGE_FORMATS)[number];
+type ImageFormat = (typeof IMAGE_FORMATS)[number];
 
 /** What ffmpeg is asked to produce — see lib/ingest/video.ts. */
 export const VIDEO_FORMATS = ["mp4", "mov", "webm"] as const;
-export type VideoFormat = (typeof VIDEO_FORMATS)[number];
+type VideoFormat = (typeof VIDEO_FORMATS)[number];
 
 /** A 100-megapixel scan is a mistake, not a photo. */
 export const IMAGE_MAX_BYTES = 50 * 1024 * 1024;

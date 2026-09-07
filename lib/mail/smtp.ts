@@ -233,13 +233,13 @@ function upgrade(socket: net.Socket, config: SmtpConfig, timeoutMs: number): Pro
 }
 
 /** The bare address a server wants in MAIL FROM / RCPT TO. */
-export function envelopeAddress(address: string): string {
+function envelopeAddress(address: string): string {
   const angled = address.match(/<([^>]+)>/);
   return (angled ? angled[1] : address).trim();
 }
 
 /** CRLF everywhere, and no body line may begin with the terminator. */
-export function prepareBody(message: string): string {
+function prepareBody(message: string): string {
   const normalised = message.replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/\n/g, "\r\n");
   const stuffed = normalised.replace(/^\./gm, "..");
   return stuffed.endsWith("\r\n") ? stuffed : stuffed + "\r\n";

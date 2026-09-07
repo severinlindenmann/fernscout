@@ -40,7 +40,7 @@ import { accessSecret } from "./access";
 export const CONFIRM_TTL_MS = 5 * 60 * 1000;
 
 /** What an agent may be asked to confirm. */
-export type ConfirmableAction =
+type ConfirmableAction =
   | "delete_draft"
   /**
    * Deleting something people have already read.

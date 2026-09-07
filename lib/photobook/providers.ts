@@ -23,9 +23,9 @@
 export type ProviderName = "dry-run" | "peecho" | "gelato" | "cloudprinter" | "lulu";
 
 /** How a provider gets the PDF. This is the difference that matters most. */
-export type FileTransfer = "fetches-from-url" | "multipart-upload";
+type FileTransfer = "fetches-from-url" | "multipart-upload";
 
-export type ShippingAddress = {
+type ShippingAddress = {
   name: string;
   line1: string;
   line2?: string;

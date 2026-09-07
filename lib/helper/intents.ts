@@ -33,7 +33,7 @@ import { draftsForWizard } from "./server";
 
 /** One field the model may fill in. Never applied silently — a slot is a
  *  prefilled, editable box, so a wrong guess costs a tap to correct. */
-export type Slot = {
+type Slot = {
   name: string;
   /** What it is, in the words the model is shown. */
   describe: string;

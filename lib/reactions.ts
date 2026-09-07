@@ -3,7 +3,6 @@ import { reactionRepo } from "./repos";
 import { isReaction, type Reaction } from "./reactionSet";
 
 export * from "./reactionSet";
-export type { VoteResult } from "./repos/types";
 /** Exported for the tests that pin the pre-trips key migration. */
 export { migrateKeys } from "./repos/reactionsFile";
 

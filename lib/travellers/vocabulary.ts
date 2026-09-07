@@ -123,7 +123,7 @@ export const AGES = ["child", "teen", "adult", "elder"] as const;
 
 export type SkinTone = keyof typeof SKIN;
 export type HairColour = keyof typeof HAIR;
-export type EyeColour = keyof typeof EYES;
+type EyeColour = keyof typeof EYES;
 export type ClothColour = keyof typeof CLOTH;
 export type HairStyle = (typeof HAIR_STYLES)[number];
 export type Accessory = (typeof ACCESSORIES)[number];

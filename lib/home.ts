@@ -31,7 +31,7 @@ import { tripsVisibleTo, type ViewerTrip } from "./viewer";
  * worse than a query.
  */
 
-export type HomeRole = "admin" | "owner" | "traveller" | "guest";
+type HomeRole = "admin" | "owner" | "traveller" | "guest";
 
 export type HomeJournal = {
   username: string;
@@ -70,7 +70,7 @@ export type PublicJournalSummary = {
 };
 
 /** A journal's first public photograph, for a preview card. */
-export function coverFor(username: string): string | undefined {
+function coverFor(username: string): string | undefined {
   for (const trip of getTrips(username).filter(isIndexable)) {
     for (const entry of getAllEntries(trip.ref)) {
       const image = entry.gallery.find((item) => item.type === "image");

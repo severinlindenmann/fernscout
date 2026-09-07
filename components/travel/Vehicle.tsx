@@ -31,9 +31,9 @@ const DARK = "#334155";
 const CREAM = "#fffaf0";
 
 /** Every vehicle is drawn inside this box, wheels on the bottom edge. */
-export type VehicleBox = { width: number; height: number };
+type VehicleBox = { width: number; height: number };
 
-export const VEHICLE_BOX: Record<Exclude<TransportMode, "walk">, VehicleBox> = {
+const VEHICLE_BOX: Record<Exclude<TransportMode, "walk">, VehicleBox> = {
   train: { width: 190, height: 54 },
   flight: { width: 150, height: 52 },
   bus: { width: 132, height: 52 },

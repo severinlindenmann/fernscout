@@ -58,7 +58,7 @@ type Bundle = {
   peaks: [number, number, number, string][];
 };
 
-export type BasemapLabel = {
+type BasemapLabel = {
   x: number;
   y: number;
   name: string;
@@ -444,7 +444,7 @@ export function basemapForRoute(points: readonly Point[]): Basemap | null {
  * what must not overlap is the drawn text, and that keeps its size on screen
  * however far the map is zoomed.
  */
-export function spread<T extends { x: number; y: number }>(
+function spread<T extends { x: number; y: number }>(
   candidates: T[],
   frame: Frame,
   limit: number,

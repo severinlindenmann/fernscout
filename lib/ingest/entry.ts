@@ -51,7 +51,7 @@ function coordinate(value: number): string {
   return String(Number(value.toFixed(5)));
 }
 
-export function galleryLines(items: IngestGalleryItem[]): string[] {
+function galleryLines(items: IngestGalleryItem[]): string[] {
   const lines: string[] = [];
   for (const item of items) {
     lines.push(`  - src: ${quoteScalar(item.src)}`);

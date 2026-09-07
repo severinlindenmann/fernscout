@@ -768,7 +768,7 @@ export const JOURNAL_PROFILE_FIELDS = [
   "ownerTel",
 ] as const;
 
-export type JournalProfileField = (typeof JOURNAL_PROFILE_FIELDS)[number];
+type JournalProfileField = (typeof JOURNAL_PROFILE_FIELDS)[number];
 
 /** Why a field of `config.json` is not writable through an API. Keyed by the
  * top-level key a caller would send. */

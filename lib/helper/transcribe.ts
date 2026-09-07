@@ -27,7 +27,7 @@ import type { SpeechLanguage } from "./speech";
  * bearer credential that spends the operator's money.
  */
 
-export const DEEPGRAM_MODEL = "nova-3";
+const DEEPGRAM_MODEL = "nova-3";
 
 const DEEPGRAM_URL = "https://api.deepgram.com/v1/listen";
 
@@ -36,6 +36,9 @@ const DEEPGRAM_URL = "https://api.deepgram.com/v1/listen";
 export const DRY_RUN_TRANSCRIPT =
   "This is a dry-run transcript. No audio left this machine and nothing was written down.";
 
+/** @public Exported only for `test/helper-transcribe.test.ts`, which reaches
+ * it through `vi.importActual` — a dynamic specifier knip cannot trace, so
+ * the export would otherwise read as unused. B235. */
 export function speechBackend(): string {
   const configured = loadServerConfig().features.transcription.backend;
   return typeof configured === "string" ? configured : "dry-run";

@@ -51,7 +51,7 @@ export type TripDetailsWriteResult =
   | { ok: false; error: string; message?: string; bug?: true };
 
 /** The five as they stand, for the form that edits them. */
-export function readTripDetails(
+function readTripDetails(
   ref: TripRef,
 ): { title: string; tagline: string; start: string; end: string; cover?: string } | null {
   const trip = getTrip(ref);

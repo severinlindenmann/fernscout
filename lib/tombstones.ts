@@ -69,7 +69,7 @@ export type Tombstone = {
   notice: { lang: string; title: string; body: string; homeLabel: string; homeHref: string };
 };
 
-export function deletedDir(): string {
+function deletedDir(): string {
   return path.join(contentRoot(), ".deleted");
 }
 

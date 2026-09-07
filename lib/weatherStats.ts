@@ -32,7 +32,7 @@ export type WeatherExtreme = {
 };
 
 /** One day's numbers, for the charts. */
-export type WeatherPoint = {
+type WeatherPoint = {
   date: string;
   tempMin?: number;
   tempMax?: number;
@@ -82,7 +82,7 @@ export type WeatherSummary = {
 };
 
 /** The day's reading — the lead entry's, or the first of the day that has one. */
-export function weatherOf(day: Day): DayWeather | undefined {
+function weatherOf(day: Day): DayWeather | undefined {
   return day.lead.weather ?? day.entries.find((e) => e.weather)?.weather;
 }
 

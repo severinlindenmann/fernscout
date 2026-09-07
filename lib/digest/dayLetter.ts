@@ -404,7 +404,7 @@ async function renderDayLetter(
 
 /** Why nothing was attempted — every case here is not a bug, and the API
  * routes turn it into a sentence rather than a stack trace. */
-export type DayLetterSkipReason =
+type DayLetterSkipReason =
   | "unknown_trip"
   | "unknown_day"
   | "not_published"

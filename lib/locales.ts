@@ -24,7 +24,7 @@ import { MAINTAINED_LOCALES, translate, type TranslationKey } from "./i18n";
  * to every reader.
  */
 
-export const FALLBACK_LOCALE = "en";
+const FALLBACK_LOCALE = "en";
 
 /**
  * What a language tag may look like: `de`, `pt-BR`, `zh-Hant-TW`.

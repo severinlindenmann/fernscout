@@ -4,7 +4,7 @@ import { Kysely, PostgresDialect, SqliteDialect, type Dialect } from "kysely";
 import type { Database } from "./schema";
 import type { DatabaseTarget } from "./url";
 
-export type DialectName = DatabaseTarget["dialect"];
+type DialectName = DatabaseTarget["dialect"];
 
 export type DatabaseHandle = {
   db: Kysely<Database>;

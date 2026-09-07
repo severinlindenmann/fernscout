@@ -156,7 +156,7 @@ async function buildDocsForReader(username: string, request?: Request): Promise<
 
 /** The reader-scoped index — never cache this across readers; see
  * `buildSearchIndexJsonForReader`. */
-export async function buildSearchIndexForReader(
+async function buildSearchIndexForReader(
   username: string,
   request?: Request,
 ): Promise<MiniSearch<SearchDoc> | null> {

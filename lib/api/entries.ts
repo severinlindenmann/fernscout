@@ -434,7 +434,7 @@ function costLinesOf(input: Partial<DraftInput>): CostInput[] | undefined {
   return Array.isArray(input.costs) ? input.costs : undefined;
 }
 
-export function declinedIn(input: Partial<DraftInput>): Track[] {
+function declinedIn(input: Partial<DraftInput>): Track[] {
   return TRACKS.filter((key) => answerFor(input, key) === false);
 }
 
@@ -447,7 +447,7 @@ export function declinedIn(input: Partial<DraftInput>): Track[] {
  * one door left, and took it — a journal ended up saying no money was spent on
  * two days somebody paid a homestay in cash.
  */
-export function unrecordedIn(input: Partial<DraftInput>): Track[] {
+function unrecordedIn(input: Partial<DraftInput>): Track[] {
   return TRACKS.filter((key) => answerFor(input, key) === UNKNOWN);
 }
 

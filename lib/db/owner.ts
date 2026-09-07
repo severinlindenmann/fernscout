@@ -19,7 +19,7 @@
  * This constant therefore means "not scoped by owner_id, scoped by the ref",
  * not "single tenant". New tables should use the username.
  */
-export const DEFAULT_OWNER_ID = "owner";
+const DEFAULT_OWNER_ID = "owner";
 
 export function currentOwnerId(): string {
   return DEFAULT_OWNER_ID;

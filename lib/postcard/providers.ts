@@ -103,7 +103,7 @@ export function buildStannpRequest(order: PostcardOrder, region: "eu" | "us" = "
  * docs/plans/W13-postcards.md: the spike is timeboxed, and abandoning it is an
  * acceptable — indeed expected — outcome.
  */
-export function swissPostStatus(): { usable: boolean; reason: string } {
+function swissPostStatus(): { usable: boolean; reason: string } {
   return {
     usable: false,
     reason:

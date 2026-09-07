@@ -673,7 +673,7 @@ export const PERFECT_DAY_INTRO =
  * rendered, before B304, and a currency the trip has no rate for is still
  * reported unconverted rather than counted wrong.
  */
-export const DAY_MONEY_QUESTION =
+const DAY_MONEY_QUESTION =
   "**A trip that keeps track of costs refuses a day that says nothing about them**, so " +
   "this is not optional the way the rows around it are — and there are three honest " +
   "answers. The figures. Or `\"costs\": false`, meaning there was none. Or " +

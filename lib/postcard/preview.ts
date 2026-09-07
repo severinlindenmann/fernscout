@@ -35,7 +35,7 @@ import {
  * from the top.
  */
 
-export type Box = { left: string; top: string; width: string; height: string };
+type Box = { left: string; top: string; width: string; height: string };
 
 function boxes(spec: PostcardSpec) {
   const w = spec.trimWidthMm + spec.bleedMm * 2;

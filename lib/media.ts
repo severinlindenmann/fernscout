@@ -20,7 +20,7 @@ import { parseTripRef, tripDir } from "./trips";
  */
 
 /** URL prefix under which media is served. */
-export const MEDIA_URL_PREFIX = "/media";
+const MEDIA_URL_PREFIX = "/media";
 
 /** The directory holding one trip's media. */
 export function tripMediaDir(ref: string): string {
@@ -125,7 +125,7 @@ export function contentTypeFor(file: string): string {
 }
 
 /** Every media file in a trip, as URL paths. Used by tooling and tests. */
-export function listTripMedia(ref: string): string[] {
+function listTripMedia(ref: string): string[] {
   const root = tripMediaDir(ref);
   const out: string[] = [];
   const walk = (dir: string) => {
@@ -146,7 +146,7 @@ export function listTripMedia(ref: string): string[] {
 }
 
 /** Absolute path of the content root, for tooling that needs it. */
-export function mediaContentRoot(): string {
+function mediaContentRoot(): string {
   return contentRoot();
 }
 

@@ -18,9 +18,9 @@
  *    is never true: there is a minimum, a maximum and a multiple.
  */
 
-import { MM_TO_PT, mm } from "../postcard/spec.ts";
+import { mm } from "../postcard/spec.ts";
 
-export { MM_TO_PT, mm };
+export { mm };
 
 /** A finished book size. Only sizes all four candidate providers offer. */
 export type BookSize = {

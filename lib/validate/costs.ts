@@ -16,7 +16,7 @@
 // one.
 import { checkCosts, checkCurrencyCode, describe, type EntryInput, type Problem } from "./entry";
 
-export type BudgetInput = { total?: unknown; days?: unknown; currency?: unknown };
+type BudgetInput = { total?: unknown; days?: unknown; currency?: unknown };
 
 /**
  * `required` is true for `PUT` — the whole point of B295 is a budget an

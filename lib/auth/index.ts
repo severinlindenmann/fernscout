@@ -209,7 +209,7 @@ export function hashSecret(value: string): string {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
-export function generateToken(kind: SessionKind): string {
+function generateToken(kind: SessionKind): string {
   return `fs_${kind}_${crypto.randomBytes(32).toString("base64url")}`;
 }
 
@@ -221,7 +221,7 @@ export function generateToken(kind: SessionKind): string {
  * holds no email address, so that a link forwarded or pasted somewhere public
  * does not also disclose who reads this journal.
  */
-export function generateLinkToken(): string {
+function generateLinkToken(): string {
   return crypto.randomBytes(32).toString("base64url");
 }
 

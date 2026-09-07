@@ -2,14 +2,13 @@ import { createDatabase, type DatabaseHandle } from "./client";
 import { migrateToLatest } from "./migrate";
 import { databaseTarget, type DatabaseTarget } from "./url";
 
-export type { DatabaseHandle, DialectName } from "./client";
+export type { DatabaseHandle } from "./client";
 export type { DatabaseTarget } from "./url";
-export type { Database } from "./schema";
 export { DatabaseUrlError, parseDatabaseUrl, databaseTarget } from "./url";
 export { createDatabase } from "./client";
 export { migrateToLatest, migrateDown } from "./migrate";
 export { TABLE_NAMES } from "./schema";
-export { DEFAULT_OWNER_ID, currentOwnerId, newId, nowIso } from "./owner";
+export { newId, nowIso } from "./owner";
 
 /**
  * Is there a database at all?

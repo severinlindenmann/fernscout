@@ -44,7 +44,7 @@ export function Kicker({ children }: { children: React.ReactNode }) {
  * none), just the mockup's `.pill`: a bordered, rounded mono chip that reads
  * as an instrument rather than a sentence.
  */
-export function Pill({ children }: { children: React.ReactNode }) {
+function Pill({ children }: { children: React.ReactNode }) {
   return (
     <span className="inline-flex items-center rounded-full border border-navy-200 bg-cream-100 px-2.5 py-1 font-mono text-[11px] text-navy-600">
       {children}
@@ -69,7 +69,7 @@ export const PRIMARY_BUTTON =
  * the line directly under the heading instead, which is what makes the page
  * read as an instrument rather than a document.
  */
-export function SectionHeading({ children }: { children: React.ReactNode }) {
+function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="border-b border-navy-200 pb-3 font-display text-xl font-semibold text-navy-900">
       {children}

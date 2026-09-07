@@ -40,7 +40,7 @@
 import type { TripStatus } from "./types";
 
 /** Kiritimati, UTC+14 — the furthest ahead any inhabited calendar runs. */
-export const MAX_UTC_OFFSET_HOURS = 14;
+const MAX_UTC_OFFSET_HOURS = 14;
 
 const DAY_MS = 86_400_000;
 

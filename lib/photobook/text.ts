@@ -225,7 +225,7 @@ export function wrap(
  * no link to follow and no image to lazy-load. Emphasis marks and link syntax
  * are noise on paper, so they come off, and the text that carried them stays.
  */
-export function plainText(markdown: string): string {
+function plainText(markdown: string): string {
   return markdown
     .replace(/```[\s\S]*?```/g, "")
     .replace(/!\[[^\]]*\]\([^)]*\)/g, "")

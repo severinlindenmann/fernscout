@@ -168,7 +168,7 @@ export function getBudgetInBase(tripId: string): { total: number; days: number }
 }
 
 /** Costs attached to a single entry, converted through the trip's rates. */
-export function costsForEntry(tripId: string, entry: Entry): CostItem[] {
+function costsForEntry(tripId: string, entry: Entry): CostItem[] {
   const { base, rates } = conversionFor(tripId);
   return convertCosts(
     entry.costs.map((i) => ({

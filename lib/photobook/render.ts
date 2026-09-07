@@ -70,7 +70,7 @@ const GRATICULE = { r: 0.87, g: 0.86, b: 0.84 };
 const LAND_EDGE = { r: 0.84, g: 0.83, b: 0.81 };
 const GUIDE = { r: 0.9, g: 0.2, b: 0.5 };
 
-export type ImageLoader = (file: string) => Uint8Array;
+type ImageLoader = (file: string) => Uint8Array;
 
 export type RenderOptions = {
   /** Resolves a `BookPhoto.file` to JPEG bytes. Injected so the renderer can be

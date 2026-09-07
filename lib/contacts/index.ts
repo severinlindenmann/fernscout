@@ -53,7 +53,7 @@ import { whatsappCountryCode } from "../whatsapp/settings";
  * anyone but the owner and the person it belongs to.
  */
 
-export type ContactStatus = "pending" | "active" | "blocked";
+type ContactStatus = "pending" | "active" | "blocked";
 
 /** The owner's view of somebody. Includes the address: they need it to post. */
 export type ContactRecord = {

@@ -36,7 +36,7 @@ export type ClusterOptions = {
 };
 
 export const DEFAULT_GAP_HOURS = 5;
-export const DEFAULT_SPLIT_KM = 30;
+const DEFAULT_SPLIT_KM = 30;
 
 export type Cluster<T> = {
   /** ISO yyyy-mm-dd, from the first item in the cluster. */

@@ -89,7 +89,7 @@ export type ExifFixture = {
 };
 
 /** The TIFF block that goes inside an APP1 segment. */
-export function buildExifBlock(fixture: ExifFixture): Buffer {
+function buildExifBlock(fixture: ExifFixture): Buffer {
   const hasGps = fixture.lat !== undefined && fixture.lng !== undefined;
 
   const exifEntries: TiffEntry[] = fixture.takenAt

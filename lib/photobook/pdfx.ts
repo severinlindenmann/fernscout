@@ -42,9 +42,9 @@
 
 import type { OutputIntent } from "../postcard/pdf.ts";
 
-export type PdfxTarget = "PDF/X-1a:2001" | "PDF/X-3:2002" | "PDF/X-4";
+type PdfxTarget = "PDF/X-1a:2001" | "PDF/X-3:2002" | "PDF/X-4";
 
-export type Requirement = {
+type Requirement = {
   requirement: string;
   met: boolean;
   detail: string;

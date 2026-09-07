@@ -105,7 +105,7 @@ function populationAt(lat: number, lng: number): number | undefined {
 }
 
 /** Clamps a window of `STORY_WINDOW` either side of `centre` to the trip. */
-export function windowFor(dayCount: number, centre: number): { from: number; to: number } {
+function windowFor(dayCount: number, centre: number): { from: number; to: number } {
   const from = Math.max(0, centre - STORY_WINDOW);
   const to = Math.min(dayCount, centre + STORY_WINDOW + 1);
   return { from, to };

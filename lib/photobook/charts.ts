@@ -121,7 +121,7 @@ const tintTone = (index: number): Tone => TINTS[Math.min(Math.max(index, 0), 5)]
 // ---------------------------------------------------------------------------
 
 /** A point in trim-relative millimetres, y upwards. */
-export type PointMm = { x: number; y: number };
+type PointMm = { x: number; y: number };
 
 export type ChartShape =
   | ({ kind: "rect"; tone: Tone } & RectMm)

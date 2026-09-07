@@ -59,17 +59,15 @@
 
   // Two severities, and the split is the point.
   //
-  // **Error** is everything that is at zero today and must stay there: a whole
-  // file nothing reaches, a dependency nothing imports, an import of something
-  // that is not declared. Each of those is a fact about the repository, and
-  // each fails CI the day it becomes true.
+  // **Error** is everything that must stay at zero: a whole file nothing
+  // reaches, a dependency nothing imports, an import of something that is not
+  // declared — and, since B235 cleared the 153 that had accumulated, an
+  // `export` on a symbol nothing outside its own file uses. Each of those is a
+  // fact about the repository, and each fails CI the day it becomes true.
   //
-  // **Warn** is unused *exports* and *exported types* — 71 and 59 of them on
-  // the day this was written, almost all functions, constants and types
-  // exported out of habit and used only inside their own file. Every one is a
-  // real finding and none is a broken build, and 130 red lines on day one is
-  // how a check gets an `--ignore` flag added to it a week later. They are
-  // printed on every run and tracked as their own task; see B24 and B235.
+  // **Warn** is left for the shapes B235 did not touch — a namespace export,
+  // an unused member of an exported enum, a declaration duplicated across
+  // files — which are real findings but not this ticket's.
   "rules": {
     "files": "error",
     "dependencies": "error",
@@ -78,8 +76,8 @@
     "unlisted": "error",
     "binaries": "error",
     "unresolved": "error",
-    "exports": "warn",
-    "types": "warn",
+    "exports": "error",
+    "types": "error",
     "nsExports": "warn",
     "nsTypes": "warn",
     "enumMembers": "warn",

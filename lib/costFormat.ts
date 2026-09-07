@@ -4,8 +4,6 @@
 
 import { normalizeCurrency, toBase, type RateTable } from "./currency";
 
-export { formatMoney } from "./currency";
-
 export const COST_CATEGORIES = [
   "preparation",
   "flights",

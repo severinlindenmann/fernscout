@@ -43,7 +43,7 @@ const ROOFS = ["#c9743a", "#3f8a68", "#c2544c", "#4a80ad", "#c99a35", "#8f66ad"]
  * draws one of each, which is the only place any of them is seen alone. */
 export const BUILDING_KINDS = ["flat", "pitched", "spire", "dome", "airport"] as const;
 
-export type BuildingKind = (typeof BUILDING_KINDS)[number];
+type BuildingKind = (typeof BUILDING_KINDS)[number];
 
 export type Building = {
   x: number;

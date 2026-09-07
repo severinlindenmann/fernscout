@@ -16,7 +16,7 @@ import "server-only";
 const INDENTED_RE = /^\s+\S/;
 
 /** Where `key:` starts inside the frontmatter, or -1 if absent. */
-export function frontmatterLineOf(lines: string[], closing: number, key: string): number {
+function frontmatterLineOf(lines: string[], closing: number, key: string): number {
   const pattern = new RegExp(`^${key}:(\\s|$)`);
   return lines.findIndex((line, i) => i > 0 && i < closing && pattern.test(line));
 }
