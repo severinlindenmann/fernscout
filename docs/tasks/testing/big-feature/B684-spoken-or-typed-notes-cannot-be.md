@@ -7,8 +7,7 @@ complexity: high
 area: agent, credits, capabilities
 found: "2026-09-07T09:52:58Z"
 started: "2026-09-07T11:18:12Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T11:18:12Z"
+merged: "2026-09-07T11:43:58Z"
 ---
 
 # B684 — Spoken or typed notes cannot be turned into a day
