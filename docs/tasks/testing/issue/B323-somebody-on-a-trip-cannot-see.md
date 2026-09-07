@@ -7,8 +7,7 @@ complexity: medium
 area: auth, keys, api
 found: "2026-09-04T17:16:04Z"
 started: "2026-09-07T11:40:39Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:40:39Z"
+merged: "2026-09-07T12:18:35Z"
 ---
 
 # B323 — Somebody on a trip cannot see or revoke the writing keys they have handed out

@@ -6,9 +6,6 @@ priority: high
 complexity: medium
 area: lib/whatsapp, contacts, opt-out
 found: "2026-09-05T00:15:00Z"
-started: "2026-09-07T11:40:40Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:40:40Z"
 ---
 
 # B386 — A WhatsApp recipient has no way to stop the messages from inside WhatsApp
@@ -163,3 +160,34 @@ and `/{user}/c/`; the owner's own free copy (no contact row) gets
 `https://.../{user}/me` instead. All existing whatsapp tests (37 total across
 `whatsapp.test.ts` + `contact-whatsapp-gating.test.tsx`) still pass unchanged,
 which is the proof that the default (`manageLink` absent) really is a no-op.
+
+## Status 2026-09-07 — code half merged, blocked on Meta
+
+The **code half is built and on `main`**: `templateFor()` accepts
+`{name, manageLink: true}`, and `sendDayWhatsapp()` appends the recipient's own
+manage URL as a fourth body parameter — but *only* when that flag is set. A
+contact gets their own `manageUrl(...)` token; the owner's free copy points at
+`/<user>/me`. Covered by `test/whatsapp.test.ts`.
+
+It is deliberately a no-op until switched on, and that is why this ticket is
+back in `backlog/` rather than in `testing/`: **its acceptance is not met.**
+Every currently-approved Meta template has exactly three body variables, and
+Meta refuses a send whose parameter count does not match. So today a real
+recipient still has no way to stop the messages.
+
+**What a person with Meta Business Manager access must do**, per language:
+
+1. Create a **new template version** with a fourth body placeholder for the
+   unsubscribe line. Never edit or delete the existing one — B365 records that
+   a deleted template's name is reserved for 30 days.
+2. Wait for Meta to approve it.
+3. Set that locale's entry in `site/config.json` to
+   `{"name": "<new template>", "manageLink": true}`.
+
+Until step 3 lands for a language, sends in that language are byte-for-byte
+what they were before — which is what makes merging the code half safe.
+
+Also still open from the Work section, and not built: mentioning the opt-out at
+the guestbook checkbox, on the manage page and on the click-to-chat page. That
+is copy rather than mechanism, and it was left out so it does not get confused
+with the Meta-gated half above.
