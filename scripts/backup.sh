@@ -41,7 +41,14 @@
 #                            stripped back out after staging: the orders are
 #                            rows in the database and the photographs are
 #                            already in content/, so what is lost is a PDF
-#                            that can be produced again.
+#                            that can be produced again. Since B636 mail lives
+#                            under DATA_DIR (mail/), outside CONTENT_DIR, so it
+#                            is never staged here at all — but a deployment
+#                            that has not migrated can still have plaintext
+#                            .eml under content/.mail/ or content/<user>/mail/
+#                            left from before that move (B662), and those are
+#                            stripped back out the same way postcards and
+#                            photobooks are.
 #   config/config.json      $DATA_DIR/config.json
 #   state/<name>.json       every OTHER top-level *.json file under DATA_DIR
 #                            — the convention `lib/store.ts` writes to
@@ -399,6 +406,26 @@ else
   # photographs are already in content/, so what is lost here is a PDF that
   # can be produced again.
   find "$STAGING_DIR/content" -mindepth 2 -maxdepth 2 -type d \( -name postcards -o -name photobooks \) -exec rm -rf {} +
+
+  # B662: legacy plaintext mail, stripped back out the same way and for the
+  # same structural reason — nested inside content/ rather than top-level, so
+  # naming content/ in the allowlist staged it wholesale. lib/mail/index.ts
+  # moved sent mail to <dataDir>/mail/ (outside CONTENT_DIR, so never staged
+  # here at all) in B636, but a deployment that has not restarted, or that
+  # sent mail before B636 shipped, can still have the old directories sitting
+  # under content/ — and the sweep in `writeEml` only cleans a shape once
+  # something else is written there, so a quiet instance keeps it.
+  #
+  # Two shapes, both named in lib/mail/index.ts and kept in step with it by
+  # hand — a shell script cannot import a TypeScript constant:
+  #   - content/.mail/          NO_JOURNAL_DIR in lib/mail/index.ts — signup
+  #                             codes for an address that owns no journal yet.
+  #   - content/<user>/mail/    legacyMailDir(username) in the same file — one
+  #                             journal's own sent mail: real recipient
+  #                             addresses, agent codes, sign-in codes.
+  # If either name changes there, change the -name arguments below to match.
+  find "$STAGING_DIR/content" -mindepth 1 -maxdepth 1 -type d -name '.mail' -exec rm -rf {} +
+  find "$STAGING_DIR/content" -mindepth 2 -maxdepth 2 -type d -name mail -exec rm -rf {} +
 fi
 
 # --- 4. config/config.json --------------------------------------------------
