@@ -88,3 +88,46 @@ to remove the gap.
   the health poll outlasts the stop.
 - `test/deploy-plan.test.ts` still passes; `deploy/*.service` changes classify
   as `units, restart`.
+
+## Done
+
+`deploy/fernscout.service` now carries, under `[Service]`:
+
+```
+TimeoutStopSec=20
+KillMode=mixed
+```
+
+with the 20s figure and the SIGTERM/SIGKILL split argued in a comment beside
+it, per the ticket's ask not to merge the number as an unexamined default.
+
+Checked before adding: `Type=simple` with no `ExecStop=` means systemd's
+own default stop sequence applies (SIGTERM to the main PID, wait
+`TimeoutStopSec`, then SIGKILL) — there was nothing already doing a bounded
+stop, so `TimeoutStopSec`/`KillMode` really is the mechanism, not a
+duplicate of something already there.
+
+`scripts/deploy.sh`'s health poll (`for i in $(seq 1 30); … sleep 1`, the
+"Also decide" question) already outlasts the new 20s stop timeout by
+construction — 30 > 20 with margin for the ~1s the report says the new
+process took to become ready — so no change was needed there for this
+ticket. (It was, however, changed by this same session for B559 — see that
+ticket — in a way that does not touch the poll duration.)
+
+Both directives are already in `test/systemd-units.test.ts`'s
+`DIRECTIVES` allow-list (`KillMode`/`KillSignal` and `TimeoutStopSec` are
+listed as `["Service"]`), so no test change was needed there either;
+`npx vitest run test/systemd-units.test.ts test/deploy-plan.test.ts` passes
+(17 tests, 1 skipped — `systemd-analyze verify` skips on macOS, which is
+this checkout's platform, and is expected per AGENTS.md).
+
+**Not run, and not this session's to run:** `systemd-analyze verify
+deploy/fernscout.service` itself (needs Linux/systemd, unavailable here),
+and the live acceptance checks — restarting `fernscout` with a real upload
+in flight and confirming no `final-sigterm timed out` in `journalctl`, and
+that a deploy during that upload still records its commit. **On the
+server, a person still needs to:** deploy this change (which installs the
+updated unit via `install-units.sh` and reloads systemd), then verify with
+an upload deliberately in flight — `sudo systemctl restart fernscout` while
+uploading, checking `journalctl -u fernscout` shows a clean stop within 20s
+rather than a SIGKILL after 90.

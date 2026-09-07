@@ -82,3 +82,24 @@ Node warning (B243).
   nothing under `content/` in the checkout.
 - With `CONTENT_DIR` unset, the behaviour is unchanged.
 - The run reports a path that finds the journal it made.
+
+## Done
+
+`scripts/seed-example-content.mjs:13-36` now resolves both `SRC` and `DEST`
+from `CONTENT_DIR` (`process.env.CONTENT_DIR ?? path.join(ROOT, "content")`)
+inline, the same way `migrate-users.ts` and `migrate-owner.ts` already do —
+not a literal call into `lib/contentRoot.ts`, since that is a `.ts` module
+these plain-node `.mjs`/`.ts` scripts don't import and the other two scripts
+in this family already established the inline-constant convention rather
+than the shared function. `DEST` is `CONTENT/username`. `SRC` prefers
+`CONTENT/example` and falls back to the checkout's own `content/example/`
+when the content root has no example journal of its own, as the Work section
+asked, with the reasoning written into the script's top comment. The
+"already exists" error and the final "Copied …" report now name `SRC`/`DEST`
+directly rather than a path relative to `ROOT` (the old code produced
+confusing `../` output once `CONTENT_DIR` pointed outside the checkout).
+
+Tested in `test/seed-example-content.test.ts`: seeds into `CONTENT_DIR` and
+not into `content/` in the checkout; prefers `CONTENT_DIR/example/` as the
+source when one exists; refuses to overwrite without `--force`, naming the
+right directory. All three pass. Acceptance is met.

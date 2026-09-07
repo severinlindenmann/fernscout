@@ -13,10 +13,13 @@
 # rewrote node_modules against a lockfile it already had, `db:migrate` started
 # a tsx process to find nothing to do, and `install-units.sh` rewrote units
 # nobody had touched — on a deploy whose entire content was a task file. The
-# steps below are therefore chosen from `git diff`, and the marker that makes
-# that safe is $STATE_FILE: the last commit this script brought up *healthy*.
-# A build that fails leaves it alone, so the next attempt re-plans from the
-# commit it managed to serve rather than from the one it never did.
+# steps below are therefore chosen from `git diff`, and the baseline that
+# diff is taken from is what /api/health says is actually running — asked of
+# the service live — not a local state file, since a state file advances
+# whether or not the build it describes really happened (B559). A build that
+# fails, or a restart that does not take, leaves the live answer alone, so
+# the next attempt re-plans from the commit actually served rather than from
+# one this script only hoped was.
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/srv/fernscout}"
@@ -163,9 +166,34 @@ fi
 
 cd "$APP_DIR"
 
-# What was last brought up healthy, if anything says so.
+# What is actually serving right now (B559) — asked of the running process
+# itself, not trusted from $STATE_FILE. The file used to be the only record
+# of "the last commit this script brought up healthy", and it advanced on
+# every healthy check regardless of whether a build or restart had actually
+# run: a `git diff` that a bug in `classify` mis-read as build-irrelevant
+# still moved $STATE_FILE forward, so the missed change dropped out of every
+# later diff and never got built. /api/health's `commit` field is the git
+# SHA the *running* build was compiled from (only ever written when this
+# script actually restarts the service, in "recording GIT_SHA=" below), so
+# querying it live means a run that skipped a build for the wrong reason
+# still diffs from the truth next time, not from its own mistake.
+#
+# $STATE_FILE is now only the bootstrap for when nothing answers yet — a
+# fresh machine before the service has ever been started once.
+served_commit() {
+  local health
+  health="$(curl -fsS "http://127.0.0.1:${PORT:-3000}/api/health" 2>/dev/null)" || return 1
+  printf '%s' "$health" | node -e \
+    'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const c=JSON.parse(s).commit;process.stdout.write(c?String(c):"")}catch{}})' \
+    2>/dev/null
+}
+
 DEPLOYED=""
-if [ -f "$STATE_FILE" ]; then
+LIVE="$(served_commit || true)"
+if [ -n "$LIVE" ]; then
+  DEPLOYED="$LIVE"
+  log "asked ${SERVICE} what it is serving: ${DEPLOYED:0:12}"
+elif [ -f "$STATE_FILE" ]; then
   DEPLOYED="$(tr -dc '0-9a-f' < "$STATE_FILE" | head -c 40)"
   if [ -z "$DEPLOYED" ] || ! as_service git cat-file -e "${DEPLOYED}^{commit}" 2>/dev/null; then
     log "$STATE_FILE names no commit this repository has — deploying in full"
@@ -369,6 +397,25 @@ log "waiting for health"
 for i in $(seq 1 30); do
   if HEALTH="$(curl -fsS "http://127.0.0.1:${PORT:-3000}/api/health" 2>/dev/null)"; then
     log "healthy"
+
+    # The loud version of the footnote B559 nearly missed: this run just
+    # restarted the service *because* it believed new code needed to go
+    # live, so what answers now must be the commit it restarted onto. If it
+    # is not, the restart did not actually adopt the new build — a wedged
+    # process that failed to exit, a build that silently produced nothing —
+    # and a deploy that reports success on the old code is worse than one
+    # that fails loudly here. Only checked when a restart was supposed to
+    # bring HEAD_SHA up: a run that correctly decided nothing needed
+    # rebuilding is *expected* to still be serving an older commit, and that
+    # is not a failure.
+    SERVED="$(printf '%s' "$HEALTH" | node -e \
+      'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const c=JSON.parse(s).commit;process.stdout.write(c?String(c):"")}catch{}})' \
+      2>/dev/null)" || SERVED=""
+    if [ "$do_restart" = 1 ] && [ -n "$SERVED" ] && [ "$SERVED" != "$HEAD_SHA" ]; then
+      echo "ERROR: restarted ${SERVICE} for ${HEAD_SHA:0:12} but /api/health reports ${SERVED:0:12} is serving. The restart did not adopt the new build — check journalctl -u ${SERVICE} -n 50 before trusting this deploy." >&2
+      exit 1
+    fi
+
     record_deployed
     report_backup "$HEALTH"
     report_logging "$HEALTH"

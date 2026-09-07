@@ -29,6 +29,23 @@ ExecStart=/usr/bin/npm run start -- --hostname 127.0.0.1
 Restart=always
 RestartSec=5
 
+# Bound the stop (B520). Without TimeoutStopSec, a restart during an upload
+# waits out systemd's 90s default before SIGKILL — `next start` drains
+# in-flight requests on SIGTERM rather than exiting, and a multi-megabyte
+# photo upload can still be decoding when the signal arrives. 20s is a
+# trade, not a measurement: long enough for a request already in flight to
+# finish, short enough that a restart is not itself a multi-minute outage.
+# An upload still running past it is retried by the agent that sent it; a
+# 90-second 502 is not retried by a reader. KillMode=mixed sends SIGTERM to
+# the main process only (Next gets its chance) and SIGKILL to the rest of
+# the cgroup at the timeout (the npm/sh wrapper is not left holding the
+# group open) — the right split for `npm → sh → next-server`.
+#
+# scripts/deploy.sh's health poll must stay longer than this timeout, or a
+# stop that is still draining looks identical to a failed deploy.
+TimeoutStopSec=20
+KillMode=mixed
+
 # The app writes only to the content folder and DATA_DIR. Everything else on
 # the filesystem can be read-only as far as it is concerned.
 NoNewPrivileges=true

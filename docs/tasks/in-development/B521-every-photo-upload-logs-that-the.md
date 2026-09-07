@@ -66,3 +66,37 @@ warned about.
   defines, not silently accepted.
 - The task file records which of the two cases it was, with the byte
   comparison that decided it.
+
+## Triage
+
+This is the same incident as B523 (`docs/tasks/testing/issue/B523-a-request-body-over-10-mib.md`),
+found twenty minutes apart on the same night — B521 at 21:12Z, B523 at
+21:30Z, merged at 21:32Z (`a91615aa`, `ea86e8fb`) — almost certainly two
+sessions independently noticing the same upload run. B523 did the byte
+comparison this ticket's Work section asks for and answered case 1: the
+bytes that reach the route match the bytes on disk (nothing is corrupt); the
+warning was noise from `proxy.ts`'s buffering, which Next 16 calls
+`experimental.proxyClientMaxBodySize` (the option this task's Why section
+names by its pre-rename spelling, `middlewareClientMaxBodySize` — confirmed
+against `node_modules/next/dist/docs/01-app/03-api-reference/05-config/
+01-next-config-js/proxyClientMaxBodySize.md`, since AGENTS.md warns this
+project's Next config surface is not the one a model remembers).
+
+`next.config.ts` already sets `experimental.proxyClientMaxBodySize:
+REQUEST_MAX_BYTES` (512 MiB, from `lib/validate/media.ts:106`) — derived
+from the same constant the media validator enforces, not a second number, as
+B523's Work section asked. `REQUEST_MAX_BYTES` already exceeds
+`IMAGE_MAX_BYTES` (50 MB) and `VIDEO_MAX_BYTES` (500 MB) with room for
+multipart framing, so a normal upload — even the largest a validator will
+accept — is well inside the proxy's buffer and never triggers Next's
+truncation warning. A body genuinely over the media limit is refused by
+`app/api/v1/[user]/trips/[trip]/media/route.ts` with a `413` naming the cap
+and the size received (B523's other half), not by Next's buffer silently
+truncating it — so this ticket's "refuse with the error lib/validate/media.ts
+defines, not silently accept" is met too. `test/media-body-limit.test.ts`
+covers this (asserting the configured `proxyClientMaxBodySize` against
+`REQUEST_MAX_BYTES` and against the documented cap).
+
+No code change made here — B523 already is the fix, and pre-dates this
+worktree by weeks. Superseding note: this ticket's Work is fully covered by
+B523's diff; nothing further to build.
