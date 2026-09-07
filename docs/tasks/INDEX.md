@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (87)
+## backlog (86)
 
 ### security (3)
 
@@ -72,7 +72,7 @@ Do not edit them by hand; run the script.
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B754](backlog/issue/B754-a-second-trip-cannot-be-made.md) | A second trip cannot be made from the wizard when the helper is off | ISSUE | low | low |
 
-### big-feature (13)
+### big-feature (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -87,7 +87,6 @@ Do not edit them by hand; run the script.
 | [B678](backlog/big-feature/B678-the-helper-re-implements-the-file.md) | The helper re-implements the file-shape rules, so a journal is judged by a copy of them | FEATURE | medium | high |
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
-| [B689](backlog/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
 ### small-feature (19)
@@ -182,7 +181,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (8)
+## in-development (9)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -191,6 +190,7 @@ _Nothing here._
 | [B743](in-development/B743-one-provider-name-is-recorded-for.md) | One provider name is recorded for three different consents | ISSUE | medium | low | `97b44327` |
 | [B751](in-development/B751-the-striped-handover-box-shouts-louder.md) | The striped handover box shouts louder than anything it sits beside, and it is on the page up to four times | FEATURE | medium | medium | `ccdd5120` |
 | [B752](in-development/B752-the-sign-in-field-draws-three.md) | The sign-in field draws three focus indicators at once, so it reads as a box inside a box | ISSUE | medium | low | `ccdd5120` |
+| [B689](in-development/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high | `fdfcf5f2` |
 | [B735](in-development/B735-withdrawing-photo-consent-also-withdraws-consent.md) | Withdrawing photo consent also withdraws consent for words | ISSUE | low | low | `97b44327` |
 | [B744](in-development/B744-the-speech-consent-panel-names-deepgram.md) | The speech consent panel names Deepgram even on a dry-run instance | ISSUE | low | low | `97b44327` |
 | [B753](in-development/B753-sending-a-sign-in-code-gives.md) | Sending a sign-in code gives no sign that anything was sent | FEATURE | low | low | `ccdd5120` |
