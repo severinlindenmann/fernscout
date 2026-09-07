@@ -584,11 +584,29 @@ is what keeps the folders worth having:
 | `OPS` | an engagement against the **running** instance — enable a capability and drive it, run the restore drill, attack the live surface. The deliverable is findings and other tasks, not a diff |
 | `DOCS` | the deliverable is words somebody reads — `AGENTS.md`, a skill, the agent guide, a doc comment, the demo content that teaches the model |
 
-`superseded:` is the one thing that overrides the type. It carries what
-overtook the task — an id, or what was found — and files it under
-`superseded/`, which is how a task is closed without being deleted and without
-claiming a person verified it. Ids are forever, so an overtaken task keeps its
-file and its number and stops appearing among live work.
+**Two fields override the type**, and both are ways of closing a task without
+deleting it and without claiming a person verified it. Ids are forever, so a
+closed task keeps its file and its number and stops appearing among live work.
+
+`superseded:` carries what overtook the task — an id, or what was found — and
+files it under `superseded/`.
+
+`wontDo:` carries why a person decided it should not be built at all: the
+behaviour is wanted as it is, the cost is not worth it, or the premise was
+wrong. It files under `wont-do/`.
+
+The distinction is worth keeping because the two invite opposite follow-ups. A
+superseded ticket points at the work that replaced it, and the next agent may
+usefully go and read that. A wont-do ticket points at nothing, and is meant
+**not** to be reopened by the next agent hunting for something useful — which
+is exactly what happens if "we decided against this" is filed as though the
+work were still owed. `superseded` wins when both are set: "already done
+elsewhere" is a fact about the code, "not worth doing" is a judgement about it,
+and the fact is the more useful thing to show.
+
+`wontDo` is a person's word, not an agent's. Set it when you have been told to;
+capturing your own opinion that a ticket is not worth building is a `backlog/`
+note, not a closure.
 
 **A task in flight says which agent is on it.** Moving into `in-development/`
 writes your session into `session:`, and taking a task another session holds is

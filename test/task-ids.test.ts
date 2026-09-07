@@ -41,8 +41,14 @@ const ROOT = path.join(process.cwd(), "docs", "tasks");
  */
 const CATEGORISED = new Set(["backlog", "testing"]);
 
-function categoryFor(type: string, complexity: string, superseded: string): string {
+function categoryFor(
+  type: string,
+  complexity: string,
+  superseded: string,
+  wontDo: string,
+): string {
   if (superseded) return "superseded";
+  if (wontDo) return "wont-do";
   if (type === "SECURITY") return "security";
   if (type === "CHORE") return "chore";
   if (type === "OPS") return "ops";
@@ -60,6 +66,7 @@ type Task = {
   type: string;
   complexity: string;
   superseded: string;
+  wontDo: string;
   body: string;
 };
 
@@ -101,6 +108,7 @@ function tasks(): Task[] {
         type: field(raw, "type"),
         complexity: field(raw, "complexity"),
         superseded: field(raw, "superseded"),
+        wontDo: field(raw, "wontDo"),
         body: raw,
       };
     });
@@ -172,10 +180,13 @@ describe("task ids", () => {
     // the whole fix.
     const misfiled = all
       .filter((task) => CATEGORISED.has(task.lane))
-      .filter((task) => task.filed !== categoryFor(task.type, task.complexity, task.superseded))
+      .filter(
+        (task) =>
+          task.filed !== categoryFor(task.type, task.complexity, task.superseded, task.wontDo),
+      )
       .map(
         (task) =>
-          `${task.where} → ${task.lane}/${categoryFor(task.type, task.complexity, task.superseded)}/`,
+          `${task.where} → ${task.lane}/${categoryFor(task.type, task.complexity, task.superseded, task.wontDo)}/`,
       );
 
     expect(misfiled.sort()).toEqual([]);

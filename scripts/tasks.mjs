@@ -105,7 +105,8 @@ const COMPLEXITIES = ["low", "medium", "high"];
 /**
  * The category folders a lane is filed into, in the order they are written
  * into INDEX.md — roughly most urgent first, with the two that are not code
- * last and `superseded` after everything.
+ * last, then the two that are closed without being built — `superseded` and
+ * `wont-do` — after everything.
  *
  * A category is **derived**, never typed. `categoryOf()` reads it off `type`
  * and `complexity`, which is the same reasoning the lane follows: a fact kept
@@ -123,6 +124,7 @@ const CATEGORIES = [
   "ops",
   "docs-and-skills",
   "superseded",
+  "wont-do",
 ];
 
 /**
@@ -150,13 +152,27 @@ const CATEGORISED = new Set(["backlog", "testing"]);
  * reader needs to know about it is that it is closed. The field carries what
  * overtook it, so the row can say so.
  *
+ * `wontDo` is the same shape and a different sentence. `superseded` says
+ * *something else did this*; `wontDo` says **a person decided it should not be
+ * done at all** — the behaviour is wanted as it is, the cost is not worth it,
+ * or the premise was wrong. Keeping them apart matters because the two invite
+ * opposite follow-ups: a superseded ticket points at the work that replaced
+ * it, and a wont-do ticket points at nothing and is meant not to be reopened
+ * by the next agent looking for something useful. Like `superseded`, the field
+ * carries the reason, so the row can say why rather than only that.
+ *
+ * `superseded` wins when both are set, because "already done elsewhere" is a
+ * fact about the code and "not worth doing" is a judgement about it — the
+ * fact is the more useful thing to show.
+ *
  * `FEATURE` is the one type that splits, because it is the one where size
  * changes what a person does with the row: "an afternoon" and "a fortnight and
  * a design decision" are not the same queue, and lumping them together is what
  * made the old flat backlog unreadable.
  */
-function categoryOf({ type, complexity, superseded }) {
+function categoryOf({ type, complexity, superseded, wontDo }) {
   if (superseded) return "superseded";
+  if (wontDo) return "wont-do";
   switch (type) {
     case "SECURITY":
       return "security";
@@ -337,6 +353,7 @@ function itemsIn(lane) {
         priority: field(front, "priority") ?? "medium",
         complexity: field(front, "complexity") ?? "medium",
         superseded: field(front, "superseded"),
+        wontDo: field(front, "wontDo"),
         session: field(front, "session"),
         claimed: field(front, "claimed"),
       };
@@ -879,6 +896,7 @@ function move(argv) {
         type: field(updated, "type") ?? item.type,
         complexity: field(updated, "complexity") ?? item.complexity,
         superseded: field(updated, "superseded"),
+        wontDo: field(updated, "wontDo"),
       })
     : undefined;
 

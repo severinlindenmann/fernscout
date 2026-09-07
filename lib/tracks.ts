@@ -124,6 +124,28 @@ const NOT_KNOWN =
 
 export const TRACK_ROWS: Record<Track, Row> = {
   costs: {
+    /**
+     * `write`, deliberately, and B709 is the record of the decision rather
+     * than of a bug.
+     *
+     * The argument for moving it to `publish` is real: the honest answer at
+     * creation is often "nobody has the figures yet", and a question asked
+     * too early gets a shrug typed to get past it. The argument that won is
+     * that `publish` asks *nobody* about a day that is never published — a
+     * private note, or a day written and left — and today that is impossible,
+     * because writing forces the answer while the day is still fresh.
+     *
+     * That trade only works because `unknown` is a first-class answer here
+     * and not a failure: see `NOT_KNOWN` above. "Money was spent and nobody
+     * has the figures" is a true thing to write down and can be filled in
+     * later, so being asked early costs a person nothing they cannot revise.
+     *
+     * `coordinates` is `write` for the same reason and stays in step with
+     * this row; `photos` is `publish` because it has to be (there is no
+     * photograph at `POST .../days` to report). If the wizard asks about
+     * money too soon on its own first screen, that is the wizard's ordering
+     * to fix, not this trip-wide contract.
+     */
     when: "write",
     keeps: "what it costs",
     send: 'costs: [{"label": "Dinner", "amount": 42, "currency": "EUR"}] — each thing separately, in the currency it was paid in',
