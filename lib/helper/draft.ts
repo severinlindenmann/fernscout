@@ -36,6 +36,17 @@ export type WizardDraft = {
   photos: number;
   /** Whether the prose is a person's rather than `NO_PROSE`. */
   written: boolean;
+  /**
+   * Whether the day is on the site already — B816. Absent means a draft,
+   * which is what everything written here starts as.
+   *
+   * The wizard holds a published day so a typo can be fixed and a forgotten
+   * photograph added, and this is the one field that changes what the screen
+   * *says*: saving a published day changes what people can already read, and
+   * the publish button is a takedown instead. It changes no write — `PATCH`
+   * cannot publish and cannot unpublish, before this field existed or after.
+   */
+  published?: true;
 };
 
 export const WIZARD_STEPS = ["trip", "date", "photos", "words", "preview", "publish"] as const;

@@ -134,6 +134,19 @@ describe("the helper's own routes never accept a bearer token", () => {
     expect(res.status).toBe(404);
   });
 
+  test("day/unpublish: POST", async () => {
+    const { POST } = await import("@/app/api/helper/[user]/day/unpublish/route");
+    const res = await POST(
+      bearerOnly("https://t.test/api/helper/alex/day/unpublish", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
+      params,
+    );
+    expect(res.status).toBe(404);
+  });
+
   test("day/media: GET and POST", async () => {
     const { GET, POST } = await import("@/app/api/helper/[user]/day/media/route");
     const get = await GET(bearerOnly("https://t.test/api/helper/alex/day/media"), params);

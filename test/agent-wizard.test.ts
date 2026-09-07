@@ -89,7 +89,9 @@ describe("the helper routes", () => {
     .filter((file) => file.endsWith("route.ts"))
     .map((file) => fs.readFileSync(path.join(dir, file), "utf8"));
 
-  // Thirteen since B689 added the four the inbox screen needs: reading a
+  // Fourteen since B816 added the takedown — `day/unpublish`, the verb that
+  // makes a published day something the browser can still act on.
+  // Thirteen before that, since B689 added the four the inbox screen needs: reading a
   // location export, reading a statement's columns, applying the mapping, and
   // taking a file back out again. Before that, nine — B686's `transcribe`
   // beside B687's describe-photos, B685's intent router and the trip its one
@@ -99,8 +101,8 @@ describe("the helper routes", () => {
   // where the guard is asserted — and it earned that on the B685/B687 merge,
   // where two branches built in parallel each updated it to a number that was
   // right on its own branch and wrong on main.
-  test("there are thirteen of them, and each is guarded", () => {
-    expect(sources).toHaveLength(13);
+  test("there are fourteen of them, and each is guarded", () => {
+    expect(sources).toHaveLength(14);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

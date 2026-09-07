@@ -351,6 +351,25 @@ export function DayCard({
                   that: see `InviteToRead`, which hides itself on a journal
                   with contacts switched off. */}
               <InviteToRead username={trip.trip.username} />
+              {/* B816 — the way back into a day that is already on the site.
+                  Before this the browser went read-only the moment a day was
+                  published: a typo, a forgotten photograph and a friend asking
+                  to come out of a picture all needed an agent or the API.
+
+                  Owner only (this whole block is), and only on a published
+                  day — a draft has its own banner above and is in the resume
+                  list. It opens the wizard on the day's lead update, which is
+                  the one the page is named for. */}
+              {!allDraft && (
+                <p className="mt-4 text-sm">
+                  <Link
+                    href={`/agent/${encodeURIComponent(trip.trip.username)}?trip=${encodeURIComponent(trip.trip.id)}&slug=${lead.slug}&date=${day.date}`}
+                    className="font-semibold text-navy-800 underline underline-offset-4"
+                  >
+                    {t("agent.correctDay")}
+                  </Link>
+                </p>
+              )}
             </>
           )}
         </div>

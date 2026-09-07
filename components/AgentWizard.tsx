@@ -24,7 +24,7 @@ import {
   type WizardDraft,
   type WizardStep,
 } from "@/lib/helper/draft";
-import type { WizardTrip } from "@/lib/helper/server";
+import type { TripGap, WizardTrip } from "@/lib/helper/server";
 import { weekdayNames, type TranslationKey } from "@/lib/i18n";
 import { isoDate, isoTime, readExif, wallClockMs } from "@/lib/ingest/exif";
 import type { CurrencyOptions } from "@/lib/rates";
@@ -271,12 +271,34 @@ function PhotoPicker({
   );
 }
 
+/** What the link that opened the wizard asked for — B818, B816. */
+type OpenAt = { date?: string; trip?: string; slug?: string };
+
+/**
+ * The day this wizard is most likely about — B818.
+ *
+ * It was `todayIso()` unconditionally, which is right for somebody writing up
+ * the day they are having and wrong for everybody else: a person tidying up
+ * three weeks later, arriving from a link that says "Finish Wednesday, 19
+ * August", was offered today and filled the form on autopilot. So: the date
+ * the link names, then today when today is inside a trip that is running, and
+ * otherwise the oldest day of the last trip nobody ever wrote.
+ */
+function openingDate(open: OpenAt | undefined, trips: WizardTrip[], gaps: TripGap | null): string {
+  const today = todayIso();
+  if (open?.date) return open.date;
+  if (tripOn(trips, today)) return today;
+  return gaps?.missing[0] ?? today;
+}
+
 export default function AgentWizard({
   username,
   trips,
   drafts,
   currency,
   helper,
+  open,
+  gaps = null,
 }: {
   username: string;
   trips: WizardTrip[];
@@ -284,6 +306,10 @@ export default function AgentWizard({
   drafts: WizardDraft[];
   currency: CurrencyOptions;
   helper: HelperState;
+  /** What the opening link named, if it named anything — B818. */
+  open?: OpenAt;
+  /** The days of a finished trip nobody started — B819. Usually `null`. */
+  gaps?: TripGap | null;
 }) {
   const { t, tn, formatLongDate, locale } = useI18n();
 
@@ -311,7 +337,14 @@ export default function AgentWizard({
    * initialised the same way and for the same reason.
    */
   const [express] = useState(
-    () => drafts.length === 0 && trips.filter((t) => todayIso() >= t.start && todayIso() <= t.end).length === 1,
+    () =>
+      // A link that named a day or a day's slug has already answered the two
+      // questions the express path guesses at — B818. Obeying it beats
+      // guessing, so the long path opens and the link's own day is in the box.
+      !open?.date &&
+      !open?.slug &&
+      drafts.length === 0 &&
+      trips.filter((t) => todayIso() >= t.start && todayIso() <= t.end).length === 1,
   );
   /** Set the moment somebody takes the long way round from the express screen
    *  — from then on this session is the ordinary six steps. */
@@ -324,10 +357,11 @@ export default function AgentWizard({
   const [facts, setFacts] = useState<ExifFacts | null>(null);
   const [reading, setReading] = useState(false);
 
-  // Today, and the trip today falls inside — the commonest case is somebody
-  // writing up the day they are having, and it should already be chosen.
-  const [date, setDate] = useState<string>(todayIso());
-  const [trip, setTrip] = useState<string>(tripOn(trips, todayIso()) ?? trips[0]?.id ?? "");
+  // The day this is most likely about (B818), and the trip it falls inside.
+  const [date, setDate] = useState<string>(() => openingDate(open, trips, gaps));
+  const [trip, setTrip] = useState<string>(
+    () => open?.trip ?? tripOn(trips, openingDate(open, trips, gaps)) ?? trips[0]?.id ?? "",
+  );
 
   /** On the express path the title starts as the weekday — B780. It is the
    *  same string `suggestion` below already offers for a day with no place
@@ -347,6 +381,40 @@ export default function AgentWizard({
   const [answers, setAnswers] = useState<Partial<Record<Track, "none" | "unknown">>>({});
   const [asking, setAsking] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
+  // B816 — taking a published day back off the site, and the line that says it
+  // happened. Never a delete: the day stays on disk as a draft.
+  const [takingDown, setTakingDown] = useState(false);
+  const [tookDown, setTookDown] = useState(false);
+
+  /**
+   * Whether the gap line has been waved away — B819.
+   *
+   * Kept in the browser rather than in the journal: it is a preference about
+   * a screen, not a fact about a trip, and a trip that gains a day stops
+   * being a gap on its own.
+   *
+   * Shown first and hidden by the effect, rather than the other way round.
+   * There is no `localStorage` on the server, so starting hidden would mean
+   * the line arrives one render late for everybody — and the mismatch would
+   * be with the person who has *not* dismissed it, which is nearly everybody.
+   * This way the only cost is one sentence flickering past somebody who has
+   * already said they do not want it.
+   */
+  const [gapsHidden, setGapsHidden] = useState(false);
+  const gapKey = gaps ? `fernscout.gaps.${username}.${gaps.trip}` : null;
+  useEffect(() => {
+    if (!gapKey) return;
+    try {
+      // Reading a browser store is the "synchronise with an external system"
+      // case the rule exempts in prose but cannot detect — the same disable
+      // sits on `Landing`, which reads a flag out of `localStorage` the same
+      // way and for the same reason.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (window.localStorage.getItem(gapKey) === "hidden") setGapsHidden(true);
+    } catch {
+      // A browser that refuses storage gets the line; it is one sentence.
+    }
+  }, [gapKey]);
 
   // B684 — the model layer, and the three states it can be in: never asked,
   // asking, and holding an answer nobody has accepted yet.
@@ -746,6 +814,48 @@ export default function AgentWizard({
     setPublishedUrl(String(body.url));
   }, [base, draft, send]);
 
+  /**
+   * Take the day back off the site — B816.
+   *
+   * The undo is the publish button, which comes back the moment this returns:
+   * the day is a draft again, on disk, with every photograph still attached.
+   * Nothing here deletes anything, and nothing here should learn how.
+   */
+  const takeDown = useCallback(async () => {
+    if (!draft) return;
+    setBusy(true);
+    const body = await send(`${base}/unpublish`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ trip: draft.trip, slug: draft.slug }),
+    });
+    setBusy(false);
+    if (!body) return;
+    setTakingDown(false);
+    setTookDown(true);
+    setDraft(body.draft as WizardDraft);
+    setPreview((body.preview as Preview | null) ?? null);
+  }, [base, draft, send]);
+
+  /**
+   * The day the opening link named, loaded on arrival — B818, B816.
+   *
+   * A draft opens where `stepFor` puts it. A day already on the site opens on
+   * the words, because somebody who followed "correct this day" came to change
+   * something and not to be walked through six steps again.
+   */
+  const opened = useRef(false);
+  useEffect(() => {
+    const trip = open?.trip;
+    const slug = open?.slug;
+    if (opened.current || !trip || !slug) return;
+    opened.current = true;
+    void (async () => {
+      const next = await refresh(trip, slug);
+      if (next) setStep(next.published ? "words" : stepFor(next));
+    })();
+  }, [open, refresh]);
+
   /** Place and weekday, which is a suggestion and not a claim: it names where
    *  the photographs say the day was and what day of the week it fell on, both
    *  of which are already on the day. The field is editable and starts empty of
@@ -803,7 +913,10 @@ export default function AgentWizard({
    * right thing is not helped by an arrow. It is absent rather than disabled
    * on the first screen and on the published day, which is an ending.
    */
-  const back = draft && !publishedUrl && !asking && !(quick && step === "words") ? backFrom(step) : null;
+  const back =
+    draft && !publishedUrl && !asking && !takingDown && !(quick && step === "words")
+      ? backFrom(step)
+      : null;
 
   /** Back to the trip and the date is the one that lets go of the draft. The
    *  day already created stays on disk — it is in the unfinished list above
@@ -914,6 +1027,53 @@ export default function AgentWizard({
       {/* ---------------------------------------------------------------- */}
       {!draft && step === "trip" && (
         <>
+          {/* B819 — the days of a finished trip nobody ever started. Said
+              once, quietly, and dismissed for good: a trip where somebody
+              deliberately wrote three days of fourteen is not a to-do list
+              with eleven failures on it. Each date fills the form below in
+              one tap rather than being a second screen. */}
+          {gaps && !gapsHidden && (
+            <section className="mt-6 rounded-2xl border border-navy-200 bg-cream-100 p-4 sm:p-5">
+              <p className="text-sm leading-6 text-navy-800">
+                {tn("agent.gapsBody", gaps.missing.length, {
+                  trip: gaps.title,
+                  total: String(gaps.total),
+                  count: String(gaps.missing.length),
+                })}
+              </p>
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {gaps.missing.slice(0, 6).map((day) => (
+                  <li key={day}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        chooseDate(day);
+                        setTrip(gaps.trip);
+                      }}
+                      className="min-h-11 rounded-full border border-navy-300 bg-white px-4 text-sm font-semibold text-navy-800"
+                    >
+                      {formatLongDate(day)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={() => {
+                  setGapsHidden(true);
+                  try {
+                    if (gapKey) window.localStorage.setItem(gapKey, "hidden");
+                  } catch {
+                    // Nothing to do: it is hidden for this visit either way.
+                  }
+                }}
+                className="mt-3 min-h-11 text-sm font-semibold text-navy-600 underline"
+              >
+                {t("agent.gapsDismiss")}
+              </button>
+            </section>
+          )}
+
           {drafts.length > 0 && (
             <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-4 sm:p-5">
               <h2 className="font-display text-lg font-semibold text-navy-900">
@@ -1068,6 +1228,20 @@ export default function AgentWizard({
             {t("agent.wordsTitle")}
           </h2>
           <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.wordsHint")}</p>
+
+          {/* B816 — said before the button, not after it. Correcting a day
+              that is already on the site is not publishing and cannot become
+              publishing (`PATCH` has no `status`), but it does change what
+              people can already read, and a person is owed that sentence
+              while they still have the option of not pressing save. */}
+          {draft?.published && (
+            <p
+              role="note"
+              className="mt-3 rounded-xl border border-coral-600 bg-cream-100 px-4 py-3 text-sm leading-6 text-navy-900"
+            >
+              {t("agent.editingLive")}
+            </p>
+          )}
 
           {/* B780 — the two questions the express path did not ask, answered
               out loud, with the way to change either of them. Quiet, because
@@ -1340,7 +1514,7 @@ export default function AgentWizard({
             onClick={() => void save()}
             className="mt-5 min-h-11 w-full rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 disabled:opacity-50"
           >
-            {busy ? t("agent.saving") : t("agent.save")}
+            {busy ? t("agent.saving") : t(draft?.published ? "agent.saveChange" : "agent.save")}
           </button>
         </section>
       )}
@@ -1355,7 +1529,9 @@ export default function AgentWizard({
           >
             {t("agent.previewTitle")}
           </h2>
-          <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.previewHint")}</p>
+          <p className="mt-1 text-sm leading-6 text-navy-600">
+            {t(draft.published ? "agent.previewHintLive" : "agent.previewHint")}
+          </p>
 
           {/* Not once `publishedUrl` is set — B711. `preview.day` is read once,
               before publishing, and carries `draft: true` on every entry; the
@@ -1392,6 +1568,21 @@ export default function AgentWizard({
                 </Link>
               </div>
             </div>
+          ) : takingDown ? (
+            <div className="mt-5">
+              {/* B816, and the same rule as publishing: the question has to be
+                  able to say that this is reversible and that nothing is
+                  deleted, which one OS dialog string cannot. */}
+              <ConfirmPanel
+                label={t("agent.takeDown")}
+                question={t("agent.takeDownQuestion")}
+                confirmLabel={t("agent.takeDownConfirm")}
+                busyLabel={t("agent.takingDown")}
+                busy={busy}
+                onConfirm={() => void takeDown()}
+                onCancel={() => setTakingDown(false)}
+              />
+            </div>
           ) : asking ? (
             <div className="mt-5">
               {/* Never `window.confirm` — B633, B668. The question has to be
@@ -1408,16 +1599,47 @@ export default function AgentWizard({
               />
             </div>
           ) : (
-            <div className="mt-5 flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={!draft.written}
-                onClick={() => setAsking(true)}
-                className="min-h-11 rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 disabled:opacity-50"
-              >
-                {t("agent.publish")}
-              </button>
-            </div>
+            <>
+              {/* What just happened, once — B816. The publish button below is
+                  the undo, and it is the ordinary one with its ordinary
+                  confirmation. */}
+              {tookDown && !draft.published && (
+                <p
+                  role="status"
+                  className="mt-5 rounded-2xl border border-navy-200 bg-cream-100 px-4 py-3 text-sm leading-6 text-navy-800"
+                >
+                  {t("agent.tookDown")}
+                </p>
+              )}
+              <div className="mt-5 flex flex-wrap gap-2">
+                {draft.published ? (
+                  <>
+                    <Link
+                      href={`/${encodeURIComponent(username)}/trips/${encodeURIComponent(draft.trip)}/day/${draft.slug}`}
+                      className="min-h-11 rounded-full border border-navy-300 px-5 py-2.5 text-base font-semibold text-navy-800"
+                    >
+                      {t("agent.viewDay")}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setTakingDown(true)}
+                      className="min-h-11 rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-800"
+                    >
+                      {t("agent.takeDown")}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={!draft.written}
+                    onClick={() => setAsking(true)}
+                    className="min-h-11 rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 disabled:opacity-50"
+                  >
+                    {t("agent.publish")}
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </section>
       )}

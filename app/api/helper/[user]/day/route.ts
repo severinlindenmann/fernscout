@@ -3,7 +3,7 @@ import { createDraft, editEntry, factsOfInput, type DraftInput, type EditInput }
 import { fillDayWeatherQuietly } from "@/lib/api/weather";
 import { isEnabled } from "@/lib/capabilities";
 import { NO_PROSE } from "@/lib/helper/draft";
-import { draftForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/helper/server";
+import { dayForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/helper/server";
 import { requestLocale } from "@/lib/locales";
 import { missingFrom, TRACKS, UNKNOWN, type Track } from "@/lib/tracks";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -76,10 +76,10 @@ function text(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
 }
 
-/** The draft and the day as a reader would see it, in one answer — what every
- *  write below returns so the wizard never has to guess what it just did. */
+/** The day — draft or published, since B816 — as a reader would see it, in
+ *  one answer, so the wizard never has to guess what it just did. */
 function state(user: string, trip: string, slug: string): Response {
-  const draft = draftForWizard(user, trip, slug);
+  const draft = dayForWizard(user, trip, slug);
   if (!draft) return Response.json({ error: "unknown_day" }, { status: 404 });
   return Response.json({ ok: true, draft, preview: previewOf(user, trip, slug) });
 }
@@ -179,6 +179,13 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
  * Nothing here can publish and nothing here writes weather: `weatherData` is
  * the field a person's own thermometer reading goes in, it is not something a
  * wizard has, and it is not in the list below.
+ *
+ * Since B816 this is also how a **published** day is corrected, and that is
+ * `editEntry`'s guarantee rather than this route's care: a draft stays a draft
+ * and a published day stays published whatever the body asks for. What the
+ * wizard owes the person is the sentence — saving a day that is on the site
+ * changes what people can already read — and it says it on the screen before
+ * the button.
  */
 export async function PATCH(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
   const { user } = await params;

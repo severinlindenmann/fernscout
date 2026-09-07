@@ -5,7 +5,7 @@ import AgentWizard from "@/components/AgentWizard";
 import { isEnabled } from "@/lib/capabilities";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { WRITE_DAY_CREDITS } from "@/lib/helper/model";
-import { draftsForWizard, inboxForWizard, isHelperOwner, tripsForWizard } from "@/lib/helper/server";
+import { draftsForWizard, gapsForWizard, inboxForWizard, isHelperOwner, tripsForWizard } from "@/lib/helper/server";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { currencyOptions } from "@/lib/rates";
@@ -35,9 +35,25 @@ export async function generateMetadata(): Promise<Metadata> {
  * a journal that does not exist. A URL here is one somebody guessed, and it
  * must not confirm whose it is.
  */
-export default async function AgentWizardPage({ params }: PageProps<"/agent/[user]">) {
+export default async function AgentWizardPage({ params, searchParams }: PageProps<"/agent/[user]">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) notFound();
+
+  /**
+   * What the link that opened this asked for — B818, B816.
+   *
+   * The wizard's date used to default to today whoever sent somebody here,
+   * including a link that said "Finish Wednesday, 19 August" in so many words.
+   * Read on the server rather than with `useSearchParams` so the wizard's
+   * first render already has it: a date that arrives one render late is a
+   * date somebody has already typed over.
+   *
+   * `slug` is the other half: with one, the wizard opens that day — a draft to
+   * finish, or a published day to correct or take down.
+   */
+  const asked = await searchParams;
+  const one = (value: string | string[] | undefined) =>
+    typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
 
   // B689 — the door to the inbox screen, and only when there is something
   // behind it. A file somebody handed over and nothing ever read is the exact
@@ -52,6 +68,10 @@ export default async function AgentWizardPage({ params }: PageProps<"/agent/[use
       username={user}
       trips={tripsForWizard(user)}
       drafts={draftsForWizard(user)}
+      open={{ date: one(asked.date), trip: one(asked.trip), slug: one(asked.slug) }}
+      // B819 — the days of a finished trip nobody ever started. `null` far
+      // more often than not, and silent when it is.
+      gaps={gapsForWizard(user, new Date().toISOString().slice(0, 10))}
       currency={currencyOptions(user)}
       // B684. Off is absent rather than broken: the wizard gets `enabled:
       // false`, draws no button and asks nothing, and every other step works
