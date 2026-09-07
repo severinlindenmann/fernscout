@@ -128,6 +128,7 @@ export default function BookLevelView({
   locales,
   resetBook,
   canReset,
+  startOver,
   preview,
   submitting,
   setSubmitting,
@@ -148,6 +149,8 @@ export default function BookLevelView({
   locales: string[];
   resetBook: () => void;
   canReset: boolean;
+  /** Reopen the first-book questions — B704. */
+  startOver: () => void;
   preview: PreviewState;
   submitting: boolean;
   setSubmitting: (v: boolean) => void;
@@ -302,6 +305,7 @@ export default function BookLevelView({
             locales={locales}
             resetBook={resetBook}
             canReset={canReset}
+            startOver={startOver}
             t={t}
           />
         </div>

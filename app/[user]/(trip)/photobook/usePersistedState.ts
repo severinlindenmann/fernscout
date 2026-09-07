@@ -36,22 +36,44 @@ export function usePersistedState<T>(
    * with whatever `localStorage.getItem(storageKey)` returned — `null` is
    * never passed in; nothing is called when there is nothing saved. */
   restore: (saved: string, current: T) => T,
-): [T, Dispatch<SetStateAction<T>>] {
+): [T, Dispatch<SetStateAction<T>>, boolean | null] {
   const [value, setValue] = useState<T>(initial);
   const [restored, setRestored] = useState(false);
+  /**
+   * Whether anything was actually stored under this key — B704.
+   *
+   * `null` until the effect below has looked, which is the honest answer for
+   * the server's render and for the first client one: nothing has read
+   * `localStorage` yet, so nothing can say. A caller that shows one thing to
+   * somebody arriving for the first time and another to somebody coming back
+   * has to wait for this rather than guess, or it shows the wrong one for a
+   * frame and then swaps it out underneath them.
+   *
+   * Separate from `restored`, which goes true either way and is about when it
+   * is safe to start writing.
+   */
+  const [hadSaved, setHadSaved] = useState<boolean | null>(null);
 
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(storageKey);
+      // Both of these are the whole point of the effect: reading an external
+      // store after mounting is exactly the case the rule's own note calls
+      // "subscribe for updates from some external system".
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setHadSaved(saved !== null);
       if (saved) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setValue((v) => restore(saved, v));
       }
     } catch {
       // A stored value that will not read or parse is one nobody can use —
-      // start from `initial` instead, same as a first-ever visit.
+      // start from `initial` instead, same as a first-ever visit. Which is
+      // also what `hadSaved` should say: a store that throws has nothing
+      // usable in it.
+      setHadSaved(false);
     }
     setRestored(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
     // `restore` is deliberately not a dependency: it is a fresh closure on
     // every render of the caller, and this must run exactly once per
     // `storageKey` — the same contract the inline version it replaced had.
@@ -68,5 +90,5 @@ export function usePersistedState<T>(
     }
   }, [storageKey, value, restored]);
 
-  return [value, setValue];
+  return [value, setValue, hadSaved];
 }

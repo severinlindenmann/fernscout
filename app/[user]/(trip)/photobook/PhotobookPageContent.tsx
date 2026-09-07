@@ -15,6 +15,7 @@ import {
 import type { PhotobookOutcome, PhotobookOutcomeState } from "@/lib/photobook/orders";
 import type { MediaTile, PhotobookEntry } from "@/lib/types";
 import BookLevelView, { type PreviewState } from "./BookLevelView";
+import FirstBookFlow from "./FirstBookFlow";
 import DayLevelView, { type Drill } from "./DayLevelView";
 import { extractSpreads } from "./previewSlice";
 import { usePersistedState } from "./usePersistedState";
@@ -134,7 +135,7 @@ export default function PhotobookPageContent({
    * that file's own comment and `test/photobook-persistence.test.tsx`.
    */
   const storageKey = `fernscout:photobook:${tripRef}`;
-  const [options, setOptions] = usePersistedState<BookOptions>(
+  const [options, setOptions, hadSaved] = usePersistedState<BookOptions>(
     storageKey,
     initialBookOptions(locales[0] ?? DEFAULT_OPTIONS.locale, hasCosts, hasWeather),
     (saved, current) => {
@@ -147,6 +148,30 @@ export default function PhotobookPageContent({
     },
   );
   const [preview, setPreview] = useState<PreviewState>(null);
+
+  /**
+   * The first book, asked as five questions rather than shown as a settings
+   * panel — B704.
+   *
+   * "First" is `hadSaved === false`: nothing under this trip's storage key
+   * means nobody has arranged this book. `null` is the honest third answer —
+   * the effect that looks has not run yet — and the body waits for it rather
+   * than rendering the composer for a frame and then replacing it with a
+   * flow, or the other way round for somebody coming back.
+   *
+   * `flowOpen` is what anybody has *said* since — `false` from finishing or
+   * skipping, `true` from the settings panel's "start from the questions
+   * again", which is the only way back in once a book has been arranged.
+   * `null` means nobody has said anything and the arrangement decides. It is
+   * deliberately not persisted: it is about this visit, and once an
+   * arrangement exists the flow never opens by itself again.
+   *
+   * Never over an outcome: somebody redirected back from paying has a book
+   * already and is here to read the result.
+   */
+  const [flowOpen, setFlowOpen] = useState<boolean | null>(null);
+  const waiting = hadSaved === null && flowOpen === null;
+  const showFlow = !waiting && !outcome && (flowOpen ?? hadSaved === false);
   const [submitting, setSubmitting] = useState(false);
 
   // The double-press guard for the Pay button lives on the server
@@ -574,6 +599,26 @@ export default function PhotobookPageContent({
               </div>
             )}
 
+            {/* Nothing at all until `localStorage` has been read — B704. The
+                server renders this branch too and cannot know whether this
+                book has been arranged, so anything rendered here is rendered
+                for one frame and then replaced by the other thing. A blank
+                the height of what is coming is the honest wait. */}
+            {waiting ? (
+              <div className="min-h-[50vh]" aria-hidden />
+            ) : showFlow ? (
+              <FirstBookFlow
+                options={options}
+                setOptions={setOptions}
+                media={media}
+                hasCosts={hasCosts}
+                hasWeather={hasWeather}
+                preview={preview}
+                onDone={() => setFlowOpen(false)}
+                t={t}
+              />
+            ) : (
+              <>
             <BookLevelView
               hidden={drill !== null}
               options={options}
@@ -583,6 +628,7 @@ export default function PhotobookPageContent({
               locales={locales}
               resetBook={resetBook}
               canReset={canReset}
+              startOver={() => setFlowOpen(true)}
               preview={preview}
               submitting={submitting}
               setSubmitting={setSubmitting}
@@ -656,10 +702,13 @@ export default function PhotobookPageContent({
                 locales={locales}
                 resetBook={resetBook}
                 canReset={canReset}
+                startOver={() => setFlowOpen(true)}
                 sliceHtml={sliceHtml}
                 ratio={preview?.ratio ?? 2}
                 t={t}
               />
+            )}
+              </>
             )}
           </>
         )}

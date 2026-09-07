@@ -47,6 +47,7 @@ export default function BookSettingsPanel({
   locales,
   resetBook,
   canReset,
+  startOver,
   t,
 }: {
   options: BookOptions;
@@ -55,6 +56,9 @@ export default function BookSettingsPanel({
   locales: string[];
   resetBook: () => void;
   canReset: boolean;
+  /** Reopen the first-book questions — B704. The flow opens by itself only
+   * when nothing has been arranged, so this is the only way back into it. */
+  startOver: () => void;
   t: (key: TranslationKey, vars?: Record<string, string>) => string;
 }) {
   /** The cover picker's own disclosure — a book-level control with nothing to
@@ -227,6 +231,14 @@ export default function BookSettingsPanel({
       {/* Disabled rather than hidden when there is nothing to lose: a control
           that vanishes the moment it would do nothing is harder to find the
           one time it matters. */}
+      <button
+        type="button"
+        onClick={startOver}
+        className="block text-xs font-semibold text-navy-600 underline"
+      >
+        {t("photobook.first.again")}
+      </button>
+
       <button
         type="button"
         onClick={resetBook}
