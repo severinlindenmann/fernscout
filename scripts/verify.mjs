@@ -26,7 +26,7 @@
 // `app/foo/page.tsx` does. When in doubt, leave it off — a build is seventy
 // seconds and a wrong answer from `tsc` costs longer than that to understand.
 
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -64,11 +64,51 @@ if (quick && !fs.existsSync(path.join(process.cwd(), ".next", "types"))) {
   process.exit(1);
 }
 
+/**
+ * Runs a step, echoing its output live (as `stdio: "inherit"` did) while also
+ * keeping a copy of every line. On failure, `--- FAIL` output — the part that
+ * actually names a broken test — has usually scrolled past a long run by the
+ * time it stops; this is what lets us print it again, once, right where it is
+ * read. B713: `npm run verify` used to end in only a count and this banner,
+ * which turned a one-minute diagnosis into three full suite re-runs.
+ */
+function runCapturing(command, args) {
+  return new Promise((resolve) => {
+    const lines = [];
+    let carry = "";
+    const onChunk = (stream) => (chunk) => {
+      stream.write(chunk);
+      carry += chunk.toString("utf8");
+      const parts = carry.split("\n");
+      carry = parts.pop();
+      lines.push(...parts);
+    };
+    const child = spawn(command, args, {
+      stdio: ["inherit", "pipe", "pipe"],
+      shell: process.platform === "win32",
+    });
+    child.stdout.on("data", onChunk(process.stdout));
+    child.stderr.on("data", onChunk(process.stderr));
+    child.on("close", (status) => {
+      if (carry) lines.push(carry);
+      resolve({ status, lines });
+    });
+  });
+}
+
 const started = Date.now();
 for (const [name, [command, args], what] of steps) {
   console.log(`\n─── ${name}: ${command} ${args.join(" ")}\n`);
-  const { status } = spawnSync(command, args, { stdio: "inherit", shell: process.platform === "win32" });
+  const { status, lines } = await runCapturing(command, args);
   if (status !== 0) {
+    if (name === "tests") {
+      const failing = lines.filter((l) => /(FAIL|✗|✕)/.test(l));
+      console.error(
+        failing.length
+          ? `\n─── failing tests, reprinted so they don't have to be scrolled back to:\n\n${failing.join("\n")}\n`
+          : "\n─── vitest failed but printed nothing matching FAIL/✗/✕ — read the output above.\n",
+      );
+    }
     console.error(
       `\n─── ${name} failed. Stopping here — ${what} is what to read, and the steps` +
         `\n    after it would only tell you again that this tree is not ready.\n`,

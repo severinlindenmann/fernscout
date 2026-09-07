@@ -39,7 +39,11 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 
 const ROOT = path.join(import.meta.dirname, "..");
-const USER = path.join(ROOT, "content", "example");
+// B541: a test regenerates into a scratch directory and diffs it against
+// content/example rather than overwriting the committed journal, so `--out`
+// exists for that — nothing else should need it.
+const OUT_ARG = process.argv.find((a) => a.startsWith("--out="));
+const USER = OUT_ARG ? path.resolve(OUT_ARG.slice("--out=".length)) : path.join(ROOT, "content", "example");
 const WITH_MEDIA = process.argv.includes("--media");
 const FORCE = process.argv.includes("--force");
 
@@ -88,6 +92,16 @@ const TRIPS = [
     cover: "/media/alps-2024/grimsel-and-rain/01.jpg",
     visibility: "public",
     costsVisibility: "public",
+    travellers: [
+      {
+        skin: "light-medium",
+        hair: "brown",
+        hairStyle: "short",
+        shirt: "rust",
+        pants: "slate",
+        accessories: ["beanie", "stick"],
+      },
+    ],
     intro:
       "Four days, one borrowed car, and a loop over three passes. Short enough that we never unpacked properly, long enough that we stopped talking about work.",
     translations: {
@@ -257,6 +271,13 @@ const TRIPS = [
     ],
     visibility: "public",
     costsVisibility: "public",
+    travellers: [
+      { skin: "light-medium", hair: "brown", hairStyle: "short", shirt: "sky", pants: "slate", accessories: ["glasses"] },
+      { skin: "medium-deep", hair: "black", hairStyle: "braids", shirt: "coral", outfit: "skirt", pants: "plum" },
+      { skin: "light", hair: "blond", hairStyle: "bun", shirt: "teal", pants: "slate", pack: "none", accessories: ["camera"] },
+      { skin: "deep", hair: "black", hairStyle: "coils", shirt: "yellow", outfit: "dress", pack: "none", accessories: ["sunglasses"] },
+      { skin: "medium", hair: "black", hairStyle: "headscarf", headscarf: "cream", shirt: "sand", outfit: "robe", pack: "none" },
+    ],
     intro:
       "Five months from Bangkok to Hanoi, overland the whole way. We had a rough plan for the first fortnight and made the rest up on station platforms.",
     translations: {
@@ -295,6 +316,7 @@ const TRIPS = [
         code: "TH",
         lat: 13.7563,
         lng: 100.5018,
+        transport: { mode: "flight", from: "Zurich", to: "Bangkok" },
         photos: 4,
         tags: ["thailand", "cities", "food"],
         costs: [
@@ -411,7 +433,7 @@ const TRIPS = [
         code: "VN",
         lat: 21.0278,
         lng: 105.8342,
-        transport: { mode: "train", from: "Hoi An", to: "Hanoi" },
+        transport: { mode: "train", from: "Da Nang", to: "Hanoi" },
         photos: 3,
         tags: ["vietnam", "trains", "cities"],
         costs: [
@@ -439,6 +461,14 @@ const TRIPS = [
     ],
     visibility: "public",
     costsVisibility: "public",
+    // `for:` ties a figure to one of `people:` above — the other two on the
+    // trip get one each, and the third rider (no `people:` row of their own)
+    // is drawn without one, same as any unnamed traveller.
+    travellers: [
+      { for: "agent@fernscout.ch", skin: "light-medium", hair: "brown", hairStyle: "short", shirt: "sky", accessories: ["glasses"] },
+      { for: "priya@example.com", skin: "medium-deep", hair: "black", hairStyle: "braids", shirt: "coral", outfit: "shorts", pants: "sand" },
+      { age: "elder", skin: "light", hair: "grey", hairStyle: "short", shirt: "teal", pants: "slate", pack: "none", accessories: ["hat"] },
+    ],
     intro:
       "Six months and a second-hand pickup, starting in Denver and going wherever the forest roads do. Still out there — this one is being written as it happens.",
     translations: {
@@ -594,6 +624,12 @@ const TRIPS = [
     cover: "/media/parks-2025/bryce-at-six/01.jpg",
     visibility: "public",
     costsVisibility: "public",
+    travellers: [
+      { skin: "light-medium", hair: "brown", hairStyle: "short", shirt: "sky", pants: "slate", accessories: ["cap"] },
+      { skin: "medium-deep", hair: "black", hairStyle: "bun", shirt: "green", outfit: "shorts", pants: "sand" },
+      { age: "child", skin: "medium", hair: "black", hairStyle: "coils", shirt: "yellow", outfit: "shorts", pants: "slate", pack: "none" },
+      { age: "child", skin: "light-medium", hair: "auburn", hairStyle: "curly", shirt: "plum", outfit: "dress", pack: "none" },
+    ],
     intro:
       "A rental sedan, a cooler, and a national parks pass that paid for itself by the fourth gate. Las Vegas to Denver by way of Utah, Colorado and the Dakotas — eighteen nights, and never twice in the same bed.",
     translations: {
@@ -1130,13 +1166,6 @@ function writeEntry(trip, day) {
     `lat: ${day.lat}`,
     `lng: ${day.lng}`,
   );
-  if (day.transport) {
-    lines.push(
-      `transportMode: ${quote(day.transport.mode)}`,
-      `transportFrom: ${quote(day.transport.from)}`,
-      `transportTo: ${quote(day.transport.to)}`,
-    );
-  }
   // B325. `weather: true` is a request, not a value — this script writes no
   // measurement of its own, because it has none and inventing one is the
   // thing the whole feature exists to avoid. `npm run weather:update` fills
@@ -1150,7 +1179,18 @@ function writeEntry(trip, day) {
   // content was written before there was anything to check it against, and a
   // day captioned "in the rain" beside a measurement saying snow teaches the
   // reader that one of the two is lying.
+  //
+  // B541: this has to come before `transport` — every committed entry has
+  // `weather` first, and a field order the generator disagrees with is a
+  // field order it reports as drift on every single day.
   if (day.weather !== false) lines.push("weather: true");
+  if (day.transport) {
+    lines.push(
+      `transportMode: ${quote(day.transport.mode)}`,
+      `transportFrom: ${quote(day.transport.from)}`,
+      `transportTo: ${quote(day.transport.to)}`,
+    );
+  }
   // The other half of the field: a reading a person took, which is the only
   // kind a caller may supply and must always name its source. Exercised on
   // exactly one demo day so the shape is in the content somewhere.
@@ -1221,6 +1261,27 @@ function writeTrip(trip) {
   // a line that says what would have happened anyway is a line to keep in step.
   if (trip.listed === false) head.push("listed: false");
   head.push(`costsVisibility: ${trip.costsVisibility}`);
+  // Named where somebody is on the trip's own `people:`, unnamed (`for`
+  // absent) otherwise — B541. Field order matches `lib/tripWrite.ts`'s
+  // `FIGURE_FIELDS`, which is also the order every hand-written figure in
+  // this demo already happens to use.
+  if (trip.travellers?.length) {
+    head.push("travellers:");
+    for (const figure of trip.travellers) {
+      const lines = [];
+      if (figure.for) lines.push(`for: ${quote(figure.for)}`);
+      if (figure.age) lines.push(`age: ${figure.age}`);
+      lines.push(`skin: ${figure.skin}`, `hair: ${figure.hair}`, `hairStyle: ${figure.hairStyle}`);
+      if (figure.headscarf) lines.push(`headscarf: ${figure.headscarf}`);
+      lines.push(`shirt: ${figure.shirt}`);
+      if (figure.outfit) lines.push(`outfit: ${figure.outfit}`);
+      if (figure.pants) lines.push(`pants: ${figure.pants}`);
+      if (figure.pack) lines.push(`pack: ${figure.pack}`);
+      if (figure.accessories?.length) lines.push(`accessories: [${figure.accessories.join(", ")}]`);
+      head.push(`  - ${lines[0]}`);
+      for (const line of lines.slice(1)) head.push(`    ${line}`);
+    }
+  }
   if (trip.rates) {
     head.push("rates:");
     for (const [code, rate] of Object.entries(trip.rates)) head.push(`  ${code}: ${rate}`);

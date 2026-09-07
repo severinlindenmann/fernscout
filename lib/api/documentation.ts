@@ -992,6 +992,27 @@ as \`Authorization: Bearer <token>\`. Do not put it in a URL, do not store it in
 a file the author did not ask for, and tell them if you no longer need it — they
 can revoke it.
 
+## A web helper exists too, and it is not part of this contract
+
+If you see \`/api/helper/<user>/...\` mentioned anywhere — a screenshot, a log,
+somebody's description of the site — that is not a door you can use. Since
+B682/B684 this instance also carries a guided web wizard at \`/agent\` for a
+person with no agent of their own: it drives the same \`lib/api/*\` functions
+this document describes, but through its own routes, under its own rules.
+
+Those routes are **cookie-only, owner-only, and outside this document on
+purpose**. Every one of them resolves the caller from a signed-in browser
+session and nothing else — an \`Authorization: Bearer\` header is not merely
+checked and refused, the code never reads it — so a token issued to you here
+cannot drive them, and there is nothing you are missing by not being able to.
+Whatever the wizard can do, some call above already does, because the wizard
+has no privilege beyond what \`/api/v1\` grants an owner's own token: drafting a
+day, attaching photographs, and publishing, each through the identical
+functions \`POST .../days\`, \`.../media\` and \`.../publish\` reach. They are not
+in \`/openapi.json\` for the same reason: a route only a signed-in browser can
+ever call is not part of the API contract, and listing it would suggest a
+credential you could present to reach it.
+
 ## Reading
 
 You do not need a token to read anything public.

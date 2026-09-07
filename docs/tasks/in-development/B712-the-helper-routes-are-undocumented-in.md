@@ -44,3 +44,39 @@ true.
 
 `/agent.md` explains the helper routes and why they are not in the OpenAPI
 document. A test asserts a bearer token is refused there.
+
+## Done
+
+Added a new `## A web helper exists too, and it is not part of this contract`
+section to `agentGuide()` in `lib/api/documentation.ts` (renders into
+`/agent.md`), right after "Authenticating" and before "Reading" — the natural
+spot, since it's the section that already establishes how a bearer token is
+obtained and used. It says: `/api/helper/<user>/...` exists, is cookie-only,
+owner-only, and outside `/openapi.json` on purpose; that an `Authorization`
+header is never read there at all (not merely insufficient); and that
+whatever the wizard does, a documented `/api/v1` call already does the same
+thing through the same underlying functions.
+
+Test coverage, two files:
+
+- `test/agent-interface.test.ts` — one new test asserting `agentGuide()`
+  mentions `/api/helper/`, "cookie-only", and that it's outside the contract.
+- `test/helper-routes-bearer-refused.test.ts` (new) — the "assert a bearer
+  token is refused" half. Issues a *real* agent token (via `issueCode`/
+  `verifyCode`, same as `test/helper-write-day.test.ts`) for the journal's
+  actual owner, mocks `next/headers`'s `cookies()` to an empty jar (so
+  `resolveAccess` runs unmocked and genuinely has no cookie to find — not a
+  stubbed "always refuse"), and calls every exported handler across all five
+  route files (`consent` POST/DELETE, `day` GET/POST/PATCH, `day/publish`
+  POST, `day/media` GET/POST, `day/write-day` POST) with `Authorization:
+  Bearer <token>` and no cookie. All ten asserts get `404 not_your_journal`.
+  9/9 tests (5 test cases) pass.
+
+Did not touch `test/api-route-schemas.test.ts` as the ticket's "consider"
+suggested — that file only walks `app/api/v1/`, and adding helper coverage
+there would have meant either broadening its scope (a bigger, unrelated
+change) or duplicating what `helper-routes-bearer-refused.test.ts` already
+proves more directly by calling the real handlers. The new test file is the
+more precise check: it doesn't just assert the routes don't read a header, it
+proves a *real, validly-issued* token for the *actual owner* still gets
+refused.
