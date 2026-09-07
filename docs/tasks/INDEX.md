@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (132)
+## backlog (130)
 
 ### security (2)
 
@@ -58,16 +58,13 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 
-### issue (38)
+### issue (36)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B766](backlog/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low |
 | [B829](backlog/issue/B829-rewording-a-row-did-not-stop.md) | Rewording a row did not stop the wrong one matching | ISSUE | high | low |
 | [B848](backlog/issue/B848-the-traveller-figures-never-appear-on.md) | The traveller figures never appear on a postcard: cqh does not resolve against an inline-size container | ISSUE | high | low |
-| [B855](backlog/issue/B855-choosing-a-second-language-commits-you.md) | Choosing a second language commits you to writing everything twice and the API never says so | ISSUE | high | low |
-| [B857](backlog/issue/B857-every-mail-this-server-sends-is.md) | Every mail this server sends is English whatever language the reader chose | ISSUE | high | medium |
-| [B869](backlog/issue/B869-a-photograph-from-an-iphone-is.md) | A photograph from an iPhone is replaced by a wrong picture and called a success | ISSUE | high | medium |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
@@ -84,6 +81,7 @@ Do not edit them by hand; run the script.
 | [B883](backlog/issue/B883-recordprint-has-no-callers-so-npm.md) | recordPrint has no callers, so npm run verify is red on main | ISSUE | medium | low |
 | [B886](backlog/issue/B886-the-trip-chip-shows-a-title.md) | The trip chip shows a title long enough to truncate, which says less than a fixed label would | ISSUE | medium | low |
 | [B887](backlog/issue/B887-every-row-of-the-access-list.md) | Every row of the access list repeats a sentence where a tag would do | ISSUE | medium | low |
+| [B894](backlog/issue/B894-the-buy-credits-line-promises-a.md) | The buy-credits line promises a mail with a price, which is not what the button does | ISSUE | medium | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B750](backlog/issue/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low |
@@ -232,11 +230,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (7)
+## in-development (10)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B855](in-development/B855-choosing-a-second-language-commits-you.md) | Choosing a second language commits you to writing everything twice and the API never says so | ISSUE | high | low | `fdfcf5f2` |
+| [B857](in-development/B857-every-mail-this-server-sends-is.md) | Every mail this server sends is English whatever language the reader chose | ISSUE | high | medium | `fdfcf5f2` |
 | [B865](in-development/B865-a-photobook-can-be-built-but.md) | A photobook can be built but never printed | FEATURE | high | high | `ce87fdc2` |
+| [B869](in-development/B869-a-photograph-from-an-iphone-is.md) | A photograph from an iPhone is replaced by a wrong picture and called a success | ISSUE | high | medium | `fdfcf5f2` |
 | [B885](in-development/B885-a-hardcover-case-is-rendered-as.md) | A hardcover case is rendered as though it were a softcover | FEATURE | high | medium | `ce87fdc2` |
 | [B888](in-development/B888-the-box-points-at-buttons-that.md) | The box points at buttons that are not on the screen | ISSUE | high | low | `fdfcf5f2` |
 | [B889](in-development/B889-the-helper-answers-only-what-somebody.md) | The helper answers only what somebody wrote a row for | FEATURE | high | high | `fdfcf5f2` |

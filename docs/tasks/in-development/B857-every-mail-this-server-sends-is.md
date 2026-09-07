@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: mail, i18n
 found: "2026-09-07T17:11:05Z"
+started: "2026-09-07T18:41:35Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T18:41:35Z"
 ---
 
 # B857 — Every mail this server sends is English whatever language the reader chose
