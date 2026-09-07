@@ -140,6 +140,28 @@ let tools: boolean | null = null;
  * silently skipped every `describe.runIf(videoToolsAvailable())` and blew a
  * five-second budget on ten seconds of detection.
  */
+/**
+ * The answer already known, and never a spawn — B695.
+ *
+ * `videoToolsAvailable()` may spawn two processes and hold its caller for as
+ * long as ten seconds, and it deliberately does not cache an inconclusive
+ * check, so on a loaded machine it spawns *again* next time. That is right for
+ * an upload, which is about to spend far longer transcoding, and wrong for a
+ * public unauthenticated GET: `/api/health` and `/agent.md` are read by
+ * anybody, and a cheap request that turns into process spawns is an amplifier
+ * pointed at the machine — worst exactly when the machine is already loaded,
+ * which is the condition that makes the check inconclusive in the first place.
+ *
+ * So a reader that must not spawn asks this instead. `null` means nobody has
+ * concluded anything yet, which a caller has to have an answer for that is not
+ * a guess. In practice it is rare: `register()` warms this at boot, and the
+ * case that matters — a binary that is simply not installed — answers ENOENT
+ * immediately rather than timing out.
+ */
+export function videoToolsKnown(): boolean | null {
+  return tools;
+}
+
 export function videoToolsAvailable(): boolean {
   if (tools !== null) return tools;
   const ffmpeg = has("ffmpeg");
