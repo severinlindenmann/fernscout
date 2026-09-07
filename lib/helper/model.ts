@@ -1,5 +1,11 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
+import {
+  DATE_FORMATS,
+  type ColumnMapping,
+  type DateFormat,
+  type Table,
+} from "@/importers/costs/mapping";
 import { recordUsage, type Operation } from "../usage";
 import { intentList, REGISTRY } from "./intents";
 
@@ -361,4 +367,144 @@ export async function routeAsk(said: string, today: string, owner?: string): Pro
   } catch {
     return { intent: UNKNOWN_INTENT, slots: {}, confidence: 0 };
   }
+}
+
+/* -------------------------------------------------------------------------
+ * A statement's columns — B689, and §2 of the plan's third model job.
+ *
+ * **The cheap pattern, and the only one this file will ever use for a file.**
+ * A statement is two thousand rows of somebody's financial life. What goes to
+ * the model is the header row and five sample rows; what comes back is a
+ * *mapping* — which column is the date, which the amount, which the currency,
+ * which the description — and `importers/costs/mapping.ts` applies it to every
+ * row here. One request for the whole file, whatever its length, and the rows
+ * nobody sampled never leave the machine at all.
+ *
+ * It is one credit for the same reason it is one request: the price is the
+ * call, not the file, so a longer statement does not cost more.
+ * ---------------------------------------------------------------------- */
+
+/** What reading a statement's columns costs. One call, one credit, whatever
+ *  the file's length — the button says so before the tap. */
+export const STATEMENT_CREDITS = 1;
+
+/**
+ * The mapping prompt. Like the two above it, **this is the product.**
+ *
+ * The rule it carries is narrower than the day-writing one and is the same
+ * rule underneath: this model is not being asked what anything *was*. It reads
+ * column headings and says which is which. It never categorises a payment,
+ * never says what a merchant is, and never reports a number — an amount it
+ * repeated back would be an amount somebody might trust without checking, and
+ * the point of the mapping is that the arithmetic happens here.
+ */
+export const STATEMENT_SYSTEM_PROMPT = `You are looking at the top of a bank statement somebody exported as a CSV. You are given its header row and the first few rows underneath it, and nothing else — not the rest of the file, and not what any of it was for.
+
+Your only job is to say which column is which, so that this software can read the whole file itself.
+
+Return, using the exact header text as it is written in the file:
+- date: the column holding the day the payment happened. If there are two date columns, choose the one the payment was made on rather than a value or booking date.
+- amount: the column holding the money. If money in and money out are two separate columns, choose the one holding money going out.
+- description: the column holding what the merchant called itself.
+- currency: the header of the currency column, if there is one. Leave it empty if there is not.
+- fixedCurrency: the ISO-4217 code every row is in, if the file has no currency column and you can tell from the sample which one it is. Leave it empty if you cannot. Never guess a currency from a country, a language or a merchant's name.
+- account: the header of the column naming the account or card, if there is one. Leave it empty if there is not.
+- dateFormat: which of the listed shapes the date column is written in. This is the field you must be most careful about: 03/04/2026 is two different days, and the sample rows are the only evidence you have. If a day number above 12 appears in the first position, the format is day-first; in the second position, month-first. If the sample cannot settle it, say so in notes.
+- decimalComma: true when the amounts are written 1.234,56 rather than 1,234.56.
+- outgoingPositive: true when money going out is written as a positive number in this file, so that its sign has to be flipped. Most statements write it negative; look at the sample rather than assuming.
+
+Never return a column name you cannot see in the header row — this software will refuse a name that is not there, and a refusal is better than reading the wrong column.
+
+Never categorise anything, never say what a payment was for, and never repeat an amount back. You are naming columns.
+
+Use notes for anything the person should check before this is applied to the rest of their file: an ambiguous date, two candidate amount columns, a currency you could not determine. One short sentence each, and an empty list when there is nothing to say.`;
+
+const STATEMENT_SCHEMA = {
+  type: "object",
+  properties: {
+    date: { type: "string" },
+    amount: { type: "string" },
+    description: { type: "string" },
+    currency: { type: "string" },
+    fixedCurrency: { type: "string" },
+    account: { type: "string" },
+    dateFormat: { type: "string", enum: [...DATE_FORMATS] },
+    decimalComma: { type: "boolean" },
+    outgoingPositive: { type: "boolean" },
+    notes: { type: "array", items: { type: "string" } },
+  },
+  required: ["date", "amount", "description", "dateFormat", "notes"],
+  additionalProperties: false,
+} as const;
+
+export type MappedColumns = { mapping: ColumnMapping; notes: string[] };
+
+/**
+ * The user message, built from the header row and the sample rows and nothing
+ * else.
+ *
+ * Exported for the same reason `buildPrompt` is, and here it matters more:
+ * what a model returns is not checkable, but *what it was given* is, and the
+ * promise this feature makes is about how little that is. The assertion that
+ * row six of a statement never appears in this string is a test
+ * (`test/helper-statement.test.ts`), not a paragraph.
+ */
+export function buildStatementPrompt(sample: Table): string {
+  const row = (cells: string[]) => cells.map((cell) => cell.replace(/\s+/g, " ").trim()).join(" | ");
+  return [
+    "The header row:",
+    row(sample.header),
+    "",
+    `The first ${sample.rows.length} rows underneath it:`,
+    ...sample.rows.map(row),
+    "",
+    `The date formats you may choose from: ${DATE_FORMATS.join(", ")}.`,
+  ].join("\n");
+}
+
+function optional(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
+}
+
+/**
+ * One request, one mapping.
+ *
+ * Throws on anything that goes wrong, the same contract as `writeDay`: the
+ * caller has spent a credit by the time this runs and refunds on a throw. What
+ * comes back is *not* trusted — `checkMapping` runs against the real header
+ * before a row is read, and a person confirms it before a cost is written.
+ */
+export async function mapStatementColumns(sample: Table, owner?: string): Promise<MappedColumns> {
+  const client = new Anthropic();
+  const response = await client.messages.create({
+    model: HELPER_MODEL,
+    max_tokens: 600,
+    system: STATEMENT_SYSTEM_PROMPT,
+    messages: [{ role: "user", content: buildStatementPrompt(sample) }],
+    output_config: { format: { type: "json_schema", schema: STATEMENT_SCHEMA } },
+  });
+  await book(owner, "map_statement", response.usage);
+
+  const text = response.content
+    .map((block) => (block.type === "text" ? block.text : ""))
+    .join("")
+    .trim();
+  const parsed = JSON.parse(text) as Record<string, unknown>;
+  const dateFormat = (DATE_FORMATS as readonly string[]).includes(parsed.dateFormat as string)
+    ? (parsed.dateFormat as DateFormat)
+    : "YYYY-MM-DD";
+  return {
+    mapping: {
+      date: optional(parsed.date) ?? "",
+      amount: optional(parsed.amount) ?? "",
+      description: optional(parsed.description) ?? "",
+      currency: optional(parsed.currency),
+      fixedCurrency: optional(parsed.fixedCurrency)?.toUpperCase(),
+      account: optional(parsed.account),
+      dateFormat,
+      decimalComma: parsed.decimalComma === true,
+      outgoingPositive: parsed.outgoingPositive === true,
+    },
+    notes: strings(parsed.notes),
+  };
 }

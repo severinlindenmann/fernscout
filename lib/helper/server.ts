@@ -1,10 +1,14 @@
 import "server-only";
+import fs from "node:fs";
+import { COSTS_IMPORTERS } from "@/importers/costs";
+import { GPS_IMPORTERS } from "@/importers/gps";
 import { isAdminEmail } from "../admin";
 import { resolveAccess } from "../auth/handshake";
 import { costForDay, costLocalForDay } from "../costs";
 import { AS_AUTHOR, getAllEntries, getDays } from "../entries";
 import { getTrips, tripRef } from "../trips";
 import type { Day, DaySummary } from "../types";
+import { findInboxFile, listInbox, type InboxEntry } from "../inbox";
 import { getUser } from "../users";
 import { isWritten, type WizardDraft } from "./draft";
 
@@ -121,4 +125,71 @@ export function previewOf(
       costLocal: costLocalForDay(ref, day.entries),
     },
   };
+}
+
+/* -------------------------------------------------------------------------
+ * What is sitting in the inbox, and what each file could become — B689.
+ *
+ * `lib/inbox.ts` has held files that belong to no day since B663, and since
+ * B683 the helper's own upload step parks anything that is not a photograph
+ * there rather than refusing it. Nothing read them. This is the screen that
+ * does, and the *guess* below is the whole of it — deterministic, from the
+ * file's own first bytes, through the importers that already exist. No model
+ * is asked what a file is; a model only ever reads a header row, and only for
+ * a statement nothing here recognises.
+ * ---------------------------------------------------------------------- */
+
+/** What the inbox screen can offer to do with one file. */
+type InboxOffer =
+  /** A location history one of `importers/gps/` recognises. Read by code. */
+  | { kind: "gps"; format: string; label: string }
+  /** A bank statement one of `importers/costs/` recognises. Also code. */
+  | { kind: "statement"; format: string; label: string }
+  /** A CSV nothing recognises: the one case that asks a model for a mapping. */
+  | { kind: "statement" }
+  /** Something nothing here reads. Offered nothing, and kept anyway. */
+  | { kind: "unknown" };
+
+export type InboxItem = { entry: InboxEntry; offer: InboxOffer };
+
+/** The same 64 kB every importer's `detect` is promised. */
+const HEAD_BYTES = 64 * 1024;
+
+function headOf(file: string): string {
+  const handle = fs.openSync(file, "r");
+  try {
+    const buffer = Buffer.alloc(HEAD_BYTES);
+    const read = fs.readSync(handle, buffer, 0, HEAD_BYTES, 0);
+    return buffer.subarray(0, read).toString("utf8");
+  } finally {
+    fs.closeSync(handle);
+  }
+}
+
+/**
+ * Everything in `inbox/files/`, newest first, each with what it could become.
+ *
+ * Photographs are not here: they already have a door (the wizard's own upload
+ * step), and listing two hundred of them would bury the one statement.
+ */
+export function inboxForWizard(username: string): InboxItem[] {
+  return listInbox(username).files.map((entry) => {
+    const found = findInboxFile(username, entry.id);
+    let head = "";
+    try {
+      if (found) head = headOf(found.file);
+    } catch {
+      // Unreadable is offered nothing rather than crashing the screen.
+    }
+    return { entry, offer: offerFor(head, entry.filename) };
+  });
+}
+
+function offerFor(head: string, filename: string): InboxOffer {
+  const gps = GPS_IMPORTERS.find((importer) => importer.detect(head, filename));
+  if (gps) return { kind: "gps", format: gps.id, label: gps.label };
+  const costs = COSTS_IMPORTERS.find((importer) => importer.detect(head, filename));
+  if (costs) return { kind: "statement", format: costs.id, label: costs.label };
+  if (/\.csv$/i.test(filename)) return { kind: "statement" };
+  return { kind: "unknown" };
 }

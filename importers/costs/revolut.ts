@@ -1,4 +1,5 @@
 import { isSanePayment, type CostsImporter, type Payment } from "./schema";
+import { splitCsv } from "./mapping";
 
 /**
  * A Revolut consolidated statement, as the app exports it.
@@ -46,22 +47,6 @@ function isoDate(cell: string): string | null {
   const month = MONTHS.indexOf(m[1]) + 1;
   if (!month) return null;
   return `${m[3]}-${String(month).padStart(2, "0")}-${m[2].padStart(2, "0")}`;
-}
-
-/** Fields may be quoted and contain commas. */
-function splitCsv(line: string): string[] {
-  const out: string[] = [];
-  let current = "";
-  let quoted = false;
-  for (const character of line) {
-    if (character === '"') quoted = !quoted;
-    else if (character === "," && !quoted) {
-      out.push(current);
-      current = "";
-    } else current += character;
-  }
-  out.push(current.replace(/\r$/, ""));
-  return out;
 }
 
 /**

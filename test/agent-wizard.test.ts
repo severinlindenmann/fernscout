@@ -67,15 +67,18 @@ describe("the helper routes", () => {
     .filter((file) => file.endsWith("route.ts"))
     .map((file) => fs.readFileSync(path.join(dir, file), "utf8"));
 
-  // Nine since B686 added `transcribe` beside B687's describe-photos, B685's
-  // intent router and the trip its one write intent lands on. The count is
+  // Thirteen since B689 added the four the inbox screen needs: reading a
+  // location export, reading a statement's columns, applying the mapping, and
+  // taking a file back out again. Before that, nine — B686's `transcribe`
+  // beside B687's describe-photos, B685's intent router and the trip its one
+  // write intent lands on. The count is
   // spelled out rather than
   // inferred so that the next route has to be thought about here, which is
   // where the guard is asserted — and it earned that on the B685/B687 merge,
   // where two branches built in parallel each updated it to a number that was
   // right on its own branch and wrong on main.
-  test("there are nine of them, and each is guarded", () => {
-    expect(sources).toHaveLength(9);
+  test("there are thirteen of them, and each is guarded", () => {
+    expect(sources).toHaveLength(13);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }
