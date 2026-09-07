@@ -48,6 +48,24 @@ export type PhotobookPayload = {
    * that would 404 rather than discovering that the hard way.
    */
   pruned?: true;
+  /**
+   * The printing that follows the build, on the same row. It is a second
+   * step after `printed` rather than a table of its own for the same reason
+   * `provider`/`provider_ref`/`contact_id`/`cost_minor`/`currency` already
+   * exist unused on `print_orders`: one book is at most one print job, and a
+   * reprint is a new build (the PDFs may already be pruned — B483), so there
+   * is never a second row to join against.
+   */
+  print?: {
+    contactId: string;
+    /** What the quote said, in credits, frozen at proposal time. */
+    quotedCredits: number;
+    quotedAt: string;
+    shipmentMethodUid: string;
+    providerRef?: string;
+    /** Set by `markPrintFailed`; the row returns to `printed` alongside it. */
+    failure?: string;
+  };
 };
 
 export type PhotobookOrder = {
@@ -307,4 +325,92 @@ export async function markFailed(
   failure: string,
 ): Promise<boolean> {
   return setStatus(owner, id, "failed", { ...payload, failure });
+}
+
+/**
+ * Take a built book for printing, or say somebody already has.
+ *
+ * Same shape as `claimOrder` and `setStatus`: a single UPDATE gated in its
+ * `WHERE` on the status it is meant to leave (`printed`), scoped to the owner
+ * *and* to `kind = 'photobook'`, with rows-affected read back as the answer.
+ * Never read-then-write — two presses racing to move the same row both see a
+ * healthy `printed` status if this reads first and decides after, and both
+ * would submit to Gelato. The database can only make that decision once.
+ */
+export async function claimForPrint(owner: string, id: string): Promise<boolean> {
+  if (!ORDER_ID_RE.test(id)) return false;
+  const handle = await getDatabaseOrNull();
+  if (!handle) return false;
+  const result = await handle.db
+    .updateTable("print_orders")
+    .set({ status: "print_submitted", updated_at: nowIso() })
+    .where("id", "=", id)
+    .where("owner_id", "=", owner)
+    .where("kind", "=", "photobook")
+    .where("status", "=", "printed")
+    .executeTakeFirst();
+  return Number(result.numUpdatedRows ?? 0) === 1;
+}
+
+/** Records a submitted print: who it is for, what it cost, and Gelato's own id. */
+export async function recordPrint(
+  owner: string,
+  id: string,
+  payload: PhotobookPayload,
+  providerRef: string,
+): Promise<void> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return;
+  await handle.db
+    .updateTable("print_orders")
+    .set({
+      provider: "gelato",
+      provider_ref: providerRef,
+      payload: JSON.stringify(payload),
+      updated_at: nowIso(),
+    })
+    .where("id", "=", id)
+    .where("owner_id", "=", owner)
+    .where("kind", "=", "photobook")
+    .execute();
+}
+
+/**
+ * Returns a print that Gelato refused, or that never reached it, to
+ * `printed` — so a person can try again rather than being stuck on a row
+ * `claimForPrint` will never move again. The credits are refunded by the
+ * caller; this only records why and reopens the row.
+ */
+export async function markPrintFailed(
+  owner: string,
+  id: string,
+  payload: PhotobookPayload,
+  failure: string,
+): Promise<void> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return;
+  await handle.db
+    .updateTable("print_orders")
+    .set({
+      status: "printed",
+      // The caller (Task 5's `printOrder`) always has a `print` block to
+      // extend by the time a submission can fail; the empty defaults only
+      // matter to a caller (or a test) that skips straight to failure.
+      payload: JSON.stringify({
+        ...payload,
+        print: {
+          contactId: "",
+          quotedCredits: 0,
+          quotedAt: "",
+          shipmentMethodUid: "",
+          ...payload.print,
+          failure,
+        },
+      }),
+      updated_at: nowIso(),
+    })
+    .where("id", "=", id)
+    .where("owner_id", "=", owner)
+    .where("kind", "=", "photobook")
+    .execute();
 }
