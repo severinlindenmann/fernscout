@@ -5,6 +5,7 @@ type: ISSUE
 priority: low
 complexity: low
 area: postcards, scripts
+superseded: "fixed by B273 — package.json runs postcard through tsx"
 found: "2026-09-04T08:32:06Z"
 related: B238
 ---
@@ -56,3 +57,7 @@ warnings worth reading.
 ## Acceptance
 
 - `npm run postcard -- --providers` prints its first line first.
+
+## Triage 2026-09-07
+
+Checked against current code during the backlog cleanup: package.json:27 already invokes the postcard script through tsx, so the Node module-type warning this ticket is about no longer prints. B273 landed the change.

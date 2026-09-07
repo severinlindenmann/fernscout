@@ -71,3 +71,7 @@ something to do unasked.
 - A deploy prints a real `last success` timestamp again.
 - The restore drill has been run once, end to end, and what it produced was
   checked rather than assumed.
+
+## Triage 2026-09-07
+
+Checked against current code during the backlog cleanup: Same mechanism as B373 and closed by the same change. The one acceptance line still unmet — a restore drill actually run once — is B21, which is already in testing/ awaiting verification.

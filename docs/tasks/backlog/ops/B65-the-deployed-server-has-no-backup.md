@@ -5,6 +5,7 @@ type: OPS
 priority: high
 complexity: medium
 area: backup, ops, deploy
+superseded: "duplicate of B659, which carries the off-site-copy design"
 found: "2026-09-01"
 ---
 
@@ -132,3 +133,7 @@ needs to answer the two questions in (2) before the runbook can record them.
   backup was, so a silent absence cannot recur.
 - The repository location and the fact that the password is stored off-machine
   are both written down in the runbook.
+
+## Triage 2026-09-07
+
+Checked against current code during the backlog cleanup: B659 is the same problem — the only backup sits on the machine it backs up — and it already has the concrete second-destination design. Keeping one ticket.

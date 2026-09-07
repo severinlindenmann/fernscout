@@ -5,6 +5,7 @@ type: ISSUE
 priority: low
 complexity: low
 area: agent guide
+superseded: "fixed by B612 — the guide now says an unknown caption src is refused"
 found: "2026-09-06T15:20:00Z"
 ---
 
@@ -48,3 +49,7 @@ Being fixed inside B612, which rewrites the end of that same paragraph.
 
 - `/agent.md` says an unknown `src` is refused, not ignored.
 - No comment in `lib/api/` still claims a caption key is ignored.
+
+## Triage 2026-09-07
+
+Checked against current code during the backlog cleanup: lib/api/documentation.ts now states that an unknown caption src is refused, not ignored. B612 landed it and sits in testing/.

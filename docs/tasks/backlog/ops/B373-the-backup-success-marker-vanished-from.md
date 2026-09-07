@@ -80,3 +80,7 @@ directory has few enough entries that the absence is unambiguous.
 - The cause is named in this file, or ruled out with the command that ruled it
   out.
 - Two consecutive deploys minutes apart report the same backup status.
+
+## Triage 2026-09-07
+
+Checked against current code during the backlog cleanup: The flapping mechanism was an unreadable root-owned file turning a run partial so the success marker was never written. scripts/backup.sh no longer copies DATA_DIR wholesale and a stray unreadable file cannot fail the run (scripts/backup.sh:102-105). Nothing left to reproduce.
