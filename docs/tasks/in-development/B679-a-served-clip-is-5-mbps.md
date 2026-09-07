@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: media pipeline
 found: "2026-09-07T09:21:08Z"
+started: "2026-09-07T09:23:00Z"
+session: d7d9b2c7-a675-4d23-9205-0830bbf3e059
+claimed: "2026-09-07T09:23:00Z"
 ---
 
 # B679 — A served clip is 5 Mbps, so a five-minute one costs a reader 190 MB
