@@ -7,8 +7,7 @@ complexity: low
 area: agent, i18n
 found: "2026-09-07T12:46:57Z"
 started: "2026-09-07T12:55:04Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T12:55:04Z"
+completed: "2026-09-07T13:35:44Z"
 ---
 
 # B744 — The speech consent panel names Deepgram even on a dry-run instance

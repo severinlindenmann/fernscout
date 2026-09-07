@@ -7,8 +7,7 @@ complexity: low
 area: agent, i18n
 found: "2026-09-07T12:22:16Z"
 started: "2026-09-07T12:55:03Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T12:55:03Z"
+completed: "2026-09-07T13:35:45Z"
 ---
 
 # B734 — Photo captions are written in English whatever language the journal is in
