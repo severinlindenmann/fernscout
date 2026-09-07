@@ -2732,6 +2732,46 @@ one person who knows them, which makes an invented detail worse rather than
 more forgivable. An order keeps for a week and then expires; make a new one
 rather than asking for the old one to be revived.
 
+## Printing a photobook
+
+A journal with \`photobook\` switched on that has already built a book — from
+the owner's own order page, not from here — can put a printed copy in
+somebody's letterbox the same way a postcard does: **you propose it, you
+never print it.**
+
+Find who it could go to the same way you would for a postcard — a book is
+posted to the same population, so there is no second list:
+
+\`\`\`http
+GET ${site.url}/api/v1/${example}/postcards/recipients
+Authorization: Bearer fs_agent_…
+\`\`\`
+
+Then propose the print, against a book that has already finished building:
+
+\`\`\`http
+POST ${site.url}/api/v1/${example}/photobooks/<id>/print
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"contactId": "<contactId>"}
+\`\`\`
+
+\`\`\`json
+{"url": "${site.url}/${example}/photobooks/…", "quotedCredits": 172, "contactId": "…",
+ "next": "Nothing has been printed or charged. Ask the owner to open the URL and press the button."}
+\`\`\`
+
+**This charges nothing and prints nothing.** On that page the owner sees what
+the book is, what it costs, what they have left — and one button. The button
+is the only thing in this system that sends a book to the printer, and there
+is no API call that does it, for the same reason there is none for a
+postcard: it spends real money and lands in somebody's post. \`GET
+.../photobooks/<id>\` tells you later whether it actually went.
+
+So: **hand over the URL and stop.** Do not say the book has been printed, or
+is being printed. Say a price is waiting and what it will cost.
+
 ## Errors
 
 Every error carries an \`error\` field naming the case. **Read that, not only the

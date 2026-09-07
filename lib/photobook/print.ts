@@ -1,9 +1,9 @@
 import "server-only";
 import { refund, spend } from "../credits";
 import { photobookPrintCredits } from "../credits/pricing";
-import { COUNTRY_CODES } from "../countryCodes";
 import { getUser } from "../users";
 import { serverSite } from "../site";
+import { isoCountry } from "./country";
 import { signFileLink } from "./fileLink";
 import { quoteBook, submitBookPrint } from "./gelato";
 import {
@@ -62,6 +62,34 @@ export type PrintOutcome =
   | { ok: false; reason: PrintFailure };
 
 /**
+ * Every state `app/[user]/photobooks/[id]/print/route.ts`'s redirect can
+ * carry back to the order page, as a `?print=` query — B484's own reasoning,
+ * applied here. `PrintFailure` above is every way `printOrder` can refuse,
+ * plus the two the redirect adds that are not refusals of *it*: `"printed"`
+ * is the one success, and `"forbidden"` is the redirect's own refusal when
+ * the presser is not the owner, before `printOrder` is ever called.
+ *
+ * The order page's own message table is declared as an exact `Record` over
+ * this union rather than `Record<string, …>`, so a state added here without
+ * a matching entry there fails the typecheck instead of rendering a blank
+ * page at somebody who has often just paid.
+ */
+export const PHOTOBOOK_PRINT_OUTCOME_STATES = [
+  "printed",
+  "forbidden",
+  "unknown_order",
+  "not_built",
+  "already_printing",
+  "no_recipient",
+  "no_credits",
+  "stale_quote",
+  "unknown_country",
+  "provider_unavailable",
+  "refused",
+] as const;
+export type PrintOutcomeState = (typeof PHOTOBOOK_PRINT_OUTCOME_STATES)[number];
+
+/**
  * A live quote, in credits — the same rounding `lib/credits/pricing.ts` uses
  * to turn money into a number a person spends, ceilinged so the ledger never
  * takes less than what was actually quoted.
@@ -76,25 +104,7 @@ export type PrintOutcome =
  * operations: nothing is claimed or spent either way, and knowing the
  * destination is a precondition of knowing the price.
  */
-const QUOTE_CURRENCY = "CHF";
-
-/**
- * The recipient's country as Gelato needs it: ISO 3166-1 alpha-2.
- *
- * A contact's country is whatever the person typed on the form that took
- * their address — "Switzerland", "switzerland" and "CH" are all in the table
- * — and Gelato refuses anything that is not the two-letter code. Guessing
- * "CH" for an unrecognised one would quote Swiss postage for a book going
- * somewhere else, which is the exact mistake this function exists to prevent,
- * so an unknown country refuses the order instead. `COUNTRY_CODES` is the map
- * the rest of the codebase already uses for this.
- */
-function isoCountry(name: string | undefined): string | null {
-  const raw = (name ?? "").trim();
-  if (!raw) return null;
-  if (/^[A-Za-z]{2}$/.test(raw)) return raw.toUpperCase();
-  return COUNTRY_CODES[raw.toLowerCase()] ?? null;
-}
+export const QUOTE_CURRENCY = "CHF";
 
 export async function printOrder(owner: string, id: string, quotedCredits: number): Promise<PrintOutcome> {
   const order = await getPhotobookOrder(owner, id);
