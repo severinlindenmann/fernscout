@@ -7,8 +7,7 @@ complexity: low
 area: postcards
 found: "2026-09-07T16:51:56Z"
 started: "2026-09-07T16:59:20Z"
-session: 1ea1a367-e67d-471a-8e59-cae9a95a23ab
-claimed: "2026-09-07T16:59:20Z"
+merged: "2026-09-07T17:05:00Z"
 ---
 
 # B849 — The traveller figures never appear on a postcard: cqh does not resolve against an inline-size container

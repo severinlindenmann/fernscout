@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: postcards
 found: "2026-09-07T16:52:04Z"
+merged: "2026-09-07T17:05:01Z"
 ---
 
 # B850 — Pressing Send throws the reader to the top of the page, where the heading describes a different order
