@@ -345,7 +345,7 @@ touched since before the rename — but nothing writes it back out; ask for
 ### Verifying a change
 
 ```bash
-npm run verify         # build → tsc → eslint → vitest, stopping at the first failure
+npm run verify         # build → tsc → eslint → vitest → knip, stopping at the first failure
 npm run verify -- --quick   # the same without the build; see below for when that is honest
 ```
 
@@ -376,14 +376,19 @@ since. Editing a component's body does not invalidate `.next/types`; adding
 rather than handing you the confusing failure above. When in doubt leave it
 off — seventy seconds is cheaper than an afternoon spent misreading `tsc`.
 
-**A fifth command, and it is not one of the four.** `npm run unused` (knip)
+**`npm run unused` (knip) is the last step, and used to be nobody's.** It
 answers the question the other four do not — *is anything here for nothing* —
-and it is CI's job rather than yours, because the answer changes rarely and the
-day it changes is a day you were not looking. It fails on a file nothing
-reaches, a dependency nothing imports, or an import of something undeclared.
-Unused *exports* it prints without failing; there are about a hundred and
-thirty and they are B235's.
-Run it when you delete a module or drop a dependency. `knip.jsonc` carries the
+and it used to run in CI alone, on the theory that the answer changes rarely.
+It changes on an ordinary edit more often than that theory allowed: removing
+the last caller of an exported symbol is enough, and CI's own `unused` job
+failing on a change that had already passed a clean `verify` locally is exactly
+this file coming back to say so twice. `verify` now runs it every time, last,
+because it is fast — under two seconds, no network — and failing here is a
+diff away rather than a CI round-trip away. It fails on a file nothing
+reaches, a dependency nothing imports, an import of something undeclared, or
+an `export` nothing outside its own file uses; fix the last of those by
+dropping the `export` keyword rather than deleting the code. Unused *exported
+members* (of an enum, say) it still only prints. `knip.jsonc` carries the
 entry points, which are the whole configuration — nearly nothing here is
 imported by name. B24.
 

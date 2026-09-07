@@ -249,7 +249,7 @@ export type Refusal = {
   key: string;
 };
 
-export const REFUSALS: readonly Refusal[] = [
+const REFUSALS: readonly Refusal[] = [
   {
     // First, always: "unpublish" is removal before it is publishing, and a
     // sentence that says both is a sentence about taking something away.
