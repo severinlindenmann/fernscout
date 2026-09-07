@@ -7,8 +7,7 @@ complexity: low
 area: agent, media
 found: "2026-09-07T17:02:26Z"
 started: "2026-09-07T17:03:02Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-07T17:03:02Z"
+merged: "2026-09-07T17:23:39Z"
 ---
 
 # B851 — A photograph cannot be removed from a day
