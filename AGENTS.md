@@ -456,18 +456,33 @@ refuses a write in the shared checkout unless the target is under
 `docs/tasks/`, is gitignored, or is inside `.claude/worktrees/` — and the
 refusal carries the worktree recipe rather than only saying no.
 
-**It is not in the repository, and a fresh clone does not have it.** It lives
-in `.claude/settings.json` and `.claude/hooks/main-checkout-guard.mjs`, both
-gitignored, because a repository that requires somebody's harness
-configuration to be workable is a different promise from the one this file
-makes. Installing it elsewhere is a `PreToolUse` entry matching
-`Edit|Write|NotebookEdit` and a script implementing those three allowances.
+**A hook matches tool names, though, and `Bash` is not one of them** — a
+heredoc, `sed -i` or a short script wrote here with nothing said, and those are
+the calls these sessions make most. B310 closed that, and the shape of the fix
+is worth knowing because the obvious one is wrong: parsing a command line for
+write shapes is a list that is always missing its next entry — `tee`, `>>`,
+`install`, an npm task — and every entry it does have is a false positive
+waiting to happen (`grep foo > /dev/null`). So a second hook asks git
+*afterwards* instead. `PostToolUse` on `Bash`, one `git status --porcelain`:
+if the shared checkout is dirty in a way the rule does not allow, it names the
+files and hands over the recipe for moving them into a worktree. That reads
+real state rather than guessing at text, and catches every mechanism at once
+including the ones nobody has thought of.
 
-**It matches tool names, so `Bash` walks past it** — a heredoc, `sed -i` or a
-short script writes here with nothing said, and those are the calls these
-sessions make most. B310 is open on that. Read the guard as the thing that
-catches the honest accident, not as a lock: the rule above is still the rule,
-and it is still yours to keep.
+It detects rather than prevents, and that is the honest trade — detection that
+never misses beats prevention that usually does. So read both guards as the
+thing that catches the honest accident, not as a lock: the rule above is still
+the rule, and it is still yours to keep.
+
+**Neither is in the repository, and a fresh clone has no guard at all.** They
+live in `.claude/settings.json`, `.claude/hooks/main-checkout-guard.mjs` and
+`.claude/hooks/main-checkout-bash-guard.mjs`, all gitignored, because a
+repository that requires somebody's harness configuration to be workable is a
+different promise from the one this file makes. Installing them elsewhere is a
+`PreToolUse` entry matching `Edit|Write|NotebookEdit` with a script
+implementing those three allowances, and a `PostToolUse` entry matching `Bash`
+with one that ignores `docs/tasks/`, ignores what git ignores, and stays quiet
+while a merge or rebase is in progress.
 
 Four things that follow, and are easy to get wrong:
 
