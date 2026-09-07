@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: agent, auth, ui
 found: "2026-09-07T09:52:48Z"
+started: "2026-09-07T10:20:23Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-07T10:20:23Z"
 ---
 
 # B681 — A person without an agent has nowhere to start
