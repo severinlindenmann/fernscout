@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (110)
+## backlog (112)
 
 ### security (2)
 
@@ -58,13 +58,14 @@ Do not edit them by hand; run the script.
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
 
-### issue (27)
+### issue (29)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B766](backlog/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low |
 | [B829](backlog/issue/B829-rewording-a-row-did-not-stop.md) | Rewording a row did not stop the wrong one matching | ISSUE | high | low |
 | [B848](backlog/issue/B848-the-traveller-figures-never-appear-on.md) | The traveller figures never appear on a postcard: cqh does not resolve against an inline-size container | ISSUE | high | low |
+| [B855](backlog/issue/B855-choosing-a-second-language-commits-you.md) | Choosing a second language commits you to writing everything twice and the API never says so | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
@@ -89,6 +90,7 @@ Do not edit them by hand; run the script.
 | [B784](backlog/issue/B784-the-page-still-has-two-bright.md) | The page still has two bright buttons even though the card has one | ISSUE | low | low |
 | [B812](backlog/issue/B812-focus-is-lost-when-the-handover.md) | Focus is lost when the handover prompt appears | ISSUE | low | low |
 | [B813](backlog/issue/B813-a-denied-microphone-is-announced-politely.md) | A denied microphone is announced politely instead of as a problem | ISSUE | low | low |
+| [B856](backlog/issue/B856-the-journal-visibility-answer-explains-listing.md) | The journal visibility answer explains listing but not what it decides for trips | ISSUE | low | low |
 
 ### big-feature (13)
 
