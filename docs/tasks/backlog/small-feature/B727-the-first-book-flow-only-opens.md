@@ -42,11 +42,13 @@ with a drawing beside each answer — which is what the flow is already for.
 
 ## Work
 
-- **Always open it.** Drop the first-visit gate and the `hadSaved` value
-  `usePersistedState` grew for it, along with its tests — nothing else reads
-  it. Keep the one exception: an owner redirected back from paying meets the
-  outcome panel, not a wizard. *Von vorne anfangen* in the settings panel goes
-  with it, since every visit is now that.
+- **Always open it — and offer to carry on.** The flow opens on every visit,
+  and where an arrangement already exists the first thing it shows is that
+  choice: *carry on where you left off*, which goes straight to the composer,
+  or *start from the questions*. So `hadSaved` stays and earns its keep — it
+  is now the difference between a first screen that asks and one that does
+  not. The one exception stands: an owner redirected back from paying meets
+  the outcome panel, not a wizard.
 - **Draw a book.** `FormatShape` becomes a closed book seen face on: cover,
   a spine down one edge, the page block showing at the other. True proportions
   as before — the shape is still the answer.
@@ -68,8 +70,9 @@ with a drawing beside each answer — which is what the flow is already for.
 
 ## Acceptance
 
-- The questions open on every visit to the photobook page, including with an
-  arrangement saved, and four taps still reach the composer.
+- The flow opens on every visit to the photobook page. With an arrangement
+  saved, its first screen offers to carry on, and one tap reaches the composer
+  with that arrangement intact.
 - A format card is recognisably a book at 56px.
 - Every step fits a 390px screen without the cards becoming a single column of
   full-width blocks.
