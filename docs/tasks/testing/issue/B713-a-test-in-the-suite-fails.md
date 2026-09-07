@@ -7,8 +7,7 @@ complexity: medium
 area: Test suite
 found: "2026-09-07T11:19:22Z"
 started: "2026-09-07T11:40:41Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T11:40:41Z"
+merged: "2026-09-07T12:37:27Z"
 ---
 
 # B713 — A test in the suite fails intermittently and verify does not name which
