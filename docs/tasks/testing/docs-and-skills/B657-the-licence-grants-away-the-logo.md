@@ -7,8 +7,7 @@ complexity: low
 area: Licensing
 found: "2026-09-07T05:46:03Z"
 started: "2026-09-07T05:46:24Z"
-session: 8586d32c-3638-4930-b52e-b524af859a77
-claimed: "2026-09-07T05:46:24Z"
+merged: "2026-09-07T05:55:41Z"
 ---
 
 # B657 — The licence grants away the logo the trademark policy holds back
