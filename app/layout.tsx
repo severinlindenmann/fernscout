@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fredoka, IBM_Plex_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
+import BackTracker from "@/components/BackTracker";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
@@ -103,6 +104,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       */}
       <body className="flex min-h-full min-w-0 flex-col bg-background text-foreground">
         <ServiceWorkerRegistrar />
+        <BackTracker />
         {/* Site identity, the trip list and currency options are all per-user,
             so they are provided by app/[user]/layout.tsx rather than here. */}
         {/* Language belongs to whose journal you are reading, so

@@ -21,7 +21,10 @@ describe("the agent shell", () => {
     // both app/agent/page.tsx (the door) and app/agent/[user]/page.tsx (the
     // wizard) — without either page having to bring its own.
     const layout = read("app/agent/layout.tsx");
-    expect(layout).toContain('href="/"');
+    // B822: the way home is `BackLink`'s fallback rather than a bare `<Link>`
+    // now, so a reader who arrived at `/agent` from elsewhere in the app
+    // retraces there instead of always landing on "/".
+    expect(layout).toContain('fallbackHref="/"');
     expect(layout).toContain("docs.backToSite");
   });
 });

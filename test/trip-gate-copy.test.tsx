@@ -25,6 +25,13 @@ vi.mock("next/link", () => ({
     <a href={href}>{children}</a>
   ),
 }));
+// B822: `BackToJournal` renders through `BackLink`, which reads `useRouter()`
+// even on the render that never calls it — SSR here has no app router
+// mounted, so it needs a stub.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ back: () => {} }),
+  usePathname: () => "/alex/asia-2023",
+}));
 
 function render(
   over: {

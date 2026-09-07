@@ -96,3 +96,100 @@ Either mechanism is acceptable —
 linking to it — but say in this file which you chose and why. The second gives
 a real `href` (middle-click, and a label that can name its destination); the
 first keeps the browser's own history honest. Do not ship both.
+
+## Decision
+
+**Chose `router.back()` guarded by a flag.** `components/BackTracker.tsx`
+(mounted once, in `app/layout.tsx`, so it sees every route this app has) marks
+`sessionStorage["fs.backHistory"] = "1"` the first time the pathname it sees
+differs from the one it mounted with — i.e. the first client-side navigation
+in this tab. `lib/backNav.ts`'s `useHasInAppHistory()` reads that flag (via
+`useEffect` + `useState`, so the first paint assumes deep-arrival and corrects
+a tick later rather than risking a hydration mismatch). `components/BackLink.tsx`
+is the one control: retracing renders a `<button onClick={() => router.back()}>`
+with the generic `nav.back` label, deep-arrival renders a real `<Link
+href={fallbackHref}>` with the caller's specific fallback label. Both
+callers pass the labels already translated (`t(...)` on the client,
+`translateIn(...)` on the server), so `BackLink` itself carries no
+translation dependency and can drop into a server layout with no
+`LocaleProvider` in scope.
+
+Went with the flag over storing-the-path because every site here already
+knows its own fallback destination and label; the only thing genuinely
+unknown at render time is "is there anywhere to retrace to", which a boolean
+answers exactly as well as a stored path would, for less code, and it keeps
+the browser's own back stack authoritative rather than growing a second one
+next to it.
+
+**The fifth site turned out to be the fourth.** "The photobook views" is
+`PhotobookPageContent.tsx` rendering plain `<PageHeader />` with no
+`onHome` — there is no separate back-arrow anywhere in `app/[user]/(trip)/photobook/`
+or `app/[user]/trips/[trip]/photobook/`; the "← Back" buttons in
+`ReadTheBookView.tsx` and `DayLevelView.tsx` pop in-component view state
+(`onBack` clears `drill` / closes the reading dialog) rather than navigating
+a page, so they already retrace exactly as intended and were left alone.
+Fixing `PageHeader.tsx` is what fixes the photobook page's arrow too, since it
+is the same component instance — no fifth file needed touching.
+
+## What was built
+
+- `components/useBackHistory.ts` — the flag (`sessionStorage["fs.backHistory"]`)
+  and the hook that reads it (`useHasInAppHistory`), read at mount so a deep
+  arrival's first paint never disagrees with the server.
+- `components/BackTracker.tsx` — mounted once in `app/layout.tsx`. Watches
+  `usePathname()`; the first pathname it sees is never marked (nothing is
+  before it), every pathname after that is a navigation this app itself made.
+- `components/BackLink.tsx` — the one control. Renders a real `<Link>` to the
+  caller's `fallbackHref`/`fallbackLabel` when there is nothing to retrace to,
+  or a `<button onClick={() => router.back()}>` carrying the generic
+  `retraceLabel` when there is. Both labels arrive pre-translated, so this
+  component carries no translation dependency of its own.
+- Wired into `components/PageHeader.tsx` (both the phone-width icon-only
+  arrow and the `sm`-and-up breadcrumb), `components/BackToJournal.tsx`,
+  `app/agent/layout.tsx` and `app/docs/layout.tsx`.
+- New key `nav.back` ("Back" / "Zurück" / "Vissza") in all three shipped
+  locales, regenerated into `lib/i18n.ts` with `npm run i18n:keys`.
+- `test/back-link.test.tsx` — `BackTracker` never marks the flag on the
+  pathname it mounts with; it does mark it once the pathname changes;
+  `BackLink` renders the fallback `<Link>` with no flag set and the
+  `<button>`-driven retrace once it is, and clicking that button calls
+  `router.back()`.
+- `test/agent-shell.test.ts` and `test/docs-shell.test.tsx` updated for the
+  prop rename (`href="/"` → `fallbackHref="/"`); `test/trip-gate-copy.test.tsx`
+  gained a `next/navigation` mock, since `TripGate` → `BackToJournal` →
+  `BackLink` now reaches `useRouter()` even on the branch that never calls it.
+
+## Verified in a real browser (390×844, headless Chrome)
+
+Both journeys were driven against `/docs` and `/agent` (their back arrows are
+unconditional) rather than the trip-scoped gallery path named in the
+dispatch: `components/PageHeader.tsx`'s arrow only renders for
+`site.hasIdentity`, and getting a signed-in owner session locally needs the
+`auth` capability, which is off by default here (`auth_disabled` from
+`/api/auth/identity/request`) — enabling it just to drive this ticket felt
+like scope creep for a mechanism that is otherwise fully covered, both by
+`test/back-link.test.tsx` (the logic, directly) and by the existing
+`test/back-to-journals.test.tsx` (that `PageHeader` wires the right fallback
+label to it for `hasIdentity`). The mechanism itself is identical wherever it
+is mounted, so `/docs` and `/agent` exercise the same code path.
+
+**Deep arrival** — fresh context, `GET /docs` directly:
+  - label before pressing: **"Back to Fernscout"** (the specific fallback)
+  - pressing the arrow → `http://localhost:3038/` (the fixed parent, stayed
+    on the site)
+  - same result for `/agent`: label "Back to Fernscout" → pressing lands on
+    `/`.
+
+**Retrace** — `/example` → (soft nav, via the phone menu) → `/docs`:
+  - label after arriving: **"Back"** (generic, rendered as a `<button>` rather
+    than a link — confirms the retrace branch)
+  - pressing it → `http://localhost:3038/example` (walked back to where the
+    reader came from, not to `/`)
+
+Neither label promised a destination it did not go to.
+
+## Cleanup before merge
+
+`.local-dev.db`, `.data/` and `.next/` were removed before committing;
+`git status` is clean save for this task file and the code changes listed
+above.

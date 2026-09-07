@@ -1009,6 +1009,7 @@ export type TranslationKey =
   | "nav.account"
   | "nav.agent"
   | "nav.analytics"
+  | "nav.back"
   | "nav.closeMenu"
   | "nav.docs"
   | "nav.gallery"
