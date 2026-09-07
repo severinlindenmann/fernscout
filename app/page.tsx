@@ -81,11 +81,18 @@ export default async function Root() {
 
         Rendered beside the page rather than inside `Landing`, which has two
         different orders of the same sections and would have needed it twice.
+
+        Deliberately small — B847. It is a standing notice rather than an
+        alert: it has to be read once and then stay out of the way of the
+        first screen. The words are the operator's and live in their own
+        config, so keeping this to one line is half a code change and half an
+        operations one.
       */}
       {banner && (
         <div
           role="note"
-          className="border-b-2 border-coral-600 bg-coral-300 px-6 py-3 text-center text-sm leading-6 text-navy-900"
+          className="border-b border-coral-600 bg-coral-300 px-4 py-1.5 text-center text-xs
+                     leading-5 text-navy-900"
         >
           {banner}
         </div>
