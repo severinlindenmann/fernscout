@@ -13,7 +13,7 @@ import { preapprovedEmailFor, resolveInvite } from "@/lib/contacts/invites";
 import { pickLocale } from "@/lib/contacts/locale";
 import { notifyOwnerOfRequest, sendApprovedMail, sendCodeMail, sendConfirmedMail } from "@/lib/contacts/mail";
 import { journalReader } from "@/lib/contacts/session";
-import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { clientIp, rateLimitFor, rateLimitStatus } from "@/lib/rateLimit";
 import { getTrip, tripRef } from "@/lib/trips";
 import { claimTripPlace } from "@/lib/tripPeople";
 import { getUser } from "@/lib/users";
@@ -81,23 +81,49 @@ export const dynamic = "force-dynamic";
  * it always has.
  */
 export async function POST(request: Request) {
+  const ip = clientIp(request);
+
+  /**
+   * Two budgets, because completing a redemption and mistyping a form field
+   * are not the same act — B237, the same shape B217 gives creating a
+   * journal. The old single bucket spent one of five slots per **attempt**,
+   * before anything about the submission was looked at, so correcting a
+   * typo'd address twice was three of five and a wrong code away from
+   * locking somebody out of their own invitation.
+   *
+   * `REDEEMED` is spent only where a redemption actually completes — a code
+   * mailed, or a signed-in reader confirmed — which is the expensive act:
+   * mail sent, or a row written that puts somebody in the owner's queue.
+   * `REFUSED` is spent by every other way out of this route, `refuse()`
+   * below, so a run of invented tokens or malformed bodies still costs —
+   * this route resolves invite tokens, and that is what guessing one looks
+   * like — without spending the budget a person correcting their own typing
+   * needs.
+   */
+  const REDEEMED = { max: 5, windowMs: 15 * 60 * 1000 };
+  const REFUSED = { max: 20, windowMs: 15 * 60 * 1000 };
+
+  const redeemedBudget = rateLimitStatus("contacts-redeem", ip, REDEEMED);
+  if (!redeemedBudget.ok) return tooMany("redeemed", redeemedBudget.retryAfter);
+  const refusedBudget = rateLimitStatus("contacts-redeem-refused", ip, REFUSED);
+  if (!refusedBudget.ok) return tooMany("refused", refusedBudget.retryAfter);
+
+  /**
+   * Every way this route says no or gives up on a submission, and the only
+   * thing that spends the refusal budget — mirrors `refuse()` in
+   * `POST /api/v1/journals`.
+   */
+  const refuse = (body: Record<string, unknown>, status: number): Response => {
+    rateLimitFor("contacts-redeem-refused", ip, REFUSED);
+    return Response.json(body, { status });
+  };
+
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const username = typeof body.user === "string" ? body.user : "";
   const user = getUser(username);
 
   if (!user || !isEnabled("contacts", username)) {
     return Response.json({ error: "contacts_disabled" }, { status: 404 });
-  }
-
-  const limit = rateLimitFor("contacts-redeem", clientIp(request), {
-    max: 5,
-    windowMs: 15 * 60 * 1000,
-  });
-  if (!limit.ok) {
-    return Response.json(
-      { error: "too_many_requests", retryAfter: limit.retryAfter },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } },
-    );
   }
 
   const token = typeof body.token === "string" ? body.token : "";
@@ -118,17 +144,17 @@ export async function POST(request: Request) {
    * the page did not already make.
    */
   if (!invite || invite.kind !== wanted) {
-    return Response.json({ status: "expired" }, { status: 202 });
+    return refuse({ status: "expired" }, 202);
   }
   if (invite.kind === "buddy" && !invite.tripId) {
-    return Response.json({ status: "expired" }, { status: 202 });
+    return refuse({ status: "expired" }, 202);
   }
   // A buddy link whose trip has since been deleted. `deleteTrip` sweeps rows
   // carrying a `trip_id`, so this is a narrow race rather than a normal state
   // — but a request to join a trip that is not there would sit in the owner's
   // queue meaning nothing.
   if (invite.tripId && !getTrip(tripRef(username, invite.tripId))) {
-    return Response.json({ status: "expired" }, { status: 202 });
+    return refuse({ status: "expired" }, 202);
   }
 
   // The address on a session for *this* journal, if there is one. Never read
@@ -170,7 +196,7 @@ export async function POST(request: Request) {
    */
   const mailOff = sessionEmail ? null : mailDisabledReason(username);
   if (mailOff) {
-    return Response.json(
+    return refuse(
       {
         error: "mail_disabled",
         // B407: name the switch that is actually off, and point at the one
@@ -188,13 +214,13 @@ export async function POST(request: Request) {
               "still live. The person who runs this server has to turn mail on; /api/health says " +
               "why it is off.",
       },
-      { status: 503 },
+      503,
     );
   }
 
   const submitted = typeof body.email === "string" ? body.email : "";
   const email = sessionEmail ?? submitted;
-  if (!isEmail(email)) return Response.json({ error: "invalid_email" }, { status: 400 });
+  if (!isEmail(email)) return refuse({ error: "invalid_email" }, 400);
 
   const submittedName = typeof body.name === "string" ? body.name.trim() : "";
   const known = reader.contact ?? (await getContactByEmail(username, email));
@@ -203,7 +229,7 @@ export async function POST(request: Request) {
   // stored: the owner is about to decide about a person, and a row with no
   // name on it is a decision they cannot make.
   const name = submittedName || known?.name || invite.name || "";
-  if (name === "") return Response.json({ error: "invalid_name" }, { status: 400 });
+  if (name === "") return refuse({ error: "invalid_name" }, 400);
 
   const locale = pickLocale(
     typeof body.locale === "string" ? body.locale : null,
@@ -248,14 +274,14 @@ export async function POST(request: Request) {
   // rather than a preference worth storing — same rule `/api/contacts/request`
   // applies to the guestbook.
   if (addressProvided && wantsPostcard && !isPostable(submittedAddress)) {
-    return Response.json({ error: "invalid_address" }, { status: 400 });
+    return refuse({ error: "invalid_address" }, 400);
   }
   // The WhatsApp tick, on exactly the terms `wantsPostcard` gets: honoured
   // only on the form step, ignored on the confirm step so this route can
   // never answer a channel question for a reader who already chose.
   const wantsWhatsapp = addressProvided ? body.wantsWhatsapp === true : false;
   if (wantsWhatsapp && !isMessageable(submittedAddress.tel, whatsappCountryCode())) {
-    return Response.json({ error: "invalid_phone" }, { status: 400 });
+    return refuse({ error: "invalid_phone" }, 400);
   }
   // A phone number is not a postal address: keep the full submission only
   // when the postcard box is ticked, otherwise only the phone number, never
@@ -292,15 +318,20 @@ export async function POST(request: Request) {
 
   if (!sessionEmail) {
     // The ordinary path: prove the address with the same six digits every
-    // other door here uses, then `/api/contacts/confirm`.
+    // other door here uses, then `/api/contacts/confirm`. This is the
+    // expensive act `REDEEMED` above is counting — mail sent, a code that
+    // burns whatever the reader was already holding.
     const { code } = await issueCode(username, email, "guest");
     await sendCodeMail(username, user, email, locale, code);
+    rateLimitFor("contacts-redeem", ip, REDEEMED);
     return Response.json({ status: "code" }, { status: 202 });
   }
 
   // Signed in here already, so the address needs no second proof.
   const confirmed = await confirmContactFromSession(username, sessionEmail);
   if (!confirmed.ok) return Response.json({ status: "waiting" }, { status: 202 });
+  // Reached the queue — the second shape of completion `REDEEMED` counts.
+  rateLimitFor("contacts-redeem", ip, REDEEMED);
 
   // B319: the same address check `/api/contacts/confirm` makes — see there
   // for why comparing to the invite's own `email_key` is safe against a
@@ -336,5 +367,28 @@ export async function POST(request: Request) {
       status: status === "active" ? "in" : "waiting",
     },
     { status: 202 },
+  );
+}
+
+function tooMany(reason: "redeemed" | "refused", retryAfter: number): Response {
+  const minutes = Math.max(1, Math.ceil(retryAfter / 60));
+  return Response.json(
+    {
+      error: "too_many_requests",
+      reason,
+      retryAfter,
+      message:
+        reason === "redeemed"
+          ? "Five links have already been redeemed from this network address in the last " +
+            "fifteen minutes, which is the limit. If somebody in your household got in first, " +
+            "that is not a mistake — try again in " +
+            `${minutes} minute${minutes === 1 ? "" : "s"}.`
+          : "Too many attempts from this network address were refused in the last fifteen " +
+            "minutes — an expired or invented link, or a form with something wrong on it — so " +
+            "this one was not tried. Correcting a name or an address is not what spent this: " +
+            `it is the guessing that has stopped. Try again in ${minutes} ` +
+            `minute${minutes === 1 ? "" : "s"}.`,
+    },
+    { status: 429, headers: { "Retry-After": String(retryAfter) } },
   );
 }

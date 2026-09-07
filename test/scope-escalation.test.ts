@@ -425,6 +425,37 @@ describe("B230 — a code issued for one trip cannot be verified into a journal-
   });
 });
 
+describe("B241 — an agent code cannot be requested for a trip that does not exist", () => {
+  /**
+   * Before B241, `mayRequestAgentToken` let the owner through on the address
+   * alone, before the trip was looked at — so a typo or a not-yet-created
+   * trip id still got a code, and the token minted from it failed only later,
+   * at every write, with a 404 that never said the trip was never real.
+   */
+  test("the owner naming a trip this journal does not have is refused, not issued a code", async () => {
+    const result = await requestCode(OWNER_EMAIL, "no-such-trip");
+    expect(result.status).toBe(403);
+    expect(result.body.error).toBe("not_authorised");
+  });
+
+  /**
+   * The refusal has to read the same whether the trip is real and the caller
+   * is not on it, or the trip does not exist at all — either tells a guesser
+   * something the uniform answer is built to hide.
+   */
+  test("the refusal for a nonexistent trip matches the refusal for a real one the caller is not on", async () => {
+    const missingTrip = await requestCode(OWNER_EMAIL, "no-such-trip");
+    const realTripWrongPerson = await requestCode("stranger@example.test", "alps-2026");
+    expect(missingTrip.status).toBe(realTripWrongPerson.status);
+    expect(missingTrip.body.error).toBe(realTripWrongPerson.body.error);
+  });
+
+  test("the owner naming a real trip is unaffected", async () => {
+    const result = await requestCode(OWNER_EMAIL, "alps-2026");
+    expect(result.status).toBe(202);
+  });
+});
+
 describe("B231 — export.zip does not hand a trip-scoped token the whole journal", () => {
   /**
    * The route decided "owner" with `ownsUser`, which asks only which journal

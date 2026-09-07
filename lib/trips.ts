@@ -122,14 +122,17 @@ export const MAX_TRIP_PEOPLE = 10;
  * Deliberately loose. The address has to survive a round trip through a mail
  * server, not satisfy RFC 5322; anything stricter rejects real addresses.
  *
- * Exported because `createTrip` now writes a `people:` block and has to refuse
- * exactly what this would drop. A writer with its own idea of an address is
- * how you get a 201 for a list the reader then ignores whole — the shape B204
- * cost us one file over, where two copies of the same quoting helper were both
- * wrong in the same way.
+ * `isEmail`, re-exported from `lib/auth` — B247. This used to be its own
+ * regex, one segment looser than the one `isEmail` and `lib/config.ts` used,
+ * so an address that was a usable `people:` entry could be refused the token
+ * that entry is supposed to unlock. Kept exported because `createTrip` and
+ * `lib/tripWrite.ts` refuse a `people:` entry the reader would drop, and have
+ * to use the reader's own idea of an address to do that honestly — the shape
+ * B204 cost us one file over, where two copies of the same quoting helper
+ * were both wrong in the same way.
  */
-export const PERSON_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const EMAIL_RE = PERSON_EMAIL_RE;
+export { isEmail as isPersonEmail } from "./auth";
+import { isEmail } from "./auth";
 
 /**
  * The `people:` block — who took this trip.
@@ -163,7 +166,7 @@ function parsePeople(raw: unknown, folder: string): TripPerson[] {
     const entry = item as Record<string, unknown>;
     const name = String(entry.name ?? "").trim();
     const email = String(entry.email ?? "").trim().toLowerCase();
-    if (!name || !EMAIL_RE.test(email)) {
+    if (!name || !isEmail(email)) {
       console.warn(
         `[trips] ${folder}/trip.md has a people: entry needing a name and a valid email ` +
           `(got name "${name}", email "${email}") — ignoring the whole list.`,

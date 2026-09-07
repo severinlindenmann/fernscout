@@ -119,6 +119,22 @@ export async function POST(request: Request) {
   if (!user) return accepted;
 
   /**
+   * `auth` is a per-journal opt-in, exactly like every other capability
+   * (`lib/capabilities.ts`) — B252. Before this, this route and `/api/auth/
+   * verify` asked only whether the *server* had `auth` on at all, while the
+   * trip gate (`app/[user]/trips/[trip]/layout.tsx`) and `/api/health` asked
+   * per journal — so a journal whose own `config.json` never mentioned `auth`
+   * still had codes minted and guest sessions issued against its name, while
+   * its own gate told a reader there was no way in.
+   *
+   * What the 404 discloses is nothing new: the same absence is already on the
+   * page, as a gate with no sign-in form.
+   */
+  if (!isEnabled("auth", username)) {
+    return Response.json({ error: "auth_disabled" }, { status: 404 });
+  }
+
+  /**
    * An agent token can write, so the address has to be one this journal
    * recognises: the owner, or somebody listed on the trip they named.
    *
@@ -309,15 +325,21 @@ async function mayRequestAgentToken(
   email: string,
 ): Promise<boolean> {
   const address = email.trim().toLowerCase();
-  if (user.owner.email === address) return true;
   // The instance admin owns every journal here (B480), so a code for any of
-  // them is theirs to ask for. Named before the trip check because they need
-  // no trip: what they get is the unqualified `write:content` an owner gets.
-  if (isAdminEmail(address)) return true;
-  if (!tripId) return false;
+  // them is theirs to ask for on the same footing as the owner.
+  const isOwnerOrAdmin = user.owner.email === address || isAdminEmail(address);
+  if (!tripId) return isOwnerOrAdmin;
+  // A trip named on the request has to exist in this journal — B241. Without
+  // this, an owner's typo or not-yet-created trip id was still handed a code,
+  // and the token minted from it (`write:trip:<typo>`) failed only later, at
+  // every write, with a 404 that never said the trip was never real. Checked
+  // once, ahead of both branches, so an owner naming a bad trip and a stranger
+  // naming a real one they are not on get the identical `not_authorised`
+  // above — neither answer says which was true.
   const trip = getTrip(tripRef(user.username, tripId));
+  if (!trip) return false;
   // `isPersonOn` reads the trip's `people:` block **and** the buddy places the
   // owner has approved (B33), so somebody who joined by link asks for a token
   // through this same door rather than needing to be typed into a file first.
-  return trip ? isPersonOn(trip, address) : false;
+  return isOwnerOrAdmin || isPersonOn(trip, address);
 }

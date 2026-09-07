@@ -69,3 +69,54 @@ and documented in `USER_DEFAULT_FEATURES` (B60).
 - A journal that has not enabled `auth` either offers a sign-in form on its
   gate, or is refused by `/api/auth/request` — not one and then the other.
 - A test asserts the two agree for the same journal.
+
+## Triage
+
+Confirmed as described, reproduced directly (not through curl, through the
+routes): `isEnabled("auth")` with no username in both
+`app/api/auth/request/route.ts` and `app/api/auth/verify/route.ts`, against
+the trip gate's `isEnabled("auth", user)`.
+
+**Decision: `auth` is per-journal, and the two routes were the outlier.**
+`auth` is not in `USER_DEFAULT_FEATURES` (`lib/config.ts`) the way `mail` and
+`whatsapp` are — those two are the documented exception (B60) for a
+capability a journal is opted into unless it says otherwise; everything else,
+`auth` included, is opt-in and absent means off. `/api/health` already asks
+per journal via `resolveCapabilities(username)`, so before this fix two of
+the three places asking the question already agreed with each other; the
+routes were the one place still asking the server-wide ceiling alone.
+
+**Fix.** Both routes still check the server-wide `isEnabled("auth")` first
+(unchanged, and it needs no username). Added, after each route resolves the
+username from the body and confirms the journal exists:
+
+- `app/api/auth/request/route.ts` (~line 118, right after
+  `const user = getUser(username); if (!user) return accepted;`): refuses
+  with `404 auth_disabled` when `!isEnabled("auth", username)`.
+- `app/api/auth/verify/route.ts` (~line 47, after the `invalid_request`
+  check): `if (getUser(username) && !isEnabled("auth", username)) return 404
+  auth_disabled`, deliberately gated on the user existing so an unknown
+  username still falls through to the existing `invalid_code` 401 rather than
+  gaining a new way to be distinguished from a wrong code.
+
+**Disclosure.** For `/api/auth/request`, an unknown username is unaffected —
+it still gets the uniform `202` regardless of `auth` state, so this adds no
+oracle for "does this journal exist". For a *known* journal, the new `404`
+tells a caller only what the trip gate and `/api/health` already show on the
+page: whether this journal offers a sign-in form at all — no new disclosure,
+just no second, contradicting answer. For `/api/auth/verify`, the same
+reasoning, and the unknown-username path was checked explicitly to confirm it
+still answers `401 invalid_code` rather than the new `404` (see the test
+below), so guessing usernames against `/api/auth/verify` gains no new
+distinguishing signal.
+
+**Test:** `test/auth-journal-switch.test.ts` (new file), modelled on
+`test/mail-journal-switch.test.ts`'s per-journal-switch shape. Covers: the
+capability report and the gate already agreeing (sanity check), both routes
+refusing for a journal that never mentions `auth`, both routes still working
+for one that states it, and — the oracle check — an unknown journal on
+`/api/auth/verify` still answering `invalid_code` rather than `auth_disabled`.
+Confirmed each assertion fails against the pre-fix routes (404 expected, 202
+or 200 received) and passes after.
+
+**Acceptance:** met. `npm run verify` passes in full.

@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { isEmail } from "./auth";
 import { contentRoot } from "./contentRoot";
 import { siteRoot } from "./siteRoot";
 import { normalizeCurrency, type RateTable } from "./currency";
@@ -479,7 +480,6 @@ function readManualRates(
   return out;
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 function parseOwner(src: Record<string, unknown>, problems: string[]): Owner {
   // The shape before W37. Named explicitly rather than ignored: this file has
@@ -522,7 +522,7 @@ function parseOwner(src: Record<string, unknown>, problems: string[]): Owner {
     }
   }
   if (raw.email !== undefined) {
-    if (typeof raw.email !== "string" || !EMAIL_RE.test(raw.email.trim())) {
+    if (typeof raw.email !== "string" || !isEmail(raw.email.trim())) {
       problems.push("owner.email must be an email address, or absent");
     } else {
       owner.email = raw.email.trim().toLowerCase();
