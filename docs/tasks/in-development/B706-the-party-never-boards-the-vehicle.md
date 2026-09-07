@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: travel scene
 found: "2026-09-07T11:07:07Z"
+started: "2026-09-07T11:07:34Z"
+session: dfdad8fc-a6fc-47f8-9531-e49449f80aae
+claimed: "2026-09-07T11:07:34Z"
 ---
 
 # B706 — The party never boards — the vehicle and the people are two animations that ignore each other

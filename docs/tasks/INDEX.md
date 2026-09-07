@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (104)
+## backlog (102)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B334](backlog/security/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium |
 | [B593](backlog/security/B593-a-fulfilment-instance-s-job-intake.md) | A fulfilment instance's job intake has no admission or rate control | SECURITY | medium | medium |
 
-### issue (16)
+### issue (15)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -76,7 +76,6 @@ Do not edit them by hand; run the script.
 | [B649](backlog/issue/B649-a-day-s-time-is-the.md) | A day's time: is the first file's timestamp, screenshots included, so a day went out stamped 06:44 | ISSUE | medium | low |
 | [B650](backlog/issue/B650-a-day-s-location-and-its.md) | A day's location: and its lat/lng can name towns 200 km apart and nothing says so | ISSUE | medium | low |
 | [B696](backlog/issue/B696-a-journal-called-agent-can-still.md) | A journal called agent can still be created on an instance with its own config | ISSUE | medium | low |
-| [B705](backlog/issue/B705-the-party-hovers-above-the-ground.md) | The party hovers above the ground on a flight leg | ISSUE | medium | low |
 | [B391](backlog/issue/B391-telfield-s-country-combobox-has-no.md) | TelField's country combobox has no jsdom test for keyboard/mouse interaction | ISSUE | low | low |
 | [B595](backlog/issue/B595-a-photobook-can-be-charged-a.md) | A photobook can be charged a price the owner never saw | ISSUE | low | low |
 | [B697](backlog/issue/B697-there-is-no-way-back-to.md) | There is no way back to the site from /agent | ISSUE | low | low |
@@ -105,7 +104,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B689](backlog/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high |
 
-### small-feature (25)
+### small-feature (24)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -123,7 +122,6 @@ Do not edit them by hand; run the script.
 | [B694](backlog/small-feature/B694-the-landing-page-sends-everybody-off.md) | The landing page sends everybody off to fetch an agent of their own | FEATURE | medium | low |
 | [B702](backlog/small-feature/B702-the-book-s-charts-route-and.md) | The book's charts, route and rules are drawn in a blue that is not a brand colour | FEATURE | medium | low |
 | [B703](backlog/small-feature/B703-a-day-s-text-cannot-be.md) | A day's text cannot be left out on its own, and the layout names say nothing about what they look like | FEATURE | medium | medium |
-| [B706](backlog/small-feature/B706-the-party-never-boards-the-vehicle.md) | The party never boards — the vehicle and the people are two animations that ignore each other | FEATURE | medium | medium |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B05](backlog/small-feature/B05-entry-tags-are-written-everywhere-and.md) | Entry tags are written everywhere and searched nowhere | FEATURE | low | low |
 | [B176](backlog/small-feature/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
@@ -199,7 +197,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (25)
+## in-development (27)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -216,6 +214,8 @@ _Nothing here._
 | [B457](in-development/B457-root-owned-config-json-bak-files.md) | Root-owned config.json.bak files keep appearing in the content root, and each one fails a nightly backup | OPS | medium | low | `97b44327` |
 | [B521](in-development/B521-every-photo-upload-logs-that-the.md) | every photo upload logs that the body was truncated at 10MB | ISSUE | medium | low | `97b44327` |
 | [B556](in-development/B556-re-running-the-demo-builder-deletes.md) | Re-running the demo builder deletes fields the committed demo journal carries | ISSUE | medium | low | `97b44327` |
+| [B705](in-development/B705-the-party-hovers-above-the-ground.md) | The party hovers above the ground on a flight leg | ISSUE | medium | low | `dfdad8fc` |
+| [B706](in-development/B706-the-party-never-boards-the-vehicle.md) | The party never boards — the vehicle and the people are two animations that ignore each other | FEATURE | medium | medium | `dfdad8fc` |
 | [B216](in-development/B216-nothing-helps-an-author-find-the.md) | Nothing helps an author find the rate to freeze into a trip | CHORE | low | low | `97b44327` |
 | [B226](in-development/B226-two-new-deploy-time-checks-run.md) | Two new deploy-time checks run only where a binary happens to exist, and CI may have neither | CHORE | low | low | `97b44327` |
 | [B237](in-development/B237-a-mistyped-name-or-address-on.md) | A mistyped name or address on the redeem form spends one of five slots per quarter hour, so correcting it can lock somebody out of an invitation | ISSUE | low | low | `97b44327` |

@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: travel scene
 found: "2026-09-07T11:07:06Z"
+started: "2026-09-07T11:07:33Z"
+session: dfdad8fc-a6fc-47f8-9531-e49449f80aae
+claimed: "2026-09-07T11:07:33Z"
 ---
 
 # B705 — The party hovers above the ground on a flight leg
