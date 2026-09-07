@@ -76,8 +76,9 @@ export default function ContactForm({
    * fieldset it asserts against. */
   postcardsEnabled?: boolean;
   /** B376: whether this server can act on a WhatsApp update at all —
-   * `isEnabled("whatsapp", username)`. Only changes the phone hint's wording;
-   * the checkbox itself is unconditional (see the note above it). */
+   * `isEnabled("whatsapp", username)`. Changes the phone hint's wording, and
+   * — since B378 — gates the checkbox itself: offering it on a journal where
+   * nothing will ever send there tells a reader something untrue. */
   whatsappEnabled?: boolean;
   /** B385: `whatsappCountryCode()` — the operator's own configured fallback
    * for a national number. Used only to pre-select the dialling code on a
@@ -440,6 +441,7 @@ export default function ContactForm({
               <span>{t("contact.wantsPostcard")}</span>
             </label>
             )}
+            {whatsappEnabled && (
             <label className="flex items-start gap-3 text-lg text-navy-900">
               <input
                 type="checkbox"
@@ -454,6 +456,7 @@ export default function ContactForm({
                 </span>
               </span>
             </label>
+            )}
           </div>
 
           {error && (

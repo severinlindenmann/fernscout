@@ -1,5 +1,6 @@
 import { isEmail } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
+import { rateLimitFor } from "@/lib/rateLimit";
 import {
   approveContact,
   confirmContactFromSession,
@@ -174,12 +175,26 @@ export async function POST(request: Request) {
 
   switch (action) {
     case "approve": {
-      const contact = await approveContact(username, id);
+      const result = await approveContact(username, id);
       // Refused rather than silently ignored: approving an address nobody has
       // proved they can read is how an owner gets talked into leaking a trip.
-      if (!contact) return Response.json({ error: "not_confirmed" }, { status: 409 });
+      if (!result) return Response.json({ error: "not_confirmed" }, { status: 409 });
+      const { contact, tripsOpened } = result;
       await sendApprovedMail(username, getUser(username)!, contact);
-      return Response.json({ ok: true, contact: ownerView(contact) });
+      // B244 — name what this click actually did, not only that it worked.
+      // Approving is the strongest thing this page does (AGENTS.md: a buddy
+      // link is "the stronger of the two"), and it can silently re-open a
+      // trip a `revokeContact` closed months ago (B213). Titles rather than
+      // ids, same reasoning as `viaLabel` above: the owner reads this, not an
+      // agent, and an id they never chose to remember is not what they parse.
+      const tripsOpenedTitles = tripsOpened.map(
+        (tripId) => getTrip(tripRef(username, tripId))?.title ?? tripId,
+      );
+      return Response.json({
+        ok: true,
+        contact: ownerView(contact),
+        tripsOpened: tripsOpenedTitles,
+      });
     }
     case "revoke": {
       const contact = await revokeContact(username, id);
@@ -266,10 +281,10 @@ export async function POST(request: Request) {
 
       const confirmed = await confirmContactFromSession(username, email);
       if (!confirmed.ok) return Response.json({ error: "not_confirmed" }, { status: 409 });
-      const contact = await approveContact(username, confirmed.contact.id);
-      if (!contact) return Response.json({ error: "not_confirmed" }, { status: 409 });
+      const approved = await approveContact(username, confirmed.contact.id);
+      if (!approved) return Response.json({ error: "not_confirmed" }, { status: 409 });
 
-      return Response.json({ ok: true, contact: ownerView(contact) });
+      return Response.json({ ok: true, contact: ownerView(approved.contact) });
     }
     case "create": {
       const name = typeof body.name === "string" ? body.name.trim() : "";
@@ -370,6 +385,19 @@ export async function POST(request: Request) {
       if (!contact) return Response.json({ error: "unknown_contact" }, { status: 404 });
       if (contact.confirmedAt) {
         return Response.json({ error: "already_confirmed" }, { status: 409 });
+      }
+      // B388 — every other action here is gated only by `guard`'s owner
+      // check, which is right for something the owner does once; this is the
+      // one that mails a stranger's inbox on every call, with the same link
+      // every time, so a compromised or scripted session must not be able to
+      // loop it. Keyed on the contact rather than the caller's IP: the harm
+      // is real mail to one address, not load on this server.
+      const limit = rateLimitFor("contact-resend", contact.id, { max: 3, windowMs: 60 * 60 * 1000 });
+      if (!limit.ok) {
+        return Response.json(
+          { error: "too_many_requests", retryAfter: limit.retryAfter },
+          { status: 429, headers: { "Retry-After": String(limit.retryAfter) } },
+        );
       }
       const via = contact.createdVia ?? "";
       if (!via.startsWith("invite:")) {

@@ -92,7 +92,7 @@ async function letIn(email: string, name: string): Promise<string> {
   const contact = await getContactByEmail(OWNER, email);
   if (!contact) throw new Error(`no contact for ${email}`);
   const done = await approveContact(OWNER, contact.id);
-  if (!done || done.status !== "active") throw new Error(`approval failed for ${email}`);
+  if (!done || done.contact.status !== "active") throw new Error(`approval failed for ${email}`);
   return contact.id;
 }
 
@@ -274,8 +274,12 @@ describe("a contact the owner takes back", () => {
 
     // One click, the same one that hands back the journal.
     const back = await approveContact(OWNER, contactId);
-    expect(back?.status).toBe("active");
+    expect(back?.contact.status).toBe("active");
     expect((await getContactByEmail(OWNER, email))?.status).toBe("active");
+    // B244 — the place `revokeContact` closed really does come back, and the
+    // approval says so rather than leaving that as something only the next
+    // write attempt would reveal.
+    expect(back?.tripsOpened).toEqual(["owner-only-2026"]);
 
     const again = await writeDay(token, "owner-only-2026", "After being let back on");
     expect(again.status).toBe(201);

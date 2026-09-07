@@ -52,3 +52,29 @@ is offered, not what is stored.
 
 With WhatsApp off for a journal, no invite or guestbook form offers a WhatsApp
 checkbox. With it on, all of them do.
+
+## Resolution
+
+Confirmed against current code: the checkbox was rendered unconditionally in
+all three components while `whatsappEnabled` was already threaded down and
+spent only on `telHintKey`'s wording.
+
+Wrapped the checkbox in `{whatsappEnabled && (...)}`:
+- `components/InviteRedeem.tsx:502` (the "form" step's tick-box block)
+- `components/ContactForm.tsx:441` (the guestbook's three-checkbox block)
+- `components/ContactsAdmin.tsx:868` (`GuestForm`'s owner-facing checkbox)
+
+Rows that already carry `wantsWhatsapp: true` from before a journal switched
+the capability off are untouched — the checkbox stops being offered, but the
+value in the form state (and on save) is unaffected. Doc comments on each
+`whatsappEnabled` prop updated to say the checkbox is gated too, not only the
+hint.
+
+**Test**: `test/contact-whatsapp-gating.test.tsx` — renders each of the three
+components with `whatsappEnabled` true and false and asserts the checkbox's
+label text is present/absent. All three pass.
+
+**What this tells a non-owner caller**: nothing new. The prop already existed
+and was already readable from the page's own capability check
+(`isEnabled("whatsapp", username)`); this only changes what is rendered, not
+what any request discloses.

@@ -104,7 +104,7 @@ async function letIn(email: string): Promise<string> {
   const contact = await getContactByEmail(OWNER, email);
   if (!contact) throw new Error(`no contact for ${email}`);
   const done = await approveContact(OWNER, contact.id);
-  if (!done || done.status !== "active") throw new Error(`approval failed for ${email}`);
+  if (!done || done.contact.status !== "active") throw new Error(`approval failed for ${email}`);
   return contact.id;
 }
 

@@ -20,7 +20,7 @@ export type RedeemOutcome =
 
 export function redeemOutcome(
   response: { ok: boolean; status: number },
-  body: { error?: string; status?: string },
+  body: { error?: string; status?: string; reason?: string },
 ): RedeemOutcome {
   if (response.status === 429) return { kind: "error", error: "contact.tooMany" };
   if (!response.ok) {
@@ -31,7 +31,17 @@ export function redeemOutcome(
     // than as "something went wrong", because there is nothing the reader can
     // do differently and waiting for a mail that is not coming is what the
     // old answer left them doing.
-    if (body.error === "mail_disabled") return { kind: "error", error: "invite.noMail" };
+    //
+    // B429: the route names which switch is off (`reason`: "journal" or
+    // "server") — a canned single key here lost that distinction, which
+    // matters because only one of the two is something the reader can do
+    // anything about (tell the owner, versus wait for the operator).
+    if (body.error === "mail_disabled") {
+      return {
+        kind: "error",
+        error: body.reason === "journal" ? "invite.noMailJournal" : "invite.noMailServer",
+      };
+    }
     return { kind: "error", error: "contact.error" };
   }
   // A dead, revoked, mismatched-kind or deleted-trip link — the route's own

@@ -114,7 +114,9 @@ export default function InviteRedeem({
    * seeing the fieldset it may already assert against. */
   postcardsEnabled?: boolean;
   /** B376: whether this server can act on a WhatsApp update at all —
-   * `isEnabled("whatsapp", username)`. Only changes the phone hint's wording. */
+   * `isEnabled("whatsapp", username)`. Changes the phone hint's wording, and
+   * — since B378 — gates the checkbox itself: offering it on a journal where
+   * nothing will ever send there tells a brand-new reader something untrue. */
   whatsappEnabled?: boolean;
   /** B385: `whatsappCountryCode()` — the operator's own configured fallback,
    * used only to pre-select the dialling code on this always-blank field
@@ -506,6 +508,7 @@ export default function InviteRedeem({
                   <span>{t("contact.wantsPostcard")}</span>
                 </label>
                 )}
+                {whatsappEnabled && (
                 <label className="flex items-start gap-3 text-lg text-navy-900">
                   <input
                     type="checkbox"
@@ -515,6 +518,7 @@ export default function InviteRedeem({
                   />
                   <span>{t("contact.wantsWhatsapp")}</span>
                 </label>
+                )}
               </div>
             </>
           )}
