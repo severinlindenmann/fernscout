@@ -29,7 +29,7 @@ anything still open is in §15.
 | --- | --- | --- |
 | 1 | Departure | **~6 months out (≈ March 2027)** — but explicitly *not* treated as the main constraint; agentic development is fast enough that build time isn't the binding limit |
 | 2 | Data model | **Files canonical + Postgres index** |
-| 3 | Licence | **AGPL-3.0 + separate trademark policy** |
+| 3 | Licence | **PolyForm Shield 1.0.0 + separate trademark policy** — was AGPL-3.0 until B652; copyleft permits a paid competitor, which is the one thing the licence had to prevent |
 | 4 | Name | **`Fernscout`, on `fernscout.ch`** (§11) |
 | 5 | Hosted product | **Deferred — keep the seams clean, decide after the trip** |
 | 6 | Audience | **~20–50 readers, most will never install anything → email is the product** |
@@ -335,8 +335,8 @@ positioning is worth having before it is needed.
 > it, self-host it. No lock-in, no feed, no algorithm.
 
 The proof points are all things a closed competitor structurally cannot say:
-open API, plain-file export, AGPL self-hosting, and "your data leaves as easily
-as it arrived."
+open API, plain-file export, free self-hosting of a source-available codebase,
+and "your data leaves as easily as it arrived."
 
 | ID | Task | Effort |
 | --- | --- | --- |

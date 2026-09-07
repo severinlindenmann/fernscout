@@ -65,18 +65,43 @@ Use GitHub's private advisory form, linked from the "New issue" page.
 
 ## License and copyright
 
-By contributing, you agree your contribution is licensed under the
-project's license, AGPL-3.0-or-later (see `LICENSE`). You keep copyright to
-your own contribution; you're not signing it away or handing over any
-other rights.
+**You keep the copyright to your own contribution.** You are not signing it
+away and not transferring it. What you do give is a licence, and there are
+two halves to it:
+
+- Everyone who receives Fernscout receives your contribution under the
+  project's licence, PolyForm Shield 1.0.0 (see `LICENSE`) — the same terms
+  as the rest of the code.
+- **Severin Lindenmann, as the maintainer, additionally receives an
+  unrestricted, perpetual, irrevocable, worldwide licence to your
+  contribution, including the right to sub-licence it and to release it under
+  different terms.**
+
+The second half looks heavier than it is, and it exists for a specific
+mechanical reason. The project's licence carries a non-compete clause: it
+forbids using the software to provide a product that competes with
+Fernscout. Without that extra grant, a contribution would reach the
+maintainer under exactly that restriction — and the maintainer's own hosted
+Fernscout is the product being competed with, so the project would end up
+unable to ship its own contributors' code. The grant fixes that, and it is
+the whole of what it is for.
+
+What it does not do: it does not take your copyright, it does not stop you
+using your own contribution anywhere else for anything, and it is not
+exclusive.
+
+If you would rather not give that grant, say so in the pull request — a
+change can often be described well enough for it to be reimplemented, and
+that is a fine outcome. Opening a pull request means you agree to this
+section.
 
 ### License header policy
 
 Individual source files in this repository **do not** carry a per-file
 license header — the `LICENSE` file at the repository root covers the
-whole codebase under AGPL-3.0-or-later, and that's the single source of
-truth. Don't add SPDX headers to files you touch; it just creates diff
-noise a root `LICENSE` file already makes redundant.
+whole codebase, and that's the single source of truth. Don't add SPDX
+headers to files you touch; it just creates diff noise a root `LICENSE` file
+already makes redundant.
 
 The one exception: if you bring in a file (or a substantial part of one)
 from somewhere else under a *different* license, keep that file's original
@@ -85,6 +110,6 @@ someone else's code by dropping it into this repository.
 
 ### Name and logo
 
-The AGPL-3.0 license covers the code. It does not cover the **Fernscout**
-name or logo — see `TRADEMARK.md` before using either outside this
-repository (for example, for a public fork or a hosted service).
+The PolyForm Shield licence covers the code. It does not cover the
+**Fernscout** name or logo — see `TRADEMARK.md` before using either outside
+this repository (for example, for a public fork or a hosted service).

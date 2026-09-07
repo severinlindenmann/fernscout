@@ -6,8 +6,14 @@ agreement behind it.
 
 Contact: <agent@fernscout.ch>
 
-The software is open source under the AGPL-3.0 licence and can be read in
-full at [github.com/severinlindenmann/fernscout](https://github.com/severinlindenmann/fernscout).
+The source code is public and can be read in full at
+[github.com/severinlindenmann/fernscout](https://github.com/severinlindenmann/fernscout).
+It is licensed under [PolyForm Shield 1.0.0](https://polyformproject.org/licenses/shield/1.0.0):
+free to run, modify and self-host, for as long as you like, with one
+restriction — it may not be used to provide a product that competes with
+Fernscout. That restriction means it is **source-available rather than open
+source**, since the Open Source Definition does not permit it, and this site
+does not use the term.
 
 ## What is not promised
 

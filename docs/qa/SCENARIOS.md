@@ -178,7 +178,7 @@ The section where a mistake is unrecoverable.
 
 ## K — Mail with no mail server
 
-The open-source promise: everything works, the mail lands in a folder.
+The self-hosting promise: everything works, the mail lands in a folder.
 
 | # | Scenario | Pass |
 | --- | --- | --- |

@@ -138,7 +138,12 @@ export function openApiDocument() {
         "and that call is not how you edit a day — PATCH the same URL as the day " +
         "itself for that. " +
         `The prose guide is at ${site.url}/agent.md.`,
-      license: { name: "AGPL-3.0-or-later" },
+      // No SPDX identifier exists for PolyForm Shield, so this is name+url
+      // rather than `identifier` — B652.
+      license: {
+        name: "PolyForm Shield 1.0.0",
+        url: "https://polyformproject.org/licenses/shield/1.0.0",
+      },
     },
     servers: [{ url: site.url }],
     security: [{ agentToken: [] }],
