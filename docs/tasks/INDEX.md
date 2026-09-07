@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (94)
+## backlog (93)
 
 ### security (3)
 
@@ -93,7 +93,7 @@ Do not edit them by hand; run the script.
 | [B689](backlog/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (21)
+### small-feature (19)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -107,14 +107,12 @@ Do not edit them by hand; run the script.
 | [B589](backlog/small-feature/B589-there-is-no-capability-for-one.md) | There is no capability for one instance to fulfil another's print jobs | FEATURE | medium | medium |
 | [B592](backlog/small-feature/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
 | [B673](backlog/small-feature/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium |
-| [B685](backlog/small-feature/B685-the-helper-cannot-understand-a-sentence.md) | The helper cannot understand a sentence a person types at it | FEATURE | medium | medium |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 | [B539](backlog/small-feature/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
 | [B666](backlog/small-feature/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 | [B675](backlog/small-feature/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B686](backlog/small-feature/B686-speech-cannot-be-turned-into-text.md) | Speech cannot be turned into text | FEATURE | low | medium |
-| [B687](backlog/small-feature/B687-photographs-cannot-describe-themselves.md) | Photographs cannot describe themselves | FEATURE | low | medium |
 | [B688](backlog/small-feature/B688-a-new-visitor-cannot-make-a.md) | A new visitor cannot make a journal inside the helper | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 | [B723](backlog/small-feature/B723-consent-can-only-be-withdrawn-from.md) | Consent can only be withdrawn from inside the wizard | FEATURE | low | low |
@@ -145,11 +143,12 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### docs-and-skills (2)
+### docs-and-skills (3)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B211](backlog/docs-and-skills/B211-the-demo-journal-s-photographs-have.md) | The demo journal's photographs have nothing to do with the places they are captioned with | DOCS | low | low |
+| [B717](backlog/docs-and-skills/B717-readme-md-still-says-there-is.md) | README.md still says there is no editing interface and there will not be one | DOCS | low | low |
 | [B725](backlog/docs-and-skills/B725-the-inbox-doc-says-media-is.md) | The inbox doc says media is the only kind a media route files | DOCS | low | low |
 
 ### superseded (28)
@@ -189,7 +188,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (21)
+## in-development (23)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -202,6 +201,7 @@ _Nothing here._
 | [B334](in-development/B334-nothing-enforces-that-a-mail-only.md) | Nothing enforces that a mail only ever goes to a confirmed address; five senders each happen to be right | SECURITY | medium | medium | `97b44327` |
 | [B363](in-development/B363-the-letter-s-permission-gate-is.md) | The letter's permission gate is a second copy of the site's, and nothing holds them together | CHORE | medium | medium | `97b44327` |
 | [B541](in-development/B541-build-demo-content-mjs-no-longer.md) | build-demo-content.mjs no longer reproduces the demo it is supposed to generate | CHORE | medium | medium | `97b44327` |
+| [B685](in-development/B685-the-helper-cannot-understand-a-sentence.md) | The helper cannot understand a sentence a person types at it | FEATURE | medium | medium | `fdfcf5f2` |
 | [B694](in-development/B694-the-landing-page-sends-everybody-off.md) | The landing page sends everybody off to fetch an agent of their own | FEATURE | medium | low | `ccdd5120` |
 | [B696](in-development/B696-a-journal-called-agent-can-still.md) | A journal called agent can still be created on an instance with its own config | ISSUE | medium | low | `97b44327` |
 | [B707](in-development/B707-uploading-by-url-silently-drops-files.md) | Uploading by url silently drops files past the per-day limit | ISSUE | medium | low | `97b44327` |
@@ -209,6 +209,7 @@ _Nothing here._
 | [B713](in-development/B713-a-test-in-the-suite-fails.md) | A test in the suite fails intermittently and verify does not name which | ISSUE | medium | medium | `97b44327` |
 | [B391](in-development/B391-telfield-s-country-combobox-has-no.md) | TelField's country combobox has no jsdom test for keyboard/mouse interaction | ISSUE | low | low | `97b44327` |
 | [B595](in-development/B595-a-photobook-can-be-charged-a.md) | A photobook can be charged a price the owner never saw | ISSUE | low | low | `97b44327` |
+| [B687](in-development/B687-photographs-cannot-describe-themselves.md) | Photographs cannot describe themselves | FEATURE | low | medium | `fdfcf5f2` |
 | [B697](in-development/B697-there-is-no-way-back-to.md) | There is no way back to the site from /agent | ISSUE | low | low | `97b44327` |
 | [B708](in-development/B708-a-day-of-videos-hits-the.md) | A day of videos hits the per-day item limit early | ISSUE | low | low | `97b44327` |
 | [B709](in-development/B709-every-day-must-answer-the-money.md) | Every day must answer the money question before it is written | ISSUE | low | medium | `97b44327` |
