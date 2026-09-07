@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { isOwner } from "@/lib/contacts/session";
 import { orderDir } from "@/lib/photobook/build";
+import { verifyFileLink } from "@/lib/photobook/fileLink";
 import { ORDER_ID_RE } from "@/lib/photobook/orders";
 
 export const dynamic = "force-dynamic";
@@ -20,21 +21,26 @@ const FILE_RE = /^(book|v\d{1,2})-(interior|cover)\.pdf$/;
  * above before either reaches `path.join`, so neither one climbing with `..`
  * gets as far as a stat call.
  *
- * Worth knowing for the provider work that comes next: **Gelato fetches the
- * PDF from a URL and accepts no upload**, so a reachable, unguessable version
- * of this route is what an order will need. That is a separate change and a
- * separate decision — this one hands the file to a logged-in owner and nobody
- * else.
+ * There are now two ways in. The owner cookie, as above, and a signed link
+ * (`lib/photobook/fileLink.ts`): Gelato fetches the PDF from a URL and
+ * accepts no upload, so the order it is given carries `?exp=…&sig=…` instead
+ * of a session. The signature covers the journal, the order, the file *and*
+ * the expiry together, so no one of the four can be changed without
+ * invalidating it — a link good for `book-interior.pdf` does not become good
+ * for `book-cover.pdf`, and its expiry cannot be pushed out by editing the
+ * query. Either way in reaches the same file.
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: RouteContext<"/[user]/photobooks/[id]/[file]">,
 ) {
   const { user, id, file } = await params;
   if (!ORDER_ID_RE.test(id) || !FILE_RE.test(file)) {
     return new Response("Not found", { status: 404 });
   }
-  if (!(await isOwner(user))) return new Response("Not found", { status: 404 });
+  const query = new URL(request.url).searchParams;
+  const signed = verifyFileLink(user, id, file, query.get("exp"), query.get("sig"));
+  if (!signed && !(await isOwner(user))) return new Response("Not found", { status: 404 });
 
   const full = path.join(orderDir(user, id), file);
   if (!fs.existsSync(full)) return new Response("Not found", { status: 404 });
