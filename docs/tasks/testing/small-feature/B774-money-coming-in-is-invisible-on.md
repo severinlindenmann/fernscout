@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: admin, credits
 found: "2026-09-07T16:30:00Z"
+merged: "2026-09-07T14:30:35Z"
 ---
 
 # B774 — Money coming in is invisible on the page about money

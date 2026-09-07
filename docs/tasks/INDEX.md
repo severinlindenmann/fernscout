@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (97)
+## backlog (96)
 
 ### security (2)
 
@@ -97,12 +97,11 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (21)
+### small-feature (20)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B435](backlog/small-feature/B435-no-print-provider-can-actually-post.md) | No print provider can actually post a card — print.one is unevaluated and unwired | FEATURE | high | medium |
-| [B774](backlog/small-feature/B774-money-coming-in-is-invisible-on.md) | Money coming in is invisible on the page about money | FEATURE | high | medium |
 | [B780](backlog/small-feature/B780-posting-one-ordinary-day-takes-nine.md) | Posting one ordinary day takes nine taps | FEATURE | high | medium |
 | [B10](backlog/small-feature/B10-a-journal-never-says-who-is.md) | A journal never says who is writing it | FEATURE | medium | medium |
 | [B112](backlog/small-feature/B112-local-scripts-write-straight-to-content.md) | Local scripts still write straight to content, and the one guarantee they skip is the draft rule | FEATURE | medium | medium |
@@ -203,7 +202,7 @@ _Nothing here._
 | [B778](in-development/B778-asking-for-weather-on-a-journal.md) | Asking for weather on a journal with weather off is accepted and does nothing | ISSUE | medium | low | `fdfcf5f2` |
 | [B779](in-development/B779-a-valid-token-on-a-helper.md) | A valid token on a helper route is told the journal is not theirs | ISSUE | low | low | `fdfcf5f2` |
 
-## testing (23)
+## testing (24)
 
 ### issue (9)
 
@@ -226,12 +225,13 @@ _Nothing here._
 | [B746](testing/big-feature/B746-the-operator-cannot-see-what-the.md) | The operator cannot see what the instance costs to run | FEATURE | high | high | — |
 | [B689](testing/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high | — |
 
-### small-feature (9)
+### small-feature (10)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B767](testing/small-feature/B767-the-helper-s-first-screen-asks.md) | The helper's first screen asks a person to make four decisions before they have done anything | FEATURE | high | medium | — |
 | [B769](testing/small-feature/B769-there-is-no-way-back-a.md) | There is no way back a step in the wizard | FEATURE | high | low | — |
+| [B774](testing/small-feature/B774-money-coming-in-is-invisible-on.md) | Money coming in is invisible on the page about money | FEATURE | high | medium | — |
 | [B751](testing/small-feature/B751-the-striped-handover-box-shouts-louder.md) | The striped handover box shouts louder than anything it sits beside, and it is on the page up to four times | FEATURE | medium | medium | — |
 | [B763](testing/small-feature/B763-the-operator-page-is-a-wall.md) | The operator page is a wall of tables that does not fit a phone | FEATURE | medium | medium | — |
 | [B771](testing/small-feature/B771-the-postcard-page-is-unbranded-above.md) | The postcard page is unbranded above the send block, unlike every page the photobook shows | FEATURE | medium | low | — |
