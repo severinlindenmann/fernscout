@@ -7,8 +7,7 @@ complexity: low
 area: photobook, testing
 found: "2026-09-06T14:46:31Z"
 started: "2026-09-07T10:37:32Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T10:37:32Z"
+merged: "2026-09-07T11:00:38Z"
 ---
 
 # B603 — A dev-mode-only effect race can pass or fail local browser testing for the wrong reason

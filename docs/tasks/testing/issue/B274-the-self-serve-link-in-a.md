@@ -8,8 +8,7 @@ area: contacts, mail, i18n
 found: "2026-09-04T11:56:50Z"
 related: B303
 started: "2026-09-07T10:37:28Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T10:37:28Z"
+merged: "2026-09-07T11:00:34Z"
 ---
 
 # B274 — The self-serve link in a reader's mail is labelled as a detail change when it is their standing way back

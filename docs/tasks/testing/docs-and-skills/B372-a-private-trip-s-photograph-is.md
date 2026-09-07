@@ -7,8 +7,7 @@ complexity: low
 area: docs, agent guide, lib/whatsapp
 found: "2026-09-04T21:14:00Z"
 started: "2026-09-07T10:37:29Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T10:37:29Z"
+merged: "2026-09-07T11:00:35Z"
 ---
 
 # B372 — A private trip's photograph is handed to Meta, and nothing a reader or owner sees says so

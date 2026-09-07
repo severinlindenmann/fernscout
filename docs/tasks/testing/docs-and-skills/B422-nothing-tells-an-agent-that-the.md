@@ -7,8 +7,7 @@ complexity: low
 area: agent guide, contacts
 found: "2026-09-05T11:30:00Z"
 started: "2026-09-07T10:37:31Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T10:37:31Z"
+merged: "2026-09-07T11:00:37Z"
 ---
 
 # B422 — Nothing tells an agent that the owner's pages are cookie-only, so a bearer token that works on every API call renders none of them

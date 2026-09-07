@@ -7,8 +7,7 @@ complexity: low
 area: mail, dev experience
 found: "2026-09-05T18:32:38Z"
 started: "2026-09-07T10:37:31Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T10:37:31Z"
+merged: "2026-09-07T11:00:38Z"
 ---
 
 # B508 — Mail sent from a dev server links to the production site

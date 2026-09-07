@@ -7,8 +7,7 @@ complexity: low
 area: readme, docs, hosting
 found: "2026-09-03"
 started: "2026-09-07T10:37:33Z"
-session: 97b44327-dee7-4b48-bf97-305a0b3d1f54
-claimed: "2026-09-07T10:37:33Z"
+merged: "2026-09-07T11:00:40Z"
 ---
 
 # B155 — The README offers hosting on fernscout.ch and never says what it does not promise
