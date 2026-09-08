@@ -471,6 +471,16 @@ export async function countSpends(owner: string, reason: SpendReason): Promise<n
  * that drops without them named reads as unexplained. Grouped in SQL for the
  * reason `usageSince` is — a busy journal is thousands of rows and the answer
  * is at most eight lines.
+ *
+ * **`refunded` is its own row, deliberately not netted into the reasons
+ * above** — B922. A drafting call that failed still shows as, say, 3 credits
+ * under `helper`, because that is what was actually charged and the person
+ * pressed nothing wrong; netting it away would make "helper: 2" and
+ * "helper: 3, refunded: 1" look identical, and only one of those tells her a
+ * credit came back. So the ledger's own `refund` rows (never
+ * `purchase_refund`, which is money leaving the journal, not credit coming
+ * back into it) are summed on their own and appended as one more line —
+ * legible without disturbing what each reason actually cost.
  */
 export async function spentByReason(owner: string): Promise<{ reason: string; credits: number }[]> {
   const handle = await getDatabaseOrNull();
@@ -486,13 +496,23 @@ export async function spentByReason(owner: string): Promise<{ reason: string; cr
     .where("reason", "!=", "purchase_refund")
     .groupBy("reason")
     .execute();
-  return rows
+  const result = rows
     // `sum` is a bigint on Postgres and arrives as a string; negated here so
     // the caller renders a spend as the positive number a person would say.
     // Hundredths in the table, credits out — B987, the same boundary
     // `balanceOf` is.
-    .map((row) => ({ reason: row.reason, credits: creditsFromUnits(-Number(row.total ?? 0)) }))
-    .sort((a, b) => b.credits - a.credits);
+    .map((row) => ({ reason: row.reason, credits: creditsFromUnits(-Number(row.total ?? 0)) }));
+
+  const refunded = await handle.db
+    .selectFrom("credit_ledger")
+    .select((eb) => eb.fn.sum<number>("delta").as("total"))
+    .where("owner_id", "=", owner)
+    .where("reason", "=", "refund")
+    .executeTakeFirst();
+  const refundedCredits = creditsFromUnits(Number(refunded?.total ?? 0));
+  if (refundedCredits > 0) result.push({ reason: "refunded", credits: refundedCredits });
+
+  return result.sort((a, b) => b.credits - a.credits);
 }
 
 /** Newest first. For `npm run credits -- list`; there is no reader-facing

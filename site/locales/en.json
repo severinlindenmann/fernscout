@@ -1746,6 +1746,7 @@
   "me.spentReason.postcard": "Printed postcards",
   "me.spentReason.photobook": "Printed photobooks",
   "me.spentReason.storage": "Extra storage",
+  "me.spentReason.refunded": "Given back (a call that failed)",
   "me.buyDialogAmount": "How many credits",
   "me.buyDialogNoDiscount": "From {from} to {to}. The more you buy at once, the less each one costs.",
   "me.buyDialogBuyAmount": "Buy for {price}",

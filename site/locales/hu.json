@@ -1746,6 +1746,7 @@
   "me.spentReason.postcard": "Nyomtatott képeslapok",
   "me.spentReason.photobook": "Nyomtatott fotókönyvek",
   "me.spentReason.storage": "Extra tárhely",
+  "me.spentReason.refunded": "Visszatérítve (egy sikertelen hívás)",
   "me.buyDialogAmount": "Hány kredit",
   "me.buyDialogNoDiscount": "{from}-tól {to}-ig. Minél többet veszel egyszerre, annál olcsóbb darabja.",
   "me.buyDialogBuyAmount": "Megveszem {price}-ért",
