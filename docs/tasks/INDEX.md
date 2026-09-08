@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (130)
+## backlog (133)
 
 ### security (1)
 
@@ -57,7 +57,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B914](backlog/security/B914-take-down-and-publish-sentences-now.md) | Take-down and publish sentences now reach a tool instead of being refused | SECURITY | high | low |
 
-### issue (40)
+### issue (43)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -66,6 +66,8 @@ Do not edit them by hand; run the script.
 | [B848](backlog/issue/B848-the-traveller-figures-never-appear-on.md) | The traveller figures never appear on a postcard: cqh does not resolve against an inline-size container | ISSUE | high | low |
 | [B922](backlog/issue/B922-a-credit-is-spent-on-a.md) | Was she charged for a day that was never written, and should she have been? | ISSUE | high | low |
 | [B926](backlog/issue/B926-the-helper-forgets-what-it-was.md) | The helper forgets what it was told one message ago | ISSUE | high | low |
+| [B962](backlog/issue/B962-a-total-recalled-from-memory-a.md) | A total recalled from memory a turn later drops what it could not convert | ISSUE | high | low |
+| [B963](backlog/issue/B963-money-it-said-it-could-not.md) | Money it said it could not convert is then offered as a rough figure | ISSUE | high | medium |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
@@ -85,6 +87,7 @@ Do not edit them by hand; run the script.
 | [B934](backlog/issue/B934-an-invite-link-has-to-be.md) | An invite link has to be selected by hand on a phone | ISSUE | medium | low |
 | [B946](backlog/issue/B946-the-owner-s-session-stops-being.md) | The owner's session stops being recognised partway through a sitting | ISSUE | medium | medium |
 | [B952](backlog/issue/B952-half-of-a-two-part-request.md) | Half of a two-part request is answered and the other half is dropped without a word | ISSUE | medium | medium |
+| [B964](backlog/issue/B964-the-model-narrates-its-own-tool.md) | The model narrates its own tool confusion to the person | ISSUE | medium | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B750](backlog/issue/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low |
