@@ -3,7 +3,8 @@ import { isEnabled } from "../capabilities";
 import { listContacts } from "../contacts";
 import { balanceOf } from "../credits";
 import { factsOfEntry } from "../api/entries";
-import { COST_CATEGORIES, getCostSummary } from "../costs";
+import { conversionFor, COST_CATEGORIES, getCostSummary } from "../costs";
+import { normalizeCurrency } from "../currency";
 import { AS_AUTHOR, getAllEntries } from "../entries";
 import { findInboxFile } from "../inbox";
 import { formatBytes, storageFor } from "../storageQuota";
@@ -970,6 +971,28 @@ export const TOOLS: readonly Tool[] = [
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/costs`,
     propose: async (username, args, say) => {
       const found = resolveDay(username, args);
+      const tripId = tripIdFor(username, args, found);
+      /**
+       * **A currency nobody said is a guess, and the guess is shown** — B973.
+       *
+       * "We spent 15 on the museum" reached the route as `currency: ""`, which
+       * `lib/costs.ts` has always read as the trip's base currency — right for
+       * every day written before multi-currency existed, and silent about it
+       * ever since. On a trip based in CHF while the person stands in Portugal
+       * saying "fifteen", the guess is wrong half the time, and the person
+       * pressing the button never saw it being made.
+       *
+       * Not refusing it: an empty currency has been a valid cost since before
+       * this ticket, and refusing it now would break every day already on
+       * disk. Showing the guess, editable, with the trip's own currencies
+       * (its base plus anything `rates:` already knows) as options, is what
+       * makes it something a person corrects rather than discovers.
+       */
+      const said = normalizeCurrency(args.currency);
+      const { base, rates } = tripId
+        ? conversionFor(tripRef(username, tripId))
+        : { base: "", rates: {} };
+      const tripCurrencies = base ? Array.from(new Set([base, ...Object.keys(rates)])) : [];
       return {
         sentence: say("agent.tool.addCost", {
           label: args.label ?? "",
@@ -978,12 +1001,18 @@ export const TOOLS: readonly Tool[] = [
         accept: say("agent.tool.addCostAccept"),
         done: say("agent.tool.addCostDone"),
         fields: [
-          { name: "trip", value: tripIdFor(username, args, found) },
+          { name: "trip", value: tripId },
           { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
           { name: "date", value: args.date ?? found?.entry.date ?? "", date: true },
           { name: "label", value: args.label ?? "" },
           { name: "amount", value: args.amount ?? "" },
-          { name: "currency", value: args.currency ?? "" },
+          {
+            name: "currency",
+            value: said || base,
+            ...(tripCurrencies.length > 0
+              ? { options: tripCurrencies.map((one) => ({ value: one, label: one })) }
+              : {}),
+          },
           /**
            * **The closed list it always was** — B968.
            *
