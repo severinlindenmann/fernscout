@@ -1602,6 +1602,7 @@
   "agent.notUntilYouPress": "Az ott vár a képernyődön, és még semmi nincs elmentve — a megnyomás teszi valóra. Olvasd el, és nyomd meg, ha jó.",
   "agent.noAccessYet": "Nem mondhatom, hogy valaki el tudja olvasni ezt. Egy utazás, ami nem nyilvános, azoknak van nyitva, akik ott voltak, és a vendégeknek, akiket jóváhagytál — attól, hogy megnevezel valakit, még nem jut be. Mondd meg, kinek kellene olvasnia, és odateszek egy linket, amit elküldhetsz.",
   "agent.notRead": "Ebben a válaszban nem olvastam el azt a napot, így nem tudom megmondani, mi áll benne — a saját szavaidra pedig nem tippelek. Mondd el újra, megnyitom a napot, és idézem neked.",
+  "agent.notCounted": "Inkább nem mondok olyan számot, amit nem számoltam ki rendesen — a saját pénzedről egy rossz szám rosszabb, mint semmi. Kérdezd meg újra, és előbb megnézem a költségeket.",
   "agent.tool.addPhotos": "A fényképek a nap saját oldalán kerülnek fel, ott van a választó és a feltöltés.",
   "agent.tool.addPhotosLabel": "Nap megnyitása",
   "agent.tool.inviteGuest": "Egy link annak, akinek olvasnia kellene ezt a naplót. Önmagában senkit nem enged be: aki megnyitja, igazolja a saját címét, és megjelenik a listádon — addig semmit nem olvashat, amíg jóvá nem hagyod. A lenti név csak azért van, hogy tudd, kié a link.",

@@ -13,6 +13,7 @@ import {
   claimsWhatADaySays,
   claimsWhatIsNotThere,
   claimsAButton,
+  claimsATotal,
   claimsAWrite,
   honestyCounts,
 } from "@/lib/helper/model";
@@ -584,5 +585,84 @@ describe("what is written for the model is never rendered", () => {
     // And it is not remembered as prose either, so the next turn has nothing
     // to imitate.
     expect(history("alex")[1].text).not.toContain("waiting to be pressed");
+  });
+});
+
+/* --------------------------------------------- money, added up by whom --- */
+
+/**
+ * The fourth territory — B955.
+ *
+ * Somebody who had logged £85, £22, £60 and €40 in one session asked what the
+ * trip had cost and was told *"the total so far is 107 pounds"* — 85 + 22
+ * exactly, the two added earliest, with the two from a minute earlier dropped.
+ * Then a summary contradicting itself inside one sentence: *"you've logged two
+ * costs, 60 pounds and 40 euros… the trip has cost 107 pounds altogether."*
+ *
+ * `getCostSummary` returns the total, the daily average and how many days
+ * recorded nothing, all computed from disk. Nobody asked it. This is B932's
+ * shape — a turn that claims what a day *says* without having read it — for
+ * the fact that is hardest to doubt, because a wrong number reads exactly like
+ * a right one.
+ */
+describe("saying what something adds up to", () => {
+  for (const said of [
+    "The total so far is 107 pounds.",
+    "It comes to 107 pounds altogether.",
+    "That is an average of 53.50 pounds a day.",
+    "Insgesamt hat die Reise 107 Franken gekostet.",
+    "Zusammen sind das CHF 240.",
+    "A nap átlagosan 12000 forint.",
+  ]) {
+    test(`is a total: ${said}`, () => {
+      expect(claimsATotal(said)).toBe(true);
+    });
+  }
+
+  for (const said of [
+    // Her own figure, echoed back while proposing to record it. Not a claim
+    // about the trip, and the commonest sentence in this whole product.
+    "18 francs for gelato on the 20th.",
+    "Ich trage 18 Franken für Gelato ein.",
+    // A total with no figure, which is a sentence and not an assertion.
+    "I could not work out the total.",
+    "Altogether that was a good day.",
+  ]) {
+    test(`is not: ${said}`, () => {
+      expect(claimsATotal(said)).toBe(false);
+    });
+  }
+});
+
+describe("a turn that totals somebody's money without reading it", () => {
+  test("is asked again, and the second answer reaches her", async () => {
+    create
+      .mockResolvedValueOnce(says("Insgesamt 107 Franken."))
+      .mockResolvedValueOnce(says("Ich schaue erst nach, was eingetragen ist."));
+    const answered = await read(await ask("was hat die reise gekostet"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toBe("Ich schaue erst nach, was eingetragen ist.");
+  });
+
+  test("said twice, she gets no number at all rather than a wrong one", async () => {
+    create
+      .mockResolvedValueOnce(says("Insgesamt 107 Franken."))
+      .mockResolvedValueOnce(says("Doch, insgesamt sind es 107 Franken."));
+    const answered = await read(await ask("was hat die reise gekostet"));
+
+    const said = String(answered.body.answer);
+    expect(said).not.toContain("107");
+    expect(said).toContain("rather not give you a figure");
+  });
+
+  test("a turn that did read the costs is left alone", async () => {
+    create
+      .mockResolvedValueOnce(calls("trip_costs", { trip: "Die Reise" }))
+      .mockResolvedValueOnce(says("Insgesamt 107 Franken."));
+    const answered = await read(await ask("was hat die reise gekostet"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toBe("Insgesamt 107 Franken.");
   });
 });
