@@ -222,7 +222,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (16)
+## in-development (14)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -231,7 +231,6 @@ _Nothing here._
 | [B1015](in-development/B1015-b984-moved-the-agent-room-s.md) | B984 moved the agent room's URL and left one test asserting the old one, so main is red | ISSUE | high | low | `b8352d66` |
 | [B1016](in-development/B1016-the-room-s-two-panes-are.md) | The room's two panes are chrome at the top rather than part of the conversation | FEATURE | high | medium | `fdfcf5f2` |
 | [B1018](in-development/B1018-the-language-select-s-arrow-wraps.md) | The language select's arrow wraps and moves, and a newly ticked recipient shows no address | ISSUE | high | low | `b8352d66` |
-| [B766](in-development/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low | `bdd0270d` |
 | [B922](in-development/B922-a-credit-is-spent-on-a.md) | Was she charged for a day that was never written, and should she have been? | ISSUE | high | low | `bdd0270d` |
 | [B980](in-development/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | `a4bbb185` |
 | [B984](in-development/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | `fdfcf5f2` |
@@ -241,9 +240,8 @@ _Nothing here._
 | [B801](in-development/B801-a-request-with-the-wrong-field.md) | A request with the wrong field name is accepted and silently does nothing | ISSUE | medium | low | `bdd0270d` |
 | [B837](in-development/B837-a-capability-test-passes-alone-and.md) | A capability test passes alone and fails in the full suite | ISSUE | medium | low | `bdd0270d` |
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
-| [B990](in-development/B990-the-agent-guide-is-over-its.md) | The agent guide is over its own ceiling on main, so every branch fails verify at the same test | CHORE | medium | low | `bdd0270d` |
 
-## testing (204)
+## testing (206)
 
 ### security (7)
 
@@ -257,13 +255,14 @@ _Nothing here._
 | [B908](testing/security/B908-a-leaked-agent-token-can-be.md) | A leaked agent token can be listed and not ended | SECURITY | medium | low | — |
 | [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (111)
+### issue (112)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1004](testing/issue/B1004-the-recording-microphone-breaks-the-search.md) | The recording microphone breaks the search field's layout, and moving the mouse off it ends the recording | ISSUE | high | low | — |
 | [B756](testing/issue/B756-a-party-of-five-overlaps-the.md) | A party of five overlaps the title it was moved onto, and the vehicles cannot be found on a real book | ISSUE | high | low | — |
 | [B764](testing/issue/B764-the-colophon-s-figures-stand-in.md) | The colophon's figures stand in the middle of its own text | ISSUE | high | low | — |
+| [B766](testing/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low | — |
 | [B768](testing/issue/B768-the-file-picker-speaks-the-browser.md) | The file picker speaks the browser's language, not the journal's | ISSUE | high | low | — |
 | [B775](testing/issue/B775-a-guest-trip-s-day-is.md) | A guest trip's day is announced as public, in the feed and readable by anyone with the link | ISSUE | high | low | — |
 | [B781](testing/issue/B781-the-consent-panels-are-a-wall.md) | The consent panels are a wall of text at the moment somebody wants to press a button | ISSUE | high | low | — |
@@ -449,7 +448,7 @@ _Nothing here._
 | [B815](testing/small-feature/B815-stripe-asks-for-an-email-the.md) | Stripe asks for an email the owner has already given this server | FEATURE | low | low | — |
 | [B826](testing/small-feature/B826-the-checkout-page-is-stripe-s.md) | The checkout page is Stripe's grey, on a site that has a palette | FEATURE | low | low | — |
 
-### chore (13)
+### chore (14)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -460,6 +459,7 @@ _Nothing here._
 | [B896](testing/chore/B896-the-unused-gate-keeps-going-red.md) | The unused gate keeps going red on exports nobody notices | CHORE | medium | low | — |
 | [B912](testing/chore/B912-the-photobook-cover-strings-are-english.md) | The photobook cover strings are English in the Hungarian file | CHORE | medium | low | — |
 | [B930](testing/chore/B930-the-prompt-budget-has-one-token.md) | The prompt budget has one token of headroom and does not say what to do | CHORE | medium | low | — |
+| [B990](testing/chore/B990-the-agent-guide-is-over-its.md) | The agent guide is over its own ceiling on main, so every branch fails verify at the same test | CHORE | medium | low | — |
 | [B724](testing/chore/B724-a-capability-that-needs-another-one.md) | A capability that needs another one is an if rather than a field | CHORE | low | low | — |
 | [B736](testing/chore/B736-build-demo-content-mjs-still-cannot.md) | build-demo-content.mjs still cannot reproduce travelScene, per-item visibility, some captions, or six fixture days | CHORE | low | medium | — |
 | [B811](testing/chore/B811-the-payment-page-still-renders-the.md) | The payment page still renders the TWINT/card chooser under a provider, hidden with a class | CHORE | low | low | — |
