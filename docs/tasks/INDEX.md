@@ -147,11 +147,10 @@ Do not edit them by hand; run the script.
 | [B731](backlog/small-feature/B731-a-trip-made-from-the-ask.md) | A trip made from the ask box never shows who can read it | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (3)
+### chore (2)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B910](backlog/chore/B910-knip-fails-on-main-defaultsizefor-in.md) | knip fails on main: defaultSizeFor in lib/photobook/spec.ts is exported and called by nothing | CHORE | medium | low |
 | [B912](backlog/chore/B912-the-photobook-cover-strings-are-english.md) | The photobook cover strings are English in the Hungarian file | CHORE | medium | low |
 | [B594](backlog/chore/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
@@ -171,7 +170,7 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### superseded (34)
+### superseded (35)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -198,6 +197,7 @@ Do not edit them by hand; run the script.
 | [B861](backlog/superseded/B861-the-account-page-does-not-say.md) | The account page does not say what credits went on AI | FEATURE | medium | low |
 | [B880](backlog/superseded/B880-recordprint-is-exported-and-unreachable-so.md) | recordPrint is exported and unreachable, so knip fails verify on main | CHORE | medium | low |
 | [B89](backlog/superseded/B89-nothing-that-costs-the-operator-money.md) | Nothing that costs the operator money can be paid for, so every paid feature is dry-run only | FEATURE | medium | high |
+| [B910](backlog/superseded/B910-knip-fails-on-main-defaultsizefor-in.md) | knip fails on main: defaultSizeFor in lib/photobook/spec.ts is exported and called by nothing | CHORE | medium | low |
 | [B176](backlog/superseded/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
 | [B243](backlog/superseded/B243-npm-run-postcard-prints-four-lines.md) | npm run postcard prints four lines of Node module-type warning before its own first line | ISSUE | low | low |
 | [B246](backlog/superseded/B246-openapi-json-does-not-document-costsvisibility.md) | openapi.json does not document costsVisibility on POST trips | ISSUE | low | low |
