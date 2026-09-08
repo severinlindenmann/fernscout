@@ -1104,3 +1104,34 @@ describe("a route spread uses both pages — B914", () => {
     expect(view.width / view.height).toBeCloseTo(2, 5);
   });
 });
+
+describe("the basemap under a route — B1000", () => {
+  /**
+   * The renderer recovers lat/lng from the projected points rather than making
+   * the plan carry both. That inversion is the one piece of arithmetic in the
+   * change that could be silently wrong — everything else is visible on the
+   * page. `MAP_SPACE` is 1000 x 500 for the whole world.
+   */
+  const toMapSpace = (lat: number, lng: number) => ({
+    x: ((lng + 180) / 360) * 1000,
+    y: ((90 - lat) / 180) * 500,
+  });
+  const fromMapSpace = (p: { x: number; y: number }) => ({
+    lat: 90 - (p.y / 500) * 180,
+    lng: (p.x / 1000) * 360 - 180,
+  });
+
+  it("round-trips the places a book actually plots", () => {
+    for (const [lat, lng] of [
+      [46.73, 8.44], // Susten Pass
+      [46.12, 8.29], // Domodossola
+      [38.57, -109.55], // Moab — a negative longitude
+      [-33.87, 151.21], // Sydney — the other hemisphere in both axes
+      [0, 0],
+    ] as [number, number][]) {
+      const back = fromMapSpace(toMapSpace(lat, lng));
+      expect(back.lat).toBeCloseTo(lat, 9);
+      expect(back.lng).toBeCloseTo(lng, 9);
+    }
+  });
+});

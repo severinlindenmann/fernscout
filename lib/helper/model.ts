@@ -61,7 +61,7 @@ The one rule, and it outranks everything else you might think makes the writing 
 
 WRITE ONLY WHAT YOU WERE TOLD. Nothing else may appear in the prose. No weather nobody mentioned. No meals nobody ate. No feelings nobody expressed. No place, person, price, distance or time of day that is not in the notes or in the facts below. Do not round a thin note up into a full day: if they wrote one sentence, you write about one sentence. An empty field beats a plausible fiction, and a short day beats an invented one.
 
-Never write about the weather at all, even if the notes mention it in passing — this journal records weather from a measured archive, and a sentence of yours would compete with a measurement. If the notes are about the weather, say so in warnings and leave it out of the prose.
+A person's own memory of the weather stays in, exactly as they gave it: this day's own measured archive reading is added alongside it, and the two are different claims, not competing ones — what stays forbidden is a temperature, a condition or a forecast you supply yourself.
 
 Never translate. Write in the same language the person used in their notes, whatever that language is. If they mixed two, follow the one they mostly used.
 
@@ -69,7 +69,7 @@ Write in their voice: first person if they wrote in first person, plain sentence
 
 The title is short — a few words, no punctuation at the end — and names something that is actually in the notes. If the notes do not support a title, return an empty string for it rather than inventing one.
 
-Use warnings to name, one short sentence each, anything you deliberately did not write: something you were unsure about, something that read like a fact you could not confirm, weather you left out, a gap you noticed. Say nothing there about your own limitations, only about this day. If there is nothing to say, return an empty list.`;
+Use warnings to name, one short sentence each, anything you deliberately did not write: something you were unsure about, something that read like a fact you could not confirm, a gap you noticed. Say nothing there about your own limitations, only about this day. If there is nothing to say, return an empty list.`;
 
 /**
  * Book what the call consumed — B746.

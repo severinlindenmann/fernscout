@@ -10,6 +10,7 @@ import { NO_JOURNAL, issueCode, verifyCode } from "@/lib/auth";
 import { instanceDocumentation } from "@/lib/api/documentation";
 import { SECOND_LANGUAGE_COMMITMENT, firstQuestions } from "@/lib/api/agentCopy";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
+import { setJournalProfile } from "@/lib/journals";
 
 /**
  * B263 — visibility and defaultLocale must be asked, never assumed. B277 —
@@ -428,5 +429,46 @@ describe("B839 — the currency nobody can change is the currency everybody is a
     });
     expect(response.status).toBe(400);
     expect(getUser("silent-disp")).toBeNull();
+  });
+
+  test("B790 — creating and correcting a journal refuse the same currencies, because they share one check", async () => {
+    // `setJournalProfile` (the correcting route, via `PATCH
+    // /api/v1/<user>/config`) refuses `displayCurrencies` through the exact
+    // same `normalizeCurrency` this route calls on `baseCurrency` and
+    // `displayCurrencies` above — imported, not copied, the way B777 shares
+    // `MAINTAINED_LOCALES` between the two routes. Prove it by running the
+    // same non-code and the same whitespace-padded code through both: a copy
+    // of the check could drift, one shared function cannot disagree with
+    // itself.
+    const token = await signupToken("shared-check@example.test");
+    const created = await create(token, {
+      ...BASE,
+      username: "shared-check",
+      visibility: "public",
+      defaultLocale: "en",
+      locales: ["en"],
+    });
+    expect(created.status).toBe(201);
+
+    const bad = setJournalProfile("shared-check", { displayCurrencies: ["francs"] });
+    expect(bad.ok).toBe(false);
+
+    const secondToken = await signupToken("shared-check-2@example.test");
+    const notACodeEither = await create(secondToken, {
+      ...BASE,
+      displayCurrencies: ["francs"],
+      username: "shared-check-create",
+      visibility: "public",
+      defaultLocale: "en",
+      locales: ["en"],
+    });
+    expect(notACodeEither.status).toBe(400);
+    expect(getUser("shared-check-create")).toBeNull();
+
+    // Both trim and upper-case a padded code the same way, rather than one
+    // route being stricter than the other.
+    const padded = setJournalProfile("shared-check", { displayCurrencies: [" chf "] });
+    expect(padded.ok).toBe(true);
+    expect(getUser("shared-check")?.displayCurrencies).toContain("CHF");
   });
 });

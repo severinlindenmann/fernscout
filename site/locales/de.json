@@ -1746,6 +1746,7 @@
   "me.spentReason.postcard": "Gedruckte Postkarten",
   "me.spentReason.photobook": "Gedruckte Fotobücher",
   "me.spentReason.storage": "Zusätzlicher Speicher",
+  "me.spentReason.refunded": "Zurückerstattet (ein fehlgeschlagener Aufruf)",
   "me.buyDialogAmount": "Wie viele Guthaben-Punkte",
   "me.buyDialogNoDiscount": "Von {from} bis {to}. Je mehr du auf einmal kaufst, desto günstiger wird jeder Punkt.",
   "me.buyDialogBuyAmount": "Für {price} kaufen",

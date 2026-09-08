@@ -114,7 +114,15 @@ export function publicJournals(): PublicJournalSummary[] {
  * where the address turns out to see nothing but public trips is dropped: it
  * belongs in the public list, not in "yours".
  */
-export async function journalsFor(email: string): Promise<HomeJournal[]> {
+export async function journalsFor(
+  email: string,
+  /**
+   * Keep a journal the person owns even when there is nothing in it yet —
+   * B1019. Off by default, so every existing caller asks the question it
+   * always asked.
+   */
+  { evenIfEmpty = false }: { evenIfEmpty?: boolean } = {},
+): Promise<HomeJournal[]> {
   const out: HomeJournal[] = [];
 
   for (const username of getUsernames()) {
@@ -158,7 +166,24 @@ export async function journalsFor(email: string): Promise<HomeJournal[]> {
 
     // No role, or a role that opens nothing: not one of *their* journals.
     if (!role) continue;
-    if (trips.length === 0) continue;
+    /**
+     * A journal with nothing in it is not on the reading list — and **is**
+     * one of the owner's own — B1019.
+     *
+     * This dropped it either way, which is right for the question the landing
+     * page asks ("what can I read") and wrong for the one `/agent` asks
+     * ("whose journals are these"). The two were the same list until somebody
+     * had neither: a brand new owner, signed in, journal made a minute ago,
+     * fell out of it — and `/agent` read the empty list as "not signed in"
+     * and offered them a form to start the journal they already had.
+     *
+     * The state written for exactly that person — *"there is no trip here yet,
+     * tell me about yours"* — was the one state they could never see.
+     *
+     * Only for somebody who owns it. A guest of a journal with no trips has
+     * nothing there and no reason to be shown it.
+     */
+    if (trips.length === 0 && !(evenIfEmpty && owner)) continue;
 
     out.push({
       username,

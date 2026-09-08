@@ -1208,6 +1208,7 @@ export type TranslationKey =
   | "me.spentReason.helper"
   | "me.spentReason.photobook"
   | "me.spentReason.postcard"
+  | "me.spentReason.refunded"
   | "me.spentReason.storage"
   | "me.spentReason.transcription"
   | "me.spentTitle"

@@ -77,9 +77,9 @@ function writeTrip(
   );
 }
 
-async function journalsFor(email: string) {
+async function journalsFor(email: string, options?: { evenIfEmpty?: boolean }) {
   const { journalsFor: fn } = await import("@/lib/home");
-  return fn(email);
+  return fn(email, options);
 }
 
 beforeAll(async () => {
@@ -98,6 +98,9 @@ beforeAll(async () => {
   );
 
   writeJournal(OWNER, OWNER_EMAIL);
+  // B1019 — a journal with nothing in it. Its owner is nobody else here, so
+  // it cannot change what any other case in this file sees.
+  writeJournal("neu", "neu@example.test");
   writeTrip(OWNER, "open-2026", "public");
   writeTrip(OWNER, "ours-2026", "private", [OWNER_EMAIL]);
 
@@ -229,5 +232,36 @@ describe("journalsFor", () => {
       [OWNER, "owner"],
       [OTHER, "guest"],
     ]);
+  });
+});
+
+/**
+ * A journal with nothing in it yet — B1019.
+ *
+ * `journalsFor` answers "what can I read", and a journal made a minute ago has
+ * nothing to read in it, so it was dropped. `/agent` was asking a different
+ * question with the same function — "whose journals are these" — and read the
+ * empty answer as "not signed in": a brand new owner was shown a form offering
+ * to start the journal they had just made, and the one state written to
+ * reassure them was the one they could never reach.
+ */
+describe("a journal that has no trips yet", () => {
+  test("is not on the reading list, because there is nothing to read", async () => {
+    const found = await journalsFor("neu@example.test");
+    expect(found.map((one) => one.username)).not.toContain("neu");
+  });
+
+  test("but is theirs when the question is whose journals these are", async () => {
+    const found = await journalsFor("neu@example.test", { evenIfEmpty: true });
+    const mine = found.find((one) => one.username === "neu");
+    expect(mine?.role).toBe("owner");
+    expect(mine?.trips).toEqual([]);
+  });
+
+  test("and never somebody else's empty journal, whichever question is asked", async () => {
+    for (const options of [{}, { evenIfEmpty: true }]) {
+      const found = await journalsFor(STRANGER, options);
+      expect(found.map((one) => one.username)).not.toContain("neu");
+    }
   });
 });

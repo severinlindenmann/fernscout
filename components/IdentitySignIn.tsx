@@ -72,8 +72,16 @@ export default function IdentitySignIn({
   const sendRef = useRef<HTMLButtonElement | null>(null);
   const [origin, setOrigin] = useState<{ x: number; y: number } | null>(null);
 
-  async function requestCode(event: React.FormEvent) {
+  async function requestCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Read the field the way the browser sees it, not the way React's
+    // `onChange` last heard it — autofill (and some password managers) sets
+    // `.value` without dispatching the event React listens for, which left
+    // `email` at its initial "" forever and the button dead with a real
+    // address already typed in (B787). `required` below is what stops a
+    // truly empty submit, natively and with the browser's own message.
+    const value = String(new FormData(event.currentTarget).get("email") ?? "");
+    setEmail(value);
     setBusy(true);
     setUnavailable(false);
     // Starts on the send itself, independent of whatever the request answers
@@ -95,7 +103,7 @@ export default function IdentitySignIn({
     const response = await fetch("/api/auth/identity/request", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email: value }),
     }).catch(() => null);
     setBusy(false);
 
@@ -117,14 +125,21 @@ export default function IdentitySignIn({
     setStep("code");
   }
 
-  async function submitCode(event: React.FormEvent) {
+  async function submitCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Same reasoning as `requestCode` above — read what the field actually
+    // holds rather than trusting `code` to have followed autofill.
+    const value = String(new FormData(event.currentTarget).get("code") ?? "").replace(
+      /\D/g,
+      "",
+    );
+    setCode(value);
     setBusy(true);
     setWrong(false);
     const response = await fetch("/api/auth/identity/verify", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, code }),
+      body: JSON.stringify({ email, code: value }),
     }).catch(() => null);
 
     if (response?.ok) {
@@ -200,11 +215,18 @@ export default function IdentitySignIn({
           {/* `sendRef` is what the flight is measured from — B762. The
               envelope itself is mounted up at the panel, because a fast
               response swaps this form out and would unmount it mid-flight. */}
+          {/* No `disabled={email === ""}` here any more — B787. That state
+              can be wrong when autofill or a password manager sets the
+              field's value without firing React's `onChange`, and a
+              permanently disabled button then gives a person with a real
+              address in the field nothing to press and no reason why. The
+              field's own `required` is what refuses an actually-empty
+              submit, natively, with the browser's own message pointing at
+              it — which a disabled button cannot do at all. */}
           <BusyButton
             busy={busy}
             ref={sendRef}
             type="submit"
-            disabled={email === ""}
             className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
             busyLabel={t("me.signInSending")}
           >
@@ -240,6 +262,11 @@ export default function IdentitySignIn({
               autoComplete="one-time-code"
               inputMode="numeric"
               pattern="[0-9]*"
+              // `minLength` is what makes "fewer than 6 digits" a submit the
+              // browser itself refuses (B787) — `disabled={code.length < 6}`
+              // read React state that autofill or a code-filling keyboard can
+              // bypass entirely.
+              minLength={6}
               maxLength={6}
               autoFocus
               required
@@ -260,7 +287,6 @@ export default function IdentitySignIn({
           <BusyButton
             busy={busy}
             type="submit"
-            disabled={code.length < 6}
             className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
             busyLabel={t("me.signInSending")}
           >

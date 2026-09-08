@@ -49,30 +49,26 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (145)
+## backlog (143)
 
-### issue (46)
+### issue (41)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1008](backlog/issue/B1008-the-print-target-is-pdf-x.md) | The print target is PDF/X-4 and the fonts are not embedded | ISSUE | high | medium |
-| [B766](backlog/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low |
+| [B1020](backlog/issue/B1020-a-chip-in-the-opening-skips.md) | A chip in the opening skips the consent gate and dead-ends on a panel that is not there | ISSUE | high | low |
+| [B1021](backlog/issue/B1021-the-one-bright-thing-rule-cites.md) | The one-bright-thing rule cites a test that was never written, and is false where it matters | ISSUE | high | low |
 | [B829](backlog/issue/B829-rewording-a-row-did-not-stop.md) | Rewording a row did not stop the wrong one matching | ISSUE | high | low |
-| [B922](backlog/issue/B922-a-credit-is-spent-on-a.md) | Was she charged for a day that was never written, and should she have been? | ISSUE | high | low |
 | [B926](backlog/issue/B926-the-helper-forgets-what-it-was.md) | The helper forgets what it was told one message ago | ISSUE | high | low |
 | [B1000](backlog/issue/B1000-the-route-spread-is-mostly-empty.md) | The route spread is mostly empty for a compact trip | ISSUE | medium | medium |
+| [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
 | [B782](backlog/issue/B782-asking-what-you-have-spent-answers.md) | Asking what you have spent answers with app credits | ISSUE | medium | low |
 | [B785](backlog/issue/B785-an-agent-facing-english-refusal-is.md) | An agent-facing English refusal is shown to a person on a German screen | ISSUE | medium | low |
-| [B787](backlog/issue/B787-the-sign-in-button-may-stay.md) | The sign-in button may stay disabled when the address is autofilled | ISSUE | medium | low |
-| [B790](backlog/issue/B790-a-journal-can-be-created-with.md) | A journal can be created with a currency that is not one, and it can never be corrected | ISSUE | medium | low |
-| [B801](backlog/issue/B801-a-request-with-the-wrong-field.md) | A request with the wrong field name is accepted and silently does nothing | ISSUE | medium | low |
 | [B814](backlog/issue/B814-the-one-screen-a-brand-new.md) | The one screen a brand new journal sees has no heading to land on | ISSUE | medium | low |
 | [B828](backlog/issue/B828-a-journal-may-briefly-not-exist.md) | A journal may briefly not exist while a deploy copies content | ISSUE | medium | medium |
 | [B834](backlog/issue/B834-signup-grants-ten-credits-per-verified.md) | Signup grants ten credits per verified email with no per-identity cap, so credits can be farmed with disposable inboxes | ISSUE | medium | medium |
-| [B837](backlog/issue/B837-a-capability-test-passes-alone-and.md) | A capability test passes alone and fails in the full suite | ISSUE | medium | low |
 | [B853](backlog/issue/B853-component-tests-set-input-values-in.md) | Component tests set input values in a way React never hears | ISSUE | medium | low |
 | [B883](backlog/issue/B883-recordprint-has-no-callers-so-npm.md) | recordPrint has no callers, so npm run verify is red on main | ISSUE | medium | low |
 | [B895](backlog/issue/B895-a-run-on-day-does-not.md) | A run-on day does not raise the photobook price, and a test says it must | ISSUE | medium | low |
@@ -82,7 +78,6 @@ Do not edit them by hand; run the script.
 | [B952](backlog/issue/B952-half-of-a-two-part-request.md) | Half of a two-part request is answered and the other half is dropped without a word | ISSUE | medium | medium |
 | [B971](backlog/issue/B971-saying-a-draft-looks-good-re.md) | Saying a draft looks good re-offers the same card instead of the next one | ISSUE | medium | low |
 | [B977](backlog/issue/B977-the-send-confirmation-explains-what-a.md) | The send confirmation explains what a credit is worth, on a day page nobody asked about pricing on | ISSUE | medium | low |
-| [B998](backlog/issue/B998-the-agent-guide-crossed-its-ceiling.md) | The agent guide crossed its ceiling and main went red for everybody | ISSUE | medium | low |
 | [B1009](backlog/issue/B1009-the-ask-box-on-agent-is.md) | The ask box on /agent is now the only underlined way into the room, beside a row that is not | ISSUE | low | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
@@ -123,7 +118,7 @@ Do not edit them by hand; run the script.
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 | [B909](backlog/big-feature/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-### small-feature (25)
+### small-feature (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -144,6 +139,7 @@ Do not edit them by hand; run the script.
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
 | [B991](backlog/small-feature/B991-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium |
+| [B1025](backlog/small-feature/B1025-push-exists-as-a-capability-and.md) | Push exists as a capability and is not a channel this day can be sent on | FEATURE | low | medium |
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 | [B539](backlog/small-feature/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
 | [B666](backlog/small-feature/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
@@ -153,11 +149,12 @@ Do not edit them by hand; run the script.
 | [B731](backlog/small-feature/B731-a-trip-made-from-the-ask.md) | A trip made from the ask box never shows who can read it | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (1)
+### chore (2)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B990](backlog/chore/B990-the-agent-guide-is-over-its.md) | The agent guide is over its own ceiling on main, so every branch fails verify at the same test | CHORE | medium | low |
+| [B1017](backlog/chore/B1017-photobook-fonts-are-embedded-whole-not.md) | Photobook fonts are embedded whole, not subset | CHORE | low | medium |
+| [B1023](backlog/chore/B1023-npm-run-verify-fails-on-task.md) | npm run verify fails on task-ids.test.ts: five backlog/wont-do tasks have no wontDo field and are misfiled | CHORE | low | low |
 
 ### ops (11)
 
@@ -175,7 +172,7 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### superseded (43)
+### superseded (44)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -210,6 +207,7 @@ Do not edit them by hand; run the script.
 | [B910](backlog/superseded/B910-knip-fails-on-main-defaultsizefor-in.md) | knip fails on main: defaultSizeFor in lib/photobook/spec.ts is exported and called by nothing | CHORE | medium | low |
 | [B983](backlog/superseded/B983-the-send-flow-jumps-pressing-send.md) | The send flow jumps: pressing send reloads the page instead of posting the card | FEATURE | medium | medium |
 | [B993](backlog/superseded/B993-the-agent-guide-is-over-its.md) | The agent guide is over its own byte ceiling on main | ISSUE | medium | low |
+| [B998](backlog/superseded/B998-the-agent-guide-crossed-its-ceiling.md) | The agent guide crossed its ceiling and main went red for everybody | ISSUE | medium | low |
 | [B176](backlog/superseded/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
 | [B243](backlog/superseded/B243-npm-run-postcard-prints-four-lines.md) | npm run postcard prints four lines of Node module-type warning before its own first line | ISSUE | low | low |
 | [B246](backlog/superseded/B246-openapi-json-does-not-document-costsvisibility.md) | openapi.json does not document costsVisibility on POST trips | ISSUE | low | low |
@@ -235,20 +233,23 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (8)
+## in-development (11)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1014](in-development/B1014-the-embedded-print-fonts-are-read.md) | The embedded print fonts are read from the process's working directory, so npm run postcard fails outside the checkout | ISSUE | high | low | `b8352d66` |
 | [B1015](in-development/B1015-b984-moved-the-agent-room-s.md) | B984 moved the agent room's URL and left one test asserting the old one, so main is red | ISSUE | high | low | `b8352d66` |
 | [B1016](in-development/B1016-the-room-s-two-panes-are.md) | The room's two panes are chrome at the top rather than part of the conversation | FEATURE | high | medium | `fdfcf5f2` |
+| [B1018](in-development/B1018-the-language-select-s-arrow-wraps.md) | The language select's arrow wraps and moves, and a newly ticked recipient shows no address | ISSUE | high | low | `b8352d66` |
 | [B980](in-development/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | `a4bbb185` |
 | [B984](in-development/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | `fdfcf5f2` |
-| [B1013](in-development/B1013-the-tile-on-a-day-card.md) | The tile on a day card offers to take the day down and the panel it opens cannot | ISSUE | medium | low | `79cece02` |
+| [B1024](in-development/B1024-the-send-dialog-quotes-a-price.md) | The send dialog quotes a price and never says who gets the day | FEATURE | medium | medium | `79cece02` |
 | [B108](in-development/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium | `6b9bf0a6` |
+| [B801](in-development/B801-a-request-with-the-wrong-field.md) | A request with the wrong field name is accepted and silently does nothing | ISSUE | medium | low | `bdd0270d` |
+| [B837](in-development/B837-a-capability-test-passes-alone-and.md) | A capability test passes alone and fails in the full suite | ISSUE | medium | low | `bdd0270d` |
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 
-## testing (203)
+## testing (211)
 
 ### security (7)
 
@@ -262,13 +263,16 @@ _Nothing here._
 | [B908](testing/security/B908-a-leaked-agent-token-can-be.md) | A leaked agent token can be listed and not ended | SECURITY | medium | low | — |
 | [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (110)
+### issue (117)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1004](testing/issue/B1004-the-recording-microphone-breaks-the-search.md) | The recording microphone breaks the search field's layout, and moving the mouse off it ends the recording | ISSUE | high | low | — |
+| [B1008](testing/issue/B1008-the-print-target-is-pdf-x.md) | The print target is PDF/X-4 and the fonts are not embedded | ISSUE | high | medium | — |
+| [B1019](testing/issue/B1019-a-brand-new-owner-is-shown.md) | A brand new owner is shown a signup form for the journal they already have | ISSUE | high | low | — |
 | [B756](testing/issue/B756-a-party-of-five-overlaps-the.md) | A party of five overlaps the title it was moved onto, and the vehicles cannot be found on a real book | ISSUE | high | low | — |
 | [B764](testing/issue/B764-the-colophon-s-figures-stand-in.md) | The colophon's figures stand in the middle of its own text | ISSUE | high | low | — |
+| [B766](testing/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low | — |
 | [B768](testing/issue/B768-the-file-picker-speaks-the-browser.md) | The file picker speaks the browser's language, not the journal's | ISSUE | high | low | — |
 | [B775](testing/issue/B775-a-guest-trip-s-day-is.md) | A guest trip's day is announced as public, in the feed and readable by anyone with the link | ISSUE | high | low | — |
 | [B781](testing/issue/B781-the-consent-panels-are-a-wall.md) | The consent panels are a wall of text at the moment somebody wants to press a button | ISSUE | high | low | — |
@@ -296,6 +300,7 @@ _Nothing here._
 | [B917](testing/issue/B917-pressing-start-this-day-fails-every.md) | Pressing start this day fails every time | ISSUE | high | low | — |
 | [B920](testing/issue/B920-the-helper-says-it-saved-something.md) | The helper says it saved something when it called no tool | ISSUE | high | medium | — |
 | [B921](testing/issue/B921-the-conversation-speaks-the-phone-s.md) | The conversation speaks the phone's language, not the journal's | ISSUE | high | low | — |
+| [B922](testing/issue/B922-a-credit-is-spent-on-a.md) | Was she charged for a day that was never written, and should she have been? | ISSUE | high | low | — |
 | [B923](testing/issue/B923-asking-that-only-one-person-may.md) | Asking that only one person may read it proposed shutting her out | ISSUE | high | low | — |
 | [B924](testing/issue/B924-a-note-written-for-the-model.md) | A note written for the model is printed to the person | ISSUE | high | low | — |
 | [B925](testing/issue/B925-attaching-the-files-you-ticked-fails.md) | Attaching the files you ticked fails with unknown day | ISSUE | high | low | — |
@@ -328,13 +333,16 @@ _Nothing here._
 | [B975](testing/issue/B975-voice-search-stops-the-instant-it.md) | Voice search stops the instant it starts, and says nothing about why | ISSUE | high | low | — |
 | [B995](testing/issue/B995-the-microphone-in-the-search-box.md) | The microphone in the search box listens and never sends what it heard | ISSUE | high | low | — |
 | [B997](testing/issue/B997-the-hundredths-migration-opens-its-own.md) | The hundredths migration opens its own transaction inside the one the migrator already opened, so it fails on Postgres | ISSUE | high | low | — |
+| [B1013](testing/issue/B1013-the-tile-on-a-day-card.md) | The tile on a day card offers to take the day down and the panel it opens cannot | ISSUE | medium | low | — |
 | [B749](testing/issue/B749-the-figures-float-above-the-title.md) | The figures float above the title with a gap, and repeat on every chapter divider | ISSUE | medium | low | — |
 | [B752](testing/issue/B752-the-sign-in-field-draws-three.md) | The sign-in field draws three focus indicators at once, so it reads as a box inside a box | ISSUE | medium | low | — |
 | [B762](testing/issue/B762-the-envelope-leaves-from-the-panel.md) | The envelope leaves from the panel's corner instead of from the button, and the panel clips its flight | ISSUE | medium | low | — |
 | [B777](testing/issue/B777-creating-a-journal-validates-its-languages.md) | Creating a journal validates its languages and correcting one does not | ISSUE | medium | low | — |
 | [B778](testing/issue/B778-asking-for-weather-on-a-journal.md) | Asking for weather on a journal with weather off is accepted and does nothing | ISSUE | medium | low | — |
 | [B783](testing/issue/B783-an-unrecognised-question-is-answered-with.md) | An unrecognised question is answered with silence | ISSUE | medium | low | — |
+| [B787](testing/issue/B787-the-sign-in-button-may-stay.md) | The sign-in button may stay disabled when the address is autofilled | ISSUE | medium | low | — |
 | [B789](testing/issue/B789-the-slideshow-button-is-a-solid.md) | The slideshow button is a solid navy blob that outranks the actions beside it, and the pills beside it are white on a cream page | ISSUE | medium | low | — |
+| [B790](testing/issue/B790-a-journal-can-be-created-with.md) | A journal can be created with a currency that is not one, and it can never be corrected | ISSUE | medium | low | — |
 | [B793](testing/issue/B793-the-gallery-s-slideshow-button-ignores.md) | The gallery's slideshow button ignores the gallery's own filter and duplicates the map's | ISSUE | medium | low | — |
 | [B796](testing/issue/B796-a-refusal-and-the-model-s.md) | A refusal and the model's answer are both silent to a screen reader | ISSUE | medium | low | — |
 | [B805](testing/issue/B805-the-publish-note-is-english-only.md) | The publish note is English only and is shown to people | ISSUE | medium | low | — |
@@ -453,7 +461,7 @@ _Nothing here._
 | [B815](testing/small-feature/B815-stripe-asks-for-an-email-the.md) | Stripe asks for an email the owner has already given this server | FEATURE | low | low | — |
 | [B826](testing/small-feature/B826-the-checkout-page-is-stripe-s.md) | The checkout page is Stripe's grey, on a site that has a palette | FEATURE | low | low | — |
 
-### chore (13)
+### chore (14)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -464,6 +472,7 @@ _Nothing here._
 | [B896](testing/chore/B896-the-unused-gate-keeps-going-red.md) | The unused gate keeps going red on exports nobody notices | CHORE | medium | low | — |
 | [B912](testing/chore/B912-the-photobook-cover-strings-are-english.md) | The photobook cover strings are English in the Hungarian file | CHORE | medium | low | — |
 | [B930](testing/chore/B930-the-prompt-budget-has-one-token.md) | The prompt budget has one token of headroom and does not say what to do | CHORE | medium | low | — |
+| [B990](testing/chore/B990-the-agent-guide-is-over-its.md) | The agent guide is over its own ceiling on main, so every branch fails verify at the same test | CHORE | medium | low | — |
 | [B724](testing/chore/B724-a-capability-that-needs-another-one.md) | A capability that needs another one is an if rather than a field | CHORE | low | low | — |
 | [B736](testing/chore/B736-build-demo-content-mjs-still-cannot.md) | build-demo-content.mjs still cannot reproduce travelScene, per-item visibility, some captions, or six fixture days | CHORE | low | medium | — |
 | [B811](testing/chore/B811-the-payment-page-still-renders-the.md) | The payment page still renders the TWINT/card chooser under a provider, hidden with a class | CHORE | low | low | — |

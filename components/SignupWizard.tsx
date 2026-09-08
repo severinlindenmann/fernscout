@@ -141,24 +141,33 @@ export default function SignupWizard({
     return json;
   }
 
-  async function requestCode(event: React.FormEvent) {
+  async function requestCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Read what the field actually holds rather than trusting `email` to
+    // have followed autofill — see IdentitySignIn's own `requestCode` (B787).
+    const value = String(new FormData(event.currentTarget).get("email") ?? "");
+    setEmail(value);
     setBusy(true);
     setError(null);
     await fetch("/api/auth/signup/request", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email: value }),
     }).catch(() => null);
     setBusy(false);
     setStep("code");
   }
 
-  async function verifyCode(event: React.FormEvent) {
+  async function verifyCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const value = String(new FormData(event.currentTarget).get("code") ?? "").replace(
+      /\D/g,
+      "",
+    );
+    setCode(value);
     setBusy(true);
     setError(null);
-    const result = await post("/api/auth/signup/verify", { email, code });
+    const result = await post("/api/auth/signup/verify", { email, code: value });
     setBusy(false);
     if (!result) return;
     setSignupToken(result.token as string);
@@ -266,6 +275,7 @@ export default function SignupWizard({
             </label>
             <input
               id="signup-email"
+              name="email"
               type="email"
               autoComplete="email"
               inputMode="email"
@@ -275,10 +285,12 @@ export default function SignupWizard({
               className={input}
             />
           </div>
+          {/* No `disabled={email === ""}` — B787. Autofill can set the field
+              without firing `onChange`, leaving that state stale; `required`
+              above is what refuses a genuinely empty submit, natively. */}
           <BusyButton
             busy={busy}
             type="submit"
-            disabled={email === ""}
             className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
             busyLabel={t("me.signInSending")}
           >
@@ -298,9 +310,14 @@ export default function SignupWizard({
             </label>
             <input
               id="signup-code"
+              name="code"
               autoComplete="one-time-code"
               inputMode="numeric"
               pattern="[0-9]*"
+              // `minLength` makes "fewer than 6 digits" a submit the browser
+              // itself refuses (B787), rather than one gated on React state
+              // that autofill or a code-filling keyboard can bypass.
+              minLength={6}
               maxLength={6}
               required
               value={code}
@@ -311,7 +328,6 @@ export default function SignupWizard({
           <BusyButton
             busy={busy}
             type="submit"
-            disabled={code.length < 6}
             className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
             busyLabel={t("me.signInSending")}
           >

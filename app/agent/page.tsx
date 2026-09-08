@@ -64,7 +64,13 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
   const site = serverSite();
   const identity = isEnabled("auth") ? await resolveIdentity() : null;
   const owned = identity
-    ? (await journalsFor(identity.email)).filter((journal) => journal.role === "owner")
+    ? // Even with nothing in it — B1019. This page asks whose journals these
+      // are, not what there is to read, and a journal made a minute ago has
+      // nothing to read in it. Without this a new owner fell out of the list
+      // and was shown a form to start the journal they had just made.
+      (await journalsFor(identity.email, { evenIfEmpty: true })).filter(
+        (journal) => journal.role === "owner",
+      )
     : [];
 
   const asked = await searchParams;

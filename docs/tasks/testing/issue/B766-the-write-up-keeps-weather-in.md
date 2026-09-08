@@ -6,6 +6,8 @@ priority: high
 complexity: low
 area: agent, model
 found: "2026-09-07T14:03:49Z"
+started: "2026-09-08T19:11:42Z"
+merged: "2026-09-08T19:27:43Z"
 ---
 
 # B766 — The write-up keeps weather in the prose and says in its warnings that it removed it
@@ -106,3 +108,43 @@ options are worth having here:
 
 The live evidence says the current state is the one option not available: an
 instruction the model does not follow, and then reports having followed.
+
+## Decided — 2026-09-08
+
+**Keep the person's sentence.** `lib/helper/model.ts`'s write-day
+`SYSTEM_PROMPT` now says it in one sentence: "A person's own memory of the
+weather stays in, exactly as they gave it: this day's own measured archive
+reading is added alongside it, and the two are different claims, not
+competing ones — what stays forbidden is a temperature, a condition or a
+forecast you supply yourself." The old suppression paragraph ("Never write
+about the weather at all… say so in warnings and leave it out of the prose")
+is deleted, along with "weather you left out" from the `warnings` guidance
+line, since weather is no longer a thing ever left out on purpose.
+
+This *frees* words rather than spending them: the new sentence is shorter
+than the paragraph it replaces, so the prompt's token ceiling (noted in
+AGENTS.md — "four separate fixes ran into its token ceiling") is not a
+concern here; there was room to spare either way.
+
+Nothing downstream assumed the old rule as a hard invariant to unpick:
+
+- `test/helper-write-day.test.ts`'s "the system prompt still carries the
+  invention rule" test asserted `/never write about the weather/i` directly
+  against the old prompt text; updated to assert the new sentence instead and
+  to assert the old phrase is gone.
+- The `warnings[]` field is never rendered to the caller at all (B945,
+  `app/api/helper/[user]/day/write-day/route.ts`), so there was no
+  downstream guard or locale string built on top of "weather is omitted" to
+  unwind — the fix that mattered here landed a day earlier.
+- `threadSystemPrompt` (the *conversational* prompt, not the write-day one)
+  still says "Never write about the weather at all, whatever they ask" — that
+  rule is unrelated and unchanged: it governs the model inventing a forecast
+  in its own chat answers (e.g. answering "what's the weather like"), never
+  the case of relaying a person's own words into a day. `set_day_words`
+  already only ever carries the person's own words in the first place.
+- No `CHECKS`-style honesty-net guard in `lib/helper/model.ts` fired on the
+  weather case specifically (the honesty-net checks there are about claims
+  like "saved"/"published" against what a *turn did*, not about prose
+  content), so there was no guard to worry about re-firing on an honest turn.
+
+Verified with `npm run verify` (see report).
