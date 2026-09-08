@@ -871,6 +871,17 @@ address of their site and cannot be changed afterwards — picking one for
 them, or even offering an example, is the sort of thing they will live with
 for years. Lowercase letters, digits and dashes.
 
+**Unless nobody is asking, because you are testing.** A journal you create to
+prove this API works belongs to no one, and the next person looking at the
+server has to be able to tell that from the name alone: **give it a
+\`test-\` prefix** — \`test-alps\`, \`test-qa-empty\` — and never a name that
+reads like somebody's. There is no flag for it, because a journal is a
+directory and the directory name is the one label that survives every export,
+backup and \`ls\`. \`test: true\` marks content nobody lived; the prefix marks a
+whole journal nobody owns, and it is what makes it safe to delete without
+asking. A real person's journal never starts with \`test-\`, so the rule costs
+them nothing.
+
 One address may own three journals on this server.
 
 ### If it turns out they already have one
