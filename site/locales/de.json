@@ -1554,6 +1554,7 @@
   "agent.room.inbox": "Wartet auf Einordnung",
   "agent.room.onTrip": "Auf {trip}",
   "agent.room.noFiles": "Es wartet nichts, und diese Reise hat noch keine Fotos.",
+  "agent.room.addPhotosNoDay": "Sag zuerst, welcher Tag gemeint ist — ein Foto braucht einen, auf den es kommt.",
   "agent.room.selected": "{count} ausgewählt",
   "agent.room.selected.one": "1 ausgewählt",
   "agent.room.clear": "Auswahl aufheben",

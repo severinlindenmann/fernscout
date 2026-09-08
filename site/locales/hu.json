@@ -1554,6 +1554,7 @@
   "agent.room.inbox": "Besorolásra vár",
   "agent.room.onTrip": "Ezen az úton: {trip}",
   "agent.room.noFiles": "Semmi sem vár, és ezen az úton még nincs fénykép.",
+  "agent.room.addPhotosNoDay": "Mondd meg előbb, melyik napról van szó — egy fényképnek kell egy nap, ahova kerülhet.",
   "agent.room.selected": "{count} kiválasztva",
   "agent.room.selected.one": "1 kiválasztva",
   "agent.room.clear": "Kiválasztás törlése",
