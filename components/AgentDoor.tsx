@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AgentHandover from "@/components/AgentHandover";
+import AgentRow from "@/components/AgentRow";
 import HelperAsk from "@/components/HelperAsk";
 import { AgentBlock } from "@/components/LandingSections";
 import IdentitySignIn from "@/components/IdentitySignIn";
@@ -273,14 +274,17 @@ export default function AgentDoor({
                   somebody came to write, and this is the other way in for
                   somebody who wants to see what they are talking about. */}
                 {journal.helper && (
-                  <p className="mt-4">
-                    <Link
+                  <div className="mt-4">
+                    {/* B1007 — the same row the owner block draws, in the tone
+                      that does not compete: this page has already spent its
+                      one bright thing on the button above. */}
+                    <AgentRow
                       href={`/agent/${encodeURIComponent(journal.username)}/chat`}
-                      className="min-h-11 text-base text-navy-700 underline underline-offset-4 transition-colors hover:text-navy-900"
-                    >
-                      {t("agent.room.roomLink")}
-                    </Link>
-                  </p>
+                      tone="quiet"
+                      title={t("agent.room.roomLink")}
+                      hint={t("agent.room.roomLinkHint")}
+                    />
+                  </div>
                 )}
 
                 {journal.helper && (

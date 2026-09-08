@@ -21,7 +21,7 @@ import { describe, expect, test } from "vitest";
 const root = path.join(__dirname, "..");
 const read = (file: string) => fs.readFileSync(path.join(root, file), "utf8");
 
-const CONTROLS = ["<DayNotify", "<InviteToRead", "<HelperAskHere", "agent.correctDay"];
+const CONTROLS = ["<DayNotify", "<InviteToRead", "<AgentRow", "agent.correctDay"];
 
 describe("the owner's block under a day", () => {
   test("holds all four controls", () => {
