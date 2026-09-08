@@ -49,3 +49,34 @@ established that rewording a prompt is not a change until it is measured.
 
 A caption reads like a label somebody wrote, and still names no place, no
 person and no mood.
+
+## Found still real, and what changed
+
+Confirmed against the code on 2026-09-08: `photoSystemPrompt()` in
+`lib/helper/model.ts` still carried the exact sentence quoted above,
+word for word. No sibling ticket covers this (searched `docs/tasks/` for
+"caption" and "inventory of shapes" — the closest are B687, completed,
+which is about photographs describing *themselves* rather than register,
+and B734, completed, about caption language, not tone).
+
+Changed only the one sentence, exactly to the ticket's proposed
+replacement, leaving every honesty clause (`DESCRIBE ONLY WHAT IS
+VISIBLE`, "do not name a place", "never identify a person", "never guess
+a mood") untouched. Added a regression test in
+`test/helper-describe-photos.test.ts` (`"asks for a label, not an
+inventory of shapes"`) asserting the prompt contains the new "not an
+inventory of every shape" phrase and no longer contains "the colours,
+the setting, the action" — confirmed failing against the old prompt
+(`git stash` of `lib/helper/model.ts` alone) and passing after.
+
+**Not done: re-running the audit's fixtures against the live model.**
+This worktree has no `ANTHROPIC_API_KEY` configured, so no network call
+to the real vision model was possible from here. `describePhotos` is
+stubbed in every test that exercises it (by design, per that file's own
+comment — "what a vision model actually says is not assertable"), so the
+only way to see whether the reworded prompt actually changes the
+register of a real caption is a person, or an agent holding a real key,
+running the audit's own fixture photographs through
+`describePhotos()` directly and reading the captions back. That is the
+one Acceptance line this session could not close — reported rather than
+guessed at.
