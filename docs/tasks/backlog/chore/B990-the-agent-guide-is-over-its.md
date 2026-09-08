@@ -45,3 +45,20 @@ one-line fix on somebody else's branch.
 ## Acceptance
 
 - `npm run verify` exits 0 on `main` with nothing else changed.
+
+## Fixed — and what the fix does not answer
+
+Raised to 144 KiB, with the argument in the test beside the number, which is
+what its own comment asks of anybody who crosses it. Nothing was cut: nothing
+in the guide is yet known to be spare, and trimming a document to fit a number
+is how it stops saying the thing it was grown to say.
+
+B993 and B998 are the same finding and are closed into this one. That three
+sessions filed it within an hour and none fixed it is the part worth keeping:
+a tripwire that only blocks is one every session reads as somebody else's
+problem, and it stopped all three in turn.
+
+**What is still true**: a ceiling raised by eight kilobytes whenever it is hit
+is a budget, just a slower one. B311 is the structural answer, and its shape is
+that what an agent needs on arrival and what it needs at the point of use are
+two documents, only one of which has to be read in full.
