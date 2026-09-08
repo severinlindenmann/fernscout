@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { mediaLoader } from "@/components/mediaLoader";
 import type { TranslationKey } from "@/lib/i18n";
-import { BOOK_SIZES } from "@/lib/photobook/spec";
+import { COVER_TYPES, defaultSizeFor, sizesFor } from "@/lib/photobook/spec";
 import type { BookOptions } from "@/lib/photobook/options";
 import type { MediaTile } from "@/lib/types";
 
@@ -17,6 +17,7 @@ import type { MediaTile } from "@/lib/types";
  * and the order block name the same format and must not drift from this.
  */
 export const SIZE_LABEL: Record<string, TranslationKey> = {
+  pocket: "photobook.size.pocket",
   square: "photobook.size.square",
   portrait: "photobook.size.portrait",
   "large-square": "photobook.size.largeSquare",
@@ -67,6 +68,41 @@ export default function BookSettingsPanel({
 
   return (
     <div className="space-y-6">
+      {/*
+       * Soft or hard — B845. A `<select>` like the size and language pickers
+       * beside it, for the same reason those are selects: this is one choice
+       * out of two named options, not a photograph to look at. It comes first
+       * because it decides which sizes the one below may offer.
+       */}
+      <label className="block">
+        <span className="text-sm font-semibold text-navy-800">
+          {t("photobook.option.coverType")}
+        </span>
+        <select
+          value={options.coverType}
+          onChange={(e) => {
+            const coverType = e.target.value as (typeof COVER_TYPES)[number];
+            setOptions((o) => ({
+              ...o,
+              coverType,
+              size: sizesFor(coverType).some((s) => s.id === o.size)
+                ? o.size
+                : defaultSizeFor(coverType).id,
+            }));
+          }}
+          className="mt-1 block w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm"
+        >
+          {COVER_TYPES.map((c) => (
+            <option key={c} value={c}>
+              {t(`photobook.option.coverType.${c}`)}
+            </option>
+          ))}
+        </select>
+        <span className="mt-1 block text-xs text-navy-600">
+          {t("photobook.option.coverTypeHint")}
+        </span>
+      </label>
+
       <label className="block">
         <span className="text-sm font-semibold text-navy-800">
           {t("photobook.option.size")}
@@ -76,7 +112,7 @@ export default function BookSettingsPanel({
           onChange={(e) => setOptions((o) => ({ ...o, size: e.target.value }))}
           className="mt-1 block w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm"
         >
-          {Object.values(BOOK_SIZES).map((size) => (
+          {sizesFor(options.coverType).map((size) => (
             <option key={size.id} value={size.id}>
               {SIZE_LABEL[size.id] ? t(SIZE_LABEL[size.id]) : size.name}
             </option>

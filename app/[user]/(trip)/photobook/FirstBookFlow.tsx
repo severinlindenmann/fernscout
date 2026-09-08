@@ -7,7 +7,7 @@ import { mediaLoader } from "@/components/mediaLoader";
 import { creditsInRappen, formatChf } from "@/lib/credits/pricing";
 import type { TranslationKey } from "@/lib/i18n";
 import { DAY_LAYOUTS, type BookOptions, type DayLayout } from "@/lib/photobook/options";
-import { BOOK_SIZES } from "@/lib/photobook/spec";
+import { COVER_TYPES, defaultSizeFor, sizesFor, type CoverType } from "@/lib/photobook/spec";
 import type { MediaTile } from "@/lib/types";
 import BookShape, { FormatShape, type BookShapeKind } from "./BookShape";
 import LayoutShape from "./LayoutShape";
@@ -71,7 +71,12 @@ const EXTRAS: {
  * same table the settings panel uses, for the same reason. */
 const LANGUAGE_NAME: Record<string, string> = { en: "English", de: "Deutsch", hu: "Magyar" };
 
-type Step = "resume" | "size" | "text" | "layout" | "days" | "extras" | "cover" | "language" | "summary";
+/**
+ * `"cover"` is the photograph on the front, asked further down; `"coverType"`
+ * is soft-or-hard and comes first, so the size step it feeds can show a full
+ * grid of three either way — see `lib/photobook/spec.ts`'s `sizesFor`.
+ */
+type Step = "resume" | "coverType" | "size" | "text" | "layout" | "days" | "extras" | "cover" | "language" | "summary";
 
 /**
  * One card: a drawing, a name, and a line saying what it does.
@@ -171,6 +176,7 @@ export default function FirstBookFlow({
 }) {
   const steps: Step[] = [
     ...(hadSaved ? (["resume"] as const) : []),
+    "coverType",
     "size",
     "text",
     "layout",
@@ -235,6 +241,19 @@ export default function FirstBookFlow({
   const set = <K extends keyof BookOptions>(key: K, value: BookOptions[K]) =>
     setOptions((o) => ({ ...o, [key]: value }));
 
+  /**
+   * Soft or hard, correcting the size in the same update when the one
+   * already chosen has no product in the new cover — otherwise someone picks
+   * hardcover + large square, goes back, picks softcover, and carries a size
+   * that cannot be printed.
+   */
+  const chooseCoverType = (next: CoverType) =>
+    setOptions((o) => ({
+      ...o,
+      coverType: next,
+      size: sizesFor(next).some((s) => s.id === o.size) ? o.size : defaultSizeFor(next).id,
+    }));
+
   const excluded = (date: string) => options.days[date]?.excluded === true;
   const included = days.filter((d) => !excluded(d.date)).length;
 
@@ -272,10 +291,28 @@ export default function FirstBookFlow({
         </Question>
       )}
 
+      {at === "coverType" && (
+        <Question heading={t("photobook.first.coverType")} hint={t("photobook.first.coverTypeHint")} t={t}>
+          <div className="grid w-full grid-cols-2 gap-2">
+            {COVER_TYPES.map((c) => (
+              <Card
+                key={c}
+                chosen={options.coverType === c}
+                onChoose={() => chooseCoverType(c)}
+                label={t(`photobook.first.coverType.${c}`)}
+                hint={t(`photobook.first.coverType.${c}Hint`)}
+              >
+                <FormatShape sizeId="square" cover={c} />
+              </Card>
+            ))}
+          </div>
+        </Question>
+      )}
+
       {at === "size" && (
         <Question heading={t("photobook.first.size")} hint={t("photobook.first.sizeHint")} t={t}>
           <div className="grid w-full grid-cols-3 gap-2">
-            {Object.values(BOOK_SIZES).map((size) => (
+            {sizesFor(options.coverType).map((size) => (
               <Card
                 key={size.id}
                 chosen={options.size === size.id}

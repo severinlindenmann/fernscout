@@ -1,4 +1,4 @@
-import { BOOK_SIZES } from "@/lib/photobook/spec";
+import { BOOK_SIZES, type CoverType } from "@/lib/photobook/spec";
 
 /**
  * The pages a whole-book decision adds or takes away, drawn — B704.
@@ -181,7 +181,27 @@ export default function BookShape({ kind, size = 40 }: { kind: BookShapeKind; si
  * every format is drawn inside the same box, scaled by the longest edge any of
  * them has, which is also roughly how they compare in the hand.
  */
-export function FormatShape({ sizeId, box = 56 }: { sizeId: string; box?: number }) {
+export function FormatShape({
+  sizeId,
+  box = 56,
+  cover = "soft",
+}: {
+  sizeId: string;
+  box?: number;
+  /**
+   * Soft or hard — B845's cover-type step reuses this same drawing to show
+   * the difference between the two, rather than inventing a second one.
+   *
+   * Softcover is the drawing above, unchanged: the cover flush with the page
+   * block on the three open edges. Hardcover draws the boards overhanging
+   * that same block on those same three edges — Gelato's own numbers give a
+   * 280×280 book a 278×286 board, taller than the block it holds — with a
+   * groove just past the spine standing in for the 8 mm joint Gelato reports.
+   * Never on the spine edge itself: that is where the case wraps round, not
+   * where it overhangs.
+   */
+  cover?: CoverType;
+}) {
   const size = BOOK_SIZES[sizeId] ?? BOOK_SIZES["square"];
   const longest = Math.max(
     ...Object.values(BOOK_SIZES).map((s) => Math.max(s.trimWidthMm, s.trimHeightMm)),
@@ -194,6 +214,10 @@ export function FormatShape({ sizeId, box = 56 }: { sizeId: string; box?: number
   const pages = Math.max(w * 0.06, 2);
   const x = (box - (w + spine + pages)) / 2 + spine;
   const y = (box - h) / 2;
+  // How far the boards stand proud of the page block, and where the joint
+  // falls — both zero for softcover, which draws exactly as before.
+  const overhang = cover === "hard" ? Math.max(w * 0.09, 2) : 0;
+  const joint = cover === "hard" ? Math.max(spine * 0.55, 1.4) : 0;
   return (
     <svg viewBox={`0 0 ${box} ${box}`} width={box} height={box} aria-hidden="true" className="shrink-0">
       {/* The page block, showing past the fore edge — thin rules rather than a
@@ -209,9 +233,35 @@ export function FormatShape({ sizeId, box = 56 }: { sizeId: string; box?: number
           opacity="0.25"
         />
       ))}
+      {/* The board: bigger than the page block by `overhang` on the top,
+          bottom and fore edge for a hardcover, and absent for a soft one —
+          the flush rectangle a softcover already draws needs nothing extra. */}
+      {cover === "hard" && (
+        <rect
+          x={x}
+          y={y - overhang}
+          width={w + pages + overhang}
+          height={h + overhang * 2}
+          fill="currentColor"
+          opacity="0.14"
+        />
+      )}
       {/* The spine, darker: it is the edge in shadow, and it is the part that
           carries the title on a real one. */}
       <rect x={x - spine} y={y} width={spine} height={h} fill="currentColor" opacity="0.5" />
+      {/* The groove beside the spine — a hardcover only, where the case
+          hinges away from the boards. */}
+      {cover === "hard" && (
+        <line
+          x1={x + joint}
+          y1={y - overhang}
+          x2={x + joint}
+          y2={y + h + overhang}
+          stroke="currentColor"
+          strokeOpacity="0.4"
+          strokeWidth="0.7"
+        />
+      )}
       <rect x={x} y={y} width={w} height={h} fill="currentColor" opacity="0.18" />
       <rect
         x={x}
