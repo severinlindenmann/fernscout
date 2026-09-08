@@ -646,14 +646,29 @@ describe("the request endpoint, with no invitation", () => {
   });
 
   for (const [what, token] of [
-    ["no token at all", undefined],
     ["an invented token", "fs_inv_invented"],
-    ["an empty token", ""],
   ] as const) {
     test(`${what} creates no contact and sends no code`, async () => {
       const response = await post({ email: "stranger@example.test", invite: token });
       expect(response.status).toBe(202);
       expect(await response.json()).toEqual({ status: "accepted" });
+      expect(await contactCount()).toBe(0);
+      expect(await codeCount()).toBe(0);
+    });
+  }
+
+  // B801: a missing or empty `invite` is a malformed request, not a wrong
+  // guess — refused by name, unlike an invented token above, because
+  // refusing tells the caller nothing about any token: they already know
+  // they sent none.
+  for (const [what, token] of [
+    ["no token at all", undefined],
+    ["an empty token", ""],
+  ] as const) {
+    test(`${what} is refused as a missing field, writes nothing`, async () => {
+      const response = await post({ email: "stranger@example.test", invite: token });
+      expect(response.status).toBe(400);
+      expect(((await response.json()) as { error?: string }).error).toBe("invalid_invite");
       expect(await contactCount()).toBe(0);
       expect(await codeCount()).toBe(0);
     });
