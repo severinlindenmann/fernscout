@@ -309,3 +309,59 @@ export function readinessReport(readiness: PdfxReadiness): string[] {
   );
   return lines;
 }
+
+/**
+ * What the file actually is, read out of its own bytes.
+ *
+ * `pdfxReadiness` above audits what the writer *intends*: it is handed
+ * `fontsEmbedded: true` as a literal by its callers, so if embedding broke
+ * tomorrow the report would go on saying yes. This reads the produced PDF
+ * instead, which is the only version of the question a printer asks.
+ *
+ * It is **not a general PDF/X validator** and must not grow into one — no
+ * object graph, no stream decoding, no colour-space walk. It checks the
+ * handful of things this writer can get wrong about its own output, which is
+ * how it caught a file claiming PDF/X-4 under a `%PDF-1.4` header.
+ */
+export type PdfxAudit = { ok: boolean; failures: string[]; claims: string | null };
+
+export function auditPdfxBytes(pdf: Uint8Array): PdfxAudit {
+  const bytes = Buffer.from(pdf);
+  const text = bytes.toString("latin1");
+  const failures: string[] = [];
+
+  const claimed = /GTS_PDFXVersion\s*\(([^)]*)\)/.exec(text)?.[1] ?? null;
+  const header = /^%PDF-(\d\.\d)/.exec(text)?.[1] ?? "";
+
+  if (claimed) {
+    // ISO 15930-7 is built on PDF 1.6.
+    if (claimed === "PDF/X-4" && header !== "1.6") {
+      failures.push(`claims PDF/X-4 under a %PDF-${header} header; X-4 is built on PDF 1.6`);
+    }
+    if (!text.includes("<pdfxid:GTS_PDFXVersion>")) {
+      failures.push("claims a PDF/X version in the Info dictionary but not in the XMP packet");
+    }
+    if (!text.includes("/OutputIntents")) failures.push("claims PDF/X with no /OutputIntents");
+    if (!text.includes("/DestOutputProfile")) {
+      failures.push("has an output intent with no embedded /DestOutputProfile");
+    }
+  }
+
+  // Every font dictionary must reach an embedded program. Counting rather than
+  // walking: this writer emits one descriptor per face and nothing else, so a
+  // mismatch is the failure, and a general parser would be a different module.
+  const fonts = (text.match(/\/Type\s*\/Font\b/g) ?? []).length;
+  const embedded = (text.match(/\/FontFile[23]?\b/g) ?? []).length;
+  if (fonts > embedded) {
+    failures.push(`${fonts} font dictionaries but ${embedded} embedded programs`);
+  }
+
+  const pages = (text.match(/\/Type\s*\/Page\b(?!s)/g) ?? []).length;
+  const trims = (text.match(/\/TrimBox\b/g) ?? []).length;
+  if (pages > trims) failures.push(`${pages} pages but ${trims} TrimBoxes`);
+
+  if (text.includes("/Encrypt")) failures.push("is encrypted");
+  if (/\/JavaScript\b|\/JS\b/.test(text)) failures.push("carries JavaScript");
+
+  return { ok: failures.length === 0, failures, claims: claimed };
+}

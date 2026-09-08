@@ -407,6 +407,7 @@ export class PdfBuilder {
   private xmp(created: Date): string {
     const iso = created.toISOString().replace(/\.\d{3}Z$/, "Z");
     const o = this.options;
+
     const pdfx = o.pdfxVersion
       ? `\n   <pdfxid:GTS_PDFXVersion>${xmlText(o.pdfxVersion)}</pdfxid:GTS_PDFXVersion>`
       : "";
@@ -448,9 +449,15 @@ export class PdfBuilder {
       push(`${n} 0 obj\n`);
     };
 
-    push("%PDF-1.4\n");
 
     const o = this.options;
+
+    // PDF/X-4 is ISO 15930-7, and ISO 15930-7 is built on PDF 1.6. A file that
+    // claims X-4 under a 1.4 header is rejected by the first preflight that
+    // reads it — free to find here, and the price of a printed book to find
+    // at the printer. Nothing this writer emits needs a feature beyond 1.4, so
+    // the number follows the claim rather than the content.
+    push(o.pdfxVersion === "PDF/X-4" ? "%PDF-1.6\n" : "%PDF-1.4\n");
     const hasMetadata = Object.keys(o).length > 0;
     const created = o.created ?? new Date();
 
