@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { isEnabled } from "@/lib/capabilities";
+import { isOwner } from "@/lib/contacts/session";
+import { hasHelperConsent } from "@/lib/helper/consent";
+import { speechProvider } from "@/lib/helper/transcribe";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
 import { notFound } from "next/navigation";
@@ -30,8 +34,25 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+/**
+ * B981 — whether speaking here goes to this instance's own transcriber.
+ *
+ * Owner only, and asked on the server so no request has to be made from the
+ * page to find out: a stranger's browser is told nothing about whose journal
+ * this is, and the answer for them is simply absent. `hasHelperConsent` and
+ * `speechProvider` are what `RecordButton` needs to draw its own consent
+ * panel — the same two facts `/agent` reads for it.
+ */
+async function speechFor(
+  user: string,
+): Promise<{ consented: boolean; provider: string } | undefined> {
+  if (!isEnabled("transcription", user)) return undefined;
+  if (!(await isOwner(user))) return undefined;
+  return { consented: hasHelperConsent(user, "speech"), provider: speechProvider() };
+}
+
 export default async function SearchPage({ params }: PageProps<"/[user]/search">) {
   const { user } = await params;
   if (!getUser(user)) notFound();
-  return <SearchPageContent />;
+  return <SearchPageContent username={user} speech={await speechFor(user)} />;
 }

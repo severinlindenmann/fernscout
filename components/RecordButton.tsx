@@ -78,6 +78,7 @@ export default function RecordButton({
   disabled,
   compact,
   onText,
+  label,
 }: {
   username: string;
   /** Whether this journal has already agreed to its owner's voice being sent
@@ -95,6 +96,16 @@ export default function RecordButton({
   /** What was said, once. The host decides where it goes; nothing here writes
    *  anything anywhere. */
   onText: (said: string) => void;
+  /**
+   * What the resting button says, where "hold to talk" is not the whole of it
+   * — B981, and so far only the search page, where speaking goes straight to
+   * the agent and the button has to say *that*. The price is the host's to
+   * include: this replaces the default label, which carried it.
+   *
+   * Never shown while recording or working — those two lines are this
+   * component's own and are the same wherever it is mounted.
+   */
+  label?: React.ReactNode;
 }) {
   const { t, tn, locale } = useI18n();
   const [consented, setConsented] = useState(initialConsent);
@@ -441,6 +452,7 @@ export default function RecordButton({
         {/* The price is on the button, before the hold — on the wizard's own
             words step, where speaking is the thing that step is for. */}
         {heard ??
+          label ??
           t("agent.speechHold", { minutes: String(MINUTES_PER_CREDIT) })}
       </BusyButton>
 

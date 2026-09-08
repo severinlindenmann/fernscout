@@ -1086,6 +1086,7 @@
   "search.subtitle": "Találj meg bármit ebben a naplóban — egy napot, egy utazást, egy oldalt vagy a dokumentációt.",
   "search.voiceStart": "Keresés hanggal",
   "search.voiceStop": "Hallgatás vége",
+  "search.voiceAgent": "Kérdezd az ügynököt hangosan · {minutes} perc beszéd kreditenként",
   "search.voiceBlocked": "A böngésződ nem engedi az oldalnak a mikrofon használatát. Engedélyezd ehhez az oldalhoz, és próbáld újra.",
   "search.voiceNoSpeech": "Nem hallottam semmit. Nyomd meg a mikrofont, és beszélj.",
   "search.voiceNoService": "Ez a böngésző nem ér el beszédfelismerő szolgáltatást, így itt a diktálás nem működik. A gépelés igen.",

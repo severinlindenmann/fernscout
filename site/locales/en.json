@@ -1086,6 +1086,7 @@
   "search.subtitle": "Find anything in this journal — a day, a trip, a page, or the documentation.",
   "search.voiceStart": "Search by voice",
   "search.voiceStop": "Stop listening",
+  "search.voiceAgent": "Ask the agent out loud · {minutes} minutes of speech per credit",
   "search.voiceBlocked": "Your browser is not letting this page use the microphone. Allow it for this site and try again.",
   "search.voiceNoSpeech": "Nothing was heard. Press the microphone and speak.",
   "search.voiceNoService": "This browser has no speech service it can reach, so dictation will not work here. Typing still does.",
