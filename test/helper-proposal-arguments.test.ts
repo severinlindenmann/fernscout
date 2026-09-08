@@ -90,7 +90,23 @@ const SAID: Record<string, Record<string, string>> = {
   start_day: { trip: AS_SAID },
   draft_words: { trip: AS_SAID, slug: DRAFT, notes: "Regen, dann der Pass." },
   set_day_words: { trip: AS_SAID, slug: DRAFT, title: "Der Pass", content: "Ihre Worte." },
-  add_cost: { trip: AS_SAID, slug: DRAFT, label: "Kaffee", amount: "4.50", currency: "CHF" },
+  /**
+   * `category` capitalised, which is what the model really sends — B968.
+   *
+   * This used to pass a valid lowercase value, so the one thing that was
+   * broken was the one thing the test could not see: the field drew whatever
+   * the model said, the route accepts only the lowercase members of
+   * `COST_CATEGORIES`, and both of a tester's costs came back `invalid_cost`
+   * on a press of exactly what they were given.
+   */
+  add_cost: {
+    trip: AS_SAID,
+    slug: DRAFT,
+    label: "Kaffee",
+    amount: "4.50",
+    currency: "CHF",
+    category: "Food",
+  },
   publish_day: { trip: AS_SAID, slug: DRAFT },
   unpublish_day: { trip: AS_SAID, slug: PUBLISHED },
   attach_files: { trip: AS_SAID, slug: DRAFT },
