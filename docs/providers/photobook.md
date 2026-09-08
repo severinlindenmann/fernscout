@@ -63,39 +63,34 @@ No hardcover template has been downloaded yet, and that is the gap worth
 closing: every hardcover measurement we hold comes from the API rather than
 from a file Gelato produced.
 
-**Two things in Gelato's previews look like faults. One is not; one is
-theirs.** Both were measured rather than reasoned about, after the first
-explanation here turned out to be a guess.
+**Both things that looked wrong in Gelato's previews were our TrimBox.**
+They are recorded here because the wrong explanation was written down twice
+before the right one was found, and both wrong explanations were plausible.
 
-*The black band down the right and along the bottom of `preview_flat` is
-correct behaviour.* The preview draws only the **visible** area — the trimmed
-cover for a softcover, the case face for a hardcover — on a canvas the size of
-the whole sheet, anchored top-left. The band is the bleed and the turn-in,
-which are not visible on a finished book. It is proportional to them: about 3%
-on a softcover and about 14% on a hardcover.
+The symptoms: a black band down the right and along the bottom of
+`preview_flat`, and a hardcover `preview_default` mock-up that cropped the
+front panel and clipped the first word of the title. The softcover mock-up of
+the same book was perfect, which is what made it look like a Gelato bug.
 
-That was proved, not inferred. The same hardcover file was submitted twice,
-once unaltered and once with the `/TrimBox` key renamed so the PDF had none:
+It was not. **Gelato positions artwork from the TrimBox**, and this writer was
+declaring one inset from the sheet — first by `wrap + bleed`, then, after a
+half-fix, by the wrap. Gelato's own product template declares
+`TrimBox == BleedBox == MediaBox` on every page. Matching it fixed both
+symptoms at once:
 
-| cover | TrimBox | preview fills |
+| | inset TrimBox | matching the template |
 | --- | --- | --- |
-| hardcover | 424 x 212 | 86.3% |
-| hardcover | none (defaults to MediaBox) | **100.0%** |
-| softcover | 402.72 x 200 | 97.3% |
+| `preview_flat` fill, softcover | 97.3% | **100%** |
+| `preview_flat` fill, hardcover | 86.3% | **100%** |
+| hardcover mock-up | title clipped | **whole title** |
 
-`min(trimW/mediaW, trimH/mediaH)` predicts 86.2% and 97.1%. Removing the
-TrimBox makes the preview look perfect and would make the print worse — it is
-the only thing telling Gelato where the cover is cut. **Do not "fix" the band.**
-
-*The hardcover `preview_default` mock-up genuinely is wrong, and it is theirs.*
-It crops the front panel too far right and clips the first word of the title.
-The softcover mock-up of the same book is perfect. Our file is not at fault:
-measured off Gelato's own faithful `preview_flat` render, our front panel
-begins at **239.9 mm** where their `contentFrontSize.left` says **240.0 mm**.
-The mock-up appears to ignore the 17 mm turn-in on the right edge — that is an
-inference and the millimetre figures are not.
-
-**So: review a hardcover from `preview_flat`, never from the mock-up.**
+Two lessons worth keeping. **The band was measured and explained correctly and
+the conclusion was still wrong** — `min(trimW/mediaW, trimH/mediaH)` predicted
+the fill to a tenth of a percent, which made "their compositor shows the
+trimmed area" convincing; it simply was not the reason it should be ignored.
+And **"the softcover works, so it must be their bug" was the wrong inference**:
+the softcover worked because its wrap is zero, so its inset was 3 mm rather
+than 20, small enough not to show.
 
 **A draft is a parked cart, not a preflight — and this is the trap in reading
 the result above.** Gelato builds the product mock-up from the cover as soon
