@@ -47,12 +47,39 @@ Gelato's own answer. Verified against all six products: our MediaBox equals
 `wraparoundInsideSize`, and our TrimBox equals `wraparoundEdgeSize`, to the
 hundredth of a millimetre.
 
-**One thing that looks like a fault and is not.** Gelato's `preview_flat`
-draws the page scaled by `min(trimW/mediaW, trimH/mediaH)` anchored top-left
-on a canvas the size of the media box, so there is a black band down the right
-and along the bottom. It is proportional to the bleed, so a softcover shows
-about 3% and a hardcover about 14%. It is their preview compositor, not the
-file: the panels land where `contentFrontSize` says they should.
+**Two things in Gelato's previews look like faults. One is not; one is
+theirs.** Both were measured rather than reasoned about, after the first
+explanation here turned out to be a guess.
+
+*The black band down the right and along the bottom of `preview_flat` is
+correct behaviour.* The preview draws only the **visible** area — the trimmed
+cover for a softcover, the case face for a hardcover — on a canvas the size of
+the whole sheet, anchored top-left. The band is the bleed and the turn-in,
+which are not visible on a finished book. It is proportional to them: about 3%
+on a softcover and about 14% on a hardcover.
+
+That was proved, not inferred. The same hardcover file was submitted twice,
+once unaltered and once with the `/TrimBox` key renamed so the PDF had none:
+
+| cover | TrimBox | preview fills |
+| --- | --- | --- |
+| hardcover | 424 x 212 | 86.3% |
+| hardcover | none (defaults to MediaBox) | **100.0%** |
+| softcover | 402.72 x 200 | 97.3% |
+
+`min(trimW/mediaW, trimH/mediaH)` predicts 86.2% and 97.1%. Removing the
+TrimBox makes the preview look perfect and would make the print worse — it is
+the only thing telling Gelato where the cover is cut. **Do not "fix" the band.**
+
+*The hardcover `preview_default` mock-up genuinely is wrong, and it is theirs.*
+It crops the front panel too far right and clips the first word of the title.
+The softcover mock-up of the same book is perfect. Our file is not at fault:
+measured off Gelato's own faithful `preview_flat` render, our front panel
+begins at **239.9 mm** where their `contentFrontSize.left` says **240.0 mm**.
+The mock-up appears to ignore the 17 mm turn-in on the right edge — that is an
+inference and the millimetre figures are not.
+
+**So: review a hardcover from `preview_flat`, never from the mock-up.**
 
 **A draft is a parked cart, not a preflight — and this is the trap in reading
 the result above.** Gelato builds the product mock-up from the cover as soon
