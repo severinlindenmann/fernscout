@@ -7,8 +7,7 @@ complexity: low
 area: helper, honesty
 found: "2026-09-08T12:18:39Z"
 started: "2026-09-08T12:19:20Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T12:19:20Z"
+merged: "2026-09-08T12:25:48Z"
 ---
 
 # B961 — Press to save is not one of the ways of saying press

@@ -7,8 +7,7 @@ complexity: low
 area: helper, costs
 found: "2026-09-08T12:18:38Z"
 started: "2026-09-08T12:19:19Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T12:19:19Z"
+merged: "2026-09-08T12:25:47Z"
 ---
 
 # B959 — The trip total is read as a stranger, so money on a draft day is invisible to its own owner
