@@ -7,8 +7,7 @@ complexity: low
 area: agent, i18n
 found: "2026-09-07T14:29:54Z"
 started: "2026-09-08T20:43:39Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T20:43:39Z"
+merged: "2026-09-08T20:52:27Z"
 ---
 
 # B785 — An agent-facing English refusal is shown to a person on a German screen
