@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: helper, ui
 found: "2026-09-08T19:34:51Z"
+merged: "2026-09-08T19:55:55Z"
 ---
 
 # B1020 — A chip in the opening skips the consent gate and dead-ends on a panel that is not there

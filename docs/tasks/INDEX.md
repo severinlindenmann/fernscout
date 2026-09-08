@@ -49,14 +49,12 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (140)
+## backlog (138)
 
-### issue (38)
+### issue (36)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1020](backlog/issue/B1020-a-chip-in-the-opening-skips.md) | A chip in the opening skips the consent gate and dead-ends on a panel that is not there | ISSUE | high | low |
-| [B1021](backlog/issue/B1021-the-one-bright-thing-rule-cites.md) | The one-bright-thing rule cites a test that was never written, and is false where it matters | ISSUE | high | low |
 | [B829](backlog/issue/B829-rewording-a-row-did-not-stop.md) | Rewording a row did not stop the wrong one matching | ISSUE | high | low |
 | [B926](backlog/issue/B926-the-helper-forgets-what-it-was.md) | The helper forgets what it was told one message ago | ISSUE | high | low |
 | [B1000](backlog/issue/B1000-the-route-spread-is-mostly-empty.md) | The route spread is mostly empty for a compact trip | ISSUE | medium | medium |
@@ -230,13 +228,12 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (13)
+## in-development (12)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1014](in-development/B1014-the-embedded-print-fonts-are-read.md) | The embedded print fonts are read from the process's working directory, so npm run postcard fails outside the checkout | ISSUE | high | low | `b8352d66` |
 | [B1015](in-development/B1015-b984-moved-the-agent-room-s.md) | B984 moved the agent room's URL and left one test asserting the old one, so main is red | ISSUE | high | low | `b8352d66` |
-| [B1016](in-development/B1016-the-room-s-two-panes-are.md) | The room's two panes are chrome at the top rather than part of the conversation | FEATURE | high | medium | `fdfcf5f2` |
 | [B1018](in-development/B1018-the-language-select-s-arrow-wraps.md) | The language select's arrow wraps and moves, and a newly ticked recipient shows no address | ISSUE | high | low | `b8352d66` |
 | [B980](in-development/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | `a4bbb185` |
 | [B984](in-development/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | `fdfcf5f2` |
@@ -248,7 +245,7 @@ _Nothing here._
 | [B907](in-development/B907-most-of-what-a-trip-says.md) | Most of what a trip says about itself can be written once and never corrected | ISSUE | medium | low | `bdd0270d` |
 | [B856](in-development/B856-the-journal-visibility-answer-explains-listing.md) | The journal visibility answer explains listing but not what it decides for trips | ISSUE | low | low | `bdd0270d` |
 
-## testing (213)
+## testing (216)
 
 ### security (7)
 
@@ -262,13 +259,15 @@ _Nothing here._
 | [B908](testing/security/B908-a-leaked-agent-token-can-be.md) | A leaked agent token can be listed and not ended | SECURITY | medium | low | — |
 | [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (119)
+### issue (121)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1004](testing/issue/B1004-the-recording-microphone-breaks-the-search.md) | The recording microphone breaks the search field's layout, and moving the mouse off it ends the recording | ISSUE | high | low | — |
 | [B1008](testing/issue/B1008-the-print-target-is-pdf-x.md) | The print target is PDF/X-4 and the fonts are not embedded | ISSUE | high | medium | — |
 | [B1019](testing/issue/B1019-a-brand-new-owner-is-shown.md) | A brand new owner is shown a signup form for the journal they already have | ISSUE | high | low | — |
+| [B1020](testing/issue/B1020-a-chip-in-the-opening-skips.md) | A chip in the opening skips the consent gate and dead-ends on a panel that is not there | ISSUE | high | low | — |
+| [B1021](testing/issue/B1021-the-one-bright-thing-rule-cites.md) | The one-bright-thing rule cites a test that was never written, and is false where it matters | ISSUE | high | low | — |
 | [B756](testing/issue/B756-a-party-of-five-overlaps-the.md) | A party of five overlaps the title it was moved onto, and the vehicles cannot be found on a real book | ISSUE | high | low | — |
 | [B764](testing/issue/B764-the-colophon-s-figures-stand-in.md) | The colophon's figures stand in the middle of its own text | ISSUE | high | low | — |
 | [B766](testing/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low | — |
@@ -405,12 +404,13 @@ _Nothing here._
 | [B904](testing/big-feature/B904-search-matches-words-not-meaning-a.md) | Search matches words, not meaning — a person who asks for a topic in their own words gets nothing | FEATURE | medium | high | — |
 | [B689](testing/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high | — |
 
-### small-feature (52)
+### small-feature (53)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1005](testing/small-feature/B1005-the-preview-page-does-six-jobs.md) | The preview page does six jobs at once, and only fits a phone | FEATURE | high | medium | — |
 | [B1010](testing/small-feature/B1010-the-postcard-prints-the-web-copy.md) | The postcard prints the web copy of the photograph, then warns that it is small | FEATURE | high | medium | — |
+| [B1016](testing/small-feature/B1016-the-room-s-two-panes-are.md) | The room's two panes are chrome at the top rather than part of the conversation | FEATURE | high | medium | — |
 | [B435](testing/small-feature/B435-no-print-provider-can-actually-post.md) | No print provider can actually post a card — Stannp is built but never called | FEATURE | high | medium | — |
 | [B767](testing/small-feature/B767-the-helper-s-first-screen-asks.md) | The helper's first screen asks a person to make four decisions before they have done anything | FEATURE | high | medium | — |
 | [B769](testing/small-feature/B769-there-is-no-way-back-a.md) | There is no way back a step in the wizard | FEATURE | high | low | — |

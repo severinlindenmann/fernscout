@@ -7,8 +7,7 @@ complexity: medium
 area: helper, ui
 found: "2026-09-08T19:09:44Z"
 started: "2026-09-08T19:09:45Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T19:09:45Z"
+merged: "2026-09-08T19:55:54Z"
 ---
 
 # B1016 — The room's two panes are chrome at the top rather than part of the conversation

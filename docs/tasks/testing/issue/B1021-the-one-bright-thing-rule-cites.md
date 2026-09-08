@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: helper, ui
 found: "2026-09-08T19:34:58Z"
+merged: "2026-09-08T19:55:56Z"
 ---
 
 # B1021 — The one-bright-thing rule cites a test that was never written, and is false where it matters
