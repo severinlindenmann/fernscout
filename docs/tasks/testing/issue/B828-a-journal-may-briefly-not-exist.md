@@ -7,8 +7,7 @@ complexity: medium
 area: users, deploy
 found: "2026-09-07T15:54:42Z"
 started: "2026-09-08T21:30:51Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T21:30:51Z"
+merged: "2026-09-08T21:39:44Z"
 ---
 
 # B828 — A journal may briefly not exist while a deploy copies content
