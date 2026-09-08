@@ -6,6 +6,7 @@ import HelperRoom from "@/components/HelperRoom";
 import LocaleProvider from "@/components/LocaleProvider";
 import type { RoomFiles } from "@/lib/helper/server";
 import { dictionaryFor } from "@/lib/locales";
+import { typeInto } from "./support/type-input";
 
 /**
  * The three panes — B901 and B902, checklists C and D of
@@ -98,17 +99,10 @@ function render(
   return container!;
 }
 
-/** React listens for the setter rather than for an assignment, the same way
- *  `test/helper-chat.test.tsx` has to type. */
 function type(box: HTMLElement, value: string) {
   const field = box.querySelector<HTMLInputElement>("input[type=text]")!;
   act(() => {
-    const setter = Object.getOwnPropertyDescriptor(
-      window.HTMLInputElement.prototype,
-      "value",
-    )!.set!;
-    setter.call(field, value);
-    field.dispatchEvent(new Event("input", { bubbles: true }));
+    typeInto(field, value);
   });
 }
 

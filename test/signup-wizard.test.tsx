@@ -13,6 +13,7 @@ import { clearLocaleCache, dictionaryFor, localesFor } from "@/lib/locales";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { createJournal } from "@/lib/journals";
+import { typeInto } from "./support/type-input";
 
 /**
  * B688 — a visitor with no journal, inside `/agent`.
@@ -98,21 +99,6 @@ describe("the signup wizard", () => {
     return container!.querySelector(`#${id}`) as HTMLInputElement;
   }
 
-  /**
-   * Type into a controlled input the way React can hear.
-   *
-   * `node.value = "x"` goes through the property descriptor React installs,
-   * which updates its own value tracker at the same time — so the `input`
-   * event that follows looks like a no-op and the state never moves. Calling
-   * the *prototype's* setter writes the DOM without telling the tracker,
-   * which is what makes the event read as a real edit.
-   */
-  function type_(node: HTMLInputElement, value: string) {
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
-    setter?.call(node, value);
-    node.dispatchEvent(new Event("input", { bubbles: true }));
-  }
-
   function form(): HTMLFormElement {
     return container!.querySelector("form") as HTMLFormElement;
   }
@@ -147,18 +133,18 @@ describe("the signup wizard", () => {
       );
     });
 
-    type_(input("signup-email"), "new@example.test");
+    typeInto(input("signup-email"), "new@example.test");
     await submit();
 
-    type_(input("signup-code"), "123456");
+    typeInto(input("signup-code"), "123456");
     await submit();
 
-    type_(input("signup-title"), "My Journal");
-    type_(input("signup-username"), "agent");
-    type_(input("signup-owner-name"), "Robin Traveller");
-    type_(input("signup-owner-nickname"), "Robin");
+    typeInto(input("signup-title"), "My Journal");
+    typeInto(input("signup-username"), "agent");
+    typeInto(input("signup-owner-name"), "Robin Traveller");
+    typeInto(input("signup-owner-nickname"), "Robin");
     // B839 — the form will not submit without it.
-    type_(input("signup-currency"), "EUR");
+    typeInto(input("signup-currency"), "EUR");
     await submit();
 
     expect(container!.textContent).toMatch(/reserved by this server/);
@@ -197,9 +183,9 @@ describe("the signup wizard", () => {
       );
     });
 
-    type_(input("signup-email"), "new@example.test");
+    typeInto(input("signup-email"), "new@example.test");
     await submit();
-    type_(input("signup-code"), "123456");
+    typeInto(input("signup-code"), "123456");
     await submit();
 
     for (const [id, value] of [
@@ -209,7 +195,7 @@ describe("the signup wizard", () => {
       ["signup-owner-nickname", "Robin"],
       ["signup-currency", "EUR"],
     ] as const) {
-      type_(input(id), value);
+      typeInto(input(id), value);
     }
 
     function radio(name: string, value: string): HTMLInputElement {
