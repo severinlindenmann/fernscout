@@ -72,14 +72,24 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function render(onText: (said: string) => void) {
+function render(
+  onText: (said: string) => void,
+  props: Partial<React.ComponentProps<typeof RecordButton>> = {},
+) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   act(() => {
     root!.render(
       <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
-        <RecordButton username="alex" consented provider="dry-run" compact onText={onText} />
+        <RecordButton
+          username="alex"
+          consented
+          provider="dry-run"
+          compact
+          onText={onText}
+          {...props}
+        />
       </LocaleProvider>,
     );
   });
@@ -138,5 +148,60 @@ describe("pressing the microphone", () => {
     });
     expect(container!.textContent).not.toContain("Listening");
     expect(said).toEqual(["over the pass"]);
+  });
+
+  /**
+   * B1004 — the other half of "sometimes the microphone works".
+   *
+   * B995 fixed the *click*: a short press toggles, and the pointer leaving
+   * afterwards stops nothing. A press held past `HOLD_MS` is still a hold, and
+   * on the wizard's full-width bar that is correct. In a search field it is
+   * not: the target is 44px in the corner of a text box, nobody keeps a
+   * pointer on it while they speak, and the recording ended before the first
+   * word. `hold={false}` is the search page's answer.
+   */
+  test("with hold off, a long press then a pointer leaving does not end it", async () => {
+    const button = render(() => {}, { hold: false });
+    await act(async () => {
+      button.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      // Longer than HOLD_MS — a perfectly ordinary press.
+      await new Promise((r) => setTimeout(r, 500));
+      button.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+      button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 5));
+    });
+    expect(container!.textContent).toContain("Listening");
+
+    await act(async () => {
+      button.dispatchEvent(
+        new PointerEvent("pointerout", { bubbles: true, relatedTarget: document.body }),
+      );
+      await new Promise((r) => setTimeout(r, 5));
+    });
+    expect(container!.textContent).toContain("Listening");
+  });
+
+  test("with hold on, a long press still ends on release — the wizard is unchanged", async () => {
+    const button = render(() => {});
+    await act(async () => {
+      button.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 600));
+      button.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(container!.textContent).not.toContain("Listening");
+  });
+
+  /**
+   * B1004 — the elapsed line is a sibling of the button, and that is what the
+   * search page's markup is built around: only the button may sit inside the
+   * field, because the field is what centres the magnifying glass. See
+   * test/search-field-layout.test.tsx for the half this file cannot see.
+   */
+  test("the elapsed line is drawn beside the button, not inside it", async () => {
+    const button = render(() => {});
+    await click(button);
+    expect(button.textContent).not.toContain("Listening");
+    expect(container!.textContent).toContain("Listening");
   });
 });

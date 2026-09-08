@@ -81,6 +81,7 @@ export default function RecordButton({
   icon,
   compactClassName,
   language: fixedLanguage,
+  hold: holdToTalk = true,
 }: {
   username: string;
   /** Whether this journal has already agreed to its owner's voice being sent
@@ -135,6 +136,18 @@ export default function RecordButton({
    * already put into a language, and which is answered in that language.
    */
   language?: string;
+  /**
+   * Whether a long press is a hold — B1004. True everywhere it always was:
+   * the wizard's full-width bar, where a thumb is already on the button and
+   * releasing to stop is what a phone does.
+   *
+   * False in a search field, where it was the whole of "sometimes the
+   * microphone works": press, hold a beat, move the mouse away to speak, and
+   * `onPointerLeave` ended the recording before the first word. A 44px target
+   * in the corner of a text box is not something anybody keeps a pointer on
+   * while they talk, so there it is a toggle and nothing but.
+   */
+  hold?: boolean;
 }) {
   const { t, locale } = useI18n();
   const [consented, setConsented] = useState(initialConsent);
@@ -424,9 +437,10 @@ export default function RecordButton({
 
   const release = () => {
     // A hold, released — or a click made while it was already running, which
-    // is the second half of the toggle.
+    // is the second half of the toggle. With `hold` off there is no such
+    // thing as a hold, so only the second half applies.
     if (
-      Date.now() - pressedAt.current >= HOLD_MS ||
+      (holdToTalk && Date.now() - pressedAt.current >= HOLD_MS) ||
       pressedWhileRecording.current
     )
       stop();
@@ -439,7 +453,9 @@ export default function RecordButton({
       if (!recording) press();
     },
     onPointerUp: release,
-    onPointerLeave: release,
+    // A pointer leaving ends a hold and must not end a toggle: on a small
+    // target it leaves the moment somebody starts speaking — B1004.
+    onPointerLeave: holdToTalk ? release : undefined,
     onPointerCancel: release,
     onClick: toggle,
   };
@@ -450,6 +466,11 @@ export default function RecordButton({
   // credits are bought, not on somebody's face while they speak. What a hold
   // costs is still said before it, on the button's own label where there is
   // one, and the ledger on `/<user>/me` is what it was actually charged.
+  // What the button is called, and it has to be true: with `hold` off there
+  // is no holding to talk, and a name that offers it sends somebody looking
+  // for an interaction that is not there — B1004.
+  const howName = holdToTalk ? t("agent.speechHow") : t("agent.speechHowToggle");
+
   const heard = busy
     ? t("agent.speechWorking")
     : recording
@@ -517,13 +538,18 @@ export default function RecordButton({
         <button
           type="button"
           disabled={disabled || busy}
-          aria-label={t("agent.speechHow")}
+          aria-label={howName}
           {...hold}
           className={`${
             compactClassName ?? "absolute right-2 top-2 h-11 w-11 border"
           } flex items-center justify-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-navy-500 focus-visible:outline-none disabled:opacity-50 ${
             recording
-              ? "border-coral-400 bg-coral-100 text-coral-700"
+              // Colours that exist — B1004. `bg-coral-100` and
+              // `text-coral-700` are in no palette this project has
+              // (app/globals.css stops at coral-300/400/600), so while it was
+              // recording the compact button was drawn exactly as it is when
+              // it is not: the one state this control has to show, invisible.
+              ? "border-coral-400 bg-coral-300/30 text-coral-600"
               : "border-navy-300 text-navy-700"
           }`}
         >
@@ -552,7 +578,7 @@ export default function RecordButton({
         // The visible text is the price and then the stopwatch; the accessible
         // name is fixed and says how the control is worked — B794. A name that
         // counted seconds would be re-announced on every tick.
-        aria-label={t("agent.speechHow")}
+        aria-label={howName}
         {...hold}
         className={`min-h-11 w-full rounded-full border px-5 text-base font-semibold disabled:opacity-50 ${
           recording

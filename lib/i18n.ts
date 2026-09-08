@@ -383,6 +383,7 @@ export type TranslationKey =
   | "agent.speechHeard"
   | "agent.speechHold"
   | "agent.speechHow"
+  | "agent.speechHowToggle"
   | "agent.speechLanguage"
   | "agent.speechLanguageDefault"
   | "agent.speechRecording"

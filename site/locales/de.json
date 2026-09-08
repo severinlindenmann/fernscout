@@ -1424,6 +1424,7 @@
   "agent.speechHold": "Zum Sprechen halten · 1 Guthaben pro {minutes} Minuten",
   "agent.speechRecording": "Hört zu… {seconds}s",
   "agent.speechWorking": "Wird zu Worten…",
+  "agent.speechHowToggle": "Sprechen statt tippen. Drücken zum Starten, nochmal drücken zum Beenden.",
   "agent.speechHow": "Sprechen statt tippen. Drücken zum Starten, nochmal drücken zum Beenden, oder zum Sprechen gedrückt halten.",
   "agent.speechStarted": "Aufnahme gestartet.",
   "agent.speechStopped": "Aufnahme beendet.",
