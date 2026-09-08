@@ -1,5 +1,6 @@
 import { editEntry, type CostInput } from "@/lib/api/entries";
 import { AS_AUTHOR, getAllEntries, getEntryBySlug } from "@/lib/entries";
+import { refused } from "@/lib/helper/thread";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { getTrip, tripRef } from "@/lib/trips";
 import { validateEntryEdit } from "@/lib/validate/entry";
@@ -80,6 +81,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   // the day was accepted when it was written.
   const problems = validateEntryEdit({ costs: [added] });
   if (problems.length > 0) {
+    refused(user, "add_cost", "invalid_cost");
     return Response.json({ error: "invalid_cost", problems }, { status: 400 });
   }
 

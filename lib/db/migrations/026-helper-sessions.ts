@@ -25,11 +25,16 @@ import type { MigrationDb } from "./types";
  * That question is the clearest failure signal this product has, and today
  * nothing counts it.
  *
- * ## The words are the exception, not the rule
+ * ## The words are kept, and who may read them is the separate question
  *
- * `said` and `answered` are null unless the journal's owner consented
- * (`sessions` in `lib/helper/consent.ts`). Everything else is recorded for
- * everybody, because none of it is anybody's private business: a tool name is
+ * `said` and `answered` are written for every journal, because they are the
+ * person's own history: returning to a conversation is what they are for, and
+ * one that was not saved is one nobody can come back to. Consent — `sessions`
+ * in `lib/helper/consent.ts` — decides whether the **operator** may read them,
+ * which is a question about a reader and is answered where the reading
+ * happens.
+ *
+ * None of the rest is anybody's private business either way: a tool name is
  * not a holiday.
  *
  * The helper is **owner-only** — every `/api/helper/**` route gates on
@@ -83,9 +88,9 @@ export async function up(db: MigrationDb): Promise<void> {
     // conversation forgets at twelve, and whether that hurts is a number
     // nobody has.
     .addColumn("thread_turns", "integer", (c) => c.notNull().defaultTo(0))
-    // Null unless the owner consented. Not empty string — the difference
-    // between "they said nothing" and "we do not keep their words" is a
-    // difference this table has to be able to state.
+    // Null on a press, which carries none of anybody's prose. Not empty
+    // string: "they said nothing" and "there were no words here to keep" are
+    // different facts and this table has to be able to state both.
     .addColumn("said", "text")
     .addColumn("answered", "text")
     .addColumn("created_at", "text", (c) => c.notNull())

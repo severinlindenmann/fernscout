@@ -560,6 +560,17 @@ export type ThreadAnswer = {
   blocks: Block[];
   /** Proposals a write tool made. Nothing was written; B900 is the press. */
   proposals: Proposal[];
+  /**
+   * Which honesty check caught this turn, if one did, and whether asking again
+   * produced something true — B976.
+   *
+   * Counted since B920 as three process-global integers, which answer "is the
+   * rate rising" and nothing else: not which guard, not on what kind of turn,
+   * and not across a restart. Every fault fixed on 2026-09-08 was found by
+   * paying somebody to drive the live site, because this was not recorded.
+   */
+  guard: string;
+  recovered: boolean;
 };
 
 /**
@@ -1579,6 +1590,10 @@ export async function answerInThread(
   } as const;
 
   const wrong = amiss();
+  // What was caught and whether the second answer was honest — kept so the row
+  // this turn writes can say so (B976), rather than only the counter.
+  const caught = wrong;
+  let recovered = false;
   if (wrong !== "") {
     honesty.claimed += 1;
     messages.push({ role: "assistant", content: answer === "" ? "…" : answer });
@@ -1588,10 +1603,12 @@ export async function answerInThread(
     if (again !== "") {
       honesty.unrecovered += 1;
       answer = say(PLAINLY[again]);
+    } else {
+      recovered = true;
     }
   }
 
-  return { answer, looked, blocks, proposals };
+  return { answer, looked, blocks, proposals, guard: caught, recovered };
 }
 
 /* -------------------------------------------------------------------------

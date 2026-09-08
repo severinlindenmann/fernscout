@@ -522,10 +522,10 @@ type UsageTable = {
  * What happened in one turn of a conversation, or one press — B976.
  *
  * See `026-helper-sessions` for why this is not `usage`: that table is what
- * the instance was charged, this one is what happened. `said` and `answered`
- * are **null unless the owner consented**, and null rather than empty on
- * purpose — "they said nothing" and "we do not keep their words" are different
- * facts and this table has to be able to state both.
+ * the instance was charged, this one is what happened. `said` and `answered` hold
+ * the person's own history and are written for every journal; whether the
+ * **operator** may read them is `operatorMayRead` in lib/helper/sessions.ts.
+ * They are null on a press, which carries no prose at all.
  */
 type HelperSessionsTable = {
   id: string;
