@@ -7,8 +7,7 @@ complexity: low
 area: helper, model
 found: "2026-09-08T10:45:26Z"
 started: "2026-09-08T11:04:06Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T11:04:06Z"
+merged: "2026-09-08T11:08:54Z"
 ---
 
 # B945 — The warnings a drafted day comes back with describe something it did not do
