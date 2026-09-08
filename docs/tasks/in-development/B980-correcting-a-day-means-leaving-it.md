@@ -35,6 +35,13 @@ the same thing the wizard does, minus the round trip through a model for
 
 ## Work
 
+**Round 1 and round 2 are merged.** What they built:
+`app/[user]/trips/[trip]/day/[slug]/edit/route.ts` (the owner's cookie door
+onto `editEntry`), `.../photos/route.ts` (onto `storeUploads`,
+`attachGallery`, `detachGallery`), `components/EditDay.tsx` (the panel), and
+`test/edit-the-day.test.ts`. The tile in `OwnerTools` opens the panel on the
+day page and stays the wizard link on the trip overview.
+
 Round 1 — the words and the day's own facts:
 
 - An edit mode on the day card, opened by the existing tile, closed by
@@ -51,8 +58,12 @@ Round 2 — the pictures:
   and removal. `PATCH` with `captions` and `photoVisibility`.
 - Adding photographs through the existing media endpoint.
 
-Round 3 — the trip:
+Round 3 — still to build:
 
+- Taking a day off the site. The tile says "correct or take down" and the
+  panel can do only the first half; `POST .../days/<slug>/unpublish` is the
+  call and it needs its own owner-cookie door, kept a separate press from
+  save (B28).
 - The trip's own `visibility` and `listed`, from the same panel, through
   `PATCH .../trips/<trip>`.
 
