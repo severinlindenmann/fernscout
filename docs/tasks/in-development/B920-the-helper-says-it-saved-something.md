@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: agent, model
 found: "2026-09-08T07:08:53Z"
+started: "2026-09-08T07:26:32Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T07:26:32Z"
 ---
 
 # B920 — The helper says it saved something when it called no tool

@@ -7,8 +7,7 @@ complexity: low
 area: agent, i18n
 found: "2026-09-08T07:07:05Z"
 started: "2026-09-08T07:07:46Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T07:07:46Z"
+merged: "2026-09-08T07:26:27Z"
 ---
 
 # B919 — A raw error code is read out to a person
