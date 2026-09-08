@@ -213,7 +213,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (10)
+## in-development (9)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -226,9 +226,8 @@ _Nothing here._
 | [B834](in-development/B834-signup-grants-ten-credits-per-verified.md) | Signup grants ten credits per verified email with no per-identity cap, so credits can be farmed with disposable inboxes | ISSUE | medium | medium | `bdd0270d` |
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 | [B738](in-development/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high | `bdd0270d` |
-| [B973](in-development/B973-a-cost-with-no-currency-is.md) | A cost with no currency is filed in the base one without anybody being asked | ISSUE | low | low | `bdd0270d` |
 
-## testing (243)
+## testing (244)
 
 ### security (7)
 
@@ -242,7 +241,7 @@ _Nothing here._
 | [B908](testing/security/B908-a-leaked-agent-token-can-be.md) | A leaked agent token can be listed and not ended | SECURITY | medium | low | — |
 | [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (147)
+### issue (148)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -393,6 +392,7 @@ _Nothing here._
 | [B873](testing/issue/B873-a-video-on-a-day-is.md) | A video on a day is dropped from the captions with no mention | ISSUE | low | low | — |
 | [B874](testing/issue/B874-captions-read-like-an-inventory-of.md) | Captions read like an inventory of shapes rather than a caption | ISSUE | low | low | — |
 | [B876](testing/issue/B876-the-account-page-s-pointer-card.md) | The account page's pointer card on /me is a whole card to say a menu entry exists | ISSUE | low | low | — |
+| [B973](testing/issue/B973-a-cost-with-no-currency-is.md) | A cost with no currency is filed in the base one without anybody being asked | ISSUE | low | low | — |
 
 ### big-feature (14)
 
