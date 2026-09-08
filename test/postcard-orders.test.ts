@@ -9,7 +9,7 @@ import { approveContact, confirmContact, requestContact } from "@/lib/contacts";
 import { issueCode } from "@/lib/auth";
 import { balanceOf, grant, ledgerFor } from "@/lib/credits";
 import { POSTCARD_CREDITS } from "@/lib/credits/pricing";
-import { postcardCandidates } from "@/lib/postcard/contacts";
+import { addressesFor, postcardCandidates } from "@/lib/postcard/contacts";
 import {
   createOrder,
   getOrder,
@@ -471,6 +471,21 @@ describe("what an agent may learn", () => {
     });
     expect(JSON.stringify(candidates)).not.toContain("Bahnhofstrasse");
     expect(JSON.stringify(candidates)).not.toContain("8001");
+  });
+
+  /**
+   * B1018 — the fact the preview page's send step now rests on.
+   *
+   * It resolves an envelope for every *candidate*, not only for the people
+   * already named on the order, because the owner can tick somebody new and
+   * that person is the one whose address they want to check. If `addressesFor`
+   * ever narrowed to "on an order", the disclosure would silently vanish for
+   * exactly the recipient it is for.
+   */
+  test("an address comes back for anybody eligible, order or no order", async () => {
+    const never = await reader("never-ordered@example.test");
+    const envelopes = await addressesFor(OWNER, [never]);
+    expect(envelopes.get(never)?.line1).toBe(ADDRESS.line1);
   });
 
   test("no route under app/api can send an order", () => {
