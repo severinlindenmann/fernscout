@@ -28,6 +28,12 @@ export const dynamic = "force-dynamic";
  * discard" shape `write-day` already uses for prose, applied here to a
  * caption per picture instead of one paragraph.
  *
+ * **Every gallery item gets a row, photograph or not** — B873. A video is
+ * never sent to the model (nothing should be invented from a poster frame),
+ * but its row still comes back, marked `skipped: "video"` with an empty
+ * caption, so a mixed day is never answered with fewer rows than tiles and a
+ * reader has no explanation for the gap.
+ *
  * **A derivative goes to the model, never the original.** `resizedCopy` is
  * the same resize the browser's own gallery reads through
  * `app/[user]/media/[...path]/route.ts`; sending a print-resolution original
@@ -79,8 +85,15 @@ export async function POST(
   const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
   if (!entry) return Response.json({ error: "unknown_day" }, { status: 404 });
 
-  const photos = entry.gallery.filter((item) => item.type === "image");
-  if (photos.length === 0) return Response.json({ error: "no_photos" }, { status: 400 });
+  const gallery = entry.gallery;
+  // Kept as gallery-index pairs, not a plain filter, so a caption or a
+  // `skipped` mark can be written back to the item's own position below —
+  // B873, a day of two photographs and one video answered with two caption
+  // rows and no mention of the third.
+  const photoEntries = gallery
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => item.type === "image");
+  if (photoEntries.length === 0) return Response.json({ error: "no_photos" }, { status: 400 });
 
   // Before the spend, and before consent even: naming photographs is the
   // bigger promise, and a person who has only ever agreed to "your words"
@@ -89,7 +102,7 @@ export async function POST(
     return Response.json({ error: "consent_required" }, { status: 403 });
   }
 
-  const srcs = photos.map((item) => item.src);
+  const srcs = photoEntries.map(({ item }) => item.src);
   const supplied = text(body.idempotency_key);
   const key = supplied === "" ? null : idempotencyKey(user, "helper.describe-photos", supplied);
   const fingerprint = fingerprintOf({ slug, srcs });
@@ -99,7 +112,7 @@ export async function POST(
     return Response.json({ error: "idempotency_conflict" }, { status: 409 });
   }
 
-  const credits = creditsForPhotos(photos.length);
+  const credits = creditsForPhotos(photoEntries.length);
   const ledgerRef = `${user}/${tripId}/${slug}`;
   if (!(await spend(user, credits, "helper", ledgerRef))) {
     return Response.json({ error: "no_credits" }, { status: 402 });
@@ -110,7 +123,7 @@ export async function POST(
     // unreadable image, something already deleted from disk) is answered with
     // an empty caption rather than failing the whole batch over one picture.
     const sendable: { index: number; image: PhotoImage }[] = [];
-    for (const [index, item] of photos.entries()) {
+    for (const { item, index } of photoEntries) {
       const segments = mediaKey(item.src).split("/");
       const file = resolveMediaFile(user, segments);
       const resized = file ? await resizedCopy(file, PHOTO_WIDTH) : null;
@@ -127,7 +140,16 @@ export async function POST(
             defaultLocaleFor(user),
           )
         : [];
-    const bySrc = photos.map((item) => ({ src: item.src, caption: "" }));
+    // Every gallery item gets a row — a video is never sent for description
+    // (nothing should be invented from a poster frame), but it is named
+    // rather than silently dropped, so a person or an agent matching
+    // captions to tiles by position never pairs the wrong text with the
+    // wrong picture. B873.
+    const bySrc = gallery.map((item) => ({
+      src: item.src,
+      caption: "",
+      ...(item.type === "video" ? { skipped: "video" as const } : {}),
+    }));
     sendable.forEach((sent, i) => {
       bySrc[sent.index].caption = captions[i] ?? "";
     });

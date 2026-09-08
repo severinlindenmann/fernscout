@@ -1419,6 +1419,7 @@
   "agent.captionsTitle": "Vorgeschlagene Bildunterschriften",
   "agent.captionsHint": "Lies jede einzelne und übernimm oder verwirf sie. Es ist noch nichts gespeichert.",
   "agent.captionEmpty": "Dazu gibt es nichts zu sagen.",
+  "agent.captionVideo": "Videos werden nicht beschrieben.",
   "agent.speechHold": "Zum Sprechen halten · 1 Guthaben pro {minutes} Minuten",
   "agent.speechRecording": "Hört zu… {seconds}s",
   "agent.speechWorking": "Wird zu Worten…",
