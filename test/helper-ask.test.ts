@@ -252,9 +252,12 @@ describe("a write tool proposes", () => {
       turnCalling("create_trip", { title: "Japan", teaser: "true" } as Record<string, string>),
     );
     const routed = await read(await ask("new trip"));
-    expect((routed.body.proposals as { arguments: Record<string, string> }[])[0].arguments).toEqual({
-      title: "Japan",
-    });
+    const proposed = (routed.body.proposals as { arguments: Record<string, string> }[])[0]
+      .arguments;
+    expect(proposed).not.toHaveProperty("teaser");
+    // The declared ones are all there — since B935 the arguments are the whole
+    // of what a press sends, fields and defaults included.
+    expect(proposed).toEqual({ title: "Japan", start: "", end: "", visibility: "guest" });
   });
 });
 

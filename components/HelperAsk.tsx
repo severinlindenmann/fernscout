@@ -355,22 +355,19 @@ export default function HelperAsk({
     setError("");
     try {
       /**
-       * What is posted: what the model asked for, then **what the server
-       * resolved**, then whatever the person typed over.
+       * What is posted: **the proposal's own arguments**, then whatever the
+       * person typed over.
        *
-       * The middle one is the one that was missing — B915. A `confirm` draws
-       * no fields, so `values` is empty for one, and a proposal whose fields
-       * had filled the day's slug in posted the model's own arguments
-       * without it. The fields are the server's own answer about what this
-       * proposal is for; the preview above the button was rendered from
-       * them, so pressing has to send them or the press is about a different
-       * day from the one that was read.
+       * The fields used to be merged in here as well — B915, because a
+       * `confirm` draws none and a press without them was about a different
+       * day from the one that was read. They are folded into `arguments` at
+       * the source now (B935, B936), so this merge would only be a second
+       * copy of the same rule, in the one place that must not be the thing
+       * making a proposal correct: anything else reading `arguments` — an
+       * agent, a test, the next surface somebody builds — gets exactly what
+       * this button sends.
        */
-      const sent = {
-        ...proposal.arguments,
-        ...Object.fromEntries(proposal.fields.map((field) => [field.name, field.value])),
-        ...values,
-      };
+      const sent = { ...proposal.arguments, ...values };
       const answer = await send(proposal.endpoint, sent, proposal.method);
 
       /**
