@@ -38,7 +38,7 @@ import { OWNER_TOOL, OWNER_TOOL_CELL } from "./ownerToolClass";
  * say yes" — which is why it is the sentence rendered rather than a shorter
  * one written here.
  *
- * Rendered by `OwnerTools` as one cell of its grid — hence `col-span-2` on
+ * Rendered by `OwnerTools` as one cell of its grid — hence `col-span-full` on
  * the state that is a panel rather than a tile (B877) — and only where the
  * viewer is already known to be the owner
  * (`canPublish`, which is exactly `isOwner` — see `lib/tripGate.ts`), and it
@@ -94,7 +94,7 @@ export default function InviteToRead({ username }: { username: string }) {
 
   if (link) {
     return (
-      <div className="col-span-2 rounded-2xl border border-navy-200 bg-white p-4">
+      <div className="col-span-full rounded-2xl border border-navy-200 bg-white p-4">
         <p className="font-display text-base font-semibold text-navy-900">
           {t("me.inviteGuestTitle")}
         </p>

@@ -52,12 +52,12 @@ export default function OwnerTools({
   return (
     <section
       aria-label={t("owner.onlyYou")}
-      className="mt-8 rounded-2xl border border-navy-200 bg-cream-100 p-4"
+      className="mt-8 rounded-xl border border-navy-200 bg-cream-100 p-3"
     >
       <p className="font-display text-sm font-semibold text-navy-900">{t("owner.onlyYou")}</p>
-      <p className="mt-1 text-xs leading-5 text-navy-600">{t("owner.onlyYouBody")}</p>
+      <p className="mt-0.5 text-xs leading-5 text-navy-600">{t("owner.onlyYouBody")}</p>
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-3">
         {day && <DayNotify username={username} tripId={day.tripId} slug={day.slug} />}
         <InviteToRead username={username} />
         {/* B816 — the way back into a day that is already on the site. Only on
@@ -77,7 +77,7 @@ export default function OwnerTools({
       {/* The rule is the point: above it are the things with their own button,
           below it is the same intent said in words. B844's box, moved rather
           than changed. */}
-      <div className="mt-4 border-t border-navy-200 pt-1">
+      <div className="mt-3 border-t border-navy-200 pt-2">
         <HelperAskHere username={username} />
       </div>
     </section>

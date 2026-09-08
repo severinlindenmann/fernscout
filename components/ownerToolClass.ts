@@ -15,7 +15,7 @@
  * so a two-line label does not leave a short tile beside it.
  */
 export const OWNER_TOOL =
-  "flex min-h-16 w-full grow items-center rounded-xl border border-navy-200 bg-white px-3 py-2 text-left text-xs font-semibold leading-5 text-navy-900 transition-colors hover:border-navy-500 disabled:opacity-60";
+  "flex min-h-11 w-full grow items-center rounded-lg border border-navy-200 bg-white px-3 py-2 text-left text-xs font-semibold leading-5 text-navy-900 transition-colors hover:border-navy-500 disabled:opacity-60";
 
 /** The wrapper a tile that can also show an error message needs. */
 export const OWNER_TOOL_CELL = "flex flex-col gap-1";
