@@ -139,6 +139,46 @@ grep -ril "<keyword>" docs/tasks/
 Never open a second task for something already listed. Close but not the same?
 Reference it by id in the new one (`related to B01`).
 
+**When a person asks for the task, interview them before you write it.** A
+capture you made yourself is a note to the next agent and needs no ceremony;
+a capture *they* asked for is a statement of what they want built, and a task
+file that guesses at that is how a fortnight goes into the wrong thing. The
+first description is never the whole of it — "I want the day page to load
+faster" leaves the type, the scope, what "faster" means and which page
+entirely open.
+
+So: **before running `new`, ask, with `AskUserQuestion`, and ask a lot.** Four
+questions per call is the ceiling, so use several calls in a row — keep going
+until you could write the Why, Work and Acceptance sections without inventing
+anything. Six to twelve questions is normal for a feature; two or three for a
+one-line bug. Multiple choice, with a recommendation first, because picking
+from four is faster for them than writing prose — and `Other` is always there
+for the answer you did not think of.
+
+Ask about, roughly in this order:
+
+- **What is actually wrong or missing**, in their words — the problem, not the
+  fix. Offer readings of an ambiguous description as the options.
+- **Scope**: which page, which route, which journal, whose view — owner, guest,
+  agent over the API. And what is deliberately *out*.
+- **`type`, `priority` and `complexity`** — never guessed. `priority` is what
+  it costs to leave alone and only they know that; `complexity: high` on a
+  FEATURE is a claim that this is a fortnight, and it decides the folder.
+- **Acceptance**: how they will know it is done. A command, a page, a
+  behaviour they can see. If they cannot say, the task is not ready.
+- **Anything they have already decided** — an approach they want, one they have
+  ruled out, a file they think it lives in. That goes into Work.
+
+Then read the whole thing back in a sentence or two before running the script,
+and let them correct it. Blocking is fine here: this is the one moment where
+stopping to ask is cheaper than everything that follows.
+
+Two things not to do. **Do not interview yourself** — a capture you noticed
+while doing something else goes straight to `backlog/` with what you know, and
+their review step is where the questions get asked. And **do not turn the
+answers into permission**: an interviewed task still lands in `backlog/`, and
+promoting it is still theirs (step 2).
+
 ```bash
 npm run tasks -- new \
   --type SECURITY --priority high --complexity low \
@@ -312,6 +352,9 @@ leaves no trace gets proposed again in three months.
 ## Red flags — stop
 
 - About to write code, and there is no task → capture it first.
+- A person asked for a task and you ran `new` off their first sentence →
+  interview them first; a guessed `priority` or a missing Acceptance is a
+  fortnight aimed at the wrong thing.
 - Moving something you captured into `open/` → that is the author's call.
 - `open/` is empty, so taking the best-looking thing from `backlog/` → stop
   and ask.
