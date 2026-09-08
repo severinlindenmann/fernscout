@@ -202,8 +202,11 @@ test("a day the room opens with is read from the same route the wizard reads", (
 
 test("the files sheet is a dialog with one obvious way back", () => {
   const box = render();
+  // The trigger is the strip above the composer now — B1016 — rather than a
+  // header pill, so it is found by its accessible name rather than by
+  // visible text: what is visible is thumbnails, not the word "Files".
   const open = [...box.querySelectorAll("button")].find(
-    (button) => button.textContent === "Files",
+    (button) => button.getAttribute("aria-label") === "Files",
   )!;
   act(() => open.click());
   const sheet = document.querySelector("dialog")!;
@@ -311,5 +314,145 @@ describe("the notice about what is kept", () => {
     // promise of privacy would be the dishonest version of this.
     expect(box.textContent).toContain("We read them to make Fernscout better");
     expect(box.textContent).toContain("turn that off");
+  });
+});
+
+/**
+ * A chip is a shortcut for typing, consent gate included — B1020.
+ *
+ * The chips in the opening used to call `ask()` on their own, past the same
+ * check the field's own Ask button goes through first. A first-time owner
+ * pressing the brightest thing on the screen landed on
+ * "this journal has not yet agreed to a model being spoken to. Agree on the
+ * panel above" — with no panel anywhere on it. This presses a chip on a
+ * journal that has not consented and expects the panel, not the error.
+ */
+test("a chip in the opening opens the consent panel rather than dead-ending on it", () => {
+  container = document.createElement("div");
+  document.body.appendChild(container);
+  root = createRoot(container);
+  act(() => {
+    root!.render(
+      <LocaleProvider locale="en" dictionary={dictionary}>
+        <HelperRoom
+          username="alex"
+          title="A Journal"
+          files={FILES}
+          currency={CURRENCY}
+          opening={null}
+          first={{ state: "clear", lastDate: "2026-04-01" }}
+          consented={false}
+          speech={false}
+          consentedSpeech={false}
+          speechProvider="dry-run"
+        />
+      </LocaleProvider>,
+    );
+  });
+
+  const chip = [...container.querySelectorAll("button")].find(
+    (button) => button.textContent === "New day",
+  )!;
+  act(() => chip.click());
+
+  expect(container.textContent).not.toContain("has not yet agreed");
+  expect(container.textContent).toContain("Sends what you type");
+});
+
+/**
+ * The two mobile pills, and where they went — B1016.
+ *
+ * "Files" and "How it looks" sat in the header, one of them disabled until a
+ * day was under discussion — a new owner's first impression of the room. Both
+ * are chrome for things that are local, and both are gone from here; what
+ * replaced them is checked below.
+ */
+test("the header carries no pills for files or preview", () => {
+  render();
+  const labels = [...document.querySelector("header")!.querySelectorAll("button")].map(
+    (button) => button.textContent,
+  );
+  expect(labels).not.toContain("Files");
+  expect(labels).not.toContain("How it looks");
+});
+
+/**
+ * The preview, inline in the turn that named the day — B1016.
+ *
+ * "A really small emoji or thumbnail in the chat with a button Preview, and
+ * not a button at the top" was the owner's own reading, and this is that: a
+ * turn ending in a proposal that names a day carries a small card, and
+ * pressing it is what used to take a header button.
+ */
+test("a turn that named a day carries a preview affordance", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url.endsWith("/ask")) {
+        return {
+          ok: true,
+          json: async () => ({
+            blocks: [
+              {
+                shape: "confirm",
+                text: "Publish this day?",
+                proposal: {
+                  tool: "publish_day",
+                  // No `date` — the card falls back to a plain label, which
+                  // is what makes this assertion locale-independent.
+                  arguments: { trip: "a-trip", slug: "tuesday" },
+                  sentence: "Publish this day?",
+                  fields: [],
+                  endpoint: "/api/helper/alex/day/publish",
+                  method: "POST",
+                  accept: "Publish",
+                  done: "Published.",
+                },
+              },
+            ],
+          }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({ preview: null }) } as Response;
+    }),
+  );
+
+  const box = render();
+  type(box, "publish tuesday");
+  const ask = [...box.querySelectorAll("button")].find((button) => button.textContent === "Ask")!;
+  await act(async () => {
+    ask.click();
+  });
+
+  const chip = [...box.querySelectorAll("button")].find((button) =>
+    // The marker's emoji is part of the button's own text too (`aria-hidden`
+    // only hides it from a screen reader, not from `textContent`), so this
+    // checks for the label rather than the label alone.
+    (button.textContent ?? "").includes("How it looks"),
+  );
+  expect(chip).toBeDefined();
+
+  expect(document.querySelector("dialog")).toBeNull();
+  act(() => chip!.click());
+  // No `matchMedia` in jsdom — the room reads that defensively and falls back
+  // to the phone's own behaviour, which is the one this ticket is about.
+  expect(document.querySelector("dialog")).not.toBeNull();
+});
+
+/**
+ * The strip's own live region — B1016, and the same rule B949 wrote down for
+ * the drawer's count: a region created at the same moment as its first
+ * content is one a screen reader may never have been watching.
+ */
+describe("the files strip", () => {
+  test("its live region is mounted before anything is picked", () => {
+    const box = render();
+    // The drawer's own region already does this (B949); this counts at
+    // least two empty ones now that the strip has its own — not "is there
+    // once something is selected", there, now, empty.
+    const empty = [...box.querySelectorAll('[role="status"]')].filter(
+      (one) => one.textContent === "",
+    );
+    expect(empty.length).toBeGreaterThanOrEqual(2);
   });
 });

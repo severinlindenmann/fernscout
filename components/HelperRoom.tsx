@@ -40,6 +40,17 @@ import type { Day, DaySummary } from "@/lib/types";
  * on the button that opened it, and every one of those is checklist D asking
  * for something a hand-rolled overlay would have to earn again.
  *
+ * **Since B1016 nothing above the conversation opens either dialog.** A
+ * header row with two pills was chrome for things that are local: a preview
+ * is about the one day a turn just named, so `HelperAsk` draws a small card
+ * inside that turn (`DayChip`) and its press is what opens the full-screen
+ * sheet now — `onPreview`, below. Files are picked up beside the field that
+ * is about to mention them, so they are a slim strip above the composer
+ * (`FilesStrip`) rather than a button above the whole screen; a tap still
+ * opens the same `<dialog>` `FilesPane` always has. The dialogs and their
+ * focus behaviour are unchanged — only what opens them moved into the
+ * conversation.
+ *
  * **Both panes are additions and neither is a requirement.** With the files
  * pane hidden and the preview empty this is exactly the conversation B899 and
  * B900 built: `HelperAsk` takes `selected` and `onSubject` as optional props
@@ -116,7 +127,7 @@ export default function HelperRoom({
   consentedSpeech: boolean;
   speechProvider: string;
 }) {
-  const { t, tn } = useI18n();
+  const { t } = useI18n();
 
   const [selected, setSelected] = useState<string[]>([]);
   /**
@@ -132,6 +143,18 @@ export default function HelperRoom({
   const [subject, setSubject] = useState<Subject | null>(
     opening ? { ...opening, at: 0 } : null,
   );
+  /** Whether the field in `HelperAsk` has focus — B1016. The files strip
+   *  collapses while it does: the arithmetic in B1016 is what is left of a
+   *  390 × 844 phone with the keyboard up, and there is not room for both. */
+  const [fieldFocused, setFieldFocused] = useState(false);
+  /** Where the desktop preview column is, so an inline card's press can
+   *  scroll to it rather than opening the phone's full-screen sheet over a
+   *  layout that already has room for the preview — B1016. */
+  const previewRef = useRef<HTMLElement>(null);
+  const [scrollTick, setScrollTick] = useState(0);
+  useEffect(() => {
+    if (scrollTick > 0) previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [scrollTick]);
   /** The last answer that came back, and which mention it answered. Kept as
    *  one value rather than as a card and a flag: "still reading" is then a
    *  comparison instead of a second piece of state to keep in step — and the
@@ -140,6 +163,15 @@ export default function HelperRoom({
   const [landed, setLanded] = useState<{ at: number; preview: Preview | null } | null>(null);
   const preview = landed?.preview ?? null;
   const reading = subject !== null && landed?.at !== subject.at;
+
+  /** The one photograph a turn's inline card is allowed to show without a
+   *  fetch of its own — B1016. Named to the exact day it is a read of, so a
+   *  card about a different day draws a marker instead of somebody else's
+   *  photograph. */
+  const dayPhoto =
+    subject && preview
+      ? { trip: subject.trip, slug: subject.slug, src: preview.day.lead.gallery[0]?.src ?? null }
+      : null;
 
   // Desktop only: a column a person has put away. The conversation never
   // moves, which is the point of putting either away.
@@ -212,6 +244,15 @@ export default function HelperRoom({
     <PreviewPane preview={preview} reading={reading} currency={currency} />
   );
 
+  const filesStrip = (
+    <FilesStrip
+      files={{ ...files, inbox }}
+      selected={selected}
+      collapsed={fieldFocused}
+      onOpen={() => setSheet(true)}
+    />
+  );
+
   return (
     // The room is the viewport, less the one thin frame `app/agent/layout.tsx`
     // puts over every page here (a back link, 3.5rem). Subtracting it is what
@@ -252,31 +293,23 @@ export default function HelperRoom({
           </h1>
         )}
 
-        {/* Reachable and dismissible by keyboard, both shapes — checklist D.
-            On a phone these open the two dialogs; from `lg` up they put a
-            column away and bring it back, and the conversation does not move
-            either way. */}
-        <button
-          type="button"
-          onClick={() => setSheet(true)}
-          className="min-h-11 rounded-full border border-navy-300 px-4 text-sm font-semibold text-navy-800 lg:hidden"
-        >
-          {selected.length > 0
-            ? tn("agent.room.selected", selected.length, { count: String(selected.length) })
-            : t("agent.room.files")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setFull(true)}
-          disabled={!subject}
-          className="min-h-11 rounded-full border border-navy-300 px-4 text-sm font-semibold text-navy-800 disabled:opacity-50 lg:hidden"
-        >
-          {t("agent.room.preview")}
-        </button>
+        {/*
+          Both mobile pills that used to live here are gone — B1016. They were
+          chrome for things that are local: a preview is about the one day a
+          turn just named, so it is a small card inside that turn now
+          (`DayChip` in `HelperAsk`, opened with `onPreview` below); files are
+          picked up beside the field that is about to mention them, so they
+          are the strip above the composer instead (`filesStrip`, handed to
+          `HelperAsk`). Neither needed a place in a row that also has to hold
+          the journal's own name.
+        */}
 
         {/* The same control, drawn the same way — B947. These were text links
             at `lg` and pill buttons below it: one function, two treatments,
-            decided by how wide somebody's window happened to be. */}
+            decided by how wide somebody's window happened to be. Kept here
+            because a laptop still has room for a column to put away — B1016
+            only removed the *phone's* pills, which had nowhere to put a
+            column at all. */}
         <button
           type="button"
           onClick={() => setShowFiles((was) => !was)}
@@ -325,6 +358,35 @@ export default function HelperRoom({
               setInbox((was) => was.filter((file) => !gone.has(file.id)));
               setSelected((was) => was.filter((id) => !gone.has(id)));
             }}
+            dayPhoto={dayPhoto}
+            /**
+             * A turn's inline card was pressed — B1016. "Look at it" means
+             * something different depending on how much screen there is:
+             * full screen on a phone, where nothing else is up, or scrolling
+             * the column that is already open on a wider one. `matchMedia`
+             * is read defensively — a caller with none (a test) gets the
+             * phone's own behaviour, which is the one this ticket is
+             * actually about. Inline rather than a named function above:
+             * `Date.now()` inside a plain function declaration reads to the
+             * linter as something that might run during render; here it is
+             * unambiguously an event handler, the same shape `onSubject`
+             * below already uses.
+             */
+            onPreview={(day) => {
+              setSubject({ ...day, at: Date.now() });
+              const desktop =
+                typeof window !== "undefined" &&
+                typeof window.matchMedia === "function" &&
+                window.matchMedia("(min-width: 1024px)").matches;
+              if (desktop) {
+                setShowPreview(true);
+                setScrollTick((n) => n + 1);
+              } else {
+                setFull(true);
+              }
+            }}
+            filesStrip={filesStrip}
+            onFieldFocusChange={setFieldFocused}
           />
 
           {/*
@@ -350,6 +412,7 @@ export default function HelperRoom({
         {/* Right. */}
         {showPreview && (
           <section
+            ref={previewRef}
             aria-label={t("agent.room.preview")}
             className="hidden min-h-0 overflow-y-auto border-l border-navy-200 bg-cream-50 p-3 lg:block lg:w-80 lg:shrink-0"
           >
@@ -541,6 +604,85 @@ function FilesPane({
       )}
 
       <UploadPanel username={username} subject={subject} onUploaded={onUploaded} />
+    </div>
+  );
+}
+
+/**
+ * The files, as a slim strip above the composer rather than a pane above the
+ * conversation — B1016.
+ *
+ * A header pill used to open this on a press; now it is always in view when
+ * there is anything to show, about 50px tall, and a tap expands it into the
+ * same `FilesPane` the pill used to open — the drawer is one mechanism, not
+ * two. Mobile only (`lg:hidden`): the wide layout already has the files as
+ * their own column, and a second copy of it above the composer would be a
+ * pane repeating a pane.
+ *
+ * **Collapses while the field has focus.** The arithmetic in the ticket is
+ * why: on a 390 × 844 phone with the keyboard up there is 126px left below
+ * the back bar, the room header and the composer — two lines of conversation
+ * with a 50px strip, and none at all with the 40% tray a literal "pane below
+ * the chat" would have been.
+ *
+ * **Its live region is the third on this screen, and it is mounted from the
+ * first render** — B949 is the record of what happens to the second one that
+ * was not: created at the same moment as its first content, and a screen
+ * reader may never have been watching it. So this one exists, empty, whether
+ * or not there is anything to show, and says nothing until there is.
+ */
+function FilesStrip({
+  files,
+  selected,
+  collapsed,
+  onOpen,
+}: {
+  files: RoomFiles;
+  selected: string[];
+  /** The field in `HelperAsk` has focus. */
+  collapsed: boolean;
+  onOpen: () => void;
+}) {
+  const { t, tn } = useI18n();
+  const items = [...files.inbox, ...files.trip];
+  const show = items.length > 0 && !collapsed;
+
+  return (
+    <div className="lg:hidden">
+      <span role="status" className="sr-only">
+        {selected.length > 0
+          ? tn("agent.room.selected", selected.length, { count: String(selected.length) })
+          : ""}
+      </span>
+      {show && (
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-label={
+            selected.length > 0
+              ? tn("agent.room.selected", selected.length, { count: String(selected.length) })
+              : t("agent.room.files")
+          }
+          className="mb-2 flex h-[50px] w-full items-center gap-1.5 overflow-x-auto rounded-xl border border-navy-200 bg-cream-50 p-1"
+        >
+          {items.map((file) => (
+            <span
+              key={file.id}
+              className={`relative block h-full w-[42px] shrink-0 overflow-hidden rounded-md border bg-white ${
+                selected.includes(file.id) ? "border-navy-800 ring-2 ring-navy-800" : "border-navy-200"
+              }`}
+            >
+              {file.src ? (
+                <Image src={file.src} loader={mediaLoader} alt="" fill sizes="42px" className="object-cover" />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center text-sm" aria-hidden>
+                  📄
+                </span>
+              )}
+            </span>
+          ))}
+        </button>
+      )}
     </div>
   );
 }

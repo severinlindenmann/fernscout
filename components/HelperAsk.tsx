@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import Image from "next/image";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import RecordButton from "@/components/RecordButton";
 import { useI18n } from "@/components/LocaleProvider";
+import { mediaLoader } from "@/components/mediaLoader";
 import RoomOpening from "@/components/RoomOpening";
 import type { Opening } from "@/lib/helper/opening";
 import type { Block, Proposal, ProposalField } from "@/lib/helper/blocks";
@@ -180,6 +182,21 @@ function dayOf(blocks: Block[]): { trip: string; slug: string } | null {
   return null;
 }
 
+/** The date a turn's own proposal carries, for the inline card below — B1016.
+ *  Every write tool that already has a day resolves and fills a `date`
+ *  argument (`start_day`'s own questions, B917, and every tool after it), so
+ *  this reads the same `arguments` `dayOf` already reads rather than asking
+ *  for anything new. Absent is honest too: the card falls back to a plain
+ *  label rather than a blank date. */
+function dateOf(blocks: Block[]): string | null {
+  for (const block of [...blocks].reverse()) {
+    if (block.shape !== "form" && block.shape !== "confirm") continue;
+    const date = block.proposal?.arguments.date;
+    if (typeof date === "string" && date !== "") return date;
+  }
+  return null;
+}
+
 export default function HelperAsk({
   username,
   consented: initialConsent,
@@ -189,6 +206,10 @@ export default function HelperAsk({
   selected,
   onSubject,
   onFilesMoved,
+  dayPhoto,
+  onPreview,
+  filesStrip,
+  onFieldFocusChange,
   inRoom = false,
   opened = [],
   opening,
@@ -227,6 +248,39 @@ export default function HelperAsk({
    * and a conversation with nobody listening behaves exactly as it did.
    */
   onFilesMoved?: (ids: string[]) => void;
+  /**
+   * The photograph the room already has loaded for one particular day —
+   * B1016. `HelperRoom` reads it once, for whichever day `subject` names, off
+   * the same `DayCard` data `PreviewPane` draws from; passing the trip and
+   * slug alongside is what lets a turn's own inline card tell whether the
+   * photograph on offer is actually a photograph *of the day it names* rather
+   * than of whatever the room happened to be looking at last. Absent, or a
+   * turn about a different day, draws a plain marker instead of fetching a
+   * second copy of a day this component has no business reading on its own.
+   */
+  dayPhoto?: { trip: string; slug: string; src: string | null } | null;
+  /**
+   * A turn's inline card was pressed — B1016. The room decides what "look at
+   * it" means: full screen on a phone, where there is nowhere else to put a
+   * day card, or scrolling the existing preview column into view on a wider
+   * screen, which already has one open. Absent under a journal's day card,
+   * where there is no preview to show at all.
+   */
+  onPreview?: (day: { trip: string; slug: string }) => void;
+  /**
+   * The files strip, drawn by the room above the composer rather than beside
+   * the conversation — B1016. Handed over as a node rather than built here,
+   * because the composer's own sticky footer is the one place "above the
+   * field" can mean, and only this component draws that footer.
+   */
+  filesStrip?: React.ReactNode;
+  /**
+   * The field gained or lost focus — B1016. The strip above the composer
+   * collapses while somebody is about to type, because the arithmetic in
+   * B1016 is what is left of the screen once the keyboard is up: not enough
+   * for both. Absent everywhere there is no strip to collapse.
+   */
+  onFieldFocusChange?: (focused: boolean) => void;
   /**
    * Whether this is the room's middle column rather than a line under a card
    * — B901. In the room the conversation is the page: it is open from the
@@ -286,8 +340,23 @@ export default function HelperAsk({
   const box = useRef<HTMLInputElement>(null);
   const proposal = useRef<HTMLDivElement>(null);
   const log = useRef<HTMLDivElement>(null);
+  /**
+   * The strip's own collapse reads the field's `focus` event — B1016 — and
+   * these two effects put focus there with nothing a phone would call a tap:
+   * one runs on mount, the other after a fetch resolves, both well outside
+   * any click a browser would treat as permission to raise the keyboard. So
+   * neither should tell the strip a keyboard is coming; this flag is what
+   * the `onFocus` handler below checks before it says so. A real tap on the
+   * field — or the `choose` chips, which call the same `.focus()` from
+   * inside their own click handler — leaves the flag unset and collapses the
+   * strip exactly as it should.
+   */
+  const silentFocus = useRef(false);
   useEffect(() => {
-    if (open) box.current?.focus();
+    if (open) {
+      silentFocus.current = true;
+      box.current?.focus();
+    }
   }, [open]);
 
   // Where focus goes when a turn arrives: to a proposal if the turn ended in
@@ -299,7 +368,10 @@ export default function HelperAsk({
     const last = turns[turns.length - 1];
     if (!last) return;
     if (last.blocks.some(isProposal)) proposal.current?.focus();
-    else box.current?.focus();
+    else {
+      silentFocus.current = true;
+      box.current?.focus();
+    }
   }, [turns]);
 
   // Newest last, and the newest is what somebody wants to see. Scrolling the
@@ -545,10 +617,27 @@ export default function HelperAsk({
     }
   }
 
-  function go() {
-    if (said.trim() === "" || busy) return;
-    if (consented) void ask();
-    else setConsenting(true);
+  /**
+   * The one door onto `ask()` — B1020.
+   *
+   * A chip in the opening used to call `ask()` on its own, past this
+   * function entirely, which is how a first-time owner pressing the
+   * brightest thing on the screen reached `consent_required` with no consent
+   * panel anywhere on it — the chip had skipped the very check that opens
+   * one. A chip is "a shortcut for typing" (`RoomOpening.tsx`'s own words),
+   * so it goes through here now, the same door the field's own Ask button
+   * always has: consented sends the words on; not consented puts them where
+   * `consentThenAsk` will find them and opens the panel instead of writing
+   * anything.
+   */
+  function go(override?: string) {
+    const words = override ?? said;
+    if (words.trim() === "" || busy) return;
+    if (consented) void ask(words);
+    else {
+      setSaid(words);
+      setConsenting(true);
+    }
   }
 
   if (!open && !inRoom) {
@@ -602,47 +691,68 @@ export default function HelperAsk({
           */}
           {inRoom && turns.length === 0 && (
             <>
-              {opening && <RoomOpening opening={opening} onSay={(words) => void ask(words)} />}
+              {opening && <RoomOpening opening={opening} onSay={go} />}
               <p className="mt-3 text-sm leading-6 text-navy-500">{t("agent.room.kept")}</p>
             </>
           )}
-          {turns.map((turn, index) => (
-            <div key={index} className="space-y-2">
-              {turn.said !== "" && (
-                <p className="text-sm leading-6 text-navy-600">
-                  <span className="sr-only">{t("agent.chat.you")}: </span>
-                  {turn.said}
-                </p>
-              )}
-              {turn.blocks.map((block, n) => (
-                <BlockView
-                  key={n}
-                  block={block}
-                  /*
-                    The **first** proposal of the turn, not every one of them
-                    — B918. One ref shared by all of them is assigned in DOM
-                    order, so it ended up on whichever mounted last: a turn
-                    carrying `start_day` then `draft_words` focused the
-                    second, and the first — which has to be pressed first —
-                    sat before the focus point, where tabbing forward never
-                    reaches it.
-                  */
-                  focusRef={
-                    index === turns.length - 1 &&
-                    turn.blocks.findIndex(isProposal) === n
-                      ? proposal
-                      : undefined
-                  }
-                  busy={busy}
-                  onChoose={(label) => {
-                    setSaid(label);
-                    box.current?.focus();
-                  }}
-                  onAccept={accept}
-                />
-              ))}
-            </div>
-          ))}
+          {turns.map((turn, index) => {
+            const day = dayOf(turn.blocks);
+            return (
+              <div key={index} className="space-y-2">
+                {turn.said !== "" && (
+                  <p className="text-sm leading-6 text-navy-600">
+                    <span className="sr-only">{t("agent.chat.you")}: </span>
+                    {turn.said}
+                  </p>
+                )}
+                {turn.blocks.map((block, n) => (
+                  <BlockView
+                    key={n}
+                    block={block}
+                    /*
+                      The **first** proposal of the turn, not every one of them
+                      — B918. One ref shared by all of them is assigned in DOM
+                      order, so it ended up on whichever mounted last: a turn
+                      carrying `start_day` then `draft_words` focused the
+                      second, and the first — which has to be pressed first —
+                      sat before the focus point, where tabbing forward never
+                      reaches it.
+                    */
+                    focusRef={
+                      index === turns.length - 1 &&
+                      turn.blocks.findIndex(isProposal) === n
+                        ? proposal
+                        : undefined
+                    }
+                    busy={busy}
+                    onChoose={(label) => {
+                      setSaid(label);
+                      box.current?.focus();
+                    }}
+                    onAccept={accept}
+                  />
+                ))}
+                {/*
+                  What used to be a header pill is this, now — B1016. The
+                  owner's own reading: "a really small emoji or thumbnail in
+                  the chat with a button Preview, and not a button at the
+                  top." The day a turn names travels with the turn rather
+                  than living in chrome above the whole conversation.
+                */}
+                {day && onPreview && (
+                  <DayChip
+                    date={dateOf(turn.blocks)}
+                    photoSrc={
+                      dayPhoto && dayPhoto.trip === day.trip && dayPhoto.slug === day.slug
+                        ? dayPhoto.src
+                        : null
+                    }
+                    onPress={() => onPreview(day)}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -652,6 +762,11 @@ export default function HelperAsk({
           {t("agent.chat.working")}
         </p>
       )}
+
+      {/* The files strip, above the composer rather than beside the
+          conversation — B1016. The room draws it; this is only where "above
+          the field" is, since the field's own footer is built here. */}
+      {filesStrip}
 
       {/* `relative`, because the microphone pins itself to this box's top
           right corner — see `RecordButton`'s `compact`. `sticky` so the field
@@ -665,6 +780,14 @@ export default function HelperAsk({
           value={said}
           aria-label={t("agent.askOpen")}
           onChange={(event) => setSaid(event.target.value)}
+          onFocus={() => {
+            if (silentFocus.current) {
+              silentFocus.current = false;
+              return;
+            }
+            onFieldFocusChange?.(true);
+          }}
+          onBlur={() => onFieldFocusChange?.(false)}
           onKeyDown={(event) => {
             if (event.key === "Enter") go();
           }}
@@ -724,7 +847,10 @@ export default function HelperAsk({
             busy={busy}
             type="button"
             disabled={said.trim() === ""}
-            onClick={go}
+            // `() => go()`, not `go` itself — B1020 gave `go` an optional
+            // argument for a chip's own words, and a bare `onClick={go}`
+            // would have handed it the click's `MouseEvent` instead.
+            onClick={() => go()}
             className="min-h-11 rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-800 transition-colors hover:bg-cream-100 disabled:opacity-50"
             busyLabel={t("agent.askWorking")}
           >
@@ -768,6 +894,60 @@ export default function HelperAsk({
         </p>
       )}
     </section>
+  );
+}
+
+/**
+ * The small thing a turn carries when it named a day — B1016.
+ *
+ * The owner's own words were "a really small emoji or thumbnail in the chat
+ * with a button Preview, and not a button at the top", and this is that: a
+ * photograph when the room already has one loaded for exactly this day (the
+ * same read `PreviewPane` draws from, handed down as `dayPhoto`), a plain
+ * marker otherwise. It never fetches on its own — a turn about a day the room
+ * is not currently looking at would need a second network call to draw a
+ * thumbnail nobody asked to see, and a marker with the date said just as much.
+ */
+function DayChip({
+  date,
+  photoSrc,
+  onPress,
+}: {
+  date: string | null;
+  photoSrc: string | null;
+  onPress: () => void;
+}) {
+  const { t } = useI18n();
+  const when = date
+    ? new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        timeZone: "UTC",
+      })
+    : null;
+  return (
+    <button
+      type="button"
+      onClick={onPress}
+      className="flex min-h-11 items-center gap-2 rounded-full border border-navy-300 bg-white py-1 pl-1 pr-3 text-sm text-navy-800 transition-colors hover:bg-cream-100"
+    >
+      <span className="relative block h-8 w-8 shrink-0 overflow-hidden rounded-full bg-cream-200" aria-hidden>
+        {photoSrc ? (
+          <Image src={photoSrc} loader={mediaLoader} alt="" fill sizes="32px" className="object-cover" />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center text-sm">📍</span>
+        )}
+      </span>
+      {when ? (
+        <span>
+          <span className="sr-only">{t("agent.room.preview")}: </span>
+          {when}
+        </span>
+      ) : (
+        <span>{t("agent.room.preview")}</span>
+      )}
+    </button>
   );
 }
 

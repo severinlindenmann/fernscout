@@ -20,14 +20,22 @@ import type { Opening, OpeningDay } from "@/lib/helper/opening";
  * route and no new block shape: the offer is a set of prepared sentences, and
  * the field underneath is what they are a shortcut for.
  *
- * ## One bright thing
+ * ## One bright thing — B1021 corrected what that means
  *
  * `test/agent-door-calm.test.tsx` counted the yellow things on the card this
- * replaces and failed on more than one. That test went with the card and its
- * rule did not: B767's finding is that a screen has exactly one bright thing
- * and it is what the person came to do. Whichever state is drawn below there
- * is one `bg-yellow-400`, and `test/room-opening.test.tsx` is where that is
- * now enforced.
+ * replaces and failed on more than one. That test went with the card, and
+ * B767's finding did not: a screen has exactly one bright thing and it is
+ * what the person came to do.
+ *
+ * The literal rule — one `bg-yellow-400` anywhere on the screen — is false in
+ * the commonest state: `StoryPager.tsx` draws the page's current position as
+ * a dot in the same yellow, and the preview pane has one loaded by default in
+ * `days`. The dot is `aria-hidden` and pressable by nobody, so the rule that
+ * survives is the one that was actually meant: **one bright thing that can be
+ * pressed.** `test/room-opening.test.tsx` renders every state of this
+ * component alone and counts its own `bg-yellow-400` **buttons** — never
+ * every element of that colour on the page, which a decorative dot elsewhere
+ * would trip for no reason a person pressing something would recognise.
  */
 export default function RoomOpening({
   opening,
