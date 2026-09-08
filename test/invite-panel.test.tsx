@@ -128,6 +128,20 @@ describe("copying a link that was already sent", () => {
     expect(html).toContain("Family");
   });
 
+  /**
+   * B934 — a phone whose clipboard write is refused (no secure context, a
+   * denied permission, an old browser) used to leave nothing behind: the URL
+   * lived only in the copy button's click handler and an aria-label that
+   * deliberately omits it (B199). The one page built to show a lost link
+   * again (B280) must not make that link unreachable to exactly the reader
+   * who needs it back — so the raw value is on screen and selectable too.
+   */
+  test("a recoverable link is on screen as selectable text, not only behind the copy button", () => {
+    const url = "https://example.test/alex/invite/guest/some-token";
+    const html = render([invite({ url, name: "Family" })]);
+    expect(html).toContain(url);
+  });
+
   test("a link from before B280 has nothing to copy, and no control", () => {
     const html = render([invite({ url: null })]);
     expect(html).not.toContain(dict["contact.adminCopyLink"]);
