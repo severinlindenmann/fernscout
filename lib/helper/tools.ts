@@ -110,6 +110,16 @@ type Proposed = {
    * false about their own journal, which is B944's fault one step earlier.
    */
   refuse?: string;
+  /**
+   * The proposal that opens after this one is pressed — B969, and it is here
+   * rather than only on the tool because whether there *is* a next one can
+   * depend on what was said.
+   *
+   * `start_day` chains to `draft_words` when somebody gave it a day's worth of
+   * notes, and to nothing when they did not: offering to write up an empty day
+   * would be a card asking to spend a credit on nothing.
+   */
+  next?: { tool: string; from: Record<string, string> };
 };
 
 export type Tool = Named &
@@ -752,6 +762,19 @@ export const TOOLS: readonly Tool[] = [
     properties: {
       ...TRIP_ARG,
       date: { type: "string", description: "The day, as YYYY-MM-DD. Omit to use the first unwritten day." },
+      /**
+       * What they said about the day, when they said it all at once — B969.
+       *
+       * The commonest thing anybody does here is describe a day in a sentence,
+       * and the day usually does not exist yet. The whole paragraph used to be
+       * dropped: four times out of four in an ordinary write-up, somebody was
+       * told to press a button and then say it all again.
+       */
+      notes: {
+        type: "string",
+        description:
+          "Anything they already said about the day, in their own words. Pass it through when they described the day while asking for it: it rides to the next card and is not written here. Never write it yourself.",
+      },
     },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day`,
     propose: async (username, args, say, today) => {
@@ -779,7 +802,28 @@ export const TOOLS: readonly Tool[] = [
         date,
         trip: trip?.title ?? "",
       });
+      /**
+       * **Their words, carried across the press** — B969.
+       *
+       * `POST .../day` makes an empty day and cannot hold prose, which is
+       * right: writing and reading back are two steps here as they are
+       * everywhere else. What was missing is that the notes somebody had
+       * *already given* went nowhere, so they typed their paragraph, pressed,
+       * and typed it again.
+       *
+       * `next` is the mechanism `draft_words` already uses to hand its prose
+       * to `set_day_words`. The browser carries this proposal's own arguments
+       * into the next one, so the notes ride along and the trip and slug come
+       * from what the route actually wrote.
+       *
+       * Only when there are notes. A card offering to spend a credit writing
+       * up an empty day is worse than no card.
+       */
+      const carryOn = (args.notes ?? "").trim() !== "";
       return {
+        ...(carryOn
+          ? { next: { tool: "draft_words", from: { trip: "trip", slug: "slug" } } }
+          : {}),
         sentence: asked.length > 0 ? `${sentence} ${say("agent.tool.startDayUnknown")}` : sentence,
         accept: say("agent.tool.startDayAccept"),
         done: say("agent.tool.startDayDone"),
@@ -908,11 +952,11 @@ export const TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "form",
     describe:
-      "Propose one thing a day cost — what it was, how much, and which category. Only ever a figure they gave you. Nothing is recorded until they press. Never to correct a day's words: that is set_day_words.",
+      "Propose one thing a day cost — what it was, how much, which category. Only ever a figure they gave you. Nothing is recorded until they press. Never to correct a day's words: that is set_day_words.",
     properties: {
       ...DAY_ARGS,
       label: { type: "string", description: "What it was, in their words." },
-      amount: { type: "string", description: "How much, as a number. Never one you worked out yourself." },
+      amount: { type: "string", description: "How much, as a number. Never one you worked out." },
       currency: { type: "string", description: "The three-letter code, if they said one." },
       category: {
         type: "string",
@@ -1374,7 +1418,8 @@ export async function proposalFor(
     method: tool.method ?? "POST",
     accept: made.accept,
     done: made.done,
-    ...(tool.next ? { next: tool.next } : {}),
+    // The proposal's own, then the tool's — B969.
+    ...(made.next ?? tool.next ? { next: made.next ?? tool.next } : {}),
   };
   const blocks: Block[] = [];
   // The thing as it stands, and then the press — never the other way round.

@@ -339,3 +339,49 @@ describe("what the publish card says about who can read it", () => {
     expect(proposal.sentence).toContain("agent.tool.publishReadersPublic");
   });
 });
+
+/**
+ * The paragraph that was thrown away — B969.
+ *
+ * The commonest thing anybody does here is describe a day in a sentence, and
+ * the day usually does not exist yet. Four times out of four in an ordinary
+ * write-up, the whole paragraph was dropped:
+ *
+ * > "On the 10th we landed around midday, dropped our bags at the hotel in
+ * > Alfama, and spent the afternoon wandering the narrow streets…"
+ *
+ * > "A proposal to start an empty day for June 10th is on your screen. Once
+ * > you press that, I can turn your notes into words for it."
+ *
+ * The notes went nowhere. They pressed, and typed the paragraph again. A third
+ * of every turn in that run was somebody repeating themselves.
+ *
+ * `start_day` still makes an empty day — writing and reading back are two
+ * steps here as everywhere else — but what they already said now rides across
+ * the press to the card that offers to write it up.
+ */
+describe("a day described in the same breath as being asked for", () => {
+  test("carries the notes on to the next card", async () => {
+    const { proposal } = await propose("start_day", { notes: "Wir sind mittags gelandet." });
+    expect(proposal.next?.tool).toBe("draft_words");
+    // The browser sends the proposal's own arguments into the next one, so the
+    // notes have to be there rather than only in a field nobody drew.
+    expect(proposal.arguments.notes).toBe("Wir sind mittags gelandet.");
+    // And the trip and slug come from what the route actually wrote, not from
+    // what anybody guessed.
+    expect(proposal.next?.from).toEqual({ trip: "trip", slug: "slug" });
+  });
+
+  test("and offers nothing extra when there was nothing said", async () => {
+    const { proposal } = await propose("start_day");
+    // A card asking to spend a credit writing up an empty day is worse than no
+    // card at all.
+    expect(proposal.next).toBeUndefined();
+  });
+
+  test("the day itself is still empty — this is a chain, not a shortcut", async () => {
+    const started = await propose("start_day", { notes: "Wir sind mittags gelandet." });
+    expect((await post(writeDay, "", pressed(started.proposal))).status).toBe(201);
+    expect(dayFile()).not.toContain("mittags gelandet");
+  });
+});
