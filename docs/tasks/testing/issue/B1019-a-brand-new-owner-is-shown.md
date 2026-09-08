@@ -7,8 +7,7 @@ complexity: low
 area: helper, routing
 found: "2026-09-08T19:34:42Z"
 started: "2026-09-08T19:36:31Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T19:36:31Z"
+merged: "2026-09-08T19:49:12Z"
 ---
 
 # B1019 — A brand new owner is shown a signup form for the journal they already have
