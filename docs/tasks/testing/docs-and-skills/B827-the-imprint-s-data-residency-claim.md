@@ -6,6 +6,8 @@ priority: high
 complexity: low
 area: legal, payments
 found: "2026-09-07T15:52:00Z"
+started: "2026-09-08T05:03:44Z"
+merged: "2026-09-08T05:03:45Z"
 ---
 
 # B827 — The imprint's data-residency claim does not mention Stripe
@@ -35,3 +37,11 @@ credits Stripe is never involved. Link to stripe.com/privacy.
 
 - Both imprints name Stripe and where payment data goes.
 - `test/legal.test.ts` and `test/depersonalised.test.ts` still pass.
+
+## Outcome
+
+Already shipped in `f24a8086` — both `site/legal/en.md` and `site/legal/de.md`
+carry the carve-out paragraph, name Stripe, say where payment data goes, say
+the amount and receipt email are all that is shared, say Stripe is never
+involved if you never buy credits, and link to stripe.com/privacy. Only the
+lane move was missed; nothing further was needed.

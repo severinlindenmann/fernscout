@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (136)
+## backlog (135)
 
 ### security (3)
 
@@ -178,11 +178,10 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### docs-and-skills (3)
+### docs-and-skills (2)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B827](backlog/docs-and-skills/B827-the-imprint-s-data-residency-claim.md) | The imprint's data-residency claim does not mention Stripe | DOCS | high | low |
 | [B870](backlog/docs-and-skills/B870-the-api-never-reads-the-place.md) | The API never reads the place and time out of a photograph and only says so 1700 lines away | DOCS | medium | low |
 | [B871](backlog/docs-and-skills/B871-a-png-is-served-as-a.md) | A PNG is served as a JPEG and nothing says so | DOCS | low | low |
 
@@ -247,7 +246,7 @@ _Nothing here._
 | [B903](in-development/B903-search-knows-only-six-destinations-the.md) | Search knows only six destinations — the sign-in door, the helper, the inbox, costs, weather and the imprint are unfindable | FEATURE | medium | medium | `6c81e17b` |
 | [B904](in-development/B904-search-matches-words-not-meaning-a.md) | Search matches words, not meaning — a person who asks for a topic in their own words gets nothing | FEATURE | medium | high | `6c81e17b` |
 
-## testing (107)
+## testing (108)
 
 ### security (2)
 
@@ -380,10 +379,11 @@ _Nothing here._
 | [B896](testing/chore/B896-the-unused-gate-keeps-going-red.md) | The unused gate keeps going red on exports nobody notices | CHORE | medium | low | — |
 | [B835](testing/chore/B835-the-approve-route-s-two-404s.md) | The approve route's two 404s use different error strings | CHORE | low | low | — |
 
-### docs-and-skills (1)
+### docs-and-skills (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B827](testing/docs-and-skills/B827-the-imprint-s-data-residency-claim.md) | The imprint's data-residency claim does not mention Stripe | DOCS | high | low | — |
 | [B717](testing/docs-and-skills/B717-readme-md-still-says-there-is.md) | README.md still says there is no editing interface and there will not be one | DOCS | low | low | — |
 
 ## completed (619)
