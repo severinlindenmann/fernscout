@@ -3,7 +3,7 @@
 What is built, what deliberately is not, and exactly what is needed to go live.
 
 **Status: a draft order has been placed with Gelato, accepted, and its files
-fetched and preflighted. No paper has been produced.** A trip becomes a
+fetched. They have not been preflighted, and no paper has been produced.** A trip becomes a
 planned, laid-out, print-ready book with a cover and a preview, and the whole
 chain to Gelato was driven end to end from the deployed instance on
 2026-09-08:
@@ -13,13 +13,31 @@ chain to Gelato was driven end to end from the deployed instance on
 | Book built on fernscout.ch, charged 40 credits | 28-page interior 206 × 206 mm, cover 408.72 mm wide |
 | Signed file URL fetched with no cookie | `200`, 9.3 MB. Unsigned, tampered, expired, and signed-for-another-file all `404` |
 | `POST /v4/orders` with `orderType: "draft"` | accepted — `fulfillmentStatus: "draft"`, our product uid, our address |
-| Gelato fetched both PDFs | file URLs came back rehosted on its own S3, with `preview_flat`, `preview_default` and `preview_thumbnail` rendered |
+| Gelato fetched both PDFs | rehosted on its own S3, `filesSize` 8.9 MB, `refusalReason` null |
+| A product mock-up rendered | `preview_flat`, `preview_default`, `preview_thumbnail` — all three from the **cover** file alone |
+| Prepress did **not** run | `prepressWorkflowId` null, `dpi` 0, `eventLog` and `printJobs` empty |
 | Draft deleted afterwards | `200`, then `NOT_FOUND` |
 
 **So the create-order request shape in `lib/photobook/providers.ts` is
 confirmed against the live API**, which it had never been before — everything
 in it used to be written from published documentation. The cover Gelato
 rendered from our file is the one this repository draws.
+
+**A draft is a parked cart, not a preflight — and this is the trap in reading
+the result above.** Gelato builds the product mock-up from the cover as soon
+as it has the file, which looks like acceptance and is not. The page-by-page
+interior preview on its checkout page never appears for a draft; it comes from
+prepress, and prepress runs when a draft is promoted to an order. So **nothing
+has yet checked our interior PDF** — not its resolution, not its fonts, not
+its colour space. The one thing the draft proves about the files is that
+Gelato could reach and download them.
+
+That matters more than it sounds, because this writer emits RGB with
+unembedded base-14 fonts (below). `pdffonts` reports Helvetica,
+Helvetica-Bold and Helvetica-Oblique all `emb: no` on both files. A printer
+substitutes what it does not have. Whether Gelato refuses that, silently
+substitutes, or accepts it is unknown and will stay unknown until an order is
+promoted.
 
 **What has still never happened: a real order.** `orderType` is `"order"` only
 when `features.photobook.live` is true, and it is not. The account behind the
