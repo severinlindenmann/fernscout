@@ -1319,7 +1319,7 @@
   "agent.pickPhotos": "Fotos auswählen",
   "agent.pickPhotosHint": "Es wird noch nichts gesendet – beim Auswählen wird nur gelesen, was die Datei selbst über sich sagt.",
   "agent.noneChosen": "Keine Fotos gewählt",
-  "agent.askHereOpen": "Bitte um etwas anderes – in deinen eigenen Worten",
+  "agent.askHereOpen": "Sprich mit deinem Agenten darüber",
   "agent.askNotSearch": "Die Suche findet. Das Fragen ändert.",
   "agent.photosPart": "{count} Fotos",
   "agent.photosPart.one": "1 Foto",

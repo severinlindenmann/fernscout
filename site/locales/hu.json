@@ -1319,7 +1319,7 @@
   "agent.pickPhotos": "Fényképek kiválasztása",
   "agent.pickPhotosHint": "Még semmi nem megy el – a kiválasztáskor csak az olvasódik ki, amit a fájl magáról mond.",
   "agent.noneChosen": "Nincs fénykép kiválasztva",
-  "agent.askHereOpen": "Kérj bármi mást, a saját szavaiddal",
+  "agent.askHereOpen": "Beszélj erről az ügynököddel",
   "agent.askNotSearch": "A keresés megtalál. A kérdezés megváltoztat.",
   "agent.photosPart": "{count} fénykép",
   "agent.photosPart.one": "1 fénykép",

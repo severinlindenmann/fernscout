@@ -7,6 +7,12 @@ import { useI18n } from "./LocaleProvider";
 /**
  * The way from a day into the room that can answer — B844, then B979.
  *
+ * **The words changed in B994**, and the old ones are worth keeping in view:
+ * *"Ask for anything else, in your own words"*. That is the sentence you
+ * write for a blank text box — it asks somebody to compose, when what is on
+ * the other end is an agent that could simply be told "this day, please". The
+ * label says what the thing is now, and the composition exercise is gone.
+ *
  * B844's problem is unchanged and is worth restating: a returning owner did
  * all six of her tasks from the day, the trip and the story, and reported
  * that there was no request box. There was one, three clicks away, on a page
