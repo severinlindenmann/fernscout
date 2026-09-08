@@ -39,12 +39,6 @@ vi.mock("next/headers", () => ({
   headers: async () => new Headers(),
 }));
 
-const { routeAsk } = vi.hoisted(() => ({ routeAsk: vi.fn() }));
-vi.mock("@/lib/helper/model", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/helper/model")>()),
-  routeAsk,
-}));
-
 /** Every request the thread made, and the scripted answers it got back. */
 const { create, sent } = vi.hoisted(() => ({
   create: vi.fn(),
@@ -127,10 +121,6 @@ beforeEach(async () => {
   process.env.SESSION_SECRET = "helper-thread-secret-b889";
   process.env.ANTHROPIC_API_KEY = "not-a-real-key";
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
-  routeAsk.mockReset();
-  // Nothing in the registry fits, which is what took four of the owner's
-  // seven sentences to `unknown` and is now what opens the thread.
-  routeAsk.mockResolvedValue({ intent: "unknown", slots: {}, confidence: 0 });
   create.mockReset();
   sent.length = 0;
   forget("alex");
@@ -202,22 +192,21 @@ describe("the four German sentences that used to come back unknown", () => {
     const answered = await read(await ask("wie geht das hier"));
     expect(answered.status).toBe(200);
     expect(answered.body.kind).toBe("read");
-    expect(answered.body.intent).toBe("thread");
     expect(String(answered.body.answer)).toContain("Tages-Helfer");
     expect(answered.body.looked).toEqual([]);
   });
 
-  test('"was kostet das" runs the credits tool and answers from what it read', async () => {
+  test('"was kostet das" runs the account tool and answers from what it read', async () => {
     create
-      .mockResolvedValueOnce(calls("credits"))
+      .mockResolvedValueOnce(calls("account"))
       .mockResolvedValueOnce(says("Du hast noch 10 Credits. Fragen kostet nichts."));
     const answered = await read(await ask("was kostet das"));
-    expect(answered.body.looked).toEqual(["credits"]);
+    expect(answered.body.looked).toEqual(["account"]);
     expect(String(answered.body.answer)).toContain("10 Credits");
     // The tool actually ran, and its answer went back to the model.
     const back = (sent[1].messages as { role: string; content: unknown }[])[2];
     const result = (back.content as { content: string }[])[0].content;
-    expect(JSON.parse(result)).toEqual({ balance: 10 });
+    expect(JSON.parse(result)).toMatchObject({ credits: 10 });
   });
 
   test('"ich war in lissabon" is answered without anything being written down', async () => {
@@ -241,11 +230,13 @@ describe("the four German sentences that used to come back unknown", () => {
     expect(journalOnDisk()).toEqual(before);
   });
 
-  test("a model that fails leaves the person on the answer that always works", async () => {
+  test("a model that fails says so, and their own words are still in the box", async () => {
     create.mockRejectedValueOnce(new Error("nope"));
     const answered = await read(await ask("wie geht das hier"));
-    expect(answered.status).toBe(200);
-    expect(answered.body.kind).toBe("unknown");
+    expect(answered.status).toBe(502);
+    expect(answered.body.error).toBe("model_failed");
+    // Nothing half-said was remembered either.
+    expect(history("alex")).toEqual([]);
   });
 });
 
@@ -256,7 +247,6 @@ describe("removal language never reaches the model — B817", () => {
     test(`"${said}" is refused before any model, and is not remembered`, async () => {
       const answered = await read(await ask(said));
       expect(answered.body.intent).toBe("refuse_remove");
-      expect(routeAsk).not.toHaveBeenCalled();
       expect(create).not.toHaveBeenCalled();
       // The other half, and the one the thread makes newly necessary: a
       // refused sentence written into the conversation would reach the model
@@ -285,11 +275,22 @@ describe("the conversation", () => {
     expect(second[2]).toEqual({ role: "user", content: "und wie lange" });
   });
 
-  test("a row the registry does answer joins the conversation too", async () => {
-    routeAsk.mockResolvedValue({ intent: "credits", slots: {}, confidence: 0.9 });
-    await ask("how many credits");
-    expect(history("alex").map((turn) => turn.role)).toEqual(["user", "assistant"]);
-    expect(history("alex")[1].text).toContain("10");
+  test("a proposal is remembered as a proposal, so a correction can be made", async () => {
+    create
+      .mockResolvedValueOnce(calls("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-14" }))
+      .mockResolvedValueOnce(says("Fertig zum Drücken."));
+    await ask("neue reise nach japan");
+    const remembered = history("alex")[1].text;
+    expect(remembered).toContain("create_trip");
+    expect(remembered).toContain("2027-03-14");
+    expect(remembered).toContain("not written");
+
+    // And the correction goes out with that context in front of it.
+    create.mockResolvedValueOnce(says("Geändert."));
+    await ask("nein, der 14.");
+    const second = sent[2].messages as { role: string; content: string }[];
+    expect(second[1].content).toContain("create_trip");
+    expect(second[2].content).toBe("nein, der 14.");
   });
 
   test("nothing carries over between journals", async () => {
@@ -305,19 +306,27 @@ describe("the conversation", () => {
 const READS = TOOLS.filter((tool) => tool.kind === "read");
 
 describe("the tools", () => {
-  test("are the seven reads the plan names, and B898's first write and link", () => {
+  test("are the reads the plan names, and B900's writes and one link", () => {
     expect(READS.map((tool) => tool.name)).toEqual([
-      "list_trips",
+      "trips",
+      "days",
       "unfinished",
       "read_day",
+      "account",
       "trip_costs",
-      "storage",
-      "credits",
       "who_can_read",
     ]);
-    expect(TOOLS.filter((tool) => tool.kind !== "read").map((tool) => tool.name)).toEqual([
-      "new_trip",
-      "day_helper",
+    expect(TOOLS.filter((tool) => tool.kind === "write").map((tool) => tool.name)).toEqual([
+      "create_trip",
+      "start_day",
+      "draft_words",
+      "set_day_words",
+      "add_cost",
+      "publish_day",
+      "unpublish_day",
+    ]);
+    expect(TOOLS.filter((tool) => tool.kind === "link").map((tool) => tool.name)).toEqual([
+      "add_photos",
     ]);
   });
 
@@ -329,6 +338,7 @@ describe("the tools", () => {
         tool.name,
         { trip: "reise", date: "2026-05-01" },
         say,
+        "2026-09-07",
       );
       expect(ok, tool.name).toBe(true);
       expect(result, tool.name).toBeDefined();
@@ -337,9 +347,9 @@ describe("the tools", () => {
   });
 
   test("a tool nobody has is a fact the model can read, not a crash", async () => {
-    const { ok, result } = await runTool("alex", "publish", {}, say);
+    const { ok, result } = await runTool("alex", "delete_day", {}, say, "2026-09-07");
     expect(ok).toBe(false);
-    expect(JSON.stringify(result)).toContain("no tool called publish");
+    expect(JSON.stringify(result)).toContain("no tool called delete_day");
   });
 
   test("nothing here reaches the position history", () => {
@@ -355,12 +365,14 @@ describe("the tools", () => {
   test("the model is shown every tool, and told what it cannot do", () => {
     const prompt = threadSystemPrompt("2026-09-07");
     for (const tool of TOOLS) expect(prompt).toContain(tool.name);
-    expect(prompt).toContain("You cannot change this journal");
+    // A write proposes and waits; the press is the person's.
+    expect(prompt).toContain("only their press changes anything");
+    expect(prompt).toContain("no tool for it");
     // The three gates that outlive this round, said in the prompt as well as
     // enforced outside it.
     expect(prompt).toContain("weather");
     expect(prompt).toContain("email");
-    expect(prompt).toContain("preview");
+    expect(prompt).toContain("It never happens because of a sentence");
   });
 });
 
@@ -373,14 +385,18 @@ describe("what a turn costs", () => {
    * be worse than an arithmetic one. It is here so that it cannot grow by half
    * again without somebody deciding to let it.
    *
-   * B898 raised it from sixteen hundred: two more tools, and the sentence in
-   * the prompt that says what a *write* tool does — proposes, and waits. Two
-   * bullets of directions came out in exchange, because a tool that hands
-   * somebody the day helper says what the paragraph describing it said.
+   * B898 raised it from sixteen hundred to eighteen. **B900 raised it to
+   * thirty-four hundred, and that is a decision rather than a drift:** the
+   * conversation is the only surface now, so the registry carries seven write
+   * tools where it carried one, and the prompt has to say what a proposal is
+   * and what still has no tool at all. At Haiku's input price that is a
+   * fraction of a rappen a turn, against a wizard's six screens; the number is
+   * here so the next person adding a tool sees what it costs rather than
+   * finding out from a bill.
    */
-  test("the prompt and the tool list stay under eighteen hundred tokens", () => {
+  test("the prompt and the tool list stay under thirty-four hundred tokens", () => {
     const schemas = TOOLS.map((tool) => JSON.stringify(tool.properties) + tool.describe).join("");
     const characters = threadSystemPrompt("2026-09-07").length + schemas.length;
-    expect(Math.round(characters / 4)).toBeLessThan(1800);
+    expect(Math.round(characters / 4)).toBeLessThan(3400);
   });
 });

@@ -1,8 +1,8 @@
 import { isEnabled } from "@/lib/capabilities";
 import { hasHelperConsent, helperConsent } from "@/lib/helper/consent";
 import type { Block } from "@/lib/helper/blocks";
-import { intentFor, refusalFor, slotsFor, type Say } from "@/lib/helper/intents";
-import { answerInThread, routeAsk, UNKNOWN_INTENT } from "@/lib/helper/model";
+import { refusalFor, type Say } from "@/lib/helper/intents";
+import { answerInThread } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { forget, history, remember } from "@/lib/helper/thread";
 import { speechProvider } from "@/lib/helper/transcribe";
@@ -12,31 +12,33 @@ import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 export const dynamic = "force-dynamic";
 
 /**
- * A sentence in, a row name out — B685, §3 of
- * `docs/plans/2026-09-07-web-helper-agent.md`.
+ * A sentence in, a conversation out — B685, B889, and B900.
  *
  * **Free.** Nothing here touches the ledger, and that is a decision rather
  * than an oversight: at roughly a third of a rappen a turn, metering the front
  * door would cost more in people not daring to knock than it could ever
- * recover. What it lands on may cost something, and that button says so.
+ * recover. A *write* may cost something — one of them does — and it is charged
+ * by the route the press posts to, once, when it is accepted. A proposal
+ * corrected three times and then abandoned costs nothing at all.
  * `lib/rateLimit.ts` is the brake instead.
  *
- * **The model routes; it never executes.** It is given no client and no tools
- * (`routeAsk` in `lib/helper/model.ts`), and what it returns is a row name
- * this route looks up in the registry. A read-only row is answered here and
- * now — those are GETs a person could make from their own page and there is
- * nothing to confirm about being told a number. A row that writes comes back
- * as fields to confirm, however confident the router was; the confirming is
- * the browser's job and the writing is a second call.
+ * **One path, since B900.** There was a router in front of this: a model that
+ * classified the sentence into a row of `lib/helper/intents.ts`, answered it
+ * from the row, and only sent what fitted no row to the conversation. So a
+ * sentence a row happened to cover never reached a tool at all. The rows are
+ * gone; every sentence that is not refused goes to `answerInThread` with the
+ * whole registry (`lib/helper/tools.ts`) in front of it.
  *
- * **And a sentence no row fits goes to the thread** — B889, round 1 of
- * `docs/plans/2026-09-07-helper-as-an-agent.md`. `answerInThread` is given the
- * conversation so far and a list of **read** tools; it answers in prose in the
- * person's own language and can change nothing, because there is no write tool
- * to give it. `unknown` stays underneath, as the answer when the model fails.
- * The refusal table above still runs first and still never depends on any
- * model's judgement — and a refused sentence is not remembered either, so it
- * cannot reach a model on the following turn instead.
+ * **A read runs; a write proposes.** A read tool executes and draws its own
+ * block. A write tool has no `run` to call: it returns a proposal — the
+ * fields, a sentence, and the helper route a press posts to — and the person
+ * edits, presses, or says what is wrong and the conversation carries on.
+ * Nothing in this file writes anything.
+ *
+ * **The refusal table still runs first**, from the raw sentence, before their
+ * words leave the machine, and a refused sentence is not remembered either so
+ * it cannot reach a model on the following turn instead. That is B817's guard
+ * and B900 did not move it.
  *
  * Cookie only, owner only, bearer refused by construction — `isHelperOwner`.
  */
@@ -44,15 +46,6 @@ export const dynamic = "force-dynamic";
 /** Fifteen minutes. Well above a person thinking out loud, well below a
  *  script working through a phrasebook. */
 const LIMIT = { max: 40, windowMs: 15 * 60 * 1000 };
-
-/**
- * Below this, the router's own answer is treated as `unknown`.
- *
- * A model that says it is half sure is a model guessing, and a guess that
- * opens the wrong screen is worse than the menu the person already had —
- * which is exactly what `unknown` lands on.
- */
-const SURE_ENOUGH = 0.5;
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -175,104 +168,70 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     return Response.json({ error: "consent_required" }, { status: 403 });
   }
 
-  // The person's own today, because "in March" is answered from where they
+  // The person's own today, because "yesterday" is answered from where they
   // are standing. Anything that is not a date falls back to the server's.
   const today =
     typeof body.today === "string" && DATE_RE.test(body.today)
       ? body.today
       : new Date().toISOString().slice(0, 10);
 
-  let routed;
+  /**
+   * The whole of it — B900. The conversation so far, one new sentence, and
+   * the registry. Reads run; writes propose and write nothing.
+   */
+  let thread;
   try {
-    routed = await routeAsk(said, today, user);
+    thread = await answerInThread(user, said, history(user), today, say);
   } catch {
     return Response.json({ error: "model_failed" }, { status: 502 });
   }
-
-  const intent = routed.confidence >= SURE_ENOUGH ? intentFor(routed.intent) : null;
-  if (!intent) {
-    /**
-     * B889 — where `unknown` used to be the end of it.
-     *
-     * A registry answers what somebody wrote a row for, and four of the
-     * owner's seven ordinary sentences had no row. So a sentence no row fits
-     * goes to the thread instead: the conversation so far, the read tools,
-     * and prose back. It still writes nothing — there is no write tool — and
-     * `unknown` survives underneath as the answer when the model itself
-     * fails, which is the screen that always works.
-     */
-    let thread;
-    try {
-      thread = await answerInThread(user, said, history(user), today, say);
-    } catch {
-      thread = null;
-    }
-    if (!thread || thread.answer === "") {
-      return Response.json({
-        ok: true,
-        intent: UNKNOWN_INTENT,
-        kind: UNKNOWN_INTENT,
-        slots: {},
-        confidence: routed.confidence,
-      });
-    }
-    remember(user, said, thread.answer);
-    return Response.json({
-      ok: true,
-      intent: "thread",
-      kind: "read",
-      slots: {},
-      confidence: routed.confidence,
-      answer: thread.answer,
-      // What it actually ran, in order — so the claim its answer makes about
-      // what it looked at is checkable from outside.
-      looked: thread.looked,
-      /**
-       * What the turn draws — B898. The tools' own blocks in the order they
-       * ran, and then the model's sentence as a `say`. The model chose the
-       * tools and no part of it chose a shape.
-       */
-      blocks: [...thread.blocks, { shape: "say", text: thread.answer }] satisfies Block[],
-      /**
-       * Proposals a write tool made. **Nothing was written** — a write tool
-       * has no `run` to call — and accepting one is B900; until then these
-       * are rendered read-only, which is the honest state of them.
-       */
-      proposals: thread.proposals,
-    });
+  // Nothing said and nothing drawn is a failed turn, and it is honest to say
+  // so: their own words are still in the box. A turn that drew something and
+  // said nothing is not — the blocks are the answer.
+  if (thread.answer === "" && thread.blocks.length === 0) {
+    return Response.json({ error: "model_failed" }, { status: 502 });
   }
 
-  const slots = slotsFor(intent, routed.slots);
-  const common = { ok: true, intent: intent.name, slots, confidence: routed.confidence };
+  /**
+   * What is remembered, and why a proposal is part of it.
+   *
+   * "no, the 14th" is the sentence this whole feature is for, and it is only
+   * answerable if the next turn knows what was proposed. The turn's own prose
+   * says a proposal is waiting; it does not say the trip was called Japan and
+   * ran from the first to the fourteenth. So the arguments ride along, in one
+   * bracketed line the model reads as context — and marked as *not written*,
+   * so a later turn cannot mistake a proposal for a fact about the journal.
+   */
+  const remembered = [
+    thread.answer,
+    ...thread.proposals.map(
+      (proposal) =>
+        `[proposed, not written, waiting to be pressed: ${proposal.tool} ${JSON.stringify(proposal.arguments)}]`,
+    ),
+  ].join("\n");
+  remember(user, said, remembered);
 
-  if (intent.kind === "read") {
-    const answer = await intent.answer(user, say);
-    // A row's answer is prose too, so it belongs in the conversation: asking
-    // "how many credits" and then "and how long will that last" must not
-    // start from nothing.
-    remember(user, said, answer);
-    return Response.json({
-      ...common,
-      kind: "read",
-      answer,
-      blocks: [{ shape: "say", text: answer }] satisfies Block[],
-    });
-  }
-
-  if (intent.kind === "open") {
-    return Response.json({ ...common, kind: "open", href: intent.href(user, slots) });
-  }
-
-  // Nothing is written here. The fields go back to be looked at, and the
-  // endpoint is called only if somebody presses.
   return Response.json({
-    ...common,
-    kind: "write",
-    endpoint: intent.endpoint(user),
-    fields: intent.slots.map((slot) => ({
-      name: slot.name,
-      value: slots[slot.name] ?? "",
-      date: Boolean(slot.date),
-    })),
+    ok: true,
+    kind: "read",
+    answer: thread.answer,
+    // What it actually ran, in order — so the claim its answer makes about
+    // what it looked at is checkable from outside.
+    looked: thread.looked,
+    /**
+     * What the turn draws — B898. The tools' own blocks in the order they
+     * ran, and then the model's sentence as a `say`. The model chose the
+     * tools and no part of it chose a shape.
+     */
+    blocks: [
+      ...thread.blocks,
+      ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }]),
+    ] satisfies Block[],
+    /**
+     * Proposals a write tool made — B900. **Nothing has been written**: each
+     * carries the helper route its press posts to, and the press is the
+     * person's.
+     */
+    proposals: thread.proposals,
   });
 }

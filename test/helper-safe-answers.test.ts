@@ -7,7 +7,8 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { REGISTRY, intentFor, refusalFor } from "@/lib/helper/intents";
+import { refusalFor, type Say } from "@/lib/helper/intents";
+import { TOOLS, runTool } from "@/lib/helper/tools";
 import { getTrips } from "@/lib/trips";
 
 /**
@@ -15,10 +16,20 @@ import { getTrips } from "@/lib/trips";
  * box did the wrong thing confidently, or went quiet, at the moment somebody
  * most needed it not to. B817, B808, B783, B807.
  *
- * `routeAsk` is stubbed throughout and stubbed **hostile**: it answers
- * `write_day` at 0.99 for everything. That is the point of the first block —
- * a refusal that a confident guess can talk its way past is not a refusal, and
- * the misroute this replaces carried more confidence than the floor.
+ * `answerInThread` is stubbed throughout and stubbed **hostile**: whatever is
+ * said, it reaches for the tool that *creates* a day. That is the point of the
+ * first block — a refusal a confident guess can talk its way past is not a
+ * refusal, and the misroute B817 records carried more confidence than any
+ * floor would have caught.
+ *
+ * B900 narrowed what is refused and it is worth being explicit about the line,
+ * because it is the one thing here that moved. Words that mean **destroy**
+ * are still refused before a model reads them, and there is no tool that
+ * deletes anything. Words that mean **take it off the site** now reach the
+ * conversation, where `unpublish_day` proposes and waits to be pressed — a
+ * day taken down keeps its words and its photographs, and putting it back is
+ * one press. A refusal in front of that would only have been telling somebody
+ * to go and press an identical button somewhere else.
  */
 
 const OWNER_EMAIL = "alex@example.test";
@@ -33,11 +44,24 @@ vi.mock("next/headers", () => ({
   headers: async () => new Headers(),
 }));
 
-const { routeAsk } = vi.hoisted(() => ({ routeAsk: vi.fn() }));
+const { answerInThread } = vi.hoisted(() => ({ answerInThread: vi.fn() }));
 vi.mock("@/lib/helper/model", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/helper/model")>()),
-  routeAsk,
+  answerInThread,
 }));
+
+/** A turn that reaches for one real tool, whatever was said. */
+function turnCalling(name: string, args: Record<string, string> = {}) {
+  return async (user: string, _said: string, _turns: unknown, today: string, say: Say) => {
+    const ran = await runTool(user, name, args, say, today);
+    return {
+      answer: "Here.",
+      looked: [name],
+      blocks: ran.blocks,
+      proposals: ran.proposal ? [ran.proposal] : [],
+    };
+  };
+}
 
 const { POST } = await import("@/app/api/helper/[user]/ask/route");
 const { POST: consentRoute } = await import("@/app/api/helper/[user]/consent/route");
@@ -68,10 +92,10 @@ beforeEach(async () => {
   process.env.SESSION_SECRET = "helper-safe-answers-secret";
   process.env.ANTHROPIC_API_KEY = "not-a-real-key";
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
-  routeAsk.mockReset();
-  // Hostile by default: the most confident possible answer, and the exact row
-  // that opened the create-a-day screen when somebody asked to take one down.
-  routeAsk.mockResolvedValue({ intent: "write_day", slots: {}, confidence: 0.99 });
+  answerInThread.mockReset();
+  // Hostile by default: it reaches for the tool that *creates* a day, which is
+  // the exact wrong neighbour B817 is about.
+  answerInThread.mockImplementation(turnCalling("start_day"));
 
   fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
   fs.writeFileSync(
@@ -126,26 +150,21 @@ function writeTrip() {
 
 /* ---------------------------------------------------------------- B817 --- */
 
-describe("removal language never reaches a row that writes — B817", () => {
-  const REMOVALS = [
+describe("destruction never reaches a model at all — B817", () => {
+  const DESTRUCTION = [
     // en
-    "take down the day with the photo of anna",
     "delete my acc",
     "remove the photo of anna",
     "get rid of yesterday",
-    "unpublish the day about the ferry",
-    "can you take the day with anna in it down",
+    "erase that day",
     // de
     "lösche den Tag mit dem Foto von Anna",
     "entferne bitte das Foto von Anna",
-    "nimm den Tag mit dem Foto von Anna runter",
     // hu
     "töröld a napot Anna fényképével",
-    "vedd le a napot az oldalról",
-    "távolítsd el a fényképet",
   ];
 
-  for (const said of REMOVALS) {
+  for (const said of DESTRUCTION) {
     test(`"${said}" is refused by name, and opens nothing`, async () => {
       const answered = await read(await ask(said));
       expect(answered.status).toBe(200);
@@ -154,36 +173,86 @@ describe("removal language never reaches a row that writes — B817", () => {
       // Not a screen, and not a set of fields: a sentence.
       expect(answered.body.kind).toBe("read");
       expect(answered.body.href).toBeUndefined();
-      expect(answered.body.endpoint).toBeUndefined();
-      expect(answered.body.fields).toBeUndefined();
+      expect(answered.body.proposals).toBeUndefined();
       // And the model was never asked, so no confidence can reach past it.
-      expect(routeAsk).not.toHaveBeenCalled();
+      expect(answerInThread).not.toHaveBeenCalled();
     });
   }
 
   test("the answer does not claim this box could delete something", async () => {
-    const answered = await read(await ask("take down the day with the photo of anna"));
+    const answered = await read(await ask("delete the day with the photo of anna"));
     const said = String(answered.body.answer);
-    expect(said).toContain("does not delete");
+    expect(said).toContain("Deleting is not something");
     // Where it actually happens: a mailbox, and a button in it.
     expect(said).toContain("email");
     expect(said).toContain("button");
   });
 
-  test("an ordinary sentence is still routed", async () => {
-    const answered = await read(await ask("put my photos up"));
-    expect(answered.body.kind).toBe("open");
-    expect(routeAsk).toHaveBeenCalledOnce();
+  test("and it says the gentler thing is available, rather than only refusing", async () => {
+    const answered = await read(await ask("delete that day"));
+    expect(String(answered.body.answer)).toContain("taking a day off the site");
+  });
+
+  test("no tool in the registry deletes anything, whatever a model asks for", () => {
+    for (const tool of TOOLS) {
+      expect(tool.name, tool.name).not.toMatch(/delete|destroy|erase/);
+      if (tool.kind === "write") {
+        expect(tool.endpoint("alex"), tool.name).not.toMatch(/delete/);
+      }
+    }
+  });
+});
+
+describe("taking a day down is not destroying it — B816, B900", () => {
+  const TAKEDOWNS = [
+    "take down the day with the photo of anna",
+    "unpublish the day about the ferry",
+    "nimm den Tag mit dem Foto von Anna runter",
+    "vedd le a napot az oldalról",
+  ];
+
+  for (const said of TAKEDOWNS) {
+    test(`"${said}" reaches the conversation rather than a refusal`, async () => {
+      const answered = await read(await ask(said));
+      expect(answered.body.refused).toBeUndefined();
+      expect(answerInThread).toHaveBeenCalledOnce();
+    });
+  }
+
+  test("and what it lands on proposes, and takes nothing down by itself", async () => {
+    writeTrip();
+    answerInThread.mockImplementation(turnCalling("unpublish_day", { trip: "reise", slug: "one" }));
+    const answered = await read(await ask("take the ferry day off the site"));
+    const proposals = answered.body.proposals as { tool: string; endpoint: string }[];
+    expect(proposals[0].tool).toBe("unpublish_day");
+    expect(proposals[0].endpoint).toBe("/api/helper/alex/day/unpublish");
+    // Still published: a proposal is not a takedown.
+    const day = fs.readFileSync(
+      path.join(dir, "alex", "trips", "reise", "entries", "2026-05-01-one.md"),
+      "utf8",
+    );
+    expect(day).not.toContain("status: draft");
   });
 });
 
 /* ---------------------------------------------------------------- B783 --- */
 
 describe("a named refusal instead of silence — B783", () => {
-  test("publishing says where publishing happens", async () => {
+  test("publishing is a rendered day and then one press, not a refusal", async () => {
+    writeTrip();
+    answerInThread.mockImplementation(turnCalling("publish_day", { trip: "reise", slug: "three" }));
     const answered = await read(await ask("publish that day for me"));
-    expect(answered.body.intent).toBe("refuse_publish");
-    expect(String(answered.body.answer)).toContain("preview");
+    expect(answered.body.refused).toBeUndefined();
+    const blocks = answered.body.blocks as { shape: string }[];
+    // The day, and then the button — in that order, always.
+    expect(blocks[0].shape).toBe("preview");
+    expect(blocks[1].shape).toBe("confirm");
+    // And it is still a draft, because nobody has pressed anything.
+    const day = fs.readFileSync(
+      path.join(dir, "alex", "trips", "reise", "entries", "2026-05-03-three.md"),
+      "utf8",
+    );
+    expect(day).toContain("status: draft");
   });
 
   test("postcards say where the pressing happens", async () => {
@@ -192,59 +261,45 @@ describe("a named refusal instead of silence — B783", () => {
     expect(String(answered.body.answer)).toContain("postcards page");
   });
 
-  test("all three refusals answer in German and Hungarian too", () => {
+  test("both refusals answer in German and Hungarian too", () => {
     for (const locale of ["de", "hu"]) {
       const dictionary = JSON.parse(
         fs.readFileSync(path.join(process.cwd(), "site", "locales", `${locale}.json`), "utf8"),
       ) as Record<string, string>;
-      for (const name of ["Remove", "Publish", "Postcard"]) {
+      for (const name of ["Remove", "Postcard"]) {
         expect(dictionary[`agent.askRefuse${name}`]?.length ?? 0).toBeGreaterThan(20);
       }
     }
   });
 
-  test("a sentence nobody could map is still `unknown`, not a refusal", async () => {
-    routeAsk.mockResolvedValue({ intent: "unknown", slots: {}, confidence: 0 });
-    const answered = await read(await ask("asdf qwer zxcv"));
-    expect(answered.body.intent).toBe("unknown");
+  test("a sentence nobody could map is not a refusal", () => {
     expect(refusalFor("asdf qwer zxcv")).toBeNull();
   });
 
-  test("what the trip is called is answered, with its dates and its drafts", async () => {
+  test("the trips a person has are answered as a list to pick from", async () => {
     writeTrip();
-    routeAsk.mockResolvedValue({ intent: "what_is_my_trip", slots: {}, confidence: 0.9 });
-    const answered = await read(await ask("whats my trip called"));
-    expect(answered.body.kind).toBe("read");
-    const said = String(answered.body.answer);
-    expect(said).toContain("Die Reise");
-    expect(said).toContain("2026-05-01");
-    expect(said).toContain("2026-05-10");
-    expect(said).toContain("Days written: 2");
-    expect(said).toContain("Still drafts: 1");
-    // A read row, so nothing was written to say it.
+    answerInThread.mockImplementation(turnCalling("trips"));
+    const answered = await read(await ask("zeig mir meine reisen"));
+    const blocks = answered.body.blocks as { shape: string; options?: { label: string }[] }[];
+    expect(blocks[0].shape).toBe("choose");
+    expect(blocks[0].options?.map((option) => option.label)).toEqual(["Die Reise"]);
+    // A read, so nothing was written to say it.
     expect(getTrips("alex")).toHaveLength(1);
-  });
-
-  test("with no trip at all it says so rather than throwing", async () => {
-    routeAsk.mockResolvedValue({ intent: "what_is_my_trip", slots: {}, confidence: 0.9 });
-    const answered = await read(await ask("whats my trip called"));
-    expect(String(answered.body.answer)).toContain("no trips");
   });
 });
 
 /* ---------------------------------------------------------------- B808 --- */
 
-describe("the storage row stops catching sentences about stuff — B808", () => {
+describe("the storage answer stops catching sentences about stuff — B808", () => {
   test("its description is about bytes, and says it is not about where anything is", () => {
-    const storage = intentFor("storage");
-    expect(storage?.describe).toContain("disk space");
-    expect(storage?.describe).toContain("storage limit");
-    expect(storage?.describe).toMatch(/never where/i);
+    const account = TOOLS.find((tool) => tool.name === "account");
+    expect(account?.describe).toContain("disk space");
+    expect(account?.describe).toMatch(/never where/i);
   });
 
-  test("no row in the registry offers to say where something is", () => {
-    for (const row of REGISTRY) {
-      expect(row.describe).not.toMatch(/how much room this journal is using/i);
+  test("no tool offers to say where something is", () => {
+    for (const tool of TOOLS) {
+      expect(tool.describe).not.toMatch(/how much room this journal is using/i);
     }
   });
 });
@@ -257,7 +312,7 @@ describe("a lapsed session says so — B807", () => {
     const refused = await read(await ask("how much storage"));
     expect(refused.status).toBe(401);
     expect(refused.body.error).toBe("session_lapsed");
-    expect(routeAsk).not.toHaveBeenCalled();
+    expect(answerInThread).not.toHaveBeenCalled();
   });
 
   test("every route in the family answers alike, not only the ask box", async () => {

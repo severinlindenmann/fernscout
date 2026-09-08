@@ -9,16 +9,24 @@ import type { Say } from "./intents";
 import { draftsForWizard } from "./server";
 
 /**
- * The tool contract — B898, round 1 of
- * `docs/plans/2026-09-08-the-chat-is-the-product.md`.
+ * The tool contract — B898, and the proposals a person can actually accept —
+ * B900. Rounds 1 and 3 of `docs/plans/2026-09-08-the-chat-is-the-product.md`.
  *
  * **One registry, and the model's list is generated from it.** The prose menu
  * the prompt carries (`toolList()`) and the JSON schemas the SDK is handed
- * (`toolSchemas()`) are both built from `TOOLS`, exactly as `intentList()` is
- * built from `REGISTRY` and for the same reason: a hand-typed list promises a
- * capability nobody built and forgets one that exists. Adding a tool is a row
- * here and nothing else — no client change, because the client draws shapes
- * rather than tools.
+ * (`toolSchemas()`) are both built from `TOOLS`. Adding a tool is a row here
+ * and nothing else — no client change, because the client draws shapes rather
+ * than tools, and since B900 a proposal carries the route its press goes to
+ * so the browser still knows nothing about any particular tool.
+ *
+ * **Since B900 this is the only registry.** `./intents.ts` used to hold a
+ * second one, matched *before* the thread, and a sentence a row happened to
+ * cover never reached these tools at all: "zeig mir meine reisen" was answered
+ * as prose where `trips` answers as a list, and "mach mir einen tag von
+ * gestern" handed over a wizard URL where `start_day` proposes a day. Two
+ * routers is worse than either, so that one is gone and what is left of the
+ * file is the refusal table, which still runs first and still never asks a
+ * model anything.
  *
  * **Three kinds, three behaviours, and the difference is the whole design.**
  * They are separate members of a union rather than a `kind` field on one
@@ -26,11 +34,13 @@ import { draftsForWizard } from "./server";
  *
  * - **read** — has a `run`, executes immediately, returns its rendered block.
  *   There is nothing to confirm about a question.
- * - **write** — has **no `run` at all.** It has `propose`, which is handed the
- *   arguments and a translator and returns a sentence and some fields. It is
- *   given no username, no writer and no client, so it cannot reach disk; a
- *   write tool that wanted to would have to grow a member this type does not
- *   have. Accepting a proposal is B900.
+ * - **write** — has **no `run` at all.** It has `propose`, which may read this
+ *   journal to fill a field in or draw a preview, and which returns a sentence
+ *   and some fields and writes nothing. What accepts it is `endpoint`: an
+ *   existing helper route, the same one the wizard's own button posts to, so
+ *   there is exactly one path to disk and it is the one that already
+ *   validates and refuses. A write tool cannot reach `fs` on its own — it has
+ *   nothing to call that would.
  * - **link** — returns a sentence and a URL and touches nothing. This is how a
  *   thing that must happen on its own page stays there.
  *
@@ -40,6 +50,12 @@ import { draftsForWizard } from "./server";
  * could choose. Deleting finishes in a mailbox and a postcard finishes on the
  * owner's own preview page, and an agent that offered a shortcut to either
  * would be offering one it cannot honour.
+ *
+ * **`unpublish_day` is not a delete and must not grow into one.** It puts a
+ * day back to being a draft: off the site, still on disk, with every
+ * photograph attached to it, and publishing again is the undo (B816). It is
+ * the only takedown a conversation has, and the words that mean *destroy*
+ * still never reach a model.
  *
  * **Nothing here reads `gps/`.** The store in `lib/gps/store.ts` is reachable
  * from no route and from no tool, and a coordinate must never travel to a
@@ -55,6 +71,24 @@ type Named = {
   /** The sentence the model reads when deciding whether to call it. */
   describe: string;
   properties: Properties;
+};
+
+/** What a `propose` hands back. Nothing in it has happened. */
+type Proposed = {
+  sentence: string;
+  fields: ProposalField[];
+  /** The word on the button — what it does, never "OK" (B633). */
+  accept: string;
+  /** What the conversation says once the press has gone through. */
+  done: string;
+  /**
+   * The thing as it stands, drawn *before* the press.
+   *
+   * `publish_day` is why this exists and it is not optional there: a day goes
+   * on the site after somebody has read it back, so the proposal renders the
+   * day and then the one button. It never fires from a sentence.
+   */
+  preview?: string[];
 };
 
 export type Tool = Named &
@@ -75,22 +109,34 @@ export type Tool = Named &
         kind: "write";
         renders: "form" | "confirm";
         propose: (
+          username: string,
           args: Record<string, string>,
           say: Say,
-        ) => { sentence: string; fields: ProposalField[] };
+          /** The person's own today, from their browser — "yesterday" is
+           *  answered from where they are standing, not from the server. */
+          today: string,
+        ) => Promise<Proposed>;
+        /** The helper route the press posts to — never `/api/v1`, never a
+         *  route that deletes. `test/helper-tools.test.ts` asserts the list. */
+        endpoint: (username: string) => string;
+        method?: "PATCH";
+        /** The proposal that opens next, carrying what came back — see
+         *  `Proposal.next` in `./blocks.ts`. */
+        next?: { tool: string; from: Record<string, string> };
       }
     | {
         kind: "link";
         renders: "link";
         link: (
           username: string,
+          args: Record<string, string>,
           say: Say,
         ) => { text: string; href: string; label: string };
       }
   );
 
 /** The trip somebody means when they name one, or the newest when they do
- *  not — the same choice `what_is_my_trip` makes in `./intents.ts`. */
+ *  not — the one a person writing today is almost always talking about. */
 function resolveTrip(username: string, id?: string) {
   const trips = getTrips(username);
   if (id) {
@@ -104,12 +150,53 @@ const TRIP_ARG = {
   trip: { type: "string" as const, description: "The trip id. Omit for the newest trip." },
 };
 
+const DAY_ARGS = {
+  ...TRIP_ARG,
+  slug: { type: "string" as const, description: "The day's slug, if one is known." },
+  date: { type: "string" as const, description: "The day, as YYYY-MM-DD." },
+};
+
 /** How much of a day's own words travel back to the screen in a preview. */
 const PREVIEW_CHARACTERS = 600;
 
+/** The day a slug or a date names, or the newest draft when neither is given
+ *  — the day somebody mid-write-up means. */
+function resolveDay(username: string, args: Record<string, string>) {
+  const trip = resolveTrip(username, args.trip);
+  if (!trip) return null;
+  const entries = getAllEntries(trip.ref, AS_AUTHOR);
+  const found =
+    entries.find((entry) => entry.slug === args.slug) ??
+    entries.find((entry) => entry.date === args.date) ??
+    [...entries].sort((a, b) => b.date.localeCompare(a.date))[0];
+  return found ? { trip, entry: found } : null;
+}
+
+/**
+ * The first day of a trip nobody has written yet — B818.
+ *
+ * **Not today.** Somebody writing up a trip is behind it, not on it: the day
+ * they mean is the earliest one with nothing on it, and defaulting to today
+ * was how a person on the road ended up with a day for a date they had not
+ * reached. Every day written and the trip still running: the day after the
+ * last one written, clipped to the trip.
+ */
+function firstUnwritten(username: string, tripId: string, today: string): string {
+  const trip = resolveTrip(username, tripId);
+  if (!trip) return today;
+  const written = new Set(getAllEntries(trip.ref, AS_AUTHOR).map((entry) => entry.date));
+  const last = today < trip.end ? today : trip.end;
+  for (let at = new Date(`${trip.start}T00:00:00Z`); ; at.setUTCDate(at.getUTCDate() + 1)) {
+    const date = at.toISOString().slice(0, 10);
+    if (date > last) break;
+    if (!written.has(date)) return date;
+  }
+  return last;
+}
+
 export const TOOLS: readonly Tool[] = [
   {
-    name: "list_trips",
+    name: "trips",
     kind: "read",
     renders: "choose",
     describe: "Every trip in this journal: its id, title and the days it runs between.",
@@ -128,6 +215,39 @@ export const TOOLS: readonly Tool[] = [
           value: trip.id,
           label: trip.title,
           detail: `${trip.start} – ${trip.end}`,
+        })),
+      };
+    },
+  },
+  {
+    name: "days",
+    kind: "read",
+    renders: "choose",
+    describe:
+      "The days of one trip: the date, what each is called, and whether it is on the site or still a draft.",
+    properties: TRIP_ARG,
+    run: async (username, args) => {
+      const trip = resolveTrip(username, args.trip);
+      if (!trip) return { found: false, why: "there are no trips in this journal" };
+      return getAllEntries(trip.ref, AS_AUTHOR).map((entry) => ({
+        trip: trip.id,
+        date: entry.date,
+        slug: entry.slug,
+        title: entry.title,
+        draft: Boolean(entry.draft),
+        photos: entry.gallery.length,
+      }));
+    },
+    block: (data, say) => {
+      if (!Array.isArray(data) || data.length === 0) return null;
+      const days = data as { date: string; slug: string; title: string; draft: boolean }[];
+      return {
+        shape: "choose",
+        text: say("agent.block.days"),
+        options: days.map((day) => ({
+          value: day.slug,
+          label: day.title,
+          detail: day.date,
         })),
       };
     },
@@ -159,7 +279,7 @@ export const TOOLS: readonly Tool[] = [
     kind: "read",
     renders: "preview",
     describe:
-      "One day of a trip: its title, whether it is published, how many photographs it carries and the words on it.",
+      "One day of a trip: its title, its slug, whether it is published, how many photographs it carries and the words on it.",
     properties: {
       ...TRIP_ARG,
       date: { type: "string", description: "The day, as YYYY-MM-DD." },
@@ -196,6 +316,25 @@ export const TOOLS: readonly Tool[] = [
     },
   },
   {
+    /** Credits and disk in one answer — the two questions about the account
+     *  itself, which nobody asks one at a time. */
+    name: "account",
+    kind: "read",
+    renders: "say",
+    describe:
+      "This journal's own account: how many credits are left, and how much disk space it takes up out of what it may. Credits pay for the things that cost money — writing a day up with the model, captions, transcription, printing. A null balance means this server charges for nothing. Bytes only — never where a photograph or a day has got to.",
+    properties: {},
+    run: async (username) => {
+      const usage = await storageFor(username);
+      return {
+        credits: await balanceOf(username),
+        used: formatBytes(usage.usedBytes),
+        limit: usage.limitBytes === null ? null : formatBytes(usage.limitBytes),
+        left: usage.remainingBytes === null ? null : formatBytes(usage.remainingBytes),
+      };
+    },
+  },
+  {
     name: "trip_costs",
     kind: "read",
     renders: "say",
@@ -225,31 +364,6 @@ export const TOOLS: readonly Tool[] = [
     },
   },
   {
-    name: "storage",
-    kind: "read",
-    renders: "say",
-    describe:
-      "How much disk space this journal takes up and how much is left before its limit. Bytes only — never where a photograph or a day has got to.",
-    properties: {},
-    run: async (username) => {
-      const usage = await storageFor(username);
-      return {
-        used: formatBytes(usage.usedBytes),
-        limit: usage.limitBytes === null ? null : formatBytes(usage.limitBytes),
-        left: usage.remainingBytes === null ? null : formatBytes(usage.remainingBytes),
-      };
-    },
-  },
-  {
-    name: "credits",
-    kind: "read",
-    renders: "say",
-    describe:
-      "How many credits this journal has left. Credits pay for the things that cost money — writing a day up with the model, captions, transcription, printing. Null means this server charges for nothing.",
-    properties: {},
-    run: async (username) => ({ balance: await balanceOf(username) }),
-  },
-  {
     name: "who_can_read",
     kind: "read",
     renders: "say",
@@ -274,59 +388,296 @@ export const TOOLS: readonly Tool[] = [
     /**
      * The first write tool, and it writes nothing.
      *
-     * There is a `new_trip` row in `./intents.ts` as well; that one is the
-     * router's, reached when a sentence matches a registry row, and it also
-     * only ever hands fields back to be pressed on. This is the same promise
-     * from inside the conversation, and the reason both can exist without
-     * disagreeing is that neither of them writes.
+     * **Visibility is a field rather than a default**, and the three labels
+     * are sentences rather than words: the mistake a person makes at exactly
+     * this moment is answering "who can see it" with the wrong one of *guest*
+     * and *private*, and the difference — everybody I let into this journal,
+     * against only the people who were there — cannot be carried by the word
+     * alone. It is prefilled with what the journal's own default would be, and
+     * it is on the screen to be read before the press.
      */
-    name: "new_trip",
+    name: "create_trip",
     kind: "write",
     renders: "form",
     describe:
-      "Propose a new trip — a journey with a title and a first and last day. This does not create anything: it fills in the fields and the person presses.",
+      "Propose a new trip — a journey with a title, a first and last day, and who may read it. This creates nothing: it fills the fields in and the person presses.",
     properties: {
       title: { type: "string", description: "What the trip is called, in the writer's own words." },
       start: { type: "string", description: "The first day, as YYYY-MM-DD." },
       end: { type: "string", description: "The last day, as YYYY-MM-DD." },
+      visibility: {
+        type: "string",
+        description:
+          "Who may read it: public (anybody), guest (everybody the owner has let into this journal) or private (only the people who were on the trip). Leave it out unless they said; the field is asked either way.",
+      },
     },
-    propose: (args, say) => ({
-      sentence: say("agent.tool.newTrip", {
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/trip`,
+    propose: async (_username, args, say) => ({
+      sentence: say("agent.tool.createTrip", {
         title: args.title ?? "",
         start: args.start ?? "",
         end: args.end ?? "",
       }),
+      accept: say("agent.tool.createTripAccept"),
+      done: say("agent.tool.createTripDone"),
       fields: [
         { name: "title", value: args.title ?? "" },
         { name: "start", value: args.start ?? "", date: true },
         { name: "end", value: args.end ?? "", date: true },
+        {
+          name: "visibility",
+          value: ["public", "guest", "private"].includes(args.visibility ?? "")
+            ? args.visibility
+            : "guest",
+          options: [
+            { value: "public", label: say("agent.tool.visibilityPublic") },
+            { value: "guest", label: say("agent.tool.visibilityGuest") },
+            { value: "private", label: say("agent.tool.visibilityPrivate") },
+          ],
+        },
       ],
     }),
   },
   {
     /**
-     * The day helper is a screen with its own steps, its own upload and its
-     * own publish button, and it stays one. A `link` is how the conversation
-     * hands somebody to a page rather than pretending to be it.
+     * The day itself, started — B818 is the date.
+     *
+     * **The default is the first day nobody has written, not today.** A person
+     * writing up a trip is behind it; today is the one date they are least
+     * likely to mean, and it was the one the wizard opened on.
      */
-    name: "day_helper",
+    name: "start_day",
+    kind: "write",
+    renders: "form",
+    describe:
+      "Propose starting a day of a trip — an empty day with a date, ready for words and photographs. Nothing is created until they press. Leave the date out and it fills in the first day of the trip nobody has written yet.",
+    properties: {
+      ...TRIP_ARG,
+      date: { type: "string", description: "The day, as YYYY-MM-DD. Omit to use the first unwritten day." },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day`,
+    propose: async (username, args, say, today) => {
+      const trip = resolveTrip(username, args.trip);
+      const date = args.date ?? firstUnwritten(username, trip?.id ?? "", today);
+      return {
+        sentence: say("agent.tool.startDay", { date, trip: trip?.title ?? args.trip ?? "" }),
+        accept: say("agent.tool.startDayAccept"),
+        done: say("agent.tool.startDayDone"),
+        fields: [
+          { name: "trip", value: trip?.id ?? args.trip ?? "" },
+          { name: "date", value: date, date: true },
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * The one tool that spends a credit, and it spends it on the press.
+     *
+     * It writes nothing either: `POST .../day/write-day` returns prose to be
+     * read, and keeping it is `set_day_words` — a second proposal and a second
+     * press, which is `next`. The person reads what came back before any of it
+     * is in their journal, which is what makes the "write only what you were
+     * told" rule checkable rather than merely stated.
+     */
+    name: "draft_words",
+    kind: "write",
+    renders: "form",
+    describe:
+      "Propose turning their own notes about a day into a title and a few paragraphs. Nothing is written and nothing is spent until they press; what comes back is shown to them to read, change or throw away. It costs one credit.",
+    properties: {
+      ...DAY_ARGS,
+      notes: {
+        type: "string",
+        description:
+          "Their own notes about the day, in their own words, exactly as they said them. Never write these yourself and never add anything they did not say.",
+      },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/write-day`,
+    // What came back is prose to read, not a day. Keeping it is the second
+    // proposal and the second press: `draft.prose` is what the write-day
+    // route calls the words.
+    next: { tool: "set_day_words", from: { title: "draft.title", content: "draft.prose" } },
+    propose: async (username, args, say) => {
+      const found = resolveDay(username, args);
+      return {
+        sentence: say("agent.tool.draftWords", { credits: "1" }),
+        accept: say("agent.tool.draftWordsAccept"),
+        done: say("agent.tool.draftWordsDone"),
+        fields: [
+          { name: "trip", value: found?.trip.id ?? args.trip ?? "" },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
+          { name: "date", value: found?.entry.date ?? args.date ?? "", date: true },
+          { name: "notes", value: args.notes ?? "", long: true },
+        ],
+      };
+    },
+  },
+  {
+    name: "set_day_words",
+    kind: "write",
+    renders: "form",
+    describe:
+      "Propose the title and the words of a day that already exists. Use their own words, never yours. Nothing is saved until they press, and a day already on the site stays on the site.",
+    properties: {
+      ...DAY_ARGS,
+      title: { type: "string", description: "The day's title, short, from what they said." },
+      content: { type: "string", description: "The day's words, in their language, as they said them." },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day`,
+    method: "PATCH",
+    propose: async (username, args, say) => {
+      const found = resolveDay(username, args);
+      return {
+        sentence: say("agent.tool.setWords", { date: found?.entry.date ?? args.date ?? "" }),
+        accept: say("agent.tool.setWordsAccept"),
+        done: say("agent.tool.setWordsDone"),
+        fields: [
+          { name: "trip", value: found?.trip.id ?? args.trip ?? "" },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
+          { name: "title", value: args.title ?? found?.entry.title ?? "" },
+          { name: "content", value: args.content ?? "", long: true },
+        ],
+      };
+    },
+  },
+  {
+    name: "add_cost",
+    kind: "write",
+    renders: "form",
+    describe:
+      "Propose one thing a day cost — what it was, how much, and which category. Only ever a figure they gave you. Nothing is recorded until they press.",
+    properties: {
+      ...DAY_ARGS,
+      label: { type: "string", description: "What it was, in their words." },
+      amount: { type: "string", description: "How much, as a number. Never one you worked out yourself." },
+      currency: { type: "string", description: "The three-letter code, if they said one." },
+      category: {
+        type: "string",
+        description:
+          "One of the journal's own categories, if they named something that fits. Leave it out rather than guessing.",
+      },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/costs`,
+    propose: async (username, args, say) => {
+      const found = resolveDay(username, args);
+      return {
+        sentence: say("agent.tool.addCost", {
+          label: args.label ?? "",
+          amount: args.amount ?? "",
+        }),
+        accept: say("agent.tool.addCostAccept"),
+        done: say("agent.tool.addCostDone"),
+        fields: [
+          { name: "trip", value: found?.trip.id ?? args.trip ?? "" },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
+          { name: "date", value: args.date ?? found?.entry.date ?? "", date: true },
+          { name: "label", value: args.label ?? "" },
+          { name: "amount", value: args.amount ?? "" },
+          { name: "currency", value: args.currency ?? "" },
+          { name: "category", value: args.category ?? "" },
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * **A rendered day, and then one press.** The preview is not decoration
+     * and not optional: publishing is the moment a day becomes readable by
+     * other people, and the plan's rule is that it happens after somebody has
+     * read it back — never from a sentence. There are no editable fields,
+     * because there is nothing here to correct: a wrong day is corrected by
+     * saying which day, and the next turn proposes that one.
+     */
+    name: "publish_day",
+    kind: "write",
+    renders: "confirm",
+    describe:
+      "Propose putting a day on the site. This shows them the day as their readers will see it and stops; it publishes nothing. Only the button under it publishes.",
+    properties: DAY_ARGS,
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/publish`,
+    propose: async (username, args, say) => {
+      const found = resolveDay(username, args);
+      return {
+        sentence: found
+          ? say("agent.tool.publishDay", { date: found.entry.date, title: found.entry.title })
+          : say("agent.tool.publishNoDay"),
+        accept: say("agent.tool.publishDayAccept"),
+        done: say("agent.tool.publishDayDone"),
+        preview: found
+          ? [found.entry.date, found.entry.title, found.entry.content.slice(0, PREVIEW_CHARACTERS)].filter(
+              (line) => line !== "",
+            )
+          : [],
+        fields: [
+          { name: "trip", value: found?.trip.id ?? args.trip ?? "" },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * The takedown, and **it is not a delete** (B816).
+     *
+     * The day goes back to being a draft: off the site, off the feed, still on
+     * disk with every photograph attached, and publishing it again is the
+     * undo. Nothing in this registry deletes anything, and the words that mean
+     * *destroy* are refused before a model is asked at all.
+     */
+    name: "unpublish_day",
+    kind: "write",
+    renders: "confirm",
+    describe:
+      "Propose taking a day back off the site. It becomes a draft again — nothing is deleted, every photograph stays, and publishing it again puts it back. Nothing happens until they press.",
+    properties: DAY_ARGS,
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/unpublish`,
+    propose: async (username, args, say) => {
+      const found = resolveDay(username, args);
+      return {
+        sentence: found
+          ? say("agent.tool.unpublishDay", { date: found.entry.date, title: found.entry.title })
+          : say("agent.tool.publishNoDay"),
+        accept: say("agent.tool.unpublishDayAccept"),
+        done: say("agent.tool.unpublishDayDone"),
+        fields: [
+          { name: "trip", value: found?.trip.id ?? args.trip ?? "" },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * Photographs are files, and files are not a sentence. The day's own page
+     * has the picker, the upload and what the camera recorded; this hands
+     * somebody to it, on the right day, and changes nothing. Choosing files
+     * inside the conversation is round 6 of the plan.
+     */
+    name: "add_photos",
     kind: "link",
     renders: "link",
     describe:
-      "Where a day is written up — photographs, the words, the preview and the publish button. Use this when they want to write, correct or publish a day. It only hands them the page; it changes nothing.",
-    properties: {},
-    link: (username, say) => ({
-      text: say("agent.tool.dayHelper"),
-      href: `/agent/${encodeURIComponent(username)}`,
-      label: say("agent.tool.dayHelperLabel"),
-    }),
+      "Where photographs are added to a day — the picker, what the camera recorded, and the upload. Use this whenever they want to put pictures on a day. It only hands them the page.",
+    properties: DAY_ARGS,
+    link: (username, args, say) => {
+      const query = new URLSearchParams(
+        Object.entries({ trip: args.trip ?? "", slug: args.slug ?? "", date: args.date ?? "" }).filter(
+          ([, value]) => value !== "",
+        ),
+      ).toString();
+      return {
+        text: say("agent.tool.addPhotos"),
+        href: `/agent/${encodeURIComponent(username)}${query ? `?${query}` : ""}`,
+        label: say("agent.tool.addPhotosLabel"),
+      };
+    },
   },
 ];
 
-/** The list the model is shown, generated — as `intentList()` is, and for the
- *  same reason: a hand-written menu goes stale the first afternoon. A write
- *  tool says so in its own `describe`, so the menu is honest about which of
- *  these end in a press. */
+/** The list the model is shown, generated — because a hand-written menu goes
+ *  stale the first afternoon. A write tool says so in its own `describe`, so
+ *  the menu is honest about which of these end in a press. */
 export function toolList(): string {
   return TOOLS.map((tool) => `- ${tool.name}: ${tool.describe}`).join("\n");
 }
@@ -347,13 +698,73 @@ export function toolSchemas() {
 }
 
 /** What one tool call produced: what the model reads, and what the person
- *  sees. `block` is null for a `say` read — the sentence is the model's. */
+ *  sees. A `say` read draws nothing of its own — the sentence is the model's. */
 export type Ran = {
   ok: boolean;
   result: unknown;
-  block: Block | null;
+  blocks: Block[];
   proposal?: Proposal;
 };
+
+/** The declared arguments, trimmed, with anything the tool did not declare
+ *  dropped rather than shown to somebody as a prefilled field. */
+function argumentsOf(tool: Tool, args: unknown): Record<string, string> {
+  const given = (args ?? {}) as Record<string, unknown>;
+  const strings: Record<string, string> = {};
+  for (const key of Object.keys(tool.properties)) {
+    const value = given[key];
+    if (typeof value === "string" && value.trim() !== "") strings[key] = value.trim();
+  }
+  return strings;
+}
+
+/**
+ * One write tool's proposal — B900, and **nothing here writes**.
+ *
+ * Exported because a proposal is asked for twice: once by the model, when it
+ * decides a sentence means a write, and once by `POST .../proposal` when one
+ * accepted write hands on to the next (`draft_words` → `set_day_words`). Both
+ * end in the same fields on the same screen with the same button, which is
+ * what stops a chain being a second, quieter way to write something.
+ */
+export async function proposalFor(
+  username: string,
+  tool: Extract<Tool, { kind: "write" }>,
+  args: Record<string, string>,
+  say: Say,
+  today: string,
+): Promise<{ proposal: Proposal; blocks: Block[] }> {
+  const made = await tool.propose(username, args, say, today);
+  const proposal: Proposal = {
+    tool: tool.name,
+    arguments: args,
+    sentence: made.sentence,
+    fields: made.fields,
+    endpoint: tool.endpoint(username),
+    method: tool.method ?? "POST",
+    accept: made.accept,
+    done: made.done,
+    ...(tool.next ? { next: tool.next } : {}),
+  };
+  const blocks: Block[] = [];
+  // The thing as it stands, and then the press — never the other way round.
+  if (made.preview && made.preview.length > 0) {
+    blocks.push({ shape: "preview", text: made.sentence, lines: made.preview });
+  }
+  blocks.push(
+    tool.renders === "form"
+      ? { shape: "form", text: made.sentence, fields: made.fields, proposal }
+      : { shape: "confirm", text: made.sentence, proposal },
+  );
+  return { proposal, blocks };
+}
+
+/** The write tool of that name, or null — the propose route's own lookup, so
+ *  a `next` naming a read or a tool nobody built lands nowhere. */
+export function writeTool(name: string): Extract<Tool, { kind: "write" }> | null {
+  const tool = TOOLS.find((one) => one.name === name);
+  return tool && tool.kind === "write" ? tool : null;
+}
 
 /**
  * Run one tool the model asked for.
@@ -365,56 +776,50 @@ export type Ran = {
  *
  * `say` is passed in rather than imported so that a proposal's sentence and a
  * block's heading are in the reader's own language and this file holds no
- * English prose — the same call `./intents.ts` makes.
+ * English prose.
  */
 export async function runTool(
   username: string,
   name: string,
   args: unknown,
   say: Say,
+  today: string,
 ): Promise<Ran> {
   const tool = TOOLS.find((one) => one.name === name);
   if (!tool) {
-    return { ok: false, result: { error: `there is no tool called ${name}` }, block: null };
+    return { ok: false, result: { error: `there is no tool called ${name}` }, blocks: [] };
   }
-  const given = (args ?? {}) as Record<string, unknown>;
-  const strings: Record<string, string> = {};
-  for (const key of Object.keys(tool.properties)) {
-    const value = given[key];
-    if (typeof value === "string" && value.trim() !== "") strings[key] = value.trim();
-  }
+  const strings = argumentsOf(tool, args);
 
   if (tool.kind === "write") {
-    // Nothing is executed. `propose` is handed the arguments and a translator
-    // and returns a value; there is no `run` on a write tool to call.
-    const { sentence, fields } = tool.propose(strings, say);
-    const proposal: Proposal = { tool: tool.name, arguments: strings, sentence, fields };
+    // Nothing is executed. `propose` may read this journal to fill a field in
+    // or to draw the day; there is no `run` on a write tool to call, and the
+    // press is what posts to `endpoint`.
+    const { proposal, blocks } = await proposalFor(username, tool, strings, say, today);
     return {
       ok: true,
       // What the model reads back, so its own sentence can say a proposal is
-      // waiting rather than claim the trip exists.
-      result: { proposed: true, wrote: false, tool: tool.name, arguments: strings },
-      block:
-        tool.renders === "form"
-          ? { shape: "form", text: sentence, fields }
-          : { shape: "confirm", text: sentence },
+      // waiting rather than claim the thing exists.
+      result: { proposed: true, wrote: false, tool: tool.name, arguments: proposal.arguments },
+      blocks,
       proposal,
     };
   }
 
   if (tool.kind === "link") {
-    const { text, href, label } = tool.link(username, say);
+    const { text, href, label } = tool.link(username, strings, say);
     return {
       ok: true,
       result: { link: href, wrote: false },
-      block: { shape: "link", text, href, label },
+      blocks: [{ shape: "link", text, href, label }],
     };
   }
 
   try {
     const result = await tool.run(username, strings);
-    return { ok: true, result, block: tool.block?.(result, say) ?? null };
+    const block = tool.block?.(result, say) ?? null;
+    return { ok: true, result, blocks: block ? [block] : [] };
   } catch (thrown) {
-    return { ok: false, result: { error: (thrown as Error).message }, block: null };
+    return { ok: false, result: { error: (thrown as Error).message }, blocks: [] };
   }
 }

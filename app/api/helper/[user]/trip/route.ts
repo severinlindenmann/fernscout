@@ -2,7 +2,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrip, tripRef } from "@/lib/trips";
-import { createTrip, DATE_RE } from "@/lib/tripWrite";
+import { createTrip, DATE_RE, VISIBILITIES } from "@/lib/tripWrite";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +74,28 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     return Response.json({ error: "invalid_trip" }, { status: 400 });
   }
 
-  const created = createTrip(user, { id: idFrom(user, title, start), title, start, end });
+  /**
+   * Who may read it, asked rather than defaulted — B900.
+   *
+   * The conversation puts the three in front of somebody as sentences, because
+   * the mistake people make at exactly this moment is answering "who can see
+   * it" with the wrong one of *guest* and *private*. An unrecognised word is
+   * dropped rather than guessed at: `createTrip` then falls back to the
+   * journal's own default, which is what a trip made without this field has
+   * always got.
+   */
+  const said = text(body.visibility);
+  const visibility = (VISIBILITIES as readonly string[]).includes(said)
+    ? (said as (typeof VISIBILITIES)[number])
+    : undefined;
+
+  const created = createTrip(user, {
+    id: idFrom(user, title, start),
+    title,
+    start,
+    end,
+    ...(visibility ? { visibility } : {}),
+  });
   if (!created.ok) {
     return Response.json({ error: created.error, message: created.message }, { status: 400 });
   }

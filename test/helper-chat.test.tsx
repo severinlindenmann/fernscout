@@ -23,7 +23,7 @@ import { dictionaryFor } from "@/lib/locales";
 
 let root: Root | undefined;
 let container: HTMLDivElement | undefined;
-let calls: { url: string; method: string }[] = [];
+let calls: { url: string; method: string; body: Record<string, unknown> }[] = [];
 
 const dictionary = dictionaryFor("en");
 
@@ -44,8 +44,12 @@ function answers(...bodies: Record<string, unknown>[]) {
   let next = 0;
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (url: string, init?: { method?: string }) => {
-      calls.push({ url, method: init?.method ?? "GET" });
+    vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
+      calls.push({
+        url,
+        method: init?.method ?? "GET",
+        body: init?.body ? (JSON.parse(init.body) as Record<string, unknown>) : {},
+      });
       const body = bodies[Math.min(next, bodies.length - 1)];
       next += 1;
       return { ok: true, json: async () => body } as Response;
@@ -109,6 +113,43 @@ async function ask(said: string) {
 
 function saying(text: string): Block[] {
   return [{ shape: "say", text }];
+}
+
+/** One turn that ends in a proposal — the shape the route sends since B900:
+ *  the block carries the proposal, and the proposal carries where a press
+ *  goes. Nothing in it has happened. */
+function proposed() {
+  const proposal = {
+    tool: "create_trip",
+    arguments: { title: "Japan", start: "2027-03-01", end: "2027-03-31" },
+    sentence: "A trip called Japan.",
+    fields: [
+      { name: "title", value: "Japan" },
+      { name: "start", value: "2027-03-01", date: true },
+      { name: "end", value: "2027-03-31", date: true },
+      {
+        name: "visibility",
+        value: "guest",
+        options: [
+          { value: "public", label: "Public" },
+          { value: "guest", label: "Guests" },
+          { value: "private", label: "Private" },
+        ],
+      },
+    ],
+    endpoint: "/api/helper/alex/trip",
+    method: "POST" as const,
+    accept: "Make this trip",
+    done: "The trip is made.",
+  };
+  return {
+    ok: true,
+    kind: "read",
+    blocks: [
+      { shape: "form", text: proposal.sentence, fields: proposal.fields, proposal },
+    ] satisfies Block[],
+    proposals: [proposal],
+  };
 }
 
 describe("turns", () => {
@@ -227,27 +268,99 @@ describe("the blocks a tool declares", () => {
     expect(container!.textContent).toContain("Worte.");
   });
 
-  test("a proposal is read-only and says nothing has been written", async () => {
+  test("a proposal is drawn with its fields editable, and nothing is written yet", async () => {
+    answers(proposed());
+    render();
+    await ask("make a trip to japan");
+    const title = container!.querySelector("input[value=\"Japan\"]") as HTMLInputElement;
+    expect(title).not.toBeNull();
+    expect(title.disabled).toBe(false);
+    // One ask, and nothing else: proposing posts to no route at all.
+    expect(calls).toHaveLength(1);
+    // Focus moves to the proposal when one appears — B795's lesson, applied
+    // before it is a bug rather than after.
+    expect((document.activeElement as HTMLElement)?.textContent).toContain("A trip called Japan.");
+  });
+
+  test("pressing posts what the proposal says, where it says, edits and all", async () => {
+    answers(proposed(), { ok: true, id: "japan-2027" }, { ok: true });
+    render();
+    await ask("make a trip to japan");
+
+    const title = container!.querySelector("input[value=\"Japan\"]") as HTMLInputElement;
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value",
+      )!.set!;
+      setter.call(title, "Japan im Frühling");
+      title.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    await act(async () => {
+      buttonSaying("Make this trip").click();
+    });
+
+    expect(calls[1]).toMatchObject({
+      url: "/api/helper/alex/trip",
+      method: "POST",
+      // The arguments the tool proposed, with what the person typed on top.
+      body: { title: "Japan im Frühling", start: "2027-03-01", visibility: "guest" },
+    });
+    // What happened, in their own language — and the conversation says it
+    // rather than the page navigating away from itself.
+    expect(container!.textContent).toContain("The trip is made.");
+    // And the field has focus again, because saying something else is next.
+    expect(document.activeElement).toBe(field());
+  });
+
+  test("leaving a proposal alone writes nothing and charges nothing", async () => {
+    answers(proposed());
+    render();
+    await ask("make a trip to japan");
+    await act(async () => {
+      buttonSaying(dictionary["agent.chat.leaveIt"]).click();
+    });
+    expect(calls).toHaveLength(1);
+    expect(container!.textContent).toContain(dictionary["agent.chat.leftIt"]);
+  });
+
+  test("and correcting it in words is offered right there", async () => {
+    answers(proposed());
+    render();
+    await ask("make a trip to japan");
+    expect(container!.textContent).toContain(dictionary["agent.chat.orSayWhatIsWrong"]);
+  });
+
+  test("a confirm has no fields and one button that says what it does", async () => {
     answers({
       ok: true,
       kind: "read",
       blocks: [
+        { shape: "preview", text: "", lines: ["2026-05-01", "Der erste Tag"] },
         {
-          shape: "form",
-          text: "A trip called Japan.",
-          fields: [{ name: "title", value: "Japan" }],
+          shape: "confirm",
+          text: "Put it on the site?",
+          proposal: {
+            tool: "publish_day",
+            arguments: { trip: "reise", slug: "one" },
+            sentence: "Put it on the site?",
+            fields: [],
+            endpoint: "/api/helper/alex/day/publish",
+            method: "POST",
+            accept: "Put it on the site",
+            done: "It is on the site.",
+          },
         },
       ] satisfies Block[],
-      proposals: [
-        { tool: "new_trip", arguments: { title: "Japan" }, sentence: "A trip called Japan.", fields: [] },
-      ],
     });
     render();
-    await ask("make a trip to japan");
-    expect(container!.textContent).toContain(dictionary["agent.chat.readOnly"]);
-    // Focus moves to the proposal when one appears — B795's lesson, applied
-    // before it is a bug rather than after.
-    expect((document.activeElement as HTMLElement)?.textContent).toContain("A trip called Japan.");
+    await ask("publish that day");
+    // The day is read back first, and then there is one thing to press.
+    const text = container!.textContent ?? "";
+    expect(text.indexOf("Der erste Tag")).toBeLessThan(text.indexOf("Put it on the site"));
+    expect(container!.querySelectorAll('[role="log"] input')).toHaveLength(0);
+    expect(buttonSaying("Put it on the site")).toBeTruthy();
   });
 
   test("a shape nobody has drawn yet still says its sentence", async () => {
@@ -274,7 +387,7 @@ describe("starting over", () => {
     await act(async () => {
       buttonSaying(dictionary["agent.chat.startOver"]).click();
     });
-    expect(calls[1]).toEqual({ url: "/api/helper/alex/ask", method: "DELETE" });
+    expect(calls[1]).toMatchObject({ url: "/api/helper/alex/ask", method: "DELETE" });
     expect(container!.textContent).not.toContain("Two trips.");
     expect(container!.textContent).toContain(dictionary["agent.chat.startedOver"]);
   });

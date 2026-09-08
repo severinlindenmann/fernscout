@@ -8,7 +8,7 @@ import {
 } from "@/importers/costs/mapping";
 import { recordUsage, type Operation } from "../usage";
 import type { Block, Proposal } from "./blocks";
-import { intentList, REGISTRY, type Say } from "./intents";
+import type { Say } from "./intents";
 import type { Turn } from "./thread";
 import { runTool, toolList, toolSchemas } from "./tools";
 
@@ -271,106 +271,20 @@ export async function writeDay(notes: string, facts: DayFacts, owner?: string): 
 }
 
 /* -------------------------------------------------------------------------
- * The router — B685, §3 of the plan.
+ * The router was here, and B900 retired it.
  *
- * One sentence in, a row name and some strings out. It lives in this file
- * because this file is the one place a model is spoken to, and the prompt
- * below is as much the product as the write-up prompt above it.
+ * One sentence used to be classified into a row of `./intents.ts` before the
+ * thread was ever reached, and a sentence a row happened to cover never got
+ * to a tool: "zeig mir meine reisen" was answered as prose where the `trips`
+ * tool answers as a list to pick from, and "mach mir einen tag von gestern"
+ * handed over a wizard URL where `start_day` proposes a day to press on.
  *
- * **The model is handed no client, no tools and no ability to call
- * anything.** What it returns is looked up in `./intents.ts` by code, and
- * every write is confirmed by a person afterwards however sure it sounded.
+ * Two routers is worse than either one, so there is one now: the thread, with
+ * the tools. What survives from that design is the part that never asked a
+ * model anything — `refusalFor()` in `./intents.ts`, matched from the raw
+ * sentence before any of this file runs. That is B817's guard and it did not
+ * move.
  * ---------------------------------------------------------------------- */
-
-/** What comes back when nothing fits. Not an error and not an apology — it
- *  lands the person on the buttons that were already on their screen. */
-export const UNKNOWN_INTENT = "unknown";
-
-/**
- * The router's system prompt.
- *
- * **The list of things it can route to is generated from the registry**
- * (`intentList()`), which is the only reason this prompt can be trusted a
- * month from now: a hand-typed menu here would promise a capability somebody
- * deleted, or hide one somebody added, and neither failure looks like a bug
- * from the outside — it looks like the helper being stupid.
- */
-export const ROUTER_SYSTEM_PROMPT = `You are the front door of somebody's travel journal. They have typed or spoken one sentence at it. Your only job is to say which of the things below they are asking for, and to pull out the fields it needs.
-
-You do not do the thing, and you cannot: you have no tools, no access to the journal, and nothing you return happens until the person has read it on their own screen and pressed a button.
-
-The things this helper can do:
-${intentList()}
-
-The rules:
-
-Return exactly one intent. If they asked for two things, take the first one they asked for; they will be asked about the rest afterwards.
-
-If nothing above fits, or you find yourself guessing, return "${UNKNOWN_INTENT}" with no slots. That is a real answer and often the right one — it puts them back on the menu of buttons they already had. A wrong guess costs them more than no guess.
-
-Fill a slot only from what they actually said. Do not invent a title, a place, a trip or a date that is not in their sentence. An empty slot is better than a plausible one: an empty box is a box they fill in, a wrong one is a mistake they have to notice first.
-
-Dates are YYYY-MM-DD, worked out from today's date, which is given to you. A month named with no year means the nearest such month that has not yet ended. A month with no day means its first day for a start and its last day for an end.
-
-Confidence is between 0 and 1: how sure you are that this is the row they meant. Be honest and low rather than polite and high.
-
-Never write prose, an explanation or an apology. You return a row name, a few short strings, and a number.`;
-
-export type Routed = { intent: string; slots: Record<string, unknown>; confidence: number };
-
-/** Every slot name in the registry, so the schema is generated too. */
-function slotProperties(): Record<string, { type: "string" }> {
-  const out: Record<string, { type: "string" }> = {};
-  for (const row of REGISTRY) for (const slot of row.slots) out[slot.name] = { type: "string" };
-  return out;
-}
-
-function routerSchema() {
-  return {
-    type: "object",
-    properties: {
-      intent: { type: "string", enum: [...REGISTRY.map((r) => r.name), UNKNOWN_INTENT] },
-      slots: { type: "object", properties: slotProperties(), additionalProperties: false },
-      confidence: { type: "number" },
-    },
-    required: ["intent", "slots", "confidence"],
-    additionalProperties: false,
-  };
-}
-
-/**
- * One request. Anything that does not parse comes back as `unknown`, which is
- * a first-class answer here — a broken response and a sentence nobody
- * understood deserve the same screen, and it is the screen that always works.
- */
-export async function routeAsk(said: string, today: string, owner?: string): Promise<Routed> {
-  const client = new Anthropic();
-  const response = await client.messages.create({
-    model: HELPER_MODEL,
-    max_tokens: 300,
-    system: ROUTER_SYSTEM_PROMPT,
-    messages: [
-      { role: "user", content: `Today is ${today}.\n\nWhat they said:\n${said.trim()}` },
-    ],
-    output_config: { format: { type: "json_schema", schema: routerSchema() } },
-  });
-  await book(owner, "route_ask", response.usage);
-
-  const text = response.content
-    .map((block) => (block.type === "text" ? block.text : ""))
-    .join("")
-    .trim();
-  try {
-    const parsed = JSON.parse(text) as Record<string, unknown>;
-    return {
-      intent: typeof parsed.intent === "string" ? parsed.intent : UNKNOWN_INTENT,
-      slots: (parsed.slots ?? {}) as Record<string, unknown>,
-      confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0,
-    };
-  } catch {
-    return { intent: UNKNOWN_INTENT, slots: {}, confidence: 0 };
-  }
-}
 
 /* -------------------------------------------------------------------------
  * A statement's columns — B689, and §2 of the plan's third model job.
@@ -586,19 +500,25 @@ ${toolList()}
 
 Call them when the answer needs one. Call more than one when it needs more than one. If a question is about the software rather than about their journal — how something works, what something is for — answer it from what is written below without calling anything.
 
-WHAT YOU CANNOT DO, AND WHAT TO SAY INSTEAD
+Some of them look things up and some of them propose a change. The ones that propose say so in their own description, and what they do is described below.
 
-You cannot change this journal yourself. Nothing you call writes, publishes, deletes, uploads or sends anything, so nothing you say can alter a single file. Two of the tools do less than their names suggest, and saying so is part of the answer: new_trip fills a form in and stops — the trip does not exist until they press — and day_helper only hands them a page. That is deliberate, not something to apologise for. When they ask for something, say what will actually happen and name the control that finishes it, in a sentence or two, so it reads as directions and not as a refusal:
+WHAT HAPPENS WHEN YOU CALL ONE THAT WRITES
 
-- Writing up a day, adding photographs to it, or correcting one already written: the day_helper tool hands them the page that does all of it.
-- Publishing a day: from that day's own preview, where they read it as their readers will see it and press once. It never happens from a sentence.
-- Changing a trip's title, dates or who may read it: the trip form on their journal.
-- Costs: the costs page of the trip, or a bank statement imported there.
-- Printed postcards: proposed first, then looked at and pressed on their journal's postcards page. Nothing is printed until they press.
-- Deleting a day, a trip or the whole journal: not from here at all. Deleting a journal or a trip is asked for elsewhere and finishes in their email — the server sends a single-use link to a page with a button, and only that button deletes.
+Nothing, yet. A tool that writes does not write: it puts a proposal on their screen — the fields filled in, editable, with one button — and only their press changes anything at all. So call the write tool as soon as you understand what they want, rather than asking them to confirm in words first: the proposal *is* the confirmation, and it is a better one than a sentence because they can see and correct every field before pressing.
+
+Say what it will do, once, plainly. Never say a thing has been done: say it is ready for them to press.
+
+If they tell you a proposal is wrong — "no, the 14th", "make it private", "that title is not right" — call the same tool again with the correction applied and everything else kept. That produces a new proposal in place of the old one. Do not apologise, do not explain the mechanism, and never ask them to retype what they already said.
+
+Publishing is the same shape with one difference: publish_day shows them the day as their readers will see it and then the button. It never happens because of a sentence, yours or theirs.
+
+WHAT YOU STILL CANNOT DO, AND WHAT TO SAY INSTEAD
+
+- Deleting a day, a trip or the whole journal: not from here at all, and there is no tool for it. Deleting a journal or a trip finishes in their email — the server sends a single-use link to a page with a button, and only that button deletes. Taking a day off the site is not deleting: that is unpublish_day, and nothing is lost by it.
+- Photographs: the add_photos tool hands them the day's own page, which has the picker and the upload. You cannot receive a file.
+- Printed postcards: proposed first, then looked at and pressed on their journal's postcards page. Nothing is printed until they press, and you have no part in it.
 - Inviting somebody to read, or letting a fellow traveller write: the invite links on their journal's contacts page.
-
-If they tell you something that happened — "I was in Lisbon", "we spent forty euros on lunch" — do not pretend to have written it down, because you have not. Say so in one sentence and point at where it goes. You may say what you understood, so they can carry it there.
+- Changing a trip's title, dates or who may read it after it exists: the trip form on their journal.
 
 WHAT YOU MUST NEVER DO
 
@@ -607,6 +527,8 @@ Never invent anything about their travels. No weather, no meal, no place, no per
 Never write about the weather at all, whatever they ask. This journal records weather from a measured archive at the coordinates a day already carries, and a sentence of yours would compete with a measurement.
 
 Never repeat back a location, an address or a coordinate as fact. You have no access to anybody's position history and must never claim to.
+
+Never put words into a day that they did not say. The words in a set_day_words proposal are theirs — either what they told you, or what draft_words made out of their own notes and they read afterwards. Prose you composed yourself is not one of those.
 
 Never make up a tool, a page or a button that is not named above.
 
@@ -680,8 +602,14 @@ export async function answerInThread(
     const results: Anthropic.ToolResultBlockParam[] = [];
     for (const call of calls) {
       looked.push(call.name);
-      const { ok, result, block, proposal } = await runTool(username, call.name, call.input, say);
-      if (block) blocks.push(block);
+      const { ok, result, blocks: drawn, proposal } = await runTool(
+        username,
+        call.name,
+        call.input,
+        say,
+        today,
+      );
+      blocks.push(...drawn);
       if (proposal) proposals.push(proposal);
       results.push({
         type: "tool_result",

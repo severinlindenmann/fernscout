@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import RecordButton from "@/components/RecordButton";
 import { useI18n } from "@/components/LocaleProvider";
-import type { Block } from "@/lib/helper/blocks";
+import type { Block, Proposal, ProposalField } from "@/lib/helper/blocks";
 import type { TranslationKey } from "@/lib/i18n";
 
 /**
@@ -24,23 +24,21 @@ import type { TranslationKey } from "@/lib/i18n";
  * journal. Their own sentence is a quiet line; the answer is plain text under
  * it, and the only thing that looks like a control is a thing you can press.
  *
- * The four kinds of answer the route still gives, and the discipline is in the
- * difference:
+ * **A proposal is accepted here — B900.** A write tool returns fields and a
+ * sentence and writes nothing; this draws them **editable**, with one button
+ * that says what it does. Pressing posts to the route the proposal names —
+ * the same helper route the wizard's own buttons post to, which validates and
+ * refuses exactly as it does for them. There is no second path to disk, and
+ * this component knows the name of no tool: it posts where it is told.
  *
- * - **read** — blocks, drawn into the thread. Since B898 that includes a
- *   sentence no row fits: the tools' own blocks in the order they ran, and
- *   then the model's sentence as a `say`.
- * - **open** — a screen, navigated to. It writes nothing; the screen has its
- *   own buttons.
- * - **write** — the registry's own fields, prefilled and editable, in a
- *   `ConfirmPanel`. **However confident the router was.**
- * - **unknown** — a sentence in the thread, above the buttons the person
- *   already had.
+ * **The other half of accepting is saying what is wrong.** "no, the 14th"
+ * goes into the field like any other sentence, and the turn it produces is a
+ * fresh proposal in place of the old one. That is the difference between this
+ * and a form, and it is why the fields being editable is the smaller half.
  *
- * **A proposal from a write *tool* is read-only here**, and says so. A write
- * tool has no `run` to call, so nothing has happened; accepting one is B900,
- * and a button that looked pressable before it worked would be the one lie
- * this surface cannot afford.
+ * **A refused or abandoned proposal costs nothing.** A conversation is free;
+ * what a write costs is charged by the route it posts to, on the press. Three
+ * corrections and then a press is one charge.
  *
  * **Reach is built in rather than filed after** — checklist D, and B795/B796
  * are the evidence that retrofitting it costs more. The thread is a `log` that
@@ -54,13 +52,40 @@ import type { TranslationKey } from "@/lib/i18n";
  * card's one bright button, and becomes a conversation when somebody taps it.
  */
 
-type Field = { name: string; value: string; date: boolean };
-
 /** One exchange as this browser has seen it: what was said, and what came
  *  back. The real conversation is the server's (`lib/helper/thread.ts`); this
  *  is only what to draw, which is why a reload starts the drawing again while
  *  the server's conversation carries on. */
 type Exchange = { said: string; blocks: Block[] };
+
+/** One value out of a route's answer, by the path a proposal's `next`
+ *  declared — `"draft.prose"`. Anything missing is left out rather than
+ *  guessed at. */
+function at(answer: unknown, path: string): unknown {
+  return path
+    .split(".")
+    .reduce<unknown>(
+      (found, key) =>
+        found && typeof found === "object" ? (found as Record<string, unknown>)[key] : undefined,
+      answer,
+    );
+}
+
+/**
+ * The thing as it now stands, from what the route answered.
+ *
+ * Every helper route that changes a day answers with the day, so a write can
+ * be seen rather than merely reported. A route that answers with nothing to
+ * draw contributes nothing here, and the sentence saying what happened is
+ * still said.
+ */
+function previewOf(answer: Record<string, unknown>): Block[] {
+  const draft = answer.draft as Record<string, unknown> | undefined;
+  const lines = [draft?.date, draft?.title].filter(
+    (line): line is string => typeof line === "string" && line !== "",
+  );
+  return lines.length > 0 ? [{ shape: "preview", text: "", lines }] : [];
+}
 
 /** Whether a turn ends in something to check before it happens. Focus goes
  *  there when it does — a proposal nobody is looking at is a proposal nobody
@@ -119,8 +144,6 @@ export default function HelperAsk({
   // being broken, and closed the tab.
   const [lapsed, setLapsed] = useState(false);
   const [turns, setTurns] = useState<Exchange[]>([]);
-  const [fields, setFields] = useState<Field[]>([]);
-  const [pending, setPending] = useState<{ intent: string; endpoint: string } | null>(null);
   const [consented, setConsented] = useState(initialConsent);
   const [consenting, setConsenting] = useState(false);
 
@@ -183,7 +206,6 @@ export default function HelperAsk({
     setBusy(true);
     setError("");
     setLapsed(false);
-    setPending(null);
     try {
       const body = await send(`/api/helper/${encodeURIComponent(username)}/ask`, {
         said,
@@ -191,17 +213,6 @@ export default function HelperAsk({
         // the person is standing.
         today: new Date().toISOString().slice(0, 10),
       });
-      if (body.kind === "open") {
-        window.location.href = String(body.href);
-        return;
-      }
-      if (body.kind === "write") {
-        const given = (body.fields ?? []) as Field[];
-        setFields(given);
-        setPending({ intent: String(body.intent), endpoint: String(body.endpoint) });
-        landed([{ shape: "say", text: t("agent.askConfirm") }]);
-        return;
-      }
       const blocks = (body.blocks as Block[] | undefined) ?? [];
       landed(blocks.length > 0 ? blocks : [{ shape: "say", text: t("agent.askUnknown") }]);
     } catch (thrown) {
@@ -226,18 +237,68 @@ export default function HelperAsk({
     }
   }
 
-  async function confirmWrite() {
-    if (!pending) return;
+  /**
+   * Accept one proposal — B900, and the only thing on this screen that changes
+   * anything.
+   *
+   * It posts what the proposal says to post, where the proposal says to post
+   * it: an existing helper route, which validates and refuses exactly as it
+   * does for the wizard's own buttons. This component knows the name of no
+   * tool, which is what keeps "adding a tool needs no client change" true.
+   *
+   * What follows a press is three small things and no navigation — a
+   * conversation that jumped to another page would lose itself:
+   *
+   * 1. the thread is told, so the next turn knows it happened rather than
+   *    offering to do it again;
+   * 2. a chained proposal, where the tool declared one, opens with what came
+   *    back — the words a model made out of their notes are read *here*,
+   *    before a second press keeps them;
+   * 3. otherwise the day as it now stands, and the sentence saying what
+   *    happened, in their own language.
+   */
+  async function accept(proposal: Proposal, values: Record<string, string>) {
     setBusy(true);
     setError("");
     try {
-      const body = await send(
-        pending.endpoint,
-        Object.fromEntries(fields.map((field) => [field.name, field.value])),
+      const answer = await send(
+        proposal.endpoint,
+        { ...proposal.arguments, ...values },
+        proposal.method,
       );
-      window.location.href = String(body.href ?? window.location.href);
+
+      // Memory only, and never a claim: the write has already happened above.
+      await send(`/api/helper/${encodeURIComponent(username)}/proposal`, {
+        tool: proposal.tool,
+        arguments: { ...proposal.arguments, ...values },
+        wrote: true,
+      }).catch(() => ({}));
+
+      if (proposal.next) {
+        const carried: Record<string, string> = { ...proposal.arguments, ...values };
+        for (const [name, path] of Object.entries(proposal.next.from)) {
+          const found = at(answer, path);
+          if (typeof found === "string" && found !== "") carried[name] = found;
+        }
+        const next = await send(`/api/helper/${encodeURIComponent(username)}/proposal`, {
+          tool: proposal.next.tool,
+          arguments: carried,
+          today: new Date().toISOString().slice(0, 10),
+        });
+        setTurns((was) => [
+          ...was,
+          { said: "", blocks: [{ shape: "say", text: proposal.done }, ...((next.blocks ?? []) as Block[])] },
+        ]);
+        return;
+      }
+
+      setTurns((was) => [
+        ...was,
+        { said: "", blocks: [...previewOf(answer), { shape: "say", text: proposal.done }] },
+      ]);
     } catch (thrown) {
       failed(thrown);
+    } finally {
       setBusy(false);
     }
   }
@@ -250,8 +311,6 @@ export default function HelperAsk({
     try {
       await send(`/api/helper/${encodeURIComponent(username)}/ask`, undefined, "DELETE");
       setTurns([{ said: "", blocks: [{ shape: "say", text: t("agent.chat.startedOver") }] }]);
-      setPending(null);
-      setFields([]);
     } catch (thrown) {
       failed(thrown);
     } finally {
@@ -317,10 +376,12 @@ export default function HelperAsk({
                   focusRef={
                     index === turns.length - 1 && isProposal(block) ? proposal : undefined
                   }
+                  busy={busy}
                   onChoose={(label) => {
                     setSaid(label);
                     box.current?.focus();
                   }}
+                  onAccept={accept}
                 />
               ))}
             </div>
@@ -409,47 +470,6 @@ export default function HelperAsk({
         </div>
       )}
 
-      {/* The registry's own write, unchanged: the fields go back to be looked
-          at, and the endpoint is called only if somebody presses. */}
-      {pending && (
-        <div className="mt-3">
-          <ConfirmPanel
-            label={t("agent.askConfirmLabel")}
-            question={t("agent.askConfirm")}
-            confirmLabel={t(`agent.confirm.${pending.intent}` as TranslationKey)}
-            busy={busy}
-            onConfirm={() => void confirmWrite()}
-            onCancel={() => setPending(null)}
-          >
-            <div className="mt-3 space-y-3">
-              {fields.map((field, index) => (
-                <div key={field.name}>
-                  <label
-                    htmlFor={`ask-${username}-${field.name}`}
-                    className="block text-sm font-semibold text-navy-800"
-                  >
-                    {t(`agent.slot.${field.name}` as TranslationKey)}
-                  </label>
-                  <input
-                    id={`ask-${username}-${field.name}`}
-                    type={field.date ? "date" : "text"}
-                    value={field.value}
-                    onChange={(event) =>
-                      setFields((was) =>
-                        was.map((one, n) =>
-                          n === index ? { ...one, value: event.target.value } : one,
-                        ),
-                      )
-                    }
-                    className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
-                  />
-                </div>
-              ))}
-            </div>
-          </ConfirmPanel>
-        </div>
-      )}
-
       {lapsed && (
         <p
           role="status"
@@ -486,11 +506,15 @@ export default function HelperAsk({
 function BlockView({
   block,
   focusRef,
+  busy,
   onChoose,
+  onAccept,
 }: {
   block: Block;
   focusRef?: React.RefObject<HTMLDivElement | null>;
+  busy: boolean;
   onChoose: (label: string) => void;
+  onAccept: (proposal: Proposal, values: Record<string, string>) => Promise<void>;
 }) {
   const { t } = useI18n();
 
@@ -561,29 +585,164 @@ function BlockView({
   }
 
   if (block.shape === "form" || block.shape === "confirm") {
+    if (!block.proposal) {
+      // A proposal the server did not attach one to cannot be pressed, and
+      // saying so is better than a button that does nothing.
+      return (
+        <div className="rounded-xl border border-navy-200 bg-cream-50 p-3">
+          <p className="text-base leading-6 text-navy-900">{block.text}</p>
+          <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.chat.nothingWritten")}</p>
+        </div>
+      );
+    }
     return (
-      <div
-        ref={focusRef}
-        tabIndex={-1}
-        className="rounded-xl border border-navy-200 bg-cream-50 p-3 focus:outline-none"
-      >
-        <p className="text-base leading-6 text-navy-900">{block.text}</p>
-        {block.shape === "form" && (
-          <dl className="mt-2 space-y-1">
-            {block.fields.map((field) => (
-              <div key={field.name} className="flex gap-2 text-base leading-6">
-                <dt className="font-semibold text-navy-800">
-                  {t(`agent.slot.${field.name}` as TranslationKey)}
-                </dt>
-                <dd className="text-navy-900">{field.value}</dd>
-              </div>
-            ))}
-          </dl>
-        )}
-        <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.chat.readOnly")}</p>
-      </div>
+      <ProposalView
+        proposal={block.proposal}
+        fields={block.shape === "form" ? block.fields : []}
+        focusRef={focusRef}
+        busy={busy}
+        onAccept={onAccept}
+      />
     );
   }
 
   return <p className="text-base leading-6 text-navy-800">{block.text}</p>;
+}
+
+/**
+ * One proposal, editable, with one button — B900.
+ *
+ * **Editable is half of it and the smaller half.** A field can be typed over,
+ * and a proposal can also be corrected by saying what is wrong: that sentence
+ * goes into the field below like any other and comes back as a fresh proposal.
+ * Both are here because they answer different moments — a wrong date is faster
+ * to fix with a thumb, and a wrong *idea* is faster to fix with a sentence.
+ *
+ * **Nothing is written until the button.** Leaving it alone writes nothing and
+ * costs nothing, which is what the second control says: it is not a cancel of
+ * something in flight, it is a way to stop looking at it.
+ *
+ * Native inputs throughout — `type="date"`, a textarea, a `<select>` — because
+ * the browser's own are reachable with a keyboard, announced by a screen
+ * reader and usable at 390px with the on-screen keyboard up, and three
+ * bespoke widgets would each have to earn that again.
+ */
+function ProposalView({
+  proposal,
+  fields,
+  focusRef,
+  busy,
+  onAccept,
+}: {
+  proposal: Proposal;
+  fields: ProposalField[];
+  focusRef?: React.RefObject<HTMLDivElement | null>;
+  busy: boolean;
+  onAccept: (proposal: Proposal, values: Record<string, string>) => Promise<void>;
+}) {
+  const { t } = useI18n();
+  const [values, setValues] = useState<Record<string, string>>(
+    Object.fromEntries(fields.map((field) => [field.name, field.value])),
+  );
+  // What happened to this particular proposal. A proposal that has been
+  // pressed or set aside must stop being pressable, or the turn above it in
+  // the thread becomes a button somebody can hit twice.
+  const [settled, setSettled] = useState<"" | "accepted" | "left">("");
+  const id = `${proposal.tool}-${useId()}`;
+
+  if (settled !== "") {
+    return (
+      <div className="rounded-xl border border-navy-200 bg-cream-50 p-3">
+        <p className="text-base leading-6 text-navy-900">{proposal.sentence}</p>
+        <p className="mt-2 text-sm leading-6 text-navy-600">
+          {settled === "accepted" ? proposal.done : t("agent.chat.leftIt")}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={focusRef}
+      tabIndex={-1}
+      className="rounded-xl border border-navy-200 bg-cream-50 p-3 focus:outline-none"
+    >
+      <p className="text-base leading-6 text-navy-900">{proposal.sentence}</p>
+
+      {fields.length > 0 && (
+        <div className="mt-3 space-y-3">
+          {fields.map((field) => (
+            <div key={field.name}>
+              <label
+                htmlFor={`${id}-${field.name}`}
+                className="block text-sm font-semibold text-navy-800"
+              >
+                {t(`agent.slot.${field.name}` as TranslationKey)}
+              </label>
+              {field.options ? (
+                <select
+                  id={`${id}-${field.name}`}
+                  value={values[field.name] ?? ""}
+                  onChange={(event) =>
+                    setValues((was) => ({ ...was, [field.name]: event.target.value }))
+                  }
+                  className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+                >
+                  {field.options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              ) : field.long ? (
+                <textarea
+                  id={`${id}-${field.name}`}
+                  rows={6}
+                  value={values[field.name] ?? ""}
+                  onChange={(event) =>
+                    setValues((was) => ({ ...was, [field.name]: event.target.value }))
+                  }
+                  className="mt-1 w-full rounded-xl border border-navy-300 bg-white p-3 text-base leading-6 text-navy-900"
+                />
+              ) : (
+                <input
+                  id={`${id}-${field.name}`}
+                  type={field.date ? "date" : "text"}
+                  value={values[field.name] ?? ""}
+                  onChange={(event) =>
+                    setValues((was) => ({ ...was, [field.name]: event.target.value }))
+                  }
+                  className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <BusyButton
+          busy={busy}
+          type="button"
+          onClick={() => {
+            setSettled("accepted");
+            void onAccept(proposal, values);
+          }}
+          className="min-h-11 rounded-full bg-navy-800 px-5 text-base font-semibold text-cream-50 transition-colors hover:bg-navy-900 disabled:opacity-50"
+          busyLabel={t("agent.chat.writing")}
+        >
+          {proposal.accept}
+        </BusyButton>
+        <button
+          type="button"
+          onClick={() => setSettled("left")}
+          className="min-h-11 px-2 text-sm text-navy-600 underline underline-offset-4 transition-colors hover:text-navy-900"
+        >
+          {t("agent.chat.leaveIt")}
+        </button>
+      </div>
+
+      <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.chat.orSayWhatIsWrong")}</p>
+    </div>
+  );
 }
