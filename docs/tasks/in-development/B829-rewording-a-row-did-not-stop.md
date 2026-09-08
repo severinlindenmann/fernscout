@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: agent
 found: "2026-09-07T15:56:18Z"
+started: "2026-09-08T21:40:11Z"
+session: bdd0270d-3797-42c9-8687-06abecadbc63
+claimed: "2026-09-08T21:40:11Z"
 ---
 
 # B829 — Rewording a row did not stop the wrong one matching

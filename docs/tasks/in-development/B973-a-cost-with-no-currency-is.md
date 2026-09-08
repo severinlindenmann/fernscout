@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: helper, costs
 found: "2026-09-08T13:59:03Z"
+started: "2026-09-08T21:40:12Z"
+session: bdd0270d-3797-42c9-8687-06abecadbc63
+claimed: "2026-09-08T21:40:12Z"
 ---
 
 # B973 — A cost with no currency is filed in the base one without anybody being asked
