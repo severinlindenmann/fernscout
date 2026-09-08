@@ -1,7 +1,7 @@
 import { isEnabled } from "@/lib/capabilities";
 import type { Say } from "@/lib/helper/intents";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
-import { remember } from "@/lib/helper/thread";
+import { note } from "@/lib/helper/thread";
 import { proposalFor, writeTool } from "@/lib/helper/tools";
 import { requestLocale, translateIn } from "@/lib/locales";
 
@@ -65,13 +65,10 @@ export async function POST(
 
   if (body.wrote === true) {
     // No sentence of theirs and no model call: one line of context so the next
-    // turn does not offer to do what has just been done. `remember` takes an
-    // exchange, and the "said" half is what the press meant.
-    remember(
-      user,
-      `[pressed: ${tool.name}]`,
-      `[written: ${tool.name} ${JSON.stringify(args)}]`,
-    );
+    // turn does not offer to do what has just been done. A **note** rather
+    // than a made-up exchange (B924) — nobody said this, and a marker written
+    // as somebody's turn is a marker the model reads back as prose to imitate.
+    note(user, `[written: ${tool.name} ${JSON.stringify(args)}]`);
     return Response.json({ ok: true });
   }
 

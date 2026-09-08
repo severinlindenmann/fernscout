@@ -43,9 +43,23 @@ import "server-only";
  * the tools said, and a turn of text is a twentieth of the tokens.
  */
 
-/** One thing that was said, by one side. Deliberately not the SDK's
- *  `MessageParam`: this holds text and never a tool block. */
-export type Turn = { role: "user" | "assistant"; text: string };
+/**
+ * One thing that was said, by one side — or a **note**, which is the third
+ * role and the one B924 is about.
+ *
+ * The conversation has two audiences and they had one path. A note is written
+ * *for the model* — "there is a proposal waiting to be pressed", "that one was
+ * pressed" — and a note is never a turn: it is folded into the next user
+ * message by `lib/helper/model.ts` and it is never assistant text. That is the
+ * whole fix. While the marker sat inside the assistant's own words, the model
+ * read its own last answer as prose that contained a bracketed line and, every
+ * so often, wrote one of its own — which is why the leak was intermittent and
+ * why no amount of prompting would have settled it.
+ *
+ * Deliberately not the SDK's `MessageParam`: this holds text and never a tool
+ * block.
+ */
+export type Turn = { role: "user" | "assistant" | "note"; text: string };
 
 /**
  * How much of a conversation is remembered.
@@ -99,6 +113,20 @@ export function remember(username: string, said: string, answered: string): void
     { role: "user" as const, text: said },
     { role: "assistant" as const, text: answered },
   ].slice(-MAX_TURNS);
+  threads.set(username, { turns, touched: now });
+  sweep(now);
+}
+
+/**
+ * Add a line the **model** reads and the person never sees — B924.
+ *
+ * It is kept in the same list so the ordering is right (a proposal is waiting
+ * *after* that answer and *before* the next sentence), and `model.ts` is what
+ * knows a note is not a turn.
+ */
+export function note(username: string, text: string): void {
+  const now = Date.now();
+  const turns = [...history(username), { role: "note" as const, text }].slice(-MAX_TURNS);
   threads.set(username, { turns, touched: now });
   sweep(now);
 }
