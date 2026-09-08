@@ -150,6 +150,40 @@ describe("rendering", () => {
     }
   });
 
+  /**
+   * B982 — the card the printer receives carries no address at all.
+   *
+   * Stannp is handed the recipient as `recipient[...]` fields and lays down
+   * its own address block and postal indicia. A back with ours already on it
+   * came back with the two overprinted, one name written across the other, on
+   * a card somebody had paid for. `lib/postcard/send.ts` is what asks for this
+   * copy; the proof and the receipt attachment still get the addressed one.
+   */
+  test("the printer's copy has no address on it", () => {
+    const text = Buffer.from(
+      render({ sides: "back", address: "printer" }).pdf,
+    ).toString("latin1");
+    for (const line of ["Frau Maria Muster", "Bahnhofstrasse 12", "8001 Zurich", "Schweiz"]) {
+      expect(text).not.toContain(line);
+    }
+  });
+
+  test("nor the empty stamp box, which is where their indicia goes", () => {
+    // The box is four hairlines and nothing else on that half of the card, so
+    // the drawn back is strictly shorter without it.
+    const drawn = render({ sides: "back" }).pdf.length;
+    const printer = render({ sides: "back", address: "printer" }).pdf.length;
+    expect(printer).toBeLessThan(drawn);
+  });
+
+  test("the message and the signature are untouched by it", () => {
+    const text = Buffer.from(
+      render({ sides: "back", address: "printer" }).pdf,
+    ).toString("latin1");
+    expect(text).toContain("Hello from the road.");
+    expect(text).toContain("Us");
+  });
+
   test("an optional address line is omitted rather than left blank", () => {
     const text = Buffer.from(render({ sides: "back" }).pdf).toString("latin1");
     expect(text).not.toContain("()");

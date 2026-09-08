@@ -1528,6 +1528,7 @@ export type TranslationKey =
   | "postcard.page.messageLabel"
   | "postcard.page.mismatchMany"
   | "postcard.page.mismatchOne"
+  | "postcard.page.printerAdds"
   | "postcard.page.reads"
   | "postcard.page.reviewButton"
   | "postcard.page.sameCard"

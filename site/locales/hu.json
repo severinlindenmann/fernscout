@@ -1003,6 +1003,7 @@
   "postcard.page.messageLabel": "Mi áll rajta",
   "postcard.page.mismatchMany": "Közülük {count} fő általában más nyelven olvas. A lapot akkor is {card} nyelven kapják meg — semmit nem fordítunk le.",
   "postcard.page.mismatchOne": "{name} általában {theirs} nyelven olvas, ez a lap pedig {card} nyelven íródott. {card} nyelven fogja megkapni — írd meg magad {theirs} nyelven, ha úgy jobb.",
+  "postcard.page.printerAdds": "A címet és a bérmentesítést a posta nyomtatja — itt csak ellenőrzésre látszanak, és lekerültek az általunk küldött lapról, hogy ne kerüljenek rá kétszer.",
   "postcard.page.reads": "általában {language} nyelven olvas",
   "postcard.page.reviewButton": "Ezek a képeslapok mehetnek…",
   "postcard.page.sameCard": "Mindenki ugyanezt a lapot kapja. Semmit nem fordítunk le.",

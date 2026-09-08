@@ -1003,6 +1003,7 @@
   "postcard.page.messageLabel": "What it says",
   "postcard.page.mismatchMany": "{count} of these people usually read another language. They will still get the card in {card} — nothing is translated.",
   "postcard.page.mismatchOne": "{name} usually reads {theirs}, and this card is written in {card}. They will get it in {card} — say it in {theirs} yourself if you would rather.",
+  "postcard.page.printerAdds": "The address and the postage mark are the post office's own — shown here so you can check them, and left off the card we send so they are not printed twice.",
   "postcard.page.reads": "usually reads {language}",
   "postcard.page.reviewButton": "Send these postcards…",
   "postcard.page.sameCard": "Everyone gets this same card. Nothing is translated.",
