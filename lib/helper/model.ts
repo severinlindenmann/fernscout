@@ -689,9 +689,14 @@ const ON_SCREEN = new RegExp(
  * forbids it outright: it is a claim about the screen too, and the reason it
  * is listed separately is that it survives a denial ("nothing was saved, but
  * try reloading" is still sending her away).
+ *
+ * German puts the particle last — *"lade die Seite **neu**"* — which
+ * `neu\s+lad` never sees. B953 found it while giving this matcher tests of
+ * its own, which it had never had: it was only ever exercised through the
+ * combined function, in English.
  */
 const RELOAD =
-  /\b(?:reload|refresh)\w*\b|\bneu\s+(?:zu\s+)?lad\w*|\b(?:seite|browser)\s+(?:zu\s+)?aktualisier\w*|\bfrissít\w*|\btöltsd\s+újra\b/i;
+  /\b(?:reload|refresh)\w*\b|\bneu\s+(?:zu\s+)?lad\w*|\b(?:seite|browser)\b[^.!?]{0,40}\bneu\b|\b(?:seite|browser)\s+(?:zu\s+)?aktualisier\w*|\bfrissít\w*|\btöltsd\s+újra\b/i;
 
 /**
  * True when this text tells somebody about something that is not there — a
@@ -713,14 +718,29 @@ export function claimsAWrite(text: string): boolean {
     .some((sentence) => CLAIM.test(sentence) && !DENIED.test(sentence));
 }
 
-export function claimsWhatIsNotThere(text: string): boolean {
+/**
+ * True when this text points at something on the screen — a button, a control
+ * "below", or a page to reload — B953.
+ *
+ * The other half of the pair. A button claim and a write claim are false under
+ * *different* conditions, which is why they are two functions: a button that
+ * is not there is false whenever the turn proposed nothing, full stop, while a
+ * write is false only when nothing has been written at all.
+ *
+ * B944 carved out `claimsAWrite` and left this half inside the combined
+ * function, and the combined function then took the write's narrower
+ * condition. In any session where anything had been written — every session
+ * past its second minute — *"press the button"* with no proposal stopped being
+ * caught, which is the whole of B928 undone by the fix for its neighbour.
+ */
+export function claimsAButton(text: string): boolean {
   return withoutMarkers(text)
     .split(/(?<=[.!?\n])\s+/)
-    .some(
-      (sentence) =>
-        RELOAD.test(sentence) ||
-        ((CLAIM.test(sentence) || ON_SCREEN.test(sentence)) && !DENIED.test(sentence)),
-    );
+    .some((sentence) => RELOAD.test(sentence) || (ON_SCREEN.test(sentence) && !DENIED.test(sentence)));
+}
+
+export function claimsWhatIsNotThere(text: string): boolean {
+  return claimsAWrite(text) || claimsAButton(text);
 }
 
 /**
@@ -1038,7 +1058,7 @@ export async function answerInThread(
       return "access";
     }
     if (claimsWhatADaySays(answer) && !looked.includes("read_day")) return "day";
-    if (claimsWhatIsNotThere(answer) || claimsAWrite(answer)) {
+    if (claimsWhatIsNotThere(answer)) {
       /**
        * **The turn that proposes is the turn most tempted to describe it as
        * done** — B944, and it was the one turn this check did not run on. The
@@ -1069,8 +1089,21 @@ export async function answerInThread(
        * about a press that happened, and flagging it is what led to the
        * replacement denying the whole journal.
        */
-      if (written.size === 0 && proposals.length === 0 && claimsWhatIsNotThere(answer)) {
-        return "claim";
+      if (proposals.length === 0) {
+        /**
+         * A button that is not there — B928, and B953 is why this is its own
+         * line. It is false whenever the turn proposed nothing, whatever the
+         * conversation has written before: nobody can press what is not on
+         * the screen, and the person goes looking for it.
+         */
+        if (claimsAButton(answer)) return "claim";
+        /**
+         * A write, which is the half B943's evidence narrowed. With something
+         * really written and nothing proposed, a past-tense sentence is a true
+         * report of a press, and flagging it is what led to the replacement
+         * denying the whole journal.
+         */
+        if (written.size === 0 && claimsAWrite(answer)) return "claim";
       }
     }
     return "";
