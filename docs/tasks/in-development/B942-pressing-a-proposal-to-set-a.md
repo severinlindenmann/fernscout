@@ -1,6 +1,6 @@
 ---
 id: B942
-title: Pressing a proposal to set a day's words with an empty box erases them
+title: A proposal to set a day's words opens on an empty box no press can accept
 type: ISSUE
 priority: high
 complexity: low
@@ -15,11 +15,36 @@ claimed: "2026-09-08T10:12:02Z"
 
 ## Why
 
-TODO — the problem, not the fix.
+`set_day_words` fills its `content` field with `args.content ?? ""`
+(`lib/helper/tools.ts`), so a proposal the model makes without supplying prose
+puts an **empty box** in front of somebody, under a sentence saying it will set
+the day's words. Every press of it fails: `lib/api/entries.ts:1244` refuses
+empty content, and the card comes back `content must not be empty`.
+
+**Nothing is lost — that guard is doing its job**, and this ticket was first
+written claiming the day was erased. It is not. What happens is B929's shape
+again: a proposal on somebody's screen that no press can accept, with the
+reason written in a language nobody chose to read.
+
+The same line is why B941 goes wrong from the other side. A person saying
+*"it should say udon, not ramen"* is editing one word of a paragraph, and with
+the box empty the model has to reproduce the whole paragraph from memory to do
+it. Expensive, easy to get wrong, and the reason it reached for `add_cost`
+instead — which, pressed, would have doubled the recorded spend and left the
+wrong word on the page.
 
 ## Work
 
-TODO
+The field opens on what the day already says — `found?.entry.content` — rather
+than on nothing. The proposal becomes pressable, and a correction becomes a
+small edit in a visible box, which is the shape a person expects.
+
+`title` already falls back this way. `content` is the one field that was
+missed.
+
+Not doing: relaxing the empty-content guard. A day with no words is not a
+thing this software has ever let somebody make, and a person who wants one is
+asking to delete the day.
 
 ## Acceptance
 
@@ -60,6 +85,5 @@ Consider whether the same holds for `title`, which already falls back to
 ## Acceptance
 
 A test that proposes `set_day_words` for a day with prose and no `content`
-argument, and fails if the field comes back empty. And one that presses the
-route with `content: ""` and asserts the day is emptied, so the deliberate
-path stays deliberate.
+argument, and fails if the field comes back empty — so the proposal it makes
+is one that can actually be pressed.
