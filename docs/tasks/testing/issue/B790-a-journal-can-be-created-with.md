@@ -80,4 +80,28 @@ Acceptance, evidence:
   only holds if both call the same `normalizeCurrency`.
 
 `npx vitest run test/journals-required-fields.test.ts` — 19 passed.
-`npm run verify` — run in full; see session report for the result.
+`npx vitest run test/journals-required-fields.test.ts test/currency.test.ts
+test/journals.test.ts` — 131 passed, everything the diff touches or could
+plausibly affect.
+
+`npm run verify` in full failed twice on this checkout, on unrelated tests,
+and neither run touched anything this diff changed:
+
+- `test/task-ids.test.ts` — fails reliably, on `main` before this session
+  touched anything: five files under `docs/tasks/backlog/wont-do/` have no
+  `wontDo:` field and `type: OPS`, so the derived folder is `backlog/ops/`
+  and the actual one disagrees. Captured as B1023 rather than fixed here —
+  deciding whether each is truly wont-do or was misfiled is a person's call
+  per AGENTS.md ("`wontDo` is a person's word, not an agent's"), not
+  something to guess at while closing an unrelated currency ticket.
+- `test/locales.test.ts`, `test/media-upload.test.ts`, `test/postcard.test.ts`,
+  `test/generator-output.test.ts`, `test/ingest-run.test.ts`,
+  `test/status-script.test.ts` — a different subset failed each run, all on
+  `Error: Test timed out in 30000ms`. Re-ran `test/locales.test.ts` alone (no
+  other suite competing for the CPU) and it still took 32.7s against the
+  30s budget — this is machine contention on a shared box running several
+  agents at once (AGENTS.md says as much), not a correctness fault, and not
+  something this diff introduced or can fix.
+
+Neither failure set mentions `journals`, `currency`, or anything this ticket
+touched.
