@@ -24,14 +24,18 @@ import type { MigrationDb } from "./types";
  * constant was multiplied by hand, which is the class of mistake a unit
  * change usually ships with.
  *
- * Both tables in one transaction: a balance in hundredths beside a ledger in
- * whole credits is a journal whose receipt no longer adds up.
+ * Both tables move together, inside the transaction the migrator opens: a
+ * balance in hundredths beside a ledger in whole credits is a journal whose
+ * receipt no longer adds up.
  */
 export async function up(db: MigrationDb): Promise<void> {
-  await db.transaction().execute(async (trx) => {
-    await sql`UPDATE credits SET balance = balance * 100`.execute(trx);
-    await sql`UPDATE credit_ledger SET delta = delta * 100`.execute(trx);
-  });
+  // No transaction of its own — B997. Kysely's migrator already runs each
+  // migration inside one, and Postgres's driver refuses a nested `BEGIN`
+  // outright ("calling the transaction method for a Transaction is not
+  // supported"). The atomicity these two statements need is the migrator's,
+  // and it is the only one there may be.
+  await sql`UPDATE credits SET balance = balance * 100`.execute(db);
+  await sql`UPDATE credit_ledger SET delta = delta * 100`.execute(db);
 }
 
 /**
@@ -44,8 +48,6 @@ export async function up(db: MigrationDb): Promise<void> {
  * upwards by a rollback.
  */
 export async function down(db: MigrationDb): Promise<void> {
-  await db.transaction().execute(async (trx) => {
-    await sql`UPDATE credits SET balance = balance / 100`.execute(trx);
-    await sql`UPDATE credit_ledger SET delta = delta / 100`.execute(trx);
-  });
+  await sql`UPDATE credits SET balance = balance / 100`.execute(db);
+  await sql`UPDATE credit_ledger SET delta = delta / 100`.execute(db);
 }
