@@ -1056,3 +1056,41 @@ describe("provider requests", () => {
     }
   });
 });
+
+describe("a route spread uses both pages — B914", () => {
+  /** Four days round the Alps: a compact route, about 0.6° of longitude. */
+  const ALPS = [
+    { location: "Susten Pass", lat: 46.73, lng: 8.44 },
+    { location: "Grimsel Pass", lat: 46.56, lng: 8.34 },
+    { location: "Domodossola", lat: 46.12, lng: 8.29 },
+    { location: "Andermatt", lat: 46.63, lng: 8.59 },
+  ];
+
+  it("draws the journey large enough to be a map rather than a squiggle", () => {
+    const view = routeView(ALPS);
+    // Map-space y: MAP_SPACE is 500 tall for 180 degrees.
+    const ys = ALPS.map((p) => ((90 - p.lat) / 180) * 500);
+    const routeHeight = Math.max(...ys) - Math.min(...ys);
+    // The route used to fill about a sixth of the spread's height, because a
+    // 6-unit padding floor swamped a trip spanning under a degree. Half is
+    // roughly what a 2:1 frame can give a route this shape.
+    expect(routeHeight / view.height).toBeGreaterThan(0.4);
+  });
+
+  it("keeps the route across the fold rather than dumping it on one page", () => {
+    const view = routeView(ALPS);
+    const fold = view.x + view.width / 2;
+    // The same equirectangular x the planner uses: MAP_SPACE is 1000 wide
+    // for 360 degrees. Recomputed here rather than exporting a private helper.
+    const xs = ALPS.map((p) => ((p.lng + 180) / 360) * 1000);
+    const routeCentre = (Math.min(...xs) + Math.max(...xs)) / 2;
+    // The whole point: a blank facing page is worse than a stop near the
+    // gutter, so the frame may not wander far from the route's own centre.
+    expect(Math.abs(fold - routeCentre)).toBeLessThanOrEqual(view.width / 6 + 1e-6);
+  });
+
+  it("still forces the spread's own 2:1 shape", () => {
+    const view = routeView(ALPS);
+    expect(view.width / view.height).toBeCloseTo(2, 5);
+  });
+});
