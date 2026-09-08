@@ -17,10 +17,10 @@ gallery:
     width: 1600
     height: 1067
   - src: "/media/asia-2023/bangkok-first-morning/02.jpg"
-    caption: "The camera, put down for five minutes"
     type: "image"
     width: 1600
     height: 1067
+    caption: "The camera, put down for five minutes"
   - src: "/media/asia-2023/bangkok-first-morning/03.jpg"
     type: "image"
     width: 1067
