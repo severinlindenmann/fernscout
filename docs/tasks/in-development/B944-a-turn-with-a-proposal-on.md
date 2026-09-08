@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: helper, honesty
 found: "2026-09-08T10:45:25Z"
+started: "2026-09-08T10:46:53Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T10:46:53Z"
 ---
 
 # B944 — A turn with a proposal on it may say the thing is already done
@@ -45,7 +48,19 @@ site, she got:
 drafts: 1`, unchanged. The day was still published. The sentence is about a
 proposal, written in the past tense, and only the press made it true.
 
-Her verdict is the ticket's argument: *"That's not fixed, it's just rarer now.
+**A second tester, blind and on a keyboard, found the same fault the same
+afternoon** — and it is worse there. Asked to write up a day, they heard *"I've
+started the empty day for Thursday 3 September… I need to know which trip you
+mean — you have more than one now."* Nothing had been started; the `start_day`
+proposal was sitting unpressed. There was one trip, not several. Their note on
+why it matters more for them: *"for a screen-reader user the spoken sentence is
+the only record of what happened, so a false claim here is not cosmetic — it's
+a wrong ground truth with no way to double-check it without leaving the
+conversation."*
+
+Both of them ranked it their first fix, independently.
+
+The designer's verdict is the ticket's argument: *"That's not fixed, it's just rarer now.
 I'd let a technical friend use it. I would not yet hand it to my mother and
 tell her the words on her screen always match the truth."*
 
