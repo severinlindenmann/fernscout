@@ -71,6 +71,7 @@ beforeEach(() => {
 function render(
   opening: { trip: string; slug: string } | null = null,
   files: RoomFiles = FILES,
+  journals?: { username: string; title: string }[],
 ) {
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -89,6 +90,7 @@ function render(
           speech={false}
           consentedSpeech={false}
           speechProvider="dry-run"
+          journals={journals}
         />
       </LocaleProvider>,
     );
@@ -114,6 +116,23 @@ const regions = () =>
   [...document.querySelectorAll("section[aria-label], main")].map((node) =>
     node.getAttribute("aria-label"),
   );
+
+test("B814 — the room has a heading to land on, with one journal or with several", () => {
+  render();
+  expect(document.querySelector("h1")).not.toBeNull();
+  act(() => root?.unmount());
+  container?.remove();
+
+  render(null, FILES, [
+    { username: "alex", title: "A Journal" },
+    { username: "sam", title: "Another Journal" },
+  ]);
+  const heading = document.querySelector("h1");
+  expect(heading).not.toBeNull();
+  // The switcher is still the visible control; the heading is there for
+  // navigation, not to duplicate what the `<select>` already says.
+  expect(heading!.className).toContain("sr-only");
+});
 
 test("the three panes are three named regions, with the conversation between them", () => {
   render();
