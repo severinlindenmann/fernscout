@@ -1418,6 +1418,7 @@
   "agent.captionsTitle": "Suggested captions",
   "agent.captionsHint": "Read each one, and keep it or discard it. Nothing has been saved yet.",
   "agent.captionEmpty": "Nothing to say about this one.",
+  "agent.captionVideo": "Videos are not described.",
   "agent.speechHold": "Hold to talk · 1 credit per {minutes} minutes",
   "agent.speechRecording": "Listening… {seconds}s",
   "agent.speechWorking": "Turning that into words…",

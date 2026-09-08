@@ -100,9 +100,11 @@ type HelperState = {
  *  own words stay on the screen until they say otherwise. */
 type Suggested = { title: string; prose: string; warnings: string[] };
 
-/** One photograph's suggested caption — B687. Keyed by `src` so it lines up
- *  with `EditInput.captions` when a person keeps it. */
-type PhotoCaption = { src: string; caption: string };
+/** One gallery item's suggested caption — B687. Keyed by `src` so it lines up
+ *  with `EditInput.captions` when a person keeps it. `skipped` is set on a
+ *  video row: it was never sent to the model, and the caption is always
+ *  empty — B873, so the reader is told why rather than left to guess. */
+type PhotoCaption = { src: string; caption: string; skipped?: "video" };
 
 /** What the picked photographs said about themselves, before anything is sent. */
 type ExifFacts = {
@@ -1753,19 +1755,23 @@ export default function AgentWizard({
                         className="rounded-xl border border-navy-200 bg-white p-3"
                       >
                         <p className="text-sm leading-6 text-navy-800">
-                          {row.caption === ""
-                            ? t("agent.captionEmpty")
-                            : row.caption}
+                          {row.skipped === "video"
+                            ? t("agent.captionVideo")
+                            : row.caption === ""
+                              ? t("agent.captionEmpty")
+                              : row.caption}
                         </p>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          <BusyButton
-                            busy={busy}
-                            type="button"
-                            onClick={() => void keepCaption(row)}
-                            className="min-h-11 rounded-full bg-yellow-400 px-4 text-sm font-semibold text-yellow-950 disabled:opacity-50"
-                          >
-                            {t("agent.helperUse")}
-                          </BusyButton>
+                          {row.skipped !== "video" && (
+                            <BusyButton
+                              busy={busy}
+                              type="button"
+                              onClick={() => void keepCaption(row)}
+                              className="min-h-11 rounded-full bg-yellow-400 px-4 text-sm font-semibold text-yellow-950 disabled:opacity-50"
+                            >
+                              {t("agent.helperUse")}
+                            </BusyButton>
+                          )}
                           <BusyButton
                             busy={busy}
                             type="button"

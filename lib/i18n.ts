@@ -143,6 +143,7 @@ export type TranslationKey =
   | "agent.block.trips"
   | "agent.block.unfinished"
   | "agent.captionEmpty"
+  | "agent.captionVideo"
   | "agent.captionsHint"
   | "agent.captionsTitle"
   | "agent.change"
