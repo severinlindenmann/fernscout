@@ -5,6 +5,7 @@ type: ISSUE
 priority: high
 complexity: low
 area: Print
+superseded: "Fixed in eb0e71c0 by the session that introduced it — the faces are found from the module now, not from the caller's working directory."
 found: "2026-09-08T18:50:00Z"
 started: "2026-09-08T18:57:29Z"
 session: b8352d66-3105-4f5d-a703-f8809d0b08e6
@@ -43,6 +44,13 @@ test run cannot see.
 The same read is on the photobook's path, so the hazard is not limited to
 postcards; anything invoking a renderer from a working directory that is not
 the repository root gets it.
+
+## What happened
+
+Already fixed by the time this was picked up: `eb0e71c0`, "Find the print
+faces beside the writer, not beside the caller", resolves the file from
+`import.meta.url`. Verified rather than rebuilt — `test/generator-output.test.ts`
+passes, and `npm run postcard` run by hand from `/tmp` writes a card.
 
 ## Work
 
