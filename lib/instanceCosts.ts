@@ -5,7 +5,13 @@ import { creditsFromUnits } from "./credits/format";
 import { getDatabaseOrNull } from "./db";
 import { paymentsAwaiting, paymentsPaidSince, takings, type Payment } from "./payments";
 import { getUsernames } from "./users";
-import { usageByOwnerSince, usageDailySince, usageSince, type UsageTotal } from "./usage";
+import {
+  usageByOwnerSince,
+  usageDailyByOwnerSince,
+  usageDailySince,
+  usageSince,
+  type UsageTotal,
+} from "./usage";
 
 /**
  * What the instance costs to run — B746.
@@ -250,17 +256,25 @@ async function journalRows(since: string): Promise<JournalRow[]> {
  * a book and would swamp the shape; the fixed lines are monthly and have no
  * day at all.
  */
-export async function dailyCosts(since: string, days: number): Promise<{ date: string; rappen: number }[]> {
+export type DailySpend = {
+  date: string;
+  /** Everything spent that day. */
+  rappen: number;
+  /** The same money split by which feature spent it, biggest first — B996.
+   *  Empty on a day nothing happened, which is most days. */
+  parts: { operation: string; rappen: number }[];
+};
+
+export async function dailyCosts(since: string, days: number): Promise<DailySpend[]> {
   const rows = await usageDailySince(since);
   const costs = loadServerConfig().costs;
 
-  const byDate = new Map<string, number>();
+  const byDate = new Map<string, Map<string, number>>();
   for (const row of rows) {
-    const priced = priceUsage(
-      [{ ...row, operation: "", calls: 0 }],
-      costs,
-    )[0];
-    byDate.set(row.date, (byDate.get(row.date) ?? 0) + priced.rappen);
+    const priced = priceUsage([{ ...row, calls: 0 }], costs)[0];
+    const parts = byDate.get(row.date) ?? new Map<string, number>();
+    parts.set(row.operation, (parts.get(row.operation) ?? 0) + priced.rappen);
+    byDate.set(row.date, parts);
   }
 
   // Built from the window rather than from the rows, so the axis is the period
@@ -268,8 +282,69 @@ export async function dailyCosts(since: string, days: number): Promise<{ date: s
   const start = new Date(since);
   return Array.from({ length: days }, (_, i) => {
     const date = new Date(start.getTime() + i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    return { date, rappen: byDate.get(date) ?? 0 };
+    const parts = [...(byDate.get(date) ?? new Map<string, number>())]
+      .map(([operation, rappen]) => ({ operation, rappen }))
+      .filter((part) => part.rappen > 0)
+      .sort((a, b) => b.rappen - a.rappen);
+    return { date, rappen: parts.reduce((sum, part) => sum + part.rappen, 0), parts };
   });
+}
+
+/**
+ * Each journal's metered spend, day by day, for the sparkline on its row — B996.
+ *
+ * Keyed by username, every array the same length as the window and in the same
+ * order, so a row can draw one without knowing which days it holds. A journal
+ * that spent nothing is absent rather than carrying an array of zeros; the
+ * caller draws nothing for it, which is the honest picture.
+ */
+export async function journalDaily(
+  since: string,
+  days: number,
+): Promise<Record<string, number[]>> {
+  const rows = await usageDailyByOwnerSince(since);
+  const costs = loadServerConfig().costs;
+  const start = new Date(since);
+  const index = new Map<string, number>();
+  for (let i = 0; i < days; i += 1) {
+    index.set(new Date(start.getTime() + i * 86_400_000).toISOString().slice(0, 10), i);
+  }
+
+  const series: Record<string, number[]> = {};
+  for (const row of rows) {
+    const at = index.get(row.date);
+    if (at === undefined) continue;
+    const priced = priceUsage([{ ...row, operation: "", calls: 0 }], costs)[0];
+    if (priced.rappen === 0) continue;
+    const line = (series[row.owner] ??= Array.from({ length: days }, () => 0));
+    line[at] += priced.rappen;
+  }
+  return series;
+}
+
+/**
+ * What the model money was spent on, whole-instance — B996 (X1).
+ *
+ * Pure, and over the totals `dashboard` already fetched, so it costs no query.
+ * Operations rather than models: "the helper cost more than writing days" is a
+ * sentence about the product, and which model served it is a fact about a
+ * price list.
+ */
+export function byOperation(
+  totals: UsageTotal[],
+  costs = loadServerConfig().costs,
+): { operation: string; rappen: number; calls: number }[] {
+  const found = new Map<string, { rappen: number; calls: number }>();
+  const priced = priceUsage(totals, costs);
+  totals.forEach((total, at) => {
+    const row = found.get(total.operation) ?? { rappen: 0, calls: 0 };
+    row.rappen += priced[at].rappen;
+    row.calls += total.calls;
+    found.set(total.operation, row);
+  });
+  return [...found]
+    .map(([operation, row]) => ({ operation, ...row }))
+    .sort((a, b) => b.rappen - a.rappen || b.calls - a.calls);
 }
 
 export type Dashboard = {
@@ -282,6 +357,8 @@ export type Dashboard = {
   /** What those came to, in rappen, with admin grants excluded. */
   takenRappen: number;
   providers: CostLine[];
+  /** The same model and speech money, grouped by what it was spent on — B996. */
+  operations: { operation: string; rappen: number; calls: number }[];
   print: CostLine[];
   sends: CostLine[];
   fixed: CostLine[];
@@ -293,14 +370,15 @@ export type Dashboard = {
 
 /** The whole page, in one call. */
 export async function dashboard(since: string): Promise<Dashboard> {
-  const [providers, print, sends, journals, awaiting, paid] = await Promise.all([
-    usageSince(since).then((totals) => priceUsage(totals)),
+  const [totals, print, sends, journals, awaiting, paid] = await Promise.all([
+    usageSince(since),
     printCosts(since),
     sendCounts(since),
     journalRows(since),
     paymentsAwaiting(),
     paymentsPaidSince(since),
   ]);
+  const providers = priceUsage(totals);
   const fixed = fixedCosts();
   const totalRappen = [...providers, ...print, ...sends, ...fixed].reduce(
     (sum, line) => sum + line.rappen,
@@ -312,6 +390,7 @@ export async function dashboard(since: string): Promise<Dashboard> {
     paid,
     takenRappen: takings(paid),
     providers,
+    operations: byOperation(totals),
     print,
     sends,
     fixed,
