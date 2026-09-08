@@ -75,3 +75,34 @@ is the deeper gap: the prompt is the product and nothing measures it.
 The weather question is answered in one sentence in `lib/helper/model.ts`, the
 behaviour matches it, and no `warnings[]` entry can claim an omission that did
 not occur.
+
+## Since, and what is actually left — 2026-09-08
+
+Reproduced again, live, on other notes: *"rained most of the afternoon so we
+ducked into the maritime museum"* came back with the rain in the prose and a
+warning saying the weather had been omitted from it. The same two faults, a day
+later, on a different sentence — so it is the instruction rather than a bad
+draw.
+
+**The second fault is fixed.** B945: nothing renders `warnings`, and it was
+never something to hand on — it is a pressure valve pointed at the model, so
+that leaving something out is an acceptable answer instead of a failure. The
+route no longer returns it, so no untrue description of the prose reaches
+anybody while the first question is open.
+
+**The first is a person's decision and is the whole of what remains.** B950 was
+filed for it without finding this ticket and is closed as superseded; its three
+options are worth having here:
+
+- **Keep the person's sentence.** The rule becomes AGENTS.md's own: never a
+  temperature, a condition or a forecast the agent believes; always what the
+  person said. Matches the one rule the product rests on, and a person's memory
+  disagreeing with an archive is something a journal is allowed to contain.
+- **Cut it, and make that followable.** The prompt stays and says what to do
+  with a sentence whose sense depends on the weather — because "we ducked into
+  the museum" without the rain is not a weather claim removed, it is a reason
+  removed, and the model will not do it.
+- **Ask.** The proposal already puts fields in front of somebody.
+
+The live evidence says the current state is the one option not available: an
+instruction the model does not follow, and then reports having followed.

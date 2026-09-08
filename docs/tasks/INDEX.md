@@ -174,13 +174,7 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### docs-and-skills (1)
-
-| # | Finding | Type | Priority | Complexity |
-| --- | --- | --- | --- | --- |
-| [B950](backlog/docs-and-skills/B950-is-a-person-s-own-sentence.md) | Is a person's own sentence about the rain theirs to keep | DOCS | high | low |
-
-### superseded (35)
+### superseded (36)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -190,6 +184,7 @@ Do not edit them by hand; run the script.
 | [B658](backlog/superseded/B658-the-b653-backup-allowlist-drops-a.md) | The B653 backup allowlist drops a no-database deployment's own state | ISSUE | high | low |
 | [B680](backlog/superseded/B680-a-person-without-an-agent-has.md) | A person without an agent has nowhere to start | FEATURE | high | medium |
 | [B884](backlog/superseded/B884-the-spine-is-computed-40-percent.md) | The spine is computed 40 percent too narrow and the cover artwork will creep | ISSUE | high | low |
+| [B950](backlog/superseded/B950-is-a-person-s-own-sentence.md) | Is a person's own sentence about the rain theirs to keep | DOCS | high | low |
 | [B06](backlog/superseded/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B14](backlog/superseded/B14-postcards-cannot-address-themselves-from-the.md) | Postcards cannot address themselves from the contacts that hold the addresses | FEATURE | medium | medium |
 | [B260](backlog/superseded/B260-the-mcp-resource-advertises-no-authorization.md) | The MCP resource advertises no authorization server, so a connector cannot get a token by itself | FEATURE | medium | high |

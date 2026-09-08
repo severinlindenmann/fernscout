@@ -5,6 +5,7 @@ type: DOCS
 priority: high
 complexity: low
 area: helper, content policy
+superseded: "B766 — the same finding, captured a day earlier and better framed"
 found: "2026-09-08T11:05:47Z"
 ---
 
@@ -77,3 +78,18 @@ is the one option that is not available.
 
 `SYSTEM_PROMPT` and AGENTS.md say the same thing, and a test drives notes
 mentioning rain and asserts the decided behaviour.
+
+## Superseded by B766
+
+Captured a day earlier, from the deployed instance, with the same instruction
+quoted and the same tension named: *"the person did say it, and 'write what you
+were told' pulls the other way. That tension is real and worth settling
+deliberately rather than by whichever sentence the model weighs more."*
+
+I filed this without finding it, which is the failure the id system exists to
+make visible. The three options written out above are worth keeping and have
+been carried into B766; the decision belongs there.
+
+B945 is the half that was buildable without deciding anything: the `warnings`
+list is no longer handed to the caller, so nothing untrue is delivered while
+the question is open.
