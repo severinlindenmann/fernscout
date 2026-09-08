@@ -7,8 +7,7 @@ complexity: medium
 area: components/DayNotify.tsx, app/[user]/trips/[trip]/day/[slug]/notify/route.ts
 found: "2026-09-08T21:40:00Z"
 started: "2026-09-08T19:43:52Z"
-session: 79cece02-4661-45ef-809b-52b592e67f95
-claimed: "2026-09-08T19:43:52Z"
+merged: "2026-09-08T20:13:58Z"
 ---
 
 # B1024 — The send dialog quotes a price and never says who gets the day
