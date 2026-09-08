@@ -3,7 +3,11 @@ import { notFound } from "next/navigation";
 import HelperRoom from "@/components/HelperRoom";
 import { isEnabled } from "@/lib/capabilities";
 import { hasHelperConsent, helperConsent } from "@/lib/helper/consent";
-import { draftsForWizard, filesForRoom, isHelperOwner } from "@/lib/helper/server";
+import {
+  draftsForWizard,
+  filesForRoom,
+  isHelperOwner,
+} from "@/lib/helper/server";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { currencyOptions } from "@/lib/rates";
@@ -41,7 +45,10 @@ export async function generateMetadata(): Promise<Metadata> {
  * **404 rather than 403 for somebody else's journal**, and the same answer for
  * one that does not exist — a URL here is one somebody guessed.
  */
-export default async function HelperRoomPage({ params }: PageProps<"/agent/[user]/chat">) {
+export default async function HelperRoomPage({
+  params,
+  searchParams,
+}: PageProps<"/agent/[user]/chat">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) notFound();
   if (!isEnabled("helper", user)) notFound();
@@ -52,7 +59,22 @@ export default async function HelperRoomPage({ params }: PageProps<"/agent/[user
   // The day somebody is most likely still talking about. Not a claim about
   // what they want — the first sentence they say moves the pane — only a
   // better opening than an empty rectangle.
+  //
+  // B979 — unless they arrived from a day, in which case that is the day, and
+  // it is not a guess at all: the link under the owner block on `<trip>/<day>`
+  // carries it. Read as two plain strings and handed to the same prop; the
+  // pane loads the day itself and a pair naming nothing simply loads nothing,
+  // so a hand-typed query is a preview that stays empty rather than an error.
+  const asked = await searchParams;
+  const trip = typeof asked.trip === "string" ? asked.trip : null;
+  const slug = typeof asked.slug === "string" ? asked.slug : null;
   const [waiting] = draftsForWizard(user);
+  const opening =
+    trip && slug
+      ? { trip, slug }
+      : waiting
+        ? { trip: waiting.trip, slug: waiting.slug }
+        : null;
 
   return (
     <HelperRoom
@@ -60,7 +82,7 @@ export default async function HelperRoomPage({ params }: PageProps<"/agent/[user
       title={journal.title}
       files={filesForRoom(user)}
       currency={currencyOptions(user)}
-      opening={waiting ? { trip: waiting.trip, slug: waiting.slug } : null}
+      opening={opening}
       consented={Boolean(helperConsent(user))}
       speech={isEnabled("transcription", user)}
       consentedSpeech={hasHelperConsent(user, "speech")}
