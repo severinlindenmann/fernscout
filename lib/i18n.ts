@@ -328,6 +328,7 @@ export type TranslationKey =
   | "agent.readingPhotos"
   | "agent.resumeDay"
   | "agent.resumeHeading"
+  | "agent.room.addPhotosNoDay"
   | "agent.room.clear"
   | "agent.room.closeFiles"
   | "agent.room.closePreview"

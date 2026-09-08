@@ -272,6 +272,28 @@ describe("the files column on a journal with nothing waiting", () => {
 });
 
 /**
+ * Adding a photograph, not only offering one — B984.
+ *
+ * The wizard was the only page that could put a photograph on a day; the room
+ * had a preview and a pane of what was already waiting, and no way to add
+ * to it. The picker now lives in the files pane too, aimed at whichever day
+ * the conversation is about — and refuses to guess when there is none.
+ */
+describe("adding a photograph from the files pane", () => {
+  test("the picker appears once a day is under discussion", () => {
+    const box = render({ trip: "a-trip", slug: "tuesday" });
+    expect(box.querySelector('input[type="file"]')).not.toBeNull();
+    expect(box.textContent).toContain("Choose files");
+  });
+
+  test("with no day under discussion, the pane says so instead of offering a picker", () => {
+    const box = render();
+    expect(box.querySelector('input[type="file"]')).toBeNull();
+    expect(box.textContent).toContain("Say which day you mean first");
+  });
+});
+
+/**
  * What is kept, said once before anything is said to it — B976.
  *
  * Their conversations are saved so they can come back to them, and nobody

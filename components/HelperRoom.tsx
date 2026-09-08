@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
 import CurrencyProvider from "@/components/CurrencyProvider";
 import HelperAsk from "@/components/HelperAsk";
 import { useI18n } from "@/components/LocaleProvider";
 import { mediaLoader } from "@/components/mediaLoader";
+import { PhotoPicker } from "@/components/PhotoPicker";
 import { DayCard } from "@/components/StoryPager";
+import { drain, enqueue, type QueueProgress } from "@/components/uploadQueue";
 import type { RoomFile, RoomFiles } from "@/lib/helper/server";
 import type { CurrencyOptions } from "@/lib/rates";
 import type { Day, DaySummary } from "@/lib/types";
@@ -48,6 +50,14 @@ import type { Day, DaySummary } from "@/lib/types";
  * conversation named, from the same `GET /api/helper/<user>/day` the wizard
  * reads — the real `DayCard` with the real props, so what is wrong here is
  * wrong on the site.
+ *
+ * **Since B984 the files pane can also add a photograph, not only offer one.**
+ * `UploadPanel`, below `FilesPane`, is `PhotoPicker` and `uploadQueue.ts` —
+ * unchanged from the wizard's own use of both — aimed at whichever day the
+ * conversation is about. That is the wizard's reason to exist shrinking to
+ * nothing rather than a second copy of it: the day the picker writes to is
+ * `subject`, the same value `PreviewPane` already reads, so the two can never
+ * name different days.
  */
 
 /** What the preview pane is currently about. `at` changes on every mention,
@@ -167,6 +177,11 @@ export default function HelperRoom({
       selected={selected}
       onToggle={toggle}
       onClear={() => setSelected([])}
+      username={username}
+      subject={subject}
+      onUploaded={() =>
+        setSubject((was) => (was ? { ...was, at: Date.now() } : was))
+      }
     />
   );
 
@@ -373,11 +388,23 @@ function FilesPane({
   selected,
   onToggle,
   onClear,
+  username,
+  subject,
+  onUploaded,
 }: {
   files: RoomFiles;
   selected: string[];
   onToggle: (id: string) => void;
   onClear: () => void;
+  username: string;
+  /** The day under discussion, or `null` when nothing has been named yet.
+   *  `UploadPanel` reads only `trip` and `slug` off this — the `at` stamp is
+   *  the preview's own business. */
+  subject: { trip: string; slug: string } | null;
+  /** A photograph landed. The room bumps the subject's stamp on this, which
+   *  is what makes `PreviewPane` re-read the day — the same signal a mention
+   *  in the conversation sends. */
+  onUploaded: () => void;
 }) {
   const { t, tn } = useI18n();
   const empty = files.inbox.length === 0 && files.trip.length === 0;
@@ -439,7 +466,146 @@ function FilesPane({
           ))}
         </Group>
       )}
+
+      <UploadPanel username={username} subject={subject} onUploaded={onUploaded} />
     </div>
+  );
+}
+
+/**
+ * The picker and the upload, moved into the room — B984, step 4 of
+ * `docs/plans/…the-conversation-lives-at-three-urls.md`. Until this the only
+ * page that could put a photograph on a day was the wizard's own; the room
+ * had a preview of the day and files waiting for it, and no way to add one.
+ *
+ * The model is `startUploads`/`runQueue` in `AgentWizard.tsx`, unchanged in
+ * substance: one storage check against the whole pick before anything is
+ * sent, `enqueue` onto the on-disk queue so a killed tab resumes rather than
+ * losing the pick, then `drain` — web copies first, so the day is readable
+ * within seconds, with the originals climbing behind it. `onUploaded` is
+ * called once the web phase completes and again when the drain finishes,
+ * which is what makes `PreviewPane` show a growing day rather than a spinner.
+ *
+ * **The day is the subject, and there is no second way to choose one.** A
+ * picker that let somebody attach a photograph while the conversation was
+ * about nothing would be a picker deciding what the day is on its own — the
+ * one thing this file's own rule (`AGENTS.md`, "the agent is the editor")
+ * puts in the conversation's hands and nowhere else. So with no subject this
+ * renders a sentence instead of a control, the same way `PreviewPane` renders
+ * a sentence instead of a card.
+ */
+function UploadPanel({
+  username,
+  subject,
+  onUploaded,
+}: {
+  username: string;
+  subject: { trip: string; slug: string } | null;
+  onUploaded: () => void;
+}) {
+  const { t } = useI18n();
+  // The room mounts this pane twice at once — the desktop column stays in the
+  // DOM behind `hidden lg:block` and the phone sheet is a second full copy —
+  // so a fixed id here would put two `id="…"` inputs on one page. `useId()`
+  // is React's own answer to exactly that: unique per mounted instance, and
+  // stable for that instance's whole life.
+  const pickerId = useId();
+  const [chosen, setChosen] = useState<File[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<QueueProgress | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function upload(tripId: string, slug: string, list: File[]) {
+    if (list.length === 0) return;
+    setBusy(true);
+    setError(null);
+    // The one storage check, before any of it starts — B683, the same
+    // courtesy `startUploads` in the wizard offers: a sentence somebody can
+    // act on while every photograph is still in front of them, rather than
+    // thirty-nine successful uploads and a wall on the fortieth.
+    const room = await fetch(`/api/helper/${encodeURIComponent(username)}/day/media`).catch(
+      () => null,
+    );
+    const body = (await room?.json().catch(() => null)) as
+      | { remainingBytes: number | null }
+      | null;
+    if (!room || !room.ok || !body) {
+      setError(t("agent.failed", { error: "network" }));
+      setBusy(false);
+      return;
+    }
+    const needed = list.reduce((n, file) => n + file.size, 0);
+    const left = body.remainingBytes;
+    if (left !== null && needed > left) {
+      const mb = (n: number) => String(Math.max(1, Math.round(n / (1024 * 1024))));
+      setError(t("agent.noRoom", { needed: mb(needed), left: mb(left) }));
+      setBusy(false);
+      return;
+    }
+
+    await enqueue(username, tripId, slug, list);
+    setChosen([]);
+    setBusy(false);
+
+    let readable = false;
+    await drain(username, (state) => {
+      setProgress(state);
+      if (!readable && state.webTotal > 0 && state.webDone === state.webTotal) {
+        readable = true;
+        onUploaded();
+      }
+    });
+    onUploaded();
+    setProgress((state) => (state && state.error ? state : null));
+  }
+
+  return (
+    <section className="mt-4 border-t border-navy-200 pt-4">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+        {t("agent.uploadTitle")}
+      </h2>
+
+      {subject ? (
+        <PhotoPicker
+          id={pickerId}
+          chosen={chosen}
+          disabled={busy}
+          onPick={(list) => {
+            const files = Array.from(list ?? []);
+            setChosen(files);
+            if (files.length > 0) void upload(subject.trip, subject.slug, files);
+          }}
+        />
+      ) : (
+        <p className="mt-2 text-sm leading-6 text-navy-700">{t("agent.room.addPhotosNoDay")}</p>
+      )}
+
+      {/* Mounted from the first render, empty until there is something to
+       *  say — B949 again, in the pane that taught this file the rule the
+       *  first time. A live region created at the same moment as its first
+       *  content is one a screen reader may never have been watching. */}
+      <p role="status" aria-live="polite" className="mt-2 text-sm leading-6 text-navy-800">
+        {progress &&
+          (progress.webDone < progress.webTotal
+            ? t("agent.uploading", {
+                done: String(progress.webDone),
+                total: String(progress.webTotal),
+              })
+            : progress.originalDone < progress.originalTotal
+              ? t("agent.uploadingOriginals", {
+                  done: String(progress.originalDone),
+                  total: String(progress.originalTotal),
+                })
+              : "")}
+        {progress?.error && ` — ${t("agent.failed", { error: progress.error })}`}
+      </p>
+
+      {error && (
+        <p role="alert" className="mt-2 text-sm leading-6 text-coral-600">
+          {error}
+        </p>
+      )}
+    </section>
   );
 }
 

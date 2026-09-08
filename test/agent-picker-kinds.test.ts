@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { countKinds, PICKER_ACCEPT } from "@/components/AgentWizard";
+import { countKinds, PICKER_ACCEPT } from "@/components/PhotoPicker";
 import { INBOX_FILE_EXTENSIONS } from "@/lib/inbox";
 import { dictionaryFor } from "@/lib/locales";
 import { translate } from "@/lib/i18n";

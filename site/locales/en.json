@@ -1554,6 +1554,7 @@
   "agent.room.inbox": "Waiting to be filed",
   "agent.room.onTrip": "On {trip}",
   "agent.room.noFiles": "Nothing is waiting, and this trip has no photographs yet.",
+  "agent.room.addPhotosNoDay": "Say which day you mean first — a photograph needs one to land on.",
   "agent.room.selected": "{count} selected",
   "agent.room.selected.one": "1 selected",
   "agent.room.clear": "Clear",

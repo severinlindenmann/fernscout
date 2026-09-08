@@ -1,7 +1,8 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import AgentWizard, { PICKER_ACCEPT } from "@/components/AgentWizard";
+import AgentWizard from "@/components/AgentWizard";
 import LocaleProvider from "@/components/LocaleProvider";
+import { PICKER_ACCEPT } from "@/components/PhotoPicker";
 import { INBOX_FILE_EXTENSIONS } from "@/lib/inbox";
 import { dictionaryFor } from "@/lib/locales";
 import type { WizardDraft } from "@/lib/helper/draft";
