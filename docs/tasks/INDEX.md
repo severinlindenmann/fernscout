@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (134)
+## backlog (137)
 
 ### issue (43)
 
@@ -120,13 +120,14 @@ Do not edit them by hand; run the script.
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 | [B909](backlog/big-feature/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-### small-feature (24)
+### small-feature (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B858](backlog/small-feature/B858-the-two-questions-people-ask-most.md) | The two questions people ask most have no answer | FEATURE | high | low |
 | [B892](backlog/small-feature/B892-the-helper-does-not-look-like.md) | The helper does not look like a conversation anybody has had before | FEATURE | high | medium |
 | [B906](backlog/small-feature/B906-nothing-can-find-the-day-with.md) | Nothing can find the day with the photograph of Anna in it | FEATURE | high | medium |
+| [B981](backlog/small-feature/B981-voice-search-depends-on-the-browser.md) | Voice search depends on the browser's own speech service, which the owner's browser does not have | FEATURE | high | low |
 | [B10](backlog/small-feature/B10-a-journal-never-says-who-is.md) | A journal never says who is writing it | FEATURE | medium | medium |
 | [B112](backlog/small-feature/B112-local-scripts-write-straight-to-content.md) | Local scripts still write straight to content, and the one guarantee they skip is the draft rule | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
@@ -140,6 +141,7 @@ Do not edit them by hand; run the script.
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
 | [B979](backlog/small-feature/B979-asking-for-something-else-opens-a.md) | Asking for something else opens a box on the day rather than the room that can answer | FEATURE | medium | low |
+| [B982](backlog/small-feature/B982-the-send-flow-jumps-pressing-send.md) | The send flow jumps: pressing send reloads the page instead of posting the card | FEATURE | medium | medium |
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 | [B539](backlog/small-feature/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
 | [B666](backlog/small-feature/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
@@ -165,7 +167,7 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### superseded (37)
+### superseded (38)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -195,6 +197,7 @@ Do not edit them by hand; run the script.
 | [B880](backlog/superseded/B880-recordprint-is-exported-and-unreachable-so.md) | recordPrint is exported and unreachable, so knip fails verify on main | CHORE | medium | low |
 | [B89](backlog/superseded/B89-nothing-that-costs-the-operator-money.md) | Nothing that costs the operator money can be paid for, so every paid feature is dry-run only | FEATURE | medium | high |
 | [B910](backlog/superseded/B910-knip-fails-on-main-defaultsizefor-in.md) | knip fails on main: defaultSizeFor in lib/photobook/spec.ts is exported and called by nothing | CHORE | medium | low |
+| [B983](backlog/superseded/B983-the-send-flow-jumps-pressing-send.md) | The send flow jumps: pressing send reloads the page instead of posting the card | FEATURE | medium | medium |
 | [B176](backlog/superseded/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
 | [B243](backlog/superseded/B243-npm-run-postcard-prints-four-lines.md) | npm run postcard prints four lines of Node module-type warning before its own first line | ISSUE | low | low |
 | [B246](backlog/superseded/B246-openapi-json-does-not-document-costsvisibility.md) | openapi.json does not document costsVisibility on POST trips | ISSUE | low | low |
