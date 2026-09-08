@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: helper, honesty
 found: "2026-09-08T12:52:43Z"
+started: "2026-09-08T12:53:21Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T12:53:21Z"
 ---
 
 # B962 — A total recalled from memory a turn later drops what it could not convert
