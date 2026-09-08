@@ -26,7 +26,7 @@ describe("price of a planned book", () => {
     const book = {
       volumes: [{ interiorPages: 40 }, { interiorPages: 60 }],
     } as unknown as ReturnType<typeof planBook>;
-    expect(priceOf(book, DEFAULT_OPTIONS)).toBe(
+    expect(priceOf(book)).toBe(
       photobookCredits() + photobookCredits(),
     );
   });

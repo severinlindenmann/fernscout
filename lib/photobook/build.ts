@@ -71,9 +71,15 @@ export async function followerNames(owner: string): Promise<string[]> {
   }
 }
 
-/** Per volume, because each volume is a separate book with its own cover and
- * its own postage. */
-export function priceOf(book: Photobook, options: BookOptions): number {
+/**
+ * Per volume, because each volume is a separate book that has to be laid out.
+ *
+ * It no longer takes the options: building is a flat charge whatever the size
+ * or the cover, since the print step charges the paper from a live quote. The
+ * argument stayed behind for a while after the number stopped depending on
+ * it, which is how a signature starts lying about what a function reads.
+ */
+export function priceOf(book: Photobook): number {
   return book.volumes.reduce((sum) => sum + photobookCredits(), 0);
 }
 
@@ -100,7 +106,7 @@ export function orderDir(owner: string, orderId: string): string {
  * never heard of — because a book that cannot be printed today should still
  * be a book you can look at, and the fallback is close enough to look at.
  */
-async function useRealCoverGeometry(book: Photobook, options: BookOptions): Promise<void> {
+async function applyRealCoverGeometry(book: Photobook, options: BookOptions): Promise<void> {
   const productUid = productUidFor(options.size, options.coverType);
   if (!productUid) return;
   for (const volume of book.volumes) {
@@ -131,7 +137,7 @@ export async function buildPhotobook(
   });
   const spec = specFor(options);
   const book = planBook(source, spec, options);
-  await useRealCoverGeometry(book, options);
+  await applyRealCoverGeometry(book, options);
   const dir = orderDir(owner, orderId);
   fs.mkdirSync(dir, { recursive: true });
 
