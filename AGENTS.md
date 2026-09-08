@@ -753,6 +753,7 @@ guide for it.
 | `deploy` | Ship it to the VPS, and know it is healthy |
 | `keep-the-contract` | Check that `/openapi.json` and `/agent.md` still tell the truth after a change to a route |
 | `manage-tasks` | Capture something, and move it between lanes |
+| `triage-a-backlog` | Read a whole lane of `docs/tasks/` and hand back one page a person decides from |
 | `work-on-a-task` | Take one approved task, build it in a worktree, merge it |
 | `test-the-live-site` | Empty `testing/` against the deployed instance, one subagent per ticket |
 | `test-in-a-browser` | Drive a local checkout in a real browser: sign in as an owner, switch a capability on, check a page at 390px |
