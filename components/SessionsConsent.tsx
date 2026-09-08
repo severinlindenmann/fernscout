@@ -13,9 +13,15 @@ import { useI18n } from "@/components/LocaleProvider";
  *
  * **Conversations are saved either way**, because being able to open an old
  * one and carry on is a feature that was asked for and a person's own words
- * are theirs. What this switch decides is whether the operator may read them.
- * So the card says that in three sentences and does not let a person believe
- * they have deleted something they have not.
+ * are theirs. What this switch decides is whether the operator may read them,
+ * and **it starts on** — so the card is a thing to turn off rather than a
+ * thing to agree to, and the notice on the first message of a conversation
+ * says the same, because implying a permission nobody gave would be the
+ * dishonest version of this.
+ *
+ * Four short lines, and they were longer: a title, a sentence, the switch, and
+ * the one fact somebody would otherwise get wrong. A privacy control that
+ * takes a paragraph to read is one nobody reads.
  *
  * The state is handed in rather than read back: `/<user>/me` runs on the
  * server and already knows, so a `GET` on the consent route would be a second
@@ -58,21 +64,21 @@ export default function SessionsConsent({
         </h3>
       </div>
 
-      <p className="mt-3 text-base leading-7 text-navy-700">{t("me.sessionsBody")}</p>
+      <p className="mt-2 text-sm leading-6 text-navy-700">{t("me.sessionsBody")}</p>
 
-      <label className="mt-4 flex min-h-11 cursor-pointer items-start gap-3">
+      <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3">
         <input
           type="checkbox"
           checked={shared}
           disabled={busy}
           onChange={(event) => void set(event.target.checked)}
-          className="mt-1 h-5 w-5 shrink-0 rounded border-navy-300 text-navy-900"
+          className="h-5 w-5 shrink-0 rounded border-navy-300 text-navy-900"
         />
-        <span className="text-base leading-7 text-navy-800">{t("me.sessionsShare")}</span>
+        <span className="text-sm leading-6 text-navy-800">{t("me.sessionsShare")}</span>
       </label>
 
       {/* The sentence that stops somebody believing they deleted something. */}
-      <p className="mt-2 text-sm leading-6 text-navy-600">{t("me.sessionsOffNote")}</p>
+      <p className="mt-1 text-xs leading-5 text-navy-500">{t("me.sessionsOffNote")}</p>
     </div>
   );
 }

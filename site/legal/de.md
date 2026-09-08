@@ -119,11 +119,11 @@ betrieben und verteidigt werden zu können.
   angenommen wurde. Sie werden gespeichert, damit man ein altes Gespräch
   wieder öffnen und dort weitermachen kann, wo man aufgehört hat — dafür sind
   sie da. Mit dem Helfer spricht nur die Besitzerin eines Journals, sonst
-  niemand; ein Gespräch enthält also die Worte einer einzigen Person. **Sie
-  werden von niemandem sonst gelesen, solange sie das nicht erlaubt**, auf
-  ihrer eigenen Seite, wo sich der Schalter jederzeit wieder ausschalten
-  lässt. Das Ausschalten löscht nichts — es heisst, dass ausser ihr niemand
-  liest, was da ist.
+  niemand; ein Gespräch enthält also die Worte einer einzigen Person. **Wir
+  lesen sie, um zu sehen, was besser werden muss, und eine Besitzerin kann das
+  ausschalten** — auf ihrer eigenen Seite, jederzeit. Das Ausschalten löscht
+  nichts; es heisst, dass ausser ihr niemand liest, was da ist oder noch
+  kommt.
 - **Aufrufzahlen**, bei Journalen, deren Autorin die Besuchszählung
   eingeschaltet hat: welche Seite, wann, und der oben beschriebene Tagescode.
   Nichts, was eine Leserin benennt, und nach etwa neunzig Tagen gelöscht.

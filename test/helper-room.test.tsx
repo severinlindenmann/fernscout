@@ -305,7 +305,10 @@ describe("the notice about what is kept", () => {
   test("is the first thing on an empty conversation", () => {
     const box = render();
     expect(box.textContent).toContain("Your conversations are saved");
-    // And it says the part a person would otherwise have to guess.
-    expect(box.textContent).toContain("Nobody else reads them unless you say so");
+    // **It says that reading happens**, rather than implying a permission
+    // nobody gave — the switch is on by default, so a notice worded as a
+    // promise of privacy would be the dishonest version of this.
+    expect(box.textContent).toContain("We read them to make Fernscout better");
+    expect(box.textContent).toContain("turn that off");
   });
 });

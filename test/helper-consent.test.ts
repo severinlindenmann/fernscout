@@ -98,12 +98,34 @@ describe("B735 — withdrawing one scope leaves the others standing", () => {
     expect(helperConsent("alex")?.providers.words).toBe("Anthropic");
   });
 
-  test("revoking the last scope removes the file entirely", () => {
+  /**
+   * The file used to be deleted when its last scope went, and that was right
+   * while every scope was off until somebody said yes: an absent file and a
+   * file saying no meant the same thing.
+   *
+   * **B976 gave one scope a different default.** `sessions` starts on, so a
+   * person turning it off is the only thing worth recording — and deleting
+   * the file would have handed it back on next time anybody looked. So the
+   * file survives to hold the no, with no scopes agreed to and nothing else
+   * in it.
+   */
+  test("revoking the last scope leaves a file that remembers the no", () => {
     recordHelperConsent("alex", "Anthropic", "words");
     revokeHelperConsent("alex", "words");
 
-    expect(helperConsent("alex")).toBeNull();
-    expect(fs.existsSync(consentFile())).toBe(false);
+    const after = helperConsent("alex");
+    expect(after?.scopes).toEqual([]);
+    expect(after?.declined).toEqual(["words"]);
+    expect(fs.existsSync(consentFile())).toBe(true);
+  });
+
+  test("and saying yes again takes the no back", () => {
+    revokeHelperConsent("alex", "words");
+    recordHelperConsent("alex", "Anthropic", "words");
+
+    const after = helperConsent("alex");
+    expect(after?.scopes).toEqual(["words"]);
+    expect(after?.declined ?? []).toEqual([]);
   });
 
   test("revoking a scope nobody agreed to is a no-op on the others", () => {

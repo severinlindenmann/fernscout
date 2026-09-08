@@ -4,7 +4,7 @@ import { resolveIdentity } from "@/lib/auth/handshake";
 import { balanceOf } from "@/lib/credits";
 import { isEnabled } from "@/lib/capabilities";
 import AgentDoor from "@/components/AgentDoor";
-import { hasHelperConsent, helperConsent } from "@/lib/helper/consent";
+import { hasHelperConsent } from "@/lib/helper/consent";
 import { draftsForWizard } from "@/lib/helper/server";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { journalsFor } from "@/lib/home";
@@ -68,7 +68,11 @@ export default async function AgentPage() {
       drafts: draftsForWizard(journal.username),
       // B685: the ask box, and whether it has to ask for consent first.
       helper: isEnabled("helper", journal.username),
-      consented: Boolean(helperConsent(journal.username)),
+      // The scope rather than the file — B976. A consent record can now hold
+      // a *no* (somebody turning off the operator reading their
+      // conversations), and reading its mere existence as a yes would put the
+      // ask box in front of a person who has agreed to nothing.
+      consented: hasHelperConsent(journal.username, "words"),
       // B686: the microphone, on its own switch and its own consent.
       speech: isEnabled("transcription", journal.username),
       consentedSpeech: hasHelperConsent(journal.username, "speech"),

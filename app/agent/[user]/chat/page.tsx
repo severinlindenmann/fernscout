@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import HelperRoom from "@/components/HelperRoom";
 import { isEnabled } from "@/lib/capabilities";
-import { hasHelperConsent, helperConsent } from "@/lib/helper/consent";
+import { hasHelperConsent } from "@/lib/helper/consent";
 import {
   draftsForWizard,
   filesForRoom,
@@ -83,7 +83,9 @@ export default async function HelperRoomPage({
       files={filesForRoom(user)}
       currency={currencyOptions(user)}
       opening={opening}
-      consented={Boolean(helperConsent(user))}
+      // The scope rather than the file — B976, and the same reasoning as the
+      // door's own card.
+      consented={hasHelperConsent(user, "words")}
       speech={isEnabled("transcription", user)}
       consentedSpeech={hasHelperConsent(user, "speech")}
       speechProvider={speechProvider()}
