@@ -7,8 +7,7 @@ complexity: low
 area: agent, credits
 found: "2026-09-08T07:08:54Z"
 started: "2026-09-08T19:11:43Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T19:11:43Z"
+merged: "2026-09-08T19:44:27Z"
 ---
 
 # B922 — A credit is spent on a write that failed

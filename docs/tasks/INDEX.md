@@ -232,7 +232,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (14)
+## in-development (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -241,7 +241,6 @@ _Nothing here._
 | [B1016](in-development/B1016-the-room-s-two-panes-are.md) | The room's two panes are chrome at the top rather than part of the conversation | FEATURE | high | medium | `fdfcf5f2` |
 | [B1018](in-development/B1018-the-language-select-s-arrow-wraps.md) | The language select's arrow wraps and moves, and a newly ticked recipient shows no address | ISSUE | high | low | `b8352d66` |
 | [B1019](in-development/B1019-a-brand-new-owner-is-shown.md) | A brand new owner is shown a signup form for the journal they already have | ISSUE | high | low | `fdfcf5f2` |
-| [B922](in-development/B922-a-credit-is-spent-on-a.md) | Was she charged for a day that was never written, and should she have been? | ISSUE | high | low | `bdd0270d` |
 | [B980](in-development/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | `a4bbb185` |
 | [B984](in-development/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | `fdfcf5f2` |
 | [B1024](in-development/B1024-the-send-dialog-quotes-a-price.md) | The send dialog quotes a price and never says who gets the day | FEATURE | medium | medium | `79cece02` |
@@ -251,7 +250,7 @@ _Nothing here._
 | [B837](in-development/B837-a-capability-test-passes-alone-and.md) | A capability test passes alone and fails in the full suite | ISSUE | medium | low | `bdd0270d` |
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 
-## testing (208)
+## testing (209)
 
 ### security (7)
 
@@ -265,7 +264,7 @@ _Nothing here._
 | [B908](testing/security/B908-a-leaked-agent-token-can-be.md) | A leaked agent token can be listed and not ended | SECURITY | medium | low | — |
 | [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (114)
+### issue (115)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -301,6 +300,7 @@ _Nothing here._
 | [B917](testing/issue/B917-pressing-start-this-day-fails-every.md) | Pressing start this day fails every time | ISSUE | high | low | — |
 | [B920](testing/issue/B920-the-helper-says-it-saved-something.md) | The helper says it saved something when it called no tool | ISSUE | high | medium | — |
 | [B921](testing/issue/B921-the-conversation-speaks-the-phone-s.md) | The conversation speaks the phone's language, not the journal's | ISSUE | high | low | — |
+| [B922](testing/issue/B922-a-credit-is-spent-on-a.md) | Was she charged for a day that was never written, and should she have been? | ISSUE | high | low | — |
 | [B923](testing/issue/B923-asking-that-only-one-person-may.md) | Asking that only one person may read it proposed shutting her out | ISSUE | high | low | — |
 | [B924](testing/issue/B924-a-note-written-for-the-model.md) | A note written for the model is printed to the person | ISSUE | high | low | — |
 | [B925](testing/issue/B925-attaching-the-files-you-ticked-fails.md) | Attaching the files you ticked fails with unknown day | ISSUE | high | low | — |
