@@ -992,6 +992,31 @@ const A_TOTAL = new RegExp(
  * *"240 frankba került"*, *"240 frankot költöttél"*. B962 found both by
  * writing the sentences out, which is the only way this kind of gap surfaces.
  */
+/**
+ * The same shapes as `A_FIGURE`, capturing the number itself — B963.
+ *
+ * Kept beside its sibling rather than derived from it: a regex that has to
+ * serve two purposes is one that will be wrong for one of them.
+ */
+/**
+ * Every number anywhere in a tool's answer — B963.
+ *
+ * The comparison set for a figure the model says about money. Deliberately
+ * everything rather than a chosen few fields: a category's amount, a daily
+ * average and what could not be converted are all figures a person may
+ * reasonably be told, and a list of which ones count is a list that will be
+ * missing its next entry.
+ */
+function numbersIn(value: unknown): number[] {
+  if (typeof value === "number") return Number.isFinite(value) ? [value] : [];
+  if (Array.isArray(value)) return value.flatMap(numbersIn);
+  if (value && typeof value === "object") return Object.values(value).flatMap(numbersIn);
+  return [];
+}
+
+const MONEY_FIGURE =
+  /(\d[\d.,\u00a0']*)\s*(?:[\u20ac\u00a3$]|\b(?:chf|eur|usd|gbp|huf|bam|mkd|rsd|frank\w*|franc\w*|euro\w*|pound\w*|forint\w*|dollar\w*)\b)|(?:[\u20ac\u00a3$]|\b(?:chf|eur|usd|gbp|huf|bam|mkd|rsd)\b)\s*(\d[\d.,\u00a0']*)/gi;
+
 const A_FIGURE = /\d[\d.,\u00a0']*\s*(?:[\u20ac\u00a3$]|\b(?:chf|eur|usd|gbp|huf|frank\w*|franc\w*|euro\w*|pound\w*|forint\w*|dollar\w*)\b)|(?:[\u20ac\u00a3$]|\b(?:chf|eur|usd|gbp|huf)\b)\s*\d/i;
 
 /**
@@ -1054,6 +1079,14 @@ Say what is actually there: a day waiting to be started, and that the words come
 const PARTIAL_RETRY = `Stop. The costs you read said plainly that some of their spending is NOT in that total — it is in a currency this trip has no rate for, and it was left out. You gave them the smaller number as though it were the whole thing.
 
 Answer again with both: the total as far as it goes, and then the money that is not in it, named by its currency and its amount, in the words \`notInTheTotal\` gave you. Do not convert it yourself and do not guess a rate. "Two hundred francs, and 4 500 dinars besides that I cannot convert" is the true answer and it is not a worse one.`;
+
+/**
+ * What the model is told when it put a figure about money into an answer that
+ * nothing computed — B963.
+ */
+const INVENTED_RETRY = `Stop. There is a number about money in your last answer that the costs did not contain. You worked it out yourself, and you may not: you do not know today's rate, and the reason that money is outside the total is that this trip has no rate for it.
+
+Answer again using only the figures you were given. If they ask what the rest comes to, say plainly that you cannot convert it and that the amount is what it is — "15 BAM and 1500 MKD" is the whole answer, and it is a better one than a guess dressed up as help.`;
 
 const ACCESS_RETRY = `Stop. Your last answer said a person can read something, and nothing on this turn makes that true. Naming somebody does not let them in: a trip that is not public is open to the people who were on it and to the guests the owner has already approved, and nobody else. Saying otherwise is the worst thing you can get wrong here — this journal exists so that somebody's family can read it, and they will believe you.
 
@@ -1146,6 +1179,25 @@ export async function answerInThread(
    * *answer's*, and the answer is written after the tool has spoken.
    */
   const leftOut: string[] = [];
+  /**
+   * Every figure the cost tool returned this turn — B963.
+   *
+   * Asked for a rough number, the conversation named the money it could not
+   * convert — correctly — and then offered *"about 30 CHF worth if you want a
+   * fuller number"* for 15 BAM and 1500 MKD. Unprompted, and not far out,
+   * which is what makes it dangerous rather than obviously wrong: the trip has
+   * no rate for either currency, which is exactly why they were excluded.
+   *
+   * B960 made the conversation honest about what it left out. This is the
+   * model filling the hole back in from its own belief one sentence later,
+   * because a blank felt unhelpful. AGENTS.md has one rule and this is it: an
+   * empty field beats a plausible fiction.
+   *
+   * So a figure said about money must be one the server produced. Rounding is
+   * allowed — *"roughly 240"* for 240.476 is the same claim — and inventing is
+   * not.
+   */
+  const counted: number[] = [];
   const blocks: Block[] = [];
   const proposals: Proposal[] = [];
 
@@ -1190,6 +1242,9 @@ export async function answerInThread(
           for (const one of said?.notInTheTotal ?? []) {
             if (typeof one.currency === "string") leftOut.push(one.currency);
           }
+          // Every figure this tool actually produced — B963. What is not in
+          // here, and is said about money, was invented.
+          for (const number of numbersIn(result)) counted.push(number);
         }
         results.push({
           type: "tool_result",
@@ -1246,7 +1301,23 @@ export async function answerInThread(
       .filter((name): name is string => name !== undefined),
   );
 
-  function amiss(): "" | "claim" | "pending" | "words" | "access" | "day" | "total" | "partial" {
+  /**
+   * Figures in a sentence, next to a currency — B963.
+   *
+   * Only currency-adjacent numbers, so a date, a day count or a credit balance
+   * is not mistaken for money.
+   */
+  function moneyIn(text: string): number[] {
+    const found: number[] = [];
+    for (const hit of text.matchAll(MONEY_FIGURE)) {
+      const raw = (hit[1] ?? hit[2] ?? "").replace(/[\u00a0' ]/g, "").replace(/,(?=\d{3}\b)/g, "");
+      const value = Number(raw.replace(",", "."));
+      if (Number.isFinite(value)) found.push(value);
+    }
+    return found;
+  }
+
+  function amiss(): "" | "claim" | "pending" | "words" | "access" | "day" | "total" | "partial" | "invented" {
     if (claimsAccess(answer) && !proposals.some((one) => one.tool === "invite_guest")) {
       return "access";
     }
@@ -1264,6 +1335,21 @@ export async function answerInThread(
       !leftOut.some((currency) => new RegExp(`\\b${currency}\\b`, "i").test(answer))
     ) {
       return "partial";
+    }
+    /**
+     * A figure about money that the server did not produce — B963.
+     *
+     * Within two per cent of something `trip_costs` returned is the same
+     * claim rounded, which is ordinary and fine. Anything else, said about
+     * money on a turn that read the costs, is a number from the model's own
+     * belief — and the one it was caught at was a conversion for a currency
+     * it had just said it could not convert.
+     */
+    if (counted.length > 0) {
+      const invented = moneyIn(answer).filter(
+        (said) => !counted.some((real) => Math.abs(said - real) <= Math.max(0.02 * Math.abs(real), 0.01)),
+      );
+      if (invented.length > 0) return "invented";
     }
     /**
      * Words claimed to be in a proposal that has nowhere to put them — B961.
@@ -1338,6 +1424,7 @@ export async function answerInThread(
     day: READ_IT_RETRY,
     total: COUNT_IT_RETRY,
     partial: PARTIAL_RETRY,
+    invented: INVENTED_RETRY,
   };
   /**
    * What is said when the model could not be made to say something true.
@@ -1357,6 +1444,7 @@ export async function answerInThread(
     day: "agent.notRead",
     total: "agent.notCounted",
     partial: "agent.notCounted",
+    invented: "agent.notCounted",
   } as const;
 
   const wrong = amiss();

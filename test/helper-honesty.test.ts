@@ -684,14 +684,21 @@ describe("a turn that totals somebody's money without reading it", () => {
     expect(said).toContain("rather not give you a figure");
   });
 
+  /**
+   * The figures have to be the fixture's own, since B963: a number about money
+   * that the tool did not produce is caught as invented, whichever other rule
+   * a test was written for. This trip has no costs at all, so nought is the
+   * only figure that can be said about it — and the 107 francs this test used
+   * to assert with would now, correctly, be caught.
+   */
   test("a turn that did read the costs is left alone", async () => {
     create
       .mockResolvedValueOnce(calls("trip_costs", { trip: "Die Reise" }))
-      .mockResolvedValueOnce(says("Insgesamt 107 Franken."));
+      .mockResolvedValueOnce(says("Insgesamt 0 Franken."));
     const answered = await read(await ask("was hat die reise gekostet"));
 
     expect(create).toHaveBeenCalledTimes(2);
-    expect(String(answered.body.answer)).toBe("Insgesamt 107 Franken.");
+    expect(String(answered.body.answer)).toBe("Insgesamt 0 Franken.");
   });
 });
 
@@ -950,7 +957,47 @@ describe("a total the tool said was partial", () => {
   test("and left alone when the answer names what was left out", async () => {
     create
       .mockResolvedValueOnce(calls("trip_costs", { trip: "Die Reise" }))
-      .mockResolvedValueOnce(says("Insgesamt 31 Franken, und 4500 RSD dazu, die ich nicht umrechnen kann."));
+      .mockResolvedValueOnce(
+        says("Insgesamt 0 Franken, und 4500 RSD dazu, die ich nicht umrechnen kann."),
+      );
+    const answered = await read(await ask("was hat die reise gekostet"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toContain("4500 RSD");
+  });
+
+  /**
+   * The estimate it offered instead of a blank — B963.
+   *
+   * Asked for a rough number, it named the money it could not convert —
+   * correctly — and then offered *"about 30 CHF worth if you want a fuller
+   * number"* for it. Unprompted, and not far out, which is what makes it
+   * dangerous rather than obviously wrong: the trip has no rate for that
+   * currency, which is exactly why it was excluded.
+   *
+   * B960 made the conversation honest about what it left out. This is the
+   * model filling the hole back in from its own belief one sentence later,
+   * because a blank felt unhelpful.
+   */
+  test("a figure the costs did not contain is caught, however helpful it looks", async () => {
+    create
+      .mockResolvedValueOnce(calls("trip_costs", { trip: "Die Reise" }))
+      .mockResolvedValueOnce(
+        says("Insgesamt 0 Franken, und 4500 RSD dazu — etwa 38 CHF, wenn du eine vollere Zahl willst."),
+      )
+      .mockResolvedValueOnce(
+        says("Doch, 4500 RSD sind ungefähr 38 CHF."),
+      );
+    const answered = await read(await ask("und ungefähr in franken?"));
+
+    expect(create).toHaveBeenCalledTimes(3);
+    expect(String(answered.body.answer)).not.toContain("38");
+  });
+
+  test("but rounding a figure it was given is the same claim, not a new one", async () => {
+    create
+      .mockResolvedValueOnce(calls("trip_costs", { trip: "Die Reise" }))
+      .mockResolvedValueOnce(says("Rund 4500 RSD, die ich nicht umrechnen kann. Sonst 0 Franken."));
     const answered = await read(await ask("was hat die reise gekostet"));
 
     expect(create).toHaveBeenCalledTimes(2);
