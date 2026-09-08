@@ -516,12 +516,13 @@ function drawPage(
   images: Map<string, JpegImage | null>,
 ) {
   const media = pageMediaBoxMm(spec);
-  const trimMm = { x: spec.bleedMm, y: spec.bleedMm, width: spec.size.trimWidthMm, height: spec.size.trimHeightMm };
+  // TrimBox spans the whole page, which is what Gelato's own downloadable
+  // product template does — see `renderCover` for the whole reasoning.
   const page = builder.addPage(mm(media.width), mm(media.height), {
-    x: mm(trimMm.x),
-    y: mm(trimMm.y),
-    width: mm(trimMm.width),
-    height: mm(trimMm.height),
+    x: 0,
+    y: 0,
+    width: mm(media.width),
+    height: mm(media.height),
   });
   const frame = frameFor(spec);
   const type = typeScale(spec);
@@ -806,16 +807,32 @@ export function renderCover(
   const cover = volume.cover;
   const geometry = cover.geometry;
   const builder = new PdfBuilder(options.document ?? {});
-  // TrimBox is the *trimmed edge*, which for a hardcover is the fold at
-  // `wrapMm` and not the start of the board content at `wrapMm + bleedMm`.
-  // Gelato positions artwork from this box; getting it 3 mm tight made it
-  // rescale the sheet and clip every hardcover title. See `trimInsetMm`.
-  const trimInset = geometry.trimInsetMm;
+  /**
+   * TrimBox spans the whole sheet — the same as MediaBox and BleedBox.
+   *
+   * That is not what print convention says, and it is what Gelato's own
+   * downloadable product template does. Every page of
+   * `product_template_photobooks-softcover_pf_210x280…pdf` carries
+   * `TrimBox == BleedBox == MediaBox`; the cover page is 428.72 x 286 mm and
+   * the thirty interior pages are 216 x 286, which are exactly the sizes this
+   * writer emits. The only thing that ever differed between our file and
+   * their reference was this box.
+   *
+   * It is not cosmetic. Gelato positions artwork from the TrimBox, so a box
+   * inset by the bleed made it rescale the sheet: submitting one hardcover
+   * twice, once unaltered and once with the key renamed away, moved its flat
+   * preview from 86.3% of the canvas to 100%. Matching the template is the
+   * one reading of "what does Gelato expect" that comes from Gelato.
+   *
+   * The trim is not lost — `mapClipMm`, the guides and the PDF/X report all
+   * compute it from `spec` and `CoverGeometry`, which is where it was always
+   * really kept.
+   */
   const page = builder.addPage(mm(geometry.sheetWidthMm), mm(geometry.sheetHeightMm), {
-    x: mm(trimInset),
-    y: mm(trimInset),
-    width: mm(geometry.sheetWidthMm - trimInset * 2),
-    height: mm(geometry.sheetHeightMm - trimInset * 2),
+    x: 0,
+    y: 0,
+    width: mm(geometry.sheetWidthMm),
+    height: mm(geometry.sheetHeightMm),
   });
   const type = typeScale(spec);
 

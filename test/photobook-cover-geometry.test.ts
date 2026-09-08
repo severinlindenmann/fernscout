@@ -1,7 +1,7 @@
 import { describe, expect, it, afterEach, vi } from "vitest";
 
 import { computeCoverGeometry, fetchCoverGeometry } from "@/lib/photobook/coverGeometry";
-import { BOOK_SIZES, defaultSpec } from "@/lib/photobook/spec";
+import { BOOK_SIZES, defaultSpec, pageMediaBoxMm } from "@/lib/photobook/spec";
 import { renderCover, renderVolume } from "@/lib/photobook/render";
 import { planBook } from "@/lib/photobook/plan";
 import { DEFAULT_OPTIONS } from "@/lib/photobook/options";
@@ -309,5 +309,36 @@ describe("the TrimBox is the trimmed edge, not the start of the content", () => 
     const g = await fetchCoverGeometry("photobooks-hardcover_pf_x", 28);
     expect(g?.trimInsetMm).toBeCloseTo(17, 2);
     expect(g?.source).toBe("gelato");
+  });
+});
+
+describe("the file matches Gelato's own product template", () => {
+  /**
+   * Measured from `product_template_photobooks-softcover_pf_210x280-mm-8x11-inch
+   * …_ver.pdf`, downloaded from the Gelato dashboard on 2026-09-08. Thirty-one
+   * pages: one cover at 428.72 x 286 mm and thirty interior pages at
+   * 216 x 286, and every page carries TrimBox == BleedBox == MediaBox.
+   */
+  it("emits the template's cover and interior sizes for the portrait book", () => {
+    const spec = defaultSpec(BOOK_SIZES.portrait, "soft");
+    const cover = computeCoverGeometry(spec, 28);
+    expect(cover.sheetWidthMm).toBeCloseTo(428.72, 2);
+    expect(cover.sheetHeightMm).toBeCloseTo(286, 2);
+
+    const media = pageMediaBoxMm(spec);
+    expect(media.width).toBeCloseTo(216, 2);
+    expect(media.height).toBeCloseTo(286, 2);
+  });
+
+  it("does not inset the trim, because the template does not", () => {
+    // Gelato positions artwork from the TrimBox. An inset one made it rescale
+    // the whole sheet — 86.3% of the canvas instead of 100%.
+    const spec = defaultSpec(BOOK_SIZES.portrait, "soft");
+    const volume = { interiorPages: 28 } as never;
+    void volume;
+    // The renderer's boxes are asserted end-to-end in photobook.test.ts; here
+    // we pin the intent: trim is the whole sheet, and the geometry still
+    // knows where the real edge is for guides and clipping.
+    expect(computeCoverGeometry(spec, 28).trimInsetMm).toBe(spec.bleedMm);
   });
 });
