@@ -2,6 +2,7 @@ import { unpublishEntry } from "@/lib/api/entries";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { dayForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/helper/server";
 import { getTrip, tripRef } from "@/lib/trips";
+import { wrote } from "@/lib/helper/thread";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,7 @@ export async function POST(
   const taken = unpublishEntry(ref, slug);
   if (!taken.ok) return Response.json({ error: taken.error }, { status: 400 });
 
+  wrote(user, "unpublish_day", { trip: tripId, slug });
   return Response.json({
     ok: true,
     draft: dayForWizard(user, tripId, slug),

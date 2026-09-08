@@ -1,7 +1,6 @@
 import { isEnabled } from "@/lib/capabilities";
 import type { Say } from "@/lib/helper/intents";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
-import { note } from "@/lib/helper/thread";
 import { proposalFor, writeTool } from "@/lib/helper/tools";
 import { requestLocale, translateIn } from "@/lib/locales";
 
@@ -10,19 +9,18 @@ export const dynamic = "force-dynamic";
 /**
  * A proposal, without a model — B900.
  *
- * **It writes nothing, and it is not a way to write anything.** Two jobs, both
- * of them memory and prose:
+ * **It writes nothing, and it is not a way to write anything.** It returns the
+ * proposal for one write tool, which is how one accepted write hands on to the
+ * next: `draft_words` returns prose and writes nothing, so keeping those words
+ * is a second proposal on the screen with a second button under it. The chain
+ * cannot become a quieter way to write, because the second half is the same
+ * fields, the same button and the same route as if the model had proposed it.
  *
- * - `wrote: true` tells the conversation that a proposal was accepted, so the
- *   next turn knows the day exists rather than proposing it again. The
- *   *writing* already happened, at the helper route the proposal named, which
- *   is the only path to disk this feature has.
- * - Otherwise it returns the proposal for one write tool, which is how one
- *   accepted write hands on to the next: `draft_words` returns prose and
- *   writes nothing, so keeping those words is a second proposal on the screen
- *   with a second button under it. The chain cannot become a quieter way to
- *   write, because the second half is the same fields, the same button and the
- *   same route as if the model had proposed it.
+ * It used to have a second job — `wrote: true`, posted by the browser after a
+ * successful press, was what told the conversation the write had happened.
+ * B939 moved that to the routes that do the writing, because a caller that is
+ * not our own page never made the call and was told on the next turn that
+ * nothing had been saved.
  *
  * A name that is not a **write** tool lands nowhere: a read has nothing to
  * propose and a link has nothing to press.
@@ -62,15 +60,6 @@ export async function POST(
   const locale = await requestLocale();
   const say: Say = (key, vars) =>
     translateIn(locale, key as Parameters<typeof translateIn>[1], vars);
-
-  if (body.wrote === true) {
-    // No sentence of theirs and no model call: one line of context so the next
-    // turn does not offer to do what has just been done. A **note** rather
-    // than a made-up exchange (B924) — nobody said this, and a marker written
-    // as somebody's turn is a marker the model reads back as prose to imitate.
-    note(user, `[written: ${tool.name} ${JSON.stringify(args)}]`);
-    return Response.json({ ok: true });
-  }
 
   const today =
     typeof body.today === "string" && DATE_RE.test(body.today)

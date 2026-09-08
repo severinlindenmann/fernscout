@@ -2,6 +2,7 @@ import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { attachStagedFiles } from "@/lib/api/staged";
 import { dayForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/helper/server";
 import { getTrip, tripRef } from "@/lib/trips";
+import { wrote } from "@/lib/helper/thread";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,12 @@ export async function POST(
     return Response.json({ error: "not_attached", why: moved.attached.error }, { status: 400 });
   }
 
+  wrote(user, "attach_files", {
+    trip: tripId,
+    slug,
+    attached: moved.attached.attached,
+    skipped: moved.skipped.length,
+  });
   return Response.json(
     {
       ok: true,

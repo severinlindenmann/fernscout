@@ -3,6 +3,7 @@ import { createInvite, inviteExpiry, inviteLinkUrl } from "@/lib/contacts/invite
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
+import { wrote } from "@/lib/helper/thread";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,10 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     expiresAt: inviteExpiry(),
   });
 
+  // Never the token. What the next turn needs to know is that a link exists
+  // and who it was made for, and a credential in a conversation's memory is a
+  // credential in a prompt.
+  wrote(user, "invite_guest", { kind: "guest", ...(name ? { name } : {}) });
   return Response.json(
     {
       ok: true,
