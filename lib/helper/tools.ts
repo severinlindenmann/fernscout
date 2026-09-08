@@ -4,6 +4,7 @@ import { getCostSummary } from "../costs";
 import { AS_AUTHOR, getAllEntries } from "../entries";
 import { findInboxFile } from "../inbox";
 import { formatBytes, storageFor } from "../storageQuota";
+import { ALL_TRACKED, TRACK_ROWS, TRACKS, UNKNOWN } from "../tracks";
 import { getTrip, getTrips, tripRef } from "../trips";
 import type { Block, Proposal, ProposalField, Shape } from "./blocks";
 import type { Say } from "./intents";
@@ -460,13 +461,43 @@ export const TOOLS: readonly Tool[] = [
     propose: async (username, args, say, today) => {
       const trip = resolveTrip(username, args.trip);
       const date = args.date ?? firstUnwritten(username, trip?.id ?? "", today);
+      /**
+       * The trip's own questions, on the proposal — B917.
+       *
+       * `POST .../day` refuses a day that says nothing about what its trip
+       * keeps (`lib/tracks.ts`), and the conversation had no way to answer:
+       * every press came back `incomplete_day`. So the questions are fields
+       * like any other, and they open on `unknown` — which is not a guess but
+       * the literal state of affairs, exactly as B810 decided for the wizard's
+       * express path: money was spent and nobody has told this journal the
+       * figures. Nothing is invented; nobody has been asked yet. A real
+       * figure is `add_cost` afterwards, and the sentence says so.
+       *
+       * Only the `write` rows: `photos` is asked at publish, and there is no
+       * photograph at creation for anybody to answer about.
+       */
+      const asked = TRACKS.filter(
+        (row) => TRACK_ROWS[row].when === "write" && (trip?.tracks ?? ALL_TRACKED)[row],
+      );
+      const sentence = say("agent.tool.startDay", {
+        date,
+        trip: trip?.title ?? args.trip ?? "",
+      });
       return {
-        sentence: say("agent.tool.startDay", { date, trip: trip?.title ?? args.trip ?? "" }),
+        sentence: asked.length > 0 ? `${sentence} ${say("agent.tool.startDayUnknown")}` : sentence,
         accept: say("agent.tool.startDayAccept"),
         done: say("agent.tool.startDayDone"),
         fields: [
           { name: "trip", value: trip?.id ?? args.trip ?? "" },
           { name: "date", value: date, date: true },
+          ...asked.map((row) => ({
+            name: row,
+            value: UNKNOWN,
+            options: [
+              { value: UNKNOWN, label: say("agent.answerUnknown") },
+              { value: "none", label: say("agent.answerNone") },
+            ],
+          })),
         ],
       };
     },

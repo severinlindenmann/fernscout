@@ -48,9 +48,25 @@ type Answer = "none" | "unknown";
  * `"unknown"` is the other one ("money was spent and nobody has the figures"),
  * and the difference is B540's — a decline that means "I do not know" is a
  * sentence somebody's journal will carry as fact.
+ *
+ * Read from `answers: {…}` **or** from the body itself — B917.
+ *
+ * The wizard nests them; a proposal's fields are flat, because a proposal is
+ * a list of named fields and the browser posts what it is told to post
+ * without knowing what any of them mean. Flat is also the shape
+ * `POST /api/v1/.../days` already takes, so this is the vocabulary that was
+ * already documented rather than a third one. No row collides with a field of
+ * this body: `costs`, `coordinates` and `photos` are none of `trip`, `date`,
+ * `slug`, `title` or `content`.
  */
-function declines(raw: unknown): Partial<Record<Track, false | typeof UNKNOWN>> {
-  const given = (raw ?? {}) as Record<string, unknown>;
+function declines(body: Record<string, unknown>): Partial<Record<Track, false | typeof UNKNOWN>> {
+  const nested = body.answers;
+  const given = {
+    ...body,
+    ...(nested && typeof nested === "object" && !Array.isArray(nested)
+      ? (nested as Record<string, unknown>)
+      : {}),
+  };
   const out: Partial<Record<Track, false | typeof UNKNOWN>> = {};
   for (const key of TRACKS) {
     const said = given[key] as Answer | undefined;
@@ -151,7 +167,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     // B325 — a request for a lookup, never an answer. The archive is asked
     // below, once the day is on disk.
     weather: true,
-    ...declines(body.answers),
+    ...declines(body),
   };
 
   // The same gate `POST /api/v1/.../days` applies, asked here so the wizard
@@ -234,7 +250,7 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/hel
     ...(typeof body.content === "string" ? { content: body.content } : {}),
     ...(captions ? { captions } : {}),
     ...(photoVisibility ? { photoVisibility } : {}),
-    ...declines(body.answers),
+    ...declines(body),
   };
   if (Object.keys(input).length === 0) {
     return Response.json({ error: "nothing_to_change" }, { status: 400 });
