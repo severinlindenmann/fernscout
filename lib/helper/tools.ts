@@ -1,10 +1,11 @@
 import "server-only";
 import { balanceOf } from "../credits";
+import { factsOfEntry } from "../api/entries";
 import { getCostSummary } from "../costs";
 import { AS_AUTHOR, getAllEntries } from "../entries";
 import { findInboxFile } from "../inbox";
 import { formatBytes, storageFor } from "../storageQuota";
-import { ALL_TRACKED, TRACK_ROWS, TRACKS, UNKNOWN } from "../tracks";
+import { ALL_TRACKED, missingFrom, TRACK_ROWS, TRACKS, UNKNOWN } from "../tracks";
 import { getTrip, getTrips, tripRef } from "../trips";
 import type { Block, Proposal, ProposalField, Shape } from "./blocks";
 import type { Say } from "./intents";
@@ -476,7 +477,7 @@ export const TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "form",
     describe:
-      "Propose a new trip — a journey with a title, a first and last day, and who may read it. This creates nothing: it fills the fields in and the person presses.",
+      "Propose a new trip — a journey with a title, a first and last day, and who may read it. This creates nothing: it fills the fields in and the person presses. Never say in your own words who can read it — the field's labels do.",
     properties: {
       title: { type: "string", description: "What the trip is called, in the writer's own words." },
       start: { type: "string", description: "The first day, as YYYY-MM-DD." },
@@ -484,16 +485,26 @@ export const TOOLS: readonly Tool[] = [
       visibility: {
         type: "string",
         description:
-          "Who may read it: public (anybody), guest (everybody the owner has let into this journal) or private (only the people who were on the trip). Leave it out unless they said; the field is asked either way.",
+          "Who may read it: public (anybody), guest (everybody let into this journal), private (ONLY the people who were on the trip). A person they name is a guest — \"only my daughter should read this\" is guest; private shuts her out. Leave it out unless they said.",
       },
     },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/trip`,
     propose: async (_username, args, say) => ({
-      sentence: say("agent.tool.createTrip", {
+      /**
+       * The sentence, and then the line about who may read it — B923.
+       *
+       * *"nur meine Tochter soll das lesen können"* came back proposing
+       * `private`, which means the people who were on the trip and would have
+       * shut her daughter out; the model's own prose said the opposite of the
+       * label beside it. The label is the whole safety here, so the sentence
+       * points at it rather than paraphrasing it, and the tool tells the model
+       * not to describe who can read a trip in words of its own.
+       */
+      sentence: `${say("agent.tool.createTrip", {
         title: args.title ?? "",
         start: args.start ?? "",
         end: args.end ?? "",
-      }),
+      })} ${say("agent.tool.createTripVisibility")}`,
       accept: say("agent.tool.createTripAccept"),
       done: say("agent.tool.createTripDone"),
       fields: [
@@ -704,10 +715,31 @@ export const TOOLS: readonly Tool[] = [
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/publish`,
     propose: async (username, args, say) => {
       const found = resolveDay(username, args);
+      /**
+       * The publish-time questions, on the confirmation — B929, and B917's
+       * fix at the other end of the day's life.
+       *
+       * `photos` is a `publish` row (`lib/tracks.ts`), so nothing before this
+       * moment could answer it and the press came back `incomplete_day` every
+       * time. Whatever the route is about to refuse is asked here instead —
+       * `missingFrom` is the same function the route runs, so the two cannot
+       * drift into asking different questions.
+       *
+       * They open on `unknown`, which is not a guess: nobody has been asked
+       * yet, and "there are pictures somewhere and nobody has them to hand"
+       * is the true thing to write. **They are not in `properties`**, so the
+       * model cannot answer them on somebody's behalf; only the person's own
+       * select does.
+       */
+      const asked = found
+        ? missingFrom(factsOfEntry(found.entry), found.trip.tracks, "publish").map((row) => row.field)
+        : [];
+      const sentence = found
+        ? say("agent.tool.publishDay", { date: found.entry.date, title: found.entry.title })
+        : say("agent.tool.publishNoDay");
       return {
-        sentence: found
-          ? say("agent.tool.publishDay", { date: found.entry.date, title: found.entry.title })
-          : say("agent.tool.publishNoDay"),
+        sentence:
+          asked.length > 0 ? `${sentence} ${say("agent.tool.publishDayUnknown")}` : sentence,
         accept: say("agent.tool.publishDayAccept"),
         done: say("agent.tool.publishDayDone"),
         preview: found
@@ -718,6 +750,14 @@ export const TOOLS: readonly Tool[] = [
         fields: [
           { name: "trip", value: tripIdFor(username, args, found) },
           { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
+          ...asked.map((row) => ({
+            name: row,
+            value: UNKNOWN,
+            options: [
+              { value: UNKNOWN, label: say("agent.answerUnknown") },
+              { value: "none", label: say("agent.answerNone") },
+            ],
+          })),
         ],
       };
     },
@@ -968,7 +1008,14 @@ export async function proposalFor(
   blocks.push(
     tool.renders === "form"
       ? { shape: "form", text: made.sentence, fields: made.fields, proposal }
-      : { shape: "confirm", text: made.sentence, proposal },
+      : {
+          shape: "confirm",
+          text: made.sentence,
+          // Only what has to be chosen — B929. `trip` and `slug` stay the
+          // server's own answer about which day this is about.
+          fields: made.fields.filter((field) => field.options),
+          proposal,
+        },
   );
   return { proposal, blocks };
 }

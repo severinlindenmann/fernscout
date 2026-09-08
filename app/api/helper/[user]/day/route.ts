@@ -6,7 +6,7 @@ import { NO_PROSE } from "@/lib/helper/draft";
 import { dayForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/helper/server";
 import { requestLocale } from "@/lib/locales";
 import { parsePhotoVisibility } from "@/lib/photos";
-import { missingFrom, TRACKS, UNKNOWN, type Track } from "@/lib/tracks";
+import { declinesIn, missingFrom } from "@/lib/tracks";
 import { getTrip, tripRef } from "@/lib/trips";
 
 export const dynamic = "force-dynamic";
@@ -35,46 +35,6 @@ export const dynamic = "force-dynamic";
  * is `./publish/route.ts`, which is a button somebody presses. Everything
  * written by this route is a draft, exactly as everything an agent writes is.
  */
-
-type Answer = "none" | "unknown";
-
-/**
- * The three answers a trip can ask a day for, and the two ways to say a day
- * has none of it — `lib/tracks.ts`.
- *
- * They travel as words rather than as `false`/`"unknown"` so that the wizard's
- * buttons and this parser cannot drift; the values below are the ones the
- * writer actually understands. `"none"` is a statement ("nothing was spent"),
- * `"unknown"` is the other one ("money was spent and nobody has the figures"),
- * and the difference is B540's — a decline that means "I do not know" is a
- * sentence somebody's journal will carry as fact.
- *
- * Read from `answers: {…}` **or** from the body itself — B917.
- *
- * The wizard nests them; a proposal's fields are flat, because a proposal is
- * a list of named fields and the browser posts what it is told to post
- * without knowing what any of them mean. Flat is also the shape
- * `POST /api/v1/.../days` already takes, so this is the vocabulary that was
- * already documented rather than a third one. No row collides with a field of
- * this body: `costs`, `coordinates` and `photos` are none of `trip`, `date`,
- * `slug`, `title` or `content`.
- */
-function declines(body: Record<string, unknown>): Partial<Record<Track, false | typeof UNKNOWN>> {
-  const nested = body.answers;
-  const given = {
-    ...body,
-    ...(nested && typeof nested === "object" && !Array.isArray(nested)
-      ? (nested as Record<string, unknown>)
-      : {}),
-  };
-  const out: Partial<Record<Track, false | typeof UNKNOWN>> = {};
-  for (const key of TRACKS) {
-    const said = given[key] as Answer | undefined;
-    if (said === "none") out[key] = false;
-    else if (said === "unknown") out[key] = UNKNOWN;
-  }
-  return out;
-}
 
 /** 404 for a journal that is not this reader's, the same answer as for one
  *  that does not exist — a wizard URL must not confirm whose journal it is. */
@@ -167,7 +127,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     // B325 — a request for a lookup, never an answer. The archive is asked
     // below, once the day is on disk.
     weather: true,
-    ...declines(body),
+    ...declinesIn(body),
   };
 
   // The same gate `POST /api/v1/.../days` applies, asked here so the wizard
@@ -250,7 +210,7 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/hel
     ...(typeof body.content === "string" ? { content: body.content } : {}),
     ...(captions ? { captions } : {}),
     ...(photoVisibility ? { photoVisibility } : {}),
-    ...declines(body),
+    ...declinesIn(body),
   };
   if (Object.keys(input).length === 0) {
     return Response.json({ error: "nothing_to_change" }, { status: 400 });

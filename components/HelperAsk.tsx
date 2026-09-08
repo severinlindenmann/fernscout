@@ -772,7 +772,9 @@ function BlockView({
     return (
       <ProposalView
         proposal={block.proposal}
-        fields={block.shape === "form" ? block.fields : []}
+        // A form draws all its fields; a confirmation draws only the
+        // questions its route cannot go through without — B929.
+        fields={block.fields ?? []}
         focusRef={focusRef}
         busy={busy}
         onAccept={onAccept}

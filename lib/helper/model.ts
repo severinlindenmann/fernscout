@@ -618,11 +618,69 @@ const CLAIM = new RegExp(
  */
 const DENIED = /\b(?:not|n't|no|nothing|never|nicht|nichts|kein\w*|nem|nincs|semmi)\b/i;
 
-/** True when this text tells somebody a thing has already happened. */
-export function claimsAWrite(text: string): boolean {
+/**
+ * The same lie about the other absent thing — B928.
+ *
+ * *"Der Button zum Veröffentlichen ist auf deinem Bildschirm. Drück ihn
+ * jetzt."* Five times in one conversation, on a turn whose `proposals` was
+ * empty and whose blocks carried no form. She answered *"ich sehe keinen
+ * Knopf"* and was told to reload her browser.
+ *
+ * **The general rule, because there will be a third variant: the helper may
+ * not describe anything the person cannot see.** A claim about a button is
+ * the same falsehood as a claim about a write — it names something on a
+ * screen the server built and knows the contents of — and the server is the
+ * one place holding both halves. So this matches the *screen*: a button, a
+ * press, a tap, something below or underneath, in the three languages.
+ *
+ * Blunt on purpose, and it can afford to be: it is only ever asked of a turn
+ * that proposed nothing at all, where "press the button below" has no true
+ * reading. A turn that really did put a proposal on the screen is never
+ * checked and may say whatever it likes about it.
+ */
+const ON_SCREEN = new RegExp(
+  [
+    // en — "the button below", "press it", "tap the button", "further down"
+    "\\bbutton\\b",
+    "\\b(?:press|tap|click|hit)\\s+(?:it|that|this|here|the\\b)",
+    "\\b(?:below|beneath|underneath|further down|down the page|on (?:your|the) screen)\\b",
+    // de — "Knopf", "Schaltfläche", "drück", "darunter", "unten", "auf deinem Bildschirm"
+    "\\b(?:knopf|knöpfe|schaltfläche|button)\\b",
+    "\\bdrück\\w*\\b",
+    "\\b(?:darunter|unten|unterhalb|weiter unten)\\b",
+    "\\bauf (?:deinem|dem) bildschirm\\b",
+    // hu — "gomb", "nyomd meg", "alatta", "lent", "a képernyődön"
+    "\\bgomb\\w*\\b",
+    "\\bnyomd\\b",
+    "\\b(?:alatta|alul|lent|lejjebb)\\b",
+    "\\bképernyő\\w*\\b",
+  ].join("|"),
+  "i",
+);
+
+/**
+ * "Try reloading the page" — never the answer, and it moves the blame to the
+ * person, who is now hunting a browser problem that does not exist. B928
+ * forbids it outright: it is a claim about the screen too, and the reason it
+ * is listed separately is that it survives a denial ("nothing was saved, but
+ * try reloading" is still sending her away).
+ */
+const RELOAD =
+  /\b(?:reload|refresh)\w*\b|\bneu\s+(?:zu\s+)?lad\w*|\b(?:seite|browser)\s+(?:zu\s+)?aktualisier\w*|\bfrissít\w*|\btöltsd\s+újra\b/i;
+
+/**
+ * True when this text tells somebody about something that is not there — a
+ * write that did not happen (B920) or a control that is not on their screen
+ * (B928).
+ */
+export function claimsWhatIsNotThere(text: string): boolean {
   return withoutMarkers(text)
     .split(/(?<=[.!?\n])\s+/)
-    .some((sentence) => CLAIM.test(sentence) && !DENIED.test(sentence));
+    .some(
+      (sentence) =>
+        RELOAD.test(sentence) ||
+        ((CLAIM.test(sentence) || ON_SCREEN.test(sentence)) && !DENIED.test(sentence)),
+    );
 }
 
 /**
@@ -633,9 +691,11 @@ export function claimsAWrite(text: string): boolean {
  * *should* have been there, which is the answer the person wanted. It costs
  * one turn.
  */
-const HONESTY_RETRY = `Stop. Your last answer told them something had been saved, started, published or added, and nothing was: this turn carries no proposal, so nothing has changed in their journal and there is no button on their screen.
+const HONESTY_RETRY = `Stop. Your last answer described something that is not on their screen — a day saved, started, published or added, or a button to press — and this turn carries no proposal, so nothing has changed in their journal and there is nothing there to press.
 
-Answer again. Either call the tool that proposes what they asked for — that is what puts a button in front of them — or say plainly, in their language, that nothing has been saved yet and what you need from them. Never claim a thing has happened. Never tell them to look further down the page for a button that is not there.`;
+You may not describe anything they cannot see. No button, no "press it", nothing "below", and never tell them to reload the page or their browser: the page is not the problem and saying so sends them hunting for a fault of their own.
+
+Answer again. Either call the tool that proposes what they asked for — that is what puts a button in front of them — or say plainly, in their language, that nothing has been saved yet and what you need from them.`;
 
 /**
  * How often a turn claimed a write it had not made — B920.
@@ -773,12 +833,12 @@ export async function answerInThread(
    * are dropped rather than shown. A hole in a paragraph is survivable; being
    * told your day is safe when it is not is what put somebody's phone down.
    */
-  if (proposals.length === 0 && claimsAWrite(answer)) {
+  if (proposals.length === 0 && claimsWhatIsNotThere(answer)) {
     honesty.claimed += 1;
     messages.push({ role: "assistant", content: answer === "" ? "…" : answer });
     messages.push({ role: "user", content: HONESTY_RETRY });
     answer = withoutMarkers(await rounds());
-    if (proposals.length === 0 && claimsAWrite(answer)) {
+    if (proposals.length === 0 && claimsWhatIsNotThere(answer)) {
       honesty.unrecovered += 1;
       answer = say("agent.nothingHappened");
     }

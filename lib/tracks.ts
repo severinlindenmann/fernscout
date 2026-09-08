@@ -243,6 +243,45 @@ export function parseWithout(raw: unknown): Track[] {
   return TRACKS.filter((key) => raw.includes(key));
 }
 
+/**
+ * The two ways a request says a day has none of a row — B917, moved here by
+ * B929 so that both doors read one parser.
+ *
+ * It lived in `app/api/helper/[user]/day/route.ts` and answered for writing
+ * only, which is exactly how publishing ended up with a question it could not
+ * be given the answer to: `photos` is a `publish` row, the press posted to
+ * `.../day/publish`, and that route had no idea what `"photos": "unknown"`
+ * meant. One parser, both routes.
+ *
+ * They travel as words rather than as `false`/`"unknown"` so that the
+ * proposal's `<select>` and this cannot drift; `"none"` is a statement
+ * ("there were none"), `"unknown"` is the other one ("there were some and
+ * nobody has them"), and B540 is why the difference is kept.
+ *
+ * Read from `answers: {…}` **or** from the body itself: the wizard nests them
+ * and a proposal's fields are flat, because the browser posts named fields
+ * without knowing what any of them mean. No row collides with a field of
+ * either body.
+ */
+export function declinesIn(
+  body: Record<string, unknown>,
+): Partial<Record<Track, false | typeof UNKNOWN>> {
+  const nested = body.answers;
+  const given = {
+    ...body,
+    ...(nested && typeof nested === "object" && !Array.isArray(nested)
+      ? (nested as Record<string, unknown>)
+      : {}),
+  };
+  const out: Partial<Record<Track, false | typeof UNKNOWN>> = {};
+  for (const key of TRACKS) {
+    const said = given[key];
+    if (said === "none") out[key] = false;
+    else if (said === UNKNOWN) out[key] = UNKNOWN;
+  }
+  return out;
+}
+
 export type Missing = {
   field: Track;
   why: string;

@@ -8,7 +8,7 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { grant } from "@/lib/credits";
 import { forget, history } from "@/lib/helper/thread";
-import { claimsAWrite, honestyCounts } from "@/lib/helper/model";
+import { claimsWhatIsNotThere, honestyCounts } from "@/lib/helper/model";
 
 /**
  * The claim and the act are the same thing — B920, and B924 beside it.
@@ -135,8 +135,9 @@ afterEach(async () => {
 
 /* ------------------------------------------- what counts as a claim --- */
 
-describe("a sentence that says a thing has happened", () => {
+describe("a sentence about something that is not there", () => {
   for (const said of [
+    // A write that did not happen — B920.
     "Der Text ist gespeichert. Jetzt kannst du Fotos hinzufügen.",
     "Ich habe den Tag angelegt.",
     "Die Reise wurde erstellt.",
@@ -145,21 +146,36 @@ describe("a sentence that says a thing has happened", () => {
     "It is on the site.",
     "Elmentettem a napot.",
     "A nap közzétéve.",
+    /**
+     * A button that is not on her screen — B928, and these are the sentences
+     * she actually got. They were in the "is not" list until this ticket: a
+     * turn that carries a proposal is never asked this question, so the only
+     * turn that ever reaches it is one where every word below is false.
+     */
+    "Der Button zum Veröffentlichen ist auf deinem Bildschirm. Drück ihn jetzt.",
+    "Ich lege dir das zum Drücken hin — drück auf den Knopf, dann ist es in deinem Journal.",
+    "Press the button under this to save it.",
+    "Nyomd meg a gombot alatta.",
+    "The publish button is just below.",
+    // And being sent to fix a browser that is not broken.
+    "Probier mal, die Seite neu zu laden oder deinen Browser zu aktualisieren.",
+    "Try reloading the page.",
+    "Töltsd újra az oldalt.",
   ]) {
     test(`is caught: ${said}`, () => {
-      expect(claimsAWrite(said)).toBe(true);
+      expect(claimsWhatIsNotThere(said)).toBe(true);
     });
   }
 
   for (const said of [
-    "Ich lege dir das zum Drücken hin — drück auf den Knopf, dann ist es in deinem Journal.",
-    "Press the button under this to save it.",
     "Nothing has been saved yet.",
+    "Es ist noch nichts gespeichert — sag mir, welchen Tag du meinst.",
     "Deine Reise dauert vom 1. bis zum 10. Mai.",
-    "Nyomd meg a gombot alatta.",
+    "Welchen Tag meinst du?",
+    "Még semmi nincs elmentve.",
   ]) {
     test(`is not: ${said}`, () => {
-      expect(claimsAWrite(said)).toBe(false);
+      expect(claimsWhatIsNotThere(said)).toBe(false);
     });
   }
 });

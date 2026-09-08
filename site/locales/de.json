@@ -1549,6 +1549,8 @@
   "agent.tool.startDayAccept": "Diesen Tag anlegen",
   "agent.tool.startDayDone": "Der Tag ist angelegt. Er ist ein Entwurf, also kann ihn niemand ausser dir lesen.",
   "agent.tool.startDayUnknown": "Die Fragen unten stehen auf „Niemand hat es“ — nichts ist erfunden, es hat nur noch niemand gefragt. Ändere es jetzt, oder nenne mir später eine echte Zahl.",
+  "agent.tool.publishDayUnknown": "Eines noch: Diese Reise merkt sich Dinge, zu denen dieser Tag nichts sagt. Die Fragen unten stehen auf „Niemand hat es“ — nichts ist erfunden, es hat nur noch niemand gefragt. Ändere es, wenn du die Antwort weißt.",
+  "agent.tool.createTripVisibility": "Lies „Wer darf es lesen“, bevor du drückst: Gäste sind alle, die du in dieses Journal gelassen hast, und privat sind nur die Leute, die auf der Reise dabei waren.",
   "agent.tool.draftWords": "Deine Notizen, zu einem Titel und ein paar Absätzen gemacht. Es kommt nichts dazu, was du nicht gesagt hast, du liest es, bevor etwas gespeichert wird, und es kostet {credits} Guthaben.",
   "agent.tool.draftWordsAccept": "Für mich ausformulieren",
   "agent.tool.draftWordsDone": "Das hat es aus deinen Notizen gemacht. Gespeichert ist noch nichts.",

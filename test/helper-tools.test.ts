@@ -245,6 +245,64 @@ describe("a proposal can only be pressed into the helper's own routes", () => {
   });
 });
 
+/**
+ * Who may read it, and the value that shuts out the person they named — B923.
+ *
+ * *"nur meine Tochter soll das lesen können"* proposed `privat — nur die
+ * Leute, die dabei waren`. Her daughter was not at the lake, so the setting
+ * offered would have hidden it from the one reader she asked for, and the
+ * model's own sentence beside the field claimed the opposite of the label.
+ * AGENTS.md names this exact trap: **guest means the people I let into this
+ * journal; private means only the people who were there.** A person named is
+ * a guest.
+ *
+ * The choice itself is the model's and is not assertable. What is assertable
+ * is everything around it: the sentence it reads before choosing, the closed
+ * list the person reads before pressing, and where an unsaid or misspelt
+ * value lands.
+ */
+describe("who may read a trip is read before it is chosen", () => {
+  const visibility = TOOLS.find((tool) => tool.name === "create_trip");
+
+  test("the model is told which of the two closed values a named person is", () => {
+    const said = visibility?.properties.visibility?.description ?? "";
+    expect(said).toContain("only my daughter");
+    expect(said).toMatch(/guest/i);
+    expect(said).toMatch(/only the people who were on the trip/i);
+    // And it is told not to answer the question in prose of its own, which is
+    // how the contradiction reached her screen.
+    expect(visibility?.describe).toMatch(/never say in your own words who/i);
+  });
+
+  async function proposed(args: Record<string, string>) {
+    const ran = await runTool("someone", "create_trip", args, say, "2026-09-07");
+    const field = ran.proposal?.fields.find((one) => one.name === "visibility");
+    if (!field) throw new Error("create_trip proposed no visibility");
+    return field;
+  }
+
+  test("it is a closed list, and each option says who it lets in", async () => {
+    const field = await proposed({ title: "Am See", start: "2026-05-01", end: "2026-05-03" });
+    expect(field.options?.map((one) => one.value)).toEqual(["public", "guest", "private"]);
+    // The labels are the safety: they are the words she read and corrected.
+    expect(field.options?.map((one) => one.label)).toEqual([
+      "agent.tool.visibilityPublic",
+      "agent.tool.visibilityGuest",
+      "agent.tool.visibilityPrivate",
+    ]);
+  });
+
+  test("said nothing, or said nonsense, it opens on guest and never on private", async () => {
+    expect((await proposed({ title: "Am See" })).value).toBe("guest");
+    expect((await proposed({ title: "Am See", visibility: "familie" })).value).toBe("guest");
+  });
+
+  test("the card points at the label rather than paraphrasing it", async () => {
+    const ran = await runTool("someone", "create_trip", { title: "Am See" }, say, "2026-09-07");
+    expect(ran.proposal?.sentence).toContain("agent.tool.createTripVisibility");
+  });
+});
+
 describe("every string a tool says exists in every maintained locale", () => {
   const source = fs.readFileSync(path.join(process.cwd(), "lib", "helper", "tools.ts"), "utf8");
   const keys = [...new Set([...source.matchAll(/say\("([^"]+)"/g)].map((match) => match[1]))];

@@ -1549,6 +1549,8 @@
   "agent.tool.startDayAccept": "Nap létrehozása",
   "agent.tool.startDayDone": "A nap elkezdve. Piszkozat, így rajtad kívül senki nem olvashatja.",
   "agent.tool.startDayUnknown": "Az alábbi kérdések „Senkinél nincs meg” állásban indulnak — semmi nincs kitalálva, csak még senki nem kérdezte meg. Változtasd meg most, vagy mondj később valódi számot.",
+  "agent.tool.publishDayUnknown": "Még egy dolog: ez az utazás számon tart olyasmit, amiről ez a nap nem mond semmit. Az alábbi kérdések „Senkinél nincs meg” állásban indulnak — semmi nincs kitalálva, csak még senki nem kérdezte meg. Változtasd meg, ha tudod a választ.",
+  "agent.tool.createTripVisibility": "Nyomás előtt olvasd el a „Ki olvashatja” sort: a vendégek mindazok, akiket beengedtél ebbe a naplóba, a privát pedig csak azok, akik ott voltak az úton.",
   "agent.tool.draftWords": "A saját jegyzeteid címmé és néhány bekezdéssé formálva. Semmi nem kerül bele, amit nem mondtál, elolvasod, mielőtt bármi megmarad, és {credits} kreditbe kerül.",
   "agent.tool.draftWordsAccept": "Fogalmazd meg nekem",
   "agent.tool.draftWordsDone": "Ezt csinálta a jegyzeteidből. Még semmi nincs elmentve.",
