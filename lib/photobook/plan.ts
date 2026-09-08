@@ -281,8 +281,13 @@ export type BookPage = { number: number; side: PageSide; from?: BookPageOption }
   | { kind: "intro"; heading: string; lines: string[] }
   | {
       kind: "route";
-      /** A route spread is two facing pages showing one map. */
-      half: "left" | "right";
+      /**
+       * A route spread is two facing pages showing one map — unless the
+       * journey is compact enough that one trim page fits it better than a
+       * forced 2:1 spread does, in which case it is `"full"`: one page,
+       * unpaired, printing the whole map itself (B1000).
+       */
+      half: "left" | "right" | "full";
       view: RouteView;
       points: MappedPoint[];
       caption: string;
@@ -998,7 +1003,7 @@ export function chaptersOf(days: BookDay[]): Chapter[] {
 type Draft =
   | { kind: "title"; align: "recto" }
   | { kind: "intro" }
-  | { kind: "route"; half: "left" | "right"; align?: "verso" }
+  | { kind: "route"; half: "left" | "right" | "full"; align?: "verso" }
   | { kind: "chapter"; chapter: Chapter; index: number; of: number; align: "recto" }
   | {
       kind: "day";
@@ -1262,12 +1267,17 @@ function draftsForChapter(
   return drafts;
 }
 
-function draftsForFront(source: BookSource, options: BookOptions): Draft[] {
+function draftsForFront(source: BookSource, options: BookOptions, spec: BookSpec): Draft[] {
   const drafts: Draft[] = [{ kind: "title", align: "recto" }];
   if (source.trip.intro.trim() && options.includeText) drafts.push({ kind: "intro" });
   if (options.includeMap && source.route.length >= 2) {
-    drafts.push({ kind: "route", half: "left", align: "verso" });
-    drafts.push({ kind: "route", half: "right" });
+    const pageAspect = spec.size.trimWidthMm / spec.size.trimHeightMm;
+    if (routeFitsOnePage(source.route, pageAspect)) {
+      drafts.push({ kind: "route", half: "full" });
+    } else {
+      drafts.push({ kind: "route", half: "left", align: "verso" });
+      drafts.push({ kind: "route", half: "right" });
+    }
   }
   return drafts;
 }
@@ -1454,7 +1464,10 @@ function materialise(
       // without coordinates would still reach the page as `NaN` even with the
       // bounding box fixed.
       const plottable = source.route.filter(isPlottable);
-      const view = routeView(plottable);
+      const view =
+        draft.half === "full"
+          ? routeView(plottable, spec.size.trimWidthMm / spec.size.trimHeightMm, false)
+          : routeView(plottable);
       const points = plottable.map((p) => ({
         location: p.location,
         country: p.country,
@@ -1913,7 +1926,35 @@ function centreAwayFromFold(xs: number[], x: number, width: number): number {
   return best;
 }
 
-export function routeView(route: RoutePoint[]): RouteView {
+/**
+ * Whether a route's own padded shape sits closer, in log space, to one trim
+ * page's own aspect than to a two-page spread's (`pageAspect * 2`) — B1000.
+ *
+ * A compact, north-south journey cannot fill a forced 2:1 spread: the frame
+ * has to widen sideways to reach it, and the route ends up occupying a
+ * fraction of the spread's width however it is placed. A single page whose
+ * own aspect is already close to the route's needs far less padding to fill.
+ *
+ * Duplicates `routeView`'s padding arithmetic rather than sharing it — the
+ * two need the same numbers, not the same control flow, and `routeView` is
+ * deliberately kept free of `BookSpec` (see its own comment).
+ */
+export function routeFitsOnePage(route: RoutePoint[], pageAspect: number): boolean {
+  const plottable = route.filter(isPlottable);
+  if (plottable.length === 0) return false;
+  const points = plottable.map((p) => projectEquirectangular(p.lat, p.lng));
+  const minX = Math.min(...points.map((p) => p.x));
+  const maxX = Math.max(...points.map((p) => p.x));
+  const minY = Math.min(...points.map((p) => p.y));
+  const maxY = Math.max(...points.map((p) => p.y));
+  const padX = Math.max((maxX - minX) * 0.15, 1.2);
+  const padY = Math.max((maxY - minY) * 0.15, 0.8);
+  const raw = (maxX - minX + padX * 2) / (maxY - minY + padY * 2);
+  const spreadAspect = pageAspect * 2;
+  return Math.abs(Math.log(raw / pageAspect)) < Math.abs(Math.log(raw / spreadAspect));
+}
+
+export function routeView(route: RoutePoint[], targetAspect = 2, hasFold = true): RouteView {
   const plottable = route.filter(isPlottable);
   if (plottable.length === 0) {
     return { x: 0, y: 0, width: MAP_SPACE.width, height: MAP_SPACE.height };
@@ -1954,20 +1995,24 @@ export function routeView(route: RoutePoint[]): RouteView {
   let width = maxX - minX + padX * 2;
   let height = maxY - minY + padY * 2;
 
-  // Force 2:1 — a spread is twice as wide as it is tall, near enough.
-  if (width / height > 2) {
-    const wanted = width / 2;
+  // Force the target aspect — 2:1 for a spread, or one page's own aspect
+  // when `routeFitsOnePage` chose a single page instead (B1000).
+  if (width / height > targetAspect) {
+    const wanted = width / targetAspect;
     y -= (wanted - height) / 2;
     height = wanted;
   } else {
-    const wanted = height * 2;
+    const wanted = height * targetAspect;
     x -= (wanted - width) / 2;
     width = wanted;
   }
 
   // Slide the frame so the fold — the spine `mapProjector` puts at this
   // frame's horizontal midpoint — lands off the route rather than on it.
-  x = centreAwayFromFold(points.map((p) => p.x), x, width) - width / 2;
+  // A single unpaired page (B1000) has no fold to dodge.
+  if (hasFold) {
+    x = centreAwayFromFold(points.map((p) => p.x), x, width) - width / 2;
+  }
 
   return { x, y, width, height };
 }
@@ -1986,18 +2031,21 @@ export function routeView(route: RoutePoint[]): RouteView {
  * Returns trim-relative millimetres, y upwards, like every other rectangle in
  * this file.
  */
-export function mapProjector(view: RouteView, spec: BookSpec, half: "left" | "right") {
-  const spreadWidth = spec.size.trimWidthMm * 2;
+export function mapProjector(view: RouteView, spec: BookSpec, half: "left" | "right" | "full") {
+  // A `"full"` page (B1000) is not half of anything — it is the whole spread
+  // width in itself, unpaired, so `spreadWidth` here is one trim page's own
+  // width rather than two.
+  const spreadWidth = half === "full" ? spec.size.trimWidthMm : spec.size.trimWidthMm * 2;
   const spreadHeight = spec.size.trimHeightMm;
   const scale = Math.max(spreadWidth / view.width, spreadHeight / view.height);
   const cx = view.x + view.width / 2;
   const cy = view.y + view.height / 2;
-  const offsetX = half === "left" ? 0 : spec.size.trimWidthMm;
+  const offsetX = half === "right" ? spec.size.trimWidthMm : 0;
 
   /** The slice of map space this page shows, for culling coastlines. */
   const halfWidthMap = spec.size.trimWidthMm / scale;
   const window = {
-    x: half === "left" ? cx - halfWidthMap : cx,
+    x: half === "right" ? cx : cx - halfWidthMap,
     y: cy - spreadHeight / 2 / scale,
     width: halfWidthMap,
     height: spreadHeight / scale,
@@ -2013,9 +2061,16 @@ export function mapProjector(view: RouteView, spec: BookSpec, half: "left" | "ri
   };
 }
 
-/** The part of a page a route map is allowed to fill: bleed on the outer
- * edges, hard up against the spine on the inner one. */
-export function mapClipMm(spec: BookSpec, half: "left" | "right"): RectMm {
+/**
+ * The part of a page a route map is allowed to fill: bleed on the outer
+ * edges, hard up against the spine on the inner one.
+ *
+ * A `"full"` page (B1000) is not paired with a facing half, so there is no
+ * spine to hold back from — bleed runs on all four edges, like any other
+ * standalone page.
+ */
+export function mapClipMm(spec: BookSpec, half: "left" | "right" | "full"): RectMm {
+  if (half === "full") return bleedBoxMm(spec);
   return {
     x: half === "left" ? -spec.bleedMm : 0,
     y: -spec.bleedMm,
@@ -2054,6 +2109,17 @@ export type RouteLabelPlacement = { location: string; x: number; y: number; anch
  * `preview.ts`'s `routeSvg` each called this rule out by hand until B552;
  * `mapProjector` and `graticuleStep` were already shared and this one was not,
  * which is exactly the shape B519 and B518 both found drifting.
+ *
+ * `ownerEdges`, when given, decides *whether a stop belongs to this page* —
+ * normally the page's own trim, so every stop belongs to exactly one of the
+ * two facing pages. Without it that question was asked with `leftEdge`/
+ * `rightEdge` themselves, which are the *safe* content box and stop short of
+ * the gutter on the spine side — so a stop whose dot fell inside the gutter
+ * band (B518's `FOLD_BAND_FRACTION`, wider than the gap between some stops)
+ * belonged to neither page's content box and was never labelled at all
+ * (B1000). The label itself still only ever anchors inside `leftEdge`/
+ * `rightEdge`, via the existing clamp below — this only decides which page
+ * claims the stop, not where its name is allowed to sit.
  */
 export function routeLabelPlacements(
   points: readonly ProjectedStop[],
@@ -2062,16 +2128,27 @@ export function routeLabelPlacements(
   gap: number,
   minGap: number,
   widthOf: (location: string) => number,
+  ownerEdges?: { left: number; right: number },
 ): RouteLabelPlacement[] {
+  const ownerLeft = ownerEdges?.left ?? leftEdge;
+  const ownerRight = ownerEdges?.right ?? rightEdge;
   const out: RouteLabelPlacement[] = [];
   let lastLabel: { x: number; y: number } | null = null;
   points.forEach((p, i) => {
-    if (p.x < leftEdge || p.x > rightEdge) return;
+    if (p.x < ownerLeft || p.x > ownerRight) return;
     const far = !lastLabel || Math.hypot(p.x - lastLabel.x, p.y - lastLabel.y) > minGap;
     if (!far && i !== points.length - 1) return;
     const width = widthOf(p.location);
-    const right = p.x + gap;
-    const left = p.x - gap - width;
+    // A stop `ownerEdges` claims from inside the gutter band sits outside
+    // `leftEdge`/`rightEdge` itself — the "left of the dot" branch below
+    // otherwise assumed the dot was already in the safe box, so a label
+    // placed just left of a dot that is not would still poke past
+    // `rightEdge`. Doing the left/right arithmetic from the clamped position
+    // keeps every label inside the safe box regardless of where its own dot
+    // actually is (B1000).
+    const px = Math.min(Math.max(p.x, leftEdge), rightEdge);
+    const right = px + gap;
+    const left = px - gap - width;
     const anchorX =
       right + width <= rightEdge
         ? right
@@ -2195,7 +2272,7 @@ export function planBook(
   // excluded day is a place the trip did not print, not a place it did not go.
   const printedDays = source.days.filter((d) => !options.days[d.date]?.excluded);
   const chapters = chaptersOf(printedDays);
-  const front = draftsForFront(source, options);
+  const front = draftsForFront(source, options, spec);
   const back = draftsForBack(source, options);
   const blocks = chapters.map((ch, i) => draftsForChapter(ch, i + 1, chapters.length, options, spec));
 

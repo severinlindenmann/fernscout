@@ -423,7 +423,8 @@ function drawRoutePage(
   spec: BookSpec,
   view: RouteView,
   points: MappedPoint[],
-  half: "left" | "right",
+  half: "left" | "right" | "full",
+  side: PageSide,
   caption: string,
 ) {
   const type = typeScale(spec);
@@ -527,9 +528,14 @@ function drawRoutePage(
   // name and which side of the dot it goes on — is `routeLabelPlacements` in
   // plan.ts, shared with the preview since B552 so the two cannot drift the
   // way B519 found them.
-  const box = contentBoxMm(spec, half);
+  const box = contentBoxMm(spec, side);
   const leftEdge = frame.x(box.x);
   const rightEdge = frame.x(box.x + box.width);
+  // Which stop belongs to *this* page — its own trim, gutter included, so a
+  // stop whose dot falls in the gutter band still belongs to exactly one
+  // page rather than to neither (B1000). The label itself still only ever
+  // anchors inside `leftEdge`/`rightEdge` above.
+  const ownerEdges = { left: frame.x(0), right: frame.x(spec.size.trimWidthMm) };
   for (const placement of routeLabelPlacements(
     plotted,
     leftEdge,
@@ -537,6 +543,7 @@ function drawRoutePage(
     mm(2.2),
     mm(9),
     (location) => measure(location, type.caption, "bold"),
+    ownerEdges,
   )) {
     PdfBuilder.drawText(
       page,
@@ -551,7 +558,9 @@ function drawRoutePage(
 
   PdfBuilder.popClip(page);
 
-  if (half === "right") {
+  // The caption prints once — on the right page of a spread, or on the one
+  // page a compact route got instead (B1000).
+  if (half === "right" || half === "full") {
     textRight(
       page,
       frame,
@@ -653,7 +662,7 @@ function drawPage(
     }
 
     case "route":
-      drawRoutePage(page, frame, spec, plan.view, plan.points, plan.half, plan.caption);
+      drawRoutePage(page, frame, spec, plan.view, plan.points, plan.half, plan.side, plan.caption);
       break;
 
     case "chapter": {

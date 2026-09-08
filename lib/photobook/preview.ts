@@ -16,7 +16,7 @@
  */
 
 import path from "node:path";
-import { contentBoxMm, mm, type BookSpec, type RectMm } from "./spec.ts";
+import { contentBoxMm, mm, type BookSpec, type PageSide, type RectMm } from "./spec.ts";
 import { measure } from "./text.ts";
 import {
   mapClipMm,
@@ -176,7 +176,8 @@ function routeSvg(
   spec: BookSpec,
   view: RouteView,
   points: MappedPoint[],
-  half: "left" | "right",
+  half: "left" | "right" | "full",
+  side: PageSide,
 ): string {
   const map = mapProjector(view, spec, half);
   const width = spec.size.trimWidthMm + spec.bleedMm * 2;
@@ -248,9 +249,13 @@ function routeSvg(
    * kerning.
    */
   const type = typeScale(spec);
-  const box = contentBoxMm(spec, half);
+  const box = contentBoxMm(spec, side);
   const leftEdge = box.x + spec.bleedMm;
   const rightEdge = box.x + box.width + spec.bleedMm;
+  // See render.ts's `drawRoutePage`: a stop belongs to this page by its own
+  // trim, gutter included, so one in the gutter band still belongs to
+  // exactly one page rather than to neither (B1000).
+  const ownerEdges = { left: spec.bleedMm, right: spec.size.trimWidthMm + spec.bleedMm };
   const captionMm = type.caption / mm(1);
   const labels = routeLabelPlacements(
     projected,
@@ -259,6 +264,7 @@ function routeSvg(
     2.2,
     9,
     (location) => measure(location, type.caption, "bold") / mm(1),
+    ownerEdges,
   )
     .map(
       (p) =>
@@ -410,8 +416,8 @@ function pageHtml(
       break;
 
     case "route":
-      parts.push(routeSvg(spec, page.view, page.points, page.half));
-      if (page.half === "right") {
+      parts.push(routeSvg(spec, page.view, page.points, page.half, page.side));
+      if (page.half === "right" || page.half === "full") {
         parts.push(`<div class="mapcap">${escape(page.caption)}</div>`);
       }
       break;
