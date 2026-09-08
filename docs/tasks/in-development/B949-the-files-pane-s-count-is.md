@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: helper, ui, a11y
 found: "2026-09-08T10:46:43Z"
+started: "2026-09-08T10:57:15Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T10:57:15Z"
 ---
 
 # B949 — The files pane's count is announced by a region that does not exist until it changes
