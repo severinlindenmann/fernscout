@@ -1506,6 +1506,7 @@
   "agent.inboxOff": "This server has no model switched on, so a statement it does not recognise cannot be read here. An importer for your bank would make it free for everybody — importers/costs/ is open source for exactly that.",
   "agent.inboxMappingTitle": "Which column is which",
   "agent.inboxMappingHint": "Change anything that is wrong. Nothing is read and nothing is written until you press below.",
+  "agent.inboxMappingNoRates": "Exchange rates worked out from what this actually cost are only offered for statements read by a dedicated importer ({banks}). This one was read from its own columns, so none are offered here.",
   "agent.inboxColDate": "The day it happened",
   "agent.inboxColAmount": "What it cost",
   "agent.inboxColDescription": "What the merchant called itself",

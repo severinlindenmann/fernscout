@@ -54,11 +54,18 @@ export default function AgentInbox({
   items,
   trips,
   helper,
+  dedicatedImporters,
 }: {
   username: string;
   items: InboxItem[];
   trips: WizardTrip[];
   helper: { enabled: boolean; consented: boolean; credits: number };
+  /** Banks with their own parser (`importers/costs/`), for the sentence a
+   * mapped statement owes the person reading it — B760: a dedicated
+   * importer's rows may carry `charged`, the pair `readStatement` works
+   * exchange rates from; a mapping never does, because it only ever sees one
+   * amount column. */
+  dedicatedImporters: string[];
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState<string | null>(null);
@@ -396,6 +403,7 @@ export default function AgentInbox({
                       mapping={read.mapping}
                       notes={read.notes}
                       preview={read.preview}
+                      dedicatedImporters={dedicatedImporters}
                       onChange={(mapping) => setRead({ ...read, mapping })}
                     />
                   )}
@@ -508,18 +516,25 @@ function TripPicker({
 }
 
 /** The mapping, editable. Every column is a picker over the file's own header
- *  row, so a person cannot name a column that is not there. */
-function Mapping({
+ *  row, so a person cannot name a column that is not there.
+ *
+ *  Exported for `test/agent-inbox-rates-note.test.tsx` — B760: this is the
+ *  only screen a mapped statement reaches, and the only place to say that its
+ *  exchange rates are not on offer, because a mapping never carries the
+ *  `charged` pair a dedicated importer's own parser can. */
+export function Mapping({
   header,
   mapping,
   notes,
   preview,
+  dedicatedImporters,
   onChange,
 }: {
   header: string[];
   mapping: ColumnMapping;
   notes: string[];
   preview: Row[];
+  dedicatedImporters: string[];
   onChange: (mapping: ColumnMapping) => void;
 }) {
   const { t } = useI18n();
@@ -598,6 +613,14 @@ function Mapping({
         />
         {t("agent.inboxOutgoingPositive")}
       </label>
+
+      {dedicatedImporters.length > 0 && (
+        <p className="text-sm leading-6 text-navy-700">
+          {t("agent.inboxMappingNoRates", {
+            banks: dedicatedImporters.join(", "),
+          })}
+        </p>
+      )}
 
       {notes.length > 0 && (
         <div>

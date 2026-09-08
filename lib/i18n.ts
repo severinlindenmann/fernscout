@@ -246,6 +246,7 @@ export type TranslationKey =
   | "agent.inboxLink"
   | "agent.inboxLink.one"
   | "agent.inboxMappingHint"
+  | "agent.inboxMappingNoRates"
   | "agent.inboxMappingNotes"
   | "agent.inboxMappingTitle"
   | "agent.inboxNothingToDo"
