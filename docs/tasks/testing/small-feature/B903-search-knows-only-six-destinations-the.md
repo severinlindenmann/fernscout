@@ -7,8 +7,7 @@ complexity: medium
 area: search
 found: "2026-09-08T00:00:00Z"
 started: "2026-09-08T04:54:50Z"
-session: 6c81e17b-6acf-4c0f-86ef-49124c9b2458
-claimed: "2026-09-08T04:54:50Z"
+merged: "2026-09-08T05:17:36Z"
 ---
 
 # B903 — Search knows only six destinations — the sign-in door, the helper, the inbox, costs, weather and the imprint are unfindable
