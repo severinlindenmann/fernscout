@@ -49,9 +49,9 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (138)
+## backlog (139)
 
-### issue (44)
+### issue (45)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -81,6 +81,7 @@ Do not edit them by hand; run the script.
 | [B971](backlog/issue/B971-saying-a-draft-looks-good-re.md) | Saying a draft looks good re-offers the same card instead of the next one | ISSUE | medium | low |
 | [B977](backlog/issue/B977-the-send-confirmation-explains-what-a.md) | The send confirmation explains what a credit is worth, on a day page nobody asked about pricing on | ISSUE | medium | low |
 | [B993](backlog/issue/B993-the-agent-guide-is-over-its.md) | The agent guide is over its own byte ceiling on main | ISSUE | medium | low |
+| [B998](backlog/issue/B998-the-agent-guide-crossed-its-ceiling.md) | The agent guide crossed its ceiling and main went red for everybody | ISSUE | medium | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B750](backlog/issue/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low |
