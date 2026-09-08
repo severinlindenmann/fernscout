@@ -115,9 +115,29 @@ export async function POST(
     return Response.json({ error: "model_failed" }, { status: 502 });
   }
 
+  /**
+   * The title and the prose, and not the warnings — B945.
+   *
+   * `warnings` is a pressure valve pointed at the *model*: given somewhere to
+   * say what it deliberately left out, leaving it out becomes an acceptable
+   * answer instead of a failure, which is what stops a thin note being rounded
+   * up into a paragraph. `SYSTEM_PROMPT` explains it at length.
+   *
+   * It was never something to hand on, and handing it on made it a claim.
+   * Driven live, notes saying *"rained most of the afternoon so we ducked into
+   * the maritime museum"* came back with prose containing that sentence and a
+   * warning saying the weather had been *omitted from prose*. The prose was
+   * right — she said it, so writing it is right — and the warning described
+   * something that had not happened, to somebody who had not asked.
+   *
+   * Nothing renders it, so nobody saw it until a tester read the JSON. A field
+   * nothing shows, saying something untrue, is worse than either showing it or
+   * dropping it, and the valve only ever needed one end.
+   */
+  const { warnings: _valve, ...draft } = written;
   const answer = {
     ok: true,
-    draft: written,
+    draft,
     spent: WRITE_DAY_CREDITS,
     provider: HELPER_PROVIDER,
   };
