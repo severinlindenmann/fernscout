@@ -1509,6 +1509,7 @@
   "agent.inboxMappingTitle": "Welche Spalte ist welche",
   "agent.inboxMappingHint": "Ändere, was falsch ist. Gelesen und geschrieben wird erst, wenn du unten drückst.",
   "agent.inboxNotTheHeader": "Das ist nicht die Kopfzeile",
+  "agent.inboxMappingNoRates": "Wechselkurse aus dem, was es dich tatsächlich gekostet hat, gibt es nur bei Auszügen, die von einem eigenen Importer gelesen werden ({banks}). Dieser wurde aus seinen eigenen Spalten gelesen, deshalb gibt es hier keine.",
   "agent.inboxColDate": "Der Tag",
   "agent.inboxColAmount": "Der Betrag",
   "agent.inboxColDescription": "Wie sich der Händler nennt",

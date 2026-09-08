@@ -1509,6 +1509,7 @@
   "agent.inboxMappingTitle": "Which column is which",
   "agent.inboxMappingHint": "Change anything that is wrong. Nothing is read and nothing is written until you press below.",
   "agent.inboxNotTheHeader": "That is not the header row",
+  "agent.inboxMappingNoRates": "Exchange rates worked out from what this actually cost are only offered for statements read by a dedicated importer ({banks}). This one was read from its own columns, so none are offered here.",
   "agent.inboxColDate": "The day it happened",
   "agent.inboxColAmount": "What it cost",
   "agent.inboxColDescription": "What the merchant called itself",

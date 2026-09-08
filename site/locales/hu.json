@@ -1509,6 +1509,7 @@
   "agent.inboxMappingTitle": "Melyik oszlop micsoda",
   "agent.inboxMappingHint": "Írd át, ami rossz. Beolvasás és írás csak akkor történik, ha lent megnyomod.",
   "agent.inboxNotTheHeader": "Ez nem a fejléc sor",
+  "agent.inboxMappingNoRates": "A ténylegesen fizetett összegből számolt árfolyamokat csak azoknál a kivonatoknál kínáljuk, amelyeket saját importáló olvas be ({banks}). Ezt a saját oszlopaiból olvastuk be, ezért itt nincs árfolyam.",
   "agent.inboxColDate": "A nap",
   "agent.inboxColAmount": "Az összeg",
   "agent.inboxColDescription": "Ahogy a kereskedő nevezi magát",

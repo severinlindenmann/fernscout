@@ -58,6 +58,7 @@ function render(body: Record<string, unknown>) {
           username="alex"
           items={[item]}
           trips={[{ id: "trip-1", title: "A trip", start: "2026-01-01", end: "2026-01-10" }]}
+          dedicatedImporters={[]}
           helper={{ enabled: true, consented: true, credits: 5 }}
         />
       </LocaleProvider>,
