@@ -7,8 +7,7 @@ complexity: medium
 area: helper, ui
 found: "2026-09-08T10:45:27Z"
 started: "2026-09-08T12:03:35Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T12:03:35Z"
+merged: "2026-09-08T12:07:44Z"
 ---
 
 # B947 — The room reserves a quarter of the screen for an empty files pane and never says which day it is previewing
@@ -60,3 +59,21 @@ it.
 
 At 1440px on a journal with an empty inbox, the conversation is wider than it
 is today, and the preview names what it is showing. At 390px nothing regresses.
+
+## What was done, and what was left
+
+Points **1** and **4** — the deterministic halves.
+
+- The files column opens only when the inbox or the trip has something in it.
+  Not hidden: the toggle is in the header either way and one press brings it
+  back. What changes is which state somebody with nothing to attach starts in.
+- Hiding a pane is one control drawn one way, at every width. It was a text
+  link at `lg` and a pill button below it.
+
+**2 and 3 are left, deliberately, and are the same question.** The preview
+never says which day it is showing, and nothing in the room says which trip is
+being talked about — both are "the room has no persistent sense of what is
+under discussion", and bolting a picker onto the preview would answer the
+symptom. It also runs into the user's own rule that everything is done by
+talking, so it wants designing rather than patching. This ticket stays open for
+it.
