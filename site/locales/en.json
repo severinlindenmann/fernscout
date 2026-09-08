@@ -1424,6 +1424,7 @@
   "agent.speechHold": "Hold to talk · 1 credit per {minutes} minutes",
   "agent.speechRecording": "Listening… {seconds}s",
   "agent.speechWorking": "Turning that into words…",
+  "agent.speechHowToggle": "Speak instead of typing. Press to start, press again to stop.",
   "agent.speechHow": "Speak instead of typing. Press to start, press again to stop, or hold to talk.",
   "agent.speechStarted": "Recording started.",
   "agent.speechStopped": "Recording stopped.",

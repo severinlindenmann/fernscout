@@ -275,7 +275,19 @@ export default function SearchBox({
       <label htmlFor="search-input" className="sr-only">
         {t("search.title")}
       </label>
+      {/* Two boxes, and the nesting carries the fix — B1004.
+          The **inner** one is the field, and it holds only the things that may
+          be centred against it: the magnifying glass, the input, and the
+          microphone button. `RecordButton` also renders an elapsed line, an
+          error and — on the first press — a whole consent panel; mounted in
+          here they grew the box, and the glass, centred with `top-1/2`, slid
+          down into the middle of it.
+          The **outer** one is where those go, in ordinary flow underneath.
+          The button is pinned to it with a fixed offset rather than `top-1/2`
+          for the same reason: an offset from the top does not move when
+          something appears below. */}
       <div className="relative">
+        <div className="relative">
         <SearchIcon
           className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-navy-500"
           strokeWidth={2.2}
@@ -292,29 +304,6 @@ export default function SearchBox({
             (canSpeak && !speech) || speech ? "pr-12" : "pr-4"
           }`}
         />
-        {speech && username && (
-          <RecordButton
-            username={username}
-            consented={speech.consented}
-            provider={speech.provider}
-            compact
-            // 44px of target, no frame: the field is the frame, and a second
-            // ring inside it reads as a control bolted on. `right-1.5` rather
-            // than `right-1` so the circle is inset from the field's own
-            // rounded edge by the same amount the search icon is on the left.
-            compactClassName="absolute right-1.5 top-1/2 h-11 w-11 -translate-y-1/2 hover:bg-cream-100"
-            icon={<AgentMicIcon className="h-5 w-5" />}
-            // The page's own language, and no question about it — B986.
-            language={locale}
-            disabled={agent === "busy" || outOfCredits}
-            onText={(said) => {
-              // Into the box *and* away, with no second press: what was said
-              // out loud was the question, not a draft of it.
-              setQuery(said);
-              void askAgent(said);
-            }}
-          />
-        )}
         {canSpeak && !speech && (
           <button
             type="button"
@@ -333,6 +322,34 @@ export default function SearchBox({
               <Mic className="h-4 w-4" strokeWidth={2.2} />
             )}
           </button>
+        )}
+        </div>
+        {speech && username && (
+          <RecordButton
+            username={username}
+            consented={speech.consented}
+            provider={speech.provider}
+            compact
+            // 44px of target, no frame: the field is the frame, and a second
+            // ring inside it reads as a control bolted on. `right-1.5` rather
+            // than `right-1` so the circle is inset from the field's own
+            // rounded edge by the same amount the search icon is on the left.
+            compactClassName="absolute right-1.5 top-px h-11 w-11 hover:bg-cream-100"
+            // A toggle, never a hold: press to start, press to stop. Moving
+            // the pointer off a 44px target is what a person does when they
+            // start speaking, and it was ending the recording.
+            hold={false}
+            icon={<AgentMicIcon className="h-5 w-5" />}
+            // The page's own language, and no question about it — B986.
+            language={locale}
+            disabled={agent === "busy" || outOfCredits}
+            onText={(said) => {
+              // Into the box *and* away, with no second press: what was said
+              // out loud was the question, not a draft of it.
+              setQuery(said);
+              void askAgent(said);
+            }}
+          />
         )}
       </div>
 

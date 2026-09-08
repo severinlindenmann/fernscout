@@ -1424,6 +1424,7 @@
   "agent.speechHold": "Tartsd nyomva a beszédhez · 1 kredit {minutes} percenként",
   "agent.speechRecording": "Hallgatlak… {seconds} mp",
   "agent.speechWorking": "Szavakká alakítja…",
+  "agent.speechHowToggle": "Beszélj gépelés helyett. Nyomd meg az indításhoz, és nyomd meg újra a leállításhoz.",
   "agent.speechHow": "Beszélj gépelés helyett. Nyomd meg az indításhoz, nyomd meg újra a leállításhoz, vagy tartsd nyomva a beszédhez.",
   "agent.speechStarted": "A felvétel elindult.",
   "agent.speechStopped": "A felvétel leállt.",
