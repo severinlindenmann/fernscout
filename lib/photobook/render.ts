@@ -798,6 +798,10 @@ export function renderVolume(
  * 0 and absent, which is what makes the two cases one code path rather than
  * a branch.
  */
+/** Where a rotated line's ink sits relative to its baseline, as a fraction of
+ * the font size — see the spine title in `renderCover`. Measured, not derived. */
+const SPINE_INK_CENTRE_EM = 0.3;
+
 export function renderCover(
   volume: BookVolume,
   spec: BookSpec,
@@ -901,11 +905,23 @@ export function renderCover(
 
   // Spine, but only when there is enough of it to read. Below about 6 mm the
   // binding tolerance is wider than the type, and text creeps onto the covers.
+  //
+  // Centring rotated type on the spine is not "add half the size to the
+  // baseline", which is what this did and which put a 6 mm hardcover title
+  // 2.2 mm from one hinge and 0.6 mm from the other — crooked on the finished
+  // book, and the sort of thing only a measurement finds.
+  //
+  // Rotated text grows away from its baseline on one side only, so the ink
+  // band's centre sits a fraction of the size off it. For Helvetica that is
+  // about 0.3 em — theory says (cap 0.717 - descender 0.207) / 2 = 0.255, and
+  // the extra comes from the digits and the middot in a spine title. It is
+  // measured rather than derived: at 226-232 mm the title now lands
+  // 227.9-230.1, which is 1.9 mm clear of each hinge.
   if (spineW >= 6) {
     PdfBuilder.drawTextRotated(
       page,
       toWinAnsi(cover.spineText),
-      frame.x(spineX0 + spineW / 2 + type.caption / mm(1) / 2),
+      frame.x(spineX0 + spineW / 2 + (type.caption / mm(1)) * SPINE_INK_CENTRE_EM),
       frame.y(panelH / 2 - measure(cover.spineText, type.caption) / mm(1) / 2),
       type.caption,
       90,
