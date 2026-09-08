@@ -49,9 +49,9 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (137)
+## backlog (136)
 
-### issue (35)
+### issue (34)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -69,7 +69,6 @@ Do not edit them by hand; run the script.
 | [B883](backlog/issue/B883-recordprint-has-no-callers-so-npm.md) | recordPrint has no callers, so npm run verify is red on main | ISSUE | medium | low |
 | [B934](backlog/issue/B934-an-invite-link-has-to-be.md) | An invite link has to be selected by hand on a phone | ISSUE | medium | low |
 | [B946](backlog/issue/B946-the-owner-s-session-stops-being.md) | The owner's session stops being recognised partway through a sitting | ISSUE | medium | medium |
-| [B952](backlog/issue/B952-half-of-a-two-part-request.md) | Half of a two-part request is answered and the other half is dropped without a word | ISSUE | medium | medium |
 | [B977](backlog/issue/B977-the-send-confirmation-explains-what-a.md) | The send confirmation explains what a credit is worth, on a day page nobody asked about pricing on | ISSUE | medium | low |
 | [B1009](backlog/issue/B1009-the-ask-box-on-agent-is.md) | The ask box on /agent is now the only underlined way into the room, beside a row that is not | ISSUE | low | low |
 | [B1026](backlog/issue/B1026-a-malformed-auth-request-body-answers.md) | A malformed auth/request body answers the same 202 as an unrecognised address | ISSUE | low | low |
@@ -227,7 +226,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (10)
+## in-development (11)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -240,6 +239,7 @@ _Nothing here._
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 | [B895](in-development/B895-a-run-on-day-does-not.md) | A run-on day does not raise the photobook price, and a test says it must | ISSUE | medium | low | `bdd0270d` |
 | [B907](in-development/B907-most-of-what-a-trip-says.md) | Most of what a trip says about itself can be written once and never corrected | ISSUE | medium | low | `bdd0270d` |
+| [B952](in-development/B952-half-of-a-two-part-request.md) | Half of a two-part request is answered and the other half is dropped without a word | ISSUE | medium | medium | `bdd0270d` |
 | [B971](in-development/B971-saying-a-draft-looks-good-re.md) | Saying a draft looks good re-offers the same card instead of the next one | ISSUE | medium | low | `bdd0270d` |
 
 ## testing (220)

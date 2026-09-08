@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: helper, model
 found: "2026-09-08T11:09:17Z"
+started: "2026-09-08T20:12:23Z"
+session: bdd0270d-3797-42c9-8687-06abecadbc63
+claimed: "2026-09-08T20:12:23Z"
 ---
 
 # B952 — Half of a two-part request is answered and the other half is dropped without a word
