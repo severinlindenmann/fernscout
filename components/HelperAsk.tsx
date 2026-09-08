@@ -95,6 +95,35 @@ function isProposal(block: Block): boolean {
 }
 
 /**
+ * The failures a person can actually reach from here, in words — B919.
+ *
+ * `agent.failed` is `"That did not work: {error}"` and `{error}` was the API's
+ * own identifier, so somebody who pressed a button was read
+ * *"That did not work: incomplete_day"*. These five are what the conversation
+ * can hit by ordinary use; anything else keeps the code, because a made-up
+ * sentence about a failure nobody has seen would be worse than an identifier,
+ * and is logged so it can be named later.
+ */
+const NAMED_FAILURES = [
+  "incomplete_day",
+  "consent_required",
+  "no_credits",
+  "already_published",
+  "no_day_on_date",
+] as const;
+
+function failureSentence(
+  t: (key: TranslationKey, vars?: Record<string, string>) => string,
+  message: string,
+): string {
+  if ((NAMED_FAILURES as readonly string[]).includes(message)) {
+    return t(`agent.error.${message}` as TranslationKey);
+  }
+  console.warn(`helper: a failure with no sentence of its own — "${message}"`);
+  return t("agent.failed", { error: message });
+}
+
+/**
  * The day a turn is about, if it is about one — B901.
  *
  * The preview pane shows what the conversation is currently talking about,
@@ -236,7 +265,7 @@ export default function HelperAsk({
   function failed(thrown: unknown) {
     const message = (thrown as Error).message;
     if (message === "session_lapsed") setLapsed(true);
-    else setError(t("agent.failed", { error: message }));
+    else setError(failureSentence(t, message));
   }
 
   /** Draw one more exchange and empty the field, because the next sentence is
@@ -394,7 +423,19 @@ export default function HelperAsk({
         { said: "", blocks: [...previewOf(answer), { shape: "say", text: proposal.done }] },
       ]);
     } catch (thrown) {
-      failed(thrown);
+      /**
+       * The card that was pressed says so, and this does not — B916.
+       *
+       * A refusal appended under the log is disconnected from the fields that
+       * caused it, and it used to arrive *after* the card had already claimed
+       * the day was started. So the failure is thrown back to `ProposalView`,
+       * which keeps the fields, re-enables the button and puts the sentence
+       * beside them. The one exception is a lapsed session, which has a way
+       * out of its own and belongs to the whole conversation rather than to
+       * this proposal.
+       */
+      if ((thrown as Error).message === "session_lapsed") setLapsed(true);
+      throw thrown;
     } finally {
       setBusy(false);
     }
@@ -477,8 +518,19 @@ export default function HelperAsk({
                 <BlockView
                   key={n}
                   block={block}
+                  /*
+                    The **first** proposal of the turn, not every one of them
+                    — B918. One ref shared by all of them is assigned in DOM
+                    order, so it ended up on whichever mounted last: a turn
+                    carrying `start_day` then `draft_words` focused the
+                    second, and the first — which has to be pressed first —
+                    sat before the focus point, where tabbing forward never
+                    reaches it.
+                  */
                   focusRef={
-                    index === turns.length - 1 && isProposal(block) ? proposal : undefined
+                    index === turns.length - 1 && turn.blocks.findIndex(isProposal) === n
+                      ? proposal
+                      : undefined
                   }
                   busy={busy}
                   onChoose={(label) => {
@@ -770,6 +822,23 @@ function ProposalView({
   // pressed or set aside must stop being pressable, or the turn above it in
   // the thread becomes a button somebody can hit twice.
   const [settled, setSettled] = useState<"" | "accepted" | "left">("");
+  /**
+   * This card's own press, and this card's own refusal — B916.
+   *
+   * `setSettled("accepted")` used to fire before the fetch resolved, so the
+   * card swapped irreversibly to "The day is started" and *then* the write
+   * failed. "It was accepted" and "it is there" are not the same claim, and a
+   * screen-reader user who has heard the first has no reason to keep
+   * listening. Nothing settles now until the route has answered, and a
+   * failure keeps the fields, re-enables the button and says what went wrong
+   * beside them.
+   */
+  const [pressing, setPressing] = useState(false);
+  const [failure, setFailure] = useState("");
+  const alarm = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (failure !== "") alarm.current?.focus();
+  }, [failure]);
   const id = `${proposal.tool}-${useId()}`;
 
   if (settled !== "") {
@@ -842,13 +911,30 @@ function ProposalView({
         </div>
       )}
 
+      {failure !== "" && (
+        <p
+          ref={alarm}
+          tabIndex={-1}
+          role="alert"
+          className="mt-3 text-sm leading-6 text-coral-700 focus:outline-none"
+        >
+          {failure}
+        </p>
+      )}
+
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <BusyButton
-          busy={busy}
+          busy={busy || pressing}
           type="button"
           onClick={() => {
-            setSettled("accepted");
-            void onAccept(proposal, values);
+            setPressing(true);
+            setFailure("");
+            void onAccept(proposal, values)
+              .then(() => setSettled("accepted"))
+              .catch((thrown: unknown) =>
+                setFailure(failureSentence(t, (thrown as Error).message)),
+              )
+              .finally(() => setPressing(false));
           }}
           className="min-h-11 rounded-full bg-navy-800 px-5 text-base font-semibold text-cream-50 transition-colors hover:bg-navy-900 disabled:opacity-50"
           busyLabel={t("agent.chat.writing")}

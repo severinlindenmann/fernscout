@@ -456,3 +456,145 @@ describe("what a press actually posts", () => {
     expect(container!.textContent).toContain("They are on the day.");
   });
 });
+
+/**
+ * The truth of a press — B916, B918 and B919, and checklist E of
+ * `docs/plans/2026-09-08-the-chat-is-the-product.md`.
+ *
+ * `setSettled("accepted")` used to fire before the fetch resolved, so a card
+ * said *"The day is started"* and the write then failed; the only trace was a
+ * code appended under the log. All three of those are asserted here: nothing
+ * is claimed until the route has answered, the refusal is a sentence beside
+ * the fields that caused it, and a turn carrying two proposals focuses the
+ * one that has to be pressed first.
+ */
+
+/** Answers with a status, so a refusal can be driven — `answers()` above is
+ *  always `ok`. */
+function replies(...bodies: { ok?: boolean; body: Record<string, unknown> }[]) {
+  let next = 0;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
+      calls.push({
+        url,
+        method: init?.method ?? "GET",
+        body: init?.body ? (JSON.parse(init.body) as Record<string, unknown>) : {},
+      });
+      const reply = bodies[Math.min(next, bodies.length - 1)];
+      next += 1;
+      return { ok: reply.ok ?? true, json: async () => reply.body } as Response;
+    }),
+  );
+}
+
+/** `start_day` as the conversation offers it since B917 — the trip's own
+ *  questions among the fields, open on "nobody has it". */
+function startDay() {
+  return {
+    tool: "start_day",
+    arguments: { trip: "reise", date: "2026-05-04" },
+    sentence: "A day for 2026-05-04.",
+    fields: [
+      { name: "trip", value: "reise" },
+      { name: "date", value: "2026-05-04", date: true },
+      {
+        name: "costs",
+        value: "unknown",
+        options: [
+          { value: "unknown", label: "Nobody has it" },
+          { value: "none", label: "There was none" },
+        ],
+      },
+    ],
+    endpoint: "/api/helper/alex/day",
+    method: "POST" as const,
+    accept: "Start this day",
+    done: "The day is started.",
+  };
+}
+
+function turnOf(...proposals: ReturnType<typeof startDay>[]) {
+  return {
+    ok: true,
+    kind: "read",
+    blocks: proposals.map((proposal) => ({
+      shape: "form",
+      text: proposal.sentence,
+      fields: proposal.fields,
+      proposal,
+    })) as Block[],
+  };
+}
+
+describe("a proposal says a thing was done only after it was done", () => {
+  test("a failed press does not claim it worked, and the card stays pressable", async () => {
+    replies(
+      { body: turnOf(startDay()) },
+      { ok: false, body: { error: "incomplete_day", missing: ["costs"] } },
+    );
+    render();
+    await ask("start yesterday");
+    await act(async () => {
+      buttonSaying("Start this day").click();
+    });
+
+    // The claim that was made before the write had happened.
+    expect(container!.textContent).not.toContain("The day is started.");
+    // The fields are still there, and so is the button.
+    expect(container!.querySelector('input[value="2026-05-04"]')).not.toBeNull();
+    expect(buttonSaying("Start this day").disabled).toBe(false);
+  });
+
+  test("the refusal is a sentence beside the fields, not a code under the log", async () => {
+    replies(
+      { body: turnOf(startDay()) },
+      { ok: false, body: { error: "incomplete_day", missing: ["costs"] } },
+    );
+    render();
+    await ask("start yesterday");
+    await act(async () => {
+      buttonSaying("Start this day").click();
+    });
+
+    const said = container!.querySelector('[role="alert"]') as HTMLElement;
+    // B919 — what a person is read is a sentence in their own language.
+    expect(said.textContent).toBe(dictionary["agent.error.incomplete_day"]);
+    expect(container!.textContent).not.toContain("incomplete_day");
+    // Beside the fields it belongs to, and focused — B916.
+    expect(said.closest("form, div")?.textContent).toContain("A day for 2026-05-04.");
+    expect(document.activeElement).toBe(said);
+  });
+
+  test("a press that works still says so, once the route has answered", async () => {
+    replies(
+      { body: turnOf(startDay()) },
+      { body: { ok: true, trip: "reise", slug: "2026-05-04-day" } },
+      { body: { ok: true } },
+    );
+    render();
+    await ask("start yesterday");
+    await act(async () => {
+      buttonSaying("Start this day").click();
+    });
+    expect(container!.textContent).toContain("The day is started.");
+    expect(container!.querySelector('[role="alert"]')).toBeNull();
+  });
+});
+
+describe("a turn with two proposals", () => {
+  test("lands focus on the one that must be pressed first", async () => {
+    const second = { ...startDay(), tool: "draft_words", sentence: "Words for that day." };
+    replies({ body: turnOf(startDay(), second) });
+    render();
+    await ask("write up yesterday");
+    // One ref shared by both used to be assigned in DOM order, so focus went
+    // to whichever mounted last and the first was before the focus point.
+    expect((document.activeElement as HTMLElement)?.textContent).toContain(
+      "A day for 2026-05-04.",
+    );
+    expect((document.activeElement as HTMLElement)?.textContent).not.toContain(
+      "Words for that day.",
+    );
+  });
+});
