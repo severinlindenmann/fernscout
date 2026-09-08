@@ -634,6 +634,7 @@ const REASON_LABEL: Record<string, string> = {
   storage: "Extra disk",
   helper: "The helper",
   transcription: "Transcribing speech",
+  refunded: "Given back (failed calls)",
 };
 
 /**

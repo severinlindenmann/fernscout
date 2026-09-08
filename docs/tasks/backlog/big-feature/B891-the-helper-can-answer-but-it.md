@@ -63,6 +63,28 @@ chats and accepts nothing pays nothing, and the exposure is bounded by
 conversation is free, the credit is charged when a write is accepted, and the
 rate limit is what bounds somebody who only ever chats.
 
+**B922 resolved what "as today" means, and it stays true here.** *Answering* —
+reading tools, a question, a fact looked up — is free, as it already is for
+B889's thread. But **filling in a proposal is the model call that costs
+money, and that is the event that is charged**, exactly as `write-day`
+charges today: before the call, refunded only if the provider call itself
+fails, never refunded because the person edited the proposal three times or
+declined it outright. "The credit is charged when a write is accepted" does
+**not** mean the charge waits for the press on the proposal card — it means
+the same thing `write-day` already means by "write": the model doing the
+work of turning notes into a day, a cost, a caption. Pressing "yes" is a free
+disk write, exactly as `PATCH` on a day is free today; declining a proposal
+that cost a credit to produce is not refunded, for the same reason a draft
+read and not kept is not refunded (see B922's trace). A person who edits a
+proposal three times before accepting has caused three model calls and three
+charges, each a real one — the "free to correct" language above is about
+letters typed *inside* the conversation, not about how many times the model
+has to be asked to try again.
+
+The ledger names a refund as its own line (`spentByReason` → `refunded`,
+B922) so a person can tell a charged call apart from one that came back,
+whichever tool produced it.
+
 Two things that follow and are not optional:
 
 - **Say what a turn costs somewhere an operator can see it.** A conversation
