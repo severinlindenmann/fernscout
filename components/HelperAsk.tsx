@@ -66,7 +66,9 @@ function at(answer: unknown, path: string): unknown {
     .split(".")
     .reduce<unknown>(
       (found, key) =>
-        found && typeof found === "object" ? (found as Record<string, unknown>)[key] : undefined,
+        found && typeof found === "object"
+          ? (found as Record<string, unknown>)[key]
+          : undefined,
       answer,
     );
 }
@@ -182,7 +184,6 @@ export default function HelperAsk({
   speech,
   consentedSpeech,
   speechProvider,
-  onJournal = false,
   selected,
   onSubject,
   onFilesMoved,
@@ -201,20 +202,6 @@ export default function HelperAsk({
   /** Who a recording actually goes to — B744. Passed through to
    *  `RecordButton`, which reads it rather than assuming Deepgram. */
   speechProvider: string;
-  /**
-   * Whether this is one of the journal's own pages rather than `/agent` —
-   * B844.
-   *
-   * Two words change, and both are about what is *beside* the field. On the
-   * door it opens with "Or ask me something", because the alternative is the
-   * buttons directly under it; on a day or a trip page there are no such
-   * buttons, and the alternative a person has already found is Search. So the
-   * line names what this is for, and a second line names the difference in one
-   * word each: **Search finds. Asking changes.** They are deliberately not one
-   * control — merging them is what made "fix a typo in tuesday" return six day
-   * cards.
-   */
-  onJournal?: boolean;
   /**
    * What is selected in the files pane beside this — B902. Sent with every
    * sentence, so "put these on yesterday" has something to refer to; the
@@ -312,13 +299,20 @@ export default function HelperAsk({
     if (day) onSubject?.(day);
   }
 
-  async function send(url: string, body?: unknown, method = "POST"): Promise<Record<string, unknown>> {
+  async function send(
+    url: string,
+    body?: unknown,
+    method = "POST",
+  ): Promise<Record<string, unknown>> {
     const response = await fetch(url, {
       method,
       headers: { "content-type": "application/json" },
       body: method === "POST" ? JSON.stringify(body ?? {}) : undefined,
     });
-    const json = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    const json = (await response.json().catch(() => ({}))) as Record<
+      string,
+      unknown
+    >;
     if (!response.ok) throw new Error(String(json.error ?? response.status));
     return json;
   }
@@ -328,17 +322,24 @@ export default function HelperAsk({
     setError("");
     setLapsed(false);
     try {
-      const body = await send(`/api/helper/${encodeURIComponent(username)}/ask`, {
-        said,
-        // B902 — what is selected in the files pane, sent every turn rather
-        // than remembered, so a cleared selection is cleared at once.
-        ...(selected && selected.length > 0 ? { selected } : {}),
-        // Their today, not the server's: "in March" is answered from where
-        // the person is standing.
-        today: new Date().toISOString().slice(0, 10),
-      });
+      const body = await send(
+        `/api/helper/${encodeURIComponent(username)}/ask`,
+        {
+          said,
+          // B902 — what is selected in the files pane, sent every turn rather
+          // than remembered, so a cleared selection is cleared at once.
+          ...(selected && selected.length > 0 ? { selected } : {}),
+          // Their today, not the server's: "in March" is answered from where
+          // the person is standing.
+          today: new Date().toISOString().slice(0, 10),
+        },
+      );
       const blocks = (body.blocks as Block[] | undefined) ?? [];
-      landed(blocks.length > 0 ? blocks : [{ shape: "say", text: t("agent.askUnknown") }]);
+      landed(
+        blocks.length > 0
+          ? blocks
+          : [{ shape: "say", text: t("agent.askUnknown") }],
+      );
     } catch (thrown) {
       failed(thrown);
     } finally {
@@ -409,8 +410,10 @@ export default function HelperAsk({
        * this component's guess about what it wrote.
        */
       const wrote = answer.draft as Record<string, unknown> | undefined;
-      const trip = typeof wrote?.trip === "string" ? wrote.trip : proposal.arguments.trip;
-      const slug = typeof wrote?.slug === "string" ? wrote.slug : proposal.arguments.slug;
+      const trip =
+        typeof wrote?.trip === "string" ? wrote.trip : proposal.arguments.trip;
+      const slug =
+        typeof wrote?.slug === "string" ? wrote.slug : proposal.arguments.slug;
       if (trip && slug) onSubject?.({ trip, slug });
 
       /**
@@ -441,21 +444,33 @@ export default function HelperAsk({
           const found = at(answer, path);
           if (typeof found === "string" && found !== "") carried[name] = found;
         }
-        const next = await send(`/api/helper/${encodeURIComponent(username)}/proposal`, {
-          tool: proposal.next.tool,
-          arguments: carried,
-          today: new Date().toISOString().slice(0, 10),
-        });
+        const next = await send(
+          `/api/helper/${encodeURIComponent(username)}/proposal`,
+          {
+            tool: proposal.next.tool,
+            arguments: carried,
+            today: new Date().toISOString().slice(0, 10),
+          },
+        );
         setTurns((was) => [
           ...was,
-          { said: "", blocks: [{ shape: "say", text: proposal.done }, ...((next.blocks ?? []) as Block[])] },
+          {
+            said: "",
+            blocks: [
+              { shape: "say", text: proposal.done },
+              ...((next.blocks ?? []) as Block[]),
+            ],
+          },
         ]);
         return;
       }
 
       setTurns((was) => [
         ...was,
-        { said: "", blocks: [...previewOf(answer), { shape: "say", text: proposal.done }] },
+        {
+          said: "",
+          blocks: [...previewOf(answer), { shape: "say", text: proposal.done }],
+        },
       ]);
     } catch (thrown) {
       /**
@@ -482,8 +497,17 @@ export default function HelperAsk({
     setBusy(true);
     setError("");
     try {
-      await send(`/api/helper/${encodeURIComponent(username)}/ask`, undefined, "DELETE");
-      setTurns([{ said: "", blocks: [{ shape: "say", text: t("agent.chat.startedOver") }] }]);
+      await send(
+        `/api/helper/${encodeURIComponent(username)}/ask`,
+        undefined,
+        "DELETE",
+      );
+      setTurns([
+        {
+          said: "",
+          blocks: [{ shape: "say", text: t("agent.chat.startedOver") }],
+        },
+      ]);
     } catch (thrown) {
       failed(thrown);
     } finally {
@@ -497,16 +521,14 @@ export default function HelperAsk({
     else setConsenting(true);
   }
 
-  const opener = onJournal ? t("agent.askHereOpen") : t("agent.askOpen");
-
   if (!open && !inRoom) {
     return (
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`min-h-11 text-navy-700 underline underline-offset-4 transition-colors hover:text-navy-900 ${onJournal ? "text-xs font-semibold" : "mt-4 text-base"}`}
+        className="mt-4 min-h-11 text-base text-navy-700 underline underline-offset-4 transition-colors hover:text-navy-900"
       >
-        {opener}
+        {t("agent.askOpen")}
       </button>
     );
   }
@@ -516,13 +538,6 @@ export default function HelperAsk({
       aria-label={t("agent.chat.title")}
       className={inRoom ? "flex min-h-0 flex-1 flex-col" : "mt-4"}
     >
-      {/* One word each, and only where Search is the thing a person has
-          already tried — B844. Not a merge and not a link: the two boxes stay
-          two boxes, and this says which is which. */}
-      {onJournal && (
-        <p className="mb-2 text-sm leading-6 text-navy-600">{t("agent.askNotSearch")}</p>
-      )}
-
       {/*
         The thread. `log` with `aria-live="polite"` announces each turn once as
         it is added — there is no streaming here, so there is nothing to
@@ -563,7 +578,8 @@ export default function HelperAsk({
                     reaches it.
                   */
                   focusRef={
-                    index === turns.length - 1 && turn.blocks.findIndex(isProposal) === n
+                    index === turns.length - 1 &&
+                    turn.blocks.findIndex(isProposal) === n
                       ? proposal
                       : undefined
                   }
@@ -597,7 +613,7 @@ export default function HelperAsk({
           id={`ask-${username}`}
           type="text"
           value={said}
-          aria-label={opener}
+          aria-label={t("agent.askOpen")}
           onChange={(event) => setSaid(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") go();
@@ -624,7 +640,9 @@ export default function HelperAsk({
               // B893. A turn is often spoken in two goes, or typed and then
               // finished out loud, and a transcript that overwrote the field
               // threw the first half away without saying so.
-              setSaid((was) => (was.trim() === "" ? spoken : `${was.trim()} ${spoken}`));
+              setSaid((was) =>
+                was.trim() === "" ? spoken : `${was.trim()} ${spoken}`,
+              );
               setHeard(spoken);
               box.current?.focus();
             }}
@@ -723,7 +741,10 @@ function BlockView({
   focusRef?: React.RefObject<HTMLDivElement | null>;
   busy: boolean;
   onChoose: (label: string) => void;
-  onAccept: (proposal: Proposal, values: Record<string, string>) => Promise<void>;
+  onAccept: (
+    proposal: Proposal,
+    values: Record<string, string>,
+  ) => Promise<void>;
 }) {
   const { t } = useI18n();
 
@@ -741,7 +762,9 @@ function BlockView({
               >
                 {option.label}
                 {option.detail && (
-                  <span className="ml-2 text-sm text-navy-600">{option.detail}</span>
+                  <span className="ml-2 text-sm text-navy-600">
+                    {option.detail}
+                  </span>
                 )}
               </button>
             </li>
@@ -756,7 +779,10 @@ function BlockView({
       <div className="rounded-xl border border-navy-200 bg-white p-3">
         <p className="text-sm text-navy-600">{block.text}</p>
         {block.lines.map((line, n) => (
-          <p key={n} className="mt-1 break-words text-base leading-6 text-navy-900">
+          <p
+            key={n}
+            className="mt-1 break-words text-base leading-6 text-navy-900"
+          >
             {line}
           </p>
         ))}
@@ -800,7 +826,9 @@ function BlockView({
       return (
         <div className="rounded-xl border border-navy-200 bg-cream-50 p-3">
           <p className="text-base leading-6 text-navy-900">{block.text}</p>
-          <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.chat.nothingWritten")}</p>
+          <p className="mt-2 text-sm leading-6 text-navy-600">
+            {t("agent.chat.nothingWritten")}
+          </p>
         </div>
       );
     }
@@ -849,7 +877,10 @@ function ProposalView({
   fields: ProposalField[];
   focusRef?: React.RefObject<HTMLDivElement | null>;
   busy: boolean;
-  onAccept: (proposal: Proposal, values: Record<string, string>) => Promise<void>;
+  onAccept: (
+    proposal: Proposal,
+    values: Record<string, string>,
+  ) => Promise<void>;
 }) {
   const { t } = useI18n();
   const [values, setValues] = useState<Record<string, string>>(
@@ -912,7 +943,10 @@ function ProposalView({
                   id={`${id}-${field.name}`}
                   value={values[field.name] ?? ""}
                   onChange={(event) =>
-                    setValues((was) => ({ ...was, [field.name]: event.target.value }))
+                    setValues((was) => ({
+                      ...was,
+                      [field.name]: event.target.value,
+                    }))
                   }
                   className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
                 >
@@ -928,7 +962,10 @@ function ProposalView({
                   rows={6}
                   value={values[field.name] ?? ""}
                   onChange={(event) =>
-                    setValues((was) => ({ ...was, [field.name]: event.target.value }))
+                    setValues((was) => ({
+                      ...was,
+                      [field.name]: event.target.value,
+                    }))
                   }
                   className="mt-1 w-full rounded-xl border border-navy-300 bg-white p-3 text-base leading-6 text-navy-900"
                 />
@@ -938,7 +975,10 @@ function ProposalView({
                   type={field.date ? "date" : "text"}
                   value={values[field.name] ?? ""}
                   onChange={(event) =>
-                    setValues((was) => ({ ...was, [field.name]: event.target.value }))
+                    setValues((was) => ({
+                      ...was,
+                      [field.name]: event.target.value,
+                    }))
                   }
                   className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
                 />
@@ -987,7 +1027,9 @@ function ProposalView({
         </button>
       </div>
 
-      <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.chat.orSayWhatIsWrong")}</p>
+      <p className="mt-2 text-sm leading-6 text-navy-600">
+        {t("agent.chat.orSayWhatIsWrong")}
+      </p>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { creditWorth } from "@/lib/credits/pricing";
 import { useI18n } from "./LocaleProvider";
 import BusyButton from "@/components/BusyButton";
 import { OWNER_TOOL, OWNER_TOOL_CELL } from "./ownerToolClass";
@@ -80,13 +79,18 @@ export default function DayNotify({
   if (!status || !status.reachable) return null;
 
   if (status.alreadySent) {
-    return <p className="col-span-full text-xs text-navy-600">{t("notify.sent")}</p>;
+    return (
+      <p className="col-span-full text-xs text-navy-600">{t("notify.sent")}</p>
+    );
   }
 
   if (status.short) {
     return (
       <p className="col-span-full text-xs text-coral-700">
-        {t("notify.short", { needed: String(status.needed), balance: String(status.balance) })}{" "}
+        {t("notify.short", {
+          needed: String(status.needed),
+          balance: String(status.balance),
+        })}{" "}
         <a className="font-semibold underline" href={`/${username}/me`}>
           {t("photobook.getCredits")}
         </a>
@@ -132,28 +136,19 @@ export default function DayNotify({
         className="col-span-full rounded-2xl border border-navy-200 bg-white p-4 shadow-sm"
       >
         <p className="text-sm leading-6 text-navy-700">{message}</p>
-        {/* B806 — a 71-year-old was offered this button, found nowhere that
-            said what a credit is, and put the phone down rather than press
-            something that would have cost about twenty rappen. Said here,
-            where the spend is actually being asked for, and only where
-            there is a spend: a free send has no unit to explain. Computed
-            from `TIERS`, never typed. */}
-        {status.balance !== null && (
-          <p className="mt-2 text-xs leading-5 text-navy-600">{t("credits.worth", creditWorth())}</p>
-        )}
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <BusyButton
-              busy={busy}
-              type="button"
-              onClick={send}
+            busy={busy}
+            type="button"
+            onClick={send}
             className="min-h-11 rounded-full bg-yellow-400 px-4 text-xs font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:opacity-50"
           >
             {t("notify.button")}
           </BusyButton>
           <BusyButton
-              busy={busy}
-              type="button"
-              onClick={() => setAsking(false)}
+            busy={busy}
+            type="button"
+            onClick={() => setAsking(false)}
             className="min-h-11 rounded-full border border-navy-300 px-4 text-xs font-semibold text-navy-700 transition-colors hover:bg-cream-100 disabled:opacity-50"
           >
             {t("notify.cancel")}
@@ -166,7 +161,11 @@ export default function DayNotify({
 
   return (
     <div className={OWNER_TOOL_CELL}>
-      <button type="button" onClick={() => setAsking(true)} className={OWNER_TOOL}>
+      <button
+        type="button"
+        onClick={() => setAsking(true)}
+        className={OWNER_TOOL}
+      >
         {t("notify.button")}
       </button>
       {error && <p className="text-xs text-coral-700">{error}</p>}

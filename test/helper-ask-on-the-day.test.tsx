@@ -118,13 +118,15 @@ describe("the ask box, where the owner actually is", () => {
     expect(fetched.some((url) => url.includes("/api/helper/alex/ask"))).toBe(true);
   });
 
-  test("it is not Search, and says so in a word each", async () => {
+  // B979 — it leads to the room rather than opening a lesser copy of it in
+  // place, and it carries the day it was pressed on, so the preview opens on
+  // that day instead of whatever was last left unfinished.
+  test("it leads to the room, on this day", async () => {
     const host = await dayPage(true);
-    const opener = [...host.querySelectorAll("button")].find((button) =>
-      button.textContent?.includes("Ask for anything else"),
-    ) as HTMLButtonElement;
-    act(() => opener.click());
-    expect(host.textContent).toContain("Search finds. Asking changes.");
+    const link = [...host.querySelectorAll("a")].find((anchor) =>
+      anchor.textContent?.includes("Ask for anything else"),
+    ) as HTMLAnchorElement;
+    expect(link.getAttribute("href")).toBe("/agent/alex/chat?trip=reise-2026&slug=bellinzona");
   });
 
   test("a reader is offered nothing, and the journal is not even asked about", async () => {
