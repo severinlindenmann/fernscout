@@ -55,15 +55,59 @@ the person's words with no read tool called* is a signal worth looking at.
 
 Not doing: forcing every turn to enumerate what it did.
 
-**Built**: `droppedAQuestion(said, looked)` in `lib/helper/model.ts` — true when
-the person's message carries a `?`, the turn called a **write** tool (so it did
-act on the other half of the message), and it called **no read tool at all**
-(so the question could only have been answered from memory or invented). Wired
-into `amiss()` as a new `"dropped"` outcome, with its own retry
-(`DROPPED_RETRY`, telling the model to look again and answer with a tool or say
-plainly it has not gotten to it) and its own plain fallback
-(`agent.stillHasAQuestion`, in all three locales) for when the retry still says
-nothing about it.
+**Built, then found unsafe, then narrowed — round 2 (2026-09-08, same session,
+on the coordinator's review before merge).**
+
+First version: `droppedAQuestion(said, looked)` fired when the person's
+message carried a bare `?`, the turn called a **write** tool, and it called
+**no read tool at all**. Before asking to merge, the coordinator named the
+exact failure mode AGENTS.md calls out: *"could you write up today? we went to
+the museum and then the harbour"* is a `?`, produces one write (`draft_words`)
+and reads nothing — and is an **honest, single-part request**, not a dropped
+question.
+
+**Verified empirically rather than argued.** Added five scripted scenarios to
+`test/helper-honesty.test.ts` for exactly that shape — the English phrasing
+above, a German equivalent (*"Kannst du den heutigen Tag schreiben? Wir waren
+im Museum und dann am Hafen."*), a Hungarian one (*"Megírnád a mai napot?
+Elmentünk a múzeumba, aztán a kikötőbe."*), and two bare confirmations with no
+notes at all (*"shall I put this in for the 14th?"*, *"can you save that?"*) —
+and ran them against the bare-`?` version. **All five misfired**: 3 model
+calls instead of 2 on every one of them, meaning the guard retried an honest
+turn and, had the retry not happened to add a number, would have told the
+person in their own language that they still had a question outstanding, on
+what is arguably the single most common sentence shape in the whole product.
+This is exactly the failure the ticket's own Work section already flagged as a
+risk ("a sentence-count or question-count heuristic is not it") and the first
+build did not go far enough past it.
+
+**The fix**: replaced the bare `?` with `FACT_QUESTION_WORD`, a small closed
+set of fact-seeking words per language (`what`/`when`/`where`/`who`/`which`/
+`how many`/`how much`/`remind me`; `was`/`wann`/`wo`/`wer`/`welche…`/`wieso`/
+`weshalb`/`wie viel(e)`/`erinnere`; `mit`/`hány…`/`mikor`/`milyen`/`mennyi…`/
+`melyik`/`mondd meg`). A polite request to *do* something ("could you...",
+"kannst du...", "megírnád...", "shall I...", "can you...") carries no such
+word; a request for a *fact* ("what currency...", "remind me...", "wie viel
+kostet...") does. This is not the open-ended claim-phrasing AGENTS.md warns
+against (an infinite space of ways to say "it's done") — it is a small, closed
+grammatical class, the same kind of per-language list this file already keeps
+for other checks (`A_TOTAL`, `CLAIM`, `DENIED`), combined as always with a
+condition on what the turn actually did (a write ran, no read did).
+
+**Re-verified**: all five of the coordinator's honest siblings now leave the
+turn alone (2 model calls, no retry); the original currency example, and the
+in-repo test's German equivalent, still catch (the retry fires, and either
+recovers with both halves answered or falls back to the plain sentence).
+
+**Known remaining limit, stated plainly rather than hidden**: a fact question
+phrased without any of these words (imaginable, if rare, in any of the three
+languages) will not be caught — a missed catch rather than a false one, which
+is the side AGENTS.md says to prefer when a guard cannot be made to hold both
+ways at once. This was judged an acceptable trade against the alternative of
+dropping the guard entirely, given it now holds against every concrete case
+either the ticket or the review named; a differently-phrased fact question
+slipping through is the same shape of gap every check in this file already
+lives with (e.g. `claimsAWrite`'s own English/German/Hungarian phrase lists).
 
 Deliberately narrow, matching the ladder in the ticket:
 - A turn that calls no tool at all is left alone — nothing was dropped, the
@@ -119,6 +163,9 @@ All new tests fail against the code as it stood at the start of this ticket
 
 ## Verify
 
-`npm run verify` — see session notes; two known-noise categories excluded per
-the dispatch instructions (`test/task-ids.test.ts` stale snapshot, and any
-30-second timeout re-run alone). Full result recorded in the merge/report.
+`npm run verify` (build → tsc → eslint → vitest → knip), run twice in this
+session, in the foreground both times — once before the round-2 narrowing and
+once after: **all 5 stages passed both times**, 5771 tests passing after the
+five new honest-sibling tests were added (up from 5766). No known-noise
+failures (`test/task-ids.test.ts`, 30-second timeouts) were encountered either
+time.

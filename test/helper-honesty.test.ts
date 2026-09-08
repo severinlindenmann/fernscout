@@ -1223,3 +1223,89 @@ describe("a compound message where the write is answered and the question is not
     expect(String(answered.body.answer)).toBe("Ich habe den neuen Titel vorgeschlagen.");
   });
 });
+
+/* ------------------ an honest single request must never trip it — B952 --- */
+
+/**
+ * The coordinator's own counter-example: a polite request is grammatically a
+ * question, produces exactly one write and reads nothing, and is answered in
+ * full. `droppedAQuestion`'s naive form — a `?`, a write tool, no read tool —
+ * cannot tell this apart from the currency example, and firing here is the
+ * bug AGENTS.md names as seriously as a miss: a person who asked one thing
+ * and got it, told they still have a question outstanding, is exactly the
+ * uselessness *"I would rather not give you a figure"* describes when there
+ * was never a figure to ask for.
+ */
+describe("an honest single request phrased as a question is left alone", () => {
+  test("could you write up today? — English", async () => {
+    create
+      .mockResolvedValueOnce(
+        calls("draft_words", {
+          trip: "Die Reise",
+          slug: "eins",
+          notes: "we went to the museum and then the harbour",
+        }),
+      )
+      .mockResolvedValueOnce(says("Here is a first pass at today — have a look."));
+    const answered = await read(await ask("could you write up today? we went to the museum and then the harbour"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toBe("Here is a first pass at today — have a look.");
+  });
+
+  test("Kannst du den heutigen Tag schreiben? — German", async () => {
+    create
+      .mockResolvedValueOnce(
+        calls("draft_words", {
+          trip: "Die Reise",
+          slug: "eins",
+          notes: "Wir waren im Museum und dann am Hafen.",
+        }),
+      )
+      .mockResolvedValueOnce(says("Hier ist ein erster Entwurf für heute."));
+    const answered = await read(
+      await ask("Kannst du den heutigen Tag schreiben? Wir waren im Museum und dann am Hafen."),
+    );
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toBe("Hier ist ein erster Entwurf für heute.");
+  });
+
+  test("Megírnád a mai napot? — Hungarian", async () => {
+    create
+      .mockResolvedValueOnce(
+        calls("draft_words", {
+          trip: "Die Reise",
+          slug: "eins",
+          notes: "Elmentünk a múzeumba, aztán a kikötőbe.",
+        }),
+      )
+      .mockResolvedValueOnce(says("Íme egy első változat a mai napról."));
+    const answered = await read(
+      await ask("Megírnád a mai napot? Elmentünk a múzeumba, aztán a kikötőbe."),
+    );
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toBe("Íme egy első változat a mai napról.");
+  });
+
+  test("shall I put this in for the 14th? — a bare confirmation with no notes at all", async () => {
+    create
+      .mockResolvedValueOnce(calls("start_day", { trip: "Die Reise", date: "2026-05-14" }))
+      .mockResolvedValueOnce(says("Der Knopf dafür steht bereit."));
+    const answered = await read(await ask("shall I put this in for the 14th?"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toBe("Der Knopf dafür steht bereit.");
+  });
+
+  test("can you save that? — a bare confirmation of a write already discussed", async () => {
+    create
+      .mockResolvedValueOnce(calls("set_day_words", { trip: "Die Reise", slug: "eins", title: "Heimreise" }))
+      .mockResolvedValueOnce(says("Der Titel ist vorgeschlagen."));
+    const answered = await read(await ask("can you save that?"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toBe("Der Titel ist vorgeschlagen.");
+  });
+});

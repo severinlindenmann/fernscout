@@ -1143,6 +1143,31 @@ const READ_TOOL_NAMES = new Set(TOOLS.filter((tool) => tool.kind === "read").map
 const WRITE_TOOL_NAMES = new Set(TOOLS.filter((tool) => tool.kind === "write").map((tool) => tool.name));
 
 /**
+ * A closed, small class of words that ask for a **fact** — as opposed to a
+ * polite way of asking for an *action*, which is a bare `?` and nothing more.
+ *
+ * The first version of this check fired on a bare `?`: *"could you write up
+ * today? we went to the museum and then the harbour"* produces exactly one
+ * write, reads nothing, and asks nothing else — and was flagged anyway, a
+ * false positive on what is likely the single most common sentence in this
+ * whole product. *"Shall I put this in for the 14th?"* and *"can you save
+ * that?"* are the same shape and were caught the same way.
+ *
+ * What actually marks a second, unanswered ask is not the `?` but a
+ * fact-seeking word riding along with it — "what", "how many", "remind me",
+ * "wie viel", "hány". Unlike the claim-phrasing AGENTS.md warns against
+ * matching on — an open, ever-growing space of ways to say "it's done" — the
+ * words that ask for a fact rather than for an action are a small, closed
+ * grammatical class per language, the same kind of list this file already
+ * keeps for other checks (`A_TOTAL`, `CLAIM`, `DENIED`). It will still miss a
+ * fact question that avoids every word here, and that is a missed catch
+ * rather than a false one — the side AGENTS.md says to prefer when a guard
+ * cannot be made to hold both ways at once.
+ */
+const FACT_QUESTION_WORD =
+  /\b(what|when|where|who|whose|which|how many|how much|remind me)\b|\b(was|wann|wo|wer|wessen|welche[rsn]?|wieso|weshalb|wie ?viele?|erinnere)\b|\b(mit|hány\w*|mikor|milyen|mennyi\w*|melyik|mondd meg)\b/i;
+
+/**
  * A second ask, inside the same message, that this turn never came back to —
  * B952.
  *
@@ -1154,21 +1179,20 @@ const WRITE_TOOL_NAMES = new Set(TOOLS.filter((tool) => tool.kind === "write").m
  * makes none.
  *
  * What is checkable is not whether the person's sentence "really" asked two
- * things — that is exactly the phrasing guess AGENTS.md warns against — but
- * whether the turn's own actions are shaped like an answer to only one of
- * them. A question mark in what they typed is a person asking for a fact; a
- * write tool with no read tool alongside it is a turn that produced a change
- * and consulted nothing to answer a question with. Together they are the
- * signature of the fault above, checked against the turn rather than against
- * the words the model chose.
+ * things, but whether the turn's own actions are shaped like an answer to
+ * only one of them: a fact-seeking word in what they typed (`FACT_QUESTION_WORD`)
+ * says a fact was asked for; a write tool with no read tool alongside it is a
+ * turn that produced a change and consulted nothing to answer a fact with.
+ * Together they are the signature of the fault above, checked against the
+ * turn rather than against the words the model chose.
  *
- * A turn with no question mark, or one that reads nothing at all
- * (`looked.length === 0`, an answer straight from the conversation), is left
- * alone: the first has nothing to have dropped, and the second was never
- * going to consult a tool for either half.
+ * A turn that reads nothing at all (`looked.length === 0`, an answer straight
+ * from the conversation) is left alone: it was never going to consult a tool
+ * for either half, so there is nothing to tell an honest one-part answer from
+ * a dropped two-part one.
  */
 export function droppedAQuestion(said: string, looked: string[]): boolean {
-  if (!/\?/.test(said)) return false;
+  if (!FACT_QUESTION_WORD.test(said)) return false;
   if (!looked.some((name) => WRITE_TOOL_NAMES.has(name))) return false;
   return !looked.some((name) => READ_TOOL_NAMES.has(name));
 }
@@ -1549,8 +1573,8 @@ export async function answerInThread(
     /**
      * A question that rode along with a change and never got an answer —
      * B952. Checked against what this turn did, not against the answer's own
-     * words: a write tool fired, a question mark was in what they typed, and
-     * no read tool ever ran to answer it with.
+     * words: a write tool fired, a fact-seeking word was in what they typed,
+     * and no read tool ever ran to answer it with.
      */
     if (droppedAQuestion(said, looked)) return "dropped";
     /**
