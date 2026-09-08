@@ -192,13 +192,17 @@ export function FormatShape({
    * Soft or hard — B845's cover-type step reuses this same drawing to show
    * the difference between the two, rather than inventing a second one.
    *
-   * Softcover is the drawing above, unchanged: the cover flush with the page
-   * block on the three open edges. Hardcover draws the boards overhanging
-   * that same block on those same three edges — Gelato's own numbers give a
-   * 280×280 book a 278×286 board, taller than the block it holds — with a
-   * groove just past the spine standing in for the 8 mm joint Gelato reports.
-   * Never on the spine edge itself: that is where the case wraps round, not
-   * where it overhangs.
+   * Softcover is thin-lined, flush with the page block, and slightly rounded
+   * at the corners: a cover that bends. Hardcover is drawn heavy — a thick
+   * board standing a little proud of the pages on the three open edges, and a
+   * spine as tall as the board rather than the block.
+   *
+   * It used to draw the 8 mm joint Gelato reports, beside the spine. That was
+   * accurate and wrong: at the size these cards are actually seen, the line
+   * read as a scratch and the pale overhang read as a drop shadow, and a
+   * person looking at the two could not tell them apart. Weight is what reads
+   * small. The joint is still in the print geometry, which is where it
+   * matters — see `lib/photobook/coverGeometry.ts`.
    */
   cover?: CoverType;
 }) {
@@ -214,14 +218,17 @@ export function FormatShape({
   const pages = Math.max(w * 0.06, 2);
   const x = (box - (w + spine + pages)) / 2 + spine;
   const y = (box - h) / 2;
-  // How far the boards stand proud of the page block, and where the joint
+  // How far the boards stand proud of the page block
   // falls — both zero for softcover, which draws exactly as before.
-  // Generous on purpose. The true overhang is about 3 mm on a 200 mm board —
-  // a percent and a half, invisible at 56 px — so the drawing exaggerates it
-  // to the point where a person can actually tell the two cards apart. A
-  // diagram that is to scale and unreadable has told them nothing.
-  const overhang = cover === "hard" ? Math.max(w * 0.14, 3) : 0;
-  const joint = cover === "hard" ? Math.max(spine * 0.9, 2) : 0;
+  // The true overhang is about 3 mm on a 200 mm board — a percent and a half,
+  // invisible at this size — so it is exaggerated. But the overhang alone was
+  // not what read: at 40 px a paler rectangle behind the cover looks like a
+  // drop shadow, and the groove that used to be drawn beside the spine looked
+  // like a scratch. What reads at this size is **weight**, so a hardcover is
+  // drawn thick and a softcover thin, and the overhang is only a supporting
+  // hint. The groove is gone: it was a bookbinder's detail on a card whose job
+  // is to say "stiff" or "bendy".
+  const overhang = cover === "hard" ? Math.max(w * 0.1, 2.5) : 0;
   // A softcover bends; a case does not. One rounded corner on the fore edge
   // says that at a glance, and costs nothing at this size.
   const softRadius = cover === "soft" ? Math.max(w * 0.06, 1.5) : 0;
@@ -250,28 +257,22 @@ export function FormatShape({
           width={w + pages + overhang}
           height={h + overhang * 2}
           fill="currentColor"
-          fillOpacity="0.22"
+          fillOpacity="0.2"
           stroke="currentColor"
-          strokeOpacity="0.55"
-          strokeWidth="1"
+          strokeOpacity="0.75"
+          strokeWidth="2.4"
         />
       )}
       {/* The spine, darker: it is the edge in shadow, and it is the part that
           carries the title on a real one. */}
-      <rect x={x - spine} y={y} width={spine} height={h} fill="currentColor" opacity="0.5" />
-      {/* The groove beside the spine — a hardcover only, where the case
-          hinges away from the boards. */}
-      {cover === "hard" && (
-        <line
-          x1={x + joint}
-          y1={y - overhang}
-          x2={x + joint}
-          y2={y + h + overhang}
-          stroke="currentColor"
-          strokeOpacity="0.75"
-          strokeWidth="1.1"
-        />
-      )}
+      <rect
+        x={x - spine}
+        y={y - overhang}
+        width={spine}
+        height={h + overhang * 2}
+        fill="currentColor"
+        opacity="0.5"
+      />
       <rect x={x} y={y} width={w} height={h} rx={softRadius} fill="currentColor" opacity="0.18" />
       <rect
         x={x}
