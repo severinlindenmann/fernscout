@@ -216,8 +216,15 @@ export function FormatShape({
   const y = (box - h) / 2;
   // How far the boards stand proud of the page block, and where the joint
   // falls — both zero for softcover, which draws exactly as before.
-  const overhang = cover === "hard" ? Math.max(w * 0.09, 2) : 0;
-  const joint = cover === "hard" ? Math.max(spine * 0.55, 1.4) : 0;
+  // Generous on purpose. The true overhang is about 3 mm on a 200 mm board —
+  // a percent and a half, invisible at 56 px — so the drawing exaggerates it
+  // to the point where a person can actually tell the two cards apart. A
+  // diagram that is to scale and unreadable has told them nothing.
+  const overhang = cover === "hard" ? Math.max(w * 0.14, 3) : 0;
+  const joint = cover === "hard" ? Math.max(spine * 0.9, 2) : 0;
+  // A softcover bends; a case does not. One rounded corner on the fore edge
+  // says that at a glance, and costs nothing at this size.
+  const softRadius = cover === "soft" ? Math.max(w * 0.06, 1.5) : 0;
   return (
     <svg viewBox={`0 0 ${box} ${box}`} width={box} height={box} aria-hidden="true" className="shrink-0">
       {/* The page block, showing past the fore edge — thin rules rather than a
@@ -243,7 +250,10 @@ export function FormatShape({
           width={w + pages + overhang}
           height={h + overhang * 2}
           fill="currentColor"
-          opacity="0.14"
+          fillOpacity="0.22"
+          stroke="currentColor"
+          strokeOpacity="0.55"
+          strokeWidth="1"
         />
       )}
       {/* The spine, darker: it is the edge in shadow, and it is the part that
@@ -258,16 +268,17 @@ export function FormatShape({
           x2={x + joint}
           y2={y + h + overhang}
           stroke="currentColor"
-          strokeOpacity="0.4"
-          strokeWidth="0.7"
+          strokeOpacity="0.75"
+          strokeWidth="1.1"
         />
       )}
-      <rect x={x} y={y} width={w} height={h} fill="currentColor" opacity="0.18" />
+      <rect x={x} y={y} width={w} height={h} rx={softRadius} fill="currentColor" opacity="0.18" />
       <rect
         x={x}
         y={y}
         width={w}
         height={h}
+        rx={softRadius}
         fill="none"
         stroke="currentColor"
         strokeOpacity="0.45"
