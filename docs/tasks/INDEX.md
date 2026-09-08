@@ -236,7 +236,7 @@ _Nothing here._
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 | [B811](in-development/B811-the-payment-page-still-renders-the.md) | The payment page still renders the TWINT/card chooser under a provider, hidden with a class | CHORE | low | low | `41335894` |
 
-## testing (116)
+## testing (117)
 
 ### security (4)
 
@@ -325,7 +325,7 @@ _Nothing here._
 | [B904](testing/big-feature/B904-search-matches-words-not-meaning-a.md) | Search matches words, not meaning — a person who asks for a topic in their own words gets nothing | FEATURE | medium | high | — |
 | [B689](testing/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high | — |
 
-### small-feature (35)
+### small-feature (36)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -345,6 +345,7 @@ _Nothing here._
 | [B854](testing/small-feature/B854-credits-are-sold-in-two-fixed.md) | Credits are sold in two fixed amounts, so nobody can buy the amount they actually want | FEATURE | high | medium | — |
 | [B877](testing/small-feature/B877-four-owner-controls-have-piled-up.md) | Four owner controls have piled up under a day with no order between them | FEATURE | high | medium | — |
 | [B885](testing/small-feature/B885-a-hardcover-case-is-rendered-as.md) | A hardcover case is rendered as though it were a softcover | FEATURE | high | medium | — |
+| [B913](testing/small-feature/B913-the-onboarding-cannot-choose-between-a.md) | The onboarding cannot choose between a soft and a hard cover | FEATURE | high | medium | — |
 | [B751](testing/small-feature/B751-the-striped-handover-box-shouts-louder.md) | The striped handover box shouts louder than anything it sits beside, and it is on the page up to four times | FEATURE | medium | medium | — |
 | [B763](testing/small-feature/B763-the-operator-page-is-a-wall.md) | The operator page is a wall of tables that does not fit a phone | FEATURE | medium | medium | — |
 | [B771](testing/small-feature/B771-the-postcard-page-is-unbranded-above.md) | The postcard page is unbranded above the send block, unlike every page the photobook shows | FEATURE | medium | low | — |
