@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { closeDatabase, getDatabase, newId, nowIso } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { clearConfigCache } from "@/lib/config";
-import { up, down } from "@/lib/db/migrations/026-credits-hundredths";
+import { up, down } from "@/lib/db/migrations/027-credits-hundredths";
 
 /**
  * B987 — the migration that changed what a stored credit means.
@@ -84,7 +84,7 @@ async function rows(): Promise<{ balances: number[]; deltas: number[] }> {
   };
 }
 
-describe("026-credits-hundredths", () => {
+describe("027-credits-hundredths", () => {
   test("multiplies every balance and every ledger delta by a hundred", async () => {
     await seed();
     const { db } = await getDatabase();
