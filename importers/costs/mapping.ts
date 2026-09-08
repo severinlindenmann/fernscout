@@ -109,13 +109,26 @@ function delimiterOf(text: string): string {
  * lines and the `Total,,,` a bank puts at the bottom, and it is deliberately
  * the *same* rule the model's sample is cut with — so the columns somebody
  * confirms on their screen are the columns `applyMapping` reads.
+ *
+ * `skipLines` is the escape hatch for the case that rule cannot tell apart on
+ * its own: a bank that puts an account name or an export date above the real
+ * header, in a line that happens to have three or more cells too. Detection
+ * cannot know which line a person meant — so it does not guess twice. It
+ * ignores that many non-blank lines before looking for a header at all,
+ * which is what "that is not the header row" on the screen asks for, one line
+ * at a time (B761).
  */
-export function readTable(text: string): Table | null {
+export function readTable(text: string, skipLines = 0): Table | null {
   const delimiter = delimiterOf(text);
   let header: string[] | null = null;
   const rows: string[][] = [];
+  let skipped = 0;
   for (const line of text.split(/\r?\n/)) {
     if (line.trim() === "") continue;
+    if (skipped < skipLines) {
+      skipped++;
+      continue;
+    }
     const cells = splitCsv(line, delimiter).map((cell) => cell.trim());
     if (!header) {
       if (cells.length >= 3) header = cells;
@@ -134,8 +147,8 @@ export function readTable(text: string): Table | null {
  * and a debit from a credit, and few enough that a person can read what they
  * are sending. The other two thousand rows stay here.
  */
-export function statementSample(text: string, rows = 5): Table | null {
-  const table = readTable(text);
+export function statementSample(text: string, rows = 5, skipLines = 0): Table | null {
+  const table = readTable(text, skipLines);
   return table ? { header: table.header, rows: table.rows.slice(0, rows) } : null;
 }
 
@@ -244,8 +257,8 @@ export function checkMapping(header: string[], mapping: ColumnMapping): string[]
  * the table once, takes the cells the mapping names, and drops anything that
  * will not parse — a subtotal, a carried balance, a row of dashes.
  */
-export function applyMapping(text: string, mapping: ColumnMapping): Payment[] {
-  const table = readTable(text);
+export function applyMapping(text: string, mapping: ColumnMapping, skipLines = 0): Payment[] {
+  const table = readTable(text, skipLines);
   if (!table) return [];
   const at = {
     date: columnIndex(table.header, mapping.date),

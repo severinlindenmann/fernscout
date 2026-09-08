@@ -92,6 +92,11 @@ export async function POST(
 
   const text = fs.readFileSync(found.file, "utf8");
 
+  // The same escape hatch `../route.ts` takes, so a preamble a person moved
+  // past there is moved past here too — the whole file is read with the same
+  // header line the sample was confirmed against (B761).
+  const skipLines = Math.min(20, Math.max(0, Number(body.skipLines) || 0));
+
   // A bank the repository already knows: its own parser, no mapping involved.
   // The screen reaches this branch when `../route.ts` recognised the file and
   // charged nothing for saying so.
@@ -111,14 +116,14 @@ export async function POST(
     const mapping = mappingFrom(body.mapping);
     if (!mapping) return Response.json({ error: "no_mapping" }, { status: 400 });
 
-    const table = readTable(text);
+    const table = readTable(text, skipLines);
     if (!table) return Response.json({ error: "not_a_table" }, { status: 400 });
 
     const problems = checkMapping(table.header, mapping);
     if (problems.length > 0) {
       return Response.json({ error: "bad_mapping", problems }, { status: 400 });
     }
-    payments = applyMapping(text, mapping);
+    payments = applyMapping(text, mapping, skipLines);
   }
   // The trip's own dates, because a statement covers the fortnight either side
   // of it and nobody wants to scroll past their rent to find a ferry.

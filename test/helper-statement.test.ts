@@ -202,6 +202,22 @@ describe("the mapping, applied by code", () => {
   test("a mapping naming a column the file does not have reads nothing", () => {
     expect(applyMapping(STATEMENT, { ...MAPPING, amount: "Betrag" })).toEqual([]);
   });
+
+  // B761 — a real export often carries an account name or a date range above
+  // the header, and either can have as many cells as the header itself.
+  const PREAMBLE = ["Account name,Checking account,CHF", "Export date,09.03.2026,"];
+  const WITH_PREAMBLE = [...PREAMBLE, STATEMENT].join("\n");
+
+  test("a preamble line with three cells is mistaken for the header", () => {
+    expect(readTable(WITH_PREAMBLE)!.header).toEqual(PREAMBLE[0].split(","));
+  });
+
+  test("skipping the preamble lines finds the real header and every row under it", () => {
+    const table = readTable(WITH_PREAMBLE, 2)!;
+    expect(table.header).toEqual(HEADER.split(","));
+    expect(table.rows).toHaveLength(5);
+    expect(applyMapping(WITH_PREAMBLE, MAPPING, 2)).toEqual(applyMapping(STATEMENT, MAPPING));
+  });
 });
 
 describe("what the model is told", () => {
@@ -358,5 +374,63 @@ describe("costs reach the days", () => {
     );
     expect(refused.status).toBe(400);
     expect(refused.body.error).toBe("invalid_rows");
+  });
+});
+
+describe("a statement with a preamble line", () => {
+  // An account name and an export date above the real header, each with as
+  // many cells as the header itself — B761.
+  const PREAMBLE = ["Account name,Checking account,CHF", "Export date,09.03.2026,"];
+  const WITH_PREAMBLE = [...PREAMBLE, STATEMENT].join("\n");
+
+  test("without the escape hatch, the preamble is read as the header", async () => {
+    await consentTo("statement");
+    const id = stage("export.csv", WITH_PREAMBLE);
+    const answer = await read(await POST(json("/api/helper/owner/statement", { inbox: id }), params));
+    expect(answer.status).toBe(200);
+    expect(answer.body.header).toEqual(PREAMBLE[0].split(","));
+  });
+
+  test("skipLines moves the guess down, and the file can be imported without editing it first", async () => {
+    await consentTo("statement");
+    const id = stage("export.csv", WITH_PREAMBLE);
+
+    // The first look guessed wrong — this is what the "that is not the
+    // header row" button on the screen sends.
+    const fixed = await read(
+      await POST(
+        json("/api/helper/owner/statement", { inbox: id, skipLines: 2, idempotency_key: `${id}:skip2` }),
+        params,
+      ),
+    );
+    expect(fixed.status).toBe(200);
+    expect(fixed.body.header).toEqual(HEADER.split(","));
+    expect(fixed.body.skipLines).toBe(2);
+
+    // The whole file, read through the same offset, lands the same rows a
+    // clean file without the preamble would.
+    const whole = await read(
+      await applyRoute(
+        json("/api/helper/owner/statement/apply", {
+          inbox: id,
+          trip: "the-islands",
+          mapping: fixed.body.mapping,
+          skipLines: 2,
+        }),
+        params,
+      ),
+    );
+    expect(whole.status).toBe(200);
+    expect(whole.body.read).toBe(5);
+  });
+
+  test("a repeated skip level replays rather than asking the model again", async () => {
+    await consentTo("statement");
+    const id = stage("export.csv", WITH_PREAMBLE);
+    const body = { inbox: id, skipLines: 2, idempotency_key: `${id}:skip2` };
+    await POST(json("/api/helper/owner/statement", body), params);
+    await POST(json("/api/helper/owner/statement", body), params);
+    expect(mapStatementColumns).toHaveBeenCalledTimes(1);
+    expect(await balanceOf("owner")).toBe(9);
   });
 });
