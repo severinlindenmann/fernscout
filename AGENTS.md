@@ -120,6 +120,13 @@ Use it when you were asked to invent something. Writing "this is a test" into
 the prose instead is a convention, not a guarantee — the next reader has no way
 to know whether you bothered.
 
+**A whole journal made for testing is named for it**, since `test:` is a field
+on content and a journal has none: create it as `test-<something>` and never
+under a name that reads like a person's. The directory name is the one label
+that survives an export, a backup and an `ls`, and it is what lets anybody —
+or any later agent — delete the thing without stopping to find out whose it
+is.
+
 ## The content model
 
 Everything a person owns lives under `content/<username>/`. Nothing user-owned

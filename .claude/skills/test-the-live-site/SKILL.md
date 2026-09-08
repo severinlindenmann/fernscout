@@ -75,6 +75,8 @@ Three or four journals covers most campaigns: one busy, one in a second locale,
 one kept **empty** (several tickets need a journal with no trips, and it is the
 first thing an earlier agent destroys), one disposable for deletion tests.
 Addresses are always `xydhd-<something>@severin.io` — never a real person's.
+Usernames are always `test-<something>`, for the same reason and one more: it
+is what tells the next person on the server that the journal is disposable.
 
 Agent tokens last seven days, which outlives any campaign.
 
