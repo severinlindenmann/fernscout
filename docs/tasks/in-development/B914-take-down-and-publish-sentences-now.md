@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: agent
 found: "2026-09-08T06:05:10Z"
+started: "2026-09-08T15:43:57Z"
+session: 41335894-5435-4167-8cb6-898e370cd6a9
+claimed: "2026-09-08T15:43:57Z"
 ---
 
 # B914 — Take-down and publish sentences now reach a tool instead of being refused
