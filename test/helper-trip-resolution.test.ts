@@ -112,3 +112,54 @@ describe("the trip somebody does mean", () => {
     expect(ran.proposal?.arguments.trip).toBe(expected);
   });
 });
+
+/**
+ * A name that fits two trips — B965.
+ *
+ * B940 stopped a name matching **nothing** from becoming the newest trip. A
+ * name matching **several** still did, silently: `balkan` is a prefix of both
+ * `balkan-loop-2026` and `balkan-loop-check`, so the older was unreachable by
+ * that word and nobody was told there had been a choice.
+ *
+ * Found while reproducing something else, in a journal shaped the way people
+ * actually make them — one scratch trip made while learning, and the real one
+ * beside it. Five of six forms resolved correctly. The sixth is the one where
+ * somebody writes a day into the wrong trip, and it is the case where they
+ * were least specific and so least likely to check.
+ */
+describe("a name that fits more than one trip", () => {
+  beforeEach(() => {
+    trip("balkan-loop-2026", "Balkan Loop", "2026-07-01", "2026-07-10");
+    trip("balkan-loop-check", "Danube Circuit", "2026-08-01", "2026-08-10");
+    clearUserCache();
+  });
+
+  test("resolves to nothing rather than to the newer one", async () => {
+    const ran = await runTool("alex", "start_day", { trip: "balkan" }, say, "2026-09-08");
+    expect(ran.proposal).toBeUndefined();
+  });
+
+  test("and the reason names both, so the person can say which", async () => {
+    const ran = await runTool("alex", "days", { trip: "balkan" }, say, "2026-09-08");
+    const why = (ran.result as { why?: string }).why ?? "";
+    expect(why).toContain("Balkan Loop");
+    expect(why).toContain("Danube Circuit");
+    expect(why).toMatch(/more than one/i);
+  });
+
+  /**
+   * The step matters, and the tie is only within it. "Danube Circuit" is not
+   * ambiguous because "Danube" also fits something else — a better match wins
+   * outright, which is what keeps the ordinary case working.
+   */
+  test.each([
+    ["its exact id", "balkan-loop-check", "balkan-loop-check"],
+    ["the other's exact id", "balkan-loop-2026", "balkan-loop-2026"],
+    ["a title only one has", "Danube Circuit", "balkan-loop-check"],
+    ["the other's title", "Balkan Loop", "balkan-loop-2026"],
+    ["part of a title only one has", "danube", "balkan-loop-check"],
+  ])("%s still resolves", async (_what, said, expected) => {
+    const ran = await runTool("alex", "start_day", { trip: said }, say, "2026-09-08");
+    expect(ran.proposal?.arguments.trip).toBe(expected);
+  });
+});
