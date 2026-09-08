@@ -7,8 +7,7 @@ complexity: low
 area: helper, ui, a11y
 found: "2026-09-08T10:46:42Z"
 started: "2026-09-08T10:57:15Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T10:57:15Z"
+merged: "2026-09-08T11:02:57Z"
 ---
 
 # B948 — A failed press reads an internal code aloud
