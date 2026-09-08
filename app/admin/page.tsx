@@ -265,9 +265,12 @@ export default async function AdminPage() {
             Credits are switched off on this instance, so there are no balances to show.
           </p>
         ) : null}
-        {/* The rows, their search and their sort live in `Journals`; the
-            purchases and the ledger are still rendered here, on the server,
-            and handed over as the opened panel. */}
+        {/* The rows, their search and their sort live in `Journals`; what is
+            behind one — its purchases, its ledger, and adding to its balance —
+            is rendered here, on the server, and handed over as the panel that
+            opens. B992 moved the grant form in with them: it was a section at
+            the foot of the page asking again which journal, which is a place to
+            credit the wrong one. */}
         <Journals
           rows={data.journals.map((journal) => ({
             username: journal.username,
@@ -279,20 +282,11 @@ export default async function AdminPage() {
               <>
                 <Purchases username={journal.username} />
                 <Ledger username={journal.username} />
+                <AdminGrant journal={journal.username} />
               </>
             ),
           }))}
         />
-      </section>
-
-      <section className="mt-10 border-t border-navy-200 pt-6">
-        <h2 className="font-display text-lg font-semibold text-navy-900">Add credits</h2>
-        <p className="mt-1 text-sm text-navy-700">
-          This files a request and mails the operator a single-use link. Nothing is added to a
-          balance until that link is opened — no request, including this one, can raise a balance
-          by itself.
-        </p>
-        <AdminGrant journals={data.journals.map((journal) => journal.username)} />
       </section>
     </main>
   );
