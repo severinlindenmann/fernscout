@@ -117,12 +117,6 @@ export function productUidFor(sizeId: string, cover: CoverType): string | null {
   return BOOK_SIZES[sizeId]?.covers[cover] ?? null;
 }
 
-/** The size to fall back to when a cover no longer offers the chosen one —
- * the wizard changing from hard to soft while `large-square` is selected. */
-export function defaultSizeFor(cover: CoverType): BookSize {
-  return sizesFor(cover)[0] ?? BOOK_SIZES.square;
-}
-
 /**
  * Binding limits, which are a property of the machine and not of taste.
  */

@@ -261,7 +261,12 @@ git merge --no-ff b01-forwarded-for-trust
 ```
 
 Verify once more on main after the merge — a merge that passes on the branch
-can still fail against what landed while you worked. Then:
+can still fail against what landed while you worked. **If you run only one
+thing, run `npm run unused`.** It is two seconds, and it is the check a clean
+merge breaks most: your branch exported something its own caller used, the
+other branch removed that caller, git merges both without a conflict, and knip
+is red on main with nobody's tests failing. B880, B881, B883 and B896 are four
+recordings of exactly that. Then:
 
 ```bash
 npm run tasks -- move B01 testing   # rewrites INDEX.md, here where it is true
