@@ -13,6 +13,7 @@
   "a11y.photoPosition": "Photo {index} of {count}",
   "a11y.photoViewer": "Photo viewer",
   "a11y.prevPhoto": "Previous photo",
+  "a11y.removePhoto": "Remove this photo",
   "a11y.skipToContent": "Skip to content",
   "approve.accept": "Approve and add the credits",
   "approve.done": "Approved — {credits} credits added to {user}.",

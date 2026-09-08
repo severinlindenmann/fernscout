@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Image from "next/image";
+import { Trash2 } from "lucide-react";
 import { mediaLoader } from "./mediaLoader";
 import { motion } from "motion/react";
 import { useI18n } from "./LocaleProvider";
@@ -15,7 +16,23 @@ import type { GalleryItem } from "@/lib/types";
 // instead of a perfectly uniform AI-card grid.
 const TILTS = [-2.5, 1.5, -1, 2, -1.5, 1];
 
-export default function Gallery({ items }: { items: GalleryItem[] }) {
+export default function Gallery({
+  items,
+  onRemove,
+}: {
+  items: GalleryItem[];
+  /**
+   * Owner only — B862. The photograph a person is looking at, full screen, is
+   * where they notice they do not want it; without this the only way there
+   * was closing the viewer, finding "Correct this day" below the fold, and
+   * finding the same photograph again among its thumbnails. Passing this
+   * closes that gap: it marks the open photograph to go and opens the
+   * correction panel already showing it that way — one press, not several,
+   * and still nothing leaves disk until the panel's own Save (`EditDay`).
+   * Absent for a reader who is not the owner.
+   */
+  onRemove?: (src: string) => void;
+}) {
   const { t } = useI18n();
   // Null outside a `TripProvider` (there is no such caller today), and the
   // marker only ever shows to a reader `readFor` has already proved is on
@@ -110,6 +127,23 @@ export default function Gallery({ items }: { items: GalleryItem[] }) {
         onNext={next}
         // A clip owns the pointer: dragging across it is dragging its scrubber.
         swipeable={open?.type !== "video"}
+        extra={
+          open &&
+          onRemove && (
+            <button
+              type="button"
+              aria-label={t("a11y.removePhoto")}
+              className="absolute left-4 top-4 z-10 rounded-full bg-navy-900/40 p-2 text-white/80 hover:bg-white/10 hover:text-white"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove(open.src);
+                close();
+              }}
+            >
+              <Trash2 className="h-5 w-5" />
+            </button>
+          )
+        }
       >
         {open && (
           <>

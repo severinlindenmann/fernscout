@@ -77,11 +77,19 @@ export default function EditDay({
   username,
   tripId,
   day,
+  initialDrop,
   onClose,
 }: {
   username: string;
   tripId: string;
   day: Day;
+  /**
+   * A photograph already on its way out when this panel opened — B862, the
+   * owner pressing "remove" on the picture itself, in the lightbox, rather
+   * than finding it again among the thumbnails below. Still just the mark:
+   * nothing leaves disk until Save, same as pressing "Remove" here would.
+   */
+  initialDrop?: string;
   onClose: () => void;
 }) {
   const { t, formatLongDate } = useI18n();
@@ -90,7 +98,9 @@ export default function EditDay({
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   /** Photographs marked to go, by `src`. Nothing leaves disk until save. */
-  const [dropping, setDropping] = useState<string[]>([]);
+  const [dropping, setDropping] = useState<string[]>(() =>
+    initialDrop ? [initialDrop] : [],
+  );
   /** Files chosen to be added, per update index. */
   const [adding, setAdding] = useState<Record<number, File[]>>({});
 

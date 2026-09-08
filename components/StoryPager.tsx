@@ -224,6 +224,11 @@ export function DayCard({
   const { t, formatLongDate } = useI18n();
   const { spendParts } = useMoney();
   const [editing, setEditing] = useState(false);
+  // The photograph the owner pressed "remove" on from the lightbox itself
+  // rather than from the correction panel — B862. Carried across into
+  // `EditDay` so it opens already marked to go, and cleared when the panel
+  // closes so a later, ordinary "Correct this day" starts from nothing.
+  const [removing, setRemoving] = useState<string | undefined>(undefined);
   const lead = day.lead;
   const multi = day.entries.length > 1;
   const cost = summary.cost;
@@ -351,6 +356,14 @@ export function DayCard({
             branched={multi}
             first={i === 0}
             last={i === day.entries.length - 1}
+            onRemovePhoto={
+              trip?.canPublish
+                ? (src) => {
+                    setRemoving(src);
+                    setEditing(true);
+                  }
+                : undefined
+            }
           />
         ))}
 
@@ -383,7 +396,11 @@ export function DayCard({
           username={trip.trip.username}
           tripId={trip.trip.id}
           day={day}
-          onClose={() => setEditing(false)}
+          initialDrop={removing}
+          onClose={() => {
+            setEditing(false);
+            setRemoving(undefined);
+          }}
         />
       ) : (
         <OwnerTools
@@ -433,12 +450,16 @@ function UpdateBlock({
   branched,
   first,
   last,
+  onRemovePhoto,
 }: {
   entry: Entry;
   branched: boolean;
   first: boolean;
   /** The last stop of the day — draws a dot and no rail below it. */
   last: boolean;
+  /** See `Gallery`'s `onRemove` — undefined for a reader who is not the
+   *  owner. */
+  onRemovePhoto?: (src: string) => void;
 }) {
   const { t, localized } = useI18n();
   const { title, content, fallbackNotice } = localized(entry);
@@ -508,7 +529,7 @@ function UpdateBlock({
 
       {entry.gallery.length > 0 && (
         <div className="mt-7">
-          <Gallery items={entry.gallery} />
+          <Gallery items={entry.gallery} onRemove={onRemovePhoto} />
         </div>
       )}
     </div>

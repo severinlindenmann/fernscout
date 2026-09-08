@@ -13,6 +13,7 @@
   "a11y.photoPosition": "Foto {index} von {count}",
   "a11y.photoViewer": "Fotoansicht",
   "a11y.prevPhoto": "Vorheriges Foto",
+  "a11y.removePhoto": "Dieses Foto entfernen",
   "a11y.skipToContent": "Zum Inhalt springen",
   "approve.accept": "Freigeben und Credits hinzufügen",
   "approve.done": "Freigegeben — {credits} Credits zu {user} hinzugefügt.",

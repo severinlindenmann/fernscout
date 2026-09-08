@@ -42,6 +42,7 @@ export default function Lightbox({
   onPrev,
   onNext,
   swipeable = true,
+  extra,
   children,
 }: {
   /** Which photograph is open, or `null` for closed. */
@@ -56,6 +57,13 @@ export default function Lightbox({
    * where a drag across the picture is a drag along the scrubber (B16).
    */
   swipeable?: boolean;
+  /**
+   * A control beside the close button that only the caller knows how to
+   * offer — the owner's "remove this photo", from `Gallery` — B862. Absent
+   * for every viewer this chrome serves that has nothing extra to add
+   * (`GalleryGrid`, and anybody reading rather than owning).
+   */
+  extra?: ReactNode;
   /** The picture, and whatever is printed beneath it. */
   children: ReactNode;
 }) {
@@ -86,6 +94,7 @@ export default function Lightbox({
           className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-navy-900/95 p-4 outline-none backdrop-blur-sm"
           onClick={onClose}
         >
+          {extra}
           <button
             aria-label={t("a11y.closePhoto")}
             className="absolute right-4 top-4 z-10 rounded-full bg-navy-900/40 p-2 text-white/80 hover:bg-white/10 hover:text-white"

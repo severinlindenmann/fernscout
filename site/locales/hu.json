@@ -13,6 +13,7 @@
   "a11y.photoPosition": "{count} fénykép közül a(z) {index}.",
   "a11y.photoViewer": "Fényképnézegető",
   "a11y.prevPhoto": "Előző fénykép",
+  "a11y.removePhoto": "Fénykép eltávolítása",
   "a11y.skipToContent": "Ugrás a tartalomra",
   "approve.accept": "Jóváhagyás és kreditek hozzáadása",
   "approve.done": "Jóváhagyva — {credits} kredit hozzáadva ehhez: {user}.",
