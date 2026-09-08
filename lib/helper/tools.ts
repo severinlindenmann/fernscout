@@ -2,6 +2,7 @@ import "server-only";
 import { balanceOf } from "../credits";
 import { getCostSummary } from "../costs";
 import { AS_AUTHOR, getAllEntries } from "../entries";
+import { findInboxFile } from "../inbox";
 import { formatBytes, storageFor } from "../storageQuota";
 import { getTrip, getTrips, tripRef } from "../trips";
 import type { Block, Proposal, ProposalField, Shape } from "./blocks";
@@ -643,6 +644,75 @@ export const TOOLS: readonly Tool[] = [
         fields: [
           { name: "trip", value: found?.trip.id ?? args.trip ?? "" },
           { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * The photographs already waiting, put on a day — B915.
+     *
+     * The one sentence the files pane exists for. A person ticks two
+     * photographs in the inbox and says "put these on yesterday"; the ids ride
+     * into the conversation on the selection line (`describeSelection`,
+     * lib/helper/server.ts), and this proposes the move — the files named, the
+     * day named, and nothing moved until the press.
+     *
+     * **It does not upload anything**, which is why `add_photos` below still
+     * exists and still hands over the day's own page: bytes from a camera are
+     * a picker and a file input, and neither is a sentence. This moves files
+     * this journal already has, through the same
+     * `attachStagedFiles` the documented v1 route calls, so the same
+     * duplicate rule holds at both doors — the inbox names a file by a hash of
+     * its bytes, so the same photograph offered twice is recognised rather
+     * than stored again.
+     */
+    name: "attach_files",
+    kind: "write",
+    renders: "confirm",
+    describe:
+      "Propose putting photographs waiting in the journal's inbox onto a day — what they mean by \"put these on yesterday\" about the files pane's selection. `files` is those ids, comma-separated, copied from the selection line, never invented. Nothing moves until they press.",
+    properties: {
+      ...DAY_ARGS,
+      files: {
+        type: "string",
+        description: "The inbox ids, comma-separated, from the selection line.",
+      },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/attach`,
+    propose: async (username, args, say) => {
+      const found = resolveDay(username, args);
+      // Resolved against disk, here as well as in the route: an id is a
+      // reference and never a fact, and a proposal must name the files a
+      // person will actually get rather than the ones a model typed.
+      const names: string[] = [];
+      const ids: string[] = [];
+      for (const asked of (args.files ?? "").split(",")) {
+        const staged = findInboxFile(username, asked.trim());
+        if (!staged || staged.entry.kind !== "media") continue;
+        names.push(staged.entry.filename);
+        ids.push(staged.entry.id);
+      }
+      // Either both or neither: a day with no files and files with no day are
+      // the same refusal, and it says so rather than proposing half a move.
+      const onto = names.length > 0 ? found : null;
+      return {
+        sentence: onto
+          ? say("agent.tool.attachFiles", {
+              count: String(names.length),
+              date: onto.entry.date,
+              title: onto.entry.title,
+            })
+          : say("agent.tool.attachNone"),
+        accept: say("agent.tool.attachFilesAccept"),
+        done: say("agent.tool.attachFilesDone"),
+        // The files by name, and the day they are going on, before the press.
+        // Their own filenames: nothing here is this software's prose.
+        preview: onto ? [`${onto.entry.date} — ${onto.entry.title}`, ...names] : [],
+        fields: [
+          { name: "trip", value: found?.trip.id ?? args.trip ?? "" },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
+          { name: "files", value: ids.join(",") },
         ],
       };
     },

@@ -86,6 +86,16 @@ export default function HelperRoom({
   const { t, tn } = useI18n();
 
   const [selected, setSelected] = useState<string[]>([]);
+  /**
+   * The pane's own copy of what is waiting — B915.
+   *
+   * It arrives from the server (`filesForRoom`) and shrinks here: a
+   * photograph that has been put on a day has left the inbox, and a tile that
+   * went on offering it would be offering a file that is no longer there.
+   * Nothing else about the pane is decided in the browser — this is a removal
+   * the server has already made, echoed rather than guessed.
+   */
+  const [inbox, setInbox] = useState(files.inbox);
   const [subject, setSubject] = useState<Subject | null>(
     opening ? { ...opening, at: 0 } : null,
   );
@@ -139,7 +149,7 @@ export default function HelperRoom({
 
   const filesPane = (
     <FilesPane
-      files={files}
+      files={{ ...files, inbox }}
       selected={selected}
       onToggle={toggle}
       onClear={() => setSelected([])}
@@ -222,6 +232,13 @@ export default function HelperRoom({
             inRoom
             selected={selected}
             onSubject={(day) => setSubject({ ...day, at: Date.now() })}
+            onFilesMoved={(moved) => {
+              // The pane's ids carry the `inbox:` prefix; the route answers
+              // with the bare ids it moved.
+              const gone = new Set(moved.map((id) => `inbox:${id}`));
+              setInbox((was) => was.filter((file) => !gone.has(file.id)));
+              setSelected((was) => was.filter((id) => !gone.has(id)));
+            }}
           />
         </main>
 
