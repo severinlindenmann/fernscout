@@ -10,8 +10,12 @@ import {
   releaseChannelClaim,
   type NotifyChannel,
 } from "@/lib/digest/dayNotify";
-import { sendDayLetter } from "@/lib/digest/dayLetter";
-import { sendDayWhatsapp, whatsappWouldCost } from "@/lib/digest/dayWhatsapp";
+import { mailWouldReach, sendDayLetter } from "@/lib/digest/dayLetter";
+import {
+  sendDayWhatsapp,
+  whatsappWouldCost,
+  whatsappWouldReach,
+} from "@/lib/digest/dayWhatsapp";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import type { Trip } from "@/lib/types";
@@ -41,6 +45,11 @@ export const dynamic = "force-dynamic";
 
 type StatusError = "unknown_trip" | "unknown_day" | "not_published" | "test_content";
 
+/** One channel a press of the button would use, and what it would do — B1024.
+ *  Before this the route answered with bare channel names, so the panel could
+ *  quote a price and could not say who was about to be written to. */
+type PendingChannel = { channel: NotifyChannel; count: number; cost: number };
+
 type Status =
   | { error: StatusError }
   | {
@@ -49,8 +58,14 @@ type Status =
       /** Channels not yet notified *and* actually switched on for this
        * journal — the ones a press of the button would try. Empty means
        * either everything reachable has already been told, or nothing is
-       * reachable at all; the two are told apart by `reachable` below. */
-      pending: NotifyChannel[];
+       * reachable at all; the two are told apart by `reachable` below.
+       *
+       * Each carries what pressing the button would do on that channel —
+       * B1024. `count` is how many messages go out, `cost` is what they come
+       * to; for WhatsApp the two differ by the owner's own free copy, which
+       * is a message nobody is charged for. The panel needs both, and the
+       * server has already worked both out to answer `needed`. */
+      pending: PendingChannel[];
       /** Whether any channel is configured for this journal at all — false
        * means there is nothing this button could ever do, whatever is
        * notified, and the page should show no button rather than a dead
@@ -78,10 +93,29 @@ async function statusFor(owner: string, tripParam: string, slug: string): Promis
 
   // Mail was a term in this sum until B840; a letter costs nothing now, so
   // what the button quotes is the WhatsApp half or nothing at all.
-  const needed = pending.includes("whatsapp") ? await whatsappWouldCost(owner, ref, slug) : 0;
+  const detailed: PendingChannel[] = await Promise.all(
+    pending.map(async (channel) =>
+      channel === "whatsapp"
+        ? {
+            channel,
+            count: await whatsappWouldReach(owner, ref, slug),
+            cost: await whatsappWouldCost(owner, ref, slug),
+          }
+        : { channel, count: await mailWouldReach(owner, ref, slug), cost: 0 },
+    ),
+  );
+  const needed = detailed.reduce((sum, c) => sum + c.cost, 0);
   const balance = creditsEnabled() ? await balanceOf(owner) : null;
 
-  return { ref, trip, pending, reachable, needed, balance, short: balance !== null && needed > balance };
+  return {
+    ref,
+    trip,
+    pending: detailed,
+    reachable,
+    needed,
+    balance,
+    short: balance !== null && needed > balance,
+  };
 }
 
 const NOT_FOR_AGENTS = {
@@ -178,7 +212,7 @@ export async function POST(
    * sends it; the other finds the channel already taken and moves on.
    */
   const result: Record<string, unknown> = {};
-  for (const channel of status.pending) {
+  for (const { channel } of status.pending) {
     if (!(await claimChannel(user, status.trip.id, slug, channel))) continue;
 
     if (channel === "mail") {

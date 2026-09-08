@@ -726,8 +726,6 @@
   "nav.trips": "Reisen",
   "notify.button": "Leser informieren",
   "notify.cancel": "Jetzt nicht",
-  "notify.confirm": "Der Versand kostet {needed} Credit(s), danach bleiben dir {rest}. Jetzt senden?",
-  "notify.confirmFree": "Diesen Tag jetzt an deine Leser senden?",
   "notify.failed": "Das konnte nicht gesendet werden. Es wurde nichts berechnet.",
   "notify.sent": "Deine Leser wurden über diesen Tag informiert.",
   "owner.onlyYou": "Nur für dich sichtbar",
@@ -1812,5 +1810,15 @@
   "agent.publishRow": "Veröffentlichen lassen",
   "agent.publishRowHint": "Bis du es sagst, sieht den Tag niemand außer dir.",
   "agent.room.roomLinkHint": "Deine Dateien und eine Vorschau des Tages daneben.",
-  "agent.editDay": "Bearbeiten"
+  "agent.editDay": "Bearbeiten",
+  "notify.question": "Diesen Tag jetzt senden?",
+  "notify.sendNow": "Jetzt senden",
+  "notify.viaMail": "E-Mails",
+  "notify.viaMail.one": "E-Mail",
+  "notify.viaWhatsapp": "WhatsApp-Nachrichten",
+  "notify.viaWhatsapp.one": "WhatsApp-Nachricht",
+  "notify.free": "gratis",
+  "notify.costCredits": "{credits} Credits",
+  "notify.costCredits.one": "1 Credit",
+  "notify.total": "Zusammen {needed}, danach bleiben dir {rest}."
 }
