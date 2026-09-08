@@ -49,9 +49,9 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (139)
+## backlog (138)
 
-### issue (45)
+### issue (44)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -59,7 +59,6 @@ Do not edit them by hand; run the script.
 | [B829](backlog/issue/B829-rewording-a-row-did-not-stop.md) | Rewording a row did not stop the wrong one matching | ISSUE | high | low |
 | [B922](backlog/issue/B922-a-credit-is-spent-on-a.md) | Was she charged for a day that was never written, and should she have been? | ISSUE | high | low |
 | [B926](backlog/issue/B926-the-helper-forgets-what-it-was.md) | The helper forgets what it was told one message ago | ISSUE | high | low |
-| [B995](backlog/issue/B995-the-microphone-in-the-search-box.md) | The microphone in the search box listens and never sends what it heard | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
@@ -240,7 +239,7 @@ _Nothing here._
 | [B982](in-development/B982-the-send-flow-jumps-pressing-send.md) | The send flow jumps: pressing send reloads the page instead of posting the card | FEATURE | medium | medium | `b8352d66` |
 | [B985](in-development/B985-only-two-of-the-write-routes.md) | Only two of the write routes record a press they refused | CHORE | low | low | `fdfcf5f2` |
 
-## testing (191)
+## testing (192)
 
 ### security (7)
 
@@ -254,7 +253,7 @@ _Nothing here._
 | [B908](testing/security/B908-a-leaked-agent-token-can-be.md) | A leaked agent token can be listed and not ended | SECURITY | medium | low | — |
 | [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (107)
+### issue (108)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -317,6 +316,7 @@ _Nothing here._
 | [B968](testing/issue/B968-a-cost-proposal-names-a-category.md) | A cost proposal names a category the endpoint refuses | ISSUE | high | low | — |
 | [B969](testing/issue/B969-a-paragraph-describing-a-whole-day.md) | A paragraph describing a whole day is thrown away because the day does not exist yet | ISSUE | high | medium | — |
 | [B975](testing/issue/B975-voice-search-stops-the-instant-it.md) | Voice search stops the instant it starts, and says nothing about why | ISSUE | high | low | — |
+| [B995](testing/issue/B995-the-microphone-in-the-search-box.md) | The microphone in the search box listens and never sends what it heard | ISSUE | high | low | — |
 | [B749](testing/issue/B749-the-figures-float-above-the-title.md) | The figures float above the title with a gap, and repeat on every chapter divider | ISSUE | medium | low | — |
 | [B752](testing/issue/B752-the-sign-in-field-draws-three.md) | The sign-in field draws three focus indicators at once, so it reads as a box inside a box | ISSUE | medium | low | — |
 | [B762](testing/issue/B762-the-envelope-leaves-from-the-panel.md) | The envelope leaves from the panel's corner instead of from the button, and the panel clips its flight | ISSUE | medium | low | — |

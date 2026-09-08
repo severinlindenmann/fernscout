@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: search, speech
 found: "2026-09-08T17:09:27Z"
+merged: "2026-09-08T17:11:44Z"
 ---
 
 # B995 — The microphone in the search box listens and never sends what it heard
