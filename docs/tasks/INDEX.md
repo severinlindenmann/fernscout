@@ -49,9 +49,9 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (135)
+## backlog (133)
 
-### issue (31)
+### issue (29)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -81,8 +81,6 @@ Do not edit them by hand; run the script.
 | [B784](backlog/issue/B784-the-page-still-has-two-bright.md) | The page still has two bright buttons even though the card has one | ISSUE | low | low |
 | [B812](backlog/issue/B812-focus-is-lost-when-the-handover.md) | Focus is lost when the handover prompt appears | ISSUE | low | low |
 | [B813](backlog/issue/B813-a-denied-microphone-is-announced-politely.md) | A denied microphone is announced politely instead of as a problem | ISSUE | low | low |
-| [B862](backlog/issue/B862-removing-a-photograph-is-one-step.md) | Removing a photograph is one step behind where you notice you want to | ISSUE | low | low |
-| [B863](backlog/issue/B863-the-upload-progress-line-calls-a.md) | The upload progress line calls a spreadsheet a photograph | ISSUE | low | low |
 | [B873](backlog/issue/B873-a-video-on-a-day-is.md) | A video on a day is dropped from the captions with no mention | ISSUE | low | low |
 | [B874](backlog/issue/B874-captions-read-like-an-inventory-of.md) | Captions read like an inventory of shapes rather than a caption | ISSUE | low | low |
 | [B973](backlog/issue/B973-a-cost-with-no-currency-is.md) | A cost with no currency is filed in the base one without anybody being asked | ISSUE | low | low |
@@ -225,7 +223,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (9)
+## in-development (11)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -238,6 +236,8 @@ _Nothing here._
 | [B934](in-development/B934-an-invite-link-has-to-be.md) | An invite link has to be selected by hand on a phone | ISSUE | medium | low | `bdd0270d` |
 | [B946](in-development/B946-the-owner-s-session-stops-being.md) | The owner's session stops being recognised partway through a sitting | ISSUE | medium | medium | `bdd0270d` |
 | [B952](in-development/B952-half-of-a-two-part-request.md) | Half of a two-part request is answered and the other half is dropped without a word | ISSUE | medium | medium | `bdd0270d` |
+| [B862](in-development/B862-removing-a-photograph-is-one-step.md) | Removing a photograph is one step behind where you notice you want to | ISSUE | low | low | `bdd0270d` |
+| [B863](in-development/B863-the-upload-progress-line-calls-a.md) | The upload progress line calls a spreadsheet a photograph | ISSUE | low | low | `bdd0270d` |
 
 ## testing (224)
 
