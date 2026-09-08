@@ -7,8 +7,7 @@ complexity: low
 area: components/OwnerTools.tsx, site/locales
 found: "2026-09-08T19:05:00Z"
 started: "2026-09-08T18:59:41Z"
-session: 79cece02-4661-45ef-809b-52b592e67f95
-claimed: "2026-09-08T18:59:41Z"
+merged: "2026-09-08T19:13:13Z"
 ---
 
 # B1013 — The tile on a day card offers to take the day down and the panel it opens cannot
