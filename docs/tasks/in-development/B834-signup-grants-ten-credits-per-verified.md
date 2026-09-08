@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: credits, signup, abuse
 found: "2026-09-07T16:01:36Z"
+started: "2026-09-08T21:36:19Z"
+session: bdd0270d-3797-42c9-8687-06abecadbc63
+claimed: "2026-09-08T21:36:19Z"
 ---
 
 # B834 — Signup grants ten credits per verified email with no per-identity cap, so credits can be farmed with disposable inboxes
