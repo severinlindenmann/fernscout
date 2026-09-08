@@ -1009,6 +1009,21 @@ as \`Authorization: Bearer <token>\`. Do not put it in a URL, do not store it in
 a file the author did not ask for, and tell them if you no longer need it — they
 can revoke it.
 
+**Seven days is a floor, not a ceiling, and the owner should know which you are
+doing.** If you hold a live token for a journal whose owner address you were
+authenticated as, \`POST ${site.url}/api/v1/<user>/handover\` accepts that token
+— cookie *or* bearer — and hands back a handover credential you can spend for a
+fresh seven-day token. So an agent that keeps working can keep itself alive
+without the person ever seeing another code. That is deliberate: it is what
+makes a long job survive a week, and every renewal is a new row on the owner's
+access page, which is where they end it. What it means for you is one sentence
+of honesty: if you intend to keep renewing, **say so** rather than letting
+"seven days" be heard as "this stops by itself". An owner who wants it to stop
+by itself should be told to revoke, at \`${site.url}/<user>/me\`.
+
+A token scoped to one trip cannot do this — \`handover\` carries the journal, and
+widening a buddy's reach is exactly what it refuses.
+
 ## A web helper exists too, and it is not part of this contract
 
 If you see \`/api/helper/<user>/...\` mentioned anywhere — a screenshot, a log,

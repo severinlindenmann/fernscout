@@ -39,6 +39,16 @@ export const dynamic = "force-dynamic";
  * exists for is on a page the owner is reading in a browser, and the cookie is
  * `SameSite=lax` so a cross-site POST does not carry it.
  *
+ * **A live agent token counts, and that means a token can renew itself** — ask
+ * here with the bearer, spend the credential at `POST /api/auth/handover`, and
+ * seven days start again with the owner never seeing a code. B776 looked at
+ * this and left it: it is what lets a long job survive a week, every renewal
+ * is a fresh row on the owner's access page, and revoking is immediate. What
+ * B776 did change is that `/agent.md` and that page now say so, instead of
+ * both implying a token expires by itself. A refusal here would have to be
+ * `resolveSession(..., "guest")` rather than `isOwner`, and would break the
+ * invites route's sibling contract for no gain over revocation.
+ *
  * Never a guest, and never somebody on a trip. A buddy's write access is
  * scoped to their trip and their token is minted from a code naming it
  * (B230); a handover credential carries the journal, so issuing one to a trip
