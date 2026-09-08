@@ -5,7 +5,7 @@ import { refusalFor, type Say } from "@/lib/helper/intents";
 import { answerInThread } from "@/lib/helper/model";
 import { describeSelection, isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { recordTurn } from "@/lib/helper/sessions";
-import { forget, history, note, remember, sessionId } from "@/lib/helper/thread";
+import { forget, history, proposed, remember, sessionId } from "@/lib/helper/thread";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -268,10 +268,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     answered: thread.answer,
   });
   for (const proposal of thread.proposals) {
-    note(
-      user,
-      `[proposed, not written, waiting to be pressed: ${proposal.tool} ${JSON.stringify(proposal.arguments)}]`,
-    );
+    proposed(user, proposal.tool, proposal.arguments);
   }
 
   return Response.json({
