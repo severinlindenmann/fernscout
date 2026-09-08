@@ -7,8 +7,7 @@ complexity: medium
 area: Postcards
 found: "2026-09-08T16:17:16Z"
 started: "2026-09-08T16:18:26Z"
-session: b8352d66-3105-4f5d-a703-f8809d0b08e6
-claimed: "2026-09-08T16:18:26Z"
+merged: "2026-09-08T17:21:39Z"
 ---
 
 # B982 — The send flow jumps: pressing send reloads the page instead of posting the card
@@ -53,6 +52,19 @@ code) and is used on one page.
 - Soft-navigate the two remaining hard loads: `router.push` out of the
   composer, `Link` on "Buy credits".
 
+**And the second half, which arrived with a photograph of a real proof.** The
+card sent to Stannp carried an address block and a stamp box, and Stannp lays
+down its own: the printed card had two addresses over each other, one name
+written across the other, and somebody had paid for it. So `renderPostcard`
+takes `address: "printer"` and draws neither — `lib/postcard/send.ts` asks for
+that copy, while the proof and the receipt attachment keep theirs. The preview
+shows the address the way the printer sets it (`printerAddressLines` in
+`providers.ts`, read off the proof), dashed and captioned as not ours.
+
+Not doing: a per-provider switch for who addresses a card. One provider prints
+today and the flag is a caller's argument, so a second provider that behaves
+differently is a line in `send.ts` rather than a mechanism nobody needs yet.
+
 Not doing: any change to what sending *is* — `sendOrder`, the credit spend, the
 claim, the receipt. Not touching `PostcardBack` or the cropper, which B773 and
 B892 already made live.
@@ -69,3 +81,22 @@ B892 already made live.
   two presses and a redirect.
 - A failed send (no credits) shows its own sentence in the box and leaves the
   order sendable.
+- The back rendered for the provider carries no recipient and no stamp box; the
+  proof copy still carries both.
+- The preview's address block reads in the printer's own order, with the note
+  saying who prints it.
+
+## What was checked, and how
+
+Driven in a real browser (headless Chromium over CDP, 390 × 844, owner cookie,
+a real order with a real recipient): typing still saves, the first press opens
+the confirm step with no navigation, the second flies the envelope (opacity
+0.98 → 0.02 over ~450ms) and lands on "Sent. The cards have gone to the
+printer.", after which the heading reads "Postcards, sent" and the back is
+read-only — all with a marker on `window` still alive, which is the proof that
+nothing navigated.
+
+Two things learned on the way, both written into the code: a `motion` element
+that is server-rendered ships `opacity: 0` in the HTML and is invisible until
+hydration, and a cookie-injecting proxy in front of `next dev` breaks
+hydration outright, so a page driven through one *always* looks unhydrated.
