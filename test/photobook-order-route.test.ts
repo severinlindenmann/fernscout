@@ -97,7 +97,7 @@ describe("the order route", () => {
      * ordering, which is the whole of the fix.
      */
     test("a build that throws costs nothing, because nothing was charged yet", async () => {
-      vi.mocked(buildPhotobook).mockImplementation(() => {
+      vi.mocked(buildPhotobook).mockImplementation(async () => {
         throw new Error("no ICC profile for this size");
       });
 
@@ -116,7 +116,7 @@ describe("the order route", () => {
 
     test("the book is built before a single credit moves", async () => {
       const calls: string[] = [];
-      vi.mocked(buildPhotobook).mockImplementation(() => {
+      vi.mocked(buildPhotobook).mockImplementation(async () => {
         calls.push("build");
         return { files: ["book-interior.pdf"], pages: 52, volumes: 1, missing: [] };
       });
@@ -215,7 +215,7 @@ describe("the order route", () => {
       });
 
       test("a previewed price that still matches goes through exactly as before", async () => {
-        vi.mocked(buildPhotobook).mockReturnValue({
+        vi.mocked(buildPhotobook).mockResolvedValue({
           files: ["book-interior.pdf"],
           pages: 52,
           volumes: 1,
@@ -235,7 +235,7 @@ describe("the order route", () => {
       // The narrow race the check above cannot close: two of the owner's own
       // sessions. The book exists, so it is kept — pressing Pay again after
       // topping up costs nothing extra, the id and the files being the same.
-      vi.mocked(buildPhotobook).mockReturnValue({
+      vi.mocked(buildPhotobook).mockResolvedValue({
         files: ["book-interior.pdf"],
         pages: 52,
         volumes: 1,

@@ -7,7 +7,8 @@ import { listContacts } from "../contacts";
 import { photobookCredits } from "../credits/pricing";
 import { planBook, type Photobook } from "./plan";
 import { buildBookSource, resolvePrintFile } from "./source";
-import { BOOK_SIZES, defaultSpec, type BookSpec } from "./spec";
+import { BOOK_SIZES, defaultSpec, productUidFor, type BookSpec } from "./spec";
+import { fetchCoverGeometry } from "./coverGeometry";
 import { renderCover, renderVolume } from "./render";
 import type { BookOptions } from "./options";
 
@@ -80,13 +81,46 @@ export function orderDir(owner: string, orderId: string): string {
   return path.join(contentRoot(), owner, "photobooks", orderId);
 }
 
-export function buildPhotobook(
+/**
+ * Async since B885's follow-up, and only for one line: the cover geometry is
+ * asked of Gelato before anything is drawn.
+ *
+ * A softcover spine is a formula and `computeCoverGeometry` gets it exactly
+ * right. A hardcover's is a table Gelato maintains — 44, 60 and 72 pages give
+ * 6, 6 and 9 mm — so no formula reproduces it, and the offline fallback is an
+ * interpolation between measured rows. For a book somebody is about to pay to
+ * have printed, an interpolation is not good enough: a spine 2 mm narrow
+ * wraps the front image around onto the spine and nobody finds out until the
+ * parcel arrives. So the real answer is fetched, and the fallback is what a
+ * checkout with no API key draws with.
+ */
+/**
+ * Replace each volume's computed cover geometry with Gelato's own, where it
+ * will answer. Silent when it will not — no key, no network, a product it has
+ * never heard of — because a book that cannot be printed today should still
+ * be a book you can look at, and the fallback is close enough to look at.
+ */
+async function useRealCoverGeometry(book: Photobook, options: BookOptions): Promise<void> {
+  const productUid = productUidFor(options.size, options.coverType);
+  if (!productUid) return;
+  for (const volume of book.volumes) {
+    const real = await fetchCoverGeometry(productUid, volume.interiorPages);
+    if (!real) continue;
+    volume.cover.geometry = real;
+    volume.cover.widthMm = real.sheetWidthMm;
+    volume.cover.heightMm = real.sheetHeightMm;
+    volume.cover.spineWidthMm = real.spineWidthMm;
+    volume.spineWidthMm = real.spineWidthMm;
+  }
+}
+
+export async function buildPhotobook(
   owner: string,
   orderId: string,
   trip: string,
   options: BookOptions,
   followers?: string[],
-): { files: string[]; pages: number; volumes: number; missing: string[] } {
+): Promise<{ files: string[]; pages: number; volumes: number; missing: string[] }> {
   // Built once, not through `planFor`: the document metadata below needs the
   // `BookSource` `planFor` discards, and building it twice would mean two
   // reads of the trip's entries for one order.
@@ -97,6 +131,7 @@ export function buildPhotobook(
   });
   const spec = specFor(options);
   const book = planBook(source, spec, options);
+  await useRealCoverGeometry(book, options);
   const dir = orderDir(owner, orderId);
   fs.mkdirSync(dir, { recursive: true });
 

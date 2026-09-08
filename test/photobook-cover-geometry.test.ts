@@ -216,3 +216,54 @@ describe("render.ts lays the cover out from CoverGeometry", () => {
     expect(book.volumes[0].cover.geometry.joint).toBeUndefined();
   });
 });
+
+describe("the hardcover spine is a table, not a line", () => {
+  /**
+   * Gelato's own answers, fetched 2026-09-07 for the 280 x 280 hardcover.
+   * The page counts are the ones it reports back, already rounded up by 4.
+   * A line through two of these misses the rest: 44, 60 and 72 pages give
+   * 6, 6 and 9 mm, which no straight line does.
+   */
+  const MEASURED: [number, number][] = [
+    [32, 6],
+    [44, 6],
+    [56, 6],
+    [60, 6],
+    [72, 9],
+    [84, 11],
+    [96, 11],
+    [104, 11],
+    [108, 13],
+    [132, 14],
+    [156, 16],
+    [164, 16],
+    [180, 18],
+    [204, 19],
+  ];
+
+  it("reproduces every measured row exactly", () => {
+    for (const [answered, spine] of MEASURED) {
+      // `answeredPageCount` adds 4, so ask for the count Gelato was asked.
+      const spec = defaultSpec(BOOK_SIZES["large-square"], "hard");
+      expect(computeCoverGeometry(spec, answered - 4).spineWidthMm).toBe(spine);
+    }
+  });
+
+  it("never comes out under the measured value between rows", () => {
+    // Too wide wastes a millimetre of board; too narrow wraps the front
+    // cover image around onto the spine, and that is only visible on paper.
+    const spec = defaultSpec(BOOK_SIZES["large-square"], "hard");
+    for (let pages = 28; pages <= 200; pages += 2) {
+      const ours = computeCoverGeometry(spec, pages).spineWidthMm;
+      const answered = pages + 4;
+      const below = MEASURED.filter(([p]) => p <= answered).pop();
+      if (below) expect(ours).toBeGreaterThanOrEqual(below[1]);
+    }
+  });
+
+  it("a 32-page hardcover is 6 mm, not the 3.78 a straight line gave", () => {
+    const spec = defaultSpec(BOOK_SIZES["large-square"], "hard");
+    expect(computeCoverGeometry(spec, 28).spineWidthMm).toBe(6);
+    expect(computeCoverGeometry(spec, 28).sheetWidthMm).toBeCloseTo(618, 1);
+  });
+});

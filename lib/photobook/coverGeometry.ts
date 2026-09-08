@@ -62,16 +62,66 @@ function softcoverSpineMm(pages: number): number {
   return 0.24 + 0.155 * (answeredPageCount(pages) / 2);
 }
 
-/** Only two hardcover spines have ever been measured: 56 pages → 6.00 mm,
- * 164 pages → 16.00 mm. Linear interpolation (and extrapolation outside that
- * range) is the best offline guess available, and is exactly that — a guess,
- * not a fact. */
-const HARD_SPINE_POINTS = { a: { pages: 56, spineMm: 6 }, b: { pages: 164, spineMm: 16 } } as const;
+/**
+ * The hardcover spine, measured — because it cannot be computed.
+ *
+ * A softcover spine is exactly linear in the leaf count and the formula above
+ * reproduces every measured row. A hardcover's is not a formula at all. These
+ * are Gelato's own answers, in whole millimetres, against page counts it has
+ * already rounded up:
+ *
+ *   32 → 6    44 → 6    56 → 6    60 → 6    72 → 9    84 → 11
+ *   96 → 11   104 → 11  108 → 13  132 → 14  156 → 16  164 → 16
+ *   180 → 18  204 → 19
+ *
+ * Six millimetres for everything up to sixty pages, then steps that repeat
+ * (84 and 96 are both 11) and jump unevenly (108 → 13, then 132 → 14). That
+ * is a table somebody maintains, not a line through two points — and reading
+ * it as a line, which this used to, put a 32-page book's spine at 3.78 mm
+ * against a real 6.00 mm. A spine 2 mm narrow wraps the front cover image
+ * around onto the spine, and it is invisible until the book is in your hands.
+ *
+ * **This is still the offline fallback, and it is still not the answer.**
+ * `fetchCoverGeometry` asks Gelato, and `lib/photobook/build.ts` calls it
+ * before anything is rendered for an order. This table is what a checkout
+ * with no API key draws with, so that the whole pipeline stays developable
+ * without an account — AGENTS.md requires that — and between the measured
+ * rows it interpolates and rounds **up**, because too wide merely wastes a
+ * millimetre of board and too narrow ruins the cover.
+ */
+const HARD_SPINE_TABLE: readonly (readonly [pages: number, spineMm: number])[] = [
+  [32, 6],
+  [44, 6],
+  [56, 6],
+  [60, 6],
+  [72, 9],
+  [84, 11],
+  [96, 11],
+  [104, 11],
+  [108, 13],
+  [132, 14],
+  [156, 16],
+  [164, 16],
+  [180, 18],
+  [204, 19],
+];
 
 function hardcoverSpineMmApprox(pages: number): number {
-  const { a, b } = HARD_SPINE_POINTS;
-  const slope = (b.spineMm - a.spineMm) / (b.pages - a.pages);
-  return a.spineMm + slope * (answeredPageCount(pages) - a.pages);
+  const p = answeredPageCount(pages);
+  const first = HARD_SPINE_TABLE[0];
+  const last = HARD_SPINE_TABLE[HARD_SPINE_TABLE.length - 1];
+  if (p <= first[0]) return first[1];
+  if (p >= last[0]) return last[1];
+  for (let i = 1; i < HARD_SPINE_TABLE.length; i++) {
+    const [hiPages, hiSpine] = HARD_SPINE_TABLE[i];
+    if (p === hiPages) return hiSpine;
+    if (p < hiPages) {
+      const [loPages, loSpine] = HARD_SPINE_TABLE[i - 1];
+      const t = (p - loPages) / (hiPages - loPages);
+      return Math.ceil(loSpine + t * (hiSpine - loSpine));
+    }
+  }
+  return last[1];
 }
 
 const HARDCOVER_WRAP_MM = 17;
