@@ -76,6 +76,22 @@ describe("where a file goes, said on the screen", () => {
   });
 });
 
+describe("the section that holds the picker", () => {
+  test("B863 — its heading does not call every pick a photograph", () => {
+    // `PhotoPicker`'s own count line already told the two kinds apart
+    // (B845); the heading above it — `agent.uploadTitle`, shared by the
+    // wizard's photos step and the room's upload panel — still said only
+    // "Photographs" while the same unnarrowed picker took a spreadsheet or a
+    // PDF into the exact same panel.
+    for (const locale of ["en", "de", "hu"]) {
+      const said = translate(dictionaryFor(locale), "agent.uploadTitle");
+      expect(said).not.toBe("agent.uploadTitle");
+      expect(said).toMatch(/photo|foto|fénykép/i);
+      expect(said.toLowerCase()).not.toMatch(/^(photographs?|fotos?|fényképek)[.!]?$/i);
+    }
+  });
+});
+
 describe("the client's list and the server's stay together", () => {
   test("every extension the route files into the inbox is one the picker calls a file", () => {
     for (const ext of INBOX_FILE_EXTENSIONS) {
