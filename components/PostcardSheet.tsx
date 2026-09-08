@@ -60,9 +60,6 @@ import type { MediaTile } from "@/lib/types";
  * journal's default.
  */
 
-/** The API's own cap, repeated so the box can say so before the server does. */
-const MAX_MESSAGE = 600;
-
 type Candidate = {
   contactId: string;
   name: string;
@@ -284,17 +281,23 @@ export default function PostcardSheet({
           </div>
         ) : null}
 
-        <label className="mt-4 block text-sm font-semibold text-navy-700">
-          {t("postcard.messageLabel")}
-          <textarea
-            value={message}
-            maxLength={MAX_MESSAGE}
-            rows={5}
-            placeholder={t("postcard.messagePlaceholder")}
-            onChange={(e) => setMessage(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-navy-200 p-2.5 text-sm font-normal text-navy-900"
-          />
-        </label>
+        {/* The words are shown, not asked for — B1005.
+            There used to be a textarea here and another one on the preview
+            page, holding the same message, and nobody could tell which was
+            the real one. The second is: it sits under a drawing of the card
+            at print size, which is where a wrong word actually becomes
+            obvious. So this is where the words *start* — a day's own opening,
+            trimmed by the server — and the next screen is where they are
+            written. */}
+        <div className="mt-4">
+          <p className="text-sm font-semibold text-navy-700">
+            {t("postcard.startsFrom")}
+          </p>
+          <p className="mt-1 line-clamp-3 rounded-lg border border-navy-200 bg-cream-50 p-2.5 text-sm text-navy-800">
+            {message || t("postcard.startsFromNothing")}
+          </p>
+          <p className="mt-1 text-xs text-navy-600">{t("postcard.writeNext")}</p>
+        </div>
 
         <fieldset className="mt-4">
           <legend className="text-sm font-semibold text-navy-700">
