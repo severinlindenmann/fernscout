@@ -5,6 +5,7 @@ type: ISSUE
 priority: high
 complexity: low
 area: Tests
+superseded: "The session that made the change was already fixing it — their edit was in the checkout within the minute."
 found: "2026-09-08T19:05:00Z"
 started: "2026-09-08T19:05:42Z"
 session: b8352d66-3105-4f5d-a703-f8809d0b08e6
@@ -32,6 +33,14 @@ The component is right and the assertion is stale. Found running `npm run
 verify` on `main` before a deploy, immediately after the B984 merge landed
 (81d02ba3) — the second red `main` in an hour, both from merges that were green
 on their own branch.
+
+## What happened
+
+Captured and immediately stood down: the B984 session had the corrected
+assertion open in the shared checkout before this ticket was written. Left to
+them rather than raced. The capture stays because the shape is worth the
+record — two red `main`s in an hour, both from merges that were green on their
+own branch, which is what a worktree cannot show you.
 
 ## Work
 
