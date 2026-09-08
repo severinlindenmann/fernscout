@@ -61,6 +61,8 @@ beforeEach(async () => {
   process.env.CONTENT_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "timing.db")}`;
   process.env.CONTACTS_ENCRYPTION_KEY = KEY;
+  // B938: contacts needs auth, and auth needs this.
+  process.env.SESSION_SECRET = "contacts-timing-secret-b938";
   delete process.env.AUTH_DEV_CODE;
 
   fs.mkdirSync(path.join(dir, OWNER, "trips"), { recursive: true });
@@ -84,7 +86,7 @@ beforeEach(async () => {
     JSON.stringify({
       site: { name: "R", url: "https://example.test", defaultUser: OWNER },
       users: { reserved: [] },
-      features: { contacts: { enabled: true } },
+      features: { auth: { enabled: true }, contacts: { enabled: true } },
     }),
   );
   clearConfigCache();

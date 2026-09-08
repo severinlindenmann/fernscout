@@ -41,7 +41,23 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   // issues, and — checked in the route rather than here — mail to send them
   // with, since a signup nobody can complete is worse than one refused.
   signup: { env: ["SESSION_SECRET"], db: true },
-  contacts: { env: ["CONTACTS_ENCRYPTION_KEY"], db: true },
+  contacts: {
+    env: ["CONTACTS_ENCRYPTION_KEY"],
+    db: true,
+    /**
+     * **An approval that cannot grant anything is not an approval** — B938.
+     *
+     * Everything this capability does ends in somebody reading a journal they
+     * were let into, and being let in is a session. Without `auth` there are
+     * no sessions, so a guest grant is a row nothing consults and the mail
+     * telling her she is in links to the gate she has just been let past.
+     *
+     * That mail is the only one she gets, so nothing corrects it later. She
+     * was told yes, handed a door, and the door is locked — which is worse
+     * than a contacts page that is simply not there.
+     */
+    needs: { auth: "being let in is a session, and sessions are what auth is" },
+  },
   postcards: { env: [], db: true }, // provider-specific; see providerRequirements()
   // Orders are rows and so is the balance that pays for them, so a journal
   // with no database has no photobook button — /api/health says which.

@@ -75,6 +75,27 @@ describe("a capability that needs another one", () => {
     expect(resolveCapabilities().helper.enabled).toBe(true);
   });
 
+  /**
+   * B938 — the third one, and the one that was missing.
+   *
+   * Everything `contacts` does ends in somebody reading a journal they were
+   * let into, and being let in is a session. With `auth` off the approval
+   * queue still worked, still made grants, and still mailed the newly
+   * approved person a button — pointing at the journal's front page, where
+   * she met the gate she had just been told she was past. That mail is the
+   * only one she gets, so nothing corrected it.
+   */
+  test("an approval queue that cannot let anybody in does not come on", () => {
+    process.env.DATABASE_URL = "sqlite::memory:";
+    process.env.CONTACTS_ENCRYPTION_KEY = "a".repeat(64);
+    writeConfig({ contacts: { enabled: true }, auth: { enabled: false } });
+    const contacts = resolveCapabilities().contacts;
+    expect(contacts.enabled).toBe(false);
+    const reason = contacts.enabled ? "" : contacts.reason;
+    expect(reason).toContain("features.auth is not");
+    expect(reason).toContain("session");
+  });
+
   test("the second one is data too, so both are reported the same way", () => {
     process.env.DATABASE_URL = "sqlite::memory:";
     writeConfig({ transcription: { enabled: true }, credits: { enabled: false } });

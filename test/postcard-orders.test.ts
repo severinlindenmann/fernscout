@@ -64,6 +64,8 @@ beforeEach(async () => {
   process.env.DATA_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "orders.db")}`;
   process.env.CONTACTS_ENCRYPTION_KEY = KEY;
+  // B938: contacts needs auth, and auth needs this.
+  process.env.SESSION_SECRET = "postcard-orders-secret-b938";
   delete process.env.AUTH_DEV_CODE;
 
   fs.writeFileSync(
@@ -74,6 +76,9 @@ beforeEach(async () => {
       features: {
         credits: { enabled: true },
         postcards: { enabled: true, provider: "dry-run" },
+        // B938: contacts needs auth. A postcard goes to somebody who asked
+        // this journal for one, and asking is a session.
+        auth: { enabled: true },
         contacts: { enabled: true },
         // B467's receipt. `file` writes .eml under <DATA_DIR>/mail/<user>,
         // which is what the address assertions below read.
@@ -114,6 +119,7 @@ afterEach(async () => {
   delete process.env.CONTENT_DIR;
   delete process.env.DATA_DIR;
   delete process.env.DATABASE_URL;
+  delete process.env.SESSION_SECRET;
   delete process.env.CONTACTS_ENCRYPTION_KEY;
   clearConfigCache();
   clearUserCache();

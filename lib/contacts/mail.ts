@@ -424,11 +424,11 @@ export async function notifyOwnerOfRequest(
  * is still the whole of what bounds it: the first press spends it, same as
  * every standing link.
  *
- * Only reached when `isEnabled("auth", username)` — the capability that owns
- * `/{user}/s/{token}` and `POST /api/auth/link` (AGENTS.md: "absent rather
- * than broken when disabled"). A journal running with `contacts` and `mail`
- * on but `auth` off falls back to the plain address exactly as before, rather
- * than mailing a link to a page that would 404.
+ * There is no longer a journal to guard against — B938. `contacts` declares
+ * that it needs `auth`, so an instance without `/{user}/s/{token}` has no
+ * approval queue to send this from. The fallback that used to stand here
+ * mailed the front page instead, which is the gate she had just been told she
+ * was past.
  *
  * Best effort (B272's rule, extended here to a caller it did not originally
  * cover): minting the standing link is one more thing that can throw before
@@ -449,9 +449,20 @@ export async function sendApprovedMail(
     // the contact id, so a mail written months later still has the working
     // link.
     const token = manageTokenFor(username, contact.id);
-    const openUrl = isEnabled("auth", username)
-      ? signInUrl(baseUrl(), username, await issueStandingLink(username, contact.email))
-      : `${baseUrl()}/${username}`;
+    /**
+     * Always a sign-in link — B938.
+     *
+     * There used to be a fallback to the journal's front page for an instance
+     * with `auth` off, and it was the one link in this mail that could not
+     * work: she would arrive at the gate she had just been told she was past.
+     * `contacts` now declares that it needs `auth` (`lib/capabilities.ts`), so
+     * there is no such instance to write a link for.
+     */
+    const openUrl = signInUrl(
+      baseUrl(),
+      username,
+      await issueStandingLink(username, contact.email),
+    );
     // B347 — this contact may hold write access to a trip, not only reading
     // rights, and the only mail they ever get about being approved is this
     // one. `buddyTripFor` is null for a guest link, and the mail is unchanged
