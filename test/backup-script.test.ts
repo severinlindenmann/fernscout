@@ -205,7 +205,7 @@ const isGeneratedOutput = (rel: string) => {
   return parts.length >= 2 && (parts[1] === "postcards" || parts[1] === "photobooks" || parts[1] === "mail");
 };
 
-describe.runIf(RESTIC)("scripts/backup.sh", () => {
+describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
   let scratch: string;
   let dataDir: string;
   let contentDir: string;

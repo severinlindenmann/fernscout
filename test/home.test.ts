@@ -130,7 +130,7 @@ afterAll(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("journalsFor", () => {
+describe("journalsFor", { shuffle: false }, () => {
   test("a stranger holds nothing, however many public trips exist", async () => {
     // `open-2026` is public and readable by them — and a journal whose only
     // trips they can see are public ones is not *theirs*. It belongs in the

@@ -242,169 +242,171 @@ afterAll(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("mailing a guest invite to a named address", () => {
-  const FAMILY = "family@example.test";
+describe("the whole file, kept in written order", { shuffle: false }, () => {
+  describe("mailing a guest invite to a named address", () => {
+    const FAMILY = "family@example.test";
 
-  test("pre-approves that address and mails the invitation", async () => {
-    const owner = await ownerToken();
-    const created = await createLink(owner, { kind: "guest", email: FAMILY, name: "Family", locale: "en" });
+    test("pre-approves that address and mails the invitation", async () => {
+      const owner = await ownerToken();
+      const created = await createLink(owner, { kind: "guest", email: FAMILY, name: "Family", locale: "en" });
 
-    expect(created.status).toBe(201);
-    expect(created.body.sent).toBe(true);
-    expect(created.body.invite?.url).toMatch(/\/ana\/invite\/guest\/fs_inv_/);
-
-    // One .eml on disk, addressed to the family — the fifth letter this task
-    // adds, and not merely the code that follows redemption.
-    const files = fs.readdirSync(path.join(dir, "mail", OWNER));
-    expect(files.some((f) => f.includes("family-example-test"))).toBe(true);
-  });
-
-  test("redeeming it writes an ordinary pending row — nothing is granted before proof", async () => {
-    const owner = await ownerToken();
-    const created = await createLink(owner, { kind: "guest", email: FAMILY, name: "Family", locale: "en" });
-    const token = tokenFrom(created.body.invite!.url!);
-
-    const redeemed = await redeem({ token, name: "Family", email: FAMILY });
-    expect(redeemed.status).toBe(202);
-    expect(redeemed.body.status).toBe("code");
-
-    const contact = await contactRow(FAMILY);
-    expect(contact).not.toBeNull();
-    expect(contact!.status).toBe("pending");
-    expect(contact!.confirmedAt).toBeNull();
-    expect(await grantExists(contact!.id)).toBe(false);
-  });
-
-  test("proving that exact address skips the queue and grants access on the spot", async () => {
-    const code = await freshCode(FAMILY);
-    const result = await confirm(FAMILY, code);
-
-    expect(result.status).toBe(200);
-    expect(result.body.ok).toBe(true);
-    // Not "pending" — the whole point. This is the response the owner
-    // clicking Approve would otherwise have produced.
-    expect(result.body.status).toBe("active");
-
-    const contact = await contactRow(FAMILY);
-    expect(contact!.status).toBe("active");
-    expect(contact!.approvedAt).not.toBeNull();
-    expect(await grantExists(contact!.id)).toBe(true);
-
-    // The owner's queue was never touched: `notifyOwnerOfRequest` is only
-    // called on the non-preapproved branch, so `notified_at` never turns
-    // true for this address.
-    expect(await notifiedAt(FAMILY)).toBeNull();
-  });
-
-  test("a different address redeeming the same link still asks, and grants nothing", async () => {
-    const owner = await ownerToken();
-    const created = await createLink(owner, { kind: "guest", email: FAMILY, name: "Family", locale: "en" });
-    const token = tokenFrom(created.body.invite!.url!);
-
-    const STRANGER = "stranger@example.test";
-    // The link forwarded on, exactly as decision 19 says is safe to do.
-    const redeemed = await redeem({ token, name: "Stranger", email: STRANGER });
-    expect(redeemed.body.status).toBe("code");
-
-    const code = await freshCode(STRANGER);
-    const result = await confirm(STRANGER, code);
-    expect(result.status).toBe(200);
-    // Pending, not active: this address was never the one the owner typed.
-    expect(result.body.status).toBe("pending");
-
-    const contact = await contactRow(STRANGER);
-    expect(contact!.status).toBe("pending");
-    expect(await grantExists(contact!.id)).toBe(false);
-    // And the owner *was* told about this one — the ordinary path, untouched.
-    expect(await notifiedAt(STRANGER)).not.toBeNull();
-  });
-});
-
-/**
- * B350 — the address was just proved, in this browser, and the grant above
- * was written a line ago. A pre-approved confirmation now signs the reader in
- * on the spot instead of sending them to a mailbox for a second link; the
- * ordinary queue path is unchanged and still hands nothing back.
- */
-describe("a pre-approved confirmation signs the reader in on the spot", () => {
-  test("the guest session cookie is set, and it resolves to the confirmed address", async () => {
-    jar.cookies = {};
-    const email = "signed-in@example.test";
-    const owner = await ownerToken();
-    const created = await createLink(owner, { kind: "guest", email, name: "Signed In", locale: "en" });
-    const token = tokenFrom(created.body.invite!.url!);
-    await redeem({ token, name: "Signed In", email });
-
-    const code = await freshCode(email);
-    const result = await confirm(email, code);
-    expect(result.body.status).toBe("active");
-
-    const { GUEST_COOKIE, resolveSession } = await import("@/lib/auth");
-    const cookie = jar.cookies[GUEST_COOKIE];
-    expect(cookie).toBeTruthy();
-    const session = await resolveSession(cookie, "guest");
-    expect(session?.owner).toBe(OWNER);
-    expect(session?.email).toBe(email);
-  });
-
-  test("a non-pre-approved (queue) confirmation sets no session cookie", async () => {
-    jar.cookies = {};
-    const email = "queued@example.test";
-    const owner = await ownerToken();
-    // A hand-copied link — no `email` on the invite, so nobody is pre-approved.
-    const created = await createLink(owner, { kind: "guest", locale: "en" });
-    const token = tokenFrom(created.body.invite!.url!);
-    await redeem({ token, name: "Queued", email });
-
-    const code = await freshCode(email);
-    const result = await confirm(email, code);
-    expect(result.body.status).toBe("pending");
-
-    const { GUEST_COOKIE } = await import("@/lib/auth");
-    expect(jar.cookies[GUEST_COOKIE]).toBeUndefined();
-  });
-});
-
-describe("mail failures are best effort (B272's lesson, extended here)", () => {
-  test("a send failure on the invite mail does not fail the create call", async () => {
-    const owner = await ownerToken();
-    const target = "flaky-invite@example.test";
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    failMailOnceTo(target);
-    try {
-      const created = await createLink(owner, { kind: "guest", email: target, locale: "en" });
-      // The invite and its pre-approval both exist regardless of the mail —
-      // only `sent` reports the send itself failed.
       expect(created.status).toBe(201);
-      expect(created.body.sent).toBe(false);
-      expect(created.body.invite?.url).toBeTruthy();
-      expect(error).toHaveBeenCalled();
-    } finally {
-      error.mockRestore();
-    }
+      expect(created.body.sent).toBe(true);
+      expect(created.body.invite?.url).toMatch(/\/ana\/invite\/guest\/fs_inv_/);
+
+      // One .eml on disk, addressed to the family — the fifth letter this task
+      // adds, and not merely the code that follows redemption.
+      const files = fs.readdirSync(path.join(dir, "mail", OWNER));
+      expect(files.some((f) => f.includes("family-example-test"))).toBe(true);
+    });
+
+    test("redeeming it writes an ordinary pending row — nothing is granted before proof", async () => {
+      const owner = await ownerToken();
+      const created = await createLink(owner, { kind: "guest", email: FAMILY, name: "Family", locale: "en" });
+      const token = tokenFrom(created.body.invite!.url!);
+
+      const redeemed = await redeem({ token, name: "Family", email: FAMILY });
+      expect(redeemed.status).toBe(202);
+      expect(redeemed.body.status).toBe("code");
+
+      const contact = await contactRow(FAMILY);
+      expect(contact).not.toBeNull();
+      expect(contact!.status).toBe("pending");
+      expect(contact!.confirmedAt).toBeNull();
+      expect(await grantExists(contact!.id)).toBe(false);
+    });
+
+    test("proving that exact address skips the queue and grants access on the spot", async () => {
+      const code = await freshCode(FAMILY);
+      const result = await confirm(FAMILY, code);
+
+      expect(result.status).toBe(200);
+      expect(result.body.ok).toBe(true);
+      // Not "pending" — the whole point. This is the response the owner
+      // clicking Approve would otherwise have produced.
+      expect(result.body.status).toBe("active");
+
+      const contact = await contactRow(FAMILY);
+      expect(contact!.status).toBe("active");
+      expect(contact!.approvedAt).not.toBeNull();
+      expect(await grantExists(contact!.id)).toBe(true);
+
+      // The owner's queue was never touched: `notifyOwnerOfRequest` is only
+      // called on the non-preapproved branch, so `notified_at` never turns
+      // true for this address.
+      expect(await notifiedAt(FAMILY)).toBeNull();
+    });
+
+    test("a different address redeeming the same link still asks, and grants nothing", async () => {
+      const owner = await ownerToken();
+      const created = await createLink(owner, { kind: "guest", email: FAMILY, name: "Family", locale: "en" });
+      const token = tokenFrom(created.body.invite!.url!);
+
+      const STRANGER = "stranger@example.test";
+      // The link forwarded on, exactly as decision 19 says is safe to do.
+      const redeemed = await redeem({ token, name: "Stranger", email: STRANGER });
+      expect(redeemed.body.status).toBe("code");
+
+      const code = await freshCode(STRANGER);
+      const result = await confirm(STRANGER, code);
+      expect(result.status).toBe(200);
+      // Pending, not active: this address was never the one the owner typed.
+      expect(result.body.status).toBe("pending");
+
+      const contact = await contactRow(STRANGER);
+      expect(contact!.status).toBe("pending");
+      expect(await grantExists(contact!.id)).toBe(false);
+      // And the owner *was* told about this one — the ordinary path, untouched.
+      expect(await notifiedAt(STRANGER)).not.toBeNull();
+    });
   });
 
-  test("a send failure on the approval mail does not undo the grant it followed", async () => {
-    const target = "flaky-approved@example.test";
-    const owner = await ownerToken();
-    const created = await createLink(owner, { kind: "guest", email: target, locale: "en" });
-    const token = tokenFrom(created.body.invite!.url!);
-    await redeem({ token, name: "Flaky", email: target });
-    const code = await freshCode(target);
+  /**
+   * B350 — the address was just proved, in this browser, and the grant above
+   * was written a line ago. A pre-approved confirmation now signs the reader in
+   * on the spot instead of sending them to a mailbox for a second link; the
+   * ordinary queue path is unchanged and still hands nothing back.
+   */
+  describe("a pre-approved confirmation signs the reader in on the spot", () => {
+    test("the guest session cookie is set, and it resolves to the confirmed address", async () => {
+      jar.cookies = {};
+      const email = "signed-in@example.test";
+      const owner = await ownerToken();
+      const created = await createLink(owner, { kind: "guest", email, name: "Signed In", locale: "en" });
+      const token = tokenFrom(created.body.invite!.url!);
+      await redeem({ token, name: "Signed In", email });
 
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    failMailOnceTo(target);
-    try {
-      const result = await confirm(target, code);
-      // The 200 with `status: "active"` the reader gets, and the grant behind
-      // it, do not depend on the letter that tells them so.
-      expect(result.status).toBe(200);
+      const code = await freshCode(email);
+      const result = await confirm(email, code);
       expect(result.body.status).toBe("active");
-      const contact = await contactRow(target);
-      expect(await grantExists(contact!.id)).toBe(true);
-      expect(error).toHaveBeenCalled();
-    } finally {
-      error.mockRestore();
-    }
+
+      const { GUEST_COOKIE, resolveSession } = await import("@/lib/auth");
+      const cookie = jar.cookies[GUEST_COOKIE];
+      expect(cookie).toBeTruthy();
+      const session = await resolveSession(cookie, "guest");
+      expect(session?.owner).toBe(OWNER);
+      expect(session?.email).toBe(email);
+    });
+
+    test("a non-pre-approved (queue) confirmation sets no session cookie", async () => {
+      jar.cookies = {};
+      const email = "queued@example.test";
+      const owner = await ownerToken();
+      // A hand-copied link — no `email` on the invite, so nobody is pre-approved.
+      const created = await createLink(owner, { kind: "guest", locale: "en" });
+      const token = tokenFrom(created.body.invite!.url!);
+      await redeem({ token, name: "Queued", email });
+
+      const code = await freshCode(email);
+      const result = await confirm(email, code);
+      expect(result.body.status).toBe("pending");
+
+      const { GUEST_COOKIE } = await import("@/lib/auth");
+      expect(jar.cookies[GUEST_COOKIE]).toBeUndefined();
+    });
+  });
+
+  describe("mail failures are best effort (B272's lesson, extended here)", () => {
+    test("a send failure on the invite mail does not fail the create call", async () => {
+      const owner = await ownerToken();
+      const target = "flaky-invite@example.test";
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      failMailOnceTo(target);
+      try {
+        const created = await createLink(owner, { kind: "guest", email: target, locale: "en" });
+        // The invite and its pre-approval both exist regardless of the mail —
+        // only `sent` reports the send itself failed.
+        expect(created.status).toBe(201);
+        expect(created.body.sent).toBe(false);
+        expect(created.body.invite?.url).toBeTruthy();
+        expect(error).toHaveBeenCalled();
+      } finally {
+        error.mockRestore();
+      }
+    });
+
+    test("a send failure on the approval mail does not undo the grant it followed", async () => {
+      const target = "flaky-approved@example.test";
+      const owner = await ownerToken();
+      const created = await createLink(owner, { kind: "guest", email: target, locale: "en" });
+      const token = tokenFrom(created.body.invite!.url!);
+      await redeem({ token, name: "Flaky", email: target });
+      const code = await freshCode(target);
+
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      failMailOnceTo(target);
+      try {
+        const result = await confirm(target, code);
+        // The 200 with `status: "active"` the reader gets, and the grant behind
+        // it, do not depend on the letter that tells them so.
+        expect(result.status).toBe(200);
+        expect(result.body.status).toBe("active");
+        const contact = await contactRow(target);
+        expect(await grantExists(contact!.id)).toBe(true);
+        expect(error).toHaveBeenCalled();
+      } finally {
+        error.mockRestore();
+      }
+    });
   });
 });

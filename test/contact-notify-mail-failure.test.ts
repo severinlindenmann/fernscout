@@ -169,7 +169,7 @@ afterAll(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("a correct code whose owner notification fails", () => {
+describe("a correct code whose owner notification fails", { shuffle: false }, () => {
   test("still confirms — never told it was wrong", async () => {
     await signUpReader(READER);
     const code = await freshCode(READER);

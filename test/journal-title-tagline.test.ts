@@ -56,34 +56,36 @@ afterEach(() => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("a journal with no tagline", () => {
-  test("has a clean title, with no dangling separator", async () => {
-    writeJournal("");
-    const meta = await journalMetadata({
-      params: Promise.resolve({ user: "ana" }),
-      children: null,
+describe("the whole file, kept in written order", { shuffle: false }, () => {
+  describe("a journal with no tagline", () => {
+    test("has a clean title, with no dangling separator", async () => {
+      writeJournal("");
+      const meta = await journalMetadata({
+        params: Promise.resolve({ user: "ana" }),
+        children: null,
+      });
+      expect((meta.title as { default: string }).default).toBe("The Solo Journal");
     });
-    expect((meta.title as { default: string }).default).toBe("The Solo Journal");
-  });
 
-  test("a journal with a tagline still joins both parts", async () => {
-    writeJournal("one journey, kept back");
-    const meta = await journalMetadata({
-      params: Promise.resolve({ user: "ana" }),
-      children: null,
+    test("a journal with a tagline still joins both parts", async () => {
+      writeJournal("one journey, kept back");
+      const meta = await journalMetadata({
+        params: Promise.resolve({ user: "ana" }),
+        children: null,
+      });
+      expect((meta.title as { default: string }).default).toBe(
+        "The Solo Journal — one journey, kept back",
+      );
     });
-    expect((meta.title as { default: string }).default).toBe(
-      "The Solo Journal — one journey, kept back",
-    );
-  });
-});
-
-describe("titleWithLocation — the same pattern, for an entry with no location", () => {
-  test("joins nothing extra when there is no location", () => {
-    expect(titleWithLocation("Into the hills", "")).toBe("Into the hills");
   });
 
-  test("joins both when there is a location", () => {
-    expect(titleWithLocation("Into the hills", "Salta")).toBe("Into the hills — Salta");
+  describe("titleWithLocation — the same pattern, for an entry with no location", () => {
+    test("joins nothing extra when there is no location", () => {
+      expect(titleWithLocation("Into the hills", "")).toBe("Into the hills");
+    });
+
+    test("joins both when there is a location", () => {
+      expect(titleWithLocation("Into the hills", "Salta")).toBe("Into the hills — Salta");
+    });
   });
 });

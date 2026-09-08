@@ -160,98 +160,100 @@ function writeDay(slug: string, date: string) {
   );
 }
 
-describe("staging a file before any day exists", () => {
-  test("the round trip: stage, write the day, file it, bucket empty", async () => {
-    const token = await ownerToken();
+describe("the whole file, kept in written order", { shuffle: false }, () => {
+  describe("staging a file before any day exists", () => {
+    test("the round trip: stage, write the day, file it, bucket empty", async () => {
+      const token = await ownerToken();
 
-    // No day of that name exists yet — the media route would refuse this.
-    expect(fs.existsSync(path.join(tripPath(), "entries", `2026-01-01-${DAY}.md`))).toBe(false);
+      // No day of that name exists yet — the media route would refuse this.
+      expect(fs.existsSync(path.join(tripPath(), "entries", `2026-01-01-${DAY}.md`))).toBe(false);
 
-    const staged = await stage(token, [
-      { name: "DSC_0001.jpg", bytes: await jpeg(1200, 800), meta: { description: "the bridge" } },
-    ]);
-    expect(staged.status).toBe(201);
-    const id = staged.body.items[0].id as string;
-    expect(staged.body.items[0].description).toBe("the bridge");
+      const staged = await stage(token, [
+        { name: "DSC_0001.jpg", bytes: await jpeg(1200, 800), meta: { description: "the bridge" } },
+      ]);
+      expect(staged.status).toBe(201);
+      const id = staged.body.items[0].id as string;
+      expect(staged.body.items[0].description).toBe("the bridge");
 
-    const listed = await readInbox(token);
-    expect(listed.status).toBe(200);
-    expect(listed.body.counts.media).toBe(1);
-    expect(listed.body.items.media[0].id).toBe(id);
+      const listed = await readInbox(token);
+      expect(listed.status).toBe(200);
+      expect(listed.body.counts.media).toBe(1);
+      expect(listed.body.items.media[0].id).toBe(id);
 
-    // Now the day, and only now.
-    writeDay(DAY, "2026-01-01");
+      // Now the day, and only now.
+      writeDay(DAY, "2026-01-01");
 
-    const filed = await fileIntoDay(token, [id]);
-    expect(filed.status).toBe(201);
-    expect(filed.body.items).toHaveLength(1);
+      const filed = await fileIntoDay(token, [id]);
+      expect(filed.status).toBe(201);
+      expect(filed.body.items).toHaveLength(1);
 
-    // On disk in the trip, and gone from the bucket — moved, not copied.
-    const inTrip = fs.readdirSync(path.join(tripPath(), "media", DAY));
-    expect(inTrip).toHaveLength(1);
-    expect((await readInbox(token)).body.counts.media).toBe(0);
+      // On disk in the trip, and gone from the bucket — moved, not copied.
+      const inTrip = fs.readdirSync(path.join(tripPath(), "media", DAY));
+      expect(inTrip).toHaveLength(1);
+      expect((await readInbox(token)).body.counts.media).toBe(0);
 
-    // And in the day itself, which is the half that used to be homework.
-    const entry = fs.readFileSync(
-      path.join(tripPath(), "entries", `2026-01-01-${DAY}.md`),
-      "utf8",
-    );
-    expect(entry).toContain("gallery:");
+      // And in the day itself, which is the half that used to be homework.
+      const entry = fs.readFileSync(
+        path.join(tripPath(), "entries", `2026-01-01-${DAY}.md`),
+        "utf8",
+      );
+      expect(entry).toContain("gallery:");
+    });
+
+    /**
+     * All or nothing. A batch naming one id that is not there must leave the
+     * others staged rather than filing some and reporting a failure.
+     */
+    test("an id that names nothing refuses the whole call and moves nothing", async () => {
+      const token = await ownerToken();
+      writeDay("market-morning", "2026-01-02");
+
+      const staged = await stage(token, [{ name: "DSC_0002.jpg", bytes: await jpeg(900, 600, 60) }]);
+      const id = staged.body.items[0].id as string;
+
+      const filed = await fileIntoDay(token, [id, "deadbeef-nothing.jpg"], "market-morning");
+      expect(filed.status).toBe(400);
+      expect(filed.body.error).toBe("unknown_inbox_file");
+      expect(filed.body.missing).toEqual(["deadbeef-nothing.jpg"]);
+
+      // Still staged, and no day was written into.
+      expect((await readInbox(token)).body.counts.media).toBe(1);
+      expect(fs.existsSync(path.join(tripPath(), "media", "market-morning"))).toBe(false);
+    });
+
+    test("a staged file can be taken back out", async () => {
+      const token = await ownerToken();
+      const { DELETE } = await import("@/app/api/v1/[user]/inbox/[id]/route");
+      const id = (await readInbox(token)).body.items.media[0].id as string;
+
+      const response = await DELETE(
+        new Request(`https://example.test/api/v1/${OWNER}/inbox/${id}`, {
+          method: "DELETE",
+          headers: headers({ authorization: `Bearer ${token}` }),
+        }),
+        { params: Promise.resolve({ user: OWNER, id }) },
+      );
+
+      expect(response.status).toBe(200);
+      expect((await readInbox(token)).body.counts.media).toBe(0);
+    });
+
+    test("a file this journal does not take is refused, and nothing is written", async () => {
+      const token = await ownerToken();
+      const refused = await stage(token, [{ name: "payload.exe", bytes: Buffer.from("MZ") }]);
+      expect(refused.status).toBe(400);
+      expect((await readInbox(token)).body.counts.media).toBe(0);
+    });
   });
 
-  /**
-   * All or nothing. A batch naming one id that is not there must leave the
-   * others staged rather than filing some and reporting a failure.
-   */
-  test("an id that names nothing refuses the whole call and moves nothing", async () => {
-    const token = await ownerToken();
-    writeDay("market-morning", "2026-01-02");
-
-    const staged = await stage(token, [{ name: "DSC_0002.jpg", bytes: await jpeg(900, 600, 60) }]);
-    const id = staged.body.items[0].id as string;
-
-    const filed = await fileIntoDay(token, [id, "deadbeef-nothing.jpg"], "market-morning");
-    expect(filed.status).toBe(400);
-    expect(filed.body.error).toBe("unknown_inbox_file");
-    expect(filed.body.missing).toEqual(["deadbeef-nothing.jpg"]);
-
-    // Still staged, and no day was written into.
-    expect((await readInbox(token)).body.counts.media).toBe(1);
-    expect(fs.existsSync(path.join(tripPath(), "media", "market-morning"))).toBe(false);
-  });
-
-  test("a staged file can be taken back out", async () => {
-    const token = await ownerToken();
-    const { DELETE } = await import("@/app/api/v1/[user]/inbox/[id]/route");
-    const id = (await readInbox(token)).body.items.media[0].id as string;
-
-    const response = await DELETE(
-      new Request(`https://example.test/api/v1/${OWNER}/inbox/${id}`, {
-        method: "DELETE",
-        headers: headers({ authorization: `Bearer ${token}` }),
-      }),
-      { params: Promise.resolve({ user: OWNER, id }) },
-    );
-
-    expect(response.status).toBe(200);
-    expect((await readInbox(token)).body.counts.media).toBe(0);
-  });
-
-  test("a file this journal does not take is refused, and nothing is written", async () => {
-    const token = await ownerToken();
-    const refused = await stage(token, [{ name: "payload.exe", bytes: Buffer.from("MZ") }]);
-    expect(refused.status).toBe(400);
-    expect((await readInbox(token)).body.counts.media).toBe(0);
-  });
-});
-
-describe("who may reach it", () => {
-  test("no token at all is 401, not an empty inbox", async () => {
-    const { GET } = await import("@/app/api/v1/[user]/inbox/route");
-    const response = await GET(
-      new Request(`https://example.test/api/v1/${OWNER}/inbox`, { headers: headers() }),
-      { params: Promise.resolve({ user: OWNER }) },
-    );
-    expect(response.status).toBe(401);
+  describe("who may reach it", () => {
+    test("no token at all is 401, not an empty inbox", async () => {
+      const { GET } = await import("@/app/api/v1/[user]/inbox/route");
+      const response = await GET(
+        new Request(`https://example.test/api/v1/${OWNER}/inbox`, { headers: headers() }),
+        { params: Promise.resolve({ user: OWNER }) },
+      );
+      expect(response.status).toBe(401);
+    });
   });
 });
