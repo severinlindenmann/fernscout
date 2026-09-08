@@ -202,8 +202,17 @@ export type WriteResult =
    * caller's, so a door that speaks in status codes can say 500 instead of
    * blaming the request (B208). Absent on every refusal a caller can fix by
    * sending something else.
+   *
+   * `code` is a stable identifier for a refusal whose `error` is an English
+   * sentence written for an agent reading `/api/v1/…` — B785. The helper
+   * routes under `app/api/helper/` are read by a person on a possibly-German
+   * screen, and `error` here must stay the sentence an over-the-network agent
+   * matches against, so a helper route prefers `code` when one is present
+   * rather than translating `error` itself. Absent on every refusal whose
+   * `error` is already a stable code (`"unknown_trip"` and the like) — there
+   * is nothing for `code` to add there.
    */
-  | { ok: false; error: string; bug?: true };
+  | { ok: false; error: string; code?: string; bug?: true };
 
 /** A delete has no file left to name. */
 export type DeleteResult =
@@ -516,6 +525,7 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
   if (fs.existsSync(file)) {
     return {
       ok: false,
+      code: "day_exists",
       error: `an entry already exists at ${input.date}-${slug}`,
     };
   }

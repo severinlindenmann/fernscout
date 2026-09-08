@@ -148,8 +148,14 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
 
   const written = createDraft(ref, input);
   if (!written.ok) {
-    refused(user, "start_day", written.error);
-    return Response.json({ error: written.error }, { status: written.bug ? 500 : 400 });
+    // `code`, when present, is the stable identifier `failureSentence()` in
+    // `components/HelperAsk.tsx` can turn into a sentence — B785. `error`
+    // itself is an English sentence written for an agent reading
+    // `/api/v1/…`, and this route is read by a person on a possibly-German
+    // screen.
+    const answer = written.code ?? written.error;
+    refused(user, "start_day", answer);
+    return Response.json({ error: answer }, { status: written.bug ? 500 : 400 });
   }
   await fillDayWeatherQuietly(ref, written.slug);
 
