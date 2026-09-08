@@ -856,6 +856,72 @@ export function claimsWhatADaySays(text: string): boolean {
 }
 
 /**
+ * A **total** — B955, and the fourth territory.
+ *
+ * Deliberately not "an amount". A figure the person has just said, echoed back
+ * while proposing to record it, is not a claim about their trip: *"18 francs
+ * for gelato on the 20th"* is them, repeated. What is a claim is the sum, and
+ * the sum is arithmetic the server has already done.
+ *
+ * Somebody who had logged £85, £22, £60 and €40 in one session asked what the
+ * trip had cost and was told *"the total so far is 107 pounds"* — 85 + 22
+ * exactly, the two added earliest, with the two added a minute earlier
+ * dropped. Then a summary in one sentence: *"you've logged two costs, 60
+ * pounds and 40 euros… the trip has cost 107 pounds altogether"*, which is not
+ * true under any exchange rate.
+ *
+ * `getCostSummary` returns `total`, `perDay` and how many days recorded
+ * nothing, computed from disk. Nobody asked it.
+ */
+const A_TOTAL = new RegExp(
+  [
+    // A figure, and a word that makes it a sum rather than a price.
+    "\\b(?:in )?total\\b",
+    "\\baltogether\\b",
+    "\\ball together\\b",
+    "\\bcomes? to\\b",
+    "\\bso far\\b[^.!?]{0,40}\\d",
+    "\\baverage\\b",
+    "\\ba day\\b[^.!?]{0,20}\\d|\\d[^.!?]{0,20}\\ba day\\b",
+    // de
+    "\\binsgesamt\\b",
+    "\\bzusammen\\b",
+    "\\bgesamt\\w*\\b",
+    "\\bdurchschnitt\\w*\\b",
+    "\\bpro tag\\b",
+    /**
+     * hu — and **no leading `\b`** on these two, deliberately.
+     *
+     * JavaScript's `\b` is an ASCII word boundary: between a space and `ö`
+     * there is no boundary at all, because `ö` is not a word character to it.
+     * `\b\u00f6sszesen` therefore matches nothing after a space, which is
+     * everywhere the word appears. The test that found this is the one that
+     * spells out a Hungarian sentence.
+     */
+    "\u00f6sszesen\\b",
+    "\u00e1tlag\\w*",
+    "\\bnaponta\\b",
+  ].join("|"),
+  "i",
+);
+
+/** A figure — any of the three currencies' shapes, or a bare number of them. */
+const A_FIGURE = /\d[\d.,\u00a0']*\s*(?:[\u20ac\u00a3$]|\b(?:chf|eur|usd|gbp|huf|franken?|francs?|euros?|pounds?|forint\w*|dollars?)\b)|(?:[\u20ac\u00a3$]|\b(?:chf|eur|usd|gbp|huf)\b)\s*\d/i;
+
+/**
+ * True when this text states what something adds up to.
+ *
+ * Both halves, in one sentence: a totalling word and a figure. Either alone is
+ * ordinary conversation — "altogether that was a good day", "it cost 18
+ * francs" — and neither is a claim about a sum nobody computed.
+ */
+export function claimsATotal(text: string): boolean {
+  return withoutMarkers(text)
+    .split(/(?<=[.!?\n])\s+/)
+    .some((sentence) => A_TOTAL.test(sentence) && A_FIGURE.test(sentence));
+}
+
+/**
  * What the model is told when it has claimed a write it did not make — B920.
  *
  * A retry rather than a strip: stripping leaves a hole in a paragraph and
@@ -898,6 +964,13 @@ Answer again. If they want that person to read it, call invite_guest: it propose
 const READ_IT_RETRY = `Stop. Your last answer said what a day contains, and you did not read that day on this turn. You do not remember their words and you must not describe them from memory.
 
 Answer again. Call read_day first, and quote the words that are actually there back to them — a quote they can check, not a summary. If the day does not say what they are asking about, say so, and propose the change.`;
+
+/**
+ * What the model is told when it has totalled somebody's money itself — B955.
+ */
+const COUNT_IT_RETRY = `Stop. Your last answer said what something adds up to, and you did not read this trip's costs on this turn. You cannot add up from memory: you will miss what was recorded a minute ago, and a wrong number about somebody's money reads exactly like a right one.
+
+Answer again. Call trip_costs — it returns the total, the daily average and how many days have nothing recorded, all worked out from what is actually written down — and give them those figures. If you would rather not call it, say the total without a number and tell them to ask again.`;
 
 /**
  * How often a turn claimed a write it had not made — B920.
@@ -1053,11 +1126,13 @@ export async function answerInThread(
       .filter((name): name is string => name !== undefined),
   );
 
-  function amiss(): "" | "claim" | "pending" | "access" | "day" {
+  function amiss(): "" | "claim" | "pending" | "access" | "day" | "total" {
     if (claimsAccess(answer) && !proposals.some((one) => one.tool === "invite_guest")) {
       return "access";
     }
     if (claimsWhatADaySays(answer) && !looked.includes("read_day")) return "day";
+    // B955 — the arithmetic is the server's and was not asked for it.
+    if (claimsATotal(answer) && !looked.includes("trip_costs")) return "total";
     if (claimsWhatIsNotThere(answer)) {
       /**
        * **The turn that proposes is the turn most tempted to describe it as
@@ -1114,6 +1189,7 @@ export async function answerInThread(
     pending: PENDING_RETRY,
     access: ACCESS_RETRY,
     day: READ_IT_RETRY,
+    total: COUNT_IT_RETRY,
   };
   /**
    * What is said when the model could not be made to say something true.
@@ -1130,6 +1206,7 @@ export async function answerInThread(
     pending: "agent.notUntilYouPress",
     access: "agent.noAccessYet",
     day: "agent.notRead",
+    total: "agent.notCounted",
   } as const;
 
   const wrong = amiss();

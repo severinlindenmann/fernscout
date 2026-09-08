@@ -280,6 +280,7 @@ export type TranslationKey =
   | "agent.noTrips"
   | "agent.noWordsYet"
   | "agent.noneChosen"
+  | "agent.notCounted"
   | "agent.notRead"
   | "agent.nothingHappened"
   | "agent.notUntilYouPress"
