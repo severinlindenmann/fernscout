@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { MessagesSquare } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 
 /**
@@ -54,17 +53,21 @@ export default function SessionsConsent({
   }
 
   return (
-    <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
-      <div className="flex items-center gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-300/40 text-navy-900">
-          <MessagesSquare className="h-[18px] w-[18px]" aria-hidden="true" />
-        </span>
-        <h3 className="font-display text-lg font-semibold text-navy-900">
-          {t("me.sessionsTitle")}
-        </h3>
-      </div>
+    /*
+      Quieter than the cards above it — B976. It used to be one of them: a
+      white panel with a round icon, the same weight as issuing an agent key
+      or seeing who can read. That is the wrong weight for a switch somebody
+      touches once or never, and it put a settled default in the middle of the
+      things people came here to do.
 
-      <p className="mt-2 text-sm leading-6 text-navy-700">{t("me.sessionsBody")}</p>
+      Down here it is a footer setting: no card, no icon, muted, next to the
+      way out.
+    */
+    <section className="mt-10 border-t border-navy-200 pt-6">
+      <h2 className="font-display text-base font-semibold text-navy-800">
+        {t("me.sessionsTitle")}
+      </h2>
+      <p className="mt-1 text-sm leading-6 text-navy-600">{t("me.sessionsBody")}</p>
 
       <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3">
         <input
@@ -74,11 +77,11 @@ export default function SessionsConsent({
           onChange={(event) => void set(event.target.checked)}
           className="h-5 w-5 shrink-0 rounded border-navy-300 text-navy-900"
         />
-        <span className="text-sm leading-6 text-navy-800">{t("me.sessionsShare")}</span>
+        <span className="text-sm leading-6 text-navy-700">{t("me.sessionsShare")}</span>
       </label>
 
       {/* The sentence that stops somebody believing they deleted something. */}
       <p className="mt-1 text-xs leading-5 text-navy-500">{t("me.sessionsOffNote")}</p>
-    </div>
+    </section>
   );
 }
