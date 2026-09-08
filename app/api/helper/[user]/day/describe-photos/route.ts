@@ -93,7 +93,7 @@ export async function POST(
   const supplied = text(body.idempotency_key);
   const key = supplied === "" ? null : idempotencyKey(user, "helper.describe-photos", supplied);
   const fingerprint = fingerprintOf({ slug, srcs });
-  const recalled = recall<Record<string, unknown>>(key, fingerprint);
+  const recalled = await recall<Record<string, unknown>>(key, fingerprint);
   if (recalled.kind === "replay") return Response.json(recalled.value);
   if (recalled.kind === "conflict") {
     return Response.json({ error: "idempotency_conflict" }, { status: 409 });
@@ -133,7 +133,7 @@ export async function POST(
     });
 
     const answer = { ok: true, captions: bySrc, spent: credits, provider: HELPER_PROVIDER };
-    remember(key, fingerprint, answer);
+    await remember(key, fingerprint, answer);
     return Response.json(answer);
   } catch {
     // The credit bought nothing; give it back. What a provider says when it

@@ -101,7 +101,7 @@ export async function POST(
   const supplied = typeof body.idempotency_key === "string" ? body.idempotency_key.trim() : "";
   const key = supplied === "" ? null : idempotencyKey(user, "helper.statement", supplied);
   const fingerprint = fingerprintOf({ inbox: found.entry.id });
-  const recalled = recall<Record<string, unknown>>(key, fingerprint);
+  const recalled = await recall<Record<string, unknown>>(key, fingerprint);
   if (recalled.kind === "replay") return Response.json(recalled.value);
   if (recalled.kind === "conflict") {
     return Response.json({ error: "idempotency_conflict" }, { status: 409 });
@@ -138,7 +138,7 @@ export async function POST(
     spent: STATEMENT_CREDITS,
     provider: HELPER_PROVIDER,
   };
-  remember(key, fingerprint, answer);
+  await remember(key, fingerprint, answer);
   return Response.json(answer);
 }
 

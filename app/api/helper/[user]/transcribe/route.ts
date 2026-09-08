@@ -112,7 +112,7 @@ export async function POST(
   // The audio's own length and bytes, not the recording itself: a fingerprint
   // is held in memory and this one must not be a copy of somebody's voice.
   const fingerprint = fingerprintOf({ bytes: audio.byteLength, language, seconds: claimed });
-  const recalled = recall<Record<string, unknown>>(key, fingerprint);
+  const recalled = await recall<Record<string, unknown>>(key, fingerprint);
   if (recalled.kind === "replay") return Response.json(recalled.value);
   if (recalled.kind === "conflict") {
     return Response.json({ error: "idempotency_conflict" }, { status: 409 });
@@ -153,6 +153,6 @@ export async function POST(
     spent,
     provider: speechProvider(),
   };
-  remember(key, fingerprint, answer);
+  await remember(key, fingerprint, answer);
   return Response.json(answer);
 }
