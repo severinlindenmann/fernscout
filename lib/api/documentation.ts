@@ -28,6 +28,7 @@ import {
 } from "../credits/pricing";
 import { getDefaultUsername, getUser, listedUsernames } from "../users";
 import { getTrips } from "../trips";
+import { COVER_TYPES, sizesFor } from "../photobook/spec";
 import { isIndexable } from "../access";
 import { CODE_TTL_MINUTES } from "../auth";
 import { openApiDocument } from "./openapi";
@@ -2738,9 +2739,16 @@ rather than asking for the old one to be revived.
 ## Printing a photobook
 
 A journal with \`photobook\` switched on that has already built a book — from
-the owner's own order page, not from here — can put a printed copy in
-somebody's letterbox the same way a postcard does: **you propose it, you
-never print it.**
+the owner's own order page, not from here, since the size and the cover are
+the owner's own choice and there is no API call that builds one — can put a
+printed copy in somebody's letterbox the same way a postcard does: **you
+propose it, you never print it.**
+
+If the owner asks what a book could look like before opening that page: the
+cover (\`${COVER_TYPES.join("\` or \`")}\`) is chosen before the size, because
+not every size exists in both — softcover offers
+\`${sizesFor("soft").map((s) => s.id).join("\`, \`")}\`, hardcover offers
+\`${sizesFor("hard").map((s) => s.id).join("\`, \`")}\`.
 
 Find who it could go to the same way you would for a postcard — a book is
 posted to the same population, so there is no second list:
