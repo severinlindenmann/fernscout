@@ -7,8 +7,7 @@ complexity: high
 area: Test suite
 found: "2026-09-07T12:32:19Z"
 started: "2026-09-08T21:22:10Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T21:22:10Z"
+merged: "2026-09-08T22:40:25Z"
 ---
 
 # B738 — The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake
