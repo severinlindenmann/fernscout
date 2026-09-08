@@ -65,7 +65,15 @@ export type Block =
   | { shape: "form"; text: string; fields: ProposalField[]; proposal?: Proposal }
   | { shape: "preview"; text: string; lines: string[] }
   | { shape: "files"; text: string; files: { id: string; name: string }[] }
-  | { shape: "confirm"; text: string; proposal?: Proposal }
+  /**
+   * A press, and — since B929 — the questions that press cannot go through
+   * without. A confirmation has no editable fields on purpose (there is
+   * nothing to correct about *which* day: saying the right one proposes it
+   * again), but a trip's own question is not a correction, it is the answer
+   * the route will refuse without. Only fields carrying `options` are drawn,
+   * so a confirmation can ask and still never turn into a form.
+   */
+  | { shape: "confirm"; text: string; fields?: ProposalField[]; proposal?: Proposal }
   | { shape: "link"; text: string; href: string; label: string };
 
 /**

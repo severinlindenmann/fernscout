@@ -1549,6 +1549,8 @@
   "agent.tool.startDayAccept": "Start this day",
   "agent.tool.startDayDone": "The day is started. It is a draft, so nobody but you can read it.",
   "agent.tool.startDayUnknown": "The questions below open on “Nobody has it” — nothing is invented, nobody has been asked yet. Change one now, or tell me a real figure afterwards.",
+  "agent.tool.publishDayUnknown": "One thing first: this trip keeps track of things this day says nothing about. The questions below open on “Nobody has it” — nothing is invented, nobody has been asked yet. Change one if you know the answer.",
+  "agent.tool.createTripVisibility": "Read “Who may read it” before you press: guests are everybody you have let into this journal, and private is only the people who were on the trip itself.",
   "agent.tool.draftWords": "Your notes, turned into a title and a few paragraphs. Nothing is added that you did not say, you read it before any of it is kept, and it costs {credits} credit.",
   "agent.tool.draftWordsAccept": "Write it up for me",
   "agent.tool.draftWordsDone": "That is what it made of your notes. Nothing is saved yet.",
