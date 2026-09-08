@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import BusyButton from "@/components/BusyButton";
+import { PhotoPicker } from "@/components/PhotoPicker";
 import { useI18n } from "./LocaleProvider";
 import type { Day, Entry } from "@/lib/types";
 
@@ -403,23 +404,26 @@ export default function EditDay({
               );
             })}
 
-            <label className="mt-2 block">
+            {/* B1012 — the picker B768 already wrote, rather than a second
+                bare `<input type="file">`. A bare one draws its own button and
+                its own "No file chosen" in the *browser's* locale, from
+                strings no CSS and no attribute can reach, which is the
+                sentence B768 exists to stop rendering. Narrowed to pictures
+                and video: a correction to a day adds nothing else, and there
+                is no inbox behind this panel to sort a receipt into. */}
+            <div className="mt-2">
               <span className="text-xs font-semibold text-navy-700">
                 {t("edit.addPhotos")}
               </span>
-              <input
-                type="file"
-                multiple
+              <PhotoPicker
+                id={`edit-add-${at}`}
                 accept="image/*,video/*"
-                onChange={(event) =>
-                  setAdding((prev) => ({
-                    ...prev,
-                    [at]: [...(event.target.files ?? [])],
-                  }))
+                chosen={adding[at] ?? []}
+                onPick={(files) =>
+                  setAdding((prev) => ({ ...prev, [at]: [...(files ?? [])] }))
                 }
-                className="mt-1 block w-full text-xs text-navy-700"
               />
-            </label>
+            </div>
           </div>
 
           {/* A label narrows and never widens — B632. There is no "public"

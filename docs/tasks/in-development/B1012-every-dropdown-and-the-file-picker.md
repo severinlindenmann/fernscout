@@ -81,6 +81,36 @@ Not doing: the sizing inconsistency between call sites (`text-sm` / `text-base`
 / `text-lg` for the same control on different pages). It is real and it is a
 separate decision about the forms, not about the chrome.
 
+## What it looked like, and the one behaviour that changed
+
+Driven locally at 390px, signed in as `example`'s owner, in a Chrome that
+*does* support `appearance: base-select` — so both branches were checked, the
+second by temporarily inverting the two `@supports` conditions and reloading.
+
+- **The correction panel** (`EditDay`, the screen this was reported from) —
+  every dropdown draws our navy chevron; the open list is cream, rounded, with
+  the selected row in `yellow-300` and the page's own type. The file control is
+  the brand's pill with "Choose files" and "No photos chosen" in the reader's
+  language, not the browser's.
+- **`/[user]/contacts`** — same, and the popup matches the control's width.
+- **The fallback branch** — our own background chevron, no wrap, nothing
+  native left on screen.
+
+**One real behaviour change, and it is the platform's rather than ours.**
+Under `base-select` a closed `<select>` behaves as a combobox: ArrowDown
+*opens* the picker instead of changing the value in place, ArrowDown then Enter
+commits, and Escape closes without committing. Verified all four. That is the
+defined behaviour of the feature and what every engine will do as it ships, and
+it matches the ARIA combobox pattern rather than diverging from it — but it is
+not what the closed native select did, and somebody who navigates these forms
+by keyboard will notice. It applies only in browsers that have the feature;
+everywhere else the native behaviour is untouched.
+
+The `padding-right` for the chevron had to move into `@supports not (…)`: under
+`base-select` the browser lays out its own `::picker-icon` and reserves room
+for it, so reserving 2.25rem as well squeezed the 150px per-photo selects
+enough to wrap "As this update" onto two lines.
+
 ## Acceptance
 
 - Every `<select>` on the site draws Fernscout's chevron, not the OS's, at
