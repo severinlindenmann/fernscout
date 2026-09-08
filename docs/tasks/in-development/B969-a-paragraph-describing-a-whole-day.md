@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: helper, tools
 found: "2026-09-08T13:31:20Z"
+started: "2026-09-08T13:39:22Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T13:39:22Z"
 ---
 
 # B969 — A paragraph describing a whole day is thrown away because the day does not exist yet
