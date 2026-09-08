@@ -1180,41 +1180,56 @@ function InviteRow({
         </span>
       </span>
       {!dead && (
-        <span className="flex flex-wrap items-center gap-2">
-          {/* B280 and B281: send the same link again rather than issuing a
-              second one for the same audience. Absent, not disabled, when
-              there is no recoverable token — see `AdminInvite.url`. */}
+        <span className="flex flex-col items-end gap-2">
+          {/* B934: the button above was the only route to this link — a phone
+              whose clipboard write is refused (no secure context, permission
+              denied, an old browser) left the owner nothing to select, on the
+              one page B280 built specifically to show a lost link again. The
+              value is now on screen too, selectable by hand, the same way
+              `freshLink` below and `InviteToRead` already show one — so the
+              button is a shortcut rather than the only way in, matching the
+              rule the rest of this codebase follows for a live credential. */}
           {invite.url && (
-            <CopyLine
-              value={invite.url}
-              label={t("contact.adminCopyLink")}
-              copiedLabel={t("contact.adminCopiedLink")}
-              // The URL is a credential, so it is deliberately not recited as
-              // the accessible name the way `CopyLine`'s default would — B199
-              // is the precedent. What it copies is said in words instead, and
-              // the note beside it is what identifies which link this is —
-              // when there is one. B358: an unnamed link used to fill the gap
-              // with an em-dash placeholder, so the name ended "— —".
-              name={
-                invite.name
-                  ? t("contact.adminCopyLinkNamed", {
-                      kind: t(INVITE_KIND_KEY[invite.kind]),
-                      name: invite.name,
-                    })
-                  : t("contact.adminCopyLinkKind", {
-                      kind: t(INVITE_KIND_KEY[invite.kind]),
-                    })
-              }
-            />
+            <code className="block max-w-full break-all rounded-lg bg-cream-100 px-2 py-1 text-xs text-navy-900">
+              {invite.url}
+            </code>
           )}
-          <BusyButton
-            busy={busy}
-            type="button"
-            onClick={() => act({ action: "revoke-invite", id: invite.id })}
-            className="rounded-lg border border-navy-200 px-3 py-1 text-sm text-navy-700 disabled:opacity-50"
-          >
-            {t("contact.adminRevokeLink")}
-          </BusyButton>
+          <span className="flex flex-wrap items-center gap-2">
+            {/* B280 and B281: send the same link again rather than issuing a
+                second one for the same audience. Absent, not disabled, when
+                there is no recoverable token — see `AdminInvite.url`. */}
+            {invite.url && (
+              <CopyLine
+                value={invite.url}
+                label={t("contact.adminCopyLink")}
+                copiedLabel={t("contact.adminCopiedLink")}
+                // The URL is a credential, so it is deliberately not recited as
+                // the accessible name the way `CopyLine`'s default would — B199
+                // is the precedent. What it copies is said in words instead, and
+                // the note beside it is what identifies which link this is —
+                // when there is one. B358: an unnamed link used to fill the gap
+                // with an em-dash placeholder, so the name ended "— —".
+                name={
+                  invite.name
+                    ? t("contact.adminCopyLinkNamed", {
+                        kind: t(INVITE_KIND_KEY[invite.kind]),
+                        name: invite.name,
+                      })
+                    : t("contact.adminCopyLinkKind", {
+                        kind: t(INVITE_KIND_KEY[invite.kind]),
+                      })
+                }
+              />
+            )}
+            <BusyButton
+              busy={busy}
+              type="button"
+              onClick={() => act({ action: "revoke-invite", id: invite.id })}
+              className="rounded-lg border border-navy-200 px-3 py-1 text-sm text-navy-700 disabled:opacity-50"
+            >
+              {t("contact.adminRevokeLink")}
+            </BusyButton>
+          </span>
         </span>
       )}
     </li>
