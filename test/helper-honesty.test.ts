@@ -12,6 +12,7 @@ import {
   claimsAccess,
   claimsWhatADaySays,
   claimsWhatIsNotThere,
+  claimsAButton,
   claimsAWrite,
   honestyCounts,
 } from "@/lib/helper/model";
@@ -229,6 +230,48 @@ describe("saying a thing was written, as distinct from saying where to press", (
   }
 });
 
+/* ------------------------------------ the button, apart from the write --- */
+
+/**
+ * The other half of the pair — B953.
+ *
+ * A button claim and a write claim are false under *different* conditions,
+ * which is why they are two matchers rather than one: a button that is not
+ * there is false whenever the turn proposed nothing, while a write is false
+ * only when nothing has been written at all. B944 carved out the write and
+ * left this half inside the combined function, which then took the write's
+ * narrower condition — undoing B928 in every session past its second minute.
+ */
+describe("pointing at something on the screen", () => {
+  for (const said of [
+    "Der Knopf ist direkt darunter.",
+    "The button is below.",
+    "Press it on your screen.",
+    "Nyomd meg a gombot alatta.",
+    // B928 lists this separately, because it survives a denial: "nothing was
+    // saved, but try reloading" is still sending her away.
+    "Try reloading the page.",
+    "Lade die Seite neu.",
+  ]) {
+    test(`is a button: ${said}`, () => {
+      expect(claimsAButton(said)).toBe(true);
+    });
+  }
+
+  for (const said of [
+    // A write, which is the other matcher's business.
+    "Der Tag ist angelegt.",
+    "The words are saved.",
+    // And a denial.
+    "There is nothing on your screen to press.",
+    "Es gibt nichts zu drücken.",
+  ]) {
+    test(`is not: ${said}`, () => {
+      expect(claimsAButton(said)).toBe(false);
+    });
+  }
+});
+
 /* ----------------------------------------- the claim without the act --- */
 
 describe("a turn that claims a write it did not make", () => {
@@ -294,6 +337,39 @@ describe("a turn that claims a write it did not make", () => {
       .mockResolvedValueOnce(says("Drück den Knopf, dann lege ich den 2. Mai an."));
     const answered = await read(await ask("mach mir den 2. mai"));
     expect(String(answered.body.answer)).toContain("Drück den Knopf");
+  });
+
+  /**
+   * The half B944 took away with it — B953.
+   *
+   * `claimsWhatIsNotThere` answers for two things, and B944 gave the pair the
+   * *write's* narrower condition: nothing had to be written before a claim
+   * counted. A button that is not on the screen is false whatever the
+   * conversation has written, and in any session past its second minute
+   * something has been written — so "press the button" with no proposal
+   * stopped being caught, four hours after B928 was reaffirmed.
+   *
+   * Found by somebody writing up a fifteen-day trip: three times the answer
+   * said a proposal was on screen while `proposals: []`, and they had to type
+   * "I don't see a button" to get a real one.
+   */
+  test("a button that is not there is caught even in a conversation that has written things", async () => {
+    wrote("alex", "start_day", { trip: "reise", slug: "zweiter", date: "2026-05-02" });
+    create
+      .mockResolvedValueOnce(says("Der Knopf ist direkt darunter."))
+      .mockResolvedValueOnce(says("Doch, drück den Knopf unten."));
+    const answered = await read(await ask("und jetzt?"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toContain("Nothing has been saved");
+  });
+
+  test("and it is still caught when nothing has been written", async () => {
+    create
+      .mockResolvedValueOnce(says("Der Knopf ist direkt darunter."))
+      .mockResolvedValueOnce(says("Doch, drück den Knopf unten."));
+    const answered = await read(await ask("und jetzt?"));
+    expect(String(answered.body.answer)).toContain("Nothing has been saved");
   });
 
   /**
