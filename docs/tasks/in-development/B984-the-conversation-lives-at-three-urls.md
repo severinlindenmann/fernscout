@@ -6,6 +6,9 @@ priority: high
 complexity: high
 area: helper, routing, media
 found: "2026-09-08T16:20:29Z"
+started: "2026-09-08T16:54:03Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T16:54:03Z"
 ---
 
 # B984 — The conversation lives at three URLs and should live at one

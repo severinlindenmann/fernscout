@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: helper, sessions
 found: "2026-09-08T16:24:40Z"
+started: "2026-09-08T16:54:03Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T16:54:03Z"
 ---
 
 # B985 — Only two of the write routes record a press they refused
