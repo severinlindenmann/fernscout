@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: admin
 found: "2026-09-08T16:44:52Z"
+merged: "2026-09-08T16:50:04Z"
 ---
 
 # B992 — The admin journal list is a wall of rows with the controls in the wrong places
