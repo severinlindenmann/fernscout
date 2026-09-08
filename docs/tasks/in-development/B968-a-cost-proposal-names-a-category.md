@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: helper, tools, costs
 found: "2026-09-08T13:31:19Z"
+started: "2026-09-08T13:32:17Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T13:32:17Z"
 ---
 
 # B968 — A cost proposal names a category the endpoint refuses
