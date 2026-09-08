@@ -14,7 +14,7 @@ import {
   type PhotobookPayload,
 } from "./orders";
 import { bookAddressFor } from "./recipients";
-import { BOOK_SIZES } from "./spec";
+import { BOOK_SIZES, productUidFor } from "./spec";
 
 /**
  * Turning a *built* book into a printed one — the photobook counterpart of
@@ -114,8 +114,13 @@ export async function printOrder(owner: string, id: string, quotedCredits: numbe
   const print = order.payload.print;
   if (!print?.contactId) return { ok: false, reason: "no_recipient" };
 
+  // A stored order can name a size, or a size-and-cover pair, that this
+  // server no longer prints — Gelato's catalogue is not ours to freeze. That
+  // is "not_built" rather than a missing recipient, which is what it used to
+  // claim: the book cannot be made, and nothing about the address is wrong.
   const size = BOOK_SIZES[order.payload.options.size];
-  if (!size) return { ok: false, reason: "no_recipient" };
+  const productUid = size ? productUidFor(size.id, order.payload.options.coverType) : null;
+  if (!size || !productUid) return { ok: false, reason: "not_built" };
 
   const to = await bookAddressFor(owner, print.contactId);
   if (!to) return { ok: false, reason: "no_recipient" };
@@ -124,7 +129,7 @@ export async function printOrder(owner: string, id: string, quotedCredits: numbe
   if (!country) return { ok: false, reason: "unknown_country" };
 
   const quote = await quoteBook({
-    productUid: size.productUid,
+    productUid,
     pageCount: order.payload.pages,
     country,
     currency: QUOTE_CURRENCY,
@@ -170,7 +175,7 @@ export async function printOrder(owner: string, id: string, quotedCredits: numbe
       email,
     },
     test: true,
-    productUid: size.productUid,
+    productUid,
     shipmentMethodUid: quote.shipmentMethodUid,
     paymentRef: id,
   });

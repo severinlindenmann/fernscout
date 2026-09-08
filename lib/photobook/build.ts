@@ -29,7 +29,7 @@ import type { BookOptions } from "./options";
 
 export function specFor(options: BookOptions): BookSpec {
   const size = BOOK_SIZES[options.size] ?? BOOK_SIZES["square"];
-  return defaultSpec(size);
+  return defaultSpec(size, options.coverType);
 }
 
 export function planFor(trip: string, options: BookOptions, followers?: string[]): Photobook {

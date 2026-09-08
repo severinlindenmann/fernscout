@@ -12,10 +12,19 @@
  */
 
 import { isBookLocale } from "./strings";
+import { COVER_TYPES, type CoverType } from "./spec";
 
 export type BookOptions = {
   /** A key of `BOOK_SIZES`. */
   size: string;
+  /**
+   * Soft or hard. Asked before the size, because the two do not offer the
+   * same sizes — there is no 280 mm softcover and no 140 mm hardcover — and
+   * asking this way shows a full grid of three either way instead of greying
+   * one out. Not `cover`, which is the cover *photograph* and has been that
+   * since long before Gelato was connected.
+   */
+  coverType: CoverType;
   /**
    * What language the book's own words are printed in — headings, labels, the
    * colophon, the names of the ways of travelling. See
@@ -231,6 +240,7 @@ export const DAY_LAYOUTS: readonly DayLayout[] = ["auto", "hero", "single", "pai
 
 export const DEFAULT_OPTIONS: BookOptions = {
   size: "square",
+  coverType: "soft",
   locale: "en",
   excludePhotos: [],
   days: {},
@@ -434,6 +444,14 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
     typeof raw[key] === "boolean" ? (raw[key] as boolean) : null;
 
   const size = typeof raw.size === "string" && sizes.includes(raw.size) ? raw.size : null;
+  // Absent means soft: every order stored before the cover could be chosen
+  // was a softcover, so an old payload reads back as exactly what it was.
+  const coverType: CoverType | null =
+    raw.coverType === undefined
+      ? "soft"
+      : COVER_TYPES.includes(raw.coverType as CoverType)
+        ? (raw.coverType as CoverType)
+        : null;
   // Checked against what the book can actually print rather than against the
   // journal's own locale list: a journal may offer a language the book has no
   // words for, and printing English headings under a Hungarian title is a
@@ -481,6 +499,7 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
   };
   if (
     !size ||
+    !coverType ||
     !locale ||
     !excludePhotos ||
     !days ||
@@ -496,6 +515,7 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
   // spread, which is what TS actually complained about.
   return {
     size,
+    coverType,
     locale,
     excludePhotos,
     days,
