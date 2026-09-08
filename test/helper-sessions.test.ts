@@ -7,7 +7,15 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { recordHelperConsent, revokeHelperConsent } from "@/lib/helper/consent";
-import { SESSION_KINDS, operatorMayRead, recordPress, recordTurn } from "@/lib/helper/sessions";
+import {
+  SESSION_KINDS,
+  operatorMayRead,
+  recordPress,
+  recordTurn,
+  sessionStats,
+  sessionsOf,
+  turnsIn,
+} from "@/lib/helper/sessions";
 import { forget, sessionId, wrote } from "@/lib/helper/thread";
 
 /**
@@ -243,5 +251,72 @@ describe("when the journal goes", () => {
     // Exactly what deleteJournal runs for every table in that list.
     await sql`delete from helper_sessions where owner_id = ${"alex"}`.execute(db);
     expect(await rows()).toHaveLength(0);
+  });
+});
+
+/**
+ * Reading it back, which is the point of keeping it — B976.
+ *
+ * Two readers with two different rights. The **owner** gets their own
+ * conversations, words and all, because that is the feature they asked for.
+ * The **operator** gets what happened and never a word of it, because that is
+ * a different question and the switch on `/me` has to mean something.
+ */
+describe("what the owner can read", () => {
+  test("their conversations, newest first, opening line and all", async () => {
+    await recordTurn({ ...TURN, session: "old", said: "erste frage", answered: "a" });
+    await recordTurn({ ...TURN, session: "old", said: "zweite frage", answered: "b" });
+    await recordTurn({ ...TURN, session: "new", said: "heute", answered: "c" });
+
+    const found = await sessionsOf("alex");
+    expect(found.map((one) => one.session)).toEqual(["new", "old"]);
+    const old = found.find((one) => one.session === "old")!;
+    expect(old.turns).toBe(2);
+    // The **first** thing they said, which is what makes a list readable.
+    expect(old.opening).toBe("erste frage");
+  });
+
+  test("and one conversation in the order it happened", async () => {
+    await recordTurn({ ...TURN, session: "s", said: "eins", answered: "a" });
+    await recordTurn({ ...TURN, session: "s", said: "zwei", answered: "b" });
+    const turns = await turnsIn("alex", "s");
+    expect(turns.map((one) => one.said)).toEqual(["eins", "zwei"]);
+  });
+
+  test("and never somebody else's, whatever id they name", async () => {
+    await recordTurn({ ...TURN, owner: "mila", session: "hers", said: "geheim", answered: "x" });
+    // A session id is a random string, and this is still not a thing to look
+    // up by id alone.
+    expect(await turnsIn("alex", "hers")).toHaveLength(0);
+  });
+});
+
+describe("what the operator can read", () => {
+  test("what happened, per journal, and no words at all", async () => {
+    await recordTurn({ ...TURN, session: "s", proposed: ["start_day"], guard: "pending" });
+    await recordTurn({ ...TURN, session: "s", proposed: ["add_cost"] });
+    await recordPress({ owner: "alex", session: "s", tool: "start_day", ok: true });
+    await recordPress({ owner: "alex", session: "s", tool: "add_cost", ok: false, error: "invalid_cost" });
+
+    const [stat] = await sessionStats("2000-01-01T00:00:00.000Z");
+    expect(stat.owner).toBe("alex");
+    expect(stat.turns).toBe(2);
+    expect(stat.sessions).toBe(1);
+    // The number this was built for.
+    expect(stat.proposed).toBe(2);
+    expect(stat.pressed).toBe(1);
+    expect(stat.refused).toBe(1);
+    expect(stat.guards).toEqual([{ guard: "pending", count: 1 }]);
+    // Nothing anybody said is anywhere in it.
+    expect(JSON.stringify(stat)).not.toContain("mach mir");
+  });
+
+  test("and whether the words are theirs to read", async () => {
+    revokeHelperConsent("alex", "sessions");
+    await recordTurn(TURN);
+    expect((await sessionStats("2000-01-01T00:00:00.000Z"))[0].readable).toBe(false);
+
+    recordHelperConsent("alex", "this instance", "sessions");
+    expect((await sessionStats("2000-01-01T00:00:00.000Z"))[0].readable).toBe(true);
   });
 });

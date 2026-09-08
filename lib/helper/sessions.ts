@@ -145,3 +145,163 @@ export async function recordPress(press: PressRecord): Promise<void> {
     error: press.error ?? "",
   });
 }
+
+/* ------------------------------------------------------ reading it back --- */
+
+/** What one conversation looked like, for the person whose it is. */
+export type SessionSummary = {
+  session: string;
+  from: string;
+  to: string;
+  turns: number;
+  /** The first thing they said, which is what makes a list of conversations
+   *  readable at all. */
+  opening: string;
+};
+
+/**
+ * The owner's own conversations, newest first — B976, and what B984's history
+ * is built on.
+ *
+ * Their words, shown to them, with no consent involved: this is the reading
+ * that makes keeping them worth anything to the person who wrote them.
+ */
+export async function sessionsOf(username: string, limit = 30): Promise<SessionSummary[]> {
+  try {
+    const handle = await getDatabaseOrNull();
+    if (!handle) return [];
+    const rows = await handle.db
+      .selectFrom("helper_sessions")
+      .select(["session_id", "created_at", "said"])
+      .where("owner_id", "=", username)
+      .where("kind", "=", "turn")
+      .orderBy("created_at", "desc")
+      .limit(limit * 40)
+      .execute();
+
+    const bySession = new Map<string, SessionSummary>();
+    // Newest first, so the last row seen for a session is its oldest — which
+    // is where both the start and the opening line come from.
+    for (const row of rows) {
+      const found = bySession.get(row.session_id);
+      if (found) {
+        found.turns += 1;
+        found.from = row.created_at;
+        if (row.said) found.opening = row.said;
+        continue;
+      }
+      bySession.set(row.session_id, {
+        session: row.session_id,
+        from: row.created_at,
+        to: row.created_at,
+        turns: 1,
+        opening: row.said ?? "",
+      });
+    }
+    return [...bySession.values()].slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
+/** One conversation, oldest first — what reopening it draws. */
+export async function turnsIn(username: string, session: string) {
+  try {
+    const handle = await getDatabaseOrNull();
+    if (!handle) return [];
+    return await handle.db
+      .selectFrom("helper_sessions")
+      .select(["created_at", "said", "answered"])
+      .where("owner_id", "=", username)
+      // Scoped to the journal as well as to the session: an id is a random
+      // string, and this is still not a thing to look up by id alone.
+      .where("session_id", "=", session)
+      .where("kind", "=", "turn")
+      .orderBy("created_at")
+      .execute();
+  } catch {
+    return [];
+  }
+}
+
+/** What the operator can see about one journal, over a period. */
+export type SessionStats = {
+  owner: string;
+  turns: number;
+  sessions: number;
+  proposed: number;
+  pressed: number;
+  refused: number;
+  guards: { guard: string; count: number }[];
+  /** Whether this journal's words may be read at all. */
+  readable: boolean;
+};
+
+/**
+ * What happened across the instance, per journal — B976.
+ *
+ * **No words.** This answers "what should we fix", and none of it is anybody's
+ * private business: a tool name is not a holiday. The words are a separate
+ * question with a separate switch, and a page that mixed the two would make
+ * the switch meaningless.
+ *
+ * `proposed` against `pressed` is the number this was built for. A proposal
+ * made and never pressed is the clearest failure signal this product has:
+ * B935, B936 and B968 were each a proposal no press could accept, and all
+ * three were found by a person driving the live site rather than by anything
+ * that counted.
+ */
+export async function sessionStats(since: string): Promise<SessionStats[]> {
+  try {
+    const handle = await getDatabaseOrNull();
+    if (!handle) return [];
+    const rows = await handle.db
+      .selectFrom("helper_sessions")
+      .select(["owner_id", "session_id", "kind", "proposed", "guard", "ok"])
+      .where("created_at", ">=", since)
+      .execute();
+
+    type Building = SessionStats & { seen: Set<string>; fired: Map<string, number> };
+    const byOwner = new Map<string, Building>();
+    for (const row of rows) {
+      let stat = byOwner.get(row.owner_id);
+      if (!stat) {
+        stat = {
+          owner: row.owner_id,
+          turns: 0,
+          sessions: 0,
+          proposed: 0,
+          pressed: 0,
+          refused: 0,
+          guards: [],
+          readable: operatorMayRead(row.owner_id),
+          seen: new Set<string>(),
+          fired: new Map<string, number>(),
+        };
+        byOwner.set(row.owner_id, stat);
+      }
+      stat.seen.add(row.session_id);
+      if (row.kind === "turn") {
+        stat.turns += 1;
+        if (row.proposed !== "") stat.proposed += row.proposed.split(",").length;
+        if (row.guard !== "") stat.fired.set(row.guard, (stat.fired.get(row.guard) ?? 0) + 1);
+      } else if (row.ok) {
+        stat.pressed += 1;
+      } else {
+        stat.refused += 1;
+      }
+    }
+
+    return [...byOwner.values()]
+      .map(({ seen, fired, ...stat }) => ({
+        ...stat,
+        sessions: seen.size,
+        guards: [...fired.entries()]
+          .map(([guard, count]) => ({ guard, count }))
+          .sort((a, b) => b.count - a.count),
+      }))
+      .sort((a, b) => b.turns - a.turns);
+  } catch {
+    return [];
+  }
+}

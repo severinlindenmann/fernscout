@@ -11,6 +11,7 @@ import { BarChart, DailyChart } from "./Charts";
 import { dailyCosts, dashboard, type CostLine } from "@/lib/instanceCosts";
 import { listPayments, type Payment } from "@/lib/payments";
 import { serverSite } from "@/lib/site";
+import { sessionStats, type SessionStats } from "@/lib/helper/sessions";
 
 // Reads a session and the database on every request; nothing to prerender.
 export const dynamic = "force-dynamic";
@@ -100,6 +101,50 @@ function Lines({ title, lines, note }: { title: string; lines: CostLine[]; note?
  * reason beside them. A total that quietly included a guess would be worse
  * than a total that is explicitly a floor.
  */
+/**
+ * One line per journal: how much talking, how much of it landed, and what the
+ * honesty net caught — B976.
+ *
+ * `read` says whether that journal's owner has let their words be read. It is
+ * shown rather than acted on here: this page holds no prose either way, and
+ * the flag is what a later screen would have to obey.
+ */
+function Helper({ stats }: { stats: SessionStats[] }) {
+  if (stats.length === 0) return null;
+  return (
+    <section className="mt-10 border-t border-navy-200 pt-6">
+      <h2 className="font-display text-lg font-semibold text-navy-900">Conversations</h2>
+      <p className="mt-1 text-sm text-navy-700">
+        What the helper was asked and what came of it. No words — those are the
+        owner&rsquo;s, and reading them is a separate permission.
+      </p>
+      <ul className="mt-2 divide-y divide-navy-200 border-t border-navy-200">
+        {stats.map((stat) => (
+          <li key={stat.owner} className="py-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="font-display font-semibold text-navy-900">{stat.owner}</span>
+              <span className="font-mono text-sm tabular-nums text-navy-700">
+                {stat.pressed}/{stat.proposed} pressed
+              </span>
+            </div>
+            <p className="mt-0.5 text-sm text-navy-600">
+              {stat.turns} turns over {stat.sessions} conversation
+              {stat.sessions === 1 ? "" : "s"}
+              {stat.refused > 0 ? ` · ${stat.refused} refused` : ""}
+              {stat.readable ? "" : " · words not shared"}
+            </p>
+            {stat.guards.length > 0 && (
+              <p className="mt-0.5 font-mono text-xs text-coral-700">
+                {stat.guards.map((one) => `${one.guard} ${one.count}`).join(" · ")}
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export default async function AdminPage() {
   if (!(await isInstanceAdmin())) notFound();
 
@@ -198,6 +243,20 @@ export default async function AdminPage() {
           unpriced: false,
         }))}
       />
+
+      {/*
+        What the conversations did — B976, and the reason any of this is kept.
+        Above the journals because it is the only thing on this page that says
+        what to *fix*; everything else says what was spent.
+
+        **No words here, ever.** `proposed` against `pressed` is the number
+        this was built for: a proposal made and never pressed is the clearest
+        failure signal this product has, and until now nothing counted it. The
+        guards beside it were three process-global integers that reset on every
+        restart, so "is that fix working" was a question only a person driving
+        the live site could answer.
+      */}
+      <Helper stats={await sessionStats(from)} />
 
       <section className="mt-10 border-t border-navy-200 pt-6">
         <h2 className="font-display text-lg font-semibold text-navy-900">Journals</h2>
