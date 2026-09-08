@@ -19,6 +19,7 @@ import Why from "@/components/Why";
 import RecordButton from "@/components/RecordButton";
 import { DayCard } from "@/components/StoryPager";
 import { creditWorth } from "@/lib/credits/pricing";
+import { attemptKeyFor } from "@/lib/helper/attemptKey";
 import { creditsForPhotos } from "@/lib/helper/credits";
 import {
   backFrom,
@@ -411,6 +412,12 @@ export default function AgentWizard({
    *  immediately (B810). */
   const lastMissing = useRef<Track[]>([]);
 
+  /** One random key per distinct set of notes, so an edit that happens to be
+   *  the same length as the last one does not collide on the write-up's
+   *  idempotency key — B719. Keyed by the notes themselves, not their length,
+   *  so a genuine retry (same notes, tapped again) still replays. */
+  const writeUpKeys = useRef(new Map<string, string>());
+
   /** One place where a refusal becomes something on the screen — including the
    *  422 that is not a refusal at all but the trip asking a question. */
   const send = useCallback(
@@ -747,8 +754,10 @@ export default function AgentWizard({
         to: facts?.to,
         photos: day.photos,
         // One key per set of notes, so a tap that times out and is tapped
-        // again is answered rather than charged twice.
-        idempotency_key: `${day.trip}/${day.slug}/${prose.length}`,
+        // again is answered rather than charged twice — random rather than
+        // derived from the notes, so two different edits of the same length
+        // never collide (B719).
+        idempotency_key: attemptKeyFor(writeUpKeys.current, prose),
       }),
     });
     setBusy(false);
