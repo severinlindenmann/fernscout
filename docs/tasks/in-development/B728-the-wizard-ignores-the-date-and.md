@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: agent, ui
 found: "2026-09-07T12:16:35Z"
+started: "2026-09-08T20:47:27Z"
+session: bdd0270d-3797-42c9-8687-06abecadbc63
+claimed: "2026-09-08T20:47:27Z"
 ---
 
 # B728 — The wizard ignores the date and trip the ask box sends it
