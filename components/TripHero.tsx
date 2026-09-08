@@ -26,6 +26,15 @@ import {
 import type { TranslationKey } from "@/lib/i18n";
 import type { DaySummary, PhotobookEntry } from "@/lib/types";
 
+/**
+ * The quiet way into the reading — a text link with an icon, not a capsule.
+ *
+ * `min-h-11` because it is still a tap target on a phone; the underline is
+ * what says it is one, since nothing else about it does. B989.
+ */
+const QUIET =
+  "inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-navy-700 underline decoration-navy-200 decoration-2 underline-offset-4 transition-colors hover:text-navy-900 hover:decoration-navy-500";
+
 export type HeroStats = {
   tripDays: number;
   dayCount: number;
@@ -233,43 +242,57 @@ export default function TripHero({
               </div>
             )}
 
-            <div className="mt-6 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-              {onResume && resumeLabel && (
+            {/* One filled button decides where to start; everything else
+                that also enters the reading is a quiet link beside it. Four
+                capsules of near-equal weight gave a reader no way in, and
+                three of them went to the same place — B989. */}
+            <div className="mt-6 flex flex-col items-stretch gap-3 sm:items-start">
+              {onResume && resumeLabel ? (
                 <button
                   onClick={onResume}
-                  className="col-span-2 inline-flex min-h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-navy-900 px-4 text-base font-semibold text-white transition-colors hover:bg-navy-700 sm:col-auto"
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-navy-900 px-5 text-base font-semibold text-white transition-colors hover:bg-navy-700 sm:w-auto"
                 >
                   <PlayCircle className="h-4 w-4" />
                   {resumeLabel}
                 </button>
+              ) : (
+                // Nobody has read anything yet, so the jump to the newest day
+                // is the way in and takes the weight instead. There is always
+                // exactly one filled button.
+                <LatestDayButton
+                  tripOver={over}
+                  onClick={onLatest}
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 sm:w-auto"
+                />
               )}
-              <LatestDayButton
-                tripOver={over}
-                onClick={onLatest}
-                className="inline-flex min-h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-yellow-400 px-4 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
-              />
-              <button
-                onClick={onStart}
-                className="inline-flex min-h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-navy-200 bg-white px-4 text-base font-semibold text-navy-700 transition-colors hover:border-navy-500"
-              >
-                <ArrowDown className="h-4 w-4" />
-                {t("hero.startReading")}
-              </button>
-              {/* The journey is finished — this is where somebody looking at
-                  that fact is offered the book of it. B569. */}
-              {photobook && stats.totalMedia > 0 && (
-                <a
-                  href={`/${photobook.username}/trips/${photobook.trip}/photobook`}
-                  className="inline-flex min-h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-navy-200 bg-white px-4 text-base font-semibold text-navy-700 transition-colors hover:border-navy-500"
-                >
-                  <BookOpen className="h-4 w-4" />
-                  {t("photobook.start")}
-                </a>
-              )}
-            </div>
 
-            {/* Renders nothing unless this browser can actually do it. */}
-            <PushOptIn />
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                {onResume && resumeLabel && (
+                  <LatestDayButton
+                    tripOver={over}
+                    onClick={onLatest}
+                    className={QUIET}
+                  />
+                )}
+                <button onClick={onStart} className={QUIET}>
+                  <ArrowDown className="h-4 w-4" aria-hidden />
+                  {t("hero.startReading")}
+                </button>
+                {/* The journey is finished — this is where somebody looking at
+                    that fact is offered the book of it. B569. */}
+                {photobook && stats.totalMedia > 0 && (
+                  <a
+                    href={`/${photobook.username}/trips/${photobook.trip}/photobook`}
+                    className={QUIET}
+                  >
+                    <BookOpen className="h-4 w-4" aria-hidden />
+                    {t("photobook.start")}
+                  </a>
+                )}
+                {/* Renders nothing unless this browser can actually do it. */}
+                <PushOptIn compact />
+              </div>
+            </div>
             {/* Renders nothing unless it's iOS, push is on, and this browser
                 hasn't seen it before — see PushInstallOnboarding. */}
             <PushInstallOnboarding />
