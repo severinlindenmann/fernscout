@@ -836,3 +836,68 @@ describe("saying their words are in what was proposed", () => {
     expect(String(answered.body.answer)).toBe("That is your own words, ready to press.");
   });
 });
+
+/**
+ * A total that was partial and did not say so — B960.
+ *
+ * A trip's `rates:` block converts foreign spend into the journal's own
+ * currency, and `add_cost` never writes one, so a trip built through the
+ * conversation has none. Six costs in three currencies came back as *"Total
+ * for the trip so far: 31 CHF"* — the two in CHF. Real spend was over two
+ * hundred at any plausible rate, and nothing said a word.
+ *
+ * `getCostSummary` has always known: `unconverted` is its own field, and the
+ * costs page has always printed "and 4 200 THB besides". Only the conversation
+ * was silent, because `trip_costs` dropped the field before the model ever saw
+ * it. It carries it now, and this is the half that makes carrying it matter:
+ * the model was *told* and said the smaller number anyway.
+ */
+describe("a total the tool said was partial", () => {
+  /**
+   * Money the trip has no rate for. `add_cost` never writes a `rates:` block,
+   * so this is what every trip built through the conversation looks like the
+   * moment somebody spends in a second currency.
+   */
+  beforeEach(() => {
+    fs.writeFileSync(
+      path.join(dir, "alex", "trips", "reise", "entries", "2026-05-02-zwei.md"),
+      [
+        "---",
+        "title: Zwei",
+        'date: "2026-05-02"',
+        "status: draft",
+        "costs:",
+        "  - label: Abendessen",
+        "    amount: 4500",
+        "    currency: RSD",
+        "    category: food",
+        "---",
+        "",
+        "Worte.",
+      ].join("\n"),
+    );
+    clearUserCache();
+  });
+
+  test("is caught when the answer gives only the figure it could convert", async () => {
+    create
+      .mockResolvedValueOnce(calls("trip_costs", { trip: "Die Reise" }))
+      .mockResolvedValueOnce(says("Insgesamt 31 Franken."))
+      .mockResolvedValueOnce(says("Doch, insgesamt 31 Franken."));
+    const answered = await read(await ask("was hat die reise gekostet"));
+
+    // Twice asked, twice only the convertible half: she gets no figure rather
+    // than a smaller trip than the one she took.
+    expect(String(answered.body.answer)).not.toContain("31");
+  });
+
+  test("and left alone when the answer names what was left out", async () => {
+    create
+      .mockResolvedValueOnce(calls("trip_costs", { trip: "Die Reise" }))
+      .mockResolvedValueOnce(says("Insgesamt 31 Franken, und 4500 RSD dazu, die ich nicht umrechnen kann."));
+    const answered = await read(await ask("was hat die reise gekostet"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toContain("4500 RSD");
+  });
+});

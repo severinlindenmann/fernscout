@@ -494,7 +494,7 @@ export const TOOLS: readonly Tool[] = [
     kind: "read",
     renders: "say",
     describe:
-      "This journal's own account: how many credits are left, and how much disk space it takes up out of what it may. Credits pay for the things that cost money — writing a day up with the model, captions, transcription, printing. A null balance means this server charges for nothing. Bytes only — never where a photograph or a day has got to.",
+      "This journal's own account: credits left, and disk space used out of what it may. Credits pay for the model, captions, transcription and printing. A null balance means this server charges for nothing. Bytes only — never where anything is.",
     properties: {},
     run: async (username) => {
       const usage = await storageFor(username);
@@ -511,7 +511,7 @@ export const TOOLS: readonly Tool[] = [
     kind: "read",
     renders: "say",
     describe:
-      "What a trip has cost so far: the total, what was spent preparing, the daily average, and the largest categories. Every figure is in the journal's own currency.",
+      "What a trip has cost so far: the total, what was spent preparing, the daily average, and the largest categories. Every figure is in the journal's own currency. `notInTheTotal` is money it could not convert and left out: if it is not empty, say so and how much.",
     properties: TRIP_ARG,
     run: async (username, args) => {
       const trip = resolveTrip(username, args.trip);
@@ -547,6 +547,33 @@ export const TOOLS: readonly Tool[] = [
         // total is a floor rather than a figure and the model must be able
         // to say so.
         daysWithNothingRecorded: costs.unrecordedDays,
+        /**
+         * **What the total does not include** — B960.
+         *
+         * A trip's `rates:` block is what converts foreign spend into the
+         * journal's own currency, and `add_cost` never writes one — so a trip
+         * built entirely through the conversation has none, and every cost in
+         * anything but the base currency is left out of `total`.
+         *
+         * Six costs in three currencies came back as *"Total for the trip so
+         * far: 31 CHF"*, being the two in CHF. Real spend was over two hundred
+         * at any plausible rate, and nothing said a word.
+         *
+         * `getCostSummary` has known this all along — `unconverted` is its
+         * own field and this tool simply dropped it, so even a model inclined
+         * to mention it had nothing to mention. A total that admits to being
+         * partial is honest; one that cannot is the shape of every fault found
+         * this week.
+         *
+         * Where a rate should come *from* is a real decision and is not this:
+         * converting at a rate nobody chose is exactly the invention this
+         * codebase refuses everywhere else.
+         */
+        notInTheTotal: costs.unconverted.map((one) => ({
+          currency: one.currency,
+          amount: one.amount,
+          items: one.count,
+        })),
         byCategory: costs.byCategory.map((one) => ({
           category: one.category,
           amount: one.amount,

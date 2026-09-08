@@ -1017,6 +1017,13 @@ const WORDS_RETRY = `Stop. Your last answer said their own words are in what you
 
 Say what is actually there: a day waiting to be started, and that the words come after it, once they press. Then offer to write them up. Do not describe prose that does not exist, however sure you are of what it would say.`;
 
+/**
+ * What the model is told when the total it was handed was a partial one — B960.
+ */
+const PARTIAL_RETRY = `Stop. The costs you read said plainly that some of their spending is NOT in that total — it is in a currency this trip has no rate for, and it was left out. You gave them the smaller number as though it were the whole thing.
+
+Answer again with both: the total as far as it goes, and then the money that is not in it, named by its currency and its amount, in the words \`notInTheTotal\` gave you. Do not convert it yourself and do not guess a rate. "Two hundred francs, and 4 500 dinars besides that I cannot convert" is the true answer and it is not a worse one.`;
+
 const ACCESS_RETRY = `Stop. Your last answer said a person can read something, and nothing on this turn makes that true. Naming somebody does not let them in: a trip that is not public is open to the people who were on it and to the guests the owner has already approved, and nobody else. Saying otherwise is the worst thing you can get wrong here — this journal exists so that somebody's family can read it, and they will believe you.
 
 Answer again. If they want that person to read it, call invite_guest: it proposes a link for them to send. Say what the link is — the person opens it, proves their own address, and then asks; they can read nothing until the owner approves them. Otherwise say plainly, in their language, that the person has not been invited yet and cannot read it.`;
@@ -1095,6 +1102,19 @@ export async function answerInThread(
   messages.push({ role: "user" as const, content: pending === "" ? said : `${said}\n${pending}` });
 
   const looked: string[] = [];
+  /**
+   * Currencies a total left out, from the tool that knows — B960.
+   *
+   * `trip_costs` reports what it could not convert, and a total that does not
+   * mention it is smaller than what somebody spent. Six costs in three
+   * currencies came back as *"Total for the trip so far: 31 CHF"*, being the
+   * two in CHF, with nothing said. The costs page has always said "and 4 200
+   * THB besides"; only the conversation was silent.
+   *
+   * Kept here rather than checked inside the tool because the claim is the
+   * *answer's*, and the answer is written after the tool has spoken.
+   */
+  const leftOut: string[] = [];
   const blocks: Block[] = [];
   const proposals: Proposal[] = [];
 
@@ -1134,6 +1154,12 @@ export async function answerInThread(
         );
         blocks.push(...drawn);
         if (proposal) proposals.push(proposal);
+        if (call.name === "trip_costs") {
+          const said = result as { notInTheTotal?: { currency?: unknown }[] } | null;
+          for (const one of said?.notInTheTotal ?? []) {
+            if (typeof one.currency === "string") leftOut.push(one.currency);
+          }
+        }
         results.push({
           type: "tool_result",
           tool_use_id: call.id,
@@ -1189,13 +1215,25 @@ export async function answerInThread(
       .filter((name): name is string => name !== undefined),
   );
 
-  function amiss(): "" | "claim" | "pending" | "words" | "access" | "day" | "total" {
+  function amiss(): "" | "claim" | "pending" | "words" | "access" | "day" | "total" | "partial" {
     if (claimsAccess(answer) && !proposals.some((one) => one.tool === "invite_guest")) {
       return "access";
     }
     if (claimsWhatADaySays(answer) && !looked.includes("read_day")) return "day";
     // B955 — the arithmetic is the server's and was not asked for it.
     if (claimsATotal(answer) && !looked.includes("trip_costs")) return "total";
+    /**
+     * B960 — it *did* ask, and the answer it got said the total was partial.
+     * A figure repeated without that is a smaller trip than the one somebody
+     * took, said with the authority of a number read off disk.
+     */
+    if (
+      claimsATotal(answer) &&
+      leftOut.length > 0 &&
+      !leftOut.some((currency) => new RegExp(`\\b${currency}\\b`, "i").test(answer))
+    ) {
+      return "partial";
+    }
     /**
      * Words claimed to be in a proposal that has nowhere to put them — B961.
      *
@@ -1268,6 +1306,7 @@ export async function answerInThread(
     access: ACCESS_RETRY,
     day: READ_IT_RETRY,
     total: COUNT_IT_RETRY,
+    partial: PARTIAL_RETRY,
   };
   /**
    * What is said when the model could not be made to say something true.
@@ -1286,6 +1325,7 @@ export async function answerInThread(
     access: "agent.noAccessYet",
     day: "agent.notRead",
     total: "agent.notCounted",
+    partial: "agent.notCounted",
   } as const;
 
   const wrong = amiss();
