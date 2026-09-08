@@ -12,6 +12,7 @@ import {
   claimsAccess,
   claimsWhatADaySays,
   claimsWhatIsNotThere,
+  claimsAWrite,
   honestyCounts,
 } from "@/lib/helper/model";
 
@@ -185,6 +186,49 @@ describe("a sentence about something that is not there", () => {
   }
 });
 
+/* --------------------------------- the write, apart from the button --- */
+
+/**
+ * The narrower matcher — B944.
+ *
+ * `claimsWhatIsNotThere` answers for two things at once: a write that did not
+ * happen, and a control that is not on the screen. On the one turn where a
+ * proposal *is* on the screen those come apart — the button is real and the
+ * deed is not — and checking them together caught every honest answer that
+ * pointed at the button it had just made.
+ */
+describe("saying a thing was written, as distinct from saying where to press", () => {
+  for (const said of [
+    "Der Tag ist angelegt.",
+    "Die Worte sind gespeichert.",
+    "The 4th is now a draft again.",
+    "I've started the empty day for Thursday 3 September.",
+    "A nap el van mentve.",
+    // Taking it down, which the matcher had no word for until B944.
+    "It is off the site now.",
+    "I've taken it down.",
+    "Der Tag ist wieder ein Entwurf.",
+  ]) {
+    test(`is a write: ${said}`, () => {
+      expect(claimsAWrite(said)).toBe(true);
+    });
+  }
+
+  for (const said of [
+    // The button, which on a turn with a proposal is simply true.
+    "Der Knopf dafür steht bereit.",
+    "The button is on your screen.",
+    "Nyomd meg a gombot.",
+    // And a denial, which is the answer this whole net is trying to produce.
+    "Nichts ist gespeichert.",
+    "Nothing has been saved yet.",
+  ]) {
+    test(`is not: ${said}`, () => {
+      expect(claimsAWrite(said)).toBe(false);
+    });
+  }
+});
+
 /* ----------------------------------------- the claim without the act --- */
 
 describe("a turn that claims a write it did not make", () => {
@@ -217,42 +261,90 @@ describe("a turn that claims a write it did not make", () => {
   });
 
   /**
-   * The replacement is a claim too — B943.
+   * The turn that proposes is the turn most tempted to lie — B944.
    *
-   * `agent.nothingHappened` denies the whole journal, and driven against the
-   * live site it denied a day that had just been written: pressed, on disk,
-   * and the next question got *"nothing has changed in your journal"*. The net
-   * caught a false claim and put a different one in its place, which is the
-   * one failure it is not allowed to have.
-   *
-   * What the thread knows is that something was written — B939's note — and
-   * that is enough to narrow the denial to this answer without saying anything
-   * about what the day now holds.
+   * The check used to run only when a turn made **no** proposal, so the one
+   * moment the model has something specific to describe was the one moment
+   * nothing was reading what it said. Two testers found it the same
+   * afternoon, from opposite ends: a designer asked to take a day off the
+   * site and read *"The 4th is now a draft again"* with the day still
+   * published; a blind reader heard *"I've started the empty day for
+   * Thursday"* with the proposal sitting unpressed. For the second of them
+   * the sentence is the whole of what they know.
    */
-  test("with a write behind it, the denial is of the answer and not of the journal", async () => {
-    wrote("alex", "start_day", { trip: "reise", slug: "zweiter", date: "2026-05-02" });
-    create
-      .mockResolvedValueOnce(says("Der Text ist gespeichert."))
-      .mockResolvedValueOnce(says("Doch, der Text ist gespeichert. Der Knopf ist direkt darunter."));
-    const answered = await read(await ask("so kannst du es speichern"));
-
-    const said = String(answered.body.answer);
-    expect(said).not.toContain("gespeichert");
-    expect(said).not.toContain("Nothing has been saved");
-    // It says what it could not do, and leaves the journal out of it.
-    expect(said).toContain("could not answer that reliably");
-    expect(said).toContain("is in your journal");
-  });
-
-  test("a turn that really did propose is left alone", async () => {
+  test("describing the proposal it just made as already done is caught", async () => {
     create
       .mockResolvedValueOnce(calls("start_day", { trip: "Die Reise", date: "2026-05-02" }))
-      .mockResolvedValueOnce(says("Der Tag ist angelegt."));
+      .mockResolvedValueOnce(says("Der Tag ist angelegt."))
+      .mockResolvedValueOnce(says("Der Tag ist angelegt. Wirklich."));
     const answered = await read(await ask("mach mir den 2. mai"));
 
-    // Two calls, and neither of them a retry: there is a button on her screen.
-    expect(create).toHaveBeenCalledTimes(2);
+    const said = String(answered.body.answer);
+    expect(said).not.toContain("angelegt");
+    expect(said).toContain("waiting on your screen");
+    // And the button it made is still there — the correction is to the tense,
+    // never to the proposal.
+    expect((answered.body.blocks as { shape: string }[]).some((one) => one.shape === "form")).toBe(true);
+  });
+
+  test("and the retry is enough: the second answer in the right tense reaches her", async () => {
+    create
+      .mockResolvedValueOnce(calls("start_day", { trip: "Die Reise", date: "2026-05-02" }))
+      .mockResolvedValueOnce(says("Der Tag ist angelegt."))
+      .mockResolvedValueOnce(says("Drück den Knopf, dann lege ich den 2. Mai an."));
+    const answered = await read(await ask("mach mir den 2. mai"));
+    expect(String(answered.body.answer)).toContain("Drück den Knopf");
+  });
+
+  /**
+   * The other direction, which is B943's and must survive this.
+   *
+   * With something really written and no proposal pending, a sentence saying
+   * so is **true**, and flagging it is what led to the replacement telling
+   * somebody nothing had changed in a journal they had just watched change.
+   */
+  test("a true sentence about a press that happened is left alone", async () => {
+    wrote("alex", "start_day", { trip: "reise", slug: "zweiter", date: "2026-05-02" });
+    create.mockResolvedValueOnce(says("Der Tag ist angelegt."));
+    const answered = await read(await ask("und?"));
+
+    expect(create).toHaveBeenCalledTimes(1);
     expect(String(answered.body.answer)).toBe("Der Tag ist angelegt.");
+  });
+
+  /**
+   * And what makes the two decidable: the tool's own name. A proposal for
+   * something this conversation has *not* written with is the flag, so a turn
+   * that reports one press and offers the next is not caught by it.
+   */
+  test("reporting one press while proposing the next is not a claim about the next", async () => {
+    wrote("alex", "set_day_words", { trip: "reise", slug: "zweiter" });
+    create
+      .mockResolvedValueOnce(calls("set_day_words", { trip: "Die Reise", slug: "zweiter", content: "Mehr." }))
+      .mockResolvedValueOnce(says("Die Worte sind gespeichert."));
+    const answered = await read(await ask("noch etwas dazu"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toBe("Die Worte sind gespeichert.");
+  });
+
+  /**
+   * This used to assert that *"Der Tag ist angelegt."* beside a fresh
+   * `start_day` proposal was fine, and it was the bug — B944. The day was not
+   * angelegt; a button to make it was on the screen. What is true on such a
+   * turn is the button, not the deed, so the answer has to point at the one
+   * and not claim the other.
+   */
+  test("a turn that really did propose may point at the button", async () => {
+    create
+      .mockResolvedValueOnce(calls("start_day", { trip: "Die Reise", date: "2026-05-02" }))
+      .mockResolvedValueOnce(says("Der Knopf dafür steht bereit."));
+    const answered = await read(await ask("mach mir den 2. mai"));
+
+    // Two calls, and neither of them a retry: there is a button on her screen
+    // and the answer said so rather than saying the day exists.
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toBe("Der Knopf dafür steht bereit.");
     expect((answered.body.proposals as unknown[]).length).toBe(1);
   });
 });
@@ -398,6 +490,7 @@ describe("what is written for the model is never rendered", () => {
     expect(drawn).not.toContain("waiting to be pressed");
     expect(drawn).not.toContain("not written");
 
+    expect(answered.status).toBe(200);
     const turns = history("alex");
     expect(turns.map((turn) => turn.role)).toEqual(["user", "assistant", "note"]);
     expect(turns[1].text).toBe("Hier ist der Tag zum Drücken.");

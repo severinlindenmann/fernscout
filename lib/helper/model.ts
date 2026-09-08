@@ -605,6 +605,27 @@ const CLAIM = new RegExp(
     // de — "ist gespeichert", "habe ich hinzugefügt", "wurde veröffentlicht"
     "\\b(?:ist|sind|wurde|wurden|habe|hab|haben)\\s+(?:\\S+\\s+){0,3}?(?:gespeichert|angelegt|erstellt|begonnen|angefangen|ver\u00f6ffentlicht|hinzugef\u00fcgt|eingetragen|gesichert)\\b",
     "\\b(?:gespeichert|ver\u00f6ffentlicht|hinzugef\u00fcgt|angelegt|erstellt|eingetragen)\\.",
+    /**
+     * **Taking a day down is a write too** — B944, and the matcher had no
+     * word for it. `unpublish_day` arrived with B914 and this list was not
+     * extended, so *"The 4th is now a draft again"* — said with the day still
+     * published and nothing pressed — read as an ordinary sentence.
+     *
+     * It is the claim that matters most to get wrong in this direction: she
+     * asked for it to come off the site, was told it had, and it had not.
+     */
+    // en — "is now a draft again", "is off the site", "I've taken it down"
+    "\\b(?:is|are|was|were|been|it's)\\s+(?:now\\s+|back\\s+|again\\s+)*(?:a\\s+)?draft\\b",
+    "\\b(?:is|are|it's)\\s+off\\s+the\\s+site\\b",
+    "\\b(?:taken|took)\\s+(?:it\\s+|them\\s+|the day\\s+)?down\\b",
+    "\\bunpublished\\b",
+    // de — "ist wieder ein Entwurf", "von der Seite genommen", "zurückgezogen"
+    "\\b(?:ist|sind)\\s+(?:wieder\\s+)?(?:ein\\s+)?entwurf\\b",
+    "\\bvon der seite genommen\\b",
+    "\\bzur\u00fcckgezogen\\b",
+    // hu — "piszkozat lett", "leszedtem", "visszavontam"
+    "\\bpiszkozat\\s+lett\\b",
+    "\\b(?:leszedtem|visszavontam)\\b",
     // hu — "elmentettem", "mentve van", "közzétettem", "hozzáadtam", "létrehoztam"
     "\\b(?:elmentettem|elmentve|mentve|k\u00f6zz\u00e9tettem|k\u00f6zz\u00e9t\u00e9ve|hozz\u00e1adtam|hozz\u00e1adva|l\u00e9trehoztam|l\u00e9trehozva|elkezdtem|r\u00f6gz\u00edtettem)\\b",
   ].join("|"),
@@ -677,6 +698,21 @@ const RELOAD =
  * write that did not happen (B920) or a control that is not on their screen
  * (B928).
  */
+/**
+ * True when this text says a thing was **written** — saved, started,
+ * published, taken down, added to — B944.
+ *
+ * The narrower half of the one below, and the difference matters on exactly
+ * one turn: when a proposal is on the screen, "there is a button" is *true*
+ * and "it is saved" is not. Checking the pair together on that turn caught
+ * every honest answer that pointed at the button it had just made.
+ */
+export function claimsAWrite(text: string): boolean {
+  return withoutMarkers(text)
+    .split(/(?<=[.!?\n])\s+/)
+    .some((sentence) => CLAIM.test(sentence) && !DENIED.test(sentence));
+}
+
 export function claimsWhatIsNotThere(text: string): boolean {
   return withoutMarkers(text)
     .split(/(?<=[.!?\n])\s+/)
@@ -819,6 +855,19 @@ Answer again. Either call the tool that proposes what they asked for — that is
  * The retry is worth more here than anywhere else, because the answer it
  * produces is one that did not exist before this ticket: the invitation.
  */
+/**
+ * What the model is told when it described the proposal it has just made as a
+ * thing already done — B944.
+ *
+ * Deliberately not `HONESTY_RETRY`, which says *"nothing has changed and there
+ * is nothing there to press"*. Here there **is** something to press, and
+ * telling the model otherwise is asking it to correct a true half of its
+ * answer. What is wrong is only the tense.
+ */
+const PENDING_RETRY = `Stop. Your last answer said something had been done — a day saved, started, published, taken down or added to — and it has not been. What is on their screen is a proposal, and it does nothing until they press it.
+
+Say it again in the tense that is true: what *would* happen, and that pressing is what makes it so. Do not apologise and do not explain yourself; just say it correctly. The button is right there and it is the one you already made, so do not make another.`;
+
 const ACCESS_RETRY = `Stop. Your last answer said a person can read something, and nothing on this turn makes that true. Naming somebody does not let them in: a trip that is not public is open to the people who were on it and to the guests the owner has already approved, and nobody else. Saying otherwise is the worst thing you can get wrong here — this journal exists so that somebody's family can read it, and they will believe you.
 
 Answer again. If they want that person to read it, call invite_guest: it proposes a link for them to send. Say what the link is — the person opens it, proves their own address, and then asks; they can read nothing until the owner approves them. Otherwise say plainly, in their language, that the person has not been invited yet and cannot read it.`;
@@ -973,39 +1022,79 @@ export async function answerInThread(
    * (B932). One retry each, with the reason it was caught, and then the truth
    * plainly in the person's own language.
    */
-  function amiss(): "" | "claim" | "access" | "day" {
+  /**
+   * Which tools this conversation has actually written with — B939's notes,
+   * read back. `[written: publish_day {…}]`, so the name is the first word.
+   */
+  const written = new Set(
+    turns
+      .filter((turn) => turn.role === "note")
+      .map((turn) => /^\[written: (\w+)/.exec(turn.text)?.[1])
+      .filter((name): name is string => name !== undefined),
+  );
+
+  function amiss(): "" | "claim" | "pending" | "access" | "day" {
     if (claimsAccess(answer) && !proposals.some((one) => one.tool === "invite_guest")) {
       return "access";
     }
     if (claimsWhatADaySays(answer) && !looked.includes("read_day")) return "day";
-    if (proposals.length === 0 && claimsWhatIsNotThere(answer)) return "claim";
+    if (claimsWhatIsNotThere(answer) || claimsAWrite(answer)) {
+      /**
+       * **The turn that proposes is the turn most tempted to describe it as
+       * done** — B944, and it was the one turn this check did not run on. The
+       * condition was `proposals.length === 0`, so a proposal on the screen
+       * bought the answer past it.
+       *
+       * Two testers found it the same afternoon, from opposite ends. A
+       * designer asked to take a day off the site and read *"The 4th is now a
+       * draft again"* with the day still published and nothing pressed. A
+       * blind reader heard *"I've started the empty day for Thursday"* with
+       * the proposal sitting unpressed — and for them the sentence is the
+       * whole of what they know, so there is nothing to check it against.
+       *
+       * What makes it decidable is the tool's own name. A claim is allowed
+       * about something this conversation really wrote; it is not allowed
+       * about the thing waiting to be pressed. So a pending proposal whose
+       * tool has never been written with is the flag — which leaves *"the
+       * words are saved, shall I publish?"* alone, because `set_day_words` is
+       * in the set and `publish_day` is what is pending.
+       */
+      if (claimsAWrite(answer) && proposals.some((one) => !written.has(one.tool))) {
+        return "pending";
+      }
+      /**
+       * And the other direction, which B943 found from its own end: with no
+       * proposal and nothing ever written, a claim is false and this is where
+       * it was already caught. With something written, it is a true sentence
+       * about a press that happened, and flagging it is what led to the
+       * replacement denying the whole journal.
+       */
+      if (written.size === 0 && proposals.length === 0 && claimsWhatIsNotThere(answer)) {
+        return "claim";
+      }
+    }
     return "";
   }
 
-  const RETRY = { claim: HONESTY_RETRY, access: ACCESS_RETRY, day: READ_IT_RETRY };
+  const RETRY = {
+    claim: HONESTY_RETRY,
+    pending: PENDING_RETRY,
+    access: ACCESS_RETRY,
+    day: READ_IT_RETRY,
+  };
   /**
    * What is said when the model could not be made to say something true.
    *
-   * **The replacement is itself a claim, and it has been false** — B943.
-   * `agent.nothingHappened` denies the whole journal: *"nothing has been saved
-   * and nothing has changed"*. Driven against the live site, a day was started
-   * and pressed, the draft was on disk, and the next question got exactly that
-   * sentence. The net caught a false claim and put a different one in its
-   * place — and a person who has just watched a day appear is being told it
-   * did not.
-   *
-   * The thread knows better: since B939 every write route leaves a `written:`
-   * note behind, so whether anything was saved in this conversation is a fact
-   * on hand at the moment this sentence is chosen. When something was, the
-   * denial narrows to *this answer* and stops speaking for the journal. It
-   * still does not say what was written — that is what the model has just been
-   * caught getting wrong twice.
+   * **The replacement is itself a claim** — B943 — and it has been false. It
+   * denied the whole journal (*"nothing has been saved and nothing has
+   * changed"*) to somebody who had just watched a day appear. B944's condition
+   * above is what fixed that, at the source: the sentence is now only reached
+   * when this conversation really has written nothing, which is the one state
+   * it describes correctly.
    */
-  const wroteSomething = turns.some(
-    (turn) => turn.role === "note" && turn.text.startsWith("[written:"),
-  );
   const PLAINLY = {
-    claim: wroteSomething ? "agent.cannotSayNow" : "agent.nothingHappened",
+    claim: "agent.nothingHappened",
+    pending: "agent.notUntilYouPress",
     access: "agent.noAccessYet",
     day: "agent.notRead",
   } as const;
