@@ -445,6 +445,40 @@ describe("the keys that can write, and revoking one", () => {
     expect((listed.body.keys ?? []).some((k) => k.kind === "guest")).toBe(false);
   });
 
+  /**
+   * B908 — an agent can end its own key, over the API, with the token it is
+   * holding.
+   *
+   * The capture read the route as "GET lists, POST issues, there is no
+   * DELETE", and concluded a leaked token could be seen and not ended. `POST`
+   * *is* the ending: `{"revoke": "<id>"}`, documented in `/openapi.json`
+   * since B283. What was missing was the sentence in `/agent.md` telling an
+   * agent it may do this, which is what B908 actually fixed — and this test
+   * is the proof the sentence is true, including the case that matters most:
+   * the token revoking itself, with nobody else involved.
+   */
+  test("an agent can revoke its own key with that key, and is refused after", async () => {
+    const issued = await issue(await ownerAgentToken());
+    const exchanged = await exchange(issued.body.handover);
+    const token = exchanged.body.token!;
+
+    const { resolveSession } = await import("@/lib/auth");
+    const session = await resolveSession(token, "agent");
+    expect(session).not.toBeNull();
+
+    // Listed to itself, and revoked by itself — the owner is never asked.
+    const own = await keys(token);
+    expect(own.status).toBe(200);
+    expect((own.body.keys ?? []).some((k) => k.id === session!.id)).toBe(true);
+
+    expect(await revoke(token, session!.id)).toBe(200);
+    expect(await resolveSession(token, "agent")).toBeNull();
+
+    // And the same call again, with the key it just ended, is refused rather
+    // than answering as though the key were still live.
+    expect(await revoke(token, session!.id)).toBe(403);
+  });
+
   test("revoking one stops it writing, at once", async () => {
     const issued = await issue(await ownerAgentToken());
     const exchanged = await exchange(issued.body.handover);
