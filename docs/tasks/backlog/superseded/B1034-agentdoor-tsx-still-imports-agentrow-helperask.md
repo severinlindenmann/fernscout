@@ -5,6 +5,7 @@ type: CHORE
 priority: low
 complexity: low
 area: components/AgentDoor.tsx
+superseded: "B1033"
 found: "2026-09-08T21:20:27Z"
 ---
 
