@@ -112,8 +112,11 @@ describe("the helper routes", () => {
   // Eighteen since B915 added `day/attach`, which puts a photograph already
   // waiting in the inbox onto a day — the door the files pane presses, with
   // the same cookie and the same owner check as the seventeen above it.
-  test("there are eighteen of them, and each is guarded", () => {
-    expect(sources).toHaveLength(18);
+  // Nineteen since B931 added `invite`, which proposes the guest link that
+  // lets somebody who was not on a trip ask to read it. Same cookie, same
+  // owner check, and it issues a link and never a grant.
+  test("there are nineteen of them, and each is guarded", () => {
+    expect(sources).toHaveLength(19);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

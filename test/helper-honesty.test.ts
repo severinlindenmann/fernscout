@@ -8,7 +8,12 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { grant } from "@/lib/credits";
 import { forget, history } from "@/lib/helper/thread";
-import { claimsWhatIsNotThere, honestyCounts } from "@/lib/helper/model";
+import {
+  claimsAccess,
+  claimsWhatADaySays,
+  claimsWhatIsNotThere,
+  honestyCounts,
+} from "@/lib/helper/model";
 
 /**
  * The claim and the act are the same thing — B920, and B924 beside it.
@@ -221,6 +226,134 @@ describe("a turn that claims a write it did not make", () => {
     expect(create).toHaveBeenCalledTimes(2);
     expect(String(answered.body.answer)).toBe("Der Tag ist angelegt.");
     expect((answered.body.proposals as unknown[]).length).toBe(1);
+  });
+});
+
+/* ------------------------------------------------ who can read it --- */
+
+/**
+ * The third territory — B931, and the worst of the three.
+ *
+ * Verbatim: **"Die Reise ist auf privat gesetzt – nur Sie und Ihre Tochter
+ * können sie sehen."** `people: []`, `invites: []`, nobody ever asked for the
+ * daughter's name. The trip was closed to the one reader it was made for and
+ * its owner was told the opposite.
+ */
+describe("a sentence saying somebody can read it", () => {
+  for (const said of [
+    "Die Reise ist auf privat gesetzt – nur Sie und Ihre Tochter können sie sehen.",
+    "Deine Familie kann die Reise jetzt lesen.",
+    "Your daughter can read it now.",
+    "Your family will be able to see the trip.",
+    "A lányod el tudja olvasni.",
+  ]) {
+    test(`is caught: ${said}`, () => {
+      expect(claimsAccess(said)).toBe(true);
+    });
+  }
+
+  for (const said of [
+    // The honest answer, which is what a model told this actually writes.
+    "Deine Tochter kann die Reise noch nicht lesen — sie ist nicht eingeladen.",
+    "Your daughter cannot read it yet.",
+    // And a public trip really is readable by everybody, family included.
+    "Die Reise ist öffentlich, deine Familie kann sie lesen.",
+    "The trip is public, so anybody can read it.",
+    "Welchen Tag meinst du?",
+  ]) {
+    test(`is not: ${said}`, () => {
+      expect(claimsAccess(said)).toBe(false);
+    });
+  }
+
+  test("said without an invitation, it is asked again", async () => {
+    const before = honestyCounts();
+    create
+      .mockResolvedValueOnce(says("Nur du und deine Tochter können die Reise sehen."))
+      .mockResolvedValueOnce(
+        says("Deine Tochter ist noch nicht eingeladen und kann die Reise nicht lesen."),
+      );
+    const answered = await read(await ask("nur meine tochter soll das lesen können"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toContain("nicht eingeladen");
+    expect(honestyCounts().claimed).toBe(before.claimed + 1);
+  });
+
+  test("said twice, her screen gets the plain truth and the offer of a link", async () => {
+    const before = honestyCounts();
+    create
+      .mockResolvedValueOnce(says("Nur du und deine Tochter können die Reise sehen."))
+      .mockResolvedValueOnce(says("Doch — deine Tochter kann die Reise lesen."));
+    const answered = await read(await ask("nur meine tochter soll das lesen können"));
+
+    expect(String(answered.body.answer)).not.toContain("kann die Reise lesen");
+    expect(String(answered.body.answer)).toContain("I cannot tell you that somebody can read this");
+    expect(honestyCounts().unrecovered).toBe(before.unrecovered + 1);
+  });
+
+  /**
+   * The turn that carries the invitation is left alone — and what it proposes
+   * is a link to send, not access. Nothing here creates a contact, a grant or
+   * an invite row: `runTool` on a write tool has nothing to execute.
+   */
+  test("a turn that proposes the invitation may say she can be let in", async () => {
+    create
+      .mockResolvedValueOnce(calls("invite_guest", { name: "meine Tochter" }))
+      .mockResolvedValueOnce(
+        says("Schick ihr diesen Link, dann kann deine Tochter um Zugang bitten."),
+      );
+    const answered = await read(await ask("nur meine tochter soll das lesen können"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    const proposals = answered.body.proposals as { tool: string; endpoint: string }[];
+    expect(proposals).toHaveLength(1);
+    expect(proposals[0].tool).toBe("invite_guest");
+    expect(proposals[0].endpoint).toBe("/api/helper/alex/invite");
+    expect(String(answered.body.answer)).toContain("um Zugang bitten");
+  });
+});
+
+/* ------------------------------------------- what a day actually says --- */
+
+/**
+ * B932 — *"Der Text erwähnt bereits, dass es schön war."* on a turn that
+ * called nothing, about a draft reading "Wir waren am See spazieren. Danach
+ * gab es Kuchen."
+ */
+describe("a sentence about what a day contains", () => {
+  for (const said of [
+    "Der Text erwähnt bereits, dass es schön war.",
+    "Das steht schon in deinem Tag.",
+    "The text already mentions that it was lovely.",
+    "A szöveg már említi, hogy szép volt.",
+  ]) {
+    test(`is caught: ${said}`, () => {
+      expect(claimsWhatADaySays(said)).toBe(true);
+    });
+  }
+
+  test("said without reading the day, it is asked again and told to look", async () => {
+    create
+      .mockResolvedValueOnce(says("Der Text erwähnt bereits, dass es schön war."))
+      .mockResolvedValueOnce(calls("read_day", { trip: "Die Reise" }))
+      .mockResolvedValueOnce(says("Da steht: „Worte.“ Von schön steht nichts darin."));
+    const answered = await read(await ask("da fehlt noch dass es schön war"));
+
+    expect(create).toHaveBeenCalledTimes(3);
+    expect(answered.body.looked).toEqual(["read_day"]);
+    expect(String(answered.body.answer)).toContain("Worte.");
+  });
+
+  test("having read the day, it may say what is in it", async () => {
+    create
+      .mockResolvedValueOnce(calls("read_day", { trip: "Die Reise" }))
+      .mockResolvedValueOnce(says("Der Text erwähnt bereits, dass es schön war."));
+    const answered = await read(await ask("steht da schon dass es schön war?"));
+
+    // One round for the tool, one for the answer, and no retry: it looked.
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toContain("erwähnt bereits");
   });
 });
 
