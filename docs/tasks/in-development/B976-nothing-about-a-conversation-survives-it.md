@@ -117,3 +117,29 @@ happened and no words. The same journal, having consented, leaves the words
 too. `/admin` shows, per journal and per tool, how many proposals were made and
 how many were pressed, and which guards fired. Turning it off at `/me` stops
 new words being kept. Deleting the journal removes every row.
+
+## The decision changed once the history was asked for
+
+A later instruction: the person should be able to **go back to an older chat
+session**, with a parameter in the URL so that copying it returns them to that
+conversation.
+
+That makes storing a conversation the *feature* rather than the analytics, and
+it moves what consent is for:
+
+- **The words are kept because they are the person's own history**, not because
+  anybody wants to study them. A conversation you can return to is a
+  conversation that was saved.
+- **Consent governs whether the operator may read them.** That is what the
+  control on `/me` turns off, and what the notice on the first message has to
+  say — precisely, because "turning this off deletes nothing" is the true
+  sentence and a person who assumed otherwise would be misled by silence.
+
+So the schema is unchanged and the meaning of one column is not: `said` and
+`answered` are written for every journal, and the operator's own reading of
+them is gated. The notice and the `/me` card both say which of the two they
+are about.
+
+Nothing here weakens the earlier point that made opt-in workable: the helper is
+owner-only, so a stored conversation holds the words of one person, and that
+person is the one who can read it back.

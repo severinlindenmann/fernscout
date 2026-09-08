@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: Postcards
 found: "2026-09-08T16:17:16Z"
+started: "2026-09-08T16:18:26Z"
+session: b8352d66-3105-4f5d-a703-f8809d0b08e6
+claimed: "2026-09-08T16:18:26Z"
 ---
 
 # B982 — The send flow jumps: pressing send reloads the page instead of posting the card
