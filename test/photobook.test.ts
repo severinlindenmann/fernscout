@@ -11,6 +11,8 @@ import {
   HERO_FLOOR_DPI,
   normalisePageCount,
   sideOf,
+  productUidFor,
+  sizesFor,
 } from "@/lib/photobook/spec";
 import {
   chaptersOf,
@@ -153,12 +155,29 @@ describe("Gelato's real page-count rule", () => {
 });
 
 describe("the sizes are the ones Gelato prints", () => {
-  it("offers three, all with a real productUid", () => {
-    expect(Object.keys(BOOK_SIZES)).toEqual(["square", "portrait", "large-square"]);
+  it("offers four, every uid real and none of them built by hand", () => {
+    expect(Object.keys(BOOK_SIZES)).toEqual(["pocket", "square", "portrait", "large-square"]);
     for (const size of Object.values(BOOK_SIZES)) {
-      expect(size.productUid).toMatch(/^photobooks-(soft|hard)cover_pf_/);
-      expect(size.productUid).not.toMatch(/pages/);
+      expect(Object.keys(size.covers).length).toBeGreaterThan(0);
+      for (const [cover, uid] of Object.entries(size.covers)) {
+        expect(uid).toMatch(new RegExp(`^photobooks-${cover}cover_pf_`));
+        expect(uid).not.toMatch(/pages/);
+      }
     }
+  });
+
+  it("offers three sizes in each cover, which is why the cover is asked first", () => {
+    expect(sizesFor("soft").map((s) => s.id)).toEqual(["pocket", "square", "portrait"]);
+    expect(sizesFor("hard").map((s) => s.id)).toEqual(["square", "portrait", "large-square"]);
+  });
+
+  it("has no uid for a book Gelato does not bind", () => {
+    // No 280 mm softcover and no 140 mm board. Null, never a fallback to
+    // another product — a book printed in the wrong cover is not a near miss.
+    expect(productUidFor("large-square", "soft")).toBeNull();
+    expect(productUidFor("pocket", "hard")).toBeNull();
+    expect(productUidFor("square", "hard")).toContain("photobooks-hardcover");
+    expect(productUidFor("square", "soft")).toContain("photobooks-softcover");
   });
 
   it("is 200 mm square by default, not 210", () => {
@@ -950,7 +969,7 @@ const ORDER: BookOrder = {
   },
   test: true,
   paymentRef: "test-payment-ref",
-  productUid: BOOK_SIZES.square.productUid,
+  productUid: productUidFor("square", "soft")!,
   shipmentMethodUid: "swiss_post_economy",
 };
 
@@ -990,9 +1009,9 @@ describe("provider requests", () => {
   });
 
   it("sends the catalogue's own product uid, never one it built", () => {
-    const req = buildGelatoRequest({ ...ORDER, productUid: BOOK_SIZES.square.productUid });
+    const req = buildGelatoRequest({ ...ORDER, productUid: productUidFor("square", "soft")! });
     const body = req.body as { items: { productUid: string; pageCount: number }[] };
-    expect(body.items[0].productUid).toBe(BOOK_SIZES.square.productUid);
+    expect(body.items[0].productUid).toBe(productUidFor("square", "soft"));
     expect(body.items[0].productUid).not.toContain("-pages_");
     expect(body.items[0].pageCount).toBe(ORDER.pageCount);
   });

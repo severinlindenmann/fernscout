@@ -14,7 +14,7 @@ import {
   type PrintOutcomeState,
 } from "@/lib/photobook/print";
 import { bookAddressFor, bookRecipients } from "@/lib/photobook/recipients";
-import { BOOK_SIZES } from "@/lib/photobook/spec";
+import { BOOK_SIZES, productUidFor } from "@/lib/photobook/spec";
 import { translateIn, requestLocale } from "@/lib/locales";
 import type { TranslationKey } from "@/lib/i18n";
 import { getTrip } from "@/lib/trips";
@@ -79,6 +79,7 @@ export default async function PhotobookOrderPage({
 
   const trip = getTrip(order.payload.trip);
   const size = BOOK_SIZES[order.payload.options.size];
+  const productUid = size ? productUidFor(size.id, order.payload.options.coverType) : null;
   const files = order.payload.files ?? [];
   const print = order.payload.print;
 
@@ -104,13 +105,13 @@ export default async function PhotobookOrderPage({
     const country = to ? isoCountry(to.country) : null;
     if (!recipient || !to) {
       statusText = t("photobook.print.noLongerEligible");
-    } else if (!size) {
+    } else if (!size || !productUid) {
       statusText = t("photobook.print.notBuilt");
     } else if (!country) {
       statusText = t("photobook.print.unknownCountry");
     } else {
       const quote = await quoteBook({
-        productUid: size.productUid,
+        productUid,
         pageCount: order.payload.pages,
         country,
         currency: "CHF",

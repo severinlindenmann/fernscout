@@ -7,7 +7,7 @@ import {
   type BookSource,
 } from "@/lib/photobook/plan";
 import { BOOK_SIZES, defaultSpec, fitsRule } from "@/lib/photobook/spec";
-import { DEFAULT_OPTIONS, initialBookOptions, type BookOptions } from "@/lib/photobook/options";
+import { DEFAULT_OPTIONS, initialBookOptions, parseOptions, type BookOptions } from "@/lib/photobook/options";
 
 const SPEC = defaultSpec(BOOK_SIZES["square"]);
 
@@ -214,3 +214,35 @@ describe("the figures and the vehicles on a first visit", () => {
   });
 });
 
+
+describe("choosing soft or hard — B900", () => {
+  const SIZES = Object.keys(BOOK_SIZES);
+
+  test("defaults to soft, which is what every book made before the choice was", () => {
+    expect(DEFAULT_OPTIONS.coverType).toBe("soft");
+  });
+
+  test("reads an order stored before the cover could be chosen", () => {
+    const { coverType: _gone, ...stored } = DEFAULT_OPTIONS;
+    const parsed = parseOptions(stored, SIZES);
+    expect(parsed?.coverType).toBe("soft");
+  });
+
+  test("refuses a cover that is not one of the two", () => {
+    expect(parseOptions({ ...DEFAULT_OPTIONS, coverType: "leather" }, SIZES)).toBeNull();
+  });
+
+  test("a hardcover spec lays out a hardcover, and a softcover one does not", () => {
+    const hard = defaultSpec(BOOK_SIZES.square, "hard");
+    const soft = defaultSpec(BOOK_SIZES.square, "soft");
+    expect(hard.cover).toBe("hard");
+    expect(soft.cover).toBe("soft");
+  });
+
+  test("a size Gelato does not bind in the asked-for cover falls back rather than lying", () => {
+    // There is no 280 mm softcover. A spec must never name a product that
+    // cannot be ordered, so it resolves to the cover the size is made in.
+    expect(defaultSpec(BOOK_SIZES["large-square"], "soft").cover).toBe("hard");
+    expect(defaultSpec(BOOK_SIZES.pocket, "hard").cover).toBe("soft");
+  });
+});

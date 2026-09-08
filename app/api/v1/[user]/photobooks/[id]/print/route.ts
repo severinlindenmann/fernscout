@@ -5,7 +5,7 @@ import { isoCountry } from "@/lib/photobook/country";
 import { getPhotobookOrder, proposePrint, type PhotobookPayload } from "@/lib/photobook/orders";
 import { quoteBook } from "@/lib/photobook/gelato";
 import { bookAddressFor, bookRecipients } from "@/lib/photobook/recipients";
-import { BOOK_SIZES } from "@/lib/photobook/spec";
+import { BOOK_SIZES, productUidFor } from "@/lib/photobook/spec";
 import { nowIso } from "@/lib/db";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
@@ -101,9 +101,10 @@ export async function POST(
   }
 
   const size = BOOK_SIZES[order.payload.options.size];
+  const productUid = size ? productUidFor(size.id, order.payload.options.coverType) : null;
   const to = size ? await bookAddressFor(user, contactId) : null;
-  if (!size || !to) {
-    return bad("not_built", "This order names a book size this server no longer prints.");
+  if (!size || !productUid || !to) {
+    return bad("not_built", "This order names a book this server no longer prints.");
   }
   const country = isoCountry(to.country);
   if (!country) {
@@ -115,7 +116,7 @@ export async function POST(
   }
 
   const quote = await quoteBook({
-    productUid: size.productUid,
+    productUid,
     pageCount: order.payload.pages,
     country,
     // The same currency the owner's own print step quotes and charges in —

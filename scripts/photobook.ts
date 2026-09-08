@@ -32,7 +32,7 @@ import { renderCover, renderVolume } from "../lib/photobook/render.ts";
 import { DEFAULT_OPTIONS } from "../lib/photobook/options.ts";
 import { isBookLocale } from "../lib/photobook/strings.ts";
 import { renderPreview } from "../lib/photobook/preview.ts";
-import { BOOK_SIZES, defaultSpec } from "../lib/photobook/spec.ts";
+import { BOOK_SIZES, defaultSpec, productUidFor, sizesFor, type CoverType } from "../lib/photobook/spec.ts";
 import {
   ghostscriptCommand,
   outputIntentFor,
@@ -93,7 +93,10 @@ if (!tripId) {
       "       npm run photobook -- --trip <id> --charts\n" +
       "       npm run photobook -- --trip <id> --outline\n" +
       "       npm run photobook -- --providers\n\n" +
-      `Sizes: ${Object.keys(BOOK_SIZES).join(", ")}`,
+      `Sizes:    ${Object.keys(BOOK_SIZES).join(", ")}\n` +
+      `Covers:   soft (default), hard — --cover hard\n` +
+      `          soft: ${sizesFor("soft").map((s) => s.id).join(", ")}\n` +
+      `          hard: ${sizesFor("hard").map((s) => s.id).join(", ")}`,
   );
 }
 
@@ -122,10 +125,17 @@ if (backend !== "dry-run") {
 }
 
 const sizeId = str("size") ?? "square";
+const coverType: CoverType = str("cover") === "hard" ? "hard" : "soft";
 const size = BOOK_SIZES[sizeId];
 if (!size) fail(`Unknown size "${sizeId}". One of: ${Object.keys(BOOK_SIZES).join(", ")}`);
+if (!productUidFor(sizeId, coverType)) {
+  fail(
+    `Gelato does not bind "${sizeId}" as a ${coverType}cover. ` +
+      `Sizes in that cover: ${sizesFor(coverType).map((s) => s.id).join(", ")}`,
+  );
+}
 
-const spec = defaultSpec(size);
+const spec = defaultSpec(size, coverType);
 // A finished book belongs to whoever it is about, next to their content and
 // their postcards, rather than in a directory shared by everyone on the
 // instance (decision 23). Gitignored there.
@@ -295,7 +305,7 @@ for (const volume of built) {
     // placeholder is honest here because nothing downstream of this script
     // treats these files as a request that went anywhere.
     paymentRef: "PREVIEW_NO_PAYMENT_RECORDED",
-    productUid: size.productUid,
+    productUid: productUidFor(sizeId, coverType) ?? "",
     shipmentMethodUid: "swiss_post_economy",
   };
   for (const provider of CONNECTABLE) {

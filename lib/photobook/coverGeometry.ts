@@ -5,7 +5,7 @@
  *
  * Soft and hard covers are the same `CoverGeometry`: a softcover's `wrapMm`
  * is 0 and its `joint` is absent, so a caller does not need to branch on
- * `spec.size.cover` to lay one out.
+ * `spec.cover` to lay one out.
  *
  * Two ways to get one:
  *
@@ -87,7 +87,7 @@ export function computeCoverGeometry(spec: BookSpec, pageCount: number): CoverGe
   const trimW = spec.size.trimWidthMm;
   const trimH = spec.size.trimHeightMm;
 
-  if (spec.size.cover === "hard") {
+  if (spec.cover === "hard") {
     const spine = hardcoverSpineMmApprox(pageCount);
     const board: CoverPanel = { widthMm: trimW - 2, heightMm: trimH + 6 };
     const contentEdge = HARDCOVER_WRAP_MM + HARDCOVER_BLEED_MM;

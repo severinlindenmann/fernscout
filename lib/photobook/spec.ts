@@ -22,20 +22,44 @@ import { mm } from "../postcard/spec.ts";
 
 export { mm };
 
-/** A finished book size. Every one of these is a product Gelato prints, and
- * `productUid` is copied from its catalogue rather than constructed — the uid
- * that used to be built by concatenation was never a real product. */
+/** Soft or hard. Not a style: it changes the product ordered, the price, and
+ * the shape of the cover file — a hardcover case wraps around boards and has
+ * a joint either side of the spine. See `lib/photobook/coverGeometry.ts`. */
+export type CoverType = "soft" | "hard";
+
+export const COVER_TYPES: readonly CoverType[] = ["soft", "hard"];
+
+/**
+ * A finished book size.
+ *
+ * Every uid is copied verbatim from Gelato's catalogue rather than built by
+ * concatenation — the uid that used to be constructed here was never a real
+ * product. `covers` carries one per cover type, and a size Gelato does not
+ * make in a given cover simply has no entry: there is no softcover at 280 mm
+ * and no hardcover at 140 mm, so those two are absent rather than faked.
+ */
 export type BookSize = {
   id: string;
   name: string;
   trimWidthMm: number;
   trimHeightMm: number;
   /** Verbatim from `POST /v3/catalogs/{catalog}/products:search`. */
-  productUid: string;
-  cover: "soft" | "hard";
+  covers: Partial<Record<CoverType, string>>;
 };
 
 export const BOOK_SIZES: Record<string, BookSize> = {
+  /** 14 x 14 cm. The pocket keepsake, and the cheapest thing on offer —
+   * CHF 10.68 to print at 52 pages. Softcover only; Gelato binds no board
+   * this small. */
+  pocket: {
+    id: "pocket",
+    name: "Pocket square 140 × 140 mm",
+    trimWidthMm: 140,
+    trimHeightMm: 140,
+    covers: {
+      soft: "photobooks-softcover_pf_140x140-mm-5_5x5_5-inch_pt_170-gsm-65lb-coated-silk_cl_4-4_ccl_4-4_bt_glued-left_ct_matt-lamination_prt_1-0_cpt_250-gsm-100-lb-cover-coated-silk_ver",
+    },
+  },
   /** 20 x 20 cm. The photobook shape: neither photo orientation is a
    * second-class citizen. 210 x 210 is what this used to say and is a size
    * Gelato does not print. */
@@ -44,9 +68,10 @@ export const BOOK_SIZES: Record<string, BookSize> = {
     name: "Square 200 × 200 mm",
     trimWidthMm: 200,
     trimHeightMm: 200,
-    productUid:
-      "photobooks-softcover_pf_200x200-mm-8x8-inch_pt_170-gsm-65lb-coated-silk_cl_4-4_ccl_4-4_bt_glued-left_ct_matt-lamination_prt_1-0_cpt_250-gsm-100-lb-cover-coated-silk_ver",
-    cover: "soft",
+    covers: {
+      soft: "photobooks-softcover_pf_200x200-mm-8x8-inch_pt_170-gsm-65lb-coated-silk_cl_4-4_ccl_4-4_bt_glued-left_ct_matt-lamination_prt_1-0_cpt_250-gsm-100-lb-cover-coated-silk_ver",
+      hard: "photobooks-hardcover_pf_200x200-mm-8x8-inch_pt_170-gsm-65lb-coated-silk_cl_4-4_ccl_4-4_bt_glued-left_ct_matt-lamination_prt_1-0_cpt_130-gsm-65-lb-cover-coated-silk_ver",
+    },
   },
   /** Portrait, and the cheapest per page for a text-heavy trip. Not A4:
    * Gelato's nearest is 210 x 280. */
@@ -55,27 +80,56 @@ export const BOOK_SIZES: Record<string, BookSize> = {
     name: "Portrait 210 × 280 mm",
     trimWidthMm: 210,
     trimHeightMm: 280,
-    productUid:
-      "photobooks-softcover_pf_210x280-mm-8x11-inch_pt_170-gsm-65lb-coated-silk_cl_4-4_ccl_4-4_bt_glued-left_ct_matt-lamination_prt_1-0_cpt_250-gsm-100-lb-cover-coated-silk_ver",
-    cover: "soft",
+    covers: {
+      soft: "photobooks-softcover_pf_210x280-mm-8x11-inch_pt_170-gsm-65lb-coated-silk_cl_4-4_ccl_4-4_bt_glued-left_ct_matt-lamination_prt_1-0_cpt_250-gsm-100-lb-cover-coated-silk_ver",
+      hard: "photobooks-hardcover_pf_210x280-mm-8x11-inch_pt_170-gsm-65lb-coated-silk_cl_4-4_ccl_4-4_bt_glued-left_ct_matt-lamination_prt_1-0_cpt_130-gsm-65-lb-cover-coated-silk_ver",
+    },
   },
-  /** The big one, and the only hardcover. Task 6 is what makes its cover
-   * printable; until then it is refused rather than rendered wrongly. */
+  /** The big one, hardcover only — Gelato makes no softcover this size. */
   "large-square": {
     id: "large-square",
     name: "Large square 280 × 280 mm",
     trimWidthMm: 280,
     trimHeightMm: 280,
-    productUid:
-      "photobooks-hardcover_pf_280x280-mm-11x11-inch_pt_170-gsm-65lb-coated-silk_cl_4-4_ccl_4-4_bt_glued-left_ct_matt-lamination_prt_1-0_cpt_130-gsm-65-lb-cover-coated-silk_ver",
-    cover: "hard",
+    covers: {
+      hard: "photobooks-hardcover_pf_280x280-mm-11x11-inch_pt_170-gsm-65lb-coated-silk_cl_4-4_ccl_4-4_bt_glued-left_ct_matt-lamination_prt_1-0_cpt_130-gsm-65-lb-cover-coated-silk_ver",
+    },
   },
 };
 
+/**
+ * The sizes offered in a given cover, in the order they should be shown.
+ *
+ * Three each, which is why the wizard asks for the cover first: the size grid
+ * then shows a full set either way rather than greying one out. A size with
+ * no uid for that cover is not offered at all — Gelato binds no 280 mm
+ * softcover and no 140 mm board, and pretending otherwise would produce an
+ * order it refuses.
+ */
+export function sizesFor(cover: CoverType): BookSize[] {
+  return Object.values(BOOK_SIZES).filter((size) => size.covers[cover]);
+}
+
+/** The catalogue uid for one size in one cover, or null where Gelato makes
+ * no such book. Callers must handle null rather than falling back to another
+ * product — a book quietly printed in the wrong cover is not a near miss. */
+export function productUidFor(sizeId: string, cover: CoverType): string | null {
+  return BOOK_SIZES[sizeId]?.covers[cover] ?? null;
+}
+
+/** The size to fall back to when a cover no longer offers the chosen one —
+ * the wizard changing from hard to soft while `large-square` is selected. */
+export function defaultSizeFor(cover: CoverType): BookSize {
+  return sizesFor(cover)[0] ?? BOOK_SIZES.square;
+}
+
+/**
+ * Binding limits, which are a property of the machine and not of taste.
+ */
 export type PageCountRule = {
   min: number;
   max: number;
-  /** Pages per signature. */
+  /** Pages per signature. Gelato answers 2 for every photobook product. */
   multipleOf: number;
 };
 
@@ -93,6 +147,13 @@ export const GELATO_PAGE_RULE: PageCountRule = { min: 28, max: 200, multipleOf: 
 
 export type BookSpec = {
   size: BookSize;
+  /**
+   * Soft or hard, and it is on the spec rather than on the size because it is
+   * the person's choice, not a property of the page. It decides which product
+   * is ordered and what shape the cover file is — a hardcover wraps around
+   * boards and has a joint either side of the spine.
+   */
+  cover: CoverType;
   /** Artwork extends this far past the trim on all four edges. */
   bleedMm: number;
   /** Outer margin: nothing that matters goes within this of the trim. */
@@ -104,9 +165,15 @@ export type BookSpec = {
   pageCount: PageCountRule;
 };
 
-export function defaultSpec(size: BookSize = BOOK_SIZES["square"]): BookSpec {
+export function defaultSpec(
+  size: BookSize = BOOK_SIZES["square"],
+  cover: CoverType = "soft",
+): BookSpec {
   return {
     size,
+    // A size that is not made in the asked-for cover falls back to the one it
+    // is made in, so a spec can never name a product Gelato does not print.
+    cover: size.covers[cover] ? cover : ((Object.keys(size.covers)[0] ?? "soft") as CoverType),
     bleedMm: 3,
     safeMm: 10,
     gutterMm: 16,
