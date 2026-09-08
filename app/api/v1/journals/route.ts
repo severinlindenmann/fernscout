@@ -36,6 +36,28 @@ const CREATED = { max: 5, windowMs: HOUR };
 const REFUSED = { max: 20, windowMs: HOUR };
 
 /**
+ * A second, longer budget on the same event as `CREATED` — B834.
+ *
+ * `CREATED` resets every hour, so a script that only respects it can make 5
+ * journals, wait, and make 5 more, forever: 120 a day from one address, no
+ * different from unlimited to anyone patient. Each journal mints
+ * `SIGNUP_CREDIT_GRANT` credits (`grant()` below), and those are the only
+ * thing here a disposable inbox can turn into spendable value — see the
+ * "Bounded exposure" note on B834 for why a farmed credit still cannot reach
+ * another person, only spend the operator's own model and speech budget.
+ *
+ * 15 is chosen the same way `CREATED` was: generous enough that a family or a
+ * small group signing up together in a day never sees it, and low enough that
+ * a script confined to one address is worth noticeably less than before —
+ * 150 credits a day per address rather than 1200. It does not close the hole
+ * (a farmer with many addresses is unaffected, and closing that needs either
+ * a captcha or a product decision this ticket does not make — see the task
+ * file), but it raises the floor using only what this server already
+ * tracks: the address the request arrived from.
+ */
+const CREATED_DAILY = { max: 15, windowMs: 24 * HOUR };
+
+/**
  * Create a journal.
  *
  * The step that used to be `mkdir` on somebody's server, which meant an agent
@@ -63,6 +85,8 @@ export async function POST(request: Request) {
    */
   const createBudget = rateLimitStatus("journals-create", ip, CREATED);
   if (!createBudget.ok) return tooMany("journals_created", createBudget.retryAfter);
+  const createDailyBudget = rateLimitStatus("journals-create-daily", ip, CREATED_DAILY);
+  if (!createDailyBudget.ok) return tooMany("journals_created_daily", createDailyBudget.retryAfter);
   const refusalBudget = rateLimitStatus("journals-create-refused", ip, REFUSED);
   if (!refusalBudget.ok) return tooMany("failed_attempts", refusalBudget.retryAfter);
 
@@ -385,6 +409,7 @@ export async function POST(request: Request) {
    * were.
    */
   rateLimitFor("journals-create", ip, CREATED);
+  rateLimitFor("journals-create-daily", ip, CREATED_DAILY);
 
   /**
    * The signup token is spent, now that it has been used.
@@ -538,24 +563,31 @@ export async function POST(request: Request) {
  * `reason` is a stable token for the machine and `message` is the sentence to
  * read out; `retryAfter` is unchanged and is still in the header as well.
  */
-function tooMany(reason: "journals_created" | "failed_attempts", retryAfter: number): Response {
+function tooMany(
+  reason: "journals_created" | "journals_created_daily" | "failed_attempts",
+  retryAfter: number,
+): Response {
   const minutes = Math.max(1, Math.ceil(retryAfter / 60));
+  const messages: Record<typeof reason, string> = {
+    journals_created:
+      `This network address has created ${CREATED.max} journals in the last hour, which ` +
+      `is the limit. Nothing is wrong with your token. Try again in ${minutes} ` +
+      `minute${minutes === 1 ? "" : "s"}, when the oldest one falls out of the window.`,
+    // B834 — the longer half of the same budget: an address that spaces its
+    // creations out to stay under the hourly cap still hits this one.
+    journals_created_daily:
+      `This network address has created ${CREATED_DAILY.max} journals in the last day, ` +
+      `which is the limit. Nothing is wrong with your token. Try again in ${minutes} ` +
+      `minute${minutes === 1 ? "" : "s"}, when the oldest one falls out of the window.`,
+    failed_attempts:
+      `${REFUSED.max} attempts from this network address were refused in the last hour ` +
+      `— taken names, names that are not names, or requests missing a field — so this ` +
+      `one was not tried. Your token is still good and creating a journal is still ` +
+      `allowed; it is the guessing that has stopped. Try again in ${minutes} ` +
+      `minute${minutes === 1 ? "" : "s"}, and check the username with the person first.`,
+  };
   return Response.json(
-    {
-      error: "too_many_requests",
-      reason,
-      retryAfter,
-      message:
-        reason === "journals_created"
-          ? `This network address has created ${CREATED.max} journals in the last hour, which ` +
-            `is the limit. Nothing is wrong with your token. Try again in ${minutes} ` +
-            `minute${minutes === 1 ? "" : "s"}, when the oldest one falls out of the window.`
-          : `${REFUSED.max} attempts from this network address were refused in the last hour ` +
-            `— taken names, names that are not names, or requests missing a field — so this ` +
-            `one was not tried. Your token is still good and creating a journal is still ` +
-            `allowed; it is the guessing that has stopped. Try again in ${minutes} ` +
-            `minute${minutes === 1 ? "" : "s"}, and check the username with the person first.`,
-    },
+    { error: "too_many_requests", reason, retryAfter, message: messages[reason] },
     { status: 429, headers: { "Retry-After": String(retryAfter) } },
   );
 }
