@@ -1506,6 +1506,7 @@
   "agent.inboxOff": "Auf diesem Server ist kein Modell eingeschaltet, ein unbekannter Kontoauszug lässt sich hier also nicht lesen. Ein Importer für deine Bank würde es für alle kostenlos machen — importers/costs/ ist genau dafür offen lizenziert.",
   "agent.inboxMappingTitle": "Welche Spalte ist welche",
   "agent.inboxMappingHint": "Ändere, was falsch ist. Gelesen und geschrieben wird erst, wenn du unten drückst.",
+  "agent.inboxNotTheHeader": "Das ist nicht die Kopfzeile",
   "agent.inboxColDate": "Der Tag",
   "agent.inboxColAmount": "Der Betrag",
   "agent.inboxColDescription": "Wie sich der Händler nennt",

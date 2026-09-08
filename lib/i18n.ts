@@ -248,6 +248,7 @@ export type TranslationKey =
   | "agent.inboxMappingHint"
   | "agent.inboxMappingNotes"
   | "agent.inboxMappingTitle"
+  | "agent.inboxNotTheHeader"
   | "agent.inboxNothingToDo"
   | "agent.inboxOff"
   | "agent.inboxOrphaned"

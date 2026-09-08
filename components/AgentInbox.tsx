@@ -45,6 +45,7 @@ type Read = {
   notes: string[];
   preview: Row[];
   format?: string;
+  skipLines?: number;
 };
 
 const NONE = "";
@@ -146,11 +147,15 @@ export default function AgentInbox({
       );
     });
 
-  const readColumns = (id: string) =>
+  const readColumns = (id: string, skipLines = 0) =>
     run(async () => {
       const body = await post(`${base}/statement`, {
         inbox: id,
-        idempotency_key: id,
+        skipLines,
+        // A retry with a different header line is a different call — reusing
+        // the plain id would read back the *first* guess's mapping instead of
+        // asking again (B761).
+        idempotency_key: skipLines > 0 ? `${id}:skip${skipLines}` : id,
       });
       setRead({
         mapping: body.mapping as ColumnMapping | undefined,
@@ -158,8 +163,14 @@ export default function AgentInbox({
         notes: (body.notes ?? []) as string[],
         preview: (body.preview ?? []) as Row[],
         format: typeof body.format === "string" ? body.format : undefined,
+        skipLines,
       });
     });
+
+  // "That is not the header row" — the screen's only say over how a preamble
+  // line is handled. Moves the guess down one line and asks the model again,
+  // since the sample it saw was wrong too.
+  const notTheHeader = (id: string) => readColumns(id, (read?.skipLines ?? 0) + 1);
 
   const readWholeFile = (id: string) =>
     run(async () => {
@@ -168,6 +179,7 @@ export default function AgentInbox({
         trip,
         mapping: read?.mapping,
         format: read?.format,
+        skipLines: read?.skipLines ?? 0,
       });
       setRows((body.spending ?? []) as Row[]);
       setTruncated(Number(body.truncated ?? 0));
@@ -218,15 +230,19 @@ export default function AgentInbox({
       await post(`${base}/consent`, { scope: "statement" });
       setConsented(true);
       setConsenting(false);
-      await post(`${base}/statement`, { inbox: id, idempotency_key: id }).then(
-        (body) =>
-          setRead({
-            mapping: body.mapping as ColumnMapping | undefined,
-            header: (body.header ?? []) as string[],
-            notes: (body.notes ?? []) as string[],
-            preview: (body.preview ?? []) as Row[],
-            format: typeof body.format === "string" ? body.format : undefined,
-          }),
+      await post(`${base}/statement`, {
+        inbox: id,
+        skipLines: 0,
+        idempotency_key: id,
+      }).then((body) =>
+        setRead({
+          mapping: body.mapping as ColumnMapping | undefined,
+          header: (body.header ?? []) as string[],
+          notes: (body.notes ?? []) as string[],
+          preview: (body.preview ?? []) as Row[],
+          format: typeof body.format === "string" ? body.format : undefined,
+          skipLines: 0,
+        }),
       );
     });
 
@@ -394,13 +410,23 @@ export default function AgentInbox({
                   )}
 
                   {read?.mapping && (
-                    <Mapping
-                      header={read.header}
-                      mapping={read.mapping}
-                      notes={read.notes}
-                      preview={read.preview}
-                      onChange={(mapping) => setRead({ ...read, mapping })}
-                    />
+                    <>
+                      <Mapping
+                        header={read.header}
+                        mapping={read.mapping}
+                        notes={read.notes}
+                        preview={read.preview}
+                        onChange={(mapping) => setRead({ ...read, mapping })}
+                      />
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => notTheHeader(id)}
+                        className="text-sm font-semibold text-navy-600 underline disabled:opacity-50"
+                      >
+                        {t("agent.inboxNotTheHeader")}
+                      </button>
+                    </>
                   )}
 
                   {read && !rows && (
