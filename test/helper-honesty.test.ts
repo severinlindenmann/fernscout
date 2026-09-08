@@ -7,6 +7,7 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { grant } from "@/lib/credits";
+import { TOOLS } from "@/lib/helper/tools";
 import { forget, history, wrote } from "@/lib/helper/thread";
 import {
   claimsAccess,
@@ -1002,5 +1003,56 @@ describe("a total the tool said was partial", () => {
 
     expect(create).toHaveBeenCalledTimes(2);
     expect(String(answered.body.answer)).toContain("4500 RSD");
+  });
+});
+
+/* ---------------------------------- the plumbing, said to the person --- */
+
+/**
+ * The model narrating its own tools — B964.
+ *
+ * An answer began: *"I called trip_costs for Danube Circuit but it returned
+ * Balkan Loop. The total for Danube Circuit is 240.476 CHF…"* The figure was
+ * right and the trips were correctly separated afterwards; what reached the
+ * person was a tool name and a suspicion about that tool, in the middle of an
+ * answer about their holiday. Driven against two similarly named trips, the
+ * resolution it was complaining about is correct — so there was nothing behind
+ * the suspicion either.
+ *
+ * B924's fault, said by the model rather than written by the server: two
+ * audiences, one channel. That one was fixed by making a note a note. This one
+ * cannot be, because the model composes it — so the sentence is dropped, not
+ * retried: it is noise rather than a false claim, and the rest of the answer
+ * is usually right, as it was here.
+ */
+describe("what the person is not told about", () => {
+  test("a sentence naming a tool is dropped and the answer survives", async () => {
+    create.mockResolvedValueOnce(
+      says(
+        "I called trip_costs for Danube Circuit but it returned Balkan Loop. " +
+          "You have one trip and no days on it yet.",
+      ),
+    );
+    const answered = await read(await ask("wie weit bin ich"));
+
+    const said = String(answered.body.answer);
+    expect(said).not.toContain("trip_costs");
+    expect(said).not.toContain("I called");
+    // And what she actually asked about is still there.
+    expect(said).toContain("You have one trip");
+  });
+
+  test("every tool that could be named is covered, not a list somebody typed", () => {
+    // The names come from the registry, so a tool added next month is covered
+    // without anybody remembering this file.
+    const named = TOOLS.map((tool) => tool.name).filter((name) => name.includes("_"));
+    expect(named.length).toBeGreaterThan(5);
+    expect(named).toContain("trip_costs");
+  });
+
+  test("ordinary prose is untouched, including a sentence about a trip's costs", async () => {
+    create.mockResolvedValueOnce(says("Die Kosten der Reise stehen noch auf null."));
+    const answered = await read(await ask("was hat sie gekostet"));
+    expect(String(answered.body.answer)).toBe("Die Kosten der Reise stehen noch auf null.");
   });
 });
