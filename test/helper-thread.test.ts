@@ -7,7 +7,7 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { grant } from "@/lib/credits";
-import { forget, history } from "@/lib/helper/thread";
+import { forget, history, remember } from "@/lib/helper/thread";
 import { TOOLS, runTool } from "@/lib/helper/tools";
 import { threadSystemPrompt } from "@/lib/helper/model";
 
@@ -441,5 +441,57 @@ describe("what a turn costs", () => {
     const schemas = TOOLS.map((tool) => JSON.stringify(tool.properties) + tool.describe).join("");
     const characters = threadSystemPrompt("2026-09-07").length + schemas.length;
     expect(Math.round(characters / 4)).toBeLessThan(4100);
+  });
+});
+
+/**
+ * The conversation knows when it dropped something — B957.
+ *
+ * Twelve turns, and the oldest go. That is a cost decision and it stays. What
+ * was wrong is that it was invisible: the model could not tell a short
+ * conversation from a long one it had lost the beginning of, and it does not
+ * behave as though it might be either.
+ *
+ * Somebody twenty-four turns into writing up a fifteen-day trip asked whether
+ * they had said who they were travelling with. They had, in their first
+ * message. Rather than say it was out of reach, the model read an unrelated
+ * day, called it "the first day", and answered from its prose — confidently,
+ * and wrongly.
+ */
+describe("a conversation long enough to forget its own beginning", () => {
+  test("says so, once, to the model and never to the person", () => {
+    forget("alex");
+    for (let n = 0; n < 10; n += 1) remember("alex", `said ${n}`, `answered ${n}`);
+
+    const turns = history("alex");
+    const notes = turns.filter((turn) => turn.role === "note");
+    expect(notes).toHaveLength(1);
+    expect(notes[0].text).toContain("no longer in front of you");
+    // It is the first thing in the window, where the dropped turns were.
+    expect(turns[0].role).toBe("note");
+  });
+
+  test("a conversation short enough to remember everything says nothing", () => {
+    forget("alex");
+    remember("alex", "eins", "zwei");
+    remember("alex", "drei", "vier");
+    expect(history("alex").some((turn) => turn.role === "note")).toBe(false);
+  });
+
+  test("the note does not accumulate as the conversation goes on", () => {
+    forget("alex");
+    for (let n = 0; n < 40; n += 1) remember("alex", `said ${n}`, `answered ${n}`);
+    expect(history("alex").filter((turn) => turn.role === "note")).toHaveLength(1);
+  });
+
+  test("and it does not crowd out what is still remembered", () => {
+    forget("alex");
+    for (let n = 0; n < 40; n += 1) remember("alex", `said ${n}`, `answered ${n}`);
+    const turns = history("alex");
+    expect(turns).toHaveLength(12);
+    // The most recent exchange survives, which is the whole point of keeping
+    // the newest twelve.
+    expect(turns.at(-2)?.text).toBe("said 39");
+    expect(turns.at(-1)?.text).toBe("answered 39");
   });
 });

@@ -108,13 +108,43 @@ export function history(username: string): Turn[] {
  */
 export function remember(username: string, said: string, answered: string): void {
   const now = Date.now();
-  const turns = [
+  const turns = trimmed([
     ...history(username),
     { role: "user" as const, text: said },
     { role: "assistant" as const, text: answered },
-  ].slice(-MAX_TURNS);
+  ]);
   threads.set(username, { turns, touched: now });
   sweep(now);
+}
+
+/**
+ * Twelve turns, and **the conversation knows when it dropped one** — B957.
+ *
+ * The trim itself is right and is a cost decision: every remembered turn is
+ * paid for again on the next one. What was wrong is that it was invisible, so
+ * the model could not tell a short conversation from a long one it had lost
+ * the beginning of — and it does not behave as though it might be either.
+ *
+ * Somebody twenty-four turns into writing up a fifteen-day trip asked whether
+ * they had said who they were travelling with. They had, in their first
+ * message. Rather than say it was out of reach, the model read an unrelated
+ * day, called it "the first day", and answered from its prose — confidently,
+ * and wrongly. Their own words: *"it never admits a memory limit; it
+ * fabricates a confident, wrong, artifact-grounded answer instead. That is the
+ * hardest failure mode for a real user to catch, because it reads exactly like
+ * a correct answer."*
+ *
+ * One note, replaced rather than accumulated: the fact is "the beginning is
+ * gone", not "the beginning is gone, and again, and again".
+ */
+const FORGOT = "[earlier turns of this conversation are no longer in front of you: say so rather than answering from a day's prose, and ask them to tell you again]";
+
+function trimmed(turns: Turn[]): Turn[] {
+  if (turns.length <= MAX_TURNS) return turns;
+  const kept = turns.slice(-MAX_TURNS);
+  return kept.some((turn) => turn.text === FORGOT)
+    ? kept
+    : [{ role: "note" as const, text: FORGOT }, ...kept.slice(1)];
 }
 
 /**
@@ -126,7 +156,7 @@ export function remember(username: string, said: string, answered: string): void
  */
 export function note(username: string, text: string): void {
   const now = Date.now();
-  const turns = [...history(username), { role: "note" as const, text }].slice(-MAX_TURNS);
+  const turns = trimmed([...history(username), { role: "note" as const, text }]);
   threads.set(username, { turns, touched: now });
   sweep(now);
 }
