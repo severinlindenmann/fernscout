@@ -47,6 +47,20 @@ const SECONDS_PER_CREDIT = 300;
  *  this somebody is dictating a book rather than talking about a day. */
 export const MAX_SPEECH_SECONDS = 900;
 
+/**
+ * How long a *spoken search* may run — B1006.
+ *
+ * Ten seconds, and it is a different number from the one above because it is
+ * a different thing: fifteen minutes is a person dictating a day, and this is
+ * a person saying a sentence. A search box whose microphone can be left open
+ * for a quarter of an hour is a search box that can quietly spend somebody's
+ * credits on the sound of an empty room.
+ *
+ * The server's ceiling does not move — this is the browser stopping itself,
+ * and `MAX_SPEECH_SECONDS` is still what the route refuses past.
+ */
+export const SEARCH_SPEECH_SECONDS = 10;
+
 /** A ceiling on the bytes, independent of the seconds claimed: an upload is a
  *  thing a caller controls and the duration is a thing a caller *says*. Five
  *  minutes of Opus at 32 kbit/s is about 1.2 MB, so this is generous. */

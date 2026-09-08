@@ -82,6 +82,7 @@ export default function RecordButton({
   compactClassName,
   language: fixedLanguage,
   hold: holdToTalk = true,
+  maxSeconds = MAX_SPEECH_SECONDS,
 }: {
   username: string;
   /** Whether this journal has already agreed to its owner's voice being sent
@@ -148,6 +149,17 @@ export default function RecordButton({
    * while they talk, so there it is a toggle and nothing but.
    */
   hold?: boolean;
+  /**
+   * When the recording stops itself — B1006. `MAX_SPEECH_SECONDS` (fifteen
+   * minutes) unless a host says otherwise, which is right for dictating a day
+   * and absurd for a search box: a search is a sentence, and a microphone
+   * left open because somebody walked away is their credits going into
+   * silence.
+   *
+   * The server's own ceiling is unchanged and still the real one; this is the
+   * ceiling for *this* use of the control.
+   */
+  maxSeconds?: number;
 }) {
   const { t, locale } = useI18n();
   const [consented, setConsented] = useState(initialConsent);
@@ -209,10 +221,15 @@ export default function RecordButton({
     const timer = window.setInterval(() => {
       const elapsed = (Date.now() - started.current) / 1000;
       setSeconds(Math.floor(elapsed));
-      if (elapsed >= MAX_SPEECH_SECONDS) recorder.current?.stop();
+      // The ceiling, and it goes through `stop()` rather than at the recorder
+      // directly — B1006. The tick runs every 200ms and the state that ends it
+      // arrives a render later, so a bare `recorder.current.stop()` fires
+      // again on the next tick: a second `ondataavailable`, a second upload,
+      // and a second charge. `stop()` asks whether it is still recording.
+      if (elapsed >= maxSeconds) stop();
     }, 200);
     return () => window.clearInterval(timer);
-  }, [recording]);
+  }, [recording, maxSeconds]);
 
   const send = useCallback(
     async (blob: Blob, held: number) => {

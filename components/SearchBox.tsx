@@ -11,6 +11,7 @@ import Link from "next/link";
 import { Mic, MicOff, Search as SearchIcon, Sparkles } from "lucide-react";
 import AgentMicIcon from "./AgentMicIcon";
 import RecordButton from "./RecordButton";
+import { SEARCH_SPEECH_SECONDS } from "@/lib/helper/speech";
 import MiniSearch from "minisearch";
 import BusyButton from "./BusyButton";
 import ConfirmPanel from "./ConfirmPanel";
@@ -164,22 +165,31 @@ export default function SearchBox({
   const [agent, setAgent] = useState<"idle" | "busy" | "error">("idle");
   const [hits, setHits] = useState<AgentHit[] | null>(null);
   const [asked, setAsked] = useState("");
+  /**
+   * What the agent thinks was actually said, when a word was misheard —
+   * B1006. Offered as a button and never applied on its own: what somebody
+   * said is theirs, and a search that quietly answers a different question is
+   * worse than one that finds nothing.
+   */
+  const [suggestion, setSuggestion] = useState("");
 
-  async function askAgent(sentence?: string) {
+  async function askAgent(sentence?: string, spoken = false) {
     const said = (sentence ?? query).trim();
     if (said === "") return;
     setAgent("busy");
     setHits(null);
+    setSuggestion("");
     setAsked(said);
     try {
       const res = await fetch(`/api/helper/${site.username}/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ said }),
+        body: JSON.stringify({ said, spoken }),
       });
       if (!res.ok) throw new Error(String(res.status));
-      const data = (await res.json()) as { hits?: AgentHit[] };
+      const data = (await res.json()) as { hits?: AgentHit[]; suggestion?: string };
       setHits(data.hits ?? []);
+      setSuggestion(data.suggestion ?? "");
       setAgent("idle");
     } catch {
       setAgent("error");
@@ -339,6 +349,9 @@ export default function SearchBox({
             // the pointer off a 44px target is what a person does when they
             // start speaking, and it was ending the recording.
             hold={false}
+            // Ten seconds, not fifteen minutes — B1006. A search is a
+            // sentence; the wizard's ceiling is for dictating a day.
+            maxSeconds={SEARCH_SPEECH_SECONDS}
             icon={<AgentMicIcon className="h-5 w-5" />}
             // The page's own language, and no question about it — B986.
             language={locale}
@@ -347,7 +360,7 @@ export default function SearchBox({
               // Into the box *and* away, with no second press: what was said
               // out loud was the question, not a draft of it.
               setQuery(said);
-              void askAgent(said);
+              void askAgent(said, true);
             }}
           />
         )}
@@ -407,6 +420,19 @@ export default function SearchBox({
         <p role="status" className="mt-2 text-sm text-coral-600">
           {t("search.agentError")}
         </p>
+      )}
+
+      {suggestion && agent !== "busy" && (
+        <button
+          type="button"
+          onClick={() => {
+            setQuery(suggestion);
+            void askAgent(suggestion);
+          }}
+          className="mt-3 min-h-11 rounded-full border border-navy-300 px-4 text-sm text-navy-800 transition-colors hover:bg-cream-100"
+        >
+          {t("search.agentDidYouMean", { said: suggestion })}
+        </button>
       )}
 
       {hits && agent !== "busy" && (

@@ -1631,13 +1631,23 @@ Only ever return ids that appear in the list you were given. You have no other k
 
 If nothing in the list fits, return no rows at all. That is a real answer and often the right one — a wrong row costs them more than an empty list, which at least tells them to try other words.
 
-"why" is one short clause in the language they asked in, saying what makes this row the answer. Never a sentence about yourself, never an apology.`;
+"why" is one short clause in the language they asked in, saying what makes this row the answer. Never a sentence about yourself, never an apology.
 
-export type FoundRow = { id: string; why: string };
+When you are told the sentence was **spoken**, it reached you through a transcriber and a word may have been misheard. If — and only if — the words look like a mishearing of something that is *in the list you were given*, put what you think they actually said in "suggestion". "Kotthard" against a journal whose days name the Gotthard is not a guess, it is the nearest real thing; "the day with the boat" against a journal with no boat in it is not a mishearing, it is a day they are looking for and have not found.
+
+Leave "suggestion" empty unless a name in the list is what makes it work. A correction that names nothing in this journal is not a correction — it is you rewriting somebody's question into one you would rather answer. Empty is the normal answer, and it costs them nothing.`;
+
+type FoundRow = { id: string; why: string };
+
+/** One search, answered: the rows it matched, and — for a sentence that was
+ *  spoken — what the model thinks was actually said (B1006). The suggestion
+ *  is empty unless a name in the catalogue is what makes the correction work. */
+export type Found = { hits: FoundRow[]; suggestion: string };
 
 const FIND_SCHEMA = {
   type: "object",
   properties: {
+    suggestion: { type: "string" },
     hits: {
       type: "array",
       items: {
@@ -1648,7 +1658,7 @@ const FIND_SCHEMA = {
       },
     },
   },
-  required: ["hits"],
+  required: ["hits", "suggestion"],
   additionalProperties: false,
 };
 
@@ -1668,7 +1678,8 @@ export async function findInJournal(
   rows: { id: string; kind: string; title: string; where: string }[],
   today: string,
   owner?: string,
-): Promise<FoundRow[]> {
+  spoken = false,
+): Promise<Found> {
   const client = new Anthropic();
   const response = await client.messages.create({
     model: HELPER_MODEL,
@@ -1678,7 +1689,11 @@ export async function findInJournal(
       {
         role: "user",
         content:
-          `Today is ${today}.\n\nWhat they are looking for:\n${said.trim()}\n\n` +
+          `Today is ${today}.\n\n` +
+          (spoken
+            ? "They said this out loud and a transcriber wrote it down, so a word may have been misheard.\n\n"
+            : "They typed this.\n\n") +
+          `What they are looking for:\n${said.trim()}\n\n` +
           `Everything they can look at, one per line as id, kind, title, where:\n` +
           catalogueLines(rows),
       },
@@ -1692,15 +1707,23 @@ export async function findInJournal(
     .join("")
     .trim();
   try {
-    const parsed = JSON.parse(text) as { hits?: unknown };
-    if (!Array.isArray(parsed.hits)) return [];
-    return parsed.hits
-      .filter((hit): hit is FoundRow => {
-        const row = hit as Record<string, unknown>;
-        return typeof row?.id === "string" && typeof row?.why === "string";
-      })
-      .slice(0, 6);
+    const parsed = JSON.parse(text) as { hits?: unknown; suggestion?: unknown };
+    const hits = Array.isArray(parsed.hits)
+      ? parsed.hits
+          .filter((hit): hit is FoundRow => {
+            const row = hit as Record<string, unknown>;
+            return typeof row?.id === "string" && typeof row?.why === "string";
+          })
+          .slice(0, 6)
+      : [];
+    const suggestion = typeof parsed.suggestion === "string" ? parsed.suggestion.trim() : "";
+    return {
+      hits,
+      // A "correction" identical to what they said is not one, and offering it
+      // reads as the software not having listened.
+      suggestion: suggestion.toLowerCase() === said.trim().toLowerCase() ? "" : suggestion,
+    };
   } catch {
-    return [];
+    return { hits: [], suggestion: "" };
   }
 }

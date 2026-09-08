@@ -204,4 +204,25 @@ describe("pressing the microphone", () => {
     expect(button.textContent).not.toContain("Listening");
     expect(container!.textContent).toContain("Listening");
   });
+
+  /**
+   * B1006 — the search box's own ceiling.
+   *
+   * `MAX_SPEECH_SECONDS` is fifteen minutes, which is a person dictating a
+   * day. A search is a sentence, and a microphone left open in a search box
+   * because somebody walked away is their credits going into silence.
+   */
+  test("stops itself at the ceiling the host names", async () => {
+    const said: string[] = [];
+    const button = render((text) => said.push(text), { maxSeconds: 1 });
+    await click(button);
+    expect(container!.textContent).toContain("Listening");
+    await act(async () => {
+      // Past the ceiling, and past the half-second below which a recording is
+      // dropped as a slip — so it stops *and* sends.
+      await new Promise((r) => setTimeout(r, 1400));
+    });
+    expect(container!.textContent).not.toContain("Listening");
+    expect(said).toEqual(["over the pass"]);
+  });
 });
