@@ -2,16 +2,38 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AdminGrant from "./AdminGrant";
-import Journals from "./Journals";
 import AdminRefund from "./AdminRefund";
+import Console from "./Console";
+import Journals from "./Journals";
+import SpendChart from "./SpendChart";
+import { BarChart, Breakdown, CountBars, Meter, type Week } from "./Charts";
 import { isInstanceAdmin } from "@/lib/adminGate";
-import { creditsEnabled, ledgerFor } from "@/lib/credits";
+import { creditsEnabled } from "@/lib/credits";
+import { formatCredits } from "@/lib/credits/format";
 import { formatChf } from "@/lib/credits/pricing";
-import { BarChart, DailyChart } from "./Charts";
-import { dailyCosts, dashboard, type CostLine } from "@/lib/instanceCosts";
-import { listPayments, type Payment } from "@/lib/payments";
+import { dailyCosts, dashboard, journalDaily, type DailySpend } from "@/lib/instanceCosts";
+import {
+  allTombstones,
+  daysByWeek,
+  health,
+  paymentsByOwner,
+  sendsByWeek,
+  signupsByWeek,
+  snapshot,
+  spendByReasonAll,
+  takingsBreakdown,
+  troubles,
+  type Health,
+  type Takings,
+  type Trouble,
+} from "@/lib/adminConsole";
+import { paymentsPaidSince, takings, type Payment } from "@/lib/payments";
 import { serverSite } from "@/lib/site";
 import { sessionStats, type SessionStats } from "@/lib/helper/sessions";
+import { formatBytes } from "@/lib/storageQuota";
+import { loadServerConfig } from "@/lib/config";
+import { OPERATION_LABEL } from "@/lib/operations";
+import type { JournalRow as StatusRow } from "@/lib/statusReport";
 
 // Reads a session and the database on every request; nothing to prerender.
 export const dynamic = "force-dynamic";
@@ -26,135 +48,101 @@ export const metadata: Metadata = {
  *  thirty days" needs no explanation of what happens on the 31st. */
 const WINDOW_DAYS = 30;
 
-function since(): string {
-  return new Date(Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
-}
+/** What the chart holds, so its 7 · 30 · 90 switch needs no round trip, and
+ *  what the tiles compare against — thirty days beside the thirty before. */
+const CHART_DAYS = 90;
 
-/** What a group of lines comes to. The charts and the total read the same
- *  numbers the rows do, so nothing on this page can disagree with itself. */
-function sum(lines: CostLine[]): number {
-  return lines.reduce((total, line) => total + line.rappen, 0);
-}
+/** How far back the weekly counts look. Twelve is a quarter, which is long
+ *  enough for a trend and short enough to draw on a phone. */
+const WEEKS = 12;
 
-/**
- * One group of cost lines — B763, replacing the table B746 shipped.
- *
- * A `<table>` of four columns needs about 36rem before the last one stops
- * wrapping, so on a phone it became a side-scrolling pane whose right-hand
- * edge held the cost — the one number anybody opened this page for. These are
- * the same fields stacked: the name and the money on one line, because that is
- * the pair being read, and the smaller facts under them.
- *
- * `<ul>` rather than `<table>` because it stopped being a table the moment it
- * stopped being a grid; a table whose rows reflow into blocks is a table only
- * to a screen reader, and a misleading one.
- */
-function Lines({ title, lines, note }: { title: string; lines: CostLine[]; note?: string }) {
-  return (
-    <section className="mt-8">
-      <h2 className="font-display text-lg font-semibold text-navy-900">{title}</h2>
-      {note ? <p className="mt-1 text-sm text-navy-700">{note}</p> : null}
-      {lines.length === 0 ? (
-        <p className="mt-2 text-sm text-navy-500">Nothing in this period.</p>
-      ) : (
-        <ul className="mt-2 divide-y divide-navy-200 border-t border-navy-200">
-          {lines.map((line) => (
-            <li key={`${line.label}-${line.detail}`} className="py-2">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="min-w-0 break-words text-sm text-navy-900">{line.label}</span>
-                <span className="shrink-0 font-mono text-sm text-navy-900">
-                  {/* An unpriced line says so rather than showing a zero that
-                      would read as "this was free". */}
-                  {line.unpriced ? (
-                    <span className="text-navy-500">not priced</span>
-                  ) : (
-                    formatChf(line.rappen)
-                  )}
-                </span>
-              </div>
-              <p className="mt-0.5 [overflow-wrap:anywhere] font-mono text-xs text-navy-500">
-                {line.detail}
-                {line.calls > 0 ? ` · ${line.calls} ${line.calls === 1 ? "call" : "calls"}` : ""}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
+function ago(days: number): string {
+  return new Date(Date.now() - days * 86_400_000).toISOString();
 }
 
 /**
- * What this instance costs to run — B746.
+ * The operator's console — B746, rebuilt by B996.
  *
  * **404 for everybody who is not the operator, including when there is no
  * operator.** `FERNSCOUT_ADMIN_EMAIL` unset means `isInstanceAdmin` is false
  * for every address, so an instance that has not set it behaves exactly as
  * though this page were not in the build — the same promise `lib/admin.ts`
- * makes. `notFound()` rather than a 403: a page that says "forbidden" has
- * told a stranger the operator dashboard is at this address.
+ * makes. `notFound()` rather than a 403: a page that says "forbidden" has told
+ * a stranger the operator dashboard is at this address.
  *
- * Every number here is measured. Where a price is missing the line says so
- * rather than showing a zero, and the two groups that cannot honestly be
- * priced at all — WhatsApp, which Meta bills per conversation and per country,
- * and mail, which costs nothing per message — are shown as volumes with the
- * reason beside them. A total that quietly included a guess would be worse
- * than a total that is explicitly a floor.
- */
-/**
- * One line per journal: how much talking, how much of it landed, and what the
- * honesty net caught — B976.
+ * ## What changed, and why it is not just a rearrangement
  *
- * `read` says whether that journal's owner has let their words be read. It is
- * shown rather than acted on here: this page holds no prose either way, and
- * the flag is what a later screen would have to obey.
+ * B746 answered one question — what did this cost — and answered it at length:
+ * a total, three charts, and four lists that printed every priced line. An
+ * operator opens this on a phone, standing somewhere else, and has three
+ * questions rather than one: **is anybody waiting on me**, **what is this
+ * costing me**, and **is anything broken**. The third was not on the page at
+ * all; `/api/health` has known it since B234 and only the deploy script ever
+ * read it.
+ *
+ * So: the queue stands above everything and outside the tabs, because it is
+ * the only thing here that is a person rather than a number. The rest is three
+ * tabs, each one screen. The four printed lists are folded behind the bars that
+ * summarise them — nothing is lost and the page is a quarter of the length.
+ *
+ * ## Every number is still measured
+ *
+ * Unpriced usage says *not priced* rather than showing a zero, and the total
+ * is a floor rather than an invoice. That rule is `lib/instanceCosts.ts`'s and
+ * no chart here is worth breaking it for.
+ *
+ * ## Nothing here grants credits
+ *
+ * `lib/credits.ts`'s property 1 is unchanged: nothing a caller reaches over
+ * HTTP raises a balance. The grant form in a journal's panel files a request
+ * and causes a mail, and the single-use link in that mailbox is what credits.
  */
-function Helper({ stats }: { stats: SessionStats[] }) {
-  if (stats.length === 0) return null;
-  return (
-    <section className="mt-10 border-t border-navy-200 pt-6">
-      <h2 className="font-display text-lg font-semibold text-navy-900">Conversations</h2>
-      <p className="mt-1 text-sm text-navy-700">
-        What the helper was asked and what came of it. No words — those are the
-        owner&rsquo;s, and reading them is a separate permission.
-      </p>
-      <ul className="mt-2 divide-y divide-navy-200 border-t border-navy-200">
-        {stats.map((stat) => (
-          <li key={stat.owner} className="py-2">
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="font-display font-semibold text-navy-900">{stat.owner}</span>
-              <span className="font-mono text-sm tabular-nums text-navy-700">
-                {stat.pressed}/{stat.proposed} pressed
-              </span>
-            </div>
-            <p className="mt-0.5 text-sm text-navy-600">
-              {stat.turns} turns over {stat.sessions} conversation
-              {stat.sessions === 1 ? "" : "s"}
-              {stat.refused > 0 ? ` · ${stat.refused} refused` : ""}
-              {stat.readable ? "" : " · words not shared"}
-            </p>
-            {stat.guards.length > 0 && (
-              <p className="mt-0.5 font-mono text-xs text-coral-700">
-                {stat.guards.map((one) => `${one.guard} ${one.count}`).join(" · ")}
-              </p>
-            )}
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
 export default async function AdminPage() {
   if (!(await isInstanceAdmin())) notFound();
 
   const siteName = serverSite().name;
-  const from = since();
-  const [data, daily] = await Promise.all([dashboard(from), dailyCosts(from, WINDOW_DAYS)]);
+  const from = ago(WINDOW_DAYS);
+
+  const [
+    data,
+    daily,
+    series,
+    { report, measuredAt },
+    healthNow,
+    troubleRows,
+    paidTwoMonths,
+    byReason,
+    purchases,
+    days,
+    sends,
+    signups,
+    helper,
+  ] = await Promise.all([
+    dashboard(from),
+    dailyCosts(ago(CHART_DAYS), CHART_DAYS),
+    journalDaily(from, WINDOW_DAYS),
+    snapshot(),
+    health(),
+    troubles(from),
+    paymentsPaidSince(ago(WINDOW_DAYS * 2)),
+    spendByReasonAll(),
+    paymentsByOwner(),
+    Promise.resolve(daysByWeek(WEEKS)),
+    sendsByWeek(WEEKS),
+    signupsByWeek(WEEKS),
+    sessionStats(from),
+  ]);
+
   const metered = creditsEnabled();
+  const money = takingsBreakdown(data.paid, data.awaiting);
+  const stones = allTombstones();
+  const byName = new Map(report.journals.map((row) => [row.username, row]));
+  const ceiling = loadServerConfig().media.perUserBytes;
+
+  const alerts = healthNow.wrong.length + troubleRows.length;
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10 sm:py-16">
+    <main className="mx-auto max-w-4xl px-4 pb-24 pt-10 sm:pb-16 sm:pt-16">
       {/* The way back. `/admin` is reached from the landing page and is not in
           any navigation, so without this the only exit is the browser's own
           back button — and a page opened from a mailed link has no history to
@@ -165,132 +153,128 @@ export default async function AdminPage() {
       <h1 className="mt-3 font-display text-3xl font-semibold text-navy-900 sm:text-4xl">
         Operator
       </h1>
-      <p className="mt-3 text-navy-700">
-        What this instance has cost over the last {WINDOW_DAYS} days, and what each journal holds.
-      </p>
 
-      {/* First on the page, above the money, because it is the only thing here
-          that is a person waiting rather than a number to read. Until B774 the
-          sole signal that a purchase needed approving was a mail — which is a
-          queue whose length you cannot see. */}
+      {/* First on the page, above the money and outside the tabs, because it is
+          the only thing here that is a person waiting rather than a number to
+          read. Until B774 the sole signal that a purchase needed approving was
+          a mail — which is a queue whose length you cannot see. */}
       <Awaiting payments={data.awaiting} />
 
-      <p className="mt-6 rounded-2xl border border-navy-200 bg-cream-100 p-4 text-navy-900">
-        <span className="font-display text-2xl font-semibold">{formatChf(data.totalRappen)}</span>
-        <span className="ml-2 font-mono text-sm text-navy-700">
-          out · {formatChf(data.takenRappen)} in
-        </span>
-        <span className="mt-1 block text-sm text-navy-700">
-          Everything priced below, including the fixed monthly lines. Lines marked{" "}
-          <em>not priced</em> are real usage this instance has no price for, so treat this as a
-          floor rather than an invoice.
-        </span>
-      </p>
-
-      {/* The three questions an operator opens this page with, in the order
-          they ask them: what does it cost (the hero above), where does it go,
-          who is spending it, and is it growing. The rows below are the detail
-          behind these, and every number in a chart is the same number a row
-          repeats. */}
-      <BarChart
-        title="Where it goes"
-        bars={[
-          { label: "Models and speech", rappen: sum(data.providers) },
-          { label: "Print", rappen: sum(data.print) },
-          { label: "Sent to readers", rappen: sum(data.sends), note: "counted, not priced" },
-          { label: "Fixed", rappen: sum(data.fixed) },
-        ]}
-        empty="Nothing has cost anything in this period."
-      />
-
-      <BarChart
-        title="By journal"
-        bars={data.journals.map((journal) => ({ label: journal.username, rappen: journal.rappen }))}
-        empty="No journal has made a metered call in this period."
-      />
-
-      <DailyChart
-        title="Models and speech, by day"
-        days={daily}
-        empty="No metered calls in this period yet — metering began when B746 was deployed, so this fills in from here."
-      />
-
-      <Lines
-        title="Models and speech"
-        lines={data.providers}
-        note="Tokens and audio seconds as the providers measured them, priced from costs in site/config.json."
-      />
-      <Lines
-        title="Print"
-        lines={data.print}
-        note="What the printer actually charged, taken from the order itself rather than from a price list."
-      />
-      <Lines
-        title="Sent to readers"
-        lines={data.sends}
-        note="Counted, not priced. WhatsApp is billed by Meta per conversation and per country; email through the mailbox costs nothing per message, and push notifications cost nothing at all."
-      />
-      <Lines title="Fixed" lines={data.fixed} note="Owed whether anybody writes a day or not." />
-
-      <Lines
-        title="Bought"
-        note="Credit purchases approved in this period, at what the buyer actually paid. A grant made from this page carries no price and is not takings."
-        lines={data.paid.map((payment) => ({
-          label: `${payment.owner} · ${payment.credits} credits`,
-          detail: `${payment.method ?? "unknown"} · ${(payment.paidAt ?? "").slice(0, 10)}`,
-          calls: 0,
-          rappen: payment.amountRappen,
-          unpriced: false,
-        }))}
-      />
-
-      {/*
-        What the conversations did — B976, and the reason any of this is kept.
-        Above the journals because it is the only thing on this page that says
-        what to *fix*; everything else says what was spent.
-
-        **No words here, ever.** `proposed` against `pressed` is the number
-        this was built for: a proposal made and never pressed is the clearest
-        failure signal this product has, and until now nothing counted it. The
-        guards beside it were three process-global integers that reset on every
-        restart, so "is that fix working" was a question only a person driving
-        the live site could answer.
-      */}
-      <Helper stats={await sessionStats(from)} />
-
-      <section className="mt-10 border-t border-navy-200 pt-6">
-        <h2 className="font-display text-lg font-semibold text-navy-900">Journals</h2>
-        {!metered ? (
-          <p className="mt-1 text-sm text-navy-500">
-            Credits are switched off on this instance, so there are no balances to show.
-          </p>
-        ) : null}
-        {/* The rows, their search and their sort live in `Journals`; what is
-            behind one — its purchases, its ledger, and adding to its balance —
-            is rendered here, on the server, and handed over as the panel that
-            opens. B992 moved the grant form in with them: it was a section at
-            the foot of the page asking again which journal, which is a place to
-            credit the wrong one. */}
-        <Journals
-          rows={data.journals.map((journal) => ({
-            username: journal.username,
-            rappen: journal.rappen,
-            balance: journal.balance,
-            spent: journal.spent,
-            granted: journal.granted,
+      <Console
+        tabs={[
+          {
+            id: "money",
+            label: "Money",
             panel: (
               <>
-                <Purchases username={journal.username} />
-                <Ledger username={journal.username} />
-                <AdminGrant journal={journal.username} />
+                <Tiles
+                  data={data}
+                  daily={daily}
+                  paid={paidTwoMonths}
+                  journals={report.journals.length}
+                  signups={signups}
+                />
+                <SpendChart days={daily} />
+                <section className="mt-8">
+                  <h2 className="font-display text-lg font-semibold text-navy-900">
+                    Where it goes
+                  </h2>
+                  <p className="mt-1 text-sm text-navy-700">
+                    The last {WINDOW_DAYS} days. Open a bar for the lines behind it.
+                  </p>
+                  <Breakdown
+                    groups={[
+                      {
+                        label: "Fixed",
+                        lines: data.fixed,
+                        note: "Owed whether anybody writes a day or not.",
+                      },
+                      {
+                        label: "Models and speech",
+                        lines: data.providers,
+                        note: "Tokens and audio seconds as the providers measured them, priced from costs in site/config.json.",
+                      },
+                      {
+                        label: "Print",
+                        lines: data.print,
+                        note: "What the printer actually charged, taken from the order itself rather than from a price list.",
+                      },
+                      {
+                        label: "Sent to readers",
+                        lines: data.sends,
+                        note: "Counted, not priced. WhatsApp is billed by Meta per conversation and per country; email through the mailbox costs nothing per message, and push notifications cost nothing at all.",
+                      },
+                    ]}
+                  />
+                </section>
+                <SpentOn operations={data.operations} />
+                <TakingsPanel money={money} paid={data.paid} />
               </>
             ),
-          }))}
-        />
-      </section>
+          },
+          {
+            id: "journals",
+            label: "Journals",
+            panel: (
+              <>
+                <section className="mt-6">
+                  <h2 className="font-display text-lg font-semibold text-navy-900">Journals</h2>
+                  {!metered ? (
+                    <p className="mt-1 text-sm text-navy-500">
+                      Credits are switched off on this instance, so there are no balances to show.
+                    </p>
+                  ) : null}
+                  {/* The rows, their search and their sort live in `Journals`;
+                      what is behind one is rendered here, on the server, and
+                      handed over as the panel that opens. Every query that
+                      feeds those panels is instance-wide and made once — see
+                      `spendByReasonAll` for why. */}
+                  <Journals
+                    rows={data.journals.map((journal) => ({
+                      username: journal.username,
+                      rappen: journal.rappen,
+                      balance: journal.balance,
+                      spent: journal.spent,
+                      granted: journal.granted,
+                      series: series[journal.username],
+                      panel: (
+                        <JournalPanel
+                          username={journal.username}
+                          status={byName.get(journal.username)}
+                          ceiling={ceiling}
+                          reasons={byReason[journal.username] ?? []}
+                          payments={purchases[journal.username] ?? []}
+                        />
+                      ),
+                    }))}
+                  />
+                </section>
+                <Storage journals={report.journals} ceiling={ceiling} measuredAt={measuredAt} />
+              </>
+            ),
+          },
+          {
+            id: "instance",
+            label: "Instance",
+            badge: alerts,
+            panel: (
+              <>
+                <HealthCard health={healthNow} troubles={troubleRows} />
+                <Activity days={days} sends={sends} print={data.print} />
+                <Growth signups={signups} report={report} stones={stones.length} />
+                <Helper stats={helper} />
+              </>
+            ),
+          },
+        ]}
+      />
     </main>
   );
 }
+
+/* ------------------------------------------------------------------ *
+ * The queue
+ * ------------------------------------------------------------------ */
 
 /**
  * The approval queue — B774.
@@ -308,13 +292,13 @@ export default async function AdminPage() {
 function Awaiting({ payments }: { payments: Payment[] }) {
   if (payments.length === 0) {
     return (
-      <p className="mt-6 rounded-2xl border border-navy-200 bg-white p-4 text-sm text-navy-500">
+      <p className="mt-5 rounded-2xl border border-navy-200 bg-white p-4 text-sm text-navy-500">
         Nothing is waiting for your approval.
       </p>
     );
   }
   return (
-    <section className="mt-6 rounded-2xl border border-navy-200 border-l-8 border-l-yellow-400 bg-white p-4">
+    <section className="mt-5 rounded-2xl border border-navy-200 border-l-8 border-l-yellow-400 bg-white p-4">
       <h2 className="font-display text-lg font-semibold text-navy-900">
         Waiting for you ({payments.length})
       </h2>
@@ -346,6 +330,312 @@ function Awaiting({ payments }: { payments: Payment[] }) {
   );
 }
 
+/* ------------------------------------------------------------------ *
+ * Money
+ * ------------------------------------------------------------------ */
+
+/**
+ * The four numbers, and which way each is moving — B996 (decision 2B).
+ *
+ * A figure on its own is read; a figure with a direction is acted on. The
+ * comparison is **metered spend only** and says so: the fixed monthly lines
+ * are nine tenths of this instance's bill and identical in both windows, so
+ * including them would divide every real movement by ten and report a tenth of
+ * it.
+ *
+ * The delta comes out of the ninety days the chart already holds, which is why
+ * there is no second query for a previous period.
+ */
+function Tiles({
+  data,
+  daily,
+  paid,
+  journals,
+  signups,
+}: {
+  data: Awaited<ReturnType<typeof dashboard>>;
+  daily: DailySpend[];
+  paid: Payment[];
+  journals: number;
+  signups: Week[];
+}) {
+  const window = daily.slice(-WINDOW_DAYS);
+  const before = daily.slice(-WINDOW_DAYS * 2, -WINDOW_DAYS);
+  const now = window.reduce((sum, day) => sum + day.rappen, 0);
+  const then = before.reduce((sum, day) => sum + day.rappen, 0);
+
+  const cutoff = ago(WINDOW_DAYS).slice(0, 10);
+  const takenBefore = takings(paid.filter((one) => (one.paidAt ?? "") < cutoff));
+
+  const oldest = data.awaiting[0];
+  const recent = signups.slice(-4).reduce((sum, week) => sum + week.count, 0);
+
+  return (
+    <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <Tile
+        label="Out"
+        value={formatChf(data.totalRappen)}
+        note={<Delta now={now} then={then} what="metered spend" />}
+      />
+      <Tile
+        label="In"
+        value={formatChf(data.takenRappen)}
+        note={<Delta now={data.takenRappen} then={takenBefore} what="takings" good />}
+      />
+      <Tile
+        label="Waiting"
+        value={String(data.awaiting.length)}
+        alert={data.awaiting.length > 0}
+        note={
+          oldest ? (
+            <span className="text-xs text-navy-500">
+              oldest {(oldest.requestedAt ?? oldest.createdAt).slice(0, 10)}
+            </span>
+          ) : (
+            <span className="text-xs text-navy-500">nothing to approve</span>
+          )
+        }
+      />
+      <Tile
+        label="Journals"
+        value={String(journals)}
+        note={
+          <span className="text-xs text-navy-500">
+            {recent === 0 ? "none new in a month" : `+${recent} in a month`}
+          </span>
+        }
+      />
+    </div>
+  );
+}
+
+function Tile({
+  label,
+  value,
+  note,
+  alert,
+}: {
+  label: string;
+  value: string;
+  note: React.ReactNode;
+  alert?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border bg-white p-3 ${alert ? "border-coral-600" : "border-navy-200"}`}
+    >
+      <p
+        className={`text-xs font-semibold uppercase tracking-wide ${alert ? "text-coral-600" : "text-navy-600"}`}
+      >
+        {label}
+      </p>
+      <p
+        className={`font-display text-xl font-semibold ${alert ? "text-coral-600" : "text-navy-900"}`}
+      >
+        {value}
+      </p>
+      <div className="mt-0.5">{note}</div>
+    </div>
+  );
+}
+
+/**
+ * The change against the window before, in words rather than an arrow alone.
+ *
+ * A percentage of nothing is not a percentage, so a previous window of zero
+ * says "nothing before" instead of dividing by it — which is the ordinary case
+ * on an instance where a feature has just been switched on.
+ */
+function Delta({
+  now,
+  then,
+  what,
+  good,
+}: {
+  now: number;
+  then: number;
+  what: string;
+  good?: boolean;
+}) {
+  if (then === 0 && now === 0) {
+    return <span className="text-xs text-navy-500">no {what} either month</span>;
+  }
+  if (then === 0) {
+    return <span className="text-xs text-navy-500">no {what} the month before</span>;
+  }
+  const change = Math.round(((now - then) / then) * 100);
+  const rising = change > 0;
+  // Rising spend is bad news and rising takings are good news, so the caller
+  // says which this is rather than the colour guessing from the sign.
+  const tone = change === 0 ? "text-navy-500" : rising === Boolean(good) ? "text-green-700" : "text-coral-600";
+  return (
+    <span className={`text-xs font-semibold ${tone}`}>
+      {change > 0 ? "▲" : change < 0 ? "▼" : "="} {Math.abs(change)}% {what}
+    </span>
+  );
+}
+
+/** What the model money bought, by feature — B996 (X1). */
+function SpentOn({ operations }: { operations: { operation: string; rappen: number; calls: number }[] }) {
+  return (
+    <BarChart
+      title="What the models were asked to do"
+      bars={operations.map((row) => ({
+        label: OPERATION_LABEL[row.operation] ?? row.operation,
+        rappen: row.rappen,
+        note: `${row.calls} ${row.calls === 1 ? "call" : "calls"}`,
+      }))}
+      empty="No metered calls in this period."
+    />
+  );
+}
+
+/** The other side of the ledger — B996 (X5). */
+function TakingsPanel({ money, paid }: { money: Takings; paid: Payment[] }) {
+  return (
+    <section className="mt-8">
+      <h2 className="font-display text-lg font-semibold text-navy-900">Taken</h2>
+      <p className="mt-1 text-sm text-navy-700">
+        Purchases settled in the last {WINDOW_DAYS} days, at what the buyer actually paid. A grant
+        made from a journal&rsquo;s panel carries no price and is not takings.
+      </p>
+      <ul className="mt-3 divide-y divide-navy-200 border-t border-navy-200">
+        {money.byMethod.map((row) => (
+          <li key={row.method} className="flex items-baseline justify-between gap-3 py-2">
+            <span className="text-sm text-navy-900">
+              {row.method} · {row.count} {row.count === 1 ? "purchase" : "purchases"}
+            </span>
+            <span className="font-mono text-sm text-navy-900">{formatChf(row.rappen)}</span>
+          </li>
+        ))}
+        <li className="flex items-baseline justify-between gap-3 py-2">
+          <span className="text-sm text-navy-700">Waiting on you</span>
+          <span className="font-mono text-sm text-navy-900">
+            {formatChf(money.waitingRappen)}
+            {money.waitingCount > 0 ? ` · ${money.waitingCount}` : ""}
+          </span>
+        </li>
+        <li className="flex items-baseline justify-between gap-3 py-2">
+          <span className="text-sm text-navy-700">Refunded</span>
+          <span className="font-mono text-sm text-navy-900">{formatChf(money.refundedRappen)}</span>
+        </li>
+        <li className="flex items-baseline justify-between gap-3 py-2">
+          <span className="text-sm text-navy-700">Given by hand</span>
+          <span className="font-mono text-sm text-navy-900">
+            {money.grantedCredits} credits
+          </span>
+        </li>
+      </ul>
+      {paid.length === 0 ? (
+        <p className="mt-2 text-sm text-navy-500">Nothing was bought in this period.</p>
+      ) : null}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * Journals
+ * ------------------------------------------------------------------ */
+
+/**
+ * One journal, behind its row — B996 (decision 6A).
+ *
+ * **The fifty ledger rows are gone.** They were the longest thing on the page
+ * and answered a question — which exact transaction, on which day — that an
+ * operator asks about once a quarter and that `credit_ledger` answers better
+ * from a shell. What replaces them is the same money, rolled up: what it was
+ * spent on, what was bought, what is left.
+ *
+ * Everything here was fetched once for the whole instance and handed in, so
+ * thirty-five of these cost three queries rather than a hundred and five.
+ */
+function JournalPanel({
+  username,
+  status,
+  ceiling,
+  reasons,
+  payments,
+}: {
+  username: string;
+  status: StatusRow | undefined;
+  ceiling: number | null;
+  reasons: { reason: string; credits: number }[];
+  payments: Payment[];
+}) {
+  const spent = reasons.reduce((sum, row) => sum + row.credits, 0);
+  const settled = payments.filter((one) => one.status === "paid");
+  const bought = settled.reduce((sum, one) => sum + one.amountRappen, 0);
+
+  return (
+    <div className="border-t border-navy-200">
+      {status ? (
+        <p className="px-4 pt-3 text-sm text-navy-700">
+          {status.trips} {status.trips === 1 ? "trip" : "trips"} · {status.days}{" "}
+          {status.days === 1 ? "day" : "days"}
+          {status.drafts > 0 ? ` · ${status.drafts} draft` : ""}
+          {status.drafts > 1 ? "s" : ""} · {status.contacts}{" "}
+          {status.contacts === 1 ? "reader" : "readers"}
+        </p>
+      ) : null}
+
+      {status && ceiling ? (
+        <div className="px-4 pt-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+              Disk
+            </span>
+            <span className="font-mono text-sm text-navy-900">
+              {formatBytes(status.bytes)} of {formatBytes(ceiling)}
+            </span>
+          </div>
+          <Meter
+            fraction={status.bytes / ceiling}
+            tone={status.bytes / ceiling > 0.9 ? "alert" : "navy"}
+          />
+        </div>
+      ) : null}
+
+      {reasons.length > 0 ? (
+        <div className="px-4 pt-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+            Credits went on
+          </p>
+          <ul className="mt-1 space-y-1.5">
+            {reasons.map((row) => (
+              <li key={row.reason}>
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-sm text-navy-900">{REASON_LABEL[row.reason] ?? row.reason}</span>
+                  <span className="font-mono text-sm text-navy-900">
+                    {formatCredits(row.credits)}
+                  </span>
+                </div>
+                <Meter fraction={row.credits / Math.max(spent, 1)} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <Purchases username={username} payments={payments} settled={settled.length} bought={bought} />
+      <AdminGrant journal={username} />
+    </div>
+  );
+}
+
+/** The ledger's own vocabulary, in the operator's words. Unknown reasons fall
+ *  through to their own name rather than disappearing. */
+const REASON_LABEL: Record<string, string> = {
+  day_mail: "Announcing a day by email",
+  day_whatsapp: "Announcing a day on WhatsApp",
+  digest: "A digest",
+  postcard: "Printed postcards",
+  photobook: "Photobooks",
+  photobook_print: "Printing a photobook",
+  storage: "Extra disk",
+  helper: "The helper",
+  transcription: "Transcribing speech",
+};
+
 /**
  * One journal's purchases, and the only place a refund can be recorded — B878.
  *
@@ -353,15 +643,35 @@ function Awaiting({ payments }: { payments: Payment[] }) {
  * and nothing to press. A refunded row keeps its place in the list rather than
  * disappearing: the question this section answers is "what has this person
  * paid me", and a purchase that was given back is part of that answer.
+ *
+ * B996 capped it at the most recent handful and put a total above them — the
+ * whole history of a journal that has bought fifteen times is a list nobody
+ * reads, and the total is the part that was being looked for.
  */
-async function Purchases({ username }: { username: string }) {
-  const payments = await listPayments(username, 20);
+function Purchases({
+  username,
+  payments,
+  settled,
+  bought,
+}: {
+  username: string;
+  payments: Payment[];
+  settled: number;
+  bought: number;
+}) {
   if (payments.length === 0) return null;
   return (
-    <div className="border-t border-navy-200 px-4 pt-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">Purchases</p>
+    <div className="px-4 pt-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+          Purchases
+        </span>
+        <span className="font-mono text-sm text-navy-900">
+          {settled} paid · {formatChf(bought)}
+        </span>
+      </div>
       <ul className="mt-1 divide-y divide-navy-200">
-        {payments.map((payment) => (
+        {payments.slice(0, 5).map((payment) => (
           <li key={payment.id} className="py-2">
             <div className="flex items-baseline justify-between gap-3">
               <span className="min-w-0 break-words text-sm text-navy-900">
@@ -373,7 +683,7 @@ async function Purchases({ username }: { username: string }) {
             </div>
             <p className="mt-0.5 [overflow-wrap:anywhere] font-mono text-xs text-navy-500">
               {payment.status}
-              {` · ${(payment.paidAt ?? payment.createdAt).slice(0, 10)} · ${payment.id}`}
+              {` · ${(payment.paidAt ?? payment.createdAt).slice(0, 10)}`}
             </p>
             {payment.status === "paid" ? (
               <AdminRefund
@@ -386,37 +696,286 @@ async function Purchases({ username }: { username: string }) {
           </li>
         ))}
       </ul>
+      {payments.length > 5 ? (
+        <p className="pb-1 text-xs text-navy-500">
+          {payments.length - 5} older, not shown.
+        </p>
+      ) : null}
     </div>
   );
 }
 
 /**
- * One journal's transactions, newest first — B763 took this out of a table
- * for the same reason as the cost lines, and one more: it sits inside a
- * `<details>` that is already indented, so it had the least width on the page
- * and the widest `min-w`.
+ * Disk, per journal — B996 (X2).
+ *
+ * The one cost that grows on its own and the one nobody notices until an
+ * upload is refused. The figures come from the cached instance snapshot rather
+ * than from a walk per request: `collectStatus()` reads every day file and
+ * every directory under `content/`, which is the most expensive call in this
+ * codebase and is not a thing to do on a page load. The page says when it was
+ * measured, because a number whose age is hidden is a number you cannot trust.
  */
-async function Ledger({ username }: { username: string }) {
-  const rows = await ledgerFor(username, 50);
-  if (rows.length === 0) {
-    return <p className="px-4 pb-4 text-sm text-navy-500">No transactions.</p>;
-  }
+function Storage({
+  journals,
+  ceiling,
+  measuredAt,
+}: {
+  journals: StatusRow[];
+  ceiling: number | null;
+  measuredAt: number;
+}) {
+  const total = journals.reduce((sum, row) => sum + row.bytes, 0);
+  const biggest = [...journals].sort((a, b) => b.bytes - a.bytes).slice(0, 8);
+
   return (
-    <ul className="divide-y divide-navy-200 border-t border-navy-200 px-4 pb-4">
-      {rows.map((row) => (
-        <li key={row.id} className="py-2">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="min-w-0 break-words text-sm text-navy-900">{row.reason}</span>
-            <span className="shrink-0 font-mono text-sm text-navy-900">
-              {row.delta > 0 ? `+${row.delta}` : row.delta}
-            </span>
-          </div>
-          <p className="mt-0.5 [overflow-wrap:anywhere] font-mono text-xs text-navy-500">
-            {row.createdAt.slice(0, 16).replace("T", " ")}
-            {row.ref || row.note ? ` · ${row.ref ?? row.note}` : ""}
+    <section className="mt-8">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-display text-lg font-semibold text-navy-900">Disk</h2>
+        <span className="font-mono text-sm text-navy-900">
+          {formatBytes(total)} across {journals.length}
+        </span>
+      </div>
+      <p className="mt-1 text-xs text-navy-500">
+        Measured {new Date(measuredAt).toISOString().slice(11, 16)} UTC. Walking the whole of
+        content/ is the slowest thing this page can do, so it is held for five minutes.
+      </p>
+      <ul className="mt-3 space-y-2">
+        {biggest.map((row) => (
+          <li key={row.username}>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="min-w-0 break-words text-sm text-navy-700">{row.username}</span>
+              <span className="shrink-0 font-mono text-sm text-navy-900">
+                {formatBytes(row.bytes)}
+                {ceiling ? ` of ${formatBytes(ceiling)}` : ""}
+              </span>
+            </div>
+            {ceiling ? (
+              <Meter
+                fraction={row.bytes / ceiling}
+                tone={row.bytes / ceiling > 0.9 ? "alert" : "navy"}
+              />
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * Instance
+ * ------------------------------------------------------------------ */
+
+/**
+ * What is wrong, and nothing else — B996 (decision 7B).
+ *
+ * A strip of six green lines is read once and then skimmed past for ever,
+ * including on the day one of them turns red. This card is a single green line
+ * when the instance is well and grows entries when it is not, so there is
+ * nothing to skim on an ordinary day and nothing to miss on a bad one.
+ *
+ * Capabilities the operator switched off are named on the quiet line rather
+ * than listed as faults: *off because nobody asked for it* and *off although
+ * somebody did* are opposite facts, and `lib/adminConsole.ts` is where the
+ * difference is drawn.
+ */
+function HealthCard({ health, troubles }: { health: Health; troubles: Trouble[] }) {
+  const clear = health.wrong.length === 0 && troubles.length === 0;
+  return (
+    <section className="mt-6">
+      <h2 className="font-display text-lg font-semibold text-navy-900">This instance</h2>
+      {clear ? (
+        <div className="mt-2 rounded-2xl border border-green-700 bg-green-100 p-4">
+          <p className="font-display font-semibold text-green-700">Nothing is wrong.</p>
+          <p className="mt-1 text-sm text-navy-700">
+            Commit {health.commit ?? "unknown"} · up{" "}
+            {Math.round(health.uptimeSeconds / 3600)}h
+            {health.backupAgeHours !== null
+              ? ` · backed up ${Math.round(health.backupAgeHours)}h ago`
+              : ""}
+            {offSummary(health.offByChoice)}.
           </p>
+        </div>
+      ) : (
+        <ul className="mt-2 space-y-2">
+          {health.wrong.map((one) => (
+            <li
+              key={one.title}
+              className="rounded-2xl border border-coral-600 bg-white p-3 [overflow-wrap:anywhere]"
+            >
+              <p className="font-semibold text-coral-600">{one.title}</p>
+              <p className="mt-0.5 text-sm text-navy-700">{one.detail}</p>
+            </li>
+          ))}
+          {troubles.map((one) => (
+            <li key={`${one.what}-${one.owner}-${one.when}`} className="rounded-2xl border border-navy-200 bg-white p-3">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="font-semibold text-navy-900">{one.what}</span>
+                <span className="shrink-0 font-mono text-xs text-navy-500">{one.when}</span>
+              </div>
+              <p className="mt-0.5 text-sm text-navy-700">
+                {one.owner ? `${one.owner} · ` : ""}
+                {one.detail}
+              </p>
+            </li>
+          ))}
+          <li className="text-xs text-navy-500">
+            Commit {health.commit ?? "unknown"} · up {Math.round(health.uptimeSeconds / 3600)}h
+            {offSummary(health.offByChoice)}
+          </li>
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/**
+ * The capabilities the operator switched off, without four lines of them.
+ *
+ * A development instance has almost everything off and the full list wrapped
+ * across the whole card, which buried the fault above it. Naming a few and
+ * counting the rest keeps the sentence one line at 390px: knowing *that*
+ * eleven are off is the operator's own decision recalled, not news.
+ */
+function offSummary(off: string[]): string {
+  if (off.length === 0) return "";
+  const named = off.slice(0, 3).join(", ");
+  const rest = off.length - 3;
+  return ` · ${named}${rest > 0 ? ` and ${rest} more` : ""} off by choice`;
+}
+
+/**
+ * What the instance did for people — B996 (X3).
+ *
+ * The only panel here that is not about money, and the reason the rest of it
+ * matters: a bill with nothing on the other side of it is just a bill. Days
+ * are dated by the day they describe rather than the moment they were typed,
+ * which is the date the filename carries and the one a journal is about.
+ */
+function Activity({
+  days,
+  sends,
+  print,
+}: {
+  days: Week[];
+  sends: Week[];
+  print: { calls: number }[];
+}) {
+  const printed = print.reduce((sum, line) => sum + line.calls, 0);
+  return (
+    <section className="mt-8">
+      <h2 className="font-display text-lg font-semibold text-navy-900">What it did</h2>
+      <p className="mt-1 text-sm text-navy-700">
+        The last {WEEKS} weeks. Days are counted by the day they describe, which is the date the
+        file is named for.
+      </p>
+      <CountBars
+        title="Days written"
+        weeks={days}
+        unit="days"
+        empty="No day in this quarter is dated in it."
+      />
+      <CountBars
+        title="Announcements sent"
+        weeks={sends}
+        unit="sent"
+        empty="Nothing has been announced to a reader."
+      />
+      <p className="mt-3 text-sm text-navy-700">
+        {printed === 0
+          ? "Nothing has been printed in the costing window."
+          : `${printed} ${printed === 1 ? "thing" : "things"} printed in the last ${WINDOW_DAYS} days.`}
+      </p>
+    </section>
+  );
+}
+
+/**
+ * Who arrived, and who never started — B996 (X4).
+ *
+ * A journal that has never written a day is not a failure and not a fault; it
+ * is a fact worth knowing before reading any per-journal average, and on an
+ * instance whose names include half a dozen tests it is most of the roster.
+ */
+function Growth({
+  signups,
+  report,
+  stones,
+}: {
+  signups: Week[];
+  report: { journals: StatusRow[] };
+  stones: number;
+}) {
+  const empty = report.journals.filter((row) => row.days === 0).length;
+  return (
+    <section className="mt-8">
+      <h2 className="font-display text-lg font-semibold text-navy-900">Who is here</h2>
+      <CountBars
+        title="Journals started"
+        weeks={signups}
+        unit="journals"
+        empty="Nobody has signed up in this quarter."
+      />
+      <ul className="mt-3 divide-y divide-navy-200 border-t border-navy-200">
+        <li className="flex items-baseline justify-between gap-3 py-2">
+          <span className="text-sm text-navy-700">Journals</span>
+          <span className="font-mono text-sm text-navy-900">{report.journals.length}</span>
         </li>
-      ))}
-    </ul>
+        <li className="flex items-baseline justify-between gap-3 py-2">
+          <span className="text-sm text-navy-700">Never wrote a day</span>
+          <span className="font-mono text-sm text-navy-900">{empty}</span>
+        </li>
+        <li className="flex items-baseline justify-between gap-3 py-2">
+          <span className="text-sm text-navy-700">Deleted, name still held</span>
+          <span className="font-mono text-sm text-navy-900">{stones}</span>
+        </li>
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * What the conversations did — B976, and the reason any of this is kept.
+ *
+ * **No words here, ever.** `proposed` against `pressed` is the number this was
+ * built for: a proposal made and never pressed is the clearest failure signal
+ * this product has, and until B976 nothing counted it. The guards beside it
+ * were three process-global integers that reset on every restart, so "is that
+ * fix working" was a question only a person driving the live site could
+ * answer.
+ */
+function Helper({ stats }: { stats: SessionStats[] }) {
+  if (stats.length === 0) return null;
+  return (
+    <section className="mt-8">
+      <h2 className="font-display text-lg font-semibold text-navy-900">Conversations</h2>
+      <p className="mt-1 text-sm text-navy-700">
+        What the helper was asked and what came of it. No words — those are the owner&rsquo;s, and
+        reading them is a separate permission.
+      </p>
+      <ul className="mt-2 divide-y divide-navy-200 border-t border-navy-200">
+        {stats.map((stat) => (
+          <li key={stat.owner} className="py-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="font-display font-semibold text-navy-900">{stat.owner}</span>
+              <span className="font-mono text-sm tabular-nums text-navy-700">
+                {stat.pressed}/{stat.proposed} pressed
+              </span>
+            </div>
+            <p className="mt-0.5 text-sm text-navy-600">
+              {stat.turns} turns over {stat.sessions} conversation
+              {stat.sessions === 1 ? "" : "s"}
+              {stat.refused > 0 ? ` · ${stat.refused} refused` : ""}
+              {stat.readable ? "" : " · words not shared"}
+            </p>
+            {stat.guards.length > 0 && (
+              <p className="mt-0.5 font-mono text-xs text-coral-700">
+                {stat.guards.map((one) => `${one.guard} ${one.count}`).join(" · ")}
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { formatChf } from "@/lib/credits/pricing";
 import { formatCredits } from "@/lib/credits/format";
+import { Meter, Sparkline } from "./Charts";
 
 /** One row, with its opened panel already rendered on the server. */
 export type JournalView = {
@@ -12,6 +13,9 @@ export type JournalView = {
   balance: number | null;
   spent: number;
   granted: number;
+  /** This journal's metered spend, one entry per day of the window — B996.
+   *  Absent for a journal that spent nothing, which draws no line at all. */
+  series?: number[];
   panel: ReactNode;
 };
 
@@ -60,6 +64,23 @@ function credits(journal: JournalView): string {
   // Two decimals since B987: a balance is hundredths of a credit, and "8.79"
   // is the number the journal's owner sees on their own page.
   return `${held} · ${formatCredits(journal.spent)} spent of ${formatCredits(journal.granted)} granted`;
+}
+
+/**
+ * How full the balance is, and whether that is worth a colour — B996.
+ *
+ * `granted` is everything this journal has ever been given, so the fraction is
+ * what is left of all of it rather than of the last purchase. A journal that
+ * was never granted anything gets **no meter at all**: an empty bar there
+ * would read as "spent it all" when the truth is "was never given any", and
+ * those are opposite facts about the same person.
+ */
+function meterOf(journal: JournalView): { fraction: number; tone: "navy" | "alert" } | null {
+  if (journal.balance === null || journal.granted <= 0) return null;
+  return {
+    fraction: journal.balance / journal.granted,
+    tone: journal.balance === 0 ? "alert" : "navy",
+  };
 }
 
 /**
@@ -132,7 +153,9 @@ export default function Journals({ rows }: { rows: JournalView[] }) {
         {shown.length === 0 ? (
           <p className="text-sm text-navy-500">No journal here is called that.</p>
         ) : null}
-        {visible.map((journal) => (
+        {visible.map((journal) => {
+          const meter = meterOf(journal);
+          return (
           <button
             key={journal.username}
             type="button"
@@ -150,11 +173,21 @@ export default function Journals({ rows }: { rows: JournalView[] }) {
                 {formatChf(journal.rappen)}
               </span>
             </span>
-            <span className="mt-0.5 block font-mono text-xs text-navy-500">
-              {credits(journal)}
+            {/* The shape of the journal, beside the words for it — B996.
+                The line says whether anything is happening at all, which no
+                total can: two journals at the same thirty-day figure look
+                identical until one of them turns out to have spent it in a
+                single afternoon a month ago. */}
+            <span className="mt-1 flex items-center justify-between gap-3">
+              <span className="min-w-0 font-mono text-xs text-navy-500">{credits(journal)}</span>
+              {journal.series ? (
+                <Sparkline points={journal.series} label={`${journal.username}, day by day`} />
+              ) : null}
             </span>
+            {meter ? <Meter fraction={meter.fraction} tone={meter.tone} /> : null}
           </button>
-        ))}
+          );
+        })}
       </div>
 
       {shown.length > FIRST ? (
