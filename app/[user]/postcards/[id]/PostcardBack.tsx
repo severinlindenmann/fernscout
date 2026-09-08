@@ -57,6 +57,8 @@ export type BackStrings = {
   sameCard: string;
   fixed: string;
   caption: string;
+  /** Who prints the address and the postage mark — B982. */
+  printerAdds: string;
 };
 
 export default function PostcardBack({
@@ -81,13 +83,14 @@ export default function PostcardBack({
   /** The party as SVG, or null when this trip describes nobody — in which case
    * there is no switch to show either. */
   figuresSvg: string | null;
-  /** The first recipient's address, already resolved to lines. */
-  address: {
-    name: string;
-    line1: string;
-    postcode: string;
-    city: string;
-  } | null;
+  /** The first recipient's address, as the *printer* will set it — B982.
+   *
+   * Lines rather than fields, and composed by `printerAddressLines`: this
+   * block is no longer something this product draws on the card. Stannp is
+   * handed the recipient as data and prints the address and the postage mark
+   * itself, so what belongs on screen is what it will print, marked as not
+   * ours. */
+  address: string[] | null;
   /** False once the order has left `draft`, or once it has expired: the card
    * is then a record of what was sent rather than something to change. */
   editable: boolean;
@@ -239,33 +242,47 @@ export default function PostcardBack({
             className="absolute w-px bg-black/20"
             style={{ left: layout.dividerLeft, top: "8%", height: "84%" }}
           />
+          {/* The postage mark and the address are the printer's — B982, and
+              the reason the card sent to Stannp now carries neither. Their
+              press lays its own indicia in this corner and its own address
+              block below it; ours used to be printed underneath both, one
+              name across the other. They are still drawn here, because what
+              somebody is checking on this page is who the card is going to —
+              but drawn as what they are, in a dashed outline rather than as
+              part of the card. */}
           <span
-            className="absolute rounded-sm border border-black/20"
+            className="absolute rounded-sm border border-dashed border-black/25"
             style={layout.stamp}
           />
           <div
-            className="absolute"
+            className="absolute whitespace-nowrap text-black/70"
             style={{
               ...layout.address,
               fontSize: layout.font.address,
               lineHeight: layout.font.addressLeading,
             }}
           >
-            {address ? (
-              <>
-                <span className="font-semibold">{address.name}</span>
+            {address?.map((line, i) => (
+              <span key={i} className={i === 0 ? "font-semibold" : undefined}>
+                {line}
                 <br />
-                {address.line1}
-                <br />
-                {address.postcode} {address.city}
-              </>
-            ) : null}
+              </span>
+            ))}
           </div>
         </div>
         <figcaption className="mt-1 text-xs text-navy-600">
           {strings.caption}
         </figcaption>
       </figure>
+      {/* Its own paragraph rather than a second sentence in the caption: the
+          caption names the drawing ("the back, at print size") and this is
+          about two things on it that are not ours to draw. Run together they
+          read as one run-on line — B982. */}
+      {address ? (
+        <p className="mt-1 text-xs text-navy-500 sm:col-span-2">
+          {strings.printerAdds}
+        </p>
+      ) : null}
 
       {editable ? (
         <form

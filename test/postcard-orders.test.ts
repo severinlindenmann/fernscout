@@ -460,6 +460,28 @@ describe("coming back from a form", () => {
     expect(location).toBe("/ana%2F..%2Fbob/postcards/a%20b?result=x#send");
   });
 
+  /**
+   * B982 — the same route, asked a different way.
+   *
+   * The send is a `fetch` from the page now, and a 303 to a document is not an
+   * answer a `fetch` can read. What must not drift is that the JSON branch is
+   * a second *phrasing* and never a second set of decisions: same guards, same
+   * words. The bearer refusal above it is what proves the agent door is still
+   * shut whichever `accept` header it carries.
+   */
+  test("an agent token is still refused whatever it asks for", async () => {
+    const { POST } = await import("@/app/[user]/postcards/[id]/send/route");
+    const response = await POST(
+      new Request("http://x/ana/postcards/abc/send", {
+        method: "POST",
+        headers: { accept: "application/json", authorization: "Bearer t" },
+      }),
+      { params: Promise.resolve({ user: OWNER, id: "abc" }) },
+    );
+    expect(response.status).toBe(403);
+    expect((await response.json()).error).toBe("not_for_agents");
+  });
+
   test("neither form route builds an absolute redirect", () => {
     // The shape of the bug, not its symptom: `Response.redirect` demands an
     // absolute URL, which is what led to building one from `request.url`.
