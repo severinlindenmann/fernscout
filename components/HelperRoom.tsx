@@ -326,6 +326,25 @@ export default function HelperRoom({
               setSelected((was) => was.filter((id) => !gone.has(id)));
             }}
           />
+
+          {/*
+            The one thing kept from the old door, at the weight it deserves —
+            B984. It used to be a second yellow button, as bright as writing a
+            day, for the rarest thing on the page: handing the journal to an
+            agent of your own.
+
+            A grey line at the foot, in every state. It leads to the owner's
+            own page, where the keys and the handover credential already live —
+            this was always a second door onto a control that has a home.
+          */}
+          <p className="mt-3 shrink-0 text-center">
+            <a
+              href={`/${encodeURIComponent(username)}/me`}
+              className="text-xs text-navy-500 underline underline-offset-4 transition-colors hover:text-navy-700"
+            >
+              {t("agent.open.bringAgent")}
+            </a>
+          </p>
         </main>
 
         {/* Right. */}
