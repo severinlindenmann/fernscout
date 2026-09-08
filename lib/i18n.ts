@@ -125,6 +125,7 @@ export type TranslationKey =
   | "agent.askOpen"
   | "agent.askPlaceholder"
   | "agent.askRefusePostcard"
+  | "agent.askRefusePublishAll"
   | "agent.askRefuseRemove"
   | "agent.askUnknown"
   | "agent.askWorking"

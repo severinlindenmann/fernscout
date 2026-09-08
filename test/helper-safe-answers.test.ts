@@ -261,12 +261,71 @@ describe("a named refusal instead of silence — B783", () => {
     expect(String(answered.body.answer)).toContain("postcards page");
   });
 
-  test("both refusals answer in German and Hungarian too", () => {
+  /* ------------------------------------------------------------ B914 --- */
+
+  /**
+   * The floor the owner put under B900.
+   *
+   * B900 let takedown and publish sentences reach a tool instead of being
+   * refused, and the review kept that — with one exception: publishing may
+   * only ever be proposed from a sentence that names a day. "Publish
+   * everything now" is the single shape where a vague sentence touches the
+   * path that puts things on the site, which is the dangerous direction.
+   *
+   * `proposeWith` already refuses a proposal whose `slug` came back empty
+   * (B925), so a publish sentence the model *fails* to resolve was covered.
+   * What was not is the model being helpful: asked to publish everything,
+   * picking the first draft, and resolving it perfectly. Only a check on the
+   * sentence closes that, and these are the sentences.
+   */
+  test("publishing everything is refused before a model reads it", async () => {
+    for (const said of [
+      "publish everything now",
+      "veröffentliche alles",
+      "tedd közzé mindet",
+      "stell alles online",
+      "put the whole trip online",
+    ]) {
+      expect(refusalFor(said)?.name, said).toBe("publish_all");
+    }
+    // And it is a refusal, not a route: the model is never asked.
+    answerInThread.mockClear();
+    const answered = await read(await ask("publish everything now"));
+    expect(answered.body.intent).toBe("refuse_publish_all");
+    expect(answered.body.proposals ?? []).toHaveLength(0);
+    expect(answerInThread).not.toHaveBeenCalled();
+  });
+
+  test("a sentence that names a day still publishes, and taking everything down is untouched", () => {
+    // The floor is narrow on purpose — this is the whole point of it.
+    for (const said of [
+      "publish that day for me",
+      "publish the day about the pass",
+      "veröffentliche den tag",
+      "tedd közzé a keddi napot",
+    ]) {
+      expect(refusalFor(said), said).toBeNull();
+    }
+    // Down is the reversible direction and has no row.
+    expect(refusalFor("unpublish everything")).toBeNull();
+    expect(refusalFor("nimm alles runter")).toBeNull();
+    // And a question about the same words is a question, not a refusal —
+    // going quiet here is what B783 was about.
+    expect(refusalFor("are all my days online?")).toBeNull();
+    expect(refusalFor("how many days are unpublished")).toBeNull();
+  });
+
+  test("destruction still wins over it: \"delete everything\" is the remove refusal", () => {
+    expect(refusalFor("delete everything")?.name).toBe("remove");
+    expect(refusalFor("lösche alles")?.name).toBe("remove");
+  });
+
+  test("all three refusals answer in German and Hungarian too", () => {
     for (const locale of ["de", "hu"]) {
       const dictionary = JSON.parse(
         fs.readFileSync(path.join(process.cwd(), "site", "locales", `${locale}.json`), "utf8"),
       ) as Record<string, string>;
-      for (const name of ["Remove", "Postcard"]) {
+      for (const name of ["Remove", "Postcard", "PublishAll"]) {
         expect(dictionary[`agent.askRefuse${name}`]?.length ?? 0).toBeGreaterThan(20);
       }
     }

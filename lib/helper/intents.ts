@@ -77,6 +77,31 @@ export type Refusal = {
  * delete. **There is no delete tool and no postcard send tool**, so a sentence
  * matched below has nowhere to land at all; that is why these are answers
  * rather than errors.
+ *
+ * ## The floor B914 put back, and the one case it covers
+ *
+ * B900's loosening was reviewed by the owner and kept — **with a floor**:
+ * publishing may only ever be proposed from a sentence that names a day,
+ * never from *"publish everything now"*. That is the one shape where a vague
+ * sentence touches the path that puts things on the site, which is the
+ * dangerous direction; unpublishing has no equivalent row, because taking
+ * everything down is reversible and errs the safe way.
+ *
+ * **Half of it was already built and is not here.** `proposeWith` in
+ * `./tools.ts` refuses to offer any proposal whose `slug` came back empty
+ * (B925) — so a publish sentence the model could not resolve to a day already
+ * ends in "which day did you mean" and no button. What that cannot catch is
+ * the model being *helpful*: asked to publish everything, picking the first
+ * unpublished day and resolving it perfectly. B925 waves that through, because
+ * nothing about the proposal is empty. Only a check on the sentence itself,
+ * before a model reads it, closes that — which is why the row is here and not
+ * there.
+ *
+ * It is deliberately narrow. "Publish all the photographs on the day about the
+ * pass" is caught too, and answered by asking which day — a person says it
+ * again naming the day and it works. That is a second sentence, not a refusal
+ * of something they are entitled to do, and the alternative is a regex trying
+ * to decide whether a day was named, which is not a thing a regex knows.
  */
 const REFUSALS: readonly Refusal[] = [
   {
@@ -93,6 +118,31 @@ const REFUSALS: readonly Refusal[] = [
     match:
       /\b(delete|deleting|deleted|erase|erasing|wipe|destroy|get rid of)\b|\bremove\b[^.!?]{0,40}\b(photo|photograph|picture|image|file)\b|lösch|vernicht|entfern|törl|töröl|megsemmisít/i,
     key: "agent.askRefuseRemove",
+  },
+  {
+    /**
+     * Publishing in bulk — B914, and the owner's own floor under B900.
+     *
+     * Two lookaheads rather than one alternation: the sentence has to carry
+     * *both* a publishing word and a word that means all of them, in either
+     * order, so "publish the day about the pass" is untouched and "publish
+     * everything now" never reaches a model.
+     *
+     * `\bpublish` and not `publish`, so **"unpublish everything" is not
+     * matched** — in "unpublish" there is no word boundary before the p.
+     * Taking everything down is the reversible direction and has no row.
+     *
+     * `put … online` and `stell … online` are in the publishing half because
+     * German and English both split that verb, and *"stell alles online"* is
+     * the same sentence as *"veröffentliche alles"*. Bare `online` is
+     * deliberately not a publishing word: *"are all my days online?"* is a
+     * question, and refusing to answer it would be this box going quiet at
+     * exactly the moment B783 was about.
+     */
+    name: "publish_all",
+    match:
+      /^(?=[\s\S]*(\bpublish|veröffentlich|publizier|közzé|publikál|\b(put|stell)[\s\S]*\bonline\b))(?=[\s\S]*(\b(all|everything|the lot|the whole (lot|journal|trip))\b|\balles?\b|sämtlich|\bmindet\b|\bmindent\b|\bmindegyik\b|összes))/i,
+    key: "agent.askRefusePublishAll",
   },
   {
     name: "postcard",
