@@ -344,7 +344,10 @@ export function auditPdfxBytes(pdf: Uint8Array): PdfxAudit {
     if (claimed === "PDF/X-4" && header !== "1.6") {
       failures.push(`claims PDF/X-4 under a %PDF-${header} header; X-4 is built on PDF 1.6`);
     }
-    if (!text.includes("<pdfxid:GTS_PDFXVersion>")) {
+    // Deliberately `raw`: the XMP packet lives *in* a stream, so the stripped
+    // text does not have it. It is a text packet with an unmistakable tag, so
+    // there is no photograph that accidentally contains this one.
+    if (!raw.includes("<pdfxid:GTS_PDFXVersion>")) {
       failures.push("claims a PDF/X version in the Info dictionary but not in the XMP packet");
     }
     if (!text.includes("/OutputIntents")) failures.push("claims PDF/X with no /OutputIntents");
