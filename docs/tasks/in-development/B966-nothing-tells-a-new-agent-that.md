@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: docs, helper
 found: "2026-09-08T13:17:15Z"
+started: "2026-09-08T13:17:15Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T13:17:15Z"
 ---
 
 # B966 — Nothing tells a new agent that the honesty net exists or why it is shaped that way
