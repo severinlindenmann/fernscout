@@ -1137,6 +1137,42 @@ const A_FIGURE = /\d[\d.,\u00a0']*\s*(?:[\u20ac\u00a3$]|\b(?:chf|eur|usd|gbp|huf
  */
 const TOGETHER = 15;
 
+/** Every tool's own name, by kind — computed once from the registry rather
+ *  than typed out a second time. */
+const READ_TOOL_NAMES = new Set(TOOLS.filter((tool) => tool.kind === "read").map((tool) => tool.name));
+const WRITE_TOOL_NAMES = new Set(TOOLS.filter((tool) => tool.kind === "write").map((tool) => tool.name));
+
+/**
+ * A second ask, inside the same message, that this turn never came back to —
+ * B952.
+ *
+ * *"could you change the title of the 22nd to Homeward Bound … and also
+ * remind me what currency this journal counts money in…"* proposed the title
+ * and never mentioned the currency again — not answered, not refused, not
+ * flagged as skipped. Nothing untrue was said, which is why it slips past
+ * every check above: those catch a claim that is false, and an omission
+ * makes none.
+ *
+ * What is checkable is not whether the person's sentence "really" asked two
+ * things — that is exactly the phrasing guess AGENTS.md warns against — but
+ * whether the turn's own actions are shaped like an answer to only one of
+ * them. A question mark in what they typed is a person asking for a fact; a
+ * write tool with no read tool alongside it is a turn that produced a change
+ * and consulted nothing to answer a question with. Together they are the
+ * signature of the fault above, checked against the turn rather than against
+ * the words the model chose.
+ *
+ * A turn with no question mark, or one that reads nothing at all
+ * (`looked.length === 0`, an answer straight from the conversation), is left
+ * alone: the first has nothing to have dropped, and the second was never
+ * going to consult a tool for either half.
+ */
+export function droppedAQuestion(said: string, looked: string[]): boolean {
+  if (!/\?/.test(said)) return false;
+  if (!looked.some((name) => WRITE_TOOL_NAMES.has(name))) return false;
+  return !looked.some((name) => READ_TOOL_NAMES.has(name));
+}
+
 export function claimsATotal(text: string): boolean {
   return withoutMarkers(text)
     .split(/(?<=[.!?\n])\s+/)
@@ -1213,6 +1249,14 @@ Answer again with both: the total as far as it goes, and then the money that is 
 const INVENTED_RETRY = `Stop. There is a number about money in your last answer that the costs did not contain. You worked it out yourself, and you may not: you do not know today's rate, and the reason that money is outside the total is that this trip has no rate for it.
 
 Answer again using only the figures you were given. If they ask what the rest comes to, say plainly that you cannot convert it and that the amount is what it is — "15 BAM and 1500 MKD" is the whole answer, and it is a better one than a guess dressed up as help.`;
+
+/**
+ * What the model is told when it acted on one half of a message and never
+ * came back to the other — B952.
+ */
+const DROPPED_RETRY = `Stop. Look at their message again — it asked you something as well as asking for a change, and you read nothing before answering, so the question could not have been answered from anything but memory or guesswork.
+
+Answer again with both halves: keep what you already did for the change, and now use a tool to answer the question truthfully, or say plainly that you have not gotten to it yet. Never let a second question go unmentioned — a person who asked two things and hears about only one has no way to know whether the other was refused, forgotten, or still coming.`;
 
 const ACCESS_RETRY = `Stop. Your last answer said a person can read something, and nothing on this turn makes that true. Naming somebody does not let them in: a trip that is not public is open to the people who were on it and to the guests the owner has already approved, and nobody else. Saying otherwise is the worst thing you can get wrong here — this journal exists so that somebody's family can read it, and they will believe you.
 
@@ -1451,7 +1495,18 @@ export async function answerInThread(
     return found;
   }
 
-  function amiss(): "" | "claim" | "pending" | "words" | "access" | "day" | "up" | "total" | "partial" | "invented" {
+  function amiss():
+    | ""
+    | "claim"
+    | "pending"
+    | "words"
+    | "access"
+    | "day"
+    | "up"
+    | "total"
+    | "partial"
+    | "invented"
+    | "dropped" {
     if (claimsAccess(answer) && !proposals.some((one) => one.tool === "invite_guest")) {
       return "access";
     }
@@ -1491,6 +1546,13 @@ export async function answerInThread(
       );
       if (invented.length > 0) return "invented";
     }
+    /**
+     * A question that rode along with a change and never got an answer —
+     * B952. Checked against what this turn did, not against the answer's own
+     * words: a write tool fired, a question mark was in what they typed, and
+     * no read tool ever ran to answer it with.
+     */
+    if (droppedAQuestion(said, looked)) return "dropped";
     /**
      * Words claimed to be in a proposal that has nowhere to put them — B961.
      *
@@ -1566,6 +1628,7 @@ export async function answerInThread(
     total: COUNT_IT_RETRY,
     partial: PARTIAL_RETRY,
     invented: INVENTED_RETRY,
+    dropped: DROPPED_RETRY,
   };
   /**
    * What is said when the model could not be made to say something true.
@@ -1587,6 +1650,7 @@ export async function answerInThread(
     total: "agent.notCounted",
     partial: "agent.notCounted",
     invented: "agent.notCounted",
+    dropped: "agent.stillHasAQuestion",
   } as const;
 
   const wrong = amiss();

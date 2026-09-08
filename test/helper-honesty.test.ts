@@ -18,6 +18,7 @@ import {
   claimsItIsUp,
   claimsProposedWords,
   claimsAWrite,
+  droppedAQuestion,
   honestyCounts,
 } from "@/lib/helper/model";
 
@@ -1144,5 +1145,81 @@ describe("saying whether a day is on the site", () => {
 
     expect(create).toHaveBeenCalledTimes(2);
     expect(String(answered.body.answer)).toBe("Der Tag ist noch ein Entwurf.");
+  });
+});
+
+/* ---------------------------------- half a two-part request — B952 --- */
+
+/**
+ * *"…could you change the title of the 22nd to Homeward Bound … and also
+ * remind me what currency this journal counts money in…"* — the title change
+ * was proposed, and the currency question was never answered and never
+ * mentioned again. Nothing untrue was said, which is why none of the checks
+ * above catch it: they all catch a false claim, and an omission makes none.
+ */
+describe("droppedAQuestion", () => {
+  test("a write with no read alongside a question is the shape of the fault", () => {
+    expect(droppedAQuestion("change the title and also what currency is this in?", ["set_day_words"])).toBe(true);
+  });
+
+  test("a plain statement carries nothing to have dropped", () => {
+    expect(droppedAQuestion("change the title to Homeward Bound", ["set_day_words"])).toBe(false);
+  });
+
+  test("a turn that read something to answer it is left alone", () => {
+    expect(
+      droppedAQuestion("change the title and also what currency is this in?", ["set_day_words", "account"]),
+    ).toBe(false);
+  });
+
+  test("a question with nothing written is a turn that never touched the write half either", () => {
+    expect(droppedAQuestion("what currency is this in?", [])).toBe(false);
+  });
+});
+
+describe("a compound message where the write is answered and the question is not", () => {
+  test("is caught, and a retry that reads something answers both", async () => {
+    create
+      .mockResolvedValueOnce(calls("set_day_words", { trip: "Die Reise", slug: "eins", title: "Heimreise" }))
+      .mockResolvedValueOnce(says("Ich habe den neuen Titel vorgeschlagen."))
+      .mockResolvedValueOnce(calls("account", {}))
+      .mockResolvedValueOnce(
+        says("Ich habe den neuen Titel vorgeschlagen. Dieses Journal rechnet in CHF."),
+      );
+    const answered = await read(
+      await ask("ändere den Titel des 22. zu Heimreise und in welcher Währung rechnet dieses Journal eigentlich?"),
+    );
+
+    expect(create).toHaveBeenCalledTimes(4);
+    expect(String(answered.body.answer)).toBe(
+      "Ich habe den neuen Titel vorgeschlagen. Dieses Journal rechnet in CHF.",
+    );
+    expect((answered.body.proposals as unknown[]).length).toBe(1);
+  });
+
+  test("and if the retry still says nothing about it, she is told plainly", async () => {
+    create
+      .mockResolvedValueOnce(calls("set_day_words", { trip: "Die Reise", slug: "eins", title: "Heimreise" }))
+      .mockResolvedValueOnce(says("Ich habe den neuen Titel vorgeschlagen."))
+      .mockResolvedValueOnce(says("Ich habe den neuen Titel vorgeschlagen."));
+    const answered = await read(
+      await ask("ändere den Titel des 22. zu Heimreise und in welcher Währung rechnet dieses Journal eigentlich?"),
+    );
+
+    expect(create).toHaveBeenCalledTimes(3);
+    expect(String(answered.body.answer)).toContain("only got to part");
+    // The write itself is not undone by the omission being caught: the
+    // proposal it made is still on her screen.
+    expect((answered.body.proposals as unknown[]).length).toBe(1);
+  });
+
+  test("a plain request with no second question is left alone", async () => {
+    create
+      .mockResolvedValueOnce(calls("set_day_words", { trip: "Die Reise", slug: "eins", title: "Heimreise" }))
+      .mockResolvedValueOnce(says("Ich habe den neuen Titel vorgeschlagen."));
+    const answered = await read(await ask("ändere den Titel des 22. zu Heimreise"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toBe("Ich habe den neuen Titel vorgeschlagen.");
   });
 });
