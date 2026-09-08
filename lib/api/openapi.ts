@@ -833,19 +833,32 @@ export function openApiDocument() {
           },
         },
         patch: {
-          summary: "Rename a trip, move its dates, or set its cover",
+          summary: "Rename a trip, move its dates, correct its intro, or set its cover",
           description:
-            "Five fields of a trip nothing could write until B622 (four) and B245 (`cover`): " +
-            "`title`, `tagline`, `start`, `end` and `cover`. Send only what is changing. A " +
+            "Eight fields of a trip nothing could write until B622 (four), B245 (`cover`) and " +
+            "B907 (`accent`, `costsVisibility`, `intro`): `title`, `tagline`, `start`, `end`, " +
+            "`cover`, `accent`, `costsVisibility` and `intro`. Send only what is changing. A " +
             "title cannot be cleared — a trip.md without one does not load — while an emptied " +
-            "`tagline` or a `cover` sent as `null`/`\"\"` removes the key rather than storing " +
-            "an empty one. Dates are `YYYY-MM-DD`, and `end` may not precede `start`: the " +
-            "check is against the *result*, so either date may arrive on its own. `cover` " +
+            "`tagline`, `cover`, or `accent` sent as `null`/`\"\"` removes the key rather than " +
+            "storing an empty one, and an emptied `costsVisibility` clears back to the " +
+            "default, `public`. Dates are `YYYY-MM-DD`, and `end` may not precede `start`: " +
+            "the check is against the *result*, so either date may arrive on its own. `cover` " +
             "must be a `src` this trip's own gallery already carries — read " +
             "`GET .../trips/{trip}/media` for the list — since a value naming a photo the trip " +
             "does not have would render as a broken image on the trips index and the OG " +
-            "card.\n\nOnly the frontmatter lines you name are rewritten. The prose under it, " +
-            "the key order, and every other key are left byte for byte, so this is safe on a " +
+            "card. `intro` is the trip's own prose, not a frontmatter line, and any text is " +
+            "accepted including empty.\n\n" +
+            "**`visibility`, `listed`, `teaser`, `status` and `test` are not here.** The " +
+            "first three have their own door, `PATCH .../trips/{trip}/visibility`, which " +
+            "enforces rules this call must not carry a second, driftable copy of — an " +
+            "unrecognised visibility reads as private, `listed: true` on a trip nothing " +
+            "advertises is refused, `teaser: true` on a public trip is refused. `status` is " +
+            "derived from the calendar at almost every reading path rather than a fact a " +
+            "correction changes, and `test` on a trip that has already published real days is " +
+            "a bigger decision than fixing a typo — both stay file-only for now.\n\n" +
+            "Only the frontmatter lines you name are rewritten (and, when `intro` is named, " +
+            "the prose below them). The rest — the prose when `intro` is not named, the key " +
+            "order, and every other key — is left byte for byte, so this is safe on a " +
             "trip.md somebody wrote by hand.\n\n**Owner only.** A trip-scoped token belongs " +
             "to somebody who was on the journey, and adding a day to it is not the same " +
             "authority as saying what it is called.",
@@ -877,6 +890,27 @@ export function openApiDocument() {
                         "`null` or empty string clears it. A value naming a photo the trip " +
                         "does not have is refused rather than written.",
                     },
+                    accent: {
+                      type: "string",
+                      enum: [...ACCENTS],
+                      description:
+                        "Which of five colours this trip's cards and OG image draw in. " +
+                        "`null` or empty string clears it back to no preference.",
+                    },
+                    costsVisibility: {
+                      type: "string",
+                      enum: [...COSTS_VISIBILITIES],
+                      description:
+                        "Who among the readers who may open the trip may also see what it " +
+                        "cost — decides nothing about who may open the trip itself. `null` or " +
+                        "empty string clears it back to the default, `public`.",
+                    },
+                    intro: {
+                      type: "string",
+                      description:
+                        "The trip's own prose, not a frontmatter line. Any text is accepted, " +
+                        "including empty.",
+                    },
                   },
                 },
               },
@@ -886,11 +920,12 @@ export function openApiDocument() {
             "200": { description: "The fields named, as they now stand on disk" },
             "400": {
               description:
-                "A body naming none of the five (`nothing_to_change`), a cleared or " +
+                "A body naming none of the eight (`nothing_to_change`), a cleared or " +
                 "multi-line title (`invalid_title`), a date that is not one — an `end` " +
-                "before the `start` is the same `invalid_date` — or a `cover` naming a photo " +
-                "not in this trip's gallery (`invalid_cover`) — and nothing is written in " +
-                "any of those cases",
+                "before the `start` is the same `invalid_date` — a `cover` naming a photo " +
+                "not in this trip's gallery (`invalid_cover`), an `accent` not in the enum " +
+                "(`invalid_accent`), or a `costsVisibility` not in the enum " +
+                "(`invalid_costs_visibility`) — and nothing is written in any of those cases",
             },
             "401": { description: "Missing or invalid token" },
             "403": {
