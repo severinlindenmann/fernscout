@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (132)
+## backlog (134)
 
 ### issue (43)
 
@@ -99,13 +99,14 @@ Do not edit them by hand; run the script.
 | [B874](backlog/issue/B874-captions-read-like-an-inventory-of.md) | Captions read like an inventory of shapes rather than a caption | ISSUE | low | low |
 | [B973](backlog/issue/B973-a-cost-with-no-currency-is.md) | A cost with no currency is filed in the base one without anybody being asked | ISSUE | low | low |
 
-### big-feature (15)
+### big-feature (16)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B537](backlog/big-feature/B537-a-journal-on-disk-cannot-be.md) | A journal on disk cannot be checked against the instance that will receive it | FEATURE | high | high |
 | [B891](backlog/big-feature/B891-the-helper-can-answer-but-it.md) | The helper can answer but it still cannot do anything | FEATURE | high | high |
+| [B980](backlog/big-feature/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | A journal folder can be exported and never pushed back, so writing locally is a one-way trip | FEATURE | medium | high |
@@ -119,7 +120,7 @@ Do not edit them by hand; run the script.
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 | [B909](backlog/big-feature/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-### small-feature (23)
+### small-feature (24)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -138,6 +139,7 @@ Do not edit them by hand; run the script.
 | [B852](backlog/small-feature/B852-a-journal-s-languages-units-and.md) | A journal's languages, units and currencies cannot be changed anywhere | FEATURE | medium | medium |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
+| [B979](backlog/small-feature/B979-asking-for-something-else-opens-a.md) | Asking for something else opens a box on the day rather than the room that can answer | FEATURE | medium | low |
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 | [B539](backlog/small-feature/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
 | [B666](backlog/small-feature/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
