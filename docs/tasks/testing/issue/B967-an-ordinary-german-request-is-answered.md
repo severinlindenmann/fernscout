@@ -7,8 +7,7 @@ complexity: low
 area: helper, honesty, i18n
 found: "2026-09-08T13:31:19Z"
 started: "2026-09-08T13:32:17Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T13:32:17Z"
+merged: "2026-09-08T13:38:47Z"
 ---
 
 # B967 — An ordinary German request is answered with the money refusal
