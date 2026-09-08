@@ -1,4 +1,6 @@
 import "server-only";
+import { newId } from "../db/owner";
+import { recordPress } from "./sessions";
 
 /**
  * The thread — B889, round 1 of `docs/plans/2026-09-07-helper-as-an-agent.md`.
@@ -77,7 +79,33 @@ const TTL_MS = 30 * 60 * 1000;
  *  Same shape as `lib/rateLimit.ts`, for the same reason. */
 const MAX_THREADS = 1000;
 
-const threads = new Map<string, { turns: Turn[]; touched: number }>();
+const threads = new Map<string, { id: string; turns: Turn[]; touched: number }>();
+
+/**
+ * A name for one conversation — B976.
+ *
+ * The thread is keyed by journal, which is all it ever needed while nothing
+ * outlived it. Storing what happened needs the turns of one sitting to be
+ * grouped, and a person returning to an older conversation needs it to have a
+ * name they can be sent back to.
+ *
+ * Minted when a conversation starts and dropped with it, so it lives exactly
+ * as long as the conversation does: the same id for half an hour of talking,
+ * a new one after `forget()` or after the TTL, which is the boundary a person
+ * would draw too.
+ */
+function openThread(): { id: string; turns: Turn[]; touched: number } {
+  return { id: newId(), turns: [], touched: Date.now() };
+}
+
+/** The conversation now in progress, starting one if there is none. */
+export function sessionId(username: string): string {
+  const thread = threads.get(username);
+  if (thread && Date.now() - thread.touched < TTL_MS) return thread.id;
+  const fresh = openThread();
+  threads.set(username, fresh);
+  return fresh.id;
+}
 
 function sweep(now: number) {
   if (threads.size <= MAX_THREADS) return;
@@ -113,7 +141,7 @@ export function remember(username: string, said: string, answered: string): void
     { role: "user" as const, text: said },
     { role: "assistant" as const, text: answered },
   ]);
-  threads.set(username, { turns, touched: now });
+  threads.set(username, { id: sessionId(username), turns, touched: now });
   sweep(now);
 }
 
@@ -157,7 +185,7 @@ function trimmed(turns: Turn[]): Turn[] {
 export function note(username: string, text: string): void {
   const now = Date.now();
   const turns = trimmed([...history(username), { role: "note" as const, text }]);
-  threads.set(username, { turns, touched: now });
+  threads.set(username, { id: sessionId(username), turns, touched: now });
   sweep(now);
 }
 
@@ -181,6 +209,33 @@ export function note(username: string, text: string): void {
  */
 export function wrote(username: string, tool: string, facts: Record<string, unknown>): void {
   note(username, `[written: ${tool} ${JSON.stringify(facts)}]`);
+  /**
+   * And kept — B976. Every successful write already passes through here, which
+   * makes it the one place a press can be counted without eight routes each
+   * remembering to.
+   *
+   * The pair with the turn's own `proposed` is what the data is for: a
+   * proposal made and never pressed is the clearest failure signal this
+   * product has. B935, B936 and B968 were each a proposal no press could
+   * accept, and every one of them was found by a person driving the live site.
+   */
+  void recordPress({ owner: username, session: sessionId(username), tool, ok: true });
+}
+
+/**
+ * A press the route would not take — B976, and the more informative half.
+ *
+ * Nothing is noted for the model: it already learns what happened from the
+ * route's own answer, and a refusal written into the conversation would be a
+ * fact about plumbing in the middle of somebody's holiday (B964).
+ *
+ * What this is for is the operator. `invalid_cost` on a category the model
+ * supplied is exactly B968, which reached a live instance and was found by a
+ * person pressing a card and reading the error — twice, on both of the costs
+ * they logged.
+ */
+export function refused(username: string, tool: string, error: string): void {
+  void recordPress({ owner: username, session: sessionId(username), tool, ok: false, error });
 }
 
 /**

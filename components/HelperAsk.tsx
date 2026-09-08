@@ -556,6 +556,23 @@ export default function HelperAsk({
           aria-relevant="additions"
           className={`mb-3 space-y-4 overflow-y-auto ${inRoom ? "min-h-0 flex-1" : "max-h-[60vh]"}`}
         >
+          {/*
+            What is kept, said once before anything is said to it — B976.
+            
+            Only in the room and only while the conversation is empty: it is
+            the first thing on an empty screen and then it is gone, which is
+            where a notice belongs. Repeating it above every turn would make
+            it furniture nobody reads, and saying it after somebody has
+            already talked would be late.
+
+            The wording is exact about the one thing a person would otherwise
+            assume wrong. Their conversations are saved so they can return to
+            them — that is the feature — and nobody else reads them unless
+            they say so, which is the part they control on their own page.
+          */}
+          {inRoom && turns.length === 0 && (
+            <p className="text-sm leading-6 text-navy-500">{t("agent.room.kept")}</p>
+          )}
           {turns.map((turn, index) => (
             <div key={index} className="space-y-2">
               {turn.said !== "" && (

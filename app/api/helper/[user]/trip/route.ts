@@ -1,4 +1,5 @@
 import { isEnabled } from "@/lib/capabilities";
+import { refused } from "@/lib/helper/thread";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -72,6 +73,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   const start = text(body.start);
   const end = text(body.end);
   if (!title || !DATE_RE.test(start) || !DATE_RE.test(end)) {
+    refused(user, "create_trip", "invalid_trip");
     return Response.json({ error: "invalid_trip" }, { status: 400 });
   }
 
@@ -98,6 +100,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     ...(visibility ? { visibility } : {}),
   });
   if (!created.ok) {
+    refused(user, "create_trip", created.error);
     return Response.json({ error: created.error, message: created.message }, { status: 400 });
   }
   // The id the *server* derived, not the title the model sent — B939. This is

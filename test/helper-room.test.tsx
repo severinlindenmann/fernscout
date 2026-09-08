@@ -270,3 +270,20 @@ describe("the files column on a journal with nothing waiting", () => {
     expect(box.querySelector('section[aria-label="Files"]')).not.toBeNull();
   });
 });
+
+/**
+ * What is kept, said once before anything is said to it — B976.
+ *
+ * Their conversations are saved so they can come back to them, and nobody
+ * else reads them unless they allow it. It belongs on an empty screen and
+ * nowhere else: repeated above every turn it becomes furniture nobody reads,
+ * and shown after somebody has already talked it is late.
+ */
+describe("the notice about what is kept", () => {
+  test("is the first thing on an empty conversation", () => {
+    const box = render();
+    expect(box.textContent).toContain("Your conversations are saved");
+    // And it says the part a person would otherwise have to guess.
+    expect(box.textContent).toContain("Nobody else reads them unless you say so");
+  });
+});

@@ -50,7 +50,21 @@ import { isValidUsername, userDir } from "../users";
  * widened onto a scope it did not already carry.
  */
 
-export const HELPER_SCOPES = ["words", "photos", "speech", "statement"] as const;
+/**
+ * `sessions` is the odd one and says something different from the other four
+ * — B976.
+ *
+ * Those record **who a person's words are sent to**: `words` and `photos` to
+ * Anthropic, `speech` to Deepgram. This one sends nothing anywhere. A
+ * conversation is kept on this instance either way, because being able to
+ * return to it is a thing the owner asked for and their own history is theirs;
+ * what this scope decides is whether **the operator may read it** to see what
+ * to improve.
+ *
+ * So the panel for it must not borrow the others' words. Nobody is being asked
+ * to let their holiday out of the building.
+ */
+export const HELPER_SCOPES = ["words", "photos", "speech", "statement", "sessions"] as const;
 export type HelperScope = (typeof HELPER_SCOPES)[number];
 
 export type HelperConsent = {

@@ -4,7 +4,8 @@ import type { Block } from "@/lib/helper/blocks";
 import { refusalFor, type Say } from "@/lib/helper/intents";
 import { answerInThread } from "@/lib/helper/model";
 import { describeSelection, isHelperOwner, notYourJournal } from "@/lib/helper/server";
-import { forget, history, note, remember } from "@/lib/helper/thread";
+import { recordTurn } from "@/lib/helper/sessions";
+import { forget, history, note, remember, sessionId } from "@/lib/helper/thread";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -235,6 +236,26 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
    * never assistant text, and there is nothing left to imitate.
    */
   remember(user, said, thread.answer);
+  /**
+   * What happened, kept — B976.
+   *
+   * After `remember`, so the thread has this turn in it and the count is the
+   * conversation as it now stands. Not awaited and never able to fail the
+   * turn: the person has their answer, and losing it to an analytics insert
+   * would be trading the product for the bookkeeping.
+   */
+  void recordTurn({
+    owner: user,
+    session: sessionId(user),
+    locale,
+    tools: thread.looked,
+    proposed: thread.proposals.map((proposal) => proposal.tool),
+    guard: thread.guard,
+    recovered: thread.recovered,
+    threadTurns: history(user).length,
+    said,
+    answered: thread.answer,
+  });
   for (const proposal of thread.proposals) {
     note(
       user,

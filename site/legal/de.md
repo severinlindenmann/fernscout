@@ -113,6 +113,17 @@ betrieben und verteidigt werden zu können.
   bekommen. Postadressen werden verschlüsselt gespeichert und sind für einen
   Agenten nie sichtbar.
 - **Kopien der von dieser Seite versendeten E-Mails**, beim jeweiligen Journal.
+- **Gespräche mit dem Helfer** — was eine Besitzerin ihm geschrieben oder
+  gesagt hat, was er geantwortet hat, und was er damit getan hat: welche
+  Werkzeuge er aufgerufen hat, was er vorgeschlagen hat, und ob der Vorschlag
+  angenommen wurde. Sie werden gespeichert, damit man ein altes Gespräch
+  wieder öffnen und dort weitermachen kann, wo man aufgehört hat — dafür sind
+  sie da. Mit dem Helfer spricht nur die Besitzerin eines Journals, sonst
+  niemand; ein Gespräch enthält also die Worte einer einzigen Person. **Sie
+  werden von niemandem sonst gelesen, solange sie das nicht erlaubt**, auf
+  ihrer eigenen Seite, wo sich der Schalter jederzeit wieder ausschalten
+  lässt. Das Ausschalten löscht nichts — es heisst, dass ausser ihr niemand
+  liest, was da ist.
 - **Aufrufzahlen**, bei Journalen, deren Autorin die Besuchszählung
   eingeschaltet hat: welche Seite, wann, und der oben beschriebene Tagescode.
   Nichts, was eine Leserin benennt, und nach etwa neunzig Tagen gelöscht.

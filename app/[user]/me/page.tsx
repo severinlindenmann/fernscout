@@ -10,6 +10,7 @@ import { manageTokenFor, listContacts, normaliseEmail } from "@/lib/contacts";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
 import { pickLocale } from "@/lib/contacts/locale";
 import { isEnabled } from "@/lib/capabilities";
+import { hasHelperConsent } from "@/lib/helper/consent";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { ownerShortName, serverSite } from "@/lib/site";
 import { resolveViewer } from "@/lib/viewer";
@@ -152,6 +153,17 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       // flag, `canJoin`, which was `isEnabled("contacts", …)` under a name
       // that promised something narrower — there is no open form to gate any
       // more (B37), so it is gone rather than left to be misread.
+      /**
+       * Whether the operator may read this journal's conversations — B976.
+       *
+       * Resolved here for the same reason `canSignIn` is: a capability is a
+       * server ceiling and a journal opt-in, and the card must not be drawn
+       * for a journal that has no helper at all. `null` is what the component
+       * reads as "there is nothing here to switch".
+       */
+      sessionsShared={
+        isEnabled("helper", user) ? hasHelperConsent(user, "sessions") : null
+      }
       canSignIn={isEnabled("auth", user)}
       codeMinutes={CODE_TTL_MINUTES}
       contactsEnabled={contactsEnabled}
