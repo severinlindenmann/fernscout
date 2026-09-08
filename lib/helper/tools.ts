@@ -670,7 +670,7 @@ export const TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "form",
     describe:
-      "Propose the title and the words of a day that already exists. Use their own words, never yours. Nothing is saved until they press, and a day already on the site stays on the site.",
+      "Propose the title and the words of a day that already exists. Use their own words, never yours. Nothing is saved until they press, and a day already on the site stays on the site. Also how a wrong word on a day is corrected.",
     properties: {
       ...DAY_ARGS,
       title: { type: "string", description: "The day's title, short, from what they said." },
@@ -688,7 +688,24 @@ export const TOOLS: readonly Tool[] = [
           { name: "trip", value: tripIdFor(username, args, found) },
           { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
           { name: "title", value: args.title ?? found?.entry.title ?? "" },
-          { name: "content", value: args.content ?? "", long: true },
+          /**
+           * What the day already says, when nothing was proposed — B942.
+           *
+           * It opened on nothing, under a sentence saying it would set the
+           * day's words — and no press of it could succeed, because
+           * `lib/api/entries.ts` refuses empty content. B929's shape again: a
+           * proposal on somebody's screen that nothing can accept.
+           *
+           * It is also what makes a correction possible at all (B941). A
+           * person saying "it should say udon, not ramen" is editing one word
+           * of a paragraph, and the model had to reproduce the whole
+           * paragraph from memory to do it — expensive, easy to get wrong,
+           * and the reason it reached for a different tool instead.
+           *
+           * A day with no words at all stays refused, which is right: that
+           * is not an edit, it is deleting the day.
+           */
+          { name: "content", value: args.content ?? found?.entry.content ?? "", long: true },
         ],
       };
     },
@@ -698,7 +715,7 @@ export const TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "form",
     describe:
-      "Propose one thing a day cost — what it was, how much, and which category. Only ever a figure they gave you. Nothing is recorded until they press.",
+      "Propose one thing a day cost — what it was, how much, and which category. Only ever a figure they gave you. Nothing is recorded until they press. Never to correct a day's words: that is set_day_words.",
     properties: {
       ...DAY_ARGS,
       label: { type: "string", description: "What it was, in their words." },
