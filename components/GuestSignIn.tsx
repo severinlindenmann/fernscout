@@ -53,13 +53,17 @@ export default function GuestSignIn({
   const [busy, setBusy] = useState(false);
   const [wrong, setWrong] = useState(false);
 
-  async function requestCode(event: React.FormEvent) {
+  async function requestCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Read what the field actually holds rather than trusting `email` to
+    // have followed autofill — see IdentitySignIn's own `requestCode` (B787).
+    const value = String(new FormData(event.currentTarget).get("email") ?? "");
+    setEmail(value);
     setBusy(true);
     await fetch("/api/auth/request", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ user: username, email, destination }),
+      body: JSON.stringify({ user: username, email: value, destination }),
     }).catch(() => {});
     setBusy(false);
     // Always forward, whatever came back. Stopping here for an address we do
@@ -67,14 +71,19 @@ export default function GuestSignIn({
     setStep("code");
   }
 
-  async function submitCode(event: React.FormEvent) {
+  async function submitCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const value = String(new FormData(event.currentTarget).get("code") ?? "").replace(
+      /\D/g,
+      "",
+    );
+    setCode(value);
     setBusy(true);
     setWrong(false);
     const response = await fetch("/api/auth/verify", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ user: username, email, code }),
+      body: JSON.stringify({ user: username, email, code: value }),
     }).catch(() => null);
 
     if (response?.ok) {
@@ -122,10 +131,14 @@ export default function GuestSignIn({
             onChange={(e) => setEmail(e.target.value)}
             className={field}
           />
+          {/* No `disabled={email === ""}` — B787. That React state can be
+              stale when autofill sets the field without firing `onChange`,
+              leaving the button dead with a real address already in it.
+              `required` on the field below is what refuses a genuinely
+              empty submit, natively and with the browser's own message. */}
           <BusyButton
             busy={busy}
             type="submit"
-            disabled={email === ""}
             className={button}
             busyLabel={t("me.signInSending")}
           >
@@ -154,6 +167,10 @@ export default function GuestSignIn({
             autoComplete="one-time-code"
             inputMode="numeric"
             pattern="[0-9]*"
+            // `minLength` makes "fewer than 6 digits" a submit the browser
+            // itself refuses (B787) rather than one gated on React state
+            // that autofill can bypass.
+            minLength={6}
             maxLength={6}
             autoFocus
             required
@@ -173,7 +190,6 @@ export default function GuestSignIn({
           <BusyButton
             busy={busy}
             type="submit"
-            disabled={code.length < 6}
             className={button}
             busyLabel={t("me.signInSending")}
           >
