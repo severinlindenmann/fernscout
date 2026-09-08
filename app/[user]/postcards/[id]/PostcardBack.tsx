@@ -331,8 +331,16 @@ export default function PostcardBack({
               className="mt-1 min-h-44 w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm font-normal text-navy-900 [field-sizing:content]"
             />
           </label>
-          <div className="mt-3 flex flex-wrap gap-3">
-            <label className="text-sm font-semibold text-navy-800">
+          {/* Two columns from `sm`, stacked below it — B1018.
+              This was `flex flex-wrap gap-3` with no basis on either label, so
+              each field was sized by its own content while the control inside
+              it asked for `w-full` of that: the box changed width when the
+              value changed, and the select's native arrow went wherever that
+              left it — onto a line of its own, under the word, once the labels
+              were German. A grid gives both fields a width that does not
+              depend on what is in them. */}
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <label className="min-w-0 text-sm font-semibold text-navy-800">
               {strings.signed}
               <input
                 name="from"
@@ -342,7 +350,7 @@ export default function PostcardBack({
               />
             </label>
             {locales.length > 1 ? (
-              <label className="text-sm font-semibold text-navy-800">
+              <label className="min-w-0 text-sm font-semibold text-navy-800">
                 {strings.writtenIn}
                 <select
                   name="locale"

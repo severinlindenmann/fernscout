@@ -11,7 +11,7 @@ import { formatCredits } from "@/lib/credits/format";
 import { translateIn } from "@/lib/locales";
 import type { TranslationKey } from "@/lib/i18n";
 import { mediaUrl } from "@/lib/media";
-import { postcardCandidates, recipientsOf } from "@/lib/postcard/contacts";
+import { addressesFor, postcardCandidates, recipientsOf } from "@/lib/postcard/contacts";
 import { printerAddressLines } from "@/lib/postcard/providers";
 import { readJpeg } from "@/lib/postcard/pdf";
 import { backLayout, resolutionNote } from "@/lib/postcard/preview";
@@ -135,6 +135,16 @@ export default async function PostcardOrderPage({
   // offers the list rather than reciting it. Same source the composer sheet
   // reads, so "who may be posted to" is decided in one place.
   const candidates = await postcardCandidates(username);
+  // Every candidate's envelope, not only the ones already on the order —
+  // B1018. Since B1005 the list is editable, so "already named on the order"
+  // stopped meaning "who you are posting to": the person you have just ticked
+  // is exactly the one whose address you want to check. Still the owner's own
+  // page, still only rendered for a ticked recipient, and still behind the
+  // disclosure B434 put it behind.
+  const envelopes = await addressesFor(
+    username,
+    candidates.map((candidate) => candidate.contactId),
+  );
   const lost = order.payload.recipients.filter((c) => !people.has(c)).length;
   const live = order.payload.recipients.filter((c) => people.has(c));
   const cost = order.payload.creditsEach * live.length;
@@ -379,16 +389,12 @@ export default async function PostcardOrderPage({
                     candidate.locale && candidate.locale !== cardLocale
                       ? t("postcard.page.reads", { language: label(candidate.locale) })
                       : null,
-                  // The street only for somebody already on the order — and
-                  // then only behind the disclosure the component draws. A
-                  // candidate nobody has ticked has no business handing their
-                  // address to a page that is not posting to them.
-                  address: people.has(candidate.contactId)
+                  address: envelopes.has(candidate.contactId)
                     ? {
-                        line1: people.get(candidate.contactId)!.to.line1,
-                        line2: people.get(candidate.contactId)!.to.line2 ?? "",
-                        postcode: people.get(candidate.contactId)!.to.postcode,
-                        city: people.get(candidate.contactId)!.to.city,
+                        line1: envelopes.get(candidate.contactId)!.line1,
+                        line2: envelopes.get(candidate.contactId)!.line2 ?? "",
+                        postcode: envelopes.get(candidate.contactId)!.postcode,
+                        city: envelopes.get(candidate.contactId)!.city,
                       }
                     : null,
                 }))}
