@@ -7,8 +7,7 @@ complexity: low
 area: helper, model
 found: "2026-09-08T12:52:44Z"
 started: "2026-09-08T13:05:57Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T13:05:57Z"
+merged: "2026-09-08T13:11:15Z"
 ---
 
 # B964 — The model narrates its own tool confusion to the person
@@ -63,3 +62,16 @@ stripping rather than asking.
 
 A turn that had to resolve between two similar trip names says nothing about
 tools to the person.
+
+## What the reproduction found
+
+**The resolution was not wrong.** Driven against two trips shaped exactly like
+the tester's — `balkan-loop-2026` ("Balkan Loop") and `balkan-loop-check`
+("Danube Circuit") — five of six forms resolve correctly, including "Danube
+Circuit", which is the one the model claimed had come back as the other trip.
+So the suspicion it narrated had nothing behind it, and this really is only
+presentation.
+
+The sixth form found something else and is filed as **B965**: `Balkan` alone is
+a prefix of both ids and resolves to the newer with nothing said. That is
+B940's argument with *ambiguous* in place of *absent*.
