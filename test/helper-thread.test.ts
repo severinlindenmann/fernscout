@@ -7,7 +7,8 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { grant } from "@/lib/credits";
-import { READ_TOOLS, forget, history, runTool } from "@/lib/helper/thread";
+import { forget, history } from "@/lib/helper/thread";
+import { TOOLS, runTool } from "@/lib/helper/tools";
 import { threadSystemPrompt } from "@/lib/helper/model";
 
 /**
@@ -76,6 +77,11 @@ function ask(said: string) {
     params,
   );
 }
+
+/** What the route hands `runTool`: the reader's own language. English here,
+ *  because what is asserted is the shape and not the wording. */
+const say = (key: string, vars?: Record<string, string>) =>
+  vars ? `${key} ${JSON.stringify(vars)}` : key;
 
 async function read(response: Response) {
   return { status: response.status, body: (await response.json()) as Record<string, unknown> };
@@ -296,9 +302,11 @@ describe("the conversation", () => {
 
 /* ------------------------------------------------------------ the tools --- */
 
+const READS = TOOLS.filter((tool) => tool.kind === "read");
+
 describe("the tools", () => {
-  test("are the seven reads the plan names, and no more", () => {
-    expect(READ_TOOLS.map((tool) => tool.name)).toEqual([
+  test("are the seven reads the plan names, and B898's first write and link", () => {
+    expect(READS.map((tool) => tool.name)).toEqual([
       "list_trips",
       "unfinished",
       "read_day",
@@ -307,12 +315,21 @@ describe("the tools", () => {
       "credits",
       "who_can_read",
     ]);
+    expect(TOOLS.filter((tool) => tool.kind !== "read").map((tool) => tool.name)).toEqual([
+      "new_trip",
+      "day_helper",
+    ]);
   });
 
   test("every one of them runs, and none of them changes anything", async () => {
     const before = journalOnDisk();
-    for (const tool of READ_TOOLS) {
-      const { ok, result } = await runTool("alex", tool.name, { trip: "reise", date: "2026-05-01" });
+    for (const tool of TOOLS) {
+      const { ok, result } = await runTool(
+        "alex",
+        tool.name,
+        { trip: "reise", date: "2026-05-01" },
+        say,
+      );
       expect(ok, tool.name).toBe(true);
       expect(result, tool.name).toBeDefined();
     }
@@ -320,24 +337,24 @@ describe("the tools", () => {
   });
 
   test("a tool nobody has is a fact the model can read, not a crash", async () => {
-    const { ok, result } = await runTool("alex", "publish", {});
+    const { ok, result } = await runTool("alex", "publish", {}, say);
     expect(ok).toBe(false);
     expect(JSON.stringify(result)).toContain("no tool called publish");
   });
 
   test("nothing here reaches the position history", () => {
     const source = fs.readFileSync(
-      path.join(process.cwd(), "lib", "helper", "thread.ts"),
+      path.join(process.cwd(), "lib", "helper", "tools.ts"),
       "utf8",
     );
-    // The comment above `READ_TOOLS` says why, at length; what must not be
+    // The comment above `TOOLS` says why, at length; what must not be
     // here is an import of the store or a path into the folder.
     expect(source).not.toMatch(/from "[^"]*gps|content[^"']*\/gps\//);
   });
 
   test("the model is shown every tool, and told what it cannot do", () => {
     const prompt = threadSystemPrompt("2026-09-07");
-    for (const tool of READ_TOOLS) expect(prompt).toContain(tool.name);
+    for (const tool of TOOLS) expect(prompt).toContain(tool.name);
     expect(prompt).toContain("You cannot change this journal");
     // The three gates that outlive this round, said in the prompt as well as
     // enforced outside it.
@@ -355,10 +372,15 @@ describe("what a turn costs", () => {
    * there is no API key in this repository and an invented measurement would
    * be worse than an arithmetic one. It is here so that it cannot grow by half
    * again without somebody deciding to let it.
+   *
+   * B898 raised it from sixteen hundred: two more tools, and the sentence in
+   * the prompt that says what a *write* tool does — proposes, and waits. Two
+   * bullets of directions came out in exchange, because a tool that hands
+   * somebody the day helper says what the paragraph describing it said.
    */
-  test("the prompt and the tool list stay under sixteen hundred tokens", () => {
-    const schemas = READ_TOOLS.map((tool) => JSON.stringify(tool.properties) + tool.describe).join("");
+  test("the prompt and the tool list stay under eighteen hundred tokens", () => {
+    const schemas = TOOLS.map((tool) => JSON.stringify(tool.properties) + tool.describe).join("");
     const characters = threadSystemPrompt("2026-09-07").length + schemas.length;
-    expect(Math.round(characters / 4)).toBeLessThan(1600);
+    expect(Math.round(characters / 4)).toBeLessThan(1800);
   });
 });

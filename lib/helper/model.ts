@@ -7,8 +7,10 @@ import {
   type Table,
 } from "@/importers/costs/mapping";
 import { recordUsage, type Operation } from "../usage";
-import { intentList, REGISTRY } from "./intents";
-import { READ_TOOLS, runTool, toolList, type Turn } from "./thread";
+import type { Block, Proposal } from "./blocks";
+import { intentList, REGISTRY, type Say } from "./intents";
+import type { Turn } from "./thread";
+import { runTool, toolList, toolSchemas } from "./tools";
 
 /**
  * The one place a model is spoken to — B684, and §5 of
@@ -560,14 +562,14 @@ const THREAD_MAX_TOKENS = 700;
 /**
  * The thread's system prompt. **This is the product**, like the three above it.
  *
- * The tool list is generated from `READ_TOOLS` for the same reason the
+ * The tool list is generated from `TOOLS` for the same reason the
  * router's menu is generated from the registry: a hand-typed list here would
  * promise a capability nobody built.
  *
  * The paragraph about not writing is written as a *fact about this software*
- * rather than as a restraint on the model, because it is one — there is no
- * write tool in the list, so a model that decides to write anyway simply
- * cannot. Saying so plainly is what makes it answer usefully instead of
+ * rather than as a restraint on the model, because it is one: a write tool has
+ * no `run` to call (`./tools.ts`), so a model that decides to write anyway
+ * simply cannot. Saying so plainly is what makes it answer usefully instead of
  * apologising.
  */
 export function threadSystemPrompt(today: string): string {
@@ -586,11 +588,11 @@ Call them when the answer needs one. Call more than one when it needs more than 
 
 WHAT YOU CANNOT DO, AND WHAT TO SAY INSTEAD
 
-You cannot change this journal. You have no tool that writes, publishes, deletes, uploads or sends anything, so nothing you say can alter a single file. That is deliberate, not a limitation to apologise for. When they ask you to do one of those things, say plainly that you cannot do it here, and then name the control that does — briefly, in one or two sentences, so it reads as directions and not as a refusal:
+You cannot change this journal yourself. Nothing you call writes, publishes, deletes, uploads or sends anything, so nothing you say can alter a single file. Two of the tools do less than their names suggest, and saying so is part of the answer: new_trip fills a form in and stops — the trip does not exist until they press — and day_helper only hands them a page. That is deliberate, not something to apologise for. When they ask for something, say what will actually happen and name the control that finishes it, in a sentence or two, so it reads as directions and not as a refusal:
 
-- Writing up a day, adding photographs to it, or correcting one already written: the day helper, which walks through the trip and date, the photographs, the words and a preview. It is the button on their own journal's page that offers to write a day.
+- Writing up a day, adding photographs to it, or correcting one already written: the day_helper tool hands them the page that does all of it.
 - Publishing a day: from that day's own preview, where they read it as their readers will see it and press once. It never happens from a sentence.
-- Making a new trip, changing its title, dates or who may read it: the trip form on their journal.
+- Changing a trip's title, dates or who may read it: the trip form on their journal.
 - Costs: the costs page of the trip, or a bank statement imported there.
 - Printed postcards: proposed first, then looked at and pressed on their journal's postcards page. Nothing is printed until they press.
 - Deleting a day, a trip or the whole journal: not from here at all. Deleting a journal or a trip is asked for elsewhere and finishes in their email — the server sends a single-use link to a page with a button, and only that button deletes.
@@ -616,20 +618,19 @@ Short. Plain sentences, no lists unless they asked for one, no closing line summ
 /** What one turn of the thread produced. `looked` is the tools it actually
  *  ran, in order — returned so a test can assert on it and a log can carry it,
  *  and so the answer's claim about what it read is checkable. */
-export type ThreadAnswer = { answer: string; looked: string[] };
-
-function toolSchemas(): Anthropic.Tool[] {
-  return READ_TOOLS.map((tool) => ({
-    name: tool.name,
-    description: tool.describe,
-    input_schema: {
-      type: "object" as const,
-      properties: tool.properties,
-      required: [],
-      additionalProperties: false,
-    },
-  }));
-}
+export type ThreadAnswer = {
+  answer: string;
+  looked: string[];
+  /**
+   * What the tools drew, in the order they ran — B898. The model chose the
+   * tools; every tool chose its own shape, and this is the result. A `say`
+   * read contributes nothing here, because its content reaches the person as
+   * the model's own sentence.
+   */
+  blocks: Block[];
+  /** Proposals a write tool made. Nothing was written; B900 is the press. */
+  proposals: Proposal[];
+};
 
 /**
  * One turn: the conversation so far, one new sentence, and a few tool calls.
@@ -644,6 +645,7 @@ export async function answerInThread(
   said: string,
   turns: Turn[],
   today: string,
+  say: Say,
 ): Promise<ThreadAnswer> {
   const client = new Anthropic();
   const messages: Anthropic.MessageParam[] = [
@@ -651,6 +653,8 @@ export async function answerInThread(
     { role: "user" as const, content: said },
   ];
   const looked: string[] = [];
+  const blocks: Block[] = [];
+  const proposals: Proposal[] = [];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
     const response = await client.messages.create({
@@ -670,13 +674,15 @@ export async function answerInThread(
       .join("")
       .trim();
 
-    if (calls.length === 0) return { answer: text, looked };
+    if (calls.length === 0) return { answer: text, looked, blocks, proposals };
 
     messages.push({ role: "assistant", content: response.content });
     const results: Anthropic.ToolResultBlockParam[] = [];
     for (const call of calls) {
       looked.push(call.name);
-      const { ok, result } = await runTool(username, call.name, call.input);
+      const { ok, result, block, proposal } = await runTool(username, call.name, call.input, say);
+      if (block) blocks.push(block);
+      if (proposal) proposals.push(proposal);
       results.push({
         type: "tool_result",
         tool_use_id: call.id,
@@ -699,10 +705,12 @@ export async function answerInThread(
   await book(username, "ask_thread", last.usage);
   return {
     answer: last.content
-      .map((block) => (block.type === "text" ? block.text : ""))
+      .map((part) => (part.type === "text" ? part.text : ""))
       .join("")
       .trim(),
     looked,
+    blocks,
+    proposals,
   };
 }
 

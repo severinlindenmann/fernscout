@@ -1,9 +1,10 @@
 import { isEnabled } from "@/lib/capabilities";
 import { hasHelperConsent, helperConsent } from "@/lib/helper/consent";
+import type { Block } from "@/lib/helper/blocks";
 import { intentFor, refusalFor, slotsFor, type Say } from "@/lib/helper/intents";
 import { answerInThread, routeAsk, UNKNOWN_INTENT } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
-import { history, remember } from "@/lib/helper/thread";
+import { forget, history, remember } from "@/lib/helper/thread";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -90,6 +91,30 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
   });
 }
 
+/**
+ * Start the conversation over — B899.
+ *
+ * `forget()` has existed since B889 and nothing called it, so somebody who had
+ * confused the thread waited half an hour for the TTL to run out. A
+ * conversation you cannot end is one you stop trusting, and this is the whole
+ * of ending it: the map entry goes, and the next sentence starts from nothing.
+ *
+ * `DELETE` on the same address rather than a route of its own — there is no
+ * body to read and nothing to document beyond "the conversation is gone", and
+ * a second file would be a second place to keep the owner check in step.
+ */
+export async function DELETE(request: Request, { params }: RouteContext<"/api/helper/[user]/ask">) {
+  const { user } = await params;
+  if (!(await isHelperOwner(user))) {
+    return notYourJournal(request, user);
+  }
+  if (!isEnabled("helper", user)) {
+    return Response.json({ error: "helper_unavailable" }, { status: 404 });
+  }
+  forget(user);
+  return Response.json({ ok: true });
+}
+
 export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/ask">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
@@ -137,6 +162,10 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
       slots: {},
       confidence: 1,
       answer: say(refused.key),
+      // B898 — one sentence, drawn as the `say` shape, so the conversation
+      // has one way of drawing a turn and a refusal is not a special case
+      // the surface has to know about.
+      blocks: [{ shape: "say", text: say(refused.key) }] satisfies Block[],
     });
   }
 
@@ -174,7 +203,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
      */
     let thread;
     try {
-      thread = await answerInThread(user, said, history(user), today);
+      thread = await answerInThread(user, said, history(user), today, say);
     } catch {
       thread = null;
     }
@@ -198,6 +227,18 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
       // What it actually ran, in order — so the claim its answer makes about
       // what it looked at is checkable from outside.
       looked: thread.looked,
+      /**
+       * What the turn draws — B898. The tools' own blocks in the order they
+       * ran, and then the model's sentence as a `say`. The model chose the
+       * tools and no part of it chose a shape.
+       */
+      blocks: [...thread.blocks, { shape: "say", text: thread.answer }] satisfies Block[],
+      /**
+       * Proposals a write tool made. **Nothing was written** — a write tool
+       * has no `run` to call — and accepting one is B900; until then these
+       * are rendered read-only, which is the honest state of them.
+       */
+      proposals: thread.proposals,
     });
   }
 
@@ -210,7 +251,12 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     // "how many credits" and then "and how long will that last" must not
     // start from nothing.
     remember(user, said, answer);
-    return Response.json({ ...common, kind: "read", answer });
+    return Response.json({
+      ...common,
+      kind: "read",
+      answer,
+      blocks: [{ shape: "say", text: answer }] satisfies Block[],
+    });
   }
 
   if (intent.kind === "open") {
