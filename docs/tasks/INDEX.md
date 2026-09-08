@@ -228,7 +228,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (11)
+## in-development (10)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -242,9 +242,8 @@ _Nothing here._
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 | [B895](in-development/B895-a-run-on-day-does-not.md) | A run-on day does not raise the photobook price, and a test says it must | ISSUE | medium | low | `bdd0270d` |
 | [B907](in-development/B907-most-of-what-a-trip-says.md) | Most of what a trip says about itself can be written once and never corrected | ISSUE | medium | low | `bdd0270d` |
-| [B856](in-development/B856-the-journal-visibility-answer-explains-listing.md) | The journal visibility answer explains listing but not what it decides for trips | ISSUE | low | low | `bdd0270d` |
 
-## testing (218)
+## testing (219)
 
 ### security (7)
 
@@ -258,7 +257,7 @@ _Nothing here._
 | [B908](testing/security/B908-a-leaked-agent-token-can-be.md) | A leaked agent token can be listed and not ended | SECURITY | medium | low | — |
 | [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (123)
+### issue (124)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -384,6 +383,7 @@ _Nothing here._
 | [B833](testing/issue/B833-the-admin-approval-queue-fills-with.md) | The /admin approval queue fills with Stripe requested rows it says were mailed but were not | ISSUE | low | low | — |
 | [B836](testing/issue/B836-the-landing-corner-s-agent-chip.md) | The landing corner's Agent chip is too quiet to read as a button | ISSUE | low | low | — |
 | [B847](testing/issue/B847-the-beta-banner-takes-three-lines.md) | The beta banner takes three lines and a lot of height on a phone | ISSUE | low | low | — |
+| [B856](testing/issue/B856-the-journal-visibility-answer-explains-listing.md) | The journal visibility answer explains listing but not what it decides for trips | ISSUE | low | low | — |
 | [B876](testing/issue/B876-the-account-page-s-pointer-card.md) | The account page's pointer card on /me is a whole card to say a menu entry exists | ISSUE | low | low | — |
 
 ### big-feature (14)
