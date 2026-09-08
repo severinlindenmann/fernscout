@@ -49,9 +49,9 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (126)
+## backlog (124)
 
-### issue (20)
+### issue (18)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -72,8 +72,6 @@ Do not edit them by hand; run the script.
 | [B1031](backlog/issue/B1031-searchbox-s-voice-search-errors-use.md) | SearchBox's voice-search errors use role=status, not role=alert | ISSUE | low | low |
 | [B1032](backlog/issue/B1032-a-day-s-title-colliding-with.md) | A day's title colliding with another day's slug is still an English sentence on the helper | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
-| [B757](backlog/issue/B757-border-navy-300-is-used-but.md) | border-navy-300 is used but no navy-300 token exists, so the sign-in field's unfocused border falls back to currentColor | ISSUE | low | low |
-| [B784](backlog/issue/B784-the-page-still-has-two-bright.md) | The page still has two bright buttons even though the card has one | ISSUE | low | low |
 | [B973](backlog/issue/B973-a-cost-with-no-currency-is.md) | A cost with no currency is filed in the base one without anybody being asked | ISSUE | low | low |
 
 ### big-feature (16)
@@ -216,7 +214,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (8)
+## in-development (10)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -228,6 +226,8 @@ _Nothing here._
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 | [B730](in-development/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low | `bdd0270d` |
 | [B750](in-development/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low | `bdd0270d` |
+| [B757](in-development/B757-border-navy-300-is-used-but.md) | border-navy-300 is used but no navy-300 token exists, so the sign-in field's unfocused border falls back to currentColor | ISSUE | low | low | `bdd0270d` |
+| [B784](in-development/B784-the-page-still-has-two-bright.md) | The page still has two bright buttons even though the card has one | ISSUE | low | low | `bdd0270d` |
 
 ## testing (238)
 
