@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: api, journals, tests
 found: "2026-09-07T17:11:06Z"
+started: "2026-09-08T05:35:44Z"
+session: 41335894-5435-4167-8cb6-898e370cd6a9
+claimed: "2026-09-08T05:35:44Z"
 ---
 
 # B859 — Nothing proves a refused journal creation leaves no journal behind
