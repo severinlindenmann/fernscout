@@ -49,9 +49,9 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (129)
+## backlog (128)
 
-### issue (23)
+### issue (22)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -75,7 +75,6 @@ Do not edit them by hand; run the script.
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B750](backlog/issue/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low |
 | [B757](backlog/issue/B757-border-navy-300-is-used-but.md) | border-navy-300 is used but no navy-300 token exists, so the sign-in field's unfocused border falls back to currentColor | ISSUE | low | low |
-| [B761](backlog/issue/B761-a-statement-with-a-preamble-line.md) | A statement with a preamble line takes the wrong row as its header | ISSUE | low | low |
 | [B784](backlog/issue/B784-the-page-still-has-two-bright.md) | The page still has two bright buttons even though the card has one | ISSUE | low | low |
 | [B973](backlog/issue/B973-a-cost-with-no-currency-is.md) | A cost with no currency is filed in the base one without anybody being asked | ISSUE | low | low |
 
@@ -219,7 +218,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (8)
+## in-development (9)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -231,6 +230,7 @@ _Nothing here._
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 | [B754](in-development/B754-a-second-trip-cannot-be-made.md) | A second trip cannot be made from the wizard when the helper is off | ISSUE | low | low | `bdd0270d` |
 | [B760](in-development/B760-a-mapped-statement-cannot-offer-the.md) | A mapped statement cannot offer the exchange rates a known one can | ISSUE | low | low | `bdd0270d` |
+| [B761](in-development/B761-a-statement-with-a-preamble-line.md) | A statement with a preamble line takes the wrong row as its header | ISSUE | low | low | `bdd0270d` |
 
 ## testing (235)
 

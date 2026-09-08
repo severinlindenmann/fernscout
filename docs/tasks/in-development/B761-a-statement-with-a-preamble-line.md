@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: importers
 found: "2026-09-07T13:57:57Z"
+started: "2026-09-08T21:02:11Z"
+session: bdd0270d-3797-42c9-8687-06abecadbc63
+claimed: "2026-09-08T21:02:11Z"
 ---
 
 # B761 — A statement with a preamble line takes the wrong row as its header
