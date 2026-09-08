@@ -53,6 +53,10 @@ const OPERATIONS = [
   // B689 — one call per statement, whatever its length: the model returns a
   // column mapping and code applies it to every row.
   "map_statement",
+  // B904 — one search asked in a person's own words, over the catalogue of
+  // what they may already see. Free to them, like the router; recorded here
+  // because the operator still pays for it.
+  "find_in_journal",
 ] as const;
 export type Operation = (typeof OPERATIONS)[number];
 

@@ -705,3 +705,97 @@ export async function answerInThread(
     looked,
   };
 }
+
+/* -------------------------------------------------------------------------
+ * Finding something by what it was, not by what it was called — B904.
+ *
+ * MiniSearch matches tokens and is instant and free; this is the second half,
+ * for the sentence whose words are nowhere in the journal — "the day we got
+ * lost near the border", "wo war das teuerste Hotel". The model is given the
+ * catalogue the reader is already entitled to (`searchCatalogueFor`) and one
+ * sentence, and returns **ids from that list**. It cannot return a URL, and
+ * the route resolves ids against the same list it sent, so a hallucinated row
+ * lands nowhere rather than on a plausible page that does not exist.
+ * ---------------------------------------------------------------------- */
+
+const FIND_SYSTEM_PROMPT = `You are helping somebody find something in their own travel journal. You are given a list of everything they can look at — days, trips, pages and documentation — and one sentence saying what they are after.
+
+Return the rows that actually answer it, best first, at most six. Match on meaning: they will describe what happened, how it felt or roughly when, and the row's title is often none of those words. A place they name, a date they half-remember and a trip they mention are all fair evidence.
+
+Only ever return ids that appear in the list you were given. You have no other knowledge of this journal: you cannot open a day, you cannot see its prose, and you must not invent a row, a place or a date that is not in front of you.
+
+If nothing in the list fits, return no rows at all. That is a real answer and often the right one — a wrong row costs them more than an empty list, which at least tells them to try other words.
+
+"why" is one short clause in the language they asked in, saying what makes this row the answer. Never a sentence about yourself, never an apology.`;
+
+export type FoundRow = { id: string; why: string };
+
+const FIND_SCHEMA = {
+  type: "object",
+  properties: {
+    hits: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { id: { type: "string" }, why: { type: "string" } },
+        required: ["id", "why"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["hits"],
+  additionalProperties: false,
+};
+
+/** What one row looks like to the model. Tab-separated rather than JSON: the
+ *  catalogue is the bulk of the request and this is half the tokens. */
+function catalogueLines(rows: { id: string; kind: string; title: string; where: string }[]): string {
+  return rows.map((r) => `${r.id}	${r.kind}	${r.title}	${r.where}`).join("\n");
+}
+
+/**
+ * One request, and a broken answer is an empty one. Nothing here throws for a
+ * model that returns nonsense: the caller's screen is the local search
+ * results, which are already on it.
+ */
+export async function findInJournal(
+  said: string,
+  rows: { id: string; kind: string; title: string; where: string }[],
+  today: string,
+  owner?: string,
+): Promise<FoundRow[]> {
+  const client = new Anthropic();
+  const response = await client.messages.create({
+    model: HELPER_MODEL,
+    max_tokens: 600,
+    system: FIND_SYSTEM_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content:
+          `Today is ${today}.\n\nWhat they are looking for:\n${said.trim()}\n\n` +
+          `Everything they can look at, one per line as id, kind, title, where:\n` +
+          catalogueLines(rows),
+      },
+    ],
+    output_config: { format: { type: "json_schema", schema: FIND_SCHEMA } },
+  });
+  await book(owner, "find_in_journal", response.usage);
+
+  const text = response.content
+    .map((block) => (block.type === "text" ? block.text : ""))
+    .join("")
+    .trim();
+  try {
+    const parsed = JSON.parse(text) as { hits?: unknown };
+    if (!Array.isArray(parsed.hits)) return [];
+    return parsed.hits
+      .filter((hit): hit is FoundRow => {
+        const row = hit as Record<string, unknown>;
+        return typeof row?.id === "string" && typeof row?.why === "string";
+      })
+      .slice(0, 6);
+  } catch {
+    return [];
+  }
+}

@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { Mic, MicOff, Search as SearchIcon } from "lucide-react";
+import { Mic, MicOff, Search as SearchIcon, Sparkles } from "lucide-react";
 import MiniSearch from "minisearch";
+import BusyButton from "./BusyButton";
 import ConfirmPanel from "./ConfirmPanel";
 import { useI18n } from "./LocaleProvider";
 import { useSite } from "./SiteProvider";
@@ -36,6 +37,21 @@ type Recognition = {
 };
 
 const CONSENT_KEY = "fernscout.voiceSearch";
+
+/**
+ * What the agent sends back — B904. `url` is the route's own, resolved from
+ * the catalogue it sent the model; nothing here trusts a model's idea of a
+ * link, and this component could not tell the difference, which is exactly
+ * why the resolving happens on the server.
+ */
+type AgentHit = {
+  id: string;
+  kind: string;
+  title: string;
+  where: string;
+  url: string;
+  why: string;
+};
 
 function recognitionClass(): (new () => Recognition) | null {
   if (typeof window === "undefined") return null;
@@ -70,6 +86,39 @@ export default function SearchBox() {
     () => false,
   );
   const recognition = useRef<Recognition | null>(null);
+  /**
+   * Whether the agent button belongs on this page at all — B904.
+   *
+   * Read off the summary every page under `/<user>` already carries rather
+   * than probed with a request: `isOwner` and `helperEnabled` are exactly the
+   * two questions the route would answer, and asking it instead put a 401 in
+   * the console of every signed-out reader who opened Search.
+   */
+  const canAsk = site.isOwner && site.helperEnabled;
+  const [agent, setAgent] = useState<"idle" | "busy" | "error">("idle");
+  const [hits, setHits] = useState<AgentHit[] | null>(null);
+  const [asked, setAsked] = useState("");
+
+  async function askAgent() {
+    const said = query.trim();
+    if (said === "") return;
+    setAgent("busy");
+    setHits(null);
+    setAsked(said);
+    try {
+      const res = await fetch(`/api/helper/${site.username}/search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ said }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const data = (await res.json()) as { hits?: AgentHit[] };
+      setHits(data.hits ?? []);
+      setAgent("idle");
+    } catch {
+      setAgent("error");
+    }
+  }
 
   // Whatever is still listening when this component goes away stops with it —
   // a microphone left open on a page nobody is on is the one bug this feature
@@ -197,6 +246,59 @@ export default function SearchBox() {
         <p role="status" className="mt-2 text-xs text-navy-600">
           {t("search.voiceListening")}
         </p>
+      )}
+
+      {canAsk && (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <BusyButton
+            busy={agent === "busy"}
+            type="button"
+            onClick={askAgent}
+            disabled={trimmed.length === 0}
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-navy-300 px-4 text-sm font-semibold text-navy-800 transition-colors hover:bg-cream-100 disabled:opacity-50"
+          >
+            <Sparkles className="h-4 w-4" strokeWidth={2.2} />
+            {agent === "busy" ? t("search.agentBusy") : t("search.agentAsk")}
+          </BusyButton>
+          <p className="text-xs text-navy-600">{t("search.agentHint")}</p>
+        </div>
+      )}
+
+      {agent === "error" && (
+        <p role="status" className="mt-2 text-sm text-coral-600">
+          {t("search.agentError")}
+        </p>
+      )}
+
+      {hits && agent !== "busy" && (
+        <div className="mt-4">
+          <h2 className="font-display text-sm font-semibold text-navy-900">
+            {t("search.agentHeading")}
+          </h2>
+          {hits.length === 0 ? (
+            <p className="mt-2 text-sm text-navy-600">
+              {t("search.agentEmpty", { query: asked })}
+            </p>
+          ) : (
+            <ul className="mt-2 divide-y divide-navy-200 overflow-hidden rounded-2xl border border-navy-200 bg-white">
+              {hits.map((hit) => (
+                <li key={hit.id}>
+                  <Link
+                    href={hit.url}
+                    className="block px-4 py-3 transition-colors hover:bg-cream-100"
+                  >
+                    <p className="font-display text-base font-semibold text-navy-900">
+                      {hit.title}
+                    </p>
+                    <p className="mt-0.5 text-xs text-navy-600">
+                      {[hit.where, hit.why].filter(Boolean).join(" · ")}
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
 
       <div className="mt-6">

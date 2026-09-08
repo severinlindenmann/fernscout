@@ -375,12 +375,29 @@ describe("journal-scoped destinations and trip rows", () => {
     expect(buildSearchIndexJson(OWNER)!).not.toContain(`/${OWNER}/contacts`);
   });
 
-  test("every signed-in reader finds their access page, and the anonymous index does not carry it", async () => {
+  test("the sign-in door is in everybody's index, and it is named for who is reading — B903", async () => {
     for (const viewer of ["owner", "buddy", "guest", "stranger"]) {
-      expect(await jsonFor(viewer)).toContain(`/${OWNER}/me`);
+      const json = await jsonFor(viewer);
+      expect(json).toContain(`/${OWNER}/me`);
+      // A reader with a session is offered their own page, not a door they
+      // are already through.
+      expect(json).toContain('"title":"Your access"');
     }
     const { buildSearchIndexJson } = await import("@/lib/search");
-    expect(buildSearchIndexJson(OWNER)!).not.toContain(`/${OWNER}/me`);
+    const anonymous = buildSearchIndexJson(OWNER)!;
+    expect(anonymous).toContain(`/${OWNER}/me`);
+    expect(anonymous).toContain('"title":"Sign in"');
+  });
+
+  test("a capability that is off has no row at all — the helper here, for everybody including the owner", async () => {
+    // This fixture's journal has no `helper`, so nobody's index may carry it.
+    // The row's own gate — owner only — is covered in test/search-helper.test.ts,
+    // where the capability is on.
+    for (const viewer of ["owner", "buddy", "guest", "stranger"]) {
+      expect(await jsonFor(viewer)).not.toContain(`/agent/${OWNER}`);
+    }
+    const { buildSearchIndexJson } = await import("@/lib/search");
+    expect(buildSearchIndexJson(OWNER)!).not.toContain(`/agent/${OWNER}`);
   });
 
   test("a closed trip's own row reaches only a reader who may open it", async () => {
