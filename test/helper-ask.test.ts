@@ -387,7 +387,18 @@ describe("one accepted write handing on to the next", () => {
     expect(refused.body.error).toBe("unknown_tool");
   });
 
-  test("saying a write happened puts it in the conversation and nothing else", async () => {
+  /**
+   * The second job this route used to have, and no longer does — B939.
+   *
+   * `wrote: true` was how the *browser* told the conversation a press had gone
+   * through, and it was the only thing doing so: a caller that was not our own
+   * page was told on the next turn that nothing had been saved. The routes
+   * that write say so themselves now (`test/helper-write-notes.test.ts`), so
+   * the flag means nothing here — and what matters is that it means nothing
+   * *and writes nothing*, rather than becoming a way to put a claim about a
+   * write into a conversation without one having happened.
+   */
+  test("claiming a write happened neither writes one nor records one", async () => {
     const told = await read(
       await proposalRoute(
         post("https://t.test/api/helper/alex/proposal", {
@@ -399,9 +410,8 @@ describe("one accepted write handing on to the next", () => {
       ),
     );
     expect(told.status).toBe(200);
-    // The one the fixture wrote, and no Japan: this route says a write
-    // happened, it does not make one.
+    // The one the fixture wrote, and no Japan.
     expect(getTrips("alex").map((trip) => trip.id)).toEqual(["reise"]);
-    expect(history("alex").map((turn) => turn.text).join("\n")).toContain("written: create_trip");
+    expect(history("alex").map((turn) => turn.text).join("\n")).not.toContain("written:");
   });
 });

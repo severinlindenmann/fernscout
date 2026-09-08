@@ -393,12 +393,16 @@ export default function HelperAsk({
         : [];
       if (moved.length > 0) onFilesMoved?.(moved);
 
-      // Memory only, and never a claim: the write has already happened above.
-      await send(`/api/helper/${encodeURIComponent(username)}/proposal`, {
-        tool: proposal.tool,
-        arguments: sent,
-        wrote: true,
-      }).catch(() => ({}));
+      /**
+       * Nothing is posted to say the write happened — B939.
+       *
+       * There used to be a second call here, and it was the only thing telling
+       * the conversation that a press had gone through. A tester pressing the
+       * same routes with `curl` was told on the next turn that their trip was
+       * waiting to be saved, while it sat on disk. The route that writes says
+       * so itself now, so every caller gets it and this one has nothing to
+       * remember.
+       */
 
       if (proposal.next) {
         const carried: Record<string, string> = { ...sent };

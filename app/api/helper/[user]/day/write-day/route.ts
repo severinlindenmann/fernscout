@@ -3,6 +3,7 @@ import { refund, spend } from "@/lib/credits";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { HELPER_PROVIDER, WRITE_DAY_CREDITS, writeDay, type DayFacts } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
+import { note } from "@/lib/helper/thread";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -120,6 +121,18 @@ export async function POST(
     spent: WRITE_DAY_CREDITS,
     provider: HELPER_PROVIDER,
   };
+  /**
+   * Not a write, and the note says so — B939.
+   *
+   * This route returns prose and puts nothing in the journal; keeping the
+   * words is `set_day_words`, a second proposal with a second press. The old
+   * client-posted note called it `written: draft_words`, which is the exact
+   * class of claim this conversation is not allowed to make.
+   */
+  note(
+    user,
+    `[drafted: words for ${tripId}/${facts.date}, kept nowhere yet — the proposal to keep them is on their screen]`,
+  );
   await remember(key, fingerprint, answer);
   return Response.json(answer);
 }

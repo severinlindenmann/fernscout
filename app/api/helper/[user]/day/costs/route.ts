@@ -3,6 +3,7 @@ import { AS_AUTHOR, getAllEntries, getEntryBySlug } from "@/lib/entries";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { getTrip, tripRef } from "@/lib/trips";
 import { validateEntryEdit } from "@/lib/validate/entry";
+import { wrote } from "@/lib/helper/thread";
 
 export const dynamic = "force-dynamic";
 
@@ -93,5 +94,6 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   }
 
   const now = getEntryBySlug(ref, target.slug, AS_AUTHOR);
+  wrote(user, "add_cost", { trip: tripId, slug: target.slug, date });
   return Response.json({ ok: true, trip: tripId, slug: target.slug, date, costs: now?.costs ?? costs });
 }

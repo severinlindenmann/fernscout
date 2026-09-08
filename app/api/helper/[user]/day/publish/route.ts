@@ -4,6 +4,7 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { serverSite } from "@/lib/site";
 import { declinesIn, missingFrom } from "@/lib/tracks";
 import { getTrip, tripRef } from "@/lib/trips";
+import { wrote } from "@/lib/helper/thread";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,7 @@ export async function POST(
   const published = publishDraft(ref, slug);
   if (!published.ok) return Response.json({ error: published.error }, { status: 400 });
 
+  wrote(user, "publish_day", { trip: tripId, slug: published.slug });
   return Response.json({
     ok: true,
     slug: published.slug,

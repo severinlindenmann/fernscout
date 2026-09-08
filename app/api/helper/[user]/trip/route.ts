@@ -3,6 +3,7 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrip, tripRef } from "@/lib/trips";
 import { createTrip, DATE_RE, VISIBILITIES } from "@/lib/tripWrite";
+import { wrote } from "@/lib/helper/thread";
 
 export const dynamic = "force-dynamic";
 
@@ -99,6 +100,10 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   if (!created.ok) {
     return Response.json({ error: created.error, message: created.message }, { status: 400 });
   }
+  // The id the *server* derived, not the title the model sent — B939. This is
+  // the one fact about a new trip nobody in the conversation could otherwise
+  // know.
+  wrote(user, "create_trip", { id: created.id, title, start, end });
   return Response.json(
     { ok: true, id: created.id, href: `/${encodeURIComponent(user)}/trips/${created.id}` },
     { status: 201 },

@@ -8,6 +8,7 @@ import { requestLocale } from "@/lib/locales";
 import { parsePhotoVisibility } from "@/lib/photos";
 import { declinesIn, missingFrom } from "@/lib/tracks";
 import { getTrip, tripRef } from "@/lib/trips";
+import { wrote } from "@/lib/helper/thread";
 
 export const dynamic = "force-dynamic";
 
@@ -147,6 +148,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   }
   await fillDayWeatherQuietly(ref, written.slug);
 
+  wrote(user, "start_day", { trip: tripId, slug: written.slug, date });
   return Response.json({ ok: true, trip: tripId, slug: written.slug }, { status: 201 });
 }
 
@@ -220,5 +222,6 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/hel
   if (!edited.ok) {
     return Response.json({ error: edited.error }, { status: edited.bug ? 500 : 400 });
   }
+  wrote(user, "set_day_words", { trip: tripId, slug, changed: Object.keys(input) });
   return state(user, tripId, slug);
 }

@@ -132,6 +132,28 @@ export function note(username: string, text: string): void {
 }
 
 /**
+ * What a write route did, in the conversation the proposal came from — B939.
+ *
+ * **The note belongs to the write, not to the client.** It used to be posted
+ * by the browser after a successful press — a second call, from
+ * `components/HelperAsk.tsx`, saying "that one went through". It worked, and
+ * a tester who pressed the same routes with `curl` instead was told on the
+ * next turn that their trip was *"waiting for you to press"* while it sat on
+ * disk. The knowledge that a write must be announced lived in a React
+ * component, so every other caller — a script, a second tab, a phone client
+ * (B674) — left the conversation believing nothing had happened.
+ *
+ * `facts` is what the **route** produced rather than what it was given, which
+ * is the other half. The old note was built from the proposal's arguments, so
+ * it carried the trip's title and never the id the server derives at
+ * creation: asked outright, the model said it did not know the id — honest,
+ * and one question away from being unable to answer.
+ */
+export function wrote(username: string, tool: string, facts: Record<string, unknown>): void {
+  note(username, `[written: ${tool} ${JSON.stringify(facts)}]`);
+}
+
+/**
  * End a conversation.
  *
  * `DELETE /api/helper/<user>/ask` is what calls this — B899. A person who has
