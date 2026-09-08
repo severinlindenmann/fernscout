@@ -7,8 +7,7 @@ complexity: medium
 area: components/, app/globals.css
 found: "2026-09-08T19:02:00Z"
 started: "2026-09-08T18:45:01Z"
-session: 79cece02-4661-45ef-809b-52b592e67f95
-claimed: "2026-09-08T18:45:01Z"
+merged: "2026-09-08T18:59:42Z"
 ---
 
 # B1012 — Every dropdown and the file picker are the operating system's, in the operating system's type
