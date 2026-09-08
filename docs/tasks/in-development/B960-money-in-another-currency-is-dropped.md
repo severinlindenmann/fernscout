@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: helper, costs, currency
 found: "2026-09-08T12:18:38Z"
+started: "2026-09-08T12:26:28Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T12:26:28Z"
 ---
 
 # B960 — Money in another currency is dropped from the total and nothing says so
