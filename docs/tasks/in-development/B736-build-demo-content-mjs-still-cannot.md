@@ -6,6 +6,9 @@ priority: low
 complexity: medium
 area: demo content, scripts
 found: "2026-09-07T12:25:30Z"
+started: "2026-09-08T05:52:43Z"
+session: 41335894-5435-4167-8cb6-898e370cd6a9
+claimed: "2026-09-08T05:52:43Z"
 ---
 
 # B736 — build-demo-content.mjs still cannot reproduce travelScene, per-item visibility, some captions, or six fixture days
