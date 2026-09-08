@@ -1691,6 +1691,7 @@ export type TranslationKey =
   | "search.title"
   | "search.tripsTerms"
   | "search.visitorsTerms"
+  | "search.voiceAgent"
   | "search.voiceBlocked"
   | "search.voiceConsentAccept"
   | "search.voiceConsentBody"

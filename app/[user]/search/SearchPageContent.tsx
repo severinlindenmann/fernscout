@@ -4,7 +4,14 @@ import PageHeader from "@/components/PageHeader";
 import SearchBox from "@/components/SearchBox";
 import { useI18n } from "@/components/LocaleProvider";
 
-export default function SearchPageContent() {
+export default function SearchPageContent({
+  username,
+  speech,
+}: {
+  username: string;
+  /** Present only for the owner of a journal that can transcribe — B981. */
+  speech?: { consented: boolean; provider: string };
+}) {
   const { t } = useI18n();
   return (
     <div className="min-h-screen">
@@ -15,7 +22,7 @@ export default function SearchPageContent() {
         </h1>
         <p className="mt-1 text-sm text-navy-600">{t("search.subtitle")}</p>
         <div className="mt-6">
-          <SearchBox />
+          <SearchBox username={username} speech={speech} />
         </div>
       </main>
     </div>

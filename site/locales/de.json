@@ -1086,6 +1086,7 @@
   "search.subtitle": "Finde alles in diesem Journal — einen Tag, eine Reise, eine Seite oder die Dokumentation.",
   "search.voiceStart": "Per Sprache suchen",
   "search.voiceStop": "Aufnahme beenden",
+  "search.voiceAgent": "Den Agenten laut fragen · {minutes} Minuten Sprache pro Kredit",
   "search.voiceBlocked": "Dein Browser lässt diese Seite nicht auf das Mikrofon zugreifen. Erlaube es für diese Seite und versuche es noch einmal.",
   "search.voiceNoSpeech": "Es war nichts zu hören. Drücke aufs Mikrofon und sprich.",
   "search.voiceNoService": "Dieser Browser erreicht keinen Spracherkennungsdienst, hier funktioniert Diktieren also nicht. Tippen weiterhin schon.",

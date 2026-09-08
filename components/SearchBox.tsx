@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Mic, MicOff, Search as SearchIcon, Sparkles } from "lucide-react";
+import RecordButton from "./RecordButton";
 import MiniSearch from "minisearch";
 import BusyButton from "./BusyButton";
 import ConfirmPanel from "./ConfirmPanel";
 import { useI18n } from "./LocaleProvider";
 import { useSite } from "./SiteProvider";
+import { MINUTES_PER_CREDIT } from "@/lib/helper/speech";
 import { SEARCH_OPTIONS, SEARCH_QUERY, type SearchDoc } from "@/lib/searchOptions";
 
 type LoadState = "loading" | "ready" | "error";
@@ -81,7 +83,26 @@ function recognitionClass(): (new () => Recognition) | null {
  * which — the index it receives already carries exactly what this reader
  * may see.
  */
-export default function SearchBox() {
+export default function SearchBox({
+  username,
+  speech,
+}: {
+  username?: string;
+  /**
+   * This instance's own transcriber, for the owner — B981.
+   *
+   * Present only where `transcription` is on and the reader owns the journal
+   * (the page decides, on the server). When it is here, speaking is not a way
+   * to fill the box: what comes back goes straight to the agent, because a
+   * sentence somebody says out loud — "the day we got lost near the border" —
+   * is exactly the sentence MiniSearch cannot answer and B904 can.
+   *
+   * When it is absent, the browser's own dictation stands: free, filling the
+   * box, and useless in a browser with no speech service (B975), which is what
+   * this exists to answer for the one person whose credits are at stake.
+   */
+  speech?: { consented: boolean; provider: string };
+}) {
   const { t, formatShortDate, locale } = useI18n();
   const site = useSite();
   const [index, setIndex] = useState<MiniSearch<SearchDoc> | null>(null);
@@ -116,8 +137,8 @@ export default function SearchBox() {
   const [hits, setHits] = useState<AgentHit[] | null>(null);
   const [asked, setAsked] = useState("");
 
-  async function askAgent() {
-    const said = query.trim();
+  async function askAgent(sentence?: string) {
+    const said = (sentence ?? query).trim();
     if (said === "") return;
     setAgent("busy");
     setHits(null);
@@ -240,10 +261,10 @@ export default function SearchBox() {
           disabled={state === "error"}
           autoFocus
           className={`w-full rounded-full border border-navy-200 bg-white py-3 pl-11 text-sm text-navy-900 placeholder:text-navy-500 focus:border-navy-500 focus:outline-none disabled:opacity-60 ${
-            canSpeak ? "pr-12" : "pr-4"
+            canSpeak && !speech ? "pr-12" : "pr-4"
           }`}
         />
-        {canSpeak && (
+        {canSpeak && !speech && (
           <button
             type="button"
             onClick={toggleVoice}
@@ -288,12 +309,34 @@ export default function SearchBox() {
         </p>
       )}
 
+      {speech && username && (
+        <RecordButton
+          username={username}
+          consented={speech.consented}
+          provider={speech.provider}
+          disabled={agent === "busy"}
+          label={
+            <span className="inline-flex items-center justify-center gap-2">
+              <Sparkles className="h-4 w-4" aria-hidden strokeWidth={2.2} />
+              <Mic className="h-4 w-4" aria-hidden strokeWidth={2.2} />
+              {t("search.voiceAgent", { minutes: String(MINUTES_PER_CREDIT) })}
+            </span>
+          }
+          onText={(said) => {
+            // Into the box *and* away, with no second press: what was said
+            // out loud was the question, not a draft of it.
+            setQuery(said);
+            void askAgent(said);
+          }}
+        />
+      )}
+
       {canAsk && (
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <BusyButton
             busy={agent === "busy"}
             type="button"
-            onClick={askAgent}
+            onClick={() => void askAgent()}
             disabled={trimmed.length === 0}
             className="inline-flex min-h-11 items-center gap-2 rounded-full border border-navy-300 px-4 text-sm font-semibold text-navy-800 transition-colors hover:bg-cream-100 disabled:opacity-50"
           >
