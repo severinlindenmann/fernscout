@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: api, journals
 found: "2026-09-07T17:09:24Z"
+started: "2026-09-08T19:51:10Z"
+session: bdd0270d-3797-42c9-8687-06abecadbc63
+claimed: "2026-09-08T19:51:10Z"
 ---
 
 # B856 — The journal visibility answer explains listing but not what it decides for trips

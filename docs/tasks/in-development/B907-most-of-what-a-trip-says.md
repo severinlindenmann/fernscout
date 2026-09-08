@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: api, trips
 found: "2026-09-08T04:57:40Z"
+started: "2026-09-08T19:51:08Z"
+session: bdd0270d-3797-42c9-8687-06abecadbc63
+claimed: "2026-09-08T19:51:08Z"
 ---
 
 # B907 — Most of what a trip says about itself can be written once and never corrected
