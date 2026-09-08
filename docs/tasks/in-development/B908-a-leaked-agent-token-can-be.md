@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: api, auth
 found: "2026-09-08T04:57:41Z"
+started: "2026-09-08T06:07:58Z"
+session: 41335894-5435-4167-8cb6-898e370cd6a9
+claimed: "2026-09-08T06:07:58Z"
 ---
 
 # B908 — A leaked agent token can be listed and not ended
