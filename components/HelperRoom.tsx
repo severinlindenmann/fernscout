@@ -270,23 +270,31 @@ export default function HelperRoom({
           this ticket is about.
         */}
         {journals.length > 1 ? (
-          <label className="min-w-0 flex-1">
-            <span className="sr-only">{t("agent.room.whichJournal")}</span>
-            <select
-              value={username}
-              onChange={(event) => {
-                document.cookie = `fs.journal=${encodeURIComponent(event.target.value)};path=/;max-age=31536000;samesite=lax`;
-                window.location.href = "/agent";
-              }}
-              className="min-h-11 w-full truncate rounded-full border border-navy-300 bg-cream-50 px-3 font-display text-base font-semibold text-navy-900"
-            >
-              {journals.map((one) => (
-                <option key={one.username} value={one.username}>
-                  {one.title}
-                </option>
-              ))}
-            </select>
-          </label>
+          // B814 — a switcher here in place of the plain title used to leave
+          // the whole page with no heading at all: nothing for a screen
+          // reader to jump to, on the one page that is a conversation rather
+          // than a document. The `<select>` is still the visible control; this
+          // just gives the page back the landing point every other one has.
+          <>
+            <h1 className="sr-only">{t("agent.room.title")}</h1>
+            <label className="min-w-0 flex-1">
+              <span className="sr-only">{t("agent.room.whichJournal")}</span>
+              <select
+                value={username}
+                onChange={(event) => {
+                  document.cookie = `fs.journal=${encodeURIComponent(event.target.value)};path=/;max-age=31536000;samesite=lax`;
+                  window.location.href = "/agent";
+                }}
+                className="min-h-11 w-full truncate rounded-full border border-navy-300 bg-cream-50 px-3 font-display text-base font-semibold text-navy-900"
+              >
+                {journals.map((one) => (
+                  <option key={one.username} value={one.username}>
+                    {one.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
         ) : (
           <h1 className="min-w-0 flex-1 truncate font-display text-base font-semibold text-navy-900">
             {title}
