@@ -1,6 +1,8 @@
 import { describe, expect, it, afterEach, vi } from "vitest";
 
 import { computeCoverGeometry, fetchCoverGeometry } from "@/lib/photobook/coverGeometry";
+import { auditPdfxBytes, outputIntentFor, readIcc } from "@/lib/photobook/pdfx";
+import fs from "node:fs";
 import { BOOK_SIZES, defaultSpec, pageMediaBoxMm } from "@/lib/photobook/spec";
 import { renderCover, renderVolume } from "@/lib/photobook/render";
 import { planBook } from "@/lib/photobook/plan";
@@ -340,5 +342,44 @@ describe("the file matches Gelato's own product template", () => {
     // we pin the intent: trim is the whole sheet, and the geometry still
     // knows where the real edge is for guides and clipping.
     expect(computeCoverGeometry(spec, 28).trimInsetMm).toBe(spec.bleedMm);
+  });
+});
+
+describe("what the file actually is, not what the writer intended — B1008", () => {
+  const squareSpec = defaultSpec(BOOK_SIZES.square);
+  const ICC = "/System/Library/ColorSync/Profiles/Generic CMYK Profile.icc";
+  const haveIcc = fs.existsSync(ICC);
+
+  it("passes its own audit when it claims nothing", () => {
+    const volume = planBook(source([day(0), day(1), day(2)]), squareSpec, DEFAULT_OPTIONS).volumes[0];
+    const pdf = renderVolume(volume, squareSpec, { loadImage, document: { title: "t" } }).pdf;
+    const audit = auditPdfxBytes(pdf);
+    expect(audit.claims).toBeNull();
+    expect(audit.failures).toEqual([]);
+  });
+
+  it.runIf(haveIcc)("claims PDF/X-4 under a 1.6 header, never a 1.4 one", () => {
+    const intent = outputIntentFor(readIcc(new Uint8Array(fs.readFileSync(ICC))));
+    const volume = planBook(source([day(0), day(1), day(2)]), squareSpec, DEFAULT_OPTIONS).volumes[0];
+    const pdf = renderVolume(volume, squareSpec, {
+      loadImage,
+      document: { title: "t", outputIntent: intent, pdfxVersion: "PDF/X-4" },
+    }).pdf;
+    const audit = auditPdfxBytes(pdf);
+    // The bug this exists for: a file that says PDF/X-4 in a %PDF-1.4 header.
+    // ISO 15930-7 is built on PDF 1.6, and every preflight checks it first.
+    expect(audit.claims).toBe("PDF/X-4");
+    expect(audit.failures).toEqual([]);
+    expect(Buffer.from(pdf).subarray(0, 8).toString()).toBe("%PDF-1.6");
+  });
+
+  it("notices when a font dictionary has no embedded program", () => {
+    const broken = Buffer.from(
+      "%PDF-1.6\n/Type /Font\n/Type /Font\n/FontFile2\n/Type /Page\n/TrimBox\nGTS_PDFXVersion (PDF/X-4)\n" +
+        "<pdfxid:GTS_PDFXVersion>\n/OutputIntents\n/DestOutputProfile\n",
+    );
+    const audit = auditPdfxBytes(new Uint8Array(broken));
+    expect(audit.ok).toBe(false);
+    expect(audit.failures.join(" ")).toContain("font dictionaries");
   });
 });
