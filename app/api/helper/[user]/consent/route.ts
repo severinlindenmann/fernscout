@@ -1,14 +1,12 @@
 import { isEnabled } from "@/lib/capabilities";
-import { serverSite } from "@/lib/site";
 import {
+  currentHelperProvider,
   HELPER_SCOPES,
   helperConsent,
   recordHelperConsent,
   revokeHelperConsent,
   type HelperScope,
 } from "@/lib/helper/consent";
-import { HELPER_PROVIDER } from "@/lib/helper/model";
-import { speechProvider } from "@/lib/helper/transcribe";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 
 export const dynamic = "force-dynamic";
@@ -76,8 +74,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
    * The provider a scope records is who the person agreed to, and for this one
    * that is the operator of the instance they are already writing on.
    */
-  const provider =
-    scope === "speech" ? speechProvider() : scope === "sessions" ? serverSite().name : HELPER_PROVIDER;
+  const provider = currentHelperProvider(scope);
   return Response.json({ ok: true, consent: recordHelperConsent(user, provider, scope) });
 }
 
