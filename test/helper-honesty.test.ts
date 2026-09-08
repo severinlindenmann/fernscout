@@ -620,6 +620,33 @@ describe("saying what something adds up to", () => {
     });
   }
 
+  /**
+   * How somebody asks once they have stopped wanting detail — B962.
+   *
+   * Verified live: after an honest answer naming 15 BAM and 1500 MKD as
+   * outside the total, *"just the number then"* came back as *"Danube Circuit
+   * cost 240.476 CHF so far"* with no cost read on the turn — and the
+   * disclosure was gone. The matcher wanted "so far" *before* a figure and had
+   * no pattern at all for "X cost N", which is the plainest way to say it.
+   *
+   * The shape is not chance. It is the phrasing of the moment a person is
+   * least likely to check the number they are given.
+   */
+  for (const said of [
+    "Danube Circuit cost 240.476 CHF so far.",
+    "Roughly 240 CHF for Danube Circuit so far.",
+    "You have spent 240 CHF.",
+    "Die Reise hat 240 Franken gekostet.",
+    "Bisher 240 Franken.",
+    "Du hast 240 Franken ausgegeben.",
+    "Az út eddig 240 frankba került.",
+    "Eddig 240 frankot költöttél.",
+  ]) {
+    test(`is a total: ${said}`, () => {
+      expect(claimsATotal(said)).toBe(true);
+    });
+  }
+
   for (const said of [
     // Her own figure, echoed back while proposing to record it. Not a claim
     // about the trip, and the commonest sentence in this whole product.
@@ -889,6 +916,35 @@ describe("a total the tool said was partial", () => {
     // Twice asked, twice only the convertible half: she gets no figure rather
     // than a smaller trip than the one she took.
     expect(String(answered.body.answer)).not.toContain("31");
+  });
+
+  /**
+   * And one turn later, from memory — B962.
+   *
+   * The disclosure held on every turn that called the tool, and was gone on
+   * the next: *"just the number then"* came back as *"Danube Circuit cost
+   * 240.476 CHF so far"* with `looked: []`. The same harm as the bug B960
+   * closed, one turn after the fix reached.
+   *
+   * No new mechanism was needed once the matcher could see the sentence:
+   * B955's rule — a total stated with no cost read on this turn — covers the
+   * memory case on its own, and always did.
+   *
+   * The honest limit, since this test would hide it otherwise: a retry that
+   * rephrases into something the matcher cannot see gets through. *"Doch, 240
+   * Franken."* is not a total to `A_TOTAL` and never will be without matching
+   * every bare figure, which would catch the person's own gelato. That is the
+   * standing cost of matching text, and the reason the reads themselves are
+   * where the real guarantees live.
+   */
+  test("a bare number a turn later, from memory, is caught by the same rule", async () => {
+    create
+      .mockResolvedValueOnce(says("Die Reise hat bisher 240 Franken gekostet."))
+      .mockResolvedValueOnce(says("Doch, die Reise hat 240 Franken gekostet."));
+    const answered = await read(await ask("nur die zahl bitte"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).not.toContain("240");
   });
 
   test("and left alone when the answer names what was left out", async () => {

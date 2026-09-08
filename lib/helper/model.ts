@@ -935,7 +935,24 @@ const A_TOTAL = new RegExp(
     "\\baltogether\\b",
     "\\ball together\\b",
     "\\bcomes? to\\b",
+    /**
+     * *"so far"* on **either** side of the figure, and the plainest phrasing
+     * of all beside it — B962.
+     *
+     * This matched `so far` followed by a number and nothing else, so
+     * *"Danube Circuit cost 240.476 CHF so far"* was not a total. Neither was
+     * *"Roughly 240 CHF for Danube Circuit so far"*. Both were said with no
+     * cost read on the turn, a turn after an honest answer had named the
+     * money that could not be converted — so the disclosure was dropped and
+     * nothing noticed.
+     *
+     * That both follow-ups had this shape is not chance: it is how somebody
+     * asks for a number once they have stopped wanting detail, which is
+     * exactly when they are least likely to check it.
+     */
     "\\bso far\\b[^.!?]{0,40}\\d",
+    "\\d[^.!?]{0,40}\\bso far\\b",
+    "\\b(?:cost|spent|came to)\\b[^.!?]{0,40}\\d",
     "\\baverage\\b",
     "\\ba day\\b[^.!?]{0,20}\\d|\\d[^.!?]{0,20}\\ba day\\b",
     // de
@@ -944,6 +961,10 @@ const A_TOTAL = new RegExp(
     "\\bgesamt\\w*\\b",
     "\\bdurchschnitt\\w*\\b",
     "\\bpro tag\\b",
+    // de — "hat 240 gekostet", "bisher 240", "240 ausgegeben"
+    "\\bgekostet\\b",
+    "\\bbisher\\b[^.!?]{0,40}\\d|\\d[^.!?]{0,40}\\bbisher\\b",
+    "\\bausgegeben\\b",
     /**
      * hu — and **no leading `\b`** on these two, deliberately.
      *
@@ -956,12 +977,22 @@ const A_TOTAL = new RegExp(
     "\u00f6sszesen\\b",
     "\u00e1tlag\\w*",
     "\\bnaponta\\b",
+    // hu — "került", "eddig", "költöttél"
+    "\\bker\u00fclt\\b",
+    "\\beddig\\b[^.!?]{0,40}\\d|\\d[^.!?]{0,40}\\beddig\\b",
+    "\\bk\u00f6lt\u00f6tt\\w*",
   ].join("|"),
   "i",
 );
 
-/** A figure — any of the three currencies' shapes, or a bare number of them. */
-const A_FIGURE = /\d[\d.,\u00a0']*\s*(?:[\u20ac\u00a3$]|\b(?:chf|eur|usd|gbp|huf|franken?|francs?|euros?|pounds?|forint\w*|dollars?)\b)|(?:[\u20ac\u00a3$]|\b(?:chf|eur|usd|gbp|huf)\b)\s*\d/i;
+/**
+ * A figure — any of the three currencies' shapes, or a bare number of them.
+ *
+ * The names take `\w*` because two of the three languages decline them:
+ * *"240 frankba került"*, *"240 frankot költöttél"*. B962 found both by
+ * writing the sentences out, which is the only way this kind of gap surfaces.
+ */
+const A_FIGURE = /\d[\d.,\u00a0']*\s*(?:[\u20ac\u00a3$]|\b(?:chf|eur|usd|gbp|huf|frank\w*|franc\w*|euro\w*|pound\w*|forint\w*|dollar\w*)\b)|(?:[\u20ac\u00a3$]|\b(?:chf|eur|usd|gbp|huf)\b)\s*\d/i;
 
 /**
  * True when this text states what something adds up to.
