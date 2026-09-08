@@ -188,6 +188,7 @@ export default function HelperAsk({
   onSubject,
   onFilesMoved,
   inRoom = false,
+  opened = [],
 }: {
   username: string;
   /** Whether this journal has already agreed to a model being spoken to
@@ -230,6 +231,9 @@ export default function HelperAsk({
    * to fill its column instead of stopping at 60% of the viewport.
    */
   inRoom?: boolean;
+  /** A conversation reopened by URL, oldest first — B984. Drawn, not resumed;
+   *  see the state below. */
+  opened?: { said: string | null; answered: string | null }[];
 }) {
   const { t } = useI18n();
   // Closed until somebody asks for it — B767. The one thing this card is for
@@ -244,7 +248,24 @@ export default function HelperAsk({
   // `not_your_journal` with nothing on the screen, read it as the software
   // being broken, and closed the tab.
   const [lapsed, setLapsed] = useState(false);
-  const [turns, setTurns] = useState<Exchange[]>([]);
+  /**
+   * A conversation reopened by URL starts with what was stored — B984.
+   *
+   * Read once, into the initial state, rather than pushed in by an effect: the
+   * turns are already on the server's render and an effect would draw the room
+   * empty and then fill it, which is a flash on every reopen.
+   *
+   * **Reopening is reading.** These turns are here to be seen; the next thing
+   * anybody types starts from the twelve-turn window the model would have had
+   * anyway, because the thread they came from expired half an hour after it
+   * was last spoken to.
+   */
+  const [turns, setTurns] = useState<Exchange[]>(() =>
+    opened.map((turn) => ({
+      said: turn.said ?? "",
+      blocks: turn.answered ? [{ shape: "say" as const, text: turn.answered }] : [],
+    })),
+  );
   /** The last thing the microphone heard — B893. Kept only so it can be said
    *  aloud once and shown as correctable; the words themselves live in the
    *  field, where they can be edited. */

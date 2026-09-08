@@ -87,7 +87,7 @@ export default function OwnerTools({
             </button>
           ) : (
             <Link
-              href={`/agent/${encodeURIComponent(username)}?trip=${encodeURIComponent(day.tripId)}&slug=${day.slug}&date=${day.date}`}
+              href={`/agent?about=${encodeURIComponent(`${day.tripId}/${day.slug}`)}`}
               className={OWNER_TOOL}
             >
               {t("agent.correctDay")}

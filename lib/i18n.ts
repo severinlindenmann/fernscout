@@ -334,6 +334,7 @@ export type TranslationKey =
   | "agent.room.closePreview"
   | "agent.room.files"
   | "agent.room.filesHint"
+  | "agent.room.whichJournal"
   | "agent.room.hideFiles"
   | "agent.room.hidePreview"
   | "agent.room.inbox"

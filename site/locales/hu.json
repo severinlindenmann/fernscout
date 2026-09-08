@@ -1550,6 +1550,7 @@
   "agent.room.roomLink": "Vagy beszéljük meg — a fájljaiddal és egy előnézettel egymás mellett",
   "agent.room.files": "Fájlok",
   "agent.room.filesHint": "Válassz ki néhányat, aztán mondd meg, mi legyen velük — „ezek kerüljenek a tegnapi napra”.",
+  "agent.room.whichJournal": "Melyik napló",
   "agent.room.kept": "A beszélgetéseid megmaradnak, hogy újra megnyithasd őket. Olvassuk őket, hogy jobb legyen a Fernscout — ezt a saját oldaladon kikapcsolhatod.",
   "agent.room.inbox": "Besorolásra vár",
   "agent.room.onTrip": "Ezen az úton: {trip}",

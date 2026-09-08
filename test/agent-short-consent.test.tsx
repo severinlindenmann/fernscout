@@ -115,7 +115,6 @@ function door(signupEnabled: boolean) {
         signedIn={false}
         identityEmail={null}
         signupEnabled={signupEnabled}
-        journals={[] as AgentJournal[]}
       />
     </LocaleProvider>,
   );

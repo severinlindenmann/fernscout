@@ -62,13 +62,16 @@ export default function HelperAskHere({
 
   if (!offered) return null;
 
+  // B984 — one URL, and the day it was pressed on rides as `about`. B994 is
+  // what makes the conversation on the other end know about it rather than
+  // merely drawing it in a pane.
   const context = day
-    ? `?trip=${encodeURIComponent(day.tripId)}&slug=${encodeURIComponent(day.slug)}`
+    ? `?about=${encodeURIComponent(`${day.tripId}/${day.slug}`)}`
     : "";
 
   return (
     <Link
-      href={`/agent/${encodeURIComponent(username)}/chat${context}`}
+      href={`/agent${context}`}
       className="inline-block min-h-11 text-xs font-semibold text-navy-700 underline underline-offset-4 transition-colors hover:text-navy-900"
     >
       {t("agent.askHereOpen")}

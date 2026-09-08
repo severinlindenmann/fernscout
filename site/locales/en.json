@@ -1550,6 +1550,7 @@
   "agent.room.roomLink": "Or talk it through, with your files and a preview beside you",
   "agent.room.files": "Files",
   "agent.room.filesHint": "Pick a few, then say what to do with them — “put these on yesterday”.",
+  "agent.room.whichJournal": "Which journal",
   "agent.room.kept": "Your conversations are saved so you can open them again. We read them to make Fernscout better — you can turn that off on your own page.",
   "agent.room.inbox": "Waiting to be filed",
   "agent.room.onTrip": "On {trip}",
