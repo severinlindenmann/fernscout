@@ -7,8 +7,7 @@ complexity: low
 area: agent
 found: "2026-09-07T14:24:47Z"
 started: "2026-09-08T19:51:06Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T19:51:06Z"
+merged: "2026-09-08T20:11:56Z"
 ---
 
 # B782 — Asking what you have spent answers with app credits
