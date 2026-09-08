@@ -2754,7 +2754,14 @@ export function openApiDocument() {
             "Two files are kept for each one sent: a resized copy for the browser and the " +
             "original for print. Send the largest you have — for a URL upload the original " +
             "is whatever the remote host served, so a 2000px source is what a photobook " +
-            "will be printed from, and there is no way to get the pixels back later.\n\n" +
+            "will be printed from, and there is no way to get the pixels back later. The " +
+            "served copy is always a JPEG, whatever was sent, which is why the reply names " +
+            "it `01.jpg`; the original is untouched and `kept` reports its bytes.\n\n" +
+            "**Nothing is read out of the files.** No EXIF is opened, so a photograph " +
+            "carrying GPS and a DateTimeOriginal adds no `lat`, `lng`, `location`, " +
+            "`country` or `time` to the day. Send those on the day itself — POST or PATCH " +
+            "`/days` take them. The local `npm run ingest` CLI is the one thing here that " +
+            "reads a card's EXIF, and it runs where the journal lives.\n\n" +
             `**The whole request may carry ${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(0)} MB**, which is a different limit from ` +
             "the per-file one and is the one a batch of phone originals meets first. Over " +
             "it the answer is 413 `body_too_large`, naming the cap and what arrived; " +
