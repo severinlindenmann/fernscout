@@ -37,6 +37,7 @@ import {
   typeScale,
   type BookPage,
   type BookVolume,
+  MAP_SPACE,
   type MappedPoint,
   type PhotoPlacement,
   type RouteView,
@@ -47,6 +48,8 @@ import { drawVehicle } from "./vehicles.ts";
 import { graticuleStep } from "./graticule.ts";
 import { PALETTE, rgbOf, type ChartShape } from "./charts.ts";
 import { landPaths, toPdfPath } from "./worldland.ts";
+import { basemapForRoute } from "../basemap.ts";
+
 
 /**
  * The palette. Two inks and one accent, in RGB.
@@ -69,6 +72,13 @@ const LAND = { r: 0.925, g: 0.918, b: 0.902 };
 const GRATICULE = { r: 0.87, g: 0.86, b: 0.84 };
 
 const LAND_EDGE = { r: 0.84, g: 0.83, b: 0.81 };
+/** The basemap, in tones that survive being printed small and in one colour
+ * family — a route map in a book is a backdrop, not an atlas. */
+const RELIEF = { r: 0.90, g: 0.892, b: 0.874 };
+const GLACIER = { r: 0.965, g: 0.968, b: 0.975 };
+const WATER = { r: 0.847, g: 0.878, b: 0.898 };
+const WATER_LINE = { r: 0.76, g: 0.81, b: 0.85 };
+const BORDER = { r: 0.72, g: 0.71, b: 0.69 };
 const GUIDE = { r: 0.9, g: 0.2, b: 0.5 };
 
 type ImageLoader = (file: string) => Uint8Array;
@@ -372,6 +382,41 @@ function visibleLand(window: { x: number; y: number; width: number; height: numb
   );
 }
 
+/**
+ * The land under a route, from the same basemap the website draws.
+ *
+ * `lib/worldLand.json` is 1:110m *coastline* with points 63 km apart, which
+ * B46 measured as saying almost nothing: an inland trip was drawn on a blank
+ * field at every zoom, because Switzerland has no coast. The website stopped
+ * using it then; the book did not, and a four-day loop over three Alpine
+ * passes printed two pages of bare graticule.
+ *
+ * `lib/basemap.ts` already assembles borders, lakes, rivers, relief and
+ * glaciers per frame out of Natural Earth 10m. Two things make it drop
+ * straight in: its projection is the same equirectangular 1000x500 this
+ * planner uses, and shapes arrive as path strings that `toPdfPath` already
+ * knows how to draw.
+ *
+ * A web frame multiplies x by `lngScale` — `cos` of the middle latitude, so a
+ * map of Switzerland is not stretched sideways — but **only for the labels**.
+ * The path geometry arrives unscaled, in the same units this planner uses.
+ * Dividing it through by `lngScale` as well put the Alps at x 749 on a page
+ * showing 520 to 527, and printed a spread of flat colour with the whole
+ * basemap somewhere off to the right.
+ */
+function basemapUnder(points: MappedPoint[], project: (x: number, y: number) => [number, number]) {
+  if (points.length === 0) return null;
+  // The projection is invertible, so the plan does not have to carry lat/lng
+  // as well as the projected pair it already has.
+  const latLng = points.map((p) => ({
+    lat: 90 - (p.y / MAP_SPACE.height) * 180,
+    lng: (p.x / MAP_SPACE.width) * 360 - 180,
+  }));
+  const bundle = basemapForRoute(latLng);
+  if (!bundle) return null;
+  return { bundle, project };
+}
+
 function drawRoutePage(
   page: Page,
   frame: Frame,
@@ -397,6 +442,22 @@ function drawRoutePage(
       stroke: LAND_EDGE,
       lineWidth: 0.3,
     });
+  }
+
+  // Then the detail, in the order a cartographer would lay it: ground, ice,
+  // water, then the lines people drew on it. Roads, railways and towns are
+  // deliberately left out — this is the backdrop to a journey, and a book
+  // page is small.
+  const under = basemapUnder(points, project);
+  if (under) {
+    const paint = (paths: readonly string[], style: Parameters<typeof PdfBuilder.drawPath>[2]) => {
+      for (const d of paths) PdfBuilder.drawPath(page, toPdfPath(d, under.project), style);
+    };
+    paint(under.bundle.relief, { fill: RELIEF });
+    paint(under.bundle.glaciers, { fill: GLACIER });
+    paint(under.bundle.lakes, { fill: WATER, stroke: WATER_LINE, lineWidth: 0.2 });
+    paint(under.bundle.rivers, { stroke: WATER_LINE, lineWidth: 0.35 });
+    paint(under.bundle.borders, { stroke: BORDER, lineWidth: 0.4 });
   }
 
   /**
