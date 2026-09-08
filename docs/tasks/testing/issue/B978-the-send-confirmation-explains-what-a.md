@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: day page, owner tools
 found: "2026-09-08T16:10:26Z"
+merged: "2026-09-08T16:20:32Z"
 ---
 
 # B978 — The send confirmation explains what a credit is worth, on a day page nobody asked about pricing on

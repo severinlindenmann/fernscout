@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: day page, helper
 found: "2026-09-08T16:10:32Z"
+merged: "2026-09-08T16:20:32Z"
 ---
 
 # B979 — Asking for something else opens a box on the day rather than the room that can answer

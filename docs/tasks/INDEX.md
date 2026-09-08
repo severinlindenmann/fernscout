@@ -49,9 +49,9 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (136)
+## backlog (134)
 
-### issue (43)
+### issue (42)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -80,7 +80,6 @@ Do not edit them by hand; run the script.
 | [B952](backlog/issue/B952-half-of-a-two-part-request.md) | Half of a two-part request is answered and the other half is dropped without a word | ISSUE | medium | medium |
 | [B971](backlog/issue/B971-saying-a-draft-looks-good-re.md) | Saying a draft looks good re-offers the same card instead of the next one | ISSUE | medium | low |
 | [B977](backlog/issue/B977-the-send-confirmation-explains-what-a.md) | The send confirmation explains what a credit is worth, on a day page nobody asked about pricing on | ISSUE | medium | low |
-| [B978](backlog/issue/B978-the-send-confirmation-explains-what-a.md) | The send confirmation explains what a credit is worth, on a day page nobody asked about pricing on | ISSUE | medium | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B750](backlog/issue/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low |
@@ -121,7 +120,7 @@ Do not edit them by hand; run the script.
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 | [B909](backlog/big-feature/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-### small-feature (24)
+### small-feature (23)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -140,7 +139,6 @@ Do not edit them by hand; run the script.
 | [B852](backlog/small-feature/B852-a-journal-s-languages-units-and.md) | A journal's languages, units and currencies cannot be changed anywhere | FEATURE | medium | medium |
 | [B92](backlog/small-feature/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
-| [B979](backlog/small-feature/B979-asking-for-something-else-opens-a.md) | Asking for something else opens a box on the day rather than the room that can answer | FEATURE | medium | low |
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 | [B539](backlog/small-feature/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
 | [B666](backlog/small-feature/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
@@ -231,7 +229,7 @@ _Nothing here._
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 | [B982](in-development/B982-the-send-flow-jumps-pressing-send.md) | The send flow jumps: pressing send reloads the page instead of posting the card | FEATURE | medium | medium | `b8352d66` |
 
-## testing (183)
+## testing (185)
 
 ### security (7)
 
@@ -245,7 +243,7 @@ _Nothing here._
 | [B908](testing/security/B908-a-leaked-agent-token-can-be.md) | A leaked agent token can be listed and not ended | SECURITY | medium | low | — |
 | [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (106)
+### issue (107)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -345,6 +343,7 @@ _Nothing here._
 | [B970](testing/issue/B970-whether-a-day-is-on-the.md) | Whether a day is on the site is answered from the person's own sentence | ISSUE | medium | low | — |
 | [B972](testing/issue/B972-one-question-in-another-language-switches.md) | One question in another language switches the conversation into it for good | ISSUE | medium | low | — |
 | [B974](testing/issue/B974-live-search-analytics-outranks-costs-for.md) | Live search: Analytics outranks Costs for a costs word, and Gallery, Map and Story have no synonyms at all | ISSUE | medium | low | — |
+| [B978](testing/issue/B978-the-send-confirmation-explains-what-a.md) | The send confirmation explains what a credit is worth, on a day page nobody asked about pricing on | ISSUE | medium | low | — |
 | [B726](testing/issue/B726-the-landing-page-tells-a-self.md) | The landing page tells a self-hoster with the helper off that the agent may be this instance's own | ISSUE | low | low | — |
 | [B742](testing/issue/B742-the-api-docs-page-scrolls-sideways.md) | The API docs page scrolls sideways on a phone | ISSUE | low | low | — |
 | [B748](testing/issue/B748-the-disclosure-that-hides-the-agent.md) | The disclosure that hides the agent instructions looks like a link, so nothing says it opens | ISSUE | low | low | — |
@@ -372,7 +371,7 @@ _Nothing here._
 | [B904](testing/big-feature/B904-search-matches-words-not-meaning-a.md) | Search matches words, not meaning — a person who asks for a topic in their own words gets nothing | FEATURE | medium | high | — |
 | [B689](testing/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high | — |
 
-### small-feature (41)
+### small-feature (42)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -412,6 +411,7 @@ _Nothing here._
 | [B903](testing/small-feature/B903-search-knows-only-six-destinations-the.md) | Search knows only six destinations — the sign-in door, the helper, the inbox, costs, weather and the imprint are unfindable | FEATURE | medium | medium | — |
 | [B933](testing/small-feature/B933-nothing-tells-you-who-can-actually.md) | Nothing tells you who can actually read what you just published | FEATURE | medium | low | — |
 | [B947](testing/small-feature/B947-the-room-reserves-a-quarter-of.md) | The room reserves a quarter of the screen for an empty files pane and never says which day it is previewing | FEATURE | medium | medium | — |
+| [B979](testing/small-feature/B979-asking-for-something-else-opens-a.md) | Asking for something else opens a box on the day rather than the room that can answer | FEATURE | medium | low | — |
 | [B688](testing/small-feature/B688-a-new-visitor-cannot-make-a.md) | A new visitor cannot make a journal inside the helper | FEATURE | low | medium | — |
 | [B737](testing/small-feature/B737-the-travel-scene-s-vehicles-exist.md) | The travel scene's vehicles exist only on the web, so a book cannot show how a leg was travelled | FEATURE | low | medium | — |
 | [B753](testing/small-feature/B753-sending-a-sign-in-code-gives.md) | Sending a sign-in code gives no sign that anything was sent | FEATURE | low | low | — |
