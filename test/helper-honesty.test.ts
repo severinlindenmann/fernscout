@@ -15,6 +15,7 @@ import {
   claimsWhatIsNotThere,
   claimsAButton,
   claimsATotal,
+  claimsItIsUp,
   claimsProposedWords,
   claimsAWrite,
   honestyCounts,
@@ -1075,5 +1076,73 @@ describe("what the person is not told about", () => {
     create.mockResolvedValueOnce(says("Die Kosten der Reise stehen noch auf null."));
     const answered = await read(await ask("was hat sie gekostet"));
     expect(String(answered.body.answer)).toBe("Die Kosten der Reise stehen noch auf null.");
+  });
+});
+
+/* ------------------------------------------ whether it is on the site --- */
+
+/**
+ * The question somebody asks when they are anxious — B970.
+ *
+ * > "I pressed it, is June 13th live now?"
+ * > "Yes, June 13th is live on the site now."
+ *
+ * `looked: []`. No read, no check: the answer was an inference from the
+ * person's own sentence. It happened to be true, because they had just pressed
+ * publish, and it was true by luck.
+ *
+ * B932 settled this shape for what a day *says*. Whether it is **up** is the
+ * same kind of claim and is the one that gets asked precisely because somebody
+ * is unsure — the answer is the whole of what they get. That a press happened
+ * is not the same fact: what makes a day published is the day.
+ */
+describe("saying whether a day is on the site", () => {
+  for (const said of [
+    "Yes, June 13th is live on the site now.",
+    "It is up.",
+    "The day is now published.",
+    "It is still a draft.",
+    "Der Tag ist jetzt online.",
+    "Er steht jetzt auf der Seite.",
+    "Der Tag ist noch ein Entwurf.",
+    "A nap fent van.",
+    "Még piszkozat.",
+  ]) {
+    test(`is such a claim: ${said}`, () => {
+      expect(claimsItIsUp(said)).toBe(true);
+    });
+  }
+
+  for (const said of [
+    // Proposing to publish is not saying it is published — and this is the
+    // sentence the product says most often.
+    "Press the button and I will put it on the site.",
+    "Shall I publish it?",
+    "Soll ich den Tag veröffentlichen?",
+    "Ich lege dir das zum Veröffentlichen hin.",
+  ]) {
+    test(`is not: ${said}`, () => {
+      expect(claimsItIsUp(said)).toBe(false);
+    });
+  }
+
+  test("is caught when nothing was read", async () => {
+    create
+      .mockResolvedValueOnce(says("Ja, der Tag ist jetzt online."))
+      .mockResolvedValueOnce(says("Doch, der Tag ist jetzt online."));
+    const answered = await read(await ask("ist der tag jetzt oben?"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).not.toContain("online");
+  });
+
+  test("and left alone when the day was actually read", async () => {
+    create
+      .mockResolvedValueOnce(calls("read_day", { trip: "Die Reise", date: "2026-05-01" }))
+      .mockResolvedValueOnce(says("Der Tag ist noch ein Entwurf."));
+    const answered = await read(await ask("ist der tag jetzt oben?"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toBe("Der Tag ist noch ein Entwurf.");
   });
 });

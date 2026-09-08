@@ -896,6 +896,51 @@ const SAYS_WHAT_IT_SAYS = new RegExp(
   "i",
 );
 
+/**
+ * Whether a day is on the site — B970.
+ *
+ * > "I pressed it, is June 13th live now?"
+ * > "Yes, June 13th is live on the site now."
+ *
+ * No read, no check: the answer was an inference from the person's own
+ * sentence. It happened to be true, because they had just pressed publish, and
+ * it was true by luck.
+ *
+ * B932 settled this shape for what a day *says*. Whether it is **up** is the
+ * same kind of claim and is the one somebody asks when they are anxious — they
+ * ask precisely because they are unsure, and the answer is the whole of what
+ * they get. A `written:` note that publish_day was pressed is not the same
+ * fact: what makes a day published is the day.
+ *
+ * Deliberately narrow. It is the *state* being asserted — "it is up", "it is
+ * not on the site" — and not the word "publish", which appears in every
+ * ordinary sentence about publishing something later.
+ */
+const ON_THE_SITE = new RegExp(
+  [
+    // en
+    "\\b(?:is|are|it's|they're)\\s+(?:now\\s+)?(?:live|up|online|published|public)\\b",
+    "\\b(?:is|are)\\s+(?:now\\s+)?on\\s+the\\s+site\\b",
+    "\\b(?:is|are)\\s+(?:still\\s+)?a\\s+draft\\b",
+    // de
+    "\\b(?:ist|sind)\\s+(?:jetzt\\s+)?(?:online|ver\u00f6ffentlicht|live)\\b",
+    "\\b(?:steht|stehen)\\s+(?:jetzt\\s+)?auf\\s+der\\s+seite\\b",
+    "\\b(?:ist|sind)\\s+(?:noch\\s+)?(?:ein\\s+)?entwurf\\b",
+    // hu
+    "\\b(?:fent van|fenn van|el van intézve)\\b",
+    "\\bk\u00f6zz\u00e9 van t\u00e9ve\\b",
+    "\\bpiszkozat\\b",
+  ].join("|"),
+  "i",
+);
+
+/** True when this text asserts whether a day is on the site. */
+export function claimsItIsUp(text: string): boolean {
+  return withoutMarkers(text)
+    .split(/(?<=[.!?\n])\s+/)
+    .some((sentence) => ON_THE_SITE.test(sentence));
+}
+
 /** True when this text asserts what a day contains. */
 export function claimsWhatADaySays(text: string): boolean {
   return withoutMarkers(text)
@@ -1172,6 +1217,14 @@ Answer again. Call read_day first, and quote the words that are actually there b
 /**
  * What the model is told when it has totalled somebody's money itself — B955.
  */
+/**
+ * What the model is told when it said whether a day was on the site without
+ * looking — B970.
+ */
+const IS_IT_UP_RETRY = `Stop. Your last answer said whether a day is on the site, and you did not read that day on this turn. Their having pressed something is not the same fact: what makes a day published is the day.
+
+Answer again after calling read_day. It tells you whether that day is a draft, and that is the only thing that does. They are asking because they are not sure, and a guess that happens to be right is the same sentence as a guess that is wrong.`;
+
 const COUNT_IT_RETRY = `Stop. Your last answer said what something adds up to, and you did not read this trip's costs on this turn. You cannot add up from memory: you will miss what was recorded a minute ago, and a wrong number about somebody's money reads exactly like a right one.
 
 Answer again. Call trip_costs — it returns the total, the daily average and how many days have nothing recorded, all worked out from what is actually written down — and give them those figures. If you would rather not call it, say the total without a number and tell them to ask again.`;
@@ -1387,11 +1440,17 @@ export async function answerInThread(
     return found;
   }
 
-  function amiss(): "" | "claim" | "pending" | "words" | "access" | "day" | "total" | "partial" | "invented" {
+  function amiss(): "" | "claim" | "pending" | "words" | "access" | "day" | "up" | "total" | "partial" | "invented" {
     if (claimsAccess(answer) && !proposals.some((one) => one.tool === "invite_guest")) {
       return "access";
     }
     if (claimsWhatADaySays(answer) && !looked.includes("read_day")) return "day";
+    /**
+     * B970 — whether it is on the site, asserted without looking. The press
+     * having happened is not the same fact as the day being up, so a written
+     * note does not excuse it: `read_day` is what knows.
+     */
+    if (claimsItIsUp(answer) && !looked.includes("read_day")) return "up";
     // B955 — the arithmetic is the server's and was not asked for it.
     if (claimsATotal(answer) && !looked.includes("trip_costs")) return "total";
     /**
@@ -1492,6 +1551,7 @@ export async function answerInThread(
     words: WORDS_RETRY,
     access: ACCESS_RETRY,
     day: READ_IT_RETRY,
+    up: IS_IT_UP_RETRY,
     total: COUNT_IT_RETRY,
     partial: PARTIAL_RETRY,
     invented: INVENTED_RETRY,
@@ -1512,6 +1572,7 @@ export async function answerInThread(
     words: "agent.noWordsProposed",
     access: "agent.noAccessYet",
     day: "agent.notRead",
+    up: "agent.notRead",
     total: "agent.notCounted",
     partial: "agent.notCounted",
     invented: "agent.notCounted",
