@@ -7,8 +7,7 @@ complexity: medium
 area: Postcards
 found: "2026-09-08T18:40:00Z"
 started: "2026-09-08T18:34:28Z"
-session: b8352d66-3105-4f5d-a703-f8809d0b08e6
-claimed: "2026-09-08T18:34:28Z"
+merged: "2026-09-08T18:53:07Z"
 ---
 
 # B1010 — The postcard prints the web copy of the photograph, then warns that it is small
