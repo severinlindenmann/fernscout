@@ -117,6 +117,15 @@ export type Tool = Named &
           /** The person's own today, from their browser — "yesterday" is
            *  answered from where they are standing, not from the server. */
           today: string,
+          /**
+           * What is ticked in the files pane, as the browser sends it — B925.
+           *
+           * A tool that needs the selection reads it here rather than asking
+           * the person for ids they cannot see. Most tools declare four
+           * parameters and ignore this one, which is what a narrower function
+           * signature is allowed to do.
+           */
+          selected: string[],
         ) => Promise<Proposed>;
         /** The helper route the press posts to — never `/api/v1`, never a
          *  route that deletes. `test/helper-tools.test.ts` asserts the list. */
@@ -137,19 +146,55 @@ export type Tool = Named &
       }
   );
 
-/** The trip somebody means when they name one, or the newest when they do
- *  not — the one a person writing today is almost always talking about. */
+/** Letters and digits, lower case, everything else a single space — so
+ *  "Georgia 2026", "georgia-2026" and "GEORGIA" are one word to compare. */
+function flatten(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/**
+ * The trip somebody means — **by name, not by id** (B927).
+ *
+ * The model was guessing an id back from the title: it made a trip called
+ * Georgia, the server answered `georgia-2026`, and two turns later it wrote
+ * `georgia` and got `unknown_trip` three times in one session. An id it never
+ * handles is an id it cannot get wrong, so this takes whatever the person
+ * called the trip — the id, the title, half the title — and resolves it here,
+ * the way `read_day` already resolves a date.
+ *
+ * Exact id first, so nothing that used to work stops. Then the title, then a
+ * prefix, then anything containing it, newest first at every step. Nothing
+ * matching still falls through to the newest trip, which is what a person
+ * mid-write-up almost always means.
+ */
 function resolveTrip(username: string, id?: string) {
-  const trips = getTrips(username);
-  if (id) {
-    const named = trips.find((one) => one.id === id);
-    if (named) return named;
+  const trips = [...getTrips(username)].sort((a, b) => b.start.localeCompare(a.start));
+  const said = flatten(id ?? "");
+  if (said !== "") {
+    const exact = trips.find((one) => one.id === id?.trim());
+    if (exact) return exact;
+    return (
+      trips.find((one) => flatten(one.id) === said) ??
+      trips.find((one) => flatten(one.title) === said) ??
+      trips.find((one) => flatten(one.id).startsWith(said) || flatten(one.title).startsWith(said)) ??
+      trips.find((one) => flatten(one.id).includes(said) || flatten(one.title).includes(said)) ??
+      trips[0]
+    );
   }
-  return [...trips].sort((a, b) => b.start.localeCompare(a.start))[0];
+  return trips[0];
 }
 
 const TRIP_ARG = {
-  trip: { type: "string" as const, description: "The trip id. Omit for the newest trip." },
+  trip: {
+    type: "string" as const,
+    // B927 — never an id the model composed. What the person called it is
+    // resolved here against the trips that exist.
+    description:
+      "The trip as they name it — its title, or part of it. Never invent an id. Omit for the newest.",
+  },
 };
 
 const DAY_ARGS = {
@@ -167,11 +212,40 @@ function resolveDay(username: string, args: Record<string, string>) {
   const trip = resolveTrip(username, args.trip);
   if (!trip) return null;
   const entries = getAllEntries(trip.ref, AS_AUTHOR);
-  const found =
-    entries.find((entry) => entry.slug === args.slug) ??
-    entries.find((entry) => entry.date === args.date) ??
-    [...entries].sort((a, b) => b.date.localeCompare(a.date))[0];
-  return found ? { trip, entry: found } : null;
+  const bySlug = args.slug ? entries.find((entry) => entry.slug === args.slug) : undefined;
+  if (bySlug) return { trip, entry: bySlug };
+  /**
+   * **A date nobody wrote a day for is not the newest day** — B925.
+   *
+   * "Put these on yesterday", where yesterday has no day yet, used to fall
+   * through to whatever was written last: a proposal about the wrong day, or
+   * — when the trip had no days at all — a proposal with an empty slug, which
+   * is the `unknown_day` the press came back with. Saying there is no such day
+   * is the honest answer, and `proposalFor` below makes sure there is nothing
+   * to press when there is nothing to press it on.
+   */
+  if (args.date) {
+    const onDate = entries.find((entry) => entry.date === args.date);
+    return onDate ? { trip, entry: onDate } : null;
+  }
+  const newest = [...entries].sort((a, b) => b.date.localeCompare(a.date))[0];
+  return newest ? { trip, entry: newest } : null;
+}
+
+/**
+ * The trip a proposal is about, even when the day is not there — B925.
+ *
+ * `resolveDay` answers null for a date nobody has written, and the trip field
+ * used to fall back to whatever the model typed: a proposal about a day that
+ * does not exist reported a trip that does not exist either, and the sentence
+ * a person read named the wrong missing half.
+ */
+function tripIdFor(
+  username: string,
+  args: Record<string, string>,
+  found: { trip: { id: string } } | null,
+): string {
+  return found?.trip.id ?? resolveTrip(username, args.trip)?.id ?? args.trip ?? "";
 }
 
 /**
@@ -537,7 +611,7 @@ export const TOOLS: readonly Tool[] = [
         accept: say("agent.tool.draftWordsAccept"),
         done: say("agent.tool.draftWordsDone"),
         fields: [
-          { name: "trip", value: found?.trip.id ?? args.trip ?? "" },
+          { name: "trip", value: tripIdFor(username, args, found) },
           { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
           { name: "date", value: found?.entry.date ?? args.date ?? "", date: true },
           { name: "notes", value: args.notes ?? "", long: true },
@@ -565,7 +639,7 @@ export const TOOLS: readonly Tool[] = [
         accept: say("agent.tool.setWordsAccept"),
         done: say("agent.tool.setWordsDone"),
         fields: [
-          { name: "trip", value: found?.trip.id ?? args.trip ?? "" },
+          { name: "trip", value: tripIdFor(username, args, found) },
           { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
           { name: "title", value: args.title ?? found?.entry.title ?? "" },
           { name: "content", value: args.content ?? "", long: true },
@@ -601,7 +675,7 @@ export const TOOLS: readonly Tool[] = [
         accept: say("agent.tool.addCostAccept"),
         done: say("agent.tool.addCostDone"),
         fields: [
-          { name: "trip", value: found?.trip.id ?? args.trip ?? "" },
+          { name: "trip", value: tripIdFor(username, args, found) },
           { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
           { name: "date", value: args.date ?? found?.entry.date ?? "", date: true },
           { name: "label", value: args.label ?? "" },
@@ -642,7 +716,7 @@ export const TOOLS: readonly Tool[] = [
             )
           : [],
         fields: [
-          { name: "trip", value: found?.trip.id ?? args.trip ?? "" },
+          { name: "trip", value: tripIdFor(username, args, found) },
           { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
         ],
       };
@@ -673,7 +747,7 @@ export const TOOLS: readonly Tool[] = [
         accept: say("agent.tool.unpublishDayAccept"),
         done: say("agent.tool.unpublishDayDone"),
         fields: [
-          { name: "trip", value: found?.trip.id ?? args.trip ?? "" },
+          { name: "trip", value: tripIdFor(username, args, found) },
           { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
         ],
       };
@@ -702,23 +776,36 @@ export const TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "confirm",
     describe:
-      "Propose putting photographs waiting in the journal's inbox onto a day — what they mean by \"put these on yesterday\" about the files pane's selection. `files` is those ids, comma-separated, copied from the selection line, never invented. Nothing moves until they press.",
+      "Propose putting photographs waiting in the inbox onto a day — \"put these on yesterday\", about the files pane. Leave `files` out: what they ticked is known here. Never ask them for an id.",
     properties: {
       ...DAY_ARGS,
       files: {
         type: "string",
-        description: "The inbox ids, comma-separated, from the selection line.",
+        description: "Omit it: the ticked files are used.",
       },
     },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/attach`,
-    propose: async (username, args, say) => {
+    propose: async (username, args, say, _today, selected) => {
       const found = resolveDay(username, args);
+      /**
+       * **The selection is resolved here, not read out by a person** — B925.
+       *
+       * The browser sends what is ticked on every turn. It used to reach the
+       * tool only as a sentence in the model's context, so a model that did
+       * not copy the ids asked *them* for ids — which appear nowhere on the
+       * screen. What the model says is used when it says something; otherwise
+       * the tick is the answer.
+       */
+      const asking =
+        (args.files ?? "").trim() !== ""
+          ? (args.files ?? "").split(",")
+          : selected.filter((id) => id.startsWith("inbox:")).map((id) => id.slice("inbox:".length));
       // Resolved against disk, here as well as in the route: an id is a
       // reference and never a fact, and a proposal must name the files a
       // person will actually get rather than the ones a model typed.
       const names: string[] = [];
       const ids: string[] = [];
-      for (const asked of (args.files ?? "").split(",")) {
+      for (const asked of asking) {
         const staged = findInboxFile(username, asked.trim());
         if (!staged || staged.entry.kind !== "media") continue;
         names.push(staged.entry.filename);
@@ -741,7 +828,7 @@ export const TOOLS: readonly Tool[] = [
         // Their own filenames: nothing here is this software's prose.
         preview: onto ? [`${onto.entry.date} — ${onto.entry.title}`, ...names] : [],
         fields: [
-          { name: "trip", value: found?.trip.id ?? args.trip ?? "" },
+          { name: "trip", value: tripIdFor(username, args, found) },
           { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
           { name: "files", value: ids.join(",") },
         ],
@@ -834,8 +921,34 @@ export async function proposalFor(
   args: Record<string, string>,
   say: Say,
   today: string,
-): Promise<{ proposal: Proposal; blocks: Block[] }> {
-  const made = await tool.propose(username, args, say, today);
+  selected: string[] = [],
+): Promise<{ proposal?: Proposal; blocks: Block[] }> {
+  const made = await tool.propose(username, args, say, today, selected);
+
+  /**
+   * **A proposal that cannot work is not offered** — B925, and B920's rule
+   * applied to this side of the screen.
+   *
+   * Every route a press posts to needs the trip, the day and — for an attach
+   * — the files. A field left empty because nothing resolved used to be
+   * proposed anyway: the button was there, the sentence said the photographs
+   * were going onto the day, and the press came back `unknown_day` with the
+   * files still in the inbox. One check, in the one place every proposal is
+   * built, so a tool cannot forget it: no button, and a sentence saying which
+   * half is missing.
+   */
+  const empty = (name: string) => made.fields.some((field) => field.name === name && field.value.trim() === "");
+  const missing = empty("trip")
+    ? "agent.tool.noTrip"
+    : empty("slug")
+      ? "agent.tool.noDay"
+      : empty("files")
+        ? "agent.tool.noFiles"
+        : "";
+  if (missing !== "") {
+    return { blocks: [{ shape: "say", text: say(missing) }] };
+  }
+
   const proposal: Proposal = {
     tool: tool.name,
     arguments: args,
@@ -885,6 +998,9 @@ export async function runTool(
   args: unknown,
   say: Say,
   today: string,
+  /** What is ticked in the files pane — B925, resolved by the tool that needs
+   *  it rather than read out to the model by a person. */
+  selected: string[] = [],
 ): Promise<Ran> {
   const tool = TOOLS.find((one) => one.name === name);
   if (!tool) {
@@ -896,7 +1012,25 @@ export async function runTool(
     // Nothing is executed. `propose` may read this journal to fill a field in
     // or to draw the day; there is no `run` on a write tool to call, and the
     // press is what posts to `endpoint`.
-    const { proposal, blocks } = await proposalFor(username, tool, strings, say, today);
+    const { proposal, blocks } = await proposalFor(username, tool, strings, say, today, selected);
+    if (!proposal) {
+      // Nothing resolved, so there is nothing to press — and the model is told
+      // so in the same words the person is, rather than being left to say a
+      // button is waiting further down the page (B920).
+      return {
+        // Not an error: the tool answered, and what it answered is that there
+        // is nothing to propose. `ok: false` would be `is_error` on the model's
+        // tool result, and this is a fact about the journal rather than a fault.
+        ok: true,
+        result: {
+          proposed: false,
+          wrote: false,
+          tool: tool.name,
+          why: "nothing was proposed and there is no button on their screen: say so, and ask which trip or which day they mean",
+        },
+        blocks,
+      };
+    }
     return {
       ok: true,
       // What the model reads back, so its own sentence can say a proposal is

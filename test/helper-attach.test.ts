@@ -141,6 +141,83 @@ describe("two photographs, ticked and put on a day", () => {
     expect(getEntryBySlug(REF, SLUG, AS_AUTHOR)?.gallery ?? []).toHaveLength(0);
   });
 
+  /**
+   * **Nobody is asked for an id** — B925.
+   *
+   * The pane's "2 selected" line carries no id, and in one live run the model
+   * asked the person to read the ids out; he had to fetch them from the API.
+   * The browser already sends what is ticked, so the tool resolves it itself
+   * and the model's arguments carry nothing but the day.
+   */
+  test("the ticked files are resolved server-side, with no ids in the call", async () => {
+    const one = await stage("harbour.jpg", 1);
+    const two = await stage("boats.jpg", 2);
+    const ran = await runTool(
+      "alex",
+      "attach_files",
+      { date: "2026-05-04" },
+      (key) => key,
+      "2026-05-05",
+      [`inbox:${one.entry.id}`, `inbox:${two.entry.id}`],
+    );
+    expect(ran.proposal?.fields).toEqual([
+      { name: "trip", value: TRIP },
+      { name: "slug", value: SLUG },
+      { name: "files", value: `${one.entry.id},${two.entry.id}` },
+    ]);
+
+    // And the press the proposal describes puts them on the day.
+    const response = await attach(
+      Object.fromEntries((ran.proposal?.fields ?? []).map((field) => [field.name, field.value])),
+    );
+    expect(response.status).toBe(201);
+    expect(getEntryBySlug(REF, SLUG, AS_AUTHOR)?.gallery).toHaveLength(2);
+    expect(listInbox("alex").media).toHaveLength(0);
+  });
+
+  /**
+   * **A trip is named, not identified** — B927, and very likely B925's own
+   * root: an id derived from a title rather than remembered.
+   */
+  for (const named of ["Over the pass", "over the pass", "over", "a-trip"]) {
+    test(`"${named}" resolves to the trip that exists`, async () => {
+      const one = await stage("harbour.jpg", 1);
+      const ran = await runTool(
+        "alex",
+        "attach_files",
+        { trip: named, date: "2026-05-04" },
+        (key) => key,
+        "2026-05-05",
+        [`inbox:${one.entry.id}`],
+      );
+      expect(ran.proposal?.fields[0]).toEqual({ name: "trip", value: TRIP });
+    });
+  }
+
+  /**
+   * **A day nobody has written is not a day to press on** — B925.
+   *
+   * "Put these on yesterday" where yesterday has no day used to propose
+   * against whatever was written last, or against an empty slug: the press
+   * answered `unknown_day` while the sentence above it said the photographs
+   * were on the day. There is nothing to press now, and the sentence says so.
+   */
+  test("a date with no day proposes nothing at all", async () => {
+    const one = await stage("harbour.jpg", 1);
+    const ran = await runTool(
+      "alex",
+      "attach_files",
+      { date: "2026-05-09" },
+      (key) => key,
+      "2026-05-10",
+      [`inbox:${one.entry.id}`],
+    );
+    expect(ran.proposal).toBeUndefined();
+    expect(ran.blocks).toEqual([{ shape: "say", text: "agent.tool.noDay" }]);
+    expect(ran.result).toMatchObject({ proposed: false, wrote: false });
+    expect(listInbox("alex").media).toHaveLength(1);
+  });
+
   test("the press puts them on the day and empties the inbox", async () => {
     const one = await stage("harbour.jpg", 1);
     const two = await stage("boats.jpg", 2);

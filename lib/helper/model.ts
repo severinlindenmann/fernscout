@@ -506,7 +506,11 @@ WHAT HAPPENS WHEN YOU CALL ONE THAT WRITES
 
 Nothing, yet. A tool that writes does not write: it puts a proposal on their screen — the fields filled in, editable, with one button — and only their press changes anything at all. So call the write tool as soon as you understand what they want, rather than asking them to confirm in words first: the proposal *is* the confirmation, and it is a better one than a sentence because they can see and correct every field before pressing.
 
-Say what it will do, once, plainly. Never say a thing has been done: say it is ready for them to press.
+Say what it will do, once, plainly.
+
+NEVER TELL THEM SOMETHING HAS BEEN SAVED, STARTED, PUBLISHED OR ADDED. Only their press does that, and you cannot press. Not after they say yes either: their yes is not the press. Say what you are about to propose, or that a proposal is on their screen. If this turn made no proposal, there is nothing on their screen — never send them looking down the page for a button, say plainly that nothing has been saved.
+
+Never ask them for an id — not a trip id, not a day slug, not a file id. None of those are on their screen. Name the trip as they do and the day by its date; this software resolves them.
 
 If they tell you a proposal is wrong — "no, the 14th", "make it private", "that title is not right" — call the same tool again with the correction applied and everything else kept. That produces a new proposal in place of the old one. Do not apologise, do not explain the mechanism, and never ask them to retype what they already said.
 
@@ -555,12 +559,109 @@ export type ThreadAnswer = {
 };
 
 /**
+ * A line written for the model, never for the person — B924.
+ *
+ * `lib/helper/thread.ts` keeps these as notes rather than as assistant text,
+ * so there is nothing in the conversation for a model to copy. This is the
+ * second half of that, and it is belt to the other's braces: a model that
+ * writes a bracketed marker of its own — because it saw one in a tool result,
+ * or because it is a model — has it taken out of its answer before anybody
+ * reads it. Whole lines only: a sentence about a proposal is prose and stays.
+ */
+const MARKER_LINE = /^[ \t]*\[(?:proposed|written|pressed|selected)\b[^\]]*\][ \t]*$/gim;
+
+function withoutMarkers(text: string): string {
+  return text.replace(MARKER_LINE, "").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/**
+ * Does this sentence say a thing has been done? — B920.
+ *
+ * The deepest failure this product has had: every mechanical guard held, no
+ * write happened, and a 71-year-old was told *"Der Text ist gespeichert."*
+ * The claim and the act have to be the same thing, and the server is the one
+ * place that holds both halves — the model's words, and whether the turn
+ * carries a proposal.
+ *
+ * Matched in the three maintained languages, on the **past** of the four verbs
+ * that mean a journal changed: saved, started, published, added. Deliberately
+ * blunt. A false positive costs one retry; a false negative is the sentence
+ * this ticket exists about, so the balance is not even.
+ *
+ * Not a guard on its own — `answerInThread` is what acts on it — and never a
+ * gate on a write, because nothing here writes anything anyway.
+ */
+const CLAIM = new RegExp(
+  [
+    // en — "is saved", "I have added it", "has been published", "it's on the site now"
+    "\\b(?:is|are|was|were|been|have|has|i've|i have)\\s+(?:now\\s+|already\\s+)?(?:saved|stored|started|created|published|added|attached|written|recorded)\\b",
+    "\\b(?:saved|started|created|published|added|attached|recorded)\\s+(?:it|them|that|the day|the trip)\\b",
+    "\\bit\\s+is\\s+on\\s+the\\s+site\\b",
+    "\\bthey\\s+are\\s+on\\s+the\\s+day\\b",
+    // de — "ist gespeichert", "habe ich hinzugefügt", "wurde veröffentlicht"
+    "\\b(?:ist|sind|wurde|wurden|habe|hab|haben)\\s+(?:\\S+\\s+){0,3}?(?:gespeichert|angelegt|erstellt|begonnen|angefangen|ver\u00f6ffentlicht|hinzugef\u00fcgt|eingetragen|gesichert)\\b",
+    "\\b(?:gespeichert|ver\u00f6ffentlicht|hinzugef\u00fcgt|angelegt|erstellt|eingetragen)\\.",
+    // hu — "elmentettem", "mentve van", "közzétettem", "hozzáadtam", "létrehoztam"
+    "\\b(?:elmentettem|elmentve|mentve|k\u00f6zz\u00e9tettem|k\u00f6zz\u00e9t\u00e9ve|hozz\u00e1adtam|hozz\u00e1adva|l\u00e9trehoztam|l\u00e9trehozva|elkezdtem|r\u00f6gz\u00edtettem)\\b",
+  ].join("|"),
+  "i",
+);
+
+/**
+ * A sentence that says the opposite — and it is the sentence the honest
+ * answer is made of.
+ *
+ * "Nichts ist gespeichert", "nothing has been saved yet", "der Text ist noch
+ * nicht gespeichert": every one of them carries a past tense of the four verbs
+ * and every one of them is exactly what a model told to be honest will write.
+ * Matched per sentence, so a claim standing next to a denial is still a claim.
+ */
+const DENIED = /\b(?:not|n't|no|nothing|never|nicht|nichts|kein\w*|nem|nincs|semmi)\b/i;
+
+/** True when this text tells somebody a thing has already happened. */
+export function claimsAWrite(text: string): boolean {
+  return withoutMarkers(text)
+    .split(/(?<=[.!?\n])\s+/)
+    .some((sentence) => CLAIM.test(sentence) && !DENIED.test(sentence));
+}
+
+/**
+ * What the model is told when it has claimed a write it did not make — B920.
+ *
+ * A retry rather than a strip: stripping leaves a hole in a paragraph and
+ * tells nobody anything, and a retry usually produces the proposal that
+ * *should* have been there, which is the answer the person wanted. It costs
+ * one turn.
+ */
+const HONESTY_RETRY = `Stop. Your last answer told them something had been saved, started, published or added, and nothing was: this turn carries no proposal, so nothing has changed in their journal and there is no button on their screen.
+
+Answer again. Either call the tool that proposes what they asked for — that is what puts a button in front of them — or say plainly, in their language, that nothing has been saved yet and what you need from them. Never claim a thing has happened. Never tell them to look further down the page for a button that is not there.`;
+
+/**
+ * How often a turn claimed a write it had not made — B920.
+ *
+ * A counter rather than a log line per turn: the *rate* is what says whether
+ * the prompt is at fault or the model is, and it is read by `/api/health` and
+ * by the test. Never a person's words, never a journal name; two integers.
+ */
+const honesty = { turns: 0, claimed: 0, unrecovered: 0 };
+
+/** The claim-without-proposal rate since this process started. */
+export function honestyCounts(): { turns: number; claimed: number; unrecovered: number } {
+  return { ...honesty };
+}
+
+/**
  * One turn: the conversation so far, one new sentence, and a few tool calls.
  *
  * Throws only when the model itself fails — the route answers `502` and the
  * person's own words are still in the box. A tool that fails is not a failure
  * of the turn: `runTool` hands the model a value it can read, and the answer
  * is a sentence about it.
+ *
+ * `selected` is what is ticked in the files pane, passed through to the tools
+ * so that `attach_files` resolves it itself — B925. Nobody is ever asked to
+ * read an id off a screen that does not show one.
  */
 export async function answerInThread(
   username: string,
@@ -568,78 +669,122 @@ export async function answerInThread(
   turns: Turn[],
   today: string,
   say: Say,
+  selected: string[] = [],
 ): Promise<ThreadAnswer> {
   const client = new Anthropic();
-  const messages: Anthropic.MessageParam[] = [
-    ...turns.map((turn) => ({ role: turn.role, content: turn.text })),
-    { role: "user" as const, content: said },
-  ];
+  /**
+   * The conversation, with the notes folded in — B924.
+   *
+   * A note is written for the model and rides on the **next user message**,
+   * exactly as the files pane's selection line already does. Nothing the model
+   * wrote is ever handed back to it with a marker inside, so there is nothing
+   * for it to imitate.
+   */
+  const messages: Anthropic.MessageParam[] = [];
+  let pending = "";
+  for (const turn of turns) {
+    if (turn.role === "note") {
+      pending = pending === "" ? turn.text : `${pending}\n${turn.text}`;
+      continue;
+    }
+    if (turn.role === "user") {
+      messages.push({ role: "user", content: pending === "" ? turn.text : `${turn.text}\n${pending}` });
+      pending = "";
+      continue;
+    }
+    messages.push({ role: "assistant", content: turn.text });
+  }
+  messages.push({ role: "user" as const, content: pending === "" ? said : `${said}\n${pending}` });
+
   const looked: string[] = [];
   const blocks: Block[] = [];
   const proposals: Proposal[] = [];
 
-  for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
-    const response = await client.messages.create({
+  /** The rounds, over the messages built above. Returns what it said. */
+  async function rounds(): Promise<string> {
+    for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
+      const response = await client.messages.create({
+        model: HELPER_MODEL,
+        max_tokens: THREAD_MAX_TOKENS,
+        system: threadSystemPrompt(today),
+        tools: toolSchemas(),
+        messages,
+      });
+      await book(username, "ask_thread", response.usage);
+
+      const calls = response.content.filter(
+        (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
+      );
+      const text = response.content
+        .map((block) => (block.type === "text" ? block.text : ""))
+        .join("")
+        .trim();
+
+      if (calls.length === 0) return text;
+
+      messages.push({ role: "assistant", content: response.content });
+      const results: Anthropic.ToolResultBlockParam[] = [];
+      for (const call of calls) {
+        looked.push(call.name);
+        const { ok, result, blocks: drawn, proposal } = await runTool(
+          username,
+          call.name,
+          call.input,
+          say,
+          today,
+          selected,
+        );
+        blocks.push(...drawn);
+        if (proposal) proposals.push(proposal);
+        results.push({
+          type: "tool_result",
+          tool_use_id: call.id,
+          is_error: !ok,
+          content: JSON.stringify(result).slice(0, 20000),
+        });
+      }
+      messages.push({ role: "user", content: results });
+    }
+
+    // Four rounds and it is still calling tools. Rather than a fifth, ask for
+    // the answer with the tools taken away — the reads are all in the
+    // conversation by now, and a sentence about them is what was wanted.
+    const last = await client.messages.create({
       model: HELPER_MODEL,
       max_tokens: THREAD_MAX_TOKENS,
       system: threadSystemPrompt(today),
-      tools: toolSchemas(),
       messages,
     });
-    await book(username, "ask_thread", response.usage);
-
-    const calls = response.content.filter(
-      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
-    );
-    const text = response.content
-      .map((block) => (block.type === "text" ? block.text : ""))
-      .join("")
-      .trim();
-
-    if (calls.length === 0) return { answer: text, looked, blocks, proposals };
-
-    messages.push({ role: "assistant", content: response.content });
-    const results: Anthropic.ToolResultBlockParam[] = [];
-    for (const call of calls) {
-      looked.push(call.name);
-      const { ok, result, blocks: drawn, proposal } = await runTool(
-        username,
-        call.name,
-        call.input,
-        say,
-        today,
-      );
-      blocks.push(...drawn);
-      if (proposal) proposals.push(proposal);
-      results.push({
-        type: "tool_result",
-        tool_use_id: call.id,
-        is_error: !ok,
-        content: JSON.stringify(result).slice(0, 20000),
-      });
-    }
-    messages.push({ role: "user", content: results });
-  }
-
-  // Four rounds and it is still calling tools. Rather than a fifth, ask for
-  // the answer with the tools taken away — the reads are all in the
-  // conversation by now, and a sentence about them is what was wanted.
-  const last = await client.messages.create({
-    model: HELPER_MODEL,
-    max_tokens: THREAD_MAX_TOKENS,
-    system: threadSystemPrompt(today),
-    messages,
-  });
-  await book(username, "ask_thread", last.usage);
-  return {
-    answer: last.content
+    await book(username, "ask_thread", last.usage);
+    return last.content
       .map((part) => (part.type === "text" ? part.text : ""))
       .join("")
-      .trim(),
-    looked,
-    blocks,
-    proposals,
-  };
+      .trim();
+  }
+
+  honesty.turns += 1;
+  let answer = withoutMarkers(await rounds());
+
+  /**
+   * The claim and the act, checked against each other — B920.
+   *
+   * One retry, and then the truth plainly: if it says a second time that
+   * something was saved while nothing is waiting to be pressed, its own words
+   * are dropped rather than shown. A hole in a paragraph is survivable; being
+   * told your day is safe when it is not is what put somebody's phone down.
+   */
+  if (proposals.length === 0 && claimsAWrite(answer)) {
+    honesty.claimed += 1;
+    messages.push({ role: "assistant", content: answer === "" ? "…" : answer });
+    messages.push({ role: "user", content: HONESTY_RETRY });
+    answer = withoutMarkers(await rounds());
+    if (proposals.length === 0 && claimsAWrite(answer)) {
+      honesty.unrecovered += 1;
+      answer = say("agent.nothingHappened");
+    }
+  }
+
+  return { answer, looked, blocks, proposals };
 }
 
 /* -------------------------------------------------------------------------

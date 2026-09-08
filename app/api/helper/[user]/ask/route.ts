@@ -4,7 +4,7 @@ import type { Block } from "@/lib/helper/blocks";
 import { refusalFor, type Say } from "@/lib/helper/intents";
 import { answerInThread } from "@/lib/helper/model";
 import { describeSelection, isHelperOwner, notYourJournal } from "@/lib/helper/server";
-import { forget, history, remember } from "@/lib/helper/thread";
+import { forget, history, note, remember } from "@/lib/helper/thread";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -199,7 +199,16 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
    */
   let thread;
   try {
-    thread = await answerInThread(user, context === "" ? said : `${said}\n${context}`, history(user), today, say);
+    thread = await answerInThread(
+      user,
+      context === "" ? said : `${said}\n${context}`,
+      history(user),
+      today,
+      say,
+      // What is ticked, resolved by the tool that needs it — B925. Nobody is
+      // asked to read an id off a screen that shows none.
+      selected,
+    );
   } catch {
     return Response.json({ error: "model_failed" }, { status: 502 });
   }
@@ -211,23 +220,27 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   }
 
   /**
-   * What is remembered, and why a proposal is part of it.
+   * What is remembered, and **who each half is written for** — B924.
    *
    * "no, the 14th" is the sentence this whole feature is for, and it is only
-   * answerable if the next turn knows what was proposed. The turn's own prose
-   * says a proposal is waiting; it does not say the trip was called Japan and
-   * ran from the first to the fourteenth. So the arguments ride along, in one
-   * bracketed line the model reads as context — and marked as *not written*,
-   * so a later turn cannot mistake a proposal for a fact about the journal.
+   * answerable if the next turn knows what was proposed. So the arguments ride
+   * along in one bracketed line, marked as *not written* so a later turn
+   * cannot mistake a proposal for a fact about the journal.
+   *
+   * That line used to be glued onto the end of the assistant's own answer,
+   * which is how it reached a person's screen: the model read its last answer
+   * back as prose containing a bracketed marker and, every so often, wrote one
+   * itself — a proposal "waiting to be pressed" with no card and no button.
+   * It is a **note** now (`lib/helper/thread.ts`): the model sees it, it is
+   * never assistant text, and there is nothing left to imitate.
    */
-  const remembered = [
-    thread.answer,
-    ...thread.proposals.map(
-      (proposal) =>
-        `[proposed, not written, waiting to be pressed: ${proposal.tool} ${JSON.stringify(proposal.arguments)}]`,
-    ),
-  ].join("\n");
-  remember(user, said, remembered);
+  remember(user, said, thread.answer);
+  for (const proposal of thread.proposals) {
+    note(
+      user,
+      `[proposed, not written, waiting to be pressed: ${proposal.tool} ${JSON.stringify(proposal.arguments)}]`,
+    );
+  }
 
   return Response.json({
     ok: true,

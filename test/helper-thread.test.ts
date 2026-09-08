@@ -275,22 +275,37 @@ describe("the conversation", () => {
     expect(second[2]).toEqual({ role: "user", content: "und wie lange" });
   });
 
-  test("a proposal is remembered as a proposal, so a correction can be made", async () => {
+  test("a proposal is remembered as a note, so a correction can be made", async () => {
     create
       .mockResolvedValueOnce(calls("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-14" }))
       .mockResolvedValueOnce(says("Fertig zum Drücken."));
     await ask("neue reise nach japan");
-    const remembered = history("alex")[1].text;
-    expect(remembered).toContain("create_trip");
-    expect(remembered).toContain("2027-03-14");
-    expect(remembered).toContain("not written");
 
-    // And the correction goes out with that context in front of it.
+    /**
+     * **The marker is a note, and the answer is the answer** — B924.
+     *
+     * It used to be glued onto the end of the assistant's own text, and a
+     * designer watched it render as literal prose with no card and no button.
+     * The model reading its own last answer back as something containing a
+     * bracketed line is how that happened, so the assistant turn is now the
+     * words and nothing else.
+     */
+    const turns = history("alex");
+    expect(turns.map((turn) => turn.role)).toEqual(["user", "assistant", "note"]);
+    expect(turns[1].text).toBe("Fertig zum Drücken.");
+    expect(turns[1].text).not.toContain("create_trip");
+    expect(turns[2].text).toContain("create_trip");
+    expect(turns[2].text).toContain("2027-03-14");
+    expect(turns[2].text).toContain("not written");
+
+    // And the correction goes out with that context alongside it — on the
+    // person's own next message, where the selection line already rides.
     create.mockResolvedValueOnce(says("Geändert."));
     await ask("nein, der 14.");
     const second = sent[2].messages as { role: string; content: string }[];
-    expect(second[1].content).toContain("create_trip");
-    expect(second[2].content).toBe("nein, der 14.");
+    expect(second[1].content).toBe("Fertig zum Drücken.");
+    expect(second[2].content).toContain("nein, der 14.");
+    expect(second[2].content).toContain("create_trip");
   });
 
   test("nothing carries over between journals", async () => {
@@ -395,9 +410,21 @@ describe("what a turn costs", () => {
    * here so the next person adding a tool sees what it costs rather than
    * finding out from a bill.
    */
-  test("the prompt and the tool list stay under thirty-four hundred tokens", () => {
+  /**
+   * **Thirty-seven hundred since B920**, and what the three hundred bought.
+   *
+   * A 71-year-old was told "Der Text ist gespeichert." on a turn that wrote
+   * nothing, and then sent scrolling for a button that was not there. Two
+   * paragraphs of the prompt now say that only her press saves anything and
+   * that a turn with no proposal has nothing on her screen; the trip argument
+   * says the trip is named rather than identified, because the model was
+   * inventing `georgia` for `georgia-2026` (B927). At Haiku's input price the
+   * three hundred tokens are a fraction of a rappen a turn, and the sentence
+   * they replace was one somebody believed.
+   */
+  test("the prompt and the tool list stay under thirty-seven hundred tokens", () => {
     const schemas = TOOLS.map((tool) => JSON.stringify(tool.properties) + tool.describe).join("");
     const characters = threadSystemPrompt("2026-09-07").length + schemas.length;
-    expect(Math.round(characters / 4)).toBeLessThan(3400);
+    expect(Math.round(characters / 4)).toBeLessThan(3700);
   });
 });
