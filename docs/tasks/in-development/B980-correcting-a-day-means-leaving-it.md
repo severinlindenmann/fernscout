@@ -6,6 +6,9 @@ priority: high
 complexity: high
 area: day page, owner tools
 found: "2026-09-08T16:10:32Z"
+started: "2026-09-08T16:22:01Z"
+session: a4bbb185-df72-4880-be96-ae7a2513e05a
+claimed: "2026-09-08T16:22:01Z"
 ---
 
 # B980 — Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at
