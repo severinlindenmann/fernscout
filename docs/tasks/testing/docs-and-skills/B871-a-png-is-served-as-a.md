@@ -7,8 +7,7 @@ complexity: low
 area: docs, media
 found: "2026-09-07T17:36:51Z"
 started: "2026-09-08T05:05:25Z"
-session: 41335894-5435-4167-8cb6-898e370cd6a9
-claimed: "2026-09-08T05:05:25Z"
+merged: "2026-09-08T05:10:38Z"
 ---
 
 # B871 — A PNG is served as a JPEG and nothing says so
