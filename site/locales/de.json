@@ -1743,5 +1743,18 @@
   "purchase.refund.footer": "Du bekommst diese Nachricht, weil ein Kauf auf deinem Journal zurückerstattet wurde. Antworte darauf, falls etwas nicht stimmt.",
   "me.txRefunded": "Erstattet",
   "pricing.rowPhotobookPrint": "… gedruckt und verschickt",
-  "pricing.rowPhotobookPrintDetail": "In der Schweiz gedruckt und verschickt, an wen du willst. Für dein Buch und deine Adresse offeriert, bevor du bestellst — hier ein quadratisches Softcover mit {pages} Seiten an eine Schweizer Adresse"
+  "pricing.rowPhotobookPrintDetail": "In der Schweiz gedruckt und verschickt, an wen du willst. Für dein Buch und deine Adresse offeriert, bevor du bestellst — hier ein quadratisches Softcover mit {pages} Seiten an eine Schweizer Adresse",
+  "edit.heading": "Diesen Tag korrigieren",
+  "edit.body": "Deine Worte, so wie sie auf der Seite stehen. Speichern schreibt sie direkt ins Journal.",
+  "edit.date": "Datum",
+  "edit.title": "Titel",
+  "edit.time": "Uhrzeit",
+  "edit.place": "Ort",
+  "edit.text": "Text",
+  "edit.inLanguage": "Auf {language}",
+  "edit.whoSees": "Wer diesen Eintrag sieht",
+  "edit.seenAsTrip": "Alle, die die Reise hereinlässt",
+  "edit.save": "Speichern",
+  "edit.cancel": "Abbrechen",
+  "edit.failed": "Das wurde nicht gespeichert. Es wurde nichts geändert."
 }

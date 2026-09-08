@@ -1743,5 +1743,18 @@
   "purchase.refund.footer": "Sent because a purchase on your journal was refunded. Reply to this message if anything looks wrong.",
   "me.txRefunded": "Refunded",
   "pricing.rowPhotobookPrint": "…printed on paper and posted",
-  "pricing.rowPhotobookPrintDetail": "Printed in Switzerland and posted to whoever you choose. Quoted for your book and your address before you order — this is a {pages}-page square softcover to a Swiss address"
+  "pricing.rowPhotobookPrintDetail": "Printed in Switzerland and posted to whoever you choose. Quoted for your book and your address before you order — this is a {pages}-page square softcover to a Swiss address",
+  "edit.heading": "Correct this day",
+  "edit.body": "Your words, as they are on the page. Saving writes them straight to the journal.",
+  "edit.date": "Date",
+  "edit.title": "Title",
+  "edit.time": "Time",
+  "edit.place": "Place",
+  "edit.text": "Text",
+  "edit.inLanguage": "In {language}",
+  "edit.whoSees": "Who sees this update",
+  "edit.seenAsTrip": "Everyone the trip lets in",
+  "edit.save": "Save",
+  "edit.cancel": "Cancel",
+  "edit.failed": "That did not save. Nothing has been changed."
 }

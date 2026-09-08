@@ -42,10 +42,20 @@ import { OWNER_TOOL } from "./ownerToolClass";
 export default function OwnerTools({
   username,
   day,
+  onCorrect,
 }: {
   username: string;
   /** Omitted on the trip overview, where the day-specific controls have no day. */
   day?: { tripId: string; slug: string; date: string; published: boolean };
+  /**
+   * What the correction tile does where the day itself can be edited — B980.
+   *
+   * Given (the day card), it opens the panel on the page: the mistake is on
+   * screen and the fix belongs beside it. Absent (the trip overview), the tile
+   * is the link to the wizard it has been since B816, because there is no one
+   * day there to correct.
+   */
+  onCorrect?: () => void;
 }) {
   const { t } = useI18n();
 
@@ -70,14 +80,19 @@ export default function OwnerTools({
             a published one: a draft has its own banner above and is in the
             resume list. It opens the wizard on the day's lead update, which is
             the one the page is named for. */}
-        {day?.published && (
-          <Link
-            href={`/agent/${encodeURIComponent(username)}?trip=${encodeURIComponent(day.tripId)}&slug=${day.slug}&date=${day.date}`}
-            className={OWNER_TOOL}
-          >
-            {t("agent.correctDay")}
-          </Link>
-        )}
+        {day?.published &&
+          (onCorrect ? (
+            <button type="button" onClick={onCorrect} className={OWNER_TOOL}>
+              {t("agent.correctDay")}
+            </button>
+          ) : (
+            <Link
+              href={`/agent/${encodeURIComponent(username)}?trip=${encodeURIComponent(day.tripId)}&slug=${day.slug}&date=${day.date}`}
+              className={OWNER_TOOL}
+            >
+              {t("agent.correctDay")}
+            </Link>
+          ))}
       </div>
 
       {/* The rule is the point: above it are the things with their own button,

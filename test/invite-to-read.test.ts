@@ -49,7 +49,10 @@ describe("the share control on a day", () => {
     const trip = fs.readFileSync(path.join(root, "app/TripStory.tsx"), "utf8");
     // Only for somebody who could have published it. `canPublish` is exactly
     // `isOwner` — see `lib/tripGate.ts`.
-    expect(day).toMatch(/trip\?\.canPublish[\s\S]{0,80}<OwnerTools/);
+    // B980 put the edit panel in the same branch, so the gate and the block
+    // are further apart than they were — what matters is that nothing between
+    // them reopens it.
+    expect(day).toMatch(/trip\?\.canPublish[\s\S]{0,600}<OwnerTools/);
     expect(trip).toMatch(/trip\?\.canPublish[\s\S]{0,80}<OwnerTools/);
   });
 });

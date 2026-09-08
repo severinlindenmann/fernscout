@@ -1743,5 +1743,18 @@
   "purchase.refund.footer": "Azért kapod, mert a naplódon egy vásárlást visszatérítettünk. Válaszolj erre az üzenetre, ha valami nem stimmel.",
   "me.txRefunded": "Visszatérítve",
   "pricing.rowPhotobookPrint": "…papírra nyomtatva és postázva",
-  "pricing.rowPhotobookPrintDetail": "Svájcban nyomtatva és oda postázva, ahová kéred. A könyvedre és a címedre szóló árajánlatot még a megrendelés előtt megkapod — ez itt egy {pages} oldalas, négyzetes, puha borítós könyv svájci címre"
+  "pricing.rowPhotobookPrintDetail": "Svájcban nyomtatva és oda postázva, ahová kéred. A könyvedre és a címedre szóló árajánlatot még a megrendelés előtt megkapod — ez itt egy {pages} oldalas, négyzetes, puha borítós könyv svájci címre",
+  "edit.heading": "A nap javítása",
+  "edit.body": "A saját szavaid, ahogy az oldalon állnak. A mentés egyből a naplóba írja őket.",
+  "edit.date": "Dátum",
+  "edit.title": "Cím",
+  "edit.time": "Időpont",
+  "edit.place": "Hely",
+  "edit.text": "Szöveg",
+  "edit.inLanguage": "{language} nyelven",
+  "edit.whoSees": "Ki látja ezt a bejegyzést",
+  "edit.seenAsTrip": "Mindenki, akit az utazás beenged",
+  "edit.save": "Mentés",
+  "edit.cancel": "Mégse",
+  "edit.failed": "Nem sikerült menteni. Semmi sem változott."
 }
