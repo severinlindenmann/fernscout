@@ -142,20 +142,33 @@ afterEach(async () => {
 });
 
 describe("what a recording costs", () => {
-  test("any recording at all costs one credit, and five minutes still does", () => {
-    expect(creditsForSeconds(1)).toBe(1);
-    expect(creditsForSeconds(61)).toBe(1);
+  // B987 — the rate did not change and the grain did: five minutes is still
+  // one credit, and the six-second question that used to cost the same as
+  // five minutes now costs two hundredths.
+  test("five minutes is still one credit, and the rate is unchanged either side of it", () => {
     expect(creditsForSeconds(300)).toBe(1);
-  });
-
-  test("a second past five minutes costs two", () => {
-    expect(creditsForSeconds(301)).toBe(2);
+    expect(creditsForSeconds(600)).toBe(2);
     expect(creditsForSeconds(900)).toBe(3);
   });
 
-  test("is always a whole number, which is what `spend` requires", () => {
+  test("a short recording costs a fraction, not a whole credit", () => {
+    expect(creditsForSeconds(1)).toBe(0.01);
+    expect(creditsForSeconds(3)).toBe(0.01);
+    expect(creditsForSeconds(6)).toBe(0.02);
+    expect(creditsForSeconds(61)).toBe(0.21);
+  });
+
+  test("any recording at all costs something — a charge of nothing cannot be audited", () => {
+    expect(creditsForSeconds(0.4)).toBe(0.01);
+    expect(creditsForSeconds(0)).toBe(0.01);
+    expect(creditsForSeconds(-1)).toBe(0.01);
+  });
+
+  test("is always a whole number of hundredths, which is what `spend` requires", () => {
     for (const seconds of [0.4, 7, 59.5, 240.2, 631]) {
-      expect(Number.isInteger(creditsForSeconds(seconds))).toBe(true);
+      const credits = creditsForSeconds(seconds);
+      expect(Number.isInteger(Math.round(credits * 100))).toBe(true);
+      expect(Math.abs(Math.round(credits * 100) - credits * 100)).toBeLessThan(1e-6);
     }
   });
 });
@@ -243,16 +256,16 @@ describe("the ledger", () => {
     await consent();
   });
 
-  test("a twelve-second recording costs one credit", async () => {
+  test("a twelve-second recording costs four hundredths of a credit", async () => {
     const done = await read(await call());
-    expect(done.body.spent).toBe(1);
-    expect(await balanceOf("alex")).toBe(9);
+    expect(done.body.spent).toBe(0.04);
+    expect(await balanceOf("alex")).toBe(9.96);
   });
 
-  test("a six-minute recording costs two", async () => {
+  test("a six-minute recording costs a credit and a fifth", async () => {
     const done = await read(await call({ seconds: 361 }));
-    expect(done.body.spent).toBe(2);
-    expect(await balanceOf("alex")).toBe(8);
+    expect(done.body.spent).toBe(1.21);
+    expect(await balanceOf("alex")).toBe(8.79);
   });
 
   test("a retry under one idempotency key charges once", async () => {
@@ -260,7 +273,7 @@ describe("the ledger", () => {
     const again = await read(await call());
     expect(again.body).toEqual(first.body);
     expect(transcribeAudio).toHaveBeenCalledTimes(1);
-    expect(await balanceOf("alex")).toBe(9);
+    expect(await balanceOf("alex")).toBe(9.96);
   });
 
   test("a failed provider call gives the credit back", async () => {
@@ -273,8 +286,9 @@ describe("the ledger", () => {
   test("a longer recording than was claimed is charged for what the provider measured", async () => {
     transcribeAudio.mockResolvedValueOnce({ text: "A long one.", seconds: 700 });
     const done = await read(await call({ seconds: 2 }));
-    expect(done.body.spent).toBe(3);
-    expect(await balanceOf("alex")).toBe(7);
+    // 700s at five minutes to the credit, rounded up to the hundredth.
+    expect(done.body.spent).toBe(2.34);
+    expect(await balanceOf("alex")).toBe(7.66);
   });
 
   test("a recording longer than the ceiling is refused before any spend", async () => {

@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { formatChf } from "@/lib/credits/pricing";
+import { formatCredits } from "@/lib/credits/format";
 
 /** One row, with its opened panel already rendered on the server. */
 export type JournalView = {
@@ -102,8 +103,8 @@ export default function Journals({ rows }: { rows: JournalView[] }) {
               <span className="mt-0.5 block font-mono text-xs text-navy-500">
                 {journal.balance === null
                   ? "no credits on this instance"
-                  : `${journal.balance} credits`}
-                {` · ${journal.spent} spent of ${journal.granted} granted`}
+                  : `${formatCredits(journal.balance)} credits`}
+                {` · ${formatCredits(journal.spent)} spent of ${formatCredits(journal.granted)} granted`}
               </span>
             </summary>
             {journal.panel}
