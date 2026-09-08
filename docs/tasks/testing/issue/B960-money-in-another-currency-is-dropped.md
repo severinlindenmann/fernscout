@@ -7,8 +7,7 @@ complexity: medium
 area: helper, costs, currency
 found: "2026-09-08T12:18:38Z"
 started: "2026-09-08T12:26:28Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T12:26:28Z"
+merged: "2026-09-08T12:40:28Z"
 ---
 
 # B960 — Money in another currency is dropped from the total and nothing says so
@@ -66,3 +65,22 @@ awkward blank is the thing this codebase refuses everywhere else.
 A trip with costs in two currencies and no `rates:` answers with a total, what
 it covers, and what it could not — and the conversation says the second part
 out loud.
+
+## What was done
+
+Half one, and it turned out to be smaller than it looked: `getCostSummary`
+has always reported `unconverted`, and the costs *page* has always printed
+"and 4 200 THB besides, which has no rate". Only the conversation was silent,
+because `trip_costs` dropped the field before the model ever saw it. It carries
+it now as `notInTheTotal`.
+
+And a guard, because being told is not the same as saying: a turn that states a
+total while the tool said part of it was left out, and does not name the
+currency, is caught and asked again. Twice failed, she gets no figure rather
+than a smaller trip than the one she took.
+
+**Half two is still open and is the reason this ticket stays here**: where a
+rate comes from. `site/rates/ecb.json` exists and is the shared reference, and
+whether a trip written through the conversation should pick one up
+automatically — and dated to when — is a decision, not a fix. Converting at a
+rate nobody chose is the invention this codebase refuses everywhere else.
