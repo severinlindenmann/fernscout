@@ -33,8 +33,20 @@ type Recognition = {
   stop: () => void;
   onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
   onend: (() => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
 };
+
+/**
+ * The recogniser wants a BCP-47 tag, and a journal's locale is two letters.
+ *
+ * B975: `r.lang = "de"` is refused outright by a browser that will not
+ * resolve a bare code — `language-not-supported`, raised the instant `start()`
+ * is called, which is what "it turns straight back off" was. Anything not
+ * listed is passed through as it stands rather than guessed at: a wrong region
+ * is worse than none, and a browser that accepts the bare code will go on
+ * accepting it.
+ */
+const SPEECH_TAGS: Record<string, string> = { en: "en-US", de: "de-DE", hu: "hu-HU" };
 
 const CONSENT_KEY = "fernscout.voiceSearch";
 
@@ -76,6 +88,11 @@ export default function SearchBox() {
   const [state, setState] = useState<LoadState>("loading");
   const [query, setQuery] = useState("");
   const [voice, setVoice] = useState<"off" | "asking" | "listening">("off");
+  /** What went wrong the last time the microphone was asked for — B975. The
+   *  API's failures are all silent by nature, so this is the only way a
+   *  person learns the difference between a blocked microphone and a browser
+   *  that has no speech service at all. */
+  const [voiceError, setVoiceError] = useState("");
   /** A client-only read, and `useSyncExternalStore` is how it is one: the
    *  server has no `window`, so it renders `false` (the third argument) and
    *  the browser decides for itself after hydration. Nothing here ever
@@ -129,18 +146,43 @@ export default function SearchBox() {
     const Recogniser = recognitionClass();
     if (!Recogniser) return;
     const r = new Recogniser();
-    r.lang = locale;
-    r.continuous = false;
+    r.lang = SPEECH_TAGS[locale] ?? locale;
+    // A pause is a pause. With `continuous` off the session ends at the first
+    // silence, so somebody drawing breath before speaking was told nothing
+    // and left with the microphone shut — B975.
+    r.continuous = true;
     r.interimResults = true;
     r.onresult = (event) => {
       const last = event.results[event.results.length - 1];
       setQuery(last[0].transcript);
     };
     r.onend = () => setVoice("off");
-    r.onerror = () => setVoice("off");
+    r.onerror = (event) => {
+      setVoice("off");
+      const code = event.error ?? "";
+      // `aborted` is this page's own `stop()` — the person pressed the button
+      // again, and telling them what they just did is noise.
+      if (code === "aborted") return;
+      if (code === "not-allowed" || code === "service-not-allowed") {
+        setVoiceError(t("search.voiceBlocked"));
+      } else if (code === "no-speech") {
+        setVoiceError(t("search.voiceNoSpeech"));
+      } else if (code === "network" || code === "language-not-supported") {
+        setVoiceError(t("search.voiceNoService"));
+      } else {
+        setVoiceError(t("search.voiceFailed", { code: code || "?" }));
+      }
+    };
     recognition.current = r;
+    setVoiceError("");
     setVoice("listening");
-    r.start();
+    try {
+      r.start();
+    } catch {
+      // `start()` on a recogniser that is already running throws rather than
+      // raising `onerror`, and there is nothing to report: it is already on.
+      setVoice("listening");
+    }
   }
 
   function toggleVoice() {
@@ -237,6 +279,12 @@ export default function SearchBox() {
       {voice === "listening" && (
         <p role="status" className="mt-2 text-xs text-navy-600">
           {t("search.voiceListening")}
+        </p>
+      )}
+
+      {voiceError && (
+        <p role="status" className="mt-2 text-sm text-coral-600">
+          {voiceError}
         </p>
       )}
 
