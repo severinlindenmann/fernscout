@@ -1711,6 +1711,7 @@ export type TranslationKey =
   | "search.voiceConsentTitle"
   | "search.voiceFailed"
   | "search.voiceListening"
+  | "search.voiceNoCredits"
   | "search.voiceNoService"
   | "search.voiceNoSpeech"
   | "search.voiceStart"
