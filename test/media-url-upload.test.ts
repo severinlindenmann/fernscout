@@ -217,7 +217,7 @@ afterAll(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("a photograph fetched from a URL", () => {
+describe("a photograph fetched from a URL", { shuffle: false }, () => {
   test("keeps the source at full size, and says so in kept", async () => {
     serve(await jpeg(3000, 2000));
     const token = await ownerToken();

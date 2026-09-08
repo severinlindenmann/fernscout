@@ -133,7 +133,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("the owner's own correction door", () => {
+describe("the owner's own correction door", { shuffle: false }, () => {
   test("a bearer token is refused before the owner is even asked about", async () => {
     const { PATCH } = await route();
     const response = await PATCH(req({ title: "New" }, { authorization: "Bearer x" }), params);

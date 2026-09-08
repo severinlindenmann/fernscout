@@ -141,7 +141,7 @@ describe("which trips a reader is told about", () => {
  * pin the behaviour that had to survive that: somebody let in still sees the
  * guest trip, somebody not let in still does not.
  */
-describe("resolveViewer, against a database", () => {
+describe("resolveViewer, against a database", { shuffle: false }, () => {
   const OWNER = "ana";
   const OWNER_EMAIL = "ana@example.test";
   const READER = "oma@example.test";
