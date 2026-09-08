@@ -2,6 +2,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { typeInto } from "./support/type-input";
 
 /**
  * B753 — pressing "Send me a code" plays a short envelope departure, and
@@ -71,13 +72,8 @@ async function mount(reduceMotion: boolean) {
 
 async function fillEmailAndSend() {
   const input = container!.querySelector("input") as HTMLInputElement;
-  const field = Object.getOwnPropertyDescriptor(
-    window.HTMLInputElement.prototype,
-    "value",
-  )!.set!;
   await act(async () => {
-    field.call(input, "reader@example.test");
-    input.dispatchEvent(new Event("input", { bubbles: true }));
+    typeInto(input, "reader@example.test");
   });
   const form = container!.querySelector("form") as HTMLFormElement;
   await act(async () => {

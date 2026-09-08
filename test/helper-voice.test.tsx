@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
+import { typeInto } from "./support/type-input";
 
 /**
  * Speaking a turn — B893, round 7 of
@@ -67,12 +68,7 @@ function speak() {
 function type(value: string) {
   const el = field();
   act(() => {
-    const setter = Object.getOwnPropertyDescriptor(
-      window.HTMLInputElement.prototype,
-      "value",
-    )!.set!;
-    setter.call(el, value);
-    el.dispatchEvent(new Event("input", { bubbles: true }));
+    typeInto(el, value);
   });
 }
 

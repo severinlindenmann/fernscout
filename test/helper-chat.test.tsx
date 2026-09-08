@@ -6,6 +6,7 @@ import HelperAsk from "@/components/HelperAsk";
 import LocaleProvider from "@/components/LocaleProvider";
 import type { Block } from "@/lib/helper/blocks";
 import { dictionaryFor } from "@/lib/locales";
+import { typeInto } from "./support/type-input";
 
 /**
  * The conversation — B899, checklists B and D of
@@ -87,12 +88,7 @@ function field(): HTMLInputElement {
 function type(value: string) {
   const el = field();
   act(() => {
-    const setter = Object.getOwnPropertyDescriptor(
-      window.HTMLInputElement.prototype,
-      "value",
-    )!.set!;
-    setter.call(el, value);
-    el.dispatchEvent(new Event("input", { bubbles: true }));
+    typeInto(el, value);
   });
 }
 
@@ -289,12 +285,7 @@ describe("the blocks a tool declares", () => {
 
     const title = container!.querySelector("input[value=\"Japan\"]") as HTMLInputElement;
     act(() => {
-      const setter = Object.getOwnPropertyDescriptor(
-        window.HTMLInputElement.prototype,
-        "value",
-      )!.set!;
-      setter.call(title, "Japan im Frühling");
-      title.dispatchEvent(new Event("input", { bubbles: true }));
+      typeInto(title, "Japan im Frühling");
     });
 
     await act(async () => {
