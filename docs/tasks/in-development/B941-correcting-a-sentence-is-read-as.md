@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: helper, model
 found: "2026-09-08T09:49:16Z"
+started: "2026-09-08T10:12:02Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T10:12:02Z"
 ---
 
 # B941 — Correcting a sentence is read as adding a cost
