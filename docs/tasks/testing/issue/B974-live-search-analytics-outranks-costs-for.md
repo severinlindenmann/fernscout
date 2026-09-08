@@ -7,8 +7,7 @@ complexity: low
 area: search
 found: "2026-09-08T15:48:08Z"
 started: "2026-09-08T15:48:26Z"
-session: 6c81e17b-6acf-4c0f-86ef-49124c9b2458
-claimed: "2026-09-08T15:48:26Z"
+merged: "2026-09-08T15:53:39Z"
 ---
 
 # B974 — Live search: Analytics outranks Costs for a costs word, and Gallery, Map and Story have no synonyms at all
