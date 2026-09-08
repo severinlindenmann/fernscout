@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: photobook, i18n
 found: "2026-09-08T05:23:21Z"
+started: "2026-09-08T06:18:35Z"
+session: 41335894-5435-4167-8cb6-898e370cd6a9
+claimed: "2026-09-08T06:18:35Z"
 ---
 
 # B912 — The photobook cover strings are English in the Hungarian file
