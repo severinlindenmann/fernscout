@@ -7,8 +7,7 @@ complexity: low
 area: Postcards
 found: "2026-09-08T19:30:00Z"
 started: "2026-09-08T19:25:40Z"
-session: b8352d66-3105-4f5d-a703-f8809d0b08e6
-claimed: "2026-09-08T19:25:40Z"
+merged: "2026-09-08T19:56:18Z"
 ---
 
 # B1018 — The language select's arrow wraps and moves, and a newly ticked recipient shows no address
