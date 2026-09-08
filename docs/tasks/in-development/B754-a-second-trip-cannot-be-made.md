@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: agent, trips
 found: "2026-09-07T13:25:28Z"
+started: "2026-09-08T20:51:00Z"
+session: bdd0270d-3797-42c9-8687-06abecadbc63
+claimed: "2026-09-08T20:51:00Z"
 ---
 
 # B754 — A second trip cannot be made from the wizard when the helper is off
