@@ -518,6 +518,27 @@ type UsageTable = {
   created_at: string;
 };
 
+/**
+ * One answer already given, so a retry does not do the work again — B718.
+ *
+ * `id` is the caller's own composed key (`<owner> <tool> <supplied>`), not a
+ * generated one: the row is found by what the caller sent. Durable because the
+ * helper's metered routes spend a credit and write nothing to disk, so the
+ * filesystem is no backstop for them and a restart used to mean a second
+ * charge for the same words.
+ */
+type IdempotencyTable = {
+  id: string;
+  /** The journal the call was made for, so the deletion sweep takes it. */
+  owner_id: string;
+  /** What the call was, from `fingerprintOf` — a different one under the same
+   * key is a conflict rather than a replay. */
+  fingerprint: string;
+  /** JSON of the answer handed back the first time. */
+  value: string;
+  created_at: string;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -538,6 +559,7 @@ export type Database = {
   analytics_events: AnalyticsEventsTable;
   day_notifications: DayNotificationsTable;
   usage: UsageTable;
+  idempotency: IdempotencyTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -562,4 +584,5 @@ export const TABLE_NAMES = [
   "analytics_events",
   "day_notifications",
   "usage",
+  "idempotency",
 ] as const satisfies readonly (keyof Database)[];

@@ -89,7 +89,7 @@ export async function POST(
   const supplied = text(body.idempotency_key);
   const key = supplied === "" ? null : idempotencyKey(user, "helper.write-day", supplied);
   const fingerprint = fingerprintOf({ notes, facts });
-  const recalled = recall<Record<string, unknown>>(key, fingerprint);
+  const recalled = await recall<Record<string, unknown>>(key, fingerprint);
   // A retry gets the first answer back and is not charged again. A *different*
   // call under the same key is refused rather than answered with somebody
   // else's day — `lib/idempotency.ts` explains what that cost the first time.
@@ -120,6 +120,6 @@ export async function POST(
     spent: WRITE_DAY_CREDITS,
     provider: HELPER_PROVIDER,
   };
-  remember(key, fingerprint, answer);
+  await remember(key, fingerprint, answer);
   return Response.json(answer);
 }

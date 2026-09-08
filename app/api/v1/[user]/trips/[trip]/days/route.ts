@@ -164,7 +164,7 @@ export async function POST(
   const supplied = typeof body.idempotency_key === "string" ? body.idempotency_key : undefined;
   const key = supplied ? idempotencyKey(user, "create_day", supplied) : null;
   const fingerprint = fingerprintOf({ ...body, trip: ref });
-  const previous = recall<{ slug: string; status: string }>(key, fingerprint);
+  const previous = await recall<{ slug: string; status: string }>(key, fingerprint);
 
   if (previous.kind === "conflict") {
     return Response.json(
@@ -223,7 +223,7 @@ export async function POST(
     status: result.status,
     ...(result.costCurrency ? { costCurrency: result.costCurrency } : {}),
   };
-  remember(key, fingerprint, written);
+  await remember(key, fingerprint, written);
 
   return Response.json(
     {
