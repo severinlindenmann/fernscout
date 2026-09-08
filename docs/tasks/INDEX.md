@@ -57,13 +57,12 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B914](backlog/security/B914-take-down-and-publish-sentences-now.md) | Take-down and publish sentences now reach a tool instead of being refused | SECURITY | high | low |
 
-### issue (40)
+### issue (39)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B766](backlog/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low |
 | [B829](backlog/issue/B829-rewording-a-row-did-not-stop.md) | Rewording a row did not stop the wrong one matching | ISSUE | high | low |
-| [B848](backlog/issue/B848-the-traveller-figures-never-appear-on.md) | The traveller figures never appear on a postcard: cqh does not resolve against an inline-size container | ISSUE | high | low |
 | [B922](backlog/issue/B922-a-credit-is-spent-on-a.md) | Was she charged for a day that was never written, and should she have been? | ISSUE | high | low |
 | [B926](backlog/issue/B926-the-helper-forgets-what-it-was.md) | The helper forgets what it was told one message ago | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
@@ -173,7 +172,7 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### superseded (36)
+### superseded (37)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -182,6 +181,7 @@ Do not edit them by hand; run the script.
 | [B65](backlog/superseded/B65-the-deployed-server-has-no-backup.md) | Every backup of the deployed server sits on the same machine it is backing up | OPS | high | medium |
 | [B658](backlog/superseded/B658-the-b653-backup-allowlist-drops-a.md) | The B653 backup allowlist drops a no-database deployment's own state | ISSUE | high | low |
 | [B680](backlog/superseded/B680-a-person-without-an-agent-has.md) | A person without an agent has nowhere to start | FEATURE | high | medium |
+| [B848](backlog/superseded/B848-the-traveller-figures-never-appear-on.md) | The traveller figures never appear on a postcard: cqh does not resolve against an inline-size container | ISSUE | high | low |
 | [B884](backlog/superseded/B884-the-spine-is-computed-40-percent.md) | The spine is computed 40 percent too narrow and the cover artwork will creep | ISSUE | high | low |
 | [B950](backlog/superseded/B950-is-a-person-s-own-sentence.md) | Is a person's own sentence about the rain theirs to keep | DOCS | high | low |
 | [B06](backlog/superseded/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
