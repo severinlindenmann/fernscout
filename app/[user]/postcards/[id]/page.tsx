@@ -23,7 +23,7 @@ import { LOCALE_LABEL } from "@/lib/i18n";
 import { defaultLocaleFor, localesFor, requestLocale } from "@/lib/locales";
 import { pickLocale } from "@/lib/contacts/locale";
 import { formatDigestDate } from "@/lib/digest/content";
-import { orderPhotoFile } from "@/lib/postcard/send";
+import { orderPrintPhoto } from "@/lib/postcard/send";
 import { getTrip } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import PostcardCropper from "@/components/PostcardCropper";
@@ -159,8 +159,12 @@ export default async function PostcardOrderPage({
       })
     : order.payload.day;
 
-  const photoFile = orderPhotoFile(order);
-  const photo = photoFile ? dimensionsOf(photoFile) : null;
+  // The copy that actually prints, and its size — B1010. `printSourceFor`
+  // hands back the original's dimensions when the original is what will be
+  // embedded, which is the whole point: measuring the derivative said 244 dpi
+  // about a photograph that prints at about 660.
+  const print = orderPrintPhoto(order);
+  const photo = print ? (print.size ?? dimensionsOf(print.absolute)) : null;
   const resolution = photo ? resolutionNote(photo.width, photo.height) : null;
   const back = backLayout();
   // B452. The card's own language, and the journals's — so the picker offers
@@ -192,8 +196,11 @@ export default async function PostcardOrderPage({
       <PageHeader />
       {/* Wider from `lg` — B1005. The write step puts the card beside its
           form, and two columns inside 48rem is two narrow columns; the other
-          two steps cap themselves at `max-w-2xl` and stay centred, so nothing
-          else stretches. */}
+          two steps cap themselves at `max-w-2xl`, so nothing else stretches.
+          They are capped and *not* centred — B1010: the heading, the step bar
+          and the forward button all start at the left margin, and a panel
+          floating in the middle of them made the button look like it belonged
+          to something else. */}
       <main className="mx-auto w-full max-w-3xl px-4 py-8 lg:max-w-5xl">
         {/* B474. Both of these were written once and rendered whatever had
             happened, so an order already at the printer was headed "ready to
@@ -247,7 +254,7 @@ export default async function PostcardOrderPage({
            * changes: a key outside an array is ignored.
            */
           lookPanel={
-            <div key="look" className="mx-auto max-w-2xl">
+            <div key="look" className="max-w-2xl">
               <figure>
                 <PostcardCropper
                   username={username}
@@ -267,10 +274,17 @@ export default async function PostcardOrderPage({
               </figure>
               {/* Beside the photograph rather than four screens later — B1005.
                   It is advice about *this* picture, and it is only useful
-                  while choosing another one is still cheap. */}
+                  while choosing another one is still cheap.
+
+                  A plain line and not a yellow panel — B1010. Yellow is what
+                  this product uses for something that stops a send; this stops
+                  nothing, and it appeared on a page where somebody is about to
+                  spend twenty credits. It also no longer carries the dpi
+                  figure: a number a person cannot act on is not advice, and it
+                  reads as a fault rather than as a suggestion. */}
               {resolution && !resolution.ok && isPending(order) ? (
-                <p className="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
-                  {t("postcard.page.lowRes", { dpi: String(resolution.dpi) })}
+                <p className="mt-3 text-sm text-navy-600">
+                  {t("postcard.page.smallPhoto")}
                 </p>
               ) : null}
               {isPending(order) && !expired ? (
@@ -350,7 +364,7 @@ export default async function PostcardOrderPage({
             </div>
           }
           sendPanel={
-            <div key="send" className="mx-auto max-w-2xl">
+            <div key="send" className="max-w-2xl">
               <PostcardPeople
                 username={username}
                 id={id}

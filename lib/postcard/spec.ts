@@ -124,6 +124,23 @@ export const ADDRESS_PT = 11;
 export const ADDRESS_LEADING_PT = 14;
 
 /**
+ * Below this, and only below this, the preview says something — B1010.
+ *
+ * `spec.dpi` is 300 and that is the *ideal*: the number a printer quotes for
+ * something held at 25 cm and studied. A postcard is read at arm's length,
+ * every commercial postcard printer accepts 200 dpi and up, and the page was
+ * treating anything under 300 as a fault — on a photograph this product had
+ * itself chosen, since the card was being printed from the 2000px web
+ * derivative rather than the original (see `orderPrintPhoto`).
+ *
+ * 180 dpi is where a card starts to look soft rather than merely less than
+ * perfect. On A6 with bleed it is about 1091 × 787 pixels, which every
+ * photograph out of a camera clears by a wide margin and only an old
+ * web-sized image fails.
+ */
+export const PRINT_FLOOR_DPI = 180;
+
+/**
  * A point size as a fraction of the card's full width including bleed — what
  * a `cqw` on screen has to be to match the paper.
  */
