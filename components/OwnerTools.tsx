@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import AgentRow from "./AgentRow";
 import DayNotify from "./DayNotify";
-import HelperAskHere from "./HelperAskHere";
 import InviteToRead from "./InviteToRead";
 import { useI18n } from "./LocaleProvider";
 import { OWNER_TOOL } from "./ownerToolClass";
@@ -33,6 +34,15 @@ import { OWNER_TOOL } from "./ownerToolClass";
  * Both call sites render *this*, which is the actual remedy for what caused
  * the mess: there is now one place for a fifth control to land.
  *
+ * **B1007 drew that last part the right way up.** The proportion above was
+ * right and the drawing was not: the general form was the only thing in the
+ * block with no surface to press, and on a draft day — where the grid is often
+ * a single tile — the rule separated one tile from one underlined line, which
+ * is to say it separated nothing. It is an `AgentRow` now, in full width under
+ * the same rule, and on an unpublished day a second one sits above the tiles
+ * in coral. Three sizes of thing, each with its own job: what is waiting to be
+ * decided, the shortcuts, and the way in for everything else.
+ *
  * The gate is the caller's — `trip?.canPublish`, which is exactly `isOwner`
  * (`lib/tripGate.ts`). Each control asks the server its own remaining
  * question and draws nothing when the answer is no, so a journal with contacts
@@ -59,6 +69,41 @@ export default function OwnerTools({
 }) {
   const { t } = useI18n();
 
+  /**
+   * The helper's own remaining question, asked once for both rows — B1007.
+   *
+   * It used to live inside `HelperAskHere`, which was the only thing that
+   * needed it. There are two rows now and the answer is the same for both, so
+   * it is one call here rather than two identical ones a component apart.
+   *
+   * A 404 from `GET /api/helper/<user>/ask` is "not your journal, or the
+   * helper is off", and the honest answer to that is to draw nothing rather
+   * than a row into a room that 404s. The call site is already inside an
+   * owner-only branch (`canPublish`), so this is the second half of the gate
+   * and not the first.
+   */
+  const [helper, setHelper] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/helper/${encodeURIComponent(username)}/ask`)
+      .then((response) => {
+        if (!cancelled && response.ok) setHelper(true);
+      })
+      .catch(() => {
+        // A journal that cannot answer shows nothing. The page is a travel
+        // journal first, and this is an accelerator over controls that work.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [username]);
+
+  /** The room, opened on the day it was pressed on rather than whatever was
+      last left unfinished — B979. */
+  const room = `/agent/${encodeURIComponent(username)}/chat${
+    day ? `?trip=${encodeURIComponent(day.tripId)}&slug=${encodeURIComponent(day.slug)}` : ""
+  }`;
+
   return (
     <section
       aria-label={t("owner.onlyYou")}
@@ -70,6 +115,21 @@ export default function OwnerTools({
       <p className="mt-0.5 text-xs leading-5 text-navy-600">
         {t("owner.onlyYouBody")}
       </p>
+
+      {/* The one decision that is waiting, and only while it is waiting. A
+          published day draws nothing here, so the block gets quieter as the
+          work finishes. The label is the request, not the state: the banner
+          above already says it is a draft, and a control says what it does. */}
+      {helper && day && !day.published && (
+        <div className="mt-2.5">
+          <AgentRow
+            href={room}
+            tone="coral"
+            title={t("agent.publishRow")}
+            hint={t("agent.publishRowHint")}
+          />
+        </div>
+      )}
 
       <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-3">
         {day && (
@@ -96,14 +156,18 @@ export default function OwnerTools({
       </div>
 
       {/* The rule is the point: above it are the things with their own button,
-          below it is the same intent said in words. B844's box, moved rather
-          than changed. */}
-      <div className="mt-3 border-t border-navy-200 pt-2">
-        <HelperAskHere
-          username={username}
-          day={day ? { tripId: day.tripId, slug: day.slug } : undefined}
-        />
-      </div>
+          below it is the same intent said in words. B844's box, moved by B877,
+          and drawn as a row rather than an underlined line by B1007. */}
+      {helper && (
+        <div className="mt-3 border-t border-navy-200 pt-3">
+          <AgentRow
+            href={room}
+            tone="yellow"
+            title={t("agent.askHereOpen")}
+            hint={t("agent.askHereHint")}
+          />
+        </div>
+      )}
     </section>
   );
 }

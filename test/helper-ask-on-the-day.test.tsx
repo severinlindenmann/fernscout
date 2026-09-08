@@ -57,6 +57,13 @@ const DAY = {
   entries: [ENTRY],
 } as unknown as Day;
 
+/** The same day before it is on the site — `allDraft` in `StoryPager`. */
+const DRAFT_DAY = {
+  date: "2026-08-01",
+  lead: { ...ENTRY, draft: true },
+  entries: [{ ...ENTRY, draft: true }],
+} as unknown as Day;
+
 let root: Root | undefined;
 let container: HTMLDivElement | undefined;
 const fetched: string[] = [];
@@ -91,7 +98,7 @@ afterEach(() => {
 });
 
 /** Mount the real day card, and let the one fetch its ask box makes settle. */
-async function dayPage(canPublish: boolean) {
+async function dayPage(canPublish: boolean, draft = false) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -100,7 +107,11 @@ async function dayPage(canPublish: boolean) {
       <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
         <CurrencyProvider options={{ base: "CHF", currencies: ["CHF"], rates: { CHF: 1 } }}>
           <TripProvider trip={TRIP} isCurrent canPublish={canPublish} reader="person">
-            <DayCard day={DAY} summary={SUMMARY} dayIndex={0} />
+            <DayCard
+              day={draft ? DRAFT_DAY : DAY}
+              summary={SUMMARY}
+              dayIndex={0}
+            />
           </TripProvider>
         </CurrencyProvider>
       </LocaleProvider>,
@@ -120,7 +131,7 @@ async function dayPage(canPublish: boolean) {
 describe("the ask box, where the owner actually is", () => {
   test("an owner on a day page is offered it", async () => {
     const host = await dayPage(true);
-    expect(host.textContent).toContain("Talk about this with your agent");
+    expect(host.textContent).toContain("Tell your agent what is missing");
     expect(fetched.some((url) => url.includes("/api/helper/alex/ask"))).toBe(true);
   });
 
@@ -130,14 +141,32 @@ describe("the ask box, where the owner actually is", () => {
   test("it leads to the room, on this day", async () => {
     const host = await dayPage(true);
     const link = [...host.querySelectorAll("a")].find((anchor) =>
-      anchor.textContent?.includes("Talk about this"),
+      anchor.textContent?.includes("Tell your agent what is missing"),
     ) as HTMLAnchorElement;
     expect(link.getAttribute("href")).toBe("/agent/alex/chat?trip=reise-2026&slug=bellinzona");
   });
 
+  /**
+   * B1007 — the draft row. The banner above a draft day has always *said* to
+   * ask the agent to publish it, with nothing to press; this is the thing to
+   * press, and it is drawn only while the day is not on the site.
+   */
+  test("a draft day offers the publish row, into the same room", async () => {
+    const host = await dayPage(true, true);
+    const link = [...host.querySelectorAll("a")].find((anchor) =>
+      anchor.textContent?.includes("Ask to have it published"),
+    ) as HTMLAnchorElement;
+    expect(link.getAttribute("href")).toBe("/agent/alex/chat?trip=reise-2026&slug=bellinzona");
+  });
+
+  test("a day already on the site does not", async () => {
+    const host = await dayPage(true);
+    expect(host.textContent).not.toContain("Ask to have it published");
+  });
+
   test("a reader is offered nothing, and the journal is not even asked about", async () => {
     const host = await dayPage(false);
-    expect(host.textContent).not.toContain("Talk about this with your agent");
+    expect(host.textContent).not.toContain("Tell your agent what is missing");
     // The correction link is the neighbouring owner-only control; if it were
     // showing, the gate under test would be the wrong one.
     expect(host.textContent).not.toContain("Correct or take down");

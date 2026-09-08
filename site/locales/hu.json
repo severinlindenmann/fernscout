@@ -1321,7 +1321,7 @@
   "agent.pickPhotos": "Fényképek kiválasztása",
   "agent.pickPhotosHint": "Még semmi nem megy el – a kiválasztáskor csak az olvasódik ki, amit a fájl magáról mond.",
   "agent.noneChosen": "Nincs fénykép kiválasztva",
-  "agent.askHereOpen": "Beszélj erről az ügynököddel",
+  "agent.askHereOpen": "Mondd el az ügynöködnek, mi hiányzik",
   "agent.askNotSearch": "A keresés megtalál. A kérdezés megváltoztat.",
   "agent.photosPart": "{count} fénykép",
   "agent.photosPart.one": "1 fénykép",
@@ -1549,7 +1549,7 @@
   "agent.block.unfinished": "Elkezdve, még nincs közzétéve",
   "agent.block.day": "A nap úgy, ahogy most áll",
   "agent.room.title": "Beszéljük meg",
-  "agent.room.roomLink": "Vagy beszéljük meg — a fájljaiddal és egy előnézettel egymás mellett",
+  "agent.room.roomLink": "Vagy beszéljük meg",
   "agent.room.files": "Fájlok",
   "agent.room.filesHint": "Válassz ki néhányat, aztán mondd meg, mi legyen velük — „ezek kerüljenek a tegnapi napra”.",
   "agent.room.kept": "A beszélgetéseid megmaradnak, hogy újra megnyithasd őket. Olvassuk őket, hogy jobb legyen a Fernscout — ezt a saját oldaladon kikapcsolhatod.",
@@ -1772,5 +1772,9 @@
   "edit.keepPhoto": "Mégis marad",
   "edit.addPhotos": "Képek hozzáadása",
   "edit.seenAsUpdate": "Mint ez a bejegyzés",
-  "agent.speechTooShort": "Ez túl rövid volt az elküldéshez — tartsd nyomva a gombot, vagy nyomd meg egyszer az indításhoz és még egyszer a leállításhoz."
+  "agent.speechTooShort": "Ez túl rövid volt az elküldéshez — tartsd nyomva a gombot, vagy nyomd meg egyszer az indításhoz és még egyszer a leállításhoz.",
+  "agent.askHereHint": "Átírni, kiegészíteni, közzétenni — a saját szavaiddal.",
+  "agent.publishRow": "Kérd, hogy tegye közzé",
+  "agent.publishRowHint": "Amíg nem szólsz, rajtad kívül senki nem látja a napot.",
+  "agent.room.roomLinkHint": "A fájljaid és a nap előnézete egymás mellett."
 }

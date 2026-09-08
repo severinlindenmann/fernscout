@@ -1321,7 +1321,7 @@
   "agent.pickPhotos": "Choose photographs",
   "agent.pickPhotosHint": "Nothing is sent yet — choosing a file only reads what it already says about itself.",
   "agent.noneChosen": "No photos chosen",
-  "agent.askHereOpen": "Talk about this with your agent",
+  "agent.askHereOpen": "Tell your agent what is missing",
   "agent.askNotSearch": "Search finds. Asking changes.",
   "agent.photosPart": "{count} photographs",
   "agent.photosPart.one": "1 photograph",
@@ -1549,7 +1549,7 @@
   "agent.block.unfinished": "Started and not yet published",
   "agent.block.day": "The day as it stands",
   "agent.room.title": "Talk it through",
-  "agent.room.roomLink": "Or talk it through, with your files and a preview beside you",
+  "agent.room.roomLink": "Or talk it through",
   "agent.room.files": "Files",
   "agent.room.filesHint": "Pick a few, then say what to do with them — “put these on yesterday”.",
   "agent.room.kept": "Your conversations are saved so you can open them again. We read them to make Fernscout better — you can turn that off on your own page.",
@@ -1772,5 +1772,9 @@
   "edit.keepPhoto": "Keep after all",
   "edit.addPhotos": "Add pictures",
   "edit.seenAsUpdate": "As this update",
-  "agent.speechTooShort": "That was too short to send — hold the button, or press it once to start and again to stop."
+  "agent.speechTooShort": "That was too short to send — hold the button, or press it once to start and again to stop.",
+  "agent.askHereHint": "Change it, add to it, put it on the site — in your own words.",
+  "agent.publishRow": "Ask to have it published",
+  "agent.publishRowHint": "Nobody but you sees the day until you say so.",
+  "agent.room.roomLinkHint": "Your files and a preview of the day, beside you."
 }
