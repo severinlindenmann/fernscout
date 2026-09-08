@@ -7,8 +7,7 @@ complexity: low
 area: helper, entries
 found: "2026-09-08T10:11:42Z"
 started: "2026-09-08T10:12:02Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T10:12:02Z"
+merged: "2026-09-08T10:23:55Z"
 ---
 
 # B942 — Pressing a proposal to set a day's words with an empty box erases them
