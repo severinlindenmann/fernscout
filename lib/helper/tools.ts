@@ -1036,7 +1036,31 @@ export async function proposalFor(
 
   const proposal: Proposal = {
     tool: tool.name,
-    arguments: args,
+    /**
+     * **One representation of one call** — B935, B936.
+     *
+     * `arguments` used to be what the model typed and `fields` what the server
+     * resolved, and the two disagreed the moment a tool did any work: the
+     * trip arrived as *"Spaziergang am See"* where the route needs
+     * `spaziergang-am-see-2026`, and `start_day`'s own questions (B917) were
+     * on the card and in no argument at all. Pressing a proposal the way its
+     * own `arguments` describe it came back `unknown_trip` or
+     * `incomplete_day`; the browser only survived it because `HelperAsk`
+     * merged the fields back in on the way out.
+     *
+     * So the fields win here, once, where every proposal is built: **what a
+     * press sends is `arguments`**, resolved and complete, and `fields` is
+     * the same call shown for correction rather than a second source of
+     * truth. An argument no field carries — a `date` a slug already answers —
+     * stays, because a field that is not drawn has nothing to say about it.
+     *
+     * `test/helper-proposal-arguments.test.ts` presses every write tool in
+     * the registry with `arguments` and nothing else.
+     */
+    arguments: {
+      ...args,
+      ...Object.fromEntries(made.fields.map((field) => [field.name, field.value])),
+    },
     sentence: made.sentence,
     fields: made.fields,
     endpoint: tool.endpoint(username),

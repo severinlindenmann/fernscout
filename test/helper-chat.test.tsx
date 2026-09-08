@@ -424,8 +424,14 @@ describe("what a press actually posts", () => {
             text: "Two photographs onto the pass.",
             proposal: {
               tool: "attach_files",
-              // What the model asked with: a date and no day, and no ids.
-              arguments: { trip: "a-trip", date: "2026-05-04" },
+              // What a press sends — B935: the server's own resolution, not
+              // the date-and-no-ids the model asked with.
+              arguments: {
+                trip: "a-trip",
+                date: "2026-05-04",
+                slug: "the-pass",
+                files: "aaa-one.jpg,bbb-two.jpg",
+              },
               sentence: "Two photographs onto the pass.",
               fields: [
                 { name: "trip", value: "a-trip" },

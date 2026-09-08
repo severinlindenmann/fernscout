@@ -96,10 +96,13 @@ describe("a write tool never writes", () => {
       );
       expect(ran.ok).toBe(true);
       expect(ran.proposal?.tool).toBe("create_trip");
+      // The whole call, resolved — B935: what `arguments` says is what a press
+      // sends, so the visibility the field defaulted to is in here too.
       expect(ran.proposal?.arguments).toEqual({
         title: "Japan",
         start: "2026-03-01",
         end: "2026-03-14",
+        visibility: "guest",
       });
       expect(ran.proposal?.sentence).toContain("Japan");
       // Where the press goes, chosen by the registry — the client composes no
