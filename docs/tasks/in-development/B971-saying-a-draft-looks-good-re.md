@@ -15,18 +15,6 @@ claimed: "2026-09-08T20:08:52Z"
 
 ## Why
 
-TODO — the problem, not the fix.
-
-## Work
-
-TODO
-
-## Acceptance
-
-TODO
-
-## Why
-
 The drafting chain is two presses on purpose: `draft_words` returns prose to
 read, and keeping it is `set_day_words`. B969 made the person's own notes ride
 into the first card. What happens after they read what came back is where it
@@ -70,3 +58,89 @@ Not doing: making "looks good" press anything. The press stays a press.
 After a real `draft_words` press, "that looks good, save it" produces a
 `set_day_words` proposal carrying the prose that came back — not a second offer
 to write it.
+
+## Found
+
+Confirmed still real by reading the code as it stands today, before changing
+anything.
+
+`answerInThread` in `lib/helper/model.ts` folds a note onto the *next* user
+message correctly — `[drafted: …]` was already timed right, arriving with
+"that looks good, save it" rather than a turn late. That ruled out the timing
+theory the Work section raised first.
+
+What was missing was the content. `app/api/helper/[user]/day/write-day/route.ts`
+wrote only `[drafted: words for <trip>/<date>, kept nowhere yet — the proposal
+to keep them is on their screen]` — no title, no prose. `lib/helper/thread.ts`
+keeps only plain turn *text* across a conversation (deliberately: "no tool
+calls, no tool results," so trimming a history with orphaned `tool_result`
+blocks can't 400 the next call), and a `draft_words` proposal's actual words
+live only in the card's own form fields (`lib/helper/tools.ts`,
+`renders: "form"`), which are drawn in the browser and never enter the
+conversation as text. So on the next turn the model had the *fact* that a
+draft existed and genuinely nothing of what it said — it could not supply
+`set_day_words`'s `content` with the words the person had just read, only with
+its own paraphrase of them, which the system prompt (`model.ts:535`, "what
+draft_words made of their notes") tells it not to do. Calling `draft_words`
+again was the model's honest way out of a paragraph it did not actually hold.
+
+## Changed
+
+`write-day/route.ts`'s note now carries the drafted `title` and `content`
+(`written.prose`) verbatim, JSON-encoded (same pattern `wrote()` already uses
+for `[written: …]` facts), together with an instruction to call
+`set_day_words` with exactly that payload if the person agrees to keep it.
+This is a data fix, not a prompt reword: AGENTS.md's rule that rewording never
+fixed one of these and the note mechanism (B924/B939) already exists
+precisely to tell the model facts about the turn, so this extends the same
+mechanism to carry the one fact that was missing rather than adding new
+instructions. No guard in `model.ts` needed changing — the model's honesty
+checks compare what it *says* against what the turn *did*, and this changes
+neither; it only lets the model give `set_day_words` real content instead of
+none.
+
+Test: `test/helper-write-day.test.ts`, "the note carries the drafted title and
+prose, not just that one exists" — fails against the old note text (asserted
+by hand, see below) and passes now.
+
+```
+$ git stash push -- app/api/helper/[user]/day/write-day/route.ts
+$ npx vitest run test/helper-write-day.test.ts -t "carries the drafted title"
+  FAIL — text was "[drafted: words for a-trip/2026-05-04, kept nowhere yet —
+  the proposal to keep them is on their screen]", no set_day_words, no prose.
+$ git stash pop
+$ npx vitest run test/helper-write-day.test.ts
+  15 passed
+```
+
+`npm run verify`: build → tsc → eslint → 5759 tests passed (4 skipped,
+pre-existing/unrelated) → knip clean. Full pass, no known-noise failures hit.
+
+## Acceptance, walked
+
+- "After a real `draft_words` press, ... produces a `set_day_words` proposal
+  carrying the prose that came back" — the note the model reads after a
+  `draft_words` press now contains `set_day_words` and the exact `title` and
+  `content` (`written.title` / `written.prose`) the route returned, so a
+  model that follows the note (which its own system prompt already tells it
+  `set_day_words`'s content should be) calls `set_day_words` with those words
+  rather than inventing new ones. Covered by the new test; a live model call
+  was not driven for this fix (the existing test suite for this route stubs
+  `writeDay` deliberately — "what a model says is not assertable" — and this
+  fix is about what the model is *given*, not about asserting model output).
+- "not a second offer to write it" — nothing here removes the model's ability
+  to call `draft_words` again if genuinely asked to redraft; what changes is
+  that it is no longer the *only* thing it can do when it has nothing else to
+  answer "save it" with.
+
+## Shares a root cause with B926?
+
+Likely related but not the same mechanism. B926 ("the helper forgets what it
+was told one message ago") sounds like it could be about `MAX_TURNS` trimming
+or about notes/turns not surviving as expected; this ticket's root cause was
+narrower and different — not memory loss, but a specific write route's note
+never having carried the payload a later tool call needs. Worth the next
+reader of B926 checking whether its repro is *this* shape (a proposal's real
+content, shown only in form fields, never entering conversation text) before
+assuming it needs the general trimming/memory logic touched. Not changed or
+taken on here.

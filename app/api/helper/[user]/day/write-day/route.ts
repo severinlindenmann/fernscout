@@ -158,10 +158,24 @@ export async function POST(
    * words is `set_day_words`, a second proposal with a second press. The old
    * client-posted note called it `written: draft_words`, which is the exact
    * class of claim this conversation is not allowed to make.
+   *
+   * **The words themselves ride along — B971.** A note is plain text folded
+   * into the next thing the person says (`lib/helper/thread.ts`); the actual
+   * title and prose are shown only in the proposal's own form fields, which
+   * are rendered in the browser and never become part of the conversation.
+   * Without them here, "that looks good, save it" left the model with
+   * nothing to put in `set_day_words`'s `content` but its own memory of a
+   * paragraph it never actually held — so it called `draft_words` again
+   * instead, re-offering the same card and spending a second credit. Putting
+   * the drafted title and prose in the note is what makes "save it" a call
+   * the model can actually make, with the words they read rather than a
+   * paraphrase of them.
    */
   note(
     user,
-    `[drafted: words for ${tripId}/${facts.date}, kept nowhere yet — the proposal to keep them is on their screen]`,
+    `[drafted: words for ${tripId}/${facts.date}, kept nowhere yet — the proposal to keep them is on their screen. If they now say to keep it, call set_day_words with exactly this, verbatim: ${JSON.stringify(
+      { trip: tripId, date: facts.date, title: written.title, content: written.prose },
+    )}]`,
   );
   await remember(key, fingerprint, answer);
   return Response.json(answer);
