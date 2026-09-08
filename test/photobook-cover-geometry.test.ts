@@ -383,3 +383,25 @@ describe("what the file actually is, not what the writer intended — B1008", ()
     expect(audit.failures.join(" ")).toContain("font dictionaries");
   });
 });
+
+describe("the audit reads structure, not photographs", () => {
+  /**
+   * The first live file this ran against was reported as "carries JavaScript"
+   * because ten megabytes of JPEG contained the bytes `/JS`. An audit that
+   * cries wolf on a good file is worse than no audit: it is the one that gets
+   * switched off.
+   */
+  it("ignores bytes inside streams", () => {
+    const withJsInAStream = Buffer.from(
+      "%PDF-1.4\n" +
+        "1 0 obj\n<< /Length 20 >>\nstream\n/JavaScript /Encrypt /JS\nendstream\nendobj\n" +
+        "trailer\n<< >>\n",
+    );
+    expect(auditPdfxBytes(new Uint8Array(withJsInAStream)).failures).toEqual([]);
+  });
+
+  it("still catches them in the structure", () => {
+    const real = Buffer.from("%PDF-1.4\n1 0 obj\n<< /JavaScript 2 0 R >>\nendobj\n");
+    expect(auditPdfxBytes(new Uint8Array(real)).failures.join(" ")).toContain("JavaScript");
+  });
+});

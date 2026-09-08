@@ -327,7 +327,13 @@ export type PdfxAudit = { ok: boolean; failures: string[]; claims: string | null
 
 export function auditPdfxBytes(pdf: Uint8Array): PdfxAudit {
   const bytes = Buffer.from(pdf);
-  const text = bytes.toString("latin1");
+  const raw = bytes.toString("latin1");
+  // Structure only. A book carries ten megabytes of JPEG and a megabyte of
+  // TrueType, and somewhere in that a byte pair reads as `/JS` — the first
+  // live file this ran against was reported as "carries JavaScript" on the
+  // strength of a photograph. Stream contents are data, not syntax, so they
+  // are cut out before anything is looked for.
+  const text = raw.replace(/stream\r?\n[\s\S]*?endstream/g, "stream endstream");
   const failures: string[] = [];
 
   const claimed = /GTS_PDFXVersion\s*\(([^)]*)\)/.exec(text)?.[1] ?? null;
