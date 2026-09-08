@@ -55,7 +55,6 @@ export type BackStrings = {
   saved: string;
   failed: string;
   sameCard: string;
-  fixed: string;
   caption: string;
   /** Who prints the address and the postage mark — B982. */
   printerAdds: string;
@@ -187,8 +186,22 @@ export default function PostcardBack({
   }, [save, editable]);
 
   return (
-    <>
-      <figure>
+    /**
+     * Card left, form right, from `lg` — B1005.
+     *
+     * The page used to be one column at every width, so a desktop reader got a
+     * phone layout with 900px of cream either side of it and had to scroll
+     * between the words and the card those words were going on. The two belong
+     * beside each other: this whole component exists so that typing changes
+     * the drawing, and that is worth nothing if the drawing is off screen
+     * while you type.
+     *
+     * The card comes first in the source, so on a phone — where this collapses
+     * to one column — it is above the box, which is the order it has always
+     * been in.
+     */
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,8fr)] lg:items-start">
+      <figure className="lg:sticky lg:top-4">
         {/* The container query container is *this* element — the card — and
             not the paragraph inside it. B451: `containerType` was on the `<p>`,
             so every `cqw` resolved against the message column's own width and
@@ -273,16 +286,14 @@ export default function PostcardBack({
         <figcaption className="mt-1 text-xs text-navy-600">
           {strings.caption}
         </figcaption>
+        {/* Its own paragraph rather than a second sentence in the caption: the
+            caption names the drawing ("the back, at print size") and this is
+            about two things on it that are not ours to draw. Run together they
+            read as one run-on line — B982. */}
+        {address ? (
+          <p className="mt-1 text-xs text-navy-500">{strings.printerAdds}</p>
+        ) : null}
       </figure>
-      {/* Its own paragraph rather than a second sentence in the caption: the
-          caption names the drawing ("the back, at print size") and this is
-          about two things on it that are not ours to draw. Run together they
-          read as one run-on line — B982. */}
-      {address ? (
-        <p className="mt-1 text-xs text-navy-500 sm:col-span-2">
-          {strings.printerAdds}
-        </p>
-      ) : null}
 
       {editable ? (
         <form
@@ -301,17 +312,23 @@ export default function PostcardBack({
                 }
               : undefined
           }
-          className="mt-6 rounded-lg border border-navy-200 bg-white px-3 py-3 sm:col-span-2"
+          className="rounded-lg border border-navy-200 bg-white px-3 py-3"
         >
           <label className="block text-sm font-semibold text-navy-800">
             {strings.messageLabel}
+            {/* Eight rows, not four — B1005. A card takes 600 characters and
+                the box showed about a fifth of them, so the thing a person
+                came here to write was the smallest control on the screen and
+                scrolled inside itself while they wrote. `field-sizing` grows
+                it further where the browser has it, and the `min-h` is what
+                holds the floor everywhere else. */}
             <textarea
               name="message"
-              rows={4}
+              rows={8}
               maxLength={600}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm font-normal text-navy-900"
+              className="mt-1 min-h-44 w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm font-normal text-navy-900 [field-sizing:content]"
             />
           </label>
           <div className="mt-3 flex flex-wrap gap-3">
@@ -389,9 +406,8 @@ export default function PostcardBack({
             </span>
           </div>
           <p className="mt-2 text-xs text-navy-600">{strings.sameCard}</p>
-          <p className="mt-1 text-xs text-navy-600">{strings.fixed}</p>
         </form>
       ) : null}
-    </>
+    </div>
   );
 }

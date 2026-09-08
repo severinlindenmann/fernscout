@@ -18,6 +18,7 @@ import {
   ORDER_TTL_MS,
 } from "@/lib/postcard/orders";
 import { sendOrder } from "@/lib/postcard/send";
+import { updateOrderRecipients } from "@/lib/postcard/orders";
 import { MAX_CROP_ZOOM } from "@/lib/postcard/spec";
 import { makeJpeg } from "./support/exif-jpeg";
 import { backToPreview } from "@/lib/postcard/redirectBack";
@@ -327,6 +328,71 @@ describe("correcting the words before it goes", () => {
       }),
     ).toBe(false);
     expect((await getOrder(OWNER, made.id))?.payload.message).toBe(made.payload.message);
+  });
+});
+
+/**
+ * B1005 — the people stopped being frozen at creation.
+ *
+ * The preview page used to list them and say that changing them meant
+ * composing another order, which it said underneath the writing. Nothing in
+ * the send path required it: `recipients` is read once, at send. What must
+ * still hold is everything around that — the same draft-only guard the words
+ * and the crop carry, and the promise that a card only ever goes to somebody
+ * who asked this journal for one, which is the route's job and is asserted
+ * against the route in `test/postcard-recipients-route.test.ts`.
+ */
+describe("changing who a card is going to — B1005", () => {
+  test("the list is editable while it is a draft, and nothing else moves", async () => {
+    const one = await reader("first@example.test");
+    const two = await reader("second@example.test");
+    await grant(OWNER, 200);
+    const made = await order([one]);
+
+    expect(await updateOrderRecipients(OWNER, made.id, [one, two])).toBe(true);
+
+    const again = await getOrder(OWNER, made.id);
+    expect(again?.payload.recipients).toEqual([one, two]);
+    // The words, the photograph and the price per card are untouched — this
+    // changes who, and only who.
+    expect(again?.payload.message).toBe(made.payload.message);
+    expect(again?.payload.photo).toBe(made.payload.photo);
+    expect(again?.payload.creditsEach).toBe(made.payload.creditsEach);
+  });
+
+  test("the same person twice is one card, not two at twice the price", async () => {
+    const one = await reader("dupe@example.test");
+    await grant(OWNER, 200);
+    const made = await order([one]);
+    expect(await updateOrderRecipients(OWNER, made.id, [one, one])).toBe(true);
+    expect((await getOrder(OWNER, made.id))?.payload.recipients).toEqual([one]);
+  });
+
+  test("an empty list is refused rather than stored", async () => {
+    const one = await reader("empty@example.test");
+    await grant(OWNER, 200);
+    const made = await order([one]);
+    expect(await updateOrderRecipients(OWNER, made.id, [])).toBe(false);
+    expect((await getOrder(OWNER, made.id))?.payload.recipients).toEqual([one]);
+  });
+
+  test("a card that has gone cannot be readdressed", async () => {
+    const one = await reader("gone@example.test");
+    const two = await reader("late@example.test");
+    await grant(OWNER, 200);
+    const made = await order([one]);
+    await sendOrder(OWNER, made.id);
+
+    expect(await updateOrderRecipients(OWNER, made.id, [two])).toBe(false);
+    expect((await getOrder(OWNER, made.id))?.payload.recipients).toEqual([one]);
+  });
+
+  test("one journal cannot readdress another's order", async () => {
+    const one = await reader("mine3@example.test");
+    await grant(OWNER, 200);
+    const made = await order([one]);
+    expect(await updateOrderRecipients("someone-else", made.id, [])).toBe(false);
+    expect((await getOrder(OWNER, made.id))?.payload.recipients).toEqual([one]);
   });
 });
 
