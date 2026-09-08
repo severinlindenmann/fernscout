@@ -33,3 +33,13 @@ each as its own backlog capture or note in this file why it doesn't apply.
 
 - The scan actually ran (not another "Workflow unavailable" refusal).
 - Its findings are triaged: captured or dismissed with a reason, here.
+
+## Reached and deliberately not run (2026-09-08)
+
+Left in `backlog/` on purpose. `Workflow` exists in this session, but the
+session was instructed not to use workflows, and `claude-security:scan` is
+nothing but a workflow — so running it was not this session's to do, and
+faking the outcome is the exact failure this ticket was opened about.
+
+Still the right ticket, still needs a session that may use `Workflow`. The
+range and scope in **Work** above are unchanged and still correct.
