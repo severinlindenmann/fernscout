@@ -5,6 +5,7 @@ type: ISSUE
 priority: medium
 complexity: low
 area: agent guide, tests
+superseded: "B990 — the same finding, filed by three sessions within the hour"
 found: "2026-09-08T16:45:14Z"
 ---
 
@@ -31,3 +32,13 @@ argument written beside it. Do not simply bump the number.
 ## Acceptance
 
 `npx vitest run test/agent-interface.test.ts` green on a clean `main`.
+
+## Superseded by B990
+
+Three sessions hit the same red `main` and each filed a ticket for it: B990
+first, then B993, then this one. None of them fixed it, which is the more
+interesting half — a tripwire that only blocks, and that every session reads
+as somebody else's problem, is a tripwire that stops everybody in turn.
+
+Fixed under B990: the ceiling is 144 KiB with the argument written beside it,
+and nothing was cut.
