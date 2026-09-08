@@ -49,15 +49,16 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (131)
+## backlog (134)
 
-### security (1)
+### security (2)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B914](backlog/security/B914-take-down-and-publish-sentences-now.md) | Take-down and publish sentences now reach a tool instead of being refused | SECURITY | high | low |
+| [B954](backlog/security/B954-a-vague-reference-to-a-day.md) | A vague reference to a day builds a ready-to-press overwrite of a different day | SECURITY | high | medium |
 
-### issue (41)
+### issue (43)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -67,6 +68,8 @@ Do not edit them by hand; run the script.
 | [B905](backlog/issue/B905-an-agent-can-publish-a-day.md) | An agent can publish a day and cannot take it down again | ISSUE | high | low |
 | [B922](backlog/issue/B922-a-credit-is-spent-on-a.md) | Was she charged for a day that was never written, and should she have been? | ISSUE | high | low |
 | [B926](backlog/issue/B926-the-helper-forgets-what-it-was.md) | The helper forgets what it was told one message ago | ISSUE | high | low |
+| [B953](backlog/issue/B953-a-button-that-is-not-there.md) | A button that is not there stopped being caught when anything had been written | ISSUE | high | low |
+| [B955](backlog/issue/B955-what-a-trip-has-cost-is.md) | What a trip has cost is added up by the model and comes out wrong | ISSUE | high | medium |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
