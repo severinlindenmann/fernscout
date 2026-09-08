@@ -1644,6 +1644,7 @@
   "agent.noAccessYet": "I cannot tell you that somebody can read this. A trip that is not public is open to the people who were on it and to the guests you have approved — naming somebody does not let them in. Say who should read it and I will put a link in front of you to send them.",
   "agent.notRead": "I have not read that day in this answer, so I cannot tell you what it says — and I will not guess at somebody's own words. Say it again and I will open the day and quote it back to you.",
   "agent.notCounted": "I would rather not give you a figure I have not added up properly — a wrong number about your own money is worse than none. Ask me again and I will read the costs first.",
+  "agent.stillHasAQuestion": "I think I only got to part of what you asked — go ahead and ask the other part again and I will look into it properly this time.",
   "agent.tool.addPhotos": "Photographs go on from the day's own page, where the picker and the upload are.",
   "agent.tool.addPhotosLabel": "Open the day",
   "agent.tool.inviteGuest": "A link to send to whoever should be able to read this journal. It lets nobody in on its own: whoever opens it proves their own address and then appears in your list, and they can read nothing until you approve them. The name below is only so you can tell whose link it is.",

@@ -438,6 +438,7 @@ export type TranslationKey =
   | "agent.stepPublish"
   | "agent.stepTrip"
   | "agent.stepWords"
+  | "agent.stillHasAQuestion"
   | "agent.takeDown"
   | "agent.takeDownConfirm"
   | "agent.takeDownQuestion"
