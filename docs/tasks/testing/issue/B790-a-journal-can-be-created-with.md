@@ -7,8 +7,7 @@ complexity: low
 area: api, journals, currency
 found: "2026-09-07T14:43:11Z"
 started: "2026-09-08T19:14:15Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T19:14:15Z"
+merged: "2026-09-08T19:43:11Z"
 ---
 
 # B790 — A journal can be created with a currency that is not one, and it can never be corrected

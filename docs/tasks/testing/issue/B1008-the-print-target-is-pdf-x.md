@@ -7,8 +7,7 @@ complexity: medium
 area: photobook, print
 found: "2026-09-08T18:27:03Z"
 started: "2026-09-08T19:11:41Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T19:11:41Z"
+merged: "2026-09-08T19:43:13Z"
 ---
 
 # B1008 — The print target is PDF/X-4 and the fonts are not embedded
