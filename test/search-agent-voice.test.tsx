@@ -120,7 +120,7 @@ afterEach(() => {
 
 describe("the owner's microphone on the search page", () => {
   test("replaces the browser's own dictation rather than sitting beside it", () => {
-    mount({ username: "alex", speech: { consented: true, provider: "Deepgram" } });
+    mount({ username: "alex", speech: { consented: true, provider: "Deepgram", balance: 20 } });
     expect(host.textContent).toContain("stub-record");
     expect(
       [...host.querySelectorAll("button")].some(
@@ -130,7 +130,7 @@ describe("the owner's microphone on the search page", () => {
   });
 
   test("what was said goes to the agent, with no second press", async () => {
-    mount({ username: "alex", speech: { consented: true, provider: "Deepgram" } });
+    mount({ username: "alex", speech: { consented: true, provider: "Deepgram", balance: 20 } });
     const record = [...host.querySelectorAll("button")].find((b) =>
       b.textContent?.includes("stub-record"),
     )!;
@@ -147,6 +147,11 @@ describe("the owner's microphone on the search page", () => {
     expect(host.querySelector<HTMLInputElement>("#search-input")!.value).toBe(
       "der Tag an dem wir uns verfahren haben",
     );
+  });
+
+  test("with no credits left the microphone is disabled and says why", () => {
+    mount({ username: "alex", speech: { consented: true, provider: "Deepgram", balance: 0 } });
+    expect(host.textContent).toContain("keine mehr");
   });
 
   test("a reader who is not the owner keeps the browser's microphone", () => {

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Mic, MicOff, Search as SearchIcon, Sparkles } from "lucide-react";
+import AgentMicIcon from "./AgentMicIcon";
 import RecordButton from "./RecordButton";
 import MiniSearch from "minisearch";
 import BusyButton from "./BusyButton";
@@ -101,7 +102,7 @@ export default function SearchBox({
    * box, and useless in a browser with no speech service (B975), which is what
    * this exists to answer for the one person whose credits are at stake.
    */
-  speech?: { consented: boolean; provider: string };
+  speech?: { consented: boolean; provider: string; balance: number | null };
 }) {
   const { t, formatShortDate, locale } = useI18n();
   const site = useSite();
@@ -133,6 +134,16 @@ export default function SearchBox({
    * the console of every signed-out reader who opened Search.
    */
   const canAsk = site.isOwner && site.helperEnabled;
+  /**
+   * The only thing this page ever says about money — B986.
+   *
+   * Not a price on the button: a search box with a tariff on it is a search
+   * box people stop pressing. The one number that changes what happens is a
+   * balance of nothing, and then the microphone is switched off rather than
+   * spending a press on a refusal. `null` means credits are off on this
+   * instance, which is not a shortage.
+   */
+  const outOfCredits = speech?.balance === 0;
   const [agent, setAgent] = useState<"idle" | "busy" | "error">("idle");
   const [hits, setHits] = useState<AgentHit[] | null>(null);
   const [asked, setAsked] = useState("");
@@ -261,9 +272,30 @@ export default function SearchBox({
           disabled={state === "error"}
           autoFocus
           className={`w-full rounded-full border border-navy-200 bg-white py-3 pl-11 text-sm text-navy-900 placeholder:text-navy-500 focus:border-navy-500 focus:outline-none disabled:opacity-60 ${
-            canSpeak && !speech ? "pr-12" : "pr-4"
+            (canSpeak && !speech) || speech ? "pr-12" : "pr-4"
           }`}
         />
+        {speech && username && (
+          <RecordButton
+            username={username}
+            consented={speech.consented}
+            provider={speech.provider}
+            compact
+            // 44px of target, no frame: the field is the frame, and a second
+            // ring inside it reads as a control bolted on.
+            compactClassName="absolute right-1 top-1/2 h-11 w-11 -translate-y-1/2 hover:bg-cream-100"
+            icon={<AgentMicIcon className="h-5 w-5" />}
+            // The page's own language, and no question about it — B986.
+            language={locale}
+            disabled={agent === "busy" || outOfCredits}
+            onText={(said) => {
+              // Into the box *and* away, with no second press: what was said
+              // out loud was the question, not a draft of it.
+              setQuery(said);
+              void askAgent(said);
+            }}
+          />
+        )}
         {canSpeak && !speech && (
           <button
             type="button"
@@ -303,32 +335,14 @@ export default function SearchBox({
         </p>
       )}
 
+      {outOfCredits && (
+        <p className="mt-2 text-sm text-navy-700">{t("search.voiceNoCredits")}</p>
+      )}
+
       {voiceError && (
         <p role="status" className="mt-2 text-sm text-coral-600">
           {voiceError}
         </p>
-      )}
-
-      {speech && username && (
-        <RecordButton
-          username={username}
-          consented={speech.consented}
-          provider={speech.provider}
-          disabled={agent === "busy"}
-          label={
-            <span className="inline-flex items-center justify-center gap-2">
-              <Sparkles className="h-4 w-4" aria-hidden strokeWidth={2.2} />
-              <Mic className="h-4 w-4" aria-hidden strokeWidth={2.2} />
-              {t("search.voiceAgent", { minutes: String(MINUTES_PER_CREDIT) })}
-            </span>
-          }
-          onText={(said) => {
-            // Into the box *and* away, with no second press: what was said
-            // out loud was the question, not a draft of it.
-            setQuery(said);
-            void askAgent(said);
-          }}
-        />
       )}
 
       {canAsk && (

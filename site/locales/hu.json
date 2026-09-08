@@ -1091,6 +1091,7 @@
   "search.voiceNoSpeech": "Nem hallottam semmit. Nyomd meg a mikrofont, és beszélj.",
   "search.voiceNoService": "Ez a böngésző nem ér el beszédfelismerő szolgáltatást, így itt a diktálás nem működik. A gépelés igen.",
   "search.voiceFailed": "A mikrofon leállt: {code}.",
+  "search.voiceNoCredits": "A beszédhez kredit kell, és ezen a naplón nincs több. A gépelés továbbra is működik, és az ügynök kérdezése is.",
   "search.voiceListening": "Hallgatlak…",
   "search.voiceConsentTitle": "Keresel hanggal?",
   "search.voiceConsentBody": "A böngésződ hallgat, és amit mondasz, elküldheti a gyártója beszédfelismerő szolgáltatásának. Ebbe a naplóba csak a keresőmezőbe beírt szavak jutnak el.",

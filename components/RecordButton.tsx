@@ -79,6 +79,9 @@ export default function RecordButton({
   compact,
   onText,
   label,
+  icon,
+  compactClassName,
+  language: fixedLanguage,
 }: {
   username: string;
   /** Whether this journal has already agreed to its owner's voice being sent
@@ -106,6 +109,33 @@ export default function RecordButton({
    * component's own and are the same wherever it is mounted.
    */
   label?: React.ReactNode;
+  /**
+   * The icon the compact form draws — B986. A microphone by default, because
+   * that is what it is everywhere it fills a box; the search page passes its
+   * own, where what is said goes to the agent instead.
+   */
+  icon?: React.ReactNode;
+  /**
+   * The compact button's own position, size and frame — B986. Defaulted to
+   * exactly what the ask box has always had: a bordered 44px circle in a
+   * textarea's top right corner. The search page hands over its own, because
+   * a bordered circle as tall as a single-line field reads as a second
+   * control stuck to the end of it rather than as something in it.
+   *
+   * The state colours are not overridable and never should be: red while
+   * recording is the one thing this control says without words.
+   */
+  compactClassName?: string;
+  /**
+   * The language to send, named by the host — B986.
+   *
+   * When it is given, the select is not drawn at all and this is what is
+   * spoken. B767's question ("which language are you speaking?") is right on
+   * the wizard, where somebody may well narrate a day in a language they do
+   * not write it in. It is wrong in a search box, which the reader has
+   * already put into a language, and which is answered in that language.
+   */
+  language?: string;
 }) {
   const { t, tn, locale } = useI18n();
   const [consented, setConsented] = useState(initialConsent);
@@ -120,7 +150,10 @@ export default function RecordButton({
   // this mounts. `remembered` is guarded, so a server render (where there is
   // no `window`) simply starts empty — which is the journal's own language,
   // the correct default anyway.
-  const [language, setLanguage] = useState(() => remembered(username));
+  const [chosen, setLanguage] = useState(() => remembered(username));
+  // The host's choice wins outright where there is one; there is no select to
+  // disagree with it, and nothing is remembered from it either.
+  const language = fixedLanguage ?? chosen;
   const [error, setError] = useState("");
   // What a screen reader is told, and the only thing about this button that is
   // spoken while it runs — B794.
@@ -349,7 +382,7 @@ export default function RecordButton({
 
   /** Only once speaking has been chosen — the default is already the journal's
    *  own language, so this is a correction and never a question. */
-  const chooseLanguage = speaking && (
+  const chooseLanguage = speaking && !fixedLanguage && (
     <>
       <label
         htmlFor={`speech-language-${username}`}
@@ -359,7 +392,7 @@ export default function RecordButton({
       </label>
       <select
         id={`speech-language-${username}`}
-        value={language}
+        value={chosen}
         onChange={(event) => {
           setLanguage(event.target.value);
           try {
@@ -410,13 +443,15 @@ export default function RecordButton({
           disabled={disabled || busy}
           aria-label={t("agent.speechHow")}
           {...hold}
-          className={`absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full border disabled:opacity-50 ${
+          className={`${
+            compactClassName ?? "absolute right-2 top-2 h-11 w-11 border"
+          } flex items-center justify-center rounded-full disabled:opacity-50 ${
             recording
               ? "border-coral-400 bg-cream-100 text-coral-600"
               : "border-navy-300 text-navy-700"
           }`}
         >
-          <Mic className="h-5 w-5" aria-hidden />
+          {icon ?? <Mic className="h-5 w-5" aria-hidden />}
         </button>
         {heard && <p className="mt-2 text-sm text-navy-700">{heard}</p>}
         {spoken}

@@ -1091,6 +1091,7 @@
   "search.voiceNoSpeech": "Es war nichts zu hören. Drücke aufs Mikrofon und sprich.",
   "search.voiceNoService": "Dieser Browser erreicht keinen Spracherkennungsdienst, hier funktioniert Diktieren also nicht. Tippen weiterhin schon.",
   "search.voiceFailed": "Das Mikrofon hat gestoppt: {code}.",
+  "search.voiceNoCredits": "Sprechen braucht Kredite, und dieses Tagebuch hat keine mehr. Tippen geht weiterhin, und den Agenten fragen auch.",
   "search.voiceListening": "Ich höre zu …",
   "search.voiceConsentTitle": "Per Sprache suchen?",
   "search.voiceConsentBody": "Dein Browser hört zu und schickt das Gesagte möglicherweise an den Sprachdienst seines Herstellers. Bei diesem Journal kommen nur die Wörter an, die im Suchfeld landen.",

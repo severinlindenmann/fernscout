@@ -10,7 +10,7 @@ export default function SearchPageContent({
 }: {
   username: string;
   /** Present only for the owner of a journal that can transcribe — B981. */
-  speech?: { consented: boolean; provider: string };
+  speech?: { consented: boolean; provider: string; balance: number | null };
 }) {
   const { t } = useI18n();
   return (

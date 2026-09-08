@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
+import { balanceOf } from "@/lib/credits";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
@@ -45,10 +46,17 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 async function speechFor(
   user: string,
-): Promise<{ consented: boolean; provider: string } | undefined> {
+): Promise<{ consented: boolean; provider: string; balance: number | null } | undefined> {
   if (!isEnabled("transcription", user)) return undefined;
   if (!(await isOwner(user))) return undefined;
-  return { consented: hasHelperConsent(user, "speech"), provider: speechProvider() };
+  return {
+    consented: hasHelperConsent(user, "speech"),
+    provider: speechProvider(),
+    // What they have, so the page can be quiet about the price and say
+    // something only when there is nothing left — B986. `null` is "credits
+    // are off here", which is not zero and is not a warning either.
+    balance: await balanceOf(user),
+  };
 }
 
 export default async function SearchPage({ params }: PageProps<"/[user]/search">) {
