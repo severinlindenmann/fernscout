@@ -5,6 +5,7 @@ type: ISSUE
 priority: medium
 complexity: low
 area: docs, agent guide
+superseded: "B990"
 found: "2026-09-08T17:13:17Z"
 ---
 
