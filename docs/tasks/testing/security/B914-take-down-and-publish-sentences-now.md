@@ -7,8 +7,7 @@ complexity: low
 area: agent
 found: "2026-09-08T06:05:10Z"
 started: "2026-09-08T15:43:57Z"
-session: 41335894-5435-4167-8cb6-898e370cd6a9
-claimed: "2026-09-08T15:43:57Z"
+merged: "2026-09-08T15:54:42Z"
 ---
 
 # B914 — Take-down and publish sentences now reach a tool instead of being refused
@@ -74,3 +73,42 @@ cover.
 ## Acceptance
 
 The decision is made deliberately and written down where the guard lives.
+
+## Decision (2026-09-08) — keep it, with a floor
+
+The owner chose option 2. B900's loosening stands: "take down the day with the
+photo of anna" reaches `unpublish_day`, destruction words are still refused
+before any model call, and there is still no delete tool. **Publishing may only
+be proposed from a sentence that names a day.**
+
+`publish_all` is a new row in `lib/helper/intents.ts`, matched from the
+sentence before a model reads it. Two lookaheads rather than one alternation:
+the sentence has to carry both a publishing word and a word meaning all of
+them, in either order — so "publish the day about the pass" is untouched and
+"publish everything now" never reaches the conversation. The reasoning is
+written beside the table, as this ticket asked.
+
+**Half the floor turned out to be built already.** `proposeWith` in
+`lib/helper/tools.ts` has refused any proposal whose `slug` came back empty
+since B925, so a publish sentence the model *fails* to resolve already ends in
+"which day did you mean" and no button. What that cannot catch is the model
+being helpful — asked to publish everything, picking the first draft, and
+resolving it perfectly. That is the gap this row closes, and it is why the
+check is on the sentence rather than on the proposal.
+
+Three details worth knowing:
+
+- **"unpublish everything" is deliberately not matched.** `\bpublish` finds no
+  word boundary inside "unpublish". Taking everything down is the reversible
+  direction and errs the safe way.
+- **Bare `online` is not a publishing word**, though `put … online` and
+  `stell … online` are — otherwise "are all my days online?" would be refused,
+  which is the box going quiet at exactly the moment B783 was about.
+- **Destruction still wins**, since `remove` is the first row: "delete
+  everything" is `refuse_remove`, not `refuse_publish_all`.
+
+Copy in all three languages, the key added to `TranslationKey`, and
+`test/helper-safe-answers.test.ts` covers the five bulk sentences, the four
+day-naming ones that must still pass, both directions of "everything down",
+two questions that must not be refused, and the precedence over `remove`.
+Mutation-checked: disabling the row fails the suite.
