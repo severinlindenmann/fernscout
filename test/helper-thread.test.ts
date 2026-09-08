@@ -495,3 +495,30 @@ describe("a conversation long enough to forget its own beginning", () => {
     expect(turns.at(-1)?.text).toBe("answered 39");
   });
 });
+
+/**
+ * Which language an answer is in — B972.
+ *
+ * One German question, and the rest of the conversation came back in German,
+ * including the narration of a day the person had just described in an English
+ * paragraph. The prompt said *"in the language they used"*, and with a thread
+ * "they" is ambiguous: this message, or the conversation. The model chose the
+ * conversation.
+ *
+ * B921 settled the furniture — every string the server says follows the
+ * journal rather than the phone. This is the half only the model can decide,
+ * because only the model has the text of what was just said, and detecting a
+ * language from one sentence in code would be worse than its reading of it.
+ *
+ * Asserted on the prompt rather than on behaviour, which is the honest limit:
+ * what a model does with an instruction is not a thing a test can hold.
+ */
+describe("the language rule the model is given", () => {
+  test("is about the latest message, not the conversation", () => {
+    const prompt = threadSystemPrompt("2026-09-08");
+    expect(prompt).toMatch(/latest message/i);
+    expect(prompt).toMatch(/not the language of the conversation/i);
+    // And the rule it must not lose: their words stay in their words.
+    expect(prompt).toMatch(/never translate/i);
+  });
+});
