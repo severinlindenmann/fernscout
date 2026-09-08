@@ -7,8 +7,7 @@ complexity: medium
 area: Postcards
 found: "2026-09-08T18:05:00Z"
 started: "2026-09-08T17:42:59Z"
-session: b8352d66-3105-4f5d-a703-f8809d0b08e6
-claimed: "2026-09-08T17:42:59Z"
+merged: "2026-09-08T18:23:44Z"
 ---
 
 # B1005 — The preview page does six jobs at once, and only fits a phone
