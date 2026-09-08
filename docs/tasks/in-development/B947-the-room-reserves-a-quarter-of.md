@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: helper, ui
 found: "2026-09-08T10:45:27Z"
+started: "2026-09-08T12:03:35Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T12:03:35Z"
 ---
 
 # B947 — The room reserves a quarter of the screen for an empty files pane and never says which day it is previewing
