@@ -7,8 +7,7 @@ complexity: medium
 area: helper, thread
 found: "2026-09-08T09:49:11Z"
 started: "2026-09-08T10:01:00Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T10:01:00Z"
+merged: "2026-09-08T10:10:09Z"
 ---
 
 # B939 — A pressed proposal is invisible to the conversation that proposed it
