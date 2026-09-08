@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: auth, tokens
 found: "2026-09-07T14:23:36Z"
+started: "2026-09-08T05:12:26Z"
+session: 41335894-5435-4167-8cb6-898e370cd6a9
+claimed: "2026-09-08T05:12:26Z"
 ---
 
 # B776 — An agent token can mint itself a fresh token forever without the owner ever seeing a code
