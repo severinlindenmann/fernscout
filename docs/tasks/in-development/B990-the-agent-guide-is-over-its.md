@@ -49,6 +49,16 @@ one-line fix on somebody else's branch.
 
 - `npm run verify` exits 0 on `main` with nothing else changed.
 
+  Confirmed from this worktree, cut from `main` after the fix (commit
+  `1096dee5`, "B994, B990: a label that stops asking for an essay, and a
+  ceiling argued past", itself merged as `b9dc0315`) had already landed:
+  `test/agent-interface.test.ts` carries the 144 KiB ceiling with the
+  argument beside the number, and `npm run verify` ran clean end to end —
+  build, `tsc`, eslint, 441 test files / 5727 tests passed (4 skipped), and
+  `knip` — "all 5 passed in 423s". No source change was needed here; this
+  worktree's branch point already contained the fix, and this run is the
+  independent confirmation the acceptance line asks for.
+
 ## Fixed — and what the fix does not answer
 
 Raised to 144 KiB, with the argument in the test beside the number, which is
