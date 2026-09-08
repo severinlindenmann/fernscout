@@ -7,6 +7,7 @@ complexity: low
 area: tests, ci
 found: "2026-09-07T19:00:55Z"
 started: "2026-09-08T00:00:00Z"
+merged: "2026-09-08T05:03:08Z"
 ---
 
 # B896 — The unused gate keeps going red on exports nobody notices
