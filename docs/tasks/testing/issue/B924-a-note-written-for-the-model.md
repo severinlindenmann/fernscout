@@ -7,8 +7,7 @@ complexity: low
 area: agent, ui
 found: "2026-09-08T07:12:20Z"
 started: "2026-09-08T07:26:33Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T07:26:33Z"
+merged: "2026-09-08T07:52:11Z"
 ---
 
 # B924 — A note written for the model is printed to the person
