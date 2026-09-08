@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: helper, model
 found: "2026-09-08T11:33:51Z"
+started: "2026-09-08T11:46:46Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T11:46:46Z"
 ---
 
 # B955 — What a trip has cost is added up by the model and comes out wrong
