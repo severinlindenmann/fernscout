@@ -1857,9 +1857,26 @@ function centreAwayFromFold(xs: number[], x: number, width: number): number {
    * room to abandon half the spread.
    */
   const routeCentre = (minX + maxX) / 2;
-  const drift = width / 6;
-  lo = Math.max(lo, routeCentre - drift);
-  hi = Math.min(hi, routeCentre + drift);
+
+  /**
+   * The fold must stay *within* the journey, so both pages carry some of it.
+   *
+   * Without this the bounds above let the frame slide until a stop reaches
+   * the frame's edge, and for a route far narrower than its frame — which
+   * forcing the spread's 2:1 shape makes common, since a tall compact journey
+   * gets a frame many times its own width — the best-scoring candidate is
+   * "put the fold beyond the last stop". Four passes in the Alps printed
+   * wholly on the right-hand page with a blank sheet of graticule facing it.
+   * A blank page is a worse fault than a stop near the gutter.
+   *
+   * A single stop is the exception and keeps the older, wider licence: it
+   * cannot straddle anything, so nudging it off the fold is the only thing
+   * that can be done for it, and it empties no page by moving.
+   */
+  if (maxX > minX) {
+    lo = Math.max(lo, minX);
+    hi = Math.min(hi, maxX);
+  }
 
   const inBand = (c: number) => sorted.filter((v) => Math.abs(v - c) < half).length;
   const crossings = (c: number) => {
