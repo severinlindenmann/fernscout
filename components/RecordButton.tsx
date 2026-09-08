@@ -9,7 +9,6 @@ import {
   MAX_SPEECH_SECONDS,
   MINUTES_PER_CREDIT,
   SPEECH_LANGUAGES,
-  creditsForSeconds,
 } from "@/lib/helper/speech";
 
 /**
@@ -137,7 +136,7 @@ export default function RecordButton({
    */
   language?: string;
 }) {
-  const { t, tn, locale } = useI18n();
+  const { t, locale } = useI18n();
   const [consented, setConsented] = useState(initialConsent);
   const [consenting, setConsenting] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -371,13 +370,16 @@ export default function RecordButton({
     onClick: toggle,
   };
 
+  // The stopwatch, and nothing else. It used to carry what the recording had
+  // cost so far — a running price beside a person mid-sentence, which is the
+  // same judgement B978 made about the send panel: the tariff belongs where
+  // credits are bought, not on somebody's face while they speak. What a hold
+  // costs is still said before it, on the button's own label where there is
+  // one, and the ledger on `/<user>/me` is what it was actually charged.
   const heard = busy
     ? t("agent.speechWorking")
     : recording
-      ? tn("agent.speechRecording", creditsForSeconds(seconds), {
-          seconds: String(Math.floor(seconds)),
-          credits: String(creditsForSeconds(seconds)),
-        })
+      ? t("agent.speechRecording", { seconds: String(Math.floor(seconds)) })
       : null;
 
   /** Only once speaking has been chosen — the default is already the journal's
@@ -445,9 +447,9 @@ export default function RecordButton({
           {...hold}
           className={`${
             compactClassName ?? "absolute right-2 top-2 h-11 w-11 border"
-          } flex items-center justify-center rounded-full disabled:opacity-50 ${
+          } flex items-center justify-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-navy-500 focus-visible:outline-none disabled:opacity-50 ${
             recording
-              ? "border-coral-400 bg-cream-100 text-coral-600"
+              ? "border-coral-400 bg-coral-100 text-coral-700"
               : "border-navy-300 text-navy-700"
           }`}
         >

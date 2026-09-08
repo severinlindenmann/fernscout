@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import Link from "next/link";
 import { Mic, MicOff, Search as SearchIcon, Sparkles } from "lucide-react";
 import AgentMicIcon from "./AgentMicIcon";
@@ -10,8 +16,11 @@ import BusyButton from "./BusyButton";
 import ConfirmPanel from "./ConfirmPanel";
 import { useI18n } from "./LocaleProvider";
 import { useSite } from "./SiteProvider";
-import { MINUTES_PER_CREDIT } from "@/lib/helper/speech";
-import { SEARCH_OPTIONS, SEARCH_QUERY, type SearchDoc } from "@/lib/searchOptions";
+import {
+  SEARCH_OPTIONS,
+  SEARCH_QUERY,
+  type SearchDoc,
+} from "@/lib/searchOptions";
 
 type LoadState = "loading" | "ready" | "error";
 
@@ -34,7 +43,11 @@ type Recognition = {
   interimResults: boolean;
   start: () => void;
   stop: () => void;
-  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onresult:
+    | ((event: {
+        results: ArrayLike<ArrayLike<{ transcript: string }>>;
+      }) => void)
+    | null;
   onend: (() => void) | null;
   onerror: ((event: { error?: string }) => void) | null;
 };
@@ -49,7 +62,11 @@ type Recognition = {
  * is worse than none, and a browser that accepts the bare code will go on
  * accepting it.
  */
-const SPEECH_TAGS: Record<string, string> = { en: "en-US", de: "de-DE", hu: "hu-HU" };
+const SPEECH_TAGS: Record<string, string> = {
+  en: "en-US",
+  de: "de-DE",
+  hu: "hu-HU",
+};
 
 const CONSENT_KEY = "fernscout.voiceSearch";
 
@@ -282,8 +299,10 @@ export default function SearchBox({
             provider={speech.provider}
             compact
             // 44px of target, no frame: the field is the frame, and a second
-            // ring inside it reads as a control bolted on.
-            compactClassName="absolute right-1 top-1/2 h-11 w-11 -translate-y-1/2 hover:bg-cream-100"
+            // ring inside it reads as a control bolted on. `right-1.5` rather
+            // than `right-1` so the circle is inset from the field's own
+            // rounded edge by the same amount the search icon is on the left.
+            compactClassName="absolute right-1.5 top-1/2 h-11 w-11 -translate-y-1/2 hover:bg-cream-100"
             icon={<AgentMicIcon className="h-5 w-5" />}
             // The page's own language, and no question about it — B986.
             language={locale}
@@ -300,7 +319,11 @@ export default function SearchBox({
           <button
             type="button"
             onClick={toggleVoice}
-            aria-label={voice === "listening" ? t("search.voiceStop") : t("search.voiceStart")}
+            aria-label={
+              voice === "listening"
+                ? t("search.voiceStop")
+                : t("search.voiceStart")
+            }
             aria-pressed={voice === "listening"}
             className="absolute top-1/2 right-2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-navy-600 transition-colors hover:bg-cream-100"
           >
@@ -336,7 +359,9 @@ export default function SearchBox({
       )}
 
       {outOfCredits && (
-        <p className="mt-2 text-sm text-navy-700">{t("search.voiceNoCredits")}</p>
+        <p className="mt-2 text-sm text-navy-700">
+          {t("search.voiceNoCredits")}
+        </p>
       )}
 
       {voiceError && (
@@ -399,14 +424,18 @@ export default function SearchBox({
       )}
 
       <div className="mt-6">
-        {state === "error" && <p className="text-sm text-navy-600">{t("search.error")}</p>}
+        {state === "error" && (
+          <p className="text-sm text-navy-600">{t("search.error")}</p>
+        )}
 
         {state === "ready" && trimmed.length === 0 && (
           <p className="text-sm text-navy-600">{t("search.noQuery")}</p>
         )}
 
         {state === "ready" && trimmed.length > 0 && results.length === 0 && (
-          <p className="text-sm text-navy-600">{t("search.noResults", { query: trimmed })}</p>
+          <p className="text-sm text-navy-600">
+            {t("search.noResults", { query: trimmed })}
+          </p>
         )}
 
         {results.length > 0 && (
@@ -435,7 +464,9 @@ export default function SearchBox({
                     <p className="font-display text-base font-semibold text-navy-900">
                       {r.title as string}
                     </p>
-                    {subtitle && <p className="mt-0.5 text-xs text-navy-600">{subtitle}</p>}
+                    {subtitle && (
+                      <p className="mt-0.5 text-xs text-navy-600">{subtitle}</p>
+                    )}
                   </Link>
                 </li>
               );
