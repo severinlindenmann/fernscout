@@ -10,7 +10,7 @@ import { recordUsage, type Operation } from "../usage";
 import type { Block, Proposal } from "./blocks";
 import type { Say } from "./intents";
 import type { Turn } from "./thread";
-import { runTool, toolList, toolSchemas } from "./tools";
+import { TOOLS, runTool, toolList, toolSchemas } from "./tools";
 
 /**
  * The one place a model is spoken to — B684, and §5 of
@@ -575,7 +575,44 @@ export type ThreadAnswer = {
 const MARKER_LINE = /^[ \t]*\[(?:proposed|written|pressed|selected)\b[^\]]*\][ \t]*$/gim;
 
 function withoutMarkers(text: string): string {
-  return text.replace(MARKER_LINE, "").replace(/\n{3,}/g, "\n\n").trim();
+  return withoutPlumbing(text.replace(MARKER_LINE, ""))
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/**
+ * A sentence that names one of the tools — B964.
+ *
+ * An answer began: *"I called trip_costs for Danube Circuit but it returned
+ * Balkan Loop. The total for Danube Circuit is 240.476 CHF…"* The figure was
+ * right and the trips were correctly separated afterwards; what reached the
+ * person was the model narrating its own plumbing — a tool name, and a
+ * suspicion about that tool's behaviour — in the middle of an answer about
+ * their holiday. Driven against two similarly named trips, the resolution it
+ * was complaining about is correct, so there was nothing behind the suspicion
+ * either.
+ *
+ * This is B924's fault said by the model rather than written by the server:
+ * two audiences, one channel. That one was fixed by making a note a note; this
+ * one cannot be, because the model is composing it.
+ *
+ * **Dropped rather than retried.** A retry costs a model call and a person's
+ * patience for something that is noise rather than a false claim — and the
+ * rest of the answer is usually right, as it was here. Whole sentences,
+ * because half a sentence is worse than none.
+ *
+ * Safe to do bluntly: these names are `snake_case` identifiers that appear in
+ * no language this product speaks. Nobody writing about a holiday says
+ * `trip_costs`.
+ */
+function withoutPlumbing(text: string): string {
+  const names = TOOLS.map((tool) => tool.name).filter((name) => name.includes("_"));
+  const naming = new RegExp(`\\b(?:${names.join("|")})\\b`);
+  return text
+    .split(/(?<=[.!?\n])\s+/)
+    .filter((sentence) => !naming.test(sentence))
+    .join(" ")
+    .trim();
 }
 
 /**
