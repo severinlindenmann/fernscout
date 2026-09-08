@@ -1,21 +1,27 @@
 import { describe, expect, test } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { REGISTRY } from "@/lib/helper/intents";
+import { TOOLS } from "@/lib/helper/tools";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
 
 /**
- * B729 — a registry row's slot is shown with `t(`agent.slot.${name}`)`, cast
+ * B729 — a proposal's field is labelled with `t(`agent.slot.${name}`)`, cast
  * through `as TranslationKey` in `components/HelperAsk.tsx`. The cast makes
- * it compile even when nobody added the key, and a slot with no translation
+ * it compile even when nobody added the key, and a field with no translation
  * then renders its own raw key on the page instead of failing the build.
  *
- * This walks every slot in `REGISTRY` against every maintained locale's own
- * file on disk — not the English-merged dictionary, which would hide a slot
- * missing from one language behind English's copy of the same key.
+ * Since B900 the fields come from the write tools, and their names are the
+ * arguments those tools declare — which is also what the route they post to
+ * reads. This walks every one against every maintained locale's own file on
+ * disk, not the English-merged dictionary, which would hide a field missing
+ * from one language behind English's copy of the same key.
  */
-describe("every intent slot has a locale string in every maintained locale", () => {
-  const slotNames = [...new Set(REGISTRY.flatMap((row) => row.slots.map((slot) => slot.name)))];
+describe("every proposal field has a locale string in every maintained locale", () => {
+  const slotNames = [
+    ...new Set(
+      TOOLS.filter((tool) => tool.kind === "write").flatMap((tool) => Object.keys(tool.properties)),
+    ),
+  ];
 
   for (const locale of MAINTAINED_LOCALES) {
     const dictionary = JSON.parse(

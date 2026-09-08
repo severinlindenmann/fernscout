@@ -105,8 +105,12 @@ describe("the helper routes", () => {
   // right on its own branch and wrong on main.
   // Sixteen since B904, which added the search a person asks in their own
   // words — the same gate, the same cookie-only family.
-  test("there are sixteen of them, and each is guarded", () => {
-    expect(sources).toHaveLength(16);
+  // Seventeen since B900 added `proposal`, which makes a write tool's fields
+  // without a model and tells the conversation that a press went through. It
+  // writes nothing itself — the press posts to one of the sixteen above it —
+  // and it is in this family because it is the same cookie and the same owner.
+  test("there are seventeen of them, and each is guarded", () => {
+    expect(sources).toHaveLength(17);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }
