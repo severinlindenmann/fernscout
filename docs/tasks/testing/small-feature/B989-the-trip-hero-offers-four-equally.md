@@ -7,8 +7,7 @@ complexity: low
 area: Trip hero
 found: "2026-09-08T16:44:44Z"
 started: "2026-09-08T16:45:11Z"
-session: d7d95eaa-ad82-4d84-b302-8b05c3955732
-claimed: "2026-09-08T16:45:11Z"
+merged: "2026-09-08T16:58:12Z"
 ---
 
 # B989 — The trip hero offers four equally loud actions and three of them go to the same place
