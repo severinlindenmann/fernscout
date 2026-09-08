@@ -92,6 +92,22 @@ type Proposed = {
    * day and then the one button. It never fires from a sentence.
    */
   preview?: string[];
+  /**
+   * The tool declining itself, in words — B951.
+   *
+   * A translation key. `proposalFor` returns this sentence and no proposal, so
+   * there is no button and the model is told what to say instead.
+   *
+   * The existing way to propose nothing is to leave a required field empty,
+   * and it answers only one question — *which* day, *which* trip. This
+   * answers the other one: the day is right and its **state** is wrong.
+   * Asking to take down a day that is still a draft produced a card saying it
+   * *"comes off the site"*, about a day that had never been on it. Nothing
+   * was written, because `POST .../day/unpublish` refuses with
+   * `already_draft` — but the sentence a person read before pressing was
+   * false about their own journal, which is B944's fault one step earlier.
+   */
+  refuse?: string;
 };
 
 export type Tool = Named &
@@ -833,6 +849,17 @@ export const TOOLS: readonly Tool[] = [
     propose: async (username, args, say) => {
       const found = resolveDay(username, args);
       return {
+        /**
+         * A day that was never up does not come down — B951.
+         *
+         * `publish_day` has always refused a day that is already published;
+         * its mirror had no such check, so asking to take down a draft
+         * produced a confirmation card saying it *"comes off the site and
+         * goes back to being a draft"* about a day that had never been on the
+         * site. The press would have answered `already_draft`; the sentence
+         * she read before pressing said her day was live.
+         */
+        ...(found?.entry.draft ? { refuse: "agent.tool.alreadyDraft" } : {}),
         sentence: found
           ? say("agent.tool.unpublishDay", { date: found.entry.date, title: found.entry.title })
           : say("agent.tool.publishNoDay"),
@@ -1074,6 +1101,12 @@ export async function proposalFor(
    * built, so a tool cannot forget it: no button, and a sentence saying which
    * half is missing.
    */
+  // The tool declining itself — B951, and it comes first: a day that is
+  // already a draft is a better answer than "which day did you mean".
+  if (made.refuse) {
+    return { blocks: [{ shape: "say", text: say(made.refuse as Parameters<Say>[0]) }] };
+  }
+
   const empty = (name: string) => made.fields.some((field) => field.name === name && field.value.trim() === "");
   const missing = empty("trip")
     ? "agent.tool.noTrip"

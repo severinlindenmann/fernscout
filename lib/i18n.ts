@@ -443,6 +443,7 @@ export type TranslationKey =
   | "agent.tool.startDayAccept"
   | "agent.tool.startDayDone"
   | "agent.tool.startDayUnknown"
+  | "agent.tool.alreadyDraft"
   | "agent.tool.unpublishDay"
   | "agent.tool.unpublishDayAccept"
   | "agent.tool.unpublishDayDone"

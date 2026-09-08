@@ -1586,6 +1586,7 @@
   "agent.tool.attachNone": "I could not find those photographs waiting in the inbox, or the day to put them on. Select them in the files pane and say which day.",
   "agent.tool.publishNoDay": "There is no day here to do that with. Say which one you mean — a date, or what it is called.",
   "agent.tool.unpublishDay": "{date} — “{title}” comes off the site and goes back to being a draft. Nothing is deleted: the words and every photograph stay, and you can put it back whenever you like.",
+  "agent.tool.alreadyDraft": "That day is already a draft — it is not on the site, so there is nothing to take down.",
   "agent.tool.unpublishDayAccept": "Take it off the site",
   "agent.tool.unpublishDayDone": "It is off the site and back to a draft. Nothing was deleted.",
   "agent.tool.noTrip": "I cannot tell which trip you mean, so there is nothing to press yet and nothing has been saved. Say the trip by its name — or make it first, and then this can go in it.",

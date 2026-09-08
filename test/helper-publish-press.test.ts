@@ -257,3 +257,33 @@ describe("no write tool posts into a question it cannot answer", () => {
     }
   });
 });
+
+/**
+ * A day that was never up does not come down — B951.
+ *
+ * `publish_day` has always refused a day already published. Its mirror had no
+ * such check, so asking to take down a draft produced a confirmation card
+ * reading *"comes off the site and goes back to being a draft"* — about a day
+ * that had never been on the site. The press would have answered
+ * `already_draft`; what she read before pressing said her day was live.
+ */
+describe("taking down a day that was never up", () => {
+  test("is refused with its own sentence, and no button", async () => {
+    const started = await propose("start_day");
+    expect((await post(writeDay, "", pressed(started.proposal))).status).toBe(201);
+
+    const ran = await runTool("alex", "unpublish_day", { trip: "reise" }, say, "2026-09-07");
+    expect(ran.proposal).toBeUndefined();
+    expect(JSON.stringify(ran.blocks)).toContain("agent.tool.alreadyDraft");
+  });
+
+  test("and a day that is up still proposes", async () => {
+    const started = await propose("start_day");
+    await post(writeDay, "", pressed(started.proposal));
+    const publishing = await propose("publish_day");
+    expect((await post(publishDay, "/publish", pressed(publishing.proposal))).status).toBe(200);
+
+    const ran = await runTool("alex", "unpublish_day", { trip: "reise" }, say, "2026-09-07");
+    expect(ran.proposal).toBeDefined();
+  });
+});
