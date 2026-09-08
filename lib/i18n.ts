@@ -110,6 +110,7 @@ export type TranslationKey =
   | "a11y.photoPosition"
   | "a11y.photoViewer"
   | "a11y.prevPhoto"
+  | "a11y.removePhoto"
   | "a11y.skipToContent"
   | "account.title"
   | "agent.andJoin"
