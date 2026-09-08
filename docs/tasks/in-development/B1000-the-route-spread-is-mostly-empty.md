@@ -45,25 +45,78 @@ largest gap between stops, so no fold position inside this route is clean.
 
 ## Work
 
-A decision, then the work that follows from it. Options, roughly in order of
-how much they cost:
+**Decided: one page instead of two for a compact route.** Implemented in
+`lib/photobook/plan.ts`:
 
-- **One page instead of two for a compact route.** A 1:1 page suits a
-  north-south journey far better than a 2:1 spread, and the map would fill it.
-  The page planner already varies what it emits; this is a threshold on
-  `routeView`'s aspect.
-- **Draw land at close zoom.** The emptiness is really missing content. A
-  coarser world file is not the answer; a terrain or place-name layer is, and
-  it is a real dependency decision.
-- **Drop the route spread for short trips**, the way the costs page is only
-  printed when there is a budget.
+- `routeFitsOnePage(route, pageAspect)` computes the route's own padded
+  width/height (the same arithmetic `routeView` uses) and compares its aspect,
+  in log space, against one trim page's own aspect versus a spread's
+  (`pageAspect * 2`) — whichever it sits closer to wins. This generalises
+  across book sizes rather than hard-coding "square": a portrait book
+  (210×280) gets a different, correct threshold automatically.
+- `draftsForFront` calls it and emits a single `{ kind: "route", half: "full" }`
+  draft instead of the `"left"`/`"right"` pair when it says yes.
+- `routeView` takes two new optional parameters — `targetAspect` (default 2,
+  the spread's own shape) and `hasFold` (default true) — so a `"full"` page
+  can ask for its own trim aspect and skip `centreAwayFromFold`, which has
+  nothing to dodge on a page with no facing half.
+- `mapProjector` and `mapClipMm` grew a third `half` value, `"full"`: one trim
+  page's own width instead of two, no offset, bleed on all four edges (no
+  spine to hold back from) via `bleedBoxMm`.
+- `render.ts`'s `drawRoutePage` and `preview.ts`'s `routeSvg` both take the
+  page's own `side` (not `half`) for the content box now, since the two
+  stopped being interchangeable the moment a page could be unpaired.
 
-Whichever is chosen, fix the label that a gutter stop loses — either place it
-to one side or suppress the dot rather than bisecting it.
+**The gutter-loses-a-label fault is fixed too, generically** — not only for
+the compact case the single page now sidesteps entirely, but for any spread
+where a stop's dot still lands in the fold band. `routeLabelPlacements` gained
+an optional `ownerEdges` parameter: which page *claims* a stop (its own trim,
+gutter included) is now separate from where a label may *anchor* (the safe
+content box, as before). Previously a stop outside the content box belonged to
+neither facing page and was silently dropped; now it belongs to whichever
+page's trim contains it, and is drawn there, pushed back inside the safe
+margin. A second, smaller bug turned up building this: the "place it left of
+the dot" branch assumed the dot itself was already inside the safe box, so for
+a claimed-by-trim-only stop it could still emit an anchor past the content
+box's edge. Fixed by doing the left/right arithmetic from the dot's position
+*clamped* into the box, not the box-violating position itself.
+
+**Not done, and not needed now:** the other two options (a terrain/place-name
+layer for close-zoom land, and dropping the route spread outright for short
+trips) — a single well-fitted page fills the reader's eye with the actual
+journey, which was the complaint.
+
+## What was checked
+
+Two fixtures, both driven through the *real* planner and PDF renderer
+(`planBook` + `renderVolume`, not a mock) via a throwaway script, rasterised
+with `pdftoppm` and looked at:
+
+- **Compact**: the four-stop Alps trip from B914 (Susten Pass, Grimsel Pass,
+  Domodossola, Andermatt — 0.6° of longitude). On a square (200×200mm) book
+  this now plans exactly one `"route"` page (`half: "full"`), which fills the
+  whole page with the route large enough to read, and names all four stops —
+  including Andermatt, which used to fall in the gutter and lose its label.
+- **Sprawling**: New York → Chicago → Denver → Los Angeles, deliberately wide
+  east-west and narrow north-south (a shape a 2:1 spread suits far better than
+  a square page). This still plans a `"left"`/`"right"` pair; the coastline
+  and route line run across the fold without a step, and all four stops are
+  named, split correctly across the two pages.
+
+Also checked: a sub-degree square-book trip and a 12°-plus sprawling one both
+still round-trip through `npm run verify` (build, tsc, eslint, 5821 vitest
+tests including new ones for this ticket, knip) with no failures.
 
 ## Acceptance
 
 - A four-stop, sub-degree trip prints a route the reader can read, with every
-  stop named, and no page of bare grid.
+  stop named, and no page of bare grid. **Met** — see the Alps render above;
+  `test/photobook.test.ts` also asserts this at the plan level (one page,
+  `half: "full"`, four points).
 - Somebody looks at it. A drawing is the one output no test can check — see
-  the `check-a-drawing` skill.
+  the `check-a-drawing` skill. **A person should still look.** I rendered and
+  visually inspected both the compact Alps page and the sprawling US spread
+  (rasterised PDF pages, not a screenshot of the web preview) and they read
+  correctly to me, but I built the fix — a second, independent pair of eyes on
+  the actual printed page (or the `/[user]/photobook/preview` route on a real
+  trip) is the honest bar this line sets, not a substitute for it.

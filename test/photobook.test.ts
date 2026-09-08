@@ -20,11 +20,14 @@ import {
   outline,
   photosIn,
   planBook,
+  routeFitsOnePage,
+  routeLabelPlacements,
   routeView,
   type BookDay,
   type BookPhoto,
   type BookSource,
   type BookVolume,
+  type ProjectedStop,
 } from "@/lib/photobook/plan";
 import { formatDate, formatDateRange, measure, toWinAnsi, wrap } from "@/lib/photobook/text";
 import { bookStrings } from "@/lib/photobook/strings";
@@ -1102,6 +1105,83 @@ describe("a route spread uses both pages — B914", () => {
   it("still forces the spread's own 2:1 shape", () => {
     const view = routeView(ALPS);
     expect(view.width / view.height).toBeCloseTo(2, 5);
+  });
+});
+
+describe("a compact route prints on one page instead of a mostly-empty spread — B1000", () => {
+  /** Four days round the Alps: the same compact route as B914, above. */
+  const ALPS = [
+    day(0, { location: "Susten Pass", country: "Switzerland", lat: 46.73, lng: 8.44 }),
+    day(1, { location: "Grimsel Pass", country: "Switzerland", lat: 46.56, lng: 8.34 }),
+    day(2, { location: "Domodossola", country: "Italy", lat: 46.12, lng: 8.29 }),
+    day(3, { location: "Andermatt", country: "Switzerland", lat: 46.63, lng: 8.59 }),
+  ];
+
+  /** Coast to coast: wide east-west, narrow north-south — a shape a 2:1
+   * spread suits far better than one square page. */
+  const SPRAWLING = [
+    day(0, { location: "New York", country: "United States", lat: 40.71, lng: -74.0 }),
+    day(1, { location: "Chicago", country: "United States", lat: 41.88, lng: -87.63 }),
+    day(2, { location: "Denver", country: "United States", lat: 39.74, lng: -104.99 }),
+    day(3, { location: "Los Angeles", country: "United States", lat: 34.05, lng: -118.24 }),
+  ];
+
+  it("is what routeFitsOnePage sees for a square book on the Alps trip", () => {
+    expect(routeFitsOnePage(source(ALPS).route, 1)).toBe(true);
+  });
+
+  it("still spreads a sprawling trip across two pages", () => {
+    expect(routeFitsOnePage(source(SPRAWLING).route, 1)).toBe(false);
+  });
+
+  it("plans one route page, not a spread, for a compact trip on a square book", () => {
+    const book = planBook(source(ALPS), SPEC);
+    const routePages = book.volumes[0].pages.filter((p) => p.kind === "route");
+    expect(routePages).toHaveLength(1);
+    expect(routePages[0].kind === "route" && routePages[0].half).toBe("full");
+    // Every stop the trip had, still there to be labelled.
+    expect(routePages[0].kind === "route" && routePages[0].points).toHaveLength(ALPS.length);
+  });
+
+  it("still plans a two-page spread for a sprawling trip", () => {
+    const book = planBook(source(SPRAWLING), SPEC);
+    const routePages = book.volumes[0].pages.filter((p) => p.kind === "route");
+    expect(routePages).toHaveLength(2);
+    const halves = routePages.map((p) => p.kind === "route" && p.half);
+    expect(halves.sort()).toEqual(["left", "right"]);
+  });
+
+  it("frames the single page to its own trim aspect, not the spread's 2:1", () => {
+    const view = routeView(source(ALPS).route, 1, false);
+    expect(view.width / view.height).toBeCloseTo(1, 5);
+  });
+});
+
+describe("a stop in the gutter band still gets a label — B1000", () => {
+  const gutterStop: ProjectedStop = { location: "Andermatt", x: 90, y: 0 };
+  const widthOf = () => 20;
+
+  it("was lost entirely before a page could claim it by its own trim", () => {
+    // The old rule: a stop outside the safe content box (here, past 84)
+    // belongs to nobody, even though it is still on this page's own paper.
+    const left = routeLabelPlacements([gutterStop], 10, 84, 2, 5, widthOf);
+    expect(left).toHaveLength(0);
+  });
+
+  it("is claimed by the page whose own trim it falls inside", () => {
+    const left = routeLabelPlacements([gutterStop], 10, 84, 2, 5, widthOf, { left: 0, right: 100 });
+    expect(left).toHaveLength(1);
+    expect(left[0].location).toBe("Andermatt");
+    // Still anchored inside the safe content box, never past it.
+    expect(left[0].anchorX).toBeGreaterThanOrEqual(10);
+    expect(left[0].anchorX + 20).toBeLessThanOrEqual(84);
+  });
+
+  it("is not claimed a second time by the facing page", () => {
+    // The same stop, as the right page's own frame sees it — negative, since
+    // it falls outside this page's trim entirely.
+    const right = routeLabelPlacements([{ ...gutterStop, x: -10 }], 16, 90, 2, 5, widthOf, { left: 0, right: 100 });
+    expect(right).toHaveLength(0);
   });
 });
 
