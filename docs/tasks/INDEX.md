@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (127)
+## backlog (131)
 
 ### security (1)
 
@@ -57,7 +57,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B914](backlog/security/B914-take-down-and-publish-sentences-now.md) | Take-down and publish sentences now reach a tool instead of being refused | SECURITY | high | low |
 
-### issue (40)
+### issue (44)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -69,6 +69,10 @@ Do not edit them by hand; run the script.
 | [B921](backlog/issue/B921-the-conversation-speaks-the-phone-s.md) | The conversation speaks the phone's language, not the journal's | ISSUE | high | low |
 | [B922](backlog/issue/B922-a-credit-is-spent-on-a.md) | A credit is spent on a write that failed | ISSUE | high | low |
 | [B923](backlog/issue/B923-asking-that-only-one-person-may.md) | Asking that only one person may read it proposed shutting her out | ISSUE | high | low |
+| [B924](backlog/issue/B924-a-note-written-for-the-model.md) | A note written for the model is printed to the person | ISSUE | high | low |
+| [B925](backlog/issue/B925-attaching-the-files-you-ticked-fails.md) | Attaching the files you ticked fails with unknown day | ISSUE | high | low |
+| [B926](backlog/issue/B926-the-helper-forgets-what-it-was.md) | The helper forgets what it was told one message ago | ISSUE | high | low |
+| [B927](backlog/issue/B927-the-helper-invents-a-trip-id.md) | The helper invents a trip id instead of using the one it just made | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
