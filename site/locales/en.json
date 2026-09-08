@@ -1572,6 +1572,7 @@
   "agent.tool.draftWordsAccept": "Write it up for me",
   "agent.tool.draftWordsDone": "That is what it made of your notes. Nothing is saved yet.",
   "agent.tool.setWords": "The title and the words of {date}.",
+  "agent.tool.whichDayToRewrite": "Which day do you want me to rewrite? Say the date, or what the day was about — that one already has words on it and I would rather not replace the wrong ones.",
   "agent.tool.setWordsAccept": "Save these words",
   "agent.tool.setWordsDone": "The words are saved.",
   "agent.tool.addCost": "{label}, {amount} — onto this day's costs.",

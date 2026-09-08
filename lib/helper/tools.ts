@@ -262,7 +262,7 @@ function resolveDay(username: string, args: Record<string, string>) {
   if (!trip) return null;
   const entries = getAllEntries(trip.ref, AS_AUTHOR);
   const bySlug = args.slug ? entries.find((entry) => entry.slug === args.slug) : undefined;
-  if (bySlug) return { trip, entry: bySlug };
+  if (bySlug) return { trip, entry: bySlug, guessed: false };
   /**
    * **A date nobody wrote a day for is not the newest day** — B925.
    *
@@ -275,10 +275,26 @@ function resolveDay(username: string, args: Record<string, string>) {
    */
   if (args.date) {
     const onDate = entries.find((entry) => entry.date === args.date);
-    return onDate ? { trip, entry: onDate } : null;
+    return onDate ? { trip, entry: onDate, guessed: false } : null;
   }
+  /**
+   * The newest day, **and it says that it guessed** — B954.
+   *
+   * Somebody writing up a three-week trip months later said *"the last one"*,
+   * meaning the flight home, which had no day yet. This returned the Alhambra
+   * draft — the most recently written — and `set_day_words` built a
+   * confidently worded, filled-in proposal to overwrite that day's words with
+   * the flight-home narrative. Then *"the rainy one"*, about a day never
+   * mentioned, resolved to an existing Seville day the same way.
+   *
+   * The default is still right, and this is why it is a flag rather than a
+   * deletion: somebody who has just started a day and says "now the words"
+   * means that day, and asking them which would be absurd. What is not right
+   * is a **guess** standing behind a write that replaces what is already
+   * there. `guessed` is how the tool that overwrites can tell the two apart.
+   */
   const newest = [...entries].sort((a, b) => b.date.localeCompare(a.date))[0];
-  return newest ? { trip, entry: newest } : null;
+  return newest ? { trip, entry: newest, guessed: true } : null;
 }
 
 /**
@@ -754,6 +770,23 @@ export const TOOLS: readonly Tool[] = [
     propose: async (username, args, say) => {
       const found = resolveDay(username, args);
       return {
+        /**
+         * **A guess may not overwrite what is already written** — B954.
+         *
+         * `resolveDay` falls back to the newest day when nothing names one,
+         * and that is right for the ordinary flow: somebody who has just
+         * started a day and says "now the words" means that day. It is not
+         * right when the day it landed on already has prose and nobody said
+         * which day — that is somebody's writing replaced on a guess, by a
+         * press this card invited them to make.
+         *
+         * The distinction is the day's own state rather than the phrasing:
+         * filling an empty day costs nothing if it is the wrong one, and it
+         * is the case the fallback exists for.
+         */
+        ...(found?.guessed && found.entry.content.trim() !== ""
+          ? { refuse: "agent.tool.whichDayToRewrite" }
+          : {}),
         sentence: say("agent.tool.setWords", { date: found?.entry.date ?? args.date ?? "" }),
         accept: say("agent.tool.setWordsAccept"),
         done: say("agent.tool.setWordsDone"),
