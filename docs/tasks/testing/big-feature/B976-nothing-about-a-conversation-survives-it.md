@@ -7,8 +7,7 @@ complexity: high
 area: helper, admin, privacy
 found: "2026-09-08T16:06:41Z"
 started: "2026-09-08T16:06:49Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T16:06:49Z"
+merged: "2026-09-08T16:46:11Z"
 ---
 
 # B976 — Nothing about a conversation survives it, so nobody can tell what to improve
