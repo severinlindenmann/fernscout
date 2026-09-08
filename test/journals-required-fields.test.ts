@@ -128,6 +128,13 @@ describe("visibility is required", () => {
     // narrower `private`, and reusing the word here is the bug this refusal
     // used to walk an agent straight into.
     expect(body.message).toMatch(/visibility must be "public" or "guest"/i);
+    // B856: this refusal used to explain only what a value listed, and left
+    // out that it also sets a new trip's default — a half a tester learned
+    // three screens later, from a different message. It also used to name
+    // "the sitemap", a word a tester who picked "public" then asked what it
+    // meant.
+    expect(body.message).toMatch(/new trip('|’)s default/i);
+    expect(body.message).not.toMatch(/sitemap/i);
   });
 });
 

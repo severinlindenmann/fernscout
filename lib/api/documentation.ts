@@ -1281,8 +1281,9 @@ national number means a different telephone in every country and is refused
 rather than guessed at. Do not invent one: ask for it, or leave it absent.
 
 A journal's \`visibility\` is only whether this instance *advertises* it — the
-landing page, \`/documentation.txt\`, the sitemap. A \`guest\` journal (\`private\`
-before B306, still accepted) is unlisted, not locked; who may read a journey
+landing page and \`/documentation.txt\`; a \`guest\` journal is not listed
+anywhere, and search engines are asked not to index it (\`private\` before
+B306, still accepted). It is unlisted, not locked; who may read a journey
 is still that trip's own visibility, though this is also the answer a new
 trip in it gets by default. **Ask before making one public.**
 

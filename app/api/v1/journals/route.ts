@@ -1,4 +1,4 @@
-import { LOCALE_LIST, SECOND_LANGUAGE_COMMITMENT } from "@/lib/api/agentCopy";
+import { LOCALE_LIST, SECOND_LANGUAGE_COMMITMENT, VISIBILITY_MEANING } from "@/lib/api/agentCopy";
 import { SESSION_SCOPE, NO_JOURNAL, issueRelayLink, openAgentSession, resolveSession, revokeSession, signInUrl } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { normalizeJournalVisibility } from "@/lib/config";
@@ -155,11 +155,8 @@ export async function POST(request: Request) {
       {
         error: "invalid_request",
         message:
-          'visibility is required — "public" or "guest". public is listed on this ' +
-          "server's own index, its landing page and its sitemap; guest is on none of " +
-          "them and reachable by anyone sent the address. It also sets the default a " +
-          "new trip in this journal gets, unless a create call says otherwise. There " +
-          "is no default worth picking for somebody: ask which they want.",
+          `visibility is required — "public" or "guest". ${VISIBILITY_MEANING} There is ` +
+          "no default worth picking for somebody: ask which they want.",
       },
       400,
     );
@@ -177,9 +174,8 @@ export async function POST(request: Request) {
         error: "invalid_request",
         message:
           `visibility must be "public" or "guest", got ${JSON.stringify(rawVisibility)}. ` +
-          "public is listed on this server's own index; guest is reachable by anyone " +
-          "sent the address and appears on no list. Neither decides who may read a trip — " +
-          "that is the trip's own visibility.",
+          `${VISIBILITY_MEANING} Neither decides who may read a particular trip — that is ` +
+          "the trip's own visibility.",
       },
       400,
     );

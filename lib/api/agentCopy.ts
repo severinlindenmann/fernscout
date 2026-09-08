@@ -41,10 +41,15 @@
  * touched since before the rename — see `normalizeJournalVisibility` in
  * lib/config.ts — but this sentence is what an agent asking the question
  * should say, and it says the current word.
+ *
+ * B856: it used to name "its sitemap" as one of the three places `public`
+ * appears, and a tester who did not know what a sitemap was learned nothing
+ * from the word. Named surfaces stop at the two anyone recognises; `guest`'s
+ * half says what not being listed means instead of where it fails to appear.
  */
 export const VISIBILITY_MEANING =
-  "public is listed on this server's own index, on its landing page and in its sitemap; " +
-  "guest is on none of them and asks search engines not to index it — anyone sent the " +
+  "public is listed on this server's own index and on its landing page; guest is not " +
+  "listed anywhere, and search engines are asked not to index it — anyone sent the " +
   "address can still open it. It is also this journal's own answer for a new trip's " +
   "default, unless the create call says otherwise.";
 
