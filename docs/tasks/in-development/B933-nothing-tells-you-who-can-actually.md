@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: agent, ui
 found: "2026-09-08T08:36:53Z"
+started: "2026-09-08T11:22:48Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T11:22:48Z"
 ---
 
 # B933 — Nothing tells you who can actually read what you just published
