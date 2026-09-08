@@ -1,4 +1,3 @@
-import { isEnabled } from "@/lib/capabilities";
 import { refused } from "@/lib/helper/thread";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -12,11 +11,18 @@ export const dynamic = "force-dynamic";
  * The trip the person confirmed — B685.
  *
  * The router can propose a trip; only this can make one, and it is reached
- * only by somebody pressing a button with the title and the two dates in front
- * of them. **No model is spoken to here**: the fields arrive from the form,
- * which is the whole discipline — the model routed, a person confirmed, and
- * `createTrip` is the same function `POST /api/v1/<user>/trips` calls, so a
- * trip made this way is a trip made any other way.
+ * either by somebody pressing a button with the title and the two dates the
+ * model routed in front of them, or — since B754 — by the wizard's own "new
+ * trip" form, which never spoke to a model at all. **No model is spoken to
+ * here either way**: the fields arrive from a form, which is the whole
+ * discipline — `createTrip` is the same function `POST /api/v1/<user>/trips`
+ * calls, so a trip made this way is a trip made any other way.
+ *
+ * That is also why this carries no `isEnabled("helper", …)` gate the way the
+ * rest of `app/api/helper/` does — B754. Every sibling route here either asks
+ * a model or exists only to serve one that is running; this one does neither,
+ * so gating it on the capability made the wizard's plain trip picker a
+ * dead end on an instance running with no model at all, which is the default.
  *
  * Cookie only, owner only, outside `/api/v1` and outside the published
  * contract, for the reason `app/api/helper/[user]/day/route.ts` sets out at
@@ -53,9 +59,6 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
-  }
-  if (!isEnabled("helper", user)) {
-    return Response.json({ error: "helper_unavailable" }, { status: 404 });
   }
 
   const limited = rateLimitFor("helper-trip", clientIp(request), LIMIT);

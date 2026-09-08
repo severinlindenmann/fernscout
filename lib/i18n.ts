@@ -280,6 +280,8 @@ export type TranslationKey =
   | "agent.missingCosts"
   | "agent.missingPhotos"
   | "agent.missingTitle"
+  | "agent.newTripHeading"
+  | "agent.newTripToggle"
   | "agent.noAccessYet"
   | "agent.noExif"
   | "agent.noJournal"
