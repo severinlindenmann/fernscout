@@ -43,3 +43,61 @@ since a repo-wide grep is one command and this may not be the only place.
   border colour (not `currentColor`/text colour) when unfocused.
 - No `border-navy-300` (or any other undefined `-300` token) remains, unless
   `--color-navy-300` is added to back it.
+
+## Resolution
+
+Confirmed still real: `grep -rn "navy-300" app components` before the fix
+showed the class used in **41 files**, not just `IdentitySignIn.tsx` — buttons,
+inputs, checkboxes and decorative underlines across nearly every screen
+(`components/AgentWizard.tsx`, `HelperAsk.tsx`, `DayCosts.tsx`,
+`SignupWizard.tsx`, `ConfirmPanel.tsx`, and more), and `app/globals.css`'s
+`:root`/`@theme inline` blocks had no `--color-navy-300` at any point in git
+history. That breadth is what decided the fix: rewriting 60+ call sites by
+hand (or picking `navy-200` for each, which is visibly too light for several
+of the non-border uses — `decoration-navy-300` underlines and
+`disabled:text-navy-300`) is a bigger, riskier diff than filling the one-line
+gap the ramp always had.
+
+Added `--color-navy-300: #aeb7c5` to both the `:root` and `@theme inline`
+blocks in `app/globals.css` (one third of the way from `navy-200` (`#d8dee8`)
+toward `navy-500` (`#5a6a80`) in linear RGB — there is no existing brand
+document naming a `navy-300` value, so this is a mechanically-derived
+in-between shade backing the ramp's own three-step gap, not an eyeballed
+pick). This backs every existing `navy-300` call site at once with one small,
+low-risk change, rather than a 60-occurrence rename.
+
+Added `test/undefined-color-tokens.test.ts`: it walks `app/` and `components/`
+for any `<utility>-<hue>-300` class on one of this palette's own hues and
+fails if the hue's `-300` token is not defined in `app/globals.css`'s
+`:root` block (read via `lib/brand.ts`'s `palette()`, the same source
+`/docs/branding/identity` uses). Verified it fails when `--color-navy-300`
+is removed (recreated the original bug locally) and passes with it restored.
+Scoped to the `-300` shade specifically — see the comment in the test file for
+why a broader "every shade" check is not right for this ticket: it turned up
+a much larger, differently-shaped pre-existing gap (`navy-800`, undefined
+since it was ever added, used in 27 files) that is now captured separately as
+B1035, and it also flags shades on Tailwind's own default hue names (`sky`,
+`yellow`) that silently fall back to Tailwind's stock colours rather than to
+nothing — a design-consistency question, not this bug.
+
+**Acceptance, walked:**
+- `getComputedStyle` on the sign-in wrapper: not checked in a real browser —
+  no browser session was driven for this change (see note below). The CSS fix
+  is unambiguous by inspection: `border-navy-300` on `components/IdentitySignIn.tsx:187,250`
+  now resolves against a real `--color-navy-300` hex instead of nothing, so
+  the wrapper's unfocused border can no longer render in `currentColor`.
+- No undefined `-300` token remains on this palette's hues: enforced by
+  `test/undefined-color-tokens.test.ts`, which passes.
+
+**A person's eye is still owed here.** This is a visual change touching ~40
+files' worth of borders/underlines/disabled text, and no test can confirm the
+computed `#aeb7c5` *looks* right next to `navy-200` and `navy-500` on a real
+page — the ticket's own acceptance line asks for a `getComputedStyle` read in
+a browser, which was not done. Check `/docs/branding/identity` after this
+merges (it renders the ramp live) and spot-check the sign-in page and a
+button or two (`check-a-drawing` skill) before considering the visual result
+final.
+
+`npm run verify` result: see commit for the full run; `test/task-ids.test.ts`
+and any 30s-timeout files are known noise per dispatch instructions and were
+re-run alone where relevant.
