@@ -23,6 +23,37 @@ confirmed against the live API**, which it had never been before — everything
 in it used to be written from published documentation. The cover Gelato
 rendered from our file is the one this repository draws.
 
+### The TrimBox is the fold line, not the content edge
+
+All six size-and-cover combinations were built on fernscout.ch and submitted as
+drafts on 2026-09-08. The hardcovers came back with the front-cover title
+clipped and the artwork shrunk into a corner; the softcovers were fine.
+
+The cause was one number. The cover PDF's `TrimBox` was inset by
+`wrapMm + bleedMm` — 20 mm, which is where the **board content** starts
+(`contentBackSize.left`). Gelato trims a case at its **fold**, which is
+`wraparoundEdgeSize` at 17 mm, and the remaining 3 mm is bleed carried round
+the turn-in. Gelato places artwork from the TrimBox, so a box 3 mm tight on
+every edge made it rescale the whole sheet.
+
+A softcover was right by accident: its wrap is 0, so `0 + bleed` is the bleed,
+which is exactly what its trim is. That is why the bug was invisible until a
+hardcover was submitted, and why it would never have shown up in a test that
+only exercised the default size.
+
+`CoverGeometry.trimInsetMm` now carries it explicitly — the bleed for a
+softcover, the wrap for a hardcover — and `fetchCoverGeometry` derives it from
+Gelato's own answer. Verified against all six products: our MediaBox equals
+`wraparoundInsideSize`, and our TrimBox equals `wraparoundEdgeSize`, to the
+hundredth of a millimetre.
+
+**One thing that looks like a fault and is not.** Gelato's `preview_flat`
+draws the page scaled by `min(trimW/mediaW, trimH/mediaH)` anchored top-left
+on a canvas the size of the media box, so there is a black band down the right
+and along the bottom. It is proportional to the bleed, so a softcover shows
+about 3% and a hardcover about 14%. It is their preview compositor, not the
+file: the panels land where `contentFrontSize` says they should.
+
 **A draft is a parked cart, not a preflight — and this is the trap in reading
 the result above.** Gelato builds the product mock-up from the cover as soon
 as it has the file, which looks like acceptance and is not. The page-by-page
