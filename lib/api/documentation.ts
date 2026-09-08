@@ -2334,6 +2334,14 @@ touched — and \`kept\` is there so you can see that the original survived rath
 than inferring it from a promise. If \`kept\` shows the same numbers you sent,
 the full-resolution file is on disk.
 
+**Nothing is read out of the file.** This route stores photographs and opens
+none of their EXIF: a picture carrying GPS and a \`DateTimeOriginal\` adds no
+\`lat\`, no \`lng\`, no \`location\`, no \`country\` and no \`time\` to the day. The
+day keeps exactly what you wrote on it, so send those fields yourself —
+\`POST .../days\` and \`PATCH .../days/<slug>\` both take them. Ingest is the one
+thing here that reads a card's EXIF, and it runs on the machine the journal
+lives on: **A folder of photographs, all at once**, below.
+
 **A caption is the one part of a photograph you write.** \`captions\` runs
 alongside \`files\` (or \`urls\`), one per picture and in the same order — send
 an empty one, or simply fewer, for a picture nobody said anything about. More
@@ -2424,6 +2432,13 @@ there is no way to get those pixels back later.
 
 HEIC straight off an iPhone is fine; so is anything in the table below. Send as
 many files as you like in one request, up to the per-day limit.
+
+**What the site serves is always a JPEG**, whatever you sent: a PNG, a HEIC or
+a webp is re-encoded, which is why the reply names the file \`01.jpg\`. That is
+right for a photograph and visibly wrong for flat colour — a screenshot, a map,
+a scan or a chart picks up banding that somebody who chose PNG deliberately
+will notice. The file you sent is not touched by any of it: \`kept\` reports its
+bytes, and a printed photobook is made from that and not from the JPEG.
 
 **Or give it URLs instead of bytes**, and this server downloads them — clips as
 well as photographs, on the same terms as sending the bytes yourself, and with
