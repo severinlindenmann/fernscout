@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: helper, model
 found: "2026-09-08T12:52:44Z"
+started: "2026-09-08T13:05:57Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T13:05:57Z"
 ---
 
 # B964 — The model narrates its own tool confusion to the person
