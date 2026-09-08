@@ -1112,6 +1112,7 @@
   "search.agentHint": "Not finding it? The agent reads what you can see and matches by meaning.",
   "search.agentBusy": "Looking…",
   "search.agentHeading": "What the agent found",
+  "search.agentDidYouMean": "Did you mean “{said}”?",
   "search.agentEmpty": "The agent found nothing for “{query}”. Other words may reach it.",
   "search.agentError": "The agent could not answer just now.",
   "search.galleryTerms": "photographs photos pictures images album every picture",

@@ -15,10 +15,26 @@ import { clearUserCache } from "@/lib/users";
  * an answer, including a bad one: an id nobody sent it, and an id belonging to
  * a row this reader may not see, both have to land nowhere.
  */
-const said = vi.hoisted(() => ({ hits: [] as { id: string; why: string }[] }));
+const said = vi.hoisted(() => ({
+  hits: [] as { id: string; why: string }[],
+  suggestion: "",
+  spoken: undefined as boolean | undefined,
+}));
 vi.mock("@/lib/helper/model", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/helper/model")>();
-  return { ...actual, findInJournal: async () => said.hits };
+  return {
+    ...actual,
+    findInJournal: async (
+      _q: string,
+      _rows: unknown,
+      _today: string,
+      _owner?: string,
+      spoken?: boolean,
+    ) => {
+      said.spoken = spoken;
+      return { hits: said.hits, suggestion: said.suggestion };
+    },
+  };
 });
 
 const owner = vi.hoisted(() => ({ yes: true }));
@@ -48,6 +64,8 @@ function ask(body: unknown): Request {
 beforeEach(() => {
   owner.yes = true;
   said.hits = [];
+  said.suggestion = "";
+  said.spoken = undefined;
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-helper-search-"));
   process.env.CONTENT_DIR = dir;
   clearConfigCache();
@@ -146,5 +164,28 @@ describe("POST /api/helper/[user]/search", () => {
     expect((await GET(new Request("https://t.test/api/helper/alex/search"), params)).status).toBe(
       401,
     );
+  });
+
+  /**
+   * B1006 — a misheard word, and what may be done about it.
+   *
+   * The route says whether the sentence was spoken, because that is what makes
+   * a *correction* a reasonable thing to offer at all: a typed word is what
+   * somebody meant to type. What comes back is offered to them, never applied.
+   */
+  test("says whether the sentence was spoken, and hands back what the agent heard instead", async () => {
+    said.hits = [];
+    said.suggestion = "der Tag am Gotthard";
+    const { POST } = await import("@/app/api/helper/[user]/search/route");
+    const res = await POST(ask({ said: "der Tag am Kotthard", spoken: true }), params);
+    const body = (await res.json()) as { suggestion: string };
+    expect(said.spoken).toBe(true);
+    expect(body.suggestion).toBe("der Tag am Gotthard");
+  });
+
+  test("a typed sentence is not treated as a transcript", async () => {
+    const { POST } = await import("@/app/api/helper/[user]/search/route");
+    await POST(ask({ said: "gotthard" }), params);
+    expect(said.spoken).toBe(false);
   });
 });

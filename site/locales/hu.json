@@ -1112,6 +1112,7 @@
   "search.agentHint": "Nem találod? Az ügynök elolvassa, amit láthatsz, és jelentés szerint keres.",
   "search.agentBusy": "Keres…",
   "search.agentHeading": "Amit az ügynök talált",
+  "search.agentDidYouMean": "Erre gondoltál: „{said}”?",
   "search.agentEmpty": "Az ügynök nem talált semmit erre: „{query}”. Más szavakkal talán sikerül.",
   "search.agentError": "Az ügynök most nem tudott válaszolni.",
   "search.galleryTerms": "fényképek fotók képek album minden kép",

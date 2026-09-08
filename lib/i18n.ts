@@ -1692,6 +1692,7 @@ export type TranslationKey =
   | "search.accountTerms"
   | "search.agentAsk"
   | "search.agentBusy"
+  | "search.agentDidYouMean"
   | "search.agentEmpty"
   | "search.agentError"
   | "search.agentHeading"
