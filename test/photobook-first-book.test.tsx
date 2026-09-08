@@ -213,7 +213,7 @@ describe("the first-book questions", () => {
   test("…and going through them anyway starts at the first question", () => {
     mount({ hadSaved: true });
     act(() => tile("photobook.first.resume.again").click());
-    expect(container!.querySelector("h2")!.textContent).toBe("photobook.first.size");
+    expect(container!.querySelector("h2")!.textContent).toBe("photobook.first.coverType");
   });
 
   test("a day left out is a day the planner is told to leave out", () => {
@@ -246,6 +246,33 @@ describe("the first-book questions", () => {
     mount({ locales: ["de"] });
     goTo("photobook.first.summary");
     expect(container!.textContent).not.toContain("photobook.first.language");
+  });
+
+  // B845: the cover is asked before the size, and the size grid it feeds
+  // shows only what that cover actually offers.
+  test("the size grid follows the chosen cover", () => {
+    mount();
+    expect(container!.querySelector("h2")!.textContent).toBe("photobook.first.coverType");
+    act(() => tile("photobook.first.coverType.hard").click());
+    click("photobook.first.next");
+    expect(container!.querySelector("h2")!.textContent).toBe("photobook.first.size");
+    expect(container!.textContent).not.toContain("photobook.size.pocket");
+    expect(container!.textContent).toContain("photobook.size.largeSquare");
+  });
+
+  test("choosing a cover that cannot print the current size corrects it", () => {
+    const seen = mount({}, { ...INITIAL(), coverType: "hard", size: "large-square" });
+    act(() => tile("photobook.first.coverType.soft").click());
+    expect(seen.options.coverType).toBe("soft");
+    // "large-square" has no softcover product — the default for soft instead.
+    expect(seen.options.size).toBe("pocket");
+  });
+
+  test("a size valid in both covers is left alone when the cover changes", () => {
+    const seen = mount({}, { ...INITIAL(), coverType: "soft", size: "square" });
+    act(() => tile("photobook.first.coverType.hard").click());
+    expect(seen.options.coverType).toBe("hard");
+    expect(seen.options.size).toBe("square");
   });
 
   test("the binding is stated with its page count, never asked", () => {
