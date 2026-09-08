@@ -7,8 +7,7 @@ complexity: low
 area: credits, api
 found: "2026-09-07T11:44:09Z"
 started: "2026-09-08T05:20:12Z"
-session: 41335894-5435-4167-8cb6-898e370cd6a9
-claimed: "2026-09-08T05:20:12Z"
+merged: "2026-09-08T05:27:42Z"
 ---
 
 # B718 — A metered write can be charged twice after a restart
