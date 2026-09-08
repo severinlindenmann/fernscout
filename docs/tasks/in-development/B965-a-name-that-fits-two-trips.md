@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: helper, tools
 found: "2026-09-08T13:06:39Z"
+started: "2026-09-08T13:11:46Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T13:11:46Z"
 ---
 
 # B965 — A name that fits two trips picks the newer one and says nothing
