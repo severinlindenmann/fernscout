@@ -33,9 +33,9 @@ export type NavDestination = {
 /** Trip-scoped: resolved against a trip's own base, and only ever shown or
  * indexed for a trip a reader may already open. */
 export const TRIP_DESTINATIONS: NavDestination[] = [
-  { path: "/", labelKey: "nav.story" },
-  { path: "/gallery", labelKey: "nav.gallery" },
-  { path: "/map", labelKey: "nav.map" },
+  { path: "/", labelKey: "nav.story", synonymsKey: "search.storyTerms" },
+  { path: "/gallery", labelKey: "nav.gallery", synonymsKey: "search.galleryTerms" },
+  { path: "/map", labelKey: "nav.map", synonymsKey: "search.mapTerms" },
   {
     path: "/analytics",
     labelKey: "nav.analytics",

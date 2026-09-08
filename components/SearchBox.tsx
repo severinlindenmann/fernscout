@@ -8,7 +8,7 @@ import BusyButton from "./BusyButton";
 import ConfirmPanel from "./ConfirmPanel";
 import { useI18n } from "./LocaleProvider";
 import { useSite } from "./SiteProvider";
-import { SEARCH_OPTIONS, type SearchDoc } from "@/lib/searchOptions";
+import { SEARCH_OPTIONS, SEARCH_QUERY, type SearchDoc } from "@/lib/searchOptions";
 
 type LoadState = "loading" | "ready" | "error";
 
@@ -176,15 +176,7 @@ export default function SearchBox() {
   const trimmed = query.trim();
   const results = useMemo(() => {
     if (!index || trimmed.length === 0) return [];
-    return index.search(trimmed, {
-      prefix: true,
-      // Fuzzy only for a word long enough to have a typo in it. At four
-      // letters a single edit reaches half the dictionary, and since B890 the
-      // index carries the documentation's whole prose — which is how "alps"
-      // came back with three guides under the trip it actually meant.
-      fuzzy: (term) => (term.length > 5 ? 0.2 : false),
-      boost: { title: 3, tags: 3, terms: 2, location: 2, tripTitle: 1.5 },
-    });
+    return index.search(trimmed, SEARCH_QUERY);
   }, [index, trimmed]);
 
   return (

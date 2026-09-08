@@ -53,3 +53,22 @@ export const SEARCH_OPTIONS: Options<SearchDoc> = {
   fields: ["title", "location", "country", "tripTitle", "body", "tags", "terms"],
   storeFields: ["kind", "title", "location", "country", "tripTitle", "date", "url"],
 };
+
+/**
+ * How a query is asked of that index — B974.
+ *
+ * Beside the index's own options for the same reason those are here: the
+ * browser (components/SearchBox.tsx) and any test that asserts *which result
+ * comes first* have to ask the identical question, and a ranking assertion
+ * made with different boosts is an assertion about nothing.
+ *
+ * `fuzzy` is off below six letters. One edit on a four-letter word reaches
+ * half the dictionary, and with the documentation's prose in the index since
+ * B890 that is how "alps" came back with three guides above the trip it
+ * actually meant.
+ */
+export const SEARCH_QUERY = {
+  prefix: true,
+  fuzzy: (term: string) => (term.length > 5 ? 0.2 : false),
+  boost: { title: 3, tags: 3, terms: 2, location: 2, tripTitle: 1.5 },
+};

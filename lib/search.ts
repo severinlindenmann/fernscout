@@ -193,7 +193,7 @@ function docsDocs(username: string): SearchDoc[] {
     // The hub itself, and the imprint — B903. The imprint only where this
     // instance has one: `hasLegal` is what keeps the footer link honest, and
     // a search result is a link like any other.
-    { id: "hub", href: "/docs", labelKey: "docs.title", termsKey: "search.docsTerms" },
+    { id: "hub", href: "/docs", labelKey: "docs.title", termsKey: "search.docsTechTerms" },
     ...(hasLegal()
       ? [
           {
@@ -210,7 +210,11 @@ function docsDocs(username: string): SearchDoc[] {
     const bodies: string[] = [];
     for (const code of locales) {
       words.add(translateIn(code, page.labelKey));
-      words.add(translateIn(code, "search.docsTerms"));
+      // The guides are what somebody asking for *help* wants; the technical
+      // four are for somebody deciding whether to self-host, and they used to
+      // share one vocabulary — which put Hosting, Contributing and API above
+      // all three guides for the word "Hilfe" (B974).
+      words.add(translateIn(code, isGuide(page.id) ? "search.docsTerms" : "search.docsTechTerms"));
       if (isGuide(page.id)) {
         words.add(translateIn(code, `guides.${page.id}.lede`));
         bodies.push(stripMarkdown(readGuide(page.id, code).markdown));
