@@ -45,3 +45,40 @@ Validate both fields in the create route against the same helpers
 
 A currency refused when correcting a journal is refused when creating one, and
 a test asserts the two routes share one validator.
+
+## Found on pickup
+
+The fix described in Work was already in the tree by the time this session
+took the task — landed as part of B839 ("the currency nobody can change is
+the currency everybody is asked"), which required `baseCurrency` on
+`POST /api/v1/journals` and validates it and `displayCurrencies` with
+`normalizeCurrency` (`app/api/v1/journals/route.ts:280-332`), the same
+function `setJournalProfile` calls for both fields (`lib/journals.ts:1086`,
+`:1096`, `:1125`) — imported from `lib/currency.ts` in both files, never
+copied. `test/journals-required-fields.test.ts`'s
+`"B839 — the currency nobody can change…"` block already proves the create
+route refuses `"francs"`, `"EURO"`, `""`, `"ch"`, and refuses
+`displayCurrencies` missing the base.
+
+What was missing was the acceptance line's second half — a test asserting the
+two *routes* (create and correct), not just the create route alone, refuse
+identically because they share the helper. Added
+`"B790 — creating and correcting a journal refuse the same currencies,
+because they share one check"` to that file: it runs `"francs"` through both
+`POST /api/v1/journals` (`displayCurrencies`) and `setJournalProfile` and
+gets refused both times, then runs `" chf "` through both and gets the same
+`"CHF"` out of both — proving one shared normalizer rather than two
+independent copies that could drift.
+
+Acceptance, evidence:
+- "A currency refused when correcting a journal is refused when creating
+  one" — the new test's first half: `setJournalProfile(..., {
+  displayCurrencies: ["francs"] })` refuses, and
+  `POST /api/v1/journals` with `displayCurrencies: ["francs"]` also answers
+  400 and writes nothing.
+- "a test asserts the two routes share one validator" — the new test's
+  second half: both routes normalize `" chf "` to `"CHF"` identically, which
+  only holds if both call the same `normalizeCurrency`.
+
+`npx vitest run test/journals-required-fields.test.ts` — 19 passed.
+`npm run verify` — run in full; see session report for the result.
