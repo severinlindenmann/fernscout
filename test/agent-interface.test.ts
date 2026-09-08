@@ -353,9 +353,33 @@ describe("the documents an agent reads", () => {
   // finding of B870. Nothing was cut to pay for it, because nothing here is
   // yet known to be spare; B311 is the structural answer and this is a
   // tripwire, not a budget.
+  /**
+   * **Argued past to 144 KiB — B990.** It tripped at 139,868 bytes, and `main`
+   * was red for every session until somebody looked, which is what a tripwire
+   * costs when nobody is watching it.
+   *
+   * Several tickets share the overage. B905 put the unpublish route into both
+   * forms of the guide, which is the pair publishing has always had and the
+   * one an agent could not find. None of them was wrong to grow it: the guide
+   * grows because the product does.
+   *
+   * Nothing was cut, for the reason the last raise gives — nothing here is yet
+   * known to be spare, and trimming a guide to fit a number is how a document
+   * stops saying the thing it was grown to say.
+   *
+   * Three sessions filed a ticket for this and none of them fixed it, which
+   * is its own small lesson about a tripwire that only blocks: B990, B993 and
+   * B998 are the same finding, an hour apart.
+   *
+   * What this does not fix, and B990 says at more length: a ceiling raised by
+   * eight kilobytes whenever it is hit is a budget after all, just a slower
+   * one. B311 is the structural answer, and the shape of it is that what an
+   * agent needs on arrival and what it needs at the point of use are two
+   * documents, only one of which has to be read in full.
+   */
   test("the agent guide stays within a ceiling that has to be argued past", () => {
     const bytes = Buffer.byteLength(agentGuide(), "utf8");
-    expect(bytes).toBeLessThan(136 * 1024);
+    expect(bytes).toBeLessThan(144 * 1024);
   });
 
   test("the instance document lists every journal", () => {

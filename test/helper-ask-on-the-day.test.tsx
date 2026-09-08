@@ -111,10 +111,16 @@ async function dayPage(canPublish: boolean) {
   return container;
 }
 
+/**
+ * The words changed in B994. The old ones — *"Ask for anything else, in your
+ * own words"* — are the sentence you write for a blank text box: they ask
+ * somebody to compose, when what is on the other end is an agent that could
+ * be told "this day, please".
+ */
 describe("the ask box, where the owner actually is", () => {
   test("an owner on a day page is offered it", async () => {
     const host = await dayPage(true);
-    expect(host.textContent).toContain("Ask for anything else, in your own words");
+    expect(host.textContent).toContain("Talk about this with your agent");
     expect(fetched.some((url) => url.includes("/api/helper/alex/ask"))).toBe(true);
   });
 
@@ -124,14 +130,14 @@ describe("the ask box, where the owner actually is", () => {
   test("it leads to the room, on this day", async () => {
     const host = await dayPage(true);
     const link = [...host.querySelectorAll("a")].find((anchor) =>
-      anchor.textContent?.includes("Ask for anything else"),
+      anchor.textContent?.includes("Talk about this"),
     ) as HTMLAnchorElement;
     expect(link.getAttribute("href")).toBe("/agent/alex/chat?trip=reise-2026&slug=bellinzona");
   });
 
   test("a reader is offered nothing, and the journal is not even asked about", async () => {
     const host = await dayPage(false);
-    expect(host.textContent).not.toContain("Ask for anything else, in your own words");
+    expect(host.textContent).not.toContain("Talk about this with your agent");
     // The correction link is the neighbouring owner-only control; if it were
     // showing, the gate under test would be the wrong one.
     expect(host.textContent).not.toContain("Correct or take down");

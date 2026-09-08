@@ -67,6 +67,28 @@ export type PostcardInput = {
    */
   figures?: Figure[];
   /**
+   * Who prints the address block and the stamp box — B982.
+   *
+   * `"draw"`, the default, is the card as this module has always drawn it:
+   * the recipient in the lower right where a sorting machine reads, and an
+   * empty rectangle up in the corner where a stamp goes. It is what the
+   * owner's own proof copy and the receipt attachment want.
+   *
+   * `"printer"` leaves both empty, and is what actually goes to a provider
+   * that addresses the card itself. Stannp does: the recipient travels as
+   * `recipient[...]` fields (see `buildStannpRequest`) and their press lays
+   * the address and the postal indicia over the back it is given. Sending a
+   * back with ours already on it printed the two on top of each other —
+   * two names, two streets, one unreadable card, and the proof of it is the
+   * screenshot on B982.
+   *
+   * It is a caller's choice rather than something read from the config here,
+   * because this module renders and knows nothing about providers;
+   * `lib/postcard/send.ts` is where the two copies are made and is the one
+   * place that knows which is which.
+   */
+  address?: "draw" | "printer";
+  /**
    * Which sides to emit. Providers differ: some take one two-page PDF, and
    * Stannp takes the front and the back as separate files. Rendering one side
    * is also how a proof of the back gets inspected on its own.
@@ -237,9 +259,16 @@ export function renderPostcard(input: PostcardInput): RenderedPostcard {
     faint,
   );
 
+  // Both of these belong to whoever addresses the card — B982. The empty
+  // stamp rectangle is drawn beside the address rather than separately from
+  // it for that reason: a printer that lays down its own indicia lays it
+  // exactly here, and a hairline box under it is the same overprint the
+  // address was.
+  const addressed = (input.address ?? "draw") === "draw";
+
   const stampX = bleed + mm(spec.trimWidthMm - STAMP_AREA.rightMm - STAMP_AREA.widthMm);
   const stampY = bleed + mm(spec.trimHeightMm - STAMP_AREA.topMm - STAMP_AREA.heightMm);
-  for (const [x1, y1, x2, y2] of [
+  const stampBox = addressed ? [
     [stampX, stampY, stampX + mm(STAMP_AREA.widthMm), stampY],
     [stampX, stampY, stampX, stampY + mm(STAMP_AREA.heightMm)],
     [
@@ -254,7 +283,8 @@ export function renderPostcard(input: PostcardInput): RenderedPostcard {
       stampX + mm(STAMP_AREA.widthMm),
       stampY + mm(STAMP_AREA.heightMm),
     ],
-  ]) {
+  ] : [];
+  for (const [x1, y1, x2, y2] of stampBox) {
     PdfBuilder.drawLine(back, x1, y1, x2, y2, 0.4, faint);
   }
 
@@ -321,17 +351,19 @@ export function renderPostcard(input: PostcardInput): RenderedPostcard {
     input.to.country,
   ].filter((l): l is string => Boolean(l && l.trim()));
 
-  addressLines.forEach((line, i) => {
-    PdfBuilder.drawText(
-      back,
-      line,
-      addressLeft,
-      addressTop - i * ADDRESS_LEADING_PT,
-      ADDRESS_PT,
-      ink,
-      i === 0 ? "F2" : "F1",
-    );
-  });
+  if (addressed) {
+    addressLines.forEach((line, i) => {
+      PdfBuilder.drawText(
+        back,
+        line,
+        addressLeft,
+        addressTop - i * ADDRESS_LEADING_PT,
+        ADDRESS_PT,
+        ink,
+        i === 0 ? "F2" : "F1",
+      );
+    });
+  }
 
   if (input.guides) {
     const guide = { r: 0.9, g: 0.3, b: 0.3 };

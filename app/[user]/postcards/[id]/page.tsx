@@ -7,10 +7,12 @@ import PageHeader from "@/components/PageHeader";
 import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
 import { balanceOf, creditsEnabled } from "@/lib/credits";
+import { formatCredits } from "@/lib/credits/format";
 import { translateIn } from "@/lib/locales";
 import type { TranslationKey } from "@/lib/i18n";
 import { mediaUrl } from "@/lib/media";
 import { recipientsOf } from "@/lib/postcard/contacts";
+import { printerAddressLines } from "@/lib/postcard/providers";
 import { readJpeg } from "@/lib/postcard/pdf";
 import { backLayout, resolutionNote } from "@/lib/postcard/preview";
 import { getOrder, isExpired, isPending } from "@/lib/postcard/orders";
@@ -26,6 +28,7 @@ import { getTrip } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import PostcardCropper from "@/components/PostcardCropper";
 import PostcardBack from "./PostcardBack";
+import PostcardSend from "./PostcardSend";
 
 export const dynamic = "force-dynamic";
 
@@ -235,16 +238,11 @@ export default async function PostcardOrderPage({
             locales={offered}
             localeLabel={Object.fromEntries(offered.map((code) => [code, label(code)]))}
             figuresSvg={hasParty ? travellersSvg(100, party) : null}
-            address={
-              live[0]
-                ? {
-                    name: people.get(live[0])!.to.name,
-                    line1: people.get(live[0])!.to.line1,
-                    postcode: people.get(live[0])!.to.postcode,
-                    city: people.get(live[0])!.to.city,
-                  }
-                : null
-            }
+            // As the printer will set it, not as this product used to print
+            // it — B982. The card that goes to Stannp now carries no address
+            // at all, because Stannp lays down its own; what is worth showing
+            // here is therefore theirs.
+            address={live[0] ? printerAddressLines(people.get(live[0])!.to) : null}
             editable={isPending(order) && !expired}
             strings={{
               messageLabel: t("postcard.page.messageLabel"),
@@ -257,6 +255,7 @@ export default async function PostcardOrderPage({
               failed: t("postcard.page.saveFailed"),
               sameCard: t("postcard.page.sameCard"),
               fixed: t("postcard.page.fixed"),
+              printerAdds: t("postcard.page.printerAdds"),
               caption:
                 live.length > 1
                   ? t("postcard.page.backFirstOf", { count: String(live.length) })
@@ -342,153 +341,85 @@ export default async function PostcardOrderPage({
           </ul>
         </section>
 
-        {/* `id="send"` is the anchor every step of the send flow returns to —
-            B850. All three of them are navigations, and a navigation with no
-            fragment lands at the top of a long page: the `?confirm=1` link
-            below (the *first* press, and the one that was actually being
-            complained about), the "back" link out of the confirm panel, and the
-            303 out of the send route. The reader presses a button in this box
-            and has to end up looking at this box; anchoring the result banner
-            alone fixed only the third of the three, and did it two lines under
-            the `<h1>`, where scrolling to it and jumping to the top are the
-            same movement. */}
-        <section
-          id="send"
-          className="mt-8 scroll-mt-4 rounded-xl border-2 border-navy-900 bg-cream-100 p-4"
-        >
-          {/* The outcome belongs where the button was, not at the top of the
-              page — B850, second attempt. The first put an `id` on this banner
-              and pointed the redirect at it, which was correct and useless: the
-              banner lived two lines under the `<h1>`, so scrolling to it and
-              jumping to the top are the same movement. The reader pressed a
-              button at the bottom of a long page and was shown a heading about
-              the order instead of an answer about their press. Moving it into
-              this box is the actual fix; the anchor now has somewhere worth
-              going. */}
-          {typeof result === "string" && RESULTS[result] ? (
-            <p
-              // `scroll-mt-4` keeps it off the very top edge once scrolled to.
-              id="send-result"
-              className="mb-3 scroll-mt-4 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900"
-              role="status"
-              data-testid="send-result"
-            >
-              {t(RESULTS[result])}
-            </p>
-          ) : null}
-          <p className="text-sm">
-            {t("postcard.page.cost", {
+        {/* The whole box is one client component now — B982. It used to be
+            two navigations and a document post, and B850's two attempts at
+            landing the reader somewhere sensible afterwards were the right fix
+            for the wrong problem: the reload was the problem. It still renders
+            the same two steps and still posts the same form with JavaScript
+            off, which is why `confirming` and every sentence are computed here
+            and handed over rather than decided there. */}
+        <PostcardSend
+          username={username}
+          id={id}
+          confirming={confirming}
+          sendable={sendable}
+          statusLine={
+            !isPending(order)
+              ? t("postcard.page.alreadySent")
+              : expired
+                ? t("postcard.page.expiredOn", {
+                    date: formatDigestDate(
+                      locale,
+                      order.payload.expiresAt.slice(0, 10),
+                    ),
+                  })
+                : null
+          }
+          short={short}
+          initialResult={typeof result === "string" ? result : null}
+          results={Object.fromEntries(
+            Object.entries(RESULTS).map(([word, key]) => [word, t(key)]),
+          )}
+          strings={{
+            cost: t("postcard.page.cost", {
               each: String(order.payload.creditsEach),
               count: String(live.length),
               total: String(cost),
-            })}
-            {balance !== null ? (
-              <>
-                {" — "}
-                {t("postcard.page.balance", { balance: String(balance) })}
-              </>
-            ) : null}
-          </p>
-          {short ? (
-            <p className="mt-2 text-sm">
-              {t("postcard.page.short", {
-                missing: String(cost - (balance ?? 0)),
-                date: formatDigestDate(locale, order.payload.expiresAt.slice(0, 10)),
-              })}{" "}
-              <a className="underline" href={`/${username}/me`}>
-                {t("postcard.page.buy")}
-              </a>
-            </p>
-          ) : null}
-
-          {!isPending(order) ? (
-            <p className="mt-2 text-sm">{t("postcard.page.alreadySent")}</p>
-          ) : expired ? (
-            <p className="mt-2 text-sm">
-              {t("postcard.page.expiredOn", {
-                date: formatDigestDate(locale, order.payload.expiresAt.slice(0, 10)),
-              })}
-            </p>
-          ) : (
-            confirming && sendable ? (
-              <div className="mt-3 rounded-lg border border-navy-900 bg-white px-4 py-3">
-                <p className="font-semibold">{t("postcard.confirm.heading")}</p>
-                <p className="mt-1 text-sm">
-                  {live.length === 1
-                    ? t("postcard.confirm.bodyOne", { name: people.get(live[0])!.to.name })
-                    : t("postcard.confirm.bodyMany", { count: String(live.length) })}
-                </p>
-                {/* Suppressed when the balance is short: "leaving you -3" is
-                    not a sentence, and the shortfall line above already says
-                    the number and where to buy — B606. */}
-                {!short && (
-                  <p className="mt-1 text-sm">
-                    {t("postcard.confirm.cost", {
-                      total: String(cost),
-                      rest: String((balance ?? cost) - cost),
-                    })}
-                  </p>
-                )}
-                <p className="mt-1 text-sm font-medium">{t("postcard.confirm.undone")}</p>
-                <form
-                  method="post"
-                  action={`/${username}/postcards/${id}/send`}
-                  className="mt-3 flex flex-wrap items-center gap-3"
-                >
-                  <button
-                    type="submit"
-                    // The weight is CSS only — a press that visibly moves, and
-                    // a ring while it is held. A spinner would need
-                    // JavaScript, and this button's whole design is that it
-                    // does not.
-                    className="min-h-11 rounded-full bg-navy-900 px-5 text-sm font-semibold text-white shadow-md transition-all duration-150 hover:bg-navy-700 hover:shadow-lg focus-visible:ring-4 focus-visible:ring-yellow-400 active:translate-y-px active:shadow-sm motion-safe:animate-[pulse_2.5s_ease-in-out_infinite]"
-                  >
-                    {live.length === 1
-                      ? t("postcard.confirm.yesOne")
-                      : t("postcard.confirm.yesMany")}
-                  </button>
-                  <Link
-                    className="text-sm underline"
-                    href={`/${username}/postcards/${id}#send`}
-                  >
-                    {t("postcard.confirm.back")}
-                  </Link>
-                </form>
-              </div>
-            ) : (
-              <div className="mt-3">
-                {/* A link, not a submit: the first press only *asks*. */}
-                {/* `Link`, not `<a>` — B892. Both presses in this flow were
-                    full document loads: the page flashed, the reader was put
-                    back at the top, and the whole thing felt like it had gone
-                    wrong even when it had not. A soft navigation keeps
-                    `?confirm=1` in the URL, so B466's reasoning is untouched —
-                    with JavaScript off this is still an ordinary link to a
-                    server-rendered second step, and nothing can send on the
-                    first click. */}
-                <Link
-                  href={
-                    sendable ? `/${username}/postcards/${id}?confirm=1#send` : ""
-                  }
-                  aria-disabled={!sendable}
-                  className={`inline-flex min-h-11 items-center rounded-full px-5 text-sm font-semibold transition-colors ${
-                    sendable
-                      ? "bg-navy-900 text-white hover:bg-navy-700"
-                      : "pointer-events-none bg-navy-900/40 text-white"
-                  }`}
-                >
-                  {live.length === 1
-                    ? t("postcard.page.sendOne", { total: String(cost) })
-                    : t("postcard.page.sendMany", {
-                        count: String(live.length),
-                        total: String(cost),
-                      })}
-                </Link>
-                <p className="mt-2 text-xs text-navy-600">{t("postcard.page.sendWarning")}</p>
-              </div>
-            )
-          )}
-        </section>
+            }),
+            balance:
+              balance !== null
+                ? t("postcard.page.balance", { balance: formatCredits(balance) })
+                : null,
+            short: short
+              ? t("postcard.page.short", {
+                  missing: String(cost - (balance ?? 0)),
+                  date: formatDigestDate(
+                    locale,
+                    order.payload.expiresAt.slice(0, 10),
+                  ),
+                })
+              : null,
+            buy: t("postcard.page.buy"),
+            heading: t("postcard.confirm.heading"),
+            body:
+              live.length === 1 && live[0]
+                ? t("postcard.confirm.bodyOne", {
+                    name: people.get(live[0])!.to.name,
+                  })
+                : t("postcard.confirm.bodyMany", {
+                    count: String(live.length),
+                  }),
+            confirmCost: t("postcard.confirm.cost", {
+              total: String(cost),
+              rest: String((balance ?? cost) - cost),
+            }),
+            undone: t("postcard.confirm.undone"),
+            yes:
+              live.length === 1
+                ? t("postcard.confirm.yesOne")
+                : t("postcard.confirm.yesMany"),
+            sending: t("postcard.confirm.sending"),
+            back: t("postcard.confirm.back"),
+            send:
+              live.length === 1
+                ? t("postcard.page.sendOne", { total: String(cost) })
+                : t("postcard.page.sendMany", {
+                    count: String(live.length),
+                    total: String(cost),
+                  }),
+            warning: t("postcard.page.sendWarning"),
+          }}
+        />
       </main>
     </div>
   );

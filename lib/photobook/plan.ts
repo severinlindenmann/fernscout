@@ -1839,8 +1839,44 @@ function centreAwayFromFold(xs: number[], x: number, width: number): number {
 
   // How far the centre can move before a stop would reach the frame's edge.
   const eps = Math.max(width * 1e-9, 1e-9);
-  const lo = maxX - width / 2 + eps;
-  const hi = minX + width / 2 - eps;
+  let lo = maxX - width / 2 + eps;
+  let hi = minX + width / 2 - eps;
+
+  /**
+   * ...and how far it may move before the cure is worse than the disease.
+   *
+   * Those two bounds alone let the frame slide until a stop touches the
+   * *edge*, which for a route much narrower than the frame means the winning
+   * candidate is "put the fold beyond every stop" — and that lands the whole
+   * journey on one page with the facing page showing nothing but graticule.
+   * A blank page is a worse outcome than a stop near the gutter, and it is
+   * what the Alps spread actually printed.
+   *
+   * So the frame's centre may wander at most a sixth of its width from the
+   * route's own centre. That is room to slide the fold out of a gap, and not
+   * room to abandon half the spread.
+   */
+  const routeCentre = (minX + maxX) / 2;
+
+  /**
+   * The fold must stay *within* the journey, so both pages carry some of it.
+   *
+   * Without this the bounds above let the frame slide until a stop reaches
+   * the frame's edge, and for a route far narrower than its frame — which
+   * forcing the spread's 2:1 shape makes common, since a tall compact journey
+   * gets a frame many times its own width — the best-scoring candidate is
+   * "put the fold beyond the last stop". Four passes in the Alps printed
+   * wholly on the right-hand page with a blank sheet of graticule facing it.
+   * A blank page is a worse fault than a stop near the gutter.
+   *
+   * A single stop is the exception and keeps the older, wider licence: it
+   * cannot straddle anything, so nudging it off the fold is the only thing
+   * that can be done for it, and it empties no page by moving.
+   */
+  if (maxX > minX) {
+    lo = Math.max(lo, minX);
+    hi = Math.min(hi, maxX);
+  }
 
   const inBand = (c: number) => sorted.filter((v) => Math.abs(v - c) < half).length;
   const crossings = (c: number) => {
@@ -1901,9 +1937,18 @@ export function routeView(route: RoutePoint[]): RouteView {
    *
    * 15% and a floor of 6 units (a bit over two degrees) keeps a coastline in
    * view without letting the frame run away from the journey.
+   *
+   * The floor was still far too large for a *compact* trip, which is the
+   * common case rather than the exception. Four days round the Alps spans
+   * about 0.6 degrees of longitude — under two map units — so a 6-unit floor
+   * gave it a frame twelve times its own width and printed the route as a
+   * thumbnail-sized squiggle on an otherwise empty two-page spread. The floor
+   * now only rescues a degenerate span (one stop, or several at one place):
+   * 1.2 units is a little under half a degree, so a single-place trip still
+   * gets a frame about a hundred kilometres across rather than a point.
    */
-  const padX = Math.max((maxX - minX) * 0.15, 6);
-  const padY = Math.max((maxY - minY) * 0.15, 4);
+  const padX = Math.max((maxX - minX) * 0.15, 1.2);
+  const padY = Math.max((maxY - minY) * 0.15, 0.8);
   let x = minX - padX;
   let y = minY - padY;
   let width = maxX - minX + padX * 2;

@@ -49,16 +49,19 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (137)
+## backlog (142)
 
-### issue (44)
+### issue (47)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B1002](backlog/issue/B1002-the-credits-hundredths-migration-opens-a.md) | The credits-hundredths migration opens a transaction inside the one it is already in, and Postgres refuses | ISSUE | high | low |
 | [B766](backlog/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low |
 | [B829](backlog/issue/B829-rewording-a-row-did-not-stop.md) | Rewording a row did not stop the wrong one matching | ISSUE | high | low |
 | [B922](backlog/issue/B922-a-credit-is-spent-on-a.md) | Was she charged for a day that was never written, and should she have been? | ISSUE | high | low |
 | [B926](backlog/issue/B926-the-helper-forgets-what-it-was.md) | The helper forgets what it was told one message ago | ISSUE | high | low |
+| [B1000](backlog/issue/B1000-the-route-spread-is-mostly-empty.md) | The route spread is mostly empty for a compact trip | ISSUE | medium | medium |
+| [B1001](backlog/issue/B1001-the-agent-guide-is-604-bytes.md) | The agent guide is 604 bytes over its own ceiling, so verify fails on main | ISSUE | medium | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
@@ -80,7 +83,7 @@ Do not edit them by hand; run the script.
 | [B952](backlog/issue/B952-half-of-a-two-part-request.md) | Half of a two-part request is answered and the other half is dropped without a word | ISSUE | medium | medium |
 | [B971](backlog/issue/B971-saying-a-draft-looks-good-re.md) | Saying a draft looks good re-offers the same card instead of the next one | ISSUE | medium | low |
 | [B977](backlog/issue/B977-the-send-confirmation-explains-what-a.md) | The send confirmation explains what a credit is worth, on a day page nobody asked about pricing on | ISSUE | medium | low |
-| [B993](backlog/issue/B993-the-agent-guide-is-over-its.md) | The agent guide is over its own byte ceiling on main | ISSUE | medium | low |
+| [B998](backlog/issue/B998-the-agent-guide-crossed-its-ceiling.md) | The agent guide crossed its ceiling and main went red for everybody | ISSUE | medium | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B750](backlog/issue/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low |
@@ -100,13 +103,14 @@ Do not edit them by hand; run the script.
 | [B973](backlog/issue/B973-a-cost-with-no-currency-is.md) | A cost with no currency is filed in the base one without anybody being asked | ISSUE | low | low |
 | [B988](backlog/issue/B988-the-visitor-hash-test-pins-a.md) | The visitor-hash test pins a salt that has already been drawn, so it fails about one run in three hundred | ISSUE | low | low |
 
-### big-feature (15)
+### big-feature (16)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B537](backlog/big-feature/B537-a-journal-on-disk-cannot-be.md) | A journal on disk cannot be checked against the instance that will receive it | FEATURE | high | high |
 | [B891](backlog/big-feature/B891-the-helper-can-answer-but-it.md) | The helper can answer but it still cannot do anything | FEATURE | high | high |
+| [B996](backlog/big-feature/B996-the-admin-page-is-a-cost.md) | The admin page is a cost report where an operator needs a console | FEATURE | high | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | A journal folder can be exported and never pushed back, so writing locally is a one-way trip | FEATURE | medium | high |
@@ -172,7 +176,7 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### superseded (38)
+### superseded (39)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -203,6 +207,7 @@ Do not edit them by hand; run the script.
 | [B89](backlog/superseded/B89-nothing-that-costs-the-operator-money.md) | Nothing that costs the operator money can be paid for, so every paid feature is dry-run only | FEATURE | medium | high |
 | [B910](backlog/superseded/B910-knip-fails-on-main-defaultsizefor-in.md) | knip fails on main: defaultSizeFor in lib/photobook/spec.ts is exported and called by nothing | CHORE | medium | low |
 | [B983](backlog/superseded/B983-the-send-flow-jumps-pressing-send.md) | The send flow jumps: pressing send reloads the page instead of posting the card | FEATURE | medium | medium |
+| [B993](backlog/superseded/B993-the-agent-guide-is-over-its.md) | The agent guide is over its own byte ceiling on main | ISSUE | medium | low |
 | [B176](backlog/superseded/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
 | [B243](backlog/superseded/B243-npm-run-postcard-prints-four-lines.md) | npm run postcard prints four lines of Node module-type warning before its own first line | ISSUE | low | low |
 | [B246](backlog/superseded/B246-openapi-json-does-not-document-costsvisibility.md) | openapi.json does not document costsVisibility on POST trips | ISSUE | low | low |
@@ -227,20 +232,19 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (8)
+## in-development (7)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B980](in-development/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | `a4bbb185` |
 | [B984](in-development/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | `fdfcf5f2` |
-| [B987](in-development/B987-credits-cannot-express-a-fraction-so.md) | Credits cannot express a fraction, so a six-second question costs the same as a five-minute one | FEATURE | high | high | `6c81e17b` |
+| [B997](in-development/B997-the-hundredths-migration-opens-its-own.md) | The hundredths migration opens its own transaction inside the one the migrator already opened, so it fails on Postgres | ISSUE | high | low | `6c81e17b` |
 | [B108](in-development/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium | `6b9bf0a6` |
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 | [B982](in-development/B982-the-send-flow-jumps-pressing-send.md) | The send flow jumps: pressing send reloads the page instead of posting the card | FEATURE | medium | medium | `b8352d66` |
-| [B989](in-development/B989-the-trip-hero-offers-four-equally.md) | The trip hero offers four equally loud actions and three of them go to the same place | FEATURE | medium | low | `d7d95eaa` |
 | [B985](in-development/B985-only-two-of-the-write-routes.md) | Only two of the write routes record a press they refused | CHORE | low | low | `fdfcf5f2` |
 
-## testing (189)
+## testing (192)
 
 ### security (7)
 
@@ -254,7 +258,7 @@ _Nothing here._
 | [B908](testing/security/B908-a-leaked-agent-token-can-be.md) | A leaked agent token can be listed and not ended | SECURITY | medium | low | — |
 | [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (107)
+### issue (108)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -317,6 +321,7 @@ _Nothing here._
 | [B968](testing/issue/B968-a-cost-proposal-names-a-category.md) | A cost proposal names a category the endpoint refuses | ISSUE | high | low | — |
 | [B969](testing/issue/B969-a-paragraph-describing-a-whole-day.md) | A paragraph describing a whole day is thrown away because the day does not exist yet | ISSUE | high | medium | — |
 | [B975](testing/issue/B975-voice-search-stops-the-instant-it.md) | Voice search stops the instant it starts, and says nothing about why | ISSUE | high | low | — |
+| [B995](testing/issue/B995-the-microphone-in-the-search-box.md) | The microphone in the search box listens and never sends what it heard | ISSUE | high | low | — |
 | [B749](testing/issue/B749-the-figures-float-above-the-title.md) | The figures float above the title with a gap, and repeat on every chapter divider | ISSUE | medium | low | — |
 | [B752](testing/issue/B752-the-sign-in-field-draws-three.md) | The sign-in field draws three focus indicators at once, so it reads as a box inside a box | ISSUE | medium | low | — |
 | [B762](testing/issue/B762-the-envelope-leaves-from-the-panel.md) | The envelope leaves from the panel's corner instead of from the button, and the panel clips its flight | ISSUE | medium | low | — |
@@ -366,7 +371,7 @@ _Nothing here._
 | [B847](testing/issue/B847-the-beta-banner-takes-three-lines.md) | The beta banner takes three lines and a lot of height on a phone | ISSUE | low | low | — |
 | [B876](testing/issue/B876-the-account-page-s-pointer-card.md) | The account page's pointer card on /me is a whole card to say a menu entry exists | ISSUE | low | low | — |
 
-### big-feature (12)
+### big-feature (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -380,10 +385,11 @@ _Nothing here._
 | [B900](testing/big-feature/B900-a-proposal-cannot-be-accepted-or.md) | A proposal cannot be accepted or corrected in the conversation | FEATURE | high | high | — |
 | [B901](testing/big-feature/B901-there-is-nowhere-to-see-what.md) | There is nowhere to see what is being talked about | FEATURE | high | high | — |
 | [B976](testing/big-feature/B976-nothing-about-a-conversation-survives-it.md) | Nothing about a conversation survives it, so nobody can tell what to improve | FEATURE | high | high | — |
+| [B987](testing/big-feature/B987-credits-cannot-express-a-fraction-so.md) | Credits cannot express a fraction, so a six-second question costs the same as a five-minute one | FEATURE | high | high | — |
 | [B904](testing/big-feature/B904-search-matches-words-not-meaning-a.md) | Search matches words, not meaning — a person who asks for a topic in their own words gets nothing | FEATURE | medium | high | — |
 | [B689](testing/big-feature/B689-a-bank-statement-or-a-timeline.md) | A bank statement or a timeline export cannot be handed over on the web | FEATURE | low | high | — |
 
-### small-feature (45)
+### small-feature (46)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -426,6 +432,7 @@ _Nothing here._
 | [B933](testing/small-feature/B933-nothing-tells-you-who-can-actually.md) | Nothing tells you who can actually read what you just published | FEATURE | medium | low | — |
 | [B947](testing/small-feature/B947-the-room-reserves-a-quarter-of.md) | The room reserves a quarter of the screen for an empty files pane and never says which day it is previewing | FEATURE | medium | medium | — |
 | [B979](testing/small-feature/B979-asking-for-something-else-opens-a.md) | Asking for something else opens a box on the day rather than the room that can answer | FEATURE | medium | low | — |
+| [B989](testing/small-feature/B989-the-trip-hero-offers-four-equally.md) | The trip hero offers four equally loud actions and three of them go to the same place | FEATURE | medium | low | — |
 | [B992](testing/small-feature/B992-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium | — |
 | [B688](testing/small-feature/B688-a-new-visitor-cannot-make-a.md) | A new visitor cannot make a journal inside the helper | FEATURE | low | medium | — |
 | [B737](testing/small-feature/B737-the-travel-scene-s-vehicles-exist.md) | The travel scene's vehicles exist only on the web, so a book cannot show how a leg was travelled | FEATURE | low | medium | — |

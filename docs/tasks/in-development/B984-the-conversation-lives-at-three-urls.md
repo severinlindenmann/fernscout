@@ -79,3 +79,38 @@ to anybody but the owner, and a redirect is a second thing to keep working.
 `/agent` is the whole product for a signed-in owner. Nothing under `/agent/`
 resolves. A photograph reaches a day without leaving the page. A copied URL
 reopens the conversation it was copied from.
+
+## The URL scheme, decided before anybody builds it
+
+Three states, one path, and nothing after it:
+
+| | |
+| --- | --- |
+| `/agent` | the room, for the remembered journal, continuing the conversation in progress |
+| `/agent?c=<session>` | that conversation, reopened. This is what a copied URL brings somebody back to |
+| `/agent?about=<trip>/<slug>` | a **new** conversation about a particular thing — what B994's link from a day opens |
+
+**The journal is a cookie, not a parameter.** Almost nobody owns two, and
+putting the name in the URL is the thing this ticket exists to stop. The
+switcher writes the cookie; a journal the cookie names that the person no
+longer owns falls back to their first, rather than 404ing.
+
+**`?about=` mints a session and then gets out of the way.** On load it starts a
+new conversation, writes the note that tells the model what is being looked at,
+and the client replaces the URL with `?c=<the new session>` — so the address
+bar ends up naming a conversation that exists, and reloading does not start a
+second one. B994 is the link that produces it and the offer that follows.
+
+**Reopening is reading, not resuming.** `?c=` draws the turns that were stored
+(`turnsIn` in `lib/helper/sessions.ts`) and continues from there. The
+in-memory thread has a thirty-minute life and a conversation from last week has
+none of it left, so what the model is given on the next turn is what the room
+drew — which is the same twelve-turn window it would have had anyway.
+
+## What must not regress
+
+- A conversation nobody has opened by URL still works with no parameters at
+  all. `/agent` is the common case and must not become a redirect.
+- `?c=` scoped to the journal, always. `turnsIn` already takes the username and
+  filters on it; a session id is a random string and is still not a thing to
+  look up on its own.

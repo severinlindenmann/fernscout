@@ -232,8 +232,16 @@ export async function sendOrder(owner: string, id: string): Promise<SendOutcome>
       warnings.push(...both.warnings);
       firstCard = both.pdf;
     }
-    const front = renderPostcard({ ...common, sides: "front" }).pdf;
-    const back = renderPostcard({ ...common, sides: "back" }).pdf;
+    // What the printer gets carries no address and no stamp box — B982.
+    // Stannp is handed the recipient as fields and lays its own address and
+    // postal indicia over the back; a back with ours already on it came out
+    // with the two overprinted, one name across the other. `both` above keeps
+    // drawing them, because that copy is the owner's proof and the receipt
+    // attachment, and there the question being answered is "who is this going
+    // to" rather than "what does the press receive".
+    const forPrinter = { ...common, address: "printer" as const };
+    const front = renderPostcard({ ...forPrinter, sides: "front" }).pdf;
+    const back = renderPostcard({ ...forPrinter, sides: "back" }).pdf;
 
     const outcome = await handToProvider(
       order.provider,

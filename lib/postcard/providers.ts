@@ -103,6 +103,33 @@ export function buildStannpRequest(
 }
 
 /**
+ * The address as the printer will compose it — B982.
+ *
+ * Stannp is given the recipient as `recipient[...]` fields and lays the block
+ * out itself, so this is not a layout decision of ours: it is what came back
+ * on a real proof, read off the card in B982's screenshot — the name in bold,
+ * the street, the town in capitals, the postcode on its own line under it, and
+ * the country spelled out. It is here rather than in `preview.ts` for the same
+ * reason `buildStannpRequest` is: everything in this file is a claim about
+ * somebody else's server, and a claim like that belongs where the next person
+ * will think to check it.
+ *
+ * It exists so the preview can show what will actually be printed. Nothing
+ * renders it onto a card — `renderPostcard` no longer draws an address at all
+ * for a provider that adds its own.
+ */
+export function printerAddressLines(to: PostalAddress): string[] {
+  return [
+    to.name,
+    to.line1,
+    to.line2 ?? "",
+    to.city.toUpperCase(),
+    to.postcode,
+    (to.country ?? "").toUpperCase(),
+  ].filter((line) => line.trim().length > 0);
+}
+
+/**
  * Swiss Post PostCard Creator — free, and probably not usable.
  *
  * The only route to it is a reverse-engineered client

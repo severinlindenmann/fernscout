@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import BusyButton from "@/components/BusyButton";
 import { X } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
@@ -96,6 +97,7 @@ export default function PostcardSheet({
   onClose: () => void;
 }) {
   const { t } = useI18n();
+  const router = useRouter();
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
   const [creditsEach, setCreditsEach] = useState(0);
   const [chosen, setChosen] = useState<string[]>([]);
@@ -204,7 +206,13 @@ export default function PostcardSheet({
       // Leaves this page entirely. The next thing the owner sees is the
       // preview, with the button on it — which is the handover this whole
       // component exists to perform.
-      window.location.assign(body.url);
+      //
+      // `router.push` and not `window.location.assign` — B982. The preview is
+      // a page on this site and this was the first of four white flashes on
+      // the way to posting a card; a soft navigation renders it in place,
+      // keeps the busy button spinning until it is actually there, and asks
+      // the server for exactly the same thing.
+      router.push(body.url);
     } catch {
       setFailed(true);
       setBusy(false);

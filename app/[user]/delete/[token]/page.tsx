@@ -12,6 +12,7 @@ import {
 import { translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
+import { formatCredits } from "@/lib/credits/format";
 
 export const dynamic = "force-dynamic";
 
@@ -102,7 +103,7 @@ export default async function DeletePage({ params }: PageProps<"/[user]/delete/[
           rendered for a trip: deleting one destroys no credits. */}
       {isJournal && typeof summary.credits === "number" && summary.credits > 0 && (
         <p className="mt-3 text-lg leading-8 text-navy-700">
-          {t("del.credits", { ...vars, credits: String(summary.credits) })}
+          {t("del.credits", { ...vars, credits: formatCredits(summary.credits) })}
         </p>
       )}
 

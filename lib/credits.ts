@@ -1,5 +1,8 @@
 import "server-only";
 import { isEnabled } from "./capabilities";
+// The unit and its arithmetic live beside `pricing.ts` and not here, because
+// a balance is rendered in the browser and this file is `server-only` — B987.
+import { creditsFromUnits, toUnits } from "./credits/format";
 import { getDatabaseOrNull, newId, nowIso } from "./db";
 
 /**
@@ -161,6 +164,9 @@ export function creditsEnabled(): boolean {
  * What this journal has, or `null` when credits are switched off — which is
  * "there is no such number here", a different answer from zero and rendered
  * differently by `/[user]/me`.
+ *
+ * In credits, which since B987 may carry a fraction: the stored number is
+ * hundredths and this is where it stops being one.
  */
 export async function balanceOf(owner: string): Promise<number | null> {
   if (!creditsEnabled()) return null;
@@ -173,7 +179,7 @@ export async function balanceOf(owner: string): Promise<number | null> {
     .executeTakeFirst();
   // No row is a balance of zero. Every journal starts that way and nothing
   // back-fills; the row appears at the first grant.
-  return row ? Number(row.balance) : 0;
+  return row ? creditsFromUnits(Number(row.balance)) : 0;
 }
 
 /**
@@ -193,8 +199,10 @@ export async function spend(
   ref: string,
 ): Promise<boolean> {
   if (!creditsEnabled()) return true;
-  if (!Number.isInteger(n)) throw new Error(`credits: refusing a fractional spend of ${n}`);
-  if (n <= 0) return true;
+  // Hundredths since B987 — a spend of 0.01 is the smallest real charge, and
+  // anything finer is a pricing bug rather than a discount.
+  const units = toUnits(n, "a spend");
+  if (units <= 0) return true;
 
   const handle = await getDatabaseOrNull();
   // Credits are on and there is nowhere to record them. Refusing is the only
@@ -205,11 +213,11 @@ export async function spend(
   return handle.db.transaction().execute(async (trx) => {
     const result = await trx
       .updateTable("credits")
-      .set((eb) => ({ balance: eb("balance", "-", n), updated_at: nowIso() }))
+      .set((eb) => ({ balance: eb("balance", "-", units), updated_at: nowIso() }))
       .where("owner_id", "=", owner)
       // The whole guard, in one statement. A missing row affects nothing and
       // is therefore refused, the same answer as a row holding too little.
-      .where("balance", ">=", n)
+      .where("balance", ">=", units)
       .executeTakeFirst();
 
     // `numUpdatedRows` is a bigint on both dialects, and this file compiles
@@ -223,7 +231,7 @@ export async function spend(
       .values({
         id: newId(),
         owner_id: owner,
-        delta: -n,
+        delta: -units,
         reason,
         ref,
         note: null,
@@ -245,14 +253,15 @@ export async function spend(
  */
 export async function refund(owner: string, n: number, ref: string): Promise<void> {
   if (!creditsEnabled()) return;
-  if (n <= 0) return;
+  const units = toUnits(n, "a refund");
+  if (units <= 0) return;
   const handle = await getDatabaseOrNull();
   if (!handle) return;
 
   await handle.db.transaction().execute(async (trx) => {
     await trx
       .updateTable("credits")
-      .set((eb) => ({ balance: eb("balance", "+", n), updated_at: nowIso() }))
+      .set((eb) => ({ balance: eb("balance", "+", units), updated_at: nowIso() }))
       .where("owner_id", "=", owner)
       .execute();
     await trx
@@ -260,7 +269,7 @@ export async function refund(owner: string, n: number, ref: string): Promise<voi
       .values({
         id: newId(),
         owner_id: owner,
-        delta: n,
+        delta: units,
         reason: "refund",
         ref,
         note: null,
@@ -296,6 +305,10 @@ export async function refund(owner: string, n: number, ref: string): Promise<voi
 export async function clawBack(owner: string, n: number, ref: string): Promise<number> {
   if (!creditsEnabled()) return 0;
   if (!Number.isInteger(n) || n <= 0) return 0;
+  // A purchase is always a whole number of credits, so the guard above stands;
+  // the *balance* it is compared against is hundredths since B987, so the
+  // comparison has to happen down there rather than up here.
+  const wanted = toUnits(n, "a claw-back");
   const handle = await getDatabaseOrNull();
   if (!handle) return 0;
 
@@ -305,7 +318,7 @@ export async function clawBack(owner: string, n: number, ref: string): Promise<n
       .select("balance")
       .where("owner_id", "=", owner)
       .executeTakeFirst();
-    const taken = Math.min(n, Number(row?.balance ?? 0));
+    const taken = Math.min(wanted, Number(row?.balance ?? 0));
     if (taken <= 0) return 0;
 
     const done = await handle.db.transaction().execute(async (trx) => {
@@ -330,7 +343,7 @@ export async function clawBack(owner: string, n: number, ref: string): Promise<n
         .execute();
       return true;
     });
-    if (done) return taken;
+    if (done) return creditsFromUnits(taken);
   }
 
   // Five reads in a row each overtaken by a spend. Vanishingly unlikely, and
@@ -378,9 +391,14 @@ export const SIGNUP_CREDIT_GRANT = 10;
  * grant that silently did nothing would be found out much later.
  */
 export async function grant(owner: string, n: number, note?: string): Promise<void> {
+  // Still whole credits, and deliberately: everything that grants is a fixed
+  // amount or a purchase somebody made in whole credits (property 1 above),
+  // and a fractional grant would be a sign that something a caller controls
+  // had reached this function.
   if (!Number.isInteger(n) || n <= 0) {
     throw new Error(`credits: a grant must be a positive whole number, got ${n}`);
   }
+  const units = toUnits(n, "a grant");
   const handle = await getDatabaseOrNull();
   if (!handle) throw new Error("credits: no database is configured, so there is nowhere to grant");
 
@@ -397,13 +415,13 @@ export async function grant(owner: string, n: number, note?: string): Promise<vo
     if (existing) {
       await trx
         .updateTable("credits")
-        .set((eb) => ({ balance: eb("balance", "+", n), updated_at: nowIso() }))
+        .set((eb) => ({ balance: eb("balance", "+", units), updated_at: nowIso() }))
         .where("owner_id", "=", owner)
         .execute();
     } else {
       await trx
         .insertInto("credits")
-        .values({ owner_id: owner, balance: n, updated_at: nowIso() })
+        .values({ owner_id: owner, balance: units, updated_at: nowIso() })
         .execute();
     }
 
@@ -412,7 +430,7 @@ export async function grant(owner: string, n: number, note?: string): Promise<vo
       .values({
         id: newId(),
         owner_id: owner,
-        delta: n,
+        delta: units,
         reason: "grant",
         ref: null,
         note: note ?? null,
@@ -471,7 +489,9 @@ export async function spentByReason(owner: string): Promise<{ reason: string; cr
   return rows
     // `sum` is a bigint on Postgres and arrives as a string; negated here so
     // the caller renders a spend as the positive number a person would say.
-    .map((row) => ({ reason: row.reason, credits: -Number(row.total ?? 0) }))
+    // Hundredths in the table, credits out — B987, the same boundary
+    // `balanceOf` is.
+    .map((row) => ({ reason: row.reason, credits: creditsFromUnits(-Number(row.total ?? 0)) }))
     .sort((a, b) => b.credits - a.credits);
 }
 
@@ -489,7 +509,8 @@ export async function ledgerFor(owner: string, limit = 50): Promise<LedgerRow[]>
     .execute();
   return rows.map((r) => ({
     id: r.id,
-    delta: Number(r.delta),
+    // In credits, like everything else this module hands out — B987.
+    delta: creditsFromUnits(Number(r.delta)),
     reason: r.reason,
     ref: r.ref,
     note: r.note,
@@ -522,9 +543,12 @@ export async function auditOwner(
       .where("owner_id", "=", owner)
       .executeTakeFirst(),
   ]);
-  const balance = row ? Number(row.balance) : 0;
+  // Both sides in credits — B987. The equality is the same question in either
+  // unit; the numbers are read by an operator, so they are reported in the
+  // unit an operator thinks in.
+  const balance = creditsFromUnits(row ? Number(row.balance) : 0);
   // `sum` is `numeric` on Postgres, which `pg` returns as a string, and null
   // when there are no rows at all.
-  const ledger = Number(sum?.total ?? 0);
+  const ledger = creditsFromUnits(Number(sum?.total ?? 0));
   return { balance, ledger, ok: balance === ledger };
 }
