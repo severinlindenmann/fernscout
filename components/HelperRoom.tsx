@@ -369,11 +369,32 @@ function FilesPane({
     <div>
       <p className="text-sm leading-6 text-navy-600">{t("agent.room.filesHint")}</p>
 
-      {selected.length > 0 && (
-        <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-navy-800">
-          <span role="status">
-            {tn("agent.room.selected", selected.length, { count: String(selected.length) })}
-          </span>
+      {/**
+       * The count is announced by a region that was **there first** — B949.
+       *
+       * This whole paragraph used to be behind `selected.length > 0`, so the
+       * live region came into existence at the same moment as its first
+       * content — and a screen reader may never announce that first change,
+       * because the region was not there to be watched. Somebody ticking
+       * their first photograph heard nothing, and would have had to tab
+       * onward and find the "Clear" button to learn that anything had been
+       * selected at all.
+       *
+       * The conversation log two hundred lines below has this fixed and says
+       * why in the same words. The second live region on the same screen did
+       * not get the same treatment, which is the whole of this ticket.
+       *
+       * So the `<span>` is always mounted and empty when nothing is picked;
+       * only the button, which is a control rather than an announcement,
+       * comes and goes.
+       */}
+      <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-navy-800">
+        <span role="status">
+          {selected.length > 0
+            ? tn("agent.room.selected", selected.length, { count: String(selected.length) })
+            : ""}
+        </span>
+        {selected.length > 0 && (
           <button
             type="button"
             onClick={onClear}
@@ -381,8 +402,8 @@ function FilesPane({
           >
             {t("agent.room.clear")}
           </button>
-        </p>
-      )}
+        )}
+      </p>
 
       {empty && <p className="mt-3 text-sm leading-6 text-navy-700">{t("agent.room.noFiles")}</p>}
 

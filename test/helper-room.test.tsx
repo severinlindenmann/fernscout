@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import HelperRoom from "@/components/HelperRoom";
 import LocaleProvider from "@/components/LocaleProvider";
 import type { RoomFiles } from "@/lib/helper/server";
@@ -211,4 +211,27 @@ test("the files sheet is a dialog with one obvious way back", () => {
   )!;
   act(() => back.click());
   expect(document.querySelector("dialog")).toBeNull();
+});
+
+/**
+ * A live region has to exist before the thing it announces — B949.
+ *
+ * The count of picked files sat behind `selected.length > 0`, so the region
+ * was created at the same moment as its first content, and a screen reader
+ * may never announce that first change: there was nothing there to be
+ * watched. Somebody ticking their first photograph heard nothing at all, and
+ * would have had to tab onward and find the "Clear" button to discover that
+ * anything had happened.
+ *
+ * The conversation log on the same screen already had this fixed, with the
+ * reason written beside it. This is the second region, which did not.
+ */
+describe("the files pane's count", () => {
+  test("its region is mounted before anything is picked", () => {
+    const box = render();
+    const counts = [...box.querySelectorAll('[role="status"]')];
+    // Not "is there once something is selected" — there, now, empty.
+    expect(counts.length).toBeGreaterThan(0);
+    expect(counts.some((one) => one.textContent === "")).toBe(true);
+  });
 });
