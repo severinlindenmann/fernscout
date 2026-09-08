@@ -387,6 +387,7 @@ export type TranslationKey =
   | "agent.speechRecording"
   | "agent.speechStarted"
   | "agent.speechStopped"
+  | "agent.speechTooShort"
   | "agent.speechUnsupported"
   | "agent.speechWorking"
   | "agent.startCodeSent"

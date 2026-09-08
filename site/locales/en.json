@@ -1767,5 +1767,6 @@
   "edit.removePhoto": "Remove",
   "edit.keepPhoto": "Keep after all",
   "edit.addPhotos": "Add pictures",
-  "edit.seenAsUpdate": "As this update"
+  "edit.seenAsUpdate": "As this update",
+  "agent.speechTooShort": "That was too short to send — hold the button, or press it once to start and again to stop."
 }

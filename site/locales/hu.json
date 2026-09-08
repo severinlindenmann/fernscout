@@ -1767,5 +1767,6 @@
   "edit.removePhoto": "Eltávolítás",
   "edit.keepPhoto": "Mégis marad",
   "edit.addPhotos": "Képek hozzáadása",
-  "edit.seenAsUpdate": "Mint ez a bejegyzés"
+  "edit.seenAsUpdate": "Mint ez a bejegyzés",
+  "agent.speechTooShort": "Ez túl rövid volt az elküldéshez — tartsd nyomva a gombot, vagy nyomd meg egyszer az indításhoz és még egyszer a leállításhoz."
 }

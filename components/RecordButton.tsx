@@ -164,6 +164,22 @@ export default function RecordButton({
   // When a pointer last pressed this button, so the click that follows a
   // press-and-hold is not read as a second, toggling press. See `toggle`.
   const pressedAt = useRef(0);
+  // Whether the recording was already running when that press began — the
+  // difference between "a click starts it" and "a click stops it". See `hold`.
+  const pressedWhileRecording = useRef(false);
+  // Whether the click about to arrive is the tail of a pointer press this
+  // component has already acted on. See `toggle`.
+  const fromPointer = useRef(false);
+  // A stop asked for before there was anything to stop — B994.
+  //
+  // `start()` awaits `getUserMedia`, which takes tens to hundreds of
+  // milliseconds even with the permission already given. A click is shorter
+  // than that: `pointerup` arrived while `recorder.current` was still null, so
+  // `stop()` found nothing, did nothing, and the recording it was meant to end
+  // began a moment later with nobody left to end it. That is the whole of "the
+  // microphone does nothing" — it was listening, indefinitely, and the words
+  // never went anywhere.
+  const wantStop = useRef(false);
 
   // The stopwatch, and the ceiling. A hold that reaches the cap stops itself
   // rather than being refused by the server after the fact.
@@ -260,7 +276,15 @@ export default function RecordButton({
       const held = (Date.now() - started.current) / 1000;
       const blob = new Blob(chunks.current, { type: media.mimeType });
       chunks.current = [];
-      if (blob.size > 0 && held >= 0.5) void send(blob, held);
+      if (blob.size > 0 && held >= 0.5) {
+        void send(blob, held);
+        return;
+      }
+      // Half a second of audio is a slip of the finger, not a sentence, and it
+      // is not sent. It used to be dropped in silence as well — which, from
+      // the outside, is a microphone that listened and then did nothing at
+      // all. B994: say so, since it is the whole of what happened.
+      setError(t("agent.speechTooShort"));
     };
     recorder.current = media;
     started.current = Date.now();
@@ -268,10 +292,22 @@ export default function RecordButton({
     setRecording(true);
     setAnnounced(t("agent.speechStarted"));
     media.start();
+    // Somebody let go while the browser was still granting the microphone.
+    // Honour it now rather than leaving it open — B994.
+    if (wantStop.current) {
+      wantStop.current = false;
+      media.stop();
+    }
   }, [busy, recording, send, t]);
 
   function stop() {
-    if (recorder.current?.state === "recording") recorder.current.stop();
+    if (recorder.current?.state === "recording") {
+      recorder.current.stop();
+      return;
+    }
+    // Nothing to stop yet: `start()` is still waiting on the microphone. Say
+    // so, and it stops the moment there is something to stop.
+    wantStop.current = true;
   }
 
   async function agree() {
@@ -330,6 +366,7 @@ export default function RecordButton({
    *  below — B767. */
   function press() {
     setSpeaking(true);
+    wantStop.current = false;
     if (consented) void start();
     else setConsenting(true);
   }
@@ -354,19 +391,56 @@ export default function RecordButton({
    * that ever stops being true.
    */
   function toggle() {
-    if (Date.now() - pressedAt.current < 1000) return;
+    // The tail of a pointer press, already handled by `hold` below. It used to
+    // be a one-second window since the last `pointerdown`, which is fine for a
+    // click and wrong for a hold: let go after two seconds and the trailing
+    // click sailed past the window and started a *second* recording. A flag is
+    // exact, and it cannot go stale — a pointer that leaves the button is
+    // delivered no click at all, and clears it on the way out. B994.
+    if (fromPointer.current) {
+      fromPointer.current = false;
+      return;
+    }
     if (recording) stop();
     else press();
   }
 
+  /**
+   * How long a press has to last to have been a hold — B994.
+   *
+   * Under this it was a click, and a click is a toggle: press to start, press
+   * again to stop, the same thing the keyboard does. Over it, the release ends
+   * the recording, which is what "hold to talk" means on a phone.
+   *
+   * Before this every press was a hold, and a mouse click is forty
+   * milliseconds: the release arrived before the microphone had been granted,
+   * so nothing stopped and nothing was ever sent.
+   *
+   * ponytail: 400ms is longer than any click and shorter than any deliberate
+   * hold; a pointer-type check (`event.pointerType === "touch"`) if that ever
+   * stops being true.
+   */
+  const HOLD_MS = 400;
+
+  const release = () => {
+    // A hold, released — or a click made while it was already running, which
+    // is the second half of the toggle.
+    if (
+      Date.now() - pressedAt.current >= HOLD_MS ||
+      pressedWhileRecording.current
+    )
+      stop();
+  };
+
   const hold = {
     onPointerDown: () => {
       pressedAt.current = Date.now();
-      press();
+      pressedWhileRecording.current = recording;
+      if (!recording) press();
     },
-    onPointerUp: stop,
-    onPointerLeave: stop,
-    onPointerCancel: stop,
+    onPointerUp: release,
+    onPointerLeave: release,
+    onPointerCancel: release,
     onClick: toggle,
   };
 
