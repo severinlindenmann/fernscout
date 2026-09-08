@@ -6,9 +6,6 @@ priority: medium
 complexity: low
 area: photobook
 found: "2026-09-07T18:00:21Z"
-started: "2026-09-08T21:27:12Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T21:27:12Z"
 superseded: "af81a7d8 (\"Photobook: claim, spend, print, refund what was refused\"), which landed the Gelato print flow and gave recordPrint its caller. Stale before this session even started."
 ---
 
