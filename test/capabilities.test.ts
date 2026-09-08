@@ -33,6 +33,7 @@ const TOUCHED = [
   "SMTP_PASSWORD",
   "MAIL_FROM",
   "STANNP_API_KEY",
+  "ANTHROPIC_API_KEY",
 ];
 
 beforeEach(() => {
@@ -47,6 +48,40 @@ afterEach(() => {
   for (const key of TOUCHED) delete process.env[key];
   clearConfigCache();
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+describe("a capability that needs another one", () => {
+  /**
+   * B724 — the dependency is a field on `Requirement`, so `/api/health`
+   * reports a missing one the same way it reports a missing environment
+   * variable. It was two `if`s in the resolver before, which is where a third
+   * would have gone unnoticed.
+   */
+  test("is off, and the reason names the switch to throw", () => {
+    process.env.DATABASE_URL = "sqlite::memory:";
+    process.env.ANTHROPIC_API_KEY = "sk-test";
+    writeConfig({ helper: { enabled: true }, credits: { enabled: false } });
+    const helper = resolveCapabilities().helper;
+    expect(helper.enabled).toBe(false);
+    const reason = helper.enabled ? "" : helper.reason;
+    expect(reason).toContain("features.credits is not");
+    expect(reason).toContain("metered");
+  });
+
+  test("comes on once the one it needs is on", () => {
+    process.env.DATABASE_URL = "sqlite::memory:";
+    process.env.ANTHROPIC_API_KEY = "sk-test";
+    writeConfig({ helper: { enabled: true }, credits: { enabled: true } });
+    expect(resolveCapabilities().helper.enabled).toBe(true);
+  });
+
+  test("the second one is data too, so both are reported the same way", () => {
+    process.env.DATABASE_URL = "sqlite::memory:";
+    writeConfig({ transcription: { enabled: true }, credits: { enabled: false } });
+    const speech = resolveCapabilities().transcription;
+    expect(speech.enabled).toBe(false);
+    expect(speech.enabled ? "" : speech.reason).toContain("features.credits is not");
+  });
 });
 
 describe("resolveCapabilities", () => {
