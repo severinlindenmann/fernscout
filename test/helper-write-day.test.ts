@@ -173,7 +173,10 @@ describe("what the model is told", () => {
    *  asserted rather than trusted to survive an edit. */
   test("the system prompt still carries the invention rule", () => {
     expect(SYSTEM_PROMPT).toContain("WRITE ONLY WHAT YOU WERE TOLD");
-    expect(SYSTEM_PROMPT).toMatch(/never write about the weather/i);
+    // B766: a person's own words about the weather stay; the model never
+    // supplies a temperature, a condition or a forecast of its own.
+    expect(SYSTEM_PROMPT).toMatch(/person's own memory of the weather stays in/i);
+    expect(SYSTEM_PROMPT).not.toMatch(/never write about the weather/i);
     expect(SYSTEM_PROMPT).toMatch(/never translate/i);
   });
 
