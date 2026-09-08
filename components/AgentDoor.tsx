@@ -267,6 +267,22 @@ export default function AgentDoor({
                   capability off it is simply not here, and everything above
                   works exactly as it did. Below the button since B767: it is
                   a second way in, not the first thing to read. */}
+                {/* B901 — the room, where the same conversation has the files
+                  pane and the preview beside it. A line rather than a second
+                  bright button: the card's one bright thing is still the day
+                  somebody came to write, and this is the other way in for
+                  somebody who wants to see what they are talking about. */}
+                {journal.helper && (
+                  <p className="mt-4">
+                    <Link
+                      href={`/agent/${encodeURIComponent(journal.username)}/chat`}
+                      className="min-h-11 text-base text-navy-700 underline underline-offset-4 transition-colors hover:text-navy-900"
+                    >
+                      {t("agent.room.roomLink")}
+                    </Link>
+                  </p>
+                )}
+
                 {journal.helper && (
                   <HelperAsk
                     username={journal.username}

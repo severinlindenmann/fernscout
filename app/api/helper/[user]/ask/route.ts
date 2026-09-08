@@ -3,7 +3,7 @@ import { hasHelperConsent, helperConsent } from "@/lib/helper/consent";
 import type { Block } from "@/lib/helper/blocks";
 import { refusalFor, type Say } from "@/lib/helper/intents";
 import { answerInThread } from "@/lib/helper/model";
-import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
+import { describeSelection, isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { forget, history, remember } from "@/lib/helper/thread";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { requestLocale, translateIn } from "@/lib/locales";
@@ -176,12 +176,30 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
       : new Date().toISOString().slice(0, 10);
 
   /**
+   * What is selected in the files pane, if anything — B902.
+   *
+   * The browser sends ids; **this resolves them against disk** and drops what
+   * nothing answers to, so a sentence going to a model can only ever name a
+   * file this journal actually has. It rides as one bracketed line after
+   * their words — the same shape B900 uses to carry a waiting proposal — and
+   * it is *not* remembered: the pane sends what is selected on every turn, so
+   * a thread cannot come to believe in a selection that has been cleared.
+   *
+   * Nothing selected is the ordinary case and produces nothing at all, which
+   * is what keeps the pane an addition rather than a requirement.
+   */
+  const selected = Array.isArray(body.selected)
+    ? body.selected.filter((id): id is string => typeof id === "string")
+    : [];
+  const context = selected.length > 0 ? describeSelection(user, selected) : "";
+
+  /**
    * The whole of it — B900. The conversation so far, one new sentence, and
    * the registry. Reads run; writes propose and write nothing.
    */
   let thread;
   try {
-    thread = await answerInThread(user, said, history(user), today, say);
+    thread = await answerInThread(user, context === "" ? said : `${said}\n${context}`, history(user), today, say);
   } catch {
     return Response.json({ error: "model_failed" }, { status: 502 });
   }
