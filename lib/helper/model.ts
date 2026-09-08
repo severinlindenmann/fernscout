@@ -678,7 +678,18 @@ const ON_SCREEN = new RegExp(
     "\\bgomb\\w*\\b",
     "\\bnyomd\\b",
     "\\b(?:alatta|alul|lent|lejjebb)\\b",
-    "\\bképernyő\\w*\\b",
+    /**
+     * **No boundaries on this one** — B956.
+     *
+     * `\b` is an ASCII word boundary, and `ő` is not a word character to it:
+     * `képernyő\w*\b` fails on the bare word before a space, because `\w*`
+     * matches nothing and `ő` to ` ` is no boundary. It matched *"a
+     * képernyődön"* only by luck — the `d` in the middle is ASCII.
+     *
+     * The word is distinctive enough to stand alone, which is the cheaper fix
+     * than a lookaround nobody will read correctly later.
+     */
+    "k\u00e9perny\u0151\\w*",
   ].join("|"),
   "i",
 );

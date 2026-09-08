@@ -666,3 +666,100 @@ describe("a turn that totals somebody's money without reading it", () => {
     expect(String(answered.body.answer)).toBe("Insgesamt 107 Franken.");
   });
 });
+
+/* ------------------------------ the same sentence, in all three tongues --- */
+
+/**
+ * Every matcher, in every language it claims to cover — B956.
+ *
+ * `\b` is an **ASCII** word boundary. Between a space and `ö` there is none,
+ * because `ö` is not a word character to it, so `\bösszesen\b` matches
+ * nothing that follows a space — which is everywhere the word appears. B955
+ * found that by writing one Hungarian sentence into a test.
+ *
+ * The trailing form has the mirror fault, and this table caught it:
+ * `\bképernyő\w*\b` failed on the bare word before a space, and had been
+ * matching *"a képernyődön"* only because the `d` in the middle is ASCII —
+ * that is, passing by luck for as long as somebody happened to inflect it.
+ *
+ * These matchers are the last thing standing between somebody and a false
+ * claim about their own journal, and two of the three languages they cover
+ * are full of characters `\b` cannot see. So: real sentences, one table, and
+ * a failure here is a matcher that is not doing its job in somebody's
+ * language.
+ */
+describe("what each matcher sees, in German and Hungarian as well as English", () => {
+  const TABLE: [string, (said: string) => boolean, string[]][] = [
+    [
+      "a write",
+      claimsAWrite,
+      [
+        "The day is saved.",
+        "Der Tag ist gespeichert.",
+        "Die Reise wurde veröffentlicht.",
+        "Ich habe es hinzugefügt.",
+        "Ich habe es zurückgezogen.",
+        "Der Tag ist wieder ein Entwurf.",
+        "A napot elmentettem.",
+        "Közzétettem a napot.",
+        "Hozzáadtam.",
+        "Létrehoztam a napot.",
+        "Rögzítettem.",
+        "A nap piszkozat lett.",
+        "Leszedtem.",
+      ],
+    ],
+    [
+      "a button",
+      claimsAButton,
+      [
+        "The button is below.",
+        "Der Knopf ist unten.",
+        "Die Schaltfläche darunter.",
+        "Drück ihn.",
+        "Auf deinem Bildschirm.",
+        "Lade die Seite neu.",
+        "A gomb alatta van.",
+        "Nyomd meg.",
+        // The one B956 was written for: bare, before a space.
+        "A képernyő alján.",
+        "A képernyődön.",
+        "Frissítsd az oldalt.",
+        "Töltsd újra.",
+      ],
+    ],
+    [
+      "what a day says",
+      claimsWhatADaySays,
+      [
+        "The text already mentions it.",
+        "Der Text erwähnt das schon.",
+        "Das steht schon drin.",
+        "Der Eintrag sagt das.",
+        "A szöveg említi.",
+        "A nap tartalmazza.",
+        "Már benne van.",
+      ],
+    ],
+    [
+      "a total",
+      claimsATotal,
+      [
+        "The total is 107 pounds.",
+        "Insgesamt 107 Franken.",
+        "Zusammen CHF 240.",
+        "Durchschnittlich 50 Franken pro Tag.",
+        "Összesen 12000 forint.",
+        "Átlagosan 12000 forint naponta.",
+      ],
+    ],
+  ];
+
+  for (const [what, matches, sentences] of TABLE) {
+    for (const said of sentences) {
+      test(`${what}: ${said}`, () => {
+        expect(matches(said)).toBe(true);
+      });
+    }
+  }
+});
