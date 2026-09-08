@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: agent, media, inbox
 found: "2026-09-08T06:33:57Z"
+started: "2026-09-08T06:35:14Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T06:35:14Z"
 ---
 
 # B915 — A photograph in the inbox cannot be put on a day from a browser

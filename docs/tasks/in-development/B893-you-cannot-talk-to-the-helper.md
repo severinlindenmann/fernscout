@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: agent
 found: "2026-09-07T18:29:59Z"
+started: "2026-09-08T06:35:14Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T06:35:14Z"
 ---
 
 # B893 — You cannot talk to the helper, only type at it
