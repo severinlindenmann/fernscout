@@ -1859,23 +1859,24 @@ function centreAwayFromFold(xs: number[], x: number, width: number): number {
   const routeCentre = (minX + maxX) / 2;
 
   /**
-   * A route far narrower than its frame cannot be helped by this at all.
+   * The fold must stay *within* the journey, so both pages carry some of it.
    *
-   * Forcing the frame to the spread's 2:1 shape means a tall, compact journey
-   * — four passes in the Alps, say — gets a frame many times its own width.
-   * Every candidate then clears the band trivially, the best-scoring one puts
-   * the fold beyond the last stop, and the journey lands wholly on one page
-   * with a blank sheet of graticule facing it. Centred, at least both pages
-   * carry the route.
+   * Without this the bounds above let the frame slide until a stop reaches
+   * the frame's edge, and for a route far narrower than its frame — which
+   * forcing the spread's 2:1 shape makes common, since a tall compact journey
+   * gets a frame many times its own width — the best-scoring candidate is
+   * "put the fold beyond the last stop". Four passes in the Alps printed
+   * wholly on the right-hand page with a blank sheet of graticule facing it.
+   * A blank page is a worse fault than a stop near the gutter.
    *
-   * So below a quarter of the frame's width, the fold gets no vote: the
-   * journey stays in the middle where it belongs.
+   * A single stop is the exception and keeps the older, wider licence: it
+   * cannot straddle anything, so nudging it off the fold is the only thing
+   * that can be done for it, and it empties no page by moving.
    */
-  if (maxX - minX < width * 0.25) return cx0;
-
-  const drift = width / 6;
-  lo = Math.max(lo, routeCentre - drift);
-  hi = Math.min(hi, routeCentre + drift);
+  if (maxX > minX) {
+    lo = Math.max(lo, minX);
+    hi = Math.min(hi, maxX);
+  }
 
   const inBand = (c: number) => sorted.filter((v) => Math.abs(v - c) < half).length;
   const crossings = (c: number) => {
