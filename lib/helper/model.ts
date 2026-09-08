@@ -867,6 +867,50 @@ export function claimsWhatADaySays(text: string): boolean {
 }
 
 /**
+ * Words, said to be in the proposal — B961.
+ *
+ * One turn read:
+ *
+ * > "I've put a proposal on your screen with the title 'Drive to Sarajevo' and
+ * > **your words** about the long drive and the lunch stop. You can edit it or
+ * > press to save."
+ *
+ * Only `start_day` was proposed — an empty day with a date on it. There was no
+ * title and no prose anywhere on the screen, and the day's content on disk is
+ * still `"…"`. The person found out by reading the API.
+ *
+ * Every existing check passed it, and each for a good reason: a proposal
+ * really was on the screen, so the button half was true; and *"with your words
+ * about the long drive"* is not any of the ways of saying a thing was
+ * **saved**, so the write matcher never saw it.
+ *
+ * What is checkable is narrower and exact: the answer says the person's own
+ * words are in the proposal, and no proposal on this turn has anywhere to put
+ * them. `start_day` has no `content` field; `draft_words` and `set_day_words`
+ * do. So this is not a phrase to add to a list — it is a claim about a
+ * proposal, checked against that proposal.
+ */
+const PROPOSED_WORDS = new RegExp(
+  [
+    "\\b(?:your|the|those|these)\\s+(?:own\\s+)?words\\b",
+    "\\bwhat you (?:said|told me|wrote)\\b",
+    // German declines both halves — "deine Worte", "mit deinen Worten".
+    "\\b(?:dein|ihr|sein|die)\\w*\\s+(?:eigen\\w*\\s+)?worte\\w*",
+    "\\bwas du (?:gesagt|erz\u00e4hlt|geschrieben) hast\\b",
+    "a\\s+szavaid\\w*",
+    "\\bamit (?:mondt\u00e1l|\u00edrt\u00e1l)\\b",
+  ].join("|"),
+  "i",
+);
+
+/** True when this text says somebody's own words are in what was proposed. */
+export function claimsProposedWords(text: string): boolean {
+  return withoutMarkers(text)
+    .split(/(?<=[.!?\n])\s+/)
+    .some((sentence) => PROPOSED_WORDS.test(sentence) && !DENIED.test(sentence));
+}
+
+/**
  * A **total** — B955, and the fourth territory.
  *
  * Deliberately not "an amount". A figure the person has just said, echoed back
@@ -964,6 +1008,14 @@ Answer again. Either call the tool that proposes what they asked for — that is
 const PENDING_RETRY = `Stop. Your last answer said something had been done — a day saved, started, published, taken down or added to — and it has not been. What is on their screen is a proposal, and it does nothing until they press it.
 
 Say it again in the tense that is true: what *would* happen, and that pressing is what makes it so. Do not apologise and do not explain yourself; just say it correctly. The button is right there and it is the one you already made, so do not make another.`;
+
+/**
+ * What the model is told when it said somebody's words were in a proposal that
+ * has nowhere to put them — B961.
+ */
+const WORDS_RETRY = `Stop. Your last answer said their own words are in what you proposed, and the proposal on their screen has no place for words at all — it is an empty day with a date on it, and nothing they said has been written down anywhere.
+
+Say what is actually there: a day waiting to be started, and that the words come after it, once they press. Then offer to write them up. Do not describe prose that does not exist, however sure you are of what it would say.`;
 
 const ACCESS_RETRY = `Stop. Your last answer said a person can read something, and nothing on this turn makes that true. Naming somebody does not let them in: a trip that is not public is open to the people who were on it and to the guests the owner has already approved, and nobody else. Saying otherwise is the worst thing you can get wrong here — this journal exists so that somebody's family can read it, and they will believe you.
 
@@ -1137,13 +1189,27 @@ export async function answerInThread(
       .filter((name): name is string => name !== undefined),
   );
 
-  function amiss(): "" | "claim" | "pending" | "access" | "day" | "total" {
+  function amiss(): "" | "claim" | "pending" | "words" | "access" | "day" | "total" {
     if (claimsAccess(answer) && !proposals.some((one) => one.tool === "invite_guest")) {
       return "access";
     }
     if (claimsWhatADaySays(answer) && !looked.includes("read_day")) return "day";
     // B955 — the arithmetic is the server's and was not asked for it.
     if (claimsATotal(answer) && !looked.includes("trip_costs")) return "total";
+    /**
+     * Words claimed to be in a proposal that has nowhere to put them — B961.
+     *
+     * Outside the block below because it is the one claim that is false while
+     * a proposal really is on the screen and nothing was said to be saved:
+     * every other check passed the sentence that found it.
+     */
+    if (
+      claimsProposedWords(answer) &&
+      proposals.length > 0 &&
+      !proposals.some((one) => one.fields.some((field) => field.name === "content"))
+    ) {
+      return "words";
+    }
     if (claimsWhatIsNotThere(answer)) {
       /**
        * **The turn that proposes is the turn most tempted to describe it as
@@ -1198,6 +1264,7 @@ export async function answerInThread(
   const RETRY = {
     claim: HONESTY_RETRY,
     pending: PENDING_RETRY,
+    words: WORDS_RETRY,
     access: ACCESS_RETRY,
     day: READ_IT_RETRY,
     total: COUNT_IT_RETRY,
@@ -1215,6 +1282,7 @@ export async function answerInThread(
   const PLAINLY = {
     claim: "agent.nothingHappened",
     pending: "agent.notUntilYouPress",
+    words: "agent.noWordsProposed",
     access: "agent.noAccessYet",
     day: "agent.notRead",
     total: "agent.notCounted",

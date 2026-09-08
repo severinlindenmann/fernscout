@@ -283,6 +283,7 @@ export type TranslationKey =
   | "agent.notCounted"
   | "agent.notRead"
   | "agent.nothingHappened"
+  | "agent.noWordsProposed"
   | "agent.notUntilYouPress"
   | "agent.onTheDay"
   | "agent.onTheDay.one"
