@@ -110,7 +110,21 @@ export default function HelperRoom({
 
   // Desktop only: a column a person has put away. The conversation never
   // moves, which is the point of putting either away.
-  const [showFiles, setShowFiles] = useState(true);
+  /**
+   * The files column opens **only when there is something in it** — B947.
+   *
+   * A designer on a laptop: it holds 256px of muted placeholder on a journal
+   * with an empty inbox, never changes shape, and takes that width from the
+   * conversation, which is the pane that matters. Her own cut, asked which one
+   * thing she would remove.
+   *
+   * Not hidden — the toggle is in the header either way, and one press brings
+   * it back. What changes is which state a person with nothing to attach
+   * starts in.
+   */
+  const [showFiles, setShowFiles] = useState(
+    files.inbox.length > 0 || files.trip.length > 0,
+  );
   const [showPreview, setShowPreview] = useState(true);
 
   // Phone only: the two things that slide over the conversation.
@@ -193,17 +207,20 @@ export default function HelperRoom({
           {t("agent.room.preview")}
         </button>
 
+        {/* The same control, drawn the same way — B947. These were text links
+            at `lg` and pill buttons below it: one function, two treatments,
+            decided by how wide somebody's window happened to be. */}
         <button
           type="button"
           onClick={() => setShowFiles((was) => !was)}
-          className="hidden min-h-11 px-2 text-sm text-navy-700 underline underline-offset-4 hover:text-navy-900 lg:inline"
+          className="hidden min-h-11 rounded-full border border-navy-300 px-4 text-sm font-semibold text-navy-800 lg:inline-flex lg:items-center"
         >
           {showFiles ? t("agent.room.hideFiles") : t("agent.room.showFiles")}
         </button>
         <button
           type="button"
           onClick={() => setShowPreview((was) => !was)}
-          className="hidden min-h-11 px-2 text-sm text-navy-700 underline underline-offset-4 hover:text-navy-900 lg:inline"
+          className="hidden min-h-11 rounded-full border border-navy-300 px-4 text-sm font-semibold text-navy-800 lg:inline-flex lg:items-center"
         >
           {showPreview ? t("agent.room.hidePreview") : t("agent.room.showPreview")}
         </button>
