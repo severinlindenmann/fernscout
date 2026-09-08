@@ -6,9 +6,6 @@ priority: low
 complexity: low
 area: agent
 found: "2026-09-07T12:16:40Z"
-started: "2026-09-08T21:12:03Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T21:12:03Z"
 superseded: B900
 ---
 
