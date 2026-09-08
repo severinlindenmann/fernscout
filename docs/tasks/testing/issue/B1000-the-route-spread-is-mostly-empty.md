@@ -7,8 +7,7 @@ complexity: medium
 area: photobook, route map
 found: "2026-09-08T17:15:27Z"
 started: "2026-09-08T21:49:15Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T21:49:15Z"
+merged: "2026-09-08T22:09:22Z"
 ---
 
 # B1000 — The route spread is mostly empty for a compact trip
