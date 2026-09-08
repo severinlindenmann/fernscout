@@ -1340,7 +1340,7 @@
   "agent.dateLabel": "Dátum",
   "agent.startDay": "Nap elkezdése",
   "agent.creating": "Indítás…",
-  "agent.uploadTitle": "Fényképek",
+  "agent.uploadTitle": "Fényképek és fájlok",
   "agent.uploading": "{done} / {total} elküldve…",
   "agent.uploadingFor": "{date} napjához:",
   "agent.skipPhotos": "Tovább fényképek nélkül",

@@ -1340,7 +1340,7 @@
   "agent.dateLabel": "Date",
   "agent.startDay": "Start this day",
   "agent.creating": "Starting…",
-  "agent.uploadTitle": "Photographs",
+  "agent.uploadTitle": "Photographs and files",
   "agent.uploading": "{done} of {total} sent…",
   "agent.uploadingFor": "For {date}:",
   "agent.skipPhotos": "Carry on without photographs",
