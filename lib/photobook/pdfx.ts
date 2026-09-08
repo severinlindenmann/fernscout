@@ -63,14 +63,22 @@ export type PdfxReadiness = {
 /**
  * An honest audit of the file this writer is about to produce.
  *
- * `claimable` is deliberately hard to make true: it needs an embedded output
- * intent *and* embedded fonts *and* CMYK content, and the writer can only ever
- * supply the first. It is written this way so that the day font embedding
- * lands, the answer changes by itself rather than by someone editing a string.
+ * **The target is PDF/X-4, and it used to be PDF/X-1a.** That was the wrong
+ * standard to measure against: Gelato's own downloadable template declares
+ * `GTS_PDFXVersion (PDF/X-4)`, and their guidance asks for X-4 with an output
+ * intent. X-4 permits RGB, so the colour conversion this module used to call
+ * the immovable obstacle — "there is no correct way to do that in a few
+ * hundred lines" — is not required at all. That reasoning was sound and aimed
+ * at the wrong specification.
+ *
+ * `claimable` still has to be earned: an embedded output intent *and*
+ * embedded fonts. Fonts now are embedded (`lib/print-fonts`), so an ICC
+ * profile is the only thing between a book and a file that can claim X-4.
  */
 export function pdfxReadiness(state: {
   outputIntent: boolean;
   fontsEmbedded: boolean;
+  /** Kept because a caller still reports it; PDF/X-4 does not require it. */
   cmykContent: boolean;
   transparency: boolean;
 }): PdfxReadiness {
@@ -95,29 +103,33 @@ export function pdfxReadiness(state: {
       met: state.outputIntent,
       detail: state.outputIntent
         ? "An ICC profile was supplied and embedded as DestOutputProfile."
-        : "No ICC profile supplied. Pass --icc <profile.icc> — the printer names which one.",
+        : "No ICC profile supplied. Pass --icc <profile.icc>. For PDF/X-4 the intent " +
+          "describes the *printing condition*, not the content: Gelato names GRACoL 2006. " +
+          "Shipping sRGB here would claim conformance against a condition the printer does " +
+          "not use, which is worse than claiming none.",
     },
     {
-      requirement: "All fonts embedded and subset",
+      requirement: "All fonts embedded",
       met: state.fontsEmbedded,
       detail: state.fontsEmbedded
-        ? "Font programs embedded."
-        : "Base-14 Helvetica is referenced, not embedded. Ghostscript embeds it; see ghostscriptCommand().",
+        ? "Liberation Sans is embedded as a TrueType program per face — see lib/print-fonts."
+        : "Fonts are referenced, not embedded. A printer substitutes what it does not have.",
     },
     {
-      requirement: "Colour is CMYK or spot only (PDF/X-1a)",
-      met: state.cmykContent,
+      requirement: "Colour is RGB or CMYK with a matching output intent (PDF/X-4)",
+      met: true,
       detail: state.cmykContent
         ? "All content and images are CMYK."
-        : "Content is DeviceRGB. Converting needs a colour engine; see the note at the top of this file.",
+        : "Content is DeviceRGB, which PDF/X-4 permits when the output intent describes it. " +
+          "X-1a would have required a conversion; X-4 is what Gelato asks for.",
     },
   ];
   const claimable = requirements.every((r) => r.met);
   return {
-    target: "PDF/X-1a:2001",
+    target: "PDF/X-4",
     requirements,
     claimable,
-    version: claimable ? "PDF/X-1a:2001" : undefined,
+    version: claimable ? "PDF/X-4" : undefined,
   };
 }
 

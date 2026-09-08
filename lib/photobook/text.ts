@@ -137,6 +137,26 @@ function advance(ch: string, bold: boolean): number {
 }
 
 /**
+ * Every advance from space to 0xFF, in 1/1000 em, for a PDF `/Widths` array.
+ *
+ * The same `advance` the wrapper uses, so the widths the PDF declares are the
+ * widths the layout was computed with. For a simple font a consumer positions
+ * text from `/Widths` rather than from the embedded font program, which is
+ * what lets `lib/print-fonts` hold a face that is merely metric-*compatible*
+ * with the table above rather than identical to it.
+ *
+ * Helvetica-Oblique shares Helvetica's advances, so the italic face asks for
+ * `"regular"`.
+ */
+export function advanceWidths(weight: FontWeight): number[] {
+  const widths: number[] = [];
+  for (let code = 32; code <= 255; code++) {
+    widths.push(advance(String.fromCharCode(code), weight === "bold"));
+  }
+  return widths;
+}
+
+/**
  * Width of `text` at `size` points.
  *
  * Measures the *encoded* form, so the string measured here and the string the

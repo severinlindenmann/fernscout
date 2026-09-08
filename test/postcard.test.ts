@@ -186,7 +186,11 @@ describe("rendering", () => {
 
   test("an optional address line is omitted rather than left blank", () => {
     const text = Buffer.from(render({ sides: "back" }).pdf).toString("latin1");
-    expect(text).not.toContain("()");
+    // `() Tj`, not a bare `()`: since the faces are embedded the file carries
+    // 1.2 MB of TrueType tables, and a byte pair that happens to read as an
+    // empty string turns up in them constantly. What this is actually about
+    // is an empty *text-showing operator*.
+    expect(text).not.toContain("() Tj");
   });
 
   /** A photo too small for print must say so — this is invisible on screen and
