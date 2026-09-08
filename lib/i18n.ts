@@ -265,6 +265,8 @@ export type TranslationKey =
   | "agent.inboxStatementKnown"
   | "agent.inboxTitle"
   | "agent.inboxTripLabel"
+  | "agent.inboxTruncated"
+  | "agent.inboxTruncated.one"
   | "agent.inboxWrite"
   | "agent.inboxWritten"
   | "agent.intro"

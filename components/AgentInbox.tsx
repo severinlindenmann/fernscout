@@ -70,6 +70,7 @@ export default function AgentInbox({
   const [read, setRead] = useState<Read | null>(null);
   const [trip, setTrip] = useState(trips[0]?.id ?? "");
   const [rows, setRows] = useState<Row[] | null>(null);
+  const [truncated, setTruncated] = useState(0);
   const [categories, setCategories] = useState<Record<number, string>>({});
   const [removing, setRemoving] = useState<string | null>(null);
   const [gone, setGone] = useState<string[]>([]);
@@ -97,6 +98,7 @@ export default function AgentInbox({
     setOpen(id);
     setRead(null);
     setRows(null);
+    setTruncated(0);
     setCategories({});
     setSaid("");
     setError("");
@@ -168,6 +170,7 @@ export default function AgentInbox({
         format: read?.format,
       });
       setRows((body.spending ?? []) as Row[]);
+      setTruncated(Number(body.truncated ?? 0));
       setCategories({});
     });
 
@@ -418,6 +421,12 @@ export default function AgentInbox({
                         {t("agent.inboxReadAll")}
                       </BusyButton>
                     </>
+                  )}
+
+                  {rows && truncated > 0 && (
+                    <p className="text-sm leading-6 text-coral-600">
+                      {t("agent.inboxTruncated", { count: String(truncated) })}
+                    </p>
                   )}
 
                   {rows && (

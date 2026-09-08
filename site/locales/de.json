@@ -1520,6 +1520,8 @@
   "agent.inboxTripLabel": "Welche Reise",
   "agent.inboxRowsTitle": "{count} Zahlungen innerhalb dieser Reise",
   "agent.inboxRowsTitle.one": "eine Zahlung innerhalb dieser Reise",
+  "agent.inboxTruncated": "{count} weitere Zahlungen wurden aus diesem Kontoauszug gelesen, aber hier nicht angezeigt.",
+  "agent.inboxTruncated.one": "Eine weitere Zahlung wurde aus diesem Kontoauszug gelesen, aber hier nicht angezeigt.",
   "agent.inboxRowsHint": "Sag, wofür jede war. Das rät hier nichts, und was du leer lässt, wird nicht geschrieben.",
   "agent.inboxCategoryAll": "Alle Zeilen setzen auf…",
   "agent.inboxCategoryNone": "— diese weglassen —",

@@ -1520,6 +1520,8 @@
   "agent.inboxTripLabel": "Melyik utazás",
   "agent.inboxRowsTitle": "{count} fizetés az utazás dátumain belül",
   "agent.inboxRowsTitle.one": "egy fizetés az utazás dátumain belül",
+  "agent.inboxTruncated": "Még {count} fizetést beolvastunk ebből a kivonatból, de azok itt nem jelennek meg.",
+  "agent.inboxTruncated.one": "Még egy fizetést beolvastunk ebből a kivonatból, de az itt nem jelenik meg.",
   "agent.inboxRowsHint": "Mondd meg, mire ment el. Ezt itt semmi nem találgatja, és amit üresen hagysz, azt nem írja be.",
   "agent.inboxCategoryAll": "Minden sor legyen…",
   "agent.inboxCategoryNone": "— ezt hagyd ki —",
