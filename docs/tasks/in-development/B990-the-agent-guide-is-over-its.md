@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: agent guide
 found: "2026-09-08T16:44:44Z"
+started: "2026-09-08T19:11:44Z"
+session: bdd0270d-3797-42c9-8687-06abecadbc63
+claimed: "2026-09-08T19:11:44Z"
 ---
 
 # B990 — The agent guide is over its own ceiling on main, so every branch fails verify at the same test
