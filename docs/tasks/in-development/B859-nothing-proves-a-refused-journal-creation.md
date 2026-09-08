@@ -43,3 +43,17 @@ Cheap, and it turns an ambiguous report into a guarantee.
 ## Acceptance
 
 Every refusal path is covered, and each one leaves nothing behind.
+
+## Outcome
+
+`test/journals-refusal-leaves-nothing.test.ts`. Nine refusals — missing or bad
+`baseCurrency`, `displayCurrencies` without the base, missing `visibility`,
+`defaultLocale`, `title` and `ownerName`, a reserved name and a malformed one —
+each asserted to leave no journal in the cache and no folder on disk, followed
+by a taken-name 409 (the one refusal that comes from inside `createJournal`),
+and then the same token spent successfully and refused a second time.
+
+The report does not reproduce: nothing is created and nothing is spent on any
+refusal path. Two small facts the test pinned down while proving it — a
+reserved username answers `400`, not `409`, and a refused clash leaves the
+existing journal's owner untouched.
