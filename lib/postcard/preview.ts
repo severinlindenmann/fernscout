@@ -7,6 +7,7 @@ import {
   FIGURES_AREA,
   LEADING,
   MESSAGE_PT,
+  PRINT_FLOOR_DPI,
   SIGNATURE_PT,
   STAMP_AREA,
   fontFraction,
@@ -115,16 +116,20 @@ export function backLayout(spec: PostcardSpec = A6_LANDSCAPE) {
 }
 
 /**
- * Is this photograph big enough to print?
+ * Is this photograph so small that somebody should be told — B1010.
  *
- * A6 with bleed at 300 dpi wants 1819 × 1312. Ingest writes derivatives at
- * 2000 px on the *longest* edge, so a landscape photograph clears this and a
- * **portrait one cannot** — its long edge is the 1312, leaving about 1333 ×
- * 2000 and a short edge nowhere near 1819. That is not a rare case; it is
- * every phone photograph held upright.
+ * `ok` used to mean "reaches 300 dpi", which is the ideal rather than the
+ * requirement, and the page turned anything short of it into a yellow panel.
+ * Two things were wrong with that. The card was being printed from the 2000px
+ * web derivative rather than the original, so the figure was about a file this
+ * product had chosen (`orderPrintPhoto` is the fix); and 300 dpi is what you
+ * want for something held at 25 cm and studied, where a postcard is read at
+ * arm's length and every commercial postcard printer accepts 200 and up.
  *
- * Which is why the preview says so rather than the renderer muttering it into
- * a warnings array nobody reads: the person is about to buy paper.
+ * So `ok` now means **nothing worth saying**, and the threshold is
+ * `PRINT_FLOOR_DPI`. `dpi` is still returned, because a caller may want it —
+ * but the page deliberately does not print it: a number a person cannot act on
+ * is not advice, and "choose a bigger photograph" is.
  */
 export function resolutionNote(
   width: number,
@@ -136,5 +141,6 @@ export function resolutionNote(
   // Cover, not fit: the photo is scaled up until it fills both dimensions, so
   // the binding constraint is whichever axis has to stretch furthest.
   const scale = Math.max(needW / width, needH / height);
-  return { ok: scale <= 1, dpi: Math.round(spec.dpi / Math.max(scale, 1e-9)) };
+  const dpi = Math.round(spec.dpi / Math.max(scale, 1e-9));
+  return { ok: dpi >= PRINT_FLOOR_DPI, dpi };
 }
