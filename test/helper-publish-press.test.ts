@@ -287,3 +287,55 @@ describe("taking down a day that was never up", () => {
     expect(ran.proposal).toBeDefined();
   });
 });
+
+/**
+ * Who will be able to read it, before the press — B933.
+ *
+ * She could only find out that her daughter had no access by reading
+ * `people: []` and `invites: []` out of the API. Every persona in this project
+ * has asked some version of *"can my mother read this"*, and the answer has
+ * always cost a route call or a leap of faith — which is how B931 happened: a
+ * trip set to `guest` so that one named person could read it, nobody
+ * approved, and the model saying she was in.
+ *
+ * The fixture's trip is `private` with nobody named, which is the honest
+ * worst case: **only you**.
+ */
+describe("what the publish card says about who can read it", () => {
+  test("a private trip with nobody on it says only you, in words", async () => {
+    const started = await propose("start_day");
+    await post(writeDay, "", pressed(started.proposal));
+
+    const { proposal } = await propose("publish_day");
+    expect(proposal.sentence).toContain("agent.tool.publishReadersPrivateNobody");
+    // And not the vocabulary: a person reading "private" has to know what this
+    // codebase means by it, which is the trap AGENTS.md names.
+    expect(proposal.sentence).not.toContain("agent.tool.publishReadersPublic");
+  });
+
+  test("named people are named", async () => {
+    const file = path.join(dir, "alex", "trips", "reise", "trip.md");
+    fs.writeFileSync(
+      file,
+      fs.readFileSync(file, "utf8").replace("visibility: private", "visibility: private\npeople:\n  - name: Mara\n    email: mara@example.test"),
+    );
+    clearUserCache();
+
+    const started = await propose("start_day");
+    await post(writeDay, "", pressed(started.proposal));
+    const { proposal } = await propose("publish_day");
+    expect(proposal.sentence).toContain("agent.tool.publishReadersPrivate");
+    expect(proposal.sentence).toContain("Mara");
+  });
+
+  test("a public trip says anybody", async () => {
+    const file = path.join(dir, "alex", "trips", "reise", "trip.md");
+    fs.writeFileSync(file, fs.readFileSync(file, "utf8").replace("visibility: private", "visibility: public"));
+    clearUserCache();
+
+    const started = await propose("start_day");
+    await post(writeDay, "", pressed(started.proposal));
+    const { proposal } = await propose("publish_day");
+    expect(proposal.sentence).toContain("agent.tool.publishReadersPublic");
+  });
+});
