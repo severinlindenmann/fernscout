@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (130)
+## backlog (131)
 
 ### security (1)
 
@@ -172,6 +172,12 @@ Do not edit them by hand; run the script.
 | [B546](backlog/ops/B546-the-open-meteo-free-tier-is.md) | The Open-Meteo free tier is non-commercial and this instance takes money | OPS | medium | low |
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
+
+### docs-and-skills (1)
+
+| # | Finding | Type | Priority | Complexity |
+| --- | --- | --- | --- | --- |
+| [B966](backlog/docs-and-skills/B966-nothing-tells-a-new-agent-that.md) | Nothing tells a new agent that the honesty net exists or why it is shaped that way | DOCS | medium | low |
 
 ### superseded (36)
 
