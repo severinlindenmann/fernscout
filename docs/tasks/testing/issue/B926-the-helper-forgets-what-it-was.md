@@ -7,8 +7,7 @@ complexity: low
 area: agent, model
 found: "2026-09-08T07:12:21Z"
 started: "2026-09-08T21:49:14Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T21:49:14Z"
+merged: "2026-09-08T22:07:18Z"
 ---
 
 # B926 — The helper forgets what it was told one message ago

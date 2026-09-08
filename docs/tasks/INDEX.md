@@ -49,14 +49,15 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (124)
+## backlog (125)
 
-### issue (9)
+### issue (10)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1035](backlog/issue/B1035-navy-800-is-used-across-dozens.md) | navy-800 is used across dozens of components but no navy-800 token exists | ISSUE | medium | low |
+| [B1039](backlog/issue/B1039-the-ask-box-silently-truncates-a.md) | The ask box silently truncates a long message to 500 characters | ISSUE | medium | low |
 | [B1026](backlog/issue/B1026-a-malformed-auth-request-body-answers.md) | A malformed auth/request body answers the same 202 as an unrecognised address | ISSUE | low | low |
 | [B1027](backlog/issue/B1027-the-send-button-is-offered-on.md) | The send button is offered on a day whose journal has no readers to send it to | ISSUE | low | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
@@ -214,13 +215,12 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (9)
+## in-development (8)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1014](in-development/B1014-the-embedded-print-fonts-are-read.md) | The embedded print fonts are read from the process's working directory, so npm run postcard fails outside the checkout | ISSUE | high | low | `b8352d66` |
 | [B1015](in-development/B1015-b984-moved-the-agent-room-s.md) | B984 moved the agent room's URL and left one test asserting the old one, so main is red | ISSUE | high | low | `b8352d66` |
-| [B926](in-development/B926-the-helper-forgets-what-it-was.md) | The helper forgets what it was told one message ago | ISSUE | high | low | `bdd0270d` |
 | [B980](in-development/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | `a4bbb185` |
 | [B984](in-development/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | `fdfcf5f2` |
 | [B1000](in-development/B1000-the-route-spread-is-mostly-empty.md) | The route spread is mostly empty for a compact trip | ISSUE | medium | medium | `bdd0270d` |
@@ -228,7 +228,7 @@ _Nothing here._
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 | [B738](in-development/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high | `bdd0270d` |
 
-## testing (245)
+## testing (246)
 
 ### security (7)
 
@@ -242,7 +242,7 @@ _Nothing here._
 | [B908](testing/security/B908-a-leaked-agent-token-can-be.md) | A leaked agent token can be listed and not ended | SECURITY | medium | low | — |
 | [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (149)
+### issue (150)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -286,6 +286,7 @@ _Nothing here._
 | [B923](testing/issue/B923-asking-that-only-one-person-may.md) | Asking that only one person may read it proposed shutting her out | ISSUE | high | low | — |
 | [B924](testing/issue/B924-a-note-written-for-the-model.md) | A note written for the model is printed to the person | ISSUE | high | low | — |
 | [B925](testing/issue/B925-attaching-the-files-you-ticked-fails.md) | Attaching the files you ticked fails with unknown day | ISSUE | high | low | — |
+| [B926](testing/issue/B926-the-helper-forgets-what-it-was.md) | The helper forgets what it was told one message ago | ISSUE | high | low | — |
 | [B927](testing/issue/B927-the-helper-invents-a-trip-id.md) | The helper invents a trip id instead of using the one it just made | ISSUE | high | low | — |
 | [B928](testing/issue/B928-the-helper-says-a-button-is.md) | The helper says a button is on the screen when there is none | ISSUE | high | low | — |
 | [B929](testing/issue/B929-publishing-cannot-answer-the-photograph-question.md) | Publishing cannot answer the photograph question and fails every time | ISSUE | high | low | — |
