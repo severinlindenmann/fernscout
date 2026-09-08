@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: contacts, brand
 found: "2026-09-07T00:00:00Z"
+started: "2026-09-08T05:46:12Z"
+session: 41335894-5435-4167-8cb6-898e370cd6a9
+claimed: "2026-09-08T05:46:12Z"
 ---
 
 # B772 — The contacts page carries no brand tokens at all
