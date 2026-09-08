@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: helper, honesty
 found: "2026-09-08T13:31:20Z"
+started: "2026-09-08T13:46:06Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T13:46:06Z"
 ---
 
 # B970 — Whether a day is on the site is answered from the person's own sentence
