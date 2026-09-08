@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: docs, api, media
 found: "2026-09-07T17:36:50Z"
+started: "2026-09-08T05:05:24Z"
+session: 41335894-5435-4167-8cb6-898e370cd6a9
+claimed: "2026-09-08T05:05:24Z"
 ---
 
 # B870 — The API never reads the place and time out of a photograph and only says so 1700 lines away
