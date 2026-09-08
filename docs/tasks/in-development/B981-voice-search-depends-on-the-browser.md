@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: search
 found: "2026-09-08T16:17:04Z"
+started: "2026-09-08T16:17:58Z"
+session: 6c81e17b-6acf-4c0f-86ef-49124c9b2458
+claimed: "2026-09-08T16:17:58Z"
 ---
 
 # B981 — Voice search depends on the browser's own speech service, which the owner's browser does not have
