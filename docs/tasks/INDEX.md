@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (133)
+## backlog (135)
 
 ### security (1)
 
@@ -57,7 +57,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B914](backlog/security/B914-take-down-and-publish-sentences-now.md) | Take-down and publish sentences now reach a tool instead of being refused | SECURITY | high | low |
 
-### issue (43)
+### issue (45)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -70,6 +70,7 @@ Do not edit them by hand; run the script.
 | [B926](backlog/issue/B926-the-helper-forgets-what-it-was.md) | The helper forgets what it was told one message ago | ISSUE | high | low |
 | [B944](backlog/issue/B944-a-turn-with-a-proposal-on.md) | A turn with a proposal on it may say the thing is already done | ISSUE | high | medium |
 | [B945](backlog/issue/B945-the-warnings-a-drafted-day-comes.md) | The warnings a drafted day comes back with describe something it did not do | ISSUE | high | low |
+| [B948](backlog/issue/B948-a-failed-press-reads-an-internal.md) | A failed press reads an internal code aloud | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
@@ -88,6 +89,7 @@ Do not edit them by hand; run the script.
 | [B907](backlog/issue/B907-most-of-what-a-trip-says.md) | Most of what a trip says about itself can be written once and never corrected | ISSUE | medium | low |
 | [B934](backlog/issue/B934-an-invite-link-has-to-be.md) | An invite link has to be selected by hand on a phone | ISSUE | medium | low |
 | [B946](backlog/issue/B946-the-owner-s-session-stops-being.md) | The owner's session stops being recognised partway through a sitting | ISSUE | medium | medium |
+| [B949](backlog/issue/B949-the-files-pane-s-count-is.md) | The files pane's count is announced by a region that does not exist until it changes | ISSUE | medium | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B750](backlog/issue/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low |
