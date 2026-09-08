@@ -176,6 +176,48 @@ export function kindOf(filename: string): "image" | "video" {
  */
 type Fingerprint = { file: string; sha: string; phash?: string };
 
+/** One file's fingerprint, plus what identifies the bytes it was taken from. */
+type CachedFingerprint = Fingerprint & { size: number; mtimeMs: number };
+
+/**
+ * Where a day's fingerprints are remembered between requests — B720.
+ *
+ * Beside `.ingest.json`, at the trip's root rather than inside `media/`: that
+ * directory is served straight to the browser (`app/[user]/media/…`), and a
+ * file the gallery never mentions still falls under the day's own visibility
+ * there — harmless for a held-back day, but there is no reason for a decode
+ * cache to be servable at all. `.fingerprints/<slug>.json` sits next to
+ * `.ingest.json` instead, which the same route never resolves into.
+ *
+ * Not `.ingest.json` itself, and not one ledger for the whole trip: that file
+ * names what ingest imported, and going stale about a deletion is exactly the
+ * bug this avoids repeating (see the doc comment below). This sidecar names
+ * nothing — it is keyed by size and mtime, so a cache entry is either for the
+ * file currently at that name or is ignored and recomputed. Deleting it is
+ * always safe; it is rebuilt as a side effect of the next upload.
+ */
+function fingerprintCachePath(ref: string, slug: string): string {
+  return path.join(tripDir(ref), ".fingerprints", `${slug}.json`);
+}
+
+function readFingerprintCache(cacheFile: string): Record<string, CachedFingerprint> {
+  try {
+    return JSON.parse(fs.readFileSync(cacheFile, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+function writeFingerprintCache(cacheFile: string, cache: Record<string, CachedFingerprint>): void {
+  try {
+    fs.mkdirSync(path.dirname(cacheFile), { recursive: true });
+    fs.writeFileSync(cacheFile, JSON.stringify(cache));
+  } catch {
+    // Best effort: a cache that fails to write costs the next request a
+    // decode, not correctness.
+  }
+}
+
 /**
  * What this day already holds, as bytes and as pictures — B604, B872.
  *
@@ -183,46 +225,72 @@ type Fingerprint = { file: string; sha: string; phash?: string };
  * point: `.ingest.json` is a record of what ingest imported, so a photograph
  * removed by `DELETE .../media` (B605) would still be in it and the re-upload
  * that was meant to fix the mistake would be skipped as a duplicate. The
- * folder cannot be stale about itself.
+ * folder cannot be stale about itself — this still lists the directory on
+ * every call and never trusts a name the cache alone remembers.
  *
  * Posters are left out. A clip's still frame is not a gallery item, and a
  * photograph refused for resembling one would be the worst kind of wrong here
  * — a picture silently missing from somebody's day.
  *
- * The cost is a decode of each photograph already on the day, up to
- * `itemsPerDay` of them, on every upload to it. At ~40 ms for a 2000px JPEG
- * that is under two seconds in the worst case, against an upload that already
- * spends longer than that on the network — and it is why this is per day
- * rather than per trip, which would be the same work multiplied by the number
- * of days.
+ * The cost used to be a decode of every photograph already on the day, up to
+ * `itemsPerDay` of them, on *every* upload to it — and since B683 made
+ * one-file-per-request the normal shape, that made the nth upload to a day
+ * decode n−1 pictures again: a batch of forty paid for roughly 40² decodes
+ * rather than 40. `.fingerprints.json` beside the derivatives (B720) is what
+ * a decode already found out, keyed by the size and mtime it found it at: a
+ * file already in the cache at the same size and mtime is a fact already
+ * known, not a photograph to open again, and a file the cache does not
+ * mention — new, or changed since — is decoded once and remembered for next
+ * time.
  */
-async function dayFingerprints(dir: string): Promise<Fingerprint[]> {
+async function dayFingerprints(
+  dir: string,
+  cacheFile: string,
+): Promise<{ fingerprints: Fingerprint[]; cache: Record<string, CachedFingerprint> }> {
   let names: string[];
   try {
     names = fs.readdirSync(dir);
   } catch {
-    return []; // No folder yet: the first upload to this day.
+    return { fingerprints: [], cache: {} }; // No folder yet: the first upload to this day.
   }
 
+  const previous = readFingerprintCache(cacheFile);
+  const cache: Record<string, CachedFingerprint> = {};
   const out: Fingerprint[] = [];
   for (const name of names.sort()) {
+    if (name.startsWith(".")) continue; // The cache file itself, and any other dotfile.
     if (kindOf(name) === "video" || /-poster\.jpe?g$/i.test(name)) continue;
     const file = path.join(dir, name);
+    let stat: fs.Stats;
+    try {
+      stat = fs.statSync(file);
+    } catch {
+      continue;
+    }
+    const known = previous[name];
+    if (known && known.size === stat.size && known.mtimeMs === stat.mtimeMs) {
+      out.push({ file: known.file, sha: known.sha, phash: known.phash });
+      cache[name] = known;
+      continue;
+    }
     try {
       const sha = contentHash(fs.readFileSync(file));
       const source = await decodeSource(file);
+      let phash: string | undefined;
       try {
-        out.push({ file: name, sha, phash: await perceptualHash(source) });
+        phash = await perceptualHash(source);
       } finally {
         source.dispose();
       }
+      out.push({ file: name, sha, phash });
+      cache[name] = { file: name, sha, phash, size: stat.size, mtimeMs: stat.mtimeMs };
     } catch {
       // Something in the folder that will not decode. It is not a photograph
       // this upload can be a duplicate of, and refusing the upload over it
       // would be answering a question nobody asked.
     }
   }
-  return out;
+  return { fingerprints: out, cache };
 }
 
 export async function storeUploads(
@@ -368,7 +436,10 @@ export async function storeUploads(
    * carrying the same photograph twice is the same mistake as sending it in
    * two batches, and it arrives here rather more often.
    */
-  const fingerprints = await dayFingerprints(mediaOut);
+  const fingerprintCacheFile = fingerprintCachePath(ref, slug);
+  const { fingerprints, cache: fingerprintCache } = await dayFingerprints(mediaOut, fingerprintCacheFile);
+  /** What this batch adds to `fingerprints`, so the cache can learn it too. */
+  const newFingerprints: Fingerprint[] = [];
   let index = nextIndex(mediaOut);
 
   /** Give up, leaving the trip exactly as it was. */
@@ -587,6 +658,7 @@ export async function storeUploads(
           height: original.height,
         });
         fingerprints.push({ file: name, sha, phash });
+        newFingerprints.push({ file: name, sha, phash });
       }
       index += 1;
     }
@@ -594,6 +666,19 @@ export async function storeUploads(
     fs.mkdirSync(mediaOut, { recursive: true });
     fs.mkdirSync(originalsOut, { recursive: true });
     for (const { from, to } of staged) fs.renameSync(from, to);
+
+    // What this batch just wrote is fingerprinted already — say so in the
+    // cache now, rather than making the next request decode it to find out.
+    for (const fp of newFingerprints) {
+      try {
+        const stat = fs.statSync(path.join(mediaOut, fp.file));
+        fingerprintCache[fp.file] = { ...fp, size: stat.size, mtimeMs: stat.mtimeMs };
+      } catch {
+        // Renamed away or otherwise gone — the next request's directory
+        // listing is the source of truth, not this cache entry.
+      }
+    }
+    if (newFingerprints.length > 0) writeFingerprintCache(fingerprintCacheFile, fingerprintCache);
   } catch (error) {
     // Anything unforeseen — a transcode that dies, a full disk — leaves the
     // trip untouched rather than half-written.
