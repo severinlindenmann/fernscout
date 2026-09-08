@@ -7,8 +7,7 @@ complexity: low
 area: agent, tests
 found: "2026-09-08T08:25:31Z"
 started: "2026-09-08T15:56:42Z"
-session: 41335894-5435-4167-8cb6-898e370cd6a9
-claimed: "2026-09-08T15:56:42Z"
+merged: "2026-09-08T16:00:23Z"
 ---
 
 # B930 — The prompt budget has one token of headroom and does not say what to do
