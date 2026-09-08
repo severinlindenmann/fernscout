@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: helper, honesty, i18n
 found: "2026-09-08T11:48:58Z"
+started: "2026-09-08T11:53:07Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T11:53:07Z"
 ---
 
 # B956 — The honesty matchers use ASCII word boundaries against three languages
