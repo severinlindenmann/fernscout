@@ -7,8 +7,7 @@ complexity: low
 area: agent, api
 found: "2026-09-07T11:44:10Z"
 started: "2026-09-08T19:51:05Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T19:51:05Z"
+merged: "2026-09-08T20:04:17Z"
 ---
 
 # B719 — Two different edits of the same length collide on one idempotency key
