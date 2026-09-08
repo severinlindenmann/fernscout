@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: helper, honesty, costs
 found: "2026-09-08T12:52:44Z"
+started: "2026-09-08T12:58:58Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T12:58:58Z"
 ---
 
 # B963 — Money it said it could not convert is then offered as a rough figure
