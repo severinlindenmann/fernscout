@@ -62,8 +62,15 @@ exactly that, and forging would corrupt its result.
 
 ## Test email addresses
 
-Always `xydhd-<something>@severin.io`. Never a real person's address, never
-the owner's own address, never an address on another domain.
+The journal's own name at `fernscout.ch`, and nothing else: journal
+`test-alps` is `test-alps@fernscout.ch`. Anybody else on it is that name plus
+a role and a number — `test-alps-guest-1@fernscout.ch`,
+`test-alps-buddy-1@fernscout.ch`. So an address always says which journal it
+belongs to and what it is for.
+
+Never a real person's address, never the owner's own, never `severin.io` or
+any other domain — mail on this instance is written to disk *and* sent, and a
+QA run must not land in somebody's inbox.
 
 ## Reporting
 
