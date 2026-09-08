@@ -102,7 +102,7 @@ export async function POST(
       2,
     pages: book.volumes.reduce((n, v) => n + v.interiorPages, 0),
     volumes: book.volumes.length,
-    credits: priceOf(book, options),
+    credits: priceOf(book),
     warnings: book.warnings,
     // A book with no photographs still plans — `expandToMinimum` pads it to a
     // legal page count — but it is not one anybody should pay 90+ credits

@@ -157,7 +157,7 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
    * the plan itself is stale. The page's own answer to all three is to ask
    * for the preview again, which quotes the real, current price.
    */
-  const currentCredits = priceOf(book, options);
+  const currentCredits = priceOf(book);
   if (!Number.isFinite(previewedCredits) || previewedCredits !== currentCredits) {
     return back_("stale_preview");
   }

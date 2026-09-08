@@ -632,7 +632,7 @@ describe("letting a day run on — B517", () => {
     // rise, because the build charge carried a per-page term that was really
     // pricing paper; paper is now the print step's own live quote, and that
     // one does follow the page count (see test/photobook-pricing.test.ts).
-    expect(priceOf(withRunOn, options)).toBe(priceOf(withoutRunOn, DEFAULT_OPTIONS));
+    expect(priceOf(withRunOn)).toBe(priceOf(withoutRunOn));
   });
 });
 
