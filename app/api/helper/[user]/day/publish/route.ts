@@ -4,7 +4,7 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { serverSite } from "@/lib/site";
 import { declinesIn, missingFrom } from "@/lib/tracks";
 import { getTrip, tripRef } from "@/lib/trips";
-import { wrote } from "@/lib/helper/thread";
+import { refused, wrote } from "@/lib/helper/thread";
 
 export const dynamic = "force-dynamic";
 
@@ -42,11 +42,18 @@ export async function POST(
 
   const ref = tripRef(user, tripId);
   const trip = getTrip(ref);
-  if (!trip) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  if (!trip) {
+    refused(user, "publish_day", "unknown_trip");
+    return Response.json({ error: "unknown_trip" }, { status: 404 });
+  }
 
   const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
-  if (!entry) return Response.json({ error: "unknown_day" }, { status: 404 });
+  if (!entry) {
+    refused(user, "publish_day", "unknown_day");
+    return Response.json({ error: "unknown_day" }, { status: 404 });
+  }
   if (!entry.draft) {
+    refused(user, "publish_day", "already_published");
     return Response.json({ error: "already_published" }, { status: 409 });
   }
 
@@ -65,6 +72,7 @@ export async function POST(
   if (Object.keys(answers).length > 0) {
     const answered = editEntry(ref, slug, answers);
     if (!answered.ok) {
+      refused(user, "publish_day", answered.error);
       return Response.json({ error: answered.error }, { status: answered.bug ? 500 : 400 });
     }
   }
@@ -75,6 +83,7 @@ export async function POST(
   const day = getEntryBySlug(ref, slug, AS_AUTHOR) ?? entry;
   const missing = missingFrom(factsOfEntry(day), trip.tracks, "publish");
   if (missing.length > 0) {
+    refused(user, "publish_day", "incomplete_day");
     return Response.json(
       { error: "incomplete_day", missing: missing.map((m) => m.field) },
       { status: 422 },
@@ -82,7 +91,10 @@ export async function POST(
   }
 
   const published = publishDraft(ref, slug);
-  if (!published.ok) return Response.json({ error: published.error }, { status: 400 });
+  if (!published.ok) {
+    refused(user, "publish_day", published.error);
+    return Response.json({ error: published.error }, { status: 400 });
+  }
 
   wrote(user, "publish_day", { trip: tripId, slug: published.slug });
   return Response.json({
