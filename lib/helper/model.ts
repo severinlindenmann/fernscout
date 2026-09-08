@@ -1063,10 +1063,43 @@ const A_FIGURE = /\d[\d.,\u00a0']*\s*(?:[\u20ac\u00a3$]|\b(?:chf|eur|usd|gbp|huf
  * ordinary conversation — "altogether that was a good day", "it cost 18
  * francs" — and neither is a claim about a sum nobody computed.
  */
+/**
+ * How far apart a totalling word and a figure may be and still be one claim —
+ * B967.
+ *
+ * Both anywhere in the same sentence was too loose, and the sentence it broke
+ * on was ordinary German: *"Der Eintrag vom 12. Juni erwähnt 20 Euro fürs
+ * Abendessen, **insgesamt** ein schöner Tag."* — altogether a lovely day,
+ * beside a cost mentioned in passing. Somebody who asked, in German, whether a
+ * castle could be mentioned in their entry was answered *"I would rather not
+ * give you a figure I have not added up properly"*, which has no reading
+ * except that the software is broken.
+ *
+ * A real total puts the two together: *"insgesamt 64 Euro"*, *"240 Franken
+ * gekostet"*, *"an average of 53.50 pounds"*. Fifteen characters is a few
+ * words, and it is what separates them.
+ */
+const TOGETHER = 15;
+
 export function claimsATotal(text: string): boolean {
   return withoutMarkers(text)
     .split(/(?<=[.!?\n])\s+/)
-    .some((sentence) => A_TOTAL.test(sentence) && A_FIGURE.test(sentence));
+    .some((sentence) => {
+      const totals = [...sentence.matchAll(new RegExp(A_TOTAL.source, "gi"))];
+      if (totals.length === 0) return false;
+      const figures = [...sentence.matchAll(new RegExp(A_FIGURE.source, "gi"))];
+      return totals.some((word) =>
+        figures.some((figure) => {
+          const wordStart = word.index ?? 0;
+          const wordEnd = wordStart + word[0].length;
+          const figureStart = figure.index ?? 0;
+          const figureEnd = figureStart + figure[0].length;
+          // Overlapping (some patterns carry the digit themselves), or within
+          // a few words either way.
+          return figureStart - wordEnd <= TOGETHER && wordStart - figureEnd <= TOGETHER;
+        }),
+      );
+    });
 }
 
 /**

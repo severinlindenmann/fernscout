@@ -648,7 +648,28 @@ describe("saying what something adds up to", () => {
     });
   }
 
+  /**
+   * What must **not** be a total — B967, and the half that was missing.
+   *
+   * A totalling word and a figure anywhere in the same sentence was too loose,
+   * and the sentence it broke on was ordinary German: *"Der Eintrag vom 12.
+   * Juni erwähnt 20 Euro fürs Abendessen, insgesamt ein schöner Tag."* —
+   * altogether a lovely day, beside a cost mentioned in passing.
+   *
+   * Somebody who asked, in German, whether a castle could be mentioned in
+   * their entry was answered *"I would rather not give you a figure I have not
+   * added up properly"*. There is no reading of that except that the software
+   * is broken, and it is the failure AGENTS.md names: a guard that fires on an
+   * honest turn is as serious as one that misses.
+   *
+   * Every matcher here had examples of what it should catch and, in two of the
+   * three languages, none of what it must not. These are those.
+   */
   for (const said of [
+    "Der Eintrag vom 12. Juni erwähnt 20 Euro fürs Abendessen, insgesamt ein schöner Tag.",
+    "Insgesamt war es ein schöner Tag; du hast 20 Euro fürs Abendessen eingetragen.",
+    "Összesen három napot írtál meg, és 20 eurót jegyeztél fel vacsorára.",
+    "Altogether that was a lovely day; the 20 euros for dinner is already on it.",
     // Her own figure, echoed back while proposing to record it. Not a claim
     // about the trip, and the commonest sentence in this whole product.
     "18 francs for gelato on the 20th.",

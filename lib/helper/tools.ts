@@ -3,7 +3,7 @@ import { isEnabled } from "../capabilities";
 import { listContacts } from "../contacts";
 import { balanceOf } from "../credits";
 import { factsOfEntry } from "../api/entries";
-import { getCostSummary } from "../costs";
+import { COST_CATEGORIES, getCostSummary } from "../costs";
 import { AS_AUTHOR, getAllEntries } from "../entries";
 import { findInboxFile } from "../inbox";
 import { formatBytes, storageFor } from "../storageQuota";
@@ -916,8 +916,11 @@ export const TOOLS: readonly Tool[] = [
       currency: { type: "string", description: "The three-letter code, if they said one." },
       category: {
         type: "string",
-        description:
-          "One of the journal's own categories, if they named something that fits. Leave it out rather than guessing.",
+        // B968 — the closed list, said out loud. It was described as "one of
+        // the journal's own categories" without naming them, so the model
+        // supplied "Food" and "Attractions" and every press came back
+        // `invalid_cost`.
+        description: `One of: ${COST_CATEGORIES.join(", ")}. Leave it out rather than guessing.`,
       },
     },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/costs`,
@@ -937,7 +940,29 @@ export const TOOLS: readonly Tool[] = [
           { name: "label", value: args.label ?? "" },
           { name: "amount", value: args.amount ?? "" },
           { name: "currency", value: args.currency ?? "" },
-          { name: "category", value: args.category ?? "" },
+          /**
+           * **The closed list it always was** — B968.
+           *
+           * This drew whatever the model said, and the route accepts only the
+           * lowercase members of `COST_CATEGORIES`. So `"Food"` and
+           * `"Attractions"` reached somebody's screen as a filled-in field and
+           * every press came back `invalid_cost` — B925's fault with the check
+           * missing: a proposal no press can accept.
+           *
+           * `create_trip`'s `visibility` is the shape: matched against the
+           * list, an unrecognised word dropped rather than guessed at, and
+           * drawn as options so a person can correct it. Case-insensitively,
+           * because the model's own capitalisation is not a decision anybody
+           * made.
+           */
+          {
+            name: "category",
+            value:
+              (COST_CATEGORIES as readonly string[]).find(
+                (one) => one === args.category?.trim().toLowerCase(),
+              ) ?? "",
+            options: COST_CATEGORIES.map((one) => ({ value: one, label: one })),
+          },
         ],
       };
     },
