@@ -516,7 +516,26 @@ export const TOOLS: readonly Tool[] = [
     run: async (username, args) => {
       const trip = resolveTrip(username, args.trip);
       if (!trip) return noTrip(username, args.trip);
-      const costs = getCostSummary(tripRef(username, trip.id));
+      /**
+       * **The owner's own money, read as the owner** — B959.
+       *
+       * This read the trip as an anonymous visitor, so costs on a day still in
+       * draft were invisible — in the owner's own conversation, about their
+       * own spend. Every other read tool in this file passes `AS_AUTHOR`; this
+       * one did not, and the write-up case is exactly the one it breaks:
+       * somebody logging what they spent as they write, before publishing.
+       *
+       * Three answers in one session, all false: *"the total is 0 CHF because
+       * nothing has been saved yet"* with two costs on disk, *"nothing has
+       * been recorded yet"* with four, and *"31 CHF"* with six — the two that
+       * happened to be on published days.
+       *
+       * B955 made the model call this tool instead of adding up itself, which
+       * was right and which made this worse in one exact way: a wrong sum it
+       * derived looks second-guessable, and a wrong sum from the tool that
+       * reads the disk does not.
+       */
+      const costs = getCostSummary(tripRef(username, trip.id), new Date(), AS_AUTHOR);
       return {
         trip: trip.id,
         currency: costs.baseCurrency,

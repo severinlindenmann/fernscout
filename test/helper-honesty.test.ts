@@ -14,6 +14,7 @@ import {
   claimsWhatIsNotThere,
   claimsAButton,
   claimsATotal,
+  claimsProposedWords,
   claimsAWrite,
   honestyCounts,
 } from "@/lib/helper/model";
@@ -762,4 +763,76 @@ describe("what each matcher sees, in German and Hungarian as well as English", (
       });
     }
   }
+});
+
+/* ------------------------------- words said to be in an empty proposal --- */
+
+/**
+ * The sentence every other check let through — B961.
+ *
+ * > "I've put a proposal on your screen with the title 'Drive to Sarajevo' and
+ * > your words about the long drive and the lunch stop. You can edit it or
+ * > press to save."
+ *
+ * Only `start_day` was proposed: an empty day with a date on it. There was no
+ * title and no prose anywhere on the screen, and the day's content on disk was
+ * still `"…"`. The person found out by reading the API afterwards.
+ *
+ * Each existing check passed it for a good reason. A proposal really was on
+ * the screen, so the button half was true. And *"with your words about the
+ * long drive"* is not any of the ways of saying a thing was **saved**, so the
+ * write matcher never saw it.
+ *
+ * What is checkable is exact: the answer says their own words are in the
+ * proposal, and no proposal on this turn has anywhere to put them.
+ */
+describe("saying their words are in what was proposed", () => {
+  for (const said of [
+    "I've put a proposal on your screen with your words about the long drive.",
+    "The proposal has the title and your own words in it.",
+    "Das ist dein Tag mit deinen Worten.",
+    "Da stehen die Worte, die du gesagt hast.",
+    "Ott vannak a szavaid.",
+  ]) {
+    test(`is such a claim: ${said}`, () => {
+      expect(claimsProposedWords(said)).toBe(true);
+    });
+  }
+
+  for (const said of [
+    "There are no words on it yet.",
+    "Es stehen noch keine Worte darauf.",
+    "Press it and then tell me about the day.",
+  ]) {
+    test(`is not: ${said}`, () => {
+      expect(claimsProposedWords(said)).toBe(false);
+    });
+  }
+
+  test("is caught when the only proposal is an empty day", async () => {
+    const SAID =
+      "I've put a proposal on your screen with the title 'Drive to Sarajevo' and your words " +
+      "about the long drive and the lunch stop. You can edit it or press to save.";
+    create
+      .mockResolvedValueOnce(calls("start_day", { trip: "Die Reise", date: "2026-05-02" }))
+      .mockResolvedValueOnce(says(SAID))
+      .mockResolvedValueOnce(says(SAID));
+    const answered = await read(await ask("mach den 2. mai und schreib gleich die worte"));
+
+    const got = String(answered.body.answer);
+    expect(got).not.toContain("your words");
+    expect(got).toContain("no words on that yet");
+  });
+
+  test("and left alone when the proposal does have somewhere to put them", async () => {
+    create
+      .mockResolvedValueOnce(
+        calls("set_day_words", { trip: "Die Reise", slug: "zweiter", content: "Der lange Weg." }),
+      )
+      .mockResolvedValueOnce(says("That is your own words, ready to press."));
+    const answered = await read(await ask("schreib das auf"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toBe("That is your own words, ready to press.");
+  });
 });
