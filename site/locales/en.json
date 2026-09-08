@@ -1520,6 +1520,8 @@
   "agent.inboxTripLabel": "Which trip",
   "agent.inboxRowsTitle": "{count} payments inside this trip's dates",
   "agent.inboxRowsTitle.one": "one payment inside this trip's dates",
+  "agent.inboxTruncated": "{count} more payments were read from this statement but are not shown here.",
+  "agent.inboxTruncated.one": "One more payment was read from this statement but is not shown here.",
   "agent.inboxRowsHint": "Say what each one was for. Nothing here guesses that, and anything you leave blank is not written.",
   "agent.inboxCategoryAll": "Set every row to…",
   "agent.inboxCategoryNone": "— leave this one out —",
