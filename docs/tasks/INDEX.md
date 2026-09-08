@@ -49,9 +49,9 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (130)
+## backlog (131)
 
-### issue (25)
+### issue (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -70,6 +70,7 @@ Do not edit them by hand; run the script.
 | [B1027](backlog/issue/B1027-the-send-button-is-offered-on.md) | The send button is offered on a day whose journal has no readers to send it to | ISSUE | low | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
+| [B1031](backlog/issue/B1031-searchbox-s-voice-search-errors-use.md) | SearchBox's voice-search errors use role=status, not role=alert | ISSUE | low | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B750](backlog/issue/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low |
@@ -220,7 +221,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (10)
+## in-development (9)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -232,10 +233,9 @@ _Nothing here._
 | [B785](in-development/B785-an-agent-facing-english-refusal-is.md) | An agent-facing English refusal is shown to a person on a German screen | ISSUE | medium | low | `bdd0270d` |
 | [B814](in-development/B814-the-one-screen-a-brand-new.md) | The one screen a brand new journal sees has no heading to land on | ISSUE | medium | low | `bdd0270d` |
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
-| [B813](in-development/B813-a-denied-microphone-is-announced-politely.md) | A denied microphone is announced politely instead of as a problem | ISSUE | low | low | `bdd0270d` |
 | [B873](in-development/B873-a-video-on-a-day-is.md) | A video on a day is dropped from the captions with no mention | ISSUE | low | low | `bdd0270d` |
 
-## testing (230)
+## testing (231)
 
 ### security (7)
 
@@ -249,7 +249,7 @@ _Nothing here._
 | [B908](testing/security/B908-a-leaked-agent-token-can-be.md) | A leaked agent token can be listed and not ended | SECURITY | medium | low | — |
 | [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (134)
+### issue (135)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -379,6 +379,7 @@ _Nothing here._
 | [B800](testing/issue/B800-neither-side-is-told-how-long.md) | Neither side is told how long an approval usually takes | ISSUE | low | low | — |
 | [B803](testing/issue/B803-a-stripe-purchase-records-no-payment.md) | A Stripe purchase records no payment method, because the branch that would can never be true | ISSUE | low | low | — |
 | [B812](testing/issue/B812-focus-is-lost-when-the-handover.md) | Focus is lost when the handover prompt appears | ISSUE | low | low | — |
+| [B813](testing/issue/B813-a-denied-microphone-is-announced-politely.md) | A denied microphone is announced politely instead of as a problem | ISSUE | low | low | — |
 | [B833](testing/issue/B833-the-admin-approval-queue-fills-with.md) | The /admin approval queue fills with Stripe requested rows it says were mailed but were not | ISSUE | low | low | — |
 | [B836](testing/issue/B836-the-landing-corner-s-agent-chip.md) | The landing corner's Agent chip is too quiet to read as a button | ISSUE | low | low | — |
 | [B847](testing/issue/B847-the-beta-banner-takes-three-lines.md) | The beta banner takes three lines and a lot of height on a phone | ISSUE | low | low | — |
