@@ -7,8 +7,7 @@ complexity: low
 area: helper, honesty
 found: "2026-09-08T11:33:50Z"
 started: "2026-09-08T11:34:08Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T11:34:08Z"
+merged: "2026-09-08T11:40:48Z"
 ---
 
 # B953 — A button that is not there stopped being caught when anything had been written
