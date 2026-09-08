@@ -1438,6 +1438,7 @@
   "agent.speechDenied": "A mikrofon nem lett engedélyezve. Engedélyezd a böngésző beállításaiban, vagy írd be inkább.",
   "agent.failed": "Ez nem sikerült: {error}",
   "agent.error.incomplete_day": "Semmi nem íródott. Ez az út nyilvántartja, mibe került egy nap és hol volt, ez a nap pedig egyikről sem mond semmit. Válaszolj a kártyán lévő kérdésekre — a „Senkinél nincs meg” valódi válasz —, és nyomd meg újra.",
+  "agent.error.day_exists": "Ez a nap már el van kezdve. Semmi új nem íródott — folytasd azzal, ami már megvan.",
   "agent.error.consent_required": "Semmi nem íródott: ez a napló még nem járult hozzá, hogy modellel beszéljen. Fogadd el fent, majd nyomd meg újra.",
   "agent.error.no_credits": "Ehhez nincs elég kredit. Tölts fel a saját oldaladon, majd nyomd meg újra.",
   "agent.error.already_published": "Ez a nap már fenn van az oldalon, nem volt mit közzétenni.",

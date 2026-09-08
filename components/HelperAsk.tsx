@@ -129,6 +129,7 @@ function isProposal(block: Block): boolean {
  */
 const NAMED_FAILURES = [
   "incomplete_day",
+  "day_exists",
   "consent_required",
   "no_credits",
   "already_published",

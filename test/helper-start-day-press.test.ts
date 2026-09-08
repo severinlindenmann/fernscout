@@ -173,6 +173,22 @@ describe("pressing the proposal the conversation offered", () => {
     expect(day).toContain("unrecorded: [coordinates]");
   });
 
+  test("pressing again for the same day answers a stable code, not the raw English sentence — B785", async () => {
+    const proposal = await propose();
+    const body = pressed(proposal);
+    expect((await post({ ...body, costs: "none" })).status).toBe(201);
+
+    // Same trip, same date, again — the second "Diesen Tag beginnen" press
+    // B785 was filed against.
+    const second = await post({ ...body, costs: "none" });
+    expect(second.status).toBe(400);
+    const answer = (await second.json()) as { error: string };
+    // Not `createDraft`'s own English sentence
+    // (`an entry already exists at …`), which a person on a German helper
+    // screen cannot read — a stable code `failureSentence()` can translate.
+    expect(answer.error).toBe("day_exists");
+  });
+
   test("a trip that keeps track of nothing is asked nothing", async () => {
     const file = path.join(dir, "alex", "trips", "reise", "trip.md");
     fs.writeFileSync(

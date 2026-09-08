@@ -1438,6 +1438,7 @@
   "agent.speechDenied": "The microphone was not given. Allow it in your browser's settings, or type instead.",
   "agent.failed": "That did not work: {error}",
   "agent.error.incomplete_day": "Nothing was written. This trip keeps track of what a day cost and where it was, and this day answers neither. Answer the questions on the card — “Nobody has it” is a real answer — and press again.",
+  "agent.error.day_exists": "This day is already started. Nothing new was written — carry on with the one that is already there.",
   "agent.error.consent_required": "Nothing was written: this journal has not yet agreed to a model being spoken to. Agree on the panel above, then press again.",
   "agent.error.no_credits": "There are not enough credits left for that. Add some on your own page, then press again.",
   "agent.error.already_published": "That day is already on the site, so there was nothing to publish.",

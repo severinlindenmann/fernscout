@@ -180,6 +180,7 @@ export type TranslationKey =
   | "agent.error.already_published"
   | "agent.error.consent_required"
   | "agent.error.contacts_disabled"
+  | "agent.error.day_exists"
   | "agent.error.expected_files"
   | "agent.error.helper_unavailable"
   | "agent.error.idempotency_conflict"
