@@ -1422,8 +1422,7 @@
   "agent.captionsHint": "Lies jede einzelne und übernimm oder verwirf sie. Es ist noch nichts gespeichert.",
   "agent.captionEmpty": "Dazu gibt es nichts zu sagen.",
   "agent.speechHold": "Zum Sprechen halten · 1 Guthaben pro {minutes} Minuten",
-  "agent.speechRecording": "Hört zu… {seconds}s · {credits} Guthaben",
-  "agent.speechRecording.one": "Hört zu… {seconds}s · {credits} Guthaben",
+  "agent.speechRecording": "Hört zu… {seconds}s",
   "agent.speechWorking": "Wird zu Worten…",
   "agent.speechHow": "Sprechen statt tippen. Drücken zum Starten, nochmal drücken zum Beenden, oder zum Sprechen gedrückt halten.",
   "agent.speechStarted": "Aufnahme gestartet.",
@@ -1769,5 +1768,6 @@
   "edit.removePhoto": "Entfernen",
   "edit.keepPhoto": "Doch behalten",
   "edit.addPhotos": "Bilder hinzufügen",
-  "edit.seenAsUpdate": "Wie dieser Eintrag"
+  "edit.seenAsUpdate": "Wie dieser Eintrag",
+  "agent.speechTooShort": "Das war zu kurz zum Senden — halte die Taste gedrückt, oder drücke einmal zum Starten und noch einmal zum Stoppen."
 }
