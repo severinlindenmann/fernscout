@@ -9,6 +9,7 @@ import { mediaLoader } from "@/components/mediaLoader";
 import { PhotoPicker } from "@/components/PhotoPicker";
 import { DayCard } from "@/components/StoryPager";
 import { drain, enqueue, type QueueProgress } from "@/components/uploadQueue";
+import type { Opening as RoomOpeningState } from "@/lib/helper/opening";
 import type { RoomFile, RoomFiles } from "@/lib/helper/server";
 import type { CurrencyOptions } from "@/lib/rates";
 import type { Day, DaySummary } from "@/lib/types";
@@ -74,6 +75,7 @@ export default function HelperRoom({
   currency,
   opening,
   history = [],
+  first,
   journals = [],
   consented,
   speech,
@@ -102,6 +104,10 @@ export default function HelperRoom({
    * only half of it is true.
    */
   history?: { created_at: string; said: string | null; answered: string | null }[];
+  /** What the room says before anybody has said anything — B984. Named apart
+   *  from `opening` above, which is the *preview's* day: two different first
+   *  things, and one of them is a sentence. */
+  first: RoomOpeningState;
   /** Every journal this person owns — for the switcher, and only drawn when
    *  there is more than one to switch between. */
   journals?: { username: string; title: string }[];
@@ -309,6 +315,7 @@ export default function HelperRoom({
             speechProvider={speechProvider}
             inRoom
             opened={history}
+            opening={first}
             selected={selected}
             onSubject={(day) => setSubject({ ...day, at: Date.now() })}
             onFilesMoved={(moved) => {

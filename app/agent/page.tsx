@@ -7,6 +7,7 @@ import AgentDoor from "@/components/AgentDoor";
 import HelperRoom from "@/components/HelperRoom";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { draftsForWizard, filesForRoom, isHelperOwner } from "@/lib/helper/server";
+import { openingFor } from "@/lib/helper/opening";
 import { turnsIn } from "@/lib/helper/sessions";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { journalsFor } from "@/lib/home";
@@ -104,6 +105,10 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
           // A conversation reopened by URL, drawn from what was stored. Empty
           // for anything that is not this journal's, which `turnsIn` decides.
           history={session ? await turnsIn(user, session) : []}
+          // What the room says before anybody has said anything — B984. Read
+          // from disk here, drawn locally there: a page that spent a credit to
+          // say hello would be charging somebody for arriving.
+          first={openingFor(user, new Date().toISOString().slice(0, 10))}
           journals={owned.map((one) => ({ username: one.username, title: one.title }))}
           // The scope rather than the file — B976.
           consented={hasHelperConsent(user, "words")}

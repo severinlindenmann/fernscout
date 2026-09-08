@@ -84,6 +84,7 @@ function render(
           files={files}
           currency={CURRENCY}
           opening={opening}
+          first={{ state: "empty" }}
           consented
           speech={false}
           consentedSpeech={false}

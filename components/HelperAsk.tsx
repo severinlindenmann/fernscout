@@ -5,6 +5,8 @@ import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import RecordButton from "@/components/RecordButton";
 import { useI18n } from "@/components/LocaleProvider";
+import RoomOpening from "@/components/RoomOpening";
+import type { Opening } from "@/lib/helper/opening";
 import type { Block, Proposal, ProposalField } from "@/lib/helper/blocks";
 import type { TranslationKey } from "@/lib/i18n";
 
@@ -189,6 +191,7 @@ export default function HelperAsk({
   onFilesMoved,
   inRoom = false,
   opened = [],
+  opening,
 }: {
   username: string;
   /** Whether this journal has already agreed to a model being spoken to
@@ -234,6 +237,9 @@ export default function HelperAsk({
   /** A conversation reopened by URL, oldest first — B984. Drawn, not resumed;
    *  see the state below. */
   opened?: { said: string | null; answered: string | null }[];
+  /** What the room says before anybody has said anything — B984. Absent under
+   *  a journal's day card, where the conversation is not the whole page. */
+  opening?: Opening;
 }) {
   const { t } = useI18n();
   // Closed until somebody asks for it — B767. The one thing this card is for
@@ -312,8 +318,8 @@ export default function HelperAsk({
 
   /** Draw one more exchange and empty the field, because the next sentence is
    *  a next sentence and not a correction of the last one. */
-  function landed(blocks: Block[]) {
-    setTurns((was) => [...was, { said, blocks }]);
+  function landed(blocks: Block[], words = said) {
+    setTurns((was) => [...was, { said: words, blocks }]);
     setSaid("");
     setHeard("");
     const day = dayOf(blocks);
@@ -338,7 +344,11 @@ export default function HelperAsk({
     return json;
   }
 
-  async function ask() {
+  async function ask(override?: string) {
+    // B984 — a chip in the opening sends its sentence through here rather than
+    // through anything of its own. State would not have settled by the time
+    // this ran, which is why the words are an argument and not a `setSaid`.
+    const words = override ?? said;
     setBusy(true);
     setError("");
     setLapsed(false);
@@ -346,7 +356,7 @@ export default function HelperAsk({
       const body = await send(
         `/api/helper/${encodeURIComponent(username)}/ask`,
         {
-          said,
+          said: words,
           // B902 — what is selected in the files pane, sent every turn rather
           // than remembered, so a cleared selection is cleared at once.
           ...(selected && selected.length > 0 ? { selected } : {}),
@@ -357,9 +367,8 @@ export default function HelperAsk({
       );
       const blocks = (body.blocks as Block[] | undefined) ?? [];
       landed(
-        blocks.length > 0
-          ? blocks
-          : [{ shape: "say", text: t("agent.askUnknown") }],
+        blocks.length > 0 ? blocks : [{ shape: "say", text: t("agent.askUnknown") }],
+        words,
       );
     } catch (thrown) {
       failed(thrown);
@@ -592,7 +601,10 @@ export default function HelperAsk({
             they say so, which is the part they control on their own page.
           */}
           {inRoom && turns.length === 0 && (
-            <p className="text-sm leading-6 text-navy-500">{t("agent.room.kept")}</p>
+            <>
+              {opening && <RoomOpening opening={opening} onSay={(words) => void ask(words)} />}
+              <p className="mt-3 text-sm leading-6 text-navy-500">{t("agent.room.kept")}</p>
+            </>
           )}
           {turns.map((turn, index) => (
             <div key={index} className="space-y-2">
