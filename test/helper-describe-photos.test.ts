@@ -174,6 +174,14 @@ describe("the system prompt", () => {
     expect(PHOTO_SYSTEM_PROMPT).toMatch(/do not name a place/i);
     expect(PHOTO_SYSTEM_PROMPT).toMatch(/never guess a mood/i);
   });
+
+  // B874 — the honesty rules held, but the register invited an inventory of
+  // shapes ("the colours, the setting, the action") rather than a caption a
+  // person would write under their own photograph.
+  test("asks for a label, not an inventory of shapes", () => {
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/not an inventory of every shape/i);
+    expect(PHOTO_SYSTEM_PROMPT).not.toMatch(/the colours, the setting, the action/i);
+  });
 });
 
 describe("consent, and that words alone is not enough", () => {
