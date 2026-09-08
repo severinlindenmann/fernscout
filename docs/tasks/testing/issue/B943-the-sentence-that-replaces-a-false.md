@@ -62,3 +62,15 @@ Check the other fixed strings the net can reach for the same fault.
 
 A test that puts a `written:` note in a thread, forces the fallback, and fails
 if the answer says nothing has changed in the journal.
+
+## What happened to it
+
+Fixed, and then **subsumed the same afternoon**. B944 found the condition was
+wrong in the other direction as well — a turn with a proposal on it could
+describe that proposal as done, because the check only ran when there was no
+proposal — and the sharper condition it needed makes this one's case
+unreachable: the plain sentence is now only chosen when the conversation
+really has written nothing, which is the one state it describes correctly.
+
+So `agent.cannotSayNow`, added here, was removed there. The fault this ticket
+names is fixed; the mechanism is B944's.

@@ -7,8 +7,7 @@ complexity: medium
 area: helper, honesty
 found: "2026-09-08T10:45:25Z"
 started: "2026-09-08T10:46:53Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T10:46:53Z"
+merged: "2026-09-08T10:56:09Z"
 ---
 
 # B944 — A turn with a proposal on it may say the thing is already done
