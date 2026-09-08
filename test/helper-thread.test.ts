@@ -348,6 +348,22 @@ describe("the tools", () => {
     ]);
   });
 
+  /**
+   * B782 — "how much have I spent" answered with the app's own credit
+   * balance, no different from a question about a trip's money. Both tools'
+   * own descriptions now say which question they answer and name the other,
+   * so the model asked about a journey's spend is pointed at trip_costs
+   * rather than left to guess from "credits" alone.
+   */
+  test("account and trip_costs each say which question they answer, and name the other — B782", () => {
+    const account = TOOLS.find((tool) => tool.name === "account")!;
+    const tripCosts = TOOLS.find((tool) => tool.name === "trip_costs")!;
+    expect(account.describe).toContain("trip_costs");
+    expect(account.describe.toLowerCase()).toContain("not a trip's money");
+    expect(tripCosts.describe).toContain("account");
+    expect(tripCosts.describe.toLowerCase()).toContain("not the journal's own credits");
+  });
+
   test("every one of them runs, and none of them changes anything", async () => {
     const before = journalOnDisk();
     for (const tool of TOOLS) {

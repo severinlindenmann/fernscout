@@ -545,7 +545,7 @@ export const TOOLS: readonly Tool[] = [
     kind: "read",
     renders: "say",
     describe:
-      "This journal's own account: credits left, and disk space used out of what it may. Credits pay for the model, captions, transcription and printing. A null balance means this server charges for nothing. Bytes only — never where anything is.",
+      "This journal's own account: credits left, and disk space used out of what it may. Credits pay for the model, captions, transcription and printing, not a trip's money (trip_costs). A null balance means this server charges for nothing. Bytes only — never where anything is.",
     properties: {},
     run: async (username) => {
       const usage = await storageFor(username);
@@ -562,7 +562,7 @@ export const TOOLS: readonly Tool[] = [
     kind: "read",
     renders: "say",
     describe:
-      "What a trip has cost so far: the total, what was spent preparing, the daily average, and the largest categories. Every figure is in the journal's own currency. `notInTheTotal` is money it could not convert and left out: if it is not empty, say so and how much.",
+      "What a trip has cost so far, not the journal's own credits (account): the total, what was spent preparing, the daily average, and the largest categories. Every figure is in the journal's own currency. `notInTheTotal` is money it could not convert and left out: if it is not empty, say so and how much.",
     properties: TRIP_ARG,
     run: async (username, args) => {
       const trip = resolveTrip(username, args.trip);

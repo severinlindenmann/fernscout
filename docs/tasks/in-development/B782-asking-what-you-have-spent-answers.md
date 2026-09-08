@@ -40,3 +40,43 @@ selbst."
 
 "How much have I spent" does not answer with a credit balance without saying
 that is what it is.
+
+## Found still real, now narrower
+
+Filed 2026-09-07, before `trip_costs` existed as a tool at all — B898/B899
+(2026-09-08) added it alongside `account` in the same registry, and B959
+fixed it to read the trip as its owner. So the specific worry in Work
+("`add_cost` and a trip-costs read are both planned... three rows competing
+for one sentence") is stale: both rows exist now, as of this branch, with
+their own separate `describe` strings.
+
+What was still missing, and is what this branch fixes: neither description
+named the other. `account`'s said "credits pay for the model, captions,
+transcription and printing" and `trip_costs`'s said "what a trip has cost so
+far" — distinguishable to a careful reader, but nothing told the model which
+one is *not* the answer to "how much have I spent", which is exactly the
+ambiguous phrasing from the report. Renamed neither tool (no need — the
+names were never the collision) but cross-referenced the two `describe`
+strings in `lib/helper/tools.ts`:
+
+- `account`: "...printing, not a trip's money (trip_costs)."
+- `trip_costs`: "What a trip has cost so far, not the journal's own credits
+  (account): ..."
+
+Both stayed under the 4,100-token prompt ceiling (`test/helper-thread.test.ts`
+"the prompt and the tool list stay under forty-one hundred tokens" — trimmed
+wording twice to fit within it).
+
+No new UI string: `describe` is sent to the model in the system prompt only,
+never rendered to a person, so no locale file changes are needed.
+
+Added `test/helper-thread.test.ts` > "account and trip_costs each say which
+question they answer, and name the other — B782", which fails against the
+old descriptions (`toContain("trip_costs")` on `account.describe` failed) and
+passes now.
+
+What this does **not** cover: whether the live model actually routes "how
+much have I spent" to `trip_costs` rather than `account` — that is a live
+model's judgement call, not something a unit test proves. The cross-reference
+in each description is the whole of what code can do here; a live check with
+`test-with-personas` would be the way to actually observe routing.
