@@ -7,8 +7,7 @@ complexity: low
 area: ui, brand
 found: "2026-09-07T13:50:27Z"
 started: "2026-09-08T21:14:16Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T21:14:16Z"
+merged: "2026-09-08T21:26:30Z"
 ---
 
 # B757 — border-navy-300 is used but no navy-300 token exists, so the sign-in field's unfocused border falls back to currentColor
