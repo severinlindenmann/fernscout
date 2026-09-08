@@ -94,6 +94,25 @@ function isProposal(block: Block): boolean {
   return block.shape === "form" || block.shape === "confirm";
 }
 
+/**
+ * The day a turn is about, if it is about one — B901.
+ *
+ * The preview pane shows what the conversation is currently talking about,
+ * and this is the whole of how it knows: a proposal's own arguments already
+ * carry the trip and the slug, because a proposal is about a particular day.
+ * Nothing is guessed and nothing is fetched here — a turn that names no day
+ * leaves the pane exactly as it was, which is what "follows the conversation"
+ * has to mean when the conversation wanders.
+ */
+function dayOf(blocks: Block[]): { trip: string; slug: string } | null {
+  for (const block of [...blocks].reverse()) {
+    if (block.shape !== "form" && block.shape !== "confirm") continue;
+    const args = block.proposal?.arguments;
+    if (args?.trip && args?.slug) return { trip: args.trip, slug: args.slug };
+  }
+  return null;
+}
+
 export default function HelperAsk({
   username,
   consented: initialConsent,
@@ -101,6 +120,9 @@ export default function HelperAsk({
   consentedSpeech,
   speechProvider,
   onJournal = false,
+  selected,
+  onSubject,
+  inRoom = false,
 }: {
   username: string;
   /** Whether this journal has already agreed to a model being spoken to
@@ -129,12 +151,34 @@ export default function HelperAsk({
    * cards.
    */
   onJournal?: boolean;
+  /**
+   * What is selected in the files pane beside this — B902. Sent with every
+   * sentence, so "put these on yesterday" has something to refer to; the
+   * server resolves the ids against disk and ignores what it does not
+   * recognise. Absent everywhere there is no pane, which is everywhere but
+   * the room.
+   */
+  selected?: string[];
+  /**
+   * The day the conversation has arrived at — B901. Called when a turn or an
+   * accepted proposal names one, and never otherwise; the room draws it in
+   * the preview pane. A conversation with nobody listening behaves exactly as
+   * it did.
+   */
+  onSubject?: (day: { trip: string; slug: string }) => void;
+  /**
+   * Whether this is the room's middle column rather than a line under a card
+   * — B901. In the room the conversation is the page: it is open from the
+   * start (there is nothing else on the screen to compete with) and it grows
+   * to fill its column instead of stopping at 60% of the viewport.
+   */
+  inRoom?: boolean;
 }) {
   const { t } = useI18n();
   // Closed until somebody asks for it — B767. The one thing this card is for
   // is writing a day, and a text field competing with that button is a second
   // decision offered to somebody who has not made the first one.
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(inRoom);
   const [said, setSaid] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -189,6 +233,8 @@ export default function HelperAsk({
   function landed(blocks: Block[]) {
     setTurns((was) => [...was, { said, blocks }]);
     setSaid("");
+    const day = dayOf(blocks);
+    if (day) onSubject?.(day);
   }
 
   async function send(url: string, body?: unknown, method = "POST"): Promise<Record<string, unknown>> {
@@ -209,6 +255,9 @@ export default function HelperAsk({
     try {
       const body = await send(`/api/helper/${encodeURIComponent(username)}/ask`, {
         said,
+        // B902 — what is selected in the files pane, sent every turn rather
+        // than remembered, so a cleared selection is cleared at once.
+        ...(selected && selected.length > 0 ? { selected } : {}),
         // Their today, not the server's: "in March" is answered from where
         // the person is standing.
         today: new Date().toISOString().slice(0, 10),
@@ -266,6 +315,18 @@ export default function HelperAsk({
         { ...proposal.arguments, ...values },
         proposal.method,
       );
+
+      /**
+       * The preview pane follows the press — B901. A write is the moment the
+       * thing being talked about actually changes, and the pane's whole
+       * promise is that you watch what you are about to accept and then see
+       * what you accepted. The day it names is the route's own answer, not
+       * this component's guess about what it wrote.
+       */
+      const wrote = answer.draft as Record<string, unknown> | undefined;
+      const trip = typeof wrote?.trip === "string" ? wrote.trip : proposal.arguments.trip;
+      const slug = typeof wrote?.slug === "string" ? wrote.slug : proposal.arguments.slug;
+      if (trip && slug) onSubject?.({ trip, slug });
 
       // Memory only, and never a claim: the write has already happened above.
       await send(`/api/helper/${encodeURIComponent(username)}/proposal`, {
@@ -326,7 +387,7 @@ export default function HelperAsk({
 
   const opener = onJournal ? t("agent.askHereOpen") : t("agent.askOpen");
 
-  if (!open) {
+  if (!open && !inRoom) {
     return (
       <button
         type="button"
@@ -339,7 +400,10 @@ export default function HelperAsk({
   }
 
   return (
-    <section aria-label={t("agent.chat.title")} className="mt-4">
+    <section
+      aria-label={t("agent.chat.title")}
+      className={inRoom ? "flex min-h-0 flex-1 flex-col" : "mt-4"}
+    >
       {/* One word each, and only where Search is the thing a person has
           already tried — B844. Not a merge and not a link: the two boxes stay
           two boxes, and this says which is which. */}
@@ -353,13 +417,17 @@ export default function HelperAsk({
         announce per token. It scrolls itself rather than the page, which is
         what keeps the field still on a phone.
       */}
-      {turns.length > 0 && (
+      {/* In the room the log is in the document from the first render, empty
+          — a live region added at the same moment as its first child is a
+          live region a screen reader may never announce. Under a card it
+          appears with the first turn, as it has since B899. */}
+      {(inRoom || turns.length > 0) && (
         <div
           ref={log}
           role="log"
           aria-live="polite"
           aria-relevant="additions"
-          className="mb-3 max-h-[60vh] space-y-4 overflow-y-auto"
+          className={`mb-3 space-y-4 overflow-y-auto ${inRoom ? "min-h-0 flex-1" : "max-h-[60vh]"}`}
         >
           {turns.map((turn, index) => (
             <div key={index} className="space-y-2">

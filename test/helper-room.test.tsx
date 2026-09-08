@@ -1,0 +1,214 @@
+// @vitest-environment jsdom
+import { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import HelperRoom from "@/components/HelperRoom";
+import LocaleProvider from "@/components/LocaleProvider";
+import type { RoomFiles } from "@/lib/helper/server";
+import { dictionaryFor } from "@/lib/locales";
+
+/**
+ * The three panes — B901 and B902, checklists C and D of
+ * `docs/plans/2026-09-08-the-chat-is-the-product.md`.
+ *
+ * Same jsdom + `createRoot` harness as `test/helper-chat.test.tsx`, and the
+ * same reason: one component, no second testing library.
+ *
+ * What is asserted is the shape a person works in. The three regions exist and
+ * are named, so a screen reader says which one it is in. **At 390px neither
+ * side pane is drawn at all** — that is a class assertion rather than a
+ * measurement, because jsdom has no layout, and it is the honest one: the
+ * panes are `hidden` until `lg`, so there is nothing to compete with the
+ * conversation and nothing is half a screen wide. The selection is a real
+ * checkbox each, which is what makes the pane operable with a keyboard, and
+ * what a sentence carries with it is the ids of what is ticked.
+ *
+ * jsdom implements neither `showModal` nor `close` on `<dialog>` (30.0.1), so
+ * the sheet is asserted as a dialog with a way out rather than as a modal
+ * being opened; the platform is what makes it modal in a browser, which is
+ * the whole reason it is a `<dialog>`.
+ */
+
+let root: Root | undefined;
+let container: HTMLDivElement | undefined;
+let calls: { url: string; body: Record<string, unknown> }[] = [];
+
+const dictionary = dictionaryFor("en");
+
+const FILES: RoomFiles = {
+  inbox: [
+    { id: "inbox:aaa111-statement.csv", name: "statement.csv" },
+    { id: "inbox:bbb222-harbour.jpg", name: "harbour.jpg" },
+  ],
+  trip: [{ id: "photo:tuesday:/u/media/x/01.jpg", name: "The harbour", src: "/u/media/x/01.jpg" }],
+  tripTitle: "A Trip",
+};
+
+const CURRENCY = { base: "CHF", currencies: ["CHF"] } as never;
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  act(() => root?.unmount());
+  container?.remove();
+  root = undefined;
+  container = undefined;
+});
+
+beforeEach(() => {
+  calls = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, init?: { body?: string }) => {
+      calls.push({
+        url,
+        body: init?.body ? (JSON.parse(init.body) as Record<string, unknown>) : {},
+      });
+      return { ok: true, json: async () => ({ ok: true, blocks: [] }) } as Response;
+    }),
+  );
+});
+
+function render(opening: { trip: string; slug: string } | null = null) {
+  container = document.createElement("div");
+  document.body.appendChild(container);
+  root = createRoot(container);
+  act(() => {
+    root!.render(
+      <LocaleProvider locale="en" dictionary={dictionary}>
+        <HelperRoom
+          username="alex"
+          title="A Journal"
+          files={FILES}
+          currency={CURRENCY}
+          opening={opening}
+          consented
+          speech={false}
+          consentedSpeech={false}
+          speechProvider="dry-run"
+        />
+      </LocaleProvider>,
+    );
+  });
+  return container!;
+}
+
+/** React listens for the setter rather than for an assignment, the same way
+ *  `test/helper-chat.test.tsx` has to type. */
+function type(box: HTMLElement, value: string) {
+  const field = box.querySelector<HTMLInputElement>("input[type=text]")!;
+  act(() => {
+    const setter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    )!.set!;
+    setter.call(field, value);
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
+const regions = () =>
+  [...document.querySelectorAll("section[aria-label], main")].map((node) =>
+    node.getAttribute("aria-label"),
+  );
+
+test("the three panes are three named regions, with the conversation between them", () => {
+  render();
+  const named = regions();
+  expect(named).toContain("Files");
+  expect(named).toContain("How it looks");
+  // The conversation is `HelperAsk`'s own region and is open from the first
+  // render in the room — there is no line to press first.
+  expect(named).toContain("Conversation");
+  expect(document.querySelector("input[type=text]")).not.toBeNull();
+});
+
+test("at 390px neither side pane is drawn", () => {
+  render();
+  for (const label of ["Files", "How it looks"]) {
+    const pane = document.querySelector(`section[aria-label="${label}"]`)!;
+    expect(pane.className).toContain("hidden");
+    expect(pane.className).toContain("lg:");
+  }
+  // And the two things that do come up on a phone are not up until asked for.
+  expect(document.querySelector("dialog")).toBeNull();
+});
+
+test("the panes are dismissible from the keyboard, and the conversation stays", () => {
+  render();
+  const hide = [...document.querySelectorAll("button")].find(
+    (button) => button.textContent === "Hide files",
+  )!;
+  act(() => hide.click());
+  expect(regions()).not.toContain("Files");
+  expect(regions()).toContain("Conversation");
+  act(() => {
+    ([...document.querySelectorAll("button")].find(
+      (button) => button.textContent === "Show files",
+    ) as HTMLButtonElement).click();
+  });
+  expect(regions()).toContain("Files");
+});
+
+test("a selection is made with checkboxes and travels with the next sentence", async () => {
+  const box = render();
+  const ticks = [...box.querySelectorAll<HTMLInputElement>("input[type=checkbox]")];
+  // Two inbox files and one photograph already on a day — the pane holds both
+  // folders, which is the whole of B902.
+  expect(ticks).toHaveLength(3);
+
+  act(() => ticks[1].click());
+  act(() => ticks[2].click());
+
+  type(box, "put these on yesterday");
+  const ask = [...box.querySelectorAll("button")].find((button) => button.textContent === "Ask")!;
+  await act(async () => {
+    ask.click();
+  });
+
+  const sent = calls.find((call) => call.url.endsWith("/ask"))!;
+  expect(sent.body.said).toBe("put these on yesterday");
+  expect(sent.body.selected).toEqual([
+    "inbox:bbb222-harbour.jpg",
+    "photo:tuesday:/u/media/x/01.jpg",
+  ]);
+});
+
+test("nothing selected sends nothing, so the conversation is unchanged", async () => {
+  const box = render();
+  type(box, "how many trips do I have");
+  await act(async () => {
+    ([...box.querySelectorAll("button")].find(
+      (button) => button.textContent === "Ask",
+    ) as HTMLButtonElement).click();
+  });
+  const sent = calls.find((call) => call.url.endsWith("/ask"))!;
+  expect(sent.body).not.toHaveProperty("selected");
+});
+
+test("the preview is empty until the conversation is about a day, and says so", () => {
+  render();
+  expect(container!.textContent).toContain("Whatever you are talking about appears here");
+  expect(calls.filter((call) => call.url.includes("/day?"))).toHaveLength(0);
+});
+
+test("a day the room opens with is read from the same route the wizard reads", () => {
+  render({ trip: "a-trip", slug: "tuesday" });
+  expect(calls[0].url).toBe("/api/helper/alex/day?trip=a-trip&slug=tuesday");
+});
+
+test("the files sheet is a dialog with one obvious way back", () => {
+  const box = render();
+  const open = [...box.querySelectorAll("button")].find(
+    (button) => button.textContent === "Files",
+  )!;
+  act(() => open.click());
+  const sheet = document.querySelector("dialog")!;
+  expect(sheet.getAttribute("aria-label")).toBe("Files");
+  // The same pane, the same checkboxes: one selection, two places to make it.
+  expect(sheet.querySelectorAll("input[type=checkbox]")).toHaveLength(3);
+  const back = [...sheet.querySelectorAll("button")].find(
+    (button) => button.textContent === "Close",
+  )!;
+  act(() => back.click());
+  expect(document.querySelector("dialog")).toBeNull();
+});

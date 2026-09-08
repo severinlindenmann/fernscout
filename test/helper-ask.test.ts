@@ -10,6 +10,7 @@ import { balanceOf, grant, ledgerFor } from "@/lib/credits";
 import type { Say } from "@/lib/helper/intents";
 import { runTool } from "@/lib/helper/tools";
 import { history } from "@/lib/helper/thread";
+import { storeInboxFile } from "@/lib/inbox";
 import { getTrips } from "@/lib/trips";
 
 /**
@@ -127,6 +128,57 @@ afterEach(async () => {
   delete process.env.DATABASE_URL;
   delete process.env.ANTHROPIC_API_KEY;
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+/**
+ * What is selected in the files pane — B902.
+ *
+ * The claim is not that a model does anything useful with it; that is the
+ * model's. The claim is that the sentence going out carries what the person
+ * pointed at, resolved from **disk** rather than from the request, and that
+ * what is remembered afterwards is still only what they said.
+ */
+describe("a selection is referable from a sentence", () => {
+  beforeEach(() => {
+    // A fixed answer: what the model *says* is not the claim here, and an
+    // echo would put the context line into the thread through the reply
+    // rather than through the person's own turn.
+    answerInThread.mockImplementation(async () => ({
+      answer: "Right you are.",
+      looked: [],
+      blocks: [],
+      proposals: [],
+    }));
+  });
+
+  function askWith(said: string, selected: string[]) {
+    return POST(
+      post("https://t.test/api/helper/alex/ask", { said, today: "2026-09-07", selected }),
+      params,
+    );
+  }
+
+  test("what was selected goes to the model beside their words", async () => {
+    const stored = storeInboxFile("alex", "files", "statement.csv", Buffer.from("a,b\n"), {});
+    const routed = await read(await askWith("what is this", [`inbox:${stored.entry.id}`]));
+    expect(routed.status).toBe(200);
+    const sent = answerInThread.mock.calls[0][1] as string;
+    expect(sent.startsWith("what is this\n[")).toBe(true);
+    expect(sent).toContain("statement.csv");
+  });
+
+  test("an id nothing answers to reaches the model as nothing at all", async () => {
+    await askWith("what is this", ["inbox:nope", "photo:no:such"]);
+    expect(answerInThread.mock.calls[0][1]).toBe("what is this");
+  });
+
+  test("the thread remembers their sentence, not the selection", async () => {
+    const stored = storeInboxFile("alex", "files", "statement.csv", Buffer.from("a,b\n"), {});
+    await askWith("what is this", [`inbox:${stored.entry.id}`]);
+    const said = history("alex").map((turn) => turn.text);
+    expect(said[0]).toBe("what is this");
+    expect(said.join("\n")).not.toContain("statement.csv");
+  });
 });
 
 describe("a write tool proposes", () => {
