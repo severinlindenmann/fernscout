@@ -7,8 +7,7 @@ complexity: low
 area: agent
 found: "2026-09-08T09:12:38Z"
 started: "2026-09-08T09:12:39Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T09:12:39Z"
+merged: "2026-09-08T09:29:07Z"
 ---
 
 # B935 — A proposal carries a trip title where the endpoint needs an id

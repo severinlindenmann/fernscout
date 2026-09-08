@@ -7,8 +7,7 @@ complexity: low
 area: contacts, agent
 found: "2026-09-08T09:12:39Z"
 started: "2026-09-08T09:12:40Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T09:12:40Z"
+merged: "2026-09-08T09:29:08Z"
 ---
 
 # B937 — Nobody is told the reader needs a second sign-in after approval
