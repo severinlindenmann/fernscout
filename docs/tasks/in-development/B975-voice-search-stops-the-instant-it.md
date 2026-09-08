@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: search
 found: "2026-09-08T16:04:06Z"
+started: "2026-09-08T16:04:25Z"
+session: 6c81e17b-6acf-4c0f-86ef-49124c9b2458
+claimed: "2026-09-08T16:04:25Z"
 ---
 
 # B975 — Voice search stops the instant it starts, and says nothing about why
