@@ -107,12 +107,43 @@ function isProposal(block: Block): boolean {
  * sentence about a failure nobody has seen would be worse than an identifier,
  * and is logged so it can be named later.
  */
+/**
+ * Every refusal a press can come back with, and the sentence it gets — B948.
+ *
+ * There were five, and `invalid_trip` was not among them: clearing the title
+ * on a trip proposal and pressing put **"That did not work: invalid_trip."**
+ * on the screen. A blind reader heard exactly that, at full volume, out of a
+ * focused `role="alert"` — an internal identifier read aloud as though it were
+ * a sentence.
+ *
+ * So this is now the whole list, taken from the routes rather than from
+ * memory, and `test/helper-failure-sentences.test.ts` reads the routes back
+ * and fails on a code that has arrived without one. The fallback below stays,
+ * because a code is better than silence, and it should never be reached.
+ */
 const NAMED_FAILURES = [
   "incomplete_day",
   "consent_required",
   "no_credits",
   "already_published",
   "no_day_on_date",
+  "invalid_trip",
+  "unknown_trip",
+  "unknown_day",
+  "nothing_to_change",
+  "already_draft",
+  "invalid_cost",
+  "expected_files",
+  "invalid_media",
+  "not_attached",
+  "unknown_inbox_file",
+  "no_notes",
+  "model_failed",
+  "idempotency_conflict",
+  "contacts_disabled",
+  "helper_unavailable",
+  "too_many_requests",
+  "invalid_json",
 ] as const;
 
 function failureSentence(
