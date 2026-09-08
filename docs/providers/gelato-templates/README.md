@@ -2,43 +2,48 @@
 
 **The only reference for what a print file should be that comes from the
 printer rather than from us.** Everything else in `docs/providers/photobook.md`
-is measured off the API or inferred from a preview; a template is the file
-Gelato hands a designer and says "fill this in".
+is measured off the API or inferred from a preview. A template is the file
+Gelato hands a designer and says "fill this in", so where it and we disagree,
+we are wrong.
 
-Downloaded from the Gelato dashboard: open the product, three-dot menu,
-*Download template*. There is no API for it, so a human has to fetch one and
-drop it here.
+Downloaded from the Gelato dashboard — open the product, three-dot menu,
+*Download template*. There is no API for it, so a person has to fetch them.
+All six are here, one per size-and-cover this repository offers.
 
-| File | Product | What it settles |
-| --- | --- | --- |
-| `softcover-210x280-30pp.pdf` | `photobooks-softcover_pf_210x280-mm-8x11-inch_…_ver`, 30 inner pages | cover and interior page sizes, and that every box spans the page |
+Each is 31 pages: **one cover page, then thirty interior pages.**
 
-## What the softcover template says
+## What they say, against what this repository emits
 
-Thirty-one pages: **one cover at 428.72 × 286 mm**, then **thirty interior
-pages at 216 × 286 mm**. Those are exactly the sizes this repository emits for
-a 210 × 280 book — cover `2 × 210 + spine 2.72 + 2 × 3` wide by `280 + 2 × 3`
-tall, interior `210 + 2 × 3` square-on.
+Checked 2026-09-08 with a 28-page book, whose spine matches the templates'.
+Every figure below is ours measured against theirs, not ours computed twice.
 
-**Every page carries `TrimBox == BleedBox == MediaBox`.** That is not print
-convention — convention puts the TrimBox at the finished size, inside the
-bleed — and it is what the printer's own reference file does, so it is what we
-do. It is also not cosmetic: Gelato positions artwork from the TrimBox, and an
-inset one made it rescale the whole sheet. The same hardcover submitted twice,
-once unaltered and once with the TrimBox key renamed away, moved its flat
-preview from 86.3% of the canvas to 100%.
+| Product | Template cover | Ours | Template interior | Ours |
+| --- | --- | --- | --- | --- |
+| softcover 140 × 140 | 288.72 × 146 | 288.72 × 146 | 146 × 146 | 146 × 146 |
+| softcover 200 × 200 | 408.72 × 206 | 408.72 × 206 | 206 × 206 | 206 × 206 |
+| softcover 210 × 280 | 428.72 × 286 | 428.72 × 286 | 216 × 286 | 216 × 286 |
+| hardcover 200 × 200 | 458 × 246 | 458 × 246 | 206 × 206 | 206 × 206 |
+| hardcover 210 × 280 | 478 × 326 | 478 × 326 | 216 × 286 | 216 × 286 |
+| hardcover 280 × 280 | 618 × 326 | 618 × 326 | 286 × 286 | 286 × 286 |
 
-The trim is still known — `mapClipMm`, the `--guides` overlay and the PDF/X
-report all compute it from `spec` and `CoverGeometry`. It is simply not
-declared as a box.
+**Every page of every template carries `TrimBox == BleedBox == MediaBox`.**
+That is not print convention — convention puts the TrimBox at the finished
+size, inside the bleed — and it is what the printer's own reference does, so
+it is what we do now. It is not cosmetic either: Gelato positions artwork from
+the TrimBox, and an inset one made it rescale the whole sheet and clip the
+title off the hardcover mock-up.
 
-## What is still missing
+## The hardcover guides, read off the template
 
-**A hardcover template.** Every hardcover number we hold — the 17 mm case
-side, the 8 mm joints, the 3 mm image-wrap fold, the board being 2 mm narrower
-and 6 mm taller than the page — comes from
-`GET /v3/products/{uid}/cover-dimensions` and the product's `dimensions`
-block. Those agree with each other and our file matches them to a tenth of a
-millimetre, but no file from Gelato has confirmed the *layout* of a case, and
-its dashboard mock-up crops hardcovers wrongly, so it cannot be used as a
-check either. Drop one in here when somebody downloads it.
+`hardcover-200x200-30pp.pdf` draws a hatched turn-in border and dashed panel
+boxes. Their vertical rules fall at **19.9 / 226.9 / 437.7 mm** on a 458 mm
+sheet, which is the API's `contentBackSize.left` 20, the spine at 226-232 and
+`contentFrontSize` ending at 438 — the two sources agree, and our front panel
+starts at 239.9 against their 240.
+
+## What is still not settled by any of this
+
+These files prove **geometry**. They say nothing about **preflight** — the
+resolution, the fonts or the colour space Gelato will accept. This writer
+still emits RGB with unembedded base-14 Helvetica, and no draft order runs
+prepress. That is unchanged and is the open risk.
