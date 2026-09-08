@@ -222,7 +222,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (11)
+## in-development (10)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -236,9 +236,8 @@ _Nothing here._
 | [B813](in-development/B813-a-denied-microphone-is-announced-politely.md) | A denied microphone is announced politely instead of as a problem | ISSUE | low | low | `bdd0270d` |
 | [B862](in-development/B862-removing-a-photograph-is-one-step.md) | Removing a photograph is one step behind where you notice you want to | ISSUE | low | low | `bdd0270d` |
 | [B873](in-development/B873-a-video-on-a-day-is.md) | A video on a day is dropped from the captions with no mention | ISSUE | low | low | `bdd0270d` |
-| [B874](in-development/B874-captions-read-like-an-inventory-of.md) | Captions read like an inventory of shapes rather than a caption | ISSUE | low | low | `bdd0270d` |
 
-## testing (227)
+## testing (228)
 
 ### security (7)
 
@@ -252,7 +251,7 @@ _Nothing here._
 | [B908](testing/security/B908-a-leaked-agent-token-can-be.md) | A leaked agent token can be listed and not ended | SECURITY | medium | low | — |
 | [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (131)
+### issue (132)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -386,6 +385,7 @@ _Nothing here._
 | [B847](testing/issue/B847-the-beta-banner-takes-three-lines.md) | The beta banner takes three lines and a lot of height on a phone | ISSUE | low | low | — |
 | [B856](testing/issue/B856-the-journal-visibility-answer-explains-listing.md) | The journal visibility answer explains listing but not what it decides for trips | ISSUE | low | low | — |
 | [B863](testing/issue/B863-the-upload-progress-line-calls-a.md) | The upload progress line calls a spreadsheet a photograph | ISSUE | low | low | — |
+| [B874](testing/issue/B874-captions-read-like-an-inventory-of.md) | Captions read like an inventory of shapes rather than a caption | ISSUE | low | low | — |
 | [B876](testing/issue/B876-the-account-page-s-pointer-card.md) | The account page's pointer card on /me is a whole card to say a menu entry exists | ISSUE | low | low | — |
 
 ### big-feature (14)

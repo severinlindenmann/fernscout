@@ -7,8 +7,7 @@ complexity: low
 area: agent, model
 found: "2026-09-07T17:37:28Z"
 started: "2026-09-08T20:33:50Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T20:33:50Z"
+merged: "2026-09-08T20:40:28Z"
 ---
 
 # B874 — Captions read like an inventory of shapes rather than a caption
