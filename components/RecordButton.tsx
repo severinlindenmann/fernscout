@@ -170,7 +170,7 @@ export default function RecordButton({
   // Whether the click about to arrive is the tail of a pointer press this
   // component has already acted on. See `toggle`.
   const fromPointer = useRef(false);
-  // A stop asked for before there was anything to stop — B994.
+  // A stop asked for before there was anything to stop — B995.
   //
   // `start()` awaits `getUserMedia`, which takes tens to hundreds of
   // milliseconds even with the permission already given. A click is shorter
@@ -283,7 +283,7 @@ export default function RecordButton({
       // Half a second of audio is a slip of the finger, not a sentence, and it
       // is not sent. It used to be dropped in silence as well — which, from
       // the outside, is a microphone that listened and then did nothing at
-      // all. B994: say so, since it is the whole of what happened.
+      // all. B995: say so, since it is the whole of what happened.
       setError(t("agent.speechTooShort"));
     };
     recorder.current = media;
@@ -293,7 +293,7 @@ export default function RecordButton({
     setAnnounced(t("agent.speechStarted"));
     media.start();
     // Somebody let go while the browser was still granting the microphone.
-    // Honour it now rather than leaving it open — B994.
+    // Honour it now rather than leaving it open — B995.
     if (wantStop.current) {
       wantStop.current = false;
       media.stop();
@@ -396,7 +396,7 @@ export default function RecordButton({
     // click and wrong for a hold: let go after two seconds and the trailing
     // click sailed past the window and started a *second* recording. A flag is
     // exact, and it cannot go stale — a pointer that leaves the button is
-    // delivered no click at all, and clears it on the way out. B994.
+    // delivered no click at all, and clears it on the way out. B995.
     if (fromPointer.current) {
       fromPointer.current = false;
       return;
@@ -406,7 +406,7 @@ export default function RecordButton({
   }
 
   /**
-   * How long a press has to last to have been a hold — B994.
+   * How long a press has to last to have been a hold — B995.
    *
    * Under this it was a click, and a click is a toggle: press to start, press
    * again to stop, the same thing the keyboard does. Over it, the release ends

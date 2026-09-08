@@ -7,7 +7,7 @@ import RecordButton from "@/components/RecordButton";
 import { dictionaryFor } from "@/lib/locales";
 
 /**
- * A click on the microphone — B994.
+ * A click on the microphone — B995.
  *
  * Reported as "it does nothing": the microphone on the search box listened,
  * counted the seconds up, and never produced a word. Both halves of the press
