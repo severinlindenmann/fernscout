@@ -954,16 +954,6 @@ export default function MePageContent({
               </div>
 
               {/*
-                Who may read the conversations — B976. Beside the agent card
-                because it is about the same thing: what the helper does with
-                what you tell it. Absent where the journal has no helper, which
-                is the rule every capability on this page follows.
-              */}
-              {sessionsShared !== null && (
-                <SessionsConsent username={username} shared={sessionsShared} />
-              )}
-
-              {/*
                 The door for people — B79/B282. This is a button that leads to
                 the contacts panel, where links are made, listed, revoked and
                 re-sent; the URL is not minted here, because a link this page
@@ -1068,6 +1058,23 @@ export default function MePageContent({
           journal={username}
           heading={{ title: t("me.notifyTitle"), lede: t("me.notifyLede") }}
         />
+
+        {/*
+          Who may read the conversations — B976, and it belongs down here.
+
+          It sat in the owner block beside the agent card, on the grounds that
+          both are about what the helper does with what you tell it. That put
+          a settled default in the middle of the things somebody came to the
+          page to *do* — issue a key, see who can read, rename the journal —
+          and it is not one of those. It is a switch you touch once, or never.
+
+          So: last but one, beside signing out. The two things at the foot of
+          this page are now the two that are about you rather than about your
+          journal, and neither is in the way of the other.
+        */}
+        {sessionsShared !== null && (
+          <SessionsConsent username={username} shared={sessionsShared} />
+        )}
 
         {/*
           Last on the page, and only when there is a session to end.
