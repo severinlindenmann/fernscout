@@ -37,6 +37,7 @@ export async function GET(
     status: order.status,
     trip: order.payload.trip,
     size: order.payload.options.size,
+    coverType: order.payload.options.coverType,
     pages: order.payload.pages,
     volumes: order.payload.volumes,
     credits: order.payload.credits,

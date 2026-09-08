@@ -25,7 +25,8 @@ below.
 npm run photobook -- --trip <user>/<trip-id>                      # the whole book
 npm run photobook -- --trip <user>/<trip-id> --guides             # + trim and safe-area guides
 npm run photobook -- --trip <user>/<trip-id> --outline            # just the page plan, as text
-npm run photobook -- --trip <user>/<trip-id> --size portrait      # square, portrait or large-square
+npm run photobook -- --trip <user>/<trip-id> --size portrait      # pocket, square, portrait or large-square
+npm run photobook -- --trip <user>/<trip-id> --cover hard          # soft (default) or hard — not every size has both
 npm run photobook -- --trip <user>/<trip-id> --icc <profile.icc>  # embed an output intent
 npm run photobook -- --providers
 ```
@@ -58,7 +59,8 @@ code the website uses, with no second parser to drift.
 | | |
 | --- | --- |
 | Default size | Square 200 × 200 mm — a real Gelato product, softcover, and neither photo orientation is second class. **Not** 210 × 210: that square is what this document used to say and is a size Gelato does not print |
-| Also available | Portrait 210 × 280 mm (softcover — the nearest Gelato product to A4, which Gelato does not print either), Large square 280 × 280 mm (hardcover — the cover for this size is Task 6's, not built yet) |
+| Also available | Pocket 140 × 140 mm (softcover only — the cheapest thing on offer), Portrait 210 × 280 mm (the nearest Gelato product to A4, which Gelato does not print either), Large square 280 × 280 mm (hardcover only) |
+| Cover | Soft or hard, chosen **before** the size — not every size exists in both. Softcover: pocket, square, portrait. Hardcover: square, portrait, large-square. There is no 280 mm softcover and no 140 mm hardcover |
 | Bleed | 3 mm on all four edges → media box 206 × 206 mm for the square size |
 | Outer margin | 10 mm inside the trim |
 | Gutter | **16 mm** at the spine — wider than the outer margin, because a perfect-bound book does not open flat and the first few millimetres curve away from the reader |
@@ -67,9 +69,18 @@ code the website uses, with no second parser to drift.
 | Spine | `pages / 2 × 0.115 mm` — leaves, not pages. Get this wrong and the front image creeps onto the spine |
 | Boxes | `TrimBox` and `BleedBox` on every page, including the cover |
 
-Every size's `productUid` is copied verbatim from Gelato's own catalogue in
-`BOOK_SIZES` (`lib/photobook/spec.ts`) rather than constructed — see
-[Gelato](#gelato).
+Every size carries a `covers` map (`{ soft?: uid, hard?: uid }`), each uid
+copied verbatim from Gelato's own catalogue in `BOOK_SIZES`
+(`lib/photobook/spec.ts`) rather than constructed — see [Gelato](#gelato).
+`productUidFor(sizeId, cover)` answers `null` where Gelato binds no such
+book, and `sizesFor(cover)` is the list to offer for a chosen cover.
+
+A hardcover's true panel and spine dimensions — not just its trim size — come
+from Gelato's own cover-dimensions endpoint:
+`GET https://product.gelatoapis.com/v3/products/{productUid}/cover-dimensions?pageCount=N&measureUnit=mm`.
+Gelato rounds the page count up by 4 (endpapers, presumably) before it
+answers, so the geometry for a 52-page book is quoted at 56. See
+`lib/photobook/coverGeometry.ts`.
 
 ### Page-count rules
 
@@ -92,10 +103,12 @@ narrower.
 Two consequences the planner handles rather than hides:
 
 - **Too short.** A three-day trip is about fifteen pages of content against a
-  thirty-two page minimum. The planner first *grows* the book — breaking
+  twenty-eight page minimum. The planner first *grows* the book — breaking
   multi-photo pages into single-photo pages, largest groups first — and only
-  pads with blanks when there is nothing left to spread out. When it does pad,
-  it says so, and it says that saddle stitch is the right answer instead.
+  pads with blanks when there is nothing left to spread out. When it does pad
+  more than three pages, it says so — and says that a trip this short would
+  want saddle stitch, which Gelato does not offer: it prints glued-left only,
+  so there is no smaller-minimum product to fall back to.
 - **Too long.** A 180-day trip does not fit in 160 pages. It becomes several
   volumes, split at chapter boundaries and never mid-day, each with its own
   title page ("Volume 2 of 3"), cover and spine width.
@@ -351,11 +364,20 @@ Switzerland:**
 | 100 | 22.12 | 27.14 | 23.51 |
 | 160 | 31.78 | 38.13 | 34.16 |
 
-Hardcover 280×280 at 52 pages: **27.36**. Shipping is CHF 8.52
-(`swiss_post_economy`) or CHF 10.64 (`swiss_post_priority`) on top, per
-order rather than per copy. **No order has ever been placed** — these are
-quote-endpoint prices, not a confirmation that a create-order call with this
-shape succeeds.
+Every combination Gelato actually binds, at 52 pages — the pocket, and the
+two sizes measured above only in one cover each:
+
+| Size | Softcover | Hardcover |
+| --- | --- | --- |
+| Pocket 140×140 | 10.68 | — (no hardcover) |
+| Square 200×200 | 14.40 | 18.35 |
+| Portrait 210×280 | 14.99 | 19.81 |
+| Large square 280×280 | — (no softcover) | 27.36 |
+
+Shipping is CHF 8.52 (`swiss_post_economy`, 4–7 days) or CHF 10.64
+(`swiss_post_priority`, 3 days) on top, per order rather than per copy.
+**No order has ever been placed** — these are quote-endpoint prices, not a
+confirmation that a create-order call with this shape succeeds.
 
 ### Cloudprinter
 

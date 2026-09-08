@@ -40,6 +40,7 @@ import { COST_CATEGORIES } from "@/lib/costFormat";
 import { FEATURE_NAMES } from "@/lib/config";
 import { TRACKS } from "@/lib/tracks";
 import { ACCENTS, COSTS_VISIBILITIES, FIGURE_FIELDS, STATUSES, VISIBILITIES } from "@/lib/tripWrite";
+import { BOOK_SIZES, COVER_TYPES } from "@/lib/photobook/spec";
 import {
   CAPTION_MAX_CHARS,
   IMAGE_FORMATS,
@@ -1135,7 +1136,11 @@ export function openApiDocument() {
             "What it is, what it cost to build, and — once `.../print` has been called — who " +
             "it is proposed to go to, by `contactId`, and at what quote. **Never a street " +
             "address.** `providerRef` and `status` only appear once the owner has actually " +
-            "pressed the button. Owner only.",
+            "pressed the button. Owner only.\n\n" +
+            `\`size\` is one of \`${Object.keys(BOOK_SIZES).join("\`, \`")}\`, and \`coverType\` ` +
+            `is one of \`${COVER_TYPES.join("\`, \`")}\` — the two the order was actually built ` +
+            "with, not every combination the catalogue offers: not every size exists in both " +
+            "covers (`sizesFor` in `lib/photobook/spec.ts` says which does).",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
             { name: "id", in: "path", required: true, schema: { type: "string" } },
