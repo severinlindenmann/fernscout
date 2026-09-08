@@ -7,8 +7,7 @@ complexity: low
 area: credits, payments
 found: "2026-09-07T15:25:00Z"
 started: "2026-09-08T05:28:50Z"
-session: 41335894-5435-4167-8cb6-898e370cd6a9
-claimed: "2026-09-08T05:28:50Z"
+merged: "2026-09-08T05:35:20Z"
 ---
 
 # B811 — The payment page still renders the TWINT/card chooser under a provider, hidden with a class
