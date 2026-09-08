@@ -34,6 +34,8 @@ const TOUCHED = [
   "MAIL_FROM",
   "STANNP_API_KEY",
   "ANTHROPIC_API_KEY",
+  "LULU_CLIENT_KEY",
+  "LULU_CLIENT_SECRET",
 ];
 
 beforeEach(() => {
