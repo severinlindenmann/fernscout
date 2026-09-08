@@ -28,6 +28,11 @@ The two branches do different things, and only one of them can take a day down:
   unpublish, no delete and no route call of that kind anywhere in
   `components/EditDay.tsx`. The label is false here.
 
+`EditDay`'s own doc comment says it outright — *"It cannot publish and it
+cannot unpublish. That is B28's separation"* (`components/EditDay.tsx:67`). So
+nothing is confused about what the panel does; only the label on the tile that
+opens it drifted, when B980 pointed an existing tile at a new destination.
+
 It is the same failure the project keeps writing down in its own words: the
 sentence on the screen is all a person has, and this one offers a capability
 the panel does not have. Somebody who wants a day off the site presses it,
@@ -42,6 +47,27 @@ The two never appear on the same page, so there is nothing to reconcile.
 Not doing: adding unpublish to `EditDay`. That is a second decision about a
 panel B980 deliberately kept to one job, and it is a capture of its own if
 anybody wants it.
+
+## What was done
+
+`agent.editDay` — "Edit" / "Bearbeiten" / "Szerkesztés" — on the panel branch;
+`agent.correctDay` unchanged on the wizard branch. A case in
+`test/owner-tools.test.ts` asserts the split, and asserts `EditDay` calls no
+`/unpublish` route — so if the panel ever grows one, that test is what says the
+labels need looking at again.
+
+## One thing carried in from outside this ticket
+
+B984 merged into `main` while B1012 was in its worktree and moved the room to
+`/agent?about=<ref>`. It could not see B1007's draft-row case, which had landed
+in between, so that assertion in `test/helper-ask-on-the-day.test.tsx` was left
+naming the old URL and `main` went red — a clean merge with nobody's conflict,
+which is the shape B880/B881/B883/B896 already record. Corrected on this
+branch, in the same words a parallel session had already written in the shared
+checkout, so the merge cannot clobber their copy.
+
+The lesson is the one `work-on-a-task` already gives and I skipped: verify on
+`main` **after** the merge, not only on the branch.
 
 ## Acceptance
 

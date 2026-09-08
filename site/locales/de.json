@@ -1810,5 +1810,6 @@
   "agent.askHereHint": "Ändern, ergänzen, auf die Seite stellen — in deinen Worten.",
   "agent.publishRow": "Veröffentlichen lassen",
   "agent.publishRowHint": "Bis du es sagst, sieht den Tag niemand außer dir.",
-  "agent.room.roomLinkHint": "Deine Dateien und eine Vorschau des Tages daneben."
+  "agent.room.roomLinkHint": "Deine Dateien und eine Vorschau des Tages daneben.",
+  "agent.editDay": "Bearbeiten"
 }

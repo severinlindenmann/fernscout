@@ -1810,5 +1810,6 @@
   "agent.askHereHint": "Átírni, kiegészíteni, közzétenni — a saját szavaiddal.",
   "agent.publishRow": "Kérd, hogy tegye közzé",
   "agent.publishRowHint": "Amíg nem szólsz, rajtad kívül senki nem látja a napot.",
-  "agent.room.roomLinkHint": "A fájljaid és a nap előnézete egymás mellett."
+  "agent.room.roomLinkHint": "A fájljaid és a nap előnézete egymás mellett.",
+  "agent.editDay": "Szerkesztés"
 }

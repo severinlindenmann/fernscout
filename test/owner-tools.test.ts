@@ -48,6 +48,27 @@ describe("the owner's block under a day", () => {
     }
   });
 
+  /**
+   * B1013 — the tile said "Correct or take down" on both branches, and only
+   * one of them can take a day down: the wizard has `takeDown()`, `EditDay`
+   * has no unpublish at all. A label offering a capability that is not there
+   * sends somebody looking for it.
+   */
+  test("only the branch that can take a day down says so", () => {
+    const tools = read("components/OwnerTools.tsx");
+    // The panel branch — a <button> calling onCorrect — must not promise it.
+    const panel = tools.slice(tools.indexOf("onClick={onCorrect}"));
+    expect(panel.slice(0, 200)).toContain("agent.editDay");
+    expect(panel.slice(0, 200)).not.toContain("agent.correctDay");
+    // And the wizard branch, which can, still does.
+    expect(tools).toContain("agent.correctDay");
+    // The claim above about EditDay is the reason for the split — its own doc
+    // says "it cannot publish and it cannot unpublish", which is B28's
+    // separation. Assert the route rather than the prose: if it ever calls
+    // one, this test is what says the labels need looking at again.
+    expect(read("components/EditDay.tsx")).not.toContain("/unpublish");
+  });
+
   test("gives the three buttons one weight", () => {
     // Peers, not a primary and two afterthoughts — which is what three
     // separately-written button classes had made them.
