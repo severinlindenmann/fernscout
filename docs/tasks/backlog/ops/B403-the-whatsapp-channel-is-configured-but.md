@@ -81,8 +81,11 @@ curl -X POST "https://fernscout.ch/api/v1/example/trips/usa-2026/days/utah-red-c
 
 Expect `sent: 1`. Then read the actual cost back (see below).
 
-**The test contact is `lindenmann@severin.io` on `example`**, `wants_whatsapp
-= 1` with a stored number. It was made `active` **by hand in Postgres** at the
+**The test contact on `example` is a real person's address —
+`lindenmann@severin.io` — and the first thing to do is replace it with
+`test-whatsapp@fernscout.ch`**, keeping the same stored number. A QA contact
+carries a name that says it is one; a real address in a test row is how a
+send under test lands in somebody's inbox. It has `wants_whatsapp = 1`. It was made `active` **by hand in Postgres** at the
 owner's request, which skipped `approveContact` and therefore its access
 grant. Harmless today because all five `example` trips are `public`, so
 `isOpenToLink` short-circuits the gate — but a `guest` or `private` trip added
