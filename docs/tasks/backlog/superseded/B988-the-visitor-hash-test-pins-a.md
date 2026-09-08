@@ -4,6 +4,7 @@ title: The visitor-hash test pins a salt that has already been drawn, so it fail
 type: ISSUE
 priority: low
 complexity: low
+superseded: "Fixed in the B982 merge, in the same tree that hit it twice — the one line the Work section asks for."
 area: Tests
 found: "2026-09-08T16:33:00Z"
 ---

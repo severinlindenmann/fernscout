@@ -4,6 +4,7 @@ title: The agent guide is 604 bytes over its own ceiling, so verify fails on mai
 type: ISSUE
 priority: medium
 complexity: low
+superseded: "B990 — the same red main, captured by four sessions that afternoon and fixed there."
 area: Agent guide
 found: "2026-09-08T17:15:45Z"
 ---
