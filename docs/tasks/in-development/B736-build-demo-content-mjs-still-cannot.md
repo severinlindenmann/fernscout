@@ -81,3 +81,40 @@ proving there is no drift beyond what remains listed.
 `git status content/` empty apart from `media/`, `originals/` and
 `weatherData:` lines — i.e. `KNOWN_GAPS` and `KNOWN_MISSING_FILES` in
 `test/build-demo-content-regen.test.ts` are both empty.
+
+## Outcome (2026-09-08)
+
+All five open items closed; `KNOWN_GAPS` and `KNOWN_MISSING_FILES` are gone
+from `test/build-demo-content-regen.test.ts` entirely.
+
+- **1. `travelScene`** — written inside the `transport` block, since without a
+  `transportMode` there is no leg for the override to apply to.
+- **2. Per-item and per-day `visibility`** — `photoVisibility`, indexed from
+  the first photograph like `captions`, and `day.visibility` for the whole
+  update. Emitted after `caption`, which is where `lib/ingest/entry.ts` puts
+  it: a demo file the product could not have written teaches the wrong shape.
+- **3. Five captions** added to the days that carry them.
+- **4. The six hand-written days** are in `TRIPS`, with a new `test: true`
+  field for the five that are fixtures. `denver-money` is deliberately not one
+  — it is a real update held back with `visibility: private`, and the only
+  per-update narrow visibility in the demo. **A fixture day is also not a
+  stop**: the derived `plan.md` route now filters `test: true` days out, or it
+  would draw a journey nobody took.
+- **5. `usa-2026/trip.md`** reordered to the generator's field order, which is
+  what the other three trips already used.
+
+**Three committed files were normalised rather than the generator bent to
+them.** `bangkok-first-morning`, `zion-narrows` and `oregon-coast` put
+`caption:` before `type:`; `alps-2024` and `mekong-slow-boat` put it after
+`height:`, which is also what `lib/ingest/entry.ts` writes. Five caption lines
+moved, so the demo journal now matches what the product itself produces.
+
+**The test got stricter as a result.** It compared a *set* of lines, which is
+what let item 5 hide — every line present, every line matching, in an order the
+generator would rewrite on sight. With nothing left to be lenient for it now
+compares whole files in order, which is the ticket's own acceptance:
+`node scripts/build-demo-content.mjs --force` leaves `git status content/`
+carrying nothing but `weatherData:` lines, verified by hand as well as by the
+test.
+
+Item 6 (`weatherData:`) stays out of scope by design, as the ticket says.
