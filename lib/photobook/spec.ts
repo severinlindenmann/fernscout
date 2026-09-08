@@ -113,6 +113,18 @@ export function sizesFor(cover: CoverType): BookSize[] {
 /** The catalogue uid for one size in one cover, or null where Gelato makes
  * no such book. Callers must handle null rather than falling back to another
  * product — a book quietly printed in the wrong cover is not a near miss. */
+/**
+ * The size to fall back to when the chosen cover does not offer the chosen
+ * one — the wizard moving from hard to soft while `large-square` is selected.
+ *
+ * Deleted once as dead code (B896) between the model landing and the wizard
+ * that calls it, which is the hazard of two sessions merging in turn. It has
+ * a caller now: `FirstBookFlow`'s cover step.
+ */
+export function defaultSizeFor(cover: CoverType): BookSize {
+  return sizesFor(cover)[0] ?? BOOK_SIZES.square;
+}
+
 export function productUidFor(sizeId: string, cover: CoverType): string | null {
   return BOOK_SIZES[sizeId]?.covers[cover] ?? null;
 }
