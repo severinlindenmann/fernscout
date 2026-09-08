@@ -407,7 +407,16 @@ export function describeSelection(username: string, ids: string[]): string {
   for (const id of ids.slice(0, 100)) {
     if (id.startsWith("inbox:")) {
       const found = findInboxFile(username, id.slice("inbox:".length));
-      if (found) named.push(`"${flat(found.entry.filename)}" (waiting in the inbox)`);
+      // The id, spelled out, and only for a photograph — B915. It is what
+      // `attach_files` takes, and it is safe to say because it is a hash of
+      // the file's own bytes rather than anything about the person: an id the
+      // model invents resolves to nothing, here and again in the route.
+      if (found)
+        named.push(
+          found.entry.kind === "media"
+            ? `"${flat(found.entry.filename)}" (a photograph waiting in the inbox, id ${flat(found.entry.id)})`
+            : `"${flat(found.entry.filename)}" (waiting in the inbox)`,
+        );
       continue;
     }
     if (!id.startsWith("photo:")) continue;
@@ -431,5 +440,5 @@ export function describeSelection(username: string, ids: string[]): string {
       ? `${photos.length} photograph(s) already on days: ${[...new Set(photos)].join(", ")}`
       : "",
   ].filter((part) => part !== "");
-  return `[they have selected, in the files pane beside this conversation: ${parts.join("; ")}. "these", "those" and "the selected ones" mean exactly this and nothing else. You cannot receive a file yourself: add_photos hands them the day's own page, which has the picker.]`;
+  return `[they have selected, in the files pane beside this conversation: ${parts.join("; ")}. "these", "those" and "the selected ones" mean exactly this and nothing else. To put the waiting photographs on a day, call attach_files with those ids, comma-separated, exactly as spelled here. You cannot receive a file yourself: add_photos hands them the day's own page, which has the picker.]`;
 }

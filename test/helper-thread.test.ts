@@ -324,6 +324,7 @@ describe("the tools", () => {
       "add_cost",
       "publish_day",
       "unpublish_day",
+      "attach_files",
     ]);
     expect(TOOLS.filter((tool) => tool.kind === "link").map((tool) => tool.name)).toEqual([
       "add_photos",

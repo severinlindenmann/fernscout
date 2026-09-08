@@ -122,6 +122,7 @@ export default function HelperAsk({
   onJournal = false,
   selected,
   onSubject,
+  onFilesMoved,
   inRoom = false,
 }: {
   username: string;
@@ -167,6 +168,12 @@ export default function HelperAsk({
    */
   onSubject?: (day: { trip: string; slug: string }) => void;
   /**
+   * Inbox ids that an accepted write moved onto a day — B915. The room drops
+   * them from the files pane and from the selection; nowhere else listens,
+   * and a conversation with nobody listening behaves exactly as it did.
+   */
+  onFilesMoved?: (ids: string[]) => void;
+  /**
    * Whether this is the room's middle column rather than a line under a card
    * — B901. In the room the conversation is the page: it is open from the
    * start (there is nothing else on the screen to compete with) and it grows
@@ -188,6 +195,10 @@ export default function HelperAsk({
   // being broken, and closed the tab.
   const [lapsed, setLapsed] = useState(false);
   const [turns, setTurns] = useState<Exchange[]>([]);
+  /** The last thing the microphone heard — B893. Kept only so it can be said
+   *  aloud once and shown as correctable; the words themselves live in the
+   *  field, where they can be edited. */
+  const [heard, setHeard] = useState("");
   const [consented, setConsented] = useState(initialConsent);
   const [consenting, setConsenting] = useState(false);
 
@@ -233,6 +244,7 @@ export default function HelperAsk({
   function landed(blocks: Block[]) {
     setTurns((was) => [...was, { said, blocks }]);
     setSaid("");
+    setHeard("");
     const day = dayOf(blocks);
     if (day) onSubject?.(day);
   }
@@ -310,11 +322,24 @@ export default function HelperAsk({
     setBusy(true);
     setError("");
     try {
-      const answer = await send(
-        proposal.endpoint,
-        { ...proposal.arguments, ...values },
-        proposal.method,
-      );
+      /**
+       * What is posted: what the model asked for, then **what the server
+       * resolved**, then whatever the person typed over.
+       *
+       * The middle one is the one that was missing — B915. A `confirm` draws
+       * no fields, so `values` is empty for one, and a proposal whose fields
+       * had filled the day's slug in posted the model's own arguments
+       * without it. The fields are the server's own answer about what this
+       * proposal is for; the preview above the button was rendered from
+       * them, so pressing has to send them or the press is about a different
+       * day from the one that was read.
+       */
+      const sent = {
+        ...proposal.arguments,
+        ...Object.fromEntries(proposal.fields.map((field) => [field.name, field.value])),
+        ...values,
+      };
+      const answer = await send(proposal.endpoint, sent, proposal.method);
 
       /**
        * The preview pane follows the press — B901. A write is the moment the
@@ -328,15 +353,26 @@ export default function HelperAsk({
       const slug = typeof wrote?.slug === "string" ? wrote.slug : proposal.arguments.slug;
       if (trip && slug) onSubject?.({ trip, slug });
 
+      /**
+       * Files the write says have left the inbox — B915. The pane offered
+       * them; they are on a day now, so it must stop. This component still
+       * knows the name of no tool: it reads a field of the answer, exactly as
+       * it reads `draft` above.
+       */
+      const moved = Array.isArray(answer.moved)
+        ? answer.moved.filter((one): one is string => typeof one === "string")
+        : [];
+      if (moved.length > 0) onFilesMoved?.(moved);
+
       // Memory only, and never a claim: the write has already happened above.
       await send(`/api/helper/${encodeURIComponent(username)}/proposal`, {
         tool: proposal.tool,
-        arguments: { ...proposal.arguments, ...values },
+        arguments: sent,
         wrote: true,
       }).catch(() => ({}));
 
       if (proposal.next) {
-        const carried: Record<string, string> = { ...proposal.arguments, ...values };
+        const carried: Record<string, string> = { ...sent };
         for (const [name, path] of Object.entries(proposal.next.from)) {
           const found = at(answer, path);
           if (typeof found === "string" && found !== "") carried[name] = found;
@@ -496,8 +532,26 @@ export default function HelperAsk({
             provider={speechProvider}
             disabled={busy}
             compact
-            onText={(heard) => setSaid(heard)}
+            onText={(spoken) => {
+              // Added to what is already there rather than replacing it —
+              // B893. A turn is often spoken in two goes, or typed and then
+              // finished out loud, and a transcript that overwrote the field
+              // threw the first half away without saying so.
+              setSaid((was) => (was.trim() === "" ? spoken : `${was.trim()} ${spoken}`));
+              setHeard(spoken);
+              box.current?.focus();
+            }}
           />
+        )}
+
+        {/* Where the transcript landed, said once — B893. A transcription is
+            a guess, so a screen reader is told what was heard *and* that the
+            box is where it gets corrected; the field itself announces
+            nothing when its value changes. */}
+        {heard !== "" && (
+          <p role="status" className="mt-2 text-sm leading-6 text-navy-600">
+            {t("agent.speechHeard", { said: heard })}
+          </p>
         )}
 
         <div className="mt-2 flex flex-wrap items-center justify-end gap-2">

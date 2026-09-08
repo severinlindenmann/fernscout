@@ -109,8 +109,11 @@ describe("the helper routes", () => {
   // without a model and tells the conversation that a press went through. It
   // writes nothing itself — the press posts to one of the sixteen above it —
   // and it is in this family because it is the same cookie and the same owner.
-  test("there are seventeen of them, and each is guarded", () => {
-    expect(sources).toHaveLength(17);
+  // Eighteen since B915 added `day/attach`, which puts a photograph already
+  // waiting in the inbox onto a day — the door the files pane presses, with
+  // the same cookie and the same owner check as the seventeen above it.
+  test("there are eighteen of them, and each is guarded", () => {
+    expect(sources).toHaveLength(18);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

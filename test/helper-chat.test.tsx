@@ -404,3 +404,55 @@ describe("what is deliberately not borrowed", () => {
     expect(container!.textContent).not.toMatch(/assistant|helper says|bot/i);
   });
 });
+
+/**
+ * B915 — a `confirm` draws no fields, so `values` is empty when it is
+ * pressed. Until this, the press posted the model's own arguments and the
+ * fields the *server* resolved were dropped: a proposal whose preview named
+ * "the pass" could post a body with no slug in it at all. What is read back
+ * above the button and what the button sends have to be the same day.
+ */
+describe("what a press actually posts", () => {
+  test("a confirm sends the fields the server resolved, not only the model's arguments", async () => {
+    answers(
+      {
+        ok: true,
+        kind: "read",
+        blocks: [
+          {
+            shape: "confirm",
+            text: "Two photographs onto the pass.",
+            proposal: {
+              tool: "attach_files",
+              // What the model asked with: a date and no day, and no ids.
+              arguments: { trip: "a-trip", date: "2026-05-04" },
+              sentence: "Two photographs onto the pass.",
+              fields: [
+                { name: "trip", value: "a-trip" },
+                { name: "slug", value: "the-pass" },
+                { name: "files", value: "aaa-one.jpg,bbb-two.jpg" },
+              ],
+              endpoint: "/api/helper/alex/day/attach",
+              method: "POST",
+              accept: "Put them on the day",
+              done: "They are on the day.",
+            },
+          },
+        ] satisfies Block[],
+      },
+      { ok: true, attached: 2, moved: ["aaa-one.jpg", "bbb-two.jpg"] },
+      { ok: true },
+    );
+    render();
+    await ask("put these on yesterday");
+    await act(async () => {
+      buttonSaying("Put them on the day").click();
+    });
+    expect(calls[1]).toMatchObject({
+      url: "/api/helper/alex/day/attach",
+      method: "POST",
+      body: { trip: "a-trip", slug: "the-pass", files: "aaa-one.jpg,bbb-two.jpg" },
+    });
+    expect(container!.textContent).toContain("They are on the day.");
+  });
+});
