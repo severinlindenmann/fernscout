@@ -6,6 +6,9 @@ priority: medium
 complexity: high
 area: search
 found: "2026-09-08T00:00:00Z"
+started: "2026-09-08T04:54:50Z"
+session: 6c81e17b-6acf-4c0f-86ef-49124c9b2458
+claimed: "2026-09-08T04:54:50Z"
 ---
 
 # B904 — Search matches words, not meaning — a person who asks for a topic in their own words gets nothing
