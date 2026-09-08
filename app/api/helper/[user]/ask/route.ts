@@ -1,5 +1,5 @@
 import { isEnabled } from "@/lib/capabilities";
-import { hasHelperConsent, helperConsent } from "@/lib/helper/consent";
+import { hasHelperConsent } from "@/lib/helper/consent";
 import type { Block } from "@/lib/helper/blocks";
 import { refusalFor, type Say } from "@/lib/helper/intents";
 import { answerInThread } from "@/lib/helper/model";
@@ -78,7 +78,9 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
   }
   return Response.json({
     ok: true,
-    consented: Boolean(helperConsent(user)),
+    // The scope rather than the file, for the reason the POST gate gives at
+    // length — B976. A record can now hold a no.
+    consented: hasHelperConsent(user, "words"),
     speech: isEnabled("transcription", user),
     consentedSpeech: hasHelperConsent(user, "speech"),
     speechProvider: speechProvider(),
@@ -163,9 +165,18 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     });
   }
 
-  // Their words go to a provider, so the same panel guards this as guards a
-  // write-up. Free or not, it is the sentence that leaves the machine.
-  if (!helperConsent(user)) {
+  /**
+   * Their words go to a provider, so the same panel guards this as guards a
+   * write-up. Free or not, it is the sentence that leaves the machine.
+   *
+   * **The scope, not the file** — B976. This asked whether a consent record
+   * existed at all, which was the same question while the file only ever held
+   * yeses and vanished when the last one went. It stopped being the same
+   * question the moment a record could hold a *no*: a person who turned off
+   * the operator reading their conversations would have left a file behind,
+   * and this would have read it as agreeing to send their words to a model.
+   */
+  if (!hasHelperConsent(user, "words")) {
     return Response.json({ error: "consent_required" }, { status: 403 });
   }
 

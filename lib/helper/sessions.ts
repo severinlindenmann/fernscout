@@ -1,7 +1,7 @@
 import "server-only";
 import { getDatabaseOrNull } from "../db";
 import { newId } from "../db/owner";
-import { hasHelperConsent } from "./consent";
+import { helperConsent } from "./consent";
 
 /**
  * What happened in a conversation, kept — B976.
@@ -16,11 +16,12 @@ import { hasHelperConsent } from "./consent";
  * to is a conversation that was saved, so `said` and `answered` are written
  * for every journal. That is a feature they asked for, not a study of them.
  *
- * **Consent decides whether the operator may read them.** `sessions` in
- * `./consent.ts`, revocable on `/<user>/me`. Turning it off deletes nothing
- * and stops nothing being written — it stops somebody else reading it — and
- * both the panel and the first message of a conversation say so in those
- * words, because a person who assumed otherwise would be misled by silence.
+ * **The operator may read them unless somebody says not to.** `sessions` in
+ * `./consent.ts`, turned off on `/<user>/me`. It is on by default, which is a
+ * decision and not an oversight — so the notice on the first message of a
+ * conversation has to say that plainly rather than implying a permission
+ * nobody gave. Turning it off deletes nothing and stops nothing being
+ * written; it stops somebody else reading it.
  *
  * What makes that workable rather than a formality: the helper is
  * **owner-only**. Every `/api/helper/**` route gates on `isHelperOwner`, so a
@@ -132,7 +133,11 @@ export async function recordTurn(turn: TurnRecord): Promise<void> {
  * nothing: what changes is a reader, not a record.
  */
 export function operatorMayRead(username: string): boolean {
-  return hasHelperConsent(username, "sessions");
+  // **On unless somebody turned it off** — the default is opt-in, decided
+  // after the first version had it the other way round. So the question is
+  // not "did they agree" but "did they refuse", and a journal nobody has
+  // touched is one the operator may read.
+  return !(helperConsent(username)?.declined ?? []).includes("sessions");
 }
 
 export async function recordPress(press: PressRecord): Promise<void> {

@@ -130,9 +130,31 @@ describe("who may read them", () => {
     expect(row.answered).toContain("wartet");
   });
 
-  test("what changes is whether the operator may read them", () => {
+  /**
+   * **It starts on**, which is a decision and not an oversight: a journal
+   * nobody has touched is one the operator may read, and the notice on the
+   * first message of a conversation says so rather than implying a permission
+   * nobody gave.
+   *
+   * That is why a "no" has to be written down. While every scope was off
+   * until somebody agreed, an absent file and a file saying no meant the same
+   * thing; they stop meaning the same thing the moment one of them starts on.
+   */
+  test("is on for a journal nobody has touched", () => {
+    expect(operatorMayRead("alex")).toBe(true);
+  });
+
+  test("and off once somebody turns it off, which survives having no other consent", () => {
     revokeHelperConsent("alex", "sessions");
     expect(operatorMayRead("alex")).toBe(false);
+    // The file used to be deleted when its last scope went. A person who
+    // turned this off and had the file deleted would have it back on next
+    // time anybody looked.
+    expect(operatorMayRead("alex")).toBe(false);
+  });
+
+  test("and on again if they change their mind", () => {
+    revokeHelperConsent("alex", "sessions");
     recordHelperConsent("alex", "this instance", "sessions");
     expect(operatorMayRead("alex")).toBe(true);
   });
@@ -145,7 +167,6 @@ describe("who may read them", () => {
    * of a conversation say so in those words.
    */
   test("turning it off deletes nothing that was already kept", async () => {
-    recordHelperConsent("alex", "this instance", "sessions");
     await recordTurn(TURN);
     revokeHelperConsent("alex", "sessions");
     await recordTurn({ ...TURN, said: "und jetzt?", answered: "Nichts." });
@@ -312,11 +333,11 @@ describe("what the operator can read", () => {
   });
 
   test("and whether the words are theirs to read", async () => {
-    revokeHelperConsent("alex", "sessions");
     await recordTurn(TURN);
-    expect((await sessionStats("2000-01-01T00:00:00.000Z"))[0].readable).toBe(false);
-
-    recordHelperConsent("alex", "this instance", "sessions");
+    // On unless somebody said otherwise.
     expect((await sessionStats("2000-01-01T00:00:00.000Z"))[0].readable).toBe(true);
+
+    revokeHelperConsent("alex", "sessions");
+    expect((await sessionStats("2000-01-01T00:00:00.000Z"))[0].readable).toBe(false);
   });
 });

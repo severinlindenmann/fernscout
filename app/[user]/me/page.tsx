@@ -10,7 +10,7 @@ import { manageTokenFor, listContacts, normaliseEmail } from "@/lib/contacts";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
 import { pickLocale } from "@/lib/contacts/locale";
 import { isEnabled } from "@/lib/capabilities";
-import { hasHelperConsent } from "@/lib/helper/consent";
+import { operatorMayRead } from "@/lib/helper/sessions";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { ownerShortName, serverSite } from "@/lib/site";
 import { resolveViewer } from "@/lib/viewer";
@@ -161,9 +161,7 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
        * for a journal that has no helper at all. `null` is what the component
        * reads as "there is nothing here to switch".
        */
-      sessionsShared={
-        isEnabled("helper", user) ? hasHelperConsent(user, "sessions") : null
-      }
+      sessionsShared={isEnabled("helper", user) ? operatorMayRead(user) : null}
       canSignIn={isEnabled("auth", user)}
       codeMinutes={CODE_TTL_MINUTES}
       contactsEnabled={contactsEnabled}
