@@ -68,7 +68,10 @@ beforeEach(() => {
   );
 });
 
-function render(opening: { trip: string; slug: string } | null = null) {
+function render(
+  opening: { trip: string; slug: string } | null = null,
+  files: RoomFiles = FILES,
+) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -78,7 +81,7 @@ function render(opening: { trip: string; slug: string } | null = null) {
         <HelperRoom
           username="alex"
           title="A Journal"
-          files={FILES}
+          files={files}
           currency={CURRENCY}
           opening={opening}
           consented
@@ -233,5 +236,37 @@ describe("the files pane's count", () => {
     // Not "is there once something is selected" — there, now, empty.
     expect(counts.length).toBeGreaterThan(0);
     expect(counts.some((one) => one.textContent === "")).toBe(true);
+  });
+});
+
+/**
+ * The column that held nothing — B947.
+ *
+ * A designer on a laptop, asked which one thing she would cut: the files
+ * column, which holds 256px of muted placeholder on a journal with an empty
+ * inbox, never changes shape, and takes that width from the conversation —
+ * the pane that matters, on the layout most likely to be opened on a laptop.
+ *
+ * It is not hidden. The toggle is in the header either way and one press
+ * brings it back; what changes is which state somebody with nothing to attach
+ * starts in.
+ */
+describe("the files column on a journal with nothing waiting", () => {
+  const EMPTY: RoomFiles = { inbox: [], trip: [], tripTitle: "A Trip" };
+
+  test("does not open on its own", () => {
+    const box = render(null, EMPTY);
+    expect(box.querySelector('section[aria-label="Files"]')).toBeNull();
+  });
+
+  test("but the way back to it is still there", () => {
+    const box = render(null, EMPTY);
+    const labels = [...box.querySelectorAll("button")].map((one) => one.textContent);
+    expect(labels).toContain("Show files");
+  });
+
+  test("and a journal with something waiting still opens on it", () => {
+    const box = render();
+    expect(box.querySelector('section[aria-label="Files"]')).not.toBeNull();
   });
 });
