@@ -167,9 +167,21 @@ function flatten(text: string): string {
  * the way `read_day` already resolves a date.
  *
  * Exact id first, so nothing that used to work stops. Then the title, then a
- * prefix, then anything containing it, newest first at every step. Nothing
- * matching still falls through to the newest trip, which is what a person
- * mid-write-up almost always means.
+ * prefix, then anything containing it, newest first at every step.
+ *
+ * **A name matching none of those resolves to nothing** — B940. It used to
+ * fall through to the newest trip, and that is the one case where falling
+ * through is wrong: somebody who asked for a day in their *Antarctica
+ * Expedition*, in a journal whose only trip was a week in Tokyo, was shown a
+ * filled-in proposal for Tokyo and told nothing about it. Nothing was written,
+ * because nobody pressed it — but it was ready to be.
+ *
+ * The fallback is kept for an **omitted** name, which is what B927 is actually
+ * about: a person mid-write-up means the trip they are writing up. And the
+ * four steps above already catch what B927 added it for — a model shortening
+ * `georgia-2026` to `georgia` is a prefix, not a miss. What was left for the
+ * fallback to catch is a name that means nothing in this journal, which is
+ * exactly the name that must not quietly become a different trip.
  */
 function resolveTrip(username: string, id?: string) {
   const trips = [...getTrips(username)].sort((a, b) => b.start.localeCompare(a.start));
@@ -181,11 +193,29 @@ function resolveTrip(username: string, id?: string) {
       trips.find((one) => flatten(one.id) === said) ??
       trips.find((one) => flatten(one.title) === said) ??
       trips.find((one) => flatten(one.id).startsWith(said) || flatten(one.title).startsWith(said)) ??
-      trips.find((one) => flatten(one.id).includes(said) || flatten(one.title).includes(said)) ??
-      trips[0]
+      trips.find((one) => flatten(one.id).includes(said) || flatten(one.title).includes(said))
     );
   }
   return trips[0];
+}
+
+/**
+ * Why a trip did not resolve, in words the model can repeat — B940.
+ *
+ * All four reads answered "there are no trips in this journal", which stops
+ * being true the moment a *name* misses in a journal that has several. Being
+ * told there are no trips when there are three is being told something false
+ * about your own journal, and it is the answer a person is least able to
+ * argue with.
+ */
+function noTrip(username: string, said?: string) {
+  return {
+    found: false,
+    why:
+      said && said.trim() !== "" && getTrips(username).length > 0
+        ? `there is no trip called "${said.trim()}" here: say so, and ask which of their trips they mean`
+        : "there are no trips in this journal",
+  };
 }
 
 const TRIP_ARG = {
@@ -240,13 +270,18 @@ function resolveDay(username: string, args: Record<string, string>) {
  * used to fall back to whatever the model typed: a proposal about a day that
  * does not exist reported a trip that does not exist either, and the sentence
  * a person read named the wrong missing half.
+ *
+ * It no longer falls back to `args.trip` at all — B940. An unresolved
+ * name is a name for no trip here, and putting it in the field would
+ * send it to a route that answers `unknown_trip`. Empty is what reaches
+ * the "nothing was proposed" path in `runTool`, which asks.
  */
 function tripIdFor(
   username: string,
   args: Record<string, string>,
   found: { trip: { id: string } } | null,
 ): string {
-  return found?.trip.id ?? resolveTrip(username, args.trip)?.id ?? args.trip ?? "";
+  return found?.trip.id ?? resolveTrip(username, args.trip)?.id ?? "";
 }
 
 /**
@@ -305,7 +340,7 @@ export const TOOLS: readonly Tool[] = [
     properties: TRIP_ARG,
     run: async (username, args) => {
       const trip = resolveTrip(username, args.trip);
-      if (!trip) return { found: false, why: "there are no trips in this journal" };
+      if (!trip) return noTrip(username, args.trip);
       return getAllEntries(trip.ref, AS_AUTHOR).map((entry) => ({
         trip: trip.id,
         date: entry.date,
@@ -363,7 +398,7 @@ export const TOOLS: readonly Tool[] = [
     },
     run: async (username, args) => {
       const trip = resolveTrip(username, args.trip);
-      if (!trip) return { found: false, why: "there are no trips in this journal" };
+      if (!trip) return noTrip(username, args.trip);
       const entries = getAllEntries(trip.ref, AS_AUTHOR).filter(
         (entry) => !args.date || entry.date === args.date,
       );
@@ -420,7 +455,7 @@ export const TOOLS: readonly Tool[] = [
     properties: TRIP_ARG,
     run: async (username, args) => {
       const trip = resolveTrip(username, args.trip);
-      if (!trip) return { found: false, why: "there are no trips in this journal" };
+      if (!trip) return noTrip(username, args.trip);
       const costs = getCostSummary(tripRef(username, trip.id));
       return {
         trip: trip.id,
@@ -449,7 +484,7 @@ export const TOOLS: readonly Tool[] = [
     properties: TRIP_ARG,
     run: async (username, args) => {
       const trip = resolveTrip(username, args.trip);
-      if (!trip) return { found: false, why: "there are no trips in this journal" };
+      if (!trip) return noTrip(username, args.trip);
       const full = getTrip(tripRef(username, trip.id));
       if (!full) return { found: false, why: "that trip could not be read" };
       return {
@@ -566,14 +601,14 @@ export const TOOLS: readonly Tool[] = [
       );
       const sentence = say("agent.tool.startDay", {
         date,
-        trip: trip?.title ?? args.trip ?? "",
+        trip: trip?.title ?? "",
       });
       return {
         sentence: asked.length > 0 ? `${sentence} ${say("agent.tool.startDayUnknown")}` : sentence,
         accept: say("agent.tool.startDayAccept"),
         done: say("agent.tool.startDayDone"),
         fields: [
-          { name: "trip", value: trip?.id ?? args.trip ?? "" },
+          { name: "trip", value: trip?.id ?? "" },
           { name: "date", value: date, date: true },
           ...asked.map((row) => ({
             name: row,

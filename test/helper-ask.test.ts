@@ -335,6 +335,30 @@ describe("the door", () => {
  * way to write: same fields, same route, same press.
  */
 describe("one accepted write handing on to the next", () => {
+  /**
+   * The day has to be **there** — B940.
+   *
+   * This used to run against a journal with no trips at all, and got a
+   * proposal anyway: `resolveTrip` fell through to the newest trip, found
+   * none, and the trip field took the model's own word for it. So the
+   * assertion below was passing on a proposal to rewrite a day that did not
+   * exist, in a trip that did not exist. The chain is what is under test, and
+   * a chain needs something to be chained to.
+   */
+  beforeEach(() => {
+    const entries = path.join(dir, "alex", "trips", "reise", "entries");
+    fs.mkdirSync(entries, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "alex", "trips", "reise", "trip.md"),
+      ["---", "id: reise", "title: Die Reise", 'start: "2026-05-01"', 'end: "2026-05-10"', "visibility: private", "---", "", "Intro."].join("\n"),
+    );
+    fs.writeFileSync(
+      path.join(entries, "2026-05-01-one.md"),
+      ["---", 'date: "2026-05-01"', "slug: one", "title: Der erste Tag", "status: draft", "---", "", "Worte."].join("\n"),
+    );
+    clearUserCache();
+  });
+
   test("the next proposal is asked for by name, and writes nothing itself", async () => {
     const answered = await read(
       await proposalRoute(
@@ -375,7 +399,9 @@ describe("one accepted write handing on to the next", () => {
       ),
     );
     expect(told.status).toBe(200);
-    expect(getTrips("alex")).toHaveLength(0);
+    // The one the fixture wrote, and no Japan: this route says a write
+    // happened, it does not make one.
+    expect(getTrips("alex").map((trip) => trip.id)).toEqual(["reise"]);
     expect(history("alex").map((turn) => turn.text).join("\n")).toContain("written: create_trip");
   });
 });
