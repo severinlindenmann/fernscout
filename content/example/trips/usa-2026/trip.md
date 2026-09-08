@@ -14,6 +14,8 @@ people:
   - name: "Priya Fenwick"
     email: "priya@example.com"
     nickname: "Priya"
+visibility: public
+costsVisibility: public
 travellers:
   - for: "agent@fernscout.ch"
     skin: light-medium
@@ -36,8 +38,6 @@ travellers:
     pants: slate
     pack: none
     accessories: [hat]
-visibility: public
-costsVisibility: public
 rates:
   USD: 0.88
 translations:

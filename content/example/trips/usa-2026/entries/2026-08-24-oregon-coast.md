@@ -13,19 +13,19 @@ transportFrom: "Bishop"
 transportTo: "Cannon Beach"
 gallery:
   - src: "/media/usa-2026/oregon-coast/01.jpg"
-    caption: "One leaf still holding the rain"
     type: "image"
     width: 1600
     height: 1067
+    caption: "One leaf still holding the rain"
   - src: "/media/usa-2026/oregon-coast/02.jpg"
     type: "image"
     width: 1600
     height: 1067
   - src: "/media/usa-2026/oregon-coast/03.jpg"
-    caption: "The beach at low tide, and one person on the whole of it"
     type: "image"
     width: 1067
     height: 1600
+    caption: "The beach at low tide, and one person on the whole of it"
   - src: "/media/usa-2026/oregon-coast/04.jpg"
     type: "image"
     width: 1400
