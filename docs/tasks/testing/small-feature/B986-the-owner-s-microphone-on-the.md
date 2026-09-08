@@ -7,8 +7,7 @@ complexity: low
 area: search
 found: "2026-09-08T16:34:20Z"
 started: "2026-09-08T16:34:59Z"
-session: 6c81e17b-6acf-4c0f-86ef-49124c9b2458
-claimed: "2026-09-08T16:34:59Z"
+merged: "2026-09-08T16:45:31Z"
 ---
 
 # B986 — The owner's microphone on the search page is a full-width button asking about ASR languages and quoting a price

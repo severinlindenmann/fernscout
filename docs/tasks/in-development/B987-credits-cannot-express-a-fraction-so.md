@@ -6,6 +6,9 @@ priority: high
 complexity: high
 area: credits
 found: "2026-09-08T16:34:20Z"
+started: "2026-09-08T16:45:32Z"
+session: 6c81e17b-6acf-4c0f-86ef-49124c9b2458
+claimed: "2026-09-08T16:45:32Z"
 ---
 
 # B987 — Credits cannot express a fraction, so a six-second question costs the same as a five-minute one
