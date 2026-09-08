@@ -6,7 +6,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { grant } from "@/lib/credits";
+import { grant, spend } from "@/lib/credits";
 import { forget, history, remember } from "@/lib/helper/thread";
 import { TOOLS, runTool } from "@/lib/helper/tools";
 import { threadSystemPrompt } from "@/lib/helper/model";
@@ -57,6 +57,8 @@ vi.mock("@anthropic-ai/sdk", () => ({
 
 const { POST } = await import("@/app/api/helper/[user]/ask/route");
 const { POST: consentRoute } = await import("@/app/api/helper/[user]/consent/route");
+const { POST: proposalRoute } = await import("@/app/api/helper/[user]/proposal/route");
+const { POST: writeDayRoute } = await import("@/app/api/helper/[user]/day/write-day/route");
 
 let dir: string;
 const params = { params: Promise.resolve({ user: "alex" }) };
@@ -313,6 +315,97 @@ describe("the conversation", () => {
     await ask("wie geht das hier");
     expect(history("alex")).toHaveLength(2);
     expect(history("somebody-else")).toEqual([]);
+  });
+});
+
+/* ---------------------------------------------- a proposal with no model --- */
+
+/**
+ * B926 — the notes given three turns ago are still usable when the write is
+ * retried.
+ *
+ * `start_day` chaining straight to `draft_words` (B969) never asks the model
+ * again: `POST /api/helper/<user>/proposal` builds that second card the way
+ * the browser's own `next` mechanism describes it, with the notes riding
+ * along in `arguments.notes`. That route never told the thread, so a person
+ * whose chained `draft_words` press then failed — no credits, a transient
+ * model error, anything — was on their next turn with only a *stale* note
+ * about `start_day`, already superseded by its own `[written: …]` note, and
+ * the model asked for their notes over again.
+ */
+function proposeChained(tool: string, args: Record<string, string>) {
+  return proposalRoute(
+    new Request("https://t.test/api/helper/alex/proposal", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ tool, arguments: args, today: "2026-09-07" }),
+    }),
+    params,
+  );
+}
+
+function pressWriteDay(body: Record<string, unknown>) {
+  return writeDayRoute(
+    new Request("https://t.test/api/helper/alex/day/write-day", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+    params,
+  );
+}
+
+const NOTES =
+  "Drove up to Kazbegi in the morning, the pass was closed by fog so we waited two hours at a roadside stall, then walked up to Gergeti Trinity Church once it cleared.";
+
+describe("a proposal chained without the model — B926", () => {
+  test("enters the conversation, same as one the model proposed itself", async () => {
+    const answered = await proposeChained("draft_words", {
+      trip: "reise",
+      slug: "kazbegi-tag",
+      date: "2026-05-01",
+      notes: NOTES,
+    });
+    expect(answered.status).toBe(200);
+
+    const turns = history("alex");
+    expect(turns).toHaveLength(1);
+    expect(turns[0].role).toBe("note");
+    expect(turns[0].text).toContain("draft_words");
+    expect(turns[0].text).toContain(NOTES);
+    expect(turns[0].text).toContain("not written");
+  });
+
+  test("survives a failed press, and the next turn can still use it", async () => {
+    await proposeChained("draft_words", {
+      trip: "reise",
+      slug: "kazbegi-tag",
+      date: "2026-05-01",
+      notes: NOTES,
+    });
+
+    // The press that fails: no credits, the same shape a transient model
+    // error or a lapsed balance produces. `refused()` deliberately never
+    // touches the thread — the route's own answer already says what
+    // happened — so this must not remove what the proposal already put there.
+    await spend("alex", 10, "helper", "drain-for-test");
+    const pressed = await pressWriteDay({
+      trip: "reise",
+      slug: "kazbegi-tag",
+      date: "2026-05-01",
+      notes: NOTES,
+    });
+    expect(pressed.status).toBe(402);
+    expect((await pressed.json()).error).toBe("no_credits");
+
+    // The notes the failed press carried are still the ones the next turn's
+    // model call is handed.
+    create.mockResolvedValueOnce(says("Which day would you like written up?"));
+    await ask("please write up the Kazbegi day");
+    const last = sent.at(-1)!.messages as { role: string; content: string }[];
+    const combined = last.map((m) => m.content).join("\n");
+    expect(combined).toContain("draft_words");
+    expect(combined).toContain(NOTES);
   });
 });
 

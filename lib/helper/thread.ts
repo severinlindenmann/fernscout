@@ -190,6 +190,31 @@ export function note(username: string, text: string): void {
 }
 
 /**
+ * A write tool offered a proposal, in words the model can read back — B926.
+ *
+ * **Every proposal a person can see must enter the conversation, not only the
+ * ones the model itself made this turn.** `start_day` chaining straight to
+ * `draft_words` (B969) is answered by `POST /api/helper/<user>/proposal`
+ * without calling the model at all, and that route used to leave the thread
+ * untouched — so a person who read their notes into the day, had `start_day`
+ * chain to a `draft_words` card carrying those notes, and then had that
+ * *press* fail (a transient model error, no credits, anything) was left with
+ * a conversation that had never heard of the draft it was shown. The only
+ * trace of their notes was an *earlier* `start_day` proposal, itself since
+ * marked `[written: start_day …]` — a stale, contradictory note about the
+ * wrong tool. Asked to try again, the model had nothing but that to go on and
+ * asked for the notes over.
+ *
+ * So both places a proposal reaches a screen — a model's own tool call
+ * (`app/api/helper/[user]/ask/route.ts`) and a chained one with no model in
+ * the loop (`app/api/helper/[user]/proposal/route.ts`) — call this, once,
+ * rather than each writing the marker line by hand.
+ */
+export function proposed(username: string, tool: string, args: Record<string, string>): void {
+  note(username, `[proposed, not written, waiting to be pressed: ${tool} ${JSON.stringify(args)}]`);
+}
+
+/**
  * What a write route did, in the conversation the proposal came from — B939.
  *
  * **The note belongs to the write, not to the client.** It used to be posted

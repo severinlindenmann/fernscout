@@ -1,6 +1,7 @@
 import { isEnabled } from "@/lib/capabilities";
 import type { Say } from "@/lib/helper/intents";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
+import { proposed } from "@/lib/helper/thread";
 import { proposalFor, writeTool } from "@/lib/helper/tools";
 import { requestLocale, translateIn } from "@/lib/locales";
 
@@ -21,6 +22,17 @@ export const dynamic = "force-dynamic";
  * B939 moved that to the routes that do the writing, because a caller that is
  * not our own page never made the call and was told on the next turn that
  * nothing had been saved.
+ *
+ * **What it proposes still has to enter the conversation, even though no
+ * model was asked** — B926. This is the one place a proposal can reach a
+ * person's screen with the thread never having heard of it: `start_day`
+ * chaining straight to `draft_words` calls here, not the model, so notes
+ * somebody had already given rode onto this card and nowhere else. If that
+ * press then failed, the next turn had only a stale, differently-worded note
+ * about the *first* tool to go on. `lib/helper/thread.ts`'s `proposed()` is
+ * the same marker `app/api/helper/[user]/ask/route.ts` writes for a proposal
+ * the model made itself, so a later turn cannot tell the two apart and does
+ * not need to.
  *
  * A name that is not a **write** tool lands nowhere: a read has nothing to
  * propose and a link has nothing to press.
@@ -67,5 +79,6 @@ export async function POST(
       : new Date().toISOString().slice(0, 10);
 
   const { proposal, blocks } = await proposalFor(user, tool, args, say, today);
+  if (proposal) proposed(user, proposal.tool, proposal.arguments);
   return Response.json({ ok: true, proposal, blocks });
 }
