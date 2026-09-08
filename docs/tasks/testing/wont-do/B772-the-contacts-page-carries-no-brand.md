@@ -5,6 +5,7 @@ type: CHORE
 priority: low
 complexity: low
 area: contacts, brand
+wontDo: "not a fault — the page is branded; the measurement was taken on the shell file"
 found: "2026-09-07T00:00:00Z"
 started: "2026-09-08T05:46:12Z"
 merged: "2026-09-08T05:50:42Z"
@@ -59,3 +60,15 @@ the copy and that was a screenshot artifact, measured rather than believed.
 
 **No code changed.** Left for a person to close: the ticket describes a fault
 that is not there.
+
+
+## Closed (2026-09-08)
+
+Closed by the owner as a non-fault, on the finding above: `ContactsAdmin.tsx`
+carries 97 brand tokens and a palette of nothing but navy, cream, coral and
+yellow. The zero came from grepping `app/[user]/contacts/page.tsx`, which is a
+225-line shell that resolves the owner and hands off. Looked at in a browser at
+390 px and at 800 px before closing.
+
+No code changed, and none should. The lesson worth keeping is the measurement
+one: a route's `page.tsx` is not the page when it delegates to a component.

@@ -5,6 +5,7 @@ type: CHORE
 priority: low
 complexity: low
 area: payments, safety-gates
+wontDo: "the operator does not want it — B07 was read by hand at the time and nothing since has suggested a finding"
 found: "2026-09-06T14:32:19Z"
 ---
 
@@ -43,3 +44,15 @@ faking the outcome is the exact failure this ticket was opened about.
 
 Still the right ticket, still needs a session that may use `Workflow`. The
 range and scope in **Work** above are unchanged and still correct.
+
+
+## Closed (2026-09-08)
+
+Closed by the owner rather than run. B07's change was a fail-closed `throw` on
+an empty string in two request builders — no route, no database write, no
+secret touched — and it was read by hand at the time and recorded honestly as
+such. Nothing in the year since has suggested a finding hiding in it.
+
+This closes the *re-run*, not the standing rule: AGENTS.md still says an
+auth-or-money-adjacent change goes through `claude-security` before merging,
+and that is unchanged for the next one.
