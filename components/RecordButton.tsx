@@ -530,8 +530,14 @@ export default function RecordButton({
     </>
   );
 
+  // `role="alert"` — B813, the same convention B796 gave the wizard's own
+  // error line. A denied microphone, an unsupported browser or a recording
+  // too short to send are all a problem stopping the one thing this control
+  // does; `role="status"` is what the *stopwatch* would be if it were a live
+  // region, and announcing a refusal at that same polite priority is how a
+  // screen reader user could miss it entirely.
   const failed = error && (
-    <p role="status" className="mt-2 text-sm text-coral-600">
+    <p role="alert" className="mt-2 text-sm text-coral-600">
       {error}
     </p>
   );
