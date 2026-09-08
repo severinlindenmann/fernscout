@@ -7,8 +7,7 @@ complexity: low
 area: tests
 found: "2026-09-07T17:02:28Z"
 started: "2026-09-08T21:27:12Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T21:27:12Z"
+merged: "2026-09-08T21:36:06Z"
 ---
 
 # B853 — Component tests set input values in a way React never hears
