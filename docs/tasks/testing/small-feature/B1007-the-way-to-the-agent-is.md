@@ -7,8 +7,7 @@ complexity: low
 area: components/OwnerTools.tsx, components/HelperAskHere.tsx, components/DraftNotice.tsx
 found: "2026-09-08T18:11:37Z"
 started: "2026-09-08T18:12:06Z"
-session: 79cece02-4661-45ef-809b-52b592e67f95
-claimed: "2026-09-08T18:12:06Z"
+merged: "2026-09-08T18:36:30Z"
 ---
 
 # B1007 — The way to the agent is the one control in the owner block with no button
