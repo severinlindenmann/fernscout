@@ -56,7 +56,11 @@ export default function PaymentCheckout({
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ method }),
+        // Only the manual path reads this. Under a provider the route ignores
+        // it outright — the method is chosen on Stripe's own page and recorded
+        // by the webhook — so sending one would be stating a choice nobody
+        // made.
+        body: JSON.stringify(provider === "manual" ? { method } : {}),
       },
     ).catch(() => null);
     if (response?.ok) {
@@ -173,42 +177,50 @@ export default function PaymentCheckout({
           <div className="mt-5">
             {/* Under a provider there is nothing to choose here: Stripe's own
                 page offers TWINT, the device's wallet and a card, and a second
-                chooser in front of it would only be a guess at the first. */}
+                chooser in front of it would only be a guess at the first. Not
+                rendered at all rather than hidden with a class — B811. A dead
+                control in the DOM is one the next reader has to work out is
+                unreachable, and a Playwright run counted three buttons in
+                `main` on a page that shows one. */}
             <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
               {t(
                 provider === "stripe" ? "pay.methodsNote" : "pay.chooseMethod",
               )}
             </p>
-            <div
-              className={`mt-2 grid grid-cols-2 gap-3 ${provider === "stripe" ? "hidden" : ""}`}
-            >
-              {[
-                {
-                  id: "twint" as const,
-                  label: t("pay.twint"),
-                  Icon: Smartphone,
-                },
-                { id: "card" as const, label: t("pay.card"), Icon: CreditCard },
-              ].map(({ id, label, Icon }) => (
-                <button
-                  key={id}
-                  type="button"
-                  aria-pressed={method === id}
-                  onClick={() => setMethod(id)}
-                  className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 text-base font-semibold transition-colors ${
-                    method === id
-                      ? "border-navy-900 bg-cream-50 text-navy-900"
-                      : "border-navy-200 text-navy-700 hover:border-navy-500"
-                  }`}
-                >
-                  <Icon
-                    className="h-[18px] w-[18px] text-navy-600"
-                    aria-hidden="true"
-                  />
-                  {label}
-                </button>
-              ))}
-            </div>
+            {provider === "manual" && (
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                {[
+                  {
+                    id: "twint" as const,
+                    label: t("pay.twint"),
+                    Icon: Smartphone,
+                  },
+                  {
+                    id: "card" as const,
+                    label: t("pay.card"),
+                    Icon: CreditCard,
+                  },
+                ].map(({ id, label, Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={method === id}
+                    onClick={() => setMethod(id)}
+                    className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 text-base font-semibold transition-colors ${
+                      method === id
+                        ? "border-navy-900 bg-cream-50 text-navy-900"
+                        : "border-navy-200 text-navy-700 hover:border-navy-500"
+                    }`}
+                  >
+                    <Icon
+                      className="h-[18px] w-[18px] text-navy-600"
+                      aria-hidden="true"
+                    />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <BusyButton
               busy={busy}
