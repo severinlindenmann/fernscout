@@ -160,7 +160,8 @@ describe("the ask box, where the owner actually is", () => {
     const link = [...host.querySelectorAll("a")].find((anchor) =>
       anchor.textContent?.includes("Ask to have it published"),
     ) as HTMLAnchorElement;
-    expect(link.getAttribute("href")).toBe("/agent/alex/chat?trip=reise-2026&slug=bellinzona");
+    // B984 — one URL, and the day rides as `about`.
+    expect(link.getAttribute("href")).toBe("/agent?about=reise-2026%2Fbellinzona");
   });
 
   test("a day already on the site does not", async () => {
