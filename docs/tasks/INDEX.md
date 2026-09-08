@@ -49,9 +49,9 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (125)
+## backlog (124)
 
-### issue (16)
+### issue (15)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -69,7 +69,6 @@ Do not edit them by hand; run the script.
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1031](backlog/issue/B1031-searchbox-s-voice-search-errors-use.md) | SearchBox's voice-search errors use role=status, not role=alert | ISSUE | low | low |
 | [B1032](backlog/issue/B1032-a-day-s-title-colliding-with.md) | A day's title colliding with another day's slug is still an English sentence on the helper | ISSUE | low | low |
-| [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B973](backlog/issue/B973-a-cost-with-no-currency-is.md) | A cost with no currency is filed in the base one without anybody being asked | ISSUE | low | low |
 
 ### big-feature (16)
@@ -215,7 +214,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (9)
+## in-development (10)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -227,6 +226,7 @@ _Nothing here._
 | [B720](in-development/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium | `bdd0270d` |
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 | [B1009](in-development/B1009-the-ask-box-on-agent-is.md) | The ask box on /agent is now the only underlined way into the room, beside a row that is not | ISSUE | low | low | `bdd0270d` |
+| [B738](in-development/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high | `bdd0270d` |
 | [B757](in-development/B757-border-navy-300-is-used-but.md) | border-navy-300 is used but no navy-300 token exists, so the sign-in field's unfocused border falls back to currentColor | ISSUE | low | low | `bdd0270d` |
 
 ## testing (239)
