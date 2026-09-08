@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: photobook pricing
 found: "2026-09-07T18:50:51Z"
+started: "2026-09-08T20:05:00Z"
+session: bdd0270d-3797-42c9-8687-06abecadbc63
+claimed: "2026-09-08T20:05:00Z"
 ---
 
 # B895 — A run-on day does not raise the photobook price, and a test says it must
