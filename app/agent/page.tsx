@@ -1,22 +1,27 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { resolveIdentity } from "@/lib/auth/handshake";
-import { balanceOf } from "@/lib/credits";
 import { isEnabled } from "@/lib/capabilities";
 import AgentDoor from "@/components/AgentDoor";
+import HelperRoom from "@/components/HelperRoom";
 import { hasHelperConsent } from "@/lib/helper/consent";
-import { draftsForWizard } from "@/lib/helper/server";
+import { draftsForWizard, filesForRoom, isHelperOwner } from "@/lib/helper/server";
+import { openingFor } from "@/lib/helper/opening";
+import { turnsIn } from "@/lib/helper/sessions";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { journalsFor } from "@/lib/home";
 import { requestLocale, translateIn } from "@/lib/locales";
+import { currencyOptions } from "@/lib/rates";
+import { JOURNAL_COOKIE } from "@/lib/requestKeys";
 import { serverSite } from "@/lib/site";
+import { getUser } from "@/lib/users";
 
 // Reads the identity cookie on every request; there is nothing here to
 // prerender, the same reasoning as `/[user]/me`.
 export const dynamic = "force-dynamic";
 
-/** Never indexed: signed in, this page names the reader's own journal — the
- * same bargain `/[user]/me` makes. */
+/** Never indexed: signed in, this page is somebody's own conversation. */
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await requestLocale();
   return {
@@ -27,63 +32,100 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * The door at `/agent` — B681.
+ * `/agent` — and it is the whole of it now, B984.
  *
- * `docs/plans/2026-09-07-web-helper-agent.md` calls this "one door, journal
- * chosen after sign-in": signed out this page can only offer the two things
- * that work with nothing switched on — sign in, or bring your own agent — and
- * signed in it names the journal, says what is unfinished in it, and opens
- * the wizard.
+ * There were three pages: this one as a door, `/agent/<user>` as the wizard,
+ * `/agent/<user>/chat` as the room. The journal's name was in the address bar
+ * of two of them, and the room — the thing somebody actually uses — was two
+ * clicks and a path segment away from the URL they had been given.
  *
- * Since B685 a signed-in card may also carry the ask box, and only where the
- * `helper` capability is on for that journal. Nothing else on the page moves
- * when it is off: the box is absent and the buttons are the whole interface,
- * which is the plan's rule that the router is an accelerator over a UI that
- * works without it. Nothing here calls a model.
+ * **Signed in, this is the room.** No card of buttons in front of it: an owner
+ * arriving here has arrived at the conversation. The door below is what
+ * somebody signed *out* meets, and it is the only thing left of it — signing
+ * in, and the note for people bringing their own agent.
  *
- * Which journal is "the journal" comes from the same place `/` already
- * answers it for a signed-in reader — `journalsFor()`, off the identity
- * cookie via `resolveIdentity()`, kept apart from a journal-scoped
- * `fs_session` for the reason `lib/auth/handshake.ts` gives at length. Only
- * `owner` journals are named here: writing a day is what this door is for,
- * and a traveller's write access is scoped to one trip on one journal rather
- * than to "start a day" in general, which is a distinction the wizard (B682)
- * has to make and this shell does not.
+ * ## Two things are remembered, and neither is in the path
+ *
+ * **The journal**, in a cookie. Almost nobody owns two; putting the name back
+ * in the URL is exactly what this ticket exists to stop. A cookie naming a
+ * journal the person no longer owns falls through to their first rather than
+ * answering 404 — it is a preference, not a permission, and every read below
+ * re-checks ownership anyway.
+ *
+ * **The conversation**, as `?c=`. That is what a copied URL brings somebody
+ * back to, and what the list of past conversations links to. Scoped to the
+ * journal when it is read (`turnsIn`), because a session id is a random string
+ * and is still not a thing to look up on its own.
+ *
+ * `?about=<trip>/<slug>` is the third, and it is B994's: a link from a day,
+ * opening a conversation that already knows what it was opened from.
  */
-export default async function AgentPage() {
+export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
   const site = serverSite();
   const identity = isEnabled("auth") ? await resolveIdentity() : null;
   const owned = identity
     ? (await journalsFor(identity.email)).filter((journal) => journal.role === "owner")
     : [];
 
-  const journals = await Promise.all(
-    owned.map(async (journal) => ({
-      username: journal.username,
-      title: journal.title,
-      // Read here rather than in the card, because the card is a client
-      // component and this is a directory walk — and because it is the same
-      // read `GET /api/v1/<user>/drafts` makes, which is what makes the
-      // resume card and an agent's own queue agree about what is waiting.
-      drafts: draftsForWizard(journal.username),
-      // B685: the ask box, and whether it has to ask for consent first.
-      helper: isEnabled("helper", journal.username),
-      // The scope rather than the file — B976. A consent record can now hold
-      // a *no* (somebody turning off the operator reading their
-      // conversations), and reading its mere existence as a yes would put the
-      // ask box in front of a person who has agreed to nothing.
-      consented: hasHelperConsent(journal.username, "words"),
-      // B686: the microphone, on its own switch and its own consent.
-      speech: isEnabled("transcription", journal.username),
-      consentedSpeech: hasHelperConsent(journal.username, "speech"),
-      speechProvider: speechProvider(),
-      // B767: not to show the balance, but to know whether it is low enough
-      // to say so. `null` where credits are off, which the card reads as
-      // "there is no such number here" and draws nothing.
-      credits: await balanceOf(journal.username),
-    })),
-  );
+  const asked = await searchParams;
+  const remembered = (await cookies()).get(JOURNAL_COOKIE)?.value;
+  // The remembered journal if it is still theirs, otherwise the first. Never a
+  // 404: a stale cookie is somebody who used to own something, and the honest
+  // answer to that is their own journal rather than an error.
+  const chosen = owned.find((journal) => journal.username === remembered) ?? owned[0];
 
+  if (chosen && isEnabled("helper", chosen.username) && (await isHelperOwner(chosen.username))) {
+    const user = chosen.username;
+    const journal = getUser(user);
+    if (journal) {
+      /**
+       * Which day the preview opens on. `?about=` is a person arriving from
+       * one — not a guess at all — and otherwise it is whatever is unfinished,
+       * which is a better opening than an empty rectangle and no claim about
+       * what they want.
+       */
+      const about = typeof asked.about === "string" ? asked.about : "";
+      const [aboutTrip, aboutSlug] = about.split("/");
+      const [waiting] = draftsForWizard(user);
+      const opening =
+        aboutTrip && aboutSlug
+          ? { trip: aboutTrip, slug: aboutSlug }
+          : waiting
+            ? { trip: waiting.trip, slug: waiting.slug }
+            : null;
+
+      const session = typeof asked.c === "string" ? asked.c : "";
+      return (
+        <HelperRoom
+          username={user}
+          title={journal.title}
+          files={filesForRoom(user)}
+          currency={currencyOptions(user)}
+          opening={opening}
+          // A conversation reopened by URL, drawn from what was stored. Empty
+          // for anything that is not this journal's, which `turnsIn` decides.
+          history={session ? await turnsIn(user, session) : []}
+          // What the room says before anybody has said anything — B984. Read
+          // from disk here, drawn locally there: a page that spent a credit to
+          // say hello would be charging somebody for arriving.
+          first={openingFor(user, new Date().toISOString().slice(0, 10))}
+          journals={owned.map((one) => ({ username: one.username, title: one.title }))}
+          // The scope rather than the file — B976.
+          consented={hasHelperConsent(user, "words")}
+          speech={isEnabled("transcription", user)}
+          consentedSpeech={hasHelperConsent(user, "speech")}
+          speechProvider={speechProvider()}
+        />
+      );
+    }
+  }
+
+  /**
+   * Signed out, or a journal with the helper switched off. What is left of the
+   * door is the way in and the note for somebody bringing their own agent —
+   * everything that used to be a menu of buttons is now the conversation
+   * above, and this is not a smaller version of it.
+   */
   return (
     <AgentDoor
       siteUrl={site.url}
@@ -92,11 +134,7 @@ export default async function AgentPage() {
       codeMinutes={CODE_TTL_MINUTES}
       signedIn={Boolean(identity)}
       identityEmail={identity?.email ?? null}
-      // B688: absent rather than broken — off, the wizard does not render at
-      // all and a plain sentence says so, the same discipline every other
-      // capability here follows.
       signupEnabled={isEnabled("signup")}
-      journals={journals}
     />
   );
 }

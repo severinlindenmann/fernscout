@@ -49,14 +49,13 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (147)
+## backlog (146)
 
-### issue (48)
+### issue (47)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1008](backlog/issue/B1008-the-print-target-is-pdf-x.md) | The print target is PDF/X-4 and the fonts are not embedded | ISSUE | high | medium |
-| [B1014](backlog/issue/B1014-the-embedded-print-fonts-are-read.md) | The embedded print fonts are read from the process's working directory, so npm run postcard fails outside the checkout | ISSUE | high | low |
 | [B766](backlog/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low |
 | [B829](backlog/issue/B829-rewording-a-row-did-not-stop.md) | Rewording a row did not stop the wrong one matching | ISSUE | high | low |
 | [B922](backlog/issue/B922-a-credit-is-spent-on-a.md) | Was she charged for a day that was never written, and should she have been? | ISSUE | high | low |
@@ -237,10 +236,11 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (5)
+## in-development (6)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1014](in-development/B1014-the-embedded-print-fonts-are-read.md) | The embedded print fonts are read from the process's working directory, so npm run postcard fails outside the checkout | ISSUE | high | low | `b8352d66` |
 | [B980](in-development/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | `a4bbb185` |
 | [B984](in-development/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | `fdfcf5f2` |
 | [B1012](in-development/B1012-every-dropdown-and-the-file-picker.md) | Every dropdown and the file picker are the operating system's, in the operating system's type | FEATURE | medium | medium | `79cece02` |

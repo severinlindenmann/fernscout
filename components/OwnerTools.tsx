@@ -100,8 +100,10 @@ export default function OwnerTools({
 
   /** The room, opened on the day it was pressed on rather than whatever was
       last left unfinished — B979. */
-  const room = `/agent/${encodeURIComponent(username)}/chat${
-    day ? `?trip=${encodeURIComponent(day.tripId)}&slug=${encodeURIComponent(day.slug)}` : ""
+  // B984 — one URL, and the day rides as `about`. The room no longer lives at
+  // a path carrying the journal's name.
+  const room = `/agent${
+    day ? `?about=${encodeURIComponent(`${day.tripId}/${day.slug}`)}` : ""
   }`;
 
   return (
@@ -147,7 +149,7 @@ export default function OwnerTools({
             </button>
           ) : (
             <Link
-              href={`/agent/${encodeURIComponent(username)}?trip=${encodeURIComponent(day.tripId)}&slug=${day.slug}&date=${day.date}`}
+              href={`/agent?about=${encodeURIComponent(`${day.tripId}/${day.slug}`)}`}
               className={OWNER_TOOL}
             >
               {t("agent.correctDay")}

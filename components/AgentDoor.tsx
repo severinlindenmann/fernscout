@@ -85,7 +85,6 @@ export default function AgentDoor({
   signedIn,
   identityEmail,
   signupEnabled,
-  journals,
 }: {
   /** This instance's public base URL, from server config. */
   siteUrl: string;
@@ -102,8 +101,6 @@ export default function AgentDoor({
   /** Whether `signup` is on for this instance — B688. Off is absent rather
    * than broken: no form, a plain sentence instead. */
   signupEnabled: boolean;
-  /** The reader's own journals — `role: "owner"` only, see the page. */
-  journals: AgentJournal[];
 }) {
   const { t, tn, locale, formatLongDate } = useI18n();
   const router = useRouter();
@@ -207,7 +204,6 @@ export default function AgentDoor({
         )}
 
         {signedIn &&
-          journals.length === 0 &&
           (signupEnabled ? (
             <div className="mt-6">
               <SignupWizard email={identityEmail ?? undefined} locale={locale} codeMinutes={codeMinutes} onSignedIn={intoTheWizard} />
@@ -218,127 +214,6 @@ export default function AgentDoor({
             </p>
           ))}
 
-        {signedIn && journals.length > 0 && (
-          <div className="mt-8 space-y-6">
-            {journals.map((journal) => (
-              <section
-                key={journal.username}
-                className="rounded-2xl border border-navy-200 bg-cream-50 p-5 sm:p-6"
-              >
-                <h2 className="font-display text-xl font-semibold text-navy-900">
-                  {journal.title}
-                </h2>
-
-                {/* B767 — the balance is off this screen, and earns one line
-                  only when it is nearly gone. A number nobody is about to
-                  spend is a number that makes somebody hesitate; what it
-                  costs is said in the panel that confirms the spending. */}
-                {journal.credits !== null && journal.credits <= LOW_CREDITS && (
-                  <p className="mt-2 text-sm text-navy-700">
-                    {tn("agent.creditsLow", journal.credits, {
-                      count: String(journal.credits),
-                    })}
-                  </p>
-                )}
-
-                {/* The one bright thing on the card — B767. It says what the
-                  person came to do, and where a day was left half-written it
-                  says that instead and names the day, because somebody with
-                  unfinished work does not want a second decision. */}
-                <Link
-                  // B818 — a button that says "Finish Wednesday, 19 August"
-                  // has to open that day, not today. The wizard reads these
-                  // three off the query string on the server, so its very
-                  // first render is already the day this link names.
-                  href={
-                    journal.drafts.length > 0
-                      ? `/agent/${encodeURIComponent(journal.username)}?trip=${encodeURIComponent(journal.drafts[0].trip)}&slug=${encodeURIComponent(journal.drafts[0].slug)}&date=${journal.drafts[0].date}`
-                      : `/agent/${encodeURIComponent(journal.username)}`
-                  }
-                  className="mt-4 inline-flex min-h-11 items-center rounded-full border border-yellow-600 bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
-                >
-                  {journal.drafts.length > 0
-                    ? t("agent.resumeDay", {
-                        date: formatLongDate(journal.drafts[0].date),
-                      })
-                    : t("agent.wizardOpen")}
-                </Link>
-
-                {/* The accelerator, and only ever that — B685. With the
-                  capability off it is simply not here, and everything above
-                  works exactly as it did. Below the button since B767: it is
-                  a second way in, not the first thing to read. */}
-                {/* B901 — the room, where the same conversation has the files
-                  pane and the preview beside it. A line rather than a second
-                  bright button: the card's one bright thing is still the day
-                  somebody came to write, and this is the other way in for
-                  somebody who wants to see what they are talking about. */}
-                {journal.helper && (
-                  <div className="mt-4">
-                    {/* B1007 — the same row the owner block draws, in the tone
-                      that does not compete: this page has already spent its
-                      one bright thing on the button above. */}
-                    <AgentRow
-                      href={`/agent/${encodeURIComponent(journal.username)}/chat`}
-                      tone="quiet"
-                      title={t("agent.room.roomLink")}
-                      hint={t("agent.room.roomLinkHint")}
-                    />
-                  </div>
-                )}
-
-                {journal.helper && (
-                  <HelperAsk
-                    username={journal.username}
-                    consented={journal.consented}
-                    speech={journal.speech}
-                    consentedSpeech={journal.consentedSpeech}
-                    speechProvider={journal.speechProvider}
-                  />
-                )}
-
-                {/* The rest of what is unfinished — B682, narrowed by B767 to
-                  the days the button above does not already name. What it can
-                  say is what is on disk: the date, how many photographs
-                  reached the day, and whether anybody has written the words
-                  yet. */}
-                {journal.drafts.length > 1 && (
-                  <div className="mt-4 rounded-xl border border-navy-200 bg-cream-100 p-4">
-                    <p className="text-sm font-semibold text-navy-800">
-                      {t("agent.resumeHeading")}
-                    </p>
-                    <ul className="mt-2 space-y-1">
-                      {journal.drafts.slice(1, 4).map((draft) => (
-                        <li
-                          key={`${draft.trip}/${draft.slug}`}
-                          className="text-sm text-navy-700"
-                        >
-                          <span className="font-semibold text-navy-900">
-                            {formatLongDate(draft.date)}
-                          </span>
-                          {" · "}
-                          {draft.photos > 0
-                            ? tn("agent.photoCount", draft.photos, {
-                                count: String(draft.photos),
-                              })
-                            : t("agent.noPhotosYet")}
-                          {!draft.written && ` · ${t("agent.noWordsYet")}`}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                <div className="mt-6 border-t border-navy-200 pt-6">
-                  <AgentHandover
-                    username={journal.username}
-                    siteUrl={siteUrl}
-                  />
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
 
         {/* B751: kept here, and only here on this page. Signed out, this is
             the second door and belongs. Signed in with journals, each
@@ -354,7 +229,7 @@ export default function AgentDoor({
             ignore it, and the block itself behind the same `<details>` the
             intro uses for "why?" — present, findable, and no longer the thing
             below the form that looks like the next step. */}
-        {(!signedIn || journals.length === 0) && (
+        {(
           <details className="mt-2">
             <summary className="flex min-h-11 cursor-pointer list-none items-center text-base leading-7 text-navy-700 underline underline-offset-4">
               {t("agent.ownAgentOptional")}

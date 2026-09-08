@@ -136,14 +136,18 @@ describe("the ask box, where the owner actually is", () => {
   });
 
   // B979 — it leads to the room rather than opening a lesser copy of it in
-  // place, and it carries the day it was pressed on, so the preview opens on
-  // that day instead of whatever was last left unfinished.
+  // place, and it carries the day it was pressed on. B984 moved the room to
+  // `/agent` and made the day an `about` parameter; B994 is what makes the
+  // conversation on the other end know about it rather than merely drawing it
+  // in a pane.
   test("it leads to the room, on this day", async () => {
     const host = await dayPage(true);
     const link = [...host.querySelectorAll("a")].find((anchor) =>
       anchor.textContent?.includes("Tell your agent what is missing"),
     ) as HTMLAnchorElement;
-    expect(link.getAttribute("href")).toBe("/agent/alex/chat?trip=reise-2026&slug=bellinzona");
+    // B984 — one URL, and the day rides as `about`. The room no longer lives
+    // at a path carrying the journal's name.
+    expect(link.getAttribute("href")).toBe("/agent?about=reise-2026%2Fbellinzona");
   });
 
   /**

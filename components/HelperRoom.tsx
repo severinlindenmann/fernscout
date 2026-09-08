@@ -9,6 +9,7 @@ import { mediaLoader } from "@/components/mediaLoader";
 import { PhotoPicker } from "@/components/PhotoPicker";
 import { DayCard } from "@/components/StoryPager";
 import { drain, enqueue, type QueueProgress } from "@/components/uploadQueue";
+import type { Opening as RoomOpeningState } from "@/lib/helper/opening";
 import type { RoomFile, RoomFiles } from "@/lib/helper/server";
 import type { CurrencyOptions } from "@/lib/rates";
 import type { Day, DaySummary } from "@/lib/types";
@@ -73,6 +74,9 @@ export default function HelperRoom({
   files,
   currency,
   opening,
+  history = [],
+  first,
+  journals = [],
   consented,
   speech,
   consentedSpeech,
@@ -88,6 +92,25 @@ export default function HelperRoom({
   /** The newest unfinished day, if there is one — so the preview has
    *  something in it before anybody has said a word. */
   opening: { trip: string; slug: string } | null;
+  /**
+   * A conversation reopened by URL — B984, drawn from what was stored rather
+   * than from the thread, which has a thirty-minute life and none of last
+   * week's left.
+   *
+   * **Reopening is reading, not resuming.** These turns are drawn so somebody
+   * can see what was said; the next thing they type starts from the twelve-turn
+   * window the model would have had anyway. Saying so plainly here because
+   * "carry on where you left off" is what a person will reasonably expect, and
+   * only half of it is true.
+   */
+  history?: { created_at: string; said: string | null; answered: string | null }[];
+  /** What the room says before anybody has said anything — B984. Named apart
+   *  from `opening` above, which is the *preview's* day: two different first
+   *  things, and one of them is a sentence. */
+  first: RoomOpeningState;
+  /** Every journal this person owns — for the switcher, and only drawn when
+   *  there is more than one to switch between. */
+  journals?: { username: string; title: string }[];
   consented: boolean;
   speech: boolean;
   consentedSpeech: boolean;
@@ -196,9 +219,38 @@ export default function HelperRoom({
     // on a phone — the one thing a conversation must not do.
     <div className="flex h-[calc(100dvh-3.5rem)] flex-col bg-cream-100">
       <header className="flex flex-wrap items-center gap-3 border-b border-navy-200 bg-cream-50 px-4 py-2">
-        <h1 className="min-w-0 flex-1 truncate font-display text-base font-semibold text-navy-900">
-          {title}
-        </h1>
+        {/*
+          The journal, and a way to change it only when there is one to change
+          to — B984. A switcher on a person with one journal is a control that
+          can only tell them what they already know.
+
+          It writes a cookie and reloads: the choice has to survive a visit,
+          and it must not go back into the path, which is the whole of what
+          this ticket is about.
+        */}
+        {journals.length > 1 ? (
+          <label className="min-w-0 flex-1">
+            <span className="sr-only">{t("agent.room.whichJournal")}</span>
+            <select
+              value={username}
+              onChange={(event) => {
+                document.cookie = `fs.journal=${encodeURIComponent(event.target.value)};path=/;max-age=31536000;samesite=lax`;
+                window.location.href = "/agent";
+              }}
+              className="min-h-11 w-full truncate rounded-full border border-navy-300 bg-cream-50 px-3 font-display text-base font-semibold text-navy-900"
+            >
+              {journals.map((one) => (
+                <option key={one.username} value={one.username}>
+                  {one.title}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <h1 className="min-w-0 flex-1 truncate font-display text-base font-semibold text-navy-900">
+            {title}
+          </h1>
+        )}
 
         {/* Reachable and dismissible by keyboard, both shapes — checklist D.
             On a phone these open the two dialogs; from `lg` up they put a
@@ -262,6 +314,8 @@ export default function HelperRoom({
             consentedSpeech={consentedSpeech}
             speechProvider={speechProvider}
             inRoom
+            opened={history}
+            opening={first}
             selected={selected}
             onSubject={(day) => setSubject({ ...day, at: Date.now() })}
             onFilesMoved={(moved) => {
@@ -272,6 +326,25 @@ export default function HelperRoom({
               setSelected((was) => was.filter((id) => !gone.has(id)));
             }}
           />
+
+          {/*
+            The one thing kept from the old door, at the weight it deserves —
+            B984. It used to be a second yellow button, as bright as writing a
+            day, for the rarest thing on the page: handing the journal to an
+            agent of your own.
+
+            A grey line at the foot, in every state. It leads to the owner's
+            own page, where the keys and the handover credential already live —
+            this was always a second door onto a control that has a home.
+          */}
+          <p className="mt-3 shrink-0 text-center">
+            <a
+              href={`/${encodeURIComponent(username)}/me`}
+              className="text-xs text-navy-500 underline underline-offset-4 transition-colors hover:text-navy-700"
+            >
+              {t("agent.open.bringAgent")}
+            </a>
+          </p>
         </main>
 
         {/* Right. */}

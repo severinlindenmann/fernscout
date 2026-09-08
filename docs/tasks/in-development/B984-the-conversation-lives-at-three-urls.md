@@ -114,3 +114,17 @@ drew — which is the same twelve-turn window it would have had anyway.
 - `?c=` scoped to the journal, always. `turnsIn` already takes the username and
   filters on it; a session id is a random string and is still not a thing to
   look up on its own.
+
+## A rule that lost its home, and has to find a new one
+
+`test/agent-door-calm.test.tsx` counted the yellow things inside the journal
+card and failed on more than one. It went with the card.
+
+**The rule it encoded is not wrong and must not be lost**: exactly one bright
+thing per screen, and it is the thing the person came to do. That is B767's
+finding, and the complaint that started this ticket — *"i feel overwhelmed"* —
+is what happens when it stops being enforced.
+
+So the assertion has to be rebuilt against the room's opening turn, where the
+decision now lives. Whichever state is drawn — days waiting, nothing waiting,
+an empty journal, a finished trip — there is one `bg-yellow-400` and no more.
