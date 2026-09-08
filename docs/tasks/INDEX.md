@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (133)
+## backlog (134)
 
 ### issue (42)
 
@@ -146,6 +146,12 @@ Do not edit them by hand; run the script.
 | [B723](backlog/small-feature/B723-consent-can-only-be-withdrawn-from.md) | Consent can only be withdrawn from inside the wizard | FEATURE | low | low |
 | [B731](backlog/small-feature/B731-a-trip-made-from-the-ask.md) | A trip made from the ask box never shows who can read it | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
+
+### chore (1)
+
+| # | Finding | Type | Priority | Complexity |
+| --- | --- | --- | --- | --- |
+| [B985](backlog/chore/B985-only-two-of-the-write-routes.md) | Only two of the write routes record a press they refused | CHORE | low | low |
 
 ### ops (11)
 
