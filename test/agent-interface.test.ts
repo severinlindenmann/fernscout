@@ -343,9 +343,19 @@ describe("the documents an agent reads", () => {
     expect(bytes).toBeLessThan(30 * 1024);
   });
 
+  // 135 → 136 KiB, argued rather than nudged (B776, B870, B871, B908,
+  // 2026-09-08). Four tickets in one week were the same fault: the guide was
+  // silent where an agent had every reason to assume, and each cost somebody a
+  // live experiment to find out. The media endpoint reads no EXIF and serves a
+  // JPEG whatever you sent; a seven-day token can renew itself indefinitely;
+  // an agent may end its own key. Roughly 2 KB total, all of it at the point
+  // of need rather than in a chapter somewhere else — which is the whole
+  // finding of B870. Nothing was cut to pay for it, because nothing here is
+  // yet known to be spare; B311 is the structural answer and this is a
+  // tripwire, not a budget.
   test("the agent guide stays within a ceiling that has to be argued past", () => {
     const bytes = Buffer.byteLength(agentGuide(), "utf8");
-    expect(bytes).toBeLessThan(135 * 1024);
+    expect(bytes).toBeLessThan(136 * 1024);
   });
 
   test("the instance document lists every journal", () => {
