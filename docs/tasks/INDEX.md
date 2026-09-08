@@ -49,13 +49,12 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (141)
+## backlog (140)
 
-### issue (42)
+### issue (41)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1019](backlog/issue/B1019-a-brand-new-owner-is-shown.md) | A brand new owner is shown a signup form for the journal they already have | ISSUE | high | low |
 | [B1020](backlog/issue/B1020-a-chip-in-the-opening-skips.md) | A chip in the opening skips the consent gate and dead-ends on a panel that is not there | ISSUE | high | low |
 | [B1021](backlog/issue/B1021-the-one-bright-thing-rule-cites.md) | The one-bright-thing rule cites a test that was never written, and is false where it matters | ISSUE | high | low |
 | [B829](backlog/issue/B829-rewording-a-row-did-not-stop.md) | Rewording a row did not stop the wrong one matching | ISSUE | high | low |
@@ -226,7 +225,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (14)
+## in-development (15)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -235,6 +234,7 @@ _Nothing here._
 | [B1015](in-development/B1015-b984-moved-the-agent-room-s.md) | B984 moved the agent room's URL and left one test asserting the old one, so main is red | ISSUE | high | low | `b8352d66` |
 | [B1016](in-development/B1016-the-room-s-two-panes-are.md) | The room's two panes are chrome at the top rather than part of the conversation | FEATURE | high | medium | `fdfcf5f2` |
 | [B1018](in-development/B1018-the-language-select-s-arrow-wraps.md) | The language select's arrow wraps and moves, and a newly ticked recipient shows no address | ISSUE | high | low | `b8352d66` |
+| [B1019](in-development/B1019-a-brand-new-owner-is-shown.md) | A brand new owner is shown a signup form for the journal they already have | ISSUE | high | low | `fdfcf5f2` |
 | [B922](in-development/B922-a-credit-is-spent-on-a.md) | Was she charged for a day that was never written, and should she have been? | ISSUE | high | low | `bdd0270d` |
 | [B980](in-development/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | `a4bbb185` |
 | [B984](in-development/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | `fdfcf5f2` |
