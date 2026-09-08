@@ -202,19 +202,49 @@ function flatten(text: string): string {
  * exactly the name that must not quietly become a different trip.
  */
 function resolveTrip(username: string, id?: string) {
+  // One, or none. Two trips answering to the same words is not an answer, and
+  // taking the first is how the older of them became unreachable — B965.
+  const fits = resolveTrips(username, id);
+  return fits.length === 1 ? fits[0] : undefined;
+}
+
+/**
+ * Every trip a name fits, at the best step it fits any — B965.
+ *
+ * B940 stopped a name that matches **nothing** from resolving to the newest
+ * trip. A name that matches **several** still did, silently: `Balkan` is a
+ * prefix of both `balkan-loop-2026` and `balkan-loop-check`, so the older was
+ * unreachable by that word and nobody was told there had been a choice.
+ *
+ * Five of six forms resolved correctly in the journal that found this. The
+ * sixth is the one where somebody writes a day into the wrong trip, and it is
+ * the case where they were least specific and so least likely to check.
+ *
+ * **The step matters and the tie is only within it.** An exact id still beats
+ * a title that also matches, and a title still beats a substring: *"Danube
+ * Circuit"* is not ambiguous because *"Danube"* also fits something else. What
+ * is ambiguous is two trips answering equally well to the same words.
+ */
+function resolveTrips(username: string, id?: string) {
   const trips = [...getTrips(username)].sort((a, b) => b.start.localeCompare(a.start));
   const said = flatten(id ?? "");
-  if (said !== "") {
-    const exact = trips.find((one) => one.id === id?.trim());
-    if (exact) return exact;
-    return (
-      trips.find((one) => flatten(one.id) === said) ??
-      trips.find((one) => flatten(one.title) === said) ??
-      trips.find((one) => flatten(one.id).startsWith(said) || flatten(one.title).startsWith(said)) ??
-      trips.find((one) => flatten(one.id).includes(said) || flatten(one.title).includes(said))
-    );
+  if (said === "") return trips.slice(0, 1);
+
+  const exact = trips.filter((one) => one.id === id?.trim());
+  if (exact.length > 0) return exact;
+
+  for (const fits of [
+    (one: (typeof trips)[number]) => flatten(one.id) === said,
+    (one: (typeof trips)[number]) => flatten(one.title) === said,
+    (one: (typeof trips)[number]) =>
+      flatten(one.id).startsWith(said) || flatten(one.title).startsWith(said),
+    (one: (typeof trips)[number]) =>
+      flatten(one.id).includes(said) || flatten(one.title).includes(said),
+  ]) {
+    const found = trips.filter(fits);
+    if (found.length > 0) return found;
   }
-  return trips[0];
+  return [];
 }
 
 /**
@@ -227,6 +257,17 @@ function resolveTrip(username: string, id?: string) {
  * argue with.
  */
 function noTrip(username: string, said?: string) {
+  // Two trips answering to the same words is a different answer from none —
+  // B965. Naming them is the whole of it: the person knows which they meant.
+  const fits = resolveTrips(username, said);
+  if (fits.length > 1) {
+    return {
+      found: false,
+      why: `"${said?.trim()}" fits more than one trip — ${fits
+        .map((one) => `${one.title} (${one.id})`)
+        .join(" and ")}: ask which they mean and do not choose for them`,
+    };
+  }
   return {
     found: false,
     why:
