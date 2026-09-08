@@ -107,6 +107,10 @@ export const ERROR_CODES: Record<string, string> = {
 
   // ── publishing, and things already done ────────────────────────────────
   already_published: "This day is already on the site. Nothing was changed.",
+  already_draft:
+    "This day is not on the site, so there was nothing to take down. Nothing was changed — " +
+    "and if somebody asked you to take it down because they are worried about who saw it, " +
+    "say that it has not been up.",
   not_published: "This day is still a draft. Publish it before sending it to anybody.",
   test_content: "This is content nobody lived — `test: true`. It cannot be sent to real people, which is the point of the flag.",
   idempotency_key_reused: "That `idempotency_key` was used for a different body. Nothing was written. Reuse a key only to retry the same call; send a new key for a new day.",

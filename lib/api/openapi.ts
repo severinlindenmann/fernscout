@@ -1887,6 +1887,62 @@ export function openApiDocument() {
           },
         },
       },
+      "/api/v1/{user}/trips/{trip}/days/{slug}/unpublish": {
+        post: {
+          summary: "Take a published day back off the site",
+          description:
+            "The day becomes a draft again: off the site, off the feed, off the sitemap, " +
+            "still on disk with every word and every photograph. **It is not a delete** — " +
+            "nothing is removed, and publishing it again puts it back exactly as it was. " +
+            "That is why this needs none of deletion's ceremony. " +
+            "Owner only, like publishing: a trip-scoped token may write days into its trip " +
+            "and may neither put them on the site nor take them off. " +
+            "Nothing is sent and nothing is spent, and there is no channel that announces a " +
+            "day coming down — somebody who already read it, or was sent it, still has what " +
+            "they saw. Say that to the person if what they want is for nobody to have seen it.",
+          operationId: "unpublishDay",
+          tags: ["Days"],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+            { name: "slug", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": {
+              description: "The day is a draft again",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      ok: { type: "boolean" },
+                      slug: { type: "string" },
+                      status: { type: "string", enum: ["draft"] },
+                      url: { type: "string" },
+                      note: {
+                        type: "string",
+                        description:
+                          "What happened, in words to repeat: nothing was deleted, and " +
+                          "anybody who already read it still has what they saw.",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "The day could not be taken down — the body says why" },
+            "401": { description: "Missing or invalid token" },
+            "403": {
+              description:
+                "Another journal's token, or one scoped to a single trip — which may write " +
+                "days but not take them off the site",
+            },
+            "404": { description: "No such trip, or no such day" },
+            "409": { description: "That day is not on the site" },
+          },
+        },
+      },
       "/api/v1/{user}/trips/{trip}/days/{slug}/send-mail": {
         post: {
           summary: "Send the letter for a published day, again",

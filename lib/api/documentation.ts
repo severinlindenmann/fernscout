@@ -362,7 +362,9 @@ export function instanceDocumentation(): string {
         "was the only verb that touched an existing day, and put fifteen unreviewed " +
         "days on somebody's site while reporting them as drafts. If the call you want " +
         "does not exist, stop and say so — do not reach for the nearest verb that " +
-        "touches the file.",
+        "touches the file. Taking a day back off the site is its own call too: " +
+        `POST ${base()}/api/v1/their-name/trips/japan-2027/days/lanterns-of-hoi-an/unpublish, ` +
+        "which makes it a draft again and deletes nothing.",
       78,
     ),
     "",
@@ -542,6 +544,7 @@ export function userDocumentation(username: string): string | null {
     `- [Trips](${base()}/api/v1/${username}/trips): every trip, including ones the public cannot see`,
     `- [Days](${base()}/api/v1/${username}/trips/<trip-id>/days): read them, or POST to add one as a draft`,
     `- Editing a day: PATCH the day's own URL (${base()}/api/v1/${username}/trips/<trip-id>/days/<slug>) with the field you are correcting — never \`/publish\`, which is not an update and cannot be used to change one`,
+    `- Taking a day back off the site: POST ${base()}/api/v1/${username}/trips/<trip-id>/days/<slug>/unpublish — it becomes a draft again and nothing is deleted`,
     `- [Drafts](${base()}/api/v1/${username}/drafts): everything waiting for a person to approve`,
     `- Trips: POST to [the same URL](${base()}/api/v1/${username}/trips) to create one (owner only; defaults to this journal's own visibility)`,
     `- [Invites](${base()}/api/v1/${username}/invites): POST \`{"kind":"guest"}\` for a link that lets somebody read the journal's \`guest\` trips, or \`{"kind":"buddy","trip":"<trip-id>"}\` for one that leads to writing to a trip — owner only, see "Letting other people in" in the agent guide`,
@@ -659,6 +662,14 @@ is a thing that cannot be done at all.
 that changes that. Not to hold you back — so that there is a moment where the
 person can read a day back before it is on the site. Publishing is the second
 call, \`POST .../days/<slug>/publish\`, and it is yours to make.
+
+**And it comes back off with \`POST .../days/<slug>/unpublish\`.** The
+day becomes a draft again: off the site, off the feed, off the sitemap, still
+on disk with every word and every photograph, and publishing it again puts it
+back. It is not a delete and needs none of deletion's ceremony. What it cannot
+do is reach somebody who already read the day or was sent it, and that is worth
+saying plainly to anybody who asks for a takedown because they are worried
+about who saw it.
 
 **\`publish\` is not an update, and there is no other way to change a day
 except \`PATCH .../days/<slug>\`.** An agent that had written fifteen days and
