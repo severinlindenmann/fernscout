@@ -274,3 +274,35 @@ describe("with the capability off", () => {
     expect(state.enabled === false && state.reason).toContain("ANTHROPIC_API_KEY");
   });
 });
+
+/**
+ * The valve points at the model, not at the person — B945.
+ *
+ * `warnings` exists so the model has somewhere to say what it deliberately
+ * left out, which is what makes leaving something out an acceptable answer
+ * rather than a failure. Handing that list on turned it into a claim, and
+ * driven live it made a false one: notes saying *"rained most of the afternoon
+ * so we ducked into the maritime museum"* came back with the rain in the prose
+ * **and** a warning saying the weather had been omitted from it.
+ *
+ * Nothing rendered the list, so nobody saw it until a tester read the JSON.
+ */
+describe("what the drafted day is answered with", () => {
+  test("carries the title and the prose, and not the model's own notes to itself", async () => {
+    writeDay.mockResolvedValue({
+      title: "The pass",
+      prose: "It rained, so we went into the museum.",
+      warnings: ["Weather mentioned in notes but omitted from prose."],
+    });
+    await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST" }), params);
+    const answered = await call({ notes: "regen, museum", idempotency_key: "valve" });
+    expect(answered.status).toBe(200);
+
+    const body = (await answered.json()) as { draft: Record<string, unknown> };
+    expect(body.draft.title).toBe("The pass");
+    expect(body.draft.prose).toBe("It rained, so we went into the museum.");
+    expect(body.draft).not.toHaveProperty("warnings");
+    // And nowhere else in the answer either.
+    expect(JSON.stringify(body)).not.toContain("omitted");
+  });
+});
