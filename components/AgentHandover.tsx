@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import CopyLine from "./CopyLine";
 import { useI18n } from "./LocaleProvider";
@@ -146,8 +146,15 @@ export function HandoverPrompt({
   expires: string | null;
 }) {
   const { t } = useI18n();
+  const block = useRef<HTMLDivElement>(null);
+  // B812: the button that minted this vanishes the moment it appears, the
+  // same shape B795 fixed for ConfirmPanel — take focus once, here, so a
+  // screen reader lands on the credential instead of on nothing.
+  useEffect(() => {
+    block.current?.focus();
+  }, []);
   return (
-    <div className="mt-3">
+    <div ref={block} tabIndex={-1} className="mt-3 outline-none">
       <p className="text-base leading-7 text-navy-900">
         {t("me.handoverReady", {
           time: expires ? new Date(expires).toLocaleTimeString() : "",

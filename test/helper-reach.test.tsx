@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, test } from "vitest";
+import { HandoverPrompt } from "@/components/AgentHandover";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import LocaleProvider from "@/components/LocaleProvider";
 import RecordButton from "@/components/RecordButton";
@@ -101,6 +102,16 @@ describe("B795 — a panel that replaces a button takes the focus", () => {
       panel.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     });
     expect(cancelled).toBe(0);
+  });
+});
+
+describe("B812 — the handover prompt takes focus when it replaces the button", () => {
+  test("HandoverPrompt is focused when it mounts", () => {
+    const host = mount(<HandoverPrompt prompt="fs_handover_abc123" expires={null} />);
+    // The mint button that used to hold focus is gone; the block that
+    // replaced it — not <body> — has to hold it now.
+    expect(document.activeElement).toBe(host.firstElementChild);
+    expect(document.activeElement).not.toBe(document.body);
   });
 });
 
