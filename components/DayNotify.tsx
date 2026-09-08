@@ -39,7 +39,7 @@ type Status = {
  *
  * Rendered unconditionally by `OwnerTools`, as one cell of its grid — which
  * is why the states that are a sentence or a panel rather than a tile take
- * `col-span-2` (B877). It answers `null`
+ * `col-span-full` (B877). It answers `null`
  * itself when there is nothing to do — a reader who is not the owner gets a
  * `403` from the route and this renders nothing, so no flash of a button
  * only to have it vanish.
@@ -80,12 +80,12 @@ export default function DayNotify({
   if (!status || !status.reachable) return null;
 
   if (status.alreadySent) {
-    return <p className="col-span-2 text-xs text-navy-600">{t("notify.sent")}</p>;
+    return <p className="col-span-full text-xs text-navy-600">{t("notify.sent")}</p>;
   }
 
   if (status.short) {
     return (
-      <p className="col-span-2 text-xs text-coral-700">
+      <p className="col-span-full text-xs text-coral-700">
         {t("notify.short", { needed: String(status.needed), balance: String(status.balance) })}{" "}
         <a className="font-semibold underline" href={`/${username}/me`}>
           {t("photobook.getCredits")}
@@ -129,7 +129,7 @@ export default function DayNotify({
         role="dialog"
         aria-modal="false"
         aria-label={t("notify.button")}
-        className="col-span-2 rounded-2xl border border-navy-200 bg-white p-4 shadow-sm"
+        className="col-span-full rounded-2xl border border-navy-200 bg-white p-4 shadow-sm"
       >
         <p className="text-sm leading-6 text-navy-700">{message}</p>
         {/* B806 — a 71-year-old was offered this button, found nowhere that

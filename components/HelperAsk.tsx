@@ -233,7 +233,7 @@ export default function HelperAsk({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-4 min-h-11 text-base text-navy-700 underline underline-offset-4 transition-colors hover:text-navy-900"
+        className={`min-h-11 text-navy-700 underline underline-offset-4 transition-colors hover:text-navy-900 ${onJournal ? "text-xs font-semibold" : "mt-4 text-base"}`}
       >
         {opener}
       </button>
