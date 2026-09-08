@@ -49,9 +49,9 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (130)
+## backlog (131)
 
-### issue (41)
+### issue (42)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -59,6 +59,7 @@ Do not edit them by hand; run the script.
 | [B829](backlog/issue/B829-rewording-a-row-did-not-stop.md) | Rewording a row did not stop the wrong one matching | ISSUE | high | low |
 | [B922](backlog/issue/B922-a-credit-is-spent-on-a.md) | Was she charged for a day that was never written, and should she have been? | ISSUE | high | low |
 | [B926](backlog/issue/B926-the-helper-forgets-what-it-was.md) | The helper forgets what it was told one message ago | ISSUE | high | low |
+| [B975](backlog/issue/B975-voice-search-stops-the-instant-it.md) | Voice search stops the instant it starts, and says nothing about why | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
