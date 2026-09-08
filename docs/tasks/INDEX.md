@@ -49,22 +49,24 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (132)
+## backlog (136)
 
-### security (2)
+### security (3)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B718](backlog/security/B718-a-metered-write-can-be-charged.md) | A metered write can be charged twice after a restart | SECURITY | high | low |
 | [B776](backlog/security/B776-an-agent-token-can-mint-itself.md) | An agent token can mint itself a fresh token forever without the owner ever seeing a code | SECURITY | high | medium |
+| [B908](backlog/security/B908-a-leaked-agent-token-can-be.md) | A leaked agent token can be listed and not ended | SECURITY | medium | low |
 
-### issue (34)
+### issue (36)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B766](backlog/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low |
 | [B829](backlog/issue/B829-rewording-a-row-did-not-stop.md) | Rewording a row did not stop the wrong one matching | ISSUE | high | low |
 | [B848](backlog/issue/B848-the-traveller-figures-never-appear-on.md) | The traveller figures never appear on a postcard: cqh does not resolve against an inline-size container | ISSUE | high | low |
+| [B905](backlog/issue/B905-an-agent-can-publish-a-day.md) | An agent can publish a day and cannot take it down again | ISSUE | high | low |
 | [B719](backlog/issue/B719-two-different-edits-of-the-same.md) | Two different edits of the same length collide on one idempotency key | ISSUE | medium | low |
 | [B720](backlog/issue/B720-every-upload-decodes-the-whole-day.md) | Every upload decodes the whole day again | ISSUE | medium | medium |
 | [B728](backlog/issue/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
@@ -80,6 +82,7 @@ Do not edit them by hand; run the script.
 | [B853](backlog/issue/B853-component-tests-set-input-values-in.md) | Component tests set input values in a way React never hears | ISSUE | medium | low |
 | [B883](backlog/issue/B883-recordprint-has-no-callers-so-npm.md) | recordPrint has no callers, so npm run verify is red on main | ISSUE | medium | low |
 | [B895](backlog/issue/B895-a-run-on-day-does-not.md) | A run-on day does not raise the photobook price, and a test says it must | ISSUE | medium | low |
+| [B907](backlog/issue/B907-most-of-what-a-trip-says.md) | Most of what a trip says about itself can be written once and never corrected | ISSUE | medium | low |
 | [B730](backlog/issue/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
 | [B738](backlog/issue/B738-the-suite-is-order-dependent-under.md) | The suite is order-dependent under --sequence.shuffle, well beyond B713's single flake | ISSUE | low | high |
 | [B750](backlog/issue/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low |
@@ -97,7 +100,7 @@ Do not edit them by hand; run the script.
 | [B873](backlog/issue/B873-a-video-on-a-day-is.md) | A video on a day is dropped from the captions with no mention | ISSUE | low | low |
 | [B874](backlog/issue/B874-captions-read-like-an-inventory-of.md) | Captions read like an inventory of shapes rather than a caption | ISSUE | low | low |
 
-### big-feature (16)
+### big-feature (17)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -117,14 +120,16 @@ Do not edit them by hand; run the script.
 | [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
+| [B909](backlog/big-feature/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-### small-feature (23)
+### small-feature (24)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B858](backlog/small-feature/B858-the-two-questions-people-ask-most.md) | The two questions people ask most have no answer | FEATURE | high | low |
 | [B892](backlog/small-feature/B892-the-helper-does-not-look-like.md) | The helper does not look like a conversation anybody has had before | FEATURE | high | medium |
 | [B902](backlog/small-feature/B902-files-cannot-be-reached-or-referred.md) | Files cannot be reached or referred to from the conversation | FEATURE | high | medium |
+| [B906](backlog/small-feature/B906-nothing-can-find-the-day-with.md) | Nothing can find the day with the photograph of Anna in it | FEATURE | high | medium |
 | [B10](backlog/small-feature/B10-a-journal-never-says-who-is.md) | A journal never says who is writing it | FEATURE | medium | medium |
 | [B112](backlog/small-feature/B112-local-scripts-write-straight-to-content.md) | Local scripts still write straight to content, and the one guarantee they skip is the draft rule | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
@@ -146,12 +151,11 @@ Do not edit them by hand; run the script.
 | [B731](backlog/small-feature/B731-a-trip-made-from-the-ask.md) | A trip made from the ask box never shows who can read it | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (8)
+### chore (7)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B841](backlog/chore/B841-the-photobook-price-is-an-estimate.md) | The photobook price is an estimate nobody has checked against a real Gelato quote | CHORE | medium | low |
-| [B896](backlog/chore/B896-the-unused-gate-keeps-going-red.md) | The unused gate keeps going red on exports nobody notices | CHORE | medium | low |
 | [B594](backlog/chore/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B724](backlog/chore/B724-a-capability-that-needs-another-one.md) | A capability that needs another one is an if rather than a field | CHORE | low | low |
 | [B736](backlog/chore/B736-build-demo-content-mjs-still-cannot.md) | build-demo-content.mjs still cannot reproduce travelScene, per-item visibility, some captions, or six fixture days | CHORE | low | medium |
@@ -232,7 +236,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (6)
+## in-development (7)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -240,6 +244,7 @@ _Nothing here._
 | [B899](in-development/B899-the-conversation-has-no-shape-a.md) | The conversation has no shape a person can work in | FEATURE | high | high | `fdfcf5f2` |
 | [B108](in-development/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium | `6b9bf0a6` |
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
+| [B896](in-development/B896-the-unused-gate-keeps-going-red.md) | The unused gate keeps going red on exports nobody notices | CHORE | medium | low | `41335894` |
 | [B903](in-development/B903-search-knows-only-six-destinations-the.md) | Search knows only six destinations — the sign-in door, the helper, the inbox, costs, weather and the imprint are unfindable | FEATURE | medium | medium | `6c81e17b` |
 | [B904](in-development/B904-search-matches-words-not-meaning-a.md) | Search matches words, not meaning — a person who asks for a topic in their own words gets nothing | FEATURE | medium | high | `6c81e17b` |
 
