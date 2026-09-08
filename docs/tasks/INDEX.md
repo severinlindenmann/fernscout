@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (123)
+## backlog (125)
 
 ### issue (16)
 
@@ -125,12 +125,13 @@ Do not edit them by hand; run the script.
 | [B731](backlog/small-feature/B731-a-trip-made-from-the-ask.md) | A trip made from the ask box never shows who can read it | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (2)
+### chore (3)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1017](backlog/chore/B1017-photobook-fonts-are-embedded-whole-not.md) | Photobook fonts are embedded whole, not subset | CHORE | low | medium |
 | [B1023](backlog/chore/B1023-npm-run-verify-fails-on-task.md) | npm run verify fails on task-ids.test.ts: five backlog/wont-do tasks have no wontDo field and are misfiled | CHORE | low | low |
+| [B1033](backlog/chore/B1033-agentdoor-tsx-still-imports-the-per.md) | AgentDoor.tsx still imports the per-journal card B984 deleted | CHORE | low | low |
 
 ### ops (11)
 
@@ -148,7 +149,7 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### superseded (48)
+### superseded (49)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -196,6 +197,7 @@ Do not edit them by hand; run the script.
 | [B613](backlog/superseded/B613-the-guide-says-an-unknown-caption.md) | The guide says an unknown caption src is ignored; it is refused | ISSUE | low | low |
 | [B715](backlog/superseded/B715-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 | [B730](backlog/superseded/B730-the-router-confidence-floor-is-a.md) | The router confidence floor is a guess with nothing to tune it against | ISSUE | low | low |
+| [B784](backlog/superseded/B784-the-page-still-has-two-bright.md) | The page still has two bright buttons even though the card has one | ISSUE | low | low |
 | [B802](backlog/superseded/B802-signed-in-landing-has-no-docs.md) | Signed-in landing has no docs link when helper is off (B797) | ISSUE | low | low |
 | [B881](backlog/superseded/B881-recordprint-is-exported-and-nothing-calls.md) | recordPrint is exported and nothing calls it, so knip fails on main | CHORE | low | low |
 | [B90](backlog/superseded/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
@@ -213,7 +215,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (10)
+## in-development (9)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -226,7 +228,6 @@ _Nothing here._
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 | [B1009](in-development/B1009-the-ask-box-on-agent-is.md) | The ask box on /agent is now the only underlined way into the room, beside a row that is not | ISSUE | low | low | `bdd0270d` |
 | [B757](in-development/B757-border-navy-300-is-used-but.md) | border-navy-300 is used but no navy-300 token exists, so the sign-in field's unfocused border falls back to currentColor | ISSUE | low | low | `bdd0270d` |
-| [B784](in-development/B784-the-page-still-has-two-bright.md) | The page still has two bright buttons even though the card has one | ISSUE | low | low | `bdd0270d` |
 
 ## testing (239)
 
