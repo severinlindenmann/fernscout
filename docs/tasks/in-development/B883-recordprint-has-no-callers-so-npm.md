@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: photobook
 found: "2026-09-07T18:00:21Z"
+started: "2026-09-08T21:27:12Z"
+session: bdd0270d-3797-42c9-8687-06abecadbc63
+claimed: "2026-09-08T21:27:12Z"
 ---
 
 # B883 — recordPrint has no callers, so npm run verify is red on main
