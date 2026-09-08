@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: api, entries
 found: "2026-09-08T04:57:37Z"
+started: "2026-09-08T12:09:15Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T12:09:15Z"
 ---
 
 # B905 — An agent can publish a day and cannot take it down again
