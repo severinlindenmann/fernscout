@@ -205,3 +205,40 @@ describe("writing a day from the wizard", () => {
     expect(anonymous.body.error).toBe("session_lapsed");
   });
 });
+
+describe("making a second trip from the wizard", () => {
+  // B754 — the wizard's own "new trip" form has nowhere else to call but
+  // this route, and this run's `config.json` has no `helper` capability at
+  // all: the default for every self-hoster. Before the fix this route 404'd
+  // with `helper_unavailable` here, same as the model-only routes beside it,
+  // even though creating a trip never touches a model.
+  test("the trip route needs no helper capability, only the cookie", async () => {
+    const { POST: tripRoute } = await import("@/app/api/helper/[user]/trip/route");
+    const created = await read(
+      await tripRoute(
+        new Request("https://t.test/api/helper/alex/trip", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ title: "Second trip", start: "2026-06-01", end: "2026-06-10" }),
+        }),
+        params,
+      ),
+    );
+    expect(created.status).toBe(201);
+    expect(created.body.id).toBe("second-trip-2026");
+
+    // And the day the ticket's acceptance asks for: written into the trip
+    // the wizard just made, with the same route the first trip's days use.
+    const wrote = await read(
+      await POST(
+        json("POST", {
+          trip: created.body.id as string,
+          date: "2026-06-02",
+          answers: { costs: "none", coordinates: "unknown" },
+        }),
+        params,
+      ),
+    );
+    expect(wrote.status).toBe(201);
+  });
+});
