@@ -47,6 +47,22 @@ Gelato's own answer. Verified against all six products: our MediaBox equals
 `wraparoundInsideSize`, and our TrimBox equals `wraparoundEdgeSize`, to the
 hundredth of a millimetre.
 
+### Gelato's own template, which is the only reference that comes from them
+
+`docs/providers/gelato-templates/` holds a template downloaded from the Gelato
+dashboard, and its README is the detail. In short: for the 210 x 280
+softcover it is one cover page of **428.72 x 286 mm** and thirty interior
+pages of **216 x 286 mm** — exactly what this writer emits — and **every page
+carries `TrimBox == BleedBox == MediaBox`**.
+
+That last one is why our own trim box now spans the whole sheet rather than
+sitting inside the bleed, which is what print convention would say. Gelato
+positions artwork from the TrimBox; an inset one made it rescale the sheet.
+
+No hardcover template has been downloaded yet, and that is the gap worth
+closing: every hardcover measurement we hold comes from the API rather than
+from a file Gelato produced.
+
 **Two things in Gelato's previews look like faults. One is not; one is
 theirs.** Both were measured rather than reasoned about, after the first
 explanation here turned out to be a guess.
