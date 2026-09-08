@@ -1,4 +1,5 @@
 import type { TranslationKey } from "@/lib/i18n";
+import { formatCredits } from "@/lib/credits/format";
 
 /**
  * The panel B434's postcard rule holds a photobook to as well: an owner sees
@@ -64,11 +65,11 @@ export default function PhotobookPrintPanel({
         })}
       </p>
       {balance !== null ? (
-        <p className="mt-1 text-sm">{t("photobook.print.balance", { balance: String(balance) })}</p>
+        <p className="mt-1 text-sm">{t("photobook.print.balance", { balance: formatCredits(balance) })}</p>
       ) : null}
       {short ? (
         <p className="mt-2 text-sm">
-          {t("photobook.print.short", { missing: String(quotedCredits - (balance ?? 0)) })}{" "}
+          {t("photobook.print.short", { missing: formatCredits(quotedCredits - (balance ?? 0)) })}{" "}
           <a className="underline" href={`/${username}/me`}>
             {t("postcard.page.buy")}
           </a>

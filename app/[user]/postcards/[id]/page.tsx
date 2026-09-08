@@ -7,6 +7,7 @@ import PageHeader from "@/components/PageHeader";
 import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
 import { balanceOf, creditsEnabled } from "@/lib/credits";
+import { formatCredits } from "@/lib/credits/format";
 import { translateIn } from "@/lib/locales";
 import type { TranslationKey } from "@/lib/i18n";
 import { mediaUrl } from "@/lib/media";
@@ -385,7 +386,7 @@ export default async function PostcardOrderPage({
             {balance !== null ? (
               <>
                 {" — "}
-                {t("postcard.page.balance", { balance: String(balance) })}
+                {t("postcard.page.balance", { balance: formatCredits(balance) })}
               </>
             ) : null}
           </p>
