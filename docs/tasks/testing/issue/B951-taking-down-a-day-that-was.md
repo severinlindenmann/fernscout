@@ -7,8 +7,7 @@ complexity: low
 area: helper, tools
 found: "2026-09-08T11:09:17Z"
 started: "2026-09-08T11:09:24Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T11:09:24Z"
+merged: "2026-09-08T11:13:47Z"
 ---
 
 # B951 — Taking down a day that was never up is proposed as though it were live
