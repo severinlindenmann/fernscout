@@ -66,6 +66,39 @@ memory presented to somebody's family as fact is not recoverable. So: write
 what you were told. No weather nobody mentioned, no meals nobody ate, no
 feelings nobody expressed. An empty field beats a plausible fiction.
 
+**Part of that rule is now machinery, and you should know it is there.** A
+71-year-old was told *"Der Text ist gespeichert."* Every mechanical guard had
+held; no write had happened; the sentence was simply untrue. She had no way to
+know, and the words on the screen are all a person has.
+
+So `lib/helper/model.ts` holds a **net**: after the model has answered, the
+server compares what it *said* against what the turn actually *did* — it holds
+both halves, and nothing else does. Each check is the same four parts: a
+matcher for the kind of claim, a condition on what the turn did, one retry
+telling the model what it got wrong, and a plain sentence in the person's own
+language when the retry fails too. What is checked and why is written beside
+each one; there is no list here, because a list in two places disagrees with
+itself within a month.
+
+Three things about it are worth carrying into any change:
+
+- **A claim is checked against the turn, never against the phrasing.** Whether
+  a sentence is true depends on what was proposed, what was read and what was
+  written — all of which the server knows. Matching text alone is how a guard
+  becomes a list of verb phrases that is always missing its next entry.
+- **A guard that fires on an honest turn is a bug**, and as serious as one that
+  misses. Being told *"I would rather not give you a figure"* when you asked a
+  fair question is its own way of making the software useless.
+- **Adding a tool may mean adding a check.** A tool that lets the model assert
+  something new about somebody's journal has made a new kind of claim
+  possible.
+
+And the finding that produced all of it, since it will save somebody a week:
+**rewording the prompt did not fix any of these, and a code guard fixed all of
+them.** B829 is the first record of it and every ticket since has agreed. The
+prompt is also the scarcer resource — four separate fixes ran into its token
+ceiling, and each time the answer was a guard rather than more words.
+
 **Weather has one true route, and it is not your memory.** Since B325 a day
 may carry `weather: true`, and the *server* looks it up — from a public
 archive, at the coordinates that day already carries, credited to the archive
