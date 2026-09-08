@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: components/HelperAsk.tsx, components/AgentDoor.tsx
 found: "2026-09-08T18:35:00Z"
+started: "2026-09-08T21:17:09Z"
+session: bdd0270d-3797-42c9-8687-06abecadbc63
+claimed: "2026-09-08T21:17:09Z"
 ---
 
 # B1009 — The ask box on /agent is now the only underlined way into the room, beside a row that is not
