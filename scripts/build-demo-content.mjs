@@ -43,9 +43,7 @@ const ROOT = path.join(import.meta.dirname, "..");
 // content/example rather than overwriting the committed journal, so `--out`
 // exists for that — nothing else should need it.
 const OUT_ARG = process.argv.find((a) => a.startsWith("--out="));
-const USER = OUT_ARG
-  ? path.resolve(OUT_ARG.slice("--out=".length))
-  : path.join(ROOT, "content", "example");
+const USER = OUT_ARG ? path.resolve(OUT_ARG.slice("--out=".length)) : path.join(ROOT, "content", "example");
 
 /**
  * Where the committed journal lives, regardless of where this run is writing.
@@ -137,38 +135,10 @@ const TRIPS = [
     planNote:
       "Three passes and whatever was between them. We booked one guesthouse and left the other three nights open.",
     plan: [
-      {
-        location: "Susten Pass",
-        country: "Switzerland",
-        code: "CH",
-        lat: 46.7297,
-        lng: 8.4444,
-        note: "Leave after work, sleep somewhere near the top",
-      },
-      {
-        location: "Grimsel Pass",
-        country: "Switzerland",
-        code: "CH",
-        lat: 46.5614,
-        lng: 8.3372,
-        note: "The only night we booked",
-      },
-      {
-        location: "Domodossola",
-        country: "Italy",
-        code: "IT",
-        lat: 46.1161,
-        lng: 8.2939,
-        note: "Down the Italian side for lunch",
-      },
-      {
-        location: "Andermatt",
-        country: "Switzerland",
-        code: "CH",
-        lat: 46.6364,
-        lng: 8.5942,
-        note: "Home over the Furka",
-      },
+      { location: "Susten Pass", country: "Switzerland", code: "CH", lat: 46.7297, lng: 8.4444, note: "Leave after work, sleep somewhere near the top" },
+      { location: "Grimsel Pass", country: "Switzerland", code: "CH", lat: 46.5614, lng: 8.3372, note: "The only night we booked" },
+      { location: "Domodossola", country: "Italy", code: "IT", lat: 46.1161, lng: 8.2939, note: "Down the Italian side for lunch" },
+      { location: "Andermatt", country: "Switzerland", code: "CH", lat: 46.6364, lng: 8.5942, note: "Home over the Furka" },
     ],
     days: [
       {
@@ -193,13 +163,11 @@ const TRIPS = [
         text: "We left Zurich late and regretted it for exactly as long as it took to get past Lucerne. The Susten is the kind of road that makes a borrowed estate car feel like a much better car than it is.\n\nAt the top there was a hut selling soup and one flavour of cake. We had both, twice.",
         de: {
           title: "Über den Susten",
-          content:
-            "Wir sind spät aus Zürich losgefahren und haben das genau so lange bereut, bis wir Luzern hinter uns hatten. Der Susten ist die Sorte Straße, die einen geliehenen Kombi deutlich besser wirken lässt, als er ist.\n\nOben gab es eine Hütte mit Suppe und genau einer Sorte Kuchen. Wir hatten beides, zweimal.",
+          content: "Wir sind spät aus Zürich losgefahren und haben das genau so lange bereut, bis wir Luzern hinter uns hatten. Der Susten ist die Sorte Straße, die einen geliehenen Kombi deutlich besser wirken lässt, als er ist.\n\nOben gab es eine Hütte mit Suppe und genau einer Sorte Kuchen. Wir hatten beides, zweimal.",
         },
         hu: {
           title: "Át a Susten-hágón",
-          content:
-            "Későn indultunk Zürichből, és pontosan addig bántuk, amíg magunk mögött nem hagytuk Lucernt. A Susten az a fajta út, amitől egy kölcsönkért kombi sokkal jobb autónak tűnik, mint amilyen.\n\nFent volt egy kunyhó levessel és pontosan egyféle süteménnyel. Mindkettőből kértünk, kétszer.",
+          content: "Későn indultunk Zürichből, és pontosan addig bántuk, amíg magunk mögött nem hagytuk Lucernt. A Susten az a fajta út, amitől egy kölcsönkért kombi sokkal jobb autónak tűnik, mint amilyen.\n\nFent volt egy kunyhó levessel és pontosan egyféle süteménnyel. Mindkettőből kértünk, kétszer.",
         },
       },
       {
@@ -227,7 +195,7 @@ const TRIPS = [
         // a person's own is credited in their own words.
         weather: false,
         weatherData:
-          "weatherData: { tempMin: 2, tempMax: 6, code: 63, precipitation: 11, " +
+          'weatherData: { tempMin: 2, tempMax: 6, code: 63, precipitation: 11, ' +
           'source: "the guesthouse thermometer", recordedAt: "2024-09-13T18:30:00Z" }',
         costs: [
           { label: "Guesthouse", amount: 145, category: "accommodation" },
@@ -251,12 +219,7 @@ const TRIPS = [
         photos: 3,
         tags: ["italy", "markets", "driving"],
         costs: [
-          {
-            label: "Coffee and pastries",
-            amount: 11,
-            category: "food",
-            currency: "EUR",
-          },
+          { label: "Coffee and pastries", amount: 11, category: "food", currency: "EUR" },
           { label: "Groceries", amount: 34, category: "food", currency: "EUR" },
         ],
         text: "Not really a wrong turn — we just kept going down the wrong side of the mountain and found ourselves buying coffee in euros. Nobody minded.\n\nA market was packing up in the square. We bought tomatoes we had nowhere to cook and ate them like apples in the car park.",
@@ -273,24 +236,13 @@ const TRIPS = [
         lng: 8.2939,
         tags: ["italy", "food", "unplanned"],
         costs: [
-          {
-            label: "Room above the restaurant",
-            amount: 85,
-            category: "accommodation",
-            currency: "EUR",
-          },
-          {
-            label: "Dinner, all four things",
-            amount: 48,
-            category: "food",
-            currency: "EUR",
-          },
+          { label: "Room above the restaurant", amount: 85, category: "accommodation", currency: "EUR" },
+          { label: "Dinner, all four things", amount: 48, category: "food", currency: "EUR" },
         ],
         text: "Decided in the car park not to drive back over the pass tonight. There was a room above the restaurant and the restaurant had a menu with four things on it.\n\nWe ate all four between the two of us and went to bed in Italy, which was not the plan we left with.",
         de: {
           title: "Wir sind zum Abendessen geblieben",
-          content:
-            "Auf dem Parkplatz entschieden, heute nicht mehr über den Pass zurückzufahren. Über dem Restaurant gab es ein Zimmer, und auf der Karte standen vier Gerichte.\n\nWir haben zu zweit alle vier gegessen und sind in Italien ins Bett gegangen, was so nicht geplant war.",
+          content: "Auf dem Parkplatz entschieden, heute nicht mehr über den Pass zurückzufahren. Über dem Restaurant gab es ein Zimmer, und auf der Karte standen vier Gerichte.\n\nWir haben zu zweit alle vier gegessen und sind in Italien ins Bett gegangen, was so nicht geplant war.",
         },
       },
       {
@@ -330,49 +282,11 @@ const TRIPS = [
     visibility: "public",
     costsVisibility: "public",
     travellers: [
-      {
-        skin: "light-medium",
-        hair: "brown",
-        hairStyle: "short",
-        shirt: "sky",
-        pants: "slate",
-        accessories: ["glasses"],
-      },
-      {
-        skin: "medium-deep",
-        hair: "black",
-        hairStyle: "braids",
-        shirt: "coral",
-        outfit: "skirt",
-        pants: "plum",
-      },
-      {
-        skin: "light",
-        hair: "blond",
-        hairStyle: "bun",
-        shirt: "teal",
-        pants: "slate",
-        pack: "none",
-        accessories: ["camera"],
-      },
-      {
-        skin: "deep",
-        hair: "black",
-        hairStyle: "coils",
-        shirt: "yellow",
-        outfit: "dress",
-        pack: "none",
-        accessories: ["sunglasses"],
-      },
-      {
-        skin: "medium",
-        hair: "black",
-        hairStyle: "headscarf",
-        headscarf: "cream",
-        shirt: "sand",
-        outfit: "robe",
-        pack: "none",
-      },
+      { skin: "light-medium", hair: "brown", hairStyle: "short", shirt: "sky", pants: "slate", accessories: ["glasses"] },
+      { skin: "medium-deep", hair: "black", hairStyle: "braids", shirt: "coral", outfit: "skirt", pants: "plum" },
+      { skin: "light", hair: "blond", hairStyle: "bun", shirt: "teal", pants: "slate", pack: "none", accessories: ["camera"] },
+      { skin: "deep", hair: "black", hairStyle: "coils", shirt: "yellow", outfit: "dress", pack: "none", accessories: ["sunglasses"] },
+      { skin: "medium", hair: "black", hairStyle: "headscarf", headscarf: "cream", shirt: "sand", outfit: "robe", pack: "none" },
     ],
     intro:
       "Five months from Bangkok to Hanoi, overland the whole way. We had a rough plan for the first fortnight and made the rest up on station platforms.",
@@ -440,18 +354,8 @@ const TRIPS = [
         captions: [undefined, "The camera, put down for five minutes"],
         tags: ["thailand", "cities", "food"],
         costs: [
-          {
-            label: "Street noodles",
-            amount: 120,
-            category: "food",
-            currency: "THB",
-          },
-          {
-            label: "Guesthouse",
-            amount: 900,
-            category: "accommodation",
-            currency: "THB",
-          },
+          { label: "Street noodles", amount: 120, category: "food", currency: "THB" },
+          { label: "Guesthouse", amount: 900, category: "accommodation", currency: "THB" },
         ],
         text: "Landed at six, asleep by eight, awake at three in the morning entirely convinced it was lunchtime. By the time it actually was lunchtime we had been walking for four hours and eaten twice.\n\nThe heat is not the thing people warn you about. The thing is the noise, and how quickly you stop hearing it.",
         de: "Um sechs gelandet, um acht geschlafen, um drei Uhr nachts hellwach und fest überzeugt, es sei Mittag. Als es dann wirklich Mittag war, waren wir vier Stunden gelaufen und hatten zweimal gegessen.\n\nDie Hitze ist nicht das, wovor die Leute warnen. Es ist der Lärm — und wie schnell man ihn nicht mehr hört.",
@@ -472,18 +376,12 @@ const TRIPS = [
         photos: 3,
         tags: ["thailand", "boats", "rivers"],
         costs: [
-          {
-            label: "River boat, the expensive one",
-            amount: 160,
-            category: "transport",
-            currency: "THB",
-          },
+          { label: "River boat, the expensive one", amount: 160, category: "transport", currency: "THB" },
         ],
         text: "Meant to take the orange-flag ferry two stops and took the blue-flag one instead, which is for tourists and costs four times as much. We worked it out when the commentary started.\n\nGot off in Thonburi anyway and walked back over the bridge. Every photograph is of the wrong side of the river and better for it.",
         de: {
           title: "Mit dem falschen Boot über den Fluss",
-          content:
-            "Wir wollten zwei Stationen mit der orangen Fähre fahren und sind in die blaue gestiegen, die für Touristen ist und viermal so viel kostet. Gemerkt haben wir es, als die Ansage anfing.\n\nSind trotzdem in Thonburi ausgestiegen und über die Brücke zurückgelaufen. Jedes Foto zeigt die falsche Flussseite und ist dadurch besser.",
+          content: "Wir wollten zwei Stationen mit der orangen Fähre fahren und sind in die blaue gestiegen, die für Touristen ist und viermal so viel kostet. Gemerkt haben wir es, als die Ansage anfing.\n\nSind trotzdem in Thonburi ausgestiegen und über die Brücke zurückgelaufen. Jedes Foto zeigt die falsche Flussseite und ist dadurch besser.",
         },
       },
       {
@@ -498,12 +396,7 @@ const TRIPS = [
         lng: 100.5018,
         tags: ["thailand", "food", "nights"],
         costs: [
-          {
-            label: "Second dinner, standing up",
-            amount: 95,
-            category: "food",
-            currency: "THB",
-          },
+          { label: "Second dinner, standing up", amount: 95, category: "food", currency: "THB" },
         ],
         text: "The street outside the guesthouse does its best trade at eleven at night, and we have stopped pretending we are going to sleep through it.\n\nSecond dinner, eaten standing up. No photographs: the phone was flat by nine and neither of us went back for the charger.",
         hu: "A vendégház előtti utca este tizenegykor megy a legjobban, és feladtuk, hogy majd átalusszuk.\n\nMásodik vacsora, állva megevett. Fotó nincs: a telefon kilencre lemerült, és egyikünk sem ment vissza a töltőért.",
@@ -523,18 +416,8 @@ const TRIPS = [
         photos: 3,
         tags: ["thailand", "trains", "sleeper"],
         costs: [
-          {
-            label: "Sleeper berth",
-            amount: 881,
-            category: "transport",
-            currency: "THB",
-          },
-          {
-            label: "Breakfast on board",
-            amount: 90,
-            category: "food",
-            currency: "THB",
-          },
+          { label: "Sleeper berth", amount: 881, category: "transport", currency: "THB" },
+          { label: "Breakfast on board", amount: 90, category: "food", currency: "THB" },
         ],
         text: "Thirteen hours, a bunk with a curtain, and a man with a trolley who appeared every ninety minutes whether or not anybody wanted anything.\n\nWoke somewhere past Lampang with the window full of green and no idea what time it was. Best sleep of the trip so far.",
       },
@@ -576,7 +459,7 @@ const TRIPS = [
         country: "Laos",
         code: "LA",
         lat: 19.8867,
-        lng: 102.135,
+        lng: 102.1350,
         transport: { mode: "boat", from: "Huay Xai", to: "Luang Prabang" },
         photos: 4,
         video: { caption: "Ten seconds of the bank going past" },
@@ -619,18 +502,8 @@ const TRIPS = [
         photos: 4,
         tags: ["vietnam", "motorbike", "mountains"],
         costs: [
-          {
-            label: "Motorbike transfer",
-            amount: 1150000,
-            category: "transport",
-            currency: "VND",
-          },
-          {
-            label: "Tailored shirt",
-            amount: 620000,
-            category: "other",
-            currency: "VND",
-          },
+          { label: "Motorbike transfer", amount: 1150000, category: "transport", currency: "VND" },
+          { label: "Tailored shirt", amount: 620000, category: "other", currency: "VND" },
         ],
         text: "Rode the pass on the back of somebody else's motorbike with our bags strapped to a third one. It rained at the top and cleared before the bottom, which everyone had told us it would.\n\nHoi An is lit entirely by paper lanterns after dark, and it is exactly as good as that sounds.",
       },
@@ -662,18 +535,8 @@ const TRIPS = [
         photos: 3,
         tags: ["vietnam", "trains", "cities"],
         costs: [
-          {
-            label: "Train, soft sleeper",
-            amount: 1290000,
-            category: "transport",
-            currency: "VND",
-          },
-          {
-            label: "Coffee, egg, several",
-            amount: 180000,
-            category: "food",
-            currency: "VND",
-          },
+          { label: "Train, soft sleeper", amount: 1290000, category: "transport", currency: "VND" },
+          { label: "Coffee, egg, several", amount: 180000, category: "food", currency: "VND" },
         ],
         text: "Five months in and we have become the kind of people who have opinions about which side of a train to sit on.\n\nSpent the last week doing very little on very small chairs. Flew home with more books than we left with and no idea how.",
       },
@@ -700,33 +563,9 @@ const TRIPS = [
     // trip get one each, and the third rider (no `people:` row of their own)
     // is drawn without one, same as any unnamed traveller.
     travellers: [
-      {
-        for: "agent@fernscout.ch",
-        skin: "light-medium",
-        hair: "brown",
-        hairStyle: "short",
-        shirt: "sky",
-        accessories: ["glasses"],
-      },
-      {
-        for: "priya@example.com",
-        skin: "medium-deep",
-        hair: "black",
-        hairStyle: "braids",
-        shirt: "coral",
-        outfit: "shorts",
-        pants: "sand",
-      },
-      {
-        age: "elder",
-        skin: "light",
-        hair: "grey",
-        hairStyle: "short",
-        shirt: "teal",
-        pants: "slate",
-        pack: "none",
-        accessories: ["hat"],
-      },
+      { for: "agent@fernscout.ch", skin: "light-medium", hair: "brown", hairStyle: "short", shirt: "sky", accessories: ["glasses"] },
+      { for: "priya@example.com", skin: "medium-deep", hair: "black", hairStyle: "braids", shirt: "coral", outfit: "shorts", pants: "sand" },
+      { age: "elder", skin: "light", hair: "grey", hairStyle: "short", shirt: "teal", pants: "slate", pack: "none", accessories: ["hat"] },
     ],
     intro:
       "Six months and a second-hand pickup, starting in Denver and going wherever the forest roads do. Still out there — this one is being written as it happens.",
@@ -745,11 +584,7 @@ const TRIPS = [
     preparation: [
       { label: "Flights to Denver", amount: 980, category: "flights" },
       { label: "The truck", amount: 9400, category: "transport" },
-      {
-        label: "Tent, stove, the rest of it",
-        amount: 1250,
-        category: "preparation",
-      },
+      { label: "Tent, stove, the rest of it", amount: 1250, category: "preparation" },
       { label: "Six months of insurance", amount: 640, category: "other" },
     ],
     costsNote:
@@ -760,59 +595,18 @@ const TRIPS = [
     // going, so the plan is a claim about the future and not a summary of the
     // past. It is also the only place a stop gets a `note:`.
     plan: [
-      {
-        location: "Denver",
-        country: "United States",
-        code: "US",
-        lat: 39.7392,
-        lng: -104.9903,
-        note: "Buy a truck. Two weeks, at the outside.",
-      },
-      {
-        location: "Moab",
-        country: "United States",
-        code: "US",
-        lat: 38.5733,
-        lng: -109.5498,
-        note: "First proper test of the tent",
-      },
-      {
-        location: "Bishop",
-        country: "United States",
-        code: "US",
-        lat: 37.3614,
-        lng: -118.3951,
-        note: "Sierra, if the fires allow it",
-      },
-      {
-        location: "Cannon Beach",
-        country: "United States",
-        code: "US",
-        lat: 45.8918,
-        lng: -123.9615,
-        note: "Reach the Pacific by the end of August",
-      },
-      {
-        location: "Missoula",
-        country: "United States",
-        code: "US",
-        lat: 46.8721,
-        lng: -113.994,
-        note: "East again, before the passes close",
-      },
-      {
-        location: "Denver",
-        country: "United States",
-        code: "US",
-        lat: 39.7392,
-        lng: -104.9903,
-        note: "Sell the truck, fly home",
-      },
+      { location: "Denver", country: "United States", code: "US", lat: 39.7392, lng: -104.9903, note: "Buy a truck. Two weeks, at the outside." },
+      { location: "Moab", country: "United States", code: "US", lat: 38.5733, lng: -109.5498, note: "First proper test of the tent" },
+      { location: "Bishop", country: "United States", code: "US", lat: 37.3614, lng: -118.3951, note: "Sierra, if the fires allow it" },
+      { location: "Cannon Beach", country: "United States", code: "US", lat: 45.8918, lng: -123.9615, note: "Reach the Pacific by the end of August" },
+      { location: "Missoula", country: "United States", code: "US", lat: 46.8721, lng: -113.9940, note: "East again, before the passes close" },
+      { location: "Denver", country: "United States", code: "US", lat: 39.7392, lng: -104.9903, note: "Sell the truck, fly home" },
     ],
     days: [
-      // A fixture day — B736, and see the note in asia-2023 above. This one
-      // is the per-update `visibility:` (B596) in its narrower form: one
-      // update held back from a public trip while the day around it stays.
+      // A fixture day's neighbour — B736, and see the note in asia-2023 above.
+      // Not `test: true` like the other five: this is a real update of a real
+      // day, held back from a public trip, and the demo's only per-update
+      // `visibility:` in its narrower form (B596).
       {
         date: "2026-06-03",
         time: "22:10",
@@ -824,9 +618,6 @@ const TRIPS = [
         lat: 39.7392,
         lng: -104.9903,
         weather: false,
-        // Not `test: true`, unlike the other five: this is a real update of a
-        // real day, held back from a public trip. It is the demo's only
-        // per-update `visibility:` in its narrower form.
         visibility: "private",
         tags: ["colorado", "logistics"],
         de: {
@@ -848,18 +639,8 @@ const TRIPS = [
         photos: 3,
         tags: ["colorado", "logistics"],
         costs: [
-          {
-            label: "Motel, two nights",
-            amount: 210,
-            category: "accommodation",
-            currency: "USD",
-          },
-          {
-            label: "Registration and plates",
-            amount: 165,
-            category: "other",
-            currency: "USD",
-          },
+          { label: "Motel, two nights", amount: 210, category: "accommodation", currency: "USD" },
+          { label: "Registration and plates", amount: 165, category: "other", currency: "USD" },
         ],
         text: "Four days of looking at other people's trucks in other people's driveways. Bought the fifth one we saw, which is either decisive or foolish and we will find out in Utah.\n\nIt has 180,000 miles and a bench seat. The man who sold it to us seemed relieved.",
       },
@@ -879,18 +660,8 @@ const TRIPS = [
         tags: ["utah", "desert", "camping"],
         costs: [
           { label: "Fuel", amount: 96, category: "transport", currency: "USD" },
-          {
-            label: "Campground, four nights",
-            amount: 80,
-            category: "accommodation",
-            currency: "USD",
-          },
-          {
-            label: "Groceries",
-            amount: 143,
-            category: "food",
-            currency: "USD",
-          },
+          { label: "Campground, four nights", amount: 80, category: "accommodation", currency: "USD" },
+          { label: "Groceries", amount: 143, category: "food", currency: "USD" },
         ],
         text: "The truck made it, loudly. Four nights on a bluff outside town with nobody else on it, which cost twenty dollars a night and felt like theft.\n\nIt is hard to photograph and we tried anyway, several hundred times.",
         hu: "A pickup megcsinálta, hangosan. Négy éjszaka egy dombon a városon kívül, rajtunk kívül senki, húsz dollár egy éjszaka — lopásnak éreztük.\n\nNehéz lefényképezni, és mi mégis megpróbáltuk, több százszor.",
@@ -911,18 +682,8 @@ const TRIPS = [
         photos: 3,
         tags: ["california", "mountains", "wildfire"],
         costs: [
-          {
-            label: "Fuel",
-            amount: 121,
-            category: "transport",
-            currency: "USD",
-          },
-          {
-            label: "New tyre",
-            amount: 218,
-            category: "transport",
-            currency: "USD",
-          },
+          { label: "Fuel", amount: 121, category: "transport", currency: "USD" },
+          { label: "New tyre", amount: 218, category: "transport", currency: "USD" },
         ],
         text: "Fires two valleys over turned the light orange for a week. Beautiful in a way that makes you feel bad about finding it beautiful.\n\nPicked up a nail on a forest road and learned that a tyre shop in a small town will fit you in the same afternoon if you are pleasant about it.",
       },
@@ -941,21 +702,12 @@ const TRIPS = [
         lng: -123.9615,
         transport: { mode: "car", from: "Bishop", to: "Cannon Beach" },
         photos: 4,
-        captions: [
-          "One leaf still holding the rain",
-          undefined,
-          "The beach at low tide, and one person on the whole of it",
-        ],
+        captions: ["One leaf still holding the rain", undefined, "The beach at low tide, and one person on the whole of it"],
         photoVisibility: [undefined, undefined, undefined, "private"],
         tags: ["oregon", "coast", "pacific"],
         costs: [
           { label: "Fuel", amount: 88, category: "transport", currency: "USD" },
-          {
-            label: "Crab, from a shack",
-            amount: 34,
-            category: "food",
-            currency: "USD",
-          },
+          { label: "Crab, from a shack", amount: 34, category: "food", currency: "USD" },
         ],
         text: "Cold, grey, and the best week so far. The Pacific here does not look like a holiday; it looks like weather that has come a very long way to arrive.\n\nSlept in the truck twice because the tent was wet and neither of us could face it.",
       },
@@ -972,18 +724,12 @@ const TRIPS = [
         visibility: "guest",
         tags: ["oregon", "coast"],
         costs: [
-          {
-            label: "Laundrette",
-            amount: 9,
-            category: "other",
-            currency: "USD",
-          },
+          { label: "Laundrette", amount: 9, category: "other", currency: "USD" },
         ],
         text: "Went back down at sunset because somebody in the laundrette said to. They were right, and I have no photographs of it, which is probably the correct outcome.",
         de: {
           title: "Später, vom selben Parkplatz",
-          content:
-            "Bin bei Sonnenuntergang nochmal runter, weil jemand im Waschsalon gesagt hat, man solle das. Sie hatten recht, und ich habe keine Fotos davon, was vermutlich das richtige Ergebnis ist.",
+          content: "Bin bei Sonnenuntergang nochmal runter, weil jemand im Waschsalon gesagt hat, man solle das. Sie hatten recht, und ich habe keine Fotos davon, was vermutlich das richtige Ergebnis ist.",
         },
       },
     ],
@@ -1008,54 +754,21 @@ const TRIPS = [
     visibility: "public",
     costsVisibility: "public",
     travellers: [
-      {
-        skin: "light-medium",
-        hair: "brown",
-        hairStyle: "short",
-        shirt: "sky",
-        pants: "slate",
-        accessories: ["cap"],
-      },
-      {
-        skin: "medium-deep",
-        hair: "black",
-        hairStyle: "bun",
-        shirt: "green",
-        outfit: "shorts",
-        pants: "sand",
-      },
-      {
-        age: "child",
-        skin: "medium",
-        hair: "black",
-        hairStyle: "coils",
-        shirt: "yellow",
-        outfit: "shorts",
-        pants: "slate",
-        pack: "none",
-      },
-      {
-        age: "child",
-        skin: "light-medium",
-        hair: "auburn",
-        hairStyle: "curly",
-        shirt: "plum",
-        outfit: "dress",
-        pack: "none",
-      },
+      { skin: "light-medium", hair: "brown", hairStyle: "short", shirt: "sky", pants: "slate", accessories: ["cap"] },
+      { skin: "medium-deep", hair: "black", hairStyle: "bun", shirt: "green", outfit: "shorts", pants: "sand" },
+      { age: "child", skin: "medium", hair: "black", hairStyle: "coils", shirt: "yellow", outfit: "shorts", pants: "slate", pack: "none" },
+      { age: "child", skin: "light-medium", hair: "auburn", hairStyle: "curly", shirt: "plum", outfit: "dress", pack: "none" },
     ],
     intro:
       "A rental sedan, a cooler, and a national parks pass that paid for itself by the fourth gate. Las Vegas to Denver by way of Utah, Colorado and the Dakotas — eighteen nights, and never twice in the same bed.",
     translations: {
       de: {
         title: "Achtzehn Tage, elf Parks",
-        tagline:
-          "Von Las Vegas nach Denver, auf dem längsten Weg, eine Nacht pro Ort",
+        tagline: "Von Las Vegas nach Denver, auf dem längsten Weg, eine Nacht pro Ort",
       },
       hu: {
         title: "Tizennyolc nap, tizenegy nemzeti park",
-        tagline:
-          "Las Vegastól Denverig a hosszabbik úton, éjszakánként új helyen",
+        tagline: "Las Vegastól Denverig a hosszabbik úton, éjszakánként új helyen",
       },
     },
     rates: { USD: 0.8 },
@@ -1064,11 +777,7 @@ const TRIPS = [
       { label: "Flights to Las Vegas", amount: 1120, category: "flights" },
       { label: "Car hire, eighteen days", amount: 940, category: "transport" },
       { label: "Annual parks pass", amount: 72, category: "activities" },
-      {
-        label: "Camping gear, borrowed and replaced",
-        amount: 85,
-        category: "preparation",
-      },
+      { label: "Camping gear, borrowed and replaced", amount: 85, category: "preparation" },
     ],
     costsNote:
       "Eighteen nights, and the pass paid for itself by the fourth gate. The two lines that actually decided this trip were both bought before it started.",
@@ -1088,18 +797,8 @@ const TRIPS = [
         photos: 2,
         tags: ["nevada", "logistics"],
         costs: [
-          {
-            label: "Motel by the airport",
-            amount: 96,
-            category: "accommodation",
-            currency: "USD",
-          },
-          {
-            label: "Cooler, ice, two weeks of coffee",
-            amount: 61,
-            category: "other",
-            currency: "USD",
-          },
+          { label: "Motel by the airport", amount: 96, category: "accommodation", currency: "USD" },
+          { label: "Cooler, ice, two weeks of coffee", amount: 61, category: "other", currency: "USD" },
         ],
         text: "Landed at four, collected a white sedan that looked like every other white sedan in the lot, and spent an hour in a supermarket the size of an airport buying a cooler.\n\nWe did not go near the Strip. That felt like the right start.",
         de: "Um vier gelandet, eine weiße Limousine abgeholt, die aussah wie jede andere weiße Limousine auf dem Platz, und dann eine Stunde in einem Supermarkt von der Größe eines Flughafens verbracht, um eine Kühlbox zu kaufen.\n\nWir waren nicht in der Nähe des Strip. Das fühlte sich nach dem richtigen Anfang an.",
@@ -1122,18 +821,8 @@ const TRIPS = [
         tags: ["utah", "national-parks", "hiking", "water"],
         costs: [
           { label: "Fuel", amount: 44, category: "transport", currency: "USD" },
-          {
-            label: "Cabin in Springdale",
-            amount: 168,
-            category: "accommodation",
-            currency: "USD",
-          },
-          {
-            label: "Dry bags and sticks, hired",
-            amount: 52,
-            category: "activities",
-            currency: "USD",
-          },
+          { label: "Cabin in Springdale", amount: 168, category: "accommodation", currency: "USD" },
+          { label: "Dry bags and sticks, hired", amount: 52, category: "activities", currency: "USD" },
         ],
         text: "Three hours of walking up a river between walls three hundred metres high, with the water somewhere between knee and waist depending on how well you read the gravel.\n\nEverybody in the canyon was quiet. Not reverent — just concentrating on their feet.",
         hu: "Három óra gyaloglás felfelé egy folyóban, háromszáz méter magas falak között, térd- és derékmagasság közötti vízben — attól függően, mennyire jól olvasod a kavicsot.\n\nA kanyonban mindenki csendben volt. Nem áhítatból — csak a lábukra figyeltek.",
@@ -1145,19 +834,14 @@ const TRIPS = [
         location: "Bryce Canyon National Park",
         country: "United States",
         code: "US",
-        lat: 37.593,
+        lat: 37.5930,
         lng: -112.1871,
         transport: { mode: "car", from: "Springdale", to: "Bryce Canyon" },
         photos: 3,
         tags: ["utah", "national-parks", "sunrise"],
         costs: [
           { label: "Fuel", amount: 38, category: "transport", currency: "USD" },
-          {
-            label: "Campground",
-            amount: 30,
-            category: "accommodation",
-            currency: "USD",
-          },
+          { label: "Campground", amount: 30, category: "accommodation", currency: "USD" },
         ],
         text: "Set an alarm for half past five, which on holiday is a decision you resent in advance and forgive immediately.\n\nThe hoodoos go orange from the top down as the sun arrives, one row at a time. It takes about nine minutes and then it is ordinary daylight again.",
         de: "Wecker auf halb sechs — im Urlaub eine Entscheidung, die man vorher bereut und hinterher sofort verzeiht.\n\nDie Hoodoos werden von oben nach unten orange, wenn die Sonne kommt, Reihe für Reihe. Es dauert etwa neun Minuten, dann ist es wieder ganz normales Tageslicht.",
@@ -1169,25 +853,15 @@ const TRIPS = [
         location: "Escalante",
         country: "United States",
         code: "US",
-        lat: 37.77,
-        lng: -111.601,
+        lat: 37.7700,
+        lng: -111.6010,
         transport: { mode: "car", from: "Bryce Canyon", to: "Escalante" },
         photos: 2,
         tags: ["utah", "backroads", "desert"],
         costs: [
           { label: "Fuel", amount: 41, category: "transport", currency: "USD" },
-          {
-            label: "Motel",
-            amount: 104,
-            category: "accommodation",
-            currency: "USD",
-          },
-          {
-            label: "Diner, twice",
-            amount: 47,
-            category: "food",
-            currency: "USD",
-          },
+          { label: "Motel", amount: 104, category: "accommodation", currency: "USD" },
+          { label: "Diner, twice", amount: 47, category: "food", currency: "USD" },
         ],
         text: "Highway 12 runs along a ridge with a drop on both sides and no barrier on either, which is the most Utah thing that has happened so far.\n\nStopped at a slot canyon that was not on the map we had and was clearly on everybody else's.",
       },
@@ -1205,18 +879,8 @@ const TRIPS = [
         tags: ["utah", "national-parks", "food"],
         costs: [
           { label: "Fuel", amount: 36, category: "transport", currency: "USD" },
-          {
-            label: "Campground",
-            amount: 25,
-            category: "accommodation",
-            currency: "USD",
-          },
-          {
-            label: "Pie, from the orchard",
-            amount: 18,
-            category: "food",
-            currency: "USD",
-          },
+          { label: "Campground", amount: 25, category: "accommodation", currency: "USD" },
+          { label: "Pie, from the orchard", amount: 18, category: "food", currency: "USD" },
         ],
         text: "There is a Mormon orchard in the middle of the park where you can pick fruit off the trees and pay for it by weight in an honesty box.\n\nWe ate four apples each and bought a pie we did not need.",
       },
@@ -1234,12 +898,7 @@ const TRIPS = [
         tags: ["utah", "desert", "camping"],
         costs: [
           { label: "Fuel", amount: 39, category: "transport", currency: "USD" },
-          {
-            label: "Motel in Green River",
-            amount: 88,
-            category: "accommodation",
-            currency: "USD",
-          },
+          { label: "Motel in Green River", amount: 88, category: "accommodation", currency: "USD" },
         ],
         text: "A valley of small round rock figures that look like a crowd waiting for something. You are allowed to walk anywhere, which after a week of staying on the trail feels almost rude.\n\nForty degrees by eleven, so we left.",
       },
@@ -1257,12 +916,7 @@ const TRIPS = [
         tags: ["utah", "national-parks", "sunset"],
         costs: [
           { label: "Fuel", amount: 34, category: "transport", currency: "USD" },
-          {
-            label: "Campground outside Moab",
-            amount: 35,
-            category: "accommodation",
-            currency: "USD",
-          },
+          { label: "Campground outside Moab", amount: 35, category: "accommodation", currency: "USD" },
           { label: "Groceries", amount: 72, category: "food", currency: "USD" },
         ],
         text: "Went in at six in the evening, which is the trick: the car parks empty, the rock goes the colour it is in the photographs, and the heat drops to something survivable.\n\nDelicate Arch has about eighty people sitting in a semicircle around it, all of them silent, like a small badly attended concert.",
@@ -1281,12 +935,7 @@ const TRIPS = [
         tags: ["utah", "national-parks", "hiking"],
         costs: [
           { label: "Fuel", amount: 43, category: "transport", currency: "USD" },
-          {
-            label: "Campground",
-            amount: 20,
-            category: "accommodation",
-            currency: "USD",
-          },
+          { label: "Campground", amount: 20, category: "accommodation", currency: "USD" },
         ],
         text: "An hour and a half off the highway to reach the quiet half of Canyonlands. We saw four other cars all day and two of them were rangers.\n\nStars afterwards of the kind that make the sky look crowded rather than empty.",
       },
@@ -1300,29 +949,15 @@ const TRIPS = [
         location: "Monument Valley",
         country: "United States",
         code: "US",
-        lat: 36.998,
+        lat: 36.9980,
         lng: -110.0985,
-        transport: {
-          mode: "car",
-          from: "Needles District",
-          to: "Monument Valley",
-        },
+        transport: { mode: "car", from: "Needles District", to: "Monument Valley" },
         photos: 2,
         tags: ["arizona", "desert", "driving"],
         costs: [
           { label: "Fuel", amount: 47, category: "transport", currency: "USD" },
-          {
-            label: "Tribal park entry",
-            amount: 20,
-            category: "activities",
-            currency: "USD",
-          },
-          {
-            label: "Room on the rim",
-            amount: 195,
-            category: "accommodation",
-            currency: "USD",
-          },
+          { label: "Tribal park entry", amount: 20, category: "activities", currency: "USD" },
+          { label: "Room on the rim", amount: 195, category: "accommodation", currency: "USD" },
         ],
         text: "Arrived at midday, when the buttes are flat and grey and look like a postcard left in a window. Waited six hours and got the other version.\n\nThis is Navajo land, not a national park, and it is run entirely differently — better signposted about what you may not photograph.",
       },
@@ -1336,7 +971,7 @@ const TRIPS = [
         location: "Monument Valley",
         country: "United States",
         code: "US",
-        lat: 36.998,
+        lat: 36.9980,
         lng: -110.0985,
         tags: ["arizona", "desert", "night"],
         text: "The light came back at about six and the place stopped looking like a postcard and started looking like the reason anybody drives out here at all.\n\nWriting this from a plastic chair outside the room. Nothing photographable in the dark, so this one is only words.",
@@ -1355,18 +990,8 @@ const TRIPS = [
         tags: ["colorado", "national-parks", "history"],
         costs: [
           { label: "Fuel", amount: 40, category: "transport", currency: "USD" },
-          {
-            label: "Guided cliff dwelling tour",
-            amount: 16,
-            category: "activities",
-            currency: "USD",
-          },
-          {
-            label: "Motel in Cortez",
-            amount: 112,
-            category: "accommodation",
-            currency: "USD",
-          },
+          { label: "Guided cliff dwelling tour", amount: 16, category: "activities", currency: "USD" },
+          { label: "Motel in Cortez", amount: 112, category: "accommodation", currency: "USD" },
         ],
         text: "Houses built into the underside of a cliff eight hundred years ago, reached now by a ten-metre wooden ladder that the ranger climbs faster than anybody.\n\nThey lived here for about a century and then left, and the honest answer to why is that nobody is certain.",
       },
@@ -1384,12 +1009,7 @@ const TRIPS = [
         tags: ["colorado", "national-parks", "dunes"],
         costs: [
           { label: "Fuel", amount: 52, category: "transport", currency: "USD" },
-          {
-            label: "Campground",
-            amount: 28,
-            category: "accommodation",
-            currency: "USD",
-          },
+          { label: "Campground", amount: 28, category: "accommodation", currency: "USD" },
         ],
         text: "Two hundred metres of sand piled against the Sangre de Cristos, with a shallow creek running along the foot of it and children treating the whole thing as a seaside.\n\nWalking up a dune is roughly three steps for every two you keep.",
       },
@@ -1407,12 +1027,7 @@ const TRIPS = [
         tags: ["colorado", "national-parks", "canyons"],
         costs: [
           { label: "Fuel", amount: 45, category: "transport", currency: "USD" },
-          {
-            label: "Motel in Montrose",
-            amount: 118,
-            category: "accommodation",
-            currency: "USD",
-          },
+          { label: "Motel in Montrose", amount: 118, category: "accommodation", currency: "USD" },
         ],
         text: "Narrow enough that parts of the floor get half an hour of direct sun a day, which is why it is called what it is called.\n\nYou stand at a railing and look six hundred metres down at a river you cannot hear.",
       },
@@ -1430,12 +1045,7 @@ const TRIPS = [
         tags: ["colorado", "passes", "autumn"],
         costs: [
           { label: "Fuel", amount: 43, category: "transport", currency: "USD" },
-          {
-            label: "Room, and it hurt",
-            amount: 265,
-            category: "accommodation",
-            currency: "USD",
-          },
+          { label: "Room, and it hurt", amount: 265, category: "accommodation", currency: "USD" },
           { label: "Dinner", amount: 94, category: "food", currency: "USD" },
         ],
         text: "Three thousand seven hundred metres, no guardrail, and a road narrow enough that meeting a camper van is a negotiation.\n\nThe aspens had turned that week. Everybody in Colorado seemed to know it and be out in it.",
@@ -1455,12 +1065,7 @@ const TRIPS = [
         tags: ["colorado", "national-parks", "wildlife"],
         costs: [
           { label: "Fuel", amount: 49, category: "transport", currency: "USD" },
-          {
-            label: "Cabin in Estes Park",
-            amount: 142,
-            category: "accommodation",
-            currency: "USD",
-          },
+          { label: "Cabin in Estes Park", amount: 142, category: "accommodation", currency: "USD" },
         ],
         text: "Eighteen kilometres of road above the tree line, in September, with elk on the verge behaving as though the car were weather.\n\nSnow flurry at the top at two in the afternoon, gone by the time we were down the other side.",
       },
@@ -1478,12 +1083,7 @@ const TRIPS = [
         tags: ["wyoming", "driving", "plains"],
         costs: [
           { label: "Fuel", amount: 51, category: "transport", currency: "USD" },
-          {
-            label: "Motel",
-            amount: 79,
-            category: "accommodation",
-            currency: "USD",
-          },
+          { label: "Motel", amount: 79, category: "accommodation", currency: "USD" },
         ],
         text: "Four hours in which the only things that changed were the radio stations and the number of freight wagons in the trains running alongside.\n\nThis is the part of a road trip nobody photographs and everybody remembers.",
       },
@@ -1501,12 +1101,7 @@ const TRIPS = [
         tags: ["south-dakota", "national-parks", "wildlife"],
         costs: [
           { label: "Fuel", amount: 58, category: "transport", currency: "USD" },
-          {
-            label: "Campground",
-            amount: 22,
-            category: "accommodation",
-            currency: "USD",
-          },
+          { label: "Campground", amount: 22, category: "accommodation", currency: "USD" },
         ],
         text: "Grass, grass, grass, and then the ground simply falls away into striped rock for sixty kilometres.\n\nBighorn sheep on the road at dusk, entirely unbothered. Slept with the tent door open because there was nothing to keep out.",
       },
@@ -1517,25 +1112,15 @@ const TRIPS = [
         location: "Wind Cave National Park",
         country: "United States",
         code: "US",
-        lat: 43.557,
-        lng: -103.478,
+        lat: 43.5570,
+        lng: -103.4780,
         transport: { mode: "car", from: "Badlands", to: "Custer" },
         photos: 2,
         tags: ["south-dakota", "national-parks", "caves"],
         costs: [
           { label: "Fuel", amount: 33, category: "transport", currency: "USD" },
-          {
-            label: "Cave tour",
-            amount: 28,
-            category: "activities",
-            currency: "USD",
-          },
-          {
-            label: "Motel in Custer",
-            amount: 96,
-            category: "accommodation",
-            currency: "USD",
-          },
+          { label: "Cave tour", amount: 28, category: "activities", currency: "USD" },
+          { label: "Motel in Custer", amount: 96, category: "accommodation", currency: "USD" },
         ],
         text: "The cave breathes: air moves in or out of the entrance depending on the pressure outside, hard enough to feel on your hand.\n\nBison on the prairie above it, in a herd big enough that we sat in the car for twenty minutes waiting for the road back.",
       },
@@ -1553,18 +1138,8 @@ const TRIPS = [
         tags: ["colorado", "driving"],
         costs: [
           { label: "Fuel", amount: 54, category: "transport", currency: "USD" },
-          {
-            label: "Car cleaning, required",
-            amount: 40,
-            category: "transport",
-            currency: "USD",
-          },
-          {
-            label: "Last dinner",
-            amount: 76,
-            category: "food",
-            currency: "USD",
-          },
+          { label: "Car cleaning, required", amount: 40, category: "transport", currency: "USD" },
+          { label: "Last dinner", amount: 76, category: "food", currency: "USD" },
         ],
         text: "Six hours south with the cooler finally empty and about four kilos of red dust in the footwells.\n\nEighteen nights in eighteen different places. We handed the car back with 6,140 kilometres on it and immediately began arguing about which park was best.",
         de: "Sechs Stunden nach Süden, die Kühlbox endlich leer und ungefähr vier Kilo roter Staub in den Fußräumen.\n\nAchtzehn Nächte an achtzehn verschiedenen Orten. Wir haben das Auto mit 6.140 Kilometern zurückgegeben und sofort angefangen zu streiten, welcher Park der beste war.",
@@ -1617,99 +1192,26 @@ const TRIPS = [
     rates: { JPY: 0.00504 },
     budget: { total: 14800, days: 43, currency: "CHF" },
     preparation: [
-      {
-        label: "Flights to Fukuoka, home from Sapporo",
-        amount: 1240,
-        category: "flights",
-      },
-      {
-        label: "Rail pass, 21 days, two people",
-        amount: 1180,
-        category: "preparation",
-      },
-      {
-        label: "Boots, one pair, overdue",
-        amount: 260,
-        category: "preparation",
-      },
+      { label: "Flights to Fukuoka, home from Sapporo", amount: 1240, category: "flights" },
+      { label: "Rail pass, 21 days, two people", amount: 1180, category: "preparation" },
+      { label: "Boots, one pair, overdue", amount: 260, category: "preparation" },
       // Written in yen on purpose: a preparation cost is not always paid at
       // home, and the trip's own rate is what converts it.
-      {
-        label: "IC cards and a data SIM, prepaid",
-        amount: 9000,
-        category: "other",
-        currency: "JPY",
-      },
+      { label: "IC cards and a data SIM, prepaid", amount: 9000, category: "other", currency: "JPY" },
     ],
     costsNote:
       "Nothing has been spent on the road yet, so this is preparation and a number we have agreed to argue about later. The rail pass is the decision everything else follows from.",
     planNote:
       "South to north, and the rail pass decides most of it. Eight places we mean to sleep in and six weeks to find out what goes between them.",
     plan: [
-      {
-        location: "Fukuoka",
-        country: "Japan",
-        code: "JP",
-        lat: 33.5904,
-        lng: 130.4017,
-        note: "Land here, and do nothing for two days",
-      },
-      {
-        location: "Nagasaki",
-        country: "Japan",
-        code: "JP",
-        lat: 32.7503,
-        lng: 129.8779,
-        note: "The furthest south we go",
-      },
-      {
-        location: "Hiroshima",
-        country: "Japan",
-        code: "JP",
-        lat: 34.3853,
-        lng: 132.4553,
-        note: "Two nights, and the ferry to Miyajima",
-      },
-      {
-        location: "Kyoto",
-        country: "Japan",
-        code: "JP",
-        lat: 35.0116,
-        lng: 135.7681,
-        note: "Early April — the one date we are not moving",
-      },
-      {
-        location: "Kanazawa",
-        country: "Japan",
-        code: "JP",
-        lat: 36.5613,
-        lng: 136.6562,
-        note: "Across to the west coast, out of the crowds",
-      },
-      {
-        location: "Tokyo",
-        country: "Japan",
-        code: "JP",
-        lat: 35.6762,
-        lng: 139.6503,
-        note: "A week, staying put",
-      },
-      {
-        location: "Sendai",
-        country: "Japan",
-        code: "JP",
-        lat: 38.2682,
-        lng: 140.8694,
-        note: "North, and the coast road if it is open",
-      },
-      {
-        location: "Sapporo",
-        country: "Japan",
-        code: "JP",
-        lat: 43.0618,
-        lng: 141.3545,
-        note: "Fly home from here",
-      },
+      { location: "Fukuoka", country: "Japan", code: "JP", lat: 33.5904, lng: 130.4017, note: "Land here, and do nothing for two days" },
+      { location: "Nagasaki", country: "Japan", code: "JP", lat: 32.7503, lng: 129.8779, note: "The furthest south we go" },
+      { location: "Hiroshima", country: "Japan", code: "JP", lat: 34.3853, lng: 132.4553, note: "Two nights, and the ferry to Miyajima" },
+      { location: "Kyoto", country: "Japan", code: "JP", lat: 35.0116, lng: 135.7681, note: "Early April — the one date we are not moving" },
+      { location: "Kanazawa", country: "Japan", code: "JP", lat: 36.5613, lng: 136.6562, note: "Across to the west coast, out of the crowds" },
+      { location: "Tokyo", country: "Japan", code: "JP", lat: 35.6762, lng: 139.6503, note: "A week, staying put" },
+      { location: "Sendai", country: "Japan", code: "JP", lat: 38.2682, lng: 140.8694, note: "North, and the coast road if it is open" },
+      { location: "Sapporo", country: "Japan", code: "JP", lat: 43.0618, lng: 141.3545, note: "Fly home from here" },
     ],
     days: [
       // Drafts, both of them: dated inside the trip, written before it, and
@@ -1721,8 +1223,8 @@ const TRIPS = [
         location: "Matsumoto",
         country: "Japan",
         code: "JP",
-        lat: 36.238,
-        lng: 137.972,
+        lat: 36.2380,
+        lng: 137.9720,
         transport: { mode: "train", from: "Kanazawa", to: "Matsumoto" },
         tags: ["japan", "trains", "mountains"],
         draft: true,
@@ -1770,10 +1272,10 @@ function galleryBlock(trip, day) {
     const caption = day.captions?.[i - 1];
     // B596/B736. One photograph held back from a day everyone else can read.
     // `photoVisibility` is indexed like `captions`, from the first photo, and
-    // an entry that is absent or empty is the ordinary case: seen by everyone
-    // the trip lets in. The line goes after `caption` because that is where
-    // `lib/ingest/entry.ts` puts it, and a demo file the product could not
-    // have written is a demo file that teaches the wrong shape.
+    // an absent entry is the ordinary case: seen by everyone the trip lets in.
+    // The line goes after `caption` because that is where
+    // `lib/ingest/entry.ts` puts it — a demo file the product could not have
+    // written is a demo file that teaches the wrong shape.
     const shown = day.photoVisibility?.[i - 1];
     items.push(
       `  - src: "/media/${trip.id}/${day.slug}/${String(i).padStart(2, "0")}.jpg"\n` +
@@ -1841,8 +1343,8 @@ function writeEntry(trip, day) {
       `transportTo: ${quote(day.transport.to)}`,
     );
     // B736 — the per-day override on the arrival animation. Only meaningful
-    // beside a `transportMode`, since without one there is no leg to play,
-    // so it is written inside this block rather than beside it.
+    // beside a `transportMode`, since without one there is no leg to play, so
+    // it is written inside this block rather than beside it.
     if (day.travelScene) lines.push(`travelScene: ${quote(day.travelScene)}`);
   }
   // The other half of the field: a reading a person took, which is the only
@@ -1860,9 +1362,7 @@ function writeEntry(trip, day) {
     lines.push("costs:");
     for (const c of day.costs) {
       const cur = c.currency ? `, currency: ${quote(c.currency)}` : "";
-      lines.push(
-        `  - { label: ${quote(c.label)}, amount: ${c.amount}, category: ${quote(c.category)}${cur} }`,
-      );
+      lines.push(`  - { label: ${quote(c.label)}, amount: ${c.amount}, category: ${quote(c.category)}${cur} }`);
     }
   }
   if (day.de || day.hu) {
@@ -1889,10 +1389,7 @@ function writeEntry(trip, day) {
 
   const dir = path.join(USER, "trips", trip.id, "entries");
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, `${day.date}-${day.slug}.md`),
-    lines.join("\n"),
-  );
+  fs.writeFileSync(path.join(dir, `${day.date}-${day.slug}.md`), lines.join("\n"));
 }
 
 function writeTrip(trip) {
@@ -1916,10 +1413,7 @@ function writeTrip(trip) {
   if (trip.people?.length) {
     head.push("people:");
     for (const person of trip.people) {
-      head.push(
-        `  - name: ${quote(person.name)}`,
-        `    email: ${quote(person.email)}`,
-      );
+      head.push(`  - name: ${quote(person.name)}`, `    email: ${quote(person.email)}`);
       if (person.nickname) head.push(`    nickname: ${quote(person.nickname)}`);
     }
   }
@@ -1938,26 +1432,20 @@ function writeTrip(trip) {
       const lines = [];
       if (figure.for) lines.push(`for: ${quote(figure.for)}`);
       if (figure.age) lines.push(`age: ${figure.age}`);
-      lines.push(
-        `skin: ${figure.skin}`,
-        `hair: ${figure.hair}`,
-        `hairStyle: ${figure.hairStyle}`,
-      );
+      lines.push(`skin: ${figure.skin}`, `hair: ${figure.hair}`, `hairStyle: ${figure.hairStyle}`);
       if (figure.headscarf) lines.push(`headscarf: ${figure.headscarf}`);
       lines.push(`shirt: ${figure.shirt}`);
       if (figure.outfit) lines.push(`outfit: ${figure.outfit}`);
       if (figure.pants) lines.push(`pants: ${figure.pants}`);
       if (figure.pack) lines.push(`pack: ${figure.pack}`);
-      if (figure.accessories?.length)
-        lines.push(`accessories: [${figure.accessories.join(", ")}]`);
+      if (figure.accessories?.length) lines.push(`accessories: [${figure.accessories.join(", ")}]`);
       head.push(`  - ${lines[0]}`);
       for (const line of lines.slice(1)) head.push(`    ${line}`);
     }
   }
   if (trip.rates) {
     head.push("rates:");
-    for (const [code, rate] of Object.entries(trip.rates))
-      head.push(`  ${code}: ${rate}`);
+    for (const [code, rate] of Object.entries(trip.rates)) head.push(`  ${code}: ${rate}`);
   }
   if (trip.translations) {
     head.push("translations:");
@@ -1971,11 +1459,7 @@ function writeTrip(trip) {
   fs.writeFileSync(path.join(dir, "trip.md"), head.join("\n"));
 
   const costs = ["---", "budget:"];
-  costs.push(
-    `  total: ${trip.budget.total}`,
-    `  days: ${trip.budget.days}`,
-    `  currency: ${trip.budget.currency}`,
-  );
+  costs.push(`  total: ${trip.budget.total}`, `  days: ${trip.budget.days}`, `  currency: ${trip.budget.currency}`);
   costs.push("costs:");
   for (const c of trip.preparation) {
     // The category is the one the spec gives. It used to be flattened to
@@ -2001,26 +1485,20 @@ function writeTrip(trip) {
     // B736 — a fixture day is not a stop. `test: true` days exist to give the
     // travel scene a vehicle to draw, and putting the places they name on the
     // planned route would draw a journey nobody took.
-    trip.days
-      .filter((day) => !day.test)
-      .reduce((route, day) => {
-        const last = route.at(-1);
-        if (
-          last &&
-          last.location === day.location &&
-          last.country === day.country
-        ) {
-          return route;
-        }
-        route.push({
-          location: day.location,
-          country: day.country,
-          code: day.code,
-          lat: day.lat,
-          lng: day.lng,
-        });
+    trip.days.filter((day) => !day.test).reduce((route, day) => {
+      const last = route.at(-1);
+      if (last && last.location === day.location && last.country === day.country) {
         return route;
-      }, []);
+      }
+      route.push({
+        location: day.location,
+        country: day.country,
+        code: day.code,
+        lat: day.lat,
+        lng: day.lng,
+      });
+      return route;
+    }, []);
   const plan = ["---", "route:"];
   for (const stop of stops) {
     const note = stop.note ? `, note: ${quote(stop.note)}` : "";
@@ -2066,9 +1544,7 @@ async function media(trip) {
   // nothing to fetch and nothing to write.
   const committed = committedPhotos(trip);
   if (committed) {
-    console.log(
-      `  photographs: kept ${Object.values(committed).flat().length} committed (photos.json)`,
-    );
+    console.log(`  photographs: kept ${Object.values(committed).flat().length} committed (photos.json)`);
     return;
   }
 
@@ -2083,13 +1559,7 @@ async function media(trip) {
     // its derivative rather than after the camera, which is what
     // `findOriginal` in lib/photobook/source.ts matches on, so the two files
     // share a name and differ only in which directory they are in.
-    const originalsDir = path.join(
-      USER,
-      "trips",
-      trip.id,
-      "originals",
-      day.slug,
-    );
+    const originalsDir = path.join(USER, "trips", trip.id, "originals", day.slug);
     fs.mkdirSync(originalsDir, { recursive: true });
 
     for (let i = 1; i <= day.photos; i++) {
@@ -2124,45 +1594,18 @@ async function media(trip) {
           .sort();
         fs.writeFileSync(
           list,
-          frames.map((f) => `file '${f}'\nduration 2.5`).join("\n") +
-            `\nfile '${frames.at(-1)}'\n`,
+          frames.map((f) => `file '${f}'\nduration 2.5`).join("\n") + `\nfile '${frames.at(-1)}'\n`,
         );
-        execFileSync(
-          "ffmpeg",
-          [
-            "-y",
-            "-f",
-            "concat",
-            "-safe",
-            "0",
-            "-i",
-            list,
-            "-vf",
-            "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,format=yuv420p",
-            "-r",
-            "25",
-            "-t",
-            "10",
-            "-c:v",
-            "libx264",
-            "-preset",
-            "veryfast",
-            "-crf",
-            "26",
-            "-movflags",
-            "+faststart",
-            clip,
-          ],
-          { stdio: "ignore" },
-        );
+        execFileSync("ffmpeg", [
+          "-y", "-f", "concat", "-safe", "0", "-i", list,
+          "-vf", "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,format=yuv420p",
+          "-r", "25", "-t", "10", "-c:v", "libx264", "-preset", "veryfast", "-crf", "26",
+          "-movflags", "+faststart", clip,
+        ], { stdio: "ignore" });
         fs.rmSync(list);
-        execFileSync(
-          "ffmpeg",
-          ["-y", "-i", clip, "-frames:v", "1", "-q:v", "3", poster],
-          {
-            stdio: "ignore",
-          },
-        );
+        execFileSync("ffmpeg", ["-y", "-i", clip, "-frames:v", "1", "-q:v", "3", poster], {
+          stdio: "ignore",
+        });
         process.stdout.write("V");
       }
     }
@@ -2173,12 +1616,7 @@ async function media(trip) {
 // Any one of these five trip folders already being there means a previous
 // run (or B325's weather sweep, or a hand edit) has content on disk this
 // script does not know how to reproduce.
-if (
-  !FORCE &&
-  TRIPS.some((trip) =>
-    fs.existsSync(path.join(USER, "trips", trip.id, "trip.md")),
-  )
-) {
+if (!FORCE && TRIPS.some((trip) => fs.existsSync(path.join(USER, "trips", trip.id, "trip.md")))) {
   console.error(
     "content/example already has a demo journal. Re-running this script would overwrite " +
       "fields it does not know how to write back — weather readings, transport details, prose " +
@@ -2189,9 +1627,7 @@ if (
 }
 
 for (const trip of TRIPS) writeTrip(trip);
-console.log(
-  `Wrote ${TRIPS.length} trips, ${TRIPS.reduce((n, t) => n + t.days.length, 0)} entries.`,
-);
+console.log(`Wrote ${TRIPS.length} trips, ${TRIPS.reduce((n, t) => n + t.days.length, 0)} entries.`);
 
 if (WITH_MEDIA) {
   process.stdout.write("media ");
