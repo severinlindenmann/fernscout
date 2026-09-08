@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: helper, thread
 found: "2026-09-08T11:58:39Z"
+started: "2026-09-08T11:58:39Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T11:58:39Z"
 ---
 
 # B957 — The conversation forgets silently and answers as though it had not
