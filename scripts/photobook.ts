@@ -206,7 +206,7 @@ if (args.outline) {
 
 const readiness = pdfxReadiness({
   outputIntent: Boolean(outputIntent),
-  // Both false, and see lib/photobook/pdfx.ts for exactly why.
+  // Fonts are embedded now — see lib/print-fonts.
   fontsEmbedded: true,
   cmykContent: false,
   transparency: false,

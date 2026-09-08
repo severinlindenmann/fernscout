@@ -9,6 +9,7 @@ import { planBook, type Photobook } from "./plan";
 import { buildBookSource, resolvePrintFile } from "./source";
 import { BOOK_SIZES, defaultSpec, productUidFor, type BookSpec } from "./spec";
 import { fetchCoverGeometry } from "./coverGeometry";
+import { outputIntentFor, pdfxReadiness, readIcc } from "./pdfx";
 import { renderCover, renderVolume } from "./render";
 import type { BookOptions } from "./options";
 
@@ -120,6 +121,38 @@ async function applyRealCoverGeometry(book: Photobook, options: BookOptions): Pr
   }
 }
 
+/**
+ * The printing condition this instance's books declare, if the operator has
+ * named one.
+ *
+ * **Deliberately not a profile shipped in this repository.** Under PDF/X-4 the
+ * output intent describes where the file is going to be *printed*, not what
+ * colour the content happens to be — Gelato names GRACoL 2006, another
+ * printer names FOGRA51. Bundling one and defaulting to it would make every
+ * book claim conformance against a condition its printer may not use, and a
+ * false claim is worse than none: the claim is what stops anyone checking.
+ *
+ * So the operator drops the file their printer names beside the instance and
+ * sets `PRINT_ICC_PROFILE` to it. With nothing set, a book is an ordinary PDF
+ * with embedded fonts — which is most of the way there — and says so in its
+ * readiness report rather than pretending.
+ *
+ * Read on every build rather than cached: it is one small file, and an
+ * operator who has just installed a profile should not have to restart.
+ */
+function printOutputIntent(): ReturnType<typeof outputIntentFor> | undefined {
+  const at = process.env.PRINT_ICC_PROFILE?.trim();
+  if (!at) return undefined;
+  try {
+    return outputIntentFor(readIcc(new Uint8Array(fs.readFileSync(at))));
+  } catch (err) {
+    // Never fatal. A book that prints without an intent is worth far more
+    // than an order that fails because a profile path has a typo in it.
+    console.warn(`photobook: ignoring PRINT_ICC_PROFILE (${at}):`, (err as Error).message);
+    return undefined;
+  }
+}
+
 export async function buildPhotobook(
   owner: string,
   orderId: string,
@@ -141,17 +174,27 @@ export async function buildPhotobook(
   const dir = orderDir(owner, orderId);
   fs.mkdirSync(dir, { recursive: true });
 
-  // Matches `scripts/photobook.ts`'s `document`, minus `outputIntent` and
-  // `pdfxVersion`: those need an ICC profile from a CLI flag with no browser
-  // equivalent, so a book ordered from the button carries no PDF/X output
-  // intent. Everything else — title, author, subject, creator — costs
-  // nothing to set and is what makes this the same file a printer would see
-  // from the CLI, not merely the same pages.
+  // Matches `scripts/photobook.ts`'s `document`, output intent included —
+  // that used to be the one thing the CLI could do and the button could not,
+  // so a book ordered from the page could never claim PDF/X-4 however good
+  // the file was.
+  const intent = printOutputIntent();
+  // The version is claimed only when the audit says every requirement is met,
+  // which is the one place that flag may come from — a file claiming PDF/X-4
+  // that a preflight then fails is worse than a file claiming nothing.
+  const readiness = pdfxReadiness({
+    outputIntent: Boolean(intent),
+    fontsEmbedded: true,
+    cmykContent: false,
+    transparency: false,
+  });
   const document = {
     title: book.title,
     author: source.travellers.join(" & "),
     subject: `${source.trip.start} to ${source.trip.end}`,
     creator: "Fernscout photobook",
+    ...(intent ? { outputIntent: intent } : {}),
+    ...(readiness.version ? { pdfxVersion: readiness.version } : {}),
   };
 
   const loadImage = (file: string) => new Uint8Array(fs.readFileSync(resolvePrintFile(file)));
