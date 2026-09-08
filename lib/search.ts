@@ -1,17 +1,23 @@
 import "server-only";
 import MiniSearch from "minisearch";
 import { isIndexable } from "./access";
-import { analyticsAvailable } from "./analytics";
+import { analyticsAvailable, analyticsCardsFor } from "./analytics";
+import { isEnabled } from "./capabilities";
 import { isOwner } from "./contacts/session";
 import { DOCS_PAGES, isGuide, readGuide } from "./docs";
-import { getAllEntries } from "./entries";
+import { getAllEntries, type ReadOptions } from "./entries";
+import type { TranslationKey } from "./i18n";
+import { hasLegal } from "./legal";
 import { localesFor, translateIn } from "./locales";
 import { stripMarkdown } from "./markdownText";
 import {
-  ACCOUNT_DESTINATION,
+  HELPER_DESTINATIONS,
   JOURNAL_DESTINATIONS,
   TRIP_DESTINATIONS,
+  TRIP_SEARCH_DESTINATIONS,
   type NavDestination,
+  type SearchDestination,
+  type SearchLevel,
 } from "./navDestinations";
 import { SEARCH_OPTIONS, type SearchDoc } from "./searchOptions";
 import { isTravellerOn, mayReadTrip, readFor } from "./tripGate";
@@ -84,17 +90,22 @@ function pageDoc(
   dest: NavDestination,
   url: string,
   tripTitle: string,
+  /** The name to show instead of the destination's own — the sign-in door,
+   *  and nothing else so far (B903). Its words are still indexed either way,
+   *  so a reader finds the row whichever name they typed. */
+  labelKey?: TranslationKey,
 ): SearchDoc {
   const locales = localesFor(username);
   const words = new Set<string>();
   for (const code of locales) {
     words.add(translateIn(code, dest.labelKey));
+    if (labelKey) words.add(translateIn(code, labelKey));
     if (dest.synonymsKey) words.add(translateIn(code, dest.synonymsKey));
   }
   return {
     id,
     kind: "page",
-    title: translateIn(locales[0], dest.labelKey),
+    title: translateIn(locales[0], labelKey ?? dest.labelKey),
     location: "",
     country: "",
     tripTitle,
@@ -178,7 +189,23 @@ function tripDoc(username: string, trip: Trip, tripBase: string): SearchDoc {
  */
 function docsDocs(username: string): SearchDoc[] {
   const locales = localesFor(username);
-  return DOCS_PAGES.map((page) => {
+  const extra: { id: string; href: string; labelKey: TranslationKey; termsKey: TranslationKey }[] = [
+    // The hub itself, and the imprint — B903. The imprint only where this
+    // instance has one: `hasLegal` is what keeps the footer link honest, and
+    // a search result is a link like any other.
+    { id: "hub", href: "/docs", labelKey: "docs.title", termsKey: "search.docsTerms" },
+    ...(hasLegal()
+      ? [
+          {
+            id: "legal",
+            href: "/legal",
+            labelKey: "legal.title" as TranslationKey,
+            termsKey: "search.legalTerms" as TranslationKey,
+          },
+        ]
+      : []),
+  ];
+  const pages = DOCS_PAGES.map((page) => {
     const words = new Set<string>();
     const bodies: string[] = [];
     for (const code of locales) {
@@ -203,37 +230,133 @@ function docsDocs(username: string): SearchDoc[] {
       terms: [...words].join(" "),
     };
   });
+
+  return [
+    ...pages,
+    ...extra.map((page) => {
+      const words = new Set<string>();
+      for (const code of locales) {
+        words.add(translateIn(code, page.labelKey));
+        words.add(translateIn(code, page.termsKey));
+      }
+      return {
+        id: `doc:${page.id}`,
+        kind: "doc" as const,
+        title: translateIn(locales[0], page.labelKey),
+        location: "",
+        country: "",
+        tripTitle: "",
+        date: "",
+        url: page.href,
+        body: "",
+        tags: [],
+        terms: [...words].join(" "),
+      };
+    }),
+  ];
+}
+
+/** Reader levels, as a ladder: an owner finds everything a signed-in reader
+ *  finds, and they both find everything a stranger does. */
+const LADDER: Record<SearchLevel, number> = { public: 0, reader: 1, owner: 2 };
+
+/**
+ * One list of destinations, filtered to what this reader may actually open —
+ * B890, widened in B903.
+ *
+ * The level is the whole gate, and it is deliberately the same shape the
+ * account page already had: a row nobody but the owner may open must not be
+ * findable by anybody else, because search would otherwise be the one surface
+ * that tells a stranger this journal has a contacts page. The capability is
+ * the second half: a row pointing at a switched-off page is a row pointing at
+ * a 404, which is the failure `SiteNav` refuses to draw for the same reason.
+ */
+function destinationDocs(
+  username: string,
+  rows: SearchDestination[],
+  reader: SearchLevel,
+  idPrefix: string,
+  urlFor: (path: string) => string,
+  extra?: (row: SearchDestination) => boolean,
+): SearchDoc[] {
+  return rows
+    .filter((row) => LADDER[row.level] <= LADDER[reader])
+    .filter((row) => !row.feature || isEnabled(row.feature, username))
+    .filter((row) => !extra || extra(row))
+    .map((row) =>
+      pageDoc(
+        username,
+        `${idPrefix}${row.destination.path}`,
+        row.destination,
+        urlFor(row.destination.path),
+        "",
+        reader === "public" ? row.publicLabelKey : undefined,
+      ),
+    );
+}
+
+/** The journal's own rows: `/trips`, the sign-in door, and the owner's three. */
+function journalPageDocs(username: string, reader: SearchLevel): SearchDoc[] {
+  return destinationDocs(
+    username,
+    JOURNAL_DESTINATIONS,
+    reader,
+    "page:",
+    (path) => `/${username}${path}`,
+  );
 }
 
 /**
- * The journal-scoped destinations this reader may actually open — B890.
- *
- * `level` is the whole gate, and it is deliberately the same shape as the one
- * `ACCOUNT_DESTINATION` already had: a row nobody but the owner may open must
- * not be findable by anybody else, because search would otherwise be the one
- * surface that tells a stranger this journal has a contacts page.
+ * The helper — B903. `/agent/<username>` is a top-level route rather than
+ * something under the journal, so it builds its own URLs; owner-only and
+ * capability-gated, exactly as the page itself is (`isHelperOwner`).
  */
-function journalPageDocs(username: string, level: "public" | "reader" | "owner"): SearchDoc[] {
-  const allowed =
-    level === "owner"
-      ? ["public", "reader", "owner"]
-      : level === "reader"
-        ? ["public", "reader"]
-        : ["public"];
-  return JOURNAL_DESTINATIONS.filter((row) => allowed.includes(row.level)).map((row) =>
-    pageDoc(
-      username,
-      `page:${row.destination.path}`,
-      row.destination,
-      `/${username}${row.destination.path}`,
-      "",
-    ),
+function helperPageDocs(username: string, reader: SearchLevel): SearchDoc[] {
+  return destinationDocs(
+    username,
+    HELPER_DESTINATIONS,
+    reader,
+    "helper:",
+    (path) => `/agent/${username}${path}`,
   );
+}
+
+/**
+ * A trip's pages that the header does not show — B903.
+ *
+ * Costs and weather each need the capability *and* something behind it on
+ * this trip, which is what `analyticsCardsFor` already answers for the hub;
+ * the photobook needs the owner, its capability and credits, the three
+ * questions `photobookEntryFor` asks. Read options are threaded so a draft-only
+ * budget counts for the owner and for nobody else.
+ */
+function tripExtraDocs(
+  username: string,
+  trip: Trip,
+  tripBase: string,
+  reader: SearchLevel,
+  read?: ReadOptions,
+): SearchDoc[] {
+  const cards = analyticsCardsFor(username, trip.ref, read);
+  const behindIt: Record<string, boolean> = {
+    "/costs": cards.costs,
+    "/weather": cards.weather,
+    "/photobook": isEnabled("credits"),
+  };
+  return destinationDocs(
+    username,
+    TRIP_SEARCH_DESTINATIONS,
+    reader,
+    `page:${trip.id}`,
+    (path) => `${tripBase}${path}`,
+    (row) => behindIt[row.destination.path] ?? true,
+  ).map((doc) => ({ ...doc, tripTitle: trip.title }));
 }
 
 function buildDocs(username: string): SearchDoc[] {
   const currentId = getCurrentTrip(username)?.id;
   const docs: SearchDoc[] = [...docsDocs(username), ...journalPageDocs(username, "public")];
+
 
   for (const trip of getTrips(username)) {
     if (!isIndexable(trip)) continue;
@@ -245,6 +368,7 @@ function buildDocs(username: string): SearchDoc[] {
     const tripBase = tripBaseFor(username, trip, currentId);
     docs.push(tripDoc(username, trip, tripBase));
     docs.push(...tripPageDocs(username, trip, tripBase));
+    docs.push(...tripExtraDocs(username, trip, tripBase, "public"));
 
     for (const entry of getAllEntries(trip.ref)) {
       // See the same line in lib/feed.ts: content nobody lived is not found
@@ -312,9 +436,11 @@ async function buildDocsForReader(username: string, request?: Request): Promise<
   const owner = await isOwner(username, request);
   // This builder only ever runs for a reader who proved an address (see the
   // route handler), so "reader" is the floor here rather than "public".
+  const level: SearchLevel = owner ? "owner" : "reader";
   const docs: SearchDoc[] = [
     ...docsDocs(username),
-    ...journalPageDocs(username, owner ? "owner" : "reader"),
+    ...journalPageDocs(username, level),
+    ...helperPageDocs(username, level),
   ];
 
   for (const trip of getTrips(username)) {
@@ -328,24 +454,12 @@ async function buildDocsForReader(username: string, request?: Request): Promise<
     docs.push(tripDoc(username, trip, tripBase));
     docs.push(...tripPageDocs(username, trip, tripBase));
     const { read } = await readFor(trip, request);
+    docs.push(...tripExtraDocs(username, trip, tripBase, level, read));
 
     for (const entry of getAllEntries(trip.ref, read)) {
       if (entry.test) continue;
       docs.push(toDoc(trip, tripBase, entry));
     }
-  }
-
-  /**
-   * The credits-and-storage page — B821. Owner-only, and the one destination
-   * in this file that is not trip-scoped at all: `isOwner` is the exact same
-   * check the page itself makes and the nav row is gated on (B821, B824), so
-   * search can never tell a stranger this journal even has one. Never added
-   * to the public builder above — an anonymous reader is never the owner.
-   */
-  if (owner) {
-    docs.push(
-      pageDoc(username, "page:account", ACCOUNT_DESTINATION, `/${username}/account`, ""),
-    );
   }
 
   return docs;
@@ -374,4 +488,64 @@ export async function buildSearchIndexJsonForReader(
 ): Promise<string | null> {
   const index = await buildSearchIndexForReader(username, request);
   return index ? JSON.stringify(index) : null;
+}
+
+/* -------------------------------------------------------------------------
+ * The catalogue — B904.
+ *
+ * The same rows the reader's own index is built from, flattened to what a
+ * model needs to match a sentence against: what kind of thing it is, what it
+ * is called, where and when, and the id to name it by. Nothing else — a body
+ * is what the index is for, and a catalogue carrying every day's prose would
+ * cost a request what the whole feature is worth.
+ *
+ * **It is the reader's own rows, and that is the security property.** The
+ * model never sees a day, a trip or a page this caller could not open in a
+ * browser, because the list is `buildDocsForReader` and nothing else.
+ * ---------------------------------------------------------------------- */
+
+export type CatalogueRow = {
+  id: string;
+  kind: SearchDoc["kind"];
+  title: string;
+  /** Place, trip and date, joined — whatever this row has of them. */
+  where: string;
+  url: string;
+};
+
+/**
+ * How many rows one request may carry.
+ *
+ * A journal of a few hundred days fits comfortably; a journal of thousands
+ * would not, and the honest failure there is a short list plus a line in the
+ * log, never a silently truncated one. Days are dropped oldest first, because
+ * a sentence about "the day we…" is far more often about a recent one, and
+ * every non-day row is kept whatever the length: they are the menu.
+ */
+const CATALOGUE_LIMIT = 600;
+
+export async function searchCatalogueFor(
+  username: string,
+  request?: Request,
+): Promise<CatalogueRow[]> {
+  const docs = await buildDocsForReader(username, request);
+  const rows = docs.map((doc) => ({
+    id: doc.id,
+    kind: doc.kind,
+    title: doc.title,
+    where: [doc.location, doc.tripTitle, doc.date].filter(Boolean).join(" · "),
+    url: doc.url,
+  }));
+  if (rows.length <= CATALOGUE_LIMIT) return rows;
+
+  const days = rows.filter((row) => row.kind === "day");
+  const rest = rows.filter((row) => row.kind !== "day");
+  const room = Math.max(0, CATALOGUE_LIMIT - rest.length);
+  const dropped = days.length - room;
+  console.warn(
+    `[search] catalogue for ${username}: ${dropped} of ${days.length} days left out, ` +
+      `oldest first (limit ${CATALOGUE_LIMIT})`,
+  );
+  const kept = [...days].sort((a, b) => b.id.localeCompare(a.id)).slice(0, room);
+  return [...rest, ...kept];
 }

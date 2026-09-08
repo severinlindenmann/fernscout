@@ -103,8 +103,10 @@ describe("the helper routes", () => {
   // where the guard is asserted — and it earned that on the B685/B687 merge,
   // where two branches built in parallel each updated it to a number that was
   // right on its own branch and wrong on main.
-  test("there are fifteen of them, and each is guarded", () => {
-    expect(sources).toHaveLength(15);
+  // Sixteen since B904, which added the search a person asks in their own
+  // words — the same gate, the same cookie-only family.
+  test("there are sixteen of them, and each is guarded", () => {
+    expect(sources).toHaveLength(16);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }
