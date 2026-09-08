@@ -267,3 +267,47 @@ describe("the hardcover spine is a table, not a line", () => {
     expect(computeCoverGeometry(spec, 28).sheetWidthMm).toBeCloseTo(618, 1);
   });
 });
+
+describe("the TrimBox is the trimmed edge, not the start of the content", () => {
+  /**
+   * Gelato positions cover artwork from the PDF's TrimBox. A hardcover case
+   * is folded at `wraparoundEdgeSize`, 17 mm in on a 200 x 200 book, and the
+   * 3 mm beyond that is bleed carried round the turn-in. Insetting by 20 —
+   * the wrap plus the bleed, which is where the *board content* starts — made
+   * Gelato rescale the whole sheet to fit ours, and every hardcover came back
+   * shrunk into the top-left with its title clipped.
+   */
+  it("insets a hardcover by the wrap alone", () => {
+    const g = computeCoverGeometry(defaultSpec(BOOK_SIZES.square, "hard"), 28);
+    expect(g.wrapMm).toBe(17);
+    expect(g.bleedMm).toBe(3);
+    expect(g.trimInsetMm).toBe(17);
+    // Gelato's own wraparoundEdgeSize for this book: 424 x 212 on 458 x 246.
+    expect(g.sheetWidthMm - g.trimInsetMm * 2).toBeCloseTo(424, 2);
+    expect(g.sheetHeightMm - g.trimInsetMm * 2).toBeCloseTo(212, 2);
+  });
+
+  it("insets a softcover by the bleed, which is what it always did", () => {
+    const g = computeCoverGeometry(defaultSpec(BOOK_SIZES.square, "soft"), 28);
+    expect(g.wrapMm).toBe(0);
+    expect(g.trimInsetMm).toBe(g.bleedMm);
+    expect(g.sheetHeightMm - g.trimInsetMm * 2).toBeCloseTo(200, 2);
+  });
+
+  it("takes the fold line from Gelato when it answers", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      pagesCount: 32, measureUnit: "mm",
+      wraparoundInsideSize: { width: 458, height: 246, thickness: 17 },
+      wraparoundEdgeSize: { width: 424, height: 212, thickness: 3 },
+      contentBackSize: { width: 198, height: 206 },
+      jointBackSize: { width: 8, height: 206 },
+      spineSize: { width: 6, height: 206 },
+      jointFrontSize: { width: 8, height: 206 },
+      contentFrontSize: { width: 198, height: 206 },
+    }), { status: 200 })));
+    process.env.GELATO_API_KEY = "test-key";
+    const g = await fetchCoverGeometry("photobooks-hardcover_pf_x", 28);
+    expect(g?.trimInsetMm).toBeCloseTo(17, 2);
+    expect(g?.source).toBe("gelato");
+  });
+});
