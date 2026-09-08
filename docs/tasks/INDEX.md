@@ -217,7 +217,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (9)
+## in-development (8)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -229,9 +229,8 @@ _Nothing here._
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 | [B750](in-development/B750-a-consented-provider-is-never-checked.md) | A consented provider is never checked against the one now configured | ISSUE | low | low | `bdd0270d` |
 | [B760](in-development/B760-a-mapped-statement-cannot-offer-the.md) | A mapped statement cannot offer the exchange rates a known one can | ISSUE | low | low | `bdd0270d` |
-| [B761](in-development/B761-a-statement-with-a-preamble-line.md) | A statement with a preamble line takes the wrong row as its header | ISSUE | low | low | `bdd0270d` |
 
-## testing (236)
+## testing (237)
 
 ### security (7)
 
@@ -245,7 +244,7 @@ _Nothing here._
 | [B908](testing/security/B908-a-leaked-agent-token-can-be.md) | A leaked agent token can be listed and not ended | SECURITY | medium | low | — |
 | [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (140)
+### issue (141)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -375,6 +374,7 @@ _Nothing here._
 | [B748](testing/issue/B748-the-disclosure-that-hides-the-agent.md) | The disclosure that hides the agent instructions looks like a link, so nothing says it opens | ISSUE | low | low | — |
 | [B754](testing/issue/B754-a-second-trip-cannot-be-made.md) | A second trip cannot be made from the wizard when the helper is off | ISSUE | low | low | — |
 | [B759](testing/issue/B759-a-statement-of-more-than-four.md) | A statement of more than four hundred payments is silently cut short | ISSUE | low | low | — |
+| [B761](testing/issue/B761-a-statement-with-a-preamble-line.md) | A statement with a preamble line takes the wrong row as its header | ISSUE | low | low | — |
 | [B779](testing/issue/B779-a-valid-token-on-a-helper.md) | A valid token on a helper route is told the journal is not theirs | ISSUE | low | low | — |
 | [B800](testing/issue/B800-neither-side-is-told-how-long.md) | Neither side is told how long an approval usually takes | ISSUE | low | low | — |
 | [B803](testing/issue/B803-a-stripe-purchase-records-no-payment.md) | A Stripe purchase records no payment method, because the branch that would can never be true | ISSUE | low | low | — |
