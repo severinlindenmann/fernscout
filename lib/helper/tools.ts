@@ -1,4 +1,6 @@
 import "server-only";
+import { isEnabled } from "../capabilities";
+import { listContacts } from "../contacts";
 import { balanceOf } from "../credits";
 import { factsOfEntry } from "../api/entries";
 import { getCostSummary } from "../costs";
@@ -301,6 +303,32 @@ function tripIdFor(
 }
 
 /**
+ * Who will be able to read this trip once a day of it is on the site — B933.
+ *
+ * The people rather than the vocabulary, and a count only where the people
+ * are not the owner's to name: a journal's guests are approved one at a time
+ * on the contacts page and are not the trip's business, while the people on a
+ * trip are written into `trip.md` by hand and are exactly who it says.
+ */
+async function readersOf(username: string, tripId: string, say: Say): Promise<string> {
+  const trip = getTrip(tripRef(username, tripId));
+  if (!trip) return "";
+  if (trip.visibility === "public") return say("agent.tool.publishReadersPublic");
+  if (trip.visibility === "guest") {
+    const approved = isEnabled("contacts", username)
+      ? (await listContacts(username)).filter((one) => one.approvedAt !== null).length
+      : 0;
+    return approved === 0
+      ? say("agent.tool.publishReadersGuestNobody")
+      : say("agent.tool.publishReadersGuest", { count: String(approved) });
+  }
+  const named = trip.people.map((one) => one.name).filter((name) => name !== "");
+  return named.length === 0
+    ? say("agent.tool.publishReadersPrivateNobody")
+    : say("agent.tool.publishReadersPrivate", { people: named.join(", ") });
+}
+
+/**
  * The first day of a trip nobody has written yet — B818.
  *
  * **Not today.** Somebody writing up a trip is behind it, not on it: the day
@@ -503,12 +531,41 @@ export const TOOLS: readonly Tool[] = [
       if (!trip) return noTrip(username, args.trip);
       const full = getTrip(tripRef(username, trip.id));
       if (!full) return { found: false, why: "that trip could not be read" };
+      /**
+       * **The people, not the vocabulary** — B933.
+       *
+       * This used to answer `visibility: "guest", peopleNamed: 0` and leave
+       * the model to turn that into a sentence, which is how *"nur Sie und
+       * Ihre Tochter können sie sehen"* was said about a trip her daughter
+       * could not open (B931). Every persona in this project has asked some
+       * version of *"can my mother read this"*, and the honest answer has
+       * always needed either a route call or a leap of faith.
+       *
+       * Names come from the file, which is the owner's own editorial
+       * statement about whose trip it was. **Addresses never do**: an email
+       * in a tool result is an email in the prompt, and nobody asked for
+       * their address to be read out because somebody wondered who could
+       * read a day.
+       */
+      const approved = isEnabled("contacts", username)
+        ? (await listContacts(username)).filter((one) => one.approvedAt !== null).length
+        : 0;
       return {
         trip: full.id,
         visibility: full.visibility,
         listed: full.listed,
         teaser: Boolean(full.teaser),
         peopleNamed: full.people.length,
+        // Who they are, by the name the owner wrote down.
+        people: full.people.map((one) => one.name).filter((name) => name !== ""),
+        /**
+         * How many people have been let into the **journal**, which is what a
+         * `guest` trip is open to. Nought here is the whole of B931: a trip
+         * set to `guest` so that one named person could read it, and nobody
+         * approved, reads to somebody as "my daughter can see it" and is not.
+         */
+        guestsApprovedIntoJournal: approved,
+        contactsOff: !isEnabled("contacts", username),
       };
     },
   },
@@ -802,8 +859,28 @@ export const TOOLS: readonly Tool[] = [
       const asked = found
         ? missingFrom(factsOfEntry(found.entry), found.trip.tracks, "publish").map((row) => row.field)
         : [];
+      /**
+       * **Who will be able to read it, in the same breath as the button** —
+       * B933, and it is the sentence this whole product is for.
+       *
+       * She could only find out that her daughter had no access by reading
+       * `people: []` and `invites: []` out of the API. Every persona here has
+       * asked some version of *"can my mother read this"*, and the answer has
+       * always cost either a route call or a leap of faith — which is exactly
+       * how B931 happened: a trip set to `guest` so one named person could
+       * read it, nobody approved, and the model saying she could.
+       *
+       * Before the press rather than after it. Publishing is the moment a day
+       * becomes readable by other people, and the audience is the thing a
+       * person is actually consenting to.
+       *
+       * It says **nought as a sentence**, never as a number: "only you, and
+       * you have not let anybody in yet" is the reading that would have
+       * caught B931 without an agent.
+       */
+      const audience = found ? await readersOf(username, found.trip.id, say) : "";
       const sentence = found
-        ? say("agent.tool.publishDay", { date: found.entry.date, title: found.entry.title })
+        ? `${say("agent.tool.publishDay", { date: found.entry.date, title: found.entry.title })} ${audience}`
         : say("agent.tool.publishNoDay");
       return {
         sentence:
