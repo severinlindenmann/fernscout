@@ -7,8 +7,7 @@ complexity: low
 area: agent, model
 found: "2026-09-08T08:05:56Z"
 started: "2026-09-08T08:05:57Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T08:05:57Z"
+merged: "2026-09-08T08:25:26Z"
 ---
 
 # B928 — The helper says a button is on the screen when there is none

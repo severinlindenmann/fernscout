@@ -7,8 +7,7 @@ complexity: low
 area: agent, model
 found: "2026-09-08T07:08:54Z"
 started: "2026-09-08T08:05:58Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T08:05:58Z"
+merged: "2026-09-08T08:25:25Z"
 ---
 
 # B923 — Asking that only one person may read it proposed shutting her out
