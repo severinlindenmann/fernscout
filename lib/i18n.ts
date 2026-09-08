@@ -265,6 +265,7 @@ export type TranslationKey =
   | "agent.noneChosen"
   | "agent.notRead"
   | "agent.nothingHappened"
+  | "agent.cannotSayNow"
   | "agent.onTheDay"
   | "agent.onTheDay.one"
   | "agent.ownAgentOptional"

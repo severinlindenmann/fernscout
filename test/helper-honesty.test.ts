@@ -7,7 +7,7 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { grant } from "@/lib/credits";
-import { forget, history } from "@/lib/helper/thread";
+import { forget, history, wrote } from "@/lib/helper/thread";
 import {
   claimsAccess,
   claimsWhatADaySays,
@@ -214,6 +214,34 @@ describe("a turn that claims a write it did not make", () => {
     expect(String(answered.body.answer)).not.toContain("gespeichert");
     expect(String(answered.body.answer)).toContain("Nothing has been saved");
     expect(honestyCounts().unrecovered).toBe(before.unrecovered + 1);
+  });
+
+  /**
+   * The replacement is a claim too — B943.
+   *
+   * `agent.nothingHappened` denies the whole journal, and driven against the
+   * live site it denied a day that had just been written: pressed, on disk,
+   * and the next question got *"nothing has changed in your journal"*. The net
+   * caught a false claim and put a different one in its place, which is the
+   * one failure it is not allowed to have.
+   *
+   * What the thread knows is that something was written — B939's note — and
+   * that is enough to narrow the denial to this answer without saying anything
+   * about what the day now holds.
+   */
+  test("with a write behind it, the denial is of the answer and not of the journal", async () => {
+    wrote("alex", "start_day", { trip: "reise", slug: "zweiter", date: "2026-05-02" });
+    create
+      .mockResolvedValueOnce(says("Der Text ist gespeichert."))
+      .mockResolvedValueOnce(says("Doch, der Text ist gespeichert. Der Knopf ist direkt darunter."));
+    const answered = await read(await ask("so kannst du es speichern"));
+
+    const said = String(answered.body.answer);
+    expect(said).not.toContain("gespeichert");
+    expect(said).not.toContain("Nothing has been saved");
+    // It says what it could not do, and leaves the journal out of it.
+    expect(said).toContain("could not answer that reliably");
+    expect(said).toContain("is in your journal");
   });
 
   test("a turn that really did propose is left alone", async () => {

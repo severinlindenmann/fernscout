@@ -1575,6 +1575,7 @@
   "agent.tool.noDay": "Erre a napra még nincs nap a naplódban, így semmi nem lett elmentve, és nincs mit megnyomni. Hozd létre előbb a napot, utána kerülhet rá ez.",
   "agent.tool.noFiles": "Nem találom ezeket a fényképeket a bejövők között, így semmi nem került át, és nincs mit megnyomni. Jelöld ki őket a fájlok panelen, és mondd meg újra, melyik napra.",
   "agent.nothingHappened": "Semmi nem lett elmentve, és a naplódban semmi nem változott — ezen a képernyőn nincs mit megnyomni. Mondd el újra, vagy mondd meg, melyik utazásra és melyik napra gondolsz, és odateszek egy gombot.",
+  "agent.cannotSayNow": "Erre nem tudtam megbízhatóan válaszolni, és inkább nem mondok semmit, mint valami valótlant. Amit ma megnyomtál, az a naplódban van — csak ezt a választ nem tudtam megadni. Kérdezd meg újra, vagy mondd meg, melyik utazásra és melyik napra gondolsz.",
   "agent.noAccessYet": "Nem mondhatom, hogy valaki el tudja olvasni ezt. Egy utazás, ami nem nyilvános, azoknak van nyitva, akik ott voltak, és a vendégeknek, akiket jóváhagytál — attól, hogy megnevezel valakit, még nem jut be. Mondd meg, kinek kellene olvasnia, és odateszek egy linket, amit elküldhetsz.",
   "agent.notRead": "Ebben a válaszban nem olvastam el azt a napot, így nem tudom megmondani, mi áll benne — a saját szavaidra pedig nem tippelek. Mondd el újra, megnyitom a napot, és idézem neked.",
   "agent.tool.addPhotos": "A fényképek a nap saját oldalán kerülnek fel, ott van a választó és a feltöltés.",

@@ -983,8 +983,29 @@ export async function answerInThread(
   }
 
   const RETRY = { claim: HONESTY_RETRY, access: ACCESS_RETRY, day: READ_IT_RETRY };
+  /**
+   * What is said when the model could not be made to say something true.
+   *
+   * **The replacement is itself a claim, and it has been false** — B943.
+   * `agent.nothingHappened` denies the whole journal: *"nothing has been saved
+   * and nothing has changed"*. Driven against the live site, a day was started
+   * and pressed, the draft was on disk, and the next question got exactly that
+   * sentence. The net caught a false claim and put a different one in its
+   * place — and a person who has just watched a day appear is being told it
+   * did not.
+   *
+   * The thread knows better: since B939 every write route leaves a `written:`
+   * note behind, so whether anything was saved in this conversation is a fact
+   * on hand at the moment this sentence is chosen. When something was, the
+   * denial narrows to *this answer* and stops speaking for the journal. It
+   * still does not say what was written — that is what the model has just been
+   * caught getting wrong twice.
+   */
+  const wroteSomething = turns.some(
+    (turn) => turn.role === "note" && turn.text.startsWith("[written:"),
+  );
   const PLAINLY = {
-    claim: "agent.nothingHappened",
+    claim: wroteSomething ? "agent.cannotSayNow" : "agent.nothingHappened",
     access: "agent.noAccessYet",
     day: "agent.notRead",
   } as const;

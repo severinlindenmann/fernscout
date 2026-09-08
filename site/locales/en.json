@@ -1575,6 +1575,7 @@
   "agent.tool.noDay": "There is no day in your journal for that date yet, so nothing has been saved and there is nothing to press. Start the day first, and then this can go on it.",
   "agent.tool.noFiles": "I cannot find those photographs waiting in the inbox, so nothing has moved and there is nothing to press. Tick them in the files pane and say which day again.",
   "agent.nothingHappened": "Nothing has been saved and nothing has changed in your journal — there is nothing on this screen to press. Say it again, or say which trip and which day you mean, and I will put a button in front of you.",
+  "agent.cannotSayNow": "I could not answer that reliably, so I would rather not try than tell you something that is not so. What you have pressed today is in your journal — this answer is the part I could not give. Ask me again, or say which trip and which day you mean.",
   "agent.noAccessYet": "I cannot tell you that somebody can read this. A trip that is not public is open to the people who were on it and to the guests you have approved — naming somebody does not let them in. Say who should read it and I will put a link in front of you to send them.",
   "agent.notRead": "I have not read that day in this answer, so I cannot tell you what it says — and I will not guess at somebody's own words. Say it again and I will open the day and quote it back to you.",
   "agent.tool.addPhotos": "Photographs go on from the day's own page, where the picker and the upload are.",
