@@ -156,3 +156,51 @@ describe("a correction is not a cost", () => {
     expect(cost?.describe).toContain("set_day_words");
   });
 });
+
+/**
+ * The overwrite nobody asked for — B954.
+ *
+ * Somebody writing up a three-week trip months later said *"the last one"*,
+ * meaning the flight home, which had no day yet. The conversation resolved it
+ * to the most recently written draft and built a confidently worded,
+ * filled-in proposal to replace that day's words with the flight-home
+ * narrative. Then *"the rainy one"*, about a day never mentioned, landed on an
+ * existing day the same way. Both were caught before pressing, by somebody
+ * cross-checking dates — which is what this product exists so people do not
+ * have to do.
+ *
+ * The fallback itself is right and stays: somebody who has just started a day
+ * and says "now the words" means that day. What is refused is a **guess**
+ * standing behind a write that replaces prose already there.
+ */
+describe("a day nobody named", () => {
+  function secondDay(slug: string, date: string, content: string) {
+    fs.writeFileSync(
+      path.join(dir, "alex", "trips", "tokyo", "entries", `${date}-${slug}.md`),
+      ["---", `date: "${date}"`, `slug: ${slug}`, "title: Ein Tag", "status: draft", "---", "", content].join("\n"),
+    );
+    clearUserCache();
+  }
+
+  test("is not offered as something to rewrite when it already has words", async () => {
+    secondDay("spaeter", "2026-03-05", "Schon geschrieben.");
+    const ran = await runTool("alex", "set_day_words", { trip: "tokyo", content: "Etwas ganz anderes." }, say, "2026-09-08");
+    expect(ran.proposal).toBeUndefined();
+    expect(JSON.stringify(ran.blocks)).toContain("agent.tool.whichDayToRewrite");
+  });
+
+  test("but an empty day is still filled in without being asked about", async () => {
+    secondDay("leer", "2026-03-06", "");
+    const ran = await runTool("alex", "set_day_words", { trip: "tokyo", content: "Die ersten Worte." }, say, "2026-09-08");
+    expect(ran.proposal?.arguments.slug).toBe("leer");
+  });
+
+  test("and naming the day is always enough, whatever is on it", async () => {
+    secondDay("spaeter", "2026-03-05", "Schon geschrieben.");
+    const bySlug = await runTool("alex", "set_day_words", { trip: "tokyo", slug: "spaeter", content: "Neu." }, say, "2026-09-08");
+    expect(bySlug.proposal?.arguments.slug).toBe("spaeter");
+
+    const byDate = await runTool("alex", "set_day_words", { trip: "tokyo", date: "2026-03-05", content: "Neu." }, say, "2026-09-08");
+    expect(byDate.proposal?.arguments.slug).toBe("spaeter");
+  });
+});

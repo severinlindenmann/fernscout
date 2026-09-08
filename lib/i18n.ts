@@ -442,6 +442,7 @@ export type TranslationKey =
   | "agent.tool.publishDayUnknown"
   | "agent.tool.publishNoDay"
   | "agent.tool.setWords"
+  | "agent.tool.whichDayToRewrite"
   | "agent.tool.setWordsAccept"
   | "agent.tool.setWordsDone"
   | "agent.tool.startDay"

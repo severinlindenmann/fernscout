@@ -1572,6 +1572,7 @@
   "agent.tool.draftWordsAccept": "Für mich ausformulieren",
   "agent.tool.draftWordsDone": "Das hat es aus deinen Notizen gemacht. Gespeichert ist noch nichts.",
   "agent.tool.setWords": "Titel und Text vom {date}.",
+  "agent.tool.whichDayToRewrite": "Welchen Tag soll ich neu schreiben? Sag mir das Datum oder worum es an dem Tag ging — auf dem hier stehen schon Worte, und ich möchte nicht die falschen ersetzen.",
   "agent.tool.setWordsAccept": "Diesen Text speichern",
   "agent.tool.setWordsDone": "Der Text ist gespeichert.",
   "agent.tool.addCost": "{label}, {amount} — zu den Kosten dieses Tages.",

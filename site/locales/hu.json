@@ -1572,6 +1572,7 @@
   "agent.tool.draftWordsAccept": "Fogalmazd meg nekem",
   "agent.tool.draftWordsDone": "Ezt csinálta a jegyzeteidből. Még semmi nincs elmentve.",
   "agent.tool.setWords": "{date} címe és szövege.",
+  "agent.tool.whichDayToRewrite": "Melyik napot írjam át? Mondd meg a dátumot, vagy hogy miről szólt a nap — ezen már van szöveg, és nem szeretném a rosszat felülírni.",
   "agent.tool.setWordsAccept": "Szöveg mentése",
   "agent.tool.setWordsDone": "A szöveg elmentve.",
   "agent.tool.addCost": "{label}, {amount} — a nap költségei közé.",
