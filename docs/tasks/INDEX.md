@@ -225,7 +225,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (10)
+## in-development (9)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -238,9 +238,8 @@ _Nothing here._
 | [B934](in-development/B934-an-invite-link-has-to-be.md) | An invite link has to be selected by hand on a phone | ISSUE | medium | low | `bdd0270d` |
 | [B946](in-development/B946-the-owner-s-session-stops-being.md) | The owner's session stops being recognised partway through a sitting | ISSUE | medium | medium | `bdd0270d` |
 | [B952](in-development/B952-half-of-a-two-part-request.md) | Half of a two-part request is answered and the other half is dropped without a word | ISSUE | medium | medium | `bdd0270d` |
-| [B971](in-development/B971-saying-a-draft-looks-good-re.md) | Saying a draft looks good re-offers the same card instead of the next one | ISSUE | medium | low | `bdd0270d` |
 
-## testing (223)
+## testing (224)
 
 ### security (7)
 
@@ -254,7 +253,7 @@ _Nothing here._
 | [B908](testing/security/B908-a-leaked-agent-token-can-be.md) | A leaked agent token can be listed and not ended | SECURITY | medium | low | — |
 | [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (127)
+### issue (128)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -371,6 +370,7 @@ _Nothing here._
 | [B964](testing/issue/B964-the-model-narrates-its-own-tool.md) | The model narrates its own tool confusion to the person | ISSUE | medium | low | — |
 | [B965](testing/issue/B965-a-name-that-fits-two-trips.md) | A name that fits two trips picks the newer one and says nothing | ISSUE | medium | low | — |
 | [B970](testing/issue/B970-whether-a-day-is-on-the.md) | Whether a day is on the site is answered from the person's own sentence | ISSUE | medium | low | — |
+| [B971](testing/issue/B971-saying-a-draft-looks-good-re.md) | Saying a draft looks good re-offers the same card instead of the next one | ISSUE | medium | low | — |
 | [B972](testing/issue/B972-one-question-in-another-language-switches.md) | One question in another language switches the conversation into it for good | ISSUE | medium | low | — |
 | [B974](testing/issue/B974-live-search-analytics-outranks-costs-for.md) | Live search: Analytics outranks Costs for a costs word, and Gallery, Map and Story have no synonyms at all | ISSUE | medium | low | — |
 | [B978](testing/issue/B978-the-send-confirmation-explains-what-a.md) | The send confirmation explains what a credit is worth, on a day page nobody asked about pricing on | ISSUE | medium | low | — |

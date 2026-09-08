@@ -7,8 +7,7 @@ complexity: low
 area: helper, model
 found: "2026-09-08T13:59:02Z"
 started: "2026-09-08T20:08:52Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T20:08:52Z"
+merged: "2026-09-08T20:21:25Z"
 ---
 
 # B971 — Saying a draft looks good re-offers the same card instead of the next one
