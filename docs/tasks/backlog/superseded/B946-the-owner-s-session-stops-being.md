@@ -6,9 +6,6 @@ priority: medium
 complexity: medium
 area: auth, session
 found: "2026-09-08T10:45:26Z"
-started: "2026-09-08T20:19:13Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T20:19:13Z"
 superseded: B828
 ---
 
