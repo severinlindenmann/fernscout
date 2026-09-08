@@ -7,8 +7,7 @@ complexity: low
 area: contacts, api
 found: "2026-09-07T14:58:58Z"
 started: "2026-09-08T19:14:16Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T19:14:16Z"
+merged: "2026-09-08T19:50:34Z"
 ---
 
 # B801 — A request with the wrong field name is accepted and silently does nothing
