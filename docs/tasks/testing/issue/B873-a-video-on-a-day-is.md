@@ -7,8 +7,7 @@ complexity: low
 area: agent, media
 found: "2026-09-07T17:37:28Z"
 started: "2026-09-08T20:33:49Z"
-session: bdd0270d-3797-42c9-8687-06abecadbc63
-claimed: "2026-09-08T20:33:49Z"
+merged: "2026-09-08T20:51:23Z"
 ---
 
 # B873 — A video on a day is dropped from the captions with no mention
