@@ -1060,10 +1060,10 @@ describe("provider requests", () => {
 describe("a route spread uses both pages — B914", () => {
   /** Four days round the Alps: a compact route, about 0.6° of longitude. */
   const ALPS = [
-    { location: "Susten Pass", lat: 46.73, lng: 8.44 },
-    { location: "Grimsel Pass", lat: 46.56, lng: 8.34 },
-    { location: "Domodossola", lat: 46.12, lng: 8.29 },
-    { location: "Andermatt", lat: 46.63, lng: 8.59 },
+    { location: "Susten Pass", country: "Switzerland", lat: 46.73, lng: 8.44 },
+    { location: "Grimsel Pass", country: "Switzerland", lat: 46.56, lng: 8.34 },
+    { location: "Domodossola", country: "Italy", lat: 46.12, lng: 8.29 },
+    { location: "Andermatt", country: "Switzerland", lat: 46.63, lng: 8.59 },
   ];
 
   it("draws the journey large enough to be a map rather than a squiggle", () => {
