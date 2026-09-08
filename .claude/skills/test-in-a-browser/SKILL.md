@@ -63,8 +63,14 @@ switched it on speculatively, switch it back off rather than inventing a key.
 DATABASE_URL="sqlite:.local-dev.db" \
 SESSION_SECRET="local-dev-only-not-a-real-secret-000000" \
 FERNSCOUT_ADMIN_EMAIL="agent@fernscout.ch" \
+AUTH_DEV_CODE=123456 \
 PORT=3001 npm run dev > /tmp/dev.log 2>&1 &
 ```
+
+`AUTH_DEV_CODE` fixes every sign-in code to that value (`generateCode()` in
+`lib/auth/index.ts` returns it before it reaches the random path), so step 3
+never has to open a mail. Set it here and nowhere else — it is a development
+switch, and an instance that has it set has no sign-in security at all.
 
 Use a port other than 3000 so you do not fight the main checkout's server.
 Config is read at boot — **restart after every `config.json` edit**, or you will
@@ -87,13 +93,18 @@ curl -s -X POST http://localhost:3001/api/auth/request \
   -d '{"user":"example","email":"agent@fernscout.ch"}'
 ```
 
-The code is in the newest `.eml` under `content/<user>/mail/`, and the body is
-base64 — grepping the file for six digits finds the wrong thing. Decode first:
+With `AUTH_DEV_CODE` set, the code is `123456` and there is nothing to read.
+
+Without it, the code is in the newest `.eml` under **`.data/mail/<user>/`** —
+`dataDir()` is `DATA_DIR` or `<cwd>/.data` (`lib/dataDir.ts`), and mail has not
+been under `content/<user>/mail/` since B636. Four sessions in one week searched
+the old path, `.local-dev-data/`, and finally `find .. -name '*.eml'`. The body
+is base64, so grepping the raw file for six digits finds the wrong number:
 
 ```bash
-f=$(ls -t content/example/mail/*.eml | head -1)
+f=$(ls -t .data/mail/example/*.eml | head -1)
 python3 -c "
-import sys,base64,re
+import base64,re
 raw=open('$f',encoding='utf-8',errors='replace').read()
 for b in re.findall(r'[A-Za-z0-9+/=]{40,}',raw):
     try:
@@ -103,6 +114,9 @@ for b in re.findall(r'[A-Za-z0-9+/=]{40,}',raw):
     except Exception: pass
 "
 ```
+
+A signup code belongs to no journal yet and lands in `.data/mail/.mail/`
+instead.
 
 Then verify into a cookie jar:
 
