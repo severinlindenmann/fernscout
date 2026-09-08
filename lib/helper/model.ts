@@ -521,7 +521,7 @@ WHAT YOU STILL CANNOT DO, AND WHAT TO SAY INSTEAD
 - Deleting a day, a trip or the whole journal: not from here at all, and there is no tool for it. Deleting a journal or a trip finishes in their email — the server sends a single-use link to a page with a button, and only that button deletes. Taking a day off the site is not deleting: that is unpublish_day, and nothing is lost by it.
 - Photographs: the add_photos tool hands them the day's own page, which has the picker and the upload. You cannot receive a file.
 - Printed postcards: proposed first, then looked at and pressed on their journal's postcards page. Nothing is printed until they press, and you have no part in it.
-- Inviting somebody to read, or letting a fellow traveller write: the invite links on their journal's contacts page.
+- Letting a fellow traveller *write* to a trip: the buddy link on their journal's contacts page. Inviting somebody to read is invite_guest, which you can propose.
 - Changing a trip's title, dates or who may read it after it exists: the trip form on their journal.
 
 WHAT YOU MUST NEVER DO
@@ -533,6 +533,10 @@ Never write about the weather at all, whatever they ask. This journal records we
 Never repeat back a location, an address or a coordinate as fact. You have no access to anybody's position history and must never claim to.
 
 Never put words into a day that they did not say. The words in a set_day_words proposal are theirs — either what they told you, or what draft_words made out of their own notes and they read afterwards. Prose you composed yourself is not one of those.
+
+Never say that a person can read something. Naming somebody does not let them in: a trip that is not public is open to the people who were on it and to the guests the owner has approved, and to nobody else — private shuts out the daughter it was chosen for. To let somebody in who was not there, call invite_guest: it proposes a link to send them. Even sent it grants nothing, so say "she can ask to be let in", never "she can read it".
+
+Never say what a day says without reading it in this answer. Call read_day and quote the words that are there, rather than summarising what you remember: a quote is something they can check.
 
 Never make up a tool, a page or a button that is not named above.
 
@@ -684,6 +688,118 @@ export function claimsWhatIsNotThere(text: string): boolean {
 }
 
 /**
+ * The third territory, and the one the product exists for — B931.
+ *
+ * *"nur meine Tochter soll das lesen können"* was answered with
+ * `visibility: private` — the people who were on the trip — and the sentence
+ * **"Die Reise ist auf privat gesetzt – nur Sie und Ihre Tochter können sie
+ * sehen."** Live: `people: []`, `invites: []`. Her daughter had exactly the
+ * access she would have had if she had never been mentioned, and her mother
+ * had been told the opposite. A journal exists so that somebody's family can
+ * read it; a false claim here is not a wasted tap, it is the whole purpose
+ * quietly not happening.
+ *
+ * So a sentence saying **a person** can read something is checked against the
+ * one thing that would make it true: an `invite_guest` proposal on this turn.
+ * Naming somebody grants nothing — a closed trip is open to the people who
+ * were on it and to the guests the owner has approved, and nothing a
+ * conversation says changes either.
+ *
+ * Two exemptions, and both are true readings rather than softenings. A
+ * sentence that **denies** ("your daughter cannot read it yet") is the honest
+ * answer and is what a model told this will write. A sentence about a
+ * **public** trip is simply correct: anybody can read a public trip, family
+ * included, and there is nothing to invite anybody to.
+ */
+const PERSON = new RegExp(
+  [
+    // en
+    "\\b(?:daughter|son|family|wife|husband|mother|father|mum|mom|dad|parents|children|kids|grandchild\\w*|grandson|granddaughter|sister|brother|friends)\\b",
+    // de
+    "\\b(?:tochter|sohn|familie|frau|mann|mutter|vater|eltern|kinder|enkel\\w*|schwester|bruder|freunde)\\b",
+    // hu
+    "\\b(?:l\u00e1ny\\w*|fia[dm]?|csal\u00e1d\\w*|feles\u00e9g\\w*|f\u00e9rj\\w*|anyu?k?[a\u00e1]\\w*|ap[a\u00e1]\\w*|gyerek\\w*|unok[a\u00e1]\\w*|testv\u00e9r\\w*|bar\u00e1t\\w*)\\b",
+  ].join("|"),
+  "i",
+);
+
+const CAN_READ = new RegExp(
+  [
+    // en — "can read it", "will be able to see it", "has access"
+    "\\b(?:can|could|may|will be able to|is able to|are able to)\\s+(?:\\S+\\s+){0,3}?(?:read|see|view|open|look)\\b",
+    "\\b(?:has|have|gets?|got)\\s+access\\b",
+    // de — "kann sie sehen", "können sie lesen", "sehen können", "hat Zugriff"
+    "\\b(?:kann|kannst|k\u00f6nnen|k\u00f6nnt|darf|d\u00fcrfen)\\s+(?:\\S+\\s+){0,4}?(?:lesen|sehen|ansehen|anschauen|\u00f6ffnen)\\b",
+    "\\b(?:lesen|sehen|ansehen|anschauen)\\s+(?:kann|kannst|k\u00f6nnen|k\u00f6nnt)\\b",
+    "\\bzu(?:griff|gang)\\b",
+    // hu
+    "\\b(?:el)?olvashat\\w*\\b",
+    "\\b(?:tudja|tudod|tud|tudn\u00e1)\\s+(?:\\S+\\s+){0,2}?(?:olvasni|l\u00e1tni|megn\u00e9zni)\\b",
+    "\\bl\u00e1that\\w*\\b",
+    "\\bmegn\u00e9zhet\\w*\\b",
+    "\\bhozz\u00e1f\u00e9r\\w*\\b",
+  ].join("|"),
+  "i",
+);
+
+/** A public trip really is readable by everybody, so a sentence saying so is
+ *  not a claim about access — it is the answer. */
+const PUBLIC =
+  /\bpublic\b|\banybody\b|\banyone\b|\beverybody\b|\beveryone\b|öffentlich|\bjede[rm]?\b|nyilv\u00e1nos|b\u00e1rki/i;
+
+/** True when this text says a person can read something. */
+export function claimsAccess(text: string): boolean {
+  return withoutMarkers(text)
+    .split(/(?<=[.!?\n])\s+/)
+    .some(
+      (sentence) =>
+        PERSON.test(sentence) &&
+        CAN_READ.test(sentence) &&
+        !DENIED.test(sentence) &&
+        !PUBLIC.test(sentence),
+    );
+}
+
+/**
+ * What a day says, asserted from memory — B932.
+ *
+ * She said the saved text was missing *"es war schön"* and was told **"Der
+ * Text erwähnt bereits, dass es schön war."** on a turn that proposed nothing
+ * and had called nothing. What was on disk: *"Wir waren am See spazieren.
+ * Danach gab es Kuchen."* `read_day` is a read tool the model may call as
+ * often as it likes; it did not call it.
+ *
+ * The same family as B920 and B928 — the helper describing something the
+ * person can check and it cannot — and the same remedy: a turn asserting what
+ * a day contains, without having read one in that turn, is asked again and
+ * told to look. The prompt carries the habit that makes it unnecessary: quote
+ * the words back, because a quote is falsifiable and a summary is not.
+ */
+const SAYS_WHAT_IT_SAYS = new RegExp(
+  [
+    // en
+    "\\b(?:text|day|entry|draft|it)\\s+(?:already\\s+)?(?:mentions|says|contains|includes|talks about)\\b",
+    "\\balready\\s+(?:in the text|there|written|says|mentioned)\\b",
+    "\\byou (?:already )?wrote\\b",
+    // de
+    "\\b(?:text|tag|eintrag|entwurf)\\b[^.!?]{0,40}?\\b(?:erw\u00e4hnt|sagt|enth\u00e4lt|nennt|steht)\\b",
+    "\\b(?:steht|ist)\\s+(?:schon|bereits)\\b",
+    "\\b(?:schon|bereits)\\s+(?:erw\u00e4hnt|drin|dabei|enthalten|geschrieben|da)\\b",
+    // hu
+    "\\b(?:sz\u00f6veg|nap|bejegyz\u00e9s)\\w*\\b[^.!?]{0,40}?\\b(?:eml\u00edti|tartalmazza|szerepel|\u00edrja)\\b",
+    "\\bm\u00e1r\\s+(?:benne van|szerepel|eml\u00edti|le van \u00edrva)\\b",
+  ].join("|"),
+  "i",
+);
+
+/** True when this text asserts what a day contains. */
+export function claimsWhatADaySays(text: string): boolean {
+  return withoutMarkers(text)
+    .split(/(?<=[.!?\n])\s+/)
+    .some((sentence) => SAYS_WHAT_IT_SAYS.test(sentence));
+}
+
+/**
  * What the model is told when it has claimed a write it did not make — B920.
  *
  * A retry rather than a strip: stripping leaves a hole in a paragraph and
@@ -696,6 +812,23 @@ const HONESTY_RETRY = `Stop. Your last answer described something that is not on
 You may not describe anything they cannot see. No button, no "press it", nothing "below", and never tell them to reload the page or their browser: the page is not the problem and saying so sends them hunting for a fault of their own.
 
 Answer again. Either call the tool that proposes what they asked for — that is what puts a button in front of them — or say plainly, in their language, that nothing has been saved yet and what you need from them.`;
+
+/**
+ * What the model is told when it has said somebody can read something — B931.
+ *
+ * The retry is worth more here than anywhere else, because the answer it
+ * produces is one that did not exist before this ticket: the invitation.
+ */
+const ACCESS_RETRY = `Stop. Your last answer said a person can read something, and nothing on this turn makes that true. Naming somebody does not let them in: a trip that is not public is open to the people who were on it and to the guests the owner has already approved, and nobody else. Saying otherwise is the worst thing you can get wrong here — this journal exists so that somebody's family can read it, and they will believe you.
+
+Answer again. If they want that person to read it, call invite_guest: it proposes a link for them to send. Say what the link is — the person opens it, proves their own address, and then asks; they can read nothing until the owner approves them. Otherwise say plainly, in their language, that the person has not been invited yet and cannot read it.`;
+
+/**
+ * What the model is told when it has said what a day says — B932.
+ */
+const READ_IT_RETRY = `Stop. Your last answer said what a day contains, and you did not read that day on this turn. You do not remember their words and you must not describe them from memory.
+
+Answer again. Call read_day first, and quote the words that are actually there back to them — a quote they can check, not a summary. If the day does not say what they are asking about, say so, and propose the change.`;
 
 /**
  * How often a turn claimed a write it had not made — B920.
@@ -833,14 +966,39 @@ export async function answerInThread(
    * are dropped rather than shown. A hole in a paragraph is survivable; being
    * told your day is safe when it is not is what put somebody's phone down.
    */
-  if (proposals.length === 0 && claimsWhatIsNotThere(answer)) {
+  /**
+   * Three things a turn can be wrong about, and each of them is a thing the
+   * person can check: the write that did not happen (B920) and the button
+   * that is not there (B928), who can read it (B931), and what a day says
+   * (B932). One retry each, with the reason it was caught, and then the truth
+   * plainly in the person's own language.
+   */
+  function amiss(): "" | "claim" | "access" | "day" {
+    if (claimsAccess(answer) && !proposals.some((one) => one.tool === "invite_guest")) {
+      return "access";
+    }
+    if (claimsWhatADaySays(answer) && !looked.includes("read_day")) return "day";
+    if (proposals.length === 0 && claimsWhatIsNotThere(answer)) return "claim";
+    return "";
+  }
+
+  const RETRY = { claim: HONESTY_RETRY, access: ACCESS_RETRY, day: READ_IT_RETRY };
+  const PLAINLY = {
+    claim: "agent.nothingHappened",
+    access: "agent.noAccessYet",
+    day: "agent.notRead",
+  } as const;
+
+  const wrong = amiss();
+  if (wrong !== "") {
     honesty.claimed += 1;
     messages.push({ role: "assistant", content: answer === "" ? "…" : answer });
-    messages.push({ role: "user", content: HONESTY_RETRY });
+    messages.push({ role: "user", content: RETRY[wrong] });
     answer = withoutMarkers(await rounds());
-    if (proposals.length === 0 && claimsWhatIsNotThere(answer)) {
+    const again = amiss();
+    if (again !== "") {
       honesty.unrecovered += 1;
-      answer = say("agent.nothingHappened");
+      answer = say(PLAINLY[again]);
     }
   }
 

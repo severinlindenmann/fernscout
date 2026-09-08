@@ -81,7 +81,10 @@ function at(answer: unknown, path: string): unknown {
  */
 function previewOf(answer: Record<string, unknown>): Block[] {
   const draft = answer.draft as Record<string, unknown> | undefined;
-  const lines = [draft?.date, draft?.title].filter(
+  // `url` is the invite link, and it is answered exactly once — B931. Read as
+  // a field of the answer, like `draft` above, so this component still knows
+  // the name of no tool.
+  const lines = [draft?.date, draft?.title, answer.url].filter(
     (line): line is string => typeof line === "string" && line !== "",
   );
   return lines.length > 0 ? [{ shape: "preview", text: "", lines }] : [];
@@ -721,7 +724,7 @@ function BlockView({
       <div className="rounded-xl border border-navy-200 bg-white p-3">
         <p className="text-sm text-navy-600">{block.text}</p>
         {block.lines.map((line, n) => (
-          <p key={n} className="mt-1 text-base leading-6 text-navy-900">
+          <p key={n} className="mt-1 break-words text-base leading-6 text-navy-900">
             {line}
           </p>
         ))}

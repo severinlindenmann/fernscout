@@ -340,6 +340,8 @@ describe("the tools", () => {
       "publish_day",
       "unpublish_day",
       "attach_files",
+      // B931 — the only way somebody who was not on a trip can ever read it.
+      "invite_guest",
     ]);
     expect(TOOLS.filter((tool) => tool.kind === "link").map((tool) => tool.name)).toEqual([
       "add_photos",
@@ -422,9 +424,22 @@ describe("what a turn costs", () => {
    * three hundred tokens are a fraction of a rappen a turn, and the sentence
    * they replace was one somebody believed.
    */
-  test("the prompt and the tool list stay under thirty-seven hundred tokens", () => {
+  /**
+   * **Forty-one hundred since B931 and B932**, raised deliberately by four
+   * hundred from 3,700 — where it sat at 3,699, with no room left for a
+   * sentence (B930 is open on exactly that, and this does not close it).
+   *
+   * What the four hundred bought: the `invite_guest` tool, which is the only
+   * way in this product for somebody who was not on a trip to ever read it,
+   * and two paragraphs — that naming a person does not let them in, and that
+   * a day's contents are read before they are described. The sentence they
+   * replace is "nur Sie und Ihre Tochter können sie sehen", said about a trip
+   * her daughter could not open. At Haiku's input price a hundred tokens is a
+   * fraction of a rappen a turn.
+   */
+  test("the prompt and the tool list stay under forty-one hundred tokens", () => {
     const schemas = TOOLS.map((tool) => JSON.stringify(tool.properties) + tool.describe).join("");
     const characters = threadSystemPrompt("2026-09-07").length + schemas.length;
-    expect(Math.round(characters / 4)).toBeLessThan(3700);
+    expect(Math.round(characters / 4)).toBeLessThan(4100);
   });
 });

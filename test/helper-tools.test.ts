@@ -185,6 +185,7 @@ describe("a proposal can only be pressed into the helper's own routes", () => {
     "/api/helper/alex/day/publish",
     "/api/helper/alex/day/unpublish",
     "/api/helper/alex/day/attach",
+    "/api/helper/alex/invite",
   ];
 
   test("every write tool names one of them, and nothing else", () => {
@@ -301,6 +302,78 @@ describe("who may read a trip is read before it is chosen", () => {
     const ran = await runTool("someone", "create_trip", { title: "Am See" }, say, "2026-09-07");
     expect(ran.proposal?.sentence).toContain("agent.tool.createTripVisibility");
   });
+});
+
+/**
+ * Letting the person they named actually read it — B931.
+ *
+ * The tool is the half of that ticket that makes the honest answer sayable.
+ * What is assertable here is its shape: it is the *guest* link and only that,
+ * it proposes rather than issues, and the sentence a person reads before and
+ * after the press says they can now **ask** rather than that they are in.
+ */
+describe("inviting somebody to read", () => {
+  const invite = TOOLS.find((tool) => tool.name === "invite_guest");
+
+  test("it is a write tool, so it issues nothing by itself", () => {
+    expect(invite?.kind).toBe("write");
+    expect(invite).not.toHaveProperty("run");
+    expect(invite && invite.kind === "write" && invite.endpoint("alex")).toBe(
+      "/api/helper/alex/invite",
+    );
+  });
+
+  test("there is no buddy link here, and no way to ask for one", () => {
+    // A buddy link is write access to a trip and belongs on the contacts
+    // page. No `kind`, no `trip`: nothing a model could get wrong.
+    expect(Object.keys(invite?.properties ?? {})).toEqual(["name"]);
+    expect(TOOLS.map((tool) => tool.name).filter((name) => name.includes("buddy"))).toEqual([]);
+    expect(invite?.describe).not.toMatch(/buddy/i);
+  });
+
+  test("the model is told it grants nothing", () => {
+    expect(invite?.describe).toMatch(/ask to read/i);
+    expect(invite?.describe).toMatch(/grants nothing/i);
+  });
+
+  test("it proposes a link and touches no disk", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-invite-"));
+    const before = process.env.CONTENT_DIR;
+    process.env.CONTENT_DIR = dir;
+    try {
+      const ran = await runTool("alex", "invite_guest", { name: "meine Tochter" }, say, "2026-09-07");
+      expect(ran.proposal?.tool).toBe("invite_guest");
+      expect(ran.proposal?.fields).toEqual([{ name: "name", value: "meine Tochter" }]);
+      expect(ran.result).toMatchObject({ proposed: true, wrote: false });
+      expect(fs.readdirSync(dir)).toEqual([]);
+    } finally {
+      if (before === undefined) delete process.env.CONTENT_DIR;
+      else process.env.CONTENT_DIR = before;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  /**
+   * The sentence after the press, in all three languages: **they can ask.**
+   * "They have access" is the same false claim B931 is about, moved one step
+   * later, so the words are checked rather than left to a translator's ear.
+   */
+  for (const locale of MAINTAINED_LOCALES) {
+    test(`${locale}: what is said after the press is that they can ask, never that they are in`, () => {
+      const dictionary = JSON.parse(
+        fs.readFileSync(path.join(process.cwd(), "site", "locales", `${locale}.json`), "utf8"),
+      ) as Record<string, string>;
+      const done = dictionary["agent.tool.inviteGuestDone"];
+      const asks = {
+        en: /ask to be let in/i,
+        de: /um Zugang bitten/i,
+        hu: /kérheti/i,
+      }[locale];
+      const approve = { en: /approve/i, de: /bestätigst/i, hu: /jóvá nem hagyod/i }[locale];
+      expect(done).toMatch(asks);
+      expect(done).toMatch(approve);
+    });
+  }
 });
 
 describe("every string a tool says exists in every maintained locale", () => {

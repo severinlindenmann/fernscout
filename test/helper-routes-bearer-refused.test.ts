@@ -183,6 +183,19 @@ describe("the helper's own routes never accept a bearer token", () => {
     expect(res.status).toBe(404);
   });
 
+  test("invite: POST — B931", async () => {
+    const { POST } = await import("@/app/api/helper/[user]/invite/route");
+    const res = await POST(
+      bearerOnly("https://t.test/api/helper/alex/invite", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
+      params,
+    );
+    expect(res.status).toBe(404);
+  });
+
   test("day/write-day: POST", async () => {
     const { POST } = await import("@/app/api/helper/[user]/day/write-day/route");
     const res = await POST(
