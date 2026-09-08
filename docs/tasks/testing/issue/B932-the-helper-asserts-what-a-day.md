@@ -7,8 +7,7 @@ complexity: low
 area: agent, model
 found: "2026-09-08T08:36:52Z"
 started: "2026-09-08T08:37:28Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T08:37:28Z"
+merged: "2026-09-08T09:00:11Z"
 ---
 
 # B932 — The helper asserts what a day says without reading it

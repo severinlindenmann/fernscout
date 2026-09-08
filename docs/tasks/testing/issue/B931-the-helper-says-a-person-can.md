@@ -7,8 +7,7 @@ complexity: medium
 area: agent, contacts
 found: "2026-09-08T08:36:52Z"
 started: "2026-09-08T08:37:28Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T08:37:28Z"
+merged: "2026-09-08T09:00:10Z"
 ---
 
 # B931 — The helper says a person can read a trip when they have no access at all
