@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: agent, consent
 found: "2026-09-07T13:08:42Z"
+started: "2026-09-08T21:09:18Z"
+session: bdd0270d-3797-42c9-8687-06abecadbc63
+claimed: "2026-09-08T21:09:18Z"
 ---
 
 # B750 — A consented provider is never checked against the one now configured
