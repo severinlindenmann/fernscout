@@ -7,8 +7,7 @@ complexity: low
 area: helper, honesty
 found: "2026-09-08T10:23:47Z"
 started: "2026-09-08T10:24:47Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-08T10:24:47Z"
+merged: "2026-09-08T10:30:57Z"
 ---
 
 # B943 — The sentence that replaces a false claim is itself a claim, and it can be false
