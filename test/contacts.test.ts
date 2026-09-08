@@ -108,6 +108,8 @@ beforeEach(async () => {
   process.env.CONTENT_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "contacts.db")}`;
   process.env.CONTACTS_ENCRYPTION_KEY = KEY;
+  // B938: contacts needs auth, and auth needs this.
+  process.env.SESSION_SECRET = "contacts-test-secret-b938";
   delete process.env.AUTH_DEV_CODE;
 
   fs.writeFileSync(
@@ -130,6 +132,7 @@ afterEach(async () => {
   delete process.env.CONTENT_DIR;
   delete process.env.DATABASE_URL;
   delete process.env.CONTACTS_ENCRYPTION_KEY;
+  delete process.env.SESSION_SECRET;
   clearConfigCache();
   clearUserCache();
   fs.rmSync(dir, { recursive: true, force: true });
@@ -302,7 +305,9 @@ describe("a guest's phone number, given through the invite form", () => {
       JSON.stringify({
         site: { name: "R", url: "https://example.test", defaultUser: "ana" },
         users: { reserved: [] },
-        features: { contacts: { enabled: true } },
+        // B938: contacts needs auth. Everything it does ends in somebody
+        // being let in, and being let in is a session.
+        features: { auth: { enabled: true }, contacts: { enabled: true } },
       }),
     );
     clearConfigCache();
@@ -583,7 +588,7 @@ describe("the request endpoint, with no invitation", () => {
       JSON.stringify({
         site: { name: "R", url: "https://example.test", defaultUser: "ana" },
         users: { reserved: [] },
-        features: { contacts: { enabled: true } },
+        features: { auth: { enabled: true }, contacts: { enabled: true } },
       }),
     );
     clearConfigCache();
@@ -1545,7 +1550,7 @@ describe("the digest preference's name", () => {
       JSON.stringify({
         site: { name: "R", url: "https://example.test", defaultUser: "ana" },
         users: { reserved: [] },
-        features: { contacts: { enabled: true } },
+        features: { auth: { enabled: true }, contacts: { enabled: true } },
       }),
     );
     clearConfigCache();
@@ -1622,7 +1627,7 @@ describe("the admin route's update validation", () => {
       JSON.stringify({
         site: { name: "R", url: "https://example.test", defaultUser: "ana" },
         users: { reserved: [] },
-        features: { contacts: { enabled: true } },
+        features: { auth: { enabled: true }, contacts: { enabled: true } },
       }),
     );
     clearConfigCache();
