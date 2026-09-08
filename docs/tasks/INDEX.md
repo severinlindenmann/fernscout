@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (144)
+## backlog (143)
 
 ### issue (45)
 
@@ -174,12 +174,6 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### docs-and-skills (1)
-
-| # | Finding | Type | Priority | Complexity |
-| --- | --- | --- | --- | --- |
-| [B999](backlog/docs-and-skills/B999-three-things-every-session-rediscovers-are.md) | Three things every session rediscovers are not written down | DOCS | medium | low |
-
 ### superseded (42)
 
 | # | Finding | Type | Priority | Complexity |
@@ -250,7 +244,7 @@ _Nothing here._
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 | [B985](in-development/B985-only-two-of-the-write-routes.md) | Only two of the write routes record a press they refused | CHORE | low | low | `fdfcf5f2` |
 
-## testing (193)
+## testing (194)
 
 ### security (7)
 
@@ -464,13 +458,14 @@ _Nothing here._
 | [B835](testing/chore/B835-the-approve-route-s-two-404s.md) | The approve route's two 404s use different error strings | CHORE | low | low | — |
 | [B859](testing/chore/B859-nothing-proves-a-refused-journal-creation.md) | Nothing proves a refused journal creation leaves no journal behind | CHORE | low | low | — |
 
-### docs-and-skills (5)
+### docs-and-skills (6)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B827](testing/docs-and-skills/B827-the-imprint-s-data-residency-claim.md) | The imprint's data-residency claim does not mention Stripe | DOCS | high | low | — |
 | [B870](testing/docs-and-skills/B870-the-api-never-reads-the-place.md) | The API never reads the place and time out of a photograph and only says so 1700 lines away | DOCS | medium | low | — |
 | [B966](testing/docs-and-skills/B966-nothing-tells-a-new-agent-that.md) | Nothing tells a new agent that the honesty net exists or why it is shaped that way | DOCS | medium | low | — |
+| [B999](testing/docs-and-skills/B999-three-things-every-session-rediscovers-are.md) | Three things every session rediscovers are not written down | DOCS | medium | low | — |
 | [B717](testing/docs-and-skills/B717-readme-md-still-says-there-is.md) | README.md still says there is no editing interface and there will not be one | DOCS | low | low | — |
 | [B871](testing/docs-and-skills/B871-a-png-is-served-as-a.md) | A PNG is served as a JPEG and nothing says so | DOCS | low | low | — |
 

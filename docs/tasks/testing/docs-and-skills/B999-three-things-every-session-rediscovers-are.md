@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: AGENTS.md, .claude/skills/
 found: "2026-09-08T17:13:34Z"
+merged: "2026-09-08T17:26:03Z"
 ---
 
 # B999 — Three things every session rediscovers are not written down
