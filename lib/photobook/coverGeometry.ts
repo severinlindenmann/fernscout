@@ -36,6 +36,23 @@ export type CoverGeometry = {
   bleedMm: number;
   /** How far the cover wraps around a hardcover's boards. 0 for softcover. */
   wrapMm: number;
+  /**
+   * How far the **trimmed edge** sits inside the sheet — what goes in the
+   * PDF's `TrimBox`, and not the same as `wrapMm + bleedMm`.
+   *
+   * For a softcover it is the bleed: the sheet is cut 3 mm in on every side.
+   * For a hardcover it is the *wrap*, because the case is folded at 17 mm and
+   * the 3 mm beyond that is bleed carried around the turn-in — Gelato calls
+   * that box `wraparoundEdgeSize` and puts it at (17, 17), 424 x 212 on a
+   * 458 x 246 sheet.
+   *
+   * This existed as `wrapMm + bleedMm` and was wrong by exactly those 3 mm on
+   * every hardcover edge. Gelato places artwork from the TrimBox, so it
+   * rescaled the whole sheet to make ours fit and every hardcover preview came
+   * back shrunk into the top-left corner with the title clipped. The
+   * softcover was right by luck: 0 + 3 is the bleed.
+   */
+  trimInsetMm: number;
   back: CoverPanel;
   spineWidthMm: number;
   front: CoverPanel;
@@ -146,6 +163,7 @@ export function computeCoverGeometry(spec: BookSpec, pageCount: number): CoverGe
       sheetHeightMm: board.heightMm + contentEdge * 2,
       bleedMm: HARDCOVER_BLEED_MM,
       wrapMm: HARDCOVER_WRAP_MM,
+      trimInsetMm: HARDCOVER_WRAP_MM,
       back: board,
       spineWidthMm: spine,
       front: board,
@@ -162,6 +180,7 @@ export function computeCoverGeometry(spec: BookSpec, pageCount: number): CoverGe
     sheetHeightMm: trimH + bleed * 2,
     bleedMm: bleed,
     wrapMm: 0,
+    trimInsetMm: bleed,
     back: panel,
     spineWidthMm: spine,
     front: panel,
@@ -231,6 +250,11 @@ export async function fetchCoverGeometry(
         sheetHeightMm: outer.height,
         bleedMm,
         wrapMm,
+        // The fold line, which is where `wraparoundEdgeSize` sits: half the
+        // difference between the whole sheet and that box. Same number as
+        // `wrapMm` by construction, named separately because they are
+        // different facts that happen to coincide.
+        trimInsetMm: wrapMm,
         back: { widthMm: contentBack.width, heightMm: contentBack.height },
         spineWidthMm: spine.width,
         front: { widthMm: contentFront.width, heightMm: contentFront.height },
@@ -246,6 +270,7 @@ export async function fetchCoverGeometry(
       sheetHeightMm: sheet.height,
       bleedMm: (sheet.width - contentBack.width * 2 - spine.width) / 2,
       wrapMm: 0,
+      trimInsetMm: (sheet.width - contentBack.width * 2 - spine.width) / 2,
       back: { widthMm: contentBack.width, heightMm: contentBack.height },
       spineWidthMm: spine.width,
       front: { widthMm: contentFront.width, heightMm: contentFront.height },

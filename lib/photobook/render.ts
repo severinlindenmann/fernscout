@@ -806,11 +806,16 @@ export function renderCover(
   const cover = volume.cover;
   const geometry = cover.geometry;
   const builder = new PdfBuilder(options.document ?? {});
+  // TrimBox is the *trimmed edge*, which for a hardcover is the fold at
+  // `wrapMm` and not the start of the board content at `wrapMm + bleedMm`.
+  // Gelato positions artwork from this box; getting it 3 mm tight made it
+  // rescale the sheet and clip every hardcover title. See `trimInsetMm`.
+  const trimInset = geometry.trimInsetMm;
   const page = builder.addPage(mm(geometry.sheetWidthMm), mm(geometry.sheetHeightMm), {
-    x: mm(geometry.wrapMm + geometry.bleedMm),
-    y: mm(geometry.wrapMm + geometry.bleedMm),
-    width: mm(geometry.sheetWidthMm - (geometry.wrapMm + geometry.bleedMm) * 2),
-    height: mm(geometry.sheetHeightMm - (geometry.wrapMm + geometry.bleedMm) * 2),
+    x: mm(trimInset),
+    y: mm(trimInset),
+    width: mm(geometry.sheetWidthMm - trimInset * 2),
+    height: mm(geometry.sheetHeightMm - trimInset * 2),
   });
   const type = typeScale(spec);
 
