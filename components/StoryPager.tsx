@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useTrip } from "@/components/TripProvider";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import DayReactions from "./DayReactions";
+import EditDay from "./EditDay";
 import OwnerTools from "./OwnerTools";
 import DayWeather from "./DayWeather";
 import DraftNotice from "./DraftNotice";
@@ -18,7 +19,11 @@ import { useI18n } from "./LocaleProvider";
 import { flagFor } from "@/lib/flags";
 import { useMoney } from "./CurrencyProvider";
 import type { Day, DaySummary, Entry } from "@/lib/types";
-import { SOURCE_CREDIT, weatherGroup, type DayWeather as WeatherReading } from "@/lib/weather";
+import {
+  SOURCE_CREDIT,
+  weatherGroup,
+  type DayWeather as WeatherReading,
+} from "@/lib/weather";
 
 /**
  * The trip, one screen at a time.
@@ -113,42 +118,45 @@ export default function StoryPager({
 
   return (
     <div>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={stepIndex}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.28, ease: [0.22, 0.61, 0.36, 1] }}
-          >
-            {step.kind === "hero" && hero}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={stepIndex}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.28, ease: [0.22, 0.61, 0.36, 1] }}
+        >
+          {step.kind === "hero" && hero}
 
-            {/* A leg needs only where it went and how — all of which the index
+          {/* A leg needs only where it went and how — all of which the index
                 carries, so travel never waits for a fetch. `from` is the day
                 before it, in the same index, so the scene can measure the
                 distance it just crossed. */}
-            {step.kind === "travel" && (
-              <div className="py-4">
-                <TravelScene
-                  leg={index[step.dayIndex]}
-                  from={index[step.dayIndex - 1]}
-                  onDone={onLegDone}
-                />
-              </div>
-            )}
+          {step.kind === "travel" && (
+            <div className="py-4">
+              <TravelScene
+                leg={index[step.dayIndex]}
+                from={index[step.dayIndex - 1]}
+                onDone={onLegDone}
+              />
+            </div>
+          )}
 
-            {step.kind === "day" &&
-              (dayAt(step.dayIndex) ? (
-                <DayCard
-                  day={dayAt(step.dayIndex)!}
-                  summary={index[step.dayIndex]}
-                  dayIndex={step.dayIndex}
-                />
-              ) : (
-                <DayPlaceholder summary={index[step.dayIndex]} failed={loadFailed} />
-              ))}
-          </motion.div>
-        </AnimatePresence>
+          {step.kind === "day" &&
+            (dayAt(step.dayIndex) ? (
+              <DayCard
+                day={dayAt(step.dayIndex)!}
+                summary={index[step.dayIndex]}
+                dayIndex={step.dayIndex}
+              />
+            ) : (
+              <DayPlaceholder
+                summary={index[step.dayIndex]}
+                failed={loadFailed}
+              />
+            ))}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
@@ -160,7 +168,13 @@ export default function StoryPager({
  * so even on a stalled connection the reader can see they're in the right
  * place rather than staring at grey boxes.
  */
-function DayPlaceholder({ summary, failed }: { summary: DaySummary; failed: boolean }) {
+function DayPlaceholder({
+  summary,
+  failed,
+}: {
+  summary: DaySummary;
+  failed: boolean;
+}) {
   const { t, formatLongDate } = useI18n();
   return (
     <article
@@ -209,6 +223,7 @@ export function DayCard({
   const trip = useTrip();
   const { t, formatLongDate } = useI18n();
   const { spendParts } = useMoney();
+  const [editing, setEditing] = useState(false);
   const lead = day.lead;
   const multi = day.entries.length > 1;
   const cost = summary.cost;
@@ -267,7 +282,10 @@ export function DayCard({
             390px a reserved corner left it 250px and every item — date,
             weather, spend — wrapped onto a row of its own. */}
         <div className="absolute right-0 top-0 text-right">
-          <span className="ml-auto block h-1 w-8 rounded-full bg-yellow-400" aria-hidden />
+          <span
+            className="ml-auto block h-1 w-8 rounded-full bg-yellow-400"
+            aria-hidden
+          />
           <span className="mt-1.5 block font-display text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-500">
             {t("day.label")} {dayIndex + 1}
           </span>
@@ -303,7 +321,9 @@ export function DayCard({
                 {paidAndConverted.paid}
               </span>
               {paidAndConverted.converted && (
-                <span className="text-[11px] text-navy-500">{paidAndConverted.converted}</span>
+                <span className="text-[11px] text-navy-500">
+                  {paidAndConverted.converted}
+                </span>
               )}
             </Link>
           )}
@@ -355,10 +375,28 @@ export function DayCard({
   return (
     <>
       {card}
-      <OwnerTools
-        username={trip.trip.username}
-        day={{ tripId: trip.trip.id, slug: lead.slug, date: day.date, published: !allDraft }}
-      />
+      {editing ? (
+        // B980 — the panel takes the block's place rather than sitting under
+        // it: while a day is being corrected, the things to do *with* the day
+        // (tell the readers, invite somebody) are not the question.
+        <EditDay
+          username={trip.trip.username}
+          tripId={trip.trip.id}
+          day={day}
+          onClose={() => setEditing(false)}
+        />
+      ) : (
+        <OwnerTools
+          username={trip.trip.username}
+          day={{
+            tripId: trip.trip.id,
+            slug: lead.slug,
+            date: day.date,
+            published: !allDraft,
+          }}
+          onCorrect={() => setEditing(true)}
+        />
+      )}
     </>
   );
 }
@@ -462,7 +500,9 @@ function UpdateBlock({
           for this reader's language. Quiet on purpose: unlike DraftNotice
           and TestNotice this is a legacy-only path, not a caution, so it is
           a line rather than a banner. */}
-      {fallbackNotice && <p className="mb-4 text-xs italic text-navy-500">{t(fallbackNotice)}</p>}
+      {fallbackNotice && (
+        <p className="mb-4 text-xs italic text-navy-500">{t(fallbackNotice)}</p>
+      )}
 
       <EntryContent markdown={content} />
 

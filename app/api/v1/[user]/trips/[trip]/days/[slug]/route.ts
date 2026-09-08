@@ -1,31 +1,25 @@
-import { authenticate, errorResponse, mayWriteTrip, outOfScope, ownsUser, refuseWrite } from "@/lib/api/auth";
+import {
+  authenticate,
+  errorResponse,
+  mayWriteTrip,
+  outOfScope,
+  ownsUser,
+  refuseWrite,
+} from "@/lib/api/auth";
 import { isTestContent } from "@/lib/access";
-import { EDITABLE_DAY_FIELDS, editEntry, type EditInput } from "@/lib/api/entries";
+import {
+  EDITABLE_DAY_FIELDS,
+  editEntry,
+  journalLanguages,
+  type EditInput,
+} from "@/lib/api/entries";
 import { fillTripRatesQuietly } from "@/lib/api/tripRates";
 import { fillDayWeatherQuietly, weatherOffRefusal } from "@/lib/api/weather";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import { validateEntryEdit } from "@/lib/validate/entry";
 
-import { getUser } from "@/lib/users";
-
 export const dynamic = "force-dynamic";
-
-/**
- * The journal's declared languages, for B294's completeness refusal.
- *
- * `locales` is what a reader may switch into and `defaultLocale` is the
- * language the prose itself is in — so a day owes a translation for every
- * locale except that one. Read per request rather than cached: an owner can
- * change both with one `PATCH .../config` (B220), and a day written a minute
- * later must be judged against what the journal says now.
- */
-function languagesOf(user: string): { locales: readonly string[]; writtenLocale: string } | undefined {
-  const journal = getUser(user);
-  if (!journal) return undefined;
-  return { locales: journal.locales, writtenLocale: journal.defaultLocale };
-}
-
 
 /**
  * One day, in full — including a draft.
@@ -170,7 +164,10 @@ export async function PATCH(
   const gate = await mayWriteTrip(auth.session, found);
   if (!gate.ok) return refuseWrite(gate);
 
-  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  const body = (await request.json().catch(() => null)) as Record<
+    string,
+    unknown
+  > | null;
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return Response.json({ error: "invalid_json" }, { status: 400 });
   }
@@ -194,7 +191,9 @@ export async function PATCH(
    * refused whole rather than partially applied, and the caller is told why
    * instead of quietly being ignored.
    */
-  const unwritable = keys.filter((key) => !(EDITABLE_DAY_FIELDS as readonly string[]).includes(key));
+  const unwritable = keys.filter(
+    (key) => !(EDITABLE_DAY_FIELDS as readonly string[]).includes(key),
+  );
   if (unwritable.length > 0) {
     return Response.json(
       {
@@ -218,7 +217,7 @@ export async function PATCH(
   const current = getEntryBySlug(ref, slug, AS_AUTHOR);
   const problems = validateEntryEdit(
     body,
-    languagesOf(user),
+    journalLanguages(user),
     current?.gallery.map((item) => item.src),
   );
   if (problems.length > 0) {
@@ -233,7 +232,11 @@ export async function PATCH(
 
   const result = editEntry(ref, slug, body as EditInput);
   if (!result.ok) {
-    const status = result.bug ? 500 : result.error === "unknown_day" ? 404 : 400;
+    const status = result.bug
+      ? 500
+      : result.error === "unknown_day"
+        ? 404
+        : 400;
     return Response.json({ error: result.error }, { status });
   }
 
@@ -248,7 +251,12 @@ export async function PATCH(
   // ten requests to open-meteo.com for an edit that never came near the
   // weather. The sweep (`npm run weather:update`) is what exists for the
   // "not yet answered" case; it runs on a timer, not per keystroke.
-  if (keys.some((key) => key === "weather" || key === "lat" || key === "lng" || key === "date")) {
+  if (
+    keys.some(
+      (key) =>
+        key === "weather" || key === "lat" || key === "lng" || key === "date",
+    )
+  ) {
     await fillDayWeatherQuietly(ref, result.slug);
   }
   // B543, the same call: an edit may add a cost, or change one's currency,
