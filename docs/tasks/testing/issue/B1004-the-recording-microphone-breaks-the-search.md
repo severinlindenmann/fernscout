@@ -7,8 +7,7 @@ complexity: low
 area: search, speech
 found: "2026-09-08T17:37:33Z"
 started: "2026-09-08T17:37:51Z"
-session: 6c81e17b-6acf-4c0f-86ef-49124c9b2458
-claimed: "2026-09-08T17:37:51Z"
+merged: "2026-09-08T17:49:49Z"
 ---
 
 # B1004 — The recording microphone breaks the search field's layout, and moving the mouse off it ends the recording
