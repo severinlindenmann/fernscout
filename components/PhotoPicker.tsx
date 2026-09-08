@@ -71,6 +71,7 @@ export function PhotoPicker({
   id,
   chosen,
   disabled,
+  accept = PICKER_ACCEPT,
   onPick,
 }: {
   id: string;
@@ -79,6 +80,13 @@ export function PhotoPicker({
    *  do not go to the same place. */
   chosen: File[];
   disabled?: boolean;
+  /**
+   * What this picker will take, defaulting to everything the inbox sorts —
+   * B1012. `EditDay` narrows it to photographs and video, which is the whole
+   * of what a correction to a day can add; the "goes to the inbox" note below
+   * then falls away on its own, because `countKinds` counts nothing else.
+   */
+  accept?: string;
   onPick: (files: FileList | null) => void;
 }) {
   const { t, tn } = useI18n();
@@ -100,7 +108,7 @@ export function PhotoPicker({
         id={id}
         type="file"
         multiple
-        accept={PICKER_ACCEPT}
+        accept={accept}
         disabled={disabled}
         onChange={(event) => onPick(event.target.files)}
         className="peer sr-only"
@@ -129,10 +137,13 @@ export function PhotoPicker({
       )}
       {/* What may be dropped here, since it is no longer only photographs —
           B791. The route sorts them; this stops the screen lying about what
-          is welcome. */}
-      <p className="mt-1 text-sm leading-6 text-navy-600">
-        {t("agent.pickAnyFile")}
-      </p>
+          is welcome. Only where anything else *is* welcome, though (B1012):
+          it names the inbox, and a narrowed picker has no inbox behind it. */}
+      {accept === PICKER_ACCEPT && (
+        <p className="mt-1 text-sm leading-6 text-navy-600">
+          {t("agent.pickAnyFile")}
+        </p>
+      )}
     </div>
   );
 }
