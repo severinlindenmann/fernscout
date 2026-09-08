@@ -223,7 +223,7 @@ export function DayCard({
   // `trip` here is the context, whose `.trip` is the trip itself.
   const isTest = trip?.trip.test === true || day.entries.some((e) => e.test);
 
-  return (
+  const card = (
     <article
       className={`rounded-2xl border bg-white p-5 shadow-sm sm:p-7 ${
         allDraft || isTest ? "border-coral-600" : "border-navy-200"
@@ -338,28 +338,28 @@ export function DayCard({
         <div className="mt-10 border-t border-navy-200 pt-4">
           <DayReactions daySlug={lead.slug} />
         </div>
-
-        {/* Below the reactions row is the owner's side of the page, and until
-            B877 it did not look like one: four controls in three weights, each
-            added by a different ticket, with nothing saying a reader sees none
-            of them. One block now — and the same block the trip overview
-            renders, which is what stops the two drifting apart again.
-
-            `canPublish` is exactly `isOwner`, see `lib/tripGate.ts`. Each
-            control still asks the server its own remaining question. */}
-        {trip?.canPublish && (
-          <OwnerTools
-            username={trip.trip.username}
-            day={{
-              tripId: trip.trip.id,
-              slug: lead.slug,
-              date: day.date,
-              published: !allDraft,
-            }}
-          />
-        )}
       </div>
     </article>
+  );
+
+  // B877 put the owner's controls under the reactions row, inside the card.
+  // They are out of it again. Inside, they inherited the rail indent a multi-update day
+  // adds (`pl-6`), so the block sat off-centre — and, more than that, they were
+  // drawn as though they were part of the day. They are not: the day is what a
+  // reader sees, and this is the owner's own side of the page. Below the card,
+  // its own width, nothing of the reader's.
+  //
+  // `canPublish` is exactly `isOwner`, see `lib/tripGate.ts`. Each control
+  // still asks the server its own remaining question.
+  if (!trip?.canPublish) return card;
+  return (
+    <>
+      {card}
+      <OwnerTools
+        username={trip.trip.username}
+        day={{ tripId: trip.trip.id, slug: lead.slug, date: day.date, published: !allDraft }}
+      />
+    </>
   );
 }
 
