@@ -1,4 +1,5 @@
 import { isEnabled } from "@/lib/capabilities";
+import { serverSite } from "@/lib/site";
 import {
   HELPER_SCOPES,
   helperConsent,
@@ -65,9 +66,18 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   const scope = scopeOf(body.scope);
   const refused = await gate(request, user, scope);
   if (refused) return refused;
-  // Whoever this particular yes is about: the model for words and
-  // photographs, the transcriber for a voice.
-  const provider = scope === "speech" ? speechProvider() : HELPER_PROVIDER;
+  /**
+   * Whoever this particular yes is about: the model for words and
+   * photographs, the transcriber for a voice — and for `sessions`, **this
+   * site itself**, because nothing is sent anywhere.
+   *
+   * B976: recording the words a person can already read back is not a
+   * disclosure to a third party, and naming Anthropic here would say it was.
+   * The provider a scope records is who the person agreed to, and for this one
+   * that is the operator of the instance they are already writing on.
+   */
+  const provider =
+    scope === "speech" ? speechProvider() : scope === "sessions" ? serverSite().name : HELPER_PROVIDER;
   return Response.json({ ok: true, consent: recordHelperConsent(user, provider, scope) });
 }
 

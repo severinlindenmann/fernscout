@@ -219,3 +219,29 @@ describe("the kinds of row", () => {
     expect([...kinds].sort()).toEqual([...SESSION_KINDS].sort());
   });
 });
+
+/**
+ * **Deleting a journal takes its conversations with it** — the one thing that
+ * has to be true whatever else changes about this table. A deleted journal
+ * that left its conversations behind would not be a retention policy; it would
+ * be a bug.
+ *
+ * It is true for free, and deliberately: `deleteJournal` in
+ * `lib/deletions.ts` iterates `TABLE_NAMES` rather than naming tables one by
+ * one, precisely so that adding one cannot be forgotten. This asserts the
+ * thing that makes that work — the rows key on `owner_id`, and the table is
+ * in the list.
+ */
+describe("when the journal goes", () => {
+  test("its conversations are swept with everything else that names it", async () => {
+    const { TABLE_NAMES } = await import("@/lib/db");
+    expect(TABLE_NAMES).toContain("helper_sessions");
+
+    await recordTurn(TURN);
+    const { db } = (await getDatabase())!;
+    const { sql } = await import("kysely");
+    // Exactly what deleteJournal runs for every table in that list.
+    await sql`delete from helper_sessions where owner_id = ${"alex"}`.execute(db);
+    expect(await rows()).toHaveLength(0);
+  });
+});

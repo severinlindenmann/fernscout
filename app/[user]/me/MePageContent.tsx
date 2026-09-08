@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AgentHandover from "@/components/AgentHandover";
 import AgentKeys from "@/components/AgentKeys";
+import SessionsConsent from "@/components/SessionsConsent";
 import BuddyHandover from "@/components/BuddyHandover";
 import ContactManage, { type ManageContact } from "@/components/ContactManage";
 import GuestSignIn from "@/components/GuestSignIn";
@@ -462,6 +463,7 @@ export default function MePageContent({
   manage,
   journal,
   editableTrips,
+  sessionsShared = null,
   canSignIn,
   codeMinutes,
   contactsEnabled,
@@ -484,6 +486,9 @@ export default function MePageContent({
    * everybody else, which is what leaves their rows exactly as they were. */
   editableTrips?: TripEditPanel[];
   /** Whether codes can be issued at all, which is what signing in needs. */
+  /** Whether the operator may read this journal's conversations, or `null`
+   *  where there is no helper on it to have any — B976. */
+  sessionsShared?: boolean | null;
   canSignIn: boolean;
   /** How long a code lasts, from `CODE_TTL_MINUTES` — see GuestSignIn. */
   codeMinutes: string;
@@ -947,6 +952,16 @@ export default function MePageContent({
                     there is a live key. */}
                 <AgentKeys username={username} reloadOn={keysChanged} />
               </div>
+
+              {/*
+                Who may read the conversations — B976. Beside the agent card
+                because it is about the same thing: what the helper does with
+                what you tell it. Absent where the journal has no helper, which
+                is the rule every capability on this page follows.
+              */}
+              {sessionsShared !== null && (
+                <SessionsConsent username={username} shared={sessionsShared} />
+              )}
 
               {/*
                 The door for people — B79/B282. This is a button that leads to
