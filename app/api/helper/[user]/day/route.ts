@@ -8,7 +8,7 @@ import { requestLocale } from "@/lib/locales";
 import { parsePhotoVisibility } from "@/lib/photos";
 import { declinesIn, missingFrom } from "@/lib/tracks";
 import { getTrip, tripRef } from "@/lib/trips";
-import { wrote } from "@/lib/helper/thread";
+import { refused, wrote } from "@/lib/helper/thread";
 
 export const dynamic = "force-dynamic";
 
@@ -64,8 +64,8 @@ function state(user: string, trip: string, slug: string): Response {
 
 export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
   const { user } = await params;
-  const refused = await gate(request, user);
-  if (refused) return refused;
+  const gated = await gate(request, user);
+  if (gated) return gated;
 
   const url = new URL(request.url);
   const trip = url.searchParams.get("trip") ?? "";
@@ -96,8 +96,8 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
  */
 export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
   const { user } = await params;
-  const refused = await gate(request, user);
-  if (refused) return refused;
+  const gated = await gate(request, user);
+  if (gated) return gated;
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return Response.json({ error: "invalid_json" }, { status: 400 });
@@ -105,7 +105,10 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   const tripId = text(body.trip) ?? "";
   const ref = tripRef(user, tripId);
   const trip = getTrip(ref);
-  if (!trip) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  if (!trip) {
+    refused(user, "start_day", "unknown_trip");
+    return Response.json({ error: "unknown_trip" }, { status: 404 });
+  }
 
   const date = text(body.date) ?? "";
   const lat = number(body.lat);
@@ -136,6 +139,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   // handing somebody a 422 they cannot act on.
   const missing = missingFrom(factsOfInput(input), trip.tracks, "write");
   if (missing.length > 0) {
+    refused(user, "start_day", "incomplete_day");
     return Response.json(
       { error: "incomplete_day", missing: missing.map((m) => m.field) },
       { status: 422 },
@@ -144,6 +148,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
 
   const written = createDraft(ref, input);
   if (!written.ok) {
+    refused(user, "start_day", written.error);
     return Response.json({ error: written.error }, { status: written.bug ? 500 : 400 });
   }
   await fillDayWeatherQuietly(ref, written.slug);
@@ -168,15 +173,18 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
  */
 export async function PATCH(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
   const { user } = await params;
-  const refused = await gate(request, user);
-  if (refused) return refused;
+  const gated = await gate(request, user);
+  if (gated) return gated;
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return Response.json({ error: "invalid_json" }, { status: 400 });
 
   const tripId = text(body.trip) ?? "";
   const ref = tripRef(user, tripId);
-  if (!getTrip(ref)) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  if (!getTrip(ref)) {
+    refused(user, "set_day_words", "unknown_trip");
+    return Response.json({ error: "unknown_trip" }, { status: 404 });
+  }
   const slug = text(body.slug) ?? "";
 
   // Captions, keyed by `src` — how a person keeps or edits what
@@ -215,11 +223,13 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/hel
     ...declinesIn(body),
   };
   if (Object.keys(input).length === 0) {
+    refused(user, "set_day_words", "nothing_to_change");
     return Response.json({ error: "nothing_to_change" }, { status: 400 });
   }
 
   const edited = editEntry(ref, slug, input);
   if (!edited.ok) {
+    refused(user, "set_day_words", edited.error);
     return Response.json({ error: edited.error }, { status: edited.bug ? 500 : 400 });
   }
   wrote(user, "set_day_words", { trip: tripId, slug, changed: Object.keys(input) });

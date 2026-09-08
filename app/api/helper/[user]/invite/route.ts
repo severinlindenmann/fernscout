@@ -3,7 +3,7 @@ import { createInvite, inviteExpiry, inviteLinkUrl } from "@/lib/contacts/invite
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
-import { wrote } from "@/lib/helper/thread";
+import { refused, wrote } from "@/lib/helper/thread";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +49,10 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   }
   if (!isEnabled("contacts", user)) {
     // No queue for a redemption to land in, so a link would lead nowhere.
+    // Recorded, unlike the two gates above: this one is specific to what was
+    // pressed — invite_guest, on a journal that never turned contacts on —
+    // rather than a blanket switch on the whole family of routes.
+    refused(user, "invite_guest", "contacts_disabled");
     return Response.json({ error: "contacts_disabled" }, { status: 409 });
   }
 
