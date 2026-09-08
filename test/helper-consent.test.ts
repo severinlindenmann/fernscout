@@ -81,6 +81,33 @@ describe("B743 — a provider per scope", () => {
   });
 });
 
+describe("B750 — a consented provider is checked against the one now configured", () => {
+  // With no site config written in this file, `speechProvider()` reports
+  // "dry-run" — the same default `lib/config.ts` uses when nothing is set.
+  // Consenting to speech going to "Deepgram" therefore names a provider the
+  // instance is not actually configured to use right now, the same shape as
+  // an operator switching the backend out from under a standing consent.
+
+  test("a scope granted under one provider is not honoured under a different one", () => {
+    recordHelperConsent("alex", "Deepgram", "speech");
+    expect(helperConsent("alex")?.scopes).toContain("speech"); // still recorded as granted...
+    expect(hasHelperConsent("alex", "speech")).toBe(false); // ...but "Deepgram" != "dry-run".
+  });
+
+  test("consenting to whatever is configured now is honoured", () => {
+    recordHelperConsent("alex", "dry-run", "speech");
+    expect(hasHelperConsent("alex", "speech")).toBe(true);
+  });
+
+  test("a mismatch on one scope leaves the others untouched", () => {
+    recordHelperConsent("alex", "Deepgram", "speech");
+    recordHelperConsent("alex", "Anthropic", "words");
+
+    expect(hasHelperConsent("alex", "speech")).toBe(false); // "Deepgram" != "dry-run"
+    expect(hasHelperConsent("alex", "words")).toBe(true); // HELPER_PROVIDER is "Anthropic"
+  });
+});
+
 describe("B735 — withdrawing one scope leaves the others standing", () => {
   test("revoking photos leaves words consent in place, and genuinely removes photos", () => {
     recordHelperConsent("alex", "Anthropic", "words");

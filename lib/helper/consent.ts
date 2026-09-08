@@ -2,6 +2,9 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { isValidUsername, userDir } from "../users";
+import { serverSite } from "../site";
+import { HELPER_PROVIDER } from "./model";
+import { speechProvider } from "./transcribe";
 
 /**
  * Consent to a model being spoken to on this journal's behalf — B684, and §6
@@ -139,10 +142,30 @@ export function helperConsent(username: string): HelperConsent | null {
   }
 }
 
-/** Whether this journal has said yes to this particular scope — never inferred
- *  from having said yes to another one. */
+/**
+ * Who a scope's yes would name today — the same mapping the consent route
+ * uses to record a fresh one (B750). Kept in one place because a second copy
+ * of it is a second thing to forget to update when a fifth scope arrives.
+ */
+export function currentHelperProvider(scope: HelperScope): string {
+  return scope === "speech" ? speechProvider() : scope === "sessions" ? serverSite().name : HELPER_PROVIDER;
+}
+
+/**
+ * Whether this journal has said yes to this particular scope, **for the
+ * provider that scope would actually go to today** — never inferred from
+ * having said yes to another one, and never honoured on the strength of a yes
+ * that named somebody else (B750). An operator switching, say, the
+ * transcription backend after a person consented to Deepgram must not let
+ * that old yes cover the new provider silently; the safe reading of a
+ * mismatch, same as of no record at all, is "not consented".
+ */
 export function hasHelperConsent(username: string, scope: HelperScope): boolean {
-  return helperConsent(username)?.scopes.includes(scope) ?? false;
+  const consent = helperConsent(username);
+  if (!consent?.scopes.includes(scope)) return false;
+  // No recorded provider for a granted scope should not happen, but fails
+  // safe the same way a mismatch does rather than assuming it is fine.
+  return consent.providers[scope] === currentHelperProvider(scope);
 }
 
 /** Records a scope, adding it to whatever this journal had already agreed to

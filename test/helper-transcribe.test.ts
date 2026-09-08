@@ -249,6 +249,29 @@ describe("consent", () => {
     expect(done.status).toBe(200);
     expect(done.body.text).toBe("We walked up to the pass.");
   });
+
+  // B750 — a yes recorded for one provider must not cover a different one
+  // the operator later switches to.
+  test("switching the transcription backend after consent re-asks for speech", async () => {
+    await consent(); // recorded under "dry-run", the backend configured above.
+
+    process.env.DEEPGRAM_API_KEY = "not-a-real-key";
+    writeServerConfig({
+      auth: { enabled: true },
+      credits: { enabled: true },
+      transcription: { enabled: true, backend: "deepgram" },
+    });
+
+    const refused = await read(await call());
+    expect(refused.status).toBe(403);
+    expect(refused.body.error).toBe("consent_required");
+    expect(transcribeAudio).not.toHaveBeenCalled();
+
+    // Re-consenting records the new provider for speech only.
+    await consent();
+    const done = await read(await call());
+    expect(done.status).toBe(200);
+  });
 });
 
 describe("the ledger", () => {
