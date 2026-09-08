@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: helper, model
 found: "2026-09-08T09:49:14Z"
+started: "2026-09-08T09:51:24Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-08T09:51:24Z"
 ---
 
 # B940 — A trip the journal does not have is silently answered with the one it does
