@@ -26,6 +26,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { advanceWidths } from "../photobook/text.ts";
 import { readFontMetrics } from "./truetype.ts";
 
@@ -185,12 +186,27 @@ const FONTS: Record<FontName, { file: string; base: string; weight: "regular" | 
 /** Read once per process — three files of about 400 kB each. */
 const fontCache = new Map<string, Uint8Array>();
 
+/**
+ * Beside this module, not beside the caller.
+ *
+ * `process.cwd()` was the first answer and it broke `npm run postcard` run
+ * from anywhere but the checkout root — the generator writes into whatever
+ * directory it is called from, and a test does exactly that. The faces belong
+ * to the writer, so they are found from the writer.
+ */
 function fontBytes(file: string): Uint8Array {
   const cached = fontCache.get(file);
   if (cached) return cached;
-  const bytes = new Uint8Array(
-    fs.readFileSync(path.join(process.cwd(), "lib", "print-fonts", file)),
-  );
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    path.resolve(here, "..", "print-fonts", file),
+    path.join(process.cwd(), "lib", "print-fonts", file),
+  ];
+  const found = candidates.find((c) => fs.existsSync(c));
+  if (!found) {
+    throw new Error(`pdf: cannot find the print face ${file}; looked in ${candidates.join(", ")}`);
+  }
+  const bytes = new Uint8Array(fs.readFileSync(found));
   fontCache.set(file, bytes);
   return bytes;
 }
