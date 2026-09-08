@@ -12,6 +12,10 @@ type Draft = {
   location: string;
   visibility: "" | "guest" | "private";
   content: string;
+  /** `{ [src]: caption }` for every photograph on this update. */
+  captions: Record<string, string>;
+  /** `{ [src]: "" | "guest" | "private" }` — empty is "as the update". */
+  photoVisibility: Record<string, "" | "guest" | "private">;
   /** `{ [locale]: { title, content } }` — only the languages this update
    *  already carries. The panel adds no language a day does not have. */
   translations: Record<string, { title: string; content: string }>;
@@ -27,6 +31,12 @@ function draftOf(entry: Entry): Draft {
     location: entry.location ?? "",
     visibility: entry.visibility ?? "",
     content: entry.content ?? "",
+    captions: Object.fromEntries(
+      entry.gallery.map((item) => [item.src, item.caption ?? ""]),
+    ),
+    photoVisibility: Object.fromEntries(
+      entry.gallery.map((item) => [item.src, item.visibility ?? ""]),
+    ),
     translations: Object.fromEntries(
       Object.entries(entry.translations ?? {}).map(([code, said]) => [
         code,
@@ -78,6 +88,10 @@ export default function EditDay({
   const [drafts, setDrafts] = useState<Draft[]>(() => day.entries.map(draftOf));
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
+  /** Photographs marked to go, by `src`. Nothing leaves disk until save. */
+  const [dropping, setDropping] = useState<string[]>([]);
+  /** Files chosen to be added, per update index. */
+  const [adding, setAdding] = useState<Record<number, File[]>>({});
 
   const set = (at: number, patch: Partial<Draft>) =>
     setDrafts((prev) =>
@@ -87,7 +101,10 @@ export default function EditDay({
   /** What this update would send — only the fields whose value actually moved,
    *  so an untouched day writes nothing and an untouched field is not
    *  rewritten into the file it came from. */
-  function changesFor(at: number): Record<string, unknown> {
+  function changesFor(
+    at: number,
+    gone: string[] = [],
+  ): Record<string, unknown> {
     const was = draftOf(day.entries[at]);
     const now = drafts[at];
     const patch: Record<string, unknown> = {};
@@ -102,26 +119,81 @@ export default function EditDay({
     if (JSON.stringify(now.translations) !== JSON.stringify(was.translations)) {
       patch.translations = now.translations;
     }
+    // Only the photographs whose line actually moved. The writer takes a
+    // partial map, so sending the whole gallery back would rewrite captions
+    // nobody touched — and `photoVisibility` takes `null` for "as the update
+    // says", the same way `visibility` does above.
+    const captions = Object.fromEntries(
+      Object.entries(now.captions).filter(
+        ([src, text]) => text !== was.captions[src] && !gone.includes(src),
+      ),
+    );
+    if (Object.keys(captions).length > 0) patch.captions = captions;
+    const labels = Object.entries(now.photoVisibility).filter(
+      ([src, level]) =>
+        level !== was.photoVisibility[src] && !gone.includes(src),
+    );
+    if (labels.length > 0) {
+      patch.photoVisibility = Object.fromEntries(
+        labels.map(([src, level]) => [src, level || null]),
+      );
+    }
     // The date belongs to the day rather than to one update, so a change to it
     // goes to every update of the day — otherwise half a day moves.
     if (date !== day.date) patch.date = date;
     return patch;
   }
 
+  const dayUrl = (slug: string, tail: string) =>
+    `/${encodeURIComponent(username)}/trips/${encodeURIComponent(tripId)}/day/${encodeURIComponent(slug)}/${tail}`;
+
   async function save() {
     setFailed(null);
     setBusy(true);
+
+    // Pictures first, words after. A caption belongs to a photograph, so a
+    // file has to be on the day before the same save can say what it shows —
+    // and a photograph on its way off must not be captioned on the way.
     for (const [at, entry] of day.entries.entries()) {
-      const patch = changesFor(at);
-      if (Object.keys(patch).length === 0) continue;
-      const response = await fetch(
-        `/${encodeURIComponent(username)}/trips/${encodeURIComponent(tripId)}/day/${encodeURIComponent(entry.slug)}/edit`,
-        {
-          method: "PATCH",
+      const files = adding[at] ?? [];
+      if (files.length > 0) {
+        const form = new FormData();
+        for (const file of files) form.append("files", file);
+        const response = await fetch(dayUrl(entry.slug, "photos"), {
+          method: "POST",
+          body: form,
+        }).catch(() => null);
+        if (!response?.ok) {
+          setBusy(false);
+          setFailed(entry.slug);
+          return;
+        }
+      }
+      const gone = entry.gallery
+        .filter((item) => dropping.includes(item.src))
+        .map((i) => i.src);
+      if (gone.length > 0) {
+        const response = await fetch(dayUrl(entry.slug, "photos"), {
+          method: "DELETE",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify(patch),
-        },
-      ).catch(() => null);
+          body: JSON.stringify({ src: gone }),
+        }).catch(() => null);
+        if (!response?.ok) {
+          setBusy(false);
+          setFailed(entry.slug);
+          return;
+        }
+      }
+    }
+
+    for (const [at, entry] of day.entries.entries()) {
+      const patch = changesFor(at, dropping);
+      if (Object.keys(patch).length === 0) continue;
+      const response = await fetch(dayUrl(entry.slug, "edit"), {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(patch),
+      }).catch(() => null);
       if (!response?.ok) {
         setBusy(false);
         setFailed(entry.slug);
@@ -248,6 +320,107 @@ export default function EditDay({
               />
             </div>
           ))}
+
+          {/* The pictures of this update — B980 round 2. A caption and a
+              label are fields of the day and go with the words on save; a
+              removal and an upload are their own calls to `photos/`, and
+              nothing leaves disk until the same press. */}
+          <div className="mt-3">
+            <p className="text-xs font-semibold text-navy-700">
+              {t("edit.photos")}
+            </p>
+            {day.entries[at].gallery.map((item) => {
+              const going = dropping.includes(item.src);
+              return (
+                <div
+                  key={item.src}
+                  className={`mt-2 flex gap-2 rounded-lg border border-navy-200 p-2 ${going ? "opacity-50" : ""}`}
+                >
+                  {/* The derivative the page already draws, at thumbnail
+                        size. `img` rather than `next/image`: this is one
+                        already-sized file behind an owner-only panel, and the
+                        loader would buy nothing. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={item.poster ?? item.src}
+                    alt={item.caption ?? ""}
+                    className="h-16 w-16 shrink-0 rounded object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <input
+                      value={draft.captions[item.src] ?? ""}
+                      placeholder={t("edit.caption")}
+                      disabled={going}
+                      onChange={(event) =>
+                        set(at, {
+                          captions: {
+                            ...draft.captions,
+                            [item.src]: event.target.value,
+                          },
+                        })
+                      }
+                      className={FIELD}
+                    />
+                    <div className="mt-1 flex gap-2">
+                      <select
+                        value={draft.photoVisibility[item.src] ?? ""}
+                        disabled={going}
+                        onChange={(event) =>
+                          set(at, {
+                            photoVisibility: {
+                              ...draft.photoVisibility,
+                              [item.src]: event.target
+                                .value as Draft["visibility"],
+                            },
+                          })
+                        }
+                        className={FIELD}
+                      >
+                        <option value="">{t("edit.seenAsUpdate")}</option>
+                        <option value="guest">
+                          {t("agent.tool.visibilityGuest")}
+                        </option>
+                        <option value="private">
+                          {t("agent.tool.visibilityPrivate")}
+                        </option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDropping((prev) =>
+                            going
+                              ? prev.filter((s) => s !== item.src)
+                              : [...prev, item.src],
+                          )
+                        }
+                        className="min-h-11 shrink-0 rounded-full border border-navy-300 px-3 text-xs font-semibold text-navy-700 transition-colors hover:bg-cream-100"
+                      >
+                        {t(going ? "edit.keepPhoto" : "edit.removePhoto")}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            <label className="mt-2 block">
+              <span className="text-xs font-semibold text-navy-700">
+                {t("edit.addPhotos")}
+              </span>
+              <input
+                type="file"
+                multiple
+                accept="image/*,video/*"
+                onChange={(event) =>
+                  setAdding((prev) => ({
+                    ...prev,
+                    [at]: [...(event.target.files ?? [])],
+                  }))
+                }
+                className="mt-1 block w-full text-xs text-navy-700"
+              />
+            </label>
+          </div>
 
           {/* A label narrows and never widens — B632. There is no "public"
               here for that reason: the trip's own visibility is the ceiling

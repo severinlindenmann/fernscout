@@ -98,6 +98,10 @@ async function route() {
   return import("@/app/[user]/trips/[trip]/day/[slug]/edit/route");
 }
 
+async function photoRoute() {
+  return import("@/app/[user]/trips/[trip]/day/[slug]/photos/route");
+}
+
 function req(body: unknown, headers: Record<string, string> = {}) {
   return new Request(`https://t.test/${OWNER}/trips/${TRIP}/day/${SLUG}/edit`, {
     method: "PATCH",
@@ -155,6 +159,24 @@ describe("the owner's own correction door", () => {
       expect(response.status).toBe(400);
     }
     expect(fs.readFileSync(entryFile(), "utf8")).toContain("Something happened.");
+  });
+
+  // Round 2's door. Same gate, and it must be the same gate — a picture is
+  // the half of a day a person is least able to take back.
+  test("the photographs door refuses an agent and a stranger too", async () => {
+    const { POST, DELETE } = await photoRoute();
+    isOwnerMock.mockClear();
+    const withToken = new Request(`https://t.test/x/photos`, {
+      method: "DELETE",
+      headers: { authorization: "Bearer x", "content-type": "application/json" },
+      body: JSON.stringify({ src: ["/a.jpg"] }),
+    });
+    expect((await DELETE(withToken, params)).status).toBe(403);
+    expect(isOwnerMock).not.toHaveBeenCalled();
+
+    isOwnerMock.mockResolvedValue(false);
+    const asStranger = new Request(`https://t.test/x/photos`, { method: "POST", body: new FormData() });
+    expect((await POST(asStranger, params)).status).toBe(403);
   });
 
   test("a correction lands on disk", async () => {

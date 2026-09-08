@@ -1756,5 +1756,11 @@
   "edit.seenAsTrip": "Alle, die die Reise hereinlässt",
   "edit.save": "Speichern",
   "edit.cancel": "Abbrechen",
-  "edit.failed": "Das wurde nicht gespeichert. Es wurde nichts geändert."
+  "edit.failed": "Das wurde nicht gespeichert. Es wurde nichts geändert.",
+  "edit.photos": "Bilder",
+  "edit.caption": "Bildunterschrift",
+  "edit.removePhoto": "Entfernen",
+  "edit.keepPhoto": "Doch behalten",
+  "edit.addPhotos": "Bilder hinzufügen",
+  "edit.seenAsUpdate": "Wie dieser Eintrag"
 }

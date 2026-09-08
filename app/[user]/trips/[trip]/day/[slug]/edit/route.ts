@@ -88,7 +88,15 @@ export async function PATCH(
     return Response.json({ error: "unsupported_field" }, { status: 400 });
   }
 
-  const problems = validateEntryEdit(body, journalLanguages(user));
+  // The one fact the validator cannot know on its own — the day's gallery as
+  // it stands — so a `src` naming no photograph on it is refused rather than
+  // silently matching nothing. The same argument the API route passes, B540.
+  const current = getEntryBySlug(ref, slug, AS_AUTHOR);
+  const problems = validateEntryEdit(
+    body,
+    journalLanguages(user),
+    current?.gallery.map((item) => item.src),
+  );
   if (problems.length > 0) {
     return Response.json({ error: "invalid_entry", problems }, { status: 400 });
   }

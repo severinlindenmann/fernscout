@@ -1756,5 +1756,11 @@
   "edit.seenAsTrip": "Mindenki, akit az utazás beenged",
   "edit.save": "Mentés",
   "edit.cancel": "Mégse",
-  "edit.failed": "Nem sikerült menteni. Semmi sem változott."
+  "edit.failed": "Nem sikerült menteni. Semmi sem változott.",
+  "edit.photos": "Képek",
+  "edit.caption": "Képaláírás",
+  "edit.removePhoto": "Eltávolítás",
+  "edit.keepPhoto": "Mégis marad",
+  "edit.addPhotos": "Képek hozzáadása",
+  "edit.seenAsUpdate": "Mint ez a bejegyzés"
 }

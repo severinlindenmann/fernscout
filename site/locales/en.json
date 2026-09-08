@@ -1756,5 +1756,11 @@
   "edit.seenAsTrip": "Everyone the trip lets in",
   "edit.save": "Save",
   "edit.cancel": "Cancel",
-  "edit.failed": "That did not save. Nothing has been changed."
+  "edit.failed": "That did not save. Nothing has been changed.",
+  "edit.photos": "Pictures",
+  "edit.caption": "Caption",
+  "edit.removePhoto": "Remove",
+  "edit.keepPhoto": "Keep after all",
+  "edit.addPhotos": "Add pictures",
+  "edit.seenAsUpdate": "As this update"
 }
