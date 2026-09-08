@@ -896,12 +896,22 @@ describe("PDF/X readiness", () => {
     expect(readiness.version).toBeUndefined();
   });
 
-  test("names the two things that are missing and why", () => {
+  test("names what is missing and why", () => {
     const unmet = pdfxReadiness(base)
       .requirements.filter((r) => !r.met)
       .map((r) => r.requirement);
-    expect(unmet).toContain("All fonts embedded and subset");
-    expect(unmet).toContain("Colour is CMYK or spot only (PDF/X-1a)");
+    // Under PDF/X-4 the colour space is no longer a failure: RGB is permitted
+    // when an output intent describes the printing condition. Against X-1a it
+    // was, which is what made font embedding look pointless for so long.
+    expect(unmet).toContain("All fonts embedded");
+    expect(unmet.some((r) => r.startsWith("Colour is"))).toBe(false);
+  });
+
+  test("a book with fonts embedded needs only the output intent", () => {
+    const unmet = pdfxReadiness({ ...base, fontsEmbedded: true })
+      .requirements.filter((r) => !r.met)
+      .map((r) => r.requirement);
+    expect(unmet).toEqual(["OutputIntent with an embedded ICC profile"]);
   });
 
   test("an output intent alone is not enough to claim a version", () => {
@@ -916,7 +926,7 @@ describe("PDF/X readiness", () => {
       transparency: false,
     });
     expect(readiness.claimable).toBe(true);
-    expect(readiness.version).toBe("PDF/X-1a:2001");
+    expect(readiness.version).toBe("PDF/X-4");
   });
 
   test("the report says plainly that the file makes no claim", () => {

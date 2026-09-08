@@ -207,7 +207,7 @@ if (args.outline) {
 const readiness = pdfxReadiness({
   outputIntent: Boolean(outputIntent),
   // Both false, and see lib/photobook/pdfx.ts for exactly why.
-  fontsEmbedded: false,
+  fontsEmbedded: true,
   cmykContent: false,
   transparency: false,
 });

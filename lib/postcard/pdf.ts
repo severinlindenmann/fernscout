@@ -24,6 +24,11 @@
  *    far that gets us, and where it stops.
  */
 
+import fs from "node:fs";
+import path from "node:path";
+import { advanceWidths } from "../photobook/text.ts";
+import { readFontMetrics } from "./truetype.ts";
+
 import { readExif } from "../ingest/exif.ts";
 
 type Rgb = { r: number; g: number; b: number };
@@ -155,14 +160,40 @@ function xmlText(text: string): string {
 
 const F = (n: number) => n.toFixed(3);
 
-/** The three base-14 faces the layouts use. */
+/** The three faces the layouts use. */
 export type FontName = "F1" | "F2" | "F3";
 
-const FONTS: Record<FontName, string> = {
-  F1: "Helvetica",
-  F2: "Helvetica-Bold",
-  F3: "Helvetica-Oblique",
+/**
+ * Embedded, not referenced.
+ *
+ * These used to be the base-14 Helvetica names, which every PDF consumer has
+ * and every part of PDF/X forbids — and which a printer therefore substitutes
+ * with whatever it happens to own. Gelato's own product template embeds a
+ * subsetted face and declares PDF/X-4, so referencing was the one thing our
+ * file did that their reference file does not.
+ *
+ * Liberation Sans is metric-compatible with Helvetica for the Latin set, and
+ * the `/Widths` array below comes from the very table `measure()` wraps lines
+ * with, so an already-laid-out book does not move. See `lib/print-fonts`.
+ */
+const FONTS: Record<FontName, { file: string; base: string; weight: "regular" | "bold"; italic: boolean }> = {
+  F1: { file: "LiberationSans-Regular.ttf", base: "LiberationSans", weight: "regular", italic: false },
+  F2: { file: "LiberationSans-Bold.ttf", base: "LiberationSans-Bold", weight: "bold", italic: false },
+  F3: { file: "LiberationSans-Italic.ttf", base: "LiberationSans-Italic", weight: "regular", italic: true },
 };
+
+/** Read once per process — three files of about 400 kB each. */
+const fontCache = new Map<string, Uint8Array>();
+
+function fontBytes(file: string): Uint8Array {
+  const cached = fontCache.get(file);
+  if (cached) return cached;
+  const bytes = new Uint8Array(
+    fs.readFileSync(path.join(process.cwd(), "lib", "print-fonts", file)),
+  );
+  fontCache.set(file, bytes);
+  return bytes;
+}
 
 export type Page = {
   width: number;
@@ -407,9 +438,14 @@ export class PdfBuilder {
     const hasMetadata = Object.keys(o).length > 0;
     const created = o.created ?? new Date();
 
-    // 1 catalog, 2 pages, 3–5 fonts, then the optional document-level objects,
-    // then per page: page, contents, images.
+    // 1 catalog, 2 pages, 3–5 fonts, then each face's descriptor and the
+    // font file itself, then the optional document-level objects, then per
+    // page: page, contents, images.
     let next = 6;
+    const fontIds = (Object.keys(FONTS) as FontName[]).map(() => ({
+      descriptor: next++,
+      file: next++,
+    }));
     const infoId = hasMetadata ? next++ : 0;
     const metadataId = hasMetadata ? next++ : 0;
     const intentId = o.outputIntent ? next++ : 0;
@@ -438,11 +474,37 @@ export class PdfBuilder {
     );
 
     (Object.keys(FONTS) as FontName[]).forEach((name, i) => {
+      const face = FONTS[name];
+      const widths = advanceWidths(face.weight);
       startObject(3 + i);
       push(
-        `<< /Type /Font /Subtype /Type1 /BaseFont /${FONTS[name]} ` +
+        `<< /Type /Font /Subtype /TrueType /BaseFont /${face.base} ` +
+          `/FirstChar 32 /LastChar 255 /Widths [${widths.join(" ")}] ` +
+          `/FontDescriptor ${fontIds[i].descriptor} 0 R ` +
           `/Encoding /WinAnsiEncoding >>\nendobj\n`,
       );
+    });
+
+    (Object.keys(FONTS) as FontName[]).forEach((name, i) => {
+      const face = FONTS[name];
+      const bytes = fontBytes(face.file);
+      const m = readFontMetrics(bytes);
+      // Nonsymbolic (32), plus Italic (64) where the face is one. StemV has no
+      // home in a TrueType file and is conventionally estimated; it steers
+      // nothing once the face itself is embedded.
+      const flags = 32 + (face.italic ? 64 : 0);
+      const stemV = face.weight === "bold" ? 140 : 88;
+      startObject(fontIds[i].descriptor);
+      push(
+        `<< /Type /FontDescriptor /FontName /${face.base} /Flags ${flags} ` +
+          `/FontBBox [${m.bbox.join(" ")}] /ItalicAngle ${m.italicAngle} ` +
+          `/Ascent ${m.ascent} /Descent ${m.descent} /CapHeight ${m.capHeight} ` +
+          `/StemV ${stemV} /FontFile2 ${fontIds[i].file} 0 R >>\nendobj\n`,
+      );
+      startObject(fontIds[i].file);
+      push(`<< /Length ${bytes.length} /Length1 ${bytes.length} >>\nstream\n`);
+      pushBinary(bytes);
+      push(`\nendstream\nendobj\n`);
     });
 
     if (infoId) {
