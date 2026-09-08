@@ -49,12 +49,13 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (142)
+## backlog (143)
 
-### issue (44)
+### issue (45)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B1008](backlog/issue/B1008-the-print-target-is-pdf-x.md) | The print target is PDF/X-4 and the fonts are not embedded | ISSUE | high | medium |
 | [B766](backlog/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low |
 | [B829](backlog/issue/B829-rewording-a-row-did-not-stop.md) | Rewording a row did not stop the wrong one matching | ISSUE | high | low |
 | [B922](backlog/issue/B922-a-credit-is-spent-on-a.md) | Was she charged for a day that was never written, and should she have been? | ISSUE | high | low |
