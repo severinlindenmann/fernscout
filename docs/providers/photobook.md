@@ -2,15 +2,35 @@
 
 What is built, what deliberately is not, and exactly what is needed to go live.
 
-**Status: the pipeline is built and no order has ever been placed.** A trip
-becomes a planned, laid-out, print-ready book with a cover and a preview, and
-all four provider request builders are written and tested against fixtures.
-A live probe against Gelato's own APIs on 2026-09-07 measured its real
-catalogue, page-count rule, Swiss shipment methods and prices — see
-[Gelato](#gelato) — but that probe only reached the *quote* endpoint. Nothing
-has called an order-creation endpoint at any of the four, because doing that
-needs an account and a card, and that is where this work package was told to
-stop.
+**Status: a draft order has been placed with Gelato, accepted, and its files
+fetched and preflighted. No paper has been produced.** A trip becomes a
+planned, laid-out, print-ready book with a cover and a preview, and the whole
+chain to Gelato was driven end to end from the deployed instance on
+2026-09-08:
+
+| Step | Result |
+| --- | --- |
+| Book built on fernscout.ch, charged 40 credits | 28-page interior 206 × 206 mm, cover 408.72 mm wide |
+| Signed file URL fetched with no cookie | `200`, 9.3 MB. Unsigned, tampered, expired, and signed-for-another-file all `404` |
+| `POST /v4/orders` with `orderType: "draft"` | accepted — `fulfillmentStatus: "draft"`, our product uid, our address |
+| Gelato fetched both PDFs | file URLs came back rehosted on its own S3, with `preview_flat`, `preview_default` and `preview_thumbnail` rendered |
+| Draft deleted afterwards | `200`, then `NOT_FOUND` |
+
+**So the create-order request shape in `lib/photobook/providers.ts` is
+confirmed against the live API**, which it had never been before — everything
+in it used to be written from published documentation. The cover Gelato
+rendered from our file is the one this repository draws.
+
+**What has still never happened: a real order.** `orderType` is `"order"` only
+when `features.photobook.live` is true, and it is not. The account behind the
+key has no payment method, so a real order would fail at billing rather than
+print. Nobody has held one of these books.
+
+Two smaller things also remain untested: the in-product print flow
+(`POST /api/v1/<user>/photobooks/<id>/print`, then the owner's button) has
+never run against the live site, because the demo journal has no contact with
+a postal address to send a book to — the draft above was posted directly. And
+no hardcover has been through Gelato at all; only the 200 × 200 softcover has.
 
 **One thing in this document is uncomfortable and is stated plainly rather than
 buried: the PDF this writer emits is RGB with unembedded base-14 fonts, which
