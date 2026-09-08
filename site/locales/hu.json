@@ -726,8 +726,6 @@
   "nav.trips": "Utak",
   "notify.button": "Olvasók értesítése",
   "notify.cancel": "Most nem",
-  "notify.confirm": "A küldés {needed} kreditbe kerül, utána {rest} marad. Küldöd most?",
-  "notify.confirmFree": "Elküldöd ezt a napot az olvasóidnak most?",
   "notify.failed": "Ezt nem sikerült elküldeni. Semmit sem számláztunk.",
   "notify.sent": "Az olvasóid értesültek erről a napról.",
   "owner.onlyYou": "Csak te látod",
@@ -1812,5 +1810,15 @@
   "agent.publishRow": "Kérd, hogy tegye közzé",
   "agent.publishRowHint": "Amíg nem szólsz, rajtad kívül senki nem látja a napot.",
   "agent.room.roomLinkHint": "A fájljaid és a nap előnézete egymás mellett.",
-  "agent.editDay": "Szerkesztés"
+  "agent.editDay": "Szerkesztés",
+  "notify.question": "Elküldjük most ezt a napot?",
+  "notify.sendNow": "Küldés most",
+  "notify.viaMail": "e-mail",
+  "notify.viaMail.one": "e-mail",
+  "notify.viaWhatsapp": "WhatsApp-üzenet",
+  "notify.viaWhatsapp.one": "WhatsApp-üzenet",
+  "notify.free": "ingyenes",
+  "notify.costCredits": "{credits} kredit",
+  "notify.costCredits.one": "1 kredit",
+  "notify.total": "Összesen {needed}, utána {rest} marad."
 }

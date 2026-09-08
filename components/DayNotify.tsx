@@ -1,16 +1,20 @@
 "use client";
 
+import { Mail, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useI18n } from "./LocaleProvider";
 import BusyButton from "@/components/BusyButton";
 import { OWNER_TOOL, OWNER_TOOL_CELL } from "./ownerToolClass";
 import { formatCredits } from "@/lib/credits/format";
 
+/** One channel the button would use, and what it would do there — B1024. */
+type Pending = { channel: "mail" | "whatsapp"; count: number; cost: number };
+
 type Status = {
   ok: true;
   reachable: boolean;
   alreadySent: boolean;
-  pending: string[];
+  pending: Pending[];
   needed: number;
   balance: number | null;
   short: boolean;
@@ -53,7 +57,7 @@ export default function DayNotify({
   tripId: string;
   slug: string;
 }) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const url = `/${username}/trips/${tripId}/day/${slug}/notify`;
   const [status, setStatus] = useState<Status | null>(null);
   const [busy, setBusy] = useState(false);
@@ -99,13 +103,6 @@ export default function DayNotify({
     );
   }
 
-  const message =
-    status.balance === null
-      ? t("notify.confirmFree")
-      : t("notify.confirm", {
-          needed: String(status.needed),
-          rest: formatCredits((status.balance ?? 0) - status.needed),
-        });
 
   const send = async () => {
     setBusy(true);
@@ -136,7 +133,76 @@ export default function DayNotify({
         aria-label={t("notify.button")}
         className="col-span-full rounded-2xl border border-navy-200 bg-white p-4 shadow-sm"
       >
-        <p className="text-sm leading-6 text-navy-700">{message}</p>
+        <p className="text-sm font-semibold leading-6 text-navy-900">
+          {t("notify.question")}
+        </p>
+
+        {/* Who it goes to, one row per channel — B1024.
+
+            The panel used to say only what it cost, which answered a question
+            nobody was asking at the one moment something leaves the house on
+            the owner's behalf. The counts were always a return value away:
+            `mailWouldReach` and `whatsappWouldReach` come off the same
+            narrowed recipient lists the send itself uses.
+
+            Names are deliberately not here. These are contacts with addresses
+            and a confirmation is not where an address list opens; a count and
+            a channel are what the decision turns on. */}
+        <ul className="mt-2">
+          {/* A channel nobody is on is not drawn. `pending` is the send loop's
+              list and has to keep every switched-on channel — dropping one
+              server-side would make it look already-sent — but "0 WhatsApp
+              messages" on the screen is noise at best and alarming at worst.
+              A journal where every count is zero shows the question and no
+              list, which is what it did before this and is captured as its own
+              ticket. */}
+          {status.pending
+            .filter(({ count }) => count > 0)
+            .map(({ channel, count, cost }) => (
+              <li
+                key={channel}
+                className="flex items-center gap-2.5 border-t border-cream-200 py-1.5 text-sm text-navy-900 first:border-t-0"
+              >
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-cream-100 text-navy-700">
+                  {channel === "mail" ? (
+                    <Mail className="h-4 w-4" aria-hidden />
+                  ) : (
+                    <MessageCircle className="h-4 w-4" aria-hidden />
+                  )}
+                </span>
+                <span className="min-w-[1.4em] text-right font-bold tabular-nums">
+                  {count}
+                </span>
+                <span className="min-w-0 flex-1">
+                  {tn(
+                    channel === "mail" ? "notify.viaMail" : "notify.viaWhatsapp",
+                    count,
+                  )}
+                </span>
+                {/* Where the cost actually falls. That a letter is free and a
+                    WhatsApp is not used to disappear into one sum. */}
+                <span className="shrink-0 text-xs text-navy-600">
+                  {cost === 0
+                    ? t("notify.free")
+                    : tn("notify.costCredits", cost, { credits: String(cost) })}
+                </span>
+              </li>
+            ))}
+        </ul>
+
+        {/* Only when there is something to pay. The zero-credit sentence this
+            replaces was reached whenever credits were merely *switched on* —
+            the old branch asked `balance === null` rather than
+            `needed === 0`, so a journal with credits that sends only letters
+            was told its send cost "0 Credit(s)" and quoted a balance. */}
+        {status.needed > 0 && (
+          <p className="mt-2 border-t border-navy-200 pt-2 text-xs text-navy-700">
+            {t("notify.total", {
+              needed: String(status.needed),
+              rest: formatCredits((status.balance ?? 0) - status.needed),
+            })}
+          </p>
+        )}
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <BusyButton
             busy={busy}
@@ -144,7 +210,7 @@ export default function DayNotify({
             onClick={send}
             className="min-h-11 rounded-full bg-yellow-400 px-4 text-xs font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:opacity-50"
           >
-            {t("notify.button")}
+            {t("notify.sendNow")}
           </BusyButton>
           <BusyButton
             busy={busy}

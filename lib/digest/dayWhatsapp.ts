@@ -246,10 +246,14 @@ export type DayWhatsappOutcome =
  * the bug; it stays optional only so a caller that genuinely has no day in
  * hand — none exists today — is not forced to invent one.
  */
-export async function whatsappWouldCost(owner: string, ref: string, slug?: string): Promise<number> {
+async function wouldSendTo(
+  owner: string,
+  ref: string,
+  slug?: string,
+): Promise<{ free: boolean }[]> {
   const user = getUser(owner);
   const trip = getTrip(ref);
-  if (!user || !trip) return 0;
+  if (!user || !trip) return [];
   const recipients = await recipientsFor(trip, user);
   // Only recipients there is actually a template for. `sendDayWhatsapp`
   // charges the whole list and then refunds the ones it had to skip for want
@@ -266,14 +270,31 @@ export async function whatsappWouldCost(owner: string, ref: string, slug?: strin
     const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
     // A day that does not exist has no send and therefore no cost; the route
     // has already answered 404 for it long before this.
-    if (!entry) return 0;
-    if (isTestContent(trip, entry)) return 0;
+    if (!entry) return [];
+    if (isTestContent(trip, entry)) return [];
     // B632, the same narrowing `mailWouldCost` applies.
-    return chargeable(templated.filter((r) => maySeePhoto(entry.visibility, r.reader)));
+    return templated.filter((r) => maySeePhoto(entry.visibility, r.reader));
   } else if (trip.test === true) {
-    return 0;
+    return [];
   }
-  return chargeable(templated);
+  return templated;
+}
+
+export async function whatsappWouldCost(owner: string, ref: string, slug?: string): Promise<number> {
+  return chargeable(await wouldSendTo(owner, ref, slug));
+}
+
+/**
+ * How many messages a send would actually put on the wire — B1024.
+ *
+ * **Not the same number as the cost**, and that is the whole reason it exists
+ * rather than the panel dividing something. `chargeable()` above leaves out
+ * the owner's own free copy, which is still a message that gets sent; a
+ * journal whose only WhatsApp reader is its owner costs nothing and reaches
+ * one. Both come off the same list, one line apart, so they cannot drift.
+ */
+export async function whatsappWouldReach(owner: string, ref: string, slug?: string): Promise<number> {
+  return (await wouldSendTo(owner, ref, slug)).length;
 }
 
 export async function sendDayWhatsapp(

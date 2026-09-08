@@ -726,8 +726,6 @@
   "nav.trips": "Trips",
   "notify.button": "Tell your readers",
   "notify.cancel": "Not now",
-  "notify.confirm": "Sending this day costs {needed} credit(s), leaving you {rest}. Send it now?",
-  "notify.confirmFree": "Send this day to your readers now?",
   "notify.failed": "That could not be sent. Nothing was charged.",
   "notify.sent": "Your readers have been told about this day.",
   "owner.onlyYou": "Only you can see this",
@@ -1812,5 +1810,15 @@
   "agent.publishRow": "Ask to have it published",
   "agent.publishRowHint": "Nobody but you sees the day until you say so.",
   "agent.room.roomLinkHint": "Your files and a preview of the day, beside you.",
-  "agent.editDay": "Edit"
+  "agent.editDay": "Edit",
+  "notify.question": "Send this day now?",
+  "notify.sendNow": "Send now",
+  "notify.viaMail": "e-mails",
+  "notify.viaMail.one": "e-mail",
+  "notify.viaWhatsapp": "WhatsApp messages",
+  "notify.viaWhatsapp.one": "WhatsApp message",
+  "notify.free": "free",
+  "notify.costCredits": "{credits} credits",
+  "notify.costCredits.one": "1 credit",
+  "notify.total": "That is {needed} in all, leaving {rest}."
 }

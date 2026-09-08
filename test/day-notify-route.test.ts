@@ -229,7 +229,16 @@ describe("the ordinary path — quote, send, and stop offering it", () => {
     const { GET, POST } = await route();
 
     const before = await (await GET(req("GET"), paramsFor("day-one"))).json();
-    expect(before).toMatchObject({ ok: true, reachable: true, alreadySent: false, pending: ["mail"] });
+    // B1024 — the quote says who, not only what it costs. The count here is
+    // the owner's own free copy (B614) plus the one reader, which is the same
+    // two the send below actually writes: `mailFiles()` is asserted at 2 a few
+    // lines down, so a count that drifted from the send would fail here first.
+    expect(before).toMatchObject({
+      ok: true,
+      reachable: true,
+      alreadySent: false,
+      pending: [{ channel: "mail", count: 2, cost: 0 }],
+    });
     // Credits are off by default (test/credits.test.ts), so nothing is
     // billed and the balance question does not even apply.
     expect(before.balance).toBeNull();

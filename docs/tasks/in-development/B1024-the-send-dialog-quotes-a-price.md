@@ -69,6 +69,36 @@ built so that row costs nothing to add later.
 The route is outside `/api/v1/`, refuses a bearer token outright, and is in no
 published schema, so the contract does not move.
 
+## What it looked like
+
+Driven locally at 390px, signed in as `example`'s owner, mail and WhatsApp both
+switched on.
+
+- **The demo journal as it stands** — one row: `✉ 1 e-mail · free`, no total,
+  no zero-credit sentence. The route answers
+  `pending: [{channel:"mail",count:1,cost:0},{channel:"whatsapp",count:0,cost:0}]`.
+- **A journal with a real list**, by intercepting that response — `✉ 3 e-mails ·
+  free` / `💬 1 WhatsApp message · 2 credits`, a rule, then "That is 2 in all,
+  leaving 1177.00." Plurals decline per row.
+
+Three things learned on the way:
+
+- **A channel with a count of zero had to be filtered out of the *view*, not
+  the response.** "0 WhatsApp messages" is noise on screen, but `pending` is
+  what the POST loop iterates and what `alreadySent` is derived from — dropping
+  a channel server-side would make an unsent channel look sent.
+- **The all-zero case is a question with nothing under it**, because
+  `reachable` asks whether a channel is *configured*, never whether anybody is
+  on it. Not new — the button has always been offered there — but newly
+  visible, so it is captured as **B1027** rather than absorbed.
+- **`1177.00` is not a formatting bug.** `formatCredits` keeps two decimals on
+  purpose (B987): "1.50" and "1.5" are the same number to a programmer and not
+  to somebody reading a receipt. Left alone.
+
+`whatsappWouldCost` and the new `whatsappWouldReach` were made two one-line
+wrappers over a shared `wouldSendTo()`, so the count and the price come off the
+same narrowed list and cannot drift.
+
 ## Acceptance
 
 - On a published day with contacts, the dialog names each channel with its
