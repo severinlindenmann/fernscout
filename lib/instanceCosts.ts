@@ -1,6 +1,7 @@
 import "server-only";
 import { loadServerConfig } from "./config";
 import { balanceOf } from "./credits";
+import { creditsFromUnits } from "./credits/format";
 import { getDatabaseOrNull } from "./db";
 import { paymentsAwaiting, paymentsPaidSince, takings, type Payment } from "./payments";
 import { getUsernames } from "./users";
@@ -213,8 +214,11 @@ async function journalRows(since: string): Promise<JournalRow[]> {
       .execute();
     for (const row of rows) {
       const positive = signed.find((s) => s.owner_id === row.owner_id);
-      const granted = Number(positive?.total ?? 0);
-      ledger.set(row.owner_id, { granted, spent: granted - Number(row.total ?? 0) });
+      // The ledger stores hundredths since B987; this page is read by a
+      // person, so it stops being one here.
+      const granted = creditsFromUnits(Number(positive?.total ?? 0));
+      const net = creditsFromUnits(Number(row.total ?? 0));
+      ledger.set(row.owner_id, { granted, spent: granted - net });
     }
   }
 

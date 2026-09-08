@@ -1007,6 +1007,7 @@
   "postcard.page.messageLabel": "Was daraufsteht",
   "postcard.page.mismatchMany": "{count} dieser Personen lesen normalerweise eine andere Sprache. Sie bekommen die Karte trotzdem auf {card} — es wird nichts übersetzt.",
   "postcard.page.mismatchOne": "{name} liest normalerweise {theirs}, diese Karte ist auf {card} geschrieben. Sie kommt auf {card} an — schreib sie selbst auf {theirs}, wenn dir das lieber ist.",
+  "postcard.page.printerAdds": "Adresse und Frankatur druckt die Post selbst — hier stehen sie nur zum Prüfen, und auf der Karte, die wir schicken, fehlen sie, damit nichts doppelt gedruckt wird.",
   "postcard.page.reads": "liest normalerweise {language}",
   "postcard.page.reviewButton": "Diese Postkarten senden …",
   "postcard.page.sameCard": "Alle bekommen genau diese Karte. Es wird nichts übersetzt.",
@@ -1319,7 +1320,7 @@
   "agent.pickPhotos": "Fotos auswählen",
   "agent.pickPhotosHint": "Es wird noch nichts gesendet – beim Auswählen wird nur gelesen, was die Datei selbst über sich sagt.",
   "agent.noneChosen": "Keine Fotos gewählt",
-  "agent.askHereOpen": "Bitte um etwas anderes – in deinen eigenen Worten",
+  "agent.askHereOpen": "Sprich mit deinem Agenten darüber",
   "agent.askNotSearch": "Die Suche findet. Das Fragen ändert.",
   "agent.photosPart": "{count} Fotos",
   "agent.photosPart.one": "1 Foto",
@@ -1421,8 +1422,7 @@
   "agent.captionsHint": "Lies jede einzelne und übernimm oder verwirf sie. Es ist noch nichts gespeichert.",
   "agent.captionEmpty": "Dazu gibt es nichts zu sagen.",
   "agent.speechHold": "Zum Sprechen halten · 1 Guthaben pro {minutes} Minuten",
-  "agent.speechRecording": "Hört zu… {seconds}s · {credits} Guthaben",
-  "agent.speechRecording.one": "Hört zu… {seconds}s · {credits} Guthaben",
+  "agent.speechRecording": "Hört zu… {seconds}s",
   "agent.speechWorking": "Wird zu Worten…",
   "agent.speechHow": "Sprechen statt tippen. Drücken zum Starten, nochmal drücken zum Beenden, oder zum Sprechen gedrückt halten.",
   "agent.speechStarted": "Aufnahme gestartet.",
@@ -1769,5 +1769,6 @@
   "edit.removePhoto": "Entfernen",
   "edit.keepPhoto": "Doch behalten",
   "edit.addPhotos": "Bilder hinzufügen",
-  "edit.seenAsUpdate": "Wie dieser Eintrag"
+  "edit.seenAsUpdate": "Wie dieser Eintrag",
+  "agent.speechTooShort": "Das war zu kurz zum Senden — halte die Taste gedrückt, oder drücke einmal zum Starten und noch einmal zum Stoppen."
 }

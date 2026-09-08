@@ -3,7 +3,7 @@ import { refund, spend } from "@/lib/credits";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { HELPER_PROVIDER, WRITE_DAY_CREDITS, writeDay, type DayFacts } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
-import { note } from "@/lib/helper/thread";
+import { note, refused } from "@/lib/helper/thread";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -65,14 +65,22 @@ export async function POST(
   const tripId = text(body.trip);
   const ref = tripRef(user, tripId);
   const trip = getTrip(ref);
-  if (!trip) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  if (!trip) {
+    refused(user, "draft_words", "unknown_trip");
+    return Response.json({ error: "unknown_trip" }, { status: 404 });
+  }
 
   const notes = text(body.notes);
-  if (notes === "") return Response.json({ error: "no_notes" }, { status: 400 });
+  if (notes === "") {
+    refused(user, "draft_words", "no_notes");
+    return Response.json({ error: "no_notes" }, { status: 400 });
+  }
 
   // Before the first model call ever made for this journal, and before the
   // spend — a charge for a call that consent would have refused is a charge
-  // for nothing.
+  // for nothing. Not recorded as a press refusal: consent, like the
+  // capability switch above, is a gate on whether the wizard may speak to a
+  // model at all, not a press failing on what it asked for.
   if (!hasHelperConsent(user, "words")) {
     return Response.json({ error: "consent_required" }, { status: 403 });
   }
@@ -101,6 +109,7 @@ export async function POST(
 
   const ledgerRef = `${user}/${tripId}/${facts.date}`;
   if (!(await spend(user, WRITE_DAY_CREDITS, "helper", ledgerRef))) {
+    refused(user, "draft_words", "no_credits");
     return Response.json({ error: "no_credits" }, { status: 402 });
   }
 
@@ -112,6 +121,7 @@ export async function POST(
     // failure is passed on: what a provider says when it is unhappy is not
     // something to render on somebody's phone.
     await refund(user, WRITE_DAY_CREDITS, ledgerRef);
+    refused(user, "draft_words", "model_failed");
     return Response.json({ error: "model_failed" }, { status: 502 });
   }
 

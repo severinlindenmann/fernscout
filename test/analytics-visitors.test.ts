@@ -75,6 +75,12 @@ describe("the visitor identifier is what the imprint says it is", () => {
     // `randomBytes` has a callback overload TS prefers when inferring
     // `spyOn`'s type, so `mockReturnValueOnce` alone types as `void` —
     // `mockImplementationOnce` sidesteps overload selection entirely.
+    // B988: and the pin only takes if there is a draw left to pin. `dailySalt`
+    // memoises per day and the test above has already drawn day1's, so
+    // without this the mock expires unused and the assertion runs against the
+    // very randomness B713 was removing — a full-suite failure about one run
+    // in three hundred, which reads as "this branch broke something".
+    forgetSalt();
     vi.spyOn(crypto, "randomBytes").mockImplementationOnce(() => Buffer.alloc(32, 0x11));
     const hash = visitorHash("alice", "203.0.113.9", "Mozilla/5.0 (X11)", day1);
     vi.restoreAllMocks();

@@ -2,7 +2,7 @@ import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { attachStagedFiles } from "@/lib/api/staged";
 import { dayForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/helper/server";
 import { getTrip, tripRef } from "@/lib/trips";
-import { wrote } from "@/lib/helper/thread";
+import { refused, wrote } from "@/lib/helper/thread";
 
 export const dynamic = "force-dynamic";
 
@@ -44,11 +44,17 @@ export async function POST(
 
   const tripId = String(body.trip ?? "").trim();
   const ref = tripRef(user, tripId);
-  if (!getTrip(ref)) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  if (!getTrip(ref)) {
+    refused(user, "attach_files", "unknown_trip");
+    return Response.json({ error: "unknown_trip" }, { status: 404 });
+  }
 
   const slug = String(body.slug ?? body.day ?? "").trim();
   const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
-  if (!entry) return Response.json({ error: "unknown_day" }, { status: 404 });
+  if (!entry) {
+    refused(user, "attach_files", "unknown_day");
+    return Response.json({ error: "unknown_day" }, { status: 404 });
+  }
 
   // A list or one comma-separated string: the proposal's own field is a
   // string, because a proposal field is a thing a person can read and type
@@ -56,10 +62,14 @@ export async function POST(
   const files = (Array.isArray(body.files) ? body.files : String(body.files ?? "").split(","))
     .map((one) => String(one).trim())
     .filter((one) => one !== "");
-  if (files.length === 0) return Response.json({ error: "expected_files" }, { status: 400 });
+  if (files.length === 0) {
+    refused(user, "attach_files", "expected_files");
+    return Response.json({ error: "expected_files" }, { status: 400 });
+  }
 
   const moved = await attachStagedFiles(user, ref, slug, files);
   if (!moved.ok) {
+    refused(user, "attach_files", moved.error);
     return Response.json(
       moved.error === "invalid_media"
         ? { error: "invalid_media", problems: moved.problems }
@@ -70,6 +80,7 @@ export async function POST(
   if (!moved.attached.ok) {
     // The files are in the trip either way — say which failure it was rather
     // than a bare 500, the same as the v1 route's `note` does.
+    refused(user, "attach_files", "not_attached");
     return Response.json({ error: "not_attached", why: moved.attached.error }, { status: 400 });
   }
 

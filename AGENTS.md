@@ -432,6 +432,26 @@ members* (of an enum, say) it still only prints. `knip.jsonc` carries the
 entry points, which are the whole configuration — nearly nothing here is
 imported by name. B24.
 
+### A new string in the UI is three files and a script
+
+`t("nav.gallery")` resolves against `site/locales/en.json`, `de.json` and
+`hu.json`, and a key added to one of them is a broken build in two ways at
+once. `test/locales.test.ts` asserts that **every maintained locale covers
+every key English has**, so English alone fails; and `lib/i18n.ts` carries a
+`TranslationKey` union that must hold *exactly* the shipped English keys, so
+a hand-written union fails too. Regenerate it rather than typing it:
+
+```bash
+npm run i18n:keys      # rewrites the union in lib/i18n.ts from site/locales/en.json
+```
+
+Write real German and real Hungarian. Nothing checks that a translation means
+anything — the tests only check that a key is present and, for a sample, that
+it differs from the English — so a plausible-looking machine translation ships
+and is read by somebody whose language it is. If you cannot write the language,
+say so and leave the ticket short of done; that is the same rule as inventing a
+day, one level down.
+
 ### Changing a route means changing the contract
 
 **`/openapi.json` and `/agent.md` are the product, for everybody who is not
@@ -489,6 +509,7 @@ and merged back:
 
 ```bash
 git worktree add .claude/worktrees/<branch> -b <branch>
+cp -Rc node_modules .claude/worktrees/<branch>/node_modules   # see below
 # … build it there, verify it there …
 git merge --no-ff <branch>          # from the main checkout
 git worktree remove .claude/worktrees/<branch>
@@ -556,8 +577,14 @@ Four things that follow, and are easy to get wrong:
   `git log --oneline main..HEAD`, then run `git diff --stat`, and let the merge
   into the shared checkout be its own call from the shared checkout.
 - **A worktree has no `node_modules`.** `npx tsc`, `eslint` and `vitest`
-  resolve upward and appear to work; `npm run build` does not. Run `npm ci` in
-  the worktree before trusting a green run.
+  resolve upward and appear to work; `npm run build` does not. Clone the main
+  checkout's with `cp -Rc` — copy-on-write on APFS, so it is about eight
+  seconds and no real disk — rather than `npm ci`, which is minutes and was run
+  sixty-five times in one week here. **Not a symlink**: `npm run build` then
+  dies in Turbopack with *"Symlink [project]/node_modules is invalid, it points
+  out of the filesystem root"*, and `verify` fails at step one for a reason
+  that has nothing to do with the change. On a filesystem without `cp -Rc`,
+  `npm ci` is still the answer.
 - **`.claude/worktrees/` already holds other sessions' work.** Never work in
   one you did not create, and never assume `main` is ahead of them — an id or
   a change captured in a sibling worktree has not reached `main` yet.
@@ -729,6 +756,7 @@ guide for it.
 | `work-on-a-task` | Take one approved task, build it in a worktree, merge it |
 | `test-the-live-site` | Empty `testing/` against the deployed instance, one subagent per ticket |
 | `test-in-a-browser` | Drive a local checkout in a real browser: sign in as an owner, switch a capability on, check a page at 390px |
+| `test-with-personas` | Drive `/agent` as somebody who has never seen it — a subagent per persona, handed a URL and nothing else |
 
 ### The workbenches
 

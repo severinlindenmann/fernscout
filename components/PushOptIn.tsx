@@ -75,9 +75,20 @@ export default function PushOptIn({
    * reading.
    */
   journal,
+  /**
+   * Icon only, for a mount where this is the least of several things offered
+   * — the trip hero, since B989. A labelled capsule there was a fourth
+   * control competing with three ways into the reading, and it is not one of
+   * them: it is what you press once and never again.
+   *
+   * The dead ends keep their sentence in either mode. "Add this to your Home
+   * Screen first" cannot be said with a bell.
+   */
+  compact,
 }: {
   heading?: { title: string; lede: string };
   journal?: string;
+  compact?: boolean;
 } = {}) {
   const { t } = useI18n();
   // The trip, when there is one — the hero. `journal` covers the mounts that
@@ -268,6 +279,18 @@ export default function PushOptIn({
   }
 
   if (state === "on") {
+    if (compact) {
+      return (
+        <button
+          onClick={disable}
+          aria-label={t("push.turnOff")}
+          title={t("push.enabled")}
+          className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-navy-200 bg-white text-green-700 transition-colors hover:border-navy-500"
+        >
+          <BellRing className="h-4 w-4" aria-hidden />
+        </button>
+      );
+    }
     return inSection(
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-navy-500">
         <span className="inline-flex items-center gap-1.5 font-medium text-green-700">
@@ -282,6 +305,25 @@ export default function PushOptIn({
           {t("push.turnOff")}
         </button>
       </div>,
+    );
+  }
+
+  if (compact) {
+    return (
+      <BusyButton
+        busy={state === "working"}
+        busyLabel={null}
+        onClick={enable}
+        aria-label={t("push.enable")}
+        title={state === "failed" ? t("push.failed") : t("push.enable")}
+        className={`ml-auto inline-flex h-11 w-11 items-center justify-center rounded-full border bg-white transition-colors disabled:opacity-50 ${
+          state === "failed"
+            ? "border-coral-400 text-coral-600"
+            : "border-navy-200 text-navy-600 hover:border-navy-500"
+        }`}
+      >
+        <Bell className="h-4 w-4" aria-hidden />
+      </BusyButton>
     );
   }
 

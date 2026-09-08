@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { formatChf } from "@/lib/credits/pricing";
+import { formatCredits } from "@/lib/credits/format";
 
 /** One row, with its opened panel already rendered on the server. */
 export type JournalView = {
@@ -53,8 +54,12 @@ export function pick<T extends JournalView>(rows: T[], query: string, order: Ord
  *  cannot come to disagree about them. */
 function credits(journal: JournalView): string {
   const held =
-    journal.balance === null ? "no credits on this instance" : `${journal.balance} credits`;
-  return `${held} · ${journal.spent} spent of ${journal.granted} granted`;
+    journal.balance === null
+      ? "no credits on this instance"
+      : `${formatCredits(journal.balance)} credits`;
+  // Two decimals since B987: a balance is hundredths of a credit, and "8.79"
+  // is the number the journal's owner sees on their own page.
+  return `${held} · ${formatCredits(journal.spent)} spent of ${formatCredits(journal.granted)} granted`;
 }
 
 /**

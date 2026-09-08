@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useI18n } from "./LocaleProvider";
 import BusyButton from "@/components/BusyButton";
 import { OWNER_TOOL, OWNER_TOOL_CELL } from "./ownerToolClass";
+import { formatCredits } from "@/lib/credits/format";
 
 type Status = {
   ok: true;
@@ -89,7 +90,7 @@ export default function DayNotify({
       <p className="col-span-full text-xs text-coral-700">
         {t("notify.short", {
           needed: String(status.needed),
-          balance: String(status.balance),
+          balance: formatCredits(status.balance ?? 0),
         })}{" "}
         <a className="font-semibold underline" href={`/${username}/me`}>
           {t("photobook.getCredits")}
@@ -103,7 +104,7 @@ export default function DayNotify({
       ? t("notify.confirmFree")
       : t("notify.confirm", {
           needed: String(status.needed),
-          rest: String(status.balance - status.needed),
+          rest: formatCredits((status.balance ?? 0) - status.needed),
         });
 
   const send = async () => {

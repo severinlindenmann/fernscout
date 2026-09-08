@@ -81,7 +81,9 @@ describe("where notifications can be switched on", () => {
   });
 
   test("the hero still offers it, for somebody who meets it there first", () => {
-    expect(read("components/TripHero.tsx")).toContain("<PushOptIn />");
+    // Icon only there since B989 — the mount is what this pins, not its
+    // props, so a hero that stops offering it at all still fails here.
+    expect(read("components/TripHero.tsx")).toContain("<PushOptIn compact />");
   });
 
   test("every language carries the new section's words", async () => {

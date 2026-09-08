@@ -52,11 +52,21 @@ export const MAX_SPEECH_SECONDS = 900;
  *  minutes of Opus at 32 kbit/s is about 1.2 MB, so this is generous. */
 export const MAX_AUDIO_BYTES = 16 * 1024 * 1024;
 
-/** What a recording of this many seconds costs. Any recording at all costs a
- *  credit; five minutes exactly still costs one, and a second past it two. */
+/**
+ * What a recording of this many seconds costs, in credits — B987.
+ *
+ * **By the second, rounded up to the hundredth**, which is the smallest thing
+ * this product can charge for. Five minutes still costs exactly one credit
+ * (the price did not change); what changed is that a six-second question now
+ * costs two hundredths rather than the same whole credit as five minutes of
+ * dictation. The provider meters by the second and so, now, does this.
+ *
+ * The floor is one hundredth, so a recording of any length at all costs
+ * something: a charge of nothing is a charge nobody can audit.
+ */
 export function creditsForSeconds(seconds: number): number {
-  if (!Number.isFinite(seconds) || seconds <= 0) return 1;
-  return Math.max(1, Math.ceil(seconds / SECONDS_PER_CREDIT));
+  if (!Number.isFinite(seconds) || seconds <= 0) return 0.01;
+  return Math.max(1, Math.ceil((seconds * 100) / SECONDS_PER_CREDIT)) / 100;
 }
 
 /** The price to print on the button before the hold, in minutes. */

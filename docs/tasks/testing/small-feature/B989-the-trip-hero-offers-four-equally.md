@@ -7,8 +7,7 @@ complexity: low
 area: Trip hero
 found: "2026-09-08T16:44:44Z"
 started: "2026-09-08T16:45:11Z"
-session: d7d95eaa-ad82-4d84-b302-8b05c3955732
-claimed: "2026-09-08T16:45:11Z"
+merged: "2026-09-08T16:58:12Z"
 ---
 
 # B989 — The trip hero offers four equally loud actions and three of them go to the same place
@@ -35,15 +34,21 @@ Variant A of four sketched for the owner, and the one chosen:
   beneath it, not filled capsules.
 - `PushOptIn` becomes an icon-only bell at the end of that row, with an
   accessible name rather than a visible label.
-- The photobook link keeps its own capsule; a finished trip has no resume
-  button, so it is not competing with anything.
+- The photobook link becomes a quiet link too. It was to keep its capsule,
+  but a lone capsule among three text links reads as a mistake rather than as
+  emphasis — and on a finished trip the filled button is already there.
+- A first-time reader has no resume button at all (`canResume` in
+  `app/TripStory.tsx`), which would have left the card with no filled button
+  and nothing but links. So the latest-day jump takes the primary in that
+  case: there is always exactly one filled button, never two.
 
 Not doing: the live-location chip, the new-days banner, or anything about what
 the buttons *do*. Nothing is removed — only its weight changes.
 
 ## Acceptance
 
-- The trip hero renders one filled button (resume) plus text links, seen at
+- The trip hero renders exactly one filled button — resume for a returning
+  reader, the latest-day jump for a first-time one — plus text links, seen at
   390px and at desktop width.
 - The bell has an accessible name (the existing push label) and remains a
   44px target.

@@ -2,7 +2,7 @@ import { unpublishEntry } from "@/lib/api/entries";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { dayForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/helper/server";
 import { getTrip, tripRef } from "@/lib/trips";
-import { wrote } from "@/lib/helper/thread";
+import { refused, wrote } from "@/lib/helper/thread";
 
 export const dynamic = "force-dynamic";
 
@@ -40,18 +40,28 @@ export async function POST(
   const slug = typeof body?.slug === "string" ? body.slug.trim() : "";
 
   const ref = tripRef(user, tripId);
-  if (!getTrip(ref)) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  if (!getTrip(ref)) {
+    refused(user, "unpublish_day", "unknown_trip");
+    return Response.json({ error: "unknown_trip" }, { status: 404 });
+  }
 
   const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
-  if (!entry) return Response.json({ error: "unknown_day" }, { status: 404 });
+  if (!entry) {
+    refused(user, "unpublish_day", "unknown_day");
+    return Response.json({ error: "unknown_day" }, { status: 404 });
+  }
   if (entry.draft) {
     // The same shape as publishing something already published: a cheerful
     // 200 here would let somebody report a takedown that happened last week.
+    refused(user, "unpublish_day", "already_draft");
     return Response.json({ error: "already_draft" }, { status: 409 });
   }
 
   const taken = unpublishEntry(ref, slug);
-  if (!taken.ok) return Response.json({ error: taken.error }, { status: 400 });
+  if (!taken.ok) {
+    refused(user, "unpublish_day", taken.error);
+    return Response.json({ error: taken.error }, { status: 400 });
+  }
 
   wrote(user, "unpublish_day", { trip: tripId, slug });
   return Response.json({

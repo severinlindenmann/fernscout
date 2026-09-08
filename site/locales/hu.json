@@ -1007,6 +1007,7 @@
   "postcard.page.messageLabel": "Mi áll rajta",
   "postcard.page.mismatchMany": "Közülük {count} fő általában más nyelven olvas. A lapot akkor is {card} nyelven kapják meg — semmit nem fordítunk le.",
   "postcard.page.mismatchOne": "{name} általában {theirs} nyelven olvas, ez a lap pedig {card} nyelven íródott. {card} nyelven fogja megkapni — írd meg magad {theirs} nyelven, ha úgy jobb.",
+  "postcard.page.printerAdds": "A címet és a bérmentesítést a posta nyomtatja — itt csak ellenőrzésre látszanak, és lekerültek az általunk küldött lapról, hogy ne kerüljenek rá kétszer.",
   "postcard.page.reads": "általában {language} nyelven olvas",
   "postcard.page.reviewButton": "Ezek a képeslapok mehetnek…",
   "postcard.page.sameCard": "Mindenki ugyanezt a lapot kapja. Semmit nem fordítunk le.",
@@ -1319,7 +1320,7 @@
   "agent.pickPhotos": "Fényképek kiválasztása",
   "agent.pickPhotosHint": "Még semmi nem megy el – a kiválasztáskor csak az olvasódik ki, amit a fájl magáról mond.",
   "agent.noneChosen": "Nincs fénykép kiválasztva",
-  "agent.askHereOpen": "Kérj bármi mást, a saját szavaiddal",
+  "agent.askHereOpen": "Beszélj erről az ügynököddel",
   "agent.askNotSearch": "A keresés megtalál. A kérdezés megváltoztat.",
   "agent.photosPart": "{count} fénykép",
   "agent.photosPart.one": "1 fénykép",
@@ -1421,8 +1422,7 @@
   "agent.captionsHint": "Olvasd el mindegyiket, és tartsd meg vagy vesd el. Még semmi nincs elmentve.",
   "agent.captionEmpty": "Erről nincs mit mondani.",
   "agent.speechHold": "Tartsd nyomva a beszédhez · 1 kredit {minutes} percenként",
-  "agent.speechRecording": "Hallgat… {seconds}s · {credits} kredit",
-  "agent.speechRecording.one": "Hallgat… {seconds}s · {credits} kredit",
+  "agent.speechRecording": "Hallgatlak… {seconds} mp",
   "agent.speechWorking": "Szavakká alakítja…",
   "agent.speechHow": "Beszélj gépelés helyett. Nyomd meg az indításhoz, nyomd meg újra a leállításhoz, vagy tartsd nyomva a beszédhez.",
   "agent.speechStarted": "A felvétel elindult.",
@@ -1769,5 +1769,6 @@
   "edit.removePhoto": "Eltávolítás",
   "edit.keepPhoto": "Mégis marad",
   "edit.addPhotos": "Képek hozzáadása",
-  "edit.seenAsUpdate": "Mint ez a bejegyzés"
+  "edit.seenAsUpdate": "Mint ez a bejegyzés",
+  "agent.speechTooShort": "Ez túl rövid volt az elküldéshez — tartsd nyomva a gombot, vagy nyomd meg egyszer az indításhoz és még egyszer a leállításhoz."
 }
