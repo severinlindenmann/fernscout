@@ -437,10 +437,60 @@ describe("what a turn costs", () => {
    * her daughter could not open. At Haiku's input price a hundred tokens is a
    * fraction of a rappen a turn.
    */
+  /**
+   * The ceiling itself, named once so the number in the message and the number
+   * in the assertion cannot disagree — which is the shape of every other
+   * "written down twice" bug in this repository.
+   */
+  const CEILING = 4100;
+
+  /**
+   * **What to do when this fails** — B930, and it is the half the number never
+   * carried.
+   *
+   * The ceiling was met five times on 2026-09-08. Four of those five were paid
+   * for out of description quality — a phrase trimmed, an example dropped —
+   * because the alternative looked like raising a number a person had set. The
+   * fifth found the actual fat, and it is the one worth repeating, because it
+   * grows back:
+   *
+   * **The prompt states the rule; the retry makes the case.** The prompt
+   * argued each rule at length, and then each honesty retry in
+   * `lib/helper/model.ts` argued the same rule again at the moment it was
+   * needed — seven retries, several of them almost a paragraph of the prompt
+   * word for word. Four paragraphs came down to four sentences and the ceiling
+   * stopped binding, with nothing the model needs upfront removed: the
+   * argument still reaches it, later, and only when it matters.
+   *
+   * So, in order:
+   *
+   * 1. **Is the same thing said twice** — once here and once in a retry, a
+   *    tool `describe`, or a refusal in `lib/helper/intents.ts`? Cut it here
+   *    and leave it where it fires.
+   * 2. **Is it an argument rather than a rule?** A rule is a sentence. The
+   *    reasons behind it belong in the retry the model sees when it breaks
+   *    the rule, or in a comment for the next person.
+   * 3. **Only then raise the number** — deliberately, in its own commit, with
+   *    a paragraph above saying what the tokens bought and what sentence they
+   *    replace. Every raise here has one; the history above is those
+   *    paragraphs and it is why the number is trustworthy.
+   *
+   * What is *not* an acceptable trade is cutting a description until a tool is
+   * chosen wrongly. At Haiku's input price four hundred tokens is a fraction
+   * of a rappen a turn, against a wrong write in somebody's journal.
+   */
   test("the prompt and the tool list stay under forty-one hundred tokens", () => {
     const schemas = TOOLS.map((tool) => JSON.stringify(tool.properties) + tool.describe).join("");
     const characters = threadSystemPrompt("2026-09-07").length + schemas.length;
-    expect(Math.round(characters / 4)).toBeLessThan(4100);
+    const tokens = Math.round(characters / 4);
+    expect(
+      tokens,
+      `The prompt and tool list are ~${tokens} tokens against a ceiling of ${CEILING}. ` +
+        "Before raising it: is the same thing said here and again in an honesty retry, a " +
+        "tool's `describe`, or a refusal in lib/helper/intents.ts? The prompt states the " +
+        "rule; the retry makes the case. Raising is legitimate — in its own commit, with a " +
+        "paragraph above this test saying what the tokens bought. See B930.",
+    ).toBeLessThan(CEILING);
   });
 });
 
