@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (154)
+## backlog (156)
 
 ### security (2)
 
@@ -140,11 +140,12 @@ Do not edit them by hand; run the script.
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (4)
+### chore (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1095](backlog/chore/B1095-personas-run-in-parallel-share-one.md) | Personas run in parallel share one browser tab and interleave, invalidating the round | CHORE | high | low |
+| [B1110](backlog/chore/B1110-the-testing-lane-is-filed-into.md) | The testing lane is filed into nine category folders nobody reads, now that the run report is what a person reviews from | CHORE | medium | low |
 | [B1017](backlog/chore/B1017-photobook-fonts-are-embedded-whole-not.md) | Photobook fonts are embedded whole, not subset | CHORE | low | medium |
 | [B1048](backlog/chore/B1048-two-merge-commits-on-main-label.md) | Two merge commits on main label themselves B1026 and B1027, which are different tickets | CHORE | low | low |
 | [B1052](backlog/chore/B1052-code-and-commits-cite-task-ids.md) | Code and commits cite task ids that have no file, so the allocator hands them out again | CHORE | low | low |
@@ -169,12 +170,13 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### docs-and-skills (3)
+### docs-and-skills (4)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1063](backlog/docs-and-skills/B1063-the-imprint-does-not-say-that.md) | The imprint does not say that a message sent to the WhatsApp number is read, stored and sent to Meta | DOCS | high | low |
 | [B1070](backlog/docs-and-skills/B1070-the-three-ways-to-reach-this.md) | The three ways to reach this journal are not written down anywhere as three ways | DOCS | high | medium |
+| [B1111](backlog/docs-and-skills/B1111-a-run-report-ends-with-no.md) | A run report ends with no way to say which tickets a person accepted | DOCS | high | low |
 | [B1046](backlog/docs-and-skills/B1046-two-sessions-running-verify-in-the.md) | Two sessions running verify in the shared checkout collide on the next build lock | DOCS | low | low |
 
 ### superseded (60)
