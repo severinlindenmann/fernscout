@@ -435,3 +435,85 @@ part — under 70 characters.** That is comfortably achievable for a code, an
 expiry and nothing else, and it means the "do not reply" sentence may have to
 be dropped from the Hungarian version specifically. Decide that in B1065 with
 this table in front of you.
+
+## The 407001 cause, and a shortlist — 2026-09-09
+
+### Why seven.io refused
+
+Their Terms and Conditions, read verbatim from
+`seven.io/en/company/terms/`:
+
+> *"The services offered by seven.io are aimed exclusively at **traders**. By
+> concluding the contract, the customer assures that he is a trader and that
+> the short messages are sent as part of his business… seven.io reserves the
+> right to request proofs from the customer about the correctness of his
+> information, for example a **commercial register extract or a business
+> registration**."*
+
+That fits the observation exactly: **HLR is a lookup and succeeded; SMS is the
+"sending as part of your business" product and was refused instantly**, for
+every sender type, with the balance refunded.
+
+**It is the strongest explanation and it is still an inference.** seven.io has
+not said so, and `407001` remains undocumented. The way to settle it is one
+email, and it is worth sending — **the operator may well qualify.** Fernscout
+takes real money through Stripe in live mode, which is trading; and a Swiss
+Einzelunternehmen is only obliged to enter the Handelsregister above CHF
+100,000 turnover, so "no register extract" does not automatically mean "not a
+trader". Do not abandon the best-fitting provider on an inference when a
+question answers it.
+
+### Ask these before opening any account
+
+The reusable output of this whole episode. Get written answers **first**:
+
+1. I am a Swiss sole trader (Einzelunternehmen) with no Handelsregister
+   entry. Can I send transactional SMS with an alphanumeric sender id through
+   your API?
+2. Is there a contract, business documentation or manual review before the
+   **first** message actually delivers, or does self-serve signup deliver
+   immediately?
+3. Is there a sandbox that works before I add a payment method, and does it
+   exercise the real alphanumeric path to CH/DE/AT/HU carriers or only
+   simulate success?
+4. Typical approval time for an alphanumeric sender id in CH, DE, AT and HU,
+   for under 50 messages a day?
+5. Any monthly fee or minimum tied to the sender id itself, separate from the
+   per-message price?
+6. If I hit a rejection code, will you tell me whether it is an eligibility
+   gate or a technical fault?
+
+Question 6 is the one that would have saved this round: seven.io left a bare
+`407001` to be reverse-engineered.
+
+### The shortlist, ranked by "will this work for a Swiss individual"
+
+| | Gate | Fixed cost | Sandbox |
+| --- | --- | --- | --- |
+| **ASPSMS** (Swiss, VADIAN.NET AG) | Signup asks name, company, address — **no visible register requirement**. Free test volumes granted by a human on request | None; credits never expire; **min top-up ~500 credits (~€30)** | Free test credits, pre-payment |
+| **Sinch** | **Switzerland is listed as needing no sender-id pre-registration.** DE/AT/HU unconfirmed | Pay-as-you-go | **Real sandbox**, unlimited simulated sends, works before payment |
+| Twilio | **Alphanumeric sender ids are blocked on trial accounts** — card first, then per-country registration (there is a help article just for Austria) | None once paid | Best-documented magic-number mode — but it cannot exercise a real alphanumeric send |
+| Brevo | Not confirmed | None | Not confirmed |
+| Bird | Test key instantly; production needs a payment method and a verified sender | Not confirmed | Yes, pre-payment |
+
+**Try ASPSMS first.** Swiss, under the operator's own law, no monthly fee, and
+its published signup fields do not visibly demand a register number — which is
+exactly the axis seven.io failed on. **Sinch second**, for the sandbox and
+because Switzerland is explicitly pre-registration-free.
+
+**Avoid**: **Vonage** — self-serve alphanumeric registration is *"only
+available for Managed Customers"* with an assigned account manager, so a
+single-user account structurally cannot get there. **Textmagic** — the sender
+id carries its own **~€10/month** subscription. **CM.com** — full features sit
+behind €129/month tiers.
+
+### Unverified, and worth knowing it
+
+ASPSMS's actual approval bar for a Swiss sole trader (human-reviewed, no
+public account of the outcome); Sinch's DE/AT/HU sender-id rules; Brevo's and
+Bird's behaviour on the gate question specifically. GatewayAPI, Clickatell,
+eCall's real signup path, LINK Mobility and MessageMedia were not researched
+to a conclusion.
+
+**At €27 a year of message spend, the cheapest next move is emailing ASPSMS
+and Sinch the six questions in parallel — not another blind trial.**
