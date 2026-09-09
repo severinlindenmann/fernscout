@@ -148,7 +148,11 @@ another ticket touches is a group of one.
 Load `artifact-design` first. Reuse `triage-a-backlog`'s decision-bar
 machinery and this repository's palette (`app/globals.css`, via
 `apply-the-brand`) rather than reinventing either: cream ground, navy ink,
-waymark yellow accent, green for go, coral for stop.
+waymark yellow accent, green for go, coral for stop. **Its step 5 also carries
+the `min-width: 0` rule** — take that too, because this page carries more of
+what breaks without it than the triage page does: a quoted `<pre>` per ticket,
+an evidence line naming a file and a line, a screenshot, and an `iframe` per
+mockup. It shipped overflowing on 2026-09-09.
 
 Per ticket, in this order:
 
