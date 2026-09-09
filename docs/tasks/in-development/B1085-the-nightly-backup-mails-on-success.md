@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: ops, backup, admin
 found: "2026-09-09T15:47:49Z"
+started: "2026-09-09T15:48:42Z"
+session: f88144a1-6520-4fc1-94bd-496a694b98c8
+claimed: "2026-09-09T15:48:42Z"
 ---
 
 # B1085 — The nightly backup mails on success, so the operator's answer to did it work is a mailbox rather than a page

@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: currency, ops
 found: "2026-09-09T15:47:48Z"
+started: "2026-09-09T15:48:41Z"
+session: f88144a1-6520-4fc1-94bd-496a694b98c8
+claimed: "2026-09-09T15:48:41Z"
 ---
 
 # B1084 — Nothing refreshes the ECB rates on a deployed instance, so a costs page converts at whatever rate the last deploy happened to carry
