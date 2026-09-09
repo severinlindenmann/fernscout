@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: http, proxy
 found: "2026-09-09T15:49:15Z"
+merged: "2026-09-09T16:11:26Z"
 ---
 
 # B1088 — TRACE returns HTTP 500 instead of 405 on pages and API

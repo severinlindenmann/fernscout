@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: http, headers, info-disclosure
 found: "2026-09-09T15:49:15Z"
+merged: "2026-09-09T16:11:27Z"
 ---
 
 # B1089 — x-powered-by header advertises Next.js to anonymous callers

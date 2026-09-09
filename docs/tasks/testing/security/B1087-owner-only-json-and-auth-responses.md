@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: api, http, caching
 found: "2026-09-09T15:49:14Z"
+merged: "2026-09-09T16:11:24Z"
 ---
 
 # B1087 — Owner-only JSON and auth responses carry no no-store cache header

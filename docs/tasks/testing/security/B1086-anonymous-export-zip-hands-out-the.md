@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: api, export, privacy
 found: "2026-09-09T15:49:14Z"
+merged: "2026-09-09T16:11:23Z"
 ---
 
 # B1086 — Anonymous export.zip hands out the owner's name, email and home town
