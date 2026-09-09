@@ -29,3 +29,12 @@ targets; fix any gap. Nothing else.
 
 Every checkbox tile and the picker button toggle from a tap anywhere on
 their visible surface at 390px.
+
+## Verified 2026-09-10
+
+Code review: `Tile` (HelperRoom.tsx) and both `InboxFileGroups` tile shapes
+wrap the whole visible surface in the `<label>`, `min-h-11`, with
+`focus-within` rings; `PhotoPicker`'s visible label is the control. The
+persona's failure was Playwright clicking the `sr-only` input directly —
+not a path a finger can take. Nothing to change unless a real-device round
+disagrees.
