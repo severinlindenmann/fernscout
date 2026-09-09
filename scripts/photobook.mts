@@ -29,6 +29,7 @@ import { parseTripRef } from "../lib/trips.ts";
 import { buildBookSource, resolvePrintFile } from "../lib/photobook/source.ts";
 import { outline, planBook, type Photobook } from "../lib/photobook/plan.ts";
 import { renderCover, renderVolume } from "../lib/photobook/render.ts";
+import { printReadyImages } from "../lib/photobook/images.ts";
 import { DEFAULT_OPTIONS } from "../lib/photobook/options.ts";
 import { isBookLocale } from "../lib/photobook/strings.ts";
 import { renderPreview } from "../lib/photobook/preview.ts";
@@ -225,7 +226,12 @@ const document = {
 
 // `BookPhoto.file` is content-root-relative so the plan is the same JSON on
 // every machine (B25); this is where it becomes a file again.
-const loadImage = (file: string) => new Uint8Array(fs.readFileSync(resolvePrintFile(file)));
+const fromDisk = (file: string) => new Uint8Array(fs.readFileSync(resolvePrintFile(file)));
+// B1172, and the same pass `lib/photobook/build.ts` runs. It has to be here
+// too: this file's own comment says the CLI and the button must not produce
+// different books, or the preview somebody approved is evidence about neither.
+const printReady = await printReadyImages(book, spec, fromDisk);
+const loadImage = (file: string) => printReady.get(file) ?? fromDisk(file);
 const written: string[] = [];
 const md5 = (bytes: Uint8Array) => crypto.createHash("md5").update(bytes).digest("hex");
 

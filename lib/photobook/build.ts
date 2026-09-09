@@ -11,6 +11,7 @@ import { BOOK_SIZES, defaultSpec, productUidFor, type BookSpec } from "./spec";
 import { fetchCoverGeometry } from "./coverGeometry";
 import { outputIntentFor, pdfxReadiness, readIcc } from "./pdfx";
 import { renderCover, renderVolume } from "./render";
+import { printReadyImages } from "./images";
 import type { BookOptions } from "./options";
 
 /**
@@ -197,7 +198,14 @@ export async function buildPhotobook(
     ...(readiness.version ? { pdfxVersion: readiness.version } : {}),
   };
 
-  const loadImage = (file: string) => new Uint8Array(fs.readFileSync(resolvePrintFile(file)));
+  const fromDisk = (file: string) => new Uint8Array(fs.readFileSync(resolvePrintFile(file)));
+  // B1172. Each photograph re-encoded to the size it is actually printed at,
+  // once, before either renderer asks for it — the cover and the interior
+  // share the map, so a photograph on both is converted once and embedded
+  // twice. `renderVolume` is synchronous and `sharp` is not, which is why this
+  // is a pass rather than a hook inside `loadAll`.
+  const printReady = await printReadyImages(book, spec, fromDisk);
+  const loadImage = (file: string) => printReady.get(file) ?? fromDisk(file);
   const files: string[] = [];
   const missing = new Set<string>();
 
