@@ -6,6 +6,7 @@ priority: high
 complexity: high
 area: security, api, auth
 found: "2026-09-03"
+merged: "2026-09-09T17:39:08Z"
 ---
 
 # B101 — Nobody has attacked a running instance from the outside with the source in hand
