@@ -455,6 +455,66 @@ export type Health = {
 const OFF_BY_CHOICE = "not enabled on this server";
 
 /**
+ * What the backup status is worth waking somebody for.
+ *
+ * Pulled out of `health()` so it can be checked (B1174): `health()` reaches
+ * the database, the config and three directories, which is why the rules that
+ * matter most here had no test at all until an off-site copy stopped arriving
+ * and the page went on saying "Nothing is wrong."
+ *
+ * The primary alarms on every state but `ok` — including `unknown`, which on
+ * the primary means no backup has ever run on this machine and is never a
+ * legitimate steady state.
+ *
+ * The secondary alarms on `stale` and on nothing else. `stale` is
+ * unambiguous: copies were arriving at this destination and have stopped, and
+ * losing the machine now loses everything written since — the primary, being
+ * on that machine, is no help by definition. This is also the one failure the
+ * nightly run cannot report, because the primary alone decides whether a night
+ * succeeded (B651): the unit exits zero, the OnFailure= mail never fires, and
+ * this page is the only place it shows.
+ *
+ * `unknown` on the secondary is deliberately silent. It means both "no second
+ * destination was ever configured" — a legitimate choice, and the shipped
+ * default — and "one is configured and has never once succeeded", and nothing
+ * on disk separates them; `readSecondaryStatus` says so. An alarm permanently
+ * red on every instance that chose a single destination is an alarm nobody
+ * reads, which is B651's lesson one level up. The panel states the word
+ * plainly instead.
+ */
+export function backupWrongs(backup: BackupStatus): Wrong[] {
+  const wrong: Wrong[] = [];
+  if (backup.state === "failing") {
+    wrong.push({
+      title: "The backup is failing",
+      detail: `Last success ${backup.lastSuccessAt?.slice(0, 16).replace("T", " ") ?? "never"}. ${backup.lastFailure ?? ""}`.trim(),
+    });
+  } else if (backup.state === "stale") {
+    wrong.push({
+      title: `The backup has not run in ${Math.round(backup.ageHours ?? 0)} hours`,
+      detail: `Anything past ${backup.maxAgeHours} hours is stale. The timer may still look enabled.`,
+    });
+  } else if (backup.state === "unknown") {
+    wrong.push({
+      title: "No backup has ever been recorded",
+      detail: backup.reason ?? "Nothing has written a backup status file on this server.",
+    });
+  }
+
+  if (backup.secondary.state === "stale") {
+    wrong.push({
+      title: `The off-site copy has not arrived in ${Math.round(backup.secondary.ageHours ?? 0)} hours`,
+      detail:
+        `Anything past ${backup.secondary.maxAgeHours} hours is stale. The nightly run keeps ` +
+        `succeeding while this fails — the primary alone decides whether a night worked, so the ` +
+        `unit exits zero and no failure mail is sent. Read the copy step in ` +
+        `journalctl -u fernscout-backup.`,
+    });
+  }
+  return wrong;
+}
+
+/**
  * What is wrong right now, and nothing else — B996 (decision 7B).
  *
  * `/api/health` has carried all of this since B234 and the operator has never
@@ -478,22 +538,7 @@ export async function health(): Promise<Health> {
   const offByChoice: string[] = [];
 
   const backup = readBackupStatus();
-  if (backup.state === "failing") {
-    wrong.push({
-      title: "The backup is failing",
-      detail: `Last success ${backup.lastSuccessAt?.slice(0, 16).replace("T", " ") ?? "never"}. ${backup.lastFailure ?? ""}`.trim(),
-    });
-  } else if (backup.state === "stale") {
-    wrong.push({
-      title: `The backup has not run in ${Math.round(backup.ageHours ?? 0)} hours`,
-      detail: `Anything past ${backup.maxAgeHours} hours is stale. The timer may still look enabled.`,
-    });
-  } else if (backup.state === "unknown") {
-    wrong.push({
-      title: "No backup has ever been recorded",
-      detail: backup.reason ?? "Nothing has written a backup status file on this server.",
-    });
-  }
+  wrong.push(...backupWrongs(backup));
 
   const content = contentRootProblem();
   if (content) wrong.push({ title: "The journal directory cannot be read", detail: content });
