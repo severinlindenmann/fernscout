@@ -397,6 +397,10 @@ export function DayCard({
           username={trip.trip.username}
           tripId={trip.trip.id}
           day={day}
+          tripVisibility={{
+            visibility: trip.trip.visibility,
+            listed: trip.trip.listed,
+          }}
           initialDrop={removing}
           onClose={() => {
             setEditing(false);

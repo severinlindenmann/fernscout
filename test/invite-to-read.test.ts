@@ -51,8 +51,10 @@ describe("the share control on a day", () => {
     // `isOwner` — see `lib/tripGate.ts`.
     // B980 put the edit panel in the same branch, so the gate and the block
     // are further apart than they were — what matters is that nothing between
-    // them reopens it.
-    expect(day).toMatch(/trip\?\.canPublish[\s\S]{0,600}<OwnerTools/);
+    // them reopens it. Round 3 widened `EditDay`'s own props (the trip's
+    // `visibility`/`listed`), which is more text between the same two
+    // markers rather than a second gate — the window grows with it.
+    expect(day).toMatch(/trip\?\.canPublish[\s\S]{0,2000}<OwnerTools/);
     expect(trip).toMatch(/trip\?\.canPublish[\s\S]{0,80}<OwnerTools/);
   });
 });
