@@ -11,9 +11,11 @@ import { journalForNumber } from "../registry";
 import { serverSite } from "../site";
 import { isAcknowledgement } from "./acknowledge";
 import { hasAcknowledged, hasBeenGreeted, markAcknowledged, markGreeted } from "./binding";
+import { takeHeldAnswer } from "./held";
 import { maskNumber } from "./index";
 import { renderForWhatsapp } from "./render";
 import { sendOutboundReply, sendServiceReply } from "./reply";
+import { markInbound } from "./window";
 import type { InboundMessage } from "./inbound";
 
 /**
@@ -68,8 +70,28 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
     return;
   }
 
+  /**
+   * Opens (or extends) this number's 24-hour window — B1061 — **before**
+   * anything below is sent, so every reply this message provokes, including
+   * the one three lines down, finds a window it just proved open.
+   */
+  markInbound(username, message.from);
+
   const user = getUser(username);
   const locale = user?.defaultLocale ?? "en";
+
+  /**
+   * Whatever was ready before this number wrote again — B1061. "Never
+   * initiate" means a late answer cannot be pushed; it waits for exactly
+   * this moment, and is delivered before anything this message itself
+   * provokes, so nobody reads their own new reply as an answer to something
+   * they have not yet said.
+   */
+  const held = takeHeldAnswer(username, message.from);
+  if (held) {
+    await sendOutboundReply(message.from, held.outbound, username);
+    console.log(`[whatsapp:inbound] delivered a held answer to ${maskNumber(message.from)} (${username}), held since ${held.heldAt}`);
+  }
 
   if (!hasBeenGreeted(username, message.from)) {
     const journalUrl = `${serverSite().url}/${username}`;

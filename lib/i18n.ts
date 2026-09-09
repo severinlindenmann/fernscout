@@ -2054,6 +2054,7 @@ export type TranslationKey =
   | "visitors.title"
   | "visitors.trip"
   | "wa.acknowledged"
+  | "wa.balanceRefusal"
   | "wa.firstReply"
   | "wa.strangerReply"
   | "wa.yes"

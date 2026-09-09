@@ -4,8 +4,10 @@ import path from "node:path";
 import { hasSwitchedOff, isEnabled } from "../capabilities";
 import { loadServerConfig } from "../config";
 import { contentRoot } from "../contentRoot";
+import { holdAnswer } from "./held";
 import { maskNumber } from "./index";
 import type { WhatsappOutbound } from "./render";
+import { isWindowOpen } from "./window";
 
 /**
  * A free-form reply inside an open conversation window — B1058.
@@ -123,6 +125,12 @@ function backendName(): string {
   return typeof configured === "string" ? configured : "dry-run";
 }
 
+/** What actually happened to a reply — B1061. A caller that only ever
+ *  `await`ed this before still compiles and still behaves the same; the
+ *  result exists for the one caller (`lib/whatsapp/dispatch.ts`) that needs
+ *  to tell a held answer from a sent one. */
+export type ReplyOutcome = { sent: true } | { sent: false; held: boolean };
+
 /**
  * Send a plain-text reply — the fixed strings `lib/whatsapp/dispatch.ts`
  * assembles for the disclosure, the acknowledgement and the stranger
@@ -132,7 +140,7 @@ function backendName(): string {
  * `username` is null for a stranger reply, since nobody owns the number this
  * message is answering into yet.
  */
-export async function sendServiceReply(to: string, body: string, username: string | null): Promise<void> {
+export async function sendServiceReply(to: string, body: string, username: string | null): Promise<ReplyOutcome> {
   return sendOutboundReply(to, { kind: "text", body }, username);
 }
 
@@ -140,19 +148,31 @@ export async function sendServiceReply(to: string, body: string, username: strin
  * Send whatever `lib/whatsapp/render.ts` drew from a turn's `Block[]` — text,
  * reply buttons, or a list — B1056.
  *
- * Same gates as `sendServiceReply`, because it is the same window: nothing
- * here is reached except in reply to a message that just proved it open.
+ * **Refused, not sent, outside an open window** — B1061. "Never initiate" is
+ * absolute: this is the one place every reply on this channel passes
+ * through, so it is the one place that rule can actually be enforced rather
+ * than trusted of every caller. A `username`-less (stranger) reply skips the
+ * check — there is no journal to have opened a window under, and it is
+ * always a same-request reply to the message that just arrived, so it is
+ * trivially inside one. Everything else is held (`lib/whatsapp/held.ts`)
+ * rather than sent as a template or dropped, per the owner's own decision:
+ * this channel has no templates for anything but the day announcement.
  */
 export async function sendOutboundReply(
   to: string,
   outbound: WhatsappOutbound,
   username: string | null,
-): Promise<void> {
-  if (!isEnabled("whatsappInbound")) return;
-  if (username && hasSwitchedOff("whatsapp", username)) return;
+): Promise<ReplyOutcome> {
+  if (!isEnabled("whatsappInbound")) return { sent: false, held: false };
+  if (username && hasSwitchedOff("whatsapp", username)) return { sent: false, held: false };
+  if (username && !isWindowOpen(username, to)) {
+    holdAnswer(username, to, outbound);
+    return { sent: false, held: true };
+  }
   if (backendName() === "cloud") {
     await sendCloud(to, outbound);
   } else {
     sendDryRun(to, outbound, username);
   }
+  return { sent: true };
 }
