@@ -66,6 +66,7 @@ const SHAPE = new Set([
   "incomplete_day",
   "expected_files",
   "expected_src",
+  "unknown_media",
   "unknown_inbox_file",
   "no_notes",
   "nothing_to_change",
@@ -80,8 +81,16 @@ const ROUTES: Record<string, () => Promise<Record<string, unknown>>> = {
   "/day/publish": () => import("@/app/api/helper/[user]/day/publish/route"),
   "/day/unpublish": () => import("@/app/api/helper/[user]/day/unpublish/route"),
   "/day/attach": () => import("@/app/api/helper/[user]/day/attach/route"),
+  "/day/remove-photo": () => import("@/app/api/helper/[user]/day/remove-photo/route"),
+  "/inbox/discard": () => import("@/app/api/helper/[user]/inbox/discard/route"),
   "/invite": () => import("@/app/api/helper/[user]/invite/route"),
 };
+
+/** The gallery item `remove_photo`'s own row below removes — `DRAFT`'s own
+ *  photograph, in the owner-prefixed form `AS_AUTHOR` hands back (the same
+ *  form a model would have read off `GET .../days/<slug>`, never the bare
+ *  `/media/...` frontmatter form). */
+const DRAFT_PHOTO = `/alex/media/${TRIP}/${DRAFT}/01.jpg`;
 
 /** What somebody says to reach each write tool. `files` is filled in per run,
  *  because an inbox id is a hash of the bytes staged in that test. */
@@ -110,6 +119,8 @@ const SAID: Record<string, Record<string, string>> = {
   publish_day: { trip: AS_SAID, slug: DRAFT },
   unpublish_day: { trip: AS_SAID, slug: PUBLISHED },
   attach_files: { trip: AS_SAID, slug: DRAFT },
+  remove_photo: { trip: AS_SAID, slug: DRAFT, src: DRAFT_PHOTO },
+  discard_file: {},
   invite_guest: { name: "Mira" },
 };
 
@@ -119,12 +130,20 @@ const say: Say = ((key: string, vars?: Record<string, string>) =>
 let dir: string;
 const params = { params: Promise.resolve({ user: "alex" }) };
 
-function day(slug: string, date: string, status: "draft" | "published") {
+function day(slug: string, date: string, status: "draft" | "published", gallery?: string[]) {
   fs.writeFileSync(
     path.join(dir, "alex", "trips", TRIP, "entries", `${date}-${slug}.md`),
-    ["---", `title: "${slug}"`, `date: "${date}"`, `status: ${status}`, "---", "", "Worte.", ""].join(
-      "\n",
-    ),
+    [
+      "---",
+      `title: "${slug}"`,
+      `date: "${date}"`,
+      `status: ${status}`,
+      ...(gallery ? ["gallery:", ...gallery] : []),
+      "---",
+      "",
+      "Worte.",
+      "",
+    ].join("\n"),
   );
 }
 
@@ -174,7 +193,9 @@ beforeEach(async () => {
       "",
     ].join("\n"),
   );
-  day(DRAFT, "2026-05-04", "draft");
+  day(DRAFT, "2026-05-04", "draft", [
+    `  - src: "/media/${TRIP}/${DRAFT}/01.jpg"\n    type: image\n    width: 40\n    height: 30`,
+  ]);
   day(PUBLISHED, "2026-05-05", "published");
   clearConfigCache();
   clearUserCache();
@@ -215,6 +236,10 @@ describe("a proposal's arguments are the press", () => {
     if (name === "attach_files") {
       const staged = await storeInboxFile("alex", "media", "hafen.jpg", await paintJpeg(40, 30, 1), {});
       said.files = staged.entry.id;
+    }
+    if (name === "discard_file") {
+      const staged = await storeInboxFile("alex", "media", "boot.jpg", await paintJpeg(40, 30, 2), {});
+      said.id = staged.entry.id;
     }
     const ran = await runTool("alex", name, said, say, "2026-05-06");
     const proposal = ran.proposal;

@@ -115,8 +115,14 @@ describe("the helper routes", () => {
   // Nineteen since B931 added `invite`, which proposes the guest link that
   // lets somebody who was not on a trip ask to read it. Same cookie, same
   // owner check, and it issues a link and never a grant.
-  test("there are nineteen of them, and each is guarded", () => {
-    expect(sources).toHaveLength(19);
+  // Twenty-one since two capabilities gave `remove_photo` and `discard_file`
+  // a press to post to: `day/remove-photo`, which is `DELETE .../media`'s own
+  // `detachGallery` behind a door a proposal's `POST`/`PATCH` can actually
+  // reach, and `inbox/discard`, the same reasoning for `DELETE
+  // /api/v1/<user>/inbox/<id>`. Same cookie, same owner check as the
+  // nineteen before them.
+  test("there are twenty-one of them, and each is guarded", () => {
+    expect(sources).toHaveLength(21);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

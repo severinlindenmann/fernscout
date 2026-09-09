@@ -434,6 +434,7 @@ describe("the tools", () => {
       // B906 — a sentence that names a thing rather than a date used to land
       // on the screen that starts a new day.
       "find_day",
+      "inbox",
       "read_day",
       "trip_costs",
       "trips",
@@ -448,10 +449,12 @@ describe("the tools", () => {
       "add_cost",
       "attach_files",
       "create_trip",
+      "discard_file",
       "draft_words",
       // B931 — the only way somebody who was not on a trip can ever read it.
       "invite_guest",
       "publish_day",
+      "remove_photo",
       "set_day_words",
       "start_day",
       "unpublish_day",
