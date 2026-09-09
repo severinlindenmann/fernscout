@@ -160,6 +160,50 @@ afterEach(async () => {
   vi.clearAllMocks();
 });
 
+/**
+ * B1157. The one-press flow charges building and printing together and hands
+ * the finished book here, so this half neither quotes nor spends — it either
+ * gets the order to the printer or gives back **everything**.
+ *
+ * The full amount and not the print portion, because what was sold is a
+ * printed book: a pile of PDFs is not a partial delivery of one.
+ */
+describe("submitBuiltBook", () => {
+  test("returns the whole purchase when the printer refuses, not just the print half", async () => {
+    const { submitBuiltBook } = await import("@/lib/photobook/print");
+    vi.mocked(submitBookPrint).mockResolvedValue({ error: "refused" });
+    const before = (await balanceOf(OWNER)) ?? 0;
+
+    const result = await submitBuiltBook(OWNER, ID);
+
+    expect(result).toEqual({ ok: false, reason: "refused" });
+    // `PAYLOAD.credits` is what the owner pressed — build and print together.
+    // Nothing was spent inside this function, so the refund is a straight
+    // credit of that amount.
+    expect((await balanceOf(OWNER)) ?? 0).toBe(before + PAYLOAD.credits);
+  });
+
+  test("spends nothing of its own when the printer accepts", async () => {
+    const { submitBuiltBook } = await import("@/lib/photobook/print");
+    const before = (await balanceOf(OWNER)) ?? 0;
+
+    const result = await submitBuiltBook(OWNER, ID);
+
+    expect(result).toMatchObject({ ok: true, providerRef: "gel-1" });
+    // The purchase was charged by `order/route.ts` before this ran.
+    expect((await balanceOf(OWNER)) ?? 0).toBe(before);
+    expect((await getPhotobookOrder(OWNER, ID))?.payload.print?.providerRef).toBe("gel-1");
+  });
+
+  test("does not quote — the price was agreed before the book was built", async () => {
+    const { submitBuiltBook } = await import("@/lib/photobook/print");
+    await submitBuiltBook(OWNER, ID);
+    // A second quote here would be a second price for a purchase already made,
+    // and `stale_quote` on it would strand a paid-for book.
+    expect(quoteBook).not.toHaveBeenCalled();
+  });
+});
+
 describe("printOrder", () => {
   test("claims before it spends, so two presses cost one book", async () => {
     const [a, b] = await Promise.all([printOrder(OWNER, ID, QUOTED), printOrder(OWNER, ID, QUOTED)]);

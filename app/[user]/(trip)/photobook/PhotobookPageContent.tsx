@@ -5,6 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import type { TranslationKey } from "@/lib/i18n";
+import type { PanelRecipient } from "@/components/PhotobookPrintPanel";
 import {
   DEFAULT_OPTIONS,
   initialBookOptions,
@@ -40,6 +41,9 @@ const OUTCOME_MESSAGE: Record<Exclude<PhotobookOutcomeState, "done">, Translatio
   // B595: the trip changed price between the preview and the press. Nothing
   // was charged — the fix is to look at the preview again.
   stale_preview: "photobook.stalePreview",
+  // B1157. Both refuse before anything is claimed, built or charged.
+  no_recipient: "photobook.print.noRecipients",
+  printer_unavailable: "photobook.printerUnavailable",
 };
 
 /**
@@ -76,6 +80,7 @@ export default function PhotobookPageContent({
   hasFigures,
   hasTransport,
   balance,
+  recipients,
   locales,
   outcome,
 }: {
@@ -100,6 +105,8 @@ export default function PhotobookPageContent({
    * vehicles switch, B737. */
   hasTransport: boolean;
   balance: number | null;
+  /** Who this book may be posted to, owner first — B1157. */
+  recipients: PanelRecipient[];
   /** The languages this journal offers, from its own config. The picker is
    * hidden entirely where there is only one. */
   locales: string[];
@@ -165,6 +172,14 @@ export default function PhotobookPageContent({
     },
   );
   const [preview, setPreview] = useState<PreviewState>(null);
+  // Who the book is going to — B1157. It lives here rather than in the panel
+  // because the price depends on it and the preview fetch is here: postage to
+  // Zurich and postage to Sydney are different numbers, so the recipient is an
+  // input to the quote exactly like the size is.
+  //
+  // The owner is the default; `bookRecipientsWithAddress` sorts them first, so
+  // this is the head of the list rather than a second search for `self`.
+  const [recipientId, setRecipientId] = useState<string | null>(recipients[0]?.id ?? null);
 
   /**
    * The first book, asked as five questions rather than shown as a settings
@@ -489,7 +504,11 @@ export default function PhotobookPageContent({
       fetch(`/${entry.username}/photobook/preview`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ trip: tripRef, options }),
+        // `contactId` so the quote includes their postage — B1157. Changing
+        // the recipient re-previews exactly as changing an option does, which
+        // is what keeps the price on the button the price for the person on
+        // the panel.
+        body: JSON.stringify({ trip: tripRef, options, contactId: recipientId }),
       })
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
@@ -503,7 +522,7 @@ export default function PhotobookPageContent({
         });
     }, 400);
     return () => clearTimeout(timer);
-  }, [entry.username, tripRef, options]);
+  }, [entry.username, tripRef, options, recipientId]);
 
   /**
    * Which days are actually being cut short — B517.
@@ -569,6 +588,11 @@ export default function PhotobookPageContent({
             one already sitting in the links below. */}
         {outcome?.state === "done" ? (
           <div className="mt-6 max-w-xl rounded-lg border-2 border-navy-900 bg-cream-100 px-4 py-4">
+            {/* B1157: what was bought is a printed book, so this says so —
+                and the files below are what comes with it rather than what
+                was paid for. Where the printer refused, the order page is
+                where that is said, along with the refund and the retry; this
+                panel does not know the outcome of the submit. */}
             <p className="font-semibold text-navy-900">{t("photobook.done")}</p>
             {outcome.orderId && outcome.files.length > 0 ? (
               <ul className="mt-3 space-y-1 text-sm">
@@ -595,22 +619,20 @@ export default function PhotobookPageContent({
               // them.
               <p className="mt-3 text-sm text-navy-700">{t("photobook.done.filesInMail")}</p>
             )}
-            {/* B1140. The way to the order page, which is where the book is
-                actually printed and posted. Its URL is a UUID, so without
-                this the only routes to it were an agent's proposal call
-                answering with it, or typing it — and an owner who had just
-                built a book could not find the print panel at all. Above
-                "another book", because printing the one just built is the
-                likelier next step than starting a second. Rendered whenever
-                there is an order id, including in the no-files branch above:
-                that order can still be printed. */}
+            {/* B1140, reworded by B1157. The way to the order page, whose URL
+                is a UUID and which nothing else links to. It used to say
+                "print and post this book" — which was the whole complaint
+                about the old flow, and is plainly false now: the book went to
+                the printer on the press that produced this panel. What is on
+                that page is the *order* — where it is going, what the printer
+                says about it, and a retry if the printer refused. */}
             {outcome.orderId ? (
               <p className="mt-4">
                 <a
                   className="font-semibold underline"
                   href={`/${entry.username}/photobooks/${outcome.orderId}`}
                 >
-                  {t("photobook.done.print")}
+                  {t("photobook.done.order")}
                 </a>
               </p>
             ) : null}
@@ -690,6 +712,9 @@ export default function PhotobookPageContent({
               entryUsername={entry.username}
               tripRef={tripRef}
               balance={balance}
+              recipients={recipients}
+              recipientId={recipientId}
+              setRecipientId={setRecipientId}
               t={t}
               tn={tn}
             />

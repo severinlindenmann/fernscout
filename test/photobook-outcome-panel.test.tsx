@@ -76,6 +76,9 @@ function markup(outcome: PhotobookOutcome | null): string {
               spineText="Asia 2026 · 2026"
               media={[]}
               days={[]}
+              // No postable contact — this test is about the outcome panel,
+              // and a journal with nobody to post to still has to render it.
+              recipients={[]}
               hasCosts={false}
               hasWeather={false}
               hasFigures={false}

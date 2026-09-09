@@ -6,9 +6,7 @@ priority: high
 complexity: low
 area: photobook
 found: "2026-09-09T21:30:00Z"
-started: "2026-09-09T19:01:17Z"
-session: ce87fdc2-3f66-428c-90d3-ae9d8df84e40
-claimed: "2026-09-09T19:01:17Z"
+superseded: "B1157 — the panel it lived on was replaced, and the sentence deleted with it"
 ---
 
 # B1156 — The order panel tells every instance that nothing will be printed

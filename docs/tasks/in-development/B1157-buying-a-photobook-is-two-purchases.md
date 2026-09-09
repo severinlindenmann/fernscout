@@ -78,3 +78,66 @@ Two things that must not move:
 - A printer refusal returns the full amount and says so.
 - No path sells a PDF on its own.
 - `npm run verify`, and the flow driven in a browser end to end.
+
+## Evidence
+
+Driven in a real browser against the local `example` journal — a trip this
+branch did not write — with a live Gelato key.
+
+**The panel**, in the order the money is decided in: what the book is → who it
+is going to → what that costs → the button.
+
+```
+Order this book
+28 pages · Square, 20 × 20 cm
+The spine is printed with "Four days round the Alps · 2024".
+                    GOING TO
+                  Alex Berger
+                   Feldweg 18
+              5512 Wohlenschwil
+                  Switzerland
+▸ Send it to someone else?
+183 credits — about CHF 36.60, printed and posted
+You have 100000 credits
+Pressing this builds the book and sends it to the printer. You get the two
+PDFs — inside and cover — here and by email.
+[ Order the book — 183 credits ]
+```
+
+**Pressed it.** One press produced, in order: a Gelato quote, a claim, a built
+book, **one** charge, and a real order at the printer.
+
+```
+credit_ledger   -18300  photobook          ← one line, 183 credits
+print_orders    print_submitted
+                provider_ref 5eb91e68-32e5-47f5-9f10-ee7600352165
+                payload.print.providerRef  5eb91e68-…
+```
+
+Gelato's own record of it: `orderType: draft`, `shippingAddress.country: CH`,
+`city: Wohlenschwil`, one item — a draft because `live` is not set locally,
+which is exactly right. Deleted afterwards (`DELETE …/orders/…` → 200).
+
+**The confirmation**: "Ordered. Your book is being printed." with the two
+downloads beneath it. `/tmp/b1157-order-panel.png`, `/tmp/b1157-done.png`.
+
+Three things changed after looking, which is what looking is for:
+
+- The price sat *above* the envelope, reading as though the two were
+  unrelated. Postage is most of the difference between a cheap book and an
+  expensive one, so the total now follows the address it was quoted for.
+- The button said "Pay with credits" — naming neither the object nor the
+  number, on a press that orders a printed book. It says
+  "Order the book — 183 credits".
+- The done panel still offered **"Print and post this book →"**, which was the
+  original complaint surviving into the new flow and is now simply false: the
+  book went to the printer on the press that produced that panel. It reads
+  "See this order →".
+
+Not done, and deliberately: the order page is still the old receipt-and-print
+panel rather than a status page for a book already at the printer. It works —
+it is what a refused order retries from — but the words on it are written for
+the flow this ticket replaced. Worth its own pass.
+
+The Hungarian strings are English copies, as B912 records for the locale as a
+whole.

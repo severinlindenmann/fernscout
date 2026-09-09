@@ -190,6 +190,15 @@ export const PHOTOBOOK_OUTCOME_STATES = [
   // press. Refused before anything is claimed, spent or built; the page's own
   // answer is to ask for a fresh preview, never to charge the new number.
   "stale_preview",
+  // B1157. A book is bought printed and posted, so it needs somebody to go to.
+  // Either the form carried no `contactId`, or it named somebody this journal
+  // may not post to — a contact removed or un-approved between the page
+  // rendering and the press. Refused before anything is claimed or charged.
+  "no_recipient",
+  // B1157. The printer could not be asked what postage costs, so there is no
+  // honest total to charge. Nothing is claimed, built or spent; pressing again
+  // when Gelato is reachable works.
+  "printer_unavailable",
 ] as const;
 export type PhotobookOutcomeState = (typeof PHOTOBOOK_OUTCOME_STATES)[number];
 

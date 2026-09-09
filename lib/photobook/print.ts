@@ -106,6 +106,113 @@ export type PrintOutcomeState = (typeof PHOTOBOOK_PRINT_OUTCOME_STATES)[number];
  */
 const QUOTE_CURRENCY = "CHF";
 
+/**
+ * Sending a book that has **already been paid for in full** to the printer —
+ * B1157, and the half of `printOrder` that is not about money.
+ *
+ * The one-press flow charges build and print together before this runs, so
+ * there is nothing to claim a price against and nothing to spend: the order
+ * arrives here built, paid and addressed, and this either gets it to Gelato or
+ * gives the whole amount back.
+ *
+ * **The whole amount, not the print half.** What was sold is a printed book;
+ * the PDFs are what comes with it. When the printer refuses, the owner has
+ * nothing they bought, so the render is ours to absorb rather than theirs to
+ * pay for. The files stay on disk either way — they cost nothing to keep and
+ * are occasionally what somebody wants after all.
+ *
+ * `printOrder` below is unchanged and still owns the other shape: the button
+ * on the order page, which quotes and spends the print portion itself. Books
+ * built before B1157 still go that way.
+ */
+export async function submitBuiltBook(owner: string, id: string): Promise<PrintOutcome> {
+  const order = await getPhotobookOrder(owner, id);
+  if (!order) return { ok: false, reason: "unknown_order" };
+  if (order.status !== "printed") return { ok: false, reason: "not_built" };
+
+  const print = order.payload.print;
+  if (!print?.contactId) return { ok: false, reason: "no_recipient" };
+
+  const size = BOOK_SIZES[order.payload.options.size];
+  const productUid = size ? productUidFor(size.id, order.payload.options.coverType) : null;
+  if (!size || !productUid) return { ok: false, reason: "not_built" };
+
+  const to = await bookAddressFor(owner, print.contactId);
+  if (!to) return { ok: false, reason: "no_recipient" };
+
+  const country = isoCountry(to.country);
+  if (!country) return { ok: false, reason: "unknown_country" };
+
+  // Same conditional update the button uses, so two routes to the printer
+  // cannot both submit one order.
+  if (!(await claimForPrint(owner, id))) return { ok: false, reason: "already_printing" };
+
+  const result = await submitBookPrint(
+    bookOrderFor(owner, id, order.payload, to, size, productUid, print.shipmentMethodUid, country),
+  );
+
+  if ("error" in result) {
+    // Everything back. `payload.credits` is what the owner actually pressed —
+    // build and print together — not just the print portion.
+    await refund(owner, order.payload.credits, id);
+    await markPrintFailed(owner, id, order.payload, "refused");
+    return { ok: false, reason: "refused" };
+  }
+
+  const payload: PhotobookPayload = { ...order.payload, print: { ...print, providerRef: result.providerRef } };
+  await recordPrint(owner, id, payload, result.providerRef);
+  return { ok: true, providerRef: result.providerRef, charged: order.payload.credits };
+}
+
+/**
+ * The request Gelato is given for one built book. Shared by both routes to the
+ * printer so a change to what is submitted cannot reach one and miss the
+ * other.
+ */
+function bookOrderFor(
+  owner: string,
+  id: string,
+  payload: PhotobookPayload,
+  to: { name: string; line1: string; line2?: string; postcode: string; city: string; country?: string },
+  size: { trimWidthMm: number; trimHeightMm: number },
+  productUid: string,
+  shipmentMethodUid: string,
+  country: string,
+) {
+  const email = getUser(owner)?.owner.email ?? "";
+  const base = serverSite().url;
+  const files = payload.files ?? [];
+  const interior = files.find((f) => f.endsWith("-interior.pdf")) ?? "book-interior.pdf";
+  const cover = files.find((f) => f.endsWith("-cover.pdf")) ?? "book-cover.pdf";
+  const fileUrl = (file: string) =>
+    `${base}/${encodeURIComponent(owner)}/photobooks/${encodeURIComponent(id)}/${file}${signFileLink(owner, id, file)}`;
+
+  return {
+    reference: id,
+    title: payload.trip,
+    interiorUrl: fileUrl(interior),
+    coverUrl: fileUrl(cover),
+    pageCount: payload.pages,
+    trimWidthMm: size.trimWidthMm,
+    trimHeightMm: size.trimHeightMm,
+    copies: 1,
+    to: {
+      name: to.name,
+      line1: to.line1,
+      line2: to.line2,
+      postcode: to.postcode,
+      city: to.city,
+      // B1126. The ISO code, never the stored country name.
+      country,
+      email,
+    },
+    test: true,
+    productUid,
+    shipmentMethodUid,
+    paymentRef: id,
+  };
+}
+
 export async function printOrder(owner: string, id: string, quotedCredits: number): Promise<PrintOutcome> {
   const order = await getPhotobookOrder(owner, id);
   if (!order) return { ok: false, reason: "unknown_order" };
@@ -148,47 +255,9 @@ export async function printOrder(owner: string, id: string, quotedCredits: numbe
     return { ok: false, reason: "no_credits" };
   }
 
-  const email = getUser(owner)?.owner.email ?? "";
-  const base = serverSite().url;
-  const files = order.payload.files ?? [];
-  const interior = files.find((f) => f.endsWith("-interior.pdf")) ?? "book-interior.pdf";
-  const cover = files.find((f) => f.endsWith("-cover.pdf")) ?? "book-cover.pdf";
-  const fileUrl = (file: string) =>
-    `${base}/${encodeURIComponent(owner)}/photobooks/${encodeURIComponent(id)}/${file}${signFileLink(owner, id, file)}`;
-
-  const result = await submitBookPrint({
-    reference: id,
-    title: order.payload.trip,
-    interiorUrl: fileUrl(interior),
-    coverUrl: fileUrl(cover),
-    pageCount: order.payload.pages,
-    trimWidthMm: size.trimWidthMm,
-    trimHeightMm: size.trimHeightMm,
-    copies: 1,
-    to: {
-      name: to.name,
-      line1: to.line1,
-      line2: to.line2,
-      postcode: to.postcode,
-      city: to.city,
-      // B1126. The ISO code resolved above, never the stored country name.
-      // `ShippingAddress.country` is documented as ISO 3166-1 alpha-2 and two
-      // of the four provider builders call the field `countryCode` outright,
-      // so a contact whose address says "Switzerland" — which is how people
-      // write addresses — was refused by Gelato as
-      // `shippingAddress.country: This value is not a valid country`. It
-      // refused *after* the credits were spent, and only the refund path made
-      // that survivable. `country` cannot be null here: `isoCountry` is
-      // checked above and returns `unknown_country` when it cannot resolve
-      // one.
-      country,
-      email,
-    },
-    test: true,
-    productUid,
-    shipmentMethodUid: quote.shipmentMethodUid,
-    paymentRef: id,
-  });
+  const result = await submitBookPrint(
+    bookOrderFor(owner, id, order.payload, to, size, productUid, quote.shipmentMethodUid, country),
+  );
 
   if ("error" in result) {
     await refund(owner, quotedCredits, id);

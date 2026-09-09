@@ -6,6 +6,7 @@ import { creditsInRappen, formatChf } from "@/lib/credits/pricing";
 import type { TranslationKey } from "@/lib/i18n";
 import type { BookOptions } from "@/lib/photobook/options";
 import type { MediaTile } from "@/lib/types";
+import { addressLines, type PanelRecipient } from "@/components/PhotobookPrintPanel";
 import BookSettingsPanel, { SIZE_LABEL } from "./BookSettingsPanel";
 import { readingHtml } from "./previewSlice";
 import ReadTheBookView, {
@@ -155,6 +156,9 @@ export default function BookLevelView({
   entryUsername,
   tripRef,
   balance,
+  recipients,
+  recipientId,
+  setRecipientId,
   t,
   tn,
 }: {
@@ -177,6 +181,11 @@ export default function BookLevelView({
   entryUsername: string;
   tripRef: string;
   balance: number | null;
+  /** Who this book may be posted to, owner first — B1157. */
+  recipients: PanelRecipient[];
+  /** The chosen one. Lives in the parent because the quote depends on it. */
+  recipientId: string | null;
+  setRecipientId: (id: string) => void;
   t: T;
   tn: Tn;
 }) {
@@ -186,6 +195,7 @@ export default function BookLevelView({
   const hasKeyboard = useHasKeyboard();
   useSpreadKeys(strip, "x", !hidden && !reading);
 
+  const recipient = recipients.find((r) => r.id === recipientId) ?? null;
   const credits = preview?.credits ?? null;
   const tooPoor = balance !== null && credits !== null && balance < credits;
   const unbuyable = preview?.buyable === false;
@@ -344,8 +354,72 @@ export default function BookLevelView({
         <p className="mt-1 text-sm text-navy-600">
           {t("photobook.spine", { spine: spineText })}
         </p>
+        {/* Where the book is going, before the money and not after it —
+            B1157. What is for sale is the printed object, so the envelope
+            belongs on the same panel as the price and the button. B1145: the
+            name centred over the whole address, because that is how an
+            address is read and what somebody checks a parcel against. */}
+        {recipient ? (
+          <div className="mt-3">
+            <address className="rounded-lg border border-dashed border-navy-300 bg-cream-50 px-3 py-3 text-center not-italic">
+              <span className="block text-[0.7rem] font-semibold uppercase tracking-wider text-navy-600">
+                {t("photobook.print.toLabel")}
+              </span>
+              <span className="mt-1 block text-base font-semibold text-navy-900">
+                {recipient.name}
+              </span>
+              {addressLines(recipient.address).map((line) => (
+                <span key={line} className="block text-sm text-navy-700">
+                  {line}
+                </span>
+              ))}
+            </address>
+            {recipients.length > 1 && (
+              <details className="mt-2" open={!recipient.self}>
+                <summary className="min-h-11 cursor-pointer content-center text-sm text-navy-600">
+                  {t("photobook.print.elsewhere")}
+                </summary>
+                <fieldset className="mt-1">
+                  <legend className="sr-only">{t("photobook.print.chooseLabel")}</legend>
+                  <div className="flex flex-col gap-1">
+                    {recipients.map((r) => (
+                      <label
+                        key={r.id}
+                        className="flex items-start gap-2 rounded-lg border-2 border-navy-200 px-3 py-2 text-sm has-[:checked]:border-navy-900 has-[:checked]:bg-cream-50"
+                      >
+                        <input
+                          type="radio"
+                          name="book-recipient"
+                          checked={r.id === recipientId}
+                          onChange={() => setRecipientId(r.id)}
+                          className="mt-1"
+                        />
+                        <span>
+                          <span className="block font-semibold text-navy-900">{r.name}</span>
+                          <span className="block text-navy-700">
+                            {addressLines(r.address).join(", ")}
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              </details>
+            )}
+          </div>
+        ) : (
+          // No envelope, no purchase: a printed book is the only thing for
+          // sale, so a journal with nobody to post to is told why rather than
+          // shown a button that cannot work.
+          <p className="mt-3 text-sm text-navy-700">{t("photobook.print.noRecipients")}</p>
+        )}
+
+        {/* The price after the envelope, because it depends on it: postage to
+            Zurich and postage to Sydney are different numbers, and a total
+            shown above the address it was quoted for reads as though the two
+            were unrelated. */}
         {credits !== null && (
-          <p className="mt-2 text-base font-semibold text-navy-900">
+          <p className="mt-3 text-base font-semibold text-navy-900">
             {t("photobook.price", {
               credits: String(credits),
               money: formatChf(creditsInRappen(credits)),
@@ -359,11 +433,6 @@ export default function BookLevelView({
         )}
 
         <p className="mt-3 text-sm text-navy-700">{t("photobook.orderNext")}</p>
-        {/* Still a simulation, and it says so before the button rather than
-            in the receipt afterwards — B434's rule, applied to a page. */}
-        <p className="mt-2 text-sm text-navy-600">
-          {t("photobook.orderNotPrinted")}
-        </p>
 
         <form
           method="post"
@@ -374,6 +443,11 @@ export default function BookLevelView({
           <input type="hidden" name="trip" value={tripRef} />
           <input type="hidden" name="options" value={JSON.stringify(options)} />
           <input type="hidden" name="orderId" value={orderId} />
+          {/* Who it is going to. Re-checked server-side against the contacts
+              this journal may post to, and the postage re-quoted for their
+              country, so editing this in the browser refuses rather than
+              underpays — B1157. */}
+          <input type="hidden" name="contactId" value={recipientId ?? ""} />
           {/* B595: the price this screen is showing right now, so
               `order/route.ts` can refuse rather than charge a number that
               silently grew between this render and the press. */}
@@ -393,7 +467,13 @@ export default function BookLevelView({
             disabled={unbuyable || !preview}
             className="min-h-11 w-full rounded-full bg-navy-900 px-5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
-            {t("photobook.pay")}
+            {/* What it does and what it costs, on the control itself — the
+                same rule the print button follows. "Pay with credits" named
+                neither the object nor the number, on a press that orders a
+                printed book. */}
+            {credits === null
+              ? t("photobook.pay")
+              : t("photobook.payTotal", { total: String(credits) })}
           </BusyButton>
           {/* The build is synchronous and a long trip is tens of seconds of
               PDF rendering — this is the only sign the page gives that the

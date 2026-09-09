@@ -28,6 +28,35 @@ export async function bookRecipients(owner: string): Promise<BookRecipient[]> {
   }));
 }
 
+/**
+ * The same people, with the envelope attached — B1145, B1157.
+ *
+ * **For the owner's own pages only.** `bookRecipients` above is the shape an
+ * agent receives and must stay a name and a town; this is what somebody about
+ * to pay for a delivery needs to see before they press. Both pages that call
+ * it — the order page and the photobook wizard — 404 for anybody who is not
+ * the owner.
+ *
+ * Sorted with the owner first, because they are the default and a list whose
+ * first row is not the selected one reads as though the choice were made by an
+ * ordering the reader cannot see. Anybody whose address will not resolve is
+ * dropped rather than offered: a book cannot be posted to them.
+ */
+export async function bookRecipientsWithAddress(
+  owner: string,
+): Promise<(BookRecipient & { address: PostalAddress })[]> {
+  const listed = await bookRecipients(owner);
+  const withAddress = await Promise.all(
+    listed.map(async (r) => {
+      const address = await bookAddressFor(owner, r.id);
+      return address ? { ...r, address } : null;
+    }),
+  );
+  return withAddress
+    .filter((r) => r !== null)
+    .sort((a, b) => Number(b.self) - Number(a.self));
+}
+
 export type BookRecipient = {
   id: string;
   name: string;

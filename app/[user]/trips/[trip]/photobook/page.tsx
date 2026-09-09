@@ -14,6 +14,7 @@ import { outcomeFrom } from "@/lib/photobook/orders";
 import { loadUserConfig } from "@/lib/config";
 import { partyFor } from "@/lib/travellers/parse";
 import PhotobookPageContent from "../../../(trip)/photobook/PhotobookPageContent";
+import { bookRecipientsWithAddress } from "@/lib/photobook/recipients";
 
 export async function generateMetadata(): Promise<Metadata> {
   const reader = await requestLocale();
@@ -71,6 +72,9 @@ export default async function TripPhotobookPage({
         hasCosts={hasCostsData(trip.ref, AS_AUTHOR)}
         hasWeather={hasWeather(weatherDays(days))}
         balance={await balanceOf(user)}
+        // Who this book may be posted to — B1157. Same as the sibling page
+        // under (trip); both render the one component.
+        recipients={await bookRecipientsWithAddress(user)}
         locales={bookLocalesFor(user)}
         // `order/route.ts` always redirects here — this is the URL its
         // `back()` builds — so this copy of the page, and not the

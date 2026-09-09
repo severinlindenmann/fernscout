@@ -19,7 +19,7 @@ export type PanelRecipient = BookRecipient & { address: PostalAddress };
  * separately and is therefore not repeated here, and an empty `line2` is
  * dropped rather than left as a blank line in the middle of an envelope.
  */
-function addressLines(to: PostalAddress): string[] {
+export function addressLines(to: PostalAddress): string[] {
   return [to.line1, to.line2, `${to.postcode} ${to.city}`.trim(), to.country]
     .map((line) => line?.trim() ?? "")
     .filter((line) => line !== "");
