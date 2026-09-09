@@ -7,8 +7,7 @@ complexity: low
 area: signup, i18n
 found: "2026-09-09T20:58:16Z"
 started: "2026-09-09T20:58:35Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-09T20:58:35Z"
+merged: "2026-09-09T21:06:35Z"
 ---
 
 # B1185 — Choosing a language at signup does not set the person's own reading language

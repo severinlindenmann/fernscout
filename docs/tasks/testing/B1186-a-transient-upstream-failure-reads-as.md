@@ -7,8 +7,7 @@ complexity: low
 area: helper
 found: "2026-09-09T21:00:48Z"
 started: "2026-09-09T21:01:13Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-09T21:01:13Z"
+merged: "2026-09-09T21:06:36Z"
 ---
 
 # B1186 — A transient upstream failure reads as 'That did not work: 502' with no words

@@ -7,8 +7,7 @@ complexity: medium
 area: helper, ui
 found: "2026-09-08T16:53:41Z"
 started: "2026-09-09T20:47:09Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-09T20:47:09Z"
+merged: "2026-09-09T21:06:34Z"
 ---
 
 # B994 — The link from a day opens a room that does not know what it was opened from
