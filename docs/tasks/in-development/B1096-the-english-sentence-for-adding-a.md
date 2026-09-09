@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: site/locales/en.json
 found: "2026-09-09T16:17:50Z"
+started: "2026-09-09T22:10:59Z"
+session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
+claimed: "2026-09-09T22:10:59Z"
 ---
 
 # B1096 — The English sentence for adding a person to a trip says 'not just this' and does not say what this is

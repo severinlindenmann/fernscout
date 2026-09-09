@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (129)
+## backlog (133)
 
 ### security (1)
 
@@ -57,12 +57,16 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 
-### issue (16)
+### issue (20)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1125](backlog/issue/B1125-every-photobook-print-quote-is-refused.md) | Every photobook print quote is refused, so the print panel can never appear | ISSUE | high | low |
 | [B1147](backlog/issue/B1147-gelato-rejects-fernscout-ch-s-credential.md) | Gelato rejects fernscout.ch's credential, so no photobook in a real journal can be priced | ISSUE | high | low |
+| [B1194](backlog/issue/B1194-the-stop-reply-claims-an-unsubscribe.md) | The STOP reply claims an unsubscribe that has not happened | ISSUE | high | low |
+| [B1195](backlog/issue/B1195-a-refused-exchange-vanishes-from-the.md) | A refused exchange vanishes from the stored conversation the person saw | ISSUE | high | low |
+| [B1196](backlog/issue/B1196-one-ambiguous-date-correction-proposes-shifting.md) | One ambiguous date correction proposes shifting the whole trip's dates | ISSUE | high | low |
+| [B1197](backlog/issue/B1197-the-preview-column-s-width-is.md) | The preview column's width is stored and never read back after a reload | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1129](backlog/issue/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
@@ -225,7 +229,7 @@ Do not edit them by hand; run the script.
 | [B520](backlog/wont-do/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (44)
+## open (43)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -260,7 +264,6 @@ Do not edit them by hand; run the script.
 | [B1052](open/B1052-code-and-commits-cite-task-ids.md) | Code and commits cite task ids that have no file, so the allocator hands them out again | CHORE | low | low |
 | [B1073](open/B1073-nothing-shows-the-operator-which-journal.md) | Nothing shows the operator which journal names are held in reserve | FEATURE | low | low |
 | [B109](open/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
-| [B1096](open/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low |
 | [B110](open/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 | [B1119](open/B1119-fernscout-ch-s-caddy-block-is.md) | fernscout.ch's Caddy block is hand-merged, so proxy directives drift until applied by hand | OPS | low | low |
 | [B1133](open/B1133-the-owner-s-own-copy-of.md) | The owner's own copy of a day letter says they asked to be kept posted and offers no way to stop it | ISSUE | low | low |
@@ -274,11 +277,13 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (0)
+## in-development (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B1096](in-development/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low | `b9809a36` |
 
-## testing (73)
+## testing (75)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -351,6 +356,8 @@ _Nothing here._
 | [B1185](testing/B1185-choosing-a-language-at-signup-does.md) | Choosing a language at signup does not set the person's own reading language | ISSUE | medium | low | — |
 | [B1186](testing/B1186-a-transient-upstream-failure-reads-as.md) | A transient upstream failure reads as 'That did not work: 502' with no words | ISSUE | medium | low | — |
 | [B1190](testing/B1190-the-model-says-press-to-save.md) | The model says 'press to save' on a turn that drew no button | ISSUE | medium | medium | — |
+| [B1192](testing/B1192-a-held-whatsapp-answer-is-delivered.md) | A held WhatsApp answer is delivered with no sign it was delayed | ISSUE | medium | low | — |
+| [B1193](testing/B1193-whatsapp-triggered-thread-notes-are-recorded.md) | WhatsApp-triggered thread notes are recorded with origin web, not whatsapp | ISSUE | medium | low | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
 | [B1127](testing/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low | — |
 | [B1128](testing/B1128-the-invites-and-inbox-tools-also.md) | The invites and inbox tools also say their own block back in prose | ISSUE | low | low | — |
