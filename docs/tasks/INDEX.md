@@ -281,14 +281,13 @@ Do not edit them by hand; run the script.
 | [B1115](open/B1115-a-brief-can-say-a-ticket.md) | A brief can say a ticket is dropped or live, and B1058 is neither | DOCS | high | low |
 | [B994](open/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium |
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1118](in-development/B1118-deleting-a-published-day-is-self.md) | Deleting a published day is self-serviced by the agent, unlike every other unrecoverable delete | SECURITY | high | low | `df031729` |
 | [B1164](in-development/B1164-a-book-already-bought-printed-offers.md) | A book already bought printed offers to be printed again, at a different price | ISSUE | high | medium | `ce87fdc2` |
 
-## testing (38)
+## testing (39)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -305,6 +304,7 @@ Do not edit them by hand; run the script.
 | [B1102](testing/B1102-signing-in-at-agent-lands-in.md) | Signing in at /agent lands in the six-step wizard, not the room B984 made the whole of it | ISSUE | high | low | — |
 | [B1105](testing/B1105-the-operator-s-personal-mobile-number.md) | The operator's personal mobile number is the example in the source, the public API spec and the agent guide | SECURITY | high | low | — |
 | [B1111](testing/B1111-a-run-report-ends-with-no.md) | A run report ends with no way to say which tickets a person accepted | DOCS | high | low | — |
+| [B1118](testing/B1118-deleting-a-published-day-is-self.md) | Deleting a published day is self-serviced by the agent, unlike every other unrecoverable delete | SECURITY | high | low | — |
 | [B1120](testing/B1120-the-agent-writes-markdown-into-a.md) | The agent writes markdown into a plain-text answer, so people read literal asterisks | FEATURE | high | medium | — |
 | [B1121](testing/B1121-the-room-s-frame-spends-its.md) | The room's frame spends its top bar on two sentences and has no history, no new conversation and a cramped preview | FEATURE | high | high | — |
 | [B1122](testing/B1122-a-tool-card-looks-like-a.md) | A tool card looks like a form rather than a decision, and its controls are unreachable under a phone keyboard | FEATURE | high | medium | — |

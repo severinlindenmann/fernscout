@@ -7,8 +7,7 @@ complexity: low
 area: api, agentConfirm, deletion
 found: "2026-09-09T17:35:34Z"
 started: "2026-09-09T19:42:49Z"
-session: df031729-b5f3-42f2-bcac-c6c88d608ee0
-claimed: "2026-09-09T19:42:49Z"
+merged: "2026-09-09T19:54:20Z"
 ---
 
 # B1118 — Deleting a published day is self-serviced by the agent, unlike every other unrecoverable delete
