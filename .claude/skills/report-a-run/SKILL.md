@@ -139,10 +139,6 @@ In this order:
 3. **The quiet section** — a11y and anything with no pixel, one line each.
 4. **What still wants your eyes** — the closing box, and the point of the page.
 
-No decision bar. `triage-a-backlog` ends in a choice; this ends in a handover,
-and buttons on finished work would only invite a person to re-decide something
-already merged.
-
 ## Step 5 — the closing box, which is the whole point
 
 Everything above is reporting. This is the ask, and it should be the only part
@@ -161,12 +157,55 @@ that reads like a request:
 Name the ticket id and say what would settle it. "Needs review" is not an item;
 "B1000 was checked as a rendered PDF, not a printed page" is.
 
-## Step 6 — hand it over
+## Step 6 — the acceptance gate
+
+`testing/` → `completed/` is the second of the two human gates (AGENTS.md,
+Tasks) and an agent never passes it — but until B1111 this page ended at the
+closing box with nowhere to record the answer. A person read the page,
+decided, and then had to compose the move by hand, or, far more often, did
+not: the lane accumulated until 284 tickets were cleared in one sentence on
+2026-09-09, all at once, none of them individually recorded. The reasoning
+this skill used to give — that buttons on finished work would only invite a
+person to re-decide something already merged — had it backwards. The buttons
+below are not re-deciding merged work; they are the acceptance gate itself,
+finally given a surface. The closing box above is unchanged by any of this:
+it is what the person reads *before* they touch a button here, never folded
+into the gate itself.
+
+Build it on exactly the machinery `triage-a-backlog` step 6 already
+describes — localStorage under a versioned key, the honest clipboard report
+(`navigator.clipboard.writeText`, reporting "Copied to your clipboard" only
+when the promise resolves and "Select all and copy" otherwise), the readonly
+textarea fallback, never a download — rather than building a second version
+of the same thing:
+
+- Every ticket row carries **accept / needs another look**, nothing
+  pre-selected. The sticky bar's tally counts the undecided, the same shape
+  as the triage bar's own running count.
+- Every row also carries a note field, open on both verdicts. Whatever is
+  typed there is carried into the generated text beside that ticket's id —
+  "accepted, but the spacing at 390 is tight" is a sentence the next agent can
+  act on, and it is the entire reason the field exists: a page that outputs
+  only a list of ids has thrown that away. An empty note contributes nothing
+  to the output — no blank bullet, no placeholder line.
+- *Build the list* writes a markdown block that starts with one paste-ready
+  line — `move B1097 B1099 B1100 to completed`, the accepted ids, in order,
+  nothing else — so a person can hand it to an agent with nothing added.
+  Below that line: the accepted tickets that carry a note, each with its
+  note; then the tickets held back, each with theirs.
+
+This still moves nothing. `completed/` is a person's gate, exactly as
+`open/` is in `triage-a-backlog`, and the deliverable is text in a
+clipboard — a person pastes it, or hands it to an agent that reads
+`move B1097 … to completed` and runs `manage-tasks` accordingly. Neither this
+page nor the run that produced it touches a task file.
+
+## Step 7 — hand it over
 
 Give the URL, then three or four sentences the page cannot say for itself: the
 single most consequential fix and why, the one that surprised you, the pattern
 across the run (four tickets against one deleted module; two duplicate pairs
 filed seconds apart), and anything you reported on thin evidence.
 
-Then stop. Do not move anything to `completed/` — that is the person's gate,
-and a report is not a substitute for their eyes.
+Then stop. Do not move anything to `completed/` yourself — that is still the
+person's gate; the page above only gives them the words to do it with.
