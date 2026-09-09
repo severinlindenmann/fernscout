@@ -737,6 +737,7 @@
   "notify.cancel": "Not now",
   "notify.failed": "That could not be sent. Nothing was charged.",
   "notify.sent": "Your readers have been told about this day.",
+  "notify.nobody": "Nobody is signed up to hear about this journal yet — the tile beside this one is how to invite somebody.",
   "owner.onlyYou": "Only you can see this",
   "owner.onlyYouBody": "Your readers see the day above. None of this.",
   "notify.short": "Sending this day would take {needed} credit(s); this journal has {balance} left.",
