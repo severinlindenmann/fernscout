@@ -84,21 +84,41 @@ python3 -c "import json;print(json.load(open('site/locales/en.json'))['agent.upl
 Quote it exactly on the page. A paraphrased string is a small lie that the
 reader has no way to spot.
 
-## Step 3 — draw before and after
+## Step 3 — show before and after
 
 A visible change is a *change*, so one state is never enough. Each gets two
-small boxes side by side: the old behaviour and the new, plain HTML and CSS,
-or an inline SVG for a map or a printed page.
+small boxes side by side: the old behaviour and the new.
 
-Ground both halves in the diff. The "before" is the harder one and the one
-worth getting right — it is what the person remembers, and it is the reason
-the row is on the page at all. Where the before-state is an absence (a border
-that rendered as nothing, a video row that never appeared, a list that simply
-ended), draw the absence rather than describing it.
+**Where a run directory holds real captures, use them.** A run driven through
+`check-page.mjs` (the capture step under `.claude/skills/test-in-a-browser/`,
+per B1097) leaves `.claude/runs/<run-id>/<ticket-id>/{before,after}-<width>.png`
+with a sibling `.json` beside each — url, status, title, innerText,
+consoleErrors, failedRequests. Where a ticket's directory has these, embed the
+actual PNGs as `data:` URIs rather than drawing anything, and beneath each one
+say the three things the JSON knows and a sketch never could: the URL it was
+taken on, the width, and whether that page existed before the branch (a
+`before-*.png` that is missing, or whose JSON reports a non-2xx `status`, means
+it did not — say so, do not paper over it with the after image twice). Watch
+the artifact's 16 MB ceiling: `data:` URIs count against it, and a run with
+several captures needs each one downscaled before it goes in, not left at
+whatever size the browser produced.
 
-Keep them small. These are diagrams of a mechanism, not screenshots, and a
-sketch that implies more certainty than the diff carries is the same failure
-as an invented summary.
+**Where there is no capture, fall back to a sketch — plain HTML and CSS, or an
+inline SVG for a map or a printed page — and label it as one.** A sketched box
+gets a small caption saying so ("sketch, no capture") so a reader can never
+mistake a drawing for a photograph. Ground both halves in the diff, exactly as
+before: the "before" is the harder one and the one worth getting right, and
+where the before-state is an absence (a border that rendered as nothing, a
+video row that never appeared, a list that simply ended), draw the absence
+rather than describing it. Keep sketches small — they are diagrams of a
+mechanism, not screenshots, and a sketch that implies more certainty than the
+diff carries is the same failure as an invented summary.
+
+Either way, the rule from above still applies in full: **a real photograph is
+evidence to check against the tree, not a replacement for checking.** A
+capture proves what a browser rendered at the moment `check-page.mjs` ran, not
+that the run's summary of it is accurate — read the JSON's `status` and
+`consoleErrors` yourself before trusting what a subagent said about the page.
 
 ## Step 4 — the artifact
 

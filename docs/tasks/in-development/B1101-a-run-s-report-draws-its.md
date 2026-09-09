@@ -45,3 +45,12 @@ Not doing: any change to either skill's structure, verdicts or decision bar.
   drawing, with the URL and the width beneath it.
 - The triage artifact's clipboard block starts with a line a person can paste
   into an agent with nothing added.
+
+## Done
+
+Both edits landed in `.claude/skills/report-a-run/SKILL.md` (step 3, retitled
+"show before and after") and `.claude/skills/triage-a-backlog/SKILL.md` (step
+6, "build the list"). Neither skill's structure, verdicts, palette or decision
+bar changed — only the two paragraphs named above. `npm run verify` passes
+(468 files, 6321 tests). Branch `b1101-report-and-triage`, not merged; a
+person merges from the main checkout.
