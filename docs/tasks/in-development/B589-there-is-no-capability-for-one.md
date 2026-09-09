@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: self-hosting, capabilities
 found: "2026-09-06T14:28:58Z"
+started: "2026-09-09T04:55:59Z"
+session: eef381a2-5a19-477a-a5ce-5f4f2d3dacab
+claimed: "2026-09-09T04:55:59Z"
 ---
 
 # B589 — There is no capability for one instance to fulfil another's print jobs

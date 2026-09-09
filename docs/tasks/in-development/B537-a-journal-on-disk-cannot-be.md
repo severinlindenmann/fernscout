@@ -6,6 +6,9 @@ priority: high
 complexity: high
 area: skills, api, validation
 found: "2026-09-06T12:30:00Z"
+started: "2026-09-09T04:56:00Z"
+session: eef381a2-5a19-477a-a5ce-5f4f2d3dacab
+claimed: "2026-09-09T04:56:00Z"
 ---
 
 # B537 — A journal on disk cannot be checked against the instance that will receive it
