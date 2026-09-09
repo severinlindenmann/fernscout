@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AgentBlock } from "@/components/LandingSections";
 import BackLink from "@/components/BackLink";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import SignupWizard from "@/components/SignupWizard";
 import { useI18n } from "@/components/LocaleProvider";
@@ -93,7 +94,7 @@ export default function AgentDoor({
     // Full-bleed paper ground — B733, the same two-step as `/`: `cream-100`
     // behind, `cream-50` on every card. Scoped to this page.
     <div className="min-h-full bg-cream-100">
-      <div className="mx-auto max-w-2xl px-6 pt-6">
+      <div className="mx-auto flex max-w-2xl items-center justify-between px-6 pt-6">
         {/* B1121 — `app/agent/layout.tsx` used to draw this above every page
             under `/agent`; it draws nothing now, so the door carries its own
             way back to the landing page. */}
@@ -105,6 +106,9 @@ export default function AgentDoor({
                      transition-colors hover:text-navy-900
                      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
         />
+        {/* The one page a stranger meets first, and it had no language
+            control at all — B1184. */}
+        <LocaleSwitcher subtle />
       </div>
       <main className="mx-auto max-w-2xl px-6 pb-12 pt-4 sm:pb-16">
         <h1 className="font-display text-[clamp(1.5rem,5vw,2.25rem)] font-semibold leading-tight text-navy-900">

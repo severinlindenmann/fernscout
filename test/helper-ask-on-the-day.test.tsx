@@ -131,7 +131,7 @@ async function dayPage(canPublish: boolean, draft = false) {
 describe("the ask box, where the owner actually is", () => {
   test("an owner on a day page is offered it", async () => {
     const host = await dayPage(true);
-    expect(host.textContent).toContain("Tell your agent what is missing");
+    expect(host.textContent).toContain("Talk to your agent about this day");
     expect(fetched.some((url) => url.includes("/api/helper/alex/ask"))).toBe(true);
   });
 
@@ -143,7 +143,7 @@ describe("the ask box, where the owner actually is", () => {
   test("it leads to the room, on this day", async () => {
     const host = await dayPage(true);
     const link = [...host.querySelectorAll("a")].find((anchor) =>
-      anchor.textContent?.includes("Tell your agent what is missing"),
+      anchor.textContent?.includes("Talk to your agent about this day"),
     ) as HTMLAnchorElement;
     // B984 — one URL, and the day rides as `about`. The room no longer lives
     // at a path carrying the journal's name.
@@ -171,7 +171,7 @@ describe("the ask box, where the owner actually is", () => {
 
   test("a reader is offered nothing, and the journal is not even asked about", async () => {
     const host = await dayPage(false);
-    expect(host.textContent).not.toContain("Tell your agent what is missing");
+    expect(host.textContent).not.toContain("Talk to your agent about this day");
     // The correction link is the neighbouring owner-only control; if it were
     // showing, the gate under test would be the wrong one.
     expect(host.textContent).not.toContain("Correct or take down");
