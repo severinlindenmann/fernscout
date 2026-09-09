@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
+import { Paperclip } from "lucide-react";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import RecordButton from "@/components/RecordButton";
@@ -296,6 +297,7 @@ export default function HelperAsk({
   dayPhoto,
   onPreview,
   filesStrip,
+  onOpenFiles,
   onFieldFocusChange,
   inRoom = false,
   opened = [],
@@ -362,6 +364,13 @@ export default function HelperAsk({
    */
   filesStrip?: React.ReactNode;
   /**
+   * Open the files pane — B1182. On a phone the pane used to be reachable
+   * only through the thumbnail strip, which renders only once a file
+   * exists: a new journal had no way to upload anything at all. This is
+   * the always-present way in; absent everywhere there is no pane.
+   */
+  onOpenFiles?: () => void;
+  /**
    * The field gained or lost focus — B1016. The strip above the composer
    * collapses while somebody is about to type, because the arithmetic in
    * B1016 is what is left of the screen once the keyboard is up: not enough
@@ -377,12 +386,12 @@ export default function HelperAsk({
   inRoom?: boolean;
   /** A conversation reopened by URL, oldest first — B984. Drawn, not resumed;
    *  see the state below. */
-  opened?: { said: string | null; answered: string | null }[];
+  opened?: { created_at?: string; said: string | null; answered: string | null }[];
   /** What the room says before anybody has said anything — B984. Absent under
    *  a journal's day card, where the conversation is not the whole page. */
   opening?: Opening;
 }) {
-  const { t } = useI18n();
+  const { t, formatLongDate } = useI18n();
   // Closed until somebody asks for it — B767. The one thing this card is for
   // is writing a day, and a text field competing with that button is a second
   // decision offered to somebody who has not made the first one.
@@ -787,7 +796,7 @@ export default function HelperAsk({
           role="log"
           aria-live="polite"
           aria-relevant="additions"
-          className={`mb-3 space-y-4 overflow-y-auto overscroll-contain ${inRoom ? "min-h-0 flex-1" : "max-h-[60vh]"}`}
+          className={`mb-3 space-y-6 overflow-y-auto overscroll-contain ${inRoom ? "min-h-0 flex-1" : "max-h-[60vh]"}`}
         >
           {/*
             What is kept, said once before anything is said to it — B976.
@@ -808,6 +817,15 @@ export default function HelperAsk({
               {opening && <RoomOpening opening={opening} onSay={go} />}
               <p className="mt-3 text-sm leading-6 text-navy-500">{t("agent.room.kept")}</p>
             </>
+          )}
+          {/* When the conversation was drawn from storage, say when it
+              happened — B1179. The history panel grouped it under this date
+              a moment earlier; the conversation itself should not lose it
+              on the way in. Once, quietly, and only for reopened turns. */}
+          {opened.length > 0 && opened[0].created_at && (
+            <p className="text-xs font-semibold uppercase tracking-wide text-navy-500">
+              {formatLongDate(opened[0].created_at.slice(0, 10))}
+            </p>
           )}
           {turns.map((turn, index) => {
             const day = dayOf(turn.blocks);
@@ -952,6 +970,18 @@ export default function HelperAsk({
         )}
 
         <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+          {/* The way into the files pane that exists before any file does —
+              B1182. Phone widths only: the wide layout has the rail. */}
+          {onOpenFiles && (
+            <button
+              type="button"
+              onClick={onOpenFiles}
+              aria-label={t("agent.room.files")}
+              className="mr-auto flex min-h-11 min-w-11 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-cream-100 hover:text-navy-900 lg:hidden"
+            >
+              <Paperclip className="h-5 w-5" aria-hidden />
+            </button>
+          )}
           {turns.length > 0 && (
             <button
               type="button"

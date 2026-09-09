@@ -249,6 +249,19 @@ export default function HelperRoom({
     window.localStorage.setItem(PREVIEW_WIDTH_KEY, String(previewWidth));
   }
 
+  /**
+   * `?c=new` must not outlive its press — B1178. The + button lands here
+   * with it, and left in the address bar a reload (or a bookmark of it)
+   * would draw the room blank forever while a live thread answered
+   * invisibly underneath. Replaced, not pushed: there is no state a Back
+   * press should return to a blank room for.
+   */
+  useEffect(() => {
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("c") === "new") {
+      window.history.replaceState(null, "", "/agent");
+    }
+  }, []);
+
   // The one panel that opens over the conversation at any width — B1121.
   // Its contents are B1109's; this ticket builds the button and an empty
   // shell that says so.
@@ -451,8 +464,13 @@ export default function HelperRoom({
           {filesPane}
         </FilesRail>
 
-        {/* Middle, and on a phone the whole of it. */}
+        {/* Middle, and on a phone the whole of it. The inner wrapper caps
+            the reading measure — B1177: at 1440px the column is ~1000px and
+            a line of conversation spanned all of it, three times the width
+            a paragraph stays readable at. The column keeps its flex width;
+            only the content is held to ~65-75 characters. */}
         <main className="flex min-h-0 flex-1 flex-col px-4 py-3">
+          <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
           <HelperAsk
             username={username}
             consented={consented}
@@ -502,6 +520,7 @@ export default function HelperRoom({
               }
             }}
             filesStrip={filesStrip}
+            onOpenFiles={() => setFilesSheetOpen(true)}
             onFieldFocusChange={setFieldFocused}
           />
 
@@ -523,6 +542,7 @@ export default function HelperRoom({
               {t("agent.open.bringAgent")}
             </a>
           </p>
+          </div>
         </main>
 
         {/* Right. */}
