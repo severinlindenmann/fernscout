@@ -380,7 +380,14 @@ describe("inviting somebody to read", () => {
 });
 
 describe("every string a tool says exists in every maintained locale", () => {
-  const source = fs.readFileSync(path.join(process.cwd(), "lib", "helper", "tools.ts"), "utf8");
+  // B1042 — the registry is a directory now; reading one file would check a
+  // sixth of it.
+  const root = path.join(process.cwd(), "lib", "helper", "tools");
+  const source = fs
+    .readdirSync(root, { recursive: true, encoding: "utf8" })
+    .filter((name) => name.endsWith(".ts"))
+    .map((name) => fs.readFileSync(path.join(root, name), "utf8"))
+    .join("\n");
   const keys = [...new Set([...source.matchAll(/say\("([^"]+)"/g)].map((match) => match[1]))];
 
   test("there are some to check", () => {

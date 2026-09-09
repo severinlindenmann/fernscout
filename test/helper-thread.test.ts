@@ -414,27 +414,44 @@ describe("a proposal chained without the model — B926", () => {
 const READS = TOOLS.filter((tool) => tool.kind === "read");
 
 describe("the tools", () => {
+  /**
+   * **The set, not the sequence** — B1042.
+   *
+   * This pinned the exact order of every read, which was worth having while
+   * the registry was one array somebody appended to. It is now assembled from
+   * areas, so the order is a property of how the areas are stacked — trips,
+   * days, money, files, readers, journal — and pinning the flat sequence would
+   * mean a test failing every time a capability is added in the middle of an
+   * area rather than at the end of the file.
+   *
+   * What is worth protecting is unchanged: *these* tools exist, and no other.
+   * A tool appearing here that nobody meant to add is the thing to catch.
+   */
   test("are the reads the plan names, and B900's writes and one link", () => {
-    expect(READS.map((tool) => tool.name)).toEqual([
-      "trips",
-      "days",
-      "unfinished",
-      "read_day",
+    expect([...READS.map((tool) => tool.name)].sort()).toEqual([
       "account",
+      "days",
+      "read_day",
       "trip_costs",
+      "trips",
+      "unfinished",
       "who_can_read",
     ]);
-    expect(TOOLS.filter((tool) => tool.kind === "write").map((tool) => tool.name)).toEqual([
-      "create_trip",
-      "start_day",
-      "draft_words",
-      "set_day_words",
+    expect(
+      TOOLS.filter((tool) => tool.kind === "write")
+        .map((tool) => tool.name)
+        .sort(),
+    ).toEqual([
       "add_cost",
-      "publish_day",
-      "unpublish_day",
       "attach_files",
+      "create_trip",
+      "draft_words",
       // B931 — the only way somebody who was not on a trip can ever read it.
       "invite_guest",
+      "publish_day",
+      "set_day_words",
+      "start_day",
+      "unpublish_day",
     ]);
     expect(TOOLS.filter((tool) => tool.kind === "link").map((tool) => tool.name)).toEqual([
       "add_photos",
@@ -479,14 +496,30 @@ describe("the tools", () => {
     expect(JSON.stringify(result)).toContain("no tool called delete_day");
   });
 
-  test("nothing here reaches the position history", () => {
-    const source = fs.readFileSync(
-      path.join(process.cwd(), "lib", "helper", "tools.ts"),
-      "utf8",
-    );
-    // The comment above `TOOLS` says why, at length; what must not be
-    // here is an import of the store or a path into the folder.
-    expect(source).not.toMatch(/from "[^"]*gps|content[^"']*\/gps\//);
+  /**
+   * **Every file in the registry, not one file** — B1042.
+   *
+   * This read `lib/helper/tools.ts` when there was one. The registry is a
+   * directory now, and a guard that reads a single file while capabilities are
+   * added in six others is a guard that has quietly stopped guarding — which
+   * matters more here than almost anywhere: `gps/` is the most sensitive
+   * folder in the repository, and `test/gps-store.test.ts` asserts the import
+   * graph precisely because nothing else would notice.
+   */
+  test("nothing in the registry reaches the position history", () => {
+    const root = path.join(process.cwd(), "lib", "helper", "tools");
+    const files = fs
+      .readdirSync(root, { recursive: true, encoding: "utf8" })
+      .filter((name) => name.endsWith(".ts"));
+    // The split is what makes this worth asserting: if it ever reads one file
+    // again, it is checking a sixth of the registry.
+    expect(files.length).toBeGreaterThan(6);
+    for (const name of files) {
+      const source = fs.readFileSync(path.join(root, name), "utf8");
+      // What must not be here is an import of the store or a path into the
+      // folder. `resolve.ts` explains why at length.
+      expect(source, name).not.toMatch(/from "[^"]*gps|content[^"']*\/gps\//);
+    }
   });
 
   test("the model is shown every tool, and told what it cannot do", () => {
