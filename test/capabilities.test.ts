@@ -36,6 +36,8 @@ const TOUCHED = [
   "ANTHROPIC_API_KEY",
   "LULU_CLIENT_KEY",
   "LULU_CLIENT_SECRET",
+  "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
 ];
 
 beforeEach(() => {
@@ -242,6 +244,91 @@ describe("resolveCapabilities", () => {
   test("logging needs no env and no database — turning it on is enough", () => {
     writeConfig({ logging: { enabled: true } });
     expect(isEnabled("logging")).toBe(true);
+  });
+});
+
+// B589: the fulfilment relay's two halves, both off by default and both
+// operator-only (neither is a journal's flag to flip — see
+// OPERATOR_ONLY_FEATURES in lib/config.ts).
+describe("fulfilment", () => {
+  test("both halves are off with no config at all", () => {
+    writeConfig({});
+    const state = resolveCapabilities();
+    expect(state.fulfilmentRelay.enabled).toBe(false);
+    expect(state.fulfilmentAccept.enabled).toBe(false);
+  });
+
+  test("relay comes on once a fulfilment instance is named", () => {
+    writeConfig({ fulfilmentRelay: { enabled: true, url: "https://printer.example.test" } });
+    expect(isEnabled("fulfilmentRelay")).toBe(true);
+  });
+
+  test("relay enabled with no url names the missing field", () => {
+    writeConfig({ fulfilmentRelay: { enabled: true } });
+    const state = resolveCapabilities().fulfilmentRelay;
+    expect(state.enabled).toBe(false);
+    expect(state.enabled === false && state.reason).toMatch(/fulfilmentRelay\.url/);
+  });
+
+  test("accept stays off when postcards and photobook are both off", () => {
+    process.env.DATABASE_URL = "sqlite::memory:";
+    process.env.STRIPE_SECRET_KEY = "sk_test_x";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_x";
+    writeConfig({ fulfilmentAccept: { enabled: true } });
+    const state = resolveCapabilities().fulfilmentAccept;
+    expect(state.enabled).toBe(false);
+    expect(state.enabled === false && state.reason).toMatch(/postcards/);
+    expect(state.enabled === false && state.reason).toMatch(/photobook/);
+  });
+
+  test("accept stays off when the only enabled printer is still dry-run", () => {
+    process.env.DATABASE_URL = "sqlite::memory:";
+    process.env.STRIPE_SECRET_KEY = "sk_test_x";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_x";
+    writeConfig({
+      fulfilmentAccept: { enabled: true },
+      postcards: { enabled: true, provider: "dry-run" },
+    });
+    const state = resolveCapabilities().fulfilmentAccept;
+    expect(state.enabled).toBe(false);
+    expect(state.enabled === false && state.reason).toMatch(/dry-run/);
+  });
+
+  test("a real printer with no payment method names the missing one", () => {
+    process.env.DATABASE_URL = "sqlite::memory:";
+    process.env.STANNP_API_KEY = "k";
+    writeConfig({
+      fulfilmentAccept: { enabled: true },
+      postcards: { enabled: true, provider: "stannp" },
+    });
+    const state = resolveCapabilities().fulfilmentAccept;
+    expect(state.enabled).toBe(false);
+    expect(state.enabled === false && state.reason).toMatch(/STRIPE_SECRET_KEY/);
+  });
+
+  test("a real printer plus a configured payment method turns it on", () => {
+    process.env.DATABASE_URL = "sqlite::memory:";
+    process.env.STANNP_API_KEY = "k";
+    process.env.STRIPE_SECRET_KEY = "sk_test_x";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_x";
+    writeConfig({
+      fulfilmentAccept: { enabled: true },
+      postcards: { enabled: true, provider: "stannp" },
+    });
+    expect(isEnabled("fulfilmentAccept")).toBe(true);
+  });
+
+  test("photobook alone with a real provider is enough, postcards need not be on", () => {
+    process.env.DATABASE_URL = "sqlite::memory:";
+    process.env.LULU_CLIENT_KEY = "k";
+    process.env.LULU_CLIENT_SECRET = "s";
+    process.env.STRIPE_SECRET_KEY = "sk_test_x";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_x";
+    writeConfig({
+      fulfilmentAccept: { enabled: true },
+      photobook: { enabled: true, provider: "lulu" },
+    });
+    expect(isEnabled("fulfilmentAccept")).toBe(true);
   });
 });
 
