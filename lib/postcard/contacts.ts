@@ -33,9 +33,9 @@ import type { PostalAddress } from "./render.ts";
 export async function eligible(
   owner: string,
   requireConsent = true,
-): Promise<{ id: string; to: PostalAddress; locale: string | null }[]> {
+): Promise<{ id: string; email: string; to: PostalAddress; locale: string | null }[]> {
   const contacts = await listContacts(owner);
-  const out: { id: string; to: PostalAddress; locale: string | null }[] = [];
+  const out: { id: string; email: string; to: PostalAddress; locale: string | null }[] = [];
   for (const contact of contacts) {
     const postal = contact.postalAddress;
     if (
@@ -48,6 +48,11 @@ export async function eligible(
     }
     out.push({
       id: contact.id,
+      // Only so `lib/photobook/recipients.ts` can tell which of these rows is
+      // the owner themselves — see `self` there. Never rendered: the page
+      // shows a name and a town, and an address is not the only thing worth
+      // keeping off it.
+      email: contact.email,
       // The language this journal writes to them in. Carried through to the
       // preview page so the owner can see a card going out in a language its
       // reader does not read — B452.

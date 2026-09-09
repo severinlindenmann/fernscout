@@ -240,6 +240,53 @@ describe("POST .../photobooks/:id/print", () => {
   });
 });
 
+/**
+ * B1093. The owner's own order page addresses a book through the same
+ * function this route does, so the rule about who may receive one cannot
+ * differ between the two doors. These hold the shared function directly —
+ * the browser route adds six lines of glue on top of it.
+ */
+describe("proposeBookPrint", () => {
+  test("writes the proposal and charges nothing", async () => {
+    const { proposeBookPrint } = await import("@/lib/photobook/propose");
+    const { getPhotobookOrder } = await import("@/lib/photobook/orders");
+    const before = await balanceOf(OWNER);
+
+    const result = await proposeBookPrint(OWNER, ID, CONTACT);
+
+    expect(result).toEqual({ ok: true, quotedCredits: expect.any(Number) });
+    expect(await balanceOf(OWNER)).toBe(before);
+    expect(submitBookPrint).not.toHaveBeenCalled();
+    expect((await getPhotobookOrder(OWNER, ID))?.payload.print?.contactId).toBe(CONTACT);
+  });
+
+  test("refuses somebody this journal cannot post a book to", async () => {
+    const { proposeBookPrint } = await import("@/lib/photobook/propose");
+    const { getPhotobookOrder } = await import("@/lib/photobook/orders");
+
+    const result = await proposeBookPrint(OWNER, ID, "not-a-contact");
+
+    expect(result).toEqual({ ok: false, reason: "unknown_contact" });
+    // Refused, not half-written: the order must not come away addressed.
+    expect((await getPhotobookOrder(OWNER, ID))?.payload.print).toBeUndefined();
+  });
+
+  test("refuses a book that is not built", async () => {
+    const { proposeBookPrint } = await import("@/lib/photobook/propose");
+    const result = await proposeBookPrint(OWNER, "no-such-order", CONTACT);
+    expect(result).toEqual({ ok: false, reason: "unknown_order" });
+  });
+
+  test("quotes for the recipient's own country, not a fixed one", async () => {
+    const { proposeBookPrint } = await import("@/lib/photobook/propose");
+    await proposeBookPrint(OWNER, ID, CONTACT);
+    // Postage is most of the difference between a cheap book and an expensive
+    // one, so a quote taken for the wrong destination is a price somebody is
+    // not paying. `CONTACT`'s address is the Swiss one the fixture writes.
+    expect(quoteBook).toHaveBeenCalledWith(expect.objectContaining({ country: "CH" }));
+  });
+});
+
 describe("the outcome table on the order page", () => {
   test("covers every PrintFailure plus 'printed' and 'forbidden'", async () => {
     const { PHOTOBOOK_PRINT_OUTCOME_STATES } = await import("@/lib/photobook/print");

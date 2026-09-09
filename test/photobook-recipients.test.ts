@@ -123,7 +123,49 @@ describe("bookRecipients", () => {
     await activeContact("postable@example.test", { address: ADDRESS });
     const rows = await bookRecipients(OWNER);
     expect(rows.length).toBeGreaterThan(0);
-    for (const row of rows) expect(Object.keys(row)).toEqual(["id", "name", "city", "country"]);
+    for (const row of rows) {
+      // `self` joined these in B1093 so the order page can preselect the
+      // owner. It is a boolean about which row this is, not another fact
+      // about the person — the list is still a name and a town.
+      expect(Object.keys(row)).toEqual(["id", "name", "city", "country", "self"]);
+      // The address is resolved by `bookAddressFor`, server-side, at print
+      // time. None of it — nor the email `eligible` now carries to work out
+      // `self` — may ride along here.
+      for (const leak of ["email", "line1", "line2", "postcode", "address", "to"]) {
+        expect(row).not.toHaveProperty(leak);
+      }
+    }
+  });
+
+  test("marks the journal's owner, and nobody else, as self", async () => {
+    // `self` is read from the journal's own `owner.email`, so the journal has
+    // to exist for there to be an owner to match — B1093.
+    fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, OWNER, "config.json"),
+      JSON.stringify({
+        title: "A Journal",
+        owner: { name: "Ana", nickname: "Ana", email: "ANA@example.test" },
+      }),
+    );
+    clearUserCache();
+
+    // Deliberately cased differently from the config above: an address is not
+    // case-sensitive, and an owner who typed theirs in capitals is still the
+    // owner.
+    const mine = await activeContact("ana@example.test", { address: ADDRESS });
+    const theirs = await activeContact("someone-else@example.test", { address: ADDRESS });
+    const rows = await bookRecipients(OWNER);
+    expect(rows.find((r) => r.id === mine)?.self).toBe(true);
+    expect(rows.find((r) => r.id === theirs)?.self).toBe(false);
+  });
+
+  test("marks nobody as self when the journal names no owner address", async () => {
+    const id = await activeContact("someone@example.test", { address: ADDRESS });
+    const rows = await bookRecipients(OWNER);
+    // An ownerless journal must not fall through to matching the empty string
+    // against every contact, which would preselect the first person listed.
+    expect(rows.find((r) => r.id === id)?.self).toBe(false);
   });
 });
 
