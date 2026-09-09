@@ -104,7 +104,16 @@ export async function quoteBook(input: QuoteInput): Promise<QuoteResult | { erro
     }[];
   }>(QUOTE_URL, key, {
     orderReferenceId: `quote-${Date.now()}`,
-    products: [{ productUid: input.productUid, pageCount: input.pageCount, quantity: 1 }],
+    // B1125. `itemReferenceId` is Gelato's handle for one line of an order,
+    // and `orders:quote` refuses a blank one — `products[0].itemReferenceId:
+    // This value should not be blank`. Without it every quote came back as a
+    // 400, which this module reports as `refused` and the order page renders
+    // as "the printer could not be reached", so the print panel could never
+    // appear and no book could be addressed. One book per quote, so a
+    // constant is the whole of what it needs to be.
+    products: [
+      { itemReferenceId: "book", productUid: input.productUid, pageCount: input.pageCount, quantity: 1 },
+    ],
     recipient: { country: input.country },
     currency: input.currency,
   });

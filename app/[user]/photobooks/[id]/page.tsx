@@ -87,9 +87,11 @@ export default async function PhotobookOrderPage({
   const outcome =
     typeof resultParam === "string" && isPrintOutcomeState(resultParam) ? resultParam : null;
 
-  // What the print section shows: a status once Gelato has an order, a live
-  // quote once a recipient has been proposed and the book is still waiting,
-  // or a note that nobody has proposed one yet. Never all three at once.
+  // What the print section shows: a status once Gelato has an order, or —
+  // once the book is built — a live quote for whoever it is addressed to,
+  // with the panel that prints it. A note can accompany the panel (an agent's
+  // proposal that has gone stale), but the status and the panel are never
+  // shown together: an order at the printer is not one you can re-address.
   let statusText: string | null = null;
   let panel: React.ReactNode = null;
 
@@ -98,13 +100,28 @@ export default async function PhotobookOrderPage({
     statusText = t("photobook.print.status", {
       status: gelatoStatus ?? t("photobook.print.status.unknown"),
     });
-  } else if (order.status === "printed" && print) {
+  } else if (order.status === "printed") {
+    // B1093. Who this is for is chosen here, not only by an agent beforehand.
+    // The owner's own contact is the default — `self` — and `?to=` is how the
+    // panel's disclosure asks for somebody else. An existing proposal still
+    // wins over both, so a book an agent addressed opens on that person.
     const recipients = await bookRecipients(username);
-    const recipient = recipients.find((r) => r.id === print.contactId);
-    const to = recipient ? await bookAddressFor(username, print.contactId) : null;
+    const wanted = typeof query.to === "string" ? query.to : print?.contactId;
+    const recipient =
+      recipients.find((r) => r.id === wanted) ??
+      recipients.find((r) => r.self) ??
+      recipients[0];
+    // A proposal naming somebody who has since been removed, or lost their
+    // address, is worth saying out loud rather than quietly re-addressing the
+    // book — the panel below opens on the default instead, which is a
+    // different person from the one the agent named.
+    if (print && !recipients.some((r) => r.id === print.contactId)) {
+      statusText = t("photobook.print.noLongerEligible");
+    }
+    const to = recipient ? await bookAddressFor(username, recipient.id) : null;
     const country = to ? isoCountry(to.country) : null;
     if (!recipient || !to) {
-      statusText = t("photobook.print.noLongerEligible");
+      statusText = t("photobook.print.noRecipients");
     } else if (!size || !productUid) {
       statusText = t("photobook.print.notBuilt");
     } else if (!country) {
@@ -125,6 +142,7 @@ export default async function PhotobookOrderPage({
             username={username}
             id={id}
             recipient={recipient}
+            recipients={recipients}
             printMinor={quote.printMinor}
             shipMinor={quote.shipMinor}
             currency={quote.currency}
@@ -136,7 +154,10 @@ export default async function PhotobookOrderPage({
       }
     }
   } else {
-    statusText = t("photobook.print.notProposed");
+    // Not built, so there is nothing to quote and nobody to quote it for.
+    // This used to say "nobody has proposed printing this yet", which was the
+    // only thing the page could say about a *built* book too — B1093.
+    statusText = t("photobook.print.notBuilt");
   }
 
   return (

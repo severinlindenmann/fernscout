@@ -1,12 +1,6 @@
 import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
-import { photobookPrintCredits } from "@/lib/credits/pricing";
-import { isoCountry } from "@/lib/photobook/country";
-import { getPhotobookOrder, proposePrint, type PhotobookPayload } from "@/lib/photobook/orders";
-import { quoteBook } from "@/lib/photobook/gelato";
-import { bookAddressFor, bookRecipients } from "@/lib/photobook/recipients";
-import { BOOK_SIZES, productUidFor } from "@/lib/photobook/spec";
-import { nowIso } from "@/lib/db";
+import { proposeBookPrint } from "@/lib/photobook/propose";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
 
@@ -80,74 +74,48 @@ export async function POST(
     );
   }
 
-  const order = await getPhotobookOrder(user, id);
-  if (!order) return Response.json({ error: "unknown_order", message: "No photobook order of that id." }, { status: 404 });
-  if (order.status !== "printed") {
-    return bad(
-      "not_built",
-      `This order is "${order.status}", not built and ready to print. Wait for the build to ` +
-        "finish, or ask about a different order.",
-    );
+  // Every rule about who may receive a book, and what it costs, is in
+  // `proposeBookPrint` — shared with the owner's own order page since B1093,
+  // so the two doors cannot come to different answers. What stays here is how
+  // a refusal is *said* to an agent, which is a sentence rather than a state.
+  const result = await proposeBookPrint(user, id, contactId);
+  if (!result.ok) {
+    switch (result.reason) {
+      case "unknown_order":
+        return Response.json(
+          { error: "unknown_order", message: "No photobook order of that id." },
+          { status: 404 },
+        );
+      case "not_built":
+        return bad(
+          "not_built",
+          "This order is not built and ready to print, names a book this server no longer " +
+            "prints, or changed status while the quote was being fetched. Ask about it again.",
+        );
+      case "unknown_contact":
+        return bad(
+          "unknown_contact",
+          "That is not a contact this journal can post a book to: they are not an approved " +
+            "contact with an address on file. There is no way to address a book to anybody else " +
+            "— that is deliberate.",
+        );
+      case "unknown_country":
+        return bad(
+          "unknown_country",
+          "That contact's country is not one this journal's printer can quote postage to. Ask " +
+            "the owner to correct the contact's address.",
+        );
+      case "provider_unavailable":
+        return Response.json(
+          {
+            error: "provider_unavailable",
+            message: "The printer could not be reached for a quote. Nothing was changed; try again shortly.",
+          },
+          { status: 502 },
+        );
+    }
   }
-
-  const recipients = await bookRecipients(user);
-  if (!recipients.some((r) => r.id === contactId)) {
-    return bad(
-      "unknown_contact",
-      "That is not a contact this journal can post a book to: they are not an approved " +
-        "contact with an address on file. There is no way to address a book to anybody else " +
-        "— that is deliberate.",
-    );
-  }
-
-  const size = BOOK_SIZES[order.payload.options.size];
-  const productUid = size ? productUidFor(size.id, order.payload.options.coverType) : null;
-  const to = size ? await bookAddressFor(user, contactId) : null;
-  if (!size || !productUid || !to) {
-    return bad("not_built", "This order names a book this server no longer prints.");
-  }
-  const country = isoCountry(to.country);
-  if (!country) {
-    return bad(
-      "unknown_country",
-      `"${to.country}" is not a country this journal's printer can quote postage to. Ask the ` +
-        "owner to correct the contact's address.",
-    );
-  }
-
-  const quote = await quoteBook({
-    productUid,
-    pageCount: order.payload.pages,
-    country,
-    // The same currency the owner's own print step quotes and charges in —
-    // kept as a literal rather than imported from that module, which a test
-    // asserts nothing under app/api names.
-    currency: "CHF",
-  });
-  if ("error" in quote) {
-    return Response.json(
-      {
-        error: "provider_unavailable",
-        message: "The printer could not be reached for a quote. Nothing was changed; try again shortly.",
-      },
-      { status: 502 },
-    );
-  }
-
-  const quotedCredits = photobookPrintCredits(quote.printMinor, quote.shipMinor);
-  const payload: PhotobookPayload = {
-    ...order.payload,
-    print: {
-      contactId,
-      quotedCredits,
-      quotedAt: nowIso(),
-      shipmentMethodUid: quote.shipmentMethodUid,
-    },
-  };
-  const wrote = await proposePrint(user, id, payload);
-  if (!wrote) {
-    return bad("not_built", "This order changed status while the quote was being fetched. Ask about it again.");
-  }
+  const { quotedCredits } = result;
 
   return Response.json(
     {
