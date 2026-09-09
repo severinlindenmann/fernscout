@@ -493,7 +493,7 @@
   "mail.identityCode": "Your code is {code}. It works for {minutes} minutes.",
   "mail.identityFooter": "Sent by {site}.",
   "wa.strangerReply": "This number writes into somebody's private travel journal on {site} and cannot help with that. If this is your first time here, sign in at {url}.",
-  "wa.firstReply": "Hi! I'm an AI that writes into your journal at {journalUrl}. Message agent@fernscout.ch any time to reach a person instead. What you send here goes to Meta and to the model — see the imprint for detail.",
+  "wa.firstReply": "Hi! Send me your photos and notes and I'll write your days into your journal at {journalUrl}. I'm an AI, and your messages pass through WhatsApp and the model that writes them.",
   "mail.identityIgnore": "If you did not ask for this, ignore it — nothing has been opened.",
   "mail.identityLasts": "It lasts a year, on this device. You can end it any time from the page it signs you in to.",
   "mail.identitySubject": "Your code for {site}",
