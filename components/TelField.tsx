@@ -7,7 +7,7 @@ import { COUNTRIES, countryName, flagOf, matchesName } from "@/lib/countries";
  * The dialling-code half of a phone box — B385, made searchable and complete
  * by B390.
  *
- * `lib/whatsapp/phone.ts` refuses a national number (`076 561 31 50`) rather
+ * `lib/whatsapp/phone.ts` refuses a national number (`076 000 00 00`) rather
  * than guess whose country it belongs to, and that refusal is right: the
  * guess would be made by a server, not by the person who actually knows the
  * answer. This picker asks the question at the one moment somebody who knows
@@ -80,7 +80,7 @@ export function filterCountries(
  * Read a stored `PostalAddress.tel` back into what this picker can show.
  *
  * A leading `+<cc>` is parsed only when `cc` is one of the codes above —
- * anything else (`076 561 31 50` with no `+`, or a code no ITU country
+ * anything else (`076 000 00 00` with no `+`, or a code no ITU country
  * actually uses) comes back with no country selected and the whole string
  * left in the digits box, exactly as typed. That is deliberate: a value this
  * picker cannot place is shown, not silently reinterpreted as some other

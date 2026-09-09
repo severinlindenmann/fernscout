@@ -106,8 +106,11 @@ describe("what a change costs a deploy", () => {
     // app reads site/ in the checkout, so `git pull` is the whole delivery and
     // a dictionary change costs a build and nothing else.
     expect(await plan("site/locales/de.json")).toEqual(new Set([BUILD, RESTART]));
-    expect(await plan("site/rates/ecb.json")).toEqual(new Set([BUILD, RESTART]));
+    expect(await plan("site/config.json")).toEqual(new Set([BUILD, RESTART]));
     expect(await plan("site/legal/en.md")).toEqual(new Set([BUILD, RESTART]));
+    // site/rates/ used to be here. It is not a deployable path any more: the
+    // ECB table moved under DATA_DIR and out of git in B1084, because a rate
+    // that arrives by `git pull` only moves when somebody deploys.
 
     // And the journals, which a deploy must not touch — but must not pass
     // over in silence either.

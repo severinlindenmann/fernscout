@@ -156,14 +156,25 @@ site/
                               file with FERNSCOUT_CONFIG, because its config is
                               the operator's and must survive a `git pull`.
   locales/<code>.json         the UI's own strings, per language
-  rates/ecb.json              shared currency reference rates
   legal/<code>.md             this instance's imprint (optional — no file, no
                               page and no footer link)
 ```
 
-An instance may still override `locales/`, `rates/` and `legal/` by putting
-its own beside its journals under `CONTENT_DIR`; that is where all four lived
-before B510, so an instance that has not migrated keeps working.
+**The currency reference rates are not here, and are in no checkout** (B1084).
+`<DATA_DIR>/rates/ecb.json` is a *measurement with a date on it*, so it sits
+with the other instance state rather than with the source: a rate that arrives
+by `git pull` only moves when somebody deploys, and the live instance was
+serving a twelve-day-old table before this changed. A deployed instance
+refreshes it nightly off the back of the backup timer
+(`scripts/backup.sh` step 0 → `scripts/rates-refresh.mts`), which also means
+**nothing fetches or keeps a table on an instance with `costs` switched off**.
+A fresh clone has none at all and offers the base currency only, which is a
+visible absence rather than a wrong number.
+
+An instance may still override `locales/` and `legal/` by putting its own
+beside its journals under `CONTENT_DIR`; that is where they lived before B510,
+so an instance that has not migrated keeps working. A pre-B1084 rates file in
+either old place is still read, until the first refresh writes the new one.
 
 ```
 content/
@@ -393,6 +404,17 @@ npm run verify -- --quick   # the same without the build; see below for when tha
 order that matters, and running them separately is how the order gets lost. The
 dev server must still boot with a capability both on and off; nothing automates
 that.
+
+**And it is not the gate for anything a person looks at.** A green suite says
+the mechanism works on the case you built for it — which is the one case that
+cannot surprise you. A visible change is finished when it has been seen on
+content that existed *before* the branch: an existing day, an existing trip, a
+page nobody wrote for the test. B42 shipped a reader's own clock beside a day's
+local time, checked it on the two demo days the same change had edited to carry
+the new field, and passed; every day already written showed nothing at all,
+because nothing filled that field in. The feature was inert everywhere it
+mattered and no test could have said so. B1090. `work-on-a-task` step 5,
+`test-in-a-browser` and `check-a-drawing` each carry the procedure.
 
 **While you are iterating, run the one test file** — `npx vitest run
 test/thing.test.ts` — and keep `verify` for the end. The full suite is fifty
@@ -631,12 +653,15 @@ npm run tasks -- claim B01          # say you are on it, without moving it
 npm run tasks -- tidy               # re-file into the category folders
 ```
 
-**The two lanes that accumulate are filed into category folders.** `backlog/`
-and `testing/` hold their tasks one level down — `security/`, `issue/`,
-`big-feature/`, `small-feature/`, `chore/`, `ops/`, `docs-and-skills/`,
-`superseded/` — because a flat directory of a hundred and twenty is one nobody
-reads to the bottom of. The other three lanes stay flat: they are transient,
-and three more decisions per lane move would buy nothing.
+**The lane that accumulates is filed into category folders.** `backlog/`
+holds its tasks one level down — `security/`, `issue/`, `big-feature/`,
+`small-feature/`, `chore/`, `ops/`, `docs-and-skills/`, `superseded/`,
+`wont-do/` — because a flat directory of a hundred and twenty is one nobody
+reads to the bottom of. `testing/` used to as well, until B1110: what a
+person now reviews from is the run report, not a browse through
+`testing/security/`, so a ticket landing there is filed flat. The other
+lanes stay flat too: they are transient, and more decisions per lane move
+would buy nothing.
 
 **You never choose the folder.** It is derived from `type` and `complexity`,
 the same way the status is derived from the lane and for the same reason — a
@@ -754,8 +779,10 @@ guide for it.
 | `keep-the-contract` | Check that `/openapi.json` and `/agent.md` still tell the truth after a change to a route |
 | `manage-tasks` | Capture something, and move it between lanes |
 | `triage-a-backlog` | Read a whole lane of `docs/tasks/` and hand back one page a person decides from |
+| `plan-a-run` | Ask every decision a batch of approved tickets needs — is it still valid, which of two stances, what is still open — before any of it is built |
 | `report-a-run` | Account for a finished batch of tickets on one page — what shipped, what was already fixed, what a person can see, what still needs their eyes |
 | `work-on-a-task` | Take one approved task, build it in a worktree, merge it |
+| `run-a-batch` | Carry an answered brief through build, merge, deploy and live check without stopping to ask |
 | `test-the-live-site` | Empty `testing/` against the deployed instance, one subagent per ticket |
 | `test-in-a-browser` | Drive a local checkout in a real browser: sign in as an owner, switch a capability on, check a page at 390px |
 | `test-with-personas` | Drive `/agent` as somebody who has never seen it — a subagent per persona, handed a URL and nothing else |

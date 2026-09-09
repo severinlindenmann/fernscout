@@ -1,10 +1,10 @@
-// Refreshes the cached European Central Bank reference rates.
+// Reading the European Central Bank's reference rate documents.
 //
-//   npm run rates:update -- --dry-run
-//
-// This is a *refresh* script, never a build step. The build reads
-// site/rates/ecb.json off disk and must succeed with no network at all —
-// see lib/rates.ts. Run this occasionally, commit the result.
+// Parsing only, plus the read-only cross-rate lookup below. **The refresh that
+// writes this instance's table is scripts/rates-refresh.mts** — it needs to
+// know where this instance keeps its data and whether it does money at all,
+// and neither question belongs in a file whose other half is pure parsing
+// (B1084). Nothing here touches the disk.
 //
 // The ECB publishes one euro-quoted table a day, free, with no API key:
 // https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml
@@ -21,9 +21,6 @@
 // It prints a pasteable line and touches nothing on disk — a frozen trip rate
 // is a judgement about what the trip actually cost, and this only hands over
 // the reference number, never decides for anyone. See docs/currencies.md.
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 /**
  * Where the daily table comes from.
@@ -33,7 +30,7 @@ import { fileURLToPath } from "node:url";
  * that this script still writes where it says it does. The document format is
  * the ECB's either way.
  */
-const DAILY_URL =
+export const DAILY_URL =
   process.env.ECB_RATES_URL ||
   "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml";
 
@@ -49,7 +46,6 @@ const DAILY_URL =
 const HISTORY_URL =
   process.env.ECB_HISTORY_URL || "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist-90d.xml";
 
-const ROOT = path.join(import.meta.dirname, "..");
 
 /**
  * The document is a fixed, tiny shape that has not changed in twenty years,
@@ -163,79 +159,4 @@ export async function printCrossRate({ pair, base, on }, { fetchImpl = fetch, lo
       `  ${pair}: ${readableRate(rate)}`,
   );
   return true;
-}
-
-/** Refreshes `site/rates/ecb.json` from the daily table — the original,
- * writing mode of this script. */
-async function updateDailyCache({ dryRun }) {
-  let xml;
-  try {
-    const res = await fetch(DAILY_URL, { headers: { accept: "application/xml" } });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    xml = await res.text();
-  } catch (err) {
-    console.error(`Could not reach the ECB: ${err.message}`);
-    console.error("The cached rates on disk are left exactly as they were.");
-    process.exitCode = 1;
-    return;
-  }
-
-  const { date, rates } = parseEcbXml(xml);
-  const snapshot = {
-    source: "European Central Bank euro foreign exchange reference rates",
-    url: DAILY_URL,
-    base: "EUR",
-    // The ECB's own publication date, which is what the site cites — not the
-    // day this script happened to run.
-    date,
-    fetchedAt: new Date().toISOString(),
-    note: "Units of each currency for one euro.",
-    rates: Object.fromEntries(Object.entries(rates).sort(([a], [b]) => a.localeCompare(b))),
-  };
-
-  const json = `${JSON.stringify(snapshot, null, 2)}\n`;
-  const written = [];
-  // Rates are server-wide, not per user: they convert every journal's base
-  // currency into whatever a reader picked, so there is one cache for the
-  // instance rather than a copy under each person.
-  const file = path.join(ROOT, "site", "rates", "ecb.json");
-  if (!dryRun) {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, json);
-  }
-  written.push(path.relative(ROOT, file));
-
-  console.log(
-    `${dryRun ? "Would write" : "Wrote"} ${Object.keys(rates).length} rates ` +
-      `for ${date}: ${written.join(", ") || "(nowhere — no content folder)"}`,
-  );
-}
-
-async function main() {
-  const args = process.argv.slice(2);
-  const pair = args.includes("--pair") ? args[args.indexOf("--pair") + 1] : undefined;
-  const base = args.includes("--base") ? args[args.indexOf("--base") + 1] : undefined;
-  const on = args.includes("--on") ? args[args.indexOf("--on") + 1] : undefined;
-  const asked = args.includes("--pair") || args.includes("--base") || args.includes("--on");
-
-  if (asked) {
-    if (!pair || !base || !on) {
-      console.error("--pair, --base and --on are only meaningful together, e.g.:");
-      console.error("  npm run rates:update -- --pair THB --base CHF --on 2026-03-14");
-      process.exitCode = 1;
-      return;
-    }
-    const ok = await printCrossRate({ pair: pair.toUpperCase(), base: base.toUpperCase(), on });
-    if (!ok) process.exitCode = 1;
-    return;
-  }
-
-  await updateDailyCache({ dryRun: args.includes("--dry-run") });
-}
-
-// Only runs the CLI when this file is the one `node` was pointed at — not
-// when a test imports it for the pure functions above. Same guard
-// scripts/check-caddy.mts uses.
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
-  await main();
 }

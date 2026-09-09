@@ -154,15 +154,18 @@ describe("destruction never reaches a model at all — B817", () => {
   const DESTRUCTION = [
     // en
     "delete my acc",
-    "remove the photo of anna",
     "get rid of yesterday",
     "erase that day",
     // de
     "lösche den Tag mit dem Foto von Anna",
-    "entferne bitte das Foto von Anna",
     // hu
     "töröld a napot Anna fényképével",
   ];
+
+  // "remove the photo of anna" and "entferne bitte das Foto von Anna" were on
+  // that list until `remove_photo` existed. They are on the list below now,
+  // and the German day-with-a-photo sentence stayed above deliberately: it
+  // names a picture and asks for a day.
 
   for (const said of DESTRUCTION) {
     test(`"${said}" is refused by name, and opens nothing`, async () => {
@@ -327,6 +330,37 @@ describe("a named refusal instead of silence — B783", () => {
   test("destruction still wins over it: \"delete everything\" is the remove refusal", () => {
     expect(refusalFor("delete everything")?.name).toBe("remove");
     expect(refusalFor("lösche alles")?.name).toBe("remove");
+  });
+
+  /**
+   * A photograph and a staged file are the exception, and they became one on
+   * the day `remove_photo` and `discard_file` were built.
+   *
+   * This row used to match "remove … photo" deliberately, because nothing
+   * could do it and a refusal was the honest answer. Now something can, and a
+   * refusal firing first would make both tools unreachable by the only
+   * sentence anybody says out loud. What is still refused is everything the
+   * helper genuinely cannot do: a day, a trip, a whole journal.
+   */
+  test("a picture or a file may be asked for; a day, a trip and a journal may not", () => {
+    for (const said of [
+      "remove that photo",
+      "delete the photo of the harbour",
+      "lösch das foto bitte",
+      "entferne die datei",
+      "töröld a képet",
+    ]) {
+      expect(refusalFor(said), said).toBeNull();
+    }
+    for (const said of [
+      "delete the trip",
+      "delete everything",
+      "lösche die reise",
+      "get rid of the journal",
+      "törölj mindent",
+    ]) {
+      expect(refusalFor(said)?.name, said).toBe("remove");
+    }
   });
 
   test("both refusals answer in German and Hungarian too", () => {

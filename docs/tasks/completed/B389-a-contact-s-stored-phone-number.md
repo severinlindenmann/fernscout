@@ -18,7 +18,7 @@ completed: "2026-09-07T13:09:51Z"
 B385 gave the four phone boxes a dialling-code `<select>`, so a number typed
 in from now on either has a country or is honestly shown with none. It did
 nothing about a number already on file that `toE164`
-(`lib/whatsapp/phone.ts`) cannot turn into E.164 — a legacy `076 561 31 50`
+(`lib/whatsapp/phone.ts`) cannot turn into E.164 — a legacy `076 000 00 00`
 with no `+`, or a `+<cc>` for a country outside `TelField.tsx`'s
 `DIAL_CODES`. `components/ContactsAdmin.tsx`'s read-only row view
 (`postal?.tel && … <dd>{postal.tel}</dd>`, no other check) prints that string
@@ -45,11 +45,11 @@ messaging it, is a real case and not this ticket's to prevent.
 
 ## Acceptance
 
-A contact whose `postalAddress.tel` is `"076 561 31 50"` (no
+A contact whose `postalAddress.tel` is `"076 000 00 00"` (no
 `defaultCountryCode` configured) renders on `/​<user>/contacts` with a visible
 note that the number is not currently messageable, next to the number
 itself. The same contact with `defaultCountryCode: "41"` configured, or with
-a `tel` of `"+41 76 561 31 50"`, renders with no such note. A contact with no
+a `tel` of `"+41 76 000 00 00"`, renders with no such note. A contact with no
 `tel` at all is unaffected (the whole block is still absent, as today).
 
 ## Resolution

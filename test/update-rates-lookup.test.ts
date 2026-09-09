@@ -82,8 +82,14 @@ describe("printCrossRate", () => {
   });
 
   test("the CLI refuses a partial --pair/--base/--on and fetches nothing", () => {
-    const script = path.join(__dirname, "..", "scripts", "update-rates.mjs");
-    const res = spawnSync("node", [script, "--pair", "THB"], { encoding: "utf8" });
+    // The CLI moved to rates-refresh.mts in B1084; update-rates.mjs is now
+    // parsing and this lookup, with no argv handling of its own. Refusing here
+    // matters more than it did: falling through would start a real refresh —
+    // network, disk and all — for somebody who asked for one number.
+    const script = path.join(__dirname, "..", "scripts", "rates-refresh.mts");
+    const res = spawnSync("npx", ["tsx", "--conditions=react-server", script, "--pair", "THB"], {
+      encoding: "utf8",
+    });
     expect(res.status).not.toBe(0);
     expect(res.stderr).toContain("only meaningful together");
   });

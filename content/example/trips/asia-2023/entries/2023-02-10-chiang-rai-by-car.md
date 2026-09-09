@@ -11,6 +11,7 @@ transportFrom: "Chiang Mai"
 transportTo: "Chiang Rai"
 tags: ["thailand", "roads"]
 test: true
+timezone: "Asia/Bangkok"
 ---
 
 A fixture day: the road leg the scene needs to draw tarmac, a centre line and a car with its wheels turning.

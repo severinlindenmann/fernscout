@@ -98,7 +98,7 @@ export async function POST(request: Request) {
 
   // The same refusal for the same reason, one channel over: consent to be
   // messaged on a number nothing can dial is a typo, not a preference. Named
-  // rather than silently dropped, so the person who typed `076 561 31 50` on
+  // rather than silently dropped, so the person who typed `076 000 00 00` on
   // an instance with no `defaultCountryCode` finds out now instead of
   // wondering for a month why nothing arrives (see lib/whatsapp/phone.ts).
   const wantsWhatsapp = body.wantsWhatsapp === true;

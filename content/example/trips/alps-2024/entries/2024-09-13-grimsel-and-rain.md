@@ -31,6 +31,7 @@ tags: ["alps", "passes", "rain"]
 costs:
   - { label: "Guesthouse", amount: 145, category: "accommodation" }
   - { label: "Dinner", amount: 62, category: "food" }
+timezone: "Europe/Zurich"
 ---
 
 Rain the whole way up and cloud so low the reservoir looked like the edge of the world. We had the viewpoint entirely to ourselves, which is one way to sell bad weather.

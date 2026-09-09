@@ -656,7 +656,36 @@ describe("what a turn costs", () => {
    * Named once so the number in the message and the number in the assertion
    * cannot disagree — the shape of every other "written down twice" bug here.
    */
-  const CEILING = 6500;
+  // Raised to 8000 on 2026-09-09, and this is the paragraph the list above
+  // asks for. Sixteen tools arrived in one run — the conversation was given
+  // the rest of what the API door already had: a trip's settings and its
+  // money, who hears about a day, the journal's own account and keys, the
+  // printed things, and taking a photograph back off a day. Forty-three tools
+  // now, against twenty-seven.
+  //
+  // Steps 1 and 2 were run first and are in this commit: three of the five
+  // "what you still cannot do" bullets had become false — postcards, adding a
+  // fellow traveller, and changing a trip after it exists all have tools now —
+  // and telling the model it cannot do them was both wrong and paid for. That
+  // recovered forty tokens.
+  //
+  // Forty, against a thousand needed, and the shape of the number is the
+  // point: **the schemas are now the larger half.** 3205 tokens of prompt
+  // against 4372 of tool descriptions, about a hundred a tool. There is no
+  // longer a paragraph in the prompt worth the trade, and trimming
+  // descriptions is the one thing the list above rules out.
+  //
+  // So what the tokens buy is the capability itself, and at Haiku's input
+  // price the difference is well under a rappen a turn. Money was never the
+  // constraint here and is less of one now.
+  //
+  // **The constraint that is real is not in this test.** A model choosing
+  // among forty-three tools chooses worse than one choosing among seventeen,
+  // and no assertion here would notice. B1049 is that question, and the
+  // answer when it binds is grouping the tools — not another raise. If this
+  // ceiling is met again by adding tools rather than words, read B1049 before
+  // changing this number.
+  const CEILING = 8000;
 
   /**
    * **What to do when this fails** — B930, and it is the half the number never
@@ -693,7 +722,7 @@ describe("what a turn costs", () => {
    * chosen wrongly. At Haiku's input price four hundred tokens is a fraction
    * of a rappen a turn, against a wrong write in somebody's journal.
    */
-  test("the prompt and the tool list stay under forty-one hundred tokens", () => {
+  test("the prompt and the tool list stay under the ceiling", () => {
     const schemas = TOOLS.map((tool) => JSON.stringify(tool.properties) + tool.describe).join("");
     const characters = threadSystemPrompt("2026-09-07").length + schemas.length;
     const tokens = Math.round(characters / 4);

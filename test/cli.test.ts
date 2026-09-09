@@ -64,6 +64,19 @@ describe("CLI wiring", () => {
    * which is the kind of red build people learn to re-run without reading.
    */
   test("update-rates parses the table and names the file it would write", async () => {
+    // Its own DATA_DIR, because the path it prints is what this asserts on.
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-cli-rates-"));
+    // And `costs` switched on, because the refresh does nothing without it
+    // (B1084) — the shipped site/config.json has it off, which is the default
+    // every fresh clone runs on.
+    const configPath = path.join(dataDir, "config.json");
+    fs.writeFileSync(
+      configPath,
+      JSON.stringify({
+        site: { name: "Testbed", url: "https://example.test", defaultUser: "example" },
+        features: { costs: { enabled: true } },
+      }),
+    );
     const xml =
       `<?xml version="1.0" encoding="UTF-8"?><gesmes:Envelope ` +
       `xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01">` +
@@ -83,11 +96,21 @@ describe("CLI wiring", () => {
       // process, and the synchronous form blocks the event loop that would
       // answer the request — the child waits for a reply nobody can send.
       const { stdout: out } = await promisify(execFile)(
-        "node",
-        ["scripts/update-rates.mjs", "--dry-run"],
-        { env: { ...process.env, ECB_RATES_URL: `http://127.0.0.1:${port}/` } },
+        "npx",
+        ["tsx", "--conditions=react-server", "scripts/rates-refresh.mts", "--dry-run"],
+        {
+          env: {
+            ...process.env,
+            ECB_RATES_URL: `http://127.0.0.1:${port}/`,
+            // Under DATA_DIR now, not in the checkout (B1084) — and the path
+            // it names has to be the one it would really write, since that is
+            // the whole point of the dry run.
+            DATA_DIR: dataDir,
+            FERNSCOUT_CONFIG: configPath,
+          },
+        },
       );
-      expect(out).toContain("site/rates/ecb.json");
+      expect(out).toContain(path.join(dataDir, "rates", "ecb.json"));
       // The date is the bank's own publication date, not the day it ran.
       expect(out).toContain("2026-08-28");
       expect(out).toContain("2 rates");

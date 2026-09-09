@@ -31,7 +31,7 @@ const LANES = ["backlog", "open", "in-development", "testing", "completed"];
 const ROOT = path.join(process.cwd(), "docs", "tasks");
 
 /**
- * The lanes whose tasks are filed one level down, in a category folder, and
+ * The lane whose tasks are filed one level down, in a category folder, and
  * the folder each `type` (with `complexity`, for a FEATURE) belongs in. Both
  * are `scripts/tasks.mjs`'s — `CATEGORISED` and `categoryOf()` — restated here
  * rather than imported, because that script is untyped ESM run by node. The
@@ -39,7 +39,7 @@ const ROOT = path.join(process.cwd(), "docs", "tasks");
  * derivation changes and this one does not, the tree stops matching and the
  * assertion says so by name.
  */
-const CATEGORISED = new Set(["backlog", "testing"]);
+const CATEGORISED = new Set(["backlog"]);
 
 function categoryFor(
   type: string,

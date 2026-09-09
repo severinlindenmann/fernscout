@@ -553,7 +553,7 @@ export function userDocumentation(username: string): string | null {
     `- Deleting: DELETE [a trip](${base()}/api/v1/${username}/trips/<trip-id>) or [the journal](${base()}/api/v1/${username}) — owner only, and neither deletes anything: the owner is mailed a link with a button on it, so a 202 means the mail was sent`,
     `- [Search index](${root}/search-index.json): every public entry, for finding things`,
     `- [Feed](${root}/feed.xml): public entries as RSS`,
-    `- [Export](${root}/export.zip): the whole journal as markdown and photographs`,
+    `- [Export](${root}/export.zip): the whole journal as markdown and photographs — owner only, with the journal owner's own token (B1086); any other caller gets a 404`,
     "",
     ...wrap(PRIVATE_SHUTS_OUT_GUESTS.replace(/`/g, ""), 78),
     "",
@@ -1277,7 +1277,7 @@ One part of the \`owner\` block *is* yours to write, as the flat field
 copy of a published day goes, and that copy costs no credits — as their own
 copy of the day's letter does not either. Without a number the owner is the
 one person this channel cannot reach, including for checking it works before a
-guest ever sees it. Include the country code — \`+41 76 561 31 50\` — because a
+guest ever sees it. Include the country code — \`+41 76 000 00 00\` — because a
 national number means a different telephone in every country and is refused
 rather than guessed at. Do not invent one: ask for it, or leave it absent.
 
@@ -1932,8 +1932,8 @@ Two things worth telling them before they do:
   \`410 Gone\`.
 
 The page offers them a complete copy first — private trips and unpublished
-drafts included, not just the public export — because leaving with your data is
-the half of leaving that a delete button on its own does not give you.
+drafts included, the whole of it — because leaving with your data is the half
+of leaving that a delete button on its own does not give you.
 
 Only the journal's **owner** may ask. A token scoped to one trip can write days
 into that trip and cannot delete it, or the journal around it; being on
@@ -2613,6 +2613,40 @@ discarded in silence is gone. So a likeness is stored and named in \`advice\`,
 with the \`src\` of the picture it looks like — delete one of them if they
 really are the same. The same photograph exported twice, at a different size or
 quality, is the case this covers.
+
+**And to ask afterwards, on a journal you did not upload:**
+
+\`\`\`http
+GET ${site.url}/api/v1/${example}/trips/<trip-id>/media/duplicates
+Authorization: Bearer fs_agent_…
+\`\`\`
+
+\`groups\` is one row per photograph the trip holds more than one copy of, across
+every day of it, each copy with its \`src\`, \`day\`, \`width\`, \`height\` and
+\`bytes\`, largest first. The largest is usually the one to keep — a camera file
+beside the same shot as it came back off a messaging app at a twentieth of the
+size — but **this reports and never deletes**, and which copy a journal keeps
+is not yours to decide. Show the person the groups, ask which one they want,
+and only then:
+
+\`\`\`http
+DELETE ${site.url}/api/v1/${example}/trips/<trip-id>/media
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"day": "lanterns-of-hoi-an", "src": ["/${example}/media/<trip>/lanterns-of-hoi-an/16.jpg"]}
+\`\`\`
+
+One day per call, one or more \`src\` exactly as the gallery hands them back. A
+\`src\` this day does not have refuses the whole call rather than removing the
+rest, so you are never left guessing which one landed. The derivative, the kept
+original and any poster go from disk; a photobook or postcard order that
+already named the file is untouched, being a record of what was sent rather
+than a live link to it.
+
+A resemblance is still a guess — two frames of one burst are different
+photographs and can come back as a group. Look before you delete, and if you
+cannot look, ask.
 
 **The body limit is the one that bites, and it is not the per-file limit.**
 Forty photographs may go in one call and each may be ${(IMAGE_MAX_BYTES / 1024 / 1024).toFixed(0)} MB, but the request

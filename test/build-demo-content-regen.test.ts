@@ -13,11 +13,17 @@ import { afterEach, describe, expect, test } from "vitest";
  * without teaching the generator fails a test instead of waiting for the next
  * `git diff --stat content/` to notice.
  *
- * Two things are allowed to differ, and only these:
+ * Three things are allowed to differ, and only these:
  *
  * - Any line beginning `weatherData:` — filled by `npm run weather:update`
  *   against a live archive (B325), never by this generator. Excluded by
  *   design; see the module comment at the top of the script.
+ * - Any line beginning `timezone:` — filled by `npm run timezone:update` from
+ *   the coordinates the day already carries (B1090), never by this generator.
+ *   The same shape as `weatherData` and excluded for the same reason: it is
+ *   derived from the day rather than authored with it, so a sweep owns it and
+ *   the generator does not. A day the generator names a zone for itself still
+ *   has to match — this only forgives a zone that was filled in afterwards.
  * - `content/example/config.json` — hand-maintained, never written by this
  *   script.
  *
@@ -54,7 +60,7 @@ function comparable(file: string): string {
   return fs
     .readFileSync(file, "utf8")
     .split("\n")
-    .filter((line) => !line.startsWith("weatherData:"))
+    .filter((line) => !line.startsWith("weatherData:") && !line.startsWith("timezone:"))
     .join("\n");
 }
 

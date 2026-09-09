@@ -73,5 +73,13 @@ describe("the consent list on /<user>/me", () => {
     expect(html).toContain("Send my words to the model");
     expect(html).toContain("Anthropic");
     expect(html).toContain("Withdraw this permission");
+
+    // The date is formatted from lib/i18n.ts's own month names, not
+    // `toLocaleDateString` — B723 shipped with the latter and it rendered
+    // "01/09/2026" on the server against "9/1/2026" in the browser, a real
+    // hydration mismatch on every load of this page. A slash here means the
+    // bare locale formatter is back.
+    expect(html).toContain("1 August");
+    expect(html).not.toMatch(/\d+\/\d+\/\d+/);
   });
 });

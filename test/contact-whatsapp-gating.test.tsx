@@ -124,18 +124,18 @@ describe("an unmessageable phone number says so on the owner's contacts list", (
   }
 
   test("a national number with no configured default country is flagged", () => {
-    const html = render("076 561 31 50");
-    expect(html).toContain("076 561 31 50");
+    const html = render("076 000 00 00");
+    expect(html).toContain("076 000 00 00");
     expect(html).toContain(en["contact.telNotMessageable"]);
   });
 
   test("the same number with a configured default country is not flagged", () => {
-    const html = render("076 561 31 50", "41");
+    const html = render("076 000 00 00", "41");
     expect(html).not.toContain(en["contact.telNotMessageable"]);
   });
 
   test("an already-international number is not flagged", () => {
-    const html = render("+41 76 561 31 50");
+    const html = render("+41 76 000 00 00");
     expect(html).not.toContain(en["contact.telNotMessageable"]);
   });
 
