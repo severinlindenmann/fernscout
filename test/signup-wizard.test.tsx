@@ -43,7 +43,6 @@ describe("the door, with signup off", () => {
     const html = renderToStaticMarkup(
       withLocale(
         <AgentDoor
-          siteUrl="https://example.test"
           docUrl="https://example.test/documentation.txt"
           agentUrl="https://example.test/agent.md"
           codeMinutes="20"
@@ -61,7 +60,6 @@ describe("the door, with signup off", () => {
     const html = renderToStaticMarkup(
       withLocale(
         <AgentDoor
-          siteUrl="https://example.test"
           docUrl="https://example.test/documentation.txt"
           agentUrl="https://example.test/agent.md"
           codeMinutes="20"
@@ -275,7 +273,6 @@ describe("the bring-your-own-agent panel, for somebody who has no agent", () => 
     return renderToStaticMarkup(
       <LocaleProvider locale={locale} dictionary={dictionaryFor(locale)}>
         <AgentDoor
-          siteUrl="https://example.test"
           docUrl="https://example.test/documentation.txt"
           agentUrl="https://example.test/agent.md"
           codeMinutes="20"
