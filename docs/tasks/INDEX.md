@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (164)
+## backlog (165)
 
 ### security (2)
 
@@ -175,7 +175,7 @@ Do not edit them by hand; run the script.
 | [B1119](backlog/ops/B1119-fernscout-ch-s-caddy-block-is.md) | fernscout.ch's Caddy block is hand-merged, so proxy directives drift until applied by hand | OPS | low | low |
 | [B1150](backlog/ops/B1150-ghostscript-is-not-installed-on-the.md) | Ghostscript is not installed on the VPS, so the instance cannot produce a conformant PDF/X-4 | OPS | low | low |
 
-### docs-and-skills (5)
+### docs-and-skills (6)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -183,6 +183,7 @@ Do not edit them by hand; run the script.
 | [B1112](backlog/docs-and-skills/B1112-a-triage-decision-carries-no-reason.md) | A triage decision carries no reason, so the run brief starts from ids alone | DOCS | medium | low |
 | [B1116](backlog/docs-and-skills/B1116-plan-a-run-re-opens-questions.md) | plan-a-run re-opens questions a ticket has already decided unless the dispatch says not to | DOCS | medium | low |
 | [B1141](backlog/docs-and-skills/B1141-a-worktree-s-cloned-node-modules.md) | A worktree's cloned node_modules goes stale when main adds a dependency, and the build fails as if the change were wrong | DOCS | medium | low |
+| [B1152](backlog/docs-and-skills/B1152-the-acceptance-gate-s-buttons-give.md) | The acceptance gate's buttons give no feedback and its second label says nothing, so a person cannot tell what they chose or where a ticket is | DOCS | medium | low |
 | [B1046](backlog/docs-and-skills/B1046-two-sessions-running-verify-in-the.md) | Two sessions running verify in the shared checkout collide on the next build lock | DOCS | low | low |
 
 ### superseded (62)
