@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: entries, ui, feed, docs
 found: "2026-09-01"
+started: "2026-09-09T04:55:43Z"
+session: eef381a2-5a19-477a-a5ce-5f4f2d3dacab
+claimed: "2026-09-09T04:55:43Z"
 ---
 
 # B42 — An entry's time carries no zone, so 09:15 means nothing to a reader in another one
