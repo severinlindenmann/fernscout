@@ -410,7 +410,23 @@ export default function HelperAsk({
     const response = await fetch(url, {
       method,
       headers: { "content-type": "application/json" },
-      body: method === "POST" ? JSON.stringify(body ?? {}) : undefined,
+      // **Every method here carries the body, and PATCH is why this is a
+      // comment.** It used to read `method === "POST" ? … : undefined`, so a
+      // PATCH press sent a content-type saying JSON and no JSON at all; the
+      // route's `request.json()` threw and answered `invalid_json`, and the
+      // person was told "something in that press did not arrive properly"
+      // about a card that was perfectly correct.
+      //
+      // It was live from B898 — `set_day_words`, which is *writing the words
+      // of a day*, the most-used write in this product — and was found only
+      // when B1078's four trip tools joined it and somebody pressed one on
+      // the real site. Nothing caught it because every test presses a route
+      // handler directly with a body already in hand; none of them go through
+      // this function. `test/helper-press-body.test.ts` is the one that does.
+      //
+      // There is no method here that should send an empty body: a proposal's
+      // arguments *are* the press (B900).
+      body: JSON.stringify(body ?? {}),
     });
     const json = (await response.json().catch(() => ({}))) as Record<
       string,
