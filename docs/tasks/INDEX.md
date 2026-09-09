@@ -49,14 +49,13 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (152)
+## backlog (151)
 
-### security (3)
+### security (2)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1076](backlog/security/B1076-voice-recordings-are-sent-to-deepgram.md) | Voice recordings are sent to Deepgram without opting out of its model-training programme | SECURITY | high | low |
-| [B1105](backlog/security/B1105-the-operator-s-personal-mobile-number.md) | The operator's personal mobile number is the example in the source, the public API spec and the agent guide | SECURITY | high | low |
 | [B1045](backlog/security/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low |
 
 ### issue (12)
@@ -252,13 +251,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (9)
+## in-development (10)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1014](in-development/B1014-the-embedded-print-fonts-are-read.md) | The embedded print fonts are read from the process's working directory, so npm run postcard fails outside the checkout | ISSUE | high | low | `b8352d66` |
 | [B1015](in-development/B1015-b984-moved-the-agent-room-s.md) | B984 moved the agent room's URL and left one test asserting the old one, so main is red | ISSUE | high | low | `b8352d66` |
 | [B1098](in-development/B1098-work-on-a-task-revalidates-a.md) | work-on-a-task revalidates a ticket in one sentence of prose, and asks for a visual check it leaves no evidence of | DOCS | high | low | `df031729` |
+| [B1105](in-development/B1105-the-operator-s-personal-mobile-number.md) | The operator's personal mobile number is the example in the source, the public API spec and the agent guide | SECURITY | high | low | `8aa24275` |
 | [B980](in-development/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | `a4bbb185` |
 | [B984](in-development/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | `fdfcf5f2` |
 | [B1035](in-development/B1035-navy-800-is-used-across-dozens.md) | navy-800 is used across dozens of components but no navy-800 token exists | ISSUE | medium | low | `f88144a1` |
