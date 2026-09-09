@@ -1997,6 +1997,7 @@
   "agent.about.rewrite": "A nap szövegének átdolgozása",
   "agent.about.addPhoto": "Fényképek hozzáadása ehhez a naphoz",
   "agent.about.addCost": "Költség feljegyzése ehhez a naphoz",
+  "agent.about.publish": "Ennek a napnak a közzététele az oldalon",
   "agent.about.unpublish": "Ennek a napnak a levétele az oldalról",
   "agent.publishRow": "Kérd, hogy tegye közzé",
   "agent.publishRowHint": "Amíg nem szólsz, rajtad kívül senki nem látja a napot.",

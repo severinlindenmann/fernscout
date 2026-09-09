@@ -1997,6 +1997,7 @@
   "agent.about.rewrite": "Rewrite the words of this day",
   "agent.about.addPhoto": "Add photographs to this day",
   "agent.about.addCost": "Add a cost to this day",
+  "agent.about.publish": "Put this day on the site",
   "agent.about.unpublish": "Take this day off the site",
   "agent.publishRow": "Ask to have it published",
   "agent.publishRowHint": "Nobody but you sees the day until you say so.",

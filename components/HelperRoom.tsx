@@ -508,6 +508,9 @@ export default function HelperRoom({
             opened={history}
             opening={first}
             aboutOffer={opening !== null}
+            // The day's own state, once the preview has read it — B1199:
+            // the offer must not include taking a draft off the site.
+            aboutDraft={preview ? preview.day.lead.draft === true : null}
             whatsappNumber={whatsappNumber}
             selected={selected}
             onSubject={(day) => {

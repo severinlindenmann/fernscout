@@ -117,6 +117,7 @@ export type TranslationKey =
   | "agent.about.addCost"
   | "agent.about.addPhoto"
   | "agent.about.offer"
+  | "agent.about.publish"
   | "agent.about.rewrite"
   | "agent.about.unpublish"
   | "agent.andJoin"
