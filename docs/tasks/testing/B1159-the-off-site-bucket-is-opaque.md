@@ -67,3 +67,43 @@ and not the ones deleted — and does not contain the repository password.
 
 Live: the bucket lists dates and a `RESTORE.txt`, seven of them after a week,
 and a restore from one dated folder alone produces a readable day.
+
+## Outcome (2026-09-09, live)
+
+Merged, deployed, and driven on the VPS.
+
+`rclone` installed (1.60.1, from apt). `/etc/fernscout/env` now carries
+`RESTIC_REPOSITORY_SECONDARY='s3://…/fernscout/<date>'` and
+`BACKUP_SECONDARY_KEEP_DAYS=7`. The bucket was emptied first, with the
+operator's confirmation — all 11 nights were still in the local primary and
+nothing was lost.
+
+One run of `fernscout-backup` produced, in order: `creating tonight's off-site
+repository`, the copy, the secondary stamp, `1 off-site night(s) held, keeping
+7 — nothing to expire`, `refreshed …/RESTORE.txt`. The bucket root is now
+exactly two entries — `2026-09-09/` and `RESTORE.txt`.
+
+Restore proved from the dated folder alone: `restic check` on
+`…/fernscout/2026-09-09` reports `no errors were found` across 11 snapshots,
+`restic restore latest` produced 606 MiB and 2249 files, and
+`content/example/trips/alps-2024/entries/2024-09-12-over-the-susten.md` reads
+back with its frontmatter intact. `env/fernscout.env` inside it holds no
+`RESTIC_PASSWORD` line, which is the claim RESTORE.txt makes about itself.
+Scratch target removed. `/api/health` -> `.backup.secondary` reads `ok`.
+
+### The quoting trap, found by hitting it
+
+`<date>` unquoted in `/etc/fernscout/env` is fine for systemd, which does not
+shell-parse that file — and fatal to `set -a; . /etc/fernscout/env`, which is
+the first line of every restore procedure in `docs/runbook.md`. It dies with
+`Syntax error: newline unexpected`, at the exact moment somebody is trying to
+get the journals back. Single quotes satisfy both readers; systemd strips
+them. Written into the runbook, `.env.example` and the script header in a
+second commit.
+
+### Still standing
+
+B1158 is unchanged by this and is now slightly more pressing: the key in
+`/etc/fernscout/env` can delete, and `rclone purge` is proof of that. It is
+also the key that expires old nights, so an append-only key needs the expiry
+moved or dropped — that trade is B1158's work.
