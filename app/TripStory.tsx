@@ -47,6 +47,7 @@ export default function TripStory({
   stats,
   basemap = null,
   photobook,
+  travellerNames,
 }: {
   /** Every day of the trip, cheaply. */
   index: DaySummary[];
@@ -69,6 +70,11 @@ export default function TripStory({
    * is rendered.
    */
   photobook?: PhotobookEntry;
+  /** Who took this trip, joined for display — `travellerNamesOf` in
+   * lib/site.ts. B10: the hero is the one place every reader of the story
+   * lands, and until now the only page that named them was the one about
+   * money. */
+  travellerNames?: string;
 }) {
   const { t, formatLongDate, localizedTrip } = useI18n();
   // TripStory is always rendered inside TripProvider (both the current-trip
@@ -537,6 +543,7 @@ export default function TripStory({
                       : undefined
                   }
                   photobook={photobook}
+                  travellerNames={travellerNames}
                 />
               )
             }

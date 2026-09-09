@@ -12,7 +12,7 @@ import { photobookEntryFor } from "@/lib/photobook/entry";
 import { BlogStructuredData } from "@/components/StructuredData";
 import { getUser, getUsernames } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
-import { siteSummary, travellersOf } from "@/lib/site";
+import { siteSummary, travellerNamesOf, travellersOf } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripCountdown from "@/components/TripCountdown";
 import TripStory from "@/app/TripStory";
@@ -129,6 +129,9 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
         stats={stats}
         basemap={basemap}
         photobook={photobook}
+        // B10 — who took this trip, visible on the page itself rather than
+        // only inside the StructuredData script tag above.
+        travellerNames={travellerNamesOf(userConfig, trip)}
       />
     </TripProvider>
   );
