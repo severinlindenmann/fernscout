@@ -65,12 +65,12 @@ export const FILES_TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "confirm",
     describe:
-      "Propose putting photographs waiting in the inbox onto a day — \"put these on yesterday\", about the files pane. Leave `files` out: what they ticked is known here. Never ask them for an id.",
+      "Propose putting photographs waiting in the inbox onto a day — \"put these on yesterday\", \"the ones waiting\", about the files pane. Leave `files` out: what they ticked is used, and with nothing ticked every waiting photograph is proposed by name for them to check. Never ask them for an id.",
     properties: {
       ...DAY_ARGS,
       files: {
         type: "string",
-        description: "Omit it: the ticked files are used.",
+        description: "Omit it: the ticked files are used, or all waiting photographs when nothing is ticked.",
       },
     },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/attach`,
@@ -84,21 +84,50 @@ export const FILES_TOOLS: readonly Tool[] = [
        * not copy the ids asked *them* for ids — which appear nowhere on the
        * screen. What the model says is used when it says something; otherwise
        * the tick is the answer.
+       *
+       * **And with nothing ticked at all, the answer is everything waiting**
+       * — B1189. "Put the photos waiting in my inbox on today" with empty
+       * hands used to propose nothing, one turn after the `inbox` read had
+       * listed those very files by name: a claim and its contradiction in
+       * one message. The proposal is what makes the fallback safe — every
+       * file is named on the card, and nothing moves until the press.
        */
-      const asking =
-        (args.files ?? "").trim() !== ""
-          ? (args.files ?? "").split(",")
-          : selected.filter((id) => id.startsWith("inbox:")).map((id) => id.slice("inbox:".length));
+      const waiting = Object.values(listInbox(username))
+        .flat()
+        .filter((entry) => entry.kind === "media");
+      const explicit = (args.files ?? "").trim();
+      const ticked = selected
+        .filter((id) => id.startsWith("inbox:"))
+        .map((id) => id.slice("inbox:".length));
       // Resolved against disk, here as well as in the route: an id is a
       // reference and never a fact, and a proposal must name the files a
-      // person will actually get rather than the ones a model typed.
+      // person will actually get rather than the ones a model typed. A
+      // model that typed a *filename* instead of an id is answered too —
+      // the filename is on the screen, the id never is.
       const names: string[] = [];
       const ids: string[] = [];
-      for (const asked of asking) {
-        const staged = findInboxFile(username, asked.trim());
-        if (!staged || staged.entry.kind !== "media") continue;
-        names.push(staged.entry.filename);
-        ids.push(staged.entry.id);
+      const take = (entry: { id: string; filename: string }) => {
+        if (ids.includes(entry.id)) return;
+        names.push(entry.filename);
+        ids.push(entry.id);
+      };
+      if (explicit !== "") {
+        for (const asked of explicit.split(",")) {
+          const token = asked.trim();
+          const staged = findInboxFile(username, token);
+          if (staged && staged.entry.kind === "media") take(staged.entry);
+          else {
+            const byName = waiting.find((entry) => entry.filename === token);
+            if (byName) take(byName);
+          }
+        }
+      } else if (ticked.length > 0) {
+        for (const asked of ticked) {
+          const staged = findInboxFile(username, asked.trim());
+          if (staged && staged.entry.kind === "media") take(staged.entry);
+        }
+      } else {
+        for (const entry of waiting) take(entry);
       }
       // Either both or neither: a day with no files and files with no day are
       // the same refusal, and it says so rather than proposing half a move.

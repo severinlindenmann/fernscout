@@ -716,6 +716,18 @@ const ON_SCREEN = new RegExp(
     // en — "the button below", "press it", "tap the button", "further down"
     "\\bbutton\\b",
     "\\b(?:press|tap|click|hit)\\s+(?:it|that|this|here|the\\b)",
+    /**
+     * "Press to save" — B1190, from a persona round on the live site. The
+     * imperative with an infinitive and no object slipped past the pattern
+     * above: no "it", no "the", no "button", and the person was told to
+     * press a thing the turn had not drawn. The next turn's honest "there
+     * is nothing on this screen to press" proved the rest of the net knew.
+     */
+    "\\b(?:press|tap|click)\\s+to\\s+\\w+",
+    // de — "drück zum Speichern", "tippe zum Sichern"
+    "\\b(?:dr\u00fcck\\w*|tipp\\w*|klick\\w*)\\s+zum\\s+\\w+",
+    // hu — "nyomj a mentéshez"
+    "\\bnyomj\\w*\\s+a\\s+\\w+hez\\b",
     "\\b(?:below|beneath|underneath|further down|down the page|on (?:your|the) screen)\\b",
     // de — "Knopf", "Schaltfläche", "drück", "darunter", "unten", "auf deinem Bildschirm"
     "\\b(?:knopf|knöpfe|schaltfläche|button)\\b",
