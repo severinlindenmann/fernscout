@@ -7,8 +7,7 @@ complexity: low
 area: agent, trips
 found: "2026-09-07T12:16:42Z"
 started: "2026-09-09T04:55:58Z"
-session: eef381a2-5a19-477a-a5ce-5f4f2d3dacab
-claimed: "2026-09-09T04:55:58Z"
+merged: "2026-09-09T05:08:46Z"
 ---
 
 # B731 — A trip made from the ask box never shows who can read it
