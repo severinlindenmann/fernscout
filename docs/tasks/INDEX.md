@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (155)
+## backlog (156)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1076](backlog/security/B1076-voice-recordings-are-sent-to-deepgram.md) | Voice recordings are sent to Deepgram without opting out of its model-training programme | SECURITY | high | low |
 | [B1045](backlog/security/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low |
 
-### issue (15)
+### issue (16)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -70,6 +70,7 @@ Do not edit them by hand; run the script.
 | [B1107](backlog/issue/B1107-every-trip-card-leads-with-an.md) | Every trip card leads with an editable box holding a raw trip id the person has never seen | ISSUE | medium | low |
 | [B1108](backlog/issue/B1108-past-conversations-are-listed-twice-once.md) | Past conversations are listed twice, once as chips and again as prose with unrendered asterisks | ISSUE | medium | low |
 | [B1109](backlog/issue/B1109-every-message-starts-its-own-conversation.md) | Every message starts its own conversation, so the past-conversations list is a list of single turns | ISSUE | medium | medium |
+| [B1113](backlog/issue/B1113-api-health-cannot-say-whether-this.md) | /api/health cannot say whether this instance actually prints photobooks | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
