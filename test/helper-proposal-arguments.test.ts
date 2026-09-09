@@ -74,6 +74,9 @@ const SHAPE = new Set([
 /** The helper routes a proposal may name, by the path after the username. */
 const ROUTES: Record<string, () => Promise<Record<string, unknown>>> = {
   "/trip": () => import("@/app/api/helper/[user]/trip/route"),
+  "/trip/visibility": () => import("@/app/api/helper/[user]/trip/visibility/route"),
+  "/trip/people": () => import("@/app/api/helper/[user]/trip/people/route"),
+  "/trip/tracks": () => import("@/app/api/helper/[user]/trip/tracks/route"),
   "/day": () => import("@/app/api/helper/[user]/day/route"),
   "/day/write-day": () => import("@/app/api/helper/[user]/day/write-day/route"),
   "/day/costs": () => import("@/app/api/helper/[user]/day/costs/route"),
@@ -87,6 +90,10 @@ const ROUTES: Record<string, () => Promise<Record<string, unknown>>> = {
  *  because an inbox id is a hash of the bytes staged in that test. */
 const SAID: Record<string, Record<string, string>> = {
   create_trip: { title: "Japan", start: "2026-03-01", end: "2026-03-14" },
+  edit_trip: { trip: AS_SAID, title: "Die neue Reise", start: "2026-05-02", end: "2026-05-12" },
+  set_visibility: { trip: AS_SAID, visibility: "guest" },
+  trip_people: { trip: AS_SAID, person: "Mira", email: "mira@example.test" },
+  trip_tracks: { trip: AS_SAID, costs: "off" },
   start_day: { trip: AS_SAID },
   draft_words: { trip: AS_SAID, slug: DRAFT, notes: "Regen, dann der Pass." },
   set_day_words: { trip: AS_SAID, slug: DRAFT, title: "Der Pass", content: "Ihre Worte." },

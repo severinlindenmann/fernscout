@@ -149,6 +149,8 @@ const NAMED_FAILURES = [
   "idempotency_conflict",
   "contacts_disabled",
   "helper_unavailable",
+  "helper_disabled",
+  "invalid_people",
   "too_many_requests",
   "invalid_json",
 ] as const;

@@ -25,6 +25,9 @@ import en from "@/site/locales/en.json";
 
 const ROUTES = [
   "trip",
+  "trip/visibility",
+  "trip/people",
+  "trip/tracks",
   "day",
   "day/publish",
   "day/unpublish",
