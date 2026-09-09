@@ -14,6 +14,7 @@ import {
   claimsWhatADaySays,
   claimsWhatIsNotThere,
   claimsAButton,
+  asksForFields,
   claimsATotal,
   claimsItIsUp,
   claimsProposedWords,
@@ -1307,5 +1308,66 @@ describe("an honest single request phrased as a question is left alone", () => {
 
     expect(create).toHaveBeenCalledTimes(2);
     expect(String(answered.body.answer)).toBe("Der Titel ist vorgeschlagen.");
+  });
+});
+
+/* ------------------------------- a paragraph where a card belongs --- */
+
+/**
+ * The fault the whole product is arranged against — B1041.
+ *
+ * Pressing "Neue Reise" got a paragraph asking for a title, a start date *"(YYYY-MM-DD)"*,
+ * an end date, and which of three visibilities — every one of them a field on
+ * the card `create_trip` would have proposed, including a select whose three
+ * options are those three sentences as labels.
+ *
+ * Somebody was asked to type a date in a format by a tool whose entire purpose
+ * is to put a date picker in front of them.
+ */
+describe("asking for what a card would have asked", () => {
+  for (const said of [
+    "Ich brauche ein paar Angaben: Startdatum (YYYY-MM-DD) und Enddatum.",
+    "What is the start date? Please give it as YYYY-MM-DD.",
+    "Gib mir das Datum bitte als TT.MM.JJJJ.",
+  ]) {
+    test(`is asking for fields: ${said}`, () => {
+      expect(asksForFields(said)).toBe(true);
+    });
+  }
+
+  for (const said of [
+    // The honest shape: the card is on the screen and it says so.
+    "Ein Vorschlag für eine neue Reise wartet auf deinem Bildschirm.",
+    "Welche Reise meinst du?",
+    // A date said as a person says it is not a format.
+    "Der 30. April ist noch nicht fertig.",
+    "I have put the 1st of May on your screen.",
+  ]) {
+    test(`is not: ${said}`, () => {
+      expect(asksForFields(said)).toBe(false);
+    });
+  }
+
+  test("a turn that asks instead of proposing is caught and asked again", async () => {
+    create
+      .mockResolvedValueOnce(says("Wie soll die Reise heissen? Startdatum (YYYY-MM-DD)?"))
+      .mockResolvedValueOnce(calls("create_trip", { title: "Alpen" }))
+      .mockResolvedValueOnce(says("Ein Vorschlag wartet auf deinem Bildschirm."));
+    const answered = await read(await ask("ich möchte eine neue reise anlegen"));
+
+    // It proposed on the retry, which is the whole point.
+    expect((answered.body.blocks as { shape: string }[]).some((one) => one.shape === "form")).toBe(true);
+    expect(String(answered.body.answer)).not.toContain("YYYY");
+  });
+
+  test("and a turn that already proposed is left alone, whatever it says", async () => {
+    create
+      .mockResolvedValueOnce(calls("create_trip", { title: "Alpen" }))
+      .mockResolvedValueOnce(says("Trag die Daten ein, das Format ist YYYY-MM-DD."));
+    const answered = await read(await ask("neue reise"));
+
+    // Ugly, but the card is there — and this guard is about the missing card,
+    // not about policing prose beside one.
+    expect(create).toHaveBeenCalledTimes(2);
   });
 });
