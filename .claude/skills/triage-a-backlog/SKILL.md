@@ -143,6 +143,26 @@ It needs, in this order:
    sketch, the files it touches, your verdict *with its reason*, and the risk.
 4. **The decision bar** — below.
 
+**One CSS rule, because this page has now shipped broken twice.** Every card
+here is a grid or a flex container, and a grid item's default `min-width` is
+`auto` — so anything that cannot be broken mid-word refuses to shrink and
+pushes its card past the page edge, taking the images with it. A ticket page is
+full of exactly that: `app/api/helper/[user]/ask/route.ts`, a quoted `<pre>`,
+an evidence line naming a file and a line number. It is invisible at desk width
+and obvious to the person you sent it to.
+
+```css
+.card, .card > * { min-width: 0; max-width: 100%; }
+pre, .evidence, .file { overflow-wrap: anywhere; }
+img, iframe, textarea { max-width: 100%; }
+```
+
+`artifact-design` says wide content gets `overflow-x: auto` on its own
+container, which is true and is not this — the container itself is what
+overflows here, and a scrollbar it never gets is no help. Check it by narrowing
+the window until the cards are a single column: if the page scrolls sideways at
+all, this rule is missing somewhere.
+
 ## Step 6 — the decision bar
 
 This is the point of the whole page, so do not treat it as a footer.
