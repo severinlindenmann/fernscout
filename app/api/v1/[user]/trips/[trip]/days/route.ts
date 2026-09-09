@@ -266,8 +266,17 @@ export async function POST(
  * the whole mechanism, and the reason it is a server-issued code rather than
  * an `"are_you_sure": true` field is that an agent can set a field.
  *
- * Only drafts. A published day is somebody's family reading about a place
- * they went; removing one is a person's job, with `rm`, in a folder they own.
+ * Only drafts, and now the code enforces it (B1118). A published day is
+ * somebody's family reading about a place they went, and B224's doctrine is
+ * that unrecoverable deletion of content people have read does not happen on a
+ * self-served round trip — it needs a human step. The `agentConfirm` handshake
+ * below is a self-served round trip: the same agent asks for the code and
+ * spends it, so it is the right guarantee for a draft nobody else has read and
+ * the wrong one for a published day. So a published day is refused here and the
+ * agent is pointed at `unpublish` first — which is reversible, and which takes
+ * the day off the site (a visible, undoable change) before its file can ever be
+ * removed. Once unpublished it is a draft, and a draft deletes the normal way.
+ * The one-request destruction of live content that B101 found is gone.
  */
 export async function DELETE(
   request: Request,
@@ -293,13 +302,37 @@ export async function DELETE(
     return Response.json({ error: "slug is required" }, { status: 400 });
   }
 
-  // The verb depends on what is being deleted, and the verb is signed — so a
-  // code issued to tidy away an unpublished scrap cannot remove a day people
-  // have already read. An agent that drifts from one to the other is refused
-  // again and reads a different, more serious sentence.
-  const published = isPublished(ref, slug);
+  // A published day is not deleted here at all (B1118). The self-served
+  // `agentConfirm` handshake cannot be the guarantee for destroying content
+  // people have already read — B224's doctrine — and there is no mailbox step
+  // on this route to stand in for it. So the day must leave the site first,
+  // through `unpublish`, which is reversible: that turns it back into a draft
+  // and takes the harm ("someone is reading it right now") off the table before
+  // anything is removed. The refusal is not a confirmation prompt — no code
+  // spent against it will ever delete a published day, which is the whole
+  // point; the agent has to take a real, undoable action instead.
+  if (isPublished(ref, slug)) {
+    return Response.json(
+      {
+        error: "published_day_not_deletable",
+        message:
+          `"${slug}" is PUBLISHED, and a published day is not deleted from here — anyone ` +
+          `following a link to it or reading the feed has already seen it. Take it off the ` +
+          `site first with POST /api/v1/${user}/trips/${trip}/days/${slug}/unpublish, which is ` +
+          `reversible; that makes it a draft again, and a draft can then be deleted. Its ` +
+          `photographs stay on disk either way.`,
+        unpublish: `/api/v1/${user}/trips/${trip}/days/${slug}/unpublish`,
+      },
+      { status: 409 },
+    );
+  }
+
+  // Draft deletion keeps its self-served handshake unchanged (B224): the first
+  // call is refused with a code bound to this exact day, the agent repeats it
+  // with the code. A draft is content nobody but the owner has read, so a
+  // self-served round trip is an acceptable guarantee for it.
   const operation = {
-    action: published ? ("delete_published" as const) : ("delete_draft" as const),
+    action: "delete_draft" as const,
     scope: ref,
     target: slug,
   };
@@ -308,18 +341,17 @@ export async function DELETE(
     return Response.json(
       confirmationRequired(
         operation,
-        published
-          ? `This permanently deletes "${slug}", which is PUBLISHED — anyone following ` +
-              `a link to it, or reading the feed, has already seen it. It cannot be undone ` +
-              `from here. Its photographs stay on disk and are not deleted with it.`
-          : `This permanently deletes the draft "${slug}". Its photographs stay on disk ` +
-              `and are not deleted with it.`,
+        `This permanently deletes the draft "${slug}". Its photographs stay on disk ` +
+          `and are not deleted with it.`,
       ),
       { status: 409 },
     );
   }
 
-  const result = deleteEntry(ref, slug, { allowPublished: true });
+  // No `allowPublished` — the isPublished refusal above already turned away a
+  // published day, and leaving it off makes deleteEntry a second guard against
+  // the day being published in the gap between that check and here (B1118).
+  const result = deleteEntry(ref, slug);
   if (!result.ok) return Response.json({ error: result.error }, { status: 400 });
 
   // `mediaKept` because an agent that has just deleted a day will otherwise
