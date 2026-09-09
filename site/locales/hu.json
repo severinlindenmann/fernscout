@@ -1481,6 +1481,7 @@
   "agent.tripTitleLabel": "Hogy hívjuk ezt az utat?",
   "agent.tripStartLabel": "Első nap",
   "agent.tripEndLabel": "Utolsó nap",
+  "agent.tripVisibilityLabel": "Ki olvashatja?",
   "agent.createTrip": "Út indítása",
   "agent.creatingTrip": "Az utad indítása…",
   "agent.signingIn": "Bejelentkeztetünk…",

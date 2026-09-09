@@ -1481,6 +1481,7 @@
   "agent.tripTitleLabel": "Wie soll diese Reise heißen?",
   "agent.tripStartLabel": "Erster Tag",
   "agent.tripEndLabel": "Letzter Tag",
+  "agent.tripVisibilityLabel": "Wer darf sie lesen?",
   "agent.createTrip": "Diese Reise starten",
   "agent.creatingTrip": "Deine Reise wird gestartet…",
   "agent.signingIn": "Du wirst angemeldet…",

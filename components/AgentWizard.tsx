@@ -36,6 +36,110 @@ import type { PhotoVisibility } from "@/lib/photos";
 import type { CurrencyOptions } from "@/lib/rates";
 import { TRACKS, type Track } from "@/lib/tracks";
 import type { Day, DaySummary } from "@/lib/types";
+import { VISIBILITIES } from "@/lib/tripWrite";
+
+type NewTripVisibility = (typeof VISIBILITIES)[number];
+
+/**
+ * The title, dates and visibility fields shared by both quick-create
+ * surfaces below — B731. Rendered twice (empty state and the "add a trip"
+ * toggle), so the fields live once and the two callers differ only in what
+ * wraps them.
+ */
+function NewTripFields({
+  t,
+  title,
+  onTitle,
+  start,
+  onStart,
+  end,
+  onEnd,
+  visibility,
+  onVisibility,
+}: {
+  t: (key: TranslationKey, vars?: Record<string, string>) => string;
+  title: string;
+  onTitle: (value: string) => void;
+  start: string;
+  onStart: (value: string) => void;
+  end: string;
+  onEnd: (value: string) => void;
+  visibility: NewTripVisibility;
+  onVisibility: (value: NewTripVisibility) => void;
+}) {
+  return (
+    <>
+      <label
+        className="mt-4 block text-sm font-semibold text-navy-800"
+        htmlFor="wizard-new-trip-title"
+      >
+        {t("agent.tripTitleLabel")}
+      </label>
+      <input
+        id="wizard-new-trip-title"
+        required
+        value={title}
+        onChange={(event) => onTitle(event.target.value)}
+        className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+      />
+      <label
+        className="mt-4 block text-sm font-semibold text-navy-800"
+        htmlFor="wizard-new-trip-start"
+      >
+        {t("agent.tripStartLabel")}
+      </label>
+      <input
+        id="wizard-new-trip-start"
+        type="date"
+        required
+        value={start}
+        onChange={(event) => onStart(event.target.value)}
+        className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+      />
+      <label
+        className="mt-4 block text-sm font-semibold text-navy-800"
+        htmlFor="wizard-new-trip-end"
+      >
+        {t("agent.tripEndLabel")}
+      </label>
+      <input
+        id="wizard-new-trip-end"
+        type="date"
+        required
+        min={start || undefined}
+        value={end}
+        onChange={(event) => onEnd(event.target.value)}
+        className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+      />
+      <p className="mt-4 block text-sm font-semibold text-navy-800">
+        {t("agent.tripVisibilityLabel")}
+      </p>
+      <div className="mt-2 space-y-2">
+        {(["public", "guest", "private"] as const).map((option) => (
+          <label
+            key={option}
+            className="flex min-h-11 items-center gap-3 rounded-xl border border-navy-300 bg-white px-4 py-2 text-sm text-navy-800"
+          >
+            <input
+              type="radio"
+              name="wizard-new-trip-visibility"
+              value={option}
+              checked={visibility === option}
+              onChange={() => onVisibility(option)}
+            />
+            {t(
+              option === "public"
+                ? "agent.tool.visibilityPublic"
+                : option === "guest"
+                  ? "agent.tool.visibilityGuest"
+                  : "agent.tool.visibilityPrivate",
+            )}
+          </label>
+        ))}
+      </div>
+    </>
+  );
+}
 
 /**
  * Writing a day from a phone, with no agent and no model — B682.
@@ -477,13 +581,16 @@ export default function AgentWizard({
    *
    * `POST /api/helper/<user>/trip` is the same route the ask box's own
    * `create_trip` confirmation calls, and it needs no model itself — see the
-   * doc comment on that route. Asking who may read the trip is B731's, not
-   * this one's; this form matches the ask box's own defaults exactly.
+   * doc comment on that route. Who may read the trip is asked here too, with
+   * the same three labels and the same "guest" default as that confirmation
+   * — B731.
    */
   const [newTripOpen, setNewTripOpen] = useState(trips.length === 0);
   const [newTripTitle, setNewTripTitle] = useState("");
   const [newTripStart, setNewTripStart] = useState("");
   const [newTripEnd, setNewTripEnd] = useState("");
+  const [newTripVisibility, setNewTripVisibility] =
+    useState<NewTripVisibility>("guest");
   const [creatingTrip, setCreatingTrip] = useState(false);
 
   const createNewTrip = useCallback(
@@ -493,7 +600,12 @@ export default function AgentWizard({
       const body = await send(`/api/helper/${encodeURIComponent(username)}/trip`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ title: newTripTitle, start: newTripStart, end: newTripEnd }),
+        body: JSON.stringify({
+          title: newTripTitle,
+          start: newTripStart,
+          end: newTripEnd,
+          visibility: newTripVisibility,
+        }),
       });
       setCreatingTrip(false);
       if (!body) return;
@@ -509,8 +621,9 @@ export default function AgentWizard({
       setNewTripTitle("");
       setNewTripStart("");
       setNewTripEnd("");
+      setNewTripVisibility("guest");
     },
-    [newTripTitle, newTripStart, newTripEnd, send, username],
+    [newTripTitle, newTripStart, newTripEnd, newTripVisibility, send, username],
   );
 
   /**
@@ -1317,47 +1430,16 @@ export default function AgentWizard({
                   {t("agent.noTrips")}
                 </p>
                 <form onSubmit={(event) => void createNewTrip(event)}>
-                  <label
-                    className="mt-4 block text-sm font-semibold text-navy-800"
-                    htmlFor="wizard-new-trip-title"
-                  >
-                    {t("agent.tripTitleLabel")}
-                  </label>
-                  <input
-                    id="wizard-new-trip-title"
-                    required
-                    value={newTripTitle}
-                    onChange={(event) => setNewTripTitle(event.target.value)}
-                    className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
-                  />
-                  <label
-                    className="mt-4 block text-sm font-semibold text-navy-800"
-                    htmlFor="wizard-new-trip-start"
-                  >
-                    {t("agent.tripStartLabel")}
-                  </label>
-                  <input
-                    id="wizard-new-trip-start"
-                    type="date"
-                    required
-                    value={newTripStart}
-                    onChange={(event) => setNewTripStart(event.target.value)}
-                    className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
-                  />
-                  <label
-                    className="mt-4 block text-sm font-semibold text-navy-800"
-                    htmlFor="wizard-new-trip-end"
-                  >
-                    {t("agent.tripEndLabel")}
-                  </label>
-                  <input
-                    id="wizard-new-trip-end"
-                    type="date"
-                    required
-                    min={newTripStart || undefined}
-                    value={newTripEnd}
-                    onChange={(event) => setNewTripEnd(event.target.value)}
-                    className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+                  <NewTripFields
+                    t={t}
+                    title={newTripTitle}
+                    onTitle={setNewTripTitle}
+                    start={newTripStart}
+                    onStart={setNewTripStart}
+                    end={newTripEnd}
+                    onEnd={setNewTripEnd}
+                    visibility={newTripVisibility}
+                    onVisibility={setNewTripVisibility}
                   />
                   <BusyButton
                     busy={creatingTrip}
@@ -1437,47 +1519,16 @@ export default function AgentWizard({
                     <h3 className="font-display text-base font-semibold text-navy-900">
                       {t("agent.newTripHeading")}
                     </h3>
-                    <label
-                      className="mt-3 block text-sm font-semibold text-navy-800"
-                      htmlFor="wizard-new-trip-title"
-                    >
-                      {t("agent.tripTitleLabel")}
-                    </label>
-                    <input
-                      id="wizard-new-trip-title"
-                      required
-                      value={newTripTitle}
-                      onChange={(event) => setNewTripTitle(event.target.value)}
-                      className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
-                    />
-                    <label
-                      className="mt-3 block text-sm font-semibold text-navy-800"
-                      htmlFor="wizard-new-trip-start"
-                    >
-                      {t("agent.tripStartLabel")}
-                    </label>
-                    <input
-                      id="wizard-new-trip-start"
-                      type="date"
-                      required
-                      value={newTripStart}
-                      onChange={(event) => setNewTripStart(event.target.value)}
-                      className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
-                    />
-                    <label
-                      className="mt-3 block text-sm font-semibold text-navy-800"
-                      htmlFor="wizard-new-trip-end"
-                    >
-                      {t("agent.tripEndLabel")}
-                    </label>
-                    <input
-                      id="wizard-new-trip-end"
-                      type="date"
-                      required
-                      min={newTripStart || undefined}
-                      value={newTripEnd}
-                      onChange={(event) => setNewTripEnd(event.target.value)}
-                      className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+                    <NewTripFields
+                      t={t}
+                      title={newTripTitle}
+                      onTitle={setNewTripTitle}
+                      start={newTripStart}
+                      onStart={setNewTripStart}
+                      end={newTripEnd}
+                      onEnd={setNewTripEnd}
+                      visibility={newTripVisibility}
+                      onVisibility={setNewTripVisibility}
                     />
                     <BusyButton
                       busy={creatingTrip}

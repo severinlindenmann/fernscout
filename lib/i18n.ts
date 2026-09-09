@@ -506,6 +506,7 @@ export type TranslationKey =
   | "agent.tripHeading"
   | "agent.tripStartLabel"
   | "agent.tripTitleLabel"
+  | "agent.tripVisibilityLabel"
   | "agent.uploadTitle"
   | "agent.uploading"
   | "agent.uploadingFor"
