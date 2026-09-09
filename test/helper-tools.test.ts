@@ -232,14 +232,17 @@ describe("finding a day by what was in it, not by its date", () => {
 });
 
 /**
- * The two things that must not become chat actions — and neither is a `link`
- * either. Both are matched by the refusal table in `lib/helper/intents.ts`
- * before the model is called at all (B817), which is stricter than a tool the
- * model could choose: deleting finishes in a mailbox, and a postcard finishes
- * on the owner's own preview page where the addresses are.
+ * The one thing that must not become a chat action, and is not even a `link`:
+ * matched by the refusal table in `lib/helper/intents.ts` before the model is
+ * called at all (B817), which is stricter than a tool the model could choose.
+ * Deleting finishes in a mailbox. A postcard used to be refused the same way,
+ * on the same reasoning — there was no tool for it — but `propose_postcards`
+ * is one now (`lib/helper/tools/areas/printed.ts`): it writes a real order
+ * and hands over a URL, and pressing still happens only on the owner's own
+ * postcards page, which is what the tool's own `describe` and `done` say.
  */
 describe("what has no tool at all", () => {
-  for (const forbidden of ["delete", "erase", "destroy", "postcard", "send", "upload"]) {
+  for (const forbidden of ["delete", "erase", "destroy", "send", "upload"]) {
     test(`nothing in the registry is called anything like "${forbidden}"`, () => {
       expect(TOOLS.map((tool) => tool.name).filter((name) => name.includes(forbidden))).toEqual([]);
     });
@@ -282,6 +285,8 @@ describe("a proposal can only be pressed into the helper's own routes", () => {
     "/api/helper/alex/day/unpublish",
     "/api/helper/alex/day/attach",
     "/api/helper/alex/invite",
+    "/api/helper/alex/postcard",
+    "/api/helper/alex/photobook",
   ];
 
   test("every write tool names one of them, and nothing else", () => {

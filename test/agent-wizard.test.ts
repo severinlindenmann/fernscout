@@ -115,8 +115,13 @@ describe("the helper routes", () => {
   // Nineteen since B931 added `invite`, which proposes the guest link that
   // lets somebody who was not on a trip ask to read it. Same cookie, same
   // owner check, and it issues a link and never a grant.
-  test("there are nineteen of them, and each is guarded", () => {
-    expect(sources).toHaveLength(19);
+  // Twenty-one for the printed-things area: `postcard`, which writes a real,
+  // pending postcard order the same way `invite` writes a real invite, and
+  // `photobook`, which writes nothing at all and only hands back the maker's
+  // own URL. Same cookie, same owner check, and neither ever prints or
+  // charges — that is the owner's own press, on their own page.
+  test("there are twenty-one of them, and each is guarded", () => {
+    expect(sources).toHaveLength(21);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

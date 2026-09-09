@@ -4,6 +4,7 @@ import { DAYS_TOOLS } from "./areas/days";
 import { FILES_TOOLS } from "./areas/files";
 import { JOURNAL_TOOLS } from "./areas/journal";
 import { MONEY_TOOLS } from "./areas/money";
+import { PRINTED_TOOLS } from "./areas/printed";
 import { READERS_TOOLS } from "./areas/readers";
 import { TRIPS_TOOLS } from "./areas/trips";
 
@@ -28,4 +29,5 @@ export const TOOLS: readonly Tool[] = [
   ...FILES_TOOLS,
   ...READERS_TOOLS,
   ...JOURNAL_TOOLS,
+  ...PRINTED_TOOLS,
 ];

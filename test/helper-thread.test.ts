@@ -434,6 +434,9 @@ describe("the tools", () => {
       // B906 — a sentence that names a thing rather than a date used to land
       // on the screen that starts a new day.
       "find_day",
+      "postcard_recipients",
+      "postcard_texts",
+      "print_order",
       "read_day",
       "trip_costs",
       "trips",
@@ -451,6 +454,10 @@ describe("the tools", () => {
       "draft_words",
       // B931 — the only way somebody who was not on a trip can ever read it.
       "invite_guest",
+      // The printed-things area: a postcard proposal that writes a real,
+      // pending order, and a photobook hand-over that writes nothing at all.
+      "photobook",
+      "propose_postcards",
       "publish_day",
       "set_day_words",
       "start_day",
