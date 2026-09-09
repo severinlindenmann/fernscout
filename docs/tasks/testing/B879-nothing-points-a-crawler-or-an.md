@@ -7,8 +7,7 @@ complexity: low
 area: SEO / discovery
 found: "2026-09-07T17:49:59Z"
 started: "2026-09-07T17:50:38Z"
-session: d84a547d-0f51-4bfa-8a57-66c4c87decf4
-claimed: "2026-09-07T17:50:38Z"
+merged: "2026-09-09T18:13:42Z"
 ---
 
 # B879 — Nothing points a crawler or an agent at the product pages, the feed or the markdown
