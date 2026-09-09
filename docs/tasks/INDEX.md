@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (159)
+## backlog (164)
 
 ### security (2)
 
@@ -58,11 +58,12 @@ Do not edit them by hand; run the script.
 | [B1118](backlog/security/B1118-deleting-a-published-day-is-self.md) | Deleting a published day is self-serviced by the agent, unlike every other unrecoverable delete | SECURITY | high | low |
 | [B1045](backlog/security/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low |
 
-### issue (23)
+### issue (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1125](backlog/issue/B1125-every-photobook-print-quote-is-refused.md) | Every photobook print quote is refused, so the print panel can never appear | ISSUE | high | low |
+| [B1147](backlog/issue/B1147-gelato-rejects-fernscout-ch-s-credential.md) | Gelato rejects fernscout.ch's credential, so no photobook in a real journal can be priced | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1094](backlog/issue/B1094-editing-a-contact-opens-a-form.md) | Editing a contact opens a form off-screen above the button, so the button looks broken | ISSUE | medium | low |
@@ -75,6 +76,7 @@ Do not edit them by hand; run the script.
 | [B1132](backlog/issue/B1132-the-address-confirmation-mail-says-nothing.md) | The address-confirmation mail says nothing opens yet, but a pre-approved invite admits the reader on confirming | ISSUE | medium | low |
 | [B1138](backlog/issue/B1138-the-whatsapp-channel-discloses-ai-consent.md) | The WhatsApp channel discloses AI/consent once but never gates on an acknowledgement | ISSUE | medium | medium |
 | [B1139](backlog/issue/B1139-a-hold-in-in-development-survives.md) | A hold in in-development survives the session that took it, and nothing says the work already merged | ISSUE | medium | medium |
+| [B1148](backlog/issue/B1148-a-refused-print-credential-is-reported.md) | A refused print credential is reported to the owner as the printer being unreachable, with advice to try again | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
@@ -85,6 +87,7 @@ Do not edit them by hand; run the script.
 | [B1128](backlog/issue/B1128-the-invites-and-inbox-tools-also.md) | The invites and inbox tools also say their own block back in prose | ISSUE | low | low |
 | [B1133](backlog/issue/B1133-the-owner-s-own-copy-of.md) | The owner's own copy of a day letter says they asked to be kept posted and offers no way to stop it | ISSUE | low | low |
 | [B1142](backlog/issue/B1142-the-share-control-gate-test-asserts.md) | The share-control gate test asserts proximity with a character window that is widened every time the file grows | ISSUE | low | low |
+| [B1149](backlog/issue/B1149-the-pdf-x-report-tells-you.md) | The PDF/X report tells you to run gs-pdfx.sh, which is only written when the run already had an ICC | ISSUE | low | low |
 
 ### big-feature (18)
 
@@ -140,7 +143,7 @@ Do not edit them by hand; run the script.
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (5)
+### chore (6)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -149,8 +152,9 @@ Do not edit them by hand; run the script.
 | [B1048](backlog/chore/B1048-two-merge-commits-on-main-label.md) | Two merge commits on main label themselves B1026 and B1027, which are different tickets | CHORE | low | low |
 | [B1052](backlog/chore/B1052-code-and-commits-cite-task-ids.md) | Code and commits cite task ids that have no file, so the allocator hands them out again | CHORE | low | low |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
+| [B1151](backlog/chore/B1151-macos-appledouble-files-are-synced-into.md) | macOS AppleDouble files are synced into the demo journal's originals on the server | CHORE | low | low |
 
-### ops (15)
+### ops (16)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -169,6 +173,7 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 | [B1119](backlog/ops/B1119-fernscout-ch-s-caddy-block-is.md) | fernscout.ch's Caddy block is hand-merged, so proxy directives drift until applied by hand | OPS | low | low |
+| [B1150](backlog/ops/B1150-ghostscript-is-not-installed-on-the.md) | Ghostscript is not installed on the VPS, so the instance cannot produce a conformant PDF/X-4 | OPS | low | low |
 
 ### docs-and-skills (5)
 
@@ -274,15 +279,14 @@ Do not edit them by hand; run the script.
 | [B1115](open/B1115-a-brief-can-say-a-ticket.md) | A brief can say a ticket is dropped or live, and B1058 is neither | DOCS | high | low |
 | [B994](open/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium |
 
-## in-development (3)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1140](in-development/B1140-a-built-book-offers-its-pdfs.md) | A built book offers its PDFs but no way through to the page that prints it | ISSUE | high | low | `ce87fdc2` |
 | [B1145](in-development/B1145-the-print-panel-summarises-an-address.md) | The print panel summarises an address where it should show the envelope | FEATURE | high | low | `ce87fdc2` |
-| [B108](in-development/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium | `568ffb7e` |
 
-## testing (25)
+## testing (26)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -307,6 +311,7 @@ Do not edit them by hand; run the script.
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B1035](testing/B1035-navy-800-is-used-across-dozens.md) | navy-800 is used across dozens of components but no navy-800 token exists | ISSUE | medium | low | — |
 | [B1039](testing/B1039-the-ask-box-silently-truncates-a.md) | The ask box silently truncates a long message to 500 characters | ISSUE | medium | low | — |
+| [B108](testing/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium | — |
 | [B1107](testing/B1107-every-trip-card-leads-with-an.md) | Every trip card leads with an editable box holding a raw trip id the person has never seen | ISSUE | medium | low | — |
 | [B1108](testing/B1108-past-conversations-are-listed-twice-once.md) | Past conversations are listed twice, once as chips and again as prose with unrendered asterisks | ISSUE | medium | low | — |
 | [B1110](testing/B1110-the-testing-lane-is-filed-into.md) | The testing lane is filed into nine category folders nobody reads, now that the run report is what a person reviews from | CHORE | medium | low | — |
