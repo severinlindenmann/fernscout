@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (152)
+## backlog (151)
 
 ### security (3)
 
@@ -59,13 +59,12 @@ Do not edit them by hand; run the script.
 | [B1105](backlog/security/B1105-the-operator-s-personal-mobile-number.md) | The operator's personal mobile number is the example in the source, the public API spec and the agent guide | SECURITY | high | low |
 | [B1045](backlog/security/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low |
 
-### issue (12)
+### issue (11)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1053](backlog/issue/B1053-the-helper-s-tool-list-has.md) | The helper's tool list has outgrown the budget its own test set, and the fix is grouping | ISSUE | high | medium |
 | [B1102](backlog/issue/B1102-signing-in-at-agent-lands-in.md) | Signing in at /agent lands in the six-step wizard, not the room B984 made the whole of it | ISSUE | high | low |
-| [B1104](backlog/issue/B1104-a-patch-press-sends-no-body.md) | A PATCH press sends no body, so every card that edits a trip or a day's words fails | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1094](backlog/issue/B1094-editing-a-contact-opens-a-form.md) | Editing a contact opens a form off-screen above the button, so the button looks broken | ISSUE | medium | low |
@@ -272,7 +271,7 @@ Do not edit them by hand; run the script.
 | [B1103](in-development/B1103-nothing-can-tell-an-agent-which.md) | Nothing can tell an agent which photographs on a trip are the same picture twice | FEATURE | medium | low | `8aa24275` |
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 
-## testing (278)
+## testing (279)
 
 ### security (9)
 
@@ -288,7 +287,7 @@ Do not edit them by hand; run the script.
 | [B1087](testing/security/B1087-owner-only-json-and-auth-responses.md) | Owner-only JSON and auth responses carry no no-store cache header | SECURITY | low | low | — |
 | [B832](testing/security/B832-refund-raises-a-balance-but-is.md) | refund() raises a balance but is not on the grant allowlist test | SECURITY | low | low | — |
 
-### issue (162)
+### issue (163)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -301,6 +300,7 @@ Do not edit them by hand; run the script.
 | [B1041](testing/issue/B1041-the-agent-asks-in-prose-for.md) | The agent asks in prose for what its own card would have asked in controls | ISSUE | high | low | — |
 | [B1042](testing/issue/B1042-the-service-worker-caches-owner-only.md) | The service worker caches owner-only responses forever and ignores no-store | ISSUE | high | low | — |
 | [B1090](testing/issue/B1090-a-day-s-zone-must-be.md) | A day's zone must be worked out from where it happened, or B42 helps almost no day that exists | ISSUE | high | medium | — |
+| [B1104](testing/issue/B1104-a-patch-press-sends-no-body.md) | A PATCH press sends no body, so every card that edits a trip or a day's words fails | ISSUE | high | low | — |
 | [B756](testing/issue/B756-a-party-of-five-overlaps-the.md) | A party of five overlaps the title it was moved onto, and the vehicles cannot be found on a real book | ISSUE | high | low | — |
 | [B764](testing/issue/B764-the-colophon-s-figures-stand-in.md) | The colophon's figures stand in the middle of its own text | ISSUE | high | low | — |
 | [B766](testing/issue/B766-the-write-up-keeps-weather-in.md) | The write-up keeps weather in the prose and says in its warnings that it removed it | ISSUE | high | low | — |

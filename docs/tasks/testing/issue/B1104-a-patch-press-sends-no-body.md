@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: components/HelperAsk.tsx
 found: "2026-09-09T16:27:50Z"
+merged: "2026-09-09T16:38:34Z"
 ---
 
 # B1104 — A PATCH press sends no body, so every card that edits a trip or a day's words fails
