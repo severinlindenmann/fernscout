@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: journal, trips, about
 found: "2026-09-01"
+started: "2026-09-09T05:44:37Z"
+session: eef381a2-5a19-477a-a5ce-5f4f2d3dacab
+claimed: "2026-09-09T05:44:37Z"
 ---
 
 # B10 — A journal never says who is writing it
