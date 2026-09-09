@@ -7,8 +7,7 @@ complexity: medium
 area: auth, otp, sms, whatsapp
 found: "2026-09-09T07:11:55Z"
 started: "2026-09-09T17:22:12Z"
-session: df031729-b5f3-42f2-bcac-c6c88d608ee0
-claimed: "2026-09-09T17:22:12Z"
+merged: "2026-09-09T18:34:33Z"
 ---
 
 # B1065 — There is no way to prove that somebody holds the telephone number they typed
