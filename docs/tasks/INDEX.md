@@ -274,30 +274,25 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (10)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1054](in-development/B1054-the-helper-s-live-conversation-lives.md) | The helper's live conversation lives in one process's memory, so no second door can ever join it | FEATURE | high | high | `e910c430` |
-| [B1055](in-development/B1055-every-helper-route-proves-the-caller.md) | Every helper route proves the caller with a browser cookie, so nothing but a browser can speak to the helper | FEATURE | high | medium | `e910c430` |
-| [B1056](in-development/B1056-a-helper-answer-can-only-be.md) | A helper answer can only be drawn in the web room, because Block has exactly one renderer | FEATURE | high | high | `e910c430` |
-| [B1059](in-development/B1059-a-photograph-sent-over-whatsapp-has.md) | A photograph sent over WhatsApp has nowhere to land, and arrives compressed when it does | FEATURE | high | medium | `e910c430` |
-| [B1061](in-development/B1061-a-conversation-that-goes-quiet-for.md) | A conversation that goes quiet for a day cannot be answered, and nothing in the code knows it | FEATURE | high | medium | `e910c430` |
-| [B1062](in-development/B1062-there-is-still-no-way-out.md) | There is still no way out of the WhatsApp channel from inside WhatsApp | FEATURE | high | medium | `e910c430` |
-| [B1060](in-development/B1060-a-voice-note-sent-over-whatsapp.md) | A voice note sent over WhatsApp has no route to the transcriber that already exists | FEATURE | medium | low | `e910c430` |
-| [B1074](in-development/B1074-a-location-pin-and-a-shared.md) | A location pin and a shared contact card arrive as text and become nothing | FEATURE | medium | medium | `e910c430` |
-| [B1138](in-development/B1138-the-whatsapp-channel-discloses-ai-consent.md) | The WhatsApp channel discloses AI/consent once but never gates on an acknowledgement | ISSUE | medium | medium | `e910c430` |
-| [B1127](in-development/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low | `e910c430` |
+_Nothing here._
 
-## testing (63)
+## testing (73)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B101](testing/B101-nobody-has-attacked-a-running-instance.md) | Nobody has attacked a running instance from the outside with the source in hand | OPS | high | high | — |
 | [B102](testing/B102-mail-is-switched-on-at-fernscout.md) | Mail is switched on at fernscout.ch and nothing records that a message has ever arrived | OPS | high | medium | — |
 | [B103](testing/B103-sign-in-is-switched-on-at.md) | Sign-in is switched on at fernscout.ch and no one has been through the code flow there end to end | OPS | high | medium | — |
+| [B1054](testing/B1054-the-helper-s-live-conversation-lives.md) | The helper's live conversation lives in one process's memory, so no second door can ever join it | FEATURE | high | high | — |
+| [B1055](testing/B1055-every-helper-route-proves-the-caller.md) | Every helper route proves the caller with a browser cookie, so nothing but a browser can speak to the helper | FEATURE | high | medium | — |
+| [B1056](testing/B1056-a-helper-answer-can-only-be.md) | A helper answer can only be drawn in the web room, because Block has exactly one renderer | FEATURE | high | high | — |
 | [B1057](testing/B1057-nothing-reads-an-inbound-whatsapp-message.md) | Nothing reads an inbound WhatsApp message, so the number can be written to and never answers | FEATURE | high | high | — |
 | [B1058](testing/B1058-an-inbound-message-carries-a-telephone.md) | An inbound message carries a telephone number and nothing that says whose journal it is | FEATURE | high | high | — |
+| [B1059](testing/B1059-a-photograph-sent-over-whatsapp-has.md) | A photograph sent over WhatsApp has nowhere to land, and arrives compressed when it does | FEATURE | high | medium | — |
+| [B1061](testing/B1061-a-conversation-that-goes-quiet-for.md) | A conversation that goes quiet for a day cannot be answered, and nothing in the code knows it | FEATURE | high | medium | — |
+| [B1062](testing/B1062-there-is-still-no-way-out.md) | There is still no way out of the WhatsApp channel from inside WhatsApp | FEATURE | high | medium | — |
 | [B1063](testing/B1063-the-imprint-does-not-say-that.md) | The imprint does not say that a message sent to the WhatsApp number is read, stored and sent to Meta | DOCS | high | low | — |
 | [B1064](testing/B1064-a-journal-s-owner-is-proven.md) | A journal's owner is proven by an email alone, and an address costs nothing to make another of | FEATURE | high | high | — |
 | [B1065](testing/B1065-there-is-no-way-to-prove.md) | There is no way to prove that somebody holds the telephone number they typed | FEATURE | high | medium | — |
@@ -335,13 +330,16 @@ Do not edit them by hand; run the script.
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |
 | [B1035](testing/B1035-navy-800-is-used-across-dozens.md) | navy-800 is used across dozens of components but no navy-800 token exists | ISSUE | medium | low | — |
 | [B1039](testing/B1039-the-ask-box-silently-truncates-a.md) | The ask box silently truncates a long message to 500 characters | ISSUE | medium | low | — |
+| [B1060](testing/B1060-a-voice-note-sent-over-whatsapp.md) | A voice note sent over WhatsApp has no route to the transcriber that already exists | FEATURE | medium | low | — |
 | [B1068](testing/B1068-an-agent-that-brings-its-own.md) | An agent that brings its own model cannot write a day from notes, caption a photograph, or hear a voice note | DOCS | medium | high | — |
+| [B1074](testing/B1074-a-location-pin-and-a-shared.md) | A location pin and a shared contact card arrive as text and become nothing | FEATURE | medium | medium | — |
 | [B108](testing/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium | — |
 | [B1107](testing/B1107-every-trip-card-leads-with-an.md) | Every trip card leads with an editable box holding a raw trip id the person has never seen | ISSUE | medium | low | — |
 | [B1108](testing/B1108-past-conversations-are-listed-twice-once.md) | Past conversations are listed twice, once as chips and again as prose with unrendered asterisks | ISSUE | medium | low | — |
 | [B1109](testing/B1109-every-message-starts-its-own-conversation.md) | Every message starts its own conversation, so the past-conversations list is a list of single turns | ISSUE | medium | medium | — |
 | [B1110](testing/B1110-the-testing-lane-is-filed-into.md) | The testing lane is filed into nine category folders nobody reads, now that the run report is what a person reviews from | CHORE | medium | low | — |
 | [B1136](testing/B1136-fernscout-ch-carries-test-journals-beside.md) | fernscout.ch carries test journals beside the two real ones, and nothing says which is which | OPS | medium | low | — |
+| [B1138](testing/B1138-the-whatsapp-channel-discloses-ai-consent.md) | The WhatsApp channel discloses AI/consent once but never gates on an acknowledgement | ISSUE | medium | medium | — |
 | [B1152](testing/B1152-the-acceptance-gate-s-buttons-give.md) | The acceptance gate's buttons give no feedback and its second label says nothing, so a person cannot tell what they chose or where a ticket is | DOCS | medium | low | — |
 | [B1159](testing/B1159-the-off-site-bucket-is-opaque.md) | The off-site bucket is opaque blobs with no note in it, and keeps thirty nights | FEATURE | medium | low | — |
 | [B1162](testing/B1162-a-quoted-day-shows-its-blockquote.md) | A quoted day shows its blockquote marker, in the one block where quoting happens | ISSUE | medium | low | — |
@@ -354,6 +352,7 @@ Do not edit them by hand; run the script.
 | [B1186](testing/B1186-a-transient-upstream-failure-reads-as.md) | A transient upstream failure reads as 'That did not work: 502' with no words | ISSUE | medium | low | — |
 | [B1190](testing/B1190-the-model-says-press-to-save.md) | The model says 'press to save' on a turn that drew no button | ISSUE | medium | medium | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
+| [B1127](testing/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low | — |
 | [B1128](testing/B1128-the-invites-and-inbox-tools-also.md) | The invites and inbox tools also say their own block back in prose | ISSUE | low | low | — |
 | [B1179](testing/B1179-a-reopened-conversation-reads-as-one.md) | A reopened conversation reads as one undifferentiated wall with no date | ISSUE | low | low | — |
 

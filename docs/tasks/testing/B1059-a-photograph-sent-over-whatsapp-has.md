@@ -7,8 +7,7 @@ complexity: medium
 area: whatsapp, media, inbox
 found: "2026-09-09T07:11:43Z"
 started: "2026-09-09T20:27:34Z"
-session: e910c430-ff9a-40d7-90f2-9e6f530e409f
-claimed: "2026-09-09T20:27:34Z"
+merged: "2026-09-09T22:06:53Z"
 ---
 
 # B1059 — A photograph sent over WhatsApp has nowhere to land, and arrives compressed when it does

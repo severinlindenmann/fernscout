@@ -7,8 +7,7 @@ complexity: high
 area: helper, blocks, channels, whatsapp
 found: "2026-09-09T07:11:41Z"
 started: "2026-09-09T20:27:30Z"
-session: e910c430-ff9a-40d7-90f2-9e6f530e409f
-claimed: "2026-09-09T20:27:30Z"
+merged: "2026-09-09T22:06:51Z"
 ---
 
 # B1056 — A helper answer can only be drawn in the web room, because Block has exactly one renderer

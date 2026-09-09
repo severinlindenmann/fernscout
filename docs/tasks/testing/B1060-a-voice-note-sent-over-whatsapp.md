@@ -7,8 +7,7 @@ complexity: low
 area: whatsapp, speech, transcription
 found: "2026-09-09T07:11:43Z"
 started: "2026-09-09T20:27:33Z"
-session: e910c430-ff9a-40d7-90f2-9e6f530e409f
-claimed: "2026-09-09T20:27:33Z"
+merged: "2026-09-09T22:06:52Z"
 ---
 
 # B1060 — A voice note sent over WhatsApp has no route to the transcriber that already exists

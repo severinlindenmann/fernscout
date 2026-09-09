@@ -7,8 +7,7 @@ complexity: medium
 area: helper, auth, channels
 found: "2026-09-09T07:11:40Z"
 started: "2026-09-09T20:27:29Z"
-session: e910c430-ff9a-40d7-90f2-9e6f530e409f
-claimed: "2026-09-09T20:27:29Z"
+merged: "2026-09-09T22:06:50Z"
 ---
 
 # B1055 — Every helper route proves the caller with a browser cookie, so nothing but a browser can speak to the helper

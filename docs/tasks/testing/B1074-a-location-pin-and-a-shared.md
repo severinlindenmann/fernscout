@@ -7,8 +7,7 @@ complexity: medium
 area: whatsapp, gps, contacts
 found: "2026-09-09T10:49:17Z"
 started: "2026-09-09T20:27:35Z"
-session: e910c430-ff9a-40d7-90f2-9e6f530e409f
-claimed: "2026-09-09T20:27:35Z"
+merged: "2026-09-09T22:06:53Z"
 ---
 
 # B1074 — A location pin and a shared contact card arrive as text and become nothing
