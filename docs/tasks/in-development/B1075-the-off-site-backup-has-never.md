@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: backup, DR, off-site
 found: "2026-09-09T10:55:35Z"
+started: "2026-09-09T18:49:46Z"
+session: c6d32890-d802-452a-9437-67c47132e6aa
+claimed: "2026-09-09T18:49:46Z"
 ---
 
 # B1075 — The off-site backup has never once succeeded, and the nightly run failed two days ago
