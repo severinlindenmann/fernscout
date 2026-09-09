@@ -172,6 +172,26 @@ Every ticket carries three buttons — **promote / hold / don't do** — with
 is the button. A choice that differs from your verdict is flagged *changed*, so
 that when they paste the result back you can see where you were wrong.
 
+**The bar is a control surface, not a document, so it obeys the UI half of
+`artifact-design`, not the prose half the cards above follow.** Two things that
+`report-a-run`'s own gate got wrong in its first real use (B1152), and that
+this bar shares the machinery for:
+
+- **A chosen button fills solid** — the verdict's colour as the button
+  *background* with contrasting text, never a pale tint behind coloured text. A
+  tint reads as no change at all, and a person who cannot see which button they
+  pressed presses it again or gives up. The selected state has to be legible
+  across the room, not on inspection.
+- **A person can reach the ticket a control decides.** These buttons sit under
+  the ticket card itself, so that is already true here — but if a summary row
+  ever repeats the id away from its card, the id is a control that scrolls to
+  and highlights the card (with `scroll-margin` so the sticky bar does not
+  cover it). A decision made without the evidence in front of it is made blind.
+
+Both buttons also name their consequence rather than a mood: *promote*, *hold*,
+*don't do* each say where the ticket goes, the same rule `report-a-run`'s gate
+follows with "Accept" and "Hold to see live".
+
 A sticky bar at the bottom of the page holds a running tally (promote, hold,
 don't do, undecided) and three controls: *start from my verdicts* (fills every
 row with your recommendation, for somebody who wants to correct rather than

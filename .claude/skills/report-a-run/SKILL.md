@@ -179,9 +179,16 @@ when the promise resolves and "Select all and copy" otherwise), the readonly
 textarea fallback, never a download — rather than building a second version
 of the same thing:
 
-- Every ticket row carries **accept / needs another look**, nothing
-  pre-selected. The sticky bar's tally counts the undecided, the same shape
-  as the triage bar's own running count.
+- Every ticket row carries two verdicts, nothing pre-selected. The sticky
+  bar's tally counts the undecided, the same shape as the triage bar's own
+  running count.
+- **Label each verdict by what it does, never by a mood.** "Accept" (→
+  `completed/`) and "Hold to see live" (→ stays in `testing/`), with a
+  one-line legend above the rows saying where each sends the ticket. B1152 is
+  why: a button first labelled "needs another look" told the owner nothing
+  about its consequence — the same failure `ConfirmPanel` was built to end
+  ("a button that says what it *does* rather than OK"). A verdict is a
+  destination, so name the destination.
 - Every row also carries a note field, open on both verdicts. Whatever is
   typed there is carried into the generated text beside that ticket's id —
   "accepted, but the spacing at 390 is tight" is a sentence the next agent can
@@ -192,7 +199,24 @@ of the same thing:
   line — `move B1097 B1099 B1100 to completed`, the accepted ids, in order,
   nothing else — so a person can hand it to an agent with nothing added.
   Below that line: the accepted tickets that carry a note, each with its
-  note; then the tickets held back, each with theirs.
+  note; then the tickets held to see live, each with theirs.
+
+**The gate is a control surface, not a document — so it obeys the UI half of
+`artifact-design`, not the prose half the rest of this page follows.** Three
+things follow, and all three were faults the owner hit in the gate's first
+real minute (B1152); none of them is catchable by a test:
+
+- **A chosen verdict fills solid** — the semantic colour as the button
+  *background* with contrasting text, not a pale tint behind coloured text. A
+  tint reads as no change at all; the selected state has to be legible across
+  the room, not on inspection. State shows in form, not only in a word.
+- **A person can reach what they are deciding on.** Each row's id is a control
+  that scrolls to and briefly highlights that ticket's card above (give the
+  card `scroll-margin` so the sticky bar does not cover it). A decision
+  surface that makes somebody hunt up the page for the evidence gets decided
+  blind.
+- The narrative report above the gate stays a document. Only the gate is a
+  control; do not let the two blur.
 
 This still moves nothing. `completed/` is a person's gate, exactly as
 `open/` is in `triage-a-backlog`, and the deliverable is text in a
