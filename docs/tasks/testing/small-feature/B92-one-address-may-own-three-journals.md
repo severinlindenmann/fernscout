@@ -7,8 +7,7 @@ complexity: medium
 area: signup, identity
 found: "2026-09-03"
 started: "2026-09-09T05:44:38Z"
-session: eef381a2-5a19-477a-a5ce-5f4f2d3dacab
-claimed: "2026-09-09T05:44:38Z"
+merged: "2026-09-09T06:14:19Z"
 ---
 
 # B92 — One address may own three journals, and deleting one does not give the name back to the person who lost it
