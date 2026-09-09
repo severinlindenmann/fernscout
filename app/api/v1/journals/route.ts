@@ -389,7 +389,12 @@ export async function POST(request: Request) {
 
   if (!created.ok) {
     // 409 for "that name is taken", 400 for "that name is not a name".
-    const status = created.error === "username_taken" ? 409 : created.error === "too_many_journals" ? 403 : 400;
+    const status =
+      created.error === "username_taken" || created.error === "tel_taken"
+        ? 409
+        : created.error === "too_many_journals"
+          ? 403
+          : 400;
     return refuse(
       {
         error: created.error,

@@ -122,6 +122,23 @@ type Owner = {
    * `41…`), and a national `079…` is refused with a sentence saying why.
    */
   tel?: string;
+  /**
+   * When and how `tel` was proven to belong to this owner — B1064.
+   *
+   * A destination becomes an identity the moment something is checked against
+   * it (B1058's webhook compares an inbound E.164 against this field), so the
+   * proof has to travel with the number rather than live beside it in a
+   * separate table nothing here reads. Absent means unproven: every `tel`
+   * written before B1065 shipped, and any written since by the operator's own
+   * hand rather than through the SMS flow. `lib/journals.ts`'s registry is
+   * the lock that stops two journals claiming the same proven number; this is
+   * the record of *that* journal having proven it.
+   */
+  telProvenAt?: string;
+  /** `"sms"` for the Twilio/dry-run signup flow; `"operator"` for a number an
+   * operator typed in by hand, per B1064's decision that a number change is
+   * done by the operator, by hand, until there is a self-serve path. */
+  telProvenMethod?: "sms" | "operator";
 };
 
 /**
@@ -611,6 +628,20 @@ function parseOwner(src: Record<string, unknown>, problems: string[]): Owner {
       );
     } else {
       owner.tel = tel;
+    }
+  }
+  if (raw.telProvenAt !== undefined) {
+    if (typeof raw.telProvenAt !== "string" || Number.isNaN(Date.parse(raw.telProvenAt))) {
+      problems.push("owner.telProvenAt must be an ISO timestamp, or absent");
+    } else {
+      owner.telProvenAt = raw.telProvenAt;
+    }
+  }
+  if (raw.telProvenMethod !== undefined) {
+    if (raw.telProvenMethod !== "sms" && raw.telProvenMethod !== "operator") {
+      problems.push('owner.telProvenMethod must be "sms" or "operator", or absent');
+    } else {
+      owner.telProvenMethod = raw.telProvenMethod;
     }
   }
   if (raw.email !== undefined) {
