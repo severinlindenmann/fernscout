@@ -1,10 +1,36 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { SHAPES, type Shape } from "@/lib/helper/blocks";
 import { TOOLS, runTool, toolList, toolSchemas, writeTool } from "@/lib/helper/tools";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
+
+/**
+ * B906 — the catalogue and the model behind `find_day` are mocked the same
+ * way `test/helper-search.test.ts` mocks them for the search box's own
+ * fallback: what is under test is not whether a model matches a sentence
+ * well, but what the tool does with its answer, including a bad one.
+ */
+const catalogue = vi.hoisted(() => ({
+  rows: [] as { id: string; kind: "day" | "trip" | "page" | "doc"; title: string; where: string; url: string }[],
+}));
+vi.mock("@/lib/search", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/search")>();
+  return { ...actual, searchCatalogueFor: async () => catalogue.rows };
+});
+
+const said = vi.hoisted(() => ({
+  hits: [] as { id: string; why: string }[],
+  suggestion: "",
+}));
+vi.mock("@/lib/helper/model", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/helper/model")>();
+  return {
+    ...actual,
+    findInJournal: async () => ({ hits: said.hits, suggestion: said.suggestion }),
+  };
+});
 
 /**
  * The tool contract — B898 and B900, checklist A of
@@ -135,6 +161,73 @@ describe("a link tool returns a sentence and a URL and touches nothing", () => {
     expect(ran.blocks[0]).toMatchObject({ shape: "link", href: "/agent/alex" });
     expect(ran.result).toMatchObject({ wrote: false });
     expect(ran.proposal).toBeUndefined();
+  });
+});
+
+/**
+ * B906 — "the day with the photograph of Anna in it", which named a thing
+ * rather than a date and used to land nowhere, because no tool could turn a
+ * sentence like that into a day at all.
+ */
+describe("finding a day by what was in it, not by its date", () => {
+  test("the registry carries it, as a read tool that renders a choice", () => {
+    const tool = TOOLS.find((one) => one.name === "find_day");
+    expect(tool?.kind).toBe("read");
+    expect(tool?.renders).toBe("choose");
+  });
+
+  test("a sentence naming a thing resolves to a day, not a proposal", async () => {
+    catalogue.rows = [
+      { id: "italy-2026/anna-photo", kind: "day", title: "Lake shore", where: "Italy 2026 · 2026-06-02", url: "/alex/day/anna-photo" },
+    ];
+    said.hits = [{ id: "italy-2026/anna-photo", why: "the photo of Anna" }];
+    const ran = await runTool("alex", "find_day", { said: "the day with the photo of Anna" }, say, "2026-09-07");
+    expect(ran.ok).toBe(true);
+    expect(ran.proposal).toBeUndefined();
+    expect(ran.blocks[0]).toMatchObject({
+      shape: "choose",
+      options: [{ value: "italy-2026/anna-photo", label: "Lake shore" }],
+    });
+  });
+
+  /**
+   * The same discipline `app/api/helper/[user]/search/route.ts` enforces with
+   * its own `byId.get(hit.id)` filter: an id the catalogue never carried —
+   * another journal's day, or a trip this reader is not on — is dropped
+   * rather than resolved. A model that invented a row would otherwise be
+   * inventing a page.
+   */
+  test("an id the catalogue never sent it is dropped, not resolved", async () => {
+    catalogue.rows = [
+      { id: "italy-2026/anna-photo", kind: "day", title: "Lake shore", where: "Italy 2026", url: "/alex/day/anna-photo" },
+    ];
+    said.hits = [
+      { id: "italy-2026/anna-photo", why: "real" },
+      { id: "someone-elses/private-day", why: "invented, or another journal's" },
+    ];
+    const ran = await runTool("alex", "find_day", { said: "anna" }, say, "2026-09-07");
+    const options = (ran.blocks[0] as { options: { value: string }[] }).options;
+    expect(options.map((one) => one.value)).toEqual(["italy-2026/anna-photo"]);
+  });
+
+  test("nothing found says so honestly, and does not fall through to a proposal", async () => {
+    catalogue.rows = [
+      { id: "italy-2026/anna-photo", kind: "day", title: "Lake shore", where: "Italy 2026", url: "/alex/day/anna-photo" },
+    ];
+    said.hits = [];
+    const ran = await runTool("alex", "find_day", { said: "the day we got lost" }, say, "2026-09-07");
+    expect(ran.ok).toBe(true);
+    expect(ran.blocks).toEqual([]);
+    expect(ran.proposal).toBeUndefined();
+    expect(ran.result).toMatchObject({ found: false });
+    expect((ran.result as { why: string }).why).toMatch(/not.*start a new day|nothing.*matches/i);
+  });
+
+  test("an empty journal says so, rather than searching nothing", async () => {
+    catalogue.rows = [];
+    const ran = await runTool("alex", "find_day", { said: "anna" }, say, "2026-09-07");
+    expect(ran.blocks).toEqual([]);
+    expect(ran.result).toMatchObject({ found: false });
   });
 });
 

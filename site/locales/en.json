@@ -1556,6 +1556,7 @@
   "agent.block.trips": "Trips in this journal",
   "agent.block.unfinished": "Started and not yet published",
   "agent.block.day": "The day as it stands",
+  "agent.block.findDay": "What matches",
   "agent.room.title": "Talk it through",
   "agent.room.roomLink": "Or talk it through",
   "agent.room.files": "Files",

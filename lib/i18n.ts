@@ -141,6 +141,7 @@ export type TranslationKey =
   | "agent.backToWords"
   | "agent.block.day"
   | "agent.block.days"
+  | "agent.block.findDay"
   | "agent.block.trips"
   | "agent.block.unfinished"
   | "agent.captionEmpty"

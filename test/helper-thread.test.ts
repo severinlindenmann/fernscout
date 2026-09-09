@@ -420,6 +420,9 @@ describe("the tools", () => {
       "days",
       "unfinished",
       "read_day",
+      // B906 — a sentence that names a thing rather than a date used to land
+      // on the screen that starts a new day.
+      "find_day",
       "account",
       "trip_costs",
       "who_can_read",
