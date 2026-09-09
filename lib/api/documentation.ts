@@ -1082,6 +1082,21 @@ in \`/openapi.json\` for the same reason: a route only a signed-in browser can
 ever call is not part of the API contract, and listing it would suggest a
 credential you could present to reach it.
 
+**Nothing that spends this instance's model or transcription budget will ever
+be in \`/openapi.json\` either, and that is not an oversight.** Drafting prose
+from notes, captioning a photograph, transcribing a voice note, matching an
+unfamiliar bank statement's columns, and searching past conversations all call
+a model or a transcriber the operator pays for and meters in credits — and
+those stay inside this instance's own surfaces: the helper at \`/agent\`, and
+the WhatsApp channel. A \`/api/v1\` door onto any of them would be selling the
+operator's own Anthropic or Deepgram access, charged against a currency you did
+not buy for that purpose. You bring your own model here: write the prose,
+caption the photograph, transcribe your own audio, and hand the API the
+finished content the way \`POST .../days\` and \`.../media\` already expect it.
+\`past_conversations\` stays helper-only too, for a different reason — it is the
+owner's own conversation history, and a third party reading it back is a
+privacy decision, not an API gap.
+
 ## Reading
 
 You do not need a token to read anything public.
