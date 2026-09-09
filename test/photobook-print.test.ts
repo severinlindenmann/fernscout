@@ -213,6 +213,17 @@ describe("printOrder", () => {
     expect(order.coverUrl).toContain("exp=");
   });
 
+  test("hands the printer an ISO country code and not the stored name", async () => {
+    await printOrder(OWNER, ID, QUOTED);
+    const order = vi.mocked(submitBookPrint).mock.calls[0][0];
+    // B1126. The fixture contact's address says "Switzerland", which is how
+    // people write addresses; `ShippingAddress.country` is documented as ISO
+    // 3166-1 alpha-2 and two of the four provider builders name the field
+    // `countryCode` outright. Passing the name through got as far as the
+    // printer and was refused there — after the credits had been spent.
+    expect(order.to.country).toBe("CH");
+  });
+
   test("is reachable from no API route", () => {
     const hits: string[] = [];
     const walk = (root: string) => {

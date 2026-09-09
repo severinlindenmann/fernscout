@@ -171,7 +171,17 @@ export async function printOrder(owner: string, id: string, quotedCredits: numbe
       line2: to.line2,
       postcode: to.postcode,
       city: to.city,
-      country: to.country ?? "",
+      // B1126. The ISO code resolved above, never the stored country name.
+      // `ShippingAddress.country` is documented as ISO 3166-1 alpha-2 and two
+      // of the four provider builders call the field `countryCode` outright,
+      // so a contact whose address says "Switzerland" — which is how people
+      // write addresses — was refused by Gelato as
+      // `shippingAddress.country: This value is not a valid country`. It
+      // refused *after* the credits were spent, and only the refund path made
+      // that survivable. `country` cannot be null here: `isoCountry` is
+      // checked above and returns `unknown_country` when it cannot resolve
+      // one.
+      country,
       email,
     },
     test: true,
