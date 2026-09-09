@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: components/DayNotify.tsx
 found: "2026-09-08T22:05:00Z"
+started: "2026-09-09T06:09:48Z"
+session: f88144a1-6520-4fc1-94bd-496a694b98c8
+claimed: "2026-09-09T06:09:48Z"
 ---
 
 # B1027 — The send button is offered on a day whose journal has no readers to send it to

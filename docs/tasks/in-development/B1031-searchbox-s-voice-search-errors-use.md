@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: agent, a11y
 found: "2026-09-08T20:41:23Z"
+started: "2026-09-09T06:09:05Z"
+session: f88144a1-6520-4fc1-94bd-496a694b98c8
+claimed: "2026-09-09T06:09:05Z"
 ---
 
 # B1031 — SearchBox's voice-search errors use role=status, not role=alert

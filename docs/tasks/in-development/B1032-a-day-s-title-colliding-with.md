@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: agent, i18n
 found: "2026-09-08T20:51:15Z"
+started: "2026-09-09T06:09:08Z"
+session: f88144a1-6520-4fc1-94bd-496a694b98c8
+claimed: "2026-09-09T06:09:08Z"
 ---
 
 # B1032 — A day's title colliding with another day's slug is still an English sentence on the helper
