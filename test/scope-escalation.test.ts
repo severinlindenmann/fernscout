@@ -456,25 +456,23 @@ describe("B241 — an agent code cannot be requested for a trip that does not ex
   });
 });
 
-describe("B231 — export.zip does not hand a trip-scoped token the whole journal", () => {
+describe("B231/B1086 — export.zip is owner-only and hands nothing to anyone else", () => {
   /**
    * The route decided "owner" with `ownsUser`, which asks only which journal
    * the token belongs to and never what it may do inside it. A token minted
    * for one trip — the credential a buddy link produces — therefore selected
    * the `"all"` scope: every trip on disk, drafts included.
    */
-  test("a token for one trip gets the public archive, not the journal", async () => {
+  test("a token for one trip is refused outright — no archive at all (B1086)", async () => {
     const token = await scopedToken(ROBIN, "alps-2026");
 
+    // Since B1086 the route is owner-only. A trip-scoped token is not the
+    // owner, so it gets the same 404 an unknown journal does — not the public
+    // archive it used to fall through to. There is no zip to search.
     const archive = await exportZip(token);
-    expect(archive.status).toBe(200);
-
-    // The private trip they were never on, and the unpublished day inside it.
-    expect(archive.names).not.toContain("trips/honeymoon-2026/");
-    expect(archive.names).not.toContain("2026-08-25-the-quiet-week.md");
-    // And not the private trip they *were* on either: this is the archive an
-    // anonymous visitor gets, and a per-trip export is a separate feature.
-    expect(archive.names).not.toContain("trips/alps-2026/");
+    expect(archive.status).toBe(404);
+    expect(archive.names).not.toContain("config.json");
+    expect(archive.names).not.toContain("trips/");
   });
 
   test("the journal's owner still gets all of it", async () => {
@@ -488,10 +486,14 @@ describe("B231 — export.zip does not hand a trip-scoped token the whole journa
     expect(archive.names).toContain("2026-08-25-the-quiet-week.md");
   });
 
-  test("an anonymous request still gets neither", async () => {
+  test("an anonymous request is refused, and its config.json never leaves (B1086)", async () => {
     const archive = await exportZip();
-    expect(archive.names).not.toContain("trips/honeymoon-2026/");
-    expect(archive.names).not.toContain("trips/alps-2026/");
+    // The finding B1086 fixes: an anonymous export used to return 200 with
+    // config.json inside — owner name, email and home town. Now it is a 404,
+    // and there is no archive to carry any of it.
+    expect(archive.status).toBe(404);
+    expect(archive.names).not.toContain("config.json");
+    expect(archive.names).not.toContain("trips/");
   });
 
   /**

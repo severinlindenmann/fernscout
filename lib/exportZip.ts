@@ -32,12 +32,14 @@ import type { Trip } from "./types";
  *   ones included (B231). **Anything reaching for this scope has to establish
  *   that it is the owner, not merely that it is inside the journal.**
  * - `"open-to-link"` — only trips an anonymous visitor could already reach
- *   (`isOpenToLink`: public + unlisted). This is what
- *   `/<username>/export.zip` serves: a convenience packaging of content
+ *   (`isOpenToLink`: public + unlisted): a convenience packaging of content
  *   already reachable, never a new way to reach content that wasn't. `guest`
  *   and `private` trips are excluded outright rather than partially redacted
  *   — a plain GET carries nothing that says who is asking, so the safe answer
- *   is "not in this zip."
+ *   is "not in this zip." Since B1086 no HTTP route serves this scope — the
+ *   owner-only route serves `"all"` and nothing serves the anonymous one — so
+ *   `config.json`'s owner block never leaves over a plain GET. It stays a
+ *   library scope (`scripts/export.ts`, and the tests that pin the contract).
  */
 export type ExportScope = "all" | "open-to-link";
 

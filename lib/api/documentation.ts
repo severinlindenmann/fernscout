@@ -553,7 +553,7 @@ export function userDocumentation(username: string): string | null {
     `- Deleting: DELETE [a trip](${base()}/api/v1/${username}/trips/<trip-id>) or [the journal](${base()}/api/v1/${username}) — owner only, and neither deletes anything: the owner is mailed a link with a button on it, so a 202 means the mail was sent`,
     `- [Search index](${root}/search-index.json): every public entry, for finding things`,
     `- [Feed](${root}/feed.xml): public entries as RSS`,
-    `- [Export](${root}/export.zip): the whole journal as markdown and photographs`,
+    `- [Export](${root}/export.zip): the whole journal as markdown and photographs — owner only, with the journal owner's own token (B1086); any other caller gets a 404`,
     "",
     ...wrap(PRIVATE_SHUTS_OUT_GUESTS.replace(/`/g, ""), 78),
     "",
@@ -1932,8 +1932,8 @@ Two things worth telling them before they do:
   \`410 Gone\`.
 
 The page offers them a complete copy first — private trips and unpublished
-drafts included, not just the public export — because leaving with your data is
-the half of leaving that a delete button on its own does not give you.
+drafts included, the whole of it — because leaving with your data is the half
+of leaving that a delete button on its own does not give you.
 
 Only the journal's **owner** may ask. A token scoped to one trip can write days
 into that trip and cannot delete it, or the journal around it; being on
