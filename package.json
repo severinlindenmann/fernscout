@@ -29,6 +29,7 @@
     "export": "tsx --conditions=react-server scripts/export.mts",
     "rates:update": "node scripts/update-rates.mjs",
     "weather:update": "tsx --conditions=react-server scripts/weather-update.mts",
+    "timezone:update": "tsx --conditions=react-server scripts/timezone-update.mts",
     "rates:fill": "tsx --conditions=react-server scripts/rates-fill.mts",
     "check:caddy": "tsx scripts/check-caddy.mts",
     "migrate:users": "node scripts/migrate-users.ts",
@@ -59,6 +60,7 @@
     "server-only": "^0.0.1",
     "sharp": "^0.35.4",
     "stripe": "^22.6.1",
+    "tz-lookup": "^6.1.25",
     "web-push": "^3.6.7"
   },
   "devDependencies": {

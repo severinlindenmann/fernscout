@@ -11,6 +11,7 @@ transportFrom: "Hoi An"
 transportTo: "Da Nang"
 tags: ["vietnam", "motorbikes"]
 test: true
+timezone: "Asia/Ho_Chi_Minh"
 ---
 
 A fixture day. The motorbike leg earlier in this trip carries `travelScene: skip`, which is exactly what it says — the pager leaves it out entirely — so there was no way to see the rider drawn.

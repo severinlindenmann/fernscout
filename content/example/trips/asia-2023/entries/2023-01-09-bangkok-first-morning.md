@@ -45,6 +45,7 @@ translations:
       
       Nem a hőség az, amire figyelmeztetnek. Hanem a zaj — és hogy milyen gyorsan nem hallod meg többé.
 weatherData: { tempMin: 23.2, tempMax: 31.9, code: 3, precipitation: 0, windMax: 20.6, source: "open-meteo", recordedAt: "2026-09-06T08:32:20.184Z" }
+timezone: "Asia/Bangkok"
 ---
 
 Landed at six, asleep by eight, awake at three in the morning entirely convinced it was lunchtime. By the time it actually was lunchtime we had been walking for four hours and eaten twice.

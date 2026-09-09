@@ -12,6 +12,7 @@ transportFrom: "Sendai"
 transportTo: "Hakodate"
 tags: ["japan", "trains", "coast"]
 status: draft
+timezone: "Asia/Tokyo"
 ---
 
 The tunnel under the strait comes out here, and getting off rather than staying on costs us nothing but a night.

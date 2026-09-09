@@ -45,6 +45,7 @@ translations:
       
       Nehéz lefényképezni, és mi mégis megpróbáltuk, több százszor.
 weatherData: { tempMin: 21.5, tempMax: 38, code: 3, precipitation: 0, windMax: 19.6, source: "open-meteo", recordedAt: "2026-09-06T08:32:18.715Z" }
+timezone: "America/Denver"
 ---
 
 The truck made it, loudly. Four nights on a bluff outside town with nobody else on it, which cost twenty dollars a night and felt like theft.

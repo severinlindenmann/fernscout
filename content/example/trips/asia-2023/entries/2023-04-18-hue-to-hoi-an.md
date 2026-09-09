@@ -33,6 +33,7 @@ costs:
   - { label: "Motorbike transfer", amount: 1150000, category: "transport", currency: "VND" }
   - { label: "Tailored shirt", amount: 620000, category: "other", currency: "VND" }
 weatherData: { tempMin: 25.1, tempMax: 32.7, code: 3, precipitation: 0, windMax: 19.3, source: "open-meteo", recordedAt: "2026-09-06T08:32:20.444Z" }
+timezone: "Asia/Ho_Chi_Minh"
 ---
 
 Rode the pass on the back of somebody else's motorbike with our bags strapped to a third one. It rained at the top and cleared before the bottom, which everyone had told us it would.
