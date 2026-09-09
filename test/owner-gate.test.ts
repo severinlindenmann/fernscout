@@ -77,6 +77,8 @@ function session(over: Partial<Session>): Session {
     scope: SESSION_SCOPE.agent,
     email: "ana@example.test",
     publicId: null,
+    phone: null,
+    phoneProvenAt: null,
     ...over,
   };
 }

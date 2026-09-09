@@ -67,7 +67,7 @@ describe("binding an inbound number", () => {
     expect(body.body).toMatch(/private travel journal/);
   });
 
-  test("a bound number's first message is greeted once, in the journal's own locale", () => {
+  test("a bound number's first message is greeted once, in the journal's own locale", async () => {
     const created = createJournal({
       username: "severin",
       title: "A journal",
@@ -81,19 +81,17 @@ describe("binding an inbound number", () => {
     });
     expect(created.ok).toBe(true);
 
-    return handleInboundMessage(textMessage("41760001111", "wamid.first-1")).then(() => {
-      const files = repliesTo("severin");
-      expect(files.length).toBe(1);
-      const body = JSON.parse(fs.readFileSync(path.join(dir, "severin", "whatsapp-replies", files[0]), "utf8"));
-      // German, since defaultLocale: "de" — and carries the journal's own URL.
-      expect(body.body).toMatch(/KI/);
-      expect(body.body).toMatch(/severin/);
+    await handleInboundMessage(textMessage("41760001111", "wamid.first-1"));
+    const files = repliesTo("severin");
+    expect(files.length).toBe(1);
+    const body = JSON.parse(fs.readFileSync(path.join(dir, "severin", "whatsapp-replies", files[0]), "utf8"));
+    // German, since defaultLocale: "de" — and carries the journal's own URL.
+    expect(body.body).toMatch(/KI/);
+    expect(body.body).toMatch(/severin/);
 
-      // A second message from the same, now-greeted number gets no fixed
-      // reply — B1058 says the greeting is "never on every conversation".
-      return handleInboundMessage(textMessage("41760001111", "wamid.second-1")).then(() => {
-        expect(repliesTo("severin").length).toBe(1);
-      });
-    });
+    // A second message from the same, now-greeted number gets no fixed
+    // reply — B1058 says the greeting is "never on every conversation".
+    await handleInboundMessage(textMessage("41760001111", "wamid.second-1"));
+    expect(repliesTo("severin").length).toBe(1);
   });
 });

@@ -2,7 +2,7 @@ import { NO_JOURNAL, resolveSession } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { startVerification } from "@/lib/phoneVerify";
-import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { rateLimitFor } from "@/lib/rateLimit";
 import { toE164 } from "@/lib/whatsapp/phone";
 
 export const dynamic = "force-dynamic";
