@@ -1,0 +1,77 @@
+---
+id: B1097
+title: An agent judges a page from its own reading of the code, because there is no instrument that shows it the page
+type: CHORE
+priority: high
+complexity: medium
+area: agent tooling
+found: "2026-09-09T16:18:14Z"
+---
+
+# B1097 — An agent judges a page from its own reading of the code, because there is no instrument that shows it the page
+
+## Why
+
+Every rule in this repository about looking at a page is a rule agents keep
+breaking, and the reason is cost. `test-in-a-browser` is five sections long
+before the first screenshot: a database, a capability switched on in two
+places, a sign-in, and an `HttpOnly` cookie that `document.cookie` cannot set.
+An agent with a small change in front of it reads that, decides the JSX is
+obviously right, and ships. B42 is what that costs — a second clock that drew
+on the two demo days its own change had edited and on nothing else in the
+world, green suite, inert feature, found by the owner in one click (B1090).
+
+`curl` is not the fallback it looks like. Anything rendered in or below
+`TripHero` is handed to the animated story component and is absent from the
+server HTML, so grepping the response finds nothing and reads exactly like a
+broken prop chain.
+
+And a screenshot alone is not the instrument either. The one thing an agent
+can genuinely check its own work on is a web page — but only because a page
+can also hand back its text, its console and its failed requests. An image on
+its own is a thing to have an opinion about; an image beside
+`document.body.innerText` and a console error is a thing to be wrong about in
+public. Give the agent an instrument, or the person is the checker.
+
+There is no such instrument here. `test-in-a-browser` describes a procedure
+driven by MCP tools an agent holds interactively, which means a dispatched
+subagent — the thing that actually does the work in a batch — often cannot run
+it at all.
+
+## Work
+
+One script, no new dependency: `.claude/skills/test-in-a-browser/check-page.mjs`.
+
+```
+node check-page.mjs <url> <out-dir> [--cookie name=value] [--widths 1280,390] [--wait 2000]
+```
+
+Writes, per width, `<slug>-<width>.png`, and one `<slug>.json` carrying:
+`url`, `status`, `title`, `innerText` (after the wait, not the fetched
+markup), `consoleErrors`, `failedRequests`, and the widths captured.
+
+Drive Chrome over CDP directly. Node 24 has a global `WebSocket`, so this is a
+launch of `--headless=new --remote-debugging-port`, a `/json/new` for a target,
+and `Page.navigate` / `Network.setCookie` / `Runtime.evaluate` /
+`Page.captureScreenshot` / `Emulation.setDeviceMetricsOverride` over one
+socket. `Network.setCookie` is what gets an `HttpOnly` session cookie in;
+`document.cookie` silently returns `""` and is the trap that costs the most
+time today.
+
+Not doing: visual diffing, a baseline image store, a Playwright or Puppeteer
+dependency, or a replacement for `test-in-a-browser`. That skill still owns
+the database, the capability and the sign-in; this script owns the last step
+only, and the skill gains a section pointing at it.
+
+## Acceptance
+
+- `node check-page.mjs http://localhost:3001/example/trips/<trip> /tmp/x` with
+  the dev server up writes `<slug>-1280.png`, `<slug>-390.png` and
+  `<slug>.json`, and the JSON's `innerText` contains the trip byline that
+  `curl` on the same URL does not.
+- Passing `--cookie fs_session=...` from `/tmp/wt-cookies.txt` reaches an
+  owner-only page and the JSON reports `status: 200` rather than a redirect.
+- A page with a deliberate `console.error` reports it in `consoleErrors`; a
+  page with a 404 asset reports it in `failedRequests`.
+- The script exits non-zero when the page 500s or the navigation fails, so a
+  caller can gate on it.
