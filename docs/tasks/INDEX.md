@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (170)
+## backlog (172)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1045](backlog/security/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low |
 
-### issue (28)
+### issue (29)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -66,6 +66,7 @@ Do not edit them by hand; run the script.
 | [B1147](backlog/issue/B1147-gelato-rejects-fernscout-ch-s-credential.md) | Gelato rejects fernscout.ch's credential, so no photobook in a real journal can be priced | ISSUE | high | low |
 | [B1172](backlog/issue/B1172-photographs-go-into-the-book-at.md) | Photographs go into the book at camera resolution, so the printer cannot render it | ISSUE | high | medium |
 | [B1173](backlog/issue/B1173-gelato-demands-a-page-count-two.md) | Gelato demands a page count two higher than the one it accepted a quote for | ISSUE | high | low |
+| [B1175](backlog/issue/B1175-a-journal-deletion-that-fails-partway.md) | a journal deletion that fails partway leaves the journal gone, no tombstone, and a spent confirmation link | ISSUE | high | medium |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1094](backlog/issue/B1094-editing-a-contact-opens-a-form.md) | Editing a contact opens a form off-screen above the button, so the button looks broken | ISSUE | medium | low |
@@ -158,7 +159,7 @@ Do not edit them by hand; run the script.
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
 | [B1151](backlog/chore/B1151-macos-appledouble-files-are-synced-into.md) | macOS AppleDouble files are synced into the demo journal's originals on the server | CHORE | low | low |
 
-### ops (15)
+### ops (16)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -170,6 +171,7 @@ Do not edit them by hand; run the script.
 | [B107](backlog/ops/B107-postcards-have-only-ever-run-from.md) | Postcards have only ever run from a laptop CLI, never as a capability of the deployed site | OPS | medium | medium |
 | [B1136](backlog/ops/B1136-fernscout-ch-carries-test-journals-beside.md) | fernscout.ch carries test journals beside the two real ones, and nothing says which is which | OPS | medium | low |
 | [B1137](backlog/ops/B1137-there-is-no-place-to-try.md) | There is no place to try a change against real data before it reaches fernscout.ch | OPS | medium | medium |
+| [B1176](backlog/ops/B1176-every-file-under-content-registry-was.md) | every file under content/.registry was root-owned, so the service account could not release a lock | OPS | medium | low |
 | [B437](backlog/ops/B437-no-postcard-has-ever-been-posted.md) | No postcard has ever been posted through a real provider account | OPS | medium | medium |
 | [B546](backlog/ops/B546-the-open-meteo-free-tier-is.md) | The Open-Meteo free tier is non-commercial and this instance takes money | OPS | medium | low |
 | [B1036](backlog/ops/B1036-content-example-s-new-trips-can.md) | content/example's new trips can flicker as malformed during ship.sh's demo sync | OPS | low | low |
@@ -285,13 +287,14 @@ Do not edit them by hand; run the script.
 | [B1115](open/B1115-a-brief-can-say-a-ticket.md) | A brief can say a ticket is dropped or live, and B1058 is neither | DOCS | high | low |
 | [B994](open/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium |
 
-## in-development (4)
+## in-development (5)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1168](in-development/B1168-new-conversation-and-reopened-conversations-disagree.md) | New conversation and reopened conversations disagree with the thread that answers | ISSUE | high | medium | `b9809a36` |
 | [B1170](in-development/B1170-the-preview-opens-by-itself-and.md) | The preview opens by itself and cannot be dismissed on a phone | ISSUE | high | medium | `b9809a36` |
 | [B1171](in-development/B1171-the-files-pane-uploads-onto-a.md) | The files pane uploads onto a day nobody chose and never shows the result | ISSUE | high | medium | `b9809a36` |
+| [B1174](in-development/B1174-an-off-site-copy-that-stops.md) | An off-site copy that stops arriving says nothing wrong on /admin | ISSUE | high | low | `c6d32890` |
 | [B1169](in-development/B1169-the-room-re-renders-and-shifts.md) | The room re-renders and shifts: RoomOpening hydration mismatch and uncontained scrolling | ISSUE | medium | low | `b9809a36` |
 
 ## testing (40)
