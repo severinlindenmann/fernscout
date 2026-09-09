@@ -1017,7 +1017,28 @@ function PreviewSheet({
       role="region"
       aria-label={peekLabel}
       style={{ height: `${px}px` }}
-      className="fixed inset-x-0 bottom-0 z-20 flex flex-col overflow-hidden rounded-t-2xl border-t border-navy-200 bg-cream-50 shadow-[0_-4px_16px_rgba(0,0,0,0.12)] lg:hidden"
+      /**
+       * **A peek is in the flow; only an opened sheet is an overlay** — B1160.
+       *
+       * This was `fixed inset-x-0 bottom-0 z-20` in every state, and the
+       * composer inside `HelperAsk` is `sticky bottom-0` with no stacking
+       * context of its own. So the peek sat on top of the Ask button and took
+       * its taps: a person typed a sentence, pressed send, and nothing
+       * happened — no error, because as far as the software was concerned
+       * nothing had gone wrong. Playwright refused the click outright with
+       * "element intercepts pointer events", twice, which is how it was found.
+       *
+       * Raising the composer's z-index is the tempting one-liner and is
+       * wrong: the composer then floats on top of the sheet and the peek is
+       * half hidden behind it — the seam moves rather than closes.
+       *
+       * So a peek takes real layout space at the foot of the column and
+       * cannot cover anything. Dragging it open makes it `fixed`, and at that
+       * point covering the composer is precisely what was asked for.
+       */
+      className={`flex flex-col overflow-hidden rounded-t-2xl border-t border-navy-200 bg-cream-50 shadow-[0_-4px_16px_rgba(0,0,0,0.12)] lg:hidden ${
+        height === "expanded" ? "fixed inset-x-0 bottom-0 z-20" : "relative w-full shrink-0"
+      }`}
     >
       {/* The drag surface. Purely pointer-driven: the peek row below (a real
           `<button>`) and the expanded state's own collapse button are the

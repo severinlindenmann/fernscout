@@ -506,6 +506,7 @@ export type TranslationKey =
   | "agent.takeDownConfirm"
   | "agent.takeDownQuestion"
   | "agent.takingDown"
+  | "agent.theListIsAbove"
   | "agent.title"
   | "agent.titleLabel"
   | "agent.tookDown"

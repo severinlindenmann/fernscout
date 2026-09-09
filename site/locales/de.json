@@ -1721,6 +1721,7 @@
   "agent.noAccessYet": "Ich kann dir nicht sagen, dass jemand das lesen kann. Eine Reise, die nicht öffentlich ist, steht den Leuten offen, die dabei waren, und den Gästen, die du bestätigt hast — jemanden zu nennen lässt sie nicht hinein. Sag mir, wer es lesen soll, dann lege ich dir einen Link zum Verschicken hin.",
   "agent.notRead": "Ich habe diesen Tag in dieser Antwort nicht gelesen, also kann ich dir nicht sagen, was darin steht — und über deine eigenen Worte rate ich nicht. Sag es noch einmal, dann öffne ich den Tag und zitiere ihn dir.",
   "agent.notCounted": "Ich nenne dir lieber keine Zahl, die ich nicht sauber zusammengerechnet habe — eine falsche Zahl über dein eigenes Geld ist schlimmer als gar keine. Frag mich noch einmal, dann lese ich die Ausgaben vorher nach.",
+  "agent.theListIsAbove": "Die Liste steht oben — tipp eine an, um sie zu öffnen.",
   "agent.stillHasAQuestion": "Ich glaube, ich bin nur auf einen Teil von dem eingegangen, was du gefragt hast — frag mich den anderen Teil noch einmal, dann kümmere ich mich diesmal richtig darum.",
   "agent.tool.addPhotos": "Fotos kommen auf der Seite des Tages dazu, dort sind die Auswahl und der Upload.",
   "agent.tool.addPhotosLabel": "Den Tag öffnen",

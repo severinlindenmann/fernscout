@@ -1185,13 +1185,26 @@ function BlockView({
     return (
       <div className="rounded-xl border border-navy-200 bg-white p-3">
         <p className="text-sm text-navy-600">{block.text}</p>
+        {/**
+         * Through `AnswerText`, like every other line the model writes —
+         * B1162.
+         *
+         * B1120 taught the model that `> ` means *words that came out of the
+         * journal, and only that*, and this is the block where a day is
+         * actually quoted — so it was the one place the new mark was most
+         * likely to be used and the one place it was drawn raw. A person read
+         * `> Thirteen hours, a bunk with a curtain…`, marker and all, on the
+         * live site the same day.
+         *
+         * These lines are the model's own prose about a day, not the day's
+         * stored markdown — `PreviewPane` is what draws a day as its reader
+         * meets it. So rendering the four marks here is drawing what was
+         * written rather than reinterpreting somebody's file.
+         */}
         {block.lines.map((line, n) => (
-          <p
-            key={n}
-            className="mt-1 break-words text-base leading-6 text-navy-900"
-          >
-            {line}
-          </p>
+          <div key={n} className="mt-1 break-words">
+            <AnswerText text={line} />
+          </div>
         ))}
       </div>
     );
