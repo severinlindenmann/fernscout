@@ -12,12 +12,54 @@ found: "2026-09-09T07:11:55Z"
 
 ## Why
 
-TODO — the problem, not the fix.
+Nothing in this codebase has ever proven that somebody holds a telephone
+number. `toE164` and `isMessageable` (`lib/whatsapp/phone.ts`) validate the
+*shape* of one and say so in their own comments; a mistyped number simply
+sends a family photograph to a stranger.
+
+The mechanism to copy is right there. `login_codes` (`lib/db/schema.ts:79`)
+stores a hash and never the code, supersedes the previous one on every fresh
+request, expires in thirty minutes, and burns after five wrong guesses — with
+every failure mode returning the same shape to the caller so nothing can be
+distinguished by probing. `lib/mail/index.ts` and `lib/whatsapp/index.ts` are
+both a transport interface, a dry-run backend that writes a file you can read,
+and a real one, with no caller knowing which is in use.
+
+So this ticket is a third transport of the same shape, and a `kind` on the
+existing table. What it is not is obvious, and there are three candidate
+channels with genuinely different costs:
+
+| | |
+| --- | --- |
+| **SMS** | works for any number. Roughly CHF 0.06 to Switzerland at retail. Needs a provider account; needs no number of our own — an alphanumeric sender id is accepted for transactional traffic in Switzerland and most of Europe |
+| **A WhatsApp authentication template** | around EUR 0.045 in Western Europe, so not the saving it is elsewhere. Needs Meta approval, a burnt-name-for-30-days hazard, and a recipient who has WhatsApp |
+| **The person messages us first** | **costs nothing.** An inbound message proves the number by existing, and opens a free 24-hour window. It also lands them in the channel B1057 builds |
+
+The third is the lazy answer and it is probably the right one, at least as the
+first path offered: a `wa.me` link with a prefilled code, tapped from the
+signup page. SMS is then the fallback for somebody who does not use WhatsApp,
+and it is a fallback that costs money and therefore needs a ceiling.
 
 ## Work
 
-TODO
+- A `phone` kind on `login_codes`, with the same hash-only storage, TTL,
+  attempt counter and supersession discipline. Do not invent a second store.
+- A transport module shaped like `lib/mail/index.ts`: an interface, a dry-run
+  backend that writes the payload it would have sent, a real one. A capability
+  entry in `lib/capabilities.ts` naming its environment, off by default, and
+  `/api/health` explaining what is missing.
+- **Rate limits keyed on the number, not only the IP.** `lib/rateLimit.ts` is
+  per-IP and in-process; a paid outbound message is a way to spend the
+  operator's money from a phone on a train. Cap per number, per address and
+  per day globally, and refuse rather than queue.
+- Routes mirroring `app/api/auth/signup/{request,verify}` exactly, including
+  the "always 202, never confirm whether it exists" discipline.
+
+Not doing: choosing the provider (B1067), or what the proof is then used for
+(B1064).
 
 ## Acceptance
 
-TODO
+A code proves a number, is single-use, burns after five guesses, and the whole
+flow runs locally with no account anywhere — and a script cannot make the
+instance send a hundred paid messages.

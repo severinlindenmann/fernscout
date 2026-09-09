@@ -24,9 +24,15 @@ TODO
 
 ## Why
 
-`main` fails `npm run verify` today. `test/helper-thread.test.ts` measures the
-prompt plus the tool schemas and asserts a ceiling; the list is now **~7,617
-tokens against a ceiling of 6,500**.
+**Update, hours later: the ceiling was raised to 8,000 by B1049**, in a
+parallel session, while this was being written. `main` is green again and
+nothing is blocked — so read everything below as the standing argument for
+grouping, not as a broken build. The numbers it cites are the ones that
+prompted it.
+
+`test/helper-thread.test.ts` measures the prompt plus the tool schemas and
+asserts a ceiling. The list reached **~7,617 tokens against a ceiling of
+6,500**, and `main` failed `npm run verify` until the raise.
 
 Nothing did this wrong. Five tool-adding tickets merged inside about an hour —
 B1024 (rates and budget), B1025 (invites, telling readers, channels), B1026
@@ -73,9 +79,10 @@ options worth weighing are at least:
 Whatever is chosen, keep the measurement: the test is the only thing that
 noticed, and it noticed the same day.
 
-Not doing: raising the ceiling. If a raise is genuinely the answer, that is a
-person overruling the paragraph above, and it belongs in its own commit saying
-so out loud.
+Not doing: raising the ceiling again. B1049 already did it once — to 8,000,
+in its own commit — which bought room for this round and is exactly the "raise
+per capability" the 6,500 paragraph set out to stop. A third raise is not the
+answer; the choosing problem is unaffected by the budget.
 
 ## Acceptance
 
