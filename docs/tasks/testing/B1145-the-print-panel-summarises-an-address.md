@@ -7,8 +7,7 @@ complexity: low
 area: photobook, print
 found: "2026-09-09T20:45:00Z"
 started: "2026-09-09T18:36:36Z"
-session: ce87fdc2-3f66-428c-90d3-ae9d8df84e40
-claimed: "2026-09-09T18:36:36Z"
+merged: "2026-09-09T18:49:13Z"
 ---
 
 # B1145 — The print panel summarises an address where it should show the envelope

@@ -7,8 +7,7 @@ complexity: low
 area: photobook, print
 found: "2026-09-09T20:38:00Z"
 started: "2026-09-09T18:36:38Z"
-session: ce87fdc2-3f66-428c-90d3-ae9d8df84e40
-claimed: "2026-09-09T18:36:38Z"
+merged: "2026-09-09T18:49:13Z"
 ---
 
 # B1140 — A built book offers its PDFs but no way through to the page that prints it

@@ -279,14 +279,11 @@ Do not edit them by hand; run the script.
 | [B1115](open/B1115-a-brief-can-say-a-ticket.md) | A brief can say a ticket is dropped or live, and B1058 is neither | DOCS | high | low |
 | [B994](open/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium |
 
-## in-development (2)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1140](in-development/B1140-a-built-book-offers-its-pdfs.md) | A built book offers its PDFs but no way through to the page that prints it | ISSUE | high | low | `ce87fdc2` |
-| [B1145](in-development/B1145-the-print-panel-summarises-an-address.md) | The print panel summarises an address where it should show the envelope | FEATURE | high | low | `ce87fdc2` |
+_Nothing here._
 
-## testing (27)
+## testing (29)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -307,6 +304,8 @@ Do not edit them by hand; run the script.
 | [B1122](testing/B1122-a-tool-card-looks-like-a.md) | A tool card looks like a form rather than a decision, and its controls are unreachable under a phone keyboard | FEATURE | high | medium | — |
 | [B1124](testing/B1124-sending-a-message-and-waiting-for.md) | Sending a message and waiting for an answer has no motion at all | FEATURE | high | low | — |
 | [B1126](testing/B1126-a-book-is-sent-to-gelato.md) | A book is sent to Gelato with a country name where it requires an ISO code | ISSUE | high | low | — |
+| [B1140](testing/B1140-a-built-book-offers-its-pdfs.md) | A built book offers its PDFs but no way through to the page that prints it | ISSUE | high | low | — |
+| [B1145](testing/B1145-the-print-panel-summarises-an-address.md) | The print panel summarises an address where it should show the envelope | FEATURE | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B1035](testing/B1035-navy-800-is-used-across-dozens.md) | navy-800 is used across dozens of components but no navy-800 token exists | ISSUE | medium | low | — |
