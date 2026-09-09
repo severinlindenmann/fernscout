@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: agent, ui
 found: "2026-09-08T21:17:49Z"
+started: "2026-09-09T06:10:01Z"
+session: f88144a1-6520-4fc1-94bd-496a694b98c8
+claimed: "2026-09-09T06:10:01Z"
 ---
 
 # B1033 — AgentDoor.tsx still imports the per-journal card B984 deleted

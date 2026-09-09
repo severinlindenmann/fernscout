@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (112)
+## backlog (111)
 
 ### issue (6)
 
@@ -104,12 +104,11 @@ Do not edit them by hand; run the script.
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (2)
+### chore (1)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1017](backlog/chore/B1017-photobook-fonts-are-embedded-whole-not.md) | Photobook fonts are embedded whole, not subset | CHORE | low | medium |
-| [B1033](backlog/chore/B1033-agentdoor-tsx-still-imports-the-per.md) | AgentDoor.tsx still imports the per-journal card B984 deleted | CHORE | low | low |
 
 ### ops (12)
 
@@ -202,7 +201,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (16)
+## in-development (17)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -221,6 +220,7 @@ _Nothing here._
 | [B1027](in-development/B1027-the-send-button-is-offered-on.md) | The send button is offered on a day whose journal has no readers to send it to | ISSUE | low | low | `f88144a1` |
 | [B1031](in-development/B1031-searchbox-s-voice-search-errors-use.md) | SearchBox's voice-search errors use role=status, not role=alert | ISSUE | low | low | `f88144a1` |
 | [B1032](in-development/B1032-a-day-s-title-colliding-with.md) | A day's title colliding with another day's slug is still an English sentence on the helper | ISSUE | low | low | `f88144a1` |
+| [B1033](in-development/B1033-agentdoor-tsx-still-imports-the-per.md) | AgentDoor.tsx still imports the per-journal card B984 deleted | CHORE | low | low | `f88144a1` |
 | [B723](in-development/B723-consent-can-only-be-withdrawn-from.md) | Consent can only be withdrawn from inside the wizard | FEATURE | low | low | `eef381a2` |
 
 ## testing (256)
