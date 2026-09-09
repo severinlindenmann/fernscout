@@ -7,8 +7,7 @@ complexity: low
 area: backup, DR, off-site
 found: "2026-09-09T10:55:35Z"
 started: "2026-09-09T18:49:46Z"
-session: c6d32890-d802-452a-9437-67c47132e6aa
-claimed: "2026-09-09T18:49:46Z"
+merged: "2026-09-09T19:09:03Z"
 ---
 
 # B1075 — The off-site backup has never once succeeded, and the nightly run failed two days ago
@@ -83,3 +82,53 @@ sound; this is about whether it is actually running.
 
 `/api/health` reports an off-site copy with a real `lastSuccessAt`, and
 somebody has restored a journal from that copy and read a day out of it.
+
+## Outcome (2026-09-09, against the live VPS)
+
+**It was unset, not failing.** `/etc/fernscout/env` had no
+`RESTIC_REPOSITORY_SECONDARY` at all, so B659's copy step never ran. No code
+change was needed — the capability was sound and simply not switched on.
+
+Now set to a Hetzner Object Storage bucket at `fsn1.your-objectstorage.com`,
+with `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_DEFAULT_REGION=fsn1`
+beside it. The primary is a local directory, so those AWS variables belong to
+the secondary alone and collide with nothing. Same `RESTIC_PASSWORD` as the
+primary, as designed.
+
+`restic init`, then one `systemctl start fernscout-backup`. The copy carried
+the **whole history**, not just tonight: 11 snapshots back to 2026-09-01.
+`restic check` on the off-site repository reports `no errors were found`.
+
+**Restore proved from the off-site copy specifically**, not the primary:
+`restic restore latest` into a scratch target, 606 MiB, 41 journals and 161
+day files, `db/postgres.dump` a real `PGDMP` archive. Read
+`content/example/trips/alps-2024/entries/2024-09-12-over-the-susten.md` out of
+it — full frontmatter, title, coordinates, gallery. Scratch target removed.
+
+`/api/health` -> `.backup.secondary` now reads `state: "ok"` with a real
+`lastSuccessAt`. Acceptance met.
+
+### The 2026-09-07 failure
+
+Historical and already fixed. Cause was two root-owned `config.json.bak*`
+files under `DATA_DIR` that the `fernscout` user could not read — B651's
+recurrence. B653's explicit allowlist has since excluded them: tonight's run
+logs them as `skipped (not in the backup set)` and exits 0.
+
+### Does a failed run reach a person? Yes — no second ticket
+
+Proved by accident. A `chmod 600` during this work stripped the group-read bit
+`/etc/fernscout/env` needs (`root:fernscout 640`), the run failed on the
+missing env file, and `fernscout-alert@` mailed agent@fernscout.ch within
+three seconds. Restored to `640` and the following run succeeded. So the
+alerting path works and fires; what failed on 2026-09-07 was nobody reading
+the mail, which is not a thing to build.
+
+### Left standing
+
+Hetzner Object Storage is the **same provider** as this VPS, which the runbook
+advises against — one account compromise reaches the server and its off-site
+copy. And `/etc/fernscout/env` travels inside the snapshot (B653), so the key
+in it can delete the copy an attacker just found. Worth a scoped or
+append-only key, or a second provider. Captured separately rather than held
+against this ticket.
