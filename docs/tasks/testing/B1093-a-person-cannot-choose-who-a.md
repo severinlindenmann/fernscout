@@ -7,8 +7,7 @@ complexity: medium
 area: photobook, print
 found: "2026-09-09T15:59:14Z"
 started: "2026-09-09T17:31:12Z"
-session: ce87fdc2-3f66-428c-90d3-ae9d8df84e40
-claimed: "2026-09-09T17:31:12Z"
+merged: "2026-09-09T17:59:23Z"
 ---
 
 # B1093 — A person cannot choose who a photobook is posted to
