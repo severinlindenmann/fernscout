@@ -6,6 +6,7 @@ priority: high
 complexity: high
 area: lib/inbox.ts, app/[user]/inbox
 found: "2026-09-09T17:45:59Z"
+merged: "2026-09-09T19:07:21Z"
 ---
 
 # B1123 — The files pane shows what you chose rather than what is waiting, and has no thumbnails

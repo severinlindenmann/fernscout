@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (166)
+## backlog (165)
 
 ### security (2)
 
@@ -89,12 +89,11 @@ Do not edit them by hand; run the script.
 | [B1142](backlog/issue/B1142-the-share-control-gate-test-asserts.md) | The share-control gate test asserts proximity with a character window that is widened every time the file grows | ISSUE | low | low |
 | [B1149](backlog/issue/B1149-the-pdf-x-report-tells-you.md) | The PDF/X report tells you to run gs-pdfx.sh, which is only written when the run already had an ICC | ISSUE | low | low |
 
-### big-feature (18)
+### big-feature (17)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1056](backlog/big-feature/B1056-a-helper-answer-can-only-be.md) | A helper answer can only be drawn in the web room, because Block has exactly one renderer | FEATURE | high | high |
-| [B1123](backlog/big-feature/B1123-the-files-pane-shows-what-you.md) | The files pane shows what you chose rather than what is waiting, and has no thumbnails | FEATURE | high | high |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B1049](backlog/big-feature/B1049-a-model-choosing-among-forty-three.md) | A model choosing among forty-three tools chooses worse than one choosing among seventeen | FEATURE | medium | high |
 | [B1068](backlog/big-feature/B1068-an-agent-that-brings-its-own.md) | An agent that brings its own model cannot write a day from notes, caption a photograph, or hear a voice note | FEATURE | medium | high |
@@ -289,7 +288,7 @@ Do not edit them by hand; run the script.
 | [B1156](in-development/B1156-the-order-panel-tells-every-instance.md) | The order panel tells every instance that nothing will be printed | ISSUE | high | low | `ce87fdc2` |
 | [B1157](in-development/B1157-buying-a-photobook-is-two-purchases.md) | Buying a photobook is two purchases with the decision after the money | FEATURE | high | high | `ce87fdc2` |
 
-## testing (29)
+## testing (30)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -308,6 +307,7 @@ Do not edit them by hand; run the script.
 | [B1120](testing/B1120-the-agent-writes-markdown-into-a.md) | The agent writes markdown into a plain-text answer, so people read literal asterisks | FEATURE | high | medium | — |
 | [B1121](testing/B1121-the-room-s-frame-spends-its.md) | The room's frame spends its top bar on two sentences and has no history, no new conversation and a cramped preview | FEATURE | high | high | — |
 | [B1122](testing/B1122-a-tool-card-looks-like-a.md) | A tool card looks like a form rather than a decision, and its controls are unreachable under a phone keyboard | FEATURE | high | medium | — |
+| [B1123](testing/B1123-the-files-pane-shows-what-you.md) | The files pane shows what you chose rather than what is waiting, and has no thumbnails | FEATURE | high | high | — |
 | [B1124](testing/B1124-sending-a-message-and-waiting-for.md) | Sending a message and waiting for an answer has no motion at all | FEATURE | high | low | — |
 | [B1126](testing/B1126-a-book-is-sent-to-gelato.md) | A book is sent to Gelato with a country name where it requires an ISO code | ISSUE | high | low | — |
 | [B1140](testing/B1140-a-built-book-offers-its-pdfs.md) | A built book offers its PDFs but no way through to the page that prints it | ISSUE | high | low | — |
