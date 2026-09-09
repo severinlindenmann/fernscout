@@ -7,8 +7,7 @@ complexity: high
 area: photobook, credits, print
 found: "2026-09-09T21:35:00Z"
 started: "2026-09-09T19:01:14Z"
-session: ce87fdc2-3f66-428c-90d3-ae9d8df84e40
-claimed: "2026-09-09T19:01:14Z"
+merged: "2026-09-09T19:32:45Z"
 ---
 
 # B1157 — Buying a photobook is two purchases with the decision after the money
