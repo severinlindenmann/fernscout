@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: whatsapp, honesty
 found: "2026-09-09T22:34:18Z"
+merged: "2026-09-09T22:40:57Z"
 ---
 
 # B1194 — The STOP reply claims an unsubscribe that has not happened
