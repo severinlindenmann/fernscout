@@ -7,8 +7,7 @@ complexity: low
 area: photobook, gelato
 found: "2026-09-09T22:22:00Z"
 started: "2026-09-09T20:39:40Z"
-session: ce87fdc2-3f66-428c-90d3-ae9d8df84e40
-claimed: "2026-09-09T20:39:40Z"
+merged: "2026-09-09T21:03:51Z"
 ---
 
 # B1173 — Gelato demands a page count two higher than the one it accepted a quote for
@@ -66,10 +65,34 @@ address, never the files.
   asserted equal before submitting, so a mismatch is our own error rather than
   the printer's.
 
-## Blocked on
+## Answered, by measurement
 
-A real order, which needs a payment method on the Gelato account. Drafts
-cannot reproduce this.
+Not blocked after all: a real order runs prepress **before** it checks the
+card, so an account with no payment method is a free and unlimited test rig.
+Three orders settled it.
+
+```
+sent 46  ->  counted 47 (46 + our 1 cover page), required 49
+sent 42  ->  counted 43 (42 + our 1 cover page), required 45
+sent 40  ->  same 43 pages, and prepress said nothing about the files
+```
+
+**Files must total `pageCount + 3`.** The third run is the one that proves it
+rather than fitting it: the same bytes passed once the declared count was three
+below their total.
+
+The hypothesis in the Why — a multiple of four — was wrong, and Gelato's own
+template said so all along. `docs/providers/gelato-templates/README.md` records
+"each is 31 pages: one cover page, then thirty interior pages", checked against
+a **28**-page book. 28 + 3 = 31. The reference had the answer in September and
+nobody did the subtraction.
+
+So: cover 1 page, interior `pageCount + 2`, and `pageCount` stays the number of
+pages the book actually has — the number quoted, charged and declared.
+
+**Confirmed end to end** on the live instance as reference `b1173-final`: 42
+declared, 44 interior + 1 cover = 45, and the only message left on the order is
+*"Please add payment details and try again."*
 
 ## Note
 

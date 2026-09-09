@@ -273,7 +273,7 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (15)
+## in-development (14)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -283,7 +283,6 @@ Do not edit them by hand; run the script.
 | [B1059](in-development/B1059-a-photograph-sent-over-whatsapp-has.md) | A photograph sent over WhatsApp has nowhere to land, and arrives compressed when it does | FEATURE | high | medium | `e910c430` |
 | [B1061](in-development/B1061-a-conversation-that-goes-quiet-for.md) | A conversation that goes quiet for a day cannot be answered, and nothing in the code knows it | FEATURE | high | medium | `e910c430` |
 | [B1062](in-development/B1062-there-is-still-no-way-out.md) | There is still no way out of the WhatsApp channel from inside WhatsApp | FEATURE | high | medium | `e910c430` |
-| [B1173](in-development/B1173-gelato-demands-a-page-count-two.md) | Gelato demands a page count two higher than the one it accepted a quote for | ISSUE | high | low | `ce87fdc2` |
 | [B1184](in-development/B1184-the-agent-room-and-door-offer.md) | The agent room and door offer no way to change their language | ISSUE | high | low | `b9809a36` |
 | [B994](in-development/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | `b9809a36` |
 | [B1060](in-development/B1060-a-voice-note-sent-over-whatsapp.md) | A voice note sent over WhatsApp has no route to the transcriber that already exists | FEATURE | medium | low | `e910c430` |
@@ -293,7 +292,7 @@ Do not edit them by hand; run the script.
 | [B1186](in-development/B1186-a-transient-upstream-failure-reads-as.md) | A transient upstream failure reads as 'That did not work: 502' with no words | ISSUE | medium | low | `b9809a36` |
 | [B1127](in-development/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low | `e910c430` |
 
-## testing (55)
+## testing (56)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -328,6 +327,7 @@ Do not edit them by hand; run the script.
 | [B1170](testing/B1170-the-preview-opens-by-itself-and.md) | The preview opens by itself and cannot be dismissed on a phone | ISSUE | high | medium | — |
 | [B1171](testing/B1171-the-files-pane-uploads-onto-a.md) | The files pane uploads onto a day nobody chose and never shows the result | ISSUE | high | medium | — |
 | [B1172](testing/B1172-photographs-go-into-the-book-at.md) | Photographs go into the book at camera resolution, so the printer cannot render it | ISSUE | high | medium | — |
+| [B1173](testing/B1173-gelato-demands-a-page-count-two.md) | Gelato demands a page count two higher than the one it accepted a quote for | ISSUE | high | low | — |
 | [B1174](testing/B1174-an-off-site-copy-that-stops.md) | An off-site copy that stops arriving says nothing wrong on /admin | ISSUE | high | low | — |
 | [B1182](testing/B1182-a-phone-with-nothing-uploaded-yet.md) | A phone with nothing uploaded yet has no way to upload anything | ISSUE | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |

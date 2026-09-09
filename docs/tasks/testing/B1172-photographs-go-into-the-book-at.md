@@ -59,3 +59,26 @@ is a third of a gigabyte — and why building takes as long as it does.
 - Gelato's prepress renders the interior.
 - A photograph that was rotated by EXIF still prints the right way up.
 - `npm run verify`.
+
+## Evidence
+
+The same trip, rebuilt on the live instance with the same photographs:
+
+```
+                 before      after
+interior        355.9 MB    61.4 MB
+cover            11.8 MB     4.1 MB
+largest image   5712x4284   2434x3245
+largest stream    10.5 MB     2.9 MB
+images               63          64
+```
+
+**Gelato's prepress renders it.** Put through a real order (`orderType:
+"order"`, the only way prepress runs at all) as reference `b1173-final`: the
+*"There is an issue with the design file for this product"* complaint is gone,
+and the only message left on the whole order is *"Please add payment details
+and try again."* Nothing could be charged — the account has no card, which is
+what made this loop safe to run at all.
+
+`npm run verify` green, and the CLI produces the same book as the button, which
+its own comment requires.
