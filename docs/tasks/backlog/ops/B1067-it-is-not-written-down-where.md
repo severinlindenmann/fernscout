@@ -361,7 +361,7 @@ but the plan should not carry a number nobody checked.
 
 The owner opened a seven.io trial account and could not get a message
 delivered. Driven from the API with his key, against his own number
-(`+41 76 561 31 50`), five sends. **Every one was accepted by the API and then
+(the operator's own mobile), five sends. **Every one was accepted by the API and then
 rejected before delivery, and refunded.**
 
 ```

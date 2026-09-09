@@ -7,15 +7,14 @@ complexity: low
 area: privacy, docs, depersonalisation
 found: "2026-09-09T16:37:18Z"
 started: "2026-09-09T16:42:03Z"
-session: 8aa24275-7346-4bf6-99b4-24c983c9f0c9
-claimed: "2026-09-09T16:42:03Z"
+merged: "2026-09-09T16:51:04Z"
 ---
 
 # B1105 — The operator's personal mobile number is the example in the source, the public API spec and the agent guide
 
 ## Why
 
-**`+41 76 561 31 50` is the operator's own mobile telephone.** It is the
+**The operator's own mobile telephone was the example.** It is the
 example used everywhere a telephone number needs explaining — fourteen
 occurrences across nine files in `lib/`, `app/`, `components/` and `test/`:
 
@@ -31,8 +30,8 @@ Two of those are generators, so it is not only in the repository — **it is
 served, live, to anybody**, verified on 2026-09-09:
 
 ```
-$ curl -s https://fernscout.ch/agent.md      | grep -c "76 561 31 50"   → 1
-$ curl -s https://fernscout.ch/openapi.json  | grep -c "76 561 31 50"   → 3
+$ curl -s https://fernscout.ch/agent.md      | grep -c "<the number>"   → 1
+$ curl -s https://fernscout.ch/openapi.json  | grep -c "<the number>"   → 3
 ```
 
 And `site/config.json` gives the repository as
@@ -69,9 +68,9 @@ person's telephone number in a place they did not put it deliberately.
 
 - **Close the hole in `test/depersonalised.test.ts`.** Two parts:
   - Add `owner.tel` (and `site.credit` telephone, if it ever gains one) to
-    `personalTerms()`, normalised — the number appears as `+41 76 561 31 50`,
-    `0041 76 561 31 50`, `076 561 31 50` and `41765613150`, and a term list
-    that only matches one spelling catches nothing.
+    `personalTerms()`, normalised — a number appears in four spellings
+    (`+41 …`, `0041 …`, the national `0…` and bare E.164 digits), and a term
+    list that only matches one of them catches nothing.
   - Consider failing on **any** telephone-shaped literal in `CODE_DIRS` that
     is not the agreed documentation number. That is the version that catches
     the next one, rather than this one.
@@ -86,6 +85,6 @@ number. This is only about the example.
 
 ## Acceptance
 
-`grep -rn "76 561 31 50\|765613150" lib app components scripts test` returns
+`grep` for the operator's number in `lib app components scripts test` returns
 nothing; `curl https://fernscout.ch/openapi.json` and `.../agent.md` return
 nothing; and `test/depersonalised.test.ts` fails if somebody puts it back.
