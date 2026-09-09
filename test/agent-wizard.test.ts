@@ -125,8 +125,12 @@ describe("the helper routes", () => {
   // `day/remove-photo` and `inbox/discard`. The number is not the point; the
   // loop below is. Every one is the same cookie and the same owner check as
   // the nineteen before them.
-  test("there are thirty-five of them, and each is guarded", () => {
-    expect(sources).toHaveLength(35);
+  // Thirty-six since B1123 added `inbox/[id]/thumbnail` — a small derivative
+  // of a photograph still waiting in the inbox, so the files pane can show
+  // one rather than a generic icon. Same cookie, same owner check, and it
+  // hands back a resized copy rather than the original.
+  test("there are thirty-six of them, and each is guarded", () => {
+    expect(sources).toHaveLength(36);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }
