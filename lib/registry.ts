@@ -39,6 +39,16 @@ function emailFile(email: string): string {
 }
 
 function telFile(tel: string): string {
+  // Every caller of this file is expected to have already normalised
+  // through `toE164` before a number reaches here — but this is the one
+  // choke point every tel-keyed operation (reserve/release/journalForNumber/
+  // reconcile) goes through, and a filename built from an unchecked string
+  // is a path-traversal risk waiting for the caller that forgets. Refuse
+  // rather than trust, the same defence `emailFile`'s hash gives email for
+  // free.
+  if (!/^\d{1,15}$/.test(tel)) {
+    throw new Error(`refusing to use a non-E.164 value as a registry key: ${JSON.stringify(tel)}`);
+  }
   return path.join(registryDir("tel"), `${tel}.json`);
 }
 
@@ -70,6 +80,12 @@ function ownedByUs(file: string, username: string): boolean {
  * ever resolve to, by construction.
  */
 export function journalForNumber(tel: string): string | null {
+  // A malformed value (a stranger's `from` field is attacker-shaped by
+  // definition — see lib/whatsapp/dispatch.ts) is simply "no match", not an
+  // error: `telFile` throws on anything that is not digits-only, which is
+  // right for a *write* path and wrong for this read, where the honest
+  // answer to "does this look like a number we ever proved" is no.
+  if (!/^\d{1,15}$/.test(tel)) return null;
   return readLock(telFile(tel))?.username ?? null;
 }
 

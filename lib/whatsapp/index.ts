@@ -71,7 +71,14 @@ function outputDir(username: string | undefined): string {
  * reading a run.
  */
 export function maskNumber(to: string): string {
-  return to.length <= 4 ? "•".repeat(to.length) : `${"•".repeat(to.length - 4)}${to.slice(-4)}`;
+  // Digits only, before anything else — this string is also used to build a
+  // dry-run filename in three places (this module, lib/phoneVerify/dryRun.ts,
+  // lib/whatsapp/reply.ts), two of which mask an inbound webhook's own `from`
+  // field. A legitimate E.164 number is only ever digits, so this changes
+  // nothing for the honest case and closes off a crafted value putting a `/`
+  // or a `..` into the visible suffix a path gets built from.
+  const digits = to.replace(/\D/g, "");
+  return digits.length <= 4 ? "•".repeat(digits.length) : `${"•".repeat(digits.length - 4)}${digits.slice(-4)}`;
 }
 
 /** Writes the payload it would have sent, and sends nothing. */

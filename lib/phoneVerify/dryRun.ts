@@ -30,7 +30,10 @@ function phoneDir(): string {
 /** A number with everything but its last four digits replaced — the same
  * masking `lib/whatsapp/index.ts` uses for a log line. */
 function mask(tel: string): string {
-  return tel.length <= 4 ? "•".repeat(tel.length) : `${"•".repeat(tel.length - 4)}${tel.slice(-4)}`;
+  // Digits only in the visible suffix, the same defence lib/whatsapp's own
+  // maskNumber applies — this value is also used to build a filename below.
+  const digits = tel.replace(/\D/g, "");
+  return digits.length <= 4 ? "•".repeat(digits.length) : `${"•".repeat(digits.length - 4)}${digits.slice(-4)}`;
 }
 
 async function start(phone: string, locale: string): Promise<StartResult> {

@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { isEnabled } from "@/lib/capabilities";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
 import { NO_JOURNAL } from "@/lib/auth";
@@ -37,6 +38,15 @@ function appSecret(): string | undefined {
   return process.env.WHATSAPP_APP_SECRET;
 }
 
+/** Constant-time string compare, the same discipline every secret comparison
+ * in this codebase follows (see lib/auth's code checks) — a plain `!==`
+ * leaks the number of matching leading bytes to a timing side channel. */
+function timingSafeStringsEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  return bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB);
+}
+
 /** Meta's `hub.challenge` handshake, made once when a webhook URL is
  * registered in the Meta developer console. */
 export async function GET(request: Request) {
@@ -48,7 +58,8 @@ export async function GET(request: Request) {
   const token = url.searchParams.get("hub.verify_token");
   const challenge = url.searchParams.get("hub.challenge");
 
-  if (mode !== "subscribe" || !token || token !== verifyToken() || !challenge) {
+  const expected = verifyToken();
+  if (mode !== "subscribe" || !token || !expected || !challenge || !timingSafeStringsEqual(token, expected)) {
     return new Response("verification failed", { status: 403 });
   }
   // Plain text, not JSON-wrapped — Meta reads the raw body as the answer.
