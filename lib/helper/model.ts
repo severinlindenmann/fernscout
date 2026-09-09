@@ -1282,6 +1282,31 @@ const DROPPED_RETRY = `Stop. Look at their message again — it asked you someth
 
 Answer again with both halves: keep what you already did for the change, and now use a tool to answer the question truthfully, or say plainly that you have not gotten to it yet. Never let a second question go unmentioned — a person who asked two things and hears about only one has no way to know whether the other was refused, forgotten, or still coming.`;
 
+/**
+ * A date format, which is never something to say to a person — B1041.
+ *
+ * There is a date picker. Naming `YYYY-MM-DD` is asking somebody to be a
+ * database, and it is the single most reliable tell that a paragraph is doing
+ * a card's job: nothing else in this product has any reason to write it.
+ *
+ * Deliberately narrow. Two or three field names in bold would catch more and
+ * would also catch an honest answer explaining what a card is about to ask —
+ * this catches the sentence that is only ever wrong.
+ */
+const DATE_FORMAT = /\b(?:yyyy[-./]mm[-./]dd|jjjj-mm-tt|tt\.mm\.jjjj|éééé-hh-nn)\b/i;
+
+/** True when the answer is asking for values a card would have asked for. */
+export function asksForFields(text: string): boolean {
+  return DATE_FORMAT.test(withoutMarkers(text));
+}
+
+/**
+ * What the model is told when it wrote a paragraph where a card belongs.
+ */
+const FIELDS_RETRY = `Stop. You asked them to type values — a date in a format, or fields one by one — and there is a card for that. A write tool does not write: it puts the fields on their screen, editable, with one button, and only their press changes anything. The proposal IS the question you just asked, and a better one, because they can see and correct every field before pressing.
+
+Call the tool now, with whatever you already know filled in and the rest left empty. Never write a date format to a person: there is a date picker.`;
+
 const ACCESS_RETRY = `Stop. Your last answer said a person can read something, and nothing on this turn makes that true. Naming somebody does not let them in: a trip that is not public is open to the people who were on it and to the guests the owner has already approved, and nobody else. Saying otherwise is the worst thing you can get wrong here — this journal exists so that somebody's family can read it, and they will believe you.
 
 Answer again. If they want that person to read it, call invite_guest: it proposes a link for them to send. Say what the link is — the person opens it, proves their own address, and then asks; they can read nothing until the owner approves them. Otherwise say plainly, in their language, that the person has not been invited yet and cannot read it.`;
@@ -1530,7 +1555,32 @@ export async function answerInThread(
     | "total"
     | "partial"
     | "invented"
-    | "dropped" {
+    | "dropped"
+    | "fields" {
+    /**
+     * **A paragraph where a card belongs** — B1041, and it is the fault the
+     * whole product is arranged against.
+     *
+     * Pressing "Neue Reise" got: *"Ich brauche ein paar Angaben von dir:
+     * **Titel** … **Startdatum**: Wann beginnt sie? (YYYY-MM-DD) …
+     * **Sichtbarkeit**: alle, nur Gäste, oder nur die Personen, die mitgereist
+     * sind?"* Every one of those is a field on the card `create_trip` would
+     * have proposed — a title box, two date pickers, and a select whose three
+     * options are those three sentences as labels.
+     *
+     * So somebody was asked to type a date in a format, by a tool whose entire
+     * purpose is to put a date picker in front of them.
+     *
+     * The prompt already says to call the write tool as soon as the want is
+     * understood, because the proposal *is* the confirmation. It was
+     * understood. B829's finding holds for the third time: the prompt is not
+     * the lever, and this is.
+     *
+     * Checked before everything else because it is about the *shape* of the
+     * turn rather than the truth of a sentence — and a turn that should have
+     * been a card is one where nothing else has been decided yet.
+     */
+    if (proposals.length === 0 && asksForFields(answer)) return "fields";
     if (claimsAccess(answer) && !proposals.some((one) => one.tool === "invite_guest")) {
       return "access";
     }
@@ -1644,6 +1694,7 @@ export async function answerInThread(
 
   const RETRY = {
     claim: HONESTY_RETRY,
+    fields: FIELDS_RETRY,
     pending: PENDING_RETRY,
     words: WORDS_RETRY,
     access: ACCESS_RETRY,
@@ -1666,6 +1717,7 @@ export async function answerInThread(
    */
   const PLAINLY = {
     claim: "agent.nothingHappened",
+    fields: "agent.nothingHappened",
     pending: "agent.notUntilYouPress",
     words: "agent.noWordsProposed",
     access: "agent.noAccessYet",
