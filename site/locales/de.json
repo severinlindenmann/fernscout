@@ -729,6 +729,7 @@
   "notify.cancel": "Jetzt nicht",
   "notify.failed": "Das konnte nicht gesendet werden. Es wurde nichts berechnet.",
   "notify.sent": "Deine Leser wurden über diesen Tag informiert.",
+  "notify.nobody": "Noch niemand hat sich für dieses Journal angemeldet — mit der Kachel daneben lädst du jemanden ein.",
   "owner.onlyYou": "Nur für dich sichtbar",
   "owner.onlyYouBody": "Deine Leser sehen den Tag darüber. Nichts hiervon.",
   "notify.short": "Der Versand würde {needed} Credit(s) kosten; dieses Journal hat noch {balance}.",

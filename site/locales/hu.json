@@ -729,6 +729,7 @@
   "notify.cancel": "Most nem",
   "notify.failed": "Ezt nem sikerült elküldeni. Semmit sem számláztunk.",
   "notify.sent": "Az olvasóid értesültek erről a napról.",
+  "notify.nobody": "Erre a naplóra még senki sem iratkozott fel — a mellette lévő csempével hívhatsz meg valakit.",
   "owner.onlyYou": "Csak te látod",
   "owner.onlyYouBody": "Az olvasóid a fenti napot látják. Ebből semmit.",
   "notify.short": "A küldés {needed} kreditbe kerülne; ennek a naplónak {balance} van hátra.",

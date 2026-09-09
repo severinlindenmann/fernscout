@@ -1300,6 +1300,7 @@ export type TranslationKey =
   | "notify.costCredits.one"
   | "notify.failed"
   | "notify.free"
+  | "notify.nobody"
   | "notify.question"
   | "notify.sendNow"
   | "notify.sent"
