@@ -797,6 +797,42 @@ from before this existed: one destination, nothing else attempted, and
 `/api/health` -> `.backup.secondary` reads `unknown` rather than failing or
 being absent.
 
+**A folder per night, instead of one repository (B1159).** End the value in
+the literal token `/<date>` and each night gets a complete standalone restic
+repository of its own:
+
+```bash
+RESTIC_REPOSITORY_SECONDARY=s3:https://<endpoint>/<bucket>/<date>
+BACKUP_SECONDARY_KEEP_DAYS=7
+```
+
+The bucket then reads as a list of dates rather than as restic's blob store,
+any one of which restores the instance without the others, and a `RESTORE.txt`
+at the root — rewritten on every successful copy, so it names the nights that
+are actually there — carries the procedure for somebody who has lost the
+server and is looking at a bucket.
+
+Three things to know before choosing it:
+
+- **It gives up deduplication across nights.** A standalone repository cannot
+  diff against the one before it, so every run uploads the whole set rather
+  than the delta. Here that is ~600 MiB and about two minutes; on a repository
+  ten times larger it would be the wrong trade.
+- **Expiring a night deletes a whole prefix**, which restic has no verb for. A
+  local path is `rm -rf`; S3 needs `rclone` on `PATH`. Without it the nightly
+  copy still lands and the expiry is a logged WARNING — nothing fails, but the
+  dates accumulate. `apt install rclone`, or the static binary from
+  rclone.org; no `rclone config` is needed, the script builds the remote from
+  the same `AWS_*` variables restic uses.
+- **Tonight's repository is created when missing**, which
+  `BACKUP_INIT_IF_MISSING` refuses to do for the primary. That guard is there
+  because a typo in the primary becomes a green backup protecting nothing; a
+  dated secondary is supposed to be new every night, and the secondary never
+  decides whether a run succeeded, so the same failure cannot happen here.
+
+`BACKUP_SECONDARY_KEEP_DAYS` is read only in this layout. The single-
+repository one prunes with `BACKUP_KEEP_DAILY`, exactly as before.
+
 ### Is the backup working?
 
 Not `systemctl list-timers`. That reports the schedule and never the result —

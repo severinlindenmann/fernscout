@@ -35,6 +35,23 @@ snapshot's contents identical; substitute `RESTIC_REPOSITORY_SECONDARY` for
 `RESTIC_REPOSITORY` in step 1 when the primary machine's own repository is
 the thing that was lost along with it.
 
+**Read the off-site value before you substitute it.** Where it ends in the
+literal `/<date>` the off-site copy is one standalone repository per night
+rather than one repository, and the thing to export is a real date:
+
+```bash
+# NOT this — `<date>` is a token the backup script expands, not a path
+export RESTIC_REPOSITORY='s3:https://endpoint/bucket/<date>'
+# this
+export RESTIC_REPOSITORY=s3:https://endpoint/bucket/2026-09-09
+```
+
+Which nights exist is listed in `RESTORE.txt` at the root of that bucket,
+rewritten by every successful nightly copy, along with this same procedure in
+short. Each night restores the whole instance on its own — they are not
+increments — so the newest is the one to take unless you are reaching past
+something that went wrong.
+
 ## What a snapshot contains
 
 Since B653 the backup is an allowlist, not "everything under `DATA_DIR`":

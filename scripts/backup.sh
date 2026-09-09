@@ -112,6 +112,15 @@
 #                         `.backup-last-success-secondary`, read by
 #                         `/api/health` -> `.backup.secondary`
 #                         (lib/backupStatus.ts).
+#                         Ending this in the literal `/<date>` switches on the
+#                         dated layout: one standalone repository per night at
+#                         `<base>/YYYY-MM-DD`, browsable as a list of dates,
+#                         each restorable on its own, at the cost of restic's
+#                         deduplication across nights. See step 8d.
+#   BACKUP_SECONDARY_KEEP_DAYS  default: 7 — how many dated repositories are
+#                         kept. Read only in the dated layout; the
+#                         single-repository one uses BACKUP_KEEP_DAILY as
+#                         before.
 #   APP_DIR               default: the directory this script lives in, minus
 #                         /scripts
 #
@@ -738,22 +747,233 @@ fi
 # between (confirmed against 0.19.1: `echo "$RESTIC_PASSWORD"` is passed
 # through argv unexpanded and echoes the literal string, not the value) —
 # `printenv` needs no shell to read the already-inherited variable.
-if [[ -n "${RESTIC_REPOSITORY_SECONDARY:-}" ]]; then
-  log "copying tonight's snapshot(s) to the secondary repository at $RESTIC_REPOSITORY_SECONDARY"
-  if RESTIC_REPOSITORY="$RESTIC_REPOSITORY_SECONDARY" restic copy \
+#
+# --- Two layouts, and why (B1159) ------------------------------------------
+#
+# ONE REPOSITORY is the default and is what B659 shipped: every night copies
+# into the same destination, restic deduplicates against what is already
+# there, and a night costs the changed blobs alone. Retention is
+# `restic forget --keep-daily $BACKUP_KEEP_DAILY`. Nothing about it has
+# changed.
+#
+# DATED REPOSITORIES happen when RESTIC_REPOSITORY_SECONDARY ends in the
+# literal token `/<date>`:
+#
+#   RESTIC_REPOSITORY_SECONDARY=s3:https://endpoint/bucket/<date>
+#
+# Then each night gets a whole standalone restic repository of its own at
+# `<base>/YYYY-MM-DD`, and `BACKUP_SECONDARY_KEEP_DAYS` (default 7) of them
+# are kept. The bucket becomes a list of dates somebody can read in a console,
+# and any one folder restores the instance without the others — which is the
+# property that makes it worth its price.
+#
+# And it has a real price, so choose it on purpose: a standalone repository
+# per night cannot deduplicate against the night before, so every run uploads
+# the whole set again rather than the delta. At this instance's size that is
+# ~600 MiB and about two minutes a night. On a repository ten times larger it
+# would be the wrong trade.
+#
+# Two smaller consequences of the same choice:
+#
+#   - Tonight's repository is created when it is missing, which
+#     `BACKUP_INIT_IF_MISSING` deliberately refuses to do for the primary
+#     (step 8). That guard exists because a typo in the primary silently
+#     becomes a green backup protecting nothing. It does not carry over here:
+#     a dated secondary is *supposed* to be new every night, and the secondary
+#     never decides whether the run succeeded, so the failure mode the guard
+#     prevents cannot happen through this path.
+#   - Expiring a night means deleting a whole prefix, which restic has no verb
+#     for. Where the base is a local path that is `rm -rf`; against S3 it
+#     needs `rclone`, and without it the copy still lands and the expiry is
+#     logged as a WARNING rather than failing anything.
+
+secondary_repo="${RESTIC_REPOSITORY_SECONDARY:-}"
+secondary_base=""
+secondary_date=""
+if [[ "$secondary_repo" == */"<date>" ]]; then
+  secondary_base="${secondary_repo%/<date>}"
+  secondary_date="$(date -u +%F)"
+  secondary_repo="$secondary_base/$secondary_date"
+fi
+
+# Where the dated layout keeps its prefixes, and how they are removed. Three
+# tiny shims rather than a storage abstraction: listing, deleting and writing
+# one text object is the whole of what the expiry below needs, and every
+# backend restic speaks that is neither a local path nor S3 simply reports
+# that it could not expire, which is the honest answer.
+secondary_kind() {
+  case "$secondary_base" in
+    s3:*) printf 's3' ;;
+    /*)   printf 'local' ;;
+    *)    printf 'other' ;;
+  esac
+}
+
+# rclone reads its remote out of RCLONE_CONFIG_<NAME>_* rather than a config
+# file, so the keys stay in the environment this script already inherited and
+# never reach a command line where `ps` would show them.
+secondary_rclone_path=""
+secondary_rclone_init() {
+  command -v rclone >/dev/null 2>&1 || return 1
+  local rest="${secondary_base#s3:}"
+  rest="${rest#https://}"
+  rest="${rest#http://}"
+  [[ "$rest" == */* ]] || return 1
+  export RCLONE_CONFIG_SEC_TYPE=s3
+  export RCLONE_CONFIG_SEC_PROVIDER=Other
+  export RCLONE_CONFIG_SEC_ENDPOINT="${rest%%/*}"
+  export RCLONE_CONFIG_SEC_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-}"
+  export RCLONE_CONFIG_SEC_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-}"
+  export RCLONE_CONFIG_SEC_REGION="${AWS_DEFAULT_REGION:-}"
+  secondary_rclone_path="${rest#*/}"
+}
+
+secondary_list_dates() {
+  case "$(secondary_kind)" in
+    local) ls -1 "$secondary_base" 2>/dev/null ;;
+    s3)    [[ -n "$secondary_rclone_path" ]] && rclone lsf --dirs-only "sec:$secondary_rclone_path" 2>/dev/null | tr -d '/' ;;
+    *)     return 1 ;;
+  esac | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' | sort
+}
+
+secondary_purge_date() {
+  case "$(secondary_kind)" in
+    local) rm -rf -- "${secondary_base:?}/${1:?}" ;;
+    s3)    [[ -n "$secondary_rclone_path" ]] && rclone purge "sec:$secondary_rclone_path/$1" ;;
+    *)     return 1 ;;
+  esac
+}
+
+secondary_put_text() {
+  case "$(secondary_kind)" in
+    local) mkdir -p "$secondary_base" && cat > "$secondary_base/$1" ;;
+    s3)    [[ -n "$secondary_rclone_path" ]] && rclone rcat "sec:$secondary_rclone_path/$1" ;;
+    *)     return 1 ;;
+  esac
+}
+
+# The note somebody reads when they have lost the server and are looking at a
+# bucket. It is rewritten every night rather than placed once by hand, because
+# a restore procedure that goes stale is worse than none — this one names the
+# dates that are actually there, tonight.
+secondary_restore_note() {
+  local dates
+  dates="$(secondary_list_dates 2>/dev/null | sed 's/^/  /')" || dates=""
+  cat <<NOTE
+Fernscout off-site backup
+=========================
+
+Written by scripts/backup.sh on $(date -u +%FT%TZ). Do not edit by hand: this
+file is replaced on every successful nightly copy.
+
+Every folder beside this one is a COMPLETE, STANDALONE restic repository
+holding one night's backup. They do not depend on each other and they are not
+increments — any single folder restores the whole instance on its own. The
+newest ${BACKUP_SECONDARY_KEEP_DAYS:-7} are kept; older ones are deleted.
+
+Nights held right now:
+
+${dates:-  (none listed — see the WARNING lines in the backup log)}
+
+To restore, on any machine with restic installed
+------------------------------------------------
+
+  export RESTIC_REPOSITORY=$secondary_base/YYYY-MM-DD
+  export AWS_ACCESS_KEY_ID=...
+  export AWS_SECRET_ACCESS_KEY=...
+  export AWS_DEFAULT_REGION=...
+  export RESTIC_PASSWORD=...
+
+  restic snapshots
+  restic restore latest --target /tmp/restore
+
+RESTIC_PASSWORD IS NOT IN THIS BUCKET and is not inside the backup either — it
+is stripped from the env file before that file is staged. Without it nothing
+here can be read, by you or by anybody who reaches this bucket. Keep a copy
+somewhere that is neither this bucket nor the server.
+
+What is inside, under var/tmp/fernscout-backup-staging/
+-------------------------------------------------------
+
+  db/postgres.dump      the database, restored with pg_restore
+  db/fernscout.db       the sqlite file instead, on an instance using sqlite
+  content/              every journal: days, trips, photographs, gps/
+  config/config.json    the instance's own config
+  state/<name>.json     the JSON stores (reactions, push subscriptions, ...)
+  env/fernscout.env     the service's environment, RESTIC_PASSWORD removed
+
+The full procedure — a new server, in order, end to end — is
+docs/disaster-recovery.md in the Fernscout checkout.
+NOTE
+}
+
+if [[ -n "$secondary_repo" ]]; then
+  if [[ -n "$secondary_date" ]]; then
+    if [[ "$(secondary_kind)" == "s3" ]] && ! secondary_rclone_init; then
+      log "WARNING: rclone is not installed (or $secondary_base is not an endpoint/bucket URL), so tonight's copy will land but nothing older can be expired and RESTORE.txt cannot be written — install rclone on this machine"
+    fi
+    if ! RESTIC_REPOSITORY="$secondary_repo" restic cat config >/dev/null 2>&1; then
+      log "creating tonight's off-site repository at $secondary_repo"
+      RESTIC_REPOSITORY="$secondary_repo" restic init >/dev/null || true
+    fi
+  fi
+  log "copying tonight's snapshot(s) to the secondary repository at $secondary_repo"
+  if RESTIC_REPOSITORY="$secondary_repo" restic copy \
        --from-repo "$RESTIC_REPOSITORY" \
        --from-password-command 'printenv RESTIC_PASSWORD' \
        --tag fernscout \
        --host "${HOSTNAME:-fernscout-vps}"; then
-    log "pruning secondary snapshots older than ${BACKUP_KEEP_DAILY} daily generations"
-    if RESTIC_REPOSITORY="$RESTIC_REPOSITORY_SECONDARY" restic forget --tag fernscout --keep-daily "$BACKUP_KEEP_DAILY" --prune; then
+    if [[ -n "$secondary_date" ]]; then
+      # The copy has landed, so the night is a success for the secondary no
+      # matter how the housekeeping below goes. Stamped here rather than after
+      # it, deliberately and unlike the single-repository branch: a missing
+      # rclone would otherwise report the off-site copy as permanently stale
+      # at /api/health while it was in fact arriving every night.
       date -u +%FT%TZ > "$DATA_DIR/.backup-last-success-secondary"
       log "recorded secondary success in $DATA_DIR/.backup-last-success-secondary"
+
+      keep_days="${BACKUP_SECONDARY_KEEP_DAYS:-7}"
+      # A while-read loop rather than `mapfile`: this script is still run by
+      # bash 3.2 on a developer's Mac, where `mapfile` does not exist and the
+      # array would silently stay empty.
+      secondary_dates=()
+      while IFS= read -r one_date; do
+        [[ -n "$one_date" ]] && secondary_dates+=("$one_date")
+      done < <(secondary_list_dates || true)
+      if (( ${#secondary_dates[@]} == 0 )); then
+        log "WARNING: could not list the dated repositories under $secondary_base — nothing was expired tonight, and they will accumulate until this is fixed"
+      else
+        expire_count=$(( ${#secondary_dates[@]} - keep_days ))
+        if (( expire_count > 0 )); then
+          log "expiring $expire_count off-site night(s) beyond the newest $keep_days"
+          for old_date in "${secondary_dates[@]:0:$expire_count}"; do
+            if secondary_purge_date "$old_date"; then
+              log "removed $secondary_base/$old_date"
+            else
+              log "WARNING: could not remove $secondary_base/$old_date — it stays where it is and nothing else is affected"
+            fi
+          done
+        else
+          log "${#secondary_dates[@]} off-site night(s) held, keeping $keep_days — nothing to expire"
+        fi
+      fi
+
+      if secondary_restore_note | secondary_put_text "RESTORE.txt"; then
+        log "refreshed $secondary_base/RESTORE.txt"
+      else
+        log "WARNING: could not write $secondary_base/RESTORE.txt — the copy itself is unaffected"
+      fi
     else
-      log "WARNING: pruning the secondary repository failed — tonight's copy is still there, and this does not affect the primary or tonight's success"
+      log "pruning secondary snapshots older than ${BACKUP_KEEP_DAILY} daily generations"
+      if RESTIC_REPOSITORY="$secondary_repo" restic forget --tag fernscout --keep-daily "$BACKUP_KEEP_DAILY" --prune; then
+        date -u +%FT%TZ > "$DATA_DIR/.backup-last-success-secondary"
+        log "recorded secondary success in $DATA_DIR/.backup-last-success-secondary"
+      else
+        log "WARNING: pruning the secondary repository failed — tonight's copy is still there, and this does not affect the primary or tonight's success"
+      fi
     fi
   else
-    log "WARNING: copying to the secondary repository at $RESTIC_REPOSITORY_SECONDARY failed — the primary backup already succeeded and is unaffected; /api/health will report the secondary as stale until a copy gets through"
+    log "WARNING: copying to the secondary repository at $secondary_repo failed — the primary backup already succeeded and is unaffected; /api/health will report the secondary as stale until a copy gets through"
   fi
 fi
 

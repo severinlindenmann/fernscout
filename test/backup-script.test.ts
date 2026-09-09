@@ -1550,4 +1550,73 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     },
     60_000,
   );
+
+  // --- B1159: a folder per night --------------------------------------
+  //
+  // The dated layout is what a person actually looks at when the server is
+  // gone: a bucket listing of dates, and a note at the top of it. All three
+  // of its moving parts are here — the token expands to today, tonight's
+  // repository is created rather than refused, and the nights past the keep
+  // count are deleted — because none of them is checkable by reading the
+  // script and each fails silently in a different way.
+
+  test(
+    "RESTIC_REPOSITORY_SECONDARY ending in /<date>: tonight gets its own repository, older nights are deleted, RESTORE.txt names what is left",
+    () => {
+      const base = path.join(scratch, "restic-offsite-dated");
+      const today = new Date().toISOString().slice(0, 10);
+
+      // Eight nights already there, none of them today. Deliberately empty
+      // directories: expiry lists names and removes prefixes, and must not
+      // need to open a repository to decide one is old.
+      const seeded = Array.from({ length: 8 }, (_, i) => `2026-08-0${i + 1}`);
+      for (const night of seeded) fs.mkdirSync(path.join(base, night), { recursive: true });
+      // A stray that is not a date, to prove the filter is a filter.
+      fs.mkdirSync(path.join(base, "not-a-date"), { recursive: true });
+
+      fs.rmSync(path.join(dataDir, ".backup-last-success-secondary"), { force: true });
+      const run = runBackup({
+        RESTIC_REPOSITORY_SECONDARY: `${base}/<date>`,
+        BACKUP_SECONDARY_KEEP_DAYS: "7",
+      });
+      expect(run.status, run.stdout + run.stderr).toBe(0);
+
+      // The token expanded, and the repository for it was created rather than
+      // refused the way a missing primary is.
+      const tonight = path.join(base, today);
+      expect(run.stdout).toContain(`creating tonight's off-site repository at ${tonight}`);
+      expect(run.stdout).toContain(`copying tonight's snapshot(s) to the secondary repository at ${tonight}`);
+      expect(run.stdout).not.toContain("<date>");
+
+      // It is a real, standalone, readable restic repository — the whole
+      // claim RESTORE.txt makes about every folder in that bucket.
+      expect(snapshotCount(tonight)).toBeGreaterThanOrEqual(1);
+      const check = restic(["check"], tonight);
+      expect(check.status, check.stdout + check.stderr).toBe(0);
+
+      // Nine dates existed with the keep count at seven, so the two oldest
+      // are gone and nothing else is.
+      const left = fs.readdirSync(base).sort();
+      expect(left).toContain("not-a-date");
+      expect(left).toContain("RESTORE.txt");
+      expect(left.filter((name) => /^\d{4}-\d{2}-\d{2}$/.test(name))).toEqual([...seeded.slice(2), today]);
+      expect(run.stdout).toContain(`removed ${path.join(base, "2026-08-01")}`);
+      expect(run.stdout).toContain(`removed ${path.join(base, "2026-08-02")}`);
+
+      // The note is the only thing a person has when the server is gone, so
+      // it has to carry the dates that are actually there and the repository
+      // URL shape they would paste.
+      const note = fs.readFileSync(path.join(base, "RESTORE.txt"), "utf8");
+      expect(note).toContain(today);
+      expect(note).not.toContain("2026-08-01");
+      expect(note).toContain(`export RESTIC_REPOSITORY=${base}/YYYY-MM-DD`);
+      expect(note).toContain("restic restore latest --target /tmp/restore");
+      // The password must never be in the bucket it unlocks.
+      expect(note).not.toContain(PASSWORD);
+
+      const stampPath = path.join(dataDir, ".backup-last-success-secondary");
+      expect(fs.readFileSync(stampPath, "utf8").trim()).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    },
+    180_000,
+  );
 });
