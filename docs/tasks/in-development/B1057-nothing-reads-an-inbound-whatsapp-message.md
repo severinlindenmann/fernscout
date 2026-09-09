@@ -295,3 +295,63 @@ spending it, so both exist.
 This route therefore depends on B1091 rather than merely coexisting with it: a
 turn arriving by webhook has to spend and refund exactly as the web room's
 does, and it must not grow a second copy of that logic.
+
+## Built — 2026-09-09
+
+Validity already established by the plan-a-run gate for group-phone; see
+`.claude/runs/2026-09-09-phone-and-gates/brief.json`.
+
+Built exactly the scope the ticket names — "the route, and only the route" —
+and no more:
+
+- `app/api/webhooks/whatsapp/route.ts`: `GET` handshake (checks
+  `hub.verify_token` against `WHATSAPP_VERIFY_TOKEN`, answers the raw
+  `hub.challenge` as plain text); `POST` reads the raw body before anything
+  parses it, verifies `X-Hub-Signature-256` (HMAC-SHA256 over the raw bytes,
+  constant-time compare) against `WHATSAPP_APP_SECRET`, then per message:
+  rate-limits on the sender's E.164 (30/5min, `lib/rateLimit.ts`'s generic
+  keying — not IP, which is Meta's alone), dedupes on `wamid` via
+  `lib/idempotency.ts` (already existed, moved out of `lib/mcp/` per the
+  ticket's own note), and hands the normalised message to
+  `handleInboundMessage`. Answers `200` fast; nothing here calls a model or a
+  network resource that costs money.
+- `lib/whatsapp/inbound.ts`: `verifyWebhookSignature`, and
+  `parseInboundMessages` — normalises Meta's envelope into text, image,
+  video, document, sticker, audio (with `voice`), location, contacts and
+  interactive-reply shapes, matching the field list the ticket's own
+  "Researched" section worked out. Status webhooks (`statuses[]`) are
+  skipped; nothing here reads them.
+- `lib/whatsapp/dispatch.ts`: `handleInboundMessage` — **deliberately a
+  placeholder that only logs.** The ticket says to normalise and stop; this
+  is where B1058 (built next, in this same branch) gives it a body.
+- Two capability switches, not one: `whatsappInbound` (this ticket) beside
+  the existing `whatsapp` (day announcements) — `lib/config.ts`,
+  `lib/capabilities.ts`. Off by default; needs `WHATSAPP_APP_SECRET` and
+  `WHATSAPP_VERIFY_TOKEN`, both environment-only. No `db: true` — the
+  idempotency layer already falls back to an in-memory store with no
+  database, which is what keeps this developable with no Meta account *and*
+  no database.
+
+**Not built, and worth saying plainly:** the debounce-per-conversation,
+mark-read/typing-indicator, and B1091 metering bullets in "Decided further"
+below all describe machinery around a *reply* — and replying is B1056,
+explicitly out of this ticket's scope ("Not doing: replying"). Building a
+debounce queue with nothing on the other end to debounce *for* would be
+speculative machinery with no caller — left for B1056/B1061, which are where
+a model turn first exists to need it. What *is* built now (idempotency, the
+per-sender rate limit) are the parts that matter regardless of whether
+anything ever replies.
+
+**Not covered by openapi.ts or errorCodes.ts** — confirmed against
+`test/openapi-contract.test.ts` and `test/api-route-schemas.test.ts`, both
+of which scan only `app/api/v1/**` and `app/api/auth/**`. `app/api/webhooks/`
+is outside that contract entirely, the same way the existing Stripe webhook
+is undocumented there — this route is Meta's door, not an agent's.
+
+Evidence: `test/whatsapp-webhook.test.ts` (8 tests) — handshake success and
+wrong-token refusal, a signed fixture accepted, an unsigned one refused
+(401), a wrongly-signed one refused, the same fixture posted twice
+acknowledged both times with no error (the idempotency layer's actual
+dedup effect is only externally observable once B1058 gives
+`handleInboundMessage` something to do twice), and the capability off by
+default (404) on both verbs. Pure backend; no page to screenshot.

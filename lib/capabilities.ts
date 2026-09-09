@@ -36,6 +36,14 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   // Backend-specific, the same way mail is: `dry-run` needs nothing, which
   // is what keeps this developable with no Meta account at all.
   whatsapp: { env: [], db: false },
+  // B1057. A different switch from `whatsapp` above (see FEATURE_NAMES in
+  // lib/config.ts for why) and a different credential shape — reading a
+  // webhook needs the app secret and the handshake's verify token, neither
+  // of which sending needs. No `db: true` here: idempotency (lib/idempotency.ts)
+  // falls back to an in-memory store with no database, so this stays
+  // developable with `dry-run`'s discipline — a fixture posted locally,
+  // no Meta account, no database.
+  whatsappInbound: { env: ["WHATSAPP_APP_SECRET", "WHATSAPP_VERIFY_TOKEN"], db: false },
   auth: { env: ["SESSION_SECRET"], db: true },
   // Self-service journal creation. Needs somewhere to keep the codes it
   // issues, and — checked in the route rather than here — mail to send them

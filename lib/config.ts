@@ -21,6 +21,13 @@ export const FEATURE_NAMES = [
   "push",
   "mail",
   "whatsapp",
+  // B1057. Deliberately separate from `whatsapp` above, which means
+  // "send day announcements to readers" — the conversational channel is a
+  // different capability with a different cost and a different consent
+  // story, and a journal may want one without the other. Conflating the two
+  // would mean turning off announcements silently kills somebody's writing
+  // door.
+  "whatsappInbound",
   "auth",
   "signup",
   "contacts",
@@ -387,6 +394,10 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // `dry-run` writes the payload it would have sent, so the whole feature
   // develops without a Meta account — see lib/whatsapp/index.ts.
   whatsapp: { enabled: false, backend: "dry-run" },
+  // B1057. No backend option: unlike sending, reading has only one real
+  // implementation — Meta's webhook — plus off. See lib/capabilities.ts for
+  // what it needs (WHATSAPP_APP_SECRET, WHATSAPP_VERIFY_TOKEN).
+  whatsappInbound: { enabled: false },
   auth: { enabled: false },
   // `phoneBackend` picks how `POST /api/auth/signup/phone/*` proves the
   // number a new journal is created with — B1065. `dry-run` writes the code
