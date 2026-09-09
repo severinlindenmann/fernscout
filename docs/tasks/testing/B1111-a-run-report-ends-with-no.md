@@ -7,8 +7,7 @@ complexity: low
 area: skills
 found: "2026-09-09T16:48:23Z"
 started: "2026-09-09T16:53:34Z"
-session: df031729-b5f3-42f2-bcac-c6c88d608ee0
-claimed: "2026-09-09T16:53:34Z"
+merged: "2026-09-09T17:06:14Z"
 ---
 
 # B1111 — A run report ends with no way to say which tickets a person accepted
