@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (165)
+## backlog (169)
 
 ### security (3)
 
@@ -59,12 +59,14 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1045](backlog/security/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low |
 
-### issue (25)
+### issue (28)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1125](backlog/issue/B1125-every-photobook-print-quote-is-refused.md) | Every photobook print quote is refused, so the print panel can never appear | ISSUE | high | low |
 | [B1147](backlog/issue/B1147-gelato-rejects-fernscout-ch-s-credential.md) | Gelato rejects fernscout.ch's credential, so no photobook in a real journal can be priced | ISSUE | high | low |
+| [B1160](backlog/issue/B1160-on-a-phone-the-preview-sheet.md) | On a phone the preview sheet covers the Ask button, so a typed message cannot be sent | ISSUE | high | low |
+| [B1161](backlog/issue/B1161-a-read-tool-s-list-is.md) | A read tool's list is still said back in prose, so the answer appears twice | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1094](backlog/issue/B1094-editing-a-contact-opens-a-form.md) | Editing a contact opens a form off-screen above the button, so the button looks broken | ISSUE | medium | low |
@@ -77,6 +79,7 @@ Do not edit them by hand; run the script.
 | [B1138](backlog/issue/B1138-the-whatsapp-channel-discloses-ai-consent.md) | The WhatsApp channel discloses AI/consent once but never gates on an acknowledgement | ISSUE | medium | medium |
 | [B1139](backlog/issue/B1139-a-hold-in-in-development-survives.md) | A hold in in-development survives the session that took it, and nothing says the work already merged | ISSUE | medium | medium |
 | [B1148](backlog/issue/B1148-a-refused-print-credential-is-reported.md) | A refused print credential is reported to the owner as the printer being unreachable, with advice to try again | ISSUE | medium | low |
+| [B1162](backlog/issue/B1162-a-quoted-day-shows-its-blockquote.md) | A quoted day shows its blockquote marker, in the one block where quoting happens | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
@@ -186,7 +189,7 @@ Do not edit them by hand; run the script.
 | [B1141](backlog/docs-and-skills/B1141-a-worktree-s-cloned-node-modules.md) | A worktree's cloned node_modules goes stale when main adds a dependency, and the build fails as if the change were wrong | DOCS | medium | low |
 | [B1046](backlog/docs-and-skills/B1046-two-sessions-running-verify-in-the.md) | Two sessions running verify in the shared checkout collide on the next build lock | DOCS | low | low |
 
-### superseded (62)
+### superseded (63)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -196,6 +199,7 @@ Do not edit them by hand; run the script.
 | [B1015](backlog/superseded/B1015-b984-moved-the-agent-room-s.md) | B984 moved the agent room's URL and left one test asserting the old one, so main is red | ISSUE | high | low |
 | [B1050](backlog/superseded/B1050-main-does-not-build-a-merge.md) | main does not build: a merge left two features keys in one object literal in helper-proposal-arguments.test.ts | ISSUE | high | low |
 | [B1071](backlog/superseded/B1071-the-helper-prompt-is-7617-tokens.md) | The helper prompt is 7617 tokens against its 6500 ceiling, so main's test suite is red | ISSUE | high | medium |
+| [B1156](backlog/superseded/B1156-the-order-panel-tells-every-instance.md) | The order panel tells every instance that nothing will be printed | ISSUE | high | low |
 | [B373](backlog/superseded/B373-the-backup-success-marker-vanished-from.md) | The backup success marker vanished from DATA_DIR between two deploys minutes apart | OPS | high | low |
 | [B377](backlog/superseded/B377-the-deploy-reported-a-healthy-backup.md) | The deploy reported a healthy backup this afternoon and none at all this evening | OPS | high | low |
 | [B65](backlog/superseded/B65-the-deployed-server-has-no-backup.md) | Every backup of the deployed server sits on the same machine it is backing up | OPS | high | medium |
@@ -280,11 +284,10 @@ Do not edit them by hand; run the script.
 | [B1115](open/B1115-a-brief-can-say-a-ticket.md) | A brief can say a ticket is dropped or live, and B1058 is neither | DOCS | high | low |
 | [B994](open/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium |
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1156](in-development/B1156-the-order-panel-tells-every-instance.md) | The order panel tells every instance that nothing will be printed | ISSUE | high | low | `ce87fdc2` |
 | [B1157](in-development/B1157-buying-a-photobook-is-two-purchases.md) | Buying a photobook is two purchases with the decision after the money | FEATURE | high | high | `ce87fdc2` |
 
 ## testing (33)
