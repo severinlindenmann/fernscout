@@ -7,8 +7,7 @@ complexity: low
 area: helper room
 found: "2026-09-09T20:30:39Z"
 started: "2026-09-09T20:31:02Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-09T20:31:02Z"
+merged: "2026-09-09T20:44:36Z"
 ---
 
 # B1179 — A reopened conversation reads as one undifferentiated wall with no date

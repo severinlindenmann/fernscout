@@ -7,8 +7,7 @@ complexity: low
 area: helper room
 found: "2026-09-09T20:30:38Z"
 started: "2026-09-09T20:31:01Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-09T20:31:01Z"
+merged: "2026-09-09T20:44:33Z"
 ---
 
 # B1178 — ?c=new sticks in the address bar and blanks a live conversation on reload
