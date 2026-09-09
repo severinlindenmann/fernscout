@@ -1639,6 +1639,7 @@
   "agent.room.historyTurns": "{count} turns",
   "agent.room.historyTurns.one": "1 turn",
   "agent.room.historyLive": "Current",
+  "agent.room.historyThisOne": "The conversation you are in — nothing said yet",
   "agent.room.uploadedWaiting": "{count} files are waiting — tell me which day they belong to.",
   "agent.room.uploadedWaiting.one": "1 file is waiting — tell me which day it belongs to.",
   "agent.room.newConversation": "New conversation",

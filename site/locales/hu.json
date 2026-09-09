@@ -1639,6 +1639,7 @@
   "agent.room.historyTurns": "{count} üzenet",
   "agent.room.historyTurns.one": "1 üzenet",
   "agent.room.historyLive": "Aktív",
+  "agent.room.historyThisOne": "A beszélgetés, amelyben most vagy — még nem hangzott el semmi",
   "agent.room.uploadedWaiting": "{count} fájl várakozik — mondd meg, melyik naphoz tartoznak.",
   "agent.room.uploadedWaiting.one": "1 fájl várakozik — mondd meg, melyik naphoz tartozik.",
   "agent.room.newConversation": "Új beszélgetés",
