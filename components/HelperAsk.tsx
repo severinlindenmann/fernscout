@@ -787,7 +787,7 @@ export default function HelperAsk({
           role="log"
           aria-live="polite"
           aria-relevant="additions"
-          className={`mb-3 space-y-4 overflow-y-auto ${inRoom ? "min-h-0 flex-1" : "max-h-[60vh]"}`}
+          className={`mb-3 space-y-4 overflow-y-auto overscroll-contain ${inRoom ? "min-h-0 flex-1" : "max-h-[60vh]"}`}
         >
           {/*
             What is kept, said once before anything is said to it — B976.
@@ -1036,15 +1036,11 @@ function DayChip({
   photoSrc: string | null;
   onPress: () => void;
 }) {
-  const { t } = useI18n();
-  const when = date
-    ? new Date(`${date}T00:00:00Z`).toLocaleDateString(undefined, {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-        timeZone: "UTC",
-      })
-    : null;
+  const { t, formatShortDate } = useI18n();
+  // The page's own locale, not the OS one — B1169. This chip renders on the
+  // client only so it cannot mismatch, but the date should read in the
+  // language the rest of the page is in.
+  const when = date ? formatShortDate(date) : null;
   return (
     <button
       type="button"

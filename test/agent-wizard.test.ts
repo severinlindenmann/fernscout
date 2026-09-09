@@ -132,8 +132,10 @@ describe("the helper routes", () => {
   // own read of `sessionsOf` — the clock icon's door onto the same list
   // `past_conversations` answers from inside the conversation. Same cookie,
   // same owner check, both.
-  test("there are thirty-seven of them, and each is guarded", () => {
-    expect(sources).toHaveLength(37);
+  // Thirty-eight: `inbox` (B1171), the pane's own upload into the inbox —
+  // the same validation as the v1 door, behind the room's cookie.
+  test("there are thirty-eight of them, and each is guarded", () => {
+    expect(sources).toHaveLength(38);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

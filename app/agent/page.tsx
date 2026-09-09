@@ -6,9 +6,10 @@ import { isEnabled } from "@/lib/capabilities";
 import AgentDoor from "@/components/AgentDoor";
 import HelperRoom from "@/components/HelperRoom";
 import { hasHelperConsent } from "@/lib/helper/consent";
-import { draftsForWizard, filesForRoom, isHelperOwner } from "@/lib/helper/server";
+import { filesForRoom, isHelperOwner } from "@/lib/helper/server";
 import { openingFor } from "@/lib/helper/opening";
-import { sessionsOf, turnsIn } from "@/lib/helper/sessions";
+import { turnsIn } from "@/lib/helper/sessions";
+import { adopt, liveSession } from "@/lib/helper/thread";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { journalsFor } from "@/lib/home";
 import { requestLocale, translateIn } from "@/lib/locales";
@@ -60,16 +61,14 @@ export async function generateMetadata(): Promise<Metadata> {
  * `?about=<trip>/<slug>` is the third, and it is B994's: a link from a day,
  * opening a conversation that already knows what it was opened from.
  *
- * **Nothing in `?c=` is the ordinary case a person actually hits, though —
- * B1109's other half.** Every plain visit to `/agent` — the address the room
- * itself hands out, and the one anybody would bookmark — carried no `c` at
- * all, so it opened blank however recently the room had last had something
- * to say. `sessionsOf` answers the same question the history panel does —
- * which conversation is the most recent one — so a bare `/agent` resumes it
- * exactly as though its own link had been followed. The URL still reads
- * `/agent`, not `/agent?c=…`: this is a courtesy on arrival, not a claim
- * about which conversation the next sentence extends, and the room's own
- * live thread (`lib/helper/thread.ts`) is what actually decides that.
+ * **A bare `/agent` resumes only a conversation that is actually live** —
+ * B1168, revising B1109's resume-the-latest. Drawing last week's stored
+ * turns on arrival looked like a conversation the next sentence would
+ * extend, while the thread that actually answers had long expired and the
+ * sentence silently opened a new session. Now the drawn conversation and
+ * the answering thread are always the same one: a live thread resumes, a
+ * reopened `?c=` is adopted into the thread, `?c=new` (the + button) is
+ * blank, and everything else opens fresh with the history one tap away.
  */
 export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
   const site = serverSite();
@@ -96,29 +95,32 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
     const journal = getUser(user);
     if (journal) {
       /**
-       * Which day the preview opens on. `?about=` is a person arriving from
-       * one — not a guess at all — and otherwise it is whatever is unfinished,
-       * which is a better opening than an empty rectangle and no claim about
-       * what they want.
+       * Which day the preview opens on: `?about=` — a person arriving from a
+       * day, B994 — and nothing else. It used to fall back to whatever was
+       * unfinished, which put a months-old draft on the screen before the
+       * person had done anything, on every arrival; the conversation's own
+       * opening already says what is waiting, in words, with a button. B1170.
        */
       const about = typeof asked.about === "string" ? asked.about : "";
       const [aboutTrip, aboutSlug] = about.split("/");
-      const [waiting] = draftsForWizard(user);
-      const opening =
-        aboutTrip && aboutSlug
-          ? { trip: aboutTrip, slug: aboutSlug }
-          : waiting
-            ? { trip: waiting.trip, slug: waiting.slug }
-            : null;
+      const opening = aboutTrip && aboutSlug ? { trip: aboutTrip, slug: aboutSlug } : null;
 
-      // A conversation named by URL, or — with none named — the most recent
-      // one this journal has, so a bare `/agent` resumes rather than opening
-      // blank. `[latest]` is empty for a journal with no conversations yet,
-      // which is the honest first-ever visit.
-      const session =
-        typeof asked.c === "string" && asked.c !== ""
-          ? asked.c
-          : ((await sessionsOf(user, 1))[0]?.session ?? "");
+      /**
+       * Which conversation this page is — B1168, revising B1109's resume.
+       *
+       * `?c=new` is the + button: a genuinely blank room, whatever is stored.
+       * `?c=<id>` is a conversation reopened from the history panel — and it
+       * is **adopted**, not merely drawn: the live thread takes that id and
+       * those turns, so the next sentence really continues what is on the
+       * screen and is recorded under it. A bare visit resumes only a
+       * conversation that is actually live (within the thread's own TTL);
+       * resuming a dead one drew last week's turns as though typing would
+       * extend them, while the next sentence silently opened a new session.
+       */
+      const named = typeof asked.c === "string" ? asked.c : "";
+      const session = named === "new" ? "" : named !== "" ? named : liveSession(user) ?? "";
+      const history = session ? await turnsIn(user, session) : [];
+      if (named !== "" && named !== "new" && history.length > 0) adopt(user, session, history);
       return (
         <HelperRoom
           username={user}
@@ -128,7 +130,7 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
           opening={opening}
           // Drawn from what was stored. Empty for anything that is not this
           // journal's, which `turnsIn` decides.
-          history={session ? await turnsIn(user, session) : []}
+          history={history}
           // What the room says before anybody has said anything — B984. Read
           // from disk here, drawn locally there: a page that spent a credit to
           // say hello would be charging somebody for arriving.

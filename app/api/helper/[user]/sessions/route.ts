@@ -1,5 +1,6 @@
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { sessionsOf } from "@/lib/helper/sessions";
+import { liveSession } from "@/lib/helper/thread";
 
 export const dynamic = "force-dynamic";
 
@@ -23,5 +24,8 @@ export async function GET(
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
   }
-  return Response.json({ ok: true, sessions: await sessionsOf(user) });
+  // `live` names the conversation a next sentence would extend, so the
+  // panel can say which row is the one you are in — B1168. `null` when
+  // nothing is in progress.
+  return Response.json({ ok: true, live: liveSession(user), sessions: await sessionsOf(user) });
 }
