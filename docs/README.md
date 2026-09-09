@@ -18,6 +18,7 @@ maintained guidance for an agent; this folder is the long form for a person.
 | [config-upgrades.md](config-upgrades.md) | moving a config file forward a version |
 | [deploy-mail.md](deploy-mail.md) | mail, and the file transport that needs no SMTP |
 | [providers/](providers/) | the print providers |
+| [providers/whatsapp.md](providers/whatsapp.md) | the WhatsApp channel: the three subscriptions, the Feldprobe trap, the WABA id trick |
 | [TESTING.md](TESTING.md) · [qa/](qa/) | the manual walkthrough, and the scenario catalogue |
 | [ROADMAP.md](ROADMAP.md) | the decision log |
 | [branding/](branding/) | the mark, the palette, and what not to do to them |
