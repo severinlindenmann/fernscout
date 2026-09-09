@@ -6,6 +6,9 @@ priority: high
 complexity: high
 area: auth, signup, identity
 found: "2026-09-09T07:11:54Z"
+started: "2026-09-09T17:22:12Z"
+session: df031729-b5f3-42f2-bcac-c6c88d608ee0
+claimed: "2026-09-09T17:22:12Z"
 ---
 
 # B1064 — A journal's owner is proven by an email alone, and an address costs nothing to make another of

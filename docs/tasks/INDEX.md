@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (156)
+## backlog (153)
 
 ### security (2)
 
@@ -80,14 +80,12 @@ Do not edit them by hand; run the script.
 | [B1096](backlog/issue/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low |
 | [B1106](backlog/issue/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low |
 
-### big-feature (20)
+### big-feature (18)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1054](backlog/big-feature/B1054-the-helper-s-live-conversation-lives.md) | The helper's live conversation lives in one process's memory, so no second door can ever join it | FEATURE | high | high |
 | [B1056](backlog/big-feature/B1056-a-helper-answer-can-only-be.md) | A helper answer can only be drawn in the web room, because Block has exactly one renderer | FEATURE | high | high |
-| [B1057](backlog/big-feature/B1057-nothing-reads-an-inbound-whatsapp-message.md) | Nothing reads an inbound WhatsApp message, so the number can be written to and never answers | FEATURE | high | high |
-| [B1064](backlog/big-feature/B1064-a-journal-s-owner-is-proven.md) | A journal's owner is proven by an email alone, and an address costs nothing to make another of | FEATURE | high | high |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B1049](backlog/big-feature/B1049-a-model-choosing-among-forty-three.md) | A model choosing among forty-three tools chooses worse than one choosing among seventeen | FEATURE | medium | high |
 | [B1068](backlog/big-feature/B1068-an-agent-that-brings-its-own.md) | An agent that brings its own model cannot write a day from notes, caption a photograph, or hear a voice note | FEATURE | medium | high |
@@ -149,11 +147,10 @@ Do not edit them by hand; run the script.
 | [B1048](backlog/chore/B1048-two-merge-commits-on-main-label.md) | Two merge commits on main label themselves B1026 and B1027, which are different tickets | CHORE | low | low |
 | [B1052](backlog/chore/B1052-code-and-commits-cite-task-ids.md) | Code and commits cite task ids that have no file, so the allocator hands them out again | CHORE | low | low |
 
-### ops (13)
+### ops (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B102](backlog/ops/B102-mail-is-switched-on-at-fernscout.md) | Mail is switched on at fernscout.ch and nothing records that a message has ever arrived | OPS | high | medium |
 | [B1067](backlog/ops/B1067-it-is-not-written-down-where.md) | It is not written down where this instance's telephone number comes from, or what one message costs | OPS | high | low |
 | [B1075](backlog/ops/B1075-the-off-site-backup-has-never.md) | The off-site backup has never once succeeded, and the nightly run failed two days ago | OPS | high | low |
 | [B1077](backlog/ops/B1077-meta-bans-general-purpose-ai-chatbots.md) | Meta bans general-purpose AI chatbots on WhatsApp, and nothing establishes which side of that line the helper is on | OPS | high | low |
@@ -252,21 +249,24 @@ Do not edit them by hand; run the script.
 | [B520](backlog/wont-do/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (4)
+## open (3)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B101](open/B101-nobody-has-attacked-a-running-instance.md) | Nobody has attacked a running instance from the outside with the source in hand | OPS | high | high |
+| [B102](open/B102-mail-is-switched-on-at-fernscout.md) | Mail is switched on at fernscout.ch and nothing records that a message has ever arrived | OPS | high | medium |
 | [B103](open/B103-sign-in-is-switched-on-at.md) | Sign-in is switched on at fernscout.ch and no one has been through the code flow there end to end | OPS | high | medium |
-| [B1058](open/B1058-an-inbound-message-carries-a-telephone.md) | An inbound message carries a telephone number and nothing that says whose journal it is | FEATURE | high | high |
-| [B1065](open/B1065-there-is-no-way-to-prove.md) | There is no way to prove that somebody holds the telephone number they typed | FEATURE | high | medium |
 
-## in-development (9)
+## in-development (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1014](in-development/B1014-the-embedded-print-fonts-are-read.md) | The embedded print fonts are read from the process's working directory, so npm run postcard fails outside the checkout | ISSUE | high | low | `b8352d66` |
 | [B1015](in-development/B1015-b984-moved-the-agent-room-s.md) | B984 moved the agent room's URL and left one test asserting the old one, so main is red | ISSUE | high | low | `b8352d66` |
+| [B1057](in-development/B1057-nothing-reads-an-inbound-whatsapp-message.md) | Nothing reads an inbound WhatsApp message, so the number can be written to and never answers | FEATURE | high | high | `df031729` |
+| [B1058](in-development/B1058-an-inbound-message-carries-a-telephone.md) | An inbound message carries a telephone number and nothing that says whose journal it is | FEATURE | high | high | `df031729` |
+| [B1064](in-development/B1064-a-journal-s-owner-is-proven.md) | A journal's owner is proven by an email alone, and an address costs nothing to make another of | FEATURE | high | high | `df031729` |
+| [B1065](in-development/B1065-there-is-no-way-to-prove.md) | There is no way to prove that somebody holds the telephone number they typed | FEATURE | high | medium | `df031729` |
 | [B1098](in-development/B1098-work-on-a-task-revalidates-a.md) | work-on-a-task revalidates a ticket in one sentence of prose, and asks for a visual check it leaves no evidence of | DOCS | high | low | `df031729` |
 | [B980](in-development/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | `a4bbb185` |
 | [B984](in-development/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | `fdfcf5f2` |

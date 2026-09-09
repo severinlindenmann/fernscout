@@ -6,6 +6,9 @@ priority: high
 complexity: high
 area: whatsapp, identity, onboarding
 found: "2026-09-09T07:11:42Z"
+started: "2026-09-09T17:22:13Z"
+session: df031729-b5f3-42f2-bcac-c6c88d608ee0
+claimed: "2026-09-09T17:22:13Z"
 ---
 
 # B1058 — An inbound message carries a telephone number and nothing that says whose journal it is
