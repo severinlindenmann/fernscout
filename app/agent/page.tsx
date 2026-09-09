@@ -5,6 +5,7 @@ import { resolveIdentity } from "@/lib/auth/handshake";
 import { isEnabled } from "@/lib/capabilities";
 import AgentDoor from "@/components/AgentDoor";
 import HelperRoom from "@/components/HelperRoom";
+import LocaleProvider from "@/components/LocaleProvider";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { filesForRoom, isHelperOwner } from "@/lib/helper/server";
 import { openingFor } from "@/lib/helper/opening";
@@ -12,7 +13,7 @@ import { turnsIn } from "@/lib/helper/sessions";
 import { adopt, forget, liveSession, note } from "@/lib/helper/thread";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { journalsFor } from "@/lib/home";
-import { requestLocale, translateIn } from "@/lib/locales";
+import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
 import { currencyOptions } from "@/lib/rates";
 import { JOURNAL_COOKIE } from "@/lib/requestKeys";
 import { serverSite } from "@/lib/site";
@@ -140,7 +141,21 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
         opening || named === "new" ? "" : named !== "" ? named : ((await liveSession(user)) ?? "");
       const history = session ? await turnsIn(user, session) : [];
       if (named !== "" && named !== "new" && history.length > 0) await adopt(user, session, history);
+      /**
+       * A provider of its own, for one prop the root's cannot carry —
+       * B1200. The room previews a real `DayCard`, and a day's fallback
+       * banner compares the reading locale against the journal's own
+       * `defaultLocale` (`writtenLocale`); under the root provider that
+       * defaulted to English, and a German day previewed with "Auf
+       * Englisch geschrieben" over plainly German words.
+       */
+      const roomLocale = await requestLocale();
       return (
+        <LocaleProvider
+          locale={roomLocale}
+          dictionary={dictionaryFor(roomLocale)}
+          writtenLocale={journal.defaultLocale}
+        >
         <HelperRoom
           username={user}
           title={journal.title}
@@ -171,6 +186,7 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
               : undefined
           }
         />
+        </LocaleProvider>
       );
     }
   }

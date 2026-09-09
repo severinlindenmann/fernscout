@@ -1640,6 +1640,7 @@
   "agent.room.historyTurns": "{count} Nachrichten",
   "agent.room.historyTurns.one": "1 Nachricht",
   "agent.room.historyLive": "Aktuell",
+  "agent.room.historyThisOne": "Die Unterhaltung, in der du gerade bist — noch nichts gesagt",
   "agent.room.uploadedWaiting": "{count} Dateien warten — sag mir, zu welchem Tag sie gehören.",
   "agent.room.uploadedWaiting.one": "1 Datei wartet — sag mir, zu welchem Tag sie gehört.",
   "agent.room.newConversation": "Neue Unterhaltung",

@@ -954,10 +954,31 @@ function HistoryPanel({
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
         {sessions === null ? (
           <p className="text-sm leading-6 text-navy-700">{t("agent.room.historyLoading")}</p>
-        ) : days.length === 0 ? (
+        ) : days.length === 0 && liveId === null ? (
           <p className="text-sm leading-6 text-navy-700">{t("agent.room.historyEmpty")}</p>
         ) : (
           <div className="flex flex-col gap-5">
+            {/* The conversation you are in, when it has no recorded turns
+                yet and therefore no row of its own — B1201. Right after
+                "New conversation" the panel listed everything except where
+                the person actually was. */}
+            {liveId !== null && !(sessions ?? []).some((row) => row.session === liveId) && (
+              /* A button that closes the panel, not a link: the person is
+                 already in this conversation, and "go where you are" is a
+                 reload pretending to be navigation. */
+              <button
+                type="button"
+                onClick={dismiss}
+                className="block w-full rounded-xl border border-navy-300 bg-cream-100 px-3 py-2 text-left transition-colors hover:bg-cream-200"
+              >
+                <p className="truncate text-sm font-medium text-navy-900">
+                  {t("agent.room.historyThisOne")}
+                  <span className="ml-2 rounded-full bg-yellow-400 px-2 py-0.5 text-[11px] font-semibold text-navy-900">
+                    {t("agent.room.historyLive")}
+                  </span>
+                </p>
+              </button>
+            )}
             {days.map(({ day, rows }) => (
               <section key={day}>
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-navy-500">

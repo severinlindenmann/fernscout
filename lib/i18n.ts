@@ -409,6 +409,7 @@ export type TranslationKey =
   | "agent.room.historyEmpty"
   | "agent.room.historyLive"
   | "agent.room.historyLoading"
+  | "agent.room.historyThisOne"
   | "agent.room.historyTurns"
   | "agent.room.historyTurns.one"
   | "agent.room.inbox"
