@@ -273,7 +273,7 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (16)
+## in-development (15)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -289,12 +289,11 @@ Do not edit them by hand; run the script.
 | [B1060](in-development/B1060-a-voice-note-sent-over-whatsapp.md) | A voice note sent over WhatsApp has no route to the transcriber that already exists | FEATURE | medium | low | `e910c430` |
 | [B1074](in-development/B1074-a-location-pin-and-a-shared.md) | A location pin and a shared contact card arrive as text and become nothing | FEATURE | medium | medium | `e910c430` |
 | [B1138](in-development/B1138-the-whatsapp-channel-discloses-ai-consent.md) | The WhatsApp channel discloses AI/consent once but never gates on an acknowledgement | ISSUE | medium | medium | `e910c430` |
-| [B1181](in-development/B1181-the-operator-console-answers-the-wrong.md) | The operator console answers the wrong question first: no single attention list, no net, no unit cost, and the roster is split across three panels | FEATURE | medium | high | `52950bf1` |
 | [B1185](in-development/B1185-choosing-a-language-at-signup-does.md) | Choosing a language at signup does not set the person's own reading language | ISSUE | medium | low | `b9809a36` |
 | [B1186](in-development/B1186-a-transient-upstream-failure-reads-as.md) | A transient upstream failure reads as 'That did not work: 502' with no words | ISSUE | medium | low | `b9809a36` |
 | [B1127](in-development/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low | `e910c430` |
 
-## testing (54)
+## testing (55)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -349,6 +348,7 @@ Do not edit them by hand; run the script.
 | [B1169](testing/B1169-the-room-re-renders-and-shifts.md) | The room re-renders and shifts: RoomOpening hydration mismatch and uncontained scrolling | ISSUE | medium | low | — |
 | [B1177](testing/B1177-the-conversation-has-no-reading-measure.md) | The conversation has no reading measure on a wide screen | ISSUE | medium | low | — |
 | [B1178](testing/B1178-c-new-sticks-in-the-address.md) | ?c=new sticks in the address bar and blanks a live conversation on reload | ISSUE | medium | low | — |
+| [B1181](testing/B1181-the-operator-console-answers-the-wrong.md) | The operator console answers the wrong question first: no single attention list, no net, no unit cost, and the roster is split across three panels | FEATURE | medium | high | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
 | [B1128](testing/B1128-the-invites-and-inbox-tools-also.md) | The invites and inbox tools also say their own block back in prose | ISSUE | low | low | — |
 | [B1179](testing/B1179-a-reopened-conversation-reads-as-one.md) | A reopened conversation reads as one undifferentiated wall with no date | ISSUE | low | low | — |

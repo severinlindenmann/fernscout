@@ -7,8 +7,7 @@ complexity: high
 area: app/admin, lib/adminConsole.ts
 found: "2026-09-09T20:31:06Z"
 started: "2026-09-09T20:31:46Z"
-session: 52950bf1-4b29-4015-80bc-50b30e0366c9
-claimed: "2026-09-09T20:31:46Z"
+merged: "2026-09-09T21:03:21Z"
 ---
 
 # B1181 — The operator console answers the wrong question first: no single attention list, no net, no unit cost, and the roster is split across three panels
