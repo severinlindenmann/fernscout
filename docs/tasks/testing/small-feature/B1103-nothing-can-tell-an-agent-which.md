@@ -7,8 +7,7 @@ complexity: low
 area: API / media
 found: "2026-09-09T16:25:02Z"
 started: "2026-09-09T16:25:25Z"
-session: 8aa24275-7346-4bf6-99b4-24c983c9f0c9
-claimed: "2026-09-09T16:25:25Z"
+merged: "2026-09-09T16:38:49Z"
 ---
 
 # B1103 — Nothing can tell an agent which photographs on a trip are the same picture twice

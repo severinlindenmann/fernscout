@@ -6,9 +6,15 @@ priority: high
 complexity: medium
 area: agent tooling
 found: "2026-09-09T16:18:14Z"
+<<<<<<< HEAD
 started: "2026-09-09T16:26:07Z"
 session: df031729-b5f3-42f2-bcac-c6c88d608ee0
 claimed: "2026-09-09T16:26:07Z"
+=======
+started: "2026-09-09T16:26:18Z"
+session: df031729-b5f3-42f2-bcac-c6c88d608ee0
+claimed: "2026-09-09T16:26:18Z"
+>>>>>>> b1097-page-instrument
 ---
 
 # B1097 — An agent judges a page from its own reading of the code, because there is no instrument that shows it the page
@@ -24,10 +30,16 @@ obviously right, and ships. B42 is what that costs — a second clock that drew
 on the two demo days its own change had edited and on nothing else in the
 world, green suite, inert feature, found by the owner in one click (B1090).
 
-`curl` is not the fallback it looks like. Anything rendered in or below
-`TripHero` is handed to the animated story component and is absent from the
-server HTML, so grepping the response finds nothing and reads exactly like a
-broken prop chain.
+`curl` is not the fallback it looks like, though not for the reason this
+ticket first gave. It claimed the trip hero was absent from the server HTML;
+it is not — 55 of the 56 rendered lines of `/example/trips/alps-2024` are in
+the response, and the one that is missing is `Photos & videos`, missing only
+because `&` is escaped there. What `curl` cannot do is tell **present** from
+**visible**. The same response carries JSON-LD, script payloads and markup the
+animation has not revealed, and a grep that finds a word has learned nothing
+about whether a reader ever sees it. Nor can it report a console error or a
+request that 404ed — and on the first real page this instrument was pointed
+at, `/api/reactions` was one.
 
 And a screenshot alone is not the instrument either. The one thing an agent
 can genuinely check its own work on is a web page — but only because a page
@@ -68,12 +80,16 @@ only, and the skill gains a section pointing at it.
 
 ## Acceptance
 
-- `node check-page.mjs http://localhost:3001/example/trips/<trip> /tmp/x` with
-  the dev server up writes `<slug>-1280.png`, `<slug>-390.png` and
-  `<slug>.json`, and the JSON's `innerText` contains the trip byline that
-  `curl` on the same URL does not.
-- Passing `--cookie fs_session=...` from `/tmp/wt-cookies.txt` reaches an
-  owner-only page and the JSON reports `status: 200` rather than a redirect.
+- `node check-page.mjs http://localhost:3011/example/trips/alps-2024 /tmp/x`
+  with the dev server up writes `<slug>-1280.png`, `<slug>-390.png` and
+  `<slug>.json`; the JSON's `innerText` is the page in reading order rather
+  than the response's markup; and the 390 image is 390 CSS pixels wide and as
+  tall as the whole document.
+- Passing `--cookie fs_session=...` from `/tmp/wt-cookies.txt` gets the
+  `HttpOnly` session cookie in: `/example/me` reads *Sign in · You are not…*
+  without it and *Your journals · Account…* with it. (Not a redirect — this
+  application answers `200` and renders a gate, which is why the check is on
+  the text and not on the status.)
 - A page with a deliberate `console.error` reports it in `consoleErrors`; a
   page with a 404 asset reports it in `failedRequests`.
 - The script exits non-zero when the page 500s or the navigation fails, so a
