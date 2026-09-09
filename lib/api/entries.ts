@@ -567,6 +567,7 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
   if (taken) {
     return {
       ok: false,
+      code: "slug_taken",
       error:
         `an entry already exists with the slug "${slug}" in this trip — ${taken}. ` +
         "A slug is a day's address within its trip and only one day can hold it, so a " +

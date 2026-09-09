@@ -107,6 +107,10 @@ describe("a second day claiming a taken slug", () => {
     expect(second.error).toContain("2026-01-11-da-lat.md");
     // The prefix the REST route maps to 409 rather than 400.
     expect(second.error.startsWith("an entry already exists")).toBe(true);
+    // The stable identifier the helper turns into a translated sentence
+    // (`agent.error.slug_taken`) instead of forwarding this English prose —
+    // B1032, the sibling of B785's `day_exists`.
+    expect(second.code).toBe("slug_taken");
   });
 
   test("and is not written, so the day that exists stays the only one", () => {
