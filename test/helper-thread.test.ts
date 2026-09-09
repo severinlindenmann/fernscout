@@ -434,6 +434,9 @@ describe("the tools", () => {
       // B906 — a sentence that names a thing rather than a date used to land
       // on the screen that starts a new day.
       "find_day",
+      // B1051 — the other half of `invite_guest`: what links exist, never
+      // the live token that would let a reader in.
+      "invites",
       "read_day",
       "trip_costs",
       "trips",
@@ -447,6 +450,9 @@ describe("the tools", () => {
     ).toEqual([
       "add_cost",
       "attach_files",
+      // B1051 — the two switches that decide whether either channel below
+      // can send anything at all.
+      "channels",
       "create_trip",
       "draft_words",
       // The trip's own settings, reached from the conversation instead of a
@@ -455,11 +461,15 @@ describe("the tools", () => {
       // B931 — the only way somebody who was not on a trip can ever read it.
       "invite_guest",
       "publish_day",
+      // B1051 — take one link back; everybody already approved stays in.
+      "revoke_invite",
       "set_budget",
       "set_day_words",
       "set_rate",
       "set_visibility",
       "start_day",
+      // B1051 — one tool for the two routes that announce a published day.
+      "tell_readers",
       "trip_people",
       "trip_tracks",
       "unpublish_day",

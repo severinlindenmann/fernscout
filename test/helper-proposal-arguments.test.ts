@@ -6,6 +6,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
+import { createInvite } from "@/lib/contacts/invites";
 import { storeInboxFile } from "@/lib/inbox";
 import type { Say } from "@/lib/helper/intents";
 import { TOOLS, runTool } from "@/lib/helper/tools";
@@ -86,6 +87,9 @@ const ROUTES: Record<string, () => Promise<Record<string, unknown>>> = {
   "/invite": () => import("@/app/api/helper/[user]/invite/route"),
   "/trip/rates": () => import("@/app/api/helper/[user]/trip/rates/route"),
   "/trip/budget": () => import("@/app/api/helper/[user]/trip/budget/route"),
+  "/invite/revoke": () => import("@/app/api/helper/[user]/invite/revoke/route"),
+  "/day/tell-readers": () => import("@/app/api/helper/[user]/day/tell-readers/route"),
+  "/channels": () => import("@/app/api/helper/[user]/channels/route"),
 };
 
 /** What somebody says to reach each write tool. `files` is filled in per run,
@@ -122,6 +126,11 @@ const SAID: Record<string, Record<string, string>> = {
   invite_guest: { name: "Mira" },
   set_rate: { trip: AS_SAID, currency: "thb", rate: "0.03" },
   set_budget: { trip: AS_SAID, total: "500", days: "5" },
+  // The real id is filled in per-run, below, the same way attach_files
+  // fills in `files` — an invite's id is minted, not something to guess.
+  revoke_invite: {},
+  tell_readers: { trip: AS_SAID, slug: PUBLISHED },
+  channels: { channel: "mail", enabled: "off" },
 };
 
 const say: Say = ((key: string, vars?: Record<string, string>) =>
@@ -155,6 +164,7 @@ beforeEach(async () => {
         auth: { enabled: true },
         helper: { enabled: true },
         contacts: { enabled: true },
+        mail: { enabled: true },
       },
     }),
   );
@@ -168,6 +178,10 @@ beforeEach(async () => {
       defaultLocale: "en",
       locales: ["en"],
       baseCurrency: "CHF",
+      // Contacts is opt-in per journal (unlike mail, which inherits the
+      // server's answer when a journal says nothing) — needed so
+      // `revoke_invite` can see the invite this file creates for it.
+      features: { contacts: { enabled: true } },
     }),
   );
   fs.writeFileSync(
@@ -226,6 +240,10 @@ describe("a proposal's arguments are the press", () => {
     if (name === "attach_files") {
       const staged = await storeInboxFile("alex", "media", "hafen.jpg", await paintJpeg(40, 30, 1), {});
       said.files = staged.entry.id;
+    }
+    if (name === "revoke_invite") {
+      const made = await createInvite("alex", { kind: "guest", tripId: null });
+      said.invite = made.id;
     }
     const ran = await runTool("alex", name, said, say, "2026-05-06");
     const proposal = ran.proposal;
