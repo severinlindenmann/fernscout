@@ -2068,6 +2068,7 @@ export type TranslationKey =
   | "wa.contactInviteMade"
   | "wa.contactNeedsEmail"
   | "wa.firstReply"
+  | "wa.heldAnswer"
   | "wa.locationIncomplete"
   | "wa.locationNoTrip"
   | "wa.locationPinCreated"

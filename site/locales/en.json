@@ -496,6 +496,7 @@
   "wa.firstReply": "Hi! Send me your photos and notes and I'll write your days into your journal at {journalUrl}. I'm an AI, and your messages pass through WhatsApp and the model that writes them. Messaging here is free; writing a day up or transcribing a voice note still spends your journal's credits, same as on the web. Reply 'yes' to continue.",
   "wa.yes": "yes,y",
   "wa.acknowledged": "Thanks — go ahead, tell me about your day.",
+  "wa.heldAnswer": "Answering what you asked {when}:",
   "wa.balanceRefusal": "That would have cost {cost} credits and the balance is {balance} — top up at {url}",
   "mail.identityIgnore": "If you did not ask for this, ignore it — nothing has been opened.",
   "mail.identityLasts": "It lasts a year, on this device. You can end it any time from the page it signs you in to.",

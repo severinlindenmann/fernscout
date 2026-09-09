@@ -160,8 +160,68 @@ describe("a held answer is delivered on the next inbound message", () => {
     const files = fs.readdirSync(replyDir).sort();
     expect(files.length).toBeGreaterThan(before);
     const delivered = files.map((f) => JSON.parse(fs.readFileSync(path.join(replyDir, f), "utf8")));
-    expect(delivered.some((d) => d.body === "Your photobook is ready.")).toBe(true);
+    // B1192: delivered verbatim, but prefixed with a line naming the delay —
+    // not the bare body a person would otherwise read as answering nothing.
+    expect(delivered.some((d) => d.body.includes("Your photobook is ready.") && d.body !== "Your photobook is ready.")).toBe(
+      true,
+    );
     expect(takeHeldAnswer("windowdelivery", "41760001212")).toBeNull();
     forget("windowdelivery");
+  });
+
+  test("the delay line names when the answer was actually ready — B1192", async () => {
+    vi.resetModules();
+    const { handleInboundMessage } = await import("@/lib/whatsapp/dispatch");
+    await migrateToLatest(await getDatabase());
+
+    const created = createJournal({
+      username: "windowdelay",
+      title: "A journal",
+      ownerEmail: "windowdelay@example.test",
+      ownerName: "Owner",
+      ownerNickname: "Owner",
+      defaultLocale: "en",
+      ownerTel: "41760001313",
+      ownerTelProvenAt: new Date().toISOString(),
+      ownerTelProvenMethod: "sms",
+    });
+    expect(created.ok).toBe(true);
+    expect(setJournalFeatures("windowdelay", { whatsappInbound: true }).ok).toBe(true);
+
+    await handleInboundMessage({
+      kind: "text",
+      id: "wamid.delay1",
+      from: "41760001313",
+      timestamp: "1",
+      body: "hi",
+    });
+
+    // Held three hours ago, so the delay line should name an hour-scale gap.
+    const heldAt = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+    fs.mkdirSync(path.join(dir, "windowdelay", "whatsapp", ".held"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "windowdelay", "whatsapp", ".held", "41760001313.json"),
+      JSON.stringify({ tel: "41760001313", heldAt, outbound: { kind: "text", body: "It rained." } }),
+    );
+
+    const replyDir = path.join(dir, "windowdelay", "whatsapp-replies");
+    const before = fs.existsSync(replyDir) ? fs.readdirSync(replyDir).length : 0;
+
+    await handleInboundMessage({
+      kind: "text",
+      id: "wamid.delay2",
+      from: "41760001313",
+      timestamp: "2",
+      body: "ja",
+    });
+
+    const files = fs.readdirSync(replyDir).sort();
+    expect(files.length).toBeGreaterThan(before);
+    const delivered = files.map((f) => JSON.parse(fs.readFileSync(path.join(replyDir, f), "utf8")));
+    const answer = delivered.find((d) => d.body.includes("It rained."));
+    expect(answer).toBeDefined();
+    expect(answer.body).toMatch(/hours? ago/);
+    expect(answer.body.endsWith("It rained.")).toBe(true);
+    forget("windowdelay");
   });
 });

@@ -29,7 +29,7 @@ import type { Trip } from "../types";
 import { isAcknowledgement } from "./acknowledge";
 import { hasAcknowledged, hasBeenGreeted, markAcknowledged, markGreeted } from "./binding";
 import { downloadMedia } from "./cloud";
-import { takeHeldAnswer } from "./held";
+import { announceHeldAnswer, takeHeldAnswer } from "./held";
 import { cloudCredentials, maskNumber } from "./index";
 import { renderForWhatsapp } from "./render";
 import { balanceRefusal } from "./refusal";
@@ -145,7 +145,7 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
    */
   const held = takeHeldAnswer(username, message.from);
   if (held) {
-    await sendOutboundReply(message.from, held.outbound, username);
+    await sendOutboundReply(message.from, announceHeldAnswer(locale, held), username);
     console.log(`[whatsapp:inbound] delivered a held answer to ${maskNumber(message.from)} (${username}), held since ${held.heldAt}`);
   }
 
