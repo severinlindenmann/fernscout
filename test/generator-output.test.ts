@@ -154,7 +154,7 @@ function runPhotobook(options: {
     [
       TSX,
       "--conditions=react-server",
-      path.join(ROOT, "scripts", "photobook.ts"),
+      path.join(ROOT, "scripts", "photobook.mts"),
       "--trip",
       options.trip ?? TRIP,
       ...(options.extra ?? []),
