@@ -22,7 +22,7 @@ Every phone field in the product is one free-text box:
 - `components/InviteRedeem.tsx:364` — somebody arriving on an invite link
 - `components/ContactManage.tsx:166` — a guest correcting their own details
 
-A Swiss person types `076 561 31 50`, which is what a Swiss person means by
+A Swiss person types `076 000 00 00`, which is what a Swiss person means by
 their number, and it is stored exactly as typed. `lib/whatsapp/phone.ts:42`
 then refuses it: a leading zero is a national prefix whose meaning depends on
 where the reader is standing, and guessing it would send somebody's family
@@ -39,7 +39,7 @@ only thing standing between a national number and being dropped.
 ## Work
 
 A dialling-code `<select>` next to the number input, in all four forms — the
-person picks `+41` and types `765613150`. One shared component; four copies of
+person picks `+41` and types `760000000`. One shared component; four copies of
 a country list is four lists that drift.
 
 Keep storage as it is: one `PostalAddress.tel` string, written as `+<cc>
@@ -62,10 +62,10 @@ argument stronger, not weaker.
 ## Acceptance
 
 In each of the four forms the country is a separate control, and a number
-entered as `+41` + `765613150` round-trips: saved, reopened for edit as the
-same two parts, and `toE164` returns `41765613150` with no
+entered as `+41` + `760000000` round-trips: saved, reopened for edit as the
+same two parts, and `toE164` returns `41760000000` with no
 `defaultCountryCode` configured. A test covers the parse-back of a stored
-`+41 76 561 31 50` and of a legacy `076 561 31 50`.
+`+41 76 000 00 00` and of a legacy `076 000 00 00`.
 
 ## Built
 
@@ -105,17 +105,17 @@ Evidence, acceptance line by line:
   (`guest-tel`), `InviteRedeem.tsx` (`invite-tel`), `ContactManage.tsx`
   (`manage-tel`). `test/contact-tel-hint.test.tsx` (predates this ticket,
   asserts on those exact ids) still passes unmodified.
-- **`+41` + `765613150` round-trips, `toE164` → `41765613150`, no
+- **`+41` + `760000000` round-trips, `toE164` → `41760000000`, no
   `defaultCountryCode`**: `test/tel-field.test.ts`, "round-trips through
-  storage with no defaultCountryCode needed" — `joinTel("41", "765613150")`
-  → `splitTel` back to `{ cc: "41", national: "765613150" }`, and
-  `toE164(stored)` (no second argument) → `"41765613150"`.
-- **Parse-back of `+41 76 561 31 50`**: same file, "parses back a stored
+  storage with no defaultCountryCode needed" — `joinTel("41", "760000000")`
+  → `splitTel` back to `{ cc: "41", national: "760000000" }`, and
+  `toE164(stored)` (no second argument) → `"41760000000"`.
+- **Parse-back of `+41 76 000 00 00`**: same file, "parses back a stored
   value written as typed with spaces" → `{ cc: "41", national: "76 561 31
   50" }`.
-- **Parse-back of legacy `076 561 31 50`**: same file, "a legacy national
+- **Parse-back of legacy `076 000 00 00`**: same file, "a legacy national
   number has no country to find, and is shown as typed" → `{ cc: "",
-  national: "076 561 31 50" }` — shown in the digits box, select left
+  national: "076 000 00 00" }` — shown in the digits box, select left
   unselected, exactly as the ticket asks.
 
 `npm run verify`: build → tsc → eslint → vitest, all four green (2784

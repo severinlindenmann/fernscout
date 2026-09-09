@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import AgentDoor, { type AgentJournal } from "@/components/AgentDoor";
+import AgentDoor from "@/components/AgentDoor";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
@@ -108,7 +108,6 @@ function door(signupEnabled: boolean) {
   return renderToStaticMarkup(
     <LocaleProvider locale="de" dictionary={dictionaryFor("de")}>
       <AgentDoor
-        siteUrl="https://t.test"
         docUrl="https://t.test/documentation.txt"
         agentUrl="https://t.test/agent.md"
         codeMinutes="20"

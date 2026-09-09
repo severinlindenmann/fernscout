@@ -31,11 +31,13 @@ export const dynamic = "force-dynamic";
  * signal about who was asked for.
  *
  * The refusals that are not about the address are exempt, and each says so
- * where it stands: `auth` off (404), the rate limit (429), an agent code for
- * an address this journal does not recognise (403, and the trade is argued
- * below), mail switched off for the whole server (503), and a send that failed
- * (503). None of them varies with the address, which is the property that
- * matters rather than the uniform status.
+ * where it stands: `auth` off (404), the rate limit (429), a missing
+ * `username` or an `email` that fails the syntax check (400 — B1026, shape
+ * only, never a lookup), an agent code for an address this journal does not
+ * recognise (403, and the trade is argued below), mail switched off for the
+ * whole server (503), and a send that failed (503). None of them varies with
+ * the address, which is the property that matters rather than the uniform
+ * status.
  */
 export async function POST(request: Request) {
   if (!isEnabled("auth")) {
@@ -114,9 +116,25 @@ export async function POST(request: Request) {
    */
   const destination = safeDestination(username, body.destination);
 
-  const accepted = Response.json({ status: "accepted" }, { status: 202 });
-  if (!isEmail(email) || !username) return accepted;
+  /**
+   * **Shape, not existence.** Whether `isEmail()` accepts a string is a pure
+   * format check that no lookup touches, so refusing it by name leaks nothing
+   * about who is registered — the same is true of `username` being present at
+   * all. Naming the broken field is what the uniform `202` below still exists
+   * to keep from doing for a *syntactically valid* address this journal
+   * simply does not recognise. B1026.
+   */
+  if (!username) {
+    return Response.json({ error: "invalid_user", message: "user is required." }, { status: 400 });
+  }
+  if (!isEmail(email)) {
+    return Response.json(
+      { error: "invalid_email", message: "email is required and must be a valid address." },
+      { status: 400 },
+    );
+  }
 
+  const accepted = Response.json({ status: "accepted" }, { status: 202 });
   const user = getUser(username);
   if (!user) return accepted;
 

@@ -27,22 +27,22 @@ import { toE164 } from "@/lib/whatsapp/phone";
  */
 
 describe("splitTel / joinTel", () => {
-  test("+41 + 765613150 round-trips through storage with no defaultCountryCode needed", () => {
-    const stored = joinTel("41", "765613150");
+  test("+41 + 760000000 round-trips through storage with no defaultCountryCode needed", () => {
+    const stored = joinTel("41", "760000000");
     const back = splitTel(stored);
-    expect(back).toEqual({ cc: "41", national: "765613150" });
-    expect(toE164(stored)).toBe("41765613150");
+    expect(back).toEqual({ cc: "41", national: "760000000" });
+    expect(toE164(stored)).toBe("41760000000");
   });
 
   test("parses back a stored value written as typed with spaces", () => {
-    expect(splitTel("+41 76 561 31 50")).toEqual({ cc: "41", national: "76 561 31 50" });
+    expect(splitTel("+41 76 000 00 00")).toEqual({ cc: "41", national: "76 000 00 00" });
   });
 
   test("a legacy national number has no country to find, and is shown as typed", () => {
     // No leading `+`, so there is nothing for this picker to have written —
     // exactly the row B385 exists to stop from being created going forward,
     // and exactly what must not be guessed at when it already exists.
-    expect(splitTel("076 561 31 50")).toEqual({ cc: "", national: "076 561 31 50" });
+    expect(splitTel("076 000 00 00")).toEqual({ cc: "", national: "076 000 00 00" });
   });
 
   test("a code no ITU country actually uses is left unselected rather than guessed", () => {
@@ -64,7 +64,7 @@ describe("splitTel / joinTel", () => {
   });
 
   test("digits with no country picked store as bare digits, same as before this ticket", () => {
-    expect(joinTel("", "076 561 31 50")).toBe("076 561 31 50");
+    expect(joinTel("", "076 000 00 00")).toBe("076 000 00 00");
   });
 
   test("a country picked with the digits cleared stores no bare '+cc' — clearing the number does not half-save a country", () => {
@@ -74,17 +74,17 @@ describe("splitTel / joinTel", () => {
 
 describe("guessMisplacedNumber — B624, iOS autofill dropping the whole number in the code box", () => {
   test("a whole number with a plus is split into the real code and the rest", () => {
-    expect(guessMisplacedNumber("+41765613150")).toEqual({ cc: "41", national: "765613150" });
+    expect(guessMisplacedNumber("+41760000000")).toEqual({ cc: "41", national: "760000000" });
   });
 
   test("a whole number with no plus, exactly as an autofill might write it", () => {
-    expect(guessMisplacedNumber("41765613150")).toEqual({ cc: "41", national: "765613150" });
+    expect(guessMisplacedNumber("41760000000")).toEqual({ cc: "41", national: "760000000" });
   });
 
   test("spaces left in by the source are ignored", () => {
-    expect(guessMisplacedNumber("+41 76 561 31 50")).toEqual({
+    expect(guessMisplacedNumber("+41 76 000 00 00")).toEqual({
       cc: "41",
-      national: "765613150",
+      national: "760000000",
     });
   });
 

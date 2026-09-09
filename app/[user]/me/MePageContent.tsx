@@ -10,12 +10,14 @@ import {
   UserRound,
   TriangleAlert,
   ChartNoAxesColumn,
+  Mailbox,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AgentHandover from "@/components/AgentHandover";
 import AgentKeys from "@/components/AgentKeys";
 import SessionsConsent from "@/components/SessionsConsent";
+import HelperConsentList, { type ConsentRow } from "@/components/HelperConsentList";
 import BuddyHandover from "@/components/BuddyHandover";
 import ContactManage, { type ManageContact } from "@/components/ContactManage";
 import GuestSignIn from "@/components/GuestSignIn";
@@ -464,12 +466,16 @@ export default function MePageContent({
   journal,
   editableTrips,
   sessionsShared = null,
+  consentAgreedAt,
+  consentRows = [],
+  postcardCard,
   canSignIn,
   codeMinutes,
   contactsEnabled,
   analyticsEnabled = false,
   ownerName,
   signinNotice,
+  hasAbout = false,
 }: {
   viewer: Viewer;
   username: string;
@@ -489,6 +495,17 @@ export default function MePageContent({
   /** Whether the operator may read this journal's conversations, or `null`
    *  where there is no helper on it to have any — B976. */
   sessionsShared?: boolean | null;
+  /** When this journal's model-facing consent was last written, and each
+   *  scope it currently covers — B723. Owner only; absent (and `consentRows`
+   *  empty) for everybody else and for an owner who has agreed to nothing. */
+  consentAgreedAt?: string;
+  consentRows?: ConsentRow[];
+  /** The one postcard-shaped moment worth surfacing, if there is one right
+   *  now — B436. Computed by the same function `journalStatus` reads its
+   *  own `suggestions` field from (`lib/postcard/suggest.ts`), so the two
+   *  can never disagree. Absent, not a card with nothing in it, the moment
+   *  any of that function's conditions fails. */
+  postcardCard?: { reason: string; dayHref: string };
   canSignIn: boolean;
   /** How long a code lasts, from `CODE_TTL_MINUTES` — see GuestSignIn. */
   codeMinutes: string;
@@ -521,6 +538,9 @@ export default function MePageContent({
    * they had done something wrong.
    */
   signinNotice?: string;
+  /** Whether `/<user>/about` exists for this reader — B10. Absent rather
+   * than a link to a 404, same rule as `analyticsEnabled` above. */
+  hasAbout?: boolean;
 }) {
   const { t } = useI18n();
   const site = useSite();
@@ -580,6 +600,17 @@ export default function MePageContent({
         <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
           {t("me.title")}
         </h1>
+
+        {/* B10 — the door to "who is behind this journal", drawn only when
+            there is somewhere for it to lead (see `hasAbout` above). */}
+        {hasAbout && (
+          <Link
+            href={`/${username}/about`}
+            className="mt-2 inline-block text-base font-semibold text-navy-700 underline decoration-navy-200 decoration-2 underline-offset-4 hover:text-navy-900 hover:decoration-navy-500"
+          >
+            {t("about.title")}
+          </Link>
+        )}
 
         {/* First thing on the page, above the fold and above the sign-in
             control it tells them to use. It is the answer to the question they
@@ -986,6 +1017,34 @@ export default function MePageContent({
                   </Link>
                 </div>
               )}
+              {/*
+                A postcard worth sending, if there is one right now — B436.
+                Read-only: the day it points to is the thing to look at, and
+                ordering the card itself is still an agent's job to compose
+                (ROADMAP decision 24) — there is no button here that writes
+                anything.
+              */}
+              {postcardCard && (
+                <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-300/40 text-navy-900">
+                      <Mailbox className="h-[18px] w-[18px]" aria-hidden="true" />
+                    </span>
+                    <h3 className="font-display text-lg font-semibold text-navy-900">
+                      {t("me.postcardCardTitle")}
+                    </h3>
+                  </div>
+                  <p className="mt-3 text-base leading-7 text-navy-700">
+                    {postcardCard.reason}
+                  </p>
+                  <Link
+                    href={postcardCard.dayHref}
+                    className="mt-4 inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
+                  >
+                    {t("me.postcardCardOpen")}
+                  </Link>
+                </div>
+              )}
               {analyticsEnabled && (
                 <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
                   <div className="flex items-center gap-3">
@@ -1074,6 +1133,16 @@ export default function MePageContent({
         */}
         {sessionsShared !== null && (
           <SessionsConsent username={username} shared={sessionsShared} />
+        )}
+
+        {/*
+          What else this journal has agreed to send a model, and a button to
+          take each back — B723, the plan's own version of the withdraw
+          button that B684 put inside the wizard instead. Absent with nothing
+          granted, same as the components either side of it.
+        */}
+        {consentAgreedAt && consentRows.length > 0 && (
+          <HelperConsentList username={username} agreedAt={consentAgreedAt} rows={consentRows} />
         )}
 
         {/*

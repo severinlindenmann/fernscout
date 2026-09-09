@@ -134,7 +134,6 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
    */
   return (
     <AgentDoor
-      siteUrl={site.url}
       docUrl={`${site.url}/documentation.txt`}
       agentUrl={`${site.url}/agent.md`}
       codeMinutes={CODE_TTL_MINUTES}

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "./contentRoot";
 import { siteRoot } from "./siteRoot";
+import { dataDir } from "./dataDir";
 import { loadUserConfig } from "./config";
 import { ECB_BASE, crossRate, normalizeCurrency, parseRateTable, type RateTable } from "./currency";
 
@@ -11,11 +12,19 @@ import { ECB_BASE, crossRate, normalizeCurrency, parseRateTable, type RateTable 
  * The trip's own frozen rates handle local → base (`lib/trips.ts`). Going on
  * from there to a reader's currency needs a *current* rate, and that comes
  * from the European Central Bank reference rates cached at
- * `site/rates/ecb.json` by `npm run rates:update`.
+ * `<DATA_DIR>/rates/ecb.json` and refreshed by `npm run rates:update`.
  *
  * Read off disk, never fetched here. The build has to work on a machine with
- * no network, so the fetch is a thing you run and commit, not a thing the
- * build depends on.
+ * no network, so a missing table is a supported state rather than an error.
+ *
+ * **It is deliberately not in git** (B1084). It used to be committed at
+ * `site/rates/ecb.json` and shipped by `git pull` like code, which had two
+ * faults: the number only moved when a person happened to run a command and
+ * deploy the result — twelve days stale on the live instance when this was
+ * measured — and a server refreshing it in place would dirty the checkout and
+ * stop the next `git pull`. A measurement with a date on it is instance state,
+ * not source: it belongs beside the reaction counts and the SQLite file, where
+ * a rebuild cannot delete it and a deploy need not carry it.
  */
 
 export type EcbSnapshot = {
@@ -25,12 +34,31 @@ export type EcbSnapshot = {
   rates: RateTable;
 };
 
+/**
+ * Where a refresh writes. One path, no fallbacks: a writer that guesses is how
+ * two copies of a table start disagreeing about what today's rate is.
+ */
+export function ecbCacheWritePath(): string {
+  return path.join(dataDir(), "rates", "ecb.json");
+}
+
+/**
+ * Where a read looks, newest home first.
+ *
+ * The two fallbacks are for instances that have not refreshed since B1084 and
+ * B510 respectively: `CONTENT_DIR` is where this lived before B510, and the
+ * checkout copy is where it lived before it stopped being committed. Both are
+ * read-only legacies — nothing writes them any more — and an instance keeps
+ * converting off whichever it has until its first nightly refresh, rather than
+ * losing every non-base currency the moment it updates.
+ */
 function ecbCachePath(): string {
-  // Shipped in the checkout, because it arrives by `git pull` the way the code
-  // does. An instance's own copy under CONTENT_DIR still wins — that is where
-  // this file lived before B510, and an instance that has one keeps working.
-  const own = path.join(contentRoot(), "rates", "ecb.json");
-  return fs.existsSync(own) ? own : path.join(siteRoot(), "rates", "ecb.json");
+  const own = ecbCacheWritePath();
+  if (fs.existsSync(own)) return own;
+  const legacyContent = path.join(contentRoot(), "rates", "ecb.json");
+  return fs.existsSync(legacyContent)
+    ? legacyContent
+    : path.join(siteRoot(), "rates", "ecb.json");
 }
 
 const cache = new Map<string, EcbSnapshot | null>();

@@ -24,6 +24,7 @@ costs:
   - { label: "Fuel", amount: 43, category: "transport", currency: "USD" }
   - { label: "Campground", amount: 20, category: "accommodation", currency: "USD" }
 weatherData: { tempMin: 17.6, tempMax: 25.9, code: 51, precipitation: 0.8, windMax: 31.9, source: "open-meteo", recordedAt: "2026-09-06T08:32:19.276Z" }
+timezone: "America/Denver"
 ---
 
 An hour and a half off the highway to reach the quiet half of Canyonlands. We saw four other cars all day and two of them were rangers.

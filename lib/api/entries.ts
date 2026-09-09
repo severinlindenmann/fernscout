@@ -48,6 +48,7 @@ import {
 import { tripGaps } from "./tripGaps";
 import { quoteScalar } from "../validate/frontmatter";
 import { type DayWeather, weatherLine } from "../weather";
+import { timezoneForCoordinates } from "../timezone";
 
 /**
  * Writing content through the API.
@@ -567,6 +568,7 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
   if (taken) {
     return {
       ok: false,
+      code: "slug_taken",
       error:
         `an entry already exists with the slug "${slug}" in this trip — ${taken}. ` +
         "A slug is a day's address within its trip and only one day can hold it, so a " +
@@ -581,12 +583,21 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
     journalBaseCurrency(ref),
   );
 
+  // B1090: a day that carries where it happened gets its zone worked out from
+  // that, not left for the reader to guess. An explicit `timezone:` always
+  // wins; a day with no coordinates gets none, same as before this ticket.
+  const timezone =
+    input.timezone ??
+    (input.lat !== undefined && input.lng !== undefined
+      ? timezoneForCoordinates(input.lat, input.lng)
+      : undefined);
+
   const lines = [
     "---",
     `title: ${quote(input.title)}`,
     `date: ${quote(input.date)}`,
     ...(input.time ? [`time: ${quote(input.time)}`] : []),
-    ...(input.timezone ? [`timezone: ${quote(input.timezone)}`] : []),
+    ...(timezone ? [`timezone: ${quote(timezone)}`] : []),
     ...(input.location ? [`location: ${quote(input.location)}`] : []),
     ...(input.country ? [`country: ${quote(input.country)}`] : []),
     ...(input.countryCode
@@ -1499,6 +1510,21 @@ export function editEntry(
     );
     input = { ...input, costs: stamped.costs };
     costCurrency = stamped.applied;
+  }
+
+  // B1090, same rule as `createDraft`: an edit that supplies (or already
+  // finds) coordinates and names no zone of its own gets one worked out —
+  // unless the day already carries one, which is never overwritten.
+  if (input.timezone === undefined) {
+    const existing = matter(raw).data;
+    const hasZone =
+      typeof existing.timezone === "string" && existing.timezone.length > 0;
+    const lat = input.lat !== undefined ? input.lat : Number(existing.lat);
+    const lng = input.lng !== undefined ? input.lng : Number(existing.lng);
+    if (!hasZone && Number.isFinite(lat) && Number.isFinite(lng)) {
+      const zone = timezoneForCoordinates(lat, lng);
+      if (zone) input = { ...input, timezone: zone };
+    }
   }
 
   const spliced = spliceEntryFields(raw, input);

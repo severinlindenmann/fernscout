@@ -199,8 +199,8 @@ afterEach(async () => {
 
 describe("a number is never guessed into existence", () => {
   test("international forms all normalise to the same digits", () => {
-    for (const raw of ["+41 76 561 31 50", "+41765613150", "0041 76 561 31 50", "41765613150"]) {
-      expect(toE164(raw)).toBe("41765613150");
+    for (const raw of ["+41 76 000 00 00", "+41760000000", "0041 76 000 00 00", "41760000000"]) {
+      expect(toE164(raw)).toBe("41760000000");
     }
   });
 
@@ -208,19 +208,19 @@ describe("a number is never guessed into existence", () => {
     // The whole point of lib/whatsapp/phone.ts: `076…` means Switzerland only
     // to somebody standing in Switzerland, and a wrong guess reaches a
     // stranger who happens to hold that number elsewhere.
-    expect(toE164("076 561 31 50")).toBeNull();
-    expect(toE164("076 561 31 50", "41")).toBe("41765613150");
-    expect(toE164("076 561 31 50", "+41")).toBe("41765613150");
+    expect(toE164("076 000 00 00")).toBeNull();
+    expect(toE164("076 000 00 00", "41")).toBe("41760000000");
+    expect(toE164("076 000 00 00", "+41")).toBe("41760000000");
   });
 
   test("rubbish, and numbers outside E.164's bounds, are refused", () => {
-    for (const raw of ["", "   ", "not a number", "+41 76 ABC 31 50", "+1234", "+" + "9".repeat(20)]) {
+    for (const raw of ["", "   ", "not a number", "+41 76 ABC 00 00", "+1234", "+" + "9".repeat(20)]) {
       expect(toE164(raw)).toBeNull();
     }
   });
 
   test("a number is masked everywhere it could be logged or reported", () => {
-    expect(maskNumber("41765613150")).toBe("•••••••3150");
+    expect(maskNumber("41760000000")).toBe("•••••••0000");
     expect(maskNumber("123")).toBe("•••");
   });
 });
@@ -234,7 +234,7 @@ describe("consent is its own switch", () => {
   });
 
   test("a national number with no configured country code is not consent either", async () => {
-    const id = await addReader("national@example.test", { tel: "076 561 31 50" });
+    const id = await addReader("national@example.test", { tel: "076 000 00 00" });
     const { db } = await getDatabase();
     const row = await db.selectFrom("contacts").selectAll().where("id", "=", id).executeTakeFirst();
     expect(row?.wants_whatsapp).toBe(0);
@@ -243,7 +243,7 @@ describe("consent is its own switch", () => {
   test("the digest opt-in is not WhatsApp consent", async () => {
     // A reader who only ever agreed to email must not be messaged: this is
     // the property migration 015 exists for.
-    await addReader("mailonly@example.test", { tel: "+41765613150", wantsWhatsapp: false });
+    await addReader("mailonly@example.test", { tel: "+41760000000", wantsWhatsapp: false });
     writeTrip("utah");
     const slug = writeEntry("utah");
     const outcome = await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
@@ -252,7 +252,7 @@ describe("consent is its own switch", () => {
   });
 
   test("unsubscribing from a mail footer stops WhatsApp too", async () => {
-    const id = await addReader("bye@example.test", { tel: "+41765613150" });
+    const id = await addReader("bye@example.test", { tel: "+41760000000" });
     expect(await unsubscribeContact(OWNER, manageTokenFor(OWNER, id))).toBe(true);
     const { db } = await getDatabase();
     const row = await db.selectFrom("contacts").selectAll().where("id", "=", id).executeTakeFirst();
@@ -262,7 +262,7 @@ describe("consent is its own switch", () => {
 
 describe("what goes out", () => {
   test("an opted-in reader with a number gets one templated message", async () => {
-    await addReader("yes@example.test", { tel: "+41 76 561 31 50" });
+    await addReader("yes@example.test", { tel: "+41 76 000 00 00" });
     writeTrip("utah");
     await writePhoto("utah");
     const slug = writeEntry("utah", { photo: true });
@@ -271,7 +271,7 @@ describe("what goes out", () => {
     expect(outcome.ok).toBe(true);
 
     const [payload] = payloads();
-    expect(payload.to).toBe("41765613150");
+    expect(payload.to).toBe("41760000000");
     expect(payload.template).toBe(TEMPLATE);
     expect(payload.language).toBe("en");
     // The button carries a path, never an origin: the approved template owns
@@ -283,7 +283,7 @@ describe("what goes out", () => {
   });
 
   test("body parameters never carry a newline, which Meta rejects", async () => {
-    await addReader("yes@example.test", { tel: "+41765613150" });
+    await addReader("yes@example.test", { tel: "+41760000000" });
     writeTrip("utah");
     const slug = writeEntry("utah");
     await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
@@ -309,8 +309,8 @@ describe("what goes out", () => {
   });
 
   test("two contacts sharing a household number are messaged once", async () => {
-    await addReader("a@example.test", { tel: "+41765613150" });
-    await addReader("b@example.test", { tel: "0041 76 561 31 50" });
+    await addReader("a@example.test", { tel: "+41760000000" });
+    await addReader("b@example.test", { tel: "0041 76 000 00 00" });
     writeTrip("utah");
     const slug = writeEntry("utah");
     await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
@@ -319,7 +319,7 @@ describe("what goes out", () => {
 
   test("opted-in readers but no usable template is told apart from having no readers", async () => {
     writeServerConfig({ templates: {} });
-    await addReader("yes@example.test", { tel: "+41765613150" });
+    await addReader("yes@example.test", { tel: "+41760000000" });
     writeTrip("utah");
     const slug = writeEntry("utah");
     const outcome = await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
@@ -339,7 +339,7 @@ describe("what goes out", () => {
  */
 describe("a way to stop the messages — B386", () => {
   test("an ordinary template — manageLink absent — still sends exactly three body parameters", async () => {
-    const contactId = await addReader("yes@example.test", { tel: "+41765613150" });
+    const contactId = await addReader("yes@example.test", { tel: "+41760000000" });
     writeTrip("utah");
     const slug = writeEntry("utah");
     await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
@@ -351,7 +351,7 @@ describe("a way to stop the messages — B386", () => {
 
   test("a template configured with manageLink: true gets a fourth parameter — the contact's own manage URL", async () => {
     writeServerConfig({ templates: { en: { name: TEMPLATE, manageLink: true } } });
-    const contactId = await addReader("yes@example.test", { tel: "+41765613150" });
+    const contactId = await addReader("yes@example.test", { tel: "+41760000000" });
     writeTrip("utah");
     const slug = writeEntry("utah");
     await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
@@ -377,7 +377,7 @@ describe("a way to stop the messages — B386", () => {
 
 describe("what never goes out", () => {
   test("a test: true day reaches nobody", async () => {
-    await addReader("yes@example.test", { tel: "+41765613150" });
+    await addReader("yes@example.test", { tel: "+41760000000" });
     writeTrip("utah");
     const slug = writeEntry("utah", { test: true });
     const outcome = await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
@@ -386,7 +386,7 @@ describe("what never goes out", () => {
   });
 
   test("a draft reaches nobody", async () => {
-    await addReader("yes@example.test", { tel: "+41765613150" });
+    await addReader("yes@example.test", { tel: "+41760000000" });
     writeTrip("utah");
     const slug = writeEntry("utah", { draft: true });
     expect(await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug)).toEqual({
@@ -397,7 +397,7 @@ describe("what never goes out", () => {
 
   test("the feature switched off sends nothing and says so", async () => {
     writeServerConfig({ enabled: false });
-    await addReader("yes@example.test", { tel: "+41765613150" });
+    await addReader("yes@example.test", { tel: "+41760000000" });
     writeTrip("utah");
     const slug = writeEntry("utah");
     expect(await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug)).toEqual({
@@ -532,7 +532,7 @@ describe("the owner's own message — B614", () => {
   test("a guest is charged and the owner is not", async () => {
     enableCredits();
     writeUserConfig({ tel: OWNER_TEL });
-    await addReader("guest@example.test", { tel: "+41765613150" });
+    await addReader("guest@example.test", { tel: "+41760000000" });
     writeTrip("utah");
     const slug = writeEntry("utah");
     await grant(OWNER, 1);
@@ -565,7 +565,7 @@ describe("the owner's own message — B614", () => {
   test("the owner's own message failing refunds nothing", async () => {
     enableCredits();
     writeUserConfig({ tel: OWNER_TEL });
-    await addReader("guest@example.test", { tel: "+41765613150" });
+    await addReader("guest@example.test", { tel: "+41760000000" });
     writeTrip("utah");
     const slug = writeEntry("utah");
     await grant(OWNER, 1);
@@ -596,7 +596,7 @@ describe("the owner's own message — B614", () => {
     // for their own message.
     enableCredits();
     await addReader(OWNER_EMAIL, { tel: "+41765550099" });
-    await addReader("guest@example.test", { tel: "+41765613150" });
+    await addReader("guest@example.test", { tel: "+41760000000" });
     writeTrip("utah");
     const slug = writeEntry("utah");
     await grant(OWNER, 1);

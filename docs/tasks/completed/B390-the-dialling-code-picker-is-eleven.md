@@ -70,8 +70,8 @@ listbox needs roles, and it must be operable from the keyboard alone.
 In all four forms (public guestbook, owner's guest form, invite redemption,
 guest self-manage) the picker lists every country with its flag and translated
 name, filters as you type, and is usable with the keyboard alone. Picking
-Switzerland and typing `765613150` still stores `+41 765613150` and
-`toE164` still returns `41765613150`. A test covers the filter matching by
+Switzerland and typing `760000000` still stores `+41 760000000` and
+`toE164` still returns `41760000000`. A test covers the filter matching by
 name, by iso2 and by digits, and the flag derivation for a known code.
 
 ## Done

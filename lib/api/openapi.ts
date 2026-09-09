@@ -747,6 +747,14 @@ export function openApiDocument() {
           },
           responses: {
             "202": { description: "Accepted" },
+            "400": {
+              description:
+                "`invalid_user` — `user` is missing. Or `invalid_email` — `email` is " +
+                "missing or not a syntactically valid address. Both are shape checks that " +
+                "never touch a lookup, so refusing them names nothing about who is " +
+                "registered — unlike an unrecognised-but-valid address, which still " +
+                "answers 202.",
+            },
             "403": { description: "That address may not have an agent code for this journal" },
             "404": { description: "Authentication is off on this server" },
             "429": { description: "Too many attempts" },
@@ -1505,7 +1513,7 @@ export function openApiDocument() {
                         "This trip's frozen rates: units of the journal's BASE currency for " +
                         "one unit of the keyed currency. `{\"THB\": 0.0245}` is " +
                         "\"1 THB = 0.0245 CHF\", so a currency worth less than the base one " +
-                        "has a small number — `site/rates/ecb.json` points the other way. " +
+                        "has a small number — the ECB reference table points the other way. " +
                         "Omitting a currency is supported: its costs are reported as " +
                         "unconverted rather than converted at a guess.",
                     },
@@ -3087,6 +3095,44 @@ export function openApiDocument() {
           },
         },
       },
+      "/api/v1/{user}/trips/{trip}/media/duplicates": {
+        get: {
+          summary: "Photographs this trip holds more than once",
+          description:
+            "**The same picture twice, across every day of the trip.** Uploading says so " +
+            "at the time — `advice` on POST .../media names the photograph a new one " +
+            "resembles — and stores the second copy anyway, because a resemblance is a " +
+            "guess and a dropped photograph cannot be got back. This is the question " +
+            "afterwards, for a journal you did not upload.\n\n" +
+            "`groups` holds one entry per photograph the trip has more than one copy of, " +
+            "each listing `src`, `day`, `width`, `height` and `bytes`, largest first. The " +
+            "largest is usually the one to keep — a full-size camera file beside the same " +
+            "shot as it came back off a messaging app — but this endpoint does not decide " +
+            "that and deletes nothing. Ask the owner which copy they want, then send the " +
+            "other to DELETE .../media.\n\n" +
+            "It compares what the browser is served, so what it says agrees with the advice " +
+            "an upload gave. Video is left out — a poster frame is not the clip. A " +
+            "resemblance is still a guess: two frames of one burst are different " +
+            "photographs and can appear here.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": {
+              description:
+                "`groups` — empty when no photograph on this trip looks like another one " +
+                "on it. Nothing has been changed either way.",
+            },
+            "401": { description: "No token, or one this journal does not know" },
+            "404": {
+              description:
+                "No such trip — and the same answer a trip-scoped token gets for a trip it " +
+                "does not name, so a probe cannot tell the two apart",
+            },
+          },
+        },
+      },
       "/api/auth/handover": {
         post: {
           summary: "Spend a handover credential for your own 7-day token",
@@ -3734,7 +3780,17 @@ export function openApiDocument() {
             "queue: a broken file is a thing you may have just caused and can fix yourself, " +
             "where the drafts are a person's decision. Present for an owner token only — a " +
             "trip-scoped token learns nothing about the rest of the journal, malformed or not " +
-            "— and absent entirely when there is nothing broken.",
+            "— and absent entirely when there is nothing broken.\n\n" +
+            "**`suggestions`** is the moment nobody would otherwise notice — a published, " +
+            "non-`test` day from the last week with a photograph, on a journal where " +
+            "`postcards`, `credits` and `contacts` are all on, at least one contact has " +
+            "asked for a postcard and given an address, and no order has been made for " +
+            "that trip in the last week either. Each entry carries `kind: \"postcard\"`, " +
+            "the `day` and `trip` it is about, a `reason` in words, and the `recipients` " +
+            "it would go to (the same shape as `GET .../postcards/recipients`). Absent — " +
+            "never an empty array — the moment any one of those conditions fails; the " +
+            "same function backs the card on `/{user}/me`, so the two can never disagree. " +
+            "`POST .../postcards` is the call that turns a suggestion into a proposal.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
           ],
@@ -3897,9 +3953,9 @@ export function openApiDocument() {
                         "the only part of the `owner` block a token may write. It is where " +
                         "the owner's own WhatsApp copy of a published day goes, and that copy " +
                         "costs no credits; without it the owner is the one person the channel " +
-                        "cannot reach. Include the country code — `+41 76 561 31 50`, " +
-                        "`0041 76 561 31 50` or `41765613150`. A national number like " +
-                        "`076 561 31 50` is refused rather than guessed at, because it means " +
+                        "cannot reach. Include the country code — `+41 76 000 00 00`, " +
+                        "`0041 76 000 00 00` or `41760000000`. A national number like " +
+                        "`076 000 00 00` is refused rather than guessed at, because it means " +
                         "a different telephone in every country. Stored and returned as E.164 " +
                         "digits, whatever form it was sent in. Empty string removes it, which " +
                         "is also how the owner stops their own messages.",

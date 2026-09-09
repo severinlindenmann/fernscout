@@ -12,6 +12,7 @@ transportFrom: "Kanazawa"
 transportTo: "Matsumoto"
 tags: ["japan", "trains", "mountains"]
 status: draft
+timezone: "Asia/Tokyo"
 ---
 
 Not on the plan. Priya's colleague says the castle is worth the two changes it takes to get there, and the pass covers it either way.

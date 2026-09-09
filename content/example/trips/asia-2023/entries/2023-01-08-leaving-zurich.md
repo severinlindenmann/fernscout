@@ -11,6 +11,7 @@ weather: true
 tags: ["switzerland", "flights"]
 test: true
 weatherData: { tempMin: 0.8, tempMax: 6.6, code: 53, precipitation: 3.8, windMax: 8.4, source: "open-meteo", recordedAt: "2026-09-06T08:32:20.122Z" }
+timezone: "Europe/Zurich"
 ---
 
 The trip's first leg, and the only one that leaves the ground. Written to show

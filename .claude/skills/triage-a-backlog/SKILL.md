@@ -39,7 +39,7 @@ asks map like this:
 | "the backlog" with no qualifier | `docs/tasks/backlog/` — every category |
 | "features" | `backlog/big-feature/` + `backlog/small-feature/` |
 | "bugs", "issues" | `backlog/issue/` |
-| "what's waiting to be checked" | `docs/tasks/testing/` (all categories) |
+| "what's waiting to be checked" | `docs/tasks/testing/` — flat, no categories |
 
 `backlog/security/` is a deliberate decision, not a default: those tickets are
 live findings. Include them only when asked, and never in an artifact the
@@ -149,9 +149,14 @@ don't do, undecided) and three controls: *start from my verdicts* (fills every
 row with your recommendation, for somebody who wants to correct rather than
 choose), *clear*, and *build the list*.
 
-*Build the list* writes a markdown block grouped by decision, with each id, its
-title, and a note where they overruled you — and it ends with the undecided
-ones, which matter as much as the rest. Put it in a `readonly` textarea,
+*Build the list* writes a markdown block that **starts** with one paste-ready
+line: `plan-a-run` followed by the promoted ids, in order, and nothing else —
+`plan-a-run B1091 B1092 B1057` — so a person can hand it to an agent with
+nothing added. `plan-a-run` is the skill that takes that line and turns it
+into a run; this one only has to produce a line it accepts. Below that line,
+the existing grouped markdown list stands unchanged: each id, its title, and a
+note where they overruled you, ending with the undecided ones, which matter as
+much as the rest. Put the whole block in a `readonly` textarea,
 selected, **and** attempt `navigator.clipboard.writeText`, reporting honestly
 which of the two happened: "Copied to your clipboard" only when the promise
 resolved, "Select all and copy" otherwise. Never offer a download — the artifact

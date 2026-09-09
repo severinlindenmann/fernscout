@@ -42,8 +42,18 @@ export default function DualTime({
   if (!timezone || !zone || zone === timezone) return <>{time}</>;
   return (
     <>
-      {time} {t("time.local")} ·{" "}
-      {t("time.yourTime", { time: formatTimeInZone(date, time, timezone, zone) })}
+      {time}{" "}
+      {/* A step down in weight, and only in weight. The clock the day was
+          written on is the fact; the reader's own is the aside, and at this
+          size the two need separating or the line reads as one long stamp.
+          Not a step down in colour: navy-600 is this palette's secondary-text
+          token at any size and navy-500 is explicitly not text — small words
+          here are held to AAA because the readers are often outdoors on a
+          phone (app/globals.css). Weight is the one axis left. */}
+      <span className="font-normal">
+        {t("time.local")} ·{" "}
+        {t("time.yourTime", { time: formatTimeInZone(date, time, timezone, zone) })}
+      </span>
     </>
   );
 }

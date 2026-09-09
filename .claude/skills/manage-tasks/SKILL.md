@@ -19,10 +19,12 @@ docs/tasks/
   completed/         verified by a person, kept as the record
 ```
 
-**`backlog/` and `testing/` are filed one level deeper**, into category
-folders, because they are the two lanes that accumulate — seventy-five and a
-hundred and twenty-one on 2026-09-04, and a flat directory of that size is one
-nobody reads to the bottom of:
+**`backlog/` is filed one level deeper**, into category folders, because it
+is the lane that accumulates — seventy-five and counting, and a flat
+directory of that size is one nobody reads to the bottom of. `testing/` used
+to be filed the same way; since B1110 it is not, because what a person
+reviews a finished batch from is the run report, not a browse through
+`testing/security/` — a ticket moved into `testing/` lands flat:
 
 ```
 docs/tasks/backlog/

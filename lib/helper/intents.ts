@@ -74,9 +74,16 @@ export type Refusal = {
  * So the words that mean *take it off the site* now reach the conversation,
  * and the words that mean *destroy it* still do not — the split is the point,
  * and it is the same split B816 made when it built a takedown that is not a
- * delete. **There is no delete tool and no postcard send tool**, so a sentence
- * matched below has nowhere to land at all; that is why these are answers
- * rather than errors.
+ * delete. **There is no delete tool**, so a sentence matched below has
+ * nowhere to land at all; that is why these are answers rather than errors.
+ *
+ * Postcards used to be a third row here, on the same reasoning: there was no
+ * tool for them either. There is now — `propose_postcards` in
+ * `lib/helper/tools/areas/printed.ts` writes a real, pending order — so a
+ * sentence naming one reaches the conversation like any other, and the row
+ * that used to intercept it is gone. What stays true, and is the tool's own
+ * job to say, is that pressing still happens on the owner's own postcards
+ * page and never here.
  *
  * ## The floor B914 put back, and the one case it covers
  *
@@ -103,20 +110,53 @@ export type Refusal = {
  * of something they are entitled to do, and the alternative is a regex trying
  * to decide whether a day was named, which is not a thing a regex knows.
  */
+/** Wanting something gone, in the three languages the box is offered in. */
+const DESTROY = String.raw`\b(delete|deleting|deleted|erase|erasing|wipe|destroy|get rid of|remove|removing)\b|lösch|vernicht|entfern|törl|töröl|megsemmisít`;
+
+/** The two things this helper can actually take away: a photograph on a day,
+ *  and a file still waiting in the inbox. `remove_photo` and `discard_file`. */
+const REMOVABLE = String.raw`\b(photo|photos|photograph|photographs|picture|pictures|image|images|file|files|foto|fotos|bild|bilder|datei|dateien|kép|képet|képek|képével|fénykép|fényképet|fényképével|fájl|fájlt)\b`;
+
+/** And the things nothing here can: naming one of these refuses the sentence
+ *  even when it also names a photograph, because "delete the day with the
+ *  photo of Anna" is a request to delete a day. */
+const KEPT = String.raw`\b(day|days|trip|trips|journal|account|everything|all|entry|entries|yesterday)\b|\btage?\b|reise|tagebuch|konto|\balles?\b|\bnapot?\b|napló|\bútat?\b|mindent|fiók`;
+
 const REFUSALS: readonly Refusal[] = [
   {
     /**
      * Destruction, and nothing else.
      *
-     * A photograph, a day, a trip or a journal that somebody wants *gone* is
-     * unrecoverable and finishes in a mailbox or on its own page. "Unpublish",
-     * "take it down", "nimm das runter" and "vedd le" are deliberately not
-     * here any more: they mean the day leaves the site and stays on disk,
-     * which is `unpublish_day`, which proposes and waits to be pressed.
+     * A day, a trip or a journal that somebody wants *gone* is unrecoverable
+     * and finishes in a mailbox or on its own page. "Unpublish", "take it
+     * down", "nimm das runter" and "vedd le" are deliberately not here any
+     * more: they mean the day leaves the site and stays on disk, which is
+     * `unpublish_day`, which proposes and waits to be pressed.
+     *
+     * **A photograph is no longer among them.** This row used to match
+     * "remove … photo" on purpose, because nothing could do it and a refusal
+     * was the honest answer. `remove_photo` and `discard_file` are that
+     * something now, and a refusal firing first would make each unreachable
+     * by the only sentence anybody says out loud.
+     *
+     * The rule is not "let a picture through", and the first attempt at this
+     * got it wrong in the way worth recording: *"lösche den Tag mit dem Foto
+     * von Anna"* names a picture and asks for a **day**. So the sentence has
+     * to carry a destruction word, and then it is refused unless it names
+     * something removable *and nothing kept* — the three lists below, in the
+     * three languages the box is offered in.
+     *
+     * That is a pre-filter widening, not a guard removed. Nothing downstream
+     * can delete a day or a trip, because no tool exists that could: a
+     * sentence slipping past this row reaches a model with no way to do what
+     * it asks, which is the ordinary case for every sentence this file
+     * answers with null.
      */
     name: "remove",
-    match:
-      /\b(delete|deleting|deleted|erase|erasing|wipe|destroy|get rid of)\b|\bremove\b[^.!?]{0,40}\b(photo|photograph|picture|image|file)\b|lösch|vernicht|entfern|törl|töröl|megsemmisít/i,
+    match: new RegExp(
+      `^(?=[\\s\\S]*(${DESTROY}))(?:(?![\\s\\S]*(${REMOVABLE}))|(?=[\\s\\S]*(${KEPT})))`,
+      "i",
+    ),
     key: "agent.askRefuseRemove",
   },
   {
@@ -143,11 +183,6 @@ const REFUSALS: readonly Refusal[] = [
     match:
       /^(?=[\s\S]*(\bpublish|veröffentlich|publizier|közzé|publikál|\b(put|stell)[\s\S]*\bonline\b))(?=[\s\S]*(\b(all|everything|the lot|the whole (lot|journal|trip))\b|\balles?\b|sämtlich|\bmindet\b|\bmindent\b|\bmindegyik\b|összes))/i,
     key: "agent.askRefusePublishAll",
-  },
-  {
-    name: "postcard",
-    match: /\bpostcards?\b|postkarte|ansichtskarte|képeslap|levelezőlap/i,
-    key: "agent.askRefusePostcard",
   },
 ];
 

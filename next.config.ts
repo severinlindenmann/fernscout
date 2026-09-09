@@ -86,6 +86,9 @@ const documentCsp = [
 const mediaCsp = "default-src 'none'; sandbox";
 
 const nextConfig: NextConfig = {
+  // B1089: don't advertise the framework to every caller. One less free hint
+  // for a scanner deciding which exploits to try; costs nothing.
+  poweredByHeader: false,
   /**
    * How much of a request body Next buffers before a route ever sees it — B523.
    *
@@ -200,6 +203,20 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/:user/me",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      // B1087: every /api/v1 route is authenticated and `force-dynamic`, and the
+      // auth flows carry codes and session state — none of it belongs in any
+      // cache. Pinned here (not just relied on from `force-dynamic`) so a shared
+      // proxy, a service worker or a framework default can never hold an
+      // owner-only response. `/api/md` (the public markdown twins) and
+      // `/api/health` set their own cache policy and are deliberately not here.
+      {
+        source: "/api/v1/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
+        source: "/api/auth/:path*",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
     ];

@@ -4,6 +4,8 @@ import { TRIP_ARG } from "../args";
 import { getTrip, getTrips, tripRef } from "../../../trips";
 import { isEnabled } from "../../../capabilities";
 import { listContacts } from "../../../contacts";
+import { ALL_TRACKED, TRACKS, type Track } from "../../../tracks";
+import { VISIBILITIES } from "../../../tripWrite";
 import { noTrip, resolveTrip } from "../resolve";
 
 /**
@@ -150,6 +152,207 @@ export const TRIPS_TOOLS: readonly Tool[] = [
          */
         guestsApprovedIntoJournal: approved,
         contactsOff: !isEnabled("contacts", username),
+      };
+    },
+  },
+  {
+    /**
+     * The correction `create_trip` has no way to make.
+     *
+     * A title typed wrong, or dates that turn out to have been a day off, used
+     * to mean deleting the trip and starting again, which takes the days in it
+     * too. `patchTripDetails` is the same function `PATCH /api/v1/.../trips/
+     * {trip}` calls, so a trip edited this way is a trip edited any other way
+     * — and, per that route's own comment, `cover`, `accent`, `intro` and
+     * `costsVisibility` are deliberately left off this card: none of them is
+     * what anybody has ever asked the conversation to change, and a field on
+     * the screen that is never the answer is a field somebody has to read past
+     * every time.
+     */
+    name: "edit_trip",
+    kind: "write",
+    renders: "form",
+    describe:
+      "Propose a new title or new dates for a trip that already exists. Nothing changes until they press.",
+    properties: {
+      ...TRIP_ARG,
+      title: { type: "string", description: "The trip's new title, if it changed." },
+      start: { type: "string", description: "The new first day, as YYYY-MM-DD, if it changed." },
+      end: { type: "string", description: "The new last day, as YYYY-MM-DD, if it changed." },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/trip`,
+    method: "PATCH",
+    propose: async (username, args, say) => {
+      const trip = resolveTrip(username, args.trip);
+      return {
+        sentence: say("agent.tool.editTrip", {
+          title: args.title ?? trip?.title ?? "",
+          start: args.start ?? trip?.start ?? "",
+          end: args.end ?? trip?.end ?? "",
+        }),
+        accept: say("agent.tool.editTripAccept"),
+        done: say("agent.tool.editTripDone"),
+        fields: [
+          { name: "trip", value: trip?.id ?? "" },
+          { name: "title", value: args.title ?? trip?.title ?? "" },
+          { name: "start", value: args.start ?? trip?.start ?? "", date: true },
+          { name: "end", value: args.end ?? trip?.end ?? "", date: true },
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * `create_trip`'s own card, on a trip that already exists — B933's mistake
+     * happens again the moment somebody decides a trip should open up or close
+     * down, so it gets the identical sentences and the identical options
+     * rather than a shorter copy that could drift from them.
+     *
+     * A separate route from `edit_trip`, deliberately: `PATCH .../visibility`
+     * already exists as its own door in the contract for the reason its own
+     * comment gives — widening who may read a trip is a different kind of
+     * change from renaming it, worth its own warning (`result.widened`), and
+     * folding it into one body with `title`/`start`/`end` would make that
+     * warning conditional on which keys happened to be sent in the same call.
+     */
+    name: "set_visibility",
+    kind: "write",
+    renders: "form",
+    describe:
+      "Propose who may read a trip that already exists. Nothing changes until they press. Never say in your own words who can read it — the field's labels do.",
+    properties: {
+      ...TRIP_ARG,
+      visibility: {
+        type: "string",
+        description:
+          "Who may read it: public (anybody), guest (everybody let into this journal), private (ONLY the people who were on the trip). Leave it out unless they said.",
+      },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/trip/visibility`,
+    method: "PATCH",
+    propose: async (username, args, say) => {
+      const trip = resolveTrip(username, args.trip);
+      return {
+        sentence: `${say("agent.tool.setVisibility", { trip: trip?.title ?? "" })} ${say("agent.tool.createTripVisibility")}`,
+        accept: say("agent.tool.setVisibilityAccept"),
+        done: say("agent.tool.setVisibilityDone"),
+        fields: [
+          { name: "trip", value: trip?.id ?? "" },
+          {
+            name: "visibility",
+            value: (VISIBILITIES as readonly string[]).includes(args.visibility ?? "")
+              ? (args.visibility as string)
+              : (trip?.visibility ?? "guest"),
+            options: [
+              { value: "public", label: say("agent.tool.visibilityPublic") },
+              { value: "guest", label: say("agent.tool.visibilityGuest") },
+              { value: "private", label: say("agent.tool.visibilityPrivate") },
+            ],
+          },
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * Adding somebody to the byline after the trip already exists — the
+     * ordinary case, not the exception: "my partner was on this too" arrives
+     * once days are already being written more often than before the trip was
+     * made.
+     *
+     * **Wholesale, not merged, at the route** — `patchTripParty`'s own rule
+     * (`lib/api/tripParty.ts`): a party's membership and order both mean
+     * something, so the route reads the trip's own list and sends the whole
+     * thing back with this person folded in by email, rather than this tool
+     * trying to describe an edit to a list it cannot see. One person a press,
+     * on purpose: removing somebody is an edit to the byline itself, not an
+     * addition, and belongs to a person reading the list back rather than to
+     * a name spoken in passing.
+     */
+    name: "trip_people",
+    kind: "write",
+    renders: "form",
+    describe:
+      "Propose adding somebody to a trip's byline — who was on it. Everyone listed may also write to the whole trip, not just read it. Nothing changes until they press.",
+    properties: {
+      ...TRIP_ARG,
+      person: { type: "string", description: "Their name, as the writer said it." },
+      email: {
+        type: "string",
+        description:
+          "Their email address. Required before this can be proposed — it is how they get a token scoped to this trip.",
+      },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/trip/people`,
+    method: "PATCH",
+    propose: async (username, args, say) => {
+      const trip = resolveTrip(username, args.trip);
+      const name = (args.person ?? "").trim();
+      const email = (args.email ?? "").trim();
+      return {
+        // A name with no address to write into `people:` is not yet a
+        // proposal — B925's rule applied here: a card cannot invite a press
+        // it knows will come back `invalid_people`.
+        ...(trip && (!name || !email) ? { refuse: "agent.tool.tripPeopleNeedsEmail" } : {}),
+        sentence: say("agent.tool.tripPeople", { name, trip: trip?.title ?? "" }),
+        accept: say("agent.tool.tripPeopleAccept"),
+        done: say("agent.tool.tripPeopleDone"),
+        fields: [
+          { name: "trip", value: trip?.id ?? "" },
+          { name: "person", value: name },
+          { name: "email", value: email },
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * `lib/tracks.ts`'s own settings, reached from the conversation instead of
+     * a shell — the call an owner reaches for half way through a journey, when
+     * they have decided they are not going to keep logging what everything
+     * cost. Turning a row off changes nothing already written; it only stops
+     * a day being refused for missing it from now on (`patchTripTracks`).
+     */
+    name: "trip_tracks",
+    kind: "write",
+    renders: "form",
+    describe:
+      "Propose what a trip asks every day for — its costs, its coordinates, its photographs. Turning a row off stops future days being refused for missing it; nothing already written changes.",
+    properties: {
+      ...TRIP_ARG,
+      costs: { type: "string", description: "on or off, if they said to change whether this trip tracks what it costs." },
+      coordinates: {
+        type: "string",
+        description: "on or off, if they said to change whether this trip tracks where its days happened.",
+      },
+      photos: { type: "string", description: "on or off, if they said to change whether this trip tracks photographs." },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/trip/tracks`,
+    method: "PATCH",
+    propose: async (username, args, say) => {
+      const trip = resolveTrip(username, args.trip);
+      const current = trip?.tracks ?? ALL_TRACKED;
+      const on = (row: Track): boolean => {
+        const said = (args[row] ?? "").trim().toLowerCase();
+        if (said === "on" || said === "true") return true;
+        if (said === "off" || said === "false") return false;
+        return current[row];
+      };
+      return {
+        sentence: say("agent.tool.tripTracks", { trip: trip?.title ?? "" }),
+        accept: say("agent.tool.tripTracksAccept"),
+        done: say("agent.tool.tripTracksDone"),
+        fields: [
+          { name: "trip", value: trip?.id ?? "" },
+          ...TRACKS.map((row) => ({
+            name: row,
+            value: on(row) ? "true" : "false",
+            options: [
+              { value: "true", label: say("agent.tool.tripTracksOn") },
+              { value: "false", label: say("agent.tool.tripTracksOff") },
+            ],
+          })),
+        ],
       };
     },
   },

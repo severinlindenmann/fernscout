@@ -31,6 +31,13 @@ Two things follow:
 - **An unmet acceptance line stays unmet on the page.** If a ticket shipped
   with a line nobody could demonstrate, it is a row in "what still wants your
   eyes", not a silent omission.
+- **A visible change was checked on content nobody wrote for the check**, or
+  the page says which content it was checked on. "The dual clock works" and
+  "the dual clock works on the two demo days this change edited" are different
+  claims, and only the second was true of B42 — every day that already existed
+  showed nothing. Drawing a before-and-after from a fixture built to make the
+  after look right is the most flattering mistake available here, and the
+  hardest for a reader to catch.
 
 ## Step 1 — establish what the run actually was
 
@@ -77,21 +84,41 @@ python3 -c "import json;print(json.load(open('site/locales/en.json'))['agent.upl
 Quote it exactly on the page. A paraphrased string is a small lie that the
 reader has no way to spot.
 
-## Step 3 — draw before and after
+## Step 3 — show before and after
 
 A visible change is a *change*, so one state is never enough. Each gets two
-small boxes side by side: the old behaviour and the new, plain HTML and CSS,
-or an inline SVG for a map or a printed page.
+small boxes side by side: the old behaviour and the new.
 
-Ground both halves in the diff. The "before" is the harder one and the one
-worth getting right — it is what the person remembers, and it is the reason
-the row is on the page at all. Where the before-state is an absence (a border
-that rendered as nothing, a video row that never appeared, a list that simply
-ended), draw the absence rather than describing it.
+**Where a run directory holds real captures, use them.** A run driven through
+`check-page.mjs` (the capture step under `.claude/skills/test-in-a-browser/`,
+per B1097) leaves `.claude/runs/<run-id>/<ticket-id>/{before,after}-<width>.png`
+with a sibling `.json` beside each — url, status, title, innerText,
+consoleErrors, failedRequests. Where a ticket's directory has these, embed the
+actual PNGs as `data:` URIs rather than drawing anything, and beneath each one
+say the three things the JSON knows and a sketch never could: the URL it was
+taken on, the width, and whether that page existed before the branch (a
+`before-*.png` that is missing, or whose JSON reports a non-2xx `status`, means
+it did not — say so, do not paper over it with the after image twice). Watch
+the artifact's 16 MB ceiling: `data:` URIs count against it, and a run with
+several captures needs each one downscaled before it goes in, not left at
+whatever size the browser produced.
 
-Keep them small. These are diagrams of a mechanism, not screenshots, and a
-sketch that implies more certainty than the diff carries is the same failure
-as an invented summary.
+**Where there is no capture, fall back to a sketch — plain HTML and CSS, or an
+inline SVG for a map or a printed page — and label it as one.** A sketched box
+gets a small caption saying so ("sketch, no capture") so a reader can never
+mistake a drawing for a photograph. Ground both halves in the diff, exactly as
+before: the "before" is the harder one and the one worth getting right, and
+where the before-state is an absence (a border that rendered as nothing, a
+video row that never appeared, a list that simply ended), draw the absence
+rather than describing it. Keep sketches small — they are diagrams of a
+mechanism, not screenshots, and a sketch that implies more certainty than the
+diff carries is the same failure as an invented summary.
+
+Either way, the rule from above still applies in full: **a real photograph is
+evidence to check against the tree, not a replacement for checking.** A
+capture proves what a browser rendered at the moment `check-page.mjs` ran, not
+that the run's summary of it is accurate — read the JSON's `status` and
+`consoleErrors` yourself before trusting what a subagent said about the page.
 
 ## Step 4 — the artifact
 
@@ -112,10 +139,6 @@ In this order:
 3. **The quiet section** — a11y and anything with no pixel, one line each.
 4. **What still wants your eyes** — the closing box, and the point of the page.
 
-No decision bar. `triage-a-backlog` ends in a choice; this ends in a handover,
-and buttons on finished work would only invite a person to re-decide something
-already merged.
-
 ## Step 5 — the closing box, which is the whole point
 
 Everything above is reporting. This is the ask, and it should be the only part
@@ -134,12 +157,55 @@ that reads like a request:
 Name the ticket id and say what would settle it. "Needs review" is not an item;
 "B1000 was checked as a rendered PDF, not a printed page" is.
 
-## Step 6 — hand it over
+## Step 6 — the acceptance gate
+
+`testing/` → `completed/` is the second of the two human gates (AGENTS.md,
+Tasks) and an agent never passes it — but until B1111 this page ended at the
+closing box with nowhere to record the answer. A person read the page,
+decided, and then had to compose the move by hand, or, far more often, did
+not: the lane accumulated until 284 tickets were cleared in one sentence on
+2026-09-09, all at once, none of them individually recorded. The reasoning
+this skill used to give — that buttons on finished work would only invite a
+person to re-decide something already merged — had it backwards. The buttons
+below are not re-deciding merged work; they are the acceptance gate itself,
+finally given a surface. The closing box above is unchanged by any of this:
+it is what the person reads *before* they touch a button here, never folded
+into the gate itself.
+
+Build it on exactly the machinery `triage-a-backlog` step 6 already
+describes — localStorage under a versioned key, the honest clipboard report
+(`navigator.clipboard.writeText`, reporting "Copied to your clipboard" only
+when the promise resolves and "Select all and copy" otherwise), the readonly
+textarea fallback, never a download — rather than building a second version
+of the same thing:
+
+- Every ticket row carries **accept / needs another look**, nothing
+  pre-selected. The sticky bar's tally counts the undecided, the same shape
+  as the triage bar's own running count.
+- Every row also carries a note field, open on both verdicts. Whatever is
+  typed there is carried into the generated text beside that ticket's id —
+  "accepted, but the spacing at 390 is tight" is a sentence the next agent can
+  act on, and it is the entire reason the field exists: a page that outputs
+  only a list of ids has thrown that away. An empty note contributes nothing
+  to the output — no blank bullet, no placeholder line.
+- *Build the list* writes a markdown block that starts with one paste-ready
+  line — `move B1097 B1099 B1100 to completed`, the accepted ids, in order,
+  nothing else — so a person can hand it to an agent with nothing added.
+  Below that line: the accepted tickets that carry a note, each with its
+  note; then the tickets held back, each with theirs.
+
+This still moves nothing. `completed/` is a person's gate, exactly as
+`open/` is in `triage-a-backlog`, and the deliverable is text in a
+clipboard — a person pastes it, or hands it to an agent that reads
+`move B1097 … to completed` and runs `manage-tasks` accordingly. Neither this
+page nor the run that produced it touches a task file.
+
+## Step 7 — hand it over
 
 Give the URL, then three or four sentences the page cannot say for itself: the
 single most consequential fix and why, the one that surprised you, the pattern
 across the run (four tickets against one deleted module; two duplicate pairs
 filed seconds apart), and anything you reported on thin evidence.
 
-Then stop. Do not move anything to `completed/` — that is the person's gate,
-and a report is not a substitute for their eyes.
+Then stop. Do not move anything to `completed/` yourself — that is still the
+person's gate; the page above only gives them the words to do it with.

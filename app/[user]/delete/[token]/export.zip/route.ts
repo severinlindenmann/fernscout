@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 /**
  * The whole journal, handed to somebody who is about to delete it.
  *
- * `/<user>/export.zip` serves the `open-to-link` scope to anyone and the full
- * archive only to a Bearer token. Neither is any use here: the person reading
+ * `/<user>/export.zip` is owner-only (B1086), reachable with the owner's own
+ * token. Neither that nor `npm run export` is any use here: the person reading
  * the confirmation mail is on a phone, in a mail client, holding no token —
  * and linking them the anonymous export before a deletion would hand over a
  * copy that silently omits the private journeys and the unpublished drafts

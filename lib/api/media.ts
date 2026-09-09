@@ -9,7 +9,7 @@ import {
   perceptualHash,
   perceptualHashOf,
 } from "../ingest/image.ts";
-import { getEntryBySlug } from "../entries";
+import { AS_AUTHOR, getAllEntries, getEntryBySlug } from "../entries";
 import { frontmatterSrc } from "../ingest/paths.ts";
 import { resolveMediaFile, tripMediaDir, tripOriginalsDir } from "../media";
 import { getTrips, parseTripRef, tripDir } from "../trips";
@@ -891,4 +891,105 @@ export async function attachOriginal(
   }
 
   return { ok: true, stored: name };
+}
+
+// ---------------------------------------------------------------------------
+// The same picture twice
+// ---------------------------------------------------------------------------
+
+/** One photograph in a duplicate group, as the caller would delete it. */
+export type DuplicateMediaItem = {
+  src: string;
+  day: string;
+  width?: number;
+  height?: number;
+  bytes: number;
+};
+
+/**
+ * Photographs a trip holds more than once — B1103.
+ *
+ * `storeUploads` above already says so **at the moment of upload**, in
+ * `advice`, and deliberately stores the second copy anyway: a resemblance is a
+ * guess, and dropping a photograph nobody can get back is the worse mistake.
+ * That leaves the other half unanswered — an agent handed a journal it did not
+ * upload has no way to ask the question at all, and an eleven-copy trip is not
+ * something anybody finds by looking. This is that question.
+ *
+ * It reads the **derivatives**, which is the same side of the pipeline the
+ * upload path hashes (see `perceptualHashOf`) and the reason this agrees with
+ * the advice a caller was given rather than contradicting it. `dayFingerprints`
+ * does the work and its cache is written back, so a second call on an unchanged
+ * trip decodes nothing.
+ *
+ * Only what a day's gallery actually names is reported. A file in `media/`
+ * that no entry mentions is not something `DELETE .../media` will accept, and
+ * a report whose rows cannot be acted on is worse than a shorter one.
+ *
+ * Groups, not pairs: three copies of one photograph are one row to decide
+ * about. Largest first inside a group, because the biggest is nearly always
+ * the one to keep — but this never says which, and never deletes. Which copy a
+ * journal keeps is an editorial decision and belongs in the second call.
+ */
+export async function findDuplicateMedia(ref: string): Promise<DuplicateMediaItem[][]> {
+  const parsed = parseTripRef(ref);
+  if (!parsed) return [];
+
+  type Candidate = Fingerprint & { item: DuplicateMediaItem };
+  const candidates: Candidate[] = [];
+
+  for (const entry of getAllEntries(ref, AS_AUTHOR)) {
+    const gallery = new Map(
+      entry.gallery.filter((g) => g.type !== "video").map((g) => [mediaKey(g.src), g]),
+    );
+    if (gallery.size === 0) continue;
+
+    const dir = path.join(tripMediaDir(ref), entry.slug);
+    const cacheFile = fingerprintCachePath(ref, entry.slug);
+    const { fingerprints, cache } = await dayFingerprints(dir, cacheFile);
+    writeFingerprintCache(cacheFile, cache);
+
+    for (const print of fingerprints) {
+      const src = frontmatterSrc(parsed.tripId, path.join(entry.slug, print.file));
+      const item = gallery.get(mediaKey(src));
+      if (!item) continue;
+      let bytes = 0;
+      try {
+        bytes = fs.statSync(path.join(dir, print.file)).size;
+      } catch {
+        continue; // Named by the day, gone from disk: not a duplicate, a hole.
+      }
+      candidates.push({
+        ...print,
+        item: { src, day: entry.slug, width: item.width, height: item.height, bytes },
+      });
+    }
+  }
+
+  // Union-find over the candidates. `sha` beside `isDuplicate` because a
+  // picture the difference hash has no opinion about — a plain wall, a
+  // whiteout — is still the same photograph when the bytes agree.
+  const parent = candidates.map((_, i) => i);
+  const root = (i: number): number => (parent[i] === i ? i : (parent[i] = root(parent[i])));
+  for (let i = 0; i < candidates.length; i++) {
+    for (let j = i + 1; j < candidates.length; j++) {
+      const [a, b] = [candidates[i], candidates[j]];
+      const same = a.sha === b.sha || (a.phash && b.phash && isDuplicate(a.phash, b.phash));
+      if (same) parent[root(i)] = root(j);
+    }
+  }
+
+  const groups = new Map<number, DuplicateMediaItem[]>();
+  for (let i = 0; i < candidates.length; i++) {
+    const key = root(i);
+    const group = groups.get(key) ?? [];
+    group.push(candidates[i].item);
+    groups.set(key, group);
+  }
+
+  const area = (item: DuplicateMediaItem) => (item.width ?? 0) * (item.height ?? 0);
+  return [...groups.values()]
+    .filter((group) => group.length > 1)
+    .map((group) => group.sort((a, b) => area(b) - area(a) || b.bytes - a.bytes))
+    .sort((a, b) => b.length - a.length || a[0].src.localeCompare(b[0].src));
 }

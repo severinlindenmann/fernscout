@@ -154,15 +154,18 @@ describe("destruction never reaches a model at all — B817", () => {
   const DESTRUCTION = [
     // en
     "delete my acc",
-    "remove the photo of anna",
     "get rid of yesterday",
     "erase that day",
     // de
     "lösche den Tag mit dem Foto von Anna",
-    "entferne bitte das Foto von Anna",
     // hu
     "töröld a napot Anna fényképével",
   ];
+
+  // "remove the photo of anna" and "entferne bitte das Foto von Anna" were on
+  // that list until `remove_photo` existed. They are on the list below now,
+  // and the German day-with-a-photo sentence stayed above deliberately: it
+  // names a picture and asks for a day.
 
   for (const said of DESTRUCTION) {
     test(`"${said}" is refused by name, and opens nothing`, async () => {
@@ -255,10 +258,19 @@ describe("a named refusal instead of silence — B783", () => {
     expect(day).toContain("status: draft");
   });
 
-  test("postcards say where the pressing happens", async () => {
+  /**
+   * Postcards used to be refused by name here, on the same reasoning as
+   * `delete` — there was no tool for them either. `propose_postcards` is one
+   * now (`lib/helper/tools/areas/printed.ts`), so a sentence naming a card
+   * reaches the conversation like any other write and proposes rather than
+   * being turned away before a model reads it.
+   */
+  test("a postcard reaches the conversation rather than a refusal", async () => {
+    writeTrip();
+    answerInThread.mockImplementation(turnCalling("propose_postcards", { trip: "reise", slug: "one" }));
     const answered = await read(await ask("send a postcard to my mum"));
-    expect(answered.body.intent).toBe("refuse_postcard");
-    expect(String(answered.body.answer)).toContain("postcards page");
+    expect(answered.body.refused).toBeUndefined();
+    expect(answerInThread).toHaveBeenCalledOnce();
   });
 
   /* ------------------------------------------------------------ B914 --- */
@@ -320,12 +332,43 @@ describe("a named refusal instead of silence — B783", () => {
     expect(refusalFor("lösche alles")?.name).toBe("remove");
   });
 
-  test("all three refusals answer in German and Hungarian too", () => {
+  /**
+   * A photograph and a staged file are the exception, and they became one on
+   * the day `remove_photo` and `discard_file` were built.
+   *
+   * This row used to match "remove … photo" deliberately, because nothing
+   * could do it and a refusal was the honest answer. Now something can, and a
+   * refusal firing first would make both tools unreachable by the only
+   * sentence anybody says out loud. What is still refused is everything the
+   * helper genuinely cannot do: a day, a trip, a whole journal.
+   */
+  test("a picture or a file may be asked for; a day, a trip and a journal may not", () => {
+    for (const said of [
+      "remove that photo",
+      "delete the photo of the harbour",
+      "lösch das foto bitte",
+      "entferne die datei",
+      "töröld a képet",
+    ]) {
+      expect(refusalFor(said), said).toBeNull();
+    }
+    for (const said of [
+      "delete the trip",
+      "delete everything",
+      "lösche die reise",
+      "get rid of the journal",
+      "törölj mindent",
+    ]) {
+      expect(refusalFor(said)?.name, said).toBe("remove");
+    }
+  });
+
+  test("both refusals answer in German and Hungarian too", () => {
     for (const locale of ["de", "hu"]) {
       const dictionary = JSON.parse(
         fs.readFileSync(path.join(process.cwd(), "site", "locales", `${locale}.json`), "utf8"),
       ) as Record<string, string>;
-      for (const name of ["Remove", "Postcard", "PublishAll"]) {
+      for (const name of ["Remove", "PublishAll"]) {
         expect(dictionary[`agent.askRefuse${name}`]?.length ?? 0).toBeGreaterThan(20);
       }
     }

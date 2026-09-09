@@ -29,6 +29,7 @@ costs:
   - { label: "Guided cliff dwelling tour", amount: 16, category: "activities", currency: "USD" }
   - { label: "Motel in Cortez", amount: 112, category: "accommodation", currency: "USD" }
 weatherData: { tempMin: 4.1, tempMax: 19.5, code: 0, precipitation: 0, windMax: 13.8, source: "open-meteo", recordedAt: "2026-09-06T08:32:19.426Z" }
+timezone: "America/Denver"
 ---
 
 Houses built into the underside of a cliff eight hundred years ago, reached now by a ten-metre wooden ladder that the ranger climbs faster than anybody.

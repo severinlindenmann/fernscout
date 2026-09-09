@@ -103,6 +103,17 @@ export default function DayNotify({
     );
   }
 
+  // A channel is configured but nobody is on it — `reachable` only asks
+  // whether a channel exists, not whether anybody subscribed. Offering the
+  // confirmation here would let the owner press a button that sends to
+  // nobody and reports success — B1027.
+  if (status.pending.every(({ count }) => count === 0)) {
+    return (
+      <p className="col-span-full text-xs text-navy-600">
+        {t("notify.nobody")}
+      </p>
+    );
+  }
 
   const send = async () => {
     setBusy(true);
@@ -153,9 +164,7 @@ export default function DayNotify({
               list and has to keep every switched-on channel — dropping one
               server-side would make it look already-sent — but "0 WhatsApp
               messages" on the screen is noise at best and alarming at worst.
-              A journal where every count is zero shows the question and no
-              list, which is what it did before this and is captured as its own
-              ticket. */}
+              The all-zero case is handled above, before this panel opens. */}
           {status.pending
             .filter(({ count }) => count > 0)
             .map(({ channel, count, cost }) => (

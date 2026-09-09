@@ -87,11 +87,11 @@ describe("TelField's country combobox", () => {
     let picked: [string, string] | undefined;
     render((cc, national) => {
       picked = [cc, national];
-    }, "", "76 561 31 50");
+    }, "", "76 000 00 00");
     act(() => ccInput().focus());
     type("Switzerland");
     keydown("Enter");
-    expect(picked).toEqual(["41", "76 561 31 50"]);
+    expect(picked).toEqual(["41", "76 000 00 00"]);
     expect(options().length).toBe(0);
   });
 
@@ -127,14 +127,14 @@ describe("TelField's country combobox", () => {
     let picked: [string, string] | undefined;
     render((cc, national) => {
       picked = [cc, national];
-    }, "", "76 561 31 50");
+    }, "", "76 000 00 00");
     act(() => ccInput().focus());
     type("Switzerland");
     const option = options()[0];
     act(() => {
       option.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
     });
-    expect(picked).toEqual(["41", "76 561 31 50"]);
+    expect(picked).toEqual(["41", "76 000 00 00"]);
   });
 
   test("clicking outside the field closes the list", () => {

@@ -58,7 +58,7 @@ per-locale template selection, the photo re-encode, and the reporting
 contract — counts and a reason, never a phone number. One bad recipient did
 not fail the call.
 
-Separately, free-form sends to +41 76 561 31 50 (photo + caption + links, and
+Separately, free-form sends to the operator's own mobile (photo + caption + links, and
 a link-preview variant) arrived correctly, which proves media upload and
 delivery from the production number.
 
@@ -152,7 +152,7 @@ appeal (below) the highest-value follow-up.
 
 - A template shows `APPROVED` and `POST .../send-whatsapp` returns
   `sent: 1, failed: 0`.
-- The message arrives on +41 76 561 31 50 with the photo, the three filled
+- The message arrives on the operator's own mobile with the photo, the three filled
   variables and a working "Eintrag lesen" button.
 - The measured `MARKETING` rate replaces the estimate in this file.
 - The hand-approved test contact is deleted or approved properly.
