@@ -214,7 +214,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (15)
+## in-development (14)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -231,10 +231,9 @@ _Nothing here._
 | [B1027](in-development/B1027-the-send-button-is-offered-on.md) | The send button is offered on a day whose journal has no readers to send it to | ISSUE | low | low | `f88144a1` |
 | [B1031](in-development/B1031-searchbox-s-voice-search-errors-use.md) | SearchBox's voice-search errors use role=status, not role=alert | ISSUE | low | low | `f88144a1` |
 | [B1032](in-development/B1032-a-day-s-title-colliding-with.md) | A day's title colliding with another day's slug is still an English sentence on the helper | ISSUE | low | low | `f88144a1` |
-| [B1033](in-development/B1033-agentdoor-tsx-still-imports-the-per.md) | AgentDoor.tsx still imports the per-journal card B984 deleted | CHORE | low | low | `f88144a1` |
 | [B723](in-development/B723-consent-can-only-be-withdrawn-from.md) | Consent can only be withdrawn from inside the wizard | FEATURE | low | low | `eef381a2` |
 
-## testing (258)
+## testing (259)
 
 ### security (7)
 
@@ -492,7 +491,7 @@ _Nothing here._
 | [B815](testing/small-feature/B815-stripe-asks-for-an-email-the.md) | Stripe asks for an email the owner has already given this server | FEATURE | low | low | — |
 | [B826](testing/small-feature/B826-the-checkout-page-is-stripe-s.md) | The checkout page is Stripe's grey, on a site that has a palette | FEATURE | low | low | — |
 
-### chore (15)
+### chore (16)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -504,6 +503,7 @@ _Nothing here._
 | [B912](testing/chore/B912-the-photobook-cover-strings-are-english.md) | The photobook cover strings are English in the Hungarian file | CHORE | medium | low | — |
 | [B930](testing/chore/B930-the-prompt-budget-has-one-token.md) | The prompt budget has one token of headroom and does not say what to do | CHORE | medium | low | — |
 | [B990](testing/chore/B990-the-agent-guide-is-over-its.md) | The agent guide is over its own ceiling on main, so every branch fails verify at the same test | CHORE | medium | low | — |
+| [B1033](testing/chore/B1033-agentdoor-tsx-still-imports-the-per.md) | AgentDoor.tsx still imports the per-journal card B984 deleted | CHORE | low | low | — |
 | [B1037](testing/chore/B1037-b92-s-why-section-says-the.md) | B92's Why section says the per-email cap is three; B840 already lowered it to one | CHORE | low | low | — |
 | [B724](testing/chore/B724-a-capability-that-needs-another-one.md) | A capability that needs another one is an if rather than a field | CHORE | low | low | — |
 | [B736](testing/chore/B736-build-demo-content-mjs-still-cannot.md) | build-demo-content.mjs still cannot reproduce travelScene, per-item visibility, some captions, or six fixture days | CHORE | low | medium | — |
