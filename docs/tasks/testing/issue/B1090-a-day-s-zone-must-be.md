@@ -7,8 +7,7 @@ complexity: medium
 area: entries, feed, i18n
 found: "2026-09-09T15:51:35Z"
 started: "2026-09-09T15:52:03Z"
-session: eef381a2-5a19-477a-a5ce-5f4f2d3dacab
-claimed: "2026-09-09T15:52:03Z"
+merged: "2026-09-09T16:07:54Z"
 ---
 
 # B1090 — A day's zone must be worked out from where it happened, or B42 helps almost no day that exists
