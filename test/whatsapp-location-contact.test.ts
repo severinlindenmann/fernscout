@@ -123,6 +123,12 @@ describe("a location pin", () => {
 
     const files = repliesTo("locontest");
     expect(String(files[files.length - 1].body)).toContain("2023-11-14");
+
+    // B1193: the whole round trip was a WhatsApp webhook, so the thread note
+    // `wrote()` left behind must carry that origin, not the "web" default.
+    const { db } = (await getDatabase())!;
+    const row = await db.selectFrom("helper_threads").selectAll().where("owner_id", "=", "locontest").executeTakeFirst();
+    expect(row?.channel).toBe("whatsapp");
   });
 
   test("with no trip covering that date is refused, naming the date", async () => {

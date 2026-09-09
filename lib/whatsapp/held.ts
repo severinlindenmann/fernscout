@@ -2,6 +2,7 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "../contentRoot";
+import { translateIn } from "../locales";
 import type { WhatsappOutbound } from "./render";
 
 /**
@@ -49,4 +50,28 @@ export function takeHeldAnswer(username: string, tel: string): HeldAnswer | null
   } catch {
     return null;
   }
+}
+
+/** A short, locale-aware "how long ago" phrase for `heldAt` — native
+ *  `Intl.RelativeTimeFormat`, minute/hour/day granularity. */
+function relativeDelay(locale: string, heldAt: string): string {
+  const minutes = Math.round((Date.now() - new Date(heldAt).getTime()) / 60_000);
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  if (minutes < 60) return rtf.format(-Math.max(minutes, 1), "minute");
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return rtf.format(-hours, "hour");
+  return rtf.format(-Math.round(hours / 24), "day");
+}
+
+/**
+ * Wrap a held answer's delivery with a line naming when it was actually
+ * ready — B1192. Without it the answer arrives looking like a reply to
+ * whatever the person just said, rather than to whenever they asked.
+ *
+ * Buttons/list options may be stale by the time this goes out, so every
+ * shape falls back to plain text — only `body` is read below.
+ */
+export function announceHeldAnswer(locale: string, held: HeldAnswer): WhatsappOutbound {
+  const prefix = translateIn(locale, "wa.heldAnswer", { when: relativeDelay(locale, held.heldAt) });
+  return { kind: "text", body: `${prefix}\n\n${held.outbound.body}` };
 }

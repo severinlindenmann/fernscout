@@ -29,7 +29,7 @@ import type { Trip } from "../types";
 import { isAcknowledgement } from "./acknowledge";
 import { hasAcknowledged, hasBeenGreeted, markAcknowledged, markGreeted } from "./binding";
 import { downloadMedia } from "./cloud";
-import { takeHeldAnswer } from "./held";
+import { announceHeldAnswer, takeHeldAnswer } from "./held";
 import { cloudCredentials, maskNumber } from "./index";
 import { renderForWhatsapp } from "./render";
 import { balanceRefusal } from "./refusal";
@@ -145,7 +145,7 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
    */
   const held = takeHeldAnswer(username, message.from);
   if (held) {
-    await sendOutboundReply(message.from, held.outbound, username);
+    await sendOutboundReply(message.from, announceHeldAnswer(locale, held), username);
     console.log(`[whatsapp:inbound] delivered a held answer to ${maskNumber(message.from)} (${username}), held since ${held.heldAt}`);
   }
 
@@ -485,7 +485,7 @@ async function handleLocationPin(
     return;
   }
   await fillDayWeatherQuietly(ref, written.slug);
-  wrote(username, "start_day", { trip: trip.id, slug: written.slug, date });
+  wrote(username, "start_day", { trip: trip.id, slug: written.slug, date }, "whatsapp");
 
   await sendServiceReply(
     message.from,
@@ -591,7 +591,7 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
     answered: thread.answer,
     origin: "whatsapp",
   });
-  for (const proposal of thread.proposals) proposed(username, proposal.tool, proposal.arguments);
+  for (const proposal of thread.proposals) proposed(username, proposal.tool, proposal.arguments, "whatsapp");
 
   const blocks = [...thread.blocks, ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }])];
   const journalUrl = `${serverSite().url}/agent`;
