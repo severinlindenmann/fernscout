@@ -1,3 +1,5 @@
+import tzLookup from "tz-lookup";
+
 /**
  * Turning a wall clock in a named zone into a true instant, and back.
  *
@@ -71,4 +73,28 @@ export function formatTimeInZone(date: string, time: string, zone: string, targe
     minute: "2-digit",
     hourCycle: "h23",
   }).format(instant);
+}
+
+/**
+ * The IANA zone a coordinate sits in, or `undefined` when `tz-lookup` cannot
+ * place it (open ocean, mostly).
+ *
+ * `tz-lookup` (152 KB, CC0-1.0, no dependencies of its own — B1090) reads a
+ * coarse raster rather than real boundary polygons, so a coordinate within a
+ * kilometre or so of a border can land on the wrong side. That is acceptable
+ * here: a day's coordinate is a town, not a survey marker, and `timezone:` in
+ * the frontmatter stays explicit and hand-correctable. `geo-tz`, the
+ * alternative with real polygons, is 73 MB and was rejected on that basis
+ * alone.
+ *
+ * Callers, not this function, decide whether an existing `timezone:` wins —
+ * this only answers "what does the raster say for this point".
+ */
+export function timezoneForCoordinates(lat: number, lng: number): string | undefined {
+  try {
+    return tzLookup(lat, lng);
+  } catch {
+    // Out of range, or a point tz-lookup has nothing for.
+    return undefined;
+  }
 }

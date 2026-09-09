@@ -184,8 +184,11 @@ describe("editEntry: everything else about the file survives", () => {
     expect(after).toContain('tags: ["tessin", "hiking"]');
     expect(after).toContain("Ankunft am Morgen.");
     // The new lines land at the end of the frontmatter, not scattered through
-    // the middle of what was already there.
-    expect(after).toContain("status: draft\nlat: 46.19\nlng: 9.02");
+    // the middle of what was already there. `timezone` lands ahead of
+    // `lat`/`lng` because supplying coordinates with no zone of their own
+    // resolves one (B1090), and `spliceEntryFields` writes fields in the
+    // order it considers them, timezone before lat/lng.
+    expect(after).toContain('status: draft\ntimezone: "Europe/Zurich"\nlat: 46.19\nlng: 9.02');
   });
 
   test("travelScene can be set, then cleared back to the default", () => {
