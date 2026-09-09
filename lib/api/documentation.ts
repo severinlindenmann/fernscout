@@ -2614,6 +2614,40 @@ with the \`src\` of the picture it looks like — delete one of them if they
 really are the same. The same photograph exported twice, at a different size or
 quality, is the case this covers.
 
+**And to ask afterwards, on a journal you did not upload:**
+
+\`\`\`http
+GET ${site.url}/api/v1/${example}/trips/<trip-id>/media/duplicates
+Authorization: Bearer fs_agent_…
+\`\`\`
+
+\`groups\` is one row per photograph the trip holds more than one copy of, across
+every day of it, each copy with its \`src\`, \`day\`, \`width\`, \`height\` and
+\`bytes\`, largest first. The largest is usually the one to keep — a camera file
+beside the same shot as it came back off a messaging app at a twentieth of the
+size — but **this reports and never deletes**, and which copy a journal keeps
+is not yours to decide. Show the person the groups, ask which one they want,
+and only then:
+
+\`\`\`http
+DELETE ${site.url}/api/v1/${example}/trips/<trip-id>/media
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"day": "lanterns-of-hoi-an", "src": ["/${example}/media/<trip>/lanterns-of-hoi-an/16.jpg"]}
+\`\`\`
+
+One day per call, one or more \`src\` exactly as the gallery hands them back. A
+\`src\` this day does not have refuses the whole call rather than removing the
+rest, so you are never left guessing which one landed. The derivative, the kept
+original and any poster go from disk; a photobook or postcard order that
+already named the file is untouched, being a record of what was sent rather
+than a live link to it.
+
+A resemblance is still a guess — two frames of one burst are different
+photographs and can come back as a group. Look before you delete, and if you
+cannot look, ask.
+
 **The body limit is the one that bites, and it is not the per-file limit.**
 Forty photographs may go in one call and each may be ${(IMAGE_MAX_BYTES / 1024 / 1024).toFixed(0)} MB, but the request
 carrying them may not exceed ${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(0)} MB in total, so a batch of phone

@@ -3095,6 +3095,44 @@ export function openApiDocument() {
           },
         },
       },
+      "/api/v1/{user}/trips/{trip}/media/duplicates": {
+        get: {
+          summary: "Photographs this trip holds more than once",
+          description:
+            "**The same picture twice, across every day of the trip.** Uploading says so " +
+            "at the time — `advice` on POST .../media names the photograph a new one " +
+            "resembles — and stores the second copy anyway, because a resemblance is a " +
+            "guess and a dropped photograph cannot be got back. This is the question " +
+            "afterwards, for a journal you did not upload.\n\n" +
+            "`groups` holds one entry per photograph the trip has more than one copy of, " +
+            "each listing `src`, `day`, `width`, `height` and `bytes`, largest first. The " +
+            "largest is usually the one to keep — a full-size camera file beside the same " +
+            "shot as it came back off a messaging app — but this endpoint does not decide " +
+            "that and deletes nothing. Ask the owner which copy they want, then send the " +
+            "other to DELETE .../media.\n\n" +
+            "It compares what the browser is served, so what it says agrees with the advice " +
+            "an upload gave. Video is left out — a poster frame is not the clip. A " +
+            "resemblance is still a guess: two frames of one burst are different " +
+            "photographs and can appear here.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": {
+              description:
+                "`groups` — empty when no photograph on this trip looks like another one " +
+                "on it. Nothing has been changed either way.",
+            },
+            "401": { description: "No token, or one this journal does not know" },
+            "404": {
+              description:
+                "No such trip — and the same answer a trip-scoped token gets for a trip it " +
+                "does not name, so a probe cannot tell the two apart",
+            },
+          },
+        },
+      },
       "/api/auth/handover": {
         post: {
           summary: "Spend a handover credential for your own 7-day token",
