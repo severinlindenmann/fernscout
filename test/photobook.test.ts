@@ -792,10 +792,17 @@ describe("rendering", () => {
   const rendered = renderVolume(volume, SPEC, { loadImage });
   const text = Buffer.from(rendered.pdf).toString("latin1");
 
-  test("is a PDF with one object per page", () => {
+  test("is a PDF with one object per page, and two blank leaves after them", () => {
     expect(text.startsWith("%PDF-")).toBe(true);
     expect(text.trimEnd().endsWith("%%EOF")).toBe(true);
-    expect(text).toContain(`/Count ${volume.interiorPages}`);
+    // B1173. Gelato's prepress refuses a book whose files do not total
+    // `pageCount + 3`, and its own template is 31 pages for the 28-page
+    // product — one cover page and thirty interior. So the interior file
+    // carries two more pages than the book has.
+    expect(text).toContain(`/Count ${volume.interiorPages + 2}`);
+    // And `pages` is still the book's own count: it is what gets quoted,
+    // charged and declared to the printer, and the leaves are not pages of the
+    // book. If these two ever say the same number again, one of them is wrong.
     expect(rendered.pages).toBe(volume.interiorPages);
   });
 
