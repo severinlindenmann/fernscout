@@ -29,7 +29,37 @@ confident. Merging is yours; declaring it done is not.
 
 ## Steps
 
-### 1. Take it
+### 1. Revalidate
+
+Before you take the ticket, read the whole file, then read the code it names.
+This runs first because a batch of twelve tickets tends to have several that
+are months old, and one or two already fixed by something else — building one
+of those is the most expensive way to find that out, and doing it after the
+lane move only means undoing the lane move as well.
+
+Answer in exactly one of four ways, each grounded in something you actually
+read, and write the answer into the task file either way — including a
+"valid" verdict, and why:
+
+- **valid** — the problem still exists. Say what you read that confirms it,
+  file:line, then carry on to step 2.
+- **already fixed** — name the file and line that shows it. Set
+  `superseded:` in the frontmatter with what overtook it, run
+  `npm run tasks -- tidy`, and stop. That is a fact about the code sitting on
+  disk, which is exactly the kind of thing AGENTS.md says an agent may
+  record.
+- **superseded by <id>** — same path, pointing at the ticket that overtook
+  this one instead of a plain code change.
+- **the premise is wrong** — this is `wontDo:`, and AGENTS.md is explicit
+  that the word is a person's, never an agent's. Say why in the task file and
+  stop there. Report it; do not set the field yourself.
+
+If you were dispatched with a run brief that already carries a VALIDITY
+verdict for this ticket, read that verdict rather than redoing the work —
+`plan-a-run` already read the code for the same question. Write it into the
+task file and move on.
+
+### 2. Take it
 
 ```bash
 npm run tasks                       # what is in open/
@@ -59,7 +89,7 @@ how a parallel session sees the task is taken, and a move that only exists on
 your branch is invisible until you merge — by which time it has stopped being
 useful.
 
-### 2. Branch and worktree, named for the task
+### 3. Branch and worktree, named for the task
 
 The name is the id and the slug, lowercased: `b01-forwarded-for-trust`.
 
@@ -126,10 +156,21 @@ or if the clone fails, `npm ci --prefer-offline` in the worktree.
 `.claude/worktrees/` is gitignored and already holds worktrees from other
 sessions. Never work in someone else's.
 
-### 3. Research, and write down what you find
+### 4. Research, and write down what you find
 
 Read the code the task names before changing any of it. The **Why** section
 was written from a particular reading, and it can be wrong or out of date.
+
+**If you were dispatched from a run brief, it has already made this
+decision.** `plan-a-run` chose an option for this ticket — sometimes with
+throwaway mockup HTML — after a person looked at two or three real stances and
+picked one. Build what was chosen; it is a person's decision, not a starting
+point to improve on mid-build. If the chosen option turns out to be wrong once
+you are in the code — it does not fit what is actually there, or the mockup
+assumed something false — say so in the task file and stop, rather than
+quietly building the other option instead. A silent substitution is the one
+thing that makes the whole plan-a-run gate worthless: the person answered a
+question they were never actually asked.
 
 **Update the task file as you go.** This is a required step, not tidying:
 
@@ -142,7 +183,12 @@ was written from a particular reading, and it can be wrong or out of date.
   editing one in place leaves the file where it no longer belongs and
   `test/task-ids.test.ts` fails on the merge. Never move the file by hand.
 - You find a second problem → that is a new capture in `backlog/`, not scope
-  you silently absorb. Reference it by id from this task.
+  you silently absorb. Reference it by id from this task. **But a problem this
+  branch itself created — a test it broke, a type it widened, a caller it left
+  dangling — is fixed here, now, in this branch, without exception.** A
+  capture is for a problem that would exist if this branch had never been
+  cut; your own breakage would not. Filing it as a ticket for somebody else is
+  how a run ends green with four tickets describing itself.
 
   **Get the id from the script, from inside your worktree.** Never pick the
   next free number by reading `docs/tasks/` and adding one:
@@ -170,7 +216,7 @@ was written from a particular reading, and it can be wrong or out of date.
 Commit those edits with the code. Somebody reading the merge should see the
 reasoning and the change together.
 
-### 4. Build it
+### 5. Build it
 
 Subagents earn their place when the task splits into parts that do not share
 state — an independent fix in two unrelated files, or a wide read across the
@@ -183,7 +229,7 @@ Follow the repository's own rules in `AGENTS.md`: the dialect split, no paid
 account to develop, capabilities absent rather than broken, secrets in the
 environment, nothing personal outside `content/`.
 
-### 5. Verify, against the task's own words
+### 6. Verify, against the task's own words
 
 One command, every time:
 
@@ -215,11 +261,31 @@ If a line cannot be demonstrated, the task is not finished. Say which line,
 leave it in `in-development/`, and stop. Do not rewrite the acceptance criteria
 to match what you built.
 
-**If a person can see it, look at it — on content you did not write.** A green
-suite means the mechanism works on the case you built for it, which is exactly
-the case that cannot surprise you. Open the thing a reader opens: an existing
-day, an existing trip, a page that was there before your branch. Two rules
-make that check worth running:
+**If a person can see it, look at it — on content you did not write — and
+leave a file that proves you did.** A green suite means the mechanism works on
+the case you built for it, which is exactly the case that cannot surprise
+you. Open the thing a reader opens: an existing day, an existing trip, a page
+that was there before your branch. The step is not finished until a capture
+exists on disk, not until you believe you looked:
+
+```bash
+node .claude/skills/test-in-a-browser/check-page.mjs <url> <out-dir> \
+    [--cookie name=value] [--widths 1280,390] [--wait 2000]
+```
+
+writes `<slug>-<width>.png` per width plus `<slug>.json` (url, status, title,
+`innerText`, console errors, failed requests) and exits non-zero on a 5xx or a
+failed navigation — `test-in-a-browser` documents the script itself, this is
+only where to point it. When a run directory exists, that is
+`.claude/runs/<run-id>/<ticket-id>/after-1280.png` and its sibling `.json`;
+otherwise a named path under `/tmp` that the report quotes. Read the JSON as
+well as looking at the picture — a screenshot on its own is a thing to have an
+opinion about, not evidence (B1097). Prose saying the change was checked is
+not itself checkable; a file on disk either exists or it does not, which is
+why agents skip a step that only asks for diligence and do not skip one that
+asks for an artifact.
+
+Two rules govern what the capture is *of*:
 
 - **Never verify on a fixture you authored for the verification.** B42 shipped
   a second clock beside a day's time, and it was checked on the two demo days
@@ -245,7 +311,7 @@ keeps finding is the second kind — G17 was three of them at once (B232, B233,
 B234). Its findings are captures for `backlog/`, by id, not scope to absorb
 here; a finding you disagree with gets a sentence in the task file saying why.
 
-### 6. Merge, then hand over
+### 7. Merge, then hand over
 
 **Check what you are merging into before you merge.** The main checkout is
 shared, and on 2026-09-03 it was found on a detached HEAD with eighteen
@@ -261,7 +327,7 @@ git status --short                  # somebody else's uncommitted files block a 
 ```
 
 `npm run tasks` says both of these on its own now, from any checkout, so the
-lane move at the end of step 1 has already told you. If it printed a detached
+lane move at the end of step 2 has already told you. If it printed a detached
 warning, **do not merge and do not check out a branch there.** The recovery is
 
 ```bash
@@ -317,7 +383,7 @@ merge.
 Report: what the task was, what you changed, the evidence for each acceptance
 line, and anything you captured into `backlog/` along the way.
 
-### 7. Stop
+### 8. Stop
 
 **Do not move it to `completed/`.** Say plainly that it is in `testing/` and
 what a person should look at to satisfy themselves — the page to open, the
@@ -331,6 +397,8 @@ command to run, the behaviour to try. That request is the deliverable.
 - Merging with a failing check, intending to fix it after.
 - Working directly in the main worktree because the change "is small".
 - Absorbing a second problem into this task instead of capturing it.
+- Capturing a problem this branch itself caused instead of fixing it here.
+- Starting a ticket without revalidating it first.
 - Choosing an id for a capture by reading `docs/tasks/` and adding one.
 - Retrying `EnterWorktree` after it refused a dispatched agent.
 - Merging into a main checkout you have not checked is on `main`.
@@ -338,3 +406,4 @@ command to run, the behaviour to try. That request is the deliverable.
 - Holding on to a task after it lands in `testing/`.
 - Finishing without touching the task file — you learned nothing worth
   recording, which is almost never true.
+- Claiming a visible change is checked with no capture on disk to show it.

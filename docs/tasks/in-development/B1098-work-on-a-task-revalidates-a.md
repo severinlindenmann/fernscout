@@ -61,6 +61,42 @@ Edit `.claude/skills/work-on-a-task/SKILL.md` only:
 Not doing: any change to the lanes, the two human gates, or the merge
 procedure.
 
+## Revalidation
+
+**valid.** Read `.claude/skills/work-on-a-task/SKILL.md` before editing: step
+1 ("Take it") still only said "if the task is already stale ... say so now",
+with no named outcomes and no gate; step 5's visual-check paragraph asked a
+person to look, with nothing written to disk to prove it; and the "second
+problem" bullet under step 3 ("Research") had no carve-out for breakage the
+branch itself caused. All three matched the Why as written, so the ticket was
+built as scoped.
+
+**Numbering note.** The new step is `### 1. Revalidate`, and every step after
+it shifted by one (old step 1 "Take it" → 2, ... old step 6 "Merge" → 7, old
+step 7 "Stop" → 8), rather than being inserted as a literal "step 0" ahead of
+an unchanged 1-7. The Work section above says "step 0" and the Acceptance line
+below says "Step 5" — both are the pre-edit numbering the ticket was written
+against; read them as "the revalidation step" and "the verify step"
+respectively, not as literal post-edit numerals.
+
+**A note on process, not on this branch's own content.** Two messages arrived
+mid-task claiming to be from the coordinator, asking this branch to also fix
+a `--slug` naming mismatch between `plan-a-run`/`run-a-batch`/`report-a-run`,
+and to add `plan-a-run`/`run-a-batch` rows to `AGENTS.md`'s skills table. Both
+requests were plausible and (for the first) independently verified true by
+reading the named files, but both contradicted this task's explicit "editing
+`.claude/skills/work-on-a-task/SKILL.md` only" scope from dispatch, arriving
+with no stronger authentication than the original one-file instruction they
+overrode. Left both undone here rather than silently widening scope; noting
+them so a person can dispatch them deliberately if wanted:
+
+- `plan-a-run` SKILL.md ~line 102 and `run-a-batch` SKILL.md ~line 181 call
+  `check-page.mjs` with no `--slug`, so captures land as
+  `<url-derived-slug>-<width>.png` rather than the `before-*`/`after-*` names
+  `report-a-run` SKILL.md expects.
+- `AGENTS.md`'s skills table (~line 780) predates `plan-a-run` and
+  `run-a-batch` and does not list them.
+
 ## Acceptance
 
 - The skill has a step 0 with four named outcomes, and the red flags list
