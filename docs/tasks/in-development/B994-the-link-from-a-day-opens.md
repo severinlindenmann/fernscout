@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: helper, ui
 found: "2026-09-08T16:53:41Z"
+started: "2026-09-09T20:47:09Z"
+session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
+claimed: "2026-09-09T20:47:09Z"
 ---
 
 # B994 — The link from a day opens a room that does not know what it was opened from
@@ -63,6 +66,17 @@ The result is that the page is the context, a person presses once, and the
 conversation continues from there — which is what the room is for.
 
 ## Work
+
+(As built, 2026-09-09:) `?about=` now forgets the live thread, writes the
+B924 note naming the day, and opens a blank conversation whose first screen
+is a locally-drawn offer — rewrite / add photographs / add a cost / take it
+off the site — each press sending that sentence as the first message. The
+room strips `about` from the address on mount so a reload resumes rather
+than re-forgets, and the two links that carry `about` are `prefetch={false}`
+so a viewport prefetch cannot wipe a conversation. The day row's label is
+"Talk to your agent about this day" in all three languages. **Not done:**
+a trip-level `about` — no link today carries a trip without a day; when a
+trip page grows one, the same mechanism takes `?about=<trip>`.
 
 - The label, in all three languages, and in `lib/i18n.ts`.
 - The link starts a **new** session rather than continuing the last one, since
