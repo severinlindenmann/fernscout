@@ -747,6 +747,14 @@ export function openApiDocument() {
           },
           responses: {
             "202": { description: "Accepted" },
+            "400": {
+              description:
+                "`invalid_user` — `user` is missing. Or `invalid_email` — `email` is " +
+                "missing or not a syntactically valid address. Both are shape checks that " +
+                "never touch a lookup, so refusing them names nothing about who is " +
+                "registered — unlike an unrecognised-but-valid address, which still " +
+                "answers 202.",
+            },
             "403": { description: "That address may not have an agent code for this journal" },
             "404": { description: "Authentication is off on this server" },
             "429": { description: "Too many attempts" },
