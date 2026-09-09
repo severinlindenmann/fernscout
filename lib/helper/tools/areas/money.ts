@@ -140,12 +140,15 @@ export const MONEY_TOOLS: readonly Tool[] = [
         sentence: say("agent.tool.addCost", {
           label: args.label ?? "",
           amount: args.amount ?? "",
+          // B1107 — "this day" named nothing once the resolved day stopped
+          // being drawn.
+          date: args.date ?? found?.entry.date ?? "",
         }),
         accept: say("agent.tool.addCostAccept"),
         done: say("agent.tool.addCostDone"),
         fields: [
-          { name: "trip", value: tripId },
-          { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
+          { name: "trip", value: tripId, fixed: true },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "", fixed: true },
           { name: "date", value: args.date ?? found?.entry.date ?? "", date: true },
           { name: "label", value: args.label ?? "" },
           { name: "amount", value: args.amount ?? "" },
@@ -222,7 +225,8 @@ export const MONEY_TOOLS: readonly Tool[] = [
             (one) => one.currency === currency,
           )
         : undefined;
-      const rate = say("agent.tool.setRate", { currency, rate: args.rate ?? "", base });
+      const named = trip?.title ?? tripId;
+      const rate = say("agent.tool.setRate", { currency, rate: args.rate ?? "", base, trip: named });
       const sentence = outside
         ? `${rate} ${say("agent.tool.setRateOutside", { amount: formatMoney(outside.amount, outside.currency) })}`
         : rate;
@@ -231,7 +235,7 @@ export const MONEY_TOOLS: readonly Tool[] = [
         accept: say("agent.tool.setRateAccept"),
         done: say("agent.tool.setRateDone"),
         fields: [
-          { name: "trip", value: tripId },
+          { name: "trip", value: tripId, fixed: true },
           { name: "currency", value: currency },
           { name: "rate", value: args.rate ?? "" },
         ],
@@ -282,6 +286,10 @@ export const MONEY_TOOLS: readonly Tool[] = [
           ? say("agent.tool.setBudget", {
               total: formatMoney(Number(args.total) || 0, budgetCurrency),
               days: args.days ?? "",
+              // The trip by the name they call it — B1107. The card no longer
+              // draws the resolved id, so the sentence has to say what this
+              // money belongs to or it names nothing at all.
+              trip: trip?.title ?? tripId,
             })
           : "",
         hasPrep
@@ -299,7 +307,7 @@ export const MONEY_TOOLS: readonly Tool[] = [
         accept: say("agent.tool.setBudgetAccept"),
         done: say("agent.tool.setBudgetDone"),
         fields: [
-          { name: "trip", value: tripId },
+          { name: "trip", value: tripId, fixed: true },
           { name: "total", value: args.total ?? "" },
           { name: "days", value: args.days ?? "" },
           { name: "currency", value: budgetCurrency },

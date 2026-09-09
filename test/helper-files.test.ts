@@ -167,9 +167,9 @@ describe("remove_photo — the one irreversible thing here", () => {
     const preview = ran.blocks[0] as { lines: string[] };
     expect(preview.lines).toEqual(["2026-05-04 — The pass", src]);
     expect(ran.proposal?.fields).toEqual([
-      { name: "trip", value: TRIP },
-      { name: "slug", value: SLUG },
-      { name: "src", value: src },
+      { name: "trip", value: TRIP, fixed: true },
+      { name: "slug", value: SLUG, fixed: true },
+      { name: "src", value: src, fixed: true },
     ]);
     // Nothing has happened yet.
     expect(getEntryBySlug(REF, SLUG, AS_AUTHOR)?.gallery).toHaveLength(2);
@@ -247,7 +247,11 @@ describe("discard_file — throwing away a staged file", () => {
       "2026-05-05",
       [`inbox:${staged.entry.id}`],
     );
-    expect(ran.proposal?.fields).toEqual([{ name: "file", value: staged.entry.id }]);
+    // `fixed` since B1107: the id is resolved from the tick and never drawn,
+    // so the person is not asked to correct a hash they never typed.
+    expect(ran.proposal?.fields).toEqual([
+      { name: "file", value: staged.entry.id, fixed: true },
+    ]);
 
     const response = await post(discardFile, "/api/helper/alex/inbox/discard", ran.proposal!.arguments);
     expect(response.status).toBe(200);

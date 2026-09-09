@@ -203,7 +203,7 @@ export const JOURNAL_TOOLS: readonly Tool[] = [
         }),
         accept: say("agent.tool.revokeKeyAccept"),
         done: say("agent.tool.revokeKeyDone"),
-        fields: [{ name: "id", value: id }],
+        fields: [{ name: "id", value: id, fixed: true }],
       };
     },
   },

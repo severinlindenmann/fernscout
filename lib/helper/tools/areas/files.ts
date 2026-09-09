@@ -117,8 +117,8 @@ export const FILES_TOOLS: readonly Tool[] = [
         // Their own filenames: nothing here is this software's prose.
         preview: onto ? [`${onto.entry.date} — ${onto.entry.title}`, ...names] : [],
         fields: [
-          { name: "trip", value: tripIdFor(username, args, found) },
-          { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
+          { name: "trip", value: tripIdFor(username, args, found), fixed: true },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "", fixed: true },
           { name: "files", value: ids.join(",") },
         ],
       };
@@ -246,9 +246,9 @@ export const FILES_TOOLS: readonly Tool[] = [
           ? [`${target.entry.date} — ${target.entry.title}`, target.item.from ?? target.item.src]
           : [],
         fields: [
-          { name: "trip", value: target?.trip.id ?? "" },
-          { name: "slug", value: target?.entry.slug ?? "" },
-          { name: "src", value: target?.item.src ?? "" },
+          { name: "trip", value: target?.trip.id ?? "", fixed: true },
+          { name: "slug", value: target?.entry.slug ?? "", fixed: true },
+          { name: "src", value: target?.item.src ?? "", fixed: true },
         ],
       };
     },
@@ -287,7 +287,7 @@ export const FILES_TOOLS: readonly Tool[] = [
         sentence: found ? say("agent.tool.discardFile", { filename: found.entry.filename }) : "",
         accept: say("agent.tool.discardFileAccept"),
         done: say("agent.tool.discardFileDone"),
-        fields: [{ name: "file", value: found?.entry.id ?? "" }],
+        fields: [{ name: "file", value: found?.entry.id ?? "", fixed: true }],
       };
     },
   },

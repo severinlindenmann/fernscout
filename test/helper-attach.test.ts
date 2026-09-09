@@ -131,8 +131,8 @@ describe("two photographs, ticked and put on a day", () => {
     // The fields the press posts are the server's own resolution, not the
     // model's arguments.
     expect(ran.proposal?.fields).toEqual([
-      { name: "trip", value: TRIP },
-      { name: "slug", value: SLUG },
+      { name: "trip", value: TRIP, fixed: true },
+      { name: "slug", value: SLUG, fixed: true },
       { name: "files", value: `${one.entry.id},${two.entry.id}` },
     ]);
     expect(ran.result).toMatchObject({ proposed: true, wrote: false });
@@ -161,8 +161,8 @@ describe("two photographs, ticked and put on a day", () => {
       [`inbox:${one.entry.id}`, `inbox:${two.entry.id}`],
     );
     expect(ran.proposal?.fields).toEqual([
-      { name: "trip", value: TRIP },
-      { name: "slug", value: SLUG },
+      { name: "trip", value: TRIP, fixed: true },
+      { name: "slug", value: SLUG, fixed: true },
       { name: "files", value: `${one.entry.id},${two.entry.id}` },
     ]);
 
@@ -190,7 +190,7 @@ describe("two photographs, ticked and put on a day", () => {
         "2026-05-05",
         [`inbox:${one.entry.id}`],
       );
-      expect(ran.proposal?.fields[0]).toEqual({ name: "trip", value: TRIP });
+      expect(ran.proposal?.fields[0]).toEqual({ name: "trip", value: TRIP, fixed: true });
     });
   }
 
