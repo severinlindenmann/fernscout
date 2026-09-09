@@ -330,7 +330,7 @@ describe("a turn that claims a write it did not make", () => {
 
     const said = String(answered.body.answer);
     expect(said).not.toContain("angelegt");
-    expect(said).toContain("waiting on your screen");
+    expect(said).toContain("waiting to be confirmed");
     // And the button it made is still there — the correction is to the tense,
     // never to the proposal.
     expect((answered.body.blocks as { shape: string }[]).some((one) => one.shape === "form")).toBe(true);

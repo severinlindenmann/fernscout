@@ -1,13 +1,19 @@
 import "server-only";
 import { isEnabled } from "../capabilities";
 import { getUser } from "../users";
+import { currentHelperProvider, recordHelperConsent } from "../helper/consent";
+import type { Say } from "../helper/intents";
+import { answerInThread } from "../helper/model";
+import { recordTurn } from "../helper/sessions";
+import { history, proposed, remember, sessionId } from "../helper/thread";
 import { translateIn } from "../locales";
 import { journalForNumber } from "../registry";
 import { serverSite } from "../site";
 import { isAcknowledgement } from "./acknowledge";
 import { hasAcknowledged, hasBeenGreeted, markAcknowledged, markGreeted } from "./binding";
 import { maskNumber } from "./index";
-import { sendServiceReply } from "./reply";
+import { renderForWhatsapp } from "./render";
+import { sendOutboundReply, sendServiceReply } from "./reply";
 import type { InboundMessage } from "./inbound";
 
 /**
@@ -83,6 +89,12 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
   if (!hasAcknowledged(username, message.from)) {
     if (message.kind === "text" && isAcknowledgement(message.body, locale)) {
       markAcknowledged(username, message.from);
+      // The disclosure this reply is agreeing to *is* the "your words go to
+      // a model" consent the web room's own panel asks for — B684's scope,
+      // agreed to by a different door. Recording it here is what lets an
+      // owner who has never opened `/agent` still pass `hasHelperConsent`
+      // once the model turn below is reached.
+      recordHelperConsent(username, currentHelperProvider("words"), "words");
       await sendServiceReply(message.from, translateIn(locale, "wa.acknowledged"), username);
       console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) acknowledged`);
       return;
@@ -91,9 +103,76 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
     return;
   }
 
-  // An already-bound, already-greeted, already-acknowledged number's
-  // ordinary message. No model turn exists yet to answer it with (B1056) —
-  // logged, not dropped, so a person reading the server's log can see the
-  // channel is alive.
-  console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) — ${message.kind} (${message.id})`);
+  await answerOnWhatsapp(username, locale, message);
+}
+
+/**
+ * The model turn, over WhatsApp — B1056.
+ *
+ * **The same `answerInThread` the web room calls**, with the same thread
+ * (`lib/helper/thread.ts`, durable since B1054) — a person who writes on
+ * WhatsApp and then opens `/agent` finds the same conversation, origin marks
+ * and all. Nothing here is a second implementation of the model turn; only
+ * `lib/whatsapp/render.ts` (the answer's shape) and this function (how a
+ * message becomes a `said` and how the reply goes out) are new.
+ *
+ * **What reaches the model.** `text` is the message body; `interactive` (a
+ * tapped reply button or list row) is its *title*, said back exactly as
+ * though typed — `lib/helper/blocks.ts`'s own rule for `choose`, extended to
+ * `confirm` here (see `lib/whatsapp/render.ts`'s module doc for why a
+ * confirm's accept button never itself writes anything). Every other kind
+ * — image, audio, location, a shared contact — is somebody else's ticket
+ * (B1059, B1060, B1074) and is left exactly as it arrived here: logged, not
+ * answered.
+ */
+async function answerOnWhatsapp(username: string, locale: string, message: InboundMessage): Promise<void> {
+  // The same capability the web room's own routes gate on — an instance
+  // running with no model at all must not try to run one here either.
+  if (!isEnabled("helper", username)) {
+    console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) — helper is not enabled here`);
+    return;
+  }
+
+  const said =
+    message.kind === "text"
+      ? message.body.trim()
+      : message.kind === "interactive"
+        ? message.title.trim()
+        : "";
+  if (said === "") {
+    console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) — ${message.kind} (${message.id}), no model turn for this kind yet`);
+    return;
+  }
+
+  const say: Say = (key, vars) => translateIn(locale, key as Parameters<typeof translateIn>[1], vars);
+  const today = new Date().toISOString().slice(0, 10);
+
+  let thread;
+  try {
+    thread = await answerInThread(username, said, await history(username), today, say, []);
+  } catch (err) {
+    console.error(`[whatsapp:inbound] model turn failed for ${username}:`, err);
+    return;
+  }
+  if (thread.answer === "" && thread.blocks.length === 0) return;
+
+  remember(username, said, thread.answer, "whatsapp");
+  void recordTurn({
+    owner: username,
+    session: await sessionId(username, "whatsapp"),
+    locale,
+    tools: thread.looked,
+    proposed: thread.proposals.map((proposal) => proposal.tool),
+    guard: thread.guard,
+    recovered: thread.recovered,
+    threadTurns: (await history(username)).length,
+    said,
+    answered: thread.answer,
+    origin: "whatsapp",
+  });
+  for (const proposal of thread.proposals) proposed(username, proposal.tool, proposal.arguments);
+
+  const blocks = [...thread.blocks, ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }])];
+  const journalUrl = `${serverSite().url}/agent`;
+  await sendOutboundReply(message.from, renderForWhatsapp(blocks, journalUrl), username);
 }
