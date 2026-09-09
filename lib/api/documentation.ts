@@ -2745,6 +2745,15 @@ A journal that has \`postcards\` and \`contacts\` switched on can put a printed
 card from a day into somebody's letterbox. You compose it; **you never send
 it.**
 
+You do not have to notice the moment yourself. \`GET .../status\` carries a
+\`suggestions\` array when a day published in the last week has a photograph,
+somebody on the contacts list has asked for a real postcard, and nothing has
+already been ordered for that trip recently — each entry names the \`day\`,
+the \`trip\`, a \`reason\` in words and the \`recipients\` it would go to. It is
+absent, not empty, whenever any of that is not true; do not read its absence
+as "postcards are off" and do not propose one on your own initiative when it
+is missing. Mention it, ask, and only then make the call below.
+
 Start by asking who could receive one:
 
 \`\`\`http

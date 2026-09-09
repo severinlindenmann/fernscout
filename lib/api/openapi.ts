@@ -3734,7 +3734,17 @@ export function openApiDocument() {
             "queue: a broken file is a thing you may have just caused and can fix yourself, " +
             "where the drafts are a person's decision. Present for an owner token only — a " +
             "trip-scoped token learns nothing about the rest of the journal, malformed or not " +
-            "— and absent entirely when there is nothing broken.",
+            "— and absent entirely when there is nothing broken.\n\n" +
+            "**`suggestions`** is the moment nobody would otherwise notice — a published, " +
+            "non-`test` day from the last week with a photograph, on a journal where " +
+            "`postcards`, `credits` and `contacts` are all on, at least one contact has " +
+            "asked for a postcard and given an address, and no order has been made for " +
+            "that trip in the last week either. Each entry carries `kind: \"postcard\"`, " +
+            "the `day` and `trip` it is about, a `reason` in words, and the `recipients` " +
+            "it would go to (the same shape as `GET .../postcards/recipients`). Absent — " +
+            "never an empty array — the moment any one of those conditions fails; the " +
+            "same function backs the card on `/{user}/me`, so the two can never disagree. " +
+            "`POST .../postcards` is the call that turns a suggestion into a proposal.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
           ],
