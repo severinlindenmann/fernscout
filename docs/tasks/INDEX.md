@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (166)
+## backlog (168)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1045](backlog/security/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low |
 
-### issue (25)
+### issue (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -77,6 +77,7 @@ Do not edit them by hand; run the script.
 | [B1139](backlog/issue/B1139-a-hold-in-in-development-survives.md) | A hold in in-development survives the session that took it, and nothing says the work already merged | ISSUE | medium | medium |
 | [B1148](backlog/issue/B1148-a-refused-print-credential-is-reported.md) | A refused print credential is reported to the owner as the printer being unreachable, with advice to try again | ISSUE | medium | low |
 | [B1165](backlog/issue/B1165-a-printer-refusal-says-nothing-about.md) | A printer refusal says nothing about why, to anybody who could act on it | ISSUE | medium | low |
+| [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
@@ -186,7 +187,7 @@ Do not edit them by hand; run the script.
 | [B1163](backlog/docs-and-skills/B1163-meta-s-ui-verifies-the-webhook.md) | Meta's UI verifies the webhook and subscribes the messages field but never subscribes the WABA to the app, so real inbound is silently dropped | DOCS | medium | low |
 | [B1046](backlog/docs-and-skills/B1046-two-sessions-running-verify-in-the.md) | Two sessions running verify in the shared checkout collide on the next build lock | DOCS | low | low |
 
-### superseded (63)
+### superseded (64)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -211,6 +212,7 @@ Do not edit them by hand; run the script.
 | [B950](backlog/superseded/B950-is-a-person-s-own-sentence.md) | Is a person's own sentence about the rain theirs to keep | DOCS | high | low |
 | [B06](backlog/superseded/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B1001](backlog/superseded/B1001-the-agent-guide-is-604-bytes.md) | The agent guide is 604 bytes over its own ceiling, so verify fails on main | ISSUE | medium | low |
+| [B1167](backlog/superseded/B1167-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B14](backlog/superseded/B14-postcards-cannot-address-themselves-from-the.md) | Postcards cannot address themselves from the contacts that hold the addresses | FEATURE | medium | medium |
 | [B260](backlog/superseded/B260-the-mcp-resource-advertises-no-authorization.md) | The MCP resource advertises no authorization server, so a connector cannot get a token by itself | FEATURE | medium | high |
 | [B275](backlog/superseded/B275-a-day-cannot-be-held-back.md) | A day cannot be held back from a public trip, so one private afternoon makes the whole trip guests-only | FEATURE | medium | high |
