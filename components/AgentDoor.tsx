@@ -1,49 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import AgentHandover from "@/components/AgentHandover";
-import AgentRow from "@/components/AgentRow";
-import HelperAsk from "@/components/HelperAsk";
 import { AgentBlock } from "@/components/LandingSections";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import SignupWizard from "@/components/SignupWizard";
 import { useI18n } from "@/components/LocaleProvider";
 import Why from "@/components/Why";
-import type { WizardDraft } from "@/lib/helper/draft";
-
-export type AgentJournal = {
-  username: string;
-  title: string;
-  /** Everything unfinished in this journal, newest first — B682's resume card.
-   * Empty for a journal with nothing waiting, which is the ordinary case. */
-  drafts: WizardDraft[];
-  /** Whether the `helper` capability is on for this journal — B685. Off, the
-   * ask box is absent and the buttons below it are the whole interface. */
-  helper: boolean;
-  /** Whether this journal has already agreed to a model being spoken to. */
-  consented: boolean;
-  /** Whether the `transcription` capability is on, and whether the journal has
-   * agreed to its owner's voice being sent — B686. Both separate from the two
-   * above: speech is a second provider and its own switch. */
-  speech: boolean;
-  consentedSpeech: boolean;
-  /** Who a recording actually goes to — `speechProvider()`, read on the
-   *  server — so the consent panel names the real backend rather than
-   *  assuming Deepgram (B744). */
-  speechProvider: string;
-  /** What this journal has left, or `null` where credits are switched off —
-   * `balanceOf()`. Read here only so the card can say when it is nearly gone
-   * (B767); the number itself lives on the account page, and no button on
-   * this screen carries a price. */
-  credits: number | null;
-};
-
-/** Below this, and only below this, the balance is worth a line on the door.
- * A day costs nothing to write; what runs out is the model and the
- * microphone, and five is about two of those. */
-const LOW_CREDITS = 5;
 
 /**
  * The door at `/agent`, signed out and signed in — B681.
@@ -55,18 +18,12 @@ const LOW_CREDITS = 5;
  * cannot know a journal yet either and so falls back to the generic
  * `AgentBlock` — the base URL and the guide, nothing personal.
  *
- * **Signed in**, each owned journal gets its own card: a heading naming it,
- * one bright button into the wizard B682 built at `/agent/<user>` — the only
- * bright thing on the card, and the whole of B767's answer to a screen that
- * asked for four decisions before anybody had done anything — then the ask
- * box, quietly, then whatever else is unfinished, and — this is the same
- * panel, now that a journal is known —
- * `AgentHandover`
- * in place of the generic block, because `AgentHandover` already builds
- * exactly what the ticket asks for: a starter prompt from the journal, the
- * site's base URL and a minted handover credential. There is deliberately no
- * second, separate "bring your own agent" panel once a journal is known; one
- * panel that gets more specific as more is known is the point.
+ * **Signed in**, a reader who already owns a journal goes straight into
+ * `SignupWizard`'s onboarding flow toward `/agent/<user>` — the same wizard a
+ * signed-*out* visitor sees below `IdentitySignIn` — or, with `signup` off,
+ * a plain sentence. B984 deleted the per-journal card this page used to draw
+ * here (a heading, a resume button, the ask box and `AgentHandover`); nothing
+ * on this page is specific to a journal any more.
  *
  * A signed-in reader who owns no journal gets `SignupWizard` in place of the
  * plain sentence, where `signup` is on — B688: email and code (skipped where
@@ -78,7 +35,6 @@ const LOW_CREDITS = 5;
  * places fall back to a plain sentence rather than a form that cannot work.
  */
 export default function AgentDoor({
-  siteUrl,
   docUrl,
   agentUrl,
   codeMinutes,
@@ -86,8 +42,6 @@ export default function AgentDoor({
   identityEmail,
   signupEnabled,
 }: {
-  /** This instance's public base URL, from server config. */
-  siteUrl: string;
   docUrl: string;
   agentUrl: string;
   /** How long a sign-in code lasts, from `CODE_TTL_MINUTES` — passed rather
@@ -102,7 +56,7 @@ export default function AgentDoor({
    * than broken: no form, a plain sentence instead. */
   signupEnabled: boolean;
 }) {
-  const { t, tn, locale, formatLongDate } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
 
   /** B786 — which of the two forms this visitor is here for. `null` until they
@@ -215,13 +169,9 @@ export default function AgentDoor({
           ))}
 
 
-        {/* B751: kept here, and only here on this page. Signed out, this is
-            the second door and belongs. Signed in with journals, each
-            journal's own `AgentHandover` above already does this job with a
-            real key — this generic panel does not render alongside it. Signed
-            in with no journal, there is no `AgentHandover` to duplicate (it
-            needs a journal), so the generic panel is the only offer there
-            is. */}
+        {/* B751: kept here, and only here on this page — the sole bring-your-
+            own-agent offer since B984 removed the per-journal card that used
+            to draw its own `AgentHandover` above. */}
         {/* B804 — the panel is right and stays; what was wrong is that it sat
             here unexplained, so a 71-year-old who has never heard the word
             "Agent" in this sense read a block of English as her next
