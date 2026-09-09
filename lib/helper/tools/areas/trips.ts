@@ -173,7 +173,10 @@ export const TRIPS_TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "form",
     describe:
-      "Propose a new title or new dates for a trip that already exists. Nothing changes until they press.",
+      // The boundary is B1196's: "that was the 3rd, not the 2nd" about one
+      // day once produced a proposal shifting the whole trip's start —
+      // which, pressed by mistake, silently cuts days out of the range.
+      "Propose a new title or new dates for a trip that already exists. Nothing changes until they press. Never for correcting one day's date — that is the day's own date, not the trip's range.",
     properties: {
       ...TRIP_ARG,
       title: { type: "string", description: "The trip's new title, if it changed." },

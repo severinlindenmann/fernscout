@@ -171,6 +171,29 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
    */
   const refused = refusalFor(said);
   if (refused) {
+    /**
+     * Recorded, though never remembered — B1195. The gate keeps removal
+     * language out of the model thread (B817, unchanged), but the person
+     * SAW this exchange: their sentence, and the refusal they were
+     * answered with. A stored conversation that silently omits it lies by
+     * omission on reopening — a persona sent seven messages and the
+     * history counted six. The words are their own history
+     * (lib/helper/sessions.ts); what the model re-reads is a separate
+     * decision that stands.
+     */
+    void recordTurn({
+      owner: user,
+      session: await sessionId(user),
+      locale,
+      tools: [],
+      proposed: [],
+      guard: `refusal:${refused.name}`,
+      recovered: false,
+      threadTurns: (await history(user)).length,
+      said,
+      answered: say(refused.key),
+      origin: "web",
+    });
     return Response.json({
       ok: true,
       intent: `refuse_${refused.name}`,

@@ -223,11 +223,23 @@ export default function HelperRoom({
   /** The preview column's width, 380–440px, dragged from its own edge and
    *  kept across visits — B1121. Read once, lazily, so a server render and a
    *  browser with nothing stored both land on the same default. */
-  const [previewWidth, setPreviewWidth] = useState(() => {
-    if (typeof window === "undefined") return PREVIEW_MIN;
+  const [previewWidth, setPreviewWidth] = useState(PREVIEW_MIN);
+  /**
+   * The stored width is applied after mount, never in the initializer —
+   * B1197. The server renders the default, and at hydration the
+   * server-rendered inline style wins over a client initializer's value,
+   * so a width read there was stored faithfully and never applied: a
+   * reload always snapped back to 380px, found by a persona who had just
+   * resized it. The same storage-in-initializer trap the photobook
+   * composer hit (B603).
+   */
+  useEffect(() => {
     const stored = Number(window.localStorage.getItem(PREVIEW_WIDTH_KEY));
-    return stored >= PREVIEW_MIN && stored <= PREVIEW_MAX ? stored : PREVIEW_MIN;
-  });
+    // The same disable CurrencyProvider carries for the same shape: there is
+    // no event to wait for — the stored value exists only after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (stored >= PREVIEW_MIN && stored <= PREVIEW_MAX) setPreviewWidth(stored);
+  }, []);
   /**
    * The divider's own drag, tracked through pointer capture rather than a
    * pair of `window` listeners — the same shape `PostcardCropper.tsx` already
