@@ -295,6 +295,14 @@ export const FRONTMATTER_TO_API: { key: string; api: string; note: string }[] = 
   { key: "title", api: "title", note: "Straight across. It becomes the slug." },
   { key: "date", api: "date", note: "Straight across, as `2026-08-26`." },
   { key: "time", api: "time", note: "`16:45`. Orders several days that share a date." },
+  {
+    key: "timezone",
+    api: "timezone",
+    note:
+      "The IANA name `time` is local to — `\"Asia/Bangkok\"`. Send it when the file has one; " +
+      "absent falls back to the journal's own zone for the feed and the on-page dual clock, " +
+      "rather than a guess from `lat`/`lng`.",
+  },
   { key: "location", api: "location", note: "The place's name, as written." },
   { key: "country", api: "country", note: "As written." },
   {

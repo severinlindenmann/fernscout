@@ -77,6 +77,10 @@ export type DraftInput = {
   title: string;
   date: string;
   time?: string;
+  /** The IANA name `time` is local to — B42. Validated by
+   * `lib/validate/entry.ts`'s `checkTimezone`; absent means the feed and the
+   * dual clock fall back to the journal's own zone rather than guessing. */
+  timezone?: string;
   location?: string;
   country?: string;
   /**
@@ -575,6 +579,7 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
     `title: ${quote(input.title)}`,
     `date: ${quote(input.date)}`,
     ...(input.time ? [`time: ${quote(input.time)}`] : []),
+    ...(input.timezone ? [`timezone: ${quote(input.timezone)}`] : []),
     ...(input.location ? [`location: ${quote(input.location)}`] : []),
     ...(input.country ? [`country: ${quote(input.country)}`] : []),
     ...(input.countryCode
@@ -958,6 +963,7 @@ export const EDITABLE_DAY_FIELDS = [
   "title",
   "date",
   "time",
+  "timezone",
   "location",
   "country",
   "countryCode",
@@ -1235,6 +1241,8 @@ export function spliceEntryFields(
   if (input.date !== undefined) set("date", `date: ${quote(input.date)}`);
   if (input.time !== undefined)
     set("time", input.time ? `time: ${quote(input.time)}` : null);
+  if (input.timezone !== undefined)
+    set("timezone", input.timezone ? `timezone: ${quote(input.timezone)}` : null);
   if (input.location !== undefined)
     set(
       "location",
@@ -1939,6 +1947,7 @@ export function entrySummary(entry: Entry, trip: Trip | undefined) {
     title: entry.title,
     date: entry.date,
     time: entry.time,
+    ...(entry.timezone ? { timezone: entry.timezone } : {}),
     location: entry.location,
     country: entry.country,
     ...(entry.countryCode ? { countryCode: entry.countryCode } : {}),

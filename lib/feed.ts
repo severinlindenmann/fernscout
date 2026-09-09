@@ -1,8 +1,10 @@
 import "server-only";
 import { isIndexable } from "./access";
+import { journalTimezone } from "./digest/quiet";
 import { getAllEntries } from "./entries";
 import { stripMarkdown } from "./markdownText";
 import { serverSite } from "./site";
+import { zonedTimeToUtc } from "./timezone";
 import { getCurrentTrip, getTrips } from "./trips";
 import { getUser } from "./users";
 import type { Entry, Trip } from "./types";
@@ -45,10 +47,20 @@ function snippetOf(entry: Entry): string {
   return `${text.slice(0, SNIPPET_LENGTH).trimEnd()}…`;
 }
 
-/** RFC 822, as RSS `pubDate` requires. */
-function rfc822(date: string, time?: string): string {
-  const iso = time ? `${date}T${time}:00Z` : `${date}T00:00:00Z`;
-  return new Date(iso).toUTCString();
+/**
+ * RFC 822, as RSS `pubDate` requires.
+ *
+ * `time`, when an entry carries one, is the wall clock where the day
+ * happened — never UTC (B42). `${date}T${time}:00Z` used to say the opposite:
+ * it stamped a Bangkok morning as that same clock reading in UTC, seven hours
+ * early, and every feed reader sorted and displayed it that way. The zone to
+ * read it against is the entry's own `timezone` where it has one, and the
+ * journal's/instance's otherwise — never a guess, the same fallback
+ * `lib/digest/quiet.ts` uses for the day letter.
+ */
+function rfc822(date: string, time: string | undefined, zone: string): string {
+  if (!time) return new Date(`${date}T00:00:00Z`).toUTCString();
+  return zonedTimeToUtc(date, time, zone).toUTCString();
 }
 
 type FeedItem = { entry: Entry; trip: Trip; url: string };
@@ -113,7 +125,7 @@ export function buildFeedXml(username: string): string | null {
         `      <title>${escapeXml(title)}</title>`,
         `      <link>${escapeXml(url)}</link>`,
         `      <guid isPermaLink="true">${escapeXml(url)}</guid>`,
-        `      <pubDate>${rfc822(entry.date, entry.time)}</pubDate>`,
+        `      <pubDate>${rfc822(entry.date, entry.time, entry.timezone ?? journalTimezone())}</pubDate>`,
         `      <description>${escapeXml(snippetOf(entry))}</description>`,
         `      <content:encoded><![CDATA[${safeCdata(entry.content)}]]></content:encoded>`,
         categoriesXml,

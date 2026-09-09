@@ -1150,6 +1150,8 @@
   "story.tripEnd": "Das war die ganze Reise.",
   "test.body": "Nichts davon ist passiert. Dieser Tag wurde geschrieben, um zu prüfen, ob die Software funktioniert — nimm nichts davon als Aufzeichnung: weder den Ort noch das Datum noch die Fotos.",
   "test.title": "Testinhalt — das ist kein echter Tag",
+  "time.local": "Ortszeit",
+  "time.yourTime": "{time} bei dir",
   "trips.allTrips": "Alle Reisen",
   "trips.daysAway": "Tage entfernt",
   "trips.emptyOwnerBody": "Dieses Tagebuch ist noch leer. Reisen legst du hier nicht selbst an — es gibt kein Formular und wird keins geben. Drücke den Knopf unten für einen Text, den du einem Agenten gibst, und er richtet die erste Reise ein.",

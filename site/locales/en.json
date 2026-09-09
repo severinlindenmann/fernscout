@@ -1150,6 +1150,8 @@
   "story.tripEnd": "That's the whole trip.",
   "test.body": "Nothing here happened. This day was written to check that the software works, so treat none of it as a record — not the place, not the date, not the photographs.",
   "test.title": "Test content — this is not a real day",
+  "time.local": "local",
+  "time.yourTime": "{time} your time",
   "trips.allTrips": "All trips",
   "trips.daysAway": "days away",
   "trips.emptyOwnerBody": "This journal is empty. You do not start a trip here — there is no form, and there never will be. Press the button below for a prompt to hand an agent, and it will set the first one up.",

@@ -345,6 +345,14 @@ export function openApiDocument() {
               pattern: "^\\d{2}:\\d{2}$",
               description: "24-hour, local to where the day happened. Orders several days that share a date.",
             },
+            timezone: {
+              type: "string",
+              description:
+                "The IANA name `time` is local to — `\"Asia/Bangkok\"`, never a numeric offset. " +
+                "Absent falls back to the journal's own zone when `time` is read — the RSS " +
+                "`pubDate` and the on-page dual clock both need one, and neither guesses it " +
+                "from `lat`/`lng`. A name `Intl` does not recognise is refused.",
+            },
             location: { type: "string", description: "Where this was, as a person would say it — a town, a place." },
             country: { type: "string", description: "The country's name, not its code." },
             countryCode: {
@@ -506,6 +514,10 @@ export function openApiDocument() {
             title: { type: "string" },
             date: { type: "string", format: "date", description: "2026-08-26" },
             time: { type: "string", pattern: "^\\d{2}:\\d{2}$" },
+            timezone: {
+              type: "string",
+              description: "Same meaning as on creation — the IANA name `time` is local to.",
+            },
             location: { type: "string" },
             country: { type: "string", description: "The country's name, not its code." },
             countryCode: {

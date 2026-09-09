@@ -26,7 +26,12 @@
 /** Where the journal lives, when nothing better is known. */
 const DEFAULT_TIMEZONE = "Europe/Zurich";
 
-function isUsableZone(timezone: string): boolean {
+/**
+ * Exported since B42: the same "is this a real IANA name" check an entry's
+ * own `timezone` field is validated with (`lib/validate/entry.ts`), rather
+ * than a second copy of the same `try/catch Intl.DateTimeFormat`.
+ */
+export function isUsableZone(timezone: string): boolean {
   try {
     new Intl.DateTimeFormat("en-GB", { timeZone: timezone });
     return true;

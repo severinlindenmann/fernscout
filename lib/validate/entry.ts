@@ -10,6 +10,7 @@
 // mistake needs the whole list in one round trip; a single "something is
 // wrong" forces it to guess, fix, resubmit, and find the next one.
 import { COST_CATEGORIES, type CostCategory } from "../costFormat";
+import { isUsableZone } from "../digest/quiet";
 import { UNKNOWN } from "../tracks";
 import { RESERVED_SOURCES, hasMeasurement } from "../weather";
 import { captionProblem } from "./media";
@@ -100,6 +101,8 @@ export type EntryInput = {
   title?: unknown;
   date?: unknown;
   time?: unknown;
+  /** The IANA name `time` is local to — B42. See `checkTimezone`. */
+  timezone?: unknown;
   lat?: unknown;
   lng?: unknown;
   transportMode?: unknown;
@@ -210,6 +213,19 @@ function checkTime(input: EntryInput, problems: Problem[]): void {
   if (input.time === undefined) return;
   if (typeof input.time !== "string" || !TIME_PATTERN.test(input.time)) {
     problems.push({ field: "time", got: describe(input.time), expected: "HH:mm, 00:00 to 23:59" });
+  }
+}
+
+/** An IANA name, checked the same way `lib/digest/quiet.ts` checks the
+ * instance's own zone — `Intl` accepting it, never a hand-kept list. */
+function checkTimezone(input: EntryInput, problems: Problem[]): void {
+  if (input.timezone === undefined) return;
+  if (typeof input.timezone !== "string" || !isUsableZone(input.timezone)) {
+    problems.push({
+      field: "timezone",
+      got: describe(input.timezone),
+      expected: 'an IANA zone name, e.g. "Asia/Bangkok" — not an offset',
+    });
   }
 }
 
@@ -780,6 +796,7 @@ export function validateEntry(
   checkTitle(input, problems);
   checkDate(input, problems);
   checkTime(input, problems);
+  checkTimezone(input, problems);
   checkCountryCode(input, problems);
   checkPlaceWords(input, problems);
   checkCoordinates(input, problems);
@@ -839,6 +856,7 @@ export function validateEntryEdit(
   checkTitle(input, problems);
   checkDate(input, problems, false);
   checkTime(input, problems);
+  checkTimezone(input, problems);
   checkCountryCode(input, problems);
   checkPlaceWords(input, problems);
   checkCoordinates(input, problems);

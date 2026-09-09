@@ -203,6 +203,14 @@ export function contentModel(): ContentModelDocument {
         type: "string",
         pattern: { pattern: "^([01]\\d|2[0-3]):[0-5]\\d$", expected: "24-hour, like 18:40" },
       },
+      // B42. The IANA name `time` is a wall clock in. No pattern: the list
+      // of real zone names is the tz database's and changes with it, so the
+      // server asks `Intl` whether it knows the name (isUsableZone in
+      // lib/digest/quiet.ts) rather than keeping a copy that goes stale.
+      timezone: {
+        type: "string",
+        because: "what 09:15 means — an IANA name like Asia/Bangkok, never an offset",
+      },
       location: { type: "string" },
       country: { type: "string" },
       // B615: model.mjs's pattern was capitals-only. The server's own check
