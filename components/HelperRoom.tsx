@@ -2,6 +2,14 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
+import {
+  History,
+  PanelLeftClose,
+  PanelRightClose,
+  Paperclip,
+  Plus,
+} from "lucide-react";
+import BackLink from "@/components/BackLink";
 import CurrencyProvider from "@/components/CurrencyProvider";
 import HelperAsk from "@/components/HelperAsk";
 import { useI18n } from "@/components/LocaleProvider";
@@ -13,6 +21,27 @@ import type { Opening as RoomOpeningState } from "@/lib/helper/opening";
 import type { RoomFile, RoomFiles } from "@/lib/helper/server";
 import type { CurrencyOptions } from "@/lib/rates";
 import type { Day, DaySummary } from "@/lib/types";
+
+/** Where the resizable preview column's width is remembered — B1121. Read
+ *  once, on mount, and written back on every drag release. */
+const PREVIEW_WIDTH_KEY = "fs.agent.previewWidth";
+const PREVIEW_MIN = 380;
+const PREVIEW_MAX = 440;
+
+/** The phone's bottom sheet has exactly two heights once it has appeared —
+ *  a peek and most of the screen — and a third, hidden, before anything has
+ *  been said at all. B1121. */
+const SHEET_PEEK_PX = 112;
+const SHEET_EXPANDED_VH = 0.78;
+
+/** Module-level rather than a closure inside `PreviewSheet` — a pointer
+ *  handler added to `window` at the start of a drag has to keep calling the
+ *  same function for the whole gesture, and a plain function defined in the
+ *  component body would be a new one on every render. */
+function sheetPxFor(state: "peek" | "expanded"): number {
+  if (state === "peek") return SHEET_PEEK_PX;
+  return (typeof window === "undefined" ? 800 : window.innerHeight) * SHEET_EXPANDED_VH;
+}
 
 /**
  * The room — B901 and B902, round 4 and round 5 of
@@ -32,24 +61,37 @@ import type { Day, DaySummary } from "@/lib/types";
  * ```
  *
  * **390px is the design width and the three columns are the wide case.** On a
- * phone the conversation is the whole screen and the other two are modal
- * `<dialog>`s over it — files up from the bottom, the preview full screen —
- * so nothing is ever half a screen wide. `showModal()` is what makes those two
- * reachable rather than merely present: the platform's own modal moves focus
- * in, makes the rest of the page inert, closes on Escape and puts focus back
- * on the button that opened it, and every one of those is checklist D asking
- * for something a hand-rolled overlay would have to earn again.
+ * phone the conversation is the whole screen and the other two are summoned
+ * rather than laid out beside it: files as a modal `<dialog>` up from the
+ * bottom (`FilesPane`, unchanged since B902), the preview as its own bottom
+ * sheet (`PreviewSheet`, B1121) rather than a full-screen dialog — so nothing
+ * is ever half a screen wide, and the preview can *peek* at 112px, which a
+ * dialog cannot. `showModal()` is what makes the files dialog reachable
+ * rather than merely present: the platform's own modal moves focus in, makes
+ * the rest of the page inert, closes on Escape and puts focus back on the
+ * button that opened it — checklist D asking for something a hand-rolled
+ * overlay would have to earn again. The preview sheet is not a `<dialog>`; it
+ * does not take over the page, on purpose, since it can be up at the same
+ * time as the conversation is being typed into.
  *
- * **Since B1016 nothing above the conversation opens either dialog.** A
- * header row with two pills was chrome for things that are local: a preview
- * is about the one day a turn just named, so `HelperAsk` draws a small card
- * inside that turn (`DayChip`) and its press is what opens the full-screen
- * sheet now — `onPreview`, below. Files are picked up beside the field that
- * is about to mention them, so they are a slim strip above the composer
- * (`FilesStrip`) rather than a button above the whole screen; a tap still
- * opens the same `<dialog>` `FilesPane` always has. The dialogs and their
- * focus behaviour are unchanged — only what opens them moved into the
- * conversation.
+ * **On a laptop the same two panes are rails now, not a hide/show pair of
+ * sentence buttons in the header — B1121.** Both collapse to about 40px at
+ * their own edge (`FilesRail`, `PreviewColumn`) rather than vanishing
+ * outright, so the way back is always in the same place. The preview also
+ * grew, from a fixed 320px to 380–440px, and takes a drag handle on its own
+ * left edge; its width is kept in `localStorage` across visits. The top
+ * bar's right side is down to exactly two icons — a clock opening a history
+ * panel (B1121 builds the shell; B1109 owns its contents) and one accent
+ * button starting a new conversation.
+ *
+ * **Since B1016 nothing above the conversation opens either pane.** A header
+ * row with two pills was chrome for things that are local: a preview is
+ * about the one day a turn just named, so `HelperAsk` draws a small card
+ * inside that turn (`DayChip`) and its press is what opens the preview now —
+ * `onPreview`, below. Files are picked up beside the field that is about to
+ * mention them, so they are a slim strip above the composer (`FilesStrip`)
+ * rather than a button above the whole screen; a tap still opens the same
+ * `<dialog>` `FilesPane` always has.
  *
  * **Both panes are additions and neither is a requirement.** With the files
  * pane hidden and the preview empty this is exactly the conversation B899 and
@@ -173,28 +215,90 @@ export default function HelperRoom({
       ? { trip: subject.trip, slug: subject.slug, src: preview.day.lead.gallery[0]?.src ?? null }
       : null;
 
-  // Desktop only: a column a person has put away. The conversation never
-  // moves, which is the point of putting either away.
+  // Desktop only: two rails a person can collapse. The conversation never
+  // moves, which is the point of collapsing either.
   /**
-   * The files column opens **only when there is something in it** — B947.
+   * The files rail collapses to about 40px **when there is nothing in it** —
+   * B947, carried over from the old show/hide toggle into the new rail —
+   * A designer on a laptop: it held 256px of muted placeholder on a journal
+   * with an empty inbox, never changed shape, and took that width from the
+   * conversation, which is the pane that matters. Her own cut, asked which
+   * one thing she would remove.
    *
-   * A designer on a laptop: it holds 256px of muted placeholder on a journal
-   * with an empty inbox, never changes shape, and takes that width from the
-   * conversation, which is the pane that matters. Her own cut, asked which one
-   * thing she would remove.
-   *
-   * Not hidden — the toggle is in the header either way, and one press brings
-   * it back. What changes is which state a person with nothing to attach
-   * starts in.
+   * Not hidden any more — B1121 makes the rail a permanent 40px strip with a
+   * count badge, so there is always a way back to it without a header
+   * button. What changes is which width a person with nothing to attach
+   * starts at.
    */
-  const [showFiles, setShowFiles] = useState(
-    files.inbox.length > 0 || files.trip.length > 0,
+  const [filesCollapsed, setFilesCollapsed] = useState(
+    !(files.inbox.length > 0 || files.trip.length > 0),
   );
-  const [showPreview, setShowPreview] = useState(true);
+  const [previewCollapsed, setPreviewCollapsed] = useState(false);
+  /** The preview column's width, 380–440px, dragged from its own edge and
+   *  kept across visits — B1121. Read once, lazily, so a server render and a
+   *  browser with nothing stored both land on the same default. */
+  const [previewWidth, setPreviewWidth] = useState(() => {
+    if (typeof window === "undefined") return PREVIEW_MIN;
+    const stored = Number(window.localStorage.getItem(PREVIEW_WIDTH_KEY));
+    return stored >= PREVIEW_MIN && stored <= PREVIEW_MAX ? stored : PREVIEW_MIN;
+  });
+  /**
+   * The divider's own drag, tracked through pointer capture rather than a
+   * pair of `window` listeners — the same shape `PostcardCropper.tsx` already
+   * uses. `setPointerCapture` keeps delivering `pointermove`/`pointerup` to
+   * the divider even once the pointer has left it, so nothing has to be added
+   * to or removed from `window` at all — and with it goes the whole class of
+   * bug where a handler added at drag-start closes over a `previewWidth`
+   * that is already stale by the time the pointer lifts.
+   */
+  const resizeStart = useRef<{ startX: number; startWidth: number } | null>(null);
+  function onResizeDown(event: React.PointerEvent) {
+    resizeStart.current = { startX: event.clientX, startWidth: previewWidth };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+  function onResizeMove(event: React.PointerEvent) {
+    const drag = resizeStart.current;
+    if (!drag) return;
+    // The column sits to the right of the divider, so dragging left (a
+    // shrinking `clientX`) is what grows it.
+    const delta = drag.startX - event.clientX;
+    setPreviewWidth(Math.min(PREVIEW_MAX, Math.max(PREVIEW_MIN, drag.startWidth + delta)));
+  }
+  function onResizeUp() {
+    if (!resizeStart.current) return;
+    resizeStart.current = null;
+    window.localStorage.setItem(PREVIEW_WIDTH_KEY, String(previewWidth));
+  }
 
-  // Phone only: the two things that slide over the conversation.
-  const [sheet, setSheet] = useState(false);
-  const [full, setFull] = useState(false);
+  // The one panel that opens over the conversation at any width — B1121.
+  // Its contents are B1109's; this ticket builds the button and an empty
+  // shell that says so.
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  // Phone only: the files dialog, and the preview's own bottom sheet.
+  const [filesSheetOpen, setFilesSheetOpen] = useState(false);
+  /**
+   * The preview sheet's height, as a state rather than a boolean — B1121.
+   * `"hidden"` before the conversation has ever named a day; `"peek"` the
+   * moment it does, by itself, with no press required; `"expanded"` from a
+   * deliberate press on the peek or a drag past its own handle. Going back to
+   * `"hidden"` is not a thing a person does here — a day once named stays
+   * worth a peek, which is why only two presence states exist once one has
+   * been shown.
+   *
+   * Adjusted **during render**, not in an effect: this is React's own
+   * documented shape for "reset or adjust state when a prop changes" (an
+   * extra render rather than a `useEffect` round trip, and no risk of firing
+   * one render behind `subject`), tracked against `peekedAt` — the last
+   * `subject.at` this already reacted to, so a re-render for an unrelated
+   * reason does not peek the sheet a second time.
+   */
+  const [sheetHeight, setSheetHeight] = useState<"hidden" | "peek" | "expanded">("hidden");
+  const [peekedAt, setPeekedAt] = useState<number | null>(null);
+  if (subject && subject.at !== peekedAt) {
+    setPeekedAt(subject.at);
+    if (sheetHeight === "hidden") setSheetHeight("peek");
+  }
 
   /**
    * The day, re-read whenever the conversation names one.
@@ -249,17 +353,47 @@ export default function HelperRoom({
       files={{ ...files, inbox }}
       selected={selected}
       collapsed={fieldFocused}
-      onOpen={() => setSheet(true)}
+      onOpen={() => setFilesSheetOpen(true)}
     />
   );
 
+  /**
+   * `forget()` and a full navigation — B1121. This is not the "Start over"
+   * link inside `HelperAsk` (that one stays; it is what a lapsed session's own
+   * panel offers) but the same server call the top bar now makes reachable
+   * without scrolling into the composer to find it. A full reload rather than
+   * clearing local state by hand is deliberate: `HelperAsk` holds the visible
+   * turns and the field, neither of which this file may reach into, so the
+   * one honest way to make both start clean is the same round trip the
+   * journal switcher above already takes.
+   */
+  async function newConversation() {
+    await fetch(`/api/helper/${encodeURIComponent(username)}/ask`, { method: "DELETE" }).catch(
+      () => {
+        // A failed forget is not worth blocking on: the worst case is a
+        // thread that outlives its clean start, not a start that fails.
+      },
+    );
+    window.location.href = "/agent";
+  }
+
   return (
-    // The room is the viewport, less the one thin frame `app/agent/layout.tsx`
-    // puts over every page here (a back link, 3.5rem). Subtracting it is what
-    // keeps the field at the bottom of the screen rather than below the fold
-    // on a phone — the one thing a conversation must not do.
-    <div className="flex h-[calc(100dvh-3.5rem)] flex-col bg-cream-100">
-      <header className="flex flex-wrap items-center gap-3 border-b border-navy-200 bg-cream-50 px-4 py-2">
+    // The room is the whole viewport now — B1121 moved the one back link
+    // `app/agent/layout.tsx` used to draw above every page here into this
+    // header's own left edge, so there is no second frame to subtract.
+    <div className="flex h-dvh flex-col bg-cream-100">
+      <header className="flex items-center gap-2 border-b border-navy-200 bg-cream-50 px-2 py-2">
+        {/* "Zurück" moves here — a chevron before the journal name rather
+            than its own bar above the whole page — B1121. */}
+        <BackLink
+          fallbackHref="/"
+          fallbackLabel={t("nav.back")}
+          retraceLabel={t("nav.back")}
+          showLabel={false}
+          iconClassName="h-5 w-5"
+          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-cream-100 hover:text-navy-900"
+        />
+
         {/*
           The journal, and a way to change it only when there is one to change
           to — B984. A switcher on a person with one journal is a control that
@@ -302,49 +436,45 @@ export default function HelperRoom({
         )}
 
         {/*
-          Both mobile pills that used to live here are gone — B1016. They were
-          chrome for things that are local: a preview is about the one day a
-          turn just named, so it is a small card inside that turn now
-          (`DayChip` in `HelperAsk`, opened with `onPreview` below); files are
-          picked up beside the field that is about to mention them, so they
-          are the strip above the composer instead (`filesStrip`, handed to
-          `HelperAsk`). Neither needed a place in a row that also has to hold
-          the journal's own name.
+          Everything else that used to live here — two sentence-buttons, then
+          two mobile pills (B1016) — is gone. Files and the preview each carry
+          their own icon at the edge of the panel they open (`FilesRail`,
+          `PreviewColumn`, below); the top right holds exactly two icons now —
+          B1121.
         */}
-
-        {/* The same control, drawn the same way — B947. These were text links
-            at `lg` and pill buttons below it: one function, two treatments,
-            decided by how wide somebody's window happened to be. Kept here
-            because a laptop still has room for a column to put away — B1016
-            only removed the *phone's* pills, which had nowhere to put a
-            column at all. */}
-        <button
-          type="button"
-          onClick={() => setShowFiles((was) => !was)}
-          className="hidden min-h-11 rounded-full border border-navy-300 px-4 text-sm font-semibold text-navy-800 lg:inline-flex lg:items-center"
-        >
-          {showFiles ? t("agent.room.hideFiles") : t("agent.room.showFiles")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowPreview((was) => !was)}
-          className="hidden min-h-11 rounded-full border border-navy-300 px-4 text-sm font-semibold text-navy-800 lg:inline-flex lg:items-center"
-        >
-          {showPreview ? t("agent.room.hidePreview") : t("agent.room.showPreview")}
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setHistoryOpen(true)}
+            aria-label={t("agent.room.history")}
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-cream-100 hover:text-navy-900"
+          >
+            <History className="h-5 w-5" aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={() => void newConversation()}
+            aria-label={t("agent.room.newConversation")}
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full bg-yellow-400 text-navy-900 transition-colors hover:bg-yellow-300"
+          >
+            <Plus className="h-5 w-5" aria-hidden />
+          </button>
+        </div>
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {/* Left. Never drawn below `lg`: half a screen of thumbnails beside a
             conversation is the thing this layout is for not doing. */}
-        {showFiles && (
-          <section
-            aria-label={t("agent.room.files")}
-            className="hidden min-h-0 overflow-y-auto border-r border-navy-200 bg-cream-50 p-3 lg:block lg:w-64 lg:shrink-0"
-          >
-            {filesPane}
-          </section>
-        )}
+        <FilesRail
+          collapsed={filesCollapsed}
+          onToggleCollapsed={() => setFilesCollapsed((was) => !was)}
+          count={files.inbox.length + files.trip.length}
+          filesLabel={t("agent.room.files")}
+          showLabel={t("agent.room.showFiles")}
+          hideLabel={t("agent.room.hideFiles")}
+        >
+          {filesPane}
+        </FilesRail>
 
         {/* Middle, and on a phone the whole of it. */}
         <main className="flex min-h-0 flex-1 flex-col px-4 py-3">
@@ -370,15 +500,16 @@ export default function HelperRoom({
             /**
              * A turn's inline card was pressed — B1016. "Look at it" means
              * something different depending on how much screen there is:
-             * full screen on a phone, where nothing else is up, or scrolling
-             * the column that is already open on a wider one. `matchMedia`
-             * is read defensively — a caller with none (a test) gets the
-             * phone's own behaviour, which is the one this ticket is
-             * actually about. Inline rather than a named function above:
-             * `Date.now()` inside a plain function declaration reads to the
-             * linter as something that might run during render; here it is
-             * unambiguously an event handler, the same shape `onSubject`
-             * below already uses.
+             * on a phone the preview's own bottom sheet rises to about 78%
+             * — B1121, replacing the full-screen dialog it used to open —
+             * or, on a wider one, the column that is already open scrolls
+             * into view. `matchMedia` is read defensively — a caller with
+             * none (a test) gets the phone's own behaviour, which is the one
+             * this ticket is actually about. Inline rather than a named
+             * function above: `Date.now()` inside a plain function
+             * declaration reads to the linter as something that might run
+             * during render; here it is unambiguously an event handler, the
+             * same shape `onSubject` below already uses.
              */
             onPreview={(day) => {
               setSubject({ ...day, at: Date.now() });
@@ -387,10 +518,10 @@ export default function HelperRoom({
                 typeof window.matchMedia === "function" &&
                 window.matchMedia("(min-width: 1024px)").matches;
               if (desktop) {
-                setShowPreview(true);
+                setPreviewCollapsed(false);
                 setScrollTick((n) => n + 1);
               } else {
-                setFull(true);
+                setSheetHeight("expanded");
               }
             }}
             filesStrip={filesStrip}
@@ -418,32 +549,47 @@ export default function HelperRoom({
         </main>
 
         {/* Right. */}
-        {showPreview && (
-          <section
-            ref={previewRef}
-            aria-label={t("agent.room.preview")}
-            className="hidden min-h-0 overflow-y-auto border-l border-navy-200 bg-cream-50 p-3 lg:block lg:w-80 lg:shrink-0"
-          >
-            {previewPane}
-          </section>
-        )}
+        <PreviewColumn
+          innerRef={previewRef}
+          collapsed={previewCollapsed}
+          onToggleCollapsed={() => setPreviewCollapsed((was) => !was)}
+          width={previewWidth}
+          onResizeDown={onResizeDown}
+          onResizeMove={onResizeMove}
+          onResizeUp={onResizeUp}
+          previewLabel={t("agent.room.preview")}
+          showLabel={t("agent.room.showPreview")}
+          hideLabel={t("agent.room.hidePreview")}
+          resizeLabel={t("agent.room.resizePreview")}
+        >
+          {previewPane}
+        </PreviewColumn>
       </div>
 
-      {sheet && (
-        <Sheet label={t("agent.room.files")} close={t("agent.room.closeFiles")} onClose={() => setSheet(false)}>
+      {filesSheetOpen && (
+        <Sheet
+          label={t("agent.room.files")}
+          close={t("agent.room.closeFiles")}
+          onClose={() => setFilesSheetOpen(false)}
+        >
           {filesPane}
         </Sheet>
       )}
 
-      {full && (
-        <Sheet
-          label={t("agent.room.preview")}
-          close={t("agent.room.closePreview")}
-          onClose={() => setFull(false)}
-          tall
-        >
-          {previewPane}
-        </Sheet>
+      {/* Phone only — B1121. Peeks by itself the moment the conversation
+          names a day, and stays up (never back to hidden) once it has. */}
+      <PreviewSheet
+        height={sheetHeight}
+        onChangeHeight={setSheetHeight}
+        preview={preview}
+        reading={reading}
+        currency={currency}
+        peekLabel={t("agent.room.previewPeek")}
+        collapseLabel={t("agent.room.closePreview")}
+      />
+
+      {historyOpen && (
+        <HistoryPanel label={t("agent.room.history")} onClose={() => setHistoryOpen(false)} />
       )}
     </div>
   );
@@ -462,15 +608,11 @@ function Sheet({
   label,
   close,
   onClose,
-  tall = false,
   children,
 }: {
   label: string;
   close: string;
   onClose: () => void;
-  /** Full screen rather than up from the bottom — the preview is a day card
-   *  and a card at 40% of a phone is not a preview of anything. */
-  tall?: boolean;
   children: React.ReactNode;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -490,9 +632,7 @@ function Sheet({
       ref={dialog}
       aria-label={label}
       onClose={onClose}
-      className={`m-0 w-full max-w-none border-0 bg-cream-50 p-0 backdrop:bg-navy-900/40 lg:hidden ${
-        tall ? "fixed inset-0 h-full max-h-none" : "fixed inset-x-0 bottom-0 top-24 max-h-none rounded-t-2xl"
-      } flex flex-col`}
+      className="m-0 flex w-full max-w-none flex-col border-0 bg-cream-50 p-0 backdrop:bg-navy-900/40 fixed inset-x-0 bottom-0 top-24 max-h-none rounded-t-2xl lg:hidden"
     >
       <div className="flex items-center gap-3 border-b border-navy-200 px-4 py-2">
         {/* The handle, and it is the button: a bar somebody can only drag is a
@@ -510,6 +650,331 @@ function Sheet({
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-3">{children}</div>
     </dialog>
+  );
+}
+
+/**
+ * The files, on a laptop, as a rail rather than a hide/show pair of sentence
+ * buttons in the header — B1121.
+ *
+ * Collapsed is now a permanent ~40px strip carrying its own icon and a count
+ * badge, never gone entirely: the toggle used to live in the header either
+ * way, so this only moves it onto the edge of the thing it opens. A laptop
+ * with nothing waiting starts collapsed (`filesCollapsed` in the room, B947's
+ * reasoning carried over); one with something in it starts open.
+ */
+function FilesRail({
+  collapsed,
+  onToggleCollapsed,
+  count,
+  filesLabel,
+  showLabel,
+  hideLabel,
+  children,
+}: {
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+  /** Everything in the rail, waiting or already on the trip — not the
+   *  selection, which has its own live region inside `children`. */
+  count: number;
+  filesLabel: string;
+  showLabel: string;
+  hideLabel: string;
+  children: React.ReactNode;
+}) {
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        onClick={onToggleCollapsed}
+        aria-label={count > 0 ? `${filesLabel} (${count})` : filesLabel}
+        title={showLabel}
+        className="hidden w-10 shrink-0 flex-col items-center gap-1 border-r border-navy-200 bg-cream-50 py-3 lg:flex"
+      >
+        <Paperclip className="h-5 w-5 text-navy-700" aria-hidden />
+        {count > 0 && (
+          <span
+            aria-hidden
+            className="min-w-[18px] rounded-full bg-navy-800 px-1 text-center text-[10px] font-semibold leading-[18px] text-cream-50"
+          >
+            {count}
+          </span>
+        )}
+      </button>
+    );
+  }
+
+  return (
+    <section
+      aria-label={filesLabel}
+      className="hidden min-h-0 w-64 shrink-0 flex-col border-r border-navy-200 bg-cream-50 lg:flex"
+    >
+      <div className="flex shrink-0 justify-end border-b border-navy-200 p-1">
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          aria-label={hideLabel}
+          title={hideLabel}
+          className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-cream-100 hover:text-navy-900"
+        >
+          <PanelLeftClose className="h-5 w-5" aria-hidden />
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">{children}</div>
+    </section>
+  );
+}
+
+/**
+ * The preview, on a laptop — B1121. Grown from a fixed 320px column to
+ * 380–440px, resizable from its own left edge, and collapsible from an icon
+ * at that same edge rather than a sentence button in the header.
+ *
+ * The drag handle is a `role="separator"`, not a `<button>`: a `<div>` taking
+ * pointer capture is what lets the room own the drag (`onResizeDown`/`Move`/
+ * `Up`, tracked in `HelperRoom` itself, since a divider between two columns
+ * is shared state a leaf component should not hold alone) while a keyboard
+ * user still reaches the collapse button beside it, which is the operable
+ * control for anyone who cannot drag.
+ */
+function PreviewColumn({
+  innerRef,
+  collapsed,
+  onToggleCollapsed,
+  width,
+  onResizeDown,
+  onResizeMove,
+  onResizeUp,
+  previewLabel,
+  showLabel,
+  hideLabel,
+  resizeLabel,
+  children,
+}: {
+  innerRef: React.RefObject<HTMLElement | null>;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+  width: number;
+  onResizeDown: (event: React.PointerEvent) => void;
+  onResizeMove: (event: React.PointerEvent) => void;
+  onResizeUp: (event: React.PointerEvent) => void;
+  previewLabel: string;
+  showLabel: string;
+  hideLabel: string;
+  resizeLabel: string;
+  children: React.ReactNode;
+}) {
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        onClick={onToggleCollapsed}
+        aria-label={showLabel}
+        title={showLabel}
+        className="hidden w-10 shrink-0 flex-col items-center border-l border-navy-200 bg-cream-50 py-3 lg:flex"
+      >
+        <PanelRightClose className="h-5 w-5 rotate-180 text-navy-700" aria-hidden />
+      </button>
+    );
+  }
+
+  return (
+    <section
+      ref={innerRef}
+      aria-label={previewLabel}
+      style={{ width: `${width}px` }}
+      className="relative hidden min-h-0 shrink-0 flex-col border-l border-navy-200 bg-cream-50 lg:flex"
+    >
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label={resizeLabel}
+        onPointerDown={onResizeDown}
+        onPointerMove={onResizeMove}
+        onPointerUp={onResizeUp}
+        onPointerCancel={onResizeUp}
+        className="absolute inset-y-0 left-0 z-10 w-2 -translate-x-1/2 cursor-col-resize touch-none"
+      />
+      <div className="flex shrink-0 justify-start border-b border-navy-200 p-1">
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          aria-label={hideLabel}
+          title={hideLabel}
+          className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-cream-100 hover:text-navy-900"
+        >
+          <PanelRightClose className="h-5 w-5" aria-hidden />
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">{children}</div>
+    </section>
+  );
+}
+
+/**
+ * The clock in the top right, and what it opens — B1121, and only the shell.
+ *
+ * A list of past conversations is B1109's own work; this is the button and an
+ * empty panel that says so rather than nothing at all, so the affordance
+ * exists before its contents do. Drawn as the same accessible `<dialog>` as
+ * `Sheet`, but not `lg:hidden` — a history panel is not a phone-only idea,
+ * and a laptop gets exactly the same slide-over the phone does rather than a
+ * second treatment invented for it.
+ */
+function HistoryPanel({ label, onClose }: { label: string; onClose: () => void }) {
+  const { t } = useI18n();
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    dialog.current?.showModal?.();
+  }, []);
+  const dismiss = () => (dialog.current?.close ? dialog.current.close() : onClose());
+
+  return (
+    <dialog
+      ref={dialog}
+      aria-label={label}
+      onClose={onClose}
+      className="fixed inset-0 m-0 flex h-full w-full max-w-none flex-col border-0 bg-cream-50 p-0 backdrop:bg-navy-900/40 sm:inset-y-0 sm:left-auto sm:h-full sm:w-96 sm:max-w-[90vw] sm:rounded-l-2xl"
+    >
+      <div className="flex shrink-0 items-center gap-3 border-b border-navy-200 px-4 py-2">
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-navy-900">{label}</p>
+        <button
+          type="button"
+          onClick={dismiss}
+          className="min-h-11 shrink-0 text-sm font-semibold text-navy-800 underline underline-offset-4"
+        >
+          {t("agent.room.closeHistory")}
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <p className="text-sm leading-6 text-navy-700">{t("agent.room.historyEmpty")}</p>
+      </div>
+    </dialog>
+  );
+}
+
+/**
+ * The preview, on a phone, as a bottom sheet rather than a full-screen dialog
+ * — B1121, replacing the `<dialog tall>` this used to open on a press.
+ *
+ * **It rises by itself.** `HelperRoom` moves `height` from `"hidden"` to
+ * `"peek"` the moment the conversation's subject changes at all — including a
+ * second mention of the same day — which is what makes this the one thing on
+ * the phone layout that appears with no press. Once shown it never goes back
+ * to `"hidden"`: a day once worth mentioning stays worth a peek, and a person
+ * who wants it gone can see the whole page had a conversation which will
+ * mention another day soon enough.
+ *
+ * **The handle both taps and drags.** A tap toggles between the peek and
+ * expanded heights outright — the operable control for anyone who cannot or
+ * would rather not drag — and dragging tracks the pointer live, snapping to
+ * whichever of the two is closer on release. There is deliberately no third,
+ * empty position to drag down to: this is not a fresh way to hide the sheet,
+ * only to shrink it back to a peek.
+ */
+function PreviewSheet({
+  height,
+  onChangeHeight,
+  preview,
+  reading,
+  currency,
+  peekLabel,
+  collapseLabel,
+}: {
+  height: "hidden" | "peek" | "expanded";
+  onChangeHeight: (next: "peek" | "expanded") => void;
+  preview: Preview | null;
+  reading: boolean;
+  currency: CurrencyOptions;
+  peekLabel: string;
+  collapseLabel: string;
+}) {
+  const { t } = useI18n();
+  const [dragPx, setDragPx] = useState<number | null>(null);
+  /** Pointer capture rather than `window` listeners — the same shape the
+   *  preview column's own divider uses, and for the same reason: no handler
+   *  ever has to close over a value that goes stale before release. */
+  const drag = useRef<{ startY: number; startPx: number } | null>(null);
+  function onHandleDown(event: React.PointerEvent) {
+    drag.current = { startY: event.clientY, startPx: sheetPxFor(height === "expanded" ? "expanded" : "peek") };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+  function onHandleMove(event: React.PointerEvent) {
+    if (!drag.current) return;
+    const delta = drag.current.startY - event.clientY;
+    const max = sheetPxFor("expanded");
+    setDragPx(Math.min(max, Math.max(SHEET_PEEK_PX, drag.current.startPx + delta)));
+  }
+  function onHandleUp() {
+    if (!drag.current) return;
+    drag.current = null;
+    const peekPx = SHEET_PEEK_PX;
+    const expandedPx = sheetPxFor("expanded");
+    const at = dragPx ?? peekPx;
+    onChangeHeight(Math.abs(at - expandedPx) < Math.abs(at - peekPx) ? "expanded" : "peek");
+    setDragPx(null);
+  }
+
+  if (height === "hidden") return null;
+
+  const px = dragPx ?? sheetPxFor(height === "expanded" ? "expanded" : "peek");
+  const lead = preview?.day.lead;
+
+  return (
+    <div
+      role="region"
+      aria-label={peekLabel}
+      style={{ height: `${px}px` }}
+      className="fixed inset-x-0 bottom-0 z-20 flex flex-col overflow-hidden rounded-t-2xl border-t border-navy-200 bg-cream-50 shadow-[0_-4px_16px_rgba(0,0,0,0.12)] lg:hidden"
+    >
+      {/* The drag surface. Purely pointer-driven: the peek row below (a real
+          `<button>`) and the expanded state's own collapse button are the
+          keyboard-operable equivalents, so this does not need to be one
+          too. */}
+      <div
+        onPointerDown={onHandleDown}
+        onPointerMove={onHandleMove}
+        onPointerUp={onHandleUp}
+        onPointerCancel={onHandleUp}
+        onClick={() => onChangeHeight(height === "expanded" ? "peek" : "expanded")}
+        className="flex shrink-0 cursor-grab touch-none items-center justify-center gap-2 py-2 active:cursor-grabbing"
+      >
+        <span aria-hidden className="h-1 w-10 rounded-full bg-navy-200" />
+      </div>
+      {height === "peek" && lead && (
+        <button
+          type="button"
+          onClick={() => onChangeHeight("expanded")}
+          className="flex min-h-11 w-full items-center justify-between gap-3 px-4 pb-3 text-left"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-semibold text-navy-900">{lead.title}</span>
+            <span className="block text-xs text-navy-600">{lead.date}</span>
+          </span>
+          {lead.draft && (
+            <span className="shrink-0 rounded-full bg-yellow-400 px-2 py-0.5 text-[11px] font-semibold text-navy-900">
+              {t("draft.badge")}
+            </span>
+          )}
+        </button>
+      )}
+      {height === "expanded" && (
+        <>
+          <div className="flex shrink-0 items-center justify-end px-3 pb-1">
+            <button
+              type="button"
+              onClick={() => onChangeHeight("peek")}
+              className="min-h-11 px-2 text-sm font-semibold text-navy-800 underline underline-offset-4"
+            >
+              {collapseLabel}
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+            <PreviewPane preview={preview} reading={reading} currency={currency} />
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 

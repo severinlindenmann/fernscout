@@ -49,6 +49,7 @@ describe("the door, with signup off", () => {
           signedIn
           identityEmail="reader@example.test"
           signupEnabled={false}
+          siteName="T"
         />,
       ),
     );
@@ -66,6 +67,7 @@ describe("the door, with signup off", () => {
           signedIn={false}
           identityEmail={null}
           signupEnabled={false}
+          siteName="T"
         />,
       ),
     );
@@ -279,6 +281,7 @@ describe("the bring-your-own-agent panel, for somebody who has no agent", () => 
           signedIn={false}
           identityEmail={null}
           signupEnabled
+          siteName="T"
         />
       </LocaleProvider>,
     );

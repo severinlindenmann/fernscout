@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AgentBlock } from "@/components/LandingSections";
+import BackLink from "@/components/BackLink";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import SignupWizard from "@/components/SignupWizard";
 import { useI18n } from "@/components/LocaleProvider";
 import Why from "@/components/Why";
+import { JOURNAL_COOKIE } from "@/lib/requestKeys";
 
 /**
  * The door at `/agent`, signed out and signed in — B681.
@@ -41,6 +43,7 @@ export default function AgentDoor({
   signedIn,
   identityEmail,
   signupEnabled,
+  siteName,
 }: {
   docUrl: string;
   agentUrl: string;
@@ -55,6 +58,10 @@ export default function AgentDoor({
   /** Whether `signup` is on for this instance — B688. Off is absent rather
    * than broken: no form, a plain sentence instead. */
   signupEnabled: boolean;
+  /** For the back link's own label — B1121. `app/agent/layout.tsx` used to
+   *  draw this above every page under `/agent`; it draws nothing now, so the
+   *  door carries its own. */
+  siteName: string;
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -65,18 +72,41 @@ export default function AgentDoor({
    * has no journal so. */
   const [has, setHas] = useState<boolean | null>(null);
 
-  /** Where a brand-new owner lands, the moment they are signed in with a
+  /**
+   * Where a brand-new owner lands, the moment they are signed in with a
    * trip already made — B688's whole point: the wizard for the first day,
-   * never a second stop to explain what a username was. */
+   * never a second stop to explain what a username was.
+   *
+   * `/agent` rather than `/agent/<username>` since B1102: signing in used to
+   * push straight past the room B984 made the whole of `/agent`, into the
+   * wizard behind it. The journal cookie is what `/agent` reads to know whose
+   * conversation this is, the same cookie the room's own switcher already
+   * writes — set here for the same reason: a signup that just made a second
+   * journal must not have `/agent` fall back to the first one it finds.
+   */
   function intoTheWizard(username: string) {
-    router.push(`/agent/${encodeURIComponent(username)}`);
+    document.cookie = `${JOURNAL_COOKIE}=${encodeURIComponent(username)};path=/;max-age=31536000;samesite=lax`;
+    router.push("/agent");
   }
 
   return (
     // Full-bleed paper ground — B733, the same two-step as `/`: `cream-100`
     // behind, `cream-50` on every card. Scoped to this page.
     <div className="min-h-full bg-cream-100">
-      <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
+      <div className="mx-auto max-w-2xl px-6 pt-6">
+        {/* B1121 — `app/agent/layout.tsx` used to draw this above every page
+            under `/agent`; it draws nothing now, so the door carries its own
+            way back to the landing page. */}
+        <BackLink
+          fallbackHref="/"
+          fallbackLabel={t("docs.backToSite", { name: siteName })}
+          retraceLabel={t("nav.back")}
+          className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-navy-700
+                     transition-colors hover:text-navy-900
+                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+        />
+      </div>
+      <main className="mx-auto max-w-2xl px-6 pb-12 pt-4 sm:pb-16">
         <h1 className="font-display text-[clamp(1.5rem,5vw,2.25rem)] font-semibold leading-tight text-navy-900">
           {t("agent.title")}
         </h1>
