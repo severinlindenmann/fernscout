@@ -850,14 +850,13 @@ function HealthCard({ health, troubles }: { health: Health; troubles: Trouble[] 
  * arithmetic the operator does on a timestamp at 2am.
  */
 function BackupPanel({ backup }: { backup: Health["backup"] }) {
-  const tone =
-    backup.state === "ok"
-      ? "border-green-700 text-green-700"
-      : backup.state === "unknown"
-        ? "border-navy-300 text-navy-700"
-        : "border-coral-600 text-coral-600";
+  const tone = stateTone(backup.state);
   const when = backup.lastSuccessAt
     ? `${backup.lastSuccessAt.slice(0, 16).replace("T", " ")} UTC`
+    : "never";
+  const offsite = backup.secondary;
+  const offsiteWhen = offsite.lastSuccessAt
+    ? `${offsite.lastSuccessAt.slice(0, 16).replace("T", " ")} UTC`
     : "never";
   return (
     <div className="mt-3 rounded-2xl border border-navy-200 bg-white p-4">
@@ -880,18 +879,51 @@ function BackupPanel({ backup }: { backup: Health["backup"] }) {
           {backup.lastFailure}
         </p>
       )}
-      <p className="mt-1 text-xs text-navy-500 [overflow-wrap:anywhere]">
-        Off-site copy: {backup.secondary.state}
-        {backup.secondary.lastSuccessAt
-          ? ` · ${backup.secondary.lastSuccessAt.slice(0, 16).replace("T", " ")} UTC`
-          : ""}
-      </p>
+      <div className="mt-3 border-t border-navy-100 pt-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h4 className="font-display font-semibold text-navy-900">Off-site copy</h4>
+          <span
+            className={`rounded-full border px-2.5 py-0.5 font-mono text-xs font-semibold ${stateTone(offsite.state)}`}
+          >
+            {offsite.state}
+          </span>
+        </div>
+        <p className="mt-1 text-sm text-navy-700">
+          Last success {offsiteWhen}
+          {offsite.ageHours !== null ? ` · ${Math.round(offsite.ageHours)}h ago` : ""} · stale past{" "}
+          {offsite.maxAgeHours}h
+        </p>
+        {offsite.reason && (
+          <p className="mt-1 text-sm text-navy-500 [overflow-wrap:anywhere]">{offsite.reason}</p>
+        )}
+      </div>
       <p className="mt-2 text-xs text-navy-500">
         A run that works no longer sends mail; this is where it says so. A run that fails still
         mails.
       </p>
     </div>
   );
+}
+
+/**
+ * One state word, one colour, for both halves of the backup panel — B1174.
+ *
+ * The off-site copy used to be a line of the faintest type on the card with no
+ * colour at all, so `stale` and `ok` were the same grey and told apart only by
+ * reading a timestamp. It is a sibling fact, not a footnote: since B1159 it is
+ * the copy with the seven-day floor, and it is the only one that survives
+ * losing the machine.
+ *
+ * `unknown` is navy rather than coral on purpose. On the secondary it means
+ * both "never configured" — a legitimate choice — and "configured and never
+ * once succeeded", and nothing on disk separates them. Red for a deliberate
+ * configuration is an alarm that gets ignored; see the note in
+ * `lib/adminConsole.ts`.
+ */
+function stateTone(state: "ok" | "stale" | "failing" | "unknown"): string {
+  if (state === "ok") return "border-green-700 text-green-700";
+  if (state === "unknown") return "border-navy-300 text-navy-700";
+  return "border-coral-600 text-coral-600";
 }
 
 /**
