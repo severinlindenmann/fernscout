@@ -257,6 +257,7 @@ export function contentModel(): ContentModelDocument {
       coordinates: { apiOnly: true, because: "only ever false — this day has no one place" },
       photos: { apiOnly: true, because: "only ever false — this day has no photographs" },
       idempotency_key: { apiOnly: true, because: "names one write, so a retry is safe" },
+      dryRun: { apiOnly: true, because: "checks the body and writes nothing — never a file's own field" },
       // B616: model.mjs never gained a `type` for this one, even though
       // `checkTest` in lib/validate/entry.ts refuses anything but a real
       // boolean. Fixed here. B620: also one of the two keys model.mjs marks

@@ -446,6 +446,32 @@ export const MIGRATION_RECONCILE =
   "trip is done, `GET .../trips/<trip>/costs` says how many of its days record any " +
   "spending, which is the number that would have caught this in one call.";
 
+/**
+ * How to check a folder against the instance before any of it is sent —
+ * B537. `MIGRATION_RECONCILE` above answers "did it land"; this answers the
+ * earlier question, "will it land", without writing anything to find out.
+ *
+ * It names two calls and nothing else, because that is the whole mechanism:
+ * a field list re-typed here would be the fourth copy of one B533 already
+ * built as `/content-model.json`, and B535's contract checker already runs
+ * inside the real POST — `dryRun: true` on the same call is that checker
+ * with nothing written, not a second implementation to keep in step.
+ */
+export const CHECK_BEFORE_SENDING =
+  "Before any of it leaves your machine: fetch `/content-model.json` once, and read it as " +
+  "the list of every frontmatter key a day or a trip may carry — which ones map straight " +
+  "onto a field, and which never cross at all (`status`, `gallery`, `id` among them). Then, " +
+  "for each day, send its body to `POST .../days` with `dryRun: true` added. Every check the " +
+  "real write would run — the shape of the body, this trip's own contract, whether weather " +
+  "or a track is being asked for that this journal cannot supply — runs the same way and " +
+  "answers the same `problems`/`missing` list a real POST would, and nothing is written: no " +
+  "draft, no idempotency record. A clean day answers `{ ok: true, written: false, dryRun: " +
+  "true }`. Do this for every day before sending any of them for real, and you find out what " +
+  "the instance will refuse before a single draft exists to clean up.\n\n" +
+  "It only checks what the server can check from the body — a `gallery:` path that does not " +
+  "exist on disk, or a photograph the wrong size, is still yours to catch by reading the " +
+  "file and the folder yourself; `dryRun` never opens a photograph.";
+
 export const PERFECT_TRIP_EXAMPLE = [
   "{",
   '  "id": "japan-2027",',
