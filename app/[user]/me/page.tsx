@@ -6,6 +6,7 @@ import MePageContent, {
   type TripEditPanel,
   type ManagePanel,
 } from "./MePageContent";
+import { getAbout } from "@/lib/about";
 import { manageTokenFor, listContacts, normaliseEmail } from "@/lib/contacts";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
 import { pickLocale } from "@/lib/contacts/locale";
@@ -182,6 +183,11 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       // address, computed to a single word.
       ownerName={ownerShortName(journal)}
       signinNotice={signinNotice}
+      // B10 — whether `/<user>/about` exists for this reader. The owner's
+      // own preview of a draft counts (`includeDrafts: viewer.owner`, same
+      // reasoning as the page itself); everybody else sees the door only
+      // once it is published.
+      hasAbout={getAbout(user, { includeDrafts: viewer.owner }) !== null}
     />
   );
 }

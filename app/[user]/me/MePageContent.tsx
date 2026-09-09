@@ -470,6 +470,7 @@ export default function MePageContent({
   analyticsEnabled = false,
   ownerName,
   signinNotice,
+  hasAbout = false,
 }: {
   viewer: Viewer;
   username: string;
@@ -521,6 +522,9 @@ export default function MePageContent({
    * they had done something wrong.
    */
   signinNotice?: string;
+  /** Whether `/<user>/about` exists for this reader — B10. Absent rather
+   * than a link to a 404, same rule as `analyticsEnabled` above. */
+  hasAbout?: boolean;
 }) {
   const { t } = useI18n();
   const site = useSite();
@@ -580,6 +584,17 @@ export default function MePageContent({
         <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
           {t("me.title")}
         </h1>
+
+        {/* B10 — the door to "who is behind this journal", drawn only when
+            there is somewhere for it to lead (see `hasAbout` above). */}
+        {hasAbout && (
+          <Link
+            href={`/${username}/about`}
+            className="mt-2 inline-block text-base font-semibold text-navy-700 underline decoration-navy-200 decoration-2 underline-offset-4 hover:text-navy-900 hover:decoration-navy-500"
+          >
+            {t("about.title")}
+          </Link>
+        )}
 
         {/* First thing on the page, above the fold and above the sign-in
             control it tells them to use. It is the answer to the question they

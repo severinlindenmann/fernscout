@@ -1,4 +1,5 @@
 {
+  "about.title": "Über dieses Tagebuch",
   "account.title": "Guthaben & Speicher",
   "analytics.title": "Auswertung",
   "analytics.subtitle": "Was diese Reise ergibt, über die einzelnen Tage hinaus.",
@@ -396,6 +397,7 @@
   "hero.startReading": "Von vorn",
   "hero.tagline": "Begleite uns, Tag für Tag.",
   "hero.timePerCountry": "Zeit pro Land",
+  "hero.travellers": "Geschrieben von {names}",
   "home.adminSection": "Andere Tagebücher auf diesem Server",
   "home.adminSectionBody": "Nicht deine. Du kommst rein, weil du diesen Server betreibst — was hier veröffentlicht wird, steht im Tagebuch von jemand anderem.",
   "home.agentLink": "Agent",

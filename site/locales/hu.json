@@ -1,4 +1,5 @@
 {
+  "about.title": "Erről a naplóról",
   "account.title": "Kredit és tárhely",
   "analytics.title": "Elemzés",
   "analytics.subtitle": "Amit ez az út összeadva kiad, a napokon túl.",
@@ -396,6 +397,7 @@
   "hero.startReading": "Az elejétől",
   "hero.tagline": "Tarts velünk, napról napra.",
   "hero.timePerCountry": "Idő országonként",
+  "hero.travellers": "Írta: {names}",
   "home.adminSection": "A szerver többi naplója",
   "home.adminSectionBody": "Nem a tiéd. Azért férsz hozzá, mert te üzemelteted ezt a szervert — amit itt közzéteszel, valaki más naplójában jelenik meg.",
   "home.agentLink": "Ügynök",

@@ -1,4 +1,5 @@
 {
+  "about.title": "About this journal",
   "account.title": "Credits & storage",
   "analytics.title": "Analytics",
   "analytics.subtitle": "What this trip adds up to, beyond the days themselves.",
@@ -396,6 +397,7 @@
   "hero.startReading": "From the start",
   "hero.tagline": "Follow along, one day at a time.",
   "hero.timePerCountry": "Time per country",
+  "hero.travellers": "Written by {names}",
   "home.adminSection": "Other journals on this server",
   "home.adminSectionBody": "Not yours. You reach these because you run this server — anything published in one lands in somebody else's journal.",
   "home.agentLink": "Agent",
