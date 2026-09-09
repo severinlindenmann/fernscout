@@ -45,7 +45,7 @@ export default function RoomOpening({
   /** Sends a sentence as though it had been typed. */
   onSay: (said: string) => void;
 }) {
-  const { t, tn } = useI18n();
+  const { t, tn, formatLongDate } = useI18n();
 
   const chip =
     "min-h-11 rounded-full border border-navy-300 bg-white px-4 text-sm text-navy-800 transition-colors hover:bg-cream-100";
@@ -61,12 +61,15 @@ export default function RoomOpening({
         : t("agent.open.noPhotos"),
       ...(day.written ? [] : [t("agent.open.noWords")]),
     ].join(" · ");
-    const when = new Date(`${day.date}T00:00:00Z`).toLocaleDateString(undefined, {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      timeZone: "UTC",
-    });
+    /**
+     * `formatLongDate`, never `toLocaleDateString(undefined, …)` — B1169.
+     * The server renders this component too, in its own locale; the browser
+     * re-renders it in the reader's. The two disagreed ("Friday 30 April"
+     * vs "Friday, April 30"), React threw a hydration mismatch, and the
+     * whole page regenerated client-side with a visible jump on every
+     * arrival. `HelperConsentList.tsx` documents the same trap.
+     */
+    const when = formatLongDate(day.date);
     return (
       <div className="rounded-2xl border border-navy-200 bg-white p-4">
         <p className="font-display text-base font-semibold text-navy-900">{when}</p>
@@ -95,13 +98,9 @@ export default function RoomOpening({
                 count: String(opening.days.length + opening.more),
               }))}
         {opening.state === "clear" &&
-          t("agent.open.clear", {
-            date: new Date(`${opening.lastDate}T00:00:00Z`).toLocaleDateString(undefined, {
-              day: "numeric",
-              month: "long",
-              timeZone: "UTC",
-            }),
-          })}
+          // The same B1169 rule as `Day` above: a fixed-locale format the
+          // server and the browser agree on.
+          t("agent.open.clear", { date: formatLongDate(opening.lastDate) })}
         {opening.state === "finished" &&
           t("agent.open.finished", { title: opening.title, count: String(opening.days) })}
         {opening.state === "empty" && t("agent.open.empty")}

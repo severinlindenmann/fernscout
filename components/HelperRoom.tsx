@@ -17,7 +17,6 @@ import { mediaLoader } from "@/components/mediaLoader";
 import { InboxFileGroups } from "@/components/InboxFileGroups";
 import { PhotoPicker } from "@/components/PhotoPicker";
 import { DayCard } from "@/components/StoryPager";
-import { drain, enqueue, type QueueProgress } from "@/components/uploadQueue";
 import type { Opening as RoomOpeningState } from "@/lib/helper/opening";
 import type { RoomFile, RoomFiles } from "@/lib/helper/server";
 import type { CurrencyOptions } from "@/lib/rates";
@@ -28,21 +27,6 @@ import type { Day, DaySummary } from "@/lib/types";
 const PREVIEW_WIDTH_KEY = "fs.agent.previewWidth";
 const PREVIEW_MIN = 380;
 const PREVIEW_MAX = 440;
-
-/** The phone's bottom sheet has exactly two heights once it has appeared —
- *  a peek and most of the screen — and a third, hidden, before anything has
- *  been said at all. B1121. */
-const SHEET_PEEK_PX = 112;
-const SHEET_EXPANDED_VH = 0.78;
-
-/** Module-level rather than a closure inside `PreviewSheet` — a pointer
- *  handler added to `window` at the start of a drag has to keep calling the
- *  same function for the whole gesture, and a plain function defined in the
- *  component body would be a new one on every render. */
-function sheetPxFor(state: "peek" | "expanded"): number {
-  if (state === "peek") return SHEET_PEEK_PX;
-  return (typeof window === "undefined" ? 800 : window.innerHeight) * SHEET_EXPANDED_VH;
-}
 
 /**
  * The room — B901 and B902, round 4 and round 5 of
@@ -63,17 +47,14 @@ function sheetPxFor(state: "peek" | "expanded"): number {
  *
  * **390px is the design width and the three columns are the wide case.** On a
  * phone the conversation is the whole screen and the other two are summoned
- * rather than laid out beside it: files as a modal `<dialog>` up from the
- * bottom (`FilesPane`, unchanged since B902), the preview as its own bottom
- * sheet (`PreviewSheet`, B1121) rather than a full-screen dialog — so nothing
- * is ever half a screen wide, and the preview can *peek* at 112px, which a
- * dialog cannot. `showModal()` is what makes the files dialog reachable
- * rather than merely present: the platform's own modal moves focus in, makes
- * the rest of the page inert, closes on Escape and puts focus back on the
- * button that opened it — checklist D asking for something a hand-rolled
- * overlay would have to earn again. The preview sheet is not a `<dialog>`; it
- * does not take over the page, on purpose, since it can be up at the same
- * time as the conversation is being typed into.
+ * rather than laid out beside it — both as the same modal `<dialog>` sheet
+ * (`Sheet`, below), opened by a press and closed by its own button. B1121's
+ * two-height peek sheet is gone (B1170): it rose by itself the moment the
+ * conversation named a day, inserted 112px into the layout flow under the
+ * composer, and could never be dismissed. `showModal()` is what makes the
+ * dialogs reachable rather than merely present: the platform's own modal
+ * moves focus in, makes the rest of the page inert, closes on Escape and
+ * puts focus back on the button that opened it.
  *
  * **On a laptop the same two panes are rails now, not a hide/show pair of
  * sentence buttons in the header — B1121.** Both collapse to about 40px at
@@ -143,19 +124,16 @@ export default function HelperRoom({
   files: RoomFiles;
   /** What the day card draws money with, the same options the wizard uses. */
   currency: CurrencyOptions;
-  /** The newest unfinished day, if there is one — so the preview has
-   *  something in it before anybody has said a word. */
+  /** The day a person arrived from (`?about=`, B994) — the one case the
+   *  preview opens with something in it. Every other arrival starts with no
+   *  subject: the conversation's own opening says what is waiting. B1170. */
   opening: { trip: string; slug: string } | null;
   /**
-   * A conversation reopened by URL — B984, drawn from what was stored rather
-   * than from the thread, which has a thirty-minute life and none of last
-   * week's left.
+   * A conversation reopened by URL — B984, drawn from what was stored.
    *
-   * **Reopening is reading, not resuming.** These turns are drawn so somebody
-   * can see what was said; the next thing they type starts from the twelve-turn
-   * window the model would have had anyway. Saying so plainly here because
-   * "carry on where you left off" is what a person will reasonably expect, and
-   * only half of it is true.
+   * **Reopening is resuming now** — B1168. The page adopts the stored
+   * session into the live thread, so the next sentence continues exactly
+   * the conversation on the screen and is recorded under it.
    */
   history?: { created_at: string; said: string | null; answered: string | null }[];
   /** What the room says before anybody has said anything — B984. Named apart
@@ -276,30 +254,21 @@ export default function HelperRoom({
   // shell that says so.
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  // Phone only: the files dialog, and the preview's own bottom sheet.
-  const [filesSheetOpen, setFilesSheetOpen] = useState(false);
   /**
-   * The preview sheet's height, as a state rather than a boolean — B1121.
-   * `"hidden"` before the conversation has ever named a day; `"peek"` the
-   * moment it does, by itself, with no press required; `"expanded"` from a
-   * deliberate press on the peek or a drag past its own handle. Going back to
-   * `"hidden"` is not a thing a person does here — a day once named stays
-   * worth a peek, which is why only two presence states exist once one has
-   * been shown.
-   *
-   * Adjusted **during render**, not in an effect: this is React's own
-   * documented shape for "reset or adjust state when a prop changes" (an
-   * extra render rather than a `useEffect` round trip, and no risk of firing
-   * one render behind `subject`), tracked against `peekedAt` — the last
-   * `subject.at` this already reacted to, so a re-render for an unrelated
-   * reason does not peek the sheet a second time.
+   * Phone only: the files dialog, and the preview's own sheet — both plain
+   * open/closed now. The preview used to *peek* by itself the moment the
+   * conversation named a day (B1121), inserting 112px into the layout flow
+   * and pushing the composer up as a side effect of a model answer — and it
+   * could never be dismissed back to hidden. B1170: it opens on a press (a
+   * turn's day chip), closes on its own button, and nothing on the phone
+   * layout appears without being asked for. The day chip in the turn stays
+   * as the way back in.
    */
-  const [sheetHeight, setSheetHeight] = useState<"hidden" | "peek" | "expanded">("hidden");
-  const [peekedAt, setPeekedAt] = useState<number | null>(null);
-  if (subject && subject.at !== peekedAt) {
-    setPeekedAt(subject.at);
-    if (sheetHeight === "hidden") setSheetHeight("peek");
-  }
+  const [filesSheetOpen, setFilesSheetOpen] = useState(false);
+  const [previewSheetOpen, setPreviewSheetOpen] = useState(false);
+  /** A turn named a day while the desktop preview rail was collapsed — the
+   *  rail shows a dot instead of opening itself. B1170. */
+  const [previewUnseen, setPreviewUnseen] = useState(false);
 
   /**
    * The day, re-read whenever the conversation names one.
@@ -338,10 +307,10 @@ export default function HelperRoom({
       onToggle={toggle}
       onClear={() => setSelected([])}
       username={username}
-      subject={subject}
-      onUploaded={() =>
-        setSubject((was) => (was ? { ...was, at: Date.now() } : was))
-      }
+      // What the pane's own upload just put in the inbox — B1171. Prepended,
+      // because newest-first is the pane's own order, and echoed here rather
+      // than re-fetched: the route answered with exactly what it stored.
+      onInboxAdded={(added) => setInbox((was) => [...added, ...was])}
     />
   );
 
@@ -375,7 +344,12 @@ export default function HelperRoom({
         // thread that outlives its clean start, not a start that fails.
       },
     );
-    window.location.href = "/agent";
+    // `?c=new`, not bare `/agent` — B1168. A bare visit resumes whatever is
+    // live, which immediately after the DELETE is nothing, but the stored
+    // latest used to be redrawn and the press looked like it did nothing.
+    // Naming the intent in the URL keeps "new" true however the resume
+    // logic evolves.
+    window.location.href = "/agent?c=new";
   }
 
   return (
@@ -489,7 +463,12 @@ export default function HelperRoom({
             opened={history}
             opening={first}
             selected={selected}
-            onSubject={(day) => setSubject({ ...day, at: Date.now() })}
+            onSubject={(day) => {
+              setSubject({ ...day, at: Date.now() });
+              // The rail says something new is behind it rather than opening
+              // itself — B1170.
+              if (previewCollapsed) setPreviewUnseen(true);
+            }}
             onFilesMoved={(moved) => {
               // The pane's ids carry the `inbox:` prefix; the route answers
               // with the bare ids it moved.
@@ -501,19 +480,16 @@ export default function HelperRoom({
             /**
              * A turn's inline card was pressed — B1016. "Look at it" means
              * something different depending on how much screen there is:
-             * on a phone the preview's own bottom sheet rises to about 78%
-             * — B1121, replacing the full-screen dialog it used to open —
-             * or, on a wider one, the column that is already open scrolls
+             * on a phone the preview's sheet opens (a modal `Sheet`, the
+             * same one the files use — B1170 replaced the two-height peek
+             * sheet with it); on a wider one the column opens and scrolls
              * into view. `matchMedia` is read defensively — a caller with
              * none (a test) gets the phone's own behaviour, which is the one
-             * this ticket is actually about. Inline rather than a named
-             * function above: `Date.now()` inside a plain function
-             * declaration reads to the linter as something that might run
-             * during render; here it is unambiguously an event handler, the
-             * same shape `onSubject` below already uses.
+             * this ticket is actually about.
              */
             onPreview={(day) => {
               setSubject({ ...day, at: Date.now() });
+              setPreviewUnseen(false);
               const desktop =
                 typeof window !== "undefined" &&
                 typeof window.matchMedia === "function" &&
@@ -522,7 +498,7 @@ export default function HelperRoom({
                 setPreviewCollapsed(false);
                 setScrollTick((n) => n + 1);
               } else {
-                setSheetHeight("expanded");
+                setPreviewSheetOpen(true);
               }
             }}
             filesStrip={filesStrip}
@@ -553,7 +529,11 @@ export default function HelperRoom({
         <PreviewColumn
           innerRef={previewRef}
           collapsed={previewCollapsed}
-          onToggleCollapsed={() => setPreviewCollapsed((was) => !was)}
+          unseen={previewUnseen}
+          onToggleCollapsed={() => {
+            setPreviewCollapsed((was) => !was);
+            setPreviewUnseen(false);
+          }}
           width={previewWidth}
           onResizeDown={onResizeDown}
           onResizeMove={onResizeMove}
@@ -577,17 +557,18 @@ export default function HelperRoom({
         </Sheet>
       )}
 
-      {/* Phone only — B1121. Peeks by itself the moment the conversation
-          names a day, and stays up (never back to hidden) once it has. */}
-      <PreviewSheet
-        height={sheetHeight}
-        onChangeHeight={setSheetHeight}
-        preview={preview}
-        reading={reading}
-        currency={currency}
-        peekLabel={t("agent.room.previewPeek")}
-        collapseLabel={t("agent.room.closePreview")}
-      />
+      {/* Phone only — B1170. The same modal `Sheet` the files use, opened by
+          a turn's day chip and closed by its own button. Nothing on the
+          phone layout appears without being asked for. */}
+      {previewSheetOpen && (
+        <Sheet
+          label={t("agent.room.preview")}
+          close={t("agent.room.closePreview")}
+          onClose={() => setPreviewSheetOpen(false)}
+        >
+          {previewPane}
+        </Sheet>
+      )}
 
       {historyOpen && (
         <HistoryPanel
@@ -653,7 +634,7 @@ function Sheet({
           {close}
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">{children}</div>
     </dialog>
   );
 }
@@ -725,7 +706,7 @@ function FilesRail({
           <PanelLeftClose className="h-5 w-5" aria-hidden />
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">{children}</div>
     </section>
   );
 }
@@ -745,6 +726,7 @@ function FilesRail({
 function PreviewColumn({
   innerRef,
   collapsed,
+  unseen,
   onToggleCollapsed,
   width,
   onResizeDown,
@@ -758,6 +740,9 @@ function PreviewColumn({
 }: {
   innerRef: React.RefObject<HTMLElement | null>;
   collapsed: boolean;
+  /** A turn named a day while this rail was collapsed — drawn as a dot, so
+   *  the rail says there is something new without opening itself. B1170. */
+  unseen: boolean;
   onToggleCollapsed: () => void;
   width: number;
   onResizeDown: (event: React.PointerEvent) => void;
@@ -776,9 +761,10 @@ function PreviewColumn({
         onClick={onToggleCollapsed}
         aria-label={showLabel}
         title={showLabel}
-        className="hidden w-10 shrink-0 flex-col items-center border-l border-navy-200 bg-cream-50 py-3 lg:flex"
+        className="hidden w-10 shrink-0 flex-col items-center gap-1 border-l border-navy-200 bg-cream-50 py-3 lg:flex"
       >
         <PanelRightClose className="h-5 w-5 rotate-180 text-navy-700" aria-hidden />
+        {unseen && <span aria-hidden className="h-2 w-2 rounded-full bg-yellow-400" />}
       </button>
     );
   }
@@ -811,7 +797,7 @@ function PreviewColumn({
           <PanelRightClose className="h-5 w-5" aria-hidden />
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">{children}</div>
     </section>
   );
 }
@@ -864,12 +850,18 @@ function HistoryPanel({
   // `null` while loading, `[]` once answered with nothing — two different
   // facts, the same distinction `said`/`answered` draws in the table itself.
   const [sessions, setSessions] = useState<SessionRow[] | null>(null);
+  /** The conversation a next sentence would extend, so its row can say so —
+   *  B1168. `null` while loading and when nothing is in progress. */
+  const [liveId, setLiveId] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
     fetch(`/api/helper/${encodeURIComponent(username)}/sessions`)
       .then((response) => (response.ok ? response.json() : null))
-      .then((body: { sessions?: SessionRow[] } | null) => {
-        if (live) setSessions(body?.sessions ?? []);
+      .then((body: { sessions?: SessionRow[]; live?: string | null } | null) => {
+        if (live) {
+          setSessions(body?.sessions ?? []);
+          setLiveId(body?.live ?? null);
+        }
       })
       .catch(() => {
         if (live) setSessions([]);
@@ -907,7 +899,7 @@ function HistoryPanel({
           {t("agent.room.closeHistory")}
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
         {sessions === null ? (
           <p className="text-sm leading-6 text-navy-700">{t("agent.room.historyLoading")}</p>
         ) : days.length === 0 ? (
@@ -931,6 +923,11 @@ function HistoryPanel({
                         </p>
                         <p className="text-xs text-navy-500">
                           {tn("agent.room.historyTurns", row.turns, { count: String(row.turns) })}
+                          {row.session === liveId && (
+                            <span className="ml-2 rounded-full bg-yellow-400 px-2 py-0.5 text-[11px] font-semibold text-navy-900">
+                              {t("agent.room.historyLive")}
+                            </span>
+                          )}
                         </p>
                       </a>
                     </li>
@@ -945,151 +942,6 @@ function HistoryPanel({
   );
 }
 
-/**
- * The preview, on a phone, as a bottom sheet rather than a full-screen dialog
- * — B1121, replacing the `<dialog tall>` this used to open on a press.
- *
- * **It rises by itself.** `HelperRoom` moves `height` from `"hidden"` to
- * `"peek"` the moment the conversation's subject changes at all — including a
- * second mention of the same day — which is what makes this the one thing on
- * the phone layout that appears with no press. Once shown it never goes back
- * to `"hidden"`: a day once worth mentioning stays worth a peek, and a person
- * who wants it gone can see the whole page had a conversation which will
- * mention another day soon enough.
- *
- * **The handle both taps and drags.** A tap toggles between the peek and
- * expanded heights outright — the operable control for anyone who cannot or
- * would rather not drag — and dragging tracks the pointer live, snapping to
- * whichever of the two is closer on release. There is deliberately no third,
- * empty position to drag down to: this is not a fresh way to hide the sheet,
- * only to shrink it back to a peek.
- */
-function PreviewSheet({
-  height,
-  onChangeHeight,
-  preview,
-  reading,
-  currency,
-  peekLabel,
-  collapseLabel,
-}: {
-  height: "hidden" | "peek" | "expanded";
-  onChangeHeight: (next: "peek" | "expanded") => void;
-  preview: Preview | null;
-  reading: boolean;
-  currency: CurrencyOptions;
-  peekLabel: string;
-  collapseLabel: string;
-}) {
-  const { t } = useI18n();
-  const [dragPx, setDragPx] = useState<number | null>(null);
-  /** Pointer capture rather than `window` listeners — the same shape the
-   *  preview column's own divider uses, and for the same reason: no handler
-   *  ever has to close over a value that goes stale before release. */
-  const drag = useRef<{ startY: number; startPx: number } | null>(null);
-  function onHandleDown(event: React.PointerEvent) {
-    drag.current = { startY: event.clientY, startPx: sheetPxFor(height === "expanded" ? "expanded" : "peek") };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
-  function onHandleMove(event: React.PointerEvent) {
-    if (!drag.current) return;
-    const delta = drag.current.startY - event.clientY;
-    const max = sheetPxFor("expanded");
-    setDragPx(Math.min(max, Math.max(SHEET_PEEK_PX, drag.current.startPx + delta)));
-  }
-  function onHandleUp() {
-    if (!drag.current) return;
-    drag.current = null;
-    const peekPx = SHEET_PEEK_PX;
-    const expandedPx = sheetPxFor("expanded");
-    const at = dragPx ?? peekPx;
-    onChangeHeight(Math.abs(at - expandedPx) < Math.abs(at - peekPx) ? "expanded" : "peek");
-    setDragPx(null);
-  }
-
-  if (height === "hidden") return null;
-
-  const px = dragPx ?? sheetPxFor(height === "expanded" ? "expanded" : "peek");
-  const lead = preview?.day.lead;
-
-  return (
-    <div
-      role="region"
-      aria-label={peekLabel}
-      style={{ height: `${px}px` }}
-      /**
-       * **A peek is in the flow; only an opened sheet is an overlay** — B1160.
-       *
-       * This was `fixed inset-x-0 bottom-0 z-20` in every state, and the
-       * composer inside `HelperAsk` is `sticky bottom-0` with no stacking
-       * context of its own. So the peek sat on top of the Ask button and took
-       * its taps: a person typed a sentence, pressed send, and nothing
-       * happened — no error, because as far as the software was concerned
-       * nothing had gone wrong. Playwright refused the click outright with
-       * "element intercepts pointer events", twice, which is how it was found.
-       *
-       * Raising the composer's z-index is the tempting one-liner and is
-       * wrong: the composer then floats on top of the sheet and the peek is
-       * half hidden behind it — the seam moves rather than closes.
-       *
-       * So a peek takes real layout space at the foot of the column and
-       * cannot cover anything. Dragging it open makes it `fixed`, and at that
-       * point covering the composer is precisely what was asked for.
-       */
-      className={`flex flex-col overflow-hidden rounded-t-2xl border-t border-navy-200 bg-cream-50 shadow-[0_-4px_16px_rgba(0,0,0,0.12)] lg:hidden ${
-        height === "expanded" ? "fixed inset-x-0 bottom-0 z-20" : "relative w-full shrink-0"
-      }`}
-    >
-      {/* The drag surface. Purely pointer-driven: the peek row below (a real
-          `<button>`) and the expanded state's own collapse button are the
-          keyboard-operable equivalents, so this does not need to be one
-          too. */}
-      <div
-        onPointerDown={onHandleDown}
-        onPointerMove={onHandleMove}
-        onPointerUp={onHandleUp}
-        onPointerCancel={onHandleUp}
-        onClick={() => onChangeHeight(height === "expanded" ? "peek" : "expanded")}
-        className="flex shrink-0 cursor-grab touch-none items-center justify-center gap-2 py-2 active:cursor-grabbing"
-      >
-        <span aria-hidden className="h-1 w-10 rounded-full bg-navy-200" />
-      </div>
-      {height === "peek" && lead && (
-        <button
-          type="button"
-          onClick={() => onChangeHeight("expanded")}
-          className="flex min-h-11 w-full items-center justify-between gap-3 px-4 pb-3 text-left"
-        >
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-semibold text-navy-900">{lead.title}</span>
-            <span className="block text-xs text-navy-600">{lead.date}</span>
-          </span>
-          {lead.draft && (
-            <span className="shrink-0 rounded-full bg-yellow-400 px-2 py-0.5 text-[11px] font-semibold text-navy-900">
-              {t("draft.badge")}
-            </span>
-          )}
-        </button>
-      )}
-      {height === "expanded" && (
-        <>
-          <div className="flex shrink-0 items-center justify-end px-3 pb-1">
-            <button
-              type="button"
-              onClick={() => onChangeHeight("peek")}
-              className="min-h-11 px-2 text-sm font-semibold text-navy-800 underline underline-offset-4"
-            >
-              {collapseLabel}
-            </button>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-            <PreviewPane preview={preview} reading={reading} currency={currency} />
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
 
 /**
  * The files, as tiles that can be selected — B902.
@@ -1121,22 +973,16 @@ function FilesPane({
   onToggle,
   onClear,
   username,
-  subject,
-  onUploaded,
+  onInboxAdded,
 }: {
   files: RoomFiles;
   selected: string[];
   onToggle: (id: string) => void;
   onClear: () => void;
   username: string;
-  /** The day under discussion, or `null` when nothing has been named yet.
-   *  `UploadPanel` reads only `trip` and `slug` off this — the `at` stamp is
-   *  the preview's own business. */
-  subject: { trip: string; slug: string } | null;
-  /** A photograph landed. The room bumps the subject's stamp on this, which
-   *  is what makes `PreviewPane` re-read the day — the same signal a mention
-   *  in the conversation sends. */
-  onUploaded: () => void;
+  /** The pane's upload stored these in the inbox — B1171. The room prepends
+   *  them to its own copy, so the tiles appear the moment the route answers. */
+  onInboxAdded: (added: RoomFile[]) => void;
 }) {
   const { t, tn } = useI18n();
   const empty = files.inbox.length === 0 && files.trip.length === 0;
@@ -1221,7 +1067,7 @@ function FilesPane({
         </Group>
       )}
 
-      <UploadPanel username={username} subject={subject} onUploaded={onUploaded} />
+      <UploadPanel username={username} onInboxAdded={onInboxAdded} />
     </div>
   );
 }
@@ -1305,38 +1151,42 @@ function FilesStrip({
   );
 }
 
+/** What `POST /api/helper/<user>/inbox` answers with per stored file — the
+ *  inbox entry as `lib/inbox.ts` wrote it. */
+type StoredInboxItem = {
+  id: string;
+  filename: string;
+  kind: RoomFile["kind"];
+  bytes: number;
+  uploadedAt: string;
+};
+
 /**
- * The picker and the upload, moved into the room — B984, step 4 of
- * `docs/plans/…the-conversation-lives-at-three-urls.md`. Until this the only
- * page that could put a photograph on a day was the wizard's own; the room
- * had a preview of the day and files waiting for it, and no way to add one.
+ * The picker and the upload — B984 put it in the room, B1171 pointed it at
+ * the inbox.
  *
- * The model is `startUploads`/`runQueue` in `AgentWizard.tsx`, unchanged in
- * substance: one storage check against the whole pick before anything is
- * sent, `enqueue` onto the on-disk queue so a killed tab resumes rather than
- * losing the pick, then `drain` — web copies first, so the day is readable
- * within seconds, with the originals climbing behind it. `onUploaded` is
- * called once the web phase completes and again when the drain finishes,
- * which is what makes `PreviewPane` show a growing day rather than a spinner.
+ * It used to write photographs straight onto whatever day the preview
+ * happened to be about, which on a fresh visit was a months-old draft nobody
+ * chose — and with no subject there was no upload control at all. Everything
+ * lands in the inbox now, where a file that belongs to no day yet is designed
+ * to wait (B663); the conversation is what files it onto a day ("put these on
+ * Friday"), which keeps the one decision — what happened on which day — in
+ * the conversation's hands and nowhere else.
  *
- * **The day is the subject, and there is no second way to choose one.** A
- * picker that let somebody attach a photograph while the conversation was
- * about nothing would be a picker deciding what the day is on its own — the
- * one thing this file's own rule (`AGENTS.md`, "the agent is the editor")
- * puts in the conversation's hands and nowhere else. So with no subject this
- * renders a sentence instead of a control, the same way `PreviewPane` renders
- * a sentence instead of a card.
+ * One request, not the wizard's two-phase queue: an inbox file needs no web
+ * derivative before anybody can see the day, because it is not on a day yet.
  */
 function UploadPanel({
   username,
-  subject,
-  onUploaded,
+  onInboxAdded,
 }: {
   username: string;
-  subject: { trip: string; slug: string } | null;
-  onUploaded: () => void;
+  /** Called with the stored files, as `RoomFile`s, the moment the route
+   *  answers — the pane's tiles must never claim nothing is waiting while
+   *  something it just stored is. */
+  onInboxAdded: (added: RoomFile[]) => void;
 }) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   // The room mounts this pane twice at once — the desktop column stays in the
   // DOM behind `hidden lg:block` and the phone sheet is a second full copy —
   // so a fixed id here would put two `id="…"` inputs on one page. `useId()`
@@ -1345,30 +1195,30 @@ function UploadPanel({
   const pickerId = useId();
   const [chosen, setChosen] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState<QueueProgress | null>(null);
+  const [landedCount, setLandedCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  async function upload(tripId: string, slug: string, list: File[]) {
+  async function upload(list: File[]) {
     if (list.length === 0) return;
     setBusy(true);
     setError(null);
-    // The one storage check, before any of it starts — B683, the same
-    // courtesy `startUploads` in the wizard offers: a sentence somebody can
-    // act on while every photograph is still in front of them, rather than
-    // thirty-nine successful uploads and a wall on the fortieth.
+    setLandedCount(0);
+    // The one storage check, before any of it starts — B683: a sentence
+    // somebody can act on while every photograph is still in front of them,
+    // rather than a wall after the upload has already been sent.
     const room = await fetch(`/api/helper/${encodeURIComponent(username)}/day/media`).catch(
       () => null,
     );
-    const body = (await room?.json().catch(() => null)) as
+    const check = (await room?.json().catch(() => null)) as
       | { remainingBytes: number | null }
       | null;
-    if (!room || !room.ok || !body) {
+    if (!room || !room.ok || !check) {
       setError(t("agent.failed", { error: "network" }));
       setBusy(false);
       return;
     }
     const needed = list.reduce((n, file) => n + file.size, 0);
-    const left = body.remainingBytes;
+    const left = check.remainingBytes;
     if (left !== null && needed > left) {
       const mb = (n: number) => String(Math.max(1, Math.round(n / (1024 * 1024))));
       setError(t("agent.noRoom", { needed: mb(needed), left: mb(left) }));
@@ -1376,20 +1226,40 @@ function UploadPanel({
       return;
     }
 
-    await enqueue(username, tripId, slug, list);
-    setChosen([]);
+    const form = new FormData();
+    for (const file of list) form.append("files", file);
+    const response = await fetch(`/api/helper/${encodeURIComponent(username)}/inbox`, {
+      method: "POST",
+      body: form,
+    }).catch(() => null);
+    const body = (await response?.json().catch(() => null)) as
+      | { items?: StoredInboxItem[]; error?: string; problems?: { expected: string }[] }
+      | null;
     setBusy(false);
 
-    let readable = false;
-    await drain(username, (state) => {
-      setProgress(state);
-      if (!readable && state.webTotal > 0 && state.webDone === state.webTotal) {
-        readable = true;
-        onUploaded();
-      }
-    });
-    onUploaded();
-    setProgress((state) => (state && state.error ? state : null));
+    if (!response || !response.ok || !body?.items) {
+      // The route's own refusal names the file and what was expected; keep
+      // that half rather than flattening it into a code.
+      const expected = body?.problems?.[0]?.expected;
+      setError(expected ?? t("agent.failed", { error: body?.error ?? "network" }));
+      return;
+    }
+
+    setChosen([]);
+    setLandedCount(body.items.length);
+    onInboxAdded(
+      body.items.map((item) => ({
+        id: `inbox:${item.id}`,
+        name: item.filename,
+        src:
+          item.kind === "media"
+            ? `/api/helper/${encodeURIComponent(username)}/inbox/${encodeURIComponent(item.id)}/thumbnail`
+            : undefined,
+        kind: item.kind,
+        bytes: item.bytes,
+        uploadedAt: item.uploadedAt,
+      })),
+    );
   }
 
   return (
@@ -1398,39 +1268,27 @@ function UploadPanel({
         {t("agent.uploadTitle")}
       </h2>
 
-      {subject ? (
-        <PhotoPicker
-          id={pickerId}
-          chosen={chosen}
-          disabled={busy}
-          onPick={(list) => {
-            const files = Array.from(list ?? []);
-            setChosen(files);
-            if (files.length > 0) void upload(subject.trip, subject.slug, files);
-          }}
-        />
-      ) : (
-        <p className="mt-2 text-sm leading-6 text-navy-700">{t("agent.room.addPhotosNoDay")}</p>
-      )}
+      <PhotoPicker
+        id={pickerId}
+        chosen={chosen}
+        disabled={busy}
+        onPick={(list) => {
+          const files = Array.from(list ?? []);
+          setChosen(files);
+          if (files.length > 0) void upload(files);
+        }}
+      />
 
       {/* Mounted from the first render, empty until there is something to
        *  say — B949 again, in the pane that taught this file the rule the
        *  first time. A live region created at the same moment as its first
        *  content is one a screen reader may never have been watching. */}
       <p role="status" aria-live="polite" className="mt-2 text-sm leading-6 text-navy-800">
-        {progress &&
-          (progress.webDone < progress.webTotal
-            ? t("agent.uploading", {
-                done: String(progress.webDone),
-                total: String(progress.webTotal),
-              })
-            : progress.originalDone < progress.originalTotal
-              ? t("agent.uploadingOriginals", {
-                  done: String(progress.originalDone),
-                  total: String(progress.originalTotal),
-                })
-              : "")}
-        {progress?.error && ` — ${t("agent.failed", { error: progress.error })}`}
+        {busy
+          ? t("agent.askWorking")
+          : landedCount > 0
+            ? tn("agent.room.uploadedWaiting", landedCount, { count: String(landedCount) })
+            : ""}
       </p>
 
       {error && (

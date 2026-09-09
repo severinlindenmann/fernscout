@@ -105,7 +105,19 @@ const TTL_MS = 4 * 60 * 60 * 1000;
  *  Same shape as `lib/rateLimit.ts`, for the same reason. */
 const MAX_THREADS = 1000;
 
-const threads = new Map<string, { id: string; turns: Turn[]; touched: number }>();
+/**
+ * Anchored on `globalThis`, not a bare module-level `Map` — B1168.
+ *
+ * Next compiles the page and each route handler as separate server chunks,
+ * and a module can be instantiated once per chunk: `app/agent/page.tsx`
+ * adopting a conversation wrote into one Map while the ask route answered
+ * from another, so the adoption silently never happened. The process is
+ * still the boundary (a deploy or restart drops every conversation, as the
+ * note above accepts); this only makes "one process, one conversation
+ * table" actually true.
+ */
+const threads = ((globalThis as { __fsHelperThreads?: Map<string, { id: string; turns: Turn[]; touched: number }> })
+  .__fsHelperThreads ??= new Map());
 
 /**
  * A name for one conversation — B976.
@@ -287,6 +299,50 @@ export function wrote(username: string, tool: string, facts: Record<string, unkn
  */
 export function refused(username: string, tool: string, error: string): void {
   void recordPress({ owner: username, session: sessionId(username), tool, ok: false, error });
+}
+
+/**
+ * The conversation that is actually live, or `null` — B1168.
+ *
+ * `sessionId()` above answers "which id would a turn land under", minting a
+ * fresh thread to do it; this answers the read-only half — is there a
+ * conversation in progress at all — which is what lets `/agent` resume only
+ * what a next sentence would truly continue, instead of drawing a dead
+ * conversation as though typing would extend it.
+ */
+export function liveSession(username: string): string | null {
+  const thread = threads.get(username);
+  if (!thread || Date.now() - thread.touched >= TTL_MS) return null;
+  return thread.id;
+}
+
+/**
+ * Make a stored conversation the live one — B1168.
+ *
+ * Reopening used to be reading only: the turns were drawn from
+ * `helper_sessions`, and the next sentence extended whatever thread happened
+ * to be in memory, recorded under *its* id — so the continuation of the
+ * conversation on screen landed in the history as a separate one-turn
+ * conversation. Adopting closes that gap: the in-memory thread takes the
+ * stored session's id and its last turns, so what is on screen and what
+ * answers are the same conversation again.
+ *
+ * A no-op when that session is already live — reopening the conversation you
+ * are in must not reset its clock or its turns.
+ */
+export function adopt(
+  username: string,
+  session: string,
+  turns: { said: string | null; answered: string | null }[],
+): void {
+  const thread = threads.get(username);
+  if (thread && thread.id === session && Date.now() - thread.touched < TTL_MS) return;
+  const flat: Turn[] = [];
+  for (const turn of turns) {
+    if (turn.said) flat.push({ role: "user", text: turn.said });
+    if (turn.answered) flat.push({ role: "assistant", text: turn.answered });
+  }
+  threads.set(username, { id: session, turns: trimmed(flat), touched: Date.now() });
 }
 
 /**

@@ -309,24 +309,25 @@ describe("the files column on a journal with nothing waiting", () => {
 });
 
 /**
- * Adding a photograph, not only offering one — B984.
+ * Adding a file, into the inbox — B984 put the picker in the room, B1171
+ * pointed it at the inbox.
  *
- * The wizard was the only page that could put a photograph on a day; the room
- * had a preview and a pane of what was already waiting, and no way to add
- * to it. The picker now lives in the files pane too, aimed at whichever day
- * the conversation is about — and refuses to guess when there is none.
+ * It used to be aimed at whichever day the conversation was about — on a
+ * fresh visit, a months-old draft nobody chose — and offered nothing at all
+ * with no subject. Everything lands in the inbox now, whatever the
+ * conversation is about, so the picker is simply always there.
  */
-describe("adding a photograph from the files pane", () => {
-  test("the picker appears once a day is under discussion", () => {
+describe("adding a file from the files pane", () => {
+  test("the picker is there with a day under discussion", () => {
     const box = render({ trip: "a-trip", slug: "tuesday" });
     expect(box.querySelector('input[type="file"]')).not.toBeNull();
     expect(box.textContent).toContain("Choose files");
   });
 
-  test("with no day under discussion, the pane says so instead of offering a picker", () => {
+  test("and there with no day under discussion too", () => {
     const box = render();
-    expect(box.querySelector('input[type="file"]')).toBeNull();
-    expect(box.textContent).toContain("Say which day you mean first");
+    expect(box.querySelector('input[type="file"]')).not.toBeNull();
+    expect(box.textContent).toContain("Choose files");
   });
 });
 
@@ -480,20 +481,22 @@ describe("the top bar's two icons", () => {
 });
 
 /**
- * The preview's own bottom sheet peeks by itself — B1121, replacing the
- * full-screen dialog a press used to open. A day already under discussion
- * when the room opens (`opening`, from an unfinished draft or `?about=`) is
- * as much "the subject changed" as a turn naming one mid-conversation, so it
- * peeks from the first render rather than waiting for a press.
+ * The preview sheet appears only when asked for — B1170, deleting B1121's
+ * self-peeking two-height sheet. It rose by itself the moment the
+ * conversation named a day, inserted 112px into the layout flow under the
+ * composer, and could never be dismissed back to hidden. Now nothing on the
+ * phone layout appears without a press: a day under discussion on arrival
+ * (`?about=`) feeds the preview panes, and the sheet stays closed until a
+ * turn's own chip opens it.
  */
-test("the preview sheet peeks once a day is under discussion", () => {
+test("a day under discussion does not open the preview sheet by itself", () => {
   const box = render({ trip: "a-trip", slug: "tuesday" });
-  expect(box.querySelector('[role="region"][aria-label="Preview"]')).not.toBeNull();
+  expect(box.querySelector('dialog[aria-label="How it looks"]')).toBeNull();
 });
 
-test("with nothing under discussion yet, the sheet has not appeared", () => {
+test("with nothing under discussion, there is no sheet either", () => {
   const box = render();
-  expect(box.querySelector('[role="region"][aria-label="Preview"]')).toBeNull();
+  expect(box.querySelector('dialog[aria-label="How it looks"]')).toBeNull();
 });
 
 /**
@@ -553,14 +556,11 @@ test("a turn that named a day carries a preview affordance", async () => {
   expect(chip).toBeDefined();
 
   // No `matchMedia` in jsdom — the room reads that defensively and falls back
-  // to the phone's own behaviour, which is the bottom sheet rather than the
-  // dialog it used to be — B1121. The proposal itself already named the day,
-  // so the sheet is peeking (112px) before the chip is even pressed; pressing
-  // it is what expands the sheet the rest of the way.
-  const sheet = () => box.querySelector<HTMLElement>('[role="region"][aria-label="Preview"]')!;
-  expect(sheet().style.height).toBe("112px");
+  // to the phone's own behaviour, which is the modal sheet — B1170. Nothing
+  // is open before the press; pressing the chip is what opens it.
+  expect(box.querySelector('dialog[aria-label="How it looks"]')).toBeNull();
   act(() => chip!.click());
-  expect(sheet().style.height).not.toBe("112px");
+  expect(box.querySelector('dialog[aria-label="How it looks"]')).not.toBeNull();
 });
 
 /**
