@@ -70,6 +70,22 @@ Not doing: rewriting the catch-all to an allow-list of asset paths. It is the
 more thorough answer and a bigger change; respecting the header the server
 already sends fixes the reported fault and the class it belongs to.
 
+## What was done, and the trap in testing it
+
+`mayCache()` in `public/sw.js` reads `Cache-Control` and refuses to store
+anything saying `no-store` or `private`; the notify route now sends
+`private, no-store`; `VERSION` is `v6`, which is what deletes the entries an
+installed worker is already holding.
+
+**The first version of the test passed for the wrong reason**, and it is worth
+recording because the shape recurs. `putRuntime` keeps only responses with
+`type: "basic"`, and a `Response` built in Node has `type: "default"` — so
+nothing was written to the fake cache at all, and both "refuses to keep this"
+assertions were green against a worker with the fix removed. The positive
+control in the same block ("keeps an ordinary public response") is what caught
+it; the fake now hands back an object that says `basic`, and removing
+`mayCache` fails exactly the two tests it should.
+
 ## Acceptance
 
 - With the worker installed and a day already visited, a deploy that changes

@@ -34,9 +34,14 @@ function fakeCaches(entries: Cached[]) {
         : got.pathname + got.search === want.pathname + want.search;
     });
   };
+  /** Every write the worker makes to the shared runtime cache, so a test can
+   *  ask what it decided to keep — B1042. Reads are unchanged. */
+  const written: string[] = [];
   const cache = {
     addAll: async () => {},
-    put: async () => {},
+    put: async (key: { url: string } | string) => {
+      written.push(typeof key === "string" ? key : key.url);
+    },
     keys: async () => held.map((h) => ({ url: h.url })),
     match: async (key: { url: string }) => find(key.url)?.response.clone(),
   };
@@ -70,6 +75,7 @@ function fakeCaches(entries: Cached[]) {
 
   return {
     named,
+    written,
     match: async (request: { url: string } | string, options?: { ignoreSearch?: boolean }) => {
       const url = typeof request === "string" ? new URL(request, "https://journal.test").href : request.url;
       return find(url, options?.ignoreSearch)?.response.clone();
@@ -545,5 +551,100 @@ describe("the signed-in home payload", () => {
     await Promise.all(pending);
 
     expect([...caches.named.keys()]).toContain("personal-aaaa1111");
+  });
+});
+
+
+/**
+ * What the worker is willing to keep — B1042.
+ *
+ * The rule used to be a path test: skip `/api/`, keep everything else. That
+ * held only while every authenticated route lived under `/api/`, and B633 put
+ * one outside it on purpose — the day-notify button is the owner's own cookie
+ * door. Its answer, credit balance included, went into the shared runtime
+ * cache and was served from there for good; the report was "why does the send
+ * dialog show no recipients", because the panel had been rebuilt and the
+ * response it read had not.
+ */
+
+/** A same-origin response as the worker sees one: `type: "basic"`, which a
+ *  `Response` built in Node never is. */
+function basicResponse(headers: Record<string, string>) {
+  const make = (): Record<string, unknown> => ({
+    ok: true,
+    status: 200,
+    type: "basic",
+    headers: new Headers(headers),
+    clone: () => make(),
+  });
+  return make();
+}
+
+describe("what the worker keeps, and what it refuses to keep", () => {
+  async function fetchThrough(url: string, headers: Record<string, string>) {
+    const store = fakeCaches([]);
+    const handlers: Handlers = {};
+    const scope = {
+      self: null as unknown,
+      caches: store,
+      // Not a real `Response`: one built in Node has `type: "default"`, and
+      // `putRuntime` keeps only `basic` — so a plain Response makes every
+      // assertion below pass for the wrong reason. The positive control in
+      // this block is what caught that.
+      fetch: async () => basicResponse(headers),
+      setTimeout,
+      clearTimeout,
+      Response,
+      URL,
+      Promise,
+    };
+    scope.self = {
+      addEventListener: (name: string, fn: (event: unknown) => void) => {
+        handlers[name] = fn;
+      },
+      location: { origin: "https://journal.test" },
+      skipWaiting: () => {},
+      clients: { claim: () => {} },
+      registration: {},
+    };
+    vm.createContext(scope);
+    vm.runInContext(fs.readFileSync(path.join(process.cwd(), "public", "sw.js"), "utf8"), scope);
+
+    const waits: Promise<unknown>[] = [];
+    await new Promise<void>((resolve) => {
+      handlers.fetch({
+        request: { url, method: "GET", mode: "no-cors", headers: { get: () => null } },
+        respondWith: (value: Promise<Response>) => {
+          void Promise.resolve(value).then(() => resolve());
+        },
+        waitUntil: (pending: Promise<unknown>) => waits.push(pending),
+      });
+    });
+    await Promise.all(waits);
+    return store.written;
+  }
+
+  test("keeps an ordinary public response", async () => {
+    const written = await fetchThrough("https://journal.test/alex/media/one.jpg", {
+      "cache-control": "public, max-age=300",
+    });
+    expect(written).toHaveLength(1);
+  });
+
+  test("refuses one marked no-store, whatever its path", async () => {
+    // The exact shape of the day-notify answer: outside `/api/`, so no path
+    // test would have caught it.
+    const written = await fetchThrough(
+      "https://journal.test/alex/trips/alps/day/one/notify",
+      { "cache-control": "private, no-store" },
+    );
+    expect(written).toEqual([]);
+  });
+
+  test("refuses one marked private, which story.json and search-index.json are", async () => {
+    const written = await fetchThrough("https://journal.test/alex/story.json", {
+      "cache-control": "private, max-age=60, stale-while-revalidate=600",
+    });
+    expect(written).toEqual([]);
   });
 });

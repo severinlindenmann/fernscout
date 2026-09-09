@@ -43,7 +43,10 @@
  * only a guess.
  */
 
-const VERSION = "v5";
+// v6 — B1042. The bump is not cosmetic: activation deletes every cache
+// whose name does not end in the current version, and that is what clears
+// the owner-only responses v5 had already stored.
+const VERSION = "v6";
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
 
@@ -134,8 +137,32 @@ async function trimRuntime() {
   );
 }
 
+/**
+ * Whether a response is ours to keep — B1042.
+ *
+ * The worker used to decide this by *path*: anything under `/api/` was left
+ * alone and everything else was fair game. That held only for as long as every
+ * authenticated route lived under `/api/`, and B633 put one outside it
+ * deliberately — the notify button is the owner's own cookie door, not an
+ * agent endpoint. Its answer, credit balance and all, was written into the
+ * shared runtime cache and served from there for good; a person pressing the
+ * button after a deploy was shown the response the previous build had given,
+ * which is how this was found.
+ *
+ * So the test is the header the server already sends. Every owner-only route
+ * under `app/[user]/` says `private, no-store` or `private`, and this now
+ * means what it says — including for `story.json` and `search-index.json`,
+ * which the `.json` branch below had been keeping well past their own
+ * `max-age`. A route added later gets this for free by saying what it is.
+ */
+function mayCache(response) {
+  const control = (response.headers.get("cache-control") || "").toLowerCase();
+  return !control.includes("no-store") && !control.includes("private");
+}
+
 async function putRuntime(request, response) {
   if (!response || !response.ok || response.type !== "basic") return;
+  if (!mayCache(response)) return;
   const cache = await caches.open(RUNTIME);
   await cache.put(request, response);
   await trimRuntime();

@@ -130,6 +130,19 @@ function statusCode(reason: StatusError): number {
   return reason === "unknown_trip" || reason === "unknown_day" ? 404 : 409;
 }
 
+/**
+ * This answer is one owner's, and it carries their balance — B1042.
+ *
+ * The same header every other owner-only route under `app/[user]/` sends, and
+ * it was the only one not sending it. The omission was invisible until the
+ * shape of `pending` changed: the service worker's runtime cache had been
+ * handing back the previous build's answer, and a compatible old shape never
+ * looked wrong on screen. `public/sw.js` now reads this header rather than
+ * guessing from the path, so saying it here is what keeps the response out of
+ * the cache.
+ */
+const PRIVATE = { "Cache-Control": "private, no-store" } as const;
+
 export async function GET(
   request: Request,
   { params }: RouteContext<"/[user]/trips/[trip]/day/[slug]/notify">,
@@ -145,18 +158,24 @@ export async function GET(
 
   const status = await statusFor(user, trip, slug);
   if ("error" in status) {
-    return Response.json({ error: status.error }, { status: statusCode(status.error) });
+    return Response.json(
+      { error: status.error },
+      { status: statusCode(status.error), headers: PRIVATE },
+    );
   }
 
-  return Response.json({
-    ok: true,
-    reachable: status.reachable,
-    alreadySent: status.reachable && status.pending.length === 0,
-    pending: status.pending,
-    needed: status.needed,
-    balance: status.balance,
-    short: status.short,
-  });
+  return Response.json(
+    {
+      ok: true,
+      reachable: status.reachable,
+      alreadySent: status.reachable && status.pending.length === 0,
+      pending: status.pending,
+      needed: status.needed,
+      balance: status.balance,
+      short: status.short,
+    },
+    { headers: PRIVATE },
+  );
 }
 
 export async function POST(
