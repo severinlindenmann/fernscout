@@ -290,6 +290,19 @@ describe("reclaiming a deleted journal's name", () => {
     notice: { lang: "en", title: "Gone", body: "Gone", homeLabel: "Home", homeHref: "/" },
   };
 
+  /**
+   * The tombstone is set aside on a reclaim; nothing else is. A name that
+   * would shadow a route is not the requester's to have merely because they
+   * once held it — and ALWAYS_RESERVED grows, so a name that was fine when
+   * the journal was made may not be by the time it is asked for again.
+   */
+  test("a reclaim still cannot take a name that shadows a route", () => {
+    writeTombstone({ ...RECLAIM_STONE, username: "docs" });
+    const result = make("docs");
+    expect(result).toMatchObject({ ok: false, error: "reserved_username" });
+    expect(getUsernames()).not.toContain("docs");
+  });
+
   test("the owner who deleted it can recreate it under the same name, empty", () => {
     writeTombstone(RECLAIM_STONE);
     const result = make("reclaimed");

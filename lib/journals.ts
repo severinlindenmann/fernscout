@@ -219,12 +219,15 @@ export function createJournal(input: NewJournal): CreateJournalResult {
     reclaimingTombstone = true;
   }
 
-  // Skipped on a reclaim: `isReservedUsername` itself treats
-  // `isDeletedUsername` as reserved (lib/users.ts), which is exactly right
-  // for everybody except the caller the tombstone check above has already
-  // vetted as the owner taking their own name back — asking again here would
-  // refuse the one case this whole change exists for.
-  if (!reclaimingTombstone && isReservedUsername(username)) {
+  // On a reclaim only the *tombstone* reason is set aside — the caller above
+  // has already been vetted as the owner taking their own name back, and
+  // asking again here would refuse the one case this change exists for. The
+  // other reasons still hold against them: a name in ALWAYS_RESERVED would
+  // shadow a route, a name the operator has since added to `users.reserved`
+  // is the operator's call and not undone by having once owned it, and a
+  // server config that will not load still fails closed. Skipping the whole
+  // check would have quietly handed all three away.
+  if (isReservedUsername(username, { ignoreTombstone: reclaimingTombstone })) {
     return {
       ok: false,
       error: "reserved_username",
