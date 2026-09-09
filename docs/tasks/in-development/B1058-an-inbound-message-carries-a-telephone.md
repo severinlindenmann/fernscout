@@ -191,3 +191,36 @@ previously only exercised the B1057 logging placeholder). Pure backend; the
 only visible face is the two chat bubbles the mockup already showed, which
 this build's copy matches in substance if not verbatim (the "yes" prompt was
 deliberately dropped — see above).
+
+## Fixed after a manual security pass — 2026-09-09
+
+The Claude Security orchestrator's `Workflow` tool is unavailable to a
+dispatched worktree subagent, so this branch got a manual review instead of
+the automated multi-agent pipeline, covering auth, tokens, the webhook
+signature, rate limits and the new session field.
+
+- `handleInboundMessage` checked `hasSwitchedOff("whatsapp", username)` —
+  the day-announcements switch — before replying, never the
+  `whatsappInbound` capability this ticket itself says is a separate,
+  per-journal opt-in. Every journal, new or old, defaults to *not* opted
+  in, so a bound number would still get automatic replies from any journal
+  that never asked for the channel at all. Fixed: now checks
+  `isEnabled("whatsappInbound", username)` per journal, with a regression
+  test (`test/whatsapp-binding.test.ts`, "a bound number gets no reply if
+  the journal has not opted into the channel").
+- `GET /api/webhooks/whatsapp`'s handshake compared `hub.verify_token` with
+  a plain `!==` — a timing side channel on a low-value secret, fixed with
+  `crypto.timingSafeEqual`.
+- `lib/registry.ts`'s `telFile()` trusted every caller to have already
+  normalised a number through `toE164` before it became part of a
+  filesystem path. Now refuses anything that is not 1–15 digits at the one
+  choke point every tel-keyed operation goes through; `maskNumber()` (shared
+  by three dry-run file writers, two of which mask an inbound webhook's own
+  attacker-shaped `from` field) now strips non-digits before masking, so a
+  crafted value cannot put a `/` or a `..` into a filename.
+
+Two things found and not fixed here, captured instead: B1127 (no `wa.me`
+entry point exists) and B1138 (the consent disclosure is sent but nothing
+gates on an acknowledgement — flagged already in this file's own "Built"
+section, now with a ticket).
+
