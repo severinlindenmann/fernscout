@@ -274,3 +274,21 @@ live page before putting any of it in front of a person.
   holds here — roughly a third of a rappen a turn, and metering the front door
   costs more in people not daring to knock than it recovers. What changes is
   the brake, above, not the price.
+
+## Corrected — 2026-09-09
+
+The bullet above reading **"The turn stays free"** is wrong and was overtaken
+within the hour. The owner replaced it with a general rule — *any external
+call that costs real money is charged to the journal; only our own compute is
+free* — which applies to the web room as well as this channel. **B1091** is
+that work.
+
+What survives from that bullet is the half that was never about price: the
+brake. `lib/rateLimit.ts` is per-IP and every webhook arrives from Meta's
+single IP, so the limit here must key on the sender's E.164 regardless of what
+a turn costs. A balance is the journal's money, not a defence against somebody
+spending it, so both exist.
+
+This route therefore depends on B1091 rather than merely coexisting with it: a
+turn arriving by webhook has to spend and refund exactly as the web room's
+does, and it must not grow a second copy of that logic.
