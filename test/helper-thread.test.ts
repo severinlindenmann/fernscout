@@ -455,7 +455,9 @@ describe("the tools", () => {
       // B931 — the only way somebody who was not on a trip can ever read it.
       "invite_guest",
       "publish_day",
+      "set_budget",
       "set_day_words",
+      "set_rate",
       "set_visibility",
       "start_day",
       "trip_people",

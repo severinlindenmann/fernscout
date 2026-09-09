@@ -115,11 +115,12 @@ describe("the helper routes", () => {
   // Nineteen since B931 added `invite`, which proposes the guest link that
   // lets somebody who was not on a trip ask to read it. Same cookie, same
   // owner check, and it issues a link and never a grant.
-  // Twenty-two adds the trip's own settings, reached from the conversation
-  // instead of a shell: `trip/visibility`, `trip/people` and `trip/tracks`,
-  // beside the `trip` route's own new PATCH. Same cookie, same owner check.
-  test("there are twenty-two of them, and each is guarded", () => {
-    expect(sources).toHaveLength(22);
+  // Twenty-four, and the last five arrived together: a trip's own settings
+  // reached from the conversation rather than a shell — `trip/visibility`,
+  // `trip/people`, `trip/tracks` and the `trip` route's own new PATCH — beside
+  // `trip/rates` and `trip/budget`. Same cookie, same owner check, every one.
+  test("there are twenty-four of them, and each is guarded", () => {
+    expect(sources).toHaveLength(24);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }
