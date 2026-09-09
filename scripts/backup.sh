@@ -62,7 +62,8 @@
 #                            why that is still an allowlist and not a return
 #                            to subtraction.
 #   env/fernscout.env       $ENV_FILE (default /etc/fernscout/env), with
-#                            RESTIC_PASSWORD stripped — see step 6 below.
+#                            RESTIC_PASSWORD and the AWS_* storage keys
+#                            stripped — see step 6 below.
 #
 # Every top-level entry under DATA_DIR that is none of the above is named on
 # stdout as skipped, on every run — see "Say what else is under DATA_DIR"
@@ -83,7 +84,8 @@
 #                         state lives entirely in the JSON stores instead
 #   CONTENT_DIR           default: <repo>/content
 #   ENV_FILE              default: /etc/fernscout/env — staged as
-#                         env/fernscout.env, RESTIC_PASSWORD stripped
+#                         env/fernscout.env, RESTIC_PASSWORD and the AWS_*
+#                         storage keys stripped
 #   BACKUP_KEEP_DAILY     default: 14 — passed to `restic forget --prune`,
 #                         against BOTH repositories when a secondary is
 #                         configured (B659) — "matching local" is this script
@@ -495,19 +497,40 @@ stage_file "config.json" "$DATA_DIR/config.json" "$STAGING_DIR/config/config.jso
 # --- 5. state/*.json (every other top-level JSON file lib/store.ts owns) ----
 stage_json_stores "$DATA_DIR" "$STAGING_DIR/state"
 
-# --- 6. env/fernscout.env, minus the key to this backup ---------------------
+# --- 6. env/fernscout.env, minus the keys to this backup --------------------
 # Everything needed to rebuild the service travels — DATABASE_URL, SMTP
-# credentials, VAPID keys, FERNSCOUT_ADMIN_EMAIL, the object-storage
-# credentials for RESTIC_REPOSITORY itself — except RESTIC_PASSWORD. A backup
-# that carries the password which decrypts it is no use to somebody holding
-# only the backup, and is a wider blast radius if the repository leaks; that
-# one secret is the operator's to keep elsewhere (docs/runbook.md).
+# credentials, VAPID keys, FERNSCOUT_ADMIN_EMAIL — except the secrets that
+# reach or decrypt the backup itself. A backup that carries its own keys is no
+# use to somebody holding only the backup, and is a wider blast radius if it
+# leaks; those are the operator's to keep elsewhere (docs/runbook.md).
 #
-# `grep -v '^RESTIC_PASSWORD='`, not a substring match: the file is one
-# KEY=value per line, and anchoring on the whole `KEY=` prefix is what stops
-# this from also eating a comment that merely mentions the name, or a
-# neighbouring variable whose value happens to contain the string. A
-# multi-line value would need more care than this — nothing here writes one.
+# What that means, and why it grew (B1158):
+#
+#   RESTIC_PASSWORD        decrypts every snapshot in both repositories.
+#                          Stripped since B653.
+#   AWS_ACCESS_KEY_ID      reach the object storage the repositories sit in,
+#   AWS_SECRET_ACCESS_KEY  and, being full-access at every provider that does
+#                          not offer a narrower key, DELETE from it.
+#
+# The pair used to travel on the reasoning that they are useless without the
+# password. That held while there was one repository and one machine. It stops
+# holding the moment somebody can decrypt a snapshot at all — because what
+# they then find inside it is the credential that empties the off-site copy
+# they would otherwise still have. The escalation is destruction, not
+# disclosure, and it is exactly the failure an off-site copy exists to survive.
+#
+# The cost is small and worth naming: a restored server has no storage keys
+# and takes no backup until somebody puts them back. That is loud rather than
+# silent — restic fails and `/api/health` reports the backup as failing — and
+# it is the same bargain RESTIC_PASSWORD has always been. It costs a restorer
+# nothing they do not already have, either: reaching the bucket to fetch the
+# snapshot needed those keys in the first place.
+#
+# `grep -vE '^(KEY|KEY)='`, not a substring match: the file is one KEY=value
+# per line, and anchoring on the whole `KEY=` prefix is what stops this from
+# also eating a comment that merely mentions the name, or a neighbouring
+# variable whose value happens to contain the string. A multi-line value would
+# need more care than this — nothing here writes one.
 if [[ ! -e "$ENV_FILE" ]]; then
   log "WARNING: env file ($ENV_FILE) does not exist — a restore from tonight's snapshot would have no environment to start the service with"
 elif [[ ! -r "$ENV_FILE" ]]; then
@@ -515,8 +538,8 @@ elif [[ ! -r "$ENV_FILE" ]]; then
   SKIPPED_TOTAL=$(( SKIPPED_TOTAL + 1 ))
 else
   mkdir -p "$STAGING_DIR/env"
-  grep -v '^RESTIC_PASSWORD=' "$ENV_FILE" > "$STAGING_DIR/env/fernscout.env" || true
-  log "staged env file ($ENV_FILE) as env/fernscout.env, RESTIC_PASSWORD stripped"
+  grep -vE '^(RESTIC_PASSWORD|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY)=' "$ENV_FILE" > "$STAGING_DIR/env/fernscout.env" || true
+  log "staged env file ($ENV_FILE) as env/fernscout.env, RESTIC_PASSWORD and the storage keys stripped"
 fi
 
 # --- 7. Say what else is under DATA_DIR, and is not in this backup ---------

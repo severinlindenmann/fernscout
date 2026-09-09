@@ -763,9 +763,12 @@ against losing the machine, because the repository has been sitting on it.
 #    account reaches both. Backblaze B2 and Hetzner Object Storage are both
 #    plausible at this size (the repository here is under 1 GB).
 # 2. Prefer an append-only or write-only application key where the provider
-#    offers one. Since B653 /etc/fernscout/env travels inside the backup
-#    itself, so a key that can delete is a key that can delete the copy an
-#    attacker just found in it.
+#    offers one — but note that expiring an old night needs delete, so a
+#    write-only key means retention has to come from somewhere else (a bucket
+#    lifecycle rule, or a second key kept off this machine). Since B1158 the
+#    AWS_* pair is stripped from the env file before it is staged, so a
+#    snapshot no longer carries the credential that empties the bucket it came
+#    from; a narrower key is defence in depth on top of that, not instead.
 # 3. Add to /etc/fernscout/env — the SAME RESTIC_PASSWORD as the primary,
 #    no second password to keep:
 RESTIC_REPOSITORY_SECONDARY=s3:https://<endpoint>/<bucket>

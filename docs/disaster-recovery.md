@@ -8,19 +8,36 @@ followed is a draft.
 
 ## Before anything: the one thing not in the backup
 
-**`RESTIC_PASSWORD` is deliberately not in the snapshot** (B653). Everything
-else the service needs is — `DATABASE_URL`, `SESSION_SECRET`, the VAPID pair,
+**The keys to the backup are deliberately not in the backup.** Everything else
+the service needs is — `DATABASE_URL`, `SESSION_SECRET`, the VAPID pair,
 `CONTACTS_ENCRYPTION_KEY`, the SMTP credentials, `FERNSCOUT_ADMIN_EMAIL` — all
-of it travels in `env/fernscout.env`. The password that decrypts the
-repository does not, because a backup carrying the key to itself is no use to
-somebody holding only the backup.
+of it travels in `env/fernscout.env`. Three variables do not:
 
-So it lives wherever this instance's operator keeps secrets, and **if it is
-lost, every snapshot is unreadable ciphertext and nothing below is possible.**
-Confirm you have it before you need it:
+| Stripped | Why |
+| --- | --- |
+| `RESTIC_PASSWORD` | decrypts every snapshot in both repositories (B653) |
+| `AWS_ACCESS_KEY_ID` | reaches the object storage they sit in, and — being |
+| `AWS_SECRET_ACCESS_KEY` | full-access at most providers — deletes from it (B1158) |
+
+The password, because a backup carrying the key to itself is no use to
+somebody holding only the backup. The storage pair, because somebody who *can*
+decrypt a snapshot would otherwise find inside it the credential that empties
+the off-site copy they would still have had. That escalation is destruction
+rather than disclosure, and it is precisely what the off-site copy exists to
+survive.
+
+Stripping them costs a restorer nothing they do not already have: reaching the
+bucket to fetch the snapshot needed those keys first. It does mean **a
+restored server takes no backup until they are put back** — loudly, not
+silently: restic fails and `/api/health` reports it.
+
+So all three live wherever this instance's operator keeps secrets, and **if
+`RESTIC_PASSWORD` is lost, every snapshot is unreadable ciphertext and nothing
+below is possible.** Confirm you have them before you need them:
 
 ```bash
-sudo grep ^RESTIC_PASSWORD= /etc/fernscout/env    # while the machine still exists
+# while the machine still exists
+sudo grep -E '^(RESTIC_PASSWORD|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY)=' /etc/fernscout/env
 ```
 
 The other thing worth knowing before the day arrives: on this instance
@@ -62,7 +79,7 @@ db/fernscout.db         the SQLite file and its -wal/-shm, when it is not
 content/                the journals, and originals that exist nowhere else
 config/config.json      the instance config the app reads
 state/<name>.json       reactions, push subscriptions — lib/store.ts's own files
-env/fernscout.env       /etc/fernscout/env, minus RESTIC_PASSWORD
+env/fernscout.env       /etc/fernscout/env, minus RESTIC_PASSWORD and AWS_*
 ```
 
 Not in it, on purpose: the npm cache, sent mail, generated postcards and
@@ -74,9 +91,13 @@ thing silently excluded.
 ## Restoring onto a fresh machine
 
 ```bash
-# 0. Steps 1–5 of the runbook's "First deploy", then put RESTIC_REPOSITORY and
-#    RESTIC_PASSWORD in /etc/fernscout/env by hand. They are all you need to
-#    read the repository; everything else arrives in step 5.
+# 0. Steps 1–5 of the runbook's "First deploy", then put RESTIC_REPOSITORY,
+#    RESTIC_PASSWORD and — where the repository is object storage —
+#    AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in /etc/fernscout/env by
+#    hand. They are all you need to read the repository; everything else
+#    arrives in step 5. Put those same four back afterwards: the restored env
+#    file does not carry them, and without them the new machine takes no
+#    backup.
 set -a; . /etc/fernscout/env; set +a
 
 # 1. Restore. -E carries the restic credentials across sudo.

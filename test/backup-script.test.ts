@@ -471,13 +471,20 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
 
     // /etc/fernscout/env, as a fixture the test points ENV_FILE at rather than
     // ever reading the real file. One variable a restored service would need,
-    // and RESTIC_PASSWORD, which must never survive staging.
+    // and the three that must never survive staging: the password that
+    // decrypts every snapshot, and the storage keys that can delete the
+    // off-site copy (B1158).
     envFile = path.join(scratch, "fake-fernscout-env");
     fs.writeFileSync(
       envFile,
-      ["DATABASE_URL=postgres://fernscout@127.0.0.1:5432/fernscout", "RESTIC_PASSWORD=do-not-back-this-up", "SMTP_HOST=mail.example.invalid", ""].join(
-        "\n",
-      ),
+      [
+        "DATABASE_URL=postgres://fernscout@127.0.0.1:5432/fernscout",
+        "RESTIC_PASSWORD=do-not-back-this-up",
+        "AWS_ACCESS_KEY_ID=do-not-back-up-this-key-id",
+        "AWS_SECRET_ACCESS_KEY=do-not-back-up-this-secret",
+        "SMTP_HOST=mail.example.invalid",
+        "",
+      ].join("\n"),
     );
 
     // Initialised by hand, once, before anything runs — which is exactly what
@@ -550,9 +557,22 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
         expect(run.stdout).toContain("via 'sqlite3 .backup' — transactionally consistent");
       }
 
+      // Everything a restored service needs travels; the keys to the backup
+      // itself do not. Asserted on the values rather than the names, because
+      // what must not leave the machine is the secret, and a `KEY=` line the
+      // strip missed would carry it.
       const stagedEnv = fs.readFileSync(path.join(staged, "env", "fernscout.env"), "utf8");
       expect(stagedEnv).toContain("SMTP_HOST=mail.example.invalid");
+      expect(stagedEnv).toContain("DATABASE_URL=postgres://");
       expect(stagedEnv).not.toContain("RESTIC_PASSWORD");
+      expect(stagedEnv).not.toContain("do-not-back-this-up");
+      // B1158: a snapshot somebody can decrypt must not also hand them the
+      // credential that empties the off-site copy of it.
+      expect(stagedEnv).not.toContain("AWS_ACCESS_KEY_ID");
+      expect(stagedEnv).not.toContain("AWS_SECRET_ACCESS_KEY");
+      expect(stagedEnv).not.toContain("do-not-back-up-this-key-id");
+      expect(stagedEnv).not.toContain("do-not-back-up-this-secret");
+      expect(run.stdout).toContain("RESTIC_PASSWORD and the storage keys stripped");
 
       // The staging directory is scratch, not state: the script's EXIT trap
       // clears it, or the next run's `rm -rf` would be doing it blind.
