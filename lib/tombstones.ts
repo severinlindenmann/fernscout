@@ -129,3 +129,26 @@ export function writeTombstone(stone: Tombstone): void {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(stone, null, 2) + "\n", "utf8");
 }
+
+/**
+ * Remove a journal's tombstone — B92. The one case this is for is the owner
+ * who deleted their own journal reclaiming its name: once `createJournal` has
+ * actually written the config back, the reservation has done its job and
+ * ought to stop matching, or `journalTombstone`/`isDeletedUsername` would keep
+ * calling a live journal deleted and `proxy.ts` would keep answering `410` on
+ * a name that resolves again.
+ *
+ * `unlink` rather than a read-modify-write: there is nothing to keep, the
+ * whole record is superseded by the journal now existing again. Missing is
+ * not an error — a caller that already consumed the tombstone, or one racing
+ * an operator's manual `rm`, should not throw over it.
+ */
+export function clearTombstone(username: string): void {
+  const file = journalPath(username);
+  if (!file) return;
+  try {
+    fs.unlinkSync(file);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+  }
+}

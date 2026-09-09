@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { NextRequest } from "next/server";
+import proxy from "@/proxy";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache, getUser, getUsernames, userExists } from "@/lib/users";
 import { createJournal, journalsOwnedBy, MAX_JOURNALS_PER_EMAIL, sendWelcome } from "@/lib/journals";
@@ -11,6 +13,7 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { instanceDocumentation } from "@/lib/api/documentation";
 import { createTrip } from "@/lib/tripWrite";
 import { getTrip, getTrips, KNOWN_TRIP_FIELDS } from "@/lib/trips";
+import { isDeletedUsername, writeTombstone } from "@/lib/tombstones";
 
 /**
  * Creating a journal and a trip over the API.
@@ -267,7 +270,89 @@ describe("creating a journal", () => {
     expect(tooMany.next).toContain("/api/auth/request");
     expect(tooMany.next).toContain("journal-0");
   });
+});
 
+/**
+ * B92 — reclaiming a name after deleting the journal that had it.
+ *
+ * `writeTombstone` stands in for a real deletion (exercised end to end in
+ * test/deletions.test.ts) so these can put a tombstone down for whichever
+ * address a case needs without running the whole delete-and-confirm flow.
+ */
+describe("reclaiming a deleted journal's name", () => {
+  const RECLAIM_STONE = {
+    kind: "journal" as const,
+    username: "reclaimed",
+    title: "The old journal",
+    deletedAt: "2026-01-01T00:00:00.000Z",
+    requestedBy: OWNER,
+    held: { files: 0, bytes: 0 },
+    notice: { lang: "en", title: "Gone", body: "Gone", homeLabel: "Home", homeHref: "/" },
+  };
+
+  test("the owner who deleted it can recreate it under the same name, empty", () => {
+    writeTombstone(RECLAIM_STONE);
+    const result = make("reclaimed");
+    expect(result).toMatchObject({ ok: true, username: "reclaimed" });
+    expect(getTrips("reclaimed")).toEqual([]);
+  });
+
+  test("a different address is still refused, with the same wording a stranger has always read", () => {
+    writeTombstone(RECLAIM_STONE);
+    const byStranger = createJournal({
+      username: "reclaimed",
+      title: "Somebody else's",
+      ownerEmail: "stranger@example.test",
+      ownerName: "Stranger",
+      ownerNickname: "Stranger",
+    });
+    expect(byStranger.ok).toBe(false);
+    if (byStranger.ok) return;
+    expect(byStranger.error).toBe("deleted_username");
+    // The generic sentence, unchanged — nothing here says this address once
+    // owned the name, or that anybody in particular did. Byte-identical to
+    // what a stranger reads for a tombstoned name with no reclaim in play.
+    expect(byStranger).toEqual({
+      ok: false,
+      error: "deleted_username",
+      message:
+        `"reclaimed" belonged to a journal that was deleted on 2026-01-01, and this server ` +
+        `does not hand a name back. Every old link and bookmark still points at it, and they ` +
+        `must not resolve to somebody else's journal. Pick another name.`,
+    });
+    expect(getUser("reclaimed")).toBeNull();
+  });
+
+  test("an address that still owns a live journal cannot use a stray tombstone for a second", () => {
+    expect(make("kept").ok).toBe(true);
+    writeTombstone(RECLAIM_STONE);
+
+    const attempt = make("reclaimed");
+    expect(attempt.ok).toBe(false);
+    if (attempt.ok) return;
+    expect(attempt.error).toBe("deleted_username");
+    expect(getUser("reclaimed")).toBeNull();
+    // Still owns exactly the one journal it started with — the tombstone
+    // bought it nothing.
+    expect(journalsOwnedBy(OWNER)).toEqual(["kept"]);
+
+    // The tombstone still stands: it was never consumed by a refusal.
+    expect(isDeletedUsername("reclaimed")).toBe(true);
+  });
+
+  test("after a successful reclaim the tombstone is gone and the 410 stops firing", () => {
+    writeTombstone(RECLAIM_STONE);
+    expect(isDeletedUsername("reclaimed")).toBe(true);
+
+    expect(make("reclaimed").ok).toBe(true);
+
+    expect(isDeletedUsername("reclaimed")).toBe(false);
+    const response = proxy(new NextRequest(new Request("https://t.test/reclaimed")));
+    expect(response?.status).not.toBe(410);
+  });
+});
+
+describe("creating a journal, continued", () => {
   test("the cap counts by address, case-insensitively", () => {
     make("one");
     expect(journalsOwnedBy("OWNER@Example.TEST")).toEqual(["one"]);
