@@ -194,6 +194,21 @@ than no button.
 Persist the picks to `localStorage` under a versioned key. Somebody working
 through forty tickets will reload the page.
 
+**And prune what you restore to what the page actually shows.** Republishing
+keeps the URL and therefore the key, so a pick can outlive the row it was made
+on — a ticket that got re-planned, dropped, or moved out of the batch. If the
+enable condition on the build button counts answers against rows, a stale pick
+for a vanished row means it wants an answer nobody can give and never unlocks.
+It presents as a button that is disabled while every counter on the bar reads
+full, which tells the person nothing.
+
+```js
+const live = new Set([...document.querySelectorAll(".ticket")].map(el => el.dataset.id));
+for (const k of Object.keys(picks)) if (!live.has(k)) delete picks[k];
+```
+
+Do it before the first paint, not on save.
+
 ## Step 7 — hand it over
 
 Give them the URL, then three or four sentences of the things the page cannot
