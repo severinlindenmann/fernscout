@@ -115,8 +115,13 @@ describe("the helper routes", () => {
   // Nineteen since B931 added `invite`, which proposes the guest link that
   // lets somebody who was not on a trip ask to read it. Same cookie, same
   // owner check, and it issues a link and never a grant.
-  test("there are nineteen of them, and each is guarded", () => {
-    expect(sources).toHaveLength(19);
+  // Twenty-two since B1051 added three: `invite/revoke` takes one of those
+  // links back, `day/tell-readers` is the one door onto both `send-mail` and
+  // `send-whatsapp`, and `channels` is the two switches that decide whether
+  // either can send anything at all. Same cookie, same owner check, on all
+  // three.
+  test("there are twenty-two of them, and each is guarded", () => {
+    expect(sources).toHaveLength(22);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }
