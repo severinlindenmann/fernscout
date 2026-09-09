@@ -653,12 +653,15 @@ npm run tasks -- claim B01          # say you are on it, without moving it
 npm run tasks -- tidy               # re-file into the category folders
 ```
 
-**The two lanes that accumulate are filed into category folders.** `backlog/`
-and `testing/` hold their tasks one level down — `security/`, `issue/`,
-`big-feature/`, `small-feature/`, `chore/`, `ops/`, `docs-and-skills/`,
-`superseded/` — because a flat directory of a hundred and twenty is one nobody
-reads to the bottom of. The other three lanes stay flat: they are transient,
-and three more decisions per lane move would buy nothing.
+**The lane that accumulates is filed into category folders.** `backlog/`
+holds its tasks one level down — `security/`, `issue/`, `big-feature/`,
+`small-feature/`, `chore/`, `ops/`, `docs-and-skills/`, `superseded/`,
+`wont-do/` — because a flat directory of a hundred and twenty is one nobody
+reads to the bottom of. `testing/` used to as well, until B1110: what a
+person now reviews from is the run report, not a browse through
+`testing/security/`, so a ticket landing there is filed flat. The other
+lanes stay flat too: they are transient, and more decisions per lane move
+would buy nothing.
 
 **You never choose the folder.** It is derived from `type` and `complexity`,
 the same way the status is derived from the lane and for the same reason — a

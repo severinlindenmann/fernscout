@@ -11,12 +11,13 @@ dev server — because the whole point is to catch what only production has:
 content that never got deployed, systemd units that stayed in git, real SMTP
 meeting a real mail scanner.
 
-The lane is filed into category folders — `security/`, `issue/`,
-`docs-and-skills/` and the rest — so read it with `npm run tasks`, which lists
-them grouped, rather than `ls docs/tasks/testing/`, which now shows eight
-directories and no tickets. The categories are a good grain for clustering:
-`docs-and-skills/` is read on the site with a browser and `security/` is
-probed with `curl`, and a subagent handed one kind at a time carries less.
+The lane is flat (since B1110 — what a person reviews a finished batch from
+is the run report, not a browse through category folders), so read it with
+`npm run tasks`, which lists what is waiting, or `ls docs/tasks/testing/`.
+Cluster tickets by `type` yourself when handing batches to subagents:
+something read on the site with a browser and something probed with `curl`
+are different kinds of work, and a subagent handed one kind at a time carries
+less, even without a folder to sort them into.
 
 **One subagent per ticket, three in flight, spawn a replacement as each
 finishes.** A ticket is a self-contained question; a fresh agent per ticket
