@@ -113,3 +113,70 @@ Answered by the owner, walking the question book:
   attempt-limited code with the same TTL as any other (not a fixed string),
   and the journal must still be named `test-<something>` per AGENTS.md, so it
   is deletable by anybody who finds it later.
+
+## The mechanism is back in question — 2026-09-09
+
+Researched after seven.io refused. Two things changed since the owner chose
+SMS over the free WhatsApp-inbound proof, and together they are enough to put
+the choice back in front of him.
+
+### 1 · The gate is structural, not a seven.io quirk
+
+Direct carrier aggregators sell to *traders*, and a solo operator without a
+Handelsregister entry is the awkward case. **A CPaaS reseller is the way past
+it**: Twilio, Vonage and Sinch have already done the carrier KYC in every EU
+market, and a customer rents that relationship rather than establishing one.
+That is plausibly the actual fix for SMS, and it is self-serve.
+
+**Twilio Verify is the specific candidate, and it removes two problems at
+once.** Roughly **$0.05 per successful verification plus the channel cost**,
+self-serve with a free trial. Crucially it **manages the sender itself** — so
+there is no alphanumeric sender id to register, which means:
+
+- the **Austrian registration deadline stops applying**; and
+- Twilio's own rule that alphanumeric senders are blocked on trial accounts
+  stops mattering.
+
+*Both of those need confirming against Twilio Verify's own documentation
+rather than inferred from the sender-id rules for raw Programmable SMS — but
+if they hold, most of the friction in this ticket disappears.*
+
+It also has built-in **SMS → voice fallback**, which covers the A2P-filtering
+failure mode that B1067 recorded as a reason not to build voice separately.
+
+### 2 · The exclusion figure is now known
+
+WhatsApp penetration among messaging-app users: **Switzerland ~95.9%, Germany
+~95.5%, Austria ~94.4%**. Hungary unconfirmed, regionally high. So a
+WhatsApp-only proof excludes roughly **4–6%**, *"concentrated
+disproportionately in older cohorts."*
+
+**That last clause is the whole argument for this product, and no external
+research would have known it.** AGENTS.md opens its account of the honesty
+guards with a 71-year-old who was told *"Der Text ist gespeichert"* when
+nothing had been written. The machinery in `lib/helper/model.ts` exists
+because of her. A signup that quietly excludes the demographic she belongs to
+is not a neutral 5% — it is 5% taken disproportionately from the people this
+product was built to reach.
+
+So *"everyone has WhatsApp"* is exactly the assumption this codebase is least
+entitled to make.
+
+### What this means for the ticket
+
+Three shapes, and the owner picks:
+
+1. **SMS via a CPaaS reseller** (Twilio Verify). Keeps the Q3 decision intact
+   and fixes the reason it failed. Costs about €25–50 a year at this volume,
+   and adds no exclusion.
+2. **WhatsApp inbound primary, SMS fallback.** Cheapest for the 95%, and the
+   5% still get in. Two paths to build and to explain, and the fallback is
+   the one that gets least testing precisely because it is rare — which is
+   how it will be broken when somebody's mother needs it.
+3. **WhatsApp inbound only.** Free, no provider at all, and it accepts the
+   exclusion above. Genuinely the laziest option, and the one I would not
+   take for this product.
+
+`toE164` and the `login_codes` machinery are unaffected by all three. What
+changes is which transport module gets written, and whether one gets written
+at all.
