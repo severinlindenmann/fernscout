@@ -91,7 +91,7 @@ export default function DayNotify({
 
   if (status.short) {
     return (
-      <p className="col-span-full text-xs text-coral-700">
+      <p className="col-span-full text-xs text-coral-600">
         {t("notify.short", {
           needed: String(status.needed),
           balance: formatCredits(status.balance ?? 0),
@@ -230,7 +230,7 @@ export default function DayNotify({
             {t("notify.cancel")}
           </BusyButton>
         </div>
-        {error && <p className="mt-2 text-xs text-coral-700">{error}</p>}
+        {error && <p className="mt-2 text-xs text-coral-600">{error}</p>}
       </div>
     );
   }
@@ -244,7 +244,7 @@ export default function DayNotify({
       >
         {t("notify.button")}
       </button>
-      {error && <p className="text-xs text-coral-700">{error}</p>}
+      {error && <p className="text-xs text-coral-600">{error}</p>}
     </div>
   );
 }

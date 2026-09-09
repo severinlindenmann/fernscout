@@ -567,11 +567,13 @@ export default function RecordButton({
             compactClassName ?? "absolute right-2 top-2 h-11 w-11 border"
           } flex items-center justify-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-navy-500 focus-visible:outline-none disabled:opacity-50 ${
             recording
-              // Colours that exist — B1004. `bg-coral-100` and
-              // `text-coral-700` are in no palette this project has
-              // (app/globals.css stops at coral-300/400/600), so while it was
-              // recording the compact button was drawn exactly as it is when
-              // it is not: the one state this control has to show, invisible.
+              // Colours that exist — B1004. This used a coral-100 background
+              // and coral-700 text when neither was in the palette, so while
+              // it was recording the compact button was drawn exactly as it is
+              // when it is not: the one state this control has to show,
+              // invisible. B1035 has since given coral-100 a value, but these
+              // stay as they are — coral-300/30 over coral-600 is the pair
+              // that was actually looked at and chosen.
               ? "border-coral-400 bg-coral-300/30 text-coral-600"
               : "border-navy-300 text-navy-700"
           }`}

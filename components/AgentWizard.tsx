@@ -1654,7 +1654,7 @@ export default function AgentWizard({
                         busy={busy}
                         type="button"
                         onClick={() => setRemoving(item.src)}
-                        className="min-h-11 text-sm font-semibold text-coral-700 underline underline-offset-4 disabled:opacity-50"
+                        className="min-h-11 text-sm font-semibold text-coral-600 underline underline-offset-4 disabled:opacity-50"
                       >
                         {t("agent.photoRemove")}
                       </BusyButton>

@@ -34,6 +34,15 @@
     simply no longer the token that carries the smallest words on the page.
   */
   --color-navy-900: #1e293b;
+  /* One quarter of the way from navy-900 toward navy-700 — the ramp had a
+     gap here too (B1035, the sibling gap B757 left behind): `navy-800` was
+     used across 27 files (`bg-`, `border-`, `ring-`, `outline-`, `text-`)
+     with nothing backing it, and Tailwind emitted no rule for an
+     unresolvable colour utility, so the affected elements silently kept
+     whatever colour they inherited. Sits close to navy-900 rather than at
+     the midpoint because 700/800/900 are compressed together at this end of
+     this non-linear ramp. */
+  --color-navy-800: #253145;
   --color-navy-700: #3a4a63;
   --color-navy-600: #44546c;
   /* Dark enough for AA on cream-100 too, which #64748b was not (4.33:1). */
@@ -44,6 +53,14 @@
      silently rendered in `currentColor` instead of a hairline. */
   --color-navy-300: #aeb7c5;
   --color-navy-200: #d8dee8;
+  /* Midpoint of navy-500 and navy-300 — same gap, found alongside navy-800
+     while widening test/undefined-color-tokens.test.ts for B1035:
+     `text-navy-400`/`hover:text-navy-400` had nothing behind it either. */
+  --color-navy-400: #8490a2;
+  /* navy-200 mixed halfway/four-fifths to white — hairline borders and a
+     faint fill lighter than navy-200 had, found the same way. */
+  --color-navy-100: #eceef4;
+  --color-navy-50: #f7f8fa;
 
   --color-sky-300: #8fe0ef;
   --color-sky-400: #5ec8dc;
@@ -58,6 +75,11 @@
   --color-green-500: #22c55e;
   --color-green-700: #15803d;
 
+  /* coral-300 mixed toward white — found alongside navy-800 while widening
+     test/undefined-color-tokens.test.ts for B1035: a badge background and
+     a hover fill had nothing behind them. */
+  --color-coral-50: #fdedf1;
+  --color-coral-100: #fbdce4;
   --color-coral-300: #f6a7bb;
   --color-coral-400: #f06a8a;
   /* The text-safe coral. coral-400 is fill-only. */
@@ -86,11 +108,15 @@
   --color-cream-200: var(--color-cream-200);
 
   --color-navy-900: var(--color-navy-900);
+  --color-navy-800: var(--color-navy-800);
   --color-navy-700: var(--color-navy-700);
   --color-navy-600: var(--color-navy-600);
   --color-navy-500: var(--color-navy-500);
+  --color-navy-400: var(--color-navy-400);
   --color-navy-300: var(--color-navy-300);
   --color-navy-200: var(--color-navy-200);
+  --color-navy-100: var(--color-navy-100);
+  --color-navy-50: var(--color-navy-50);
 
   --color-sky-300: var(--color-sky-300);
   --color-sky-400: var(--color-sky-400);
@@ -105,6 +131,8 @@
   --color-green-500: var(--color-green-500);
   --color-green-700: var(--color-green-700);
 
+  --color-coral-50: var(--color-coral-50);
+  --color-coral-100: var(--color-coral-100);
   --color-coral-300: var(--color-coral-300);
   --color-coral-400: var(--color-coral-400);
   --color-coral-600: var(--color-coral-600);

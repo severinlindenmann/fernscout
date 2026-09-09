@@ -1034,7 +1034,7 @@ function Helper({ stats }: { stats: SessionStats[] }) {
               {stat.readable ? "" : " · words not shared"}
             </p>
             {stat.guards.length > 0 && (
-              <p className="mt-0.5 font-mono text-xs text-coral-700">
+              <p className="mt-0.5 font-mono text-xs text-coral-600">
                 {stat.guards.map((one) => `${one.guard} ${one.count}`).join(" · ")}
               </p>
             )}
