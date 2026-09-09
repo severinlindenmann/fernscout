@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: photobook, gelato
 found: "2026-09-09T18:10:00Z"
+started: "2026-09-09T18:04:54Z"
+session: ce87fdc2-3f66-428c-90d3-ae9d8df84e40
+claimed: "2026-09-09T18:04:54Z"
 ---
 
 # B1126 — A book is sent to Gelato with a country name where it requires an ISO code
