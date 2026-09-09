@@ -272,7 +272,7 @@ Do not edit them by hand; run the script.
 | [B1115](open/B1115-a-brief-can-say-a-ticket.md) | A brief can say a ticket is dropped or live, and B1058 is neither | DOCS | high | low |
 | [B994](open/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium |
 
-## in-development (18)
+## in-development (19)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -284,6 +284,7 @@ Do not edit them by hand; run the script.
 | [B1062](in-development/B1062-there-is-still-no-way-out.md) | There is still no way out of the WhatsApp channel from inside WhatsApp | FEATURE | high | medium | `e910c430` |
 | [B1063](in-development/B1063-the-imprint-does-not-say-that.md) | The imprint does not say that a message sent to the WhatsApp number is read, stored and sent to Meta | DOCS | high | low | `e910c430` |
 | [B1172](in-development/B1172-photographs-go-into-the-book-at.md) | Photographs go into the book at camera resolution, so the printer cannot render it | ISSUE | high | medium | `ce87fdc2` |
+| [B1182](in-development/B1182-a-phone-with-nothing-uploaded-yet.md) | A phone with nothing uploaded yet has no way to upload anything | ISSUE | high | low | `b9809a36` |
 | [B1060](in-development/B1060-a-voice-note-sent-over-whatsapp.md) | A voice note sent over WhatsApp has no route to the transcriber that already exists | FEATURE | medium | low | `e910c430` |
 | [B1068](in-development/B1068-an-agent-that-brings-its-own.md) | An agent that brings its own model cannot write a day from notes, caption a photograph, or hear a voice note | FEATURE | medium | high | `e910c430` |
 | [B1074](in-development/B1074-a-location-pin-and-a-shared.md) | A location pin and a shared contact card arrive as text and become nothing | FEATURE | medium | medium | `e910c430` |
