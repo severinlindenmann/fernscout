@@ -35,6 +35,7 @@ import { renderForWhatsapp } from "./render";
 import { balanceRefusal } from "./refusal";
 import { sendOutboundReply, sendServiceReply } from "./reply";
 import { clearPendingSpeechAsk, hasPendingSpeechAsk, markPendingSpeechAsk } from "./speechConsent";
+import { contactFor, isStopWord, stopReplyFor } from "./stop";
 import { hasBeenTold, markTold } from "./toldOnce";
 import { markInbound } from "./window";
 import type { InboundMessage } from "./inbound";
@@ -80,6 +81,28 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
   const username = journalForNumber(message.from);
 
   if (!username) {
+    /**
+     * "STOP" from a reader — B1062, superseding B386. Not the owner (this
+     * number would already be bound if it were), so the only person this
+     * could be is a guest or a reader of *somebody's* journal. Gated on
+     * `whatsappInbound` for the journal the number belongs to, same as every
+     * other reply on this channel — otherwise treated as an ordinary
+     * stranger. A buddy is unreachable by this scan (buddies are not in
+     * `listContacts`, which is the guest/reader table) and falls through to
+     * the ordinary stranger sentence below, which is the owner's own
+     * "ignore it" for anyone this number could plausibly be other than a
+     * reader.
+     */
+    if (message.kind === "text" && isStopWord(message.body)) {
+      const found = await contactFor(message.from);
+      if (found && isEnabled("whatsappInbound", found.username)) {
+        const url = stopReplyFor(found.username, found.contactId);
+        await sendServiceReply(message.from, translateIn(found.locale, "wa.stopReply", { url }), null);
+        console.log(`[whatsapp:inbound] STOP from ${maskNumber(message.from)}, matched to ${found.username}'s contacts`);
+        return;
+      }
+    }
+
     const site = serverSite();
     // No journal to pick a locale from — a stranger's number binds to
     // nothing, and there is no `Accept-Language` on a webhook delivery.

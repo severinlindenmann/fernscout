@@ -2013,5 +2013,6 @@
   "wa.locationNoTrip": "Ez a helyzet erre a napra vonatkozik: {date}, de nem találok olyan utazást, ami ezt a dátumot lefedi. Mondd meg, melyik utazáshoz tartozik.",
   "wa.locationIncomplete": "Megvan a helyzeted, de {title} még többet igényel, mielőtt elkezdhetnék egy napot — mesélj róla szavakkal, és megpróbálom újra.",
   "wa.contactNeedsEmail": "Szükségem lenne {name} e-mail címére a meghíváshoz — ezen a névjegykártyán nem volt. Küldd el újra e-mail címmel, vagy mondd meg nekem.",
-  "wa.contactInviteMade": "Megkaptam {name} adatait. Készítettem egy meghívó linket — küldd el te magad, innen vagy ahogy el tudod érni:\n\n{url}\n\nMeg kell nyitniuk, és meg kell erősíteniük a saját e-mail címüket, mielőtt bármi történne."
+  "wa.contactInviteMade": "Megkaptam {name} adatait. Készítettem egy meghívó linket — küldd el te magad, innen vagy ahogy el tudod érni:\n\n{url}\n\nMeg kell nyitniuk, és meg kell erősíteniük a saját e-mail címüket, mielőtt bármi történne.",
+  "wa.stopReply": "Leiratkoztál ennek a naplónak az üzeneteiről. Ha ez tévedés volt, vagy szeretnéd megváltoztatni, mit kapsz, használd ezt a linket: {url}"
 }

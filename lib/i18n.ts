@@ -2065,6 +2065,7 @@ export type TranslationKey =
   | "wa.mediaTip"
   | "wa.speechConsentAsk"
   | "wa.speechConsentGranted"
+  | "wa.stopReply"
   | "wa.strangerReply"
   | "wa.transcriptEcho"
   | "wa.videoNotSupported"
