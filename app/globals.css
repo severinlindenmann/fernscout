@@ -270,9 +270,51 @@ body {
   .fs-weather-fall,
   .fs-weather-spin,
   .fs-weather-pulse,
-  .fs-weather-flash {
+  .fs-weather-flash,
+  .fs-assemble-in,
+  .fs-waymark-bounce {
     animation: none;
   }
+}
+
+/*
+ * The wait between a sentence and an answer — B1124. Two states, and this is
+ * both of them: a card's own pieces arriving in the order they will be read
+ * (used when the next block is already known to be a proposal), and three
+ * waymark lozenges — the mark itself, not a spinner — for every other wait.
+ * `animation: none` above is the whole of `prefers-reduced-motion` for both:
+ * with no animation each piece sits at its own resting state, which for
+ * `fs-assemble-in` is fully visible (nothing here sets an inline opacity, so
+ * "no animation" means "always shown") and for `fs-waymark-bounce` is simply
+ * still.
+ */
+@keyframes fs-assemble-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fs-waymark-bounce {
+  0%,
+  80%,
+  100% {
+    opacity: 0.5;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+.fs-assemble-in {
+  animation: fs-assemble-in 0.3s ease-out both;
+}
+.fs-waymark-bounce {
+  animation: fs-waymark-bounce 1s ease-in-out infinite;
 }
 
 /* Scrollable, but without the bar — used where the container is obviously
