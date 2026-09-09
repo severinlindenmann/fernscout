@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: helper
 found: "2026-09-09T22:34:29Z"
+started: "2026-09-09T22:44:19Z"
+session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
+claimed: "2026-09-09T22:44:19Z"
 ---
 
 # B1198 — Six exchanges of memory runs out mid-sitting and reads as malfunction
@@ -23,10 +26,11 @@ trades against.
 
 ## Work
 
-Decide the budget together with B1053 rather than nudging the constant
-alone: grouping tools frees the tokens a longer window costs. Until then,
-consider raising MAX_TURNS moderately (e.g. 20) and softening the FORGOT
-sentence to invite re-asking rather than announcing loss.
+(As built, 2026-09-10:) MAX_TURNS 12 → 16 (eight exchanges clears a real
+sitting) and the FORGOT note now tells the model to ask for a missing
+detail in a word or two and never to announce a memory problem
+unprompted. The structural half — winning the token budget back by
+grouping tools — stays with B1053 and is deliberately not attempted here.
 
 ## Acceptance
 
