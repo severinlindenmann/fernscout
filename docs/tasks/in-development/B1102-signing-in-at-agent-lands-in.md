@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: components/AgentDoor.tsx, app/agent/[user]
 found: "2026-09-09T16:19:31Z"
+started: "2026-09-09T17:49:39Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-09T17:49:39Z"
 ---
 
 # B1102 — Signing in at /agent lands in the six-step wizard, not the room B984 made the whole of it

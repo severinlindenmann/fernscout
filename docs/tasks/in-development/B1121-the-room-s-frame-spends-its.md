@@ -6,6 +6,9 @@ priority: high
 complexity: high
 area: components/HelperRoom.tsx
 found: "2026-09-09T17:45:57Z"
+started: "2026-09-09T17:49:37Z"
+session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
+claimed: "2026-09-09T17:49:37Z"
 ---
 
 # B1121 — The room's frame spends its top bar on two sentences and has no history, no new conversation and a cramped preview
