@@ -706,7 +706,7 @@ export const TOOLS: readonly Tool[] = [
     kind: "read",
     renders: "say",
     describe:
-      "Who may read a trip: public, guest (journal contacts) or private (only who was there); advertised or not; how many are named.",
+      "Who may read a trip: public (everybody), guest (everybody let into this journal) or private (only the people who were there); advertised or not; how many are named.",
     properties: TRIP_ARG,
     run: async (username, args) => {
       const trip = resolveTrip(username, args.trip);
