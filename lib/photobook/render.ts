@@ -853,7 +853,54 @@ export function renderVolume(
   const { images, missing } = loadAll(volume, options);
   const builder = new PdfBuilder(options.document ?? {});
   for (const page of volume.pages) drawPage(builder, page, spec, options, images);
+  addEndLeaves(builder, spec);
   return { pdf: builder.build(), pages: volume.pages.length, missing };
+}
+
+/**
+ * The two blank leaves Gelato counts and we did not draw — B1173.
+ *
+ * Their prepress refuses a book whose files do not total `pageCount + 3`, and
+ * says so exactly:
+ *
+ * ```
+ * sent 46  →  counted 47 (46 + our 1 cover page), required 49
+ * sent 42  →  counted 43 (42 + our 1 cover page), required 45
+ * ```
+ *
+ * Measured twice against the live API, and confirmed from the other side: with
+ * `pageCount: 40` and those same 43 pages, prepress said nothing about the
+ * files at all. Their own downloadable template agrees — 31 pages for the
+ * 28-page product, being one cover page and thirty interior ones
+ * (`docs/providers/gelato-templates/README.md`).
+ *
+ * So the interior carries **two more pages than the book has**, and `pages` is
+ * deliberately still `volume.pages.length`: that is the number quoted, charged
+ * and declared, and the leaves are not pages of the book.
+ *
+ * **They go at the end**, which is a decision and not an obvious one. Putting
+ * one at the front would move every page onto the other side of its leaf, and
+ * a spread the planner paired would print across a turn. The end is the only
+ * placement that leaves the book it laid out untouched.
+ *
+ * No draft order can catch a change here: prepress does not run on
+ * `orderType: "draft"`, which is why this survived every order before the
+ * first real one.
+ */
+const END_LEAVES = 2;
+
+function addEndLeaves(builder: PdfBuilder, spec: BookSpec): void {
+  const media = pageMediaBoxMm(spec);
+  for (let i = 0; i < END_LEAVES; i++) {
+    // Same media and the same whole-page TrimBox as every other interior page
+    // — a leaf of a different size is a leaf the binder has to guess about.
+    builder.addPage(mm(media.width), mm(media.height), {
+      x: 0,
+      y: 0,
+      width: mm(media.width),
+      height: mm(media.height),
+    });
+  }
 }
 
 /**
