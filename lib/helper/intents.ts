@@ -74,9 +74,16 @@ export type Refusal = {
  * So the words that mean *take it off the site* now reach the conversation,
  * and the words that mean *destroy it* still do not — the split is the point,
  * and it is the same split B816 made when it built a takedown that is not a
- * delete. **There is no delete tool and no postcard send tool**, so a sentence
- * matched below has nowhere to land at all; that is why these are answers
- * rather than errors.
+ * delete. **There is no delete tool**, so a sentence matched below has
+ * nowhere to land at all; that is why these are answers rather than errors.
+ *
+ * Postcards used to be a third row here, on the same reasoning: there was no
+ * tool for them either. There is now — `propose_postcards` in
+ * `lib/helper/tools/areas/printed.ts` writes a real, pending order — so a
+ * sentence naming one reaches the conversation like any other, and the row
+ * that used to intercept it is gone. What stays true, and is the tool's own
+ * job to say, is that pressing still happens on the owner's own postcards
+ * page and never here.
  *
  * ## The floor B914 put back, and the one case it covers
  *
@@ -143,11 +150,6 @@ const REFUSALS: readonly Refusal[] = [
     match:
       /^(?=[\s\S]*(\bpublish|veröffentlich|publizier|közzé|publikál|\b(put|stell)[\s\S]*\bonline\b))(?=[\s\S]*(\b(all|everything|the lot|the whole (lot|journal|trip))\b|\balles?\b|sämtlich|\bmindet\b|\bmindent\b|\bmindegyik\b|összes))/i,
     key: "agent.askRefusePublishAll",
-  },
-  {
-    name: "postcard",
-    match: /\bpostcards?\b|postkarte|ansichtskarte|képeslap|levelezőlap/i,
-    key: "agent.askRefusePostcard",
   },
 ];
 

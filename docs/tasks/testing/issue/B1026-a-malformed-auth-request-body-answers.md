@@ -7,8 +7,7 @@ complexity: low
 area: auth, api
 found: "2026-09-08T19:48:47Z"
 started: "2026-09-09T06:09:46Z"
-session: f88144a1-6520-4fc1-94bd-496a694b98c8
-claimed: "2026-09-09T06:09:46Z"
+merged: "2026-09-09T07:06:24Z"
 ---
 
 # B1026 — A malformed auth/request body answers the same 202 as an unrecognised address

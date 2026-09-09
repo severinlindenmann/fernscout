@@ -7,8 +7,7 @@ complexity: low
 area: postcards, agent guide
 found: "2026-09-05T10:12:31Z"
 started: "2026-09-09T05:44:40Z"
-session: eef381a2-5a19-477a-a5ce-5f4f2d3dacab
-claimed: "2026-09-09T05:44:40Z"
+merged: "2026-09-09T07:05:50Z"
 ---
 
 # B436 — Nothing ever suggests sending postcards, so nobody discovers the feature

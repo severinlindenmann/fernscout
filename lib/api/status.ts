@@ -8,6 +8,7 @@ import { getMalformedTrips, getTrips } from "@/lib/trips";
 import { serverSite } from "@/lib/site";
 import { storageFor } from "@/lib/storageQuota";
 import { listInbox } from "@/lib/inbox";
+import { postcardSuggestion } from "@/lib/postcard/suggest";
 import { getUser } from "@/lib/users";
 
 /**
@@ -187,6 +188,12 @@ export async function journalStatus(user: string, session: Session) {
     ? { enabled: true }
     : { enabled: false, reason: serverCredits.reason };
 
+  // Owner tokens only, like `malformed` and `credits` above: ordering a
+  // postcard is an owner-only call (`POST .../postcards`), so a trip-scoped
+  // token has no use for a suggestion it cannot act on. `postcardSuggestion`
+  // is the one function this and the `/me` card both call — see B436.
+  const suggestion = scoped ? null : await postcardSuggestion(user);
+
   return {
     user,
     // Said plainly rather than left to be inferred from a one-item list.
@@ -262,6 +269,10 @@ export async function journalStatus(user: string, session: Session) {
      * would be an invitation to a 403.
      */
     ...(staged ? { inbox: staged } : {}),
+    // Absent — not `[]` — when there is nothing to suggest, same rule as
+    // `malformed` and `invites` above: a key that is not there means "not
+    // offered", where an empty array would read as "checked, nothing found".
+    ...(suggestion ? { suggestions: [suggestion] } : {}),
     next: nextStep(drafts.length, trips.length, scoped, staged?.count ?? 0, malformed.length),
   };
 }

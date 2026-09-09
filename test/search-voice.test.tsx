@@ -128,18 +128,22 @@ describe("the microphone in the search box", () => {
     expect(startListening().continuous).toBe(true);
   });
 
-  test("says so when the browser blocks the microphone", () => {
+  test("says so when the browser blocks the microphone, in a role=alert element", () => {
     mount("de");
     const r = startListening();
     act(() => r.onerror?.({ error: "not-allowed" }));
     expect(host.textContent).toContain("lässt diese Seite nicht auf das Mikrofon");
+    const alert = host.querySelector('[role="alert"]');
+    expect(alert?.textContent).toContain("lässt diese Seite nicht auf das Mikrofon");
   });
 
-  test("says so when the browser has no speech service at all", () => {
+  test("says so when the browser has no speech service at all, in a role=alert element", () => {
     mount("de");
     const r = startListening();
     act(() => r.onerror?.({ error: "network" }));
     expect(host.textContent).toContain("erreicht keinen Spracherkennungsdienst");
+    const alert = host.querySelector('[role="alert"]');
+    expect(alert?.textContent).toContain("erreicht keinen Spracherkennungsdienst");
   });
 
   test("names an unexpected code, because a report is the only diagnosis there is", () => {

@@ -63,6 +63,7 @@ export const ERROR_CODES: Record<string, string> = {
   invalid_costs: "The budget or a cost line is not usable; `problems` lists each one.",
   invalid_media: "The upload is not usable — a file this server does not take, one too large, or a `day` that is not a day of this trip. /api/health carries the formats and the limits.",
   invalid_email: "That is not an address this server can send to.",
+  invalid_user: "`user` is missing from the body. It is the journal's own address segment — the one in its URLs.",
   invalid_listed: "`listed` must be true or false, and it cannot be true on a trip no visibility advertises. A string is refused rather than read as truthy: `\"false\"` would otherwise have advertised the trip.",
   invalid_teaser:
     "`teaser` must be true or false, and it cannot be true on a public trip — there is nothing to tease. It names a `guest` or `private` trip on the trips page without opening it.",

@@ -77,6 +77,7 @@ export default function TripHero({
   onShowNew,
   basemap = null,
   photobook,
+  travellerNames,
 }: {
   stats: HeroStats;
   /** Clipped to this trip's frame on the server — see lib/basemap.ts. */
@@ -107,6 +108,12 @@ export default function TripHero({
    * component only renders what it was handed.
    */
   photobook?: PhotobookEntry;
+  /** Who took this trip — `travellerNamesOf` in lib/site.ts, joined with
+   * "+". B10: the walking figures beside the cover photo (`Travelers`
+   * below) carry no names at all, so this is the one place on the story
+   * that says whose trip it was in words rather than only in the page's
+   * JSON-LD. Absent for a trip nobody is credited on. */
+  travellerNames?: string;
 }) {
   const { t, tn, formatShortDate, localizedTrip } = useI18n();
   const { money } = useMoney();
@@ -178,6 +185,11 @@ export default function TripHero({
               <p className="mt-0.5 text-xs text-navy-600">
                 {formatShortDate(stats.firstDate)} –{" "}
                 {formatShortDate(stats.lastDate)}
+              </p>
+            )}
+            {travellerNames && (
+              <p className="mt-0.5 text-xs text-navy-600">
+                {t("hero.travellers", { names: travellerNames })}
               </p>
             )}
 

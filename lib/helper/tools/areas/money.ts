@@ -4,7 +4,7 @@ import { AS_AUTHOR } from "../../../entries";
 import { COST_CATEGORIES, conversionFor, getCostSummary } from "../../../costs";
 import { DAY_ARGS, TRIP_ARG } from "../args";
 import { noTrip, resolveDay, resolveTrip, tripIdFor } from "../resolve";
-import { normalizeCurrency } from "../../../currency";
+import { formatMoney, normalizeCurrency } from "../../../currency";
 import { tripRef } from "../../../trips";
 
 /**
@@ -176,6 +176,141 @@ export const MONEY_TOOLS: readonly Tool[] = [
             value:
               (COST_CATEGORIES as readonly string[]).find(
                 (one) => one === args.category?.trim().toLowerCase(),
+              ) ?? "",
+            options: COST_CATEGORIES.map((one) => ({ value: one, label: one })),
+          },
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * **The open half of B960, closed** — a trip made through the
+     * conversation has no `rates:` block, so a cost in any other currency
+     * sits outside the total and nobody chose to leave it there. This is the
+     * only way to give it one: `patchTripRates` (the same writer
+     * `PATCH /api/v1/…/trips/<trip>/rates` calls) merges one currency in
+     * without disturbing any already on the trip.
+     *
+     * **The number is never this tool's to pick.** AGENTS.md's weather rule
+     * is the same shape one level over: converting at a rate nobody chose is
+     * the invention this codebase refuses everywhere else, so the card names
+     * what is currently left out and asks for a figure rather than fetching
+     * one.
+     */
+    name: "set_rate",
+    kind: "write",
+    renders: "form",
+    describe:
+      "Give a trip an exchange rate, so costs already logged in that currency join the total. Only ever a number they gave you — never look one up yourself.",
+    properties: {
+      ...TRIP_ARG,
+      currency: { type: "string", description: "The three-letter code this rate is for." },
+      rate: {
+        type: "string",
+        description: "Units of the journal's own currency for one unit of that code, as they said it.",
+      },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/trip/rates`,
+    propose: async (username, args, say) => {
+      const trip = resolveTrip(username, args.trip);
+      const tripId = trip?.id ?? args.trip ?? "";
+      const currency = normalizeCurrency(args.currency);
+      const { base } = tripId ? conversionFor(tripRef(username, tripId)) : { base: "" };
+      const outside = tripId
+        ? getCostSummary(tripRef(username, tripId), new Date(), AS_AUTHOR).unconverted.find(
+            (one) => one.currency === currency,
+          )
+        : undefined;
+      const rate = say("agent.tool.setRate", { currency, rate: args.rate ?? "", base });
+      const sentence = outside
+        ? `${rate} ${say("agent.tool.setRateOutside", { amount: formatMoney(outside.amount, outside.currency) })}`
+        : rate;
+      return {
+        sentence,
+        accept: say("agent.tool.setRateAccept"),
+        done: say("agent.tool.setRateDone"),
+        fields: [
+          { name: "trip", value: tripId },
+          { name: "currency", value: currency },
+          { name: "rate", value: args.rate ?? "" },
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * A trip's planned budget, and one thing paid for before leaving —
+     * `costs.md`'s own two fields, both amended by the same `PATCH
+     * .../costs` and never the `PUT` that would overwrite the whole file.
+     *
+     * The preparation item is appended to what is already on the file rather
+     * than sent alone: `patchCosts` replaces the whole `costs:` list wholesale
+     * when it is sent (the same rule a day's own `costs:` block follows), so
+     * the route reads what is there first. `set_rate` above and `add_cost`
+     * carry the honesty rule about the currency and the category; this tool
+     * asks for nothing new.
+     */
+    name: "set_budget",
+    kind: "write",
+    renders: "form",
+    describe:
+      "Propose what a trip was meant to cost, and — separately — one thing paid for before leaving (a visa, gear, insurance). Leave out whichever half they did not mention.",
+    properties: {
+      ...TRIP_ARG,
+      total: { type: "string", description: "The whole trip's planned budget, as a number." },
+      days: { type: "string", description: "How many days that budget covers." },
+      currency: { type: "string", description: "The budget's three-letter code, if they said one." },
+      prepLabel: { type: "string", description: "One thing paid for before leaving, in their words." },
+      prepAmount: { type: "string", description: "How much that cost, as a number." },
+      prepCurrency: { type: "string", description: "Its three-letter code, if they said one." },
+      prepCategory: {
+        type: "string",
+        description: `One of: ${COST_CATEGORIES.join(", ")}. Leave it out rather than guessing.`,
+      },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/trip/budget`,
+    propose: async (username, args, say) => {
+      const trip = resolveTrip(username, args.trip);
+      const tripId = trip?.id ?? args.trip ?? "";
+      const { base } = tripId ? conversionFor(tripRef(username, tripId)) : { base: "" };
+      const budgetCurrency = normalizeCurrency(args.currency) || base;
+      const hasBudget = args.total !== undefined && args.total !== "" && args.days !== undefined && args.days !== "";
+      const hasPrep = (args.prepLabel ?? "").trim() !== "" && args.prepAmount !== undefined && args.prepAmount !== "";
+      const sentences = [
+        hasBudget
+          ? say("agent.tool.setBudget", {
+              total: formatMoney(Number(args.total) || 0, budgetCurrency),
+              days: args.days ?? "",
+            })
+          : "",
+        hasPrep
+          ? say("agent.tool.setBudgetPrep", {
+              label: args.prepLabel ?? "",
+              amount: formatMoney(Number(args.prepAmount) || 0, normalizeCurrency(args.prepCurrency) || base),
+            })
+          : "",
+      ].filter((one) => one !== "");
+      return {
+        // Nothing to propose — B951's shape: say so, in words, rather than
+        // a card with an empty sentence and a button that would refuse.
+        ...(sentences.length === 0 ? { refuse: "agent.tool.setBudgetEmpty" } : {}),
+        sentence: sentences.join(" "),
+        accept: say("agent.tool.setBudgetAccept"),
+        done: say("agent.tool.setBudgetDone"),
+        fields: [
+          { name: "trip", value: tripId },
+          { name: "total", value: args.total ?? "" },
+          { name: "days", value: args.days ?? "" },
+          { name: "currency", value: budgetCurrency },
+          { name: "prepLabel", value: args.prepLabel ?? "" },
+          { name: "prepAmount", value: args.prepAmount ?? "" },
+          { name: "prepCurrency", value: normalizeCurrency(args.prepCurrency) || base },
+          {
+            name: "prepCategory",
+            value:
+              (COST_CATEGORIES as readonly string[]).find(
+                (one) => one === args.prepCategory?.trim().toLowerCase(),
               ) ?? "",
             options: COST_CATEGORIES.map((one) => ({ value: one, label: one })),
           },

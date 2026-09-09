@@ -434,6 +434,17 @@ describe("the tools", () => {
       // B906 — a sentence that names a thing rather than a date used to land
       // on the screen that starts a new day.
       "find_day",
+      "inbox",
+      // B1051 — the other half of `invite_guest`: what links exist, never
+      // the live token that would let a reader in.
+      "invites",
+      // B1042 — the keys that can write here, and this owner's own past
+      // conversations (B1022).
+      "keys",
+      "past_conversations",
+      "postcard_recipients",
+      "postcard_texts",
+      "print_order",
       "read_day",
       "trip_costs",
       "trips",
@@ -447,18 +458,46 @@ describe("the tools", () => {
     ).toEqual([
       "add_cost",
       "attach_files",
+      // B1042 — the journal's own account, read out and now writable too.
+      "buy_room",
+      // B1051 — the two switches that decide whether either channel below
+      // can send anything at all.
+      "channels",
+      "cleanup",
       "create_trip",
+      "discard_file",
       "draft_words",
+      // The trip's own settings, reached from the conversation instead of a
+      // shell — this round's four.
+      "edit_trip",
       // B931 — the only way somebody who was not on a trip can ever read it.
       "invite_guest",
+      "journal_settings",
+      // The printed-things area: a postcard proposal that writes a real,
+      // pending order, and a photobook hand-over that writes nothing at all.
+      "photobook",
+      "propose_postcards",
       "publish_day",
+      "remove_photo",
+      // B1051 — take one link back; everybody already approved stays in.
+      "revoke_invite",
+      "revoke_key",
+      "set_budget",
       "set_day_words",
+      "set_rate",
+      "set_visibility",
       "start_day",
+      // B1051 — one tool for the two routes that announce a published day.
+      "tell_readers",
+      "trip_people",
+      "trip_tracks",
       "unpublish_day",
     ]);
-    expect(TOOLS.filter((tool) => tool.kind === "link").map((tool) => tool.name)).toEqual([
-      "add_photos",
-    ]);
+    expect(
+      TOOLS.filter((tool) => tool.kind === "link")
+        .map((tool) => tool.name)
+        .sort(),
+    ).toEqual(["add_photos", "buy_credits"]);
   });
 
   /**

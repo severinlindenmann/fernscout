@@ -6,7 +6,10 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
+import { createInvite } from "@/lib/contacts/invites";
 import { storeInboxFile } from "@/lib/inbox";
+import { issueCode } from "@/lib/auth";
+import { approveContact, confirmContact, requestContact } from "@/lib/contacts";
 import type { Say } from "@/lib/helper/intents";
 import { TOOLS, runTool } from "@/lib/helper/tools";
 import { paintJpeg } from "./support/pictures";
@@ -66,6 +69,7 @@ const SHAPE = new Set([
   "incomplete_day",
   "expected_files",
   "expected_src",
+  "unknown_media",
   "unknown_inbox_file",
   "no_notes",
   "nothing_to_change",
@@ -74,19 +78,45 @@ const SHAPE = new Set([
 /** The helper routes a proposal may name, by the path after the username. */
 const ROUTES: Record<string, () => Promise<Record<string, unknown>>> = {
   "/trip": () => import("@/app/api/helper/[user]/trip/route"),
+  "/trip/visibility": () => import("@/app/api/helper/[user]/trip/visibility/route"),
+  "/trip/people": () => import("@/app/api/helper/[user]/trip/people/route"),
+  "/trip/tracks": () => import("@/app/api/helper/[user]/trip/tracks/route"),
   "/day": () => import("@/app/api/helper/[user]/day/route"),
   "/day/write-day": () => import("@/app/api/helper/[user]/day/write-day/route"),
   "/day/costs": () => import("@/app/api/helper/[user]/day/costs/route"),
   "/day/publish": () => import("@/app/api/helper/[user]/day/publish/route"),
   "/day/unpublish": () => import("@/app/api/helper/[user]/day/unpublish/route"),
   "/day/attach": () => import("@/app/api/helper/[user]/day/attach/route"),
+  "/day/remove-photo": () => import("@/app/api/helper/[user]/day/remove-photo/route"),
+  "/inbox/discard": () => import("@/app/api/helper/[user]/inbox/discard/route"),
   "/invite": () => import("@/app/api/helper/[user]/invite/route"),
+  "/trip/rates": () => import("@/app/api/helper/[user]/trip/rates/route"),
+  "/trip/budget": () => import("@/app/api/helper/[user]/trip/budget/route"),
+  "/invite/revoke": () => import("@/app/api/helper/[user]/invite/revoke/route"),
+  "/day/tell-readers": () => import("@/app/api/helper/[user]/day/tell-readers/route"),
+  "/channels": () => import("@/app/api/helper/[user]/channels/route"),
+  "/journal": () => import("@/app/api/helper/[user]/journal/route"),
+  "/storage/cleanup": () => import("@/app/api/helper/[user]/storage/cleanup/route"),
+  "/storage": () => import("@/app/api/helper/[user]/storage/route"),
+  "/keys": () => import("@/app/api/helper/[user]/keys/route"),
+  "/postcard": () => import("@/app/api/helper/[user]/postcard/route"),
+  "/photobook": () => import("@/app/api/helper/[user]/photobook/route"),
 };
+
+/** The gallery item `remove_photo`'s own row below removes — `DRAFT`'s own
+ *  photograph, in the owner-prefixed form `AS_AUTHOR` hands back (the same
+ *  form a model would have read off `GET .../days/<slug>`, never the bare
+ *  `/media/...` frontmatter form). */
+const DRAFT_PHOTO = `/alex/media/${TRIP}/${DRAFT}/01.jpg`;
 
 /** What somebody says to reach each write tool. `files` is filled in per run,
  *  because an inbox id is a hash of the bytes staged in that test. */
 const SAID: Record<string, Record<string, string>> = {
   create_trip: { title: "Japan", start: "2026-03-01", end: "2026-03-14" },
+  edit_trip: { trip: AS_SAID, title: "Die neue Reise", start: "2026-05-02", end: "2026-05-12" },
+  set_visibility: { trip: AS_SAID, visibility: "guest" },
+  trip_people: { trip: AS_SAID, person: "Mira", email: "mira@example.test" },
+  trip_tracks: { trip: AS_SAID, costs: "off" },
   start_day: { trip: AS_SAID },
   draft_words: { trip: AS_SAID, slug: DRAFT, notes: "Regen, dann der Pass." },
   set_day_words: { trip: AS_SAID, slug: DRAFT, title: "Der Pass", content: "Ihre Worte." },
@@ -110,21 +140,51 @@ const SAID: Record<string, Record<string, string>> = {
   publish_day: { trip: AS_SAID, slug: DRAFT },
   unpublish_day: { trip: AS_SAID, slug: PUBLISHED },
   attach_files: { trip: AS_SAID, slug: DRAFT },
+  remove_photo: { trip: AS_SAID, slug: DRAFT, src: DRAFT_PHOTO },
+  discard_file: {},
   invite_guest: { name: "Mira" },
+  set_rate: { trip: AS_SAID, currency: "thb", rate: "0.03" },
+  set_budget: { trip: AS_SAID, total: "500", days: "5" },
+  // The real id is filled in per-run, below, the same way attach_files
+  // fills in `files` — an invite's id is minted, not something to guess.
+  revoke_invite: {},
+  tell_readers: { trip: AS_SAID, slug: PUBLISHED },
+  channels: { channel: "mail", enabled: "off" },
+  journal_settings: { title: "Neu", tagline: "t" },
+  cleanup: {},
+  buy_room: {},
+  revoke_key: {},
+  // `recipients` is filled in per run, from the contact `beforeEach` creates —
+  // a contact id is not something anybody could say in advance.
+  propose_postcards: { trip: AS_SAID, slug: DRAFT, message: "Grüße vom Pass!", from: "Alex" },
+  photobook: { trip: AS_SAID, size: "square", cover: "soft" },
 };
 
 const say: Say = ((key: string, vars?: Record<string, string>) =>
   vars ? `${key} ${Object.values(vars).join(" ")}` : key) as Say;
 
 let dir: string;
+let CONTACT_ID = "";
 const params = { params: Promise.resolve({ user: "alex" }) };
 
-function day(slug: string, date: string, status: "draft" | "published") {
+/** `gallery` is only ever set for the draft day, which is what
+ *  `propose_postcards` is pressed against below — a real file has to exist,
+ *  since the route resolves it through `resolveMediaFile` before writing an
+ *  order. */
+function day(slug: string, date: string, status: "draft" | "published", gallery?: string[]) {
   fs.writeFileSync(
     path.join(dir, "alex", "trips", TRIP, "entries", `${date}-${slug}.md`),
-    ["---", `title: "${slug}"`, `date: "${date}"`, `status: ${status}`, "---", "", "Worte.", ""].join(
-      "\n",
-    ),
+    [
+      "---",
+      `title: "${slug}"`,
+      `date: "${date}"`,
+      `status: ${status}`,
+      ...(gallery ? ["gallery:", ...gallery] : []),
+      "---",
+      "",
+      "Worte.",
+      "",
+    ].join("\n"),
   );
 }
 
@@ -144,10 +204,22 @@ beforeEach(async () => {
         auth: { enabled: true },
         helper: { enabled: true },
         contacts: { enabled: true },
+        mail: { enabled: true },
+        // So `buy_room` can propose at all — B1042 batch. The spend itself
+        // still fails with `no_credits` (an empty balance), which is a fact
+        // about the journal and not one of the SHAPE refusals below.
+        credits: { enabled: true },
+        postcards: { enabled: true, provider: "dry-run" },
+        photobook: { enabled: true },
       },
     }),
   );
   fs.mkdirSync(path.join(dir, "alex", "trips", TRIP, "entries"), { recursive: true });
+  // A postcard sheet already on disk, so `cleanup` has something to report —
+  // otherwise `cleanupPlan` answers zero bytes and the tool declines itself
+  // before there is anything to press (B951's rule, correctly applied).
+  fs.mkdirSync(path.join(dir, "alex", "postcards", "card1"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "alex", "postcards", "card1", "sheet.pdf"), "x");
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -157,6 +229,13 @@ beforeEach(async () => {
       defaultLocale: "en",
       locales: ["en"],
       baseCurrency: "CHF",
+      // Contacts is opt-in per journal (unlike mail, which inherits the
+      // server's answer when a journal says nothing) — needed so
+      // `revoke_invite` can see the invite this file creates for it.
+      features: { contacts: { enabled: true } },
+      // `contacts` (and the `auth` it needs) are not operator-only, unlike
+      // `postcards` and `photobook` above — a journal has to say yes itself.
+      features: { auth: { enabled: true }, contacts: { enabled: true } },
     }),
   );
   fs.writeFileSync(
@@ -174,11 +253,44 @@ beforeEach(async () => {
       "",
     ].join("\n"),
   );
-  day(DRAFT, "2026-05-04", "draft");
+  // Two photographs on the one draft day, because two tools want different
+  // things of it: propose_postcards needs a picture that is really on disk,
+  // and remove_photo needs one it can name and take off again.
+  day(DRAFT, "2026-05-04", "draft", [
+    `  - src: "/media/${TRIP}/hafen.jpg"\n    type: image`,
+    `  - src: "/media/${TRIP}/${DRAFT}/01.jpg"\n    type: image\n    width: 40\n    height: 30`,
+  ]);
   day(PUBLISHED, "2026-05-05", "published");
+  fs.mkdirSync(path.join(dir, "alex", "trips", TRIP, "media"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "alex", "trips", TRIP, "media", "hafen.jpg"), "x");
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
+
+  // A contact who asked for a real postcard, taken all the way to `active` —
+  // the same three steps `test/postcard-contacts.test.ts` uses. Only
+  // `propose_postcards` needs one; every other row ignores `CONTACT_ID`.
+  const { contactId } = await requestContact("alex", {
+    name: "Mira",
+    email: "mira@example.test",
+    locale: "en",
+    address: {
+      name: "Mira",
+      line1: "Bahnhofstrasse 1",
+      line2: "",
+      postcode: "8001",
+      city: "Zurich",
+      country: "Switzerland",
+      tel: "",
+    },
+    wantsEmailDigest: false,
+    wantsPostcard: true,
+    createdVia: "owner",
+  });
+  const { code } = await issueCode("alex", "mira@example.test", "guest");
+  await confirmContact("alex", "mira@example.test", code);
+  const approved = await approveContact("alex", contactId!);
+  CONTACT_ID = approved?.contact.id ?? "";
 });
 
 afterEach(async () => {
@@ -215,6 +327,24 @@ describe("a proposal's arguments are the press", () => {
     if (name === "attach_files") {
       const staged = await storeInboxFile("alex", "media", "hafen.jpg", await paintJpeg(40, 30, 1), {});
       said.files = staged.entry.id;
+    }
+    if (name === "revoke_invite") {
+      const made = await createInvite("alex", { kind: "guest", tripId: null });
+      said.invite = made.id;
+    }
+    if (name === "revoke_key") {
+      // A real key to take back — `listSessions` is where its id comes from,
+      // the same way the room's own `keys` tool would have handed it over.
+      const { issueCode, listSessions, verifyCode } = await import("@/lib/auth");
+      const { code } = await issueCode("alex", OWNER_EMAIL, "agent");
+      await verifyCode("alex", OWNER_EMAIL, code, "agent");
+      const [row] = await listSessions("alex");
+      said.id = row.id;
+    }
+    if (name === "propose_postcards") said.recipients = CONTACT_ID;
+    if (name === "discard_file") {
+      const staged = await storeInboxFile("alex", "media", "boot.jpg", await paintJpeg(40, 30, 2), {});
+      said.file = staged.entry.id;
     }
     const ran = await runTool("alex", name, said, say, "2026-05-06");
     const proposal = ran.proposal;
