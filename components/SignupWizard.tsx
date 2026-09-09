@@ -1,10 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import BusyButton from "@/components/BusyButton";
 import { PRIMARY_BUTTON } from "@/components/LandingSections";
 import { useI18n } from "@/components/LocaleProvider";
 import { LOCALE_LABEL, MAINTAINED_LOCALES } from "@/lib/i18n";
+import { LOCALE_COOKIE } from "@/lib/requestKeys";
+
+/** The same cookie `LocaleSwitcher` writes, at module level for the same
+ *  reason it is there: the linter is right that a component body should not
+ *  be assigning to `document.cookie` directly. */
+function rememberLocale(code: string) {
+  const year = 60 * 60 * 24 * 365;
+  document.cookie = `${LOCALE_COOKIE}=${code}; path=/; max-age=${year}; samesite=lax`;
+}
 
 /** Same shape as `USERNAME_RE` in `lib/users.ts` — checked again here only so
  * a person sees why the button is disabled before they press it. The server
@@ -93,6 +103,20 @@ export default function SignupWizard({
   const [defaultLocale, setDefaultLocale] = useState(
     (MAINTAINED_LOCALES as readonly string[]).includes(locale) ? locale : "en",
   );
+  /**
+   * The answer is applied to the person who gave it — B1185. Saying
+   * "German" here used to change only the journal being created; the rest
+   * of the wizard, and the agent room after it, stayed in English. The
+   * cookie is the same one `LocaleSwitcher` writes, and `router.refresh()`
+   * re-renders the server half in the new language while this component's
+   * own state survives.
+   */
+  const router = useRouter();
+  function chooseLanguage(code: string) {
+    setDefaultLocale(code);
+    rememberLocale(code);
+    router.refresh();
+  }
   /** The *extra* languages a reader may switch into — `defaultLocale` is
    * always sent as well and is not in here, so changing the answer above
    * cannot leave a journal whose own language is not on offer to its
@@ -424,7 +448,7 @@ export default function SignupWizard({
                   value={code}
                   checked={defaultLocale === code}
                   onChange={() => {
-                    setDefaultLocale(code);
+                    chooseLanguage(code);
                     // Whatever the new one is, it is no longer an *extra*.
                     setExtraLocales((prev) => prev.filter((c) => c !== code));
                   }}

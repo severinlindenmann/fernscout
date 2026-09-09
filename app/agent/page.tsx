@@ -9,7 +9,7 @@ import { hasHelperConsent } from "@/lib/helper/consent";
 import { filesForRoom, isHelperOwner } from "@/lib/helper/server";
 import { openingFor } from "@/lib/helper/opening";
 import { turnsIn } from "@/lib/helper/sessions";
-import { adopt, liveSession } from "@/lib/helper/thread";
+import { adopt, forget, liveSession, note } from "@/lib/helper/thread";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { journalsFor } from "@/lib/home";
 import { requestLocale, translateIn } from "@/lib/locales";
@@ -106,6 +106,23 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
       const opening = aboutTrip && aboutSlug ? { trip: aboutTrip, slug: aboutSlug } : null;
 
       /**
+       * A link from a day starts a fresh conversation that already knows
+       * what it was opened from — B994. The note is B924's mechanism: a
+       * line the model reads and the person never sees, so their first
+       * sentence — "rewrite it", "this day" — is answerable without their
+       * having to describe the day the preview is already showing. The
+       * room strips `about` from the address once mounted, so a reload
+       * resumes this conversation rather than wiping it for another.
+       */
+      if (opening) {
+        forget(user);
+        note(
+          user,
+          `[they arrived from the day ${opening.slug} of the trip ${opening.trip} and are looking at it in the preview; when they say "this day" it is that one]`,
+        );
+      }
+
+      /**
        * Which conversation this page is — B1168, revising B1109's resume.
        *
        * `?c=new` is the + button: a genuinely blank room, whatever is stored.
@@ -118,7 +135,8 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
        * extend them, while the next sentence silently opened a new session.
        */
       const named = typeof asked.c === "string" ? asked.c : "";
-      const session = named === "new" ? "" : named !== "" ? named : liveSession(user) ?? "";
+      const session =
+        opening || named === "new" ? "" : named !== "" ? named : liveSession(user) ?? "";
       const history = session ? await turnsIn(user, session) : [];
       if (named !== "" && named !== "new" && history.length > 0) adopt(user, session, history);
       return (

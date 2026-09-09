@@ -48,7 +48,10 @@ export default function AgentRow({
 }) {
   const Icon = tone === "coral" ? Send : MessageSquare;
   return (
-    <Link href={href} className={`${ROW[tone].row} ${ROW_BASE}`}>
+    // `prefetch={false}` — B994. `/agent?about=…` starts a fresh
+    // conversation on the server when it renders; a viewport prefetch of
+    // this row must not do that to a conversation still in progress.
+    <Link href={href} prefetch={false} className={`${ROW[tone].row} ${ROW_BASE}`}>
       <span className={`${PLATE_BASE} ${ROW[tone].plate}`}>
         <Icon className="h-4 w-4" aria-hidden />
       </span>

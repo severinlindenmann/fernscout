@@ -10,6 +10,7 @@ import {
   Plus,
 } from "lucide-react";
 import BackLink from "@/components/BackLink";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
 import CurrencyProvider from "@/components/CurrencyProvider";
 import HelperAsk from "@/components/HelperAsk";
 import { useI18n } from "@/components/LocaleProvider";
@@ -257,7 +258,11 @@ export default function HelperRoom({
    * press should return to a blank room for.
    */
   useEffect(() => {
-    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("c") === "new") {
+    const params =
+      typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    // `about` for the same reason — B994: left in the bar, a reload would
+    // forget the conversation it had just started and start another.
+    if (params && (params.get("c") === "new" || params.get("about"))) {
       window.history.replaceState(null, "", "/agent");
     }
   }, []);
@@ -431,6 +436,10 @@ export default function HelperRoom({
           B1121.
         */}
         <div className="flex shrink-0 items-center gap-1">
+          {/* The room replaced the page header, and with it the one place a
+              reader could change the language — B1184. The same chip every
+              other header carries. */}
+          <LocaleSwitcher subtle />
           <button
             type="button"
             onClick={() => setHistoryOpen(true)}
@@ -480,6 +489,7 @@ export default function HelperRoom({
             inRoom
             opened={history}
             opening={first}
+            aboutOffer={opening !== null}
             selected={selected}
             onSubject={(day) => {
               setSubject({ ...day, at: Date.now() });

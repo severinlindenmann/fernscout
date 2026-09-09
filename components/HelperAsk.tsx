@@ -149,6 +149,7 @@ const NAMED_FAILURES = [
   "unknown_inbox_file",
   "no_notes",
   "model_failed",
+  "upstream_unavailable",
   "idempotency_conflict",
   "contacts_disabled",
   "helper_unavailable",
@@ -298,6 +299,7 @@ export default function HelperAsk({
   onPreview,
   filesStrip,
   onOpenFiles,
+  aboutOffer = false,
   onFieldFocusChange,
   inRoom = false,
   opened = [],
@@ -370,6 +372,14 @@ export default function HelperAsk({
    * the always-present way in; absent everywhere there is no pane.
    */
   onOpenFiles?: () => void;
+  /**
+   * The room was opened from a particular day (`?about=`) — B994. The
+   * conversation already carries a note naming it, so this draws a local
+   * offer of the things somebody standing on a day likely wants; pressing
+   * one sends it as the first sentence. Free, like every choose block:
+   * no model call until a press.
+   */
+  aboutOffer?: boolean;
   /**
    * The field gained or lost focus — B1016. The strip above the composer
    * collapses while somebody is about to type, because the arithmetic in
@@ -527,7 +537,19 @@ export default function HelperAsk({
       string,
       unknown
     >;
-    if (!response.ok) throw new Error(String(json.error ?? response.status));
+    if (!response.ok) {
+      /**
+       * A gateway answering for a server that is restarting sends HTML, not
+       * the route's own JSON — B1186. The person then read "That did not
+       * work: 502", the bare code, in English, mid-conversation on the live
+       * site. A 5xx with no named error is exactly that case, and its
+       * honest sentence is "nothing was lost, try once more".
+       */
+      if (json.error == null && response.status >= 500) {
+        throw new Error("upstream_unavailable");
+      }
+      throw new Error(String(json.error ?? response.status));
+    }
     return json;
   }
 
@@ -814,7 +836,34 @@ export default function HelperAsk({
           */}
           {inRoom && turns.length === 0 && (
             <>
-              {opening && <RoomOpening opening={opening} onSay={go} />}
+              {aboutOffer ? (
+                /* Opened from a day — B994. The offer replaces the general
+                   opening: somebody who pressed a link on a day is not here
+                   about whatever else is unfinished. */
+                <div className="space-y-2">
+                  <p className="rounded-2xl border border-navy-200 bg-white px-4 py-3 text-base leading-6 text-navy-800">
+                    {t("agent.about.offer")}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {(["rewrite", "addPhoto", "addCost", "unpublish"] as const).map((what, n) => (
+                      <button
+                        key={what}
+                        type="button"
+                        onClick={() => go(t(`agent.about.${what}`))}
+                        className={`min-h-11 rounded-full px-4 text-sm transition-colors ${
+                          n === 0
+                            ? "border border-yellow-600 bg-yellow-400 font-semibold text-yellow-950 hover:bg-yellow-300"
+                            : "border border-navy-300 bg-white text-navy-800 hover:bg-cream-100"
+                        }`}
+                      >
+                        {t(`agent.about.${what}`)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                opening && <RoomOpening opening={opening} onSay={go} />
+              )}
               <p className="mt-3 text-sm leading-6 text-navy-500">{t("agent.room.kept")}</p>
             </>
           )}

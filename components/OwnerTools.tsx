@@ -156,6 +156,7 @@ export default function OwnerTools({
           ) : (
             <Link
               href={`/agent?about=${encodeURIComponent(`${day.tripId}/${day.slug}`)}`}
+              prefetch={false}
               className={OWNER_TOOL}
             >
               {t("agent.correctDay")}
@@ -171,7 +172,10 @@ export default function OwnerTools({
           <AgentRow
             href={room}
             tone="yellow"
-            title={t("agent.askHereOpen")}
+            // Named for the day when there is one — B994: "in your own
+            // words" set a composition exercise in front of a link whose
+            // other end already knows the day.
+            title={t(day ? "agent.askHereOpenDay" : "agent.askHereOpen")}
             hint={t("agent.askHereHint")}
           />
         </div>
