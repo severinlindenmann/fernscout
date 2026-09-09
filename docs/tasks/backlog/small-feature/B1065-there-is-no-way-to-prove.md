@@ -180,3 +180,75 @@ Three shapes, and the owner picks:
 `toE164` and the `login_codes` machinery are unaffected by all three. What
 changes is which transport module gets written, and whether one gets written
 at all.
+
+## Decided: Twilio Verify — 2026-09-09
+
+The owner chose **SMS via Twilio Verify**, and chose not to chase seven.io:
+*"a provider whose terms make you argue for eligibility is a provider that can
+change its mind later."* seven.io is closed.
+
+### Two claims this rests on, and both are UNVERIFIED
+
+Said plainly, because the last recommendation failed on exactly this shape of
+gap:
+
+1. **That Verify manages the sender itself**, so there is no alphanumeric
+   sender id to register — which is what would make the Austrian deadline and
+   Twilio's block on alphanumeric senders for trial accounts both irrelevant.
+2. **The per-verification price to CH, DE, AT and HU.** The figure in
+   circulation is roughly $0.05 plus channel cost, from a US-centric page.
+
+Twilio's documentation is a JavaScript-rendered app and would not yield either
+answer to two attempts; the session's web-search budget is spent. **Confirm
+both before writing a line of code**, and prefer Twilio's own console or
+support over a summary. The six questions in B1067 apply unchanged.
+
+### The design change, which does not depend on those answers
+
+**Verify is not a transport. It is a verification service, and it owns the
+whole code lifecycle** — generating the code, storing it, counting attempts,
+expiring it, rate limiting. That is a different shape from what this ticket
+assumed, and it cuts both ways.
+
+**What it removes:** the `phone` kind on `login_codes`, the hash-only storage,
+the attempt counter, the TTL, the supersession-on-reissue. All of it becomes
+Twilio's. That is a real simplification — a table this codebase already
+maintains does not grow a second meaning.
+
+**What it costs:** this repository's OTP discipline is unusually careful and
+deliberately so — `lib/auth/index.ts` stores only a hash, burns after five
+attempts, returns one shape for every failure mode so nothing can be probed,
+and supersedes the previous code on every reissue. **Handing that to Twilio
+means adopting Twilio's discipline instead**, whatever it is, and losing the
+property that every credential in this system is verified by one function
+somebody here has read.
+
+So the fork is:
+
+- **A · Verify as a black box.** Call `verifications.create`, then
+  `verificationChecks.create`. Least code, no sender id, voice fallback
+  included. The code never touches our database and its rules are Twilio's.
+- **B · Twilio's raw Messaging API as a transport** under the existing
+  `login_codes` machinery. Keeps the discipline and the pattern this codebase
+  already has twice — and reintroduces the alphanumeric sender id, its
+  per-country registration, and the Austrian deadline. Which is most of what
+  made SMS hard.
+
+**A is the reason Verify was chosen and it is almost certainly right**, but it
+should be chosen knowingly rather than discovered. Whoever takes this writes
+one paragraph in the code saying that phone codes are Twilio's to manage and
+email codes are ours, and why the two differ — otherwise the next reader finds
+an inconsistency and "fixes" it.
+
+**Local development** also changes shape: not our own dry-run backend writing
+a payload to disk, but Twilio's test credentials and magic numbers. Check that
+those exercise Verify and not only Programmable SMS — AGENTS.md's rule that no
+feature may need a paid account to develop against still has to hold, and it
+is now somebody else's mechanism that has to satisfy it.
+
+### The test-journal path is unaffected
+
+A test signup still gets a real code written to disk rather than sent (see
+above). That path must not go through Twilio at all — which is convenient,
+because it means the free local path stays ours regardless of what Verify
+does.

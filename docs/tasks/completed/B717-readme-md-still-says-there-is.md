@@ -8,6 +8,7 @@ area: docs, landing
 found: "2026-09-07T11:43:55Z"
 started: "2026-09-07T12:53:39Z"
 merged: "2026-09-07T13:11:43Z"
+completed: "2026-09-09T16:44:06Z"
 ---
 
 # B717 — README.md still says there is no editing interface and there will not be one
