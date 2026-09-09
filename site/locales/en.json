@@ -1669,7 +1669,7 @@
   "agent.tool.setVisibility": "Who may read {trip}.",
   "agent.tool.setVisibilityAccept": "Change who may read it",
   "agent.tool.setVisibilityDone": "Who may read it has changed.",
-  "agent.tool.tripPeople": "{name} joins the byline of {trip} — and can then write to the whole trip, not just this.",
+  "agent.tool.tripPeople": "{name} joins the byline of {trip} — and can then write to the whole trip, not just read it.",
   "agent.tool.tripPeopleNeedsEmail": "I need their name and their email address before I can put this in front of you — say both and I will make the card.",
   "agent.tool.tripPeopleAccept": "Add them to the trip",
   "agent.tool.tripPeopleDone": "They are on the trip, and may now write to it.",
