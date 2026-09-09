@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: skills
 found: "2026-09-09T18:42:57Z"
+merged: "2026-09-09T18:48:45Z"
 ---
 
 # B1152 — The acceptance gate's buttons give no feedback and its second label says nothing, so a person cannot tell what they chose or where a ticket is
