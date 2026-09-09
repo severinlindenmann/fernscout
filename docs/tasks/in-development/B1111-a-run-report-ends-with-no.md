@@ -64,3 +64,45 @@ person's gate; the deliverable is still text in their clipboard.
 - A note typed against an accepted ticket survives into the clipboard text; a
   ticket with no note adds no line.
 - The skill still says, in words, that the report does not move anything.
+
+## Notes
+
+Validity of this ticket was established by the owner in the session that
+captured it (df031729-b5f3-42f2-bcac-c6c88d608ee0); not re-litigated here.
+
+Built as a single edit to `.claude/skills/report-a-run/SKILL.md` in worktree
+`b1111-report-gate`. It is a prose/skill change — there is no artifact HTML to
+run, so "acceptance" here is that the skill's own instructions, followed by
+whoever runs `report-a-run` next, produce those four behaviours. Evidence:
+
+- **Clipboard block's first line is paste-ready.** New Step 6 ("the
+  acceptance gate") specifies: "*Build the list* writes a markdown block that
+  starts with one paste-ready line — `move B1097 B1099 B1100 to completed`,
+  the accepted ids, in order, nothing else."
+- **A held-back ticket appears with its note, not in the move list.** Step 6:
+  "Below that line: the accepted tickets that carry a note, each with its
+  note; then the tickets held back, each with theirs" — held-back tickets are
+  listed separately from, and after, the `move … to completed` line, which
+  names only accepted ids.
+- **A note on an accepted ticket survives; an empty note adds nothing.** Step
+  6: "Whatever is typed there is carried into the generated text beside that
+  ticket's id … An empty note contributes nothing to the output — no blank
+  bullet, no placeholder line."
+- **The skill still says the report moves nothing.** Step 6's closing
+  paragraph: "This still moves nothing. `completed/` is a person's gate,
+  exactly as `open/` is in `triage-a-backlog`, and the deliverable is text in
+  a clipboard … Neither this page nor the run that produced it touches a task
+  file." Step 7 ("hand it over") was also updated to keep this: "Do not move
+  anything to `completed/` yourself — that is still the person's gate; the
+  page above only gives them the words to do it with."
+
+The old "No decision bar" paragraph (previously at the end of Step 4) was
+replaced rather than kept alongside the new reasoning, per the prompt's
+instruction that a skill arguing both ways is worse than either.
+
+`npm run verify` (full, not `--quick`) passed: 470 test files, 6331 passed / 4
+skipped, `npm run unused` clean. No code was touched, so this mainly confirms
+the edit didn't break anything else in the repo.
+
+Nothing else was captured to `backlog/` — this was a single self-contained
+skill edit with no code to audit beyond the one file.
