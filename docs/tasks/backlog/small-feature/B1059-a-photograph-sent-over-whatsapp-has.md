@@ -68,3 +68,33 @@ A photograph sent to the number appears in the journal's inbox with its
 caption, the same photograph sent twice appears once, a picture past the
 storage ceiling is refused in a sentence a person understands, and the
 full-resolution route is offered in words the first time.
+
+## Decided — 2026-09-09
+
+Answered by the owner:
+
+- **Documents ship in the first release** alongside photographs — a bank
+  statement or a GPX file to the inbox, where both import kinds already read
+  from. This is also the uncompressed route for a photograph, which is the
+  same mechanism seen from the other side.
+- The documents-versus-photos sentence still gets said once, the first time it
+  matters, and never again.
+- Location pins and shared contact cards are also first-release, and are
+  B1074 — they end differently enough from media to be their own ticket.
+
+## Decided further — 2026-09-09
+
+- **A photograph with no words goes to the inbox, and the reply says so** —
+  a count and what to do next. No guessing which day it belongs to.
+- **Record where it came from.** The `InboxMeta` sidecar gains provenance:
+  that it arrived by WhatsApp, when the message was received, and whatever
+  else the message actually carries. Not a guess dressed as a fact — the
+  arrival time is the arrival time, and it is not the time the photograph was
+  taken.
+- **And that distinction is itself the argument for documents.** A photograph
+  sent *as a photograph* has had its EXIF stripped by WhatsApp — there is no
+  capture time and no location to extract, so the sidecar can only ever record
+  when the message arrived. The same file sent *as a document* arrives intact,
+  with its real `takenAt` and its coordinates. So the document route is not
+  only about resolution; it is the difference between a day that knows when it
+  happened and one that does not. Say that when the tip is given.

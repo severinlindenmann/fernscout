@@ -63,3 +63,46 @@ exactly the mitigation this needs.
 A message from a bound number reaches that journal's helper and no other; a
 message from an unknown number costs no model call and cannot be made to; and
 a number bound to one journal cannot be bound to a second.
+
+## Decided — 2026-09-09
+
+Answered by the owner:
+
+- **Binding is automatic.** The E.164 a webhook carries is compared against
+  the number SMS proved at signup (B1065). No confirmation tap, no linking
+  code — if it matches, it is their journal.
+- **A stranger gets one sentence and a link**, and no model call. Signup in
+  the chat was considered and rejected for the first release: every reply is a
+  model call and the number is a public surface.
+- **Owner only.** Not buddies, not guests. That is what the helper is today
+  and it is what keeps the stored-conversation story defensible in the
+  imprint — see B1063.
+- **A day may be published from WhatsApp.** Publishing is reversible
+  (`unpublish_day` exists), so the web-button rule does not extend to it. The
+  four things that stay behind a web button are unchanged: buying credits,
+  sending postcards, buying a photobook, deleting anything. Deleting a trip
+  was briefly considered for an exception and the mailed link stays for every
+  trip.
+
+## Decided further — 2026-09-09
+
+- **The first reply to a newly bound number carries three things**, and only
+  on the first message of a binding — never on every conversation:
+  1. **That this is an AI, and how to reach a human.** `agent@fernscout.ch`.
+     Meta's policy update and the EU AI Act's transparency duty both point
+     here; see B1077 for how firmly each is actually established.
+  2. **Which journal it writes to.** *"I write into your journal at
+     fernscout.ch/severin."* This is the cheapest possible guard against a
+     wrong-number match, and it is checked by the one person who can tell.
+  3. **That messages go to Meta and to the model.** The `words` consent scope
+     has to be agreed here as it is in the web room, with a link to the
+     imprint for the detail.
+- **The photo-versus-document tip is deliberately not in this message.** It
+  belongs on the first photograph, where it is relevant. A first message that
+  explains file formats is a first message nobody reads.
+- **The channel answers in the journal's own locale**, always — the same
+  setting the web room and the day announcements use, and one the owner has
+  already chosen. The model is instructed to answer in the person's language
+  regardless, so a German sentence still gets a German reply; what is fixed is
+  the interface: buttons, refusals, and the honesty guards' fallback
+  sentences.

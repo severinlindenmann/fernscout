@@ -63,3 +63,53 @@ Not doing: choosing the provider (B1067), or what the proof is then used for
 A code proves a number, is single-use, burns after five guesses, and the whole
 flow runs locally with no account anywhere — and a script cannot make the
 instance send a hundred paid messages.
+
+## Decided — 2026-09-09
+
+Answered by the owner, walking the question book:
+
+- **SMS, not an inbound WhatsApp message.** Rejected the free inbound-proof
+  path deliberately: SMS works for somebody who has never used WhatsApp, and
+  the web signup page is the primary door. This makes B1067 blocking rather
+  than background — there is no provider account today.
+- **Signup only, once, ever.** A number is proven at journal creation and
+  never re-proven. **Login stays email passcode only** and the number is not a
+  second factor. That is the decision that makes the cost small: one paid
+  message per account for its whole life.
+- **Ceilings**: 3 per number per day, 5 per address per day, **50 per instance
+  per day** (roughly CHF 3 at Swiss retail). Refuse, never queue. The
+  per-number and per-address keys matter because `lib/rateLimit.ts` is per-IP
+  and in-process.
+- The transport is still the `lib/mail/index.ts` shape — an interface, a
+  dry-run backend that writes the payload it would have sent, a real one — and
+  the whole flow must run locally with no account anywhere.
+
+## Decided further — 2026-09-09
+
+- **Email is proven first, then the number, and the journal is written last.**
+  Today's flow is unchanged up to the signup token; the phone step is inserted
+  before `createJournal`. Nothing is written until both are proven, so an
+  abandoned signup leaves nothing behind — and, the reason it is this order
+  rather than the reverse, **a bot has to pass the free gate before it can
+  cost the operator an SMS.**
+- **A failed delivery gets one resend, then an offer to correct the number.**
+  Two attempts against the per-number cap of three, and then the person can
+  fix a typo rather than being trapped on a number they mistyped — which is by
+  far the commonest cause. No voice-call fallback in the first release; that
+  is a second provider integration for a failure mode nobody has measured.
+- **Test journals get a real code that is written to disk rather than sent**,
+  so an agent driving a test signup on the server can read it — the same way
+  OTP codes are already printed and mail is written under `<dataDir>/mail/`.
+
+  **The reason this is safe is worth writing into the code, because the
+  obvious objection is the right one to answer.** A caller who asks for a test
+  signup is not skipping the proof; they are asking for the code to be put
+  somewhere only the server's filesystem can reach. A stranger who passes the
+  same flag gains nothing, because they cannot read the file. **The bypass is
+  closed by construction rather than by a permission check** — which is the
+  kind that does not rot when somebody refactors the gate.
+
+  Two things to get right anyway: the code must be a real, single-use,
+  attempt-limited code with the same TTL as any other (not a fixed string),
+  and the journal must still be named `test-<something>` per AGENTS.md, so it
+  is deletable by anybody who finds it later.

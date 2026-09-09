@@ -67,3 +67,20 @@ The shapes, honestly assessed:
 The same `Block[]` renders in the web room unchanged and as a WhatsApp payload
 that respects three buttons, ten rows and the twenty-character button cap —
 proved by a test over the whole shape vocabulary, not a sample.
+
+## Decided — 2026-09-09
+
+Answered by the owner:
+
+- **A `form` becomes one turn per field**, with a link into `/agent` for
+  anything long. No WhatsApp Flows in the first release — a Flow is a second
+  definition of every form and it can drift from the first.
+- **The renderer decides** between three reply buttons and a ten-row list; the
+  model is told nothing about it. The prompt is the scarcer resource and four
+  separate fixes have already hit its ceiling.
+- **The honesty guards are revised inside this ticket**, not after it.
+  `claimsAButton`'s `ON_SCREEN` and `RELOAD` patterns, and the `PLAINLY`
+  fallback sentences, all assume a page. Shipping the renderer first would
+  mean the earliest WhatsApp turns are replaced by fallback sentences for no
+  reason — a guard firing on an honest turn, which AGENTS.md rates as serious
+  as one that misses.

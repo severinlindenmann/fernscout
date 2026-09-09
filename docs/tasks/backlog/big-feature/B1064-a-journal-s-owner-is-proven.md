@@ -75,3 +75,40 @@ already exist (B1066).
 Two journals cannot be created for one address or one number, proved by a test
 that runs both creates concurrently; and the registry can be thrown away and
 rebuilt from `content/` with the same result.
+
+## Decided — 2026-09-09
+
+Answered by the owner, walking the question book:
+
+- **Two independent constraints**, not a constraint on the pair: one journal
+  per proven address, one journal per proven number. This is what the brief's
+  second clause meant.
+- **The number's purpose is reachability first**, with anti-abuse as a side
+  effect. That is what keeps it stored in the clear rather than hashed.
+- **Same field, proof stamp beside it** — `owner.tel` plus when and how it was
+  proven. One number is what a person has; asking for two is a question nobody
+  understands. Note in the code that a destination has become an identity.
+- **No plus-address or Gmail-dot folding.** The number does the anti-abuse
+  work, and some people genuinely use plus-addressing as their address.
+- **Deleting a journal frees its address and its number.** The *name* stays
+  reserved by the tombstone; the person is not banned. See B1073, which makes
+  the held names visible on `/admin`.
+- **The number is stored, not hashed**, because the WhatsApp webhook has to
+  compare an inbound E.164 against it (B1058) and because `owner.tel` keeps
+  its existing job of receiving the owner's own copy of a published day.
+
+## Decided further — 2026-09-09
+
+- **A number change is done by the operator, by hand.** There is no self-serve
+  path in the first release: proof is signup-only, so somebody who changes
+  their number emails the operator, who edits it. Honest at a scale of one
+  real journal, and it becomes support work the moment there are twenty —
+  capture that as its own ticket when it does, rather than pre-building it.
+  Note that this leaves a real dead end until then: a person whose number
+  changes loses their WhatsApp binding and cannot fix it themselves.
+- **Two exemptions from needing a proven number**, and no others:
+  - **The operator address.** `FERNSCOUT_ADMIN_EMAIL` is one address in the
+    environment and owns no journal; requiring a number would make `/admin`
+    unreachable after a SIM change.
+  - **Test journals** — see B1065 for the mechanism, which is better than an
+    exemption.

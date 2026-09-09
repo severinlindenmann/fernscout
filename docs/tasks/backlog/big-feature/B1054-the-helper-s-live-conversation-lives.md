@@ -75,3 +75,32 @@ changing what the model is told.
 A conversation reopened from `/agent?c=<id>` after a server restart continues:
 the next answer refers to something said before the restart, and
 `test/helper-thread.test.ts` proves it without a live model.
+
+## Decided — 2026-09-09
+
+Answered by the owner:
+
+- **Every turn is marked with its origin**, not only the WhatsApp ones. That
+  is a column on the turn record and belongs here rather than in B1056, since
+  it is stored state and not a rendering decision. Browser turns carry a
+  browser origin, WhatsApp turns carry WhatsApp, and a third channel needs no
+  schema change.
+
+## Decided further — 2026-09-09
+
+A second pass of questions, and one answer changes this ticket's shape.
+
+- **The thread lives 24 hours on WhatsApp**, not thirty minutes. Today's
+  `TTL_MS` is right for a web room — somebody sits down and works — and wrong
+  for a messenger, where people write once at the end of a day. With thirty
+  minutes, every WhatsApp message is a cold start and the model re-asks which
+  trip and which day each time.
+  - The TTL therefore becomes **per channel**, not a constant. The web room
+    keeps its thirty minutes unless somebody decides otherwise separately.
+  - The 12-turn window stays. It is a token budget, and a longer-lived thread
+    needs it more, not less.
+- **One thread, genuinely**, reachable from both doors — including the
+  awkward case where a WhatsApp message arrives while a browser tab is open
+  and the two interleave. Accepted deliberately: it is rare for one person,
+  and the origin marks make it legible after the fact. No web-room-is-open
+  heartbeat, no channel locking.

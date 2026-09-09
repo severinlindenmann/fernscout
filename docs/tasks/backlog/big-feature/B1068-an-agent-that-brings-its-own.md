@@ -72,3 +72,32 @@ second implementation that disagrees with the first.
 
 Each of the five is marked build or won't-build in this file with a reason,
 and anything built is in `/openapi.json` with its price and its refusal.
+
+## Decided — 2026-09-09
+
+Answered by the owner, and the answer is **none of the five**.
+
+The principle, in the owner's own framing: **anything that spends this
+instance's model or transcription budget stays inside this instance's own
+surfaces** — the helper at `/agent`, and the WhatsApp channel. Not `/api/v1`.
+
+That is a cleaner rule than the per-capability judgement this ticket was
+written to make, and it holds for a reason that will not change: a `/api/v1`
+door onto `writeDay` or `transcribeAudio` is selling Anthropic and Deepgram
+access with the operator's own key, metered in a currency (credits) the caller
+did not buy for that purpose. Transcription was the one row with a real
+argument and it loses to this.
+
+So the work is no longer five decisions. It is one paragraph, in the right
+places:
+
+- Say it in `/agent.md` and in `/openapi.json`'s prose, so an agent bringing
+  its own model learns the rule from the document rather than discovering it
+  as a missing route. It already half-says this; make it explicit and give the
+  reason.
+- Leave the five helper routes exactly where they are.
+- `past_conversations` stays helper-only too, and for a different reason: it is
+  a privacy decision, not an API gap.
+
+This ticket is now a DOCS-shaped deliverable and its `type:` should probably
+change before anybody starts. Whoever does that runs `npm run tasks -- tidy`.

@@ -56,3 +56,28 @@ Not doing: rewriting `/agent.md`. That is B311.
 An agent handed only `https://<site>/documentation.txt` reaches the right
 document for its situation in one hop, and a person reading the same page can
 say which of the four they are.
+
+## Decided — 2026-09-09
+
+Answered by the owner:
+
+- **Three ways, not four.** The helper at `/agent`; a messenger; your own
+  agent against the published spec. "Guided" and "spec-reading" collapse into
+  the third, because the difference between them was always how much had to be
+  read before the first correct call — which is B311's problem, not a product
+  boundary.
+- The page must also carry the rule decided in B1068: **the instance's own
+  model and transcription are not part of the API.** An agent bringing its own
+  model needs to learn that from the document rather than from a 404.
+- All three locales from the start (en, de, hu), written properly.
+
+## Decided further — 2026-09-09
+
+- **`fernscout-helper` is part of "your own agent", not a fourth door.** It is
+  an agent you bring that happens to run on your own machine and push through
+  the same API. So the page still names three ways in, and mentions the local
+  repository as one way of doing the third — with a pointer to
+  `docs/helper.md` rather than a restatement of it.
+- It is worth a sentence rather than a footnote: it is the most useful option
+  for somebody sitting with ten days of photographs on a laptop, and the
+  chooser page is where they will be standing when that is true.

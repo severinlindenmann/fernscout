@@ -64,3 +64,29 @@ Nothing in the codebase can send a WhatsApp message outside an open window
 except the existing day announcement, which is a template and knows it; and a
 test proves an answer produced after the window closes is held rather than
 dropped or billed.
+
+## Decided — 2026-09-09
+
+Answered by the owner:
+
+- **Never initiate.** Confirmed without exception — not even for a hard
+  failure such as a photobook that could not be built. Every outbound message
+  on this channel is a reply inside a window the person opened; an answer that
+  becomes ready after the window closes is **held and delivered the next time
+  they write**, with a line saying when it was ready.
+- The day announcements to readers are unaffected and stay what they are:
+  approved templates, business-initiated, and priced.
+- The "free" copy must say what it means — Meta's bill, not the journal's
+  balance. Writing a day up, captioning and transcribing spend credits from
+  WhatsApp exactly as they do on the web.
+
+## Decided further — 2026-09-09
+
+- **A balance that runs out mid-conversation is said plainly**, in one
+  sentence naming what the thing would have cost and what the balance is, plus
+  a CTA URL button to the payment page. The refusal is already a documented
+  error; this is only how it reads in a chat.
+- **The request is not held across the payment.** Remembering what somebody
+  asked for and doing it once they have paid is kinder and is state that has
+  to survive a round-trip to a browser and back — and that could then act on
+  an intention they have changed their mind about. Ask again after.

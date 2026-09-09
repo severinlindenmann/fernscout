@@ -62,3 +62,15 @@ same protocol.
 Either this file records that B311 made it unnecessary, or there is a tool
 surface in which no tool contains a line of logic that is not also in a
 documented route.
+
+## Decided — 2026-09-09
+
+Answered by the owner:
+
+- **B311 first, then ask again.** No MCP work starts until the path-scoped
+  guide documents exist and somebody has tried to drive the API with them. The
+  honest expectation is that this ticket then has no subject, which is the best
+  outcome available.
+- **One door, not two.** "Guided" and "reads the spec" are advertised as one
+  way in, better documented — so there are **three named ways** in total: the
+  helper, a messenger, your own agent. Not four. B1070 changes accordingly.

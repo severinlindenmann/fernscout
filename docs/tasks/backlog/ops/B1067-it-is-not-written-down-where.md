@@ -65,3 +65,241 @@ follow-up tickets.
 One page in `docs/providers/` that answers, for somebody who has never seen
 this instance: what the number is, what it costs, what one verification costs,
 and which provider was chosen for SMS or why none was.
+
+## Decided — 2026-09-09
+
+Answered by the owner, and it grew a second half.
+
+**What the number is: a physical SIM belonging to the owner, personally — and
+it will be removed in future.** That is the finding, and it turns this from a
+bookkeeping ticket into a risk one. A lapsed Swiss mobile number is reassigned,
+and whoever holds it next can receive WhatsApp's verification for it.
+
+So this ticket now has two deliverables.
+
+**1 · The succession plan, before the SIM goes.** What a number change costs
+and what survives it: the WABA and its approved templates are account-level and
+survive; the number a reader sees does not, and neither do existing threads.
+Whether the number can be ported at all is the first question — Twilio's Swiss
+mobile numbers are explicitly non-portable, so a port means a Swiss operator or
+a DID provider that accepts one. Write the plan while there is no deadline.
+
+**2 · The SMS provider, which is now blocking.** B1065 chose SMS as the proof
+channel, and there is no account. Come back with two or three options, priced
+per message for CH, DE, AT and HU, each confirmed to support an alphanumeric
+sender id and to need no number of our own, and each with a way to develop
+against it with no account. **The owner approves from that page** — do not sign
+anything up.
+
+Meta business verification: **not yet**. Nothing planned initiates a
+conversation, so the 250-per-24h cap only ever binds the day announcements,
+which are family-scale.
+
+## Researched — 2026-09-09
+
+Web research only. **Nothing here was checked against the live Meta Business
+Manager or by telephoning a Swiss operator**, and several answers rest on
+partner documentation (Vonage, 360dialog, Infobip, Sinch) rather than a Meta
+page that could be fetched cleanly — Meta's own docs render mostly as
+JavaScript. Every soft answer is marked. Verify before executing.
+
+### The finding that changes a decision
+
+**Business verification lives on the Meta Business Portfolio, not on the WABA
+and not on the phone number.** So it is *orthogonal* to the number change and
+carries forward regardless of which number ends up attached.
+
+That matters because the question book asked whether to verify now and the
+answer recorded was **not yet**, on the reasoning that nothing initiates so
+the 250-per-24h cap never binds. That reasoning still holds. But it was not
+the only reason to do it, and the second one is better: verifying now, while
+the account is stable, removes one variable from a number migration that has
+to happen anyway. **This is worth putting back in front of the owner** — see
+the note at the end.
+
+### Retiring the number: the step that must not be skipped
+
+`POST /{PHONE_NUMBER_ID}/deregister` is an official endpoint. It removes the
+number from Meta's hosted platform and makes it available for re-registration.
+Rate-limited to **10 requests per number per rolling 72 hours**; exceeding it
+is error `133016` and a further 72-hour lock. It cannot be used on a
+"coexistence" number in simultaneous use with the consumer app.
+
+**Deregister before the SIM lapses.** If the contract simply ends, the
+registration lingers in a stale state on Meta's side until somebody else is
+assigned the number and tries to register it — at which point Meta's own
+account-recovery logic decides what happens to the leftover WABA linkage.
+That is not a path to test with somebody's family photographs behind it. Meta
+does not document how long a dangling registration survives; treat the
+unknown as a reason to do the explicit thing.
+
+Also: turn **2FA/PIN off on the old number first**. It is the most commonly
+reported blocker in every migration write-up found.
+
+### How long the number stays dangerous
+
+No BAKOM rule sets a quarantine period — number portability is regulated
+(Art. 32 FMG), recycling is each carrier's commercial policy. Figures below
+are from comparison sites, **not a primary operator document**, and should be
+confirmed by telephone:
+
+| Operator | Postpaid | Prepaid |
+| --- | --- | --- |
+| Swisscom | ~120 days | ~180 days |
+| Salt | ~6 months | ~6 months |
+| Sunrise | ~12 months | ~18 months |
+
+The low end is four months. Letting the SIM lapse and treating the number as
+retired is not safe on that timescale, and the exposure is wider than
+WhatsApp — a personal number is usually also a 2FA and account-recovery
+factor somewhere else.
+
+### What survives a number change, and what does not
+
+| Survives | Does not |
+| --- | --- |
+| The WABA itself | The quality rating — per number, starts fresh |
+| Approved templates (they are WABA-level) | The messaging tier — per number, has to be re-earned |
+| Business verification (portfolio-level) | Open 24-hour windows — a new number has none |
+| The opt-in records the business holds | Existing threads on contacts' phones |
+
+The last row is a customer-facing project, not a technical one. The consumer
+WhatsApp app has a "Change Number" notification that messages existing chats;
+**no equivalent was found for a Cloud API number with no app presence.**
+Contacts have to be told, from the old number, while it still works.
+
+### Porting: confirmed dead ends
+
+- **Twilio.** Confirmed from Twilio's own Switzerland guidelines: Swiss mobile
+  numbers are **SMS-only and strictly non-portable**, remain the property of
+  Twilio's local carrier partner, and do **not** support voice. So the number
+  cannot be ported *in*, and a Twilio Swiss mobile number could not answer a
+  voice verification either.
+- **Telnyx.** Switzerland requires business use only, a pre-filled requirement
+  group, and ~72-hour validation. Whether Telnyx issues genuine 07x *mobile*
+  DIDs with voice and SMS is **unconfirmed** and needs a direct check.
+- No provider was found that clearly accepts an inbound port of an existing
+  Swiss mobile number into an API-driven platform. If that is a hard
+  requirement it is the weakest link in the plan, and it needs a sales call
+  rather than a search.
+
+### The recommendation
+
+**A second, dedicated Swiss mobile SIM on a low-cost business plan.** It
+verifies most reliably (no A2P filtering surprises), signs up straightforwardly
+for a sole trader, and costs roughly CHF 10–25 a month — **unverified, check
+directly**. Register it as a *second* number on the existing WABA, run both in
+parallel while telling contacts, then deregister the personal one.
+
+The landline/VoIP alternative is real but fragile: WhatsApp does support
+landline verification by voice call, and registration fails outright behind
+call-blocking, certain VoIP routing, or an IVR that never reaches a human.
+Extensions are not supported — the code goes to the primary number only.
+
+### Still to verify before anything is committed
+
+- Telephone Swisscom, Sunrise and Salt for their actual recycling policy.
+- Current business-mobile pricing, from the operator's own page.
+- Whether Telnyx issues Swiss mobile DIDs with voice — from their number
+  search, not from documentation.
+- That templates show as available to a newly registered second number inside
+  WhatsApp Manager, before decommissioning the first.
+
+### One question back to the owner
+
+Business verification was deferred on the grounds that nothing initiates. That
+reasoning is intact, but verification turns out to be portfolio-level and
+therefore free of the number question entirely — so doing it now costs a
+document upload and removes a variable from a migration that is coming anyway.
+**Worth reopening.**
+
+## Researched — the SMS provider, 2026-09-09
+
+Web research. Several vendors put their real per-country price behind a login
+or a JavaScript calculator; those are marked **not public** below rather than
+guessed.
+
+### The time-critical thing, first
+
+**Austria: from 1 October 2026 an unregistered alphanumeric sender id is
+silently dropped, not delivered.** RTR's registration directory opened on
+1 July 2026 and entries take **14 days to activate** — so the practical filing
+deadline is around **17 September 2026**, which is next week.
+
+This is a carrier-level rule and applies to every provider equally. It is not
+a reason to rush the decision, because Austria is not the launch market — but
+it *is* a reason to ask any shortlisted provider, before signing up, how they
+handle Austrian sender-id registration. Only `seven.io` documents the path in
+its own dashboard.
+
+Germany and Switzerland have no equivalent registry. **Hungary has no registry
+and a worse problem**: Telenor and Magyar Telekom commonly overwrite an
+alphanumeric sender with a numeric long code regardless of provider, so a
+Hungarian recipient may see the code arrive from a number they do not
+recognise. Write the message so it still reads sensibly in that case.
+
+### The finding that matters to this codebase specifically
+
+**An alphanumeric sender id is one-way. Everywhere. For every provider.**
+There is no number behind "Fernscout" for a reply to route to; a reply either
+fails, bounces, or is silently dropped with the sender never seeing an error.
+Where a carrier has overwritten the id with a long code, a reply goes to an
+aggregator's shared number that nobody reads.
+
+That is B386's mistake in a different medium — a footer promising *"STOPP zum
+Abbestellen"* over a channel where nothing read a reply. **So the OTP text must
+not imply a reply channel.** The code, what it is for, and an instruction to
+contact `agent@fernscout.ch` or the website. Nothing else.
+
+### The shortlist
+
+| | CH | DE | AT | HU | Test mode | Min top-up | DPA |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **seven.io** | €0.075 | €0.075 | €0.075 | €0.075 | Real sandbox key, never charges | **€1** | One-click |
+| **GatewayAPI** | not public | not public | not public | not public | 30-day trial, amount only via chat | none found | Published Art. 28, **EU hosting at Hetzner** |
+| BudgetSMS | €0.063 | €0.051 | €0.053 | €0.056 | Validation endpoint only | none found | **None. No server location disclosed** |
+| ASPSMS (CH) | ~4–7 Rp | not public | ~4 Rp | not public | Ask for test volume | ~500 credits (~€30) | Swiss DC, ISO 27001, no explicit DSG text |
+| eCall (CH) | not public | not public | not public | not public | Free trial, amount unclear | none (prepaid) | **Explicit DSG + GDPR + ISO 27001:2022** |
+| Twilio | $0.0769 | $0.112 | $0.0979 | $0.091 | ~100 SMS, verified numbers only | none | Yes; EU residency may be enterprise-gated |
+
+### The recommendation, for the owner to approve
+
+**`seven.io`.** It is the only provider whose own documentation answers all six
+requirements without an account: a flat **€0.075** to all four countries, a
+genuine sandbox key that never sends and never charges, a **€1** minimum
+top-up rather than the €20–30 several others demand, a self-serve DPA, and a
+documented path for the Austrian registration. At the 50/day ceiling that is
+about €113 a month worst case and a few euros in reality — so at this volume
+**price is noise and paperwork friction is the real cost**, which is what it
+wins on. Its weakness: GDPR only, no named datacentre, no explicit Swiss FADP
+statement.
+
+**Runner-up: GatewayAPI**, on compliance alone — a published Art. 28 DPA,
+opt-in EU hosting in Germany, ISAE 3000/3402 statements, and a mode that does
+not store message content. It loses because **you cannot see a price for any
+of the four countries before opening an account**.
+
+**Do not use BudgetSMS.** Cheapest published prices, and no DPA, no disclosed
+server location and no data-protection statement anywhere on the site. For a
+product whose whole character is care with personal data, that is
+disqualifying regardless of price.
+
+Also ruled out: SMSAPI (€30 minimum, business-only, sender approval reportedly
+up to a month), Swisscom (enterprise gate, no public pricing), ClickSend
+(Hungary missing from its own alphanumeric list, SCCs only), Plivo (a possible
+$1,000/month enterprise gate on the SMS product — confirm before considering),
+Vonage's trial (injects `[FREE SMS DEMO, TEST MESSAGE]` into the body, so it
+cannot show what a real message looks like).
+
+**The two Swiss options are worth a second look before deciding.** `eCall` is
+the only candidate with an explicit **DSG** statement rather than GDPR alone,
+which is the operator's own law — and neither it nor ASPSMS publishes European
+pricing. Both are a telephone call away, and a Swiss provider with a Swiss
+data-protection statement may be worth more here than €0.01 a message.
+
+### Still to confirm before signing anything
+
+- `seven.io`'s Austrian registration path, and whether it is needed at launch.
+- Whether `eCall` or ASPSMS will quote CH/DE/AT/HU, and what their DSG
+  statement actually covers.
+- That the chosen provider's sandbox really sends nothing, by driving it.

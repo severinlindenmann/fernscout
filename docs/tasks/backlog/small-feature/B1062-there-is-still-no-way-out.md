@@ -51,3 +51,26 @@ expecting to be heard.
 A contact who replies STOPP receives one confirming sentence and no further
 announcement, and `wants_whatsapp` is `0` in the row — checked in the
 database, not inferred from the absence of a message.
+
+## Decided — 2026-09-09
+
+Answered by the owner, and the answer is cheaper than this ticket proposed.
+
+**Who sent the word decides what happens, and neither branch writes to
+`contacts`.**
+
+- **A guest or reader writes STOP** → reply with their own manage link, which
+  is the mechanism that already unsubscribes properly (`unsubscribeUrlFor`).
+  No direct write to `wants_whatsapp`, no second implementation of a
+  preference. B386's actual complaint was that the manage link only ever
+  appeared in a *mail* footer; this puts it where a WhatsApp-only reader can
+  reach it.
+- **An owner or a buddy writes stop** → **ignore it.** They are mid
+  conversation and "stop" is a word in a sentence. Silencing somebody's own
+  writing channel because they used a common verb is the false positive this
+  branch exists to avoid.
+
+That removes the "announcements or everything?" question entirely: a reader
+has only announcements to stop, and an owner is not stopping anything.
+
+B386 can be superseded by this once it lands.
