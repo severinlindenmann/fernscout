@@ -395,7 +395,7 @@ export default function SearchBox({
       )}
 
       {voiceError && (
-        <p role="status" className="mt-2 text-sm text-coral-600">
+        <p role="alert" className="mt-2 text-sm text-coral-600">
           {voiceError}
         </p>
       )}
@@ -417,7 +417,7 @@ export default function SearchBox({
       )}
 
       {agent === "error" && (
-        <p role="status" className="mt-2 text-sm text-coral-600">
+        <p role="alert" className="mt-2 text-sm text-coral-600">
           {t("search.agentError")}
         </p>
       )}
