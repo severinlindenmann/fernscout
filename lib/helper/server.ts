@@ -8,7 +8,7 @@ import { costForDay, costLocalForDay } from "../costs";
 import { AS_AUTHOR, getAllEntries, getAllMedia, getDays, getEntryBySlug } from "../entries";
 import { getTrips, tripRef } from "../trips";
 import type { Day, DaySummary } from "../types";
-import { findInboxFile, listInbox, type InboxEntry } from "../inbox";
+import { findInboxFile, listInbox, type InboxEntry, type InboxKind } from "../inbox";
 import { getUser } from "../users";
 import { isWritten, type WizardDraft } from "./draft";
 
@@ -341,10 +341,25 @@ export type RoomFile = {
   /** `inbox:<id>` or `photo:<slug>:<src>` — the whole of what a selection is. */
   id: string;
   name: string;
-  /** A thumbnail, for a photograph already on a day. */
+  /**
+   * A thumbnail. For a photograph on a day this is its own media URL; for a
+   * staged photograph it is `/api/helper/<user>/inbox/<id>/thumbnail`, which
+   * is owner-only and serves a resized copy — B1123.
+   *
+   * Absent for a document. A csv has no picture, and the pane draws its
+   * extension instead of an empty frame.
+   */
   src?: string;
   /** What a person is looking at, so the tile can say so without a lookup. */
   detail?: string;
+  /**
+   * The three facts the pane sorts and groups by, and the reason B1123 exists:
+   * the pane used to show what had been *chosen*, which a person already
+   * knows, and hide what is *waiting*, which they do not.
+   */
+  kind?: InboxKind;
+  bytes?: number;
+  uploadedAt?: string;
 };
 
 /** What the left-hand pane holds: what is waiting, and what is already on the
@@ -362,11 +377,23 @@ const TRIP_TILES = 60;
 
 export function filesForRoom(username: string): RoomFiles {
   const staged = listInbox(username);
-  const inbox: RoomFile[] = [...staged.media, ...staged.files].map((entry) => ({
-    id: `inbox:${entry.id}`,
-    name: entry.filename,
-    detail: entry.description || entry.caption || undefined,
-  }));
+  const inbox: RoomFile[] = [...staged.media, ...staged.files]
+    // Newest first — what somebody just put there is what they mean.
+    .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))
+    .map((entry) => ({
+      id: `inbox:${entry.id}`,
+      name: entry.filename,
+      // Only a photograph has one. The route refuses anything else, so
+      // pointing a document at it would draw a broken frame.
+      src:
+        entry.kind === "media"
+          ? `/api/helper/${encodeURIComponent(username)}/inbox/${encodeURIComponent(entry.id)}/thumbnail`
+          : undefined,
+      detail: entry.description || entry.caption || undefined,
+      kind: entry.kind,
+      bytes: entry.bytes,
+      uploadedAt: entry.uploadedAt,
+    }));
 
   const newest = [...getTrips(username)].sort((a, b) => b.start.localeCompare(a.start))[0];
   const trip: RoomFile[] = newest

@@ -65,9 +65,11 @@ test("the pane holds the inbox and this trip's photographs, and says which trip"
   expect(files.tripTitle).toBe("A Trip");
   expect(files.inbox.map((file) => file.name)).toEqual(["statement.csv"]);
   expect(files.inbox[0].id).toBe(`inbox:${stored.entry.id}`);
-  // A photograph carries its own thumbnail; an inbox file carries none,
-  // because nothing under `inbox/` is reachable by URL and that is not a gap
-  // to be filled in here.
+  // A *document* carries no thumbnail — a csv has no picture, and the pane
+  // draws its extension rather than an empty frame. An inbox photograph does
+  // carry one now (B1123, asserted below): it points at the owner-only
+  // thumbnail route, which is the only thing under `inbox/` reachable by URL
+  // and is owner-gated for it.
   expect(files.inbox[0].src).toBeUndefined();
   expect(files.trip).toHaveLength(1);
   expect(files.trip[0].src).toBe("/u/media/a-trip/tuesday/01.jpg");
@@ -111,4 +113,25 @@ test("a filename cannot break out of the line it is written into", () => {
   const said = describeSelection("u", [`inbox:${stored.entry.id}`]);
   expect(said.split("\n")).toHaveLength(1);
   expect(said.match(/\[/g)).toHaveLength(1);
+});
+
+/**
+ * The half the assertion above cannot see — B1123.
+ *
+ * That test stages a `.csv`, so "an inbox file carries no thumbnail" passed
+ * for a fortnight while meaning only "a document carries none". A staged
+ * photograph is the case that changed, and it is the one worth naming.
+ */
+test("a staged photograph carries a thumbnail, and it is the owner-only route", async () => {
+  journal();
+  const { paintJpeg } = await import("./support/pictures");
+  const stored = storeInboxFile("u", "media", "hafen.jpg", await paintJpeg(40, 30, 1), {});
+
+  const files = filesForRoom("u");
+  const photo = files.inbox.find((file) => file.name === "hafen.jpg");
+  expect(photo?.src).toBe(`/api/helper/u/inbox/${stored.entry.id}/thumbnail`);
+  // Sorted newest first, and carrying what the pane groups by.
+  expect(photo?.kind).toBe("media");
+  expect(photo?.bytes).toBeGreaterThan(0);
+  expect(photo?.uploadedAt).toBeTruthy();
 });
