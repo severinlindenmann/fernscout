@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: tests,build
 found: "2026-09-09T07:08:22Z"
+superseded: "Fixed on main by another session while this was being written — the duplicate features key is gone and the comment there now names both merges that added one. Captured and fixed in parallel; the diagnosis in this file still stands as the record of why a duplicate key passed every test and failed only the build."
 ---
 
 # B1050 — main does not build: a merge left two features keys in one object literal in helper-proposal-arguments.test.ts

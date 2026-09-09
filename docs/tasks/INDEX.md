@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (130)
+## backlog (137)
 
 ### security (1)
 
@@ -57,11 +57,10 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B1045](backlog/security/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low |
 
-### issue (8)
+### issue (7)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1050](backlog/issue/B1050-main-does-not-build-a-merge.md) | main does not build: a merge left two features keys in one object literal in helper-proposal-arguments.test.ts | ISSUE | high | low |
 | [B1053](backlog/issue/B1053-the-helper-s-tool-list-has.md) | The helper's tool list has outgrown the budget its own test set, and the fix is grouping | ISSUE | high | medium |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
@@ -70,7 +69,7 @@ Do not edit them by hand; run the script.
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1044](backlog/issue/B1044-six-fonts-are-preloaded-on-every.md) | Six fonts are preloaded on every page and none of them is used in time | ISSUE | low | low |
 
-### big-feature (20)
+### big-feature (21)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -81,6 +80,7 @@ Do not edit them by hand; run the script.
 | [B1064](backlog/big-feature/B1064-a-journal-s-owner-is-proven.md) | A journal's owner is proven by an email alone, and an address costs nothing to make another of | FEATURE | high | high |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B1049](backlog/big-feature/B1049-a-model-choosing-among-forty-three.md) | A model choosing among forty-three tools chooses worse than one choosing among seventeen | FEATURE | medium | high |
+| [B1068](backlog/big-feature/B1068-an-agent-that-brings-its-own.md) | An agent that brings its own model cannot write a day from notes, caption a photograph, or hear a voice note | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | A journal folder can be exported and never pushed back, so writing locally is a one-way trip | FEATURE | medium | high |
@@ -95,7 +95,7 @@ Do not edit them by hand; run the script.
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 | [B909](backlog/big-feature/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-### small-feature (23)
+### small-feature (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -103,8 +103,11 @@ Do not edit them by hand; run the script.
 | [B1059](backlog/small-feature/B1059-a-photograph-sent-over-whatsapp-has.md) | A photograph sent over WhatsApp has nowhere to land, and arrives compressed when it does | FEATURE | high | medium |
 | [B1061](backlog/small-feature/B1061-a-conversation-that-goes-quiet-for.md) | A conversation that goes quiet for a day cannot be answered, and nothing in the code knows it | FEATURE | high | medium |
 | [B1062](backlog/small-feature/B1062-there-is-still-no-way-out.md) | There is still no way out of the WhatsApp channel from inside WhatsApp | FEATURE | high | medium |
+| [B1065](backlog/small-feature/B1065-there-is-no-way-to-prove.md) | There is no way to prove that somebody holds the telephone number they typed | FEATURE | high | medium |
 | [B994](backlog/small-feature/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium |
 | [B1060](backlog/small-feature/B1060-a-voice-note-sent-over-whatsapp.md) | A voice note sent over WhatsApp has no route to the transcriber that already exists | FEATURE | medium | low |
+| [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
+| [B1069](backlog/small-feature/B1069-there-is-no-tool-surface-for.md) | There is no tool surface for an agent that would rather be guided than read a spec | FEATURE | medium | medium |
 | [B112](backlog/small-feature/B112-local-scripts-write-straight-to-content.md) | Local scripts still write straight to content, and the one guarantee they skip is the draft rule | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
 | [B132](backlog/small-feature/B132-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to learn a new release exists, let alone install it | FEATURE | medium | medium |
@@ -131,13 +134,14 @@ Do not edit them by hand; run the script.
 | [B1048](backlog/chore/B1048-two-merge-commits-on-main-label.md) | Two merge commits on main label themselves B1026 and B1027, which are different tickets | CHORE | low | low |
 | [B1052](backlog/chore/B1052-code-and-commits-cite-task-ids.md) | Code and commits cite task ids that have no file, so the allocator hands them out again | CHORE | low | low |
 
-### ops (12)
+### ops (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B101](backlog/ops/B101-nobody-has-attacked-a-running-instance.md) | Nobody has attacked a running instance from the outside with the source in hand | OPS | high | high |
 | [B102](backlog/ops/B102-mail-is-switched-on-at-fernscout.md) | Mail is switched on at fernscout.ch and nothing records that a message has ever arrived | OPS | high | medium |
 | [B103](backlog/ops/B103-sign-in-is-switched-on-at.md) | Sign-in is switched on at fernscout.ch and no one has been through the code flow there end to end | OPS | high | medium |
+| [B1067](backlog/ops/B1067-it-is-not-written-down-where.md) | It is not written down where this instance's telephone number comes from, or what one message costs | OPS | high | low |
 | [B403](backlog/ops/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium |
 | [B911](backlog/ops/B911-the-print-flow-has-never-run.md) | The print flow has never run against the live site | OPS | high | low |
 | [B106](backlog/ops/B106-push-has-never-been-switched-on.md) | Push has never been switched on anywhere, so nothing has proved a notification reaches a phone | OPS | medium | medium |
@@ -148,19 +152,22 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### docs-and-skills (2)
+### docs-and-skills (3)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1063](backlog/docs-and-skills/B1063-the-imprint-does-not-say-that.md) | The imprint does not say that a message sent to the WhatsApp number is read, stored and sent to Meta | DOCS | high | low |
+| [B1070](backlog/docs-and-skills/B1070-the-three-ways-to-reach-this.md) | The three ways to reach this journal are not written down anywhere as three ways | DOCS | high | medium |
 | [B1046](backlog/docs-and-skills/B1046-two-sessions-running-verify-in-the.md) | Two sessions running verify in the shared checkout collide on the next build lock | DOCS | low | low |
 
-### superseded (58)
+### superseded (60)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1002](backlog/superseded/B1002-the-credits-hundredths-migration-opens-a.md) | The credits-hundredths migration opens a transaction inside the one it is already in, and Postgres refuses | ISSUE | high | low |
 | [B1003](backlog/superseded/B1003-the-agent-guide-is-over-its.md) | The agent guide is over its size ceiling and main is red | ISSUE | high | low |
+| [B1050](backlog/superseded/B1050-main-does-not-build-a-merge.md) | main does not build: a merge left two features keys in one object literal in helper-proposal-arguments.test.ts | ISSUE | high | low |
+| [B1071](backlog/superseded/B1071-the-helper-prompt-is-7617-tokens.md) | The helper prompt is 7617 tokens against its 6500 ceiling, so main's test suite is red | ISSUE | high | medium |
 | [B373](backlog/superseded/B373-the-backup-success-marker-vanished-from.md) | The backup success marker vanished from DATA_DIR between two deploys minutes apart | OPS | high | low |
 | [B377](backlog/superseded/B377-the-deploy-reported-a-healthy-backup.md) | The deploy reported a healthy backup this afternoon and none at all this evening | OPS | high | low |
 | [B65](backlog/superseded/B65-the-deployed-server-has-no-backup.md) | Every backup of the deployed server sits on the same machine it is backing up | OPS | high | medium |
