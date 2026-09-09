@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (154)
+## backlog (159)
 
 ### security (3)
 
@@ -81,12 +81,14 @@ Do not edit them by hand; run the script.
 | [B1096](backlog/issue/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low |
 | [B1106](backlog/issue/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low |
 
-### big-feature (18)
+### big-feature (20)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1054](backlog/big-feature/B1054-the-helper-s-live-conversation-lives.md) | The helper's live conversation lives in one process's memory, so no second door can ever join it | FEATURE | high | high |
 | [B1056](backlog/big-feature/B1056-a-helper-answer-can-only-be.md) | A helper answer can only be drawn in the web room, because Block has exactly one renderer | FEATURE | high | high |
+| [B1121](backlog/big-feature/B1121-the-room-s-frame-spends-its.md) | The room's frame spends its top bar on two sentences and has no history, no new conversation and a cramped preview | FEATURE | high | high |
+| [B1123](backlog/big-feature/B1123-the-files-pane-shows-what-you.md) | The files pane shows what you chose rather than what is waiting, and has no thumbnails | FEATURE | high | high |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B1049](backlog/big-feature/B1049-a-model-choosing-among-forty-three.md) | A model choosing among forty-three tools chooses worse than one choosing among seventeen | FEATURE | medium | high |
 | [B1068](backlog/big-feature/B1068-an-agent-that-brings-its-own.md) | An agent that brings its own model cannot write a day from notes, caption a photograph, or hear a voice note | FEATURE | medium | high |
@@ -104,7 +106,7 @@ Do not edit them by hand; run the script.
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 | [B909](backlog/big-feature/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-### small-feature (29)
+### small-feature (32)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -114,6 +116,9 @@ Do not edit them by hand; run the script.
 | [B1062](backlog/small-feature/B1062-there-is-still-no-way-out.md) | There is still no way out of the WhatsApp channel from inside WhatsApp | FEATURE | high | medium |
 | [B1091](backlog/small-feature/B1091-the-two-model-calls-that-cost.md) | The two model calls that cost real money are free, so the ledger cannot account for what the instance spends | FEATURE | high | medium |
 | [B1092](backlog/small-feature/B1092-photobook-and-costs-are-gated-per.md) | Budget is gated per journal when it is the instance's decision | FEATURE | high | medium |
+| [B1120](backlog/small-feature/B1120-the-agent-writes-markdown-into-a.md) | The agent writes markdown into a plain-text answer, so people read literal asterisks | FEATURE | high | medium |
+| [B1122](backlog/small-feature/B1122-a-tool-card-looks-like-a.md) | A tool card looks like a form rather than a decision, and its controls are unreachable under a phone keyboard | FEATURE | high | medium |
+| [B1124](backlog/small-feature/B1124-sending-a-message-and-waiting-for.md) | Sending a message and waiting for an answer has no motion at all | FEATURE | high | low |
 | [B994](backlog/small-feature/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium |
 | [B1060](backlog/small-feature/B1060-a-voice-note-sent-over-whatsapp.md) | A voice note sent over WhatsApp has no route to the transcriber that already exists | FEATURE | medium | low |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
