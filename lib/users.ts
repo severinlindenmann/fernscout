@@ -70,13 +70,22 @@ export function isValidUsername(username: string): boolean {
   return USERNAME_RE.test(username);
 }
 
-export function isReservedUsername(username: string): boolean {
+export function isReservedUsername(
+  username: string,
+  /** B92 — `ignoreTombstone` asks only about the *other* reasons a name is
+   *  taken. `createJournal` passes it for the one caller a tombstone is not
+   *  meant to stop: the person who deleted the journal, taking their own name
+   *  back, already vetted there. Everything else below still applies to them —
+   *  a name that shadows a route, or one the operator has since reserved, is
+   *  not theirs to have merely because it used to be. */
+  opts?: { ignoreTombstone?: boolean },
+): boolean {
   if ((ALWAYS_RESERVED as readonly string[]).includes(username)) return true;
   // A name that belonged to a deleted journal stays taken. Handing it back
   // would point every old link, QR code and bookmark at somebody else's
   // photographs — see lib/tombstones.ts, and B38's first decision. An operator
   // reclaims it by deleting the tombstone.
-  if (isDeletedUsername(username)) return true;
+  if (!opts?.ignoreTombstone && isDeletedUsername(username)) return true;
   try {
     return loadServerConfig().users.reserved.includes(username);
   } catch {

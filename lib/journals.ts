@@ -21,7 +21,7 @@ import { LOCALE_TAG_RE, translateIn } from "./locales";
 import { sendMail } from "./mail";
 import { renderMail } from "./mail/template";
 import { serverSite } from "./site";
-import { journalTombstone } from "./tombstones";
+import { clearTombstone, journalTombstone } from "./tombstones";
 import { clearUserCache, getUser, getUsernames, isReservedUsername, isValidUsername } from "./users";
 
 /**
@@ -167,20 +167,67 @@ export function createJournal(input: NewJournal): CreateJournalResult {
   // different and so is what the caller should do about it. "It would shadow a
   // route" invites trying a near-miss; "somebody deleted a journal that lived
   // here" says the name is not coming back on this server.
+  //
+  // One exception — B92: the person who deleted it may take the name back.
+  // `stone.requestedBy` is the owner's address at the moment of deletion
+  // (lib/tombstones.ts). Three things all have to hold for that to be true
+  // rather than a stranger fishing for a reused name: the tombstone is for a
+  // *journal* (never a trip's — `journalTombstone` only ever reads that
+  // shape, but it is checked anyway rather than trusted), `ownerEmail`
+  // matches `requestedBy`, and this address owns nothing today — the last is
+  // what stops a tombstone from ever being a second slot rather than the
+  // same one back, since without it an address that still held a live
+  // journal could delete a throwaway second one and use its tombstone to
+  // dodge the cap. `owned` is computed once, ahead of everything else, and
+  // reused by the ordinary cap check further down so the two can never
+  // disagree about what this address holds right now.
+  //
+  // The two refusals below read differently on purpose, and that is the
+  // whole of what is allowed to differ: a stranger — this address never
+  // asked for this deletion — gets the sentence this refusal has always
+  // given, unchanged, so nothing here tells them the name was ever anybody's.
+  // The owner who asked for it gets told that, because it is true of them
+  // and only them, and a request that already proved it can read this
+  // address is not one this refusal owes secrecy to.
   const stone = journalTombstone(username);
+  const ownerEmail = input.ownerEmail.trim().toLowerCase();
+  const owned = journalsOwnedBy(ownerEmail);
+  let reclaimingTombstone = false;
   if (stone) {
-    return {
-      ok: false,
-      error: "deleted_username",
-      message:
-        `"${username}" belonged to a journal that was deleted on ` +
-        `${stone.deletedAt.slice(0, 10)}, and this server does not hand a name back. ` +
-        `Every old link and bookmark still points at it, and they must not resolve to ` +
-        `somebody else's journal. Pick another name.`,
-    };
+    const isRequester = stone.kind === "journal" && stone.requestedBy.trim().toLowerCase() === ownerEmail;
+    if (!isRequester) {
+      return {
+        ok: false,
+        error: "deleted_username",
+        message:
+          `"${username}" belonged to a journal that was deleted on ` +
+          `${stone.deletedAt.slice(0, 10)}, and this server does not hand a name back. ` +
+          `Every old link and bookmark still points at it, and they must not resolve to ` +
+          `somebody else's journal. Pick another name.`,
+      };
+    }
+    if (owned.length > 0) {
+      return {
+        ok: false,
+        error: "deleted_username",
+        message:
+          `"${username}" is the journal this address deleted, and it can be reclaimed — but ` +
+          `not while this address still owns "${owned[0]}", which is the limit on this server. ` +
+          `Delete that one first, or keep it and pick a different name for a new journal.`,
+      };
+    }
+    reclaimingTombstone = true;
   }
 
-  if (isReservedUsername(username)) {
+  // On a reclaim only the *tombstone* reason is set aside — the caller above
+  // has already been vetted as the owner taking their own name back, and
+  // asking again here would refuse the one case this change exists for. The
+  // other reasons still hold against them: a name in ALWAYS_RESERVED would
+  // shadow a route, a name the operator has since added to `users.reserved`
+  // is the operator's call and not undone by having once owned it, and a
+  // server config that will not load still fails closed. Skipping the whole
+  // check would have quietly handed all three away.
+  if (isReservedUsername(username, { ignoreTombstone: reclaimingTombstone })) {
     return {
       ok: false,
       error: "reserved_username",
@@ -240,8 +287,12 @@ export function createJournal(input: NewJournal): CreateJournalResult {
     };
   }
 
-  const ownerEmail = input.ownerEmail.trim().toLowerCase();
-  const owned = journalsOwnedBy(ownerEmail);
+  // `ownerEmail` and `owned` are both computed above, where the tombstone
+  // check needed them first — reused here rather than recomputed, so the two
+  // checks can never disagree about whose address this is or what it holds.
+  // A reclaim (`reclaimingTombstone`) always reaches this with `owned.length
+  // === 0`, since the tombstone check above already refused otherwise, so
+  // reclaiming a name is never itself a way past this cap.
   if (owned.length >= MAX_JOURNALS_PER_EMAIL) {
     return {
       ok: false,
@@ -338,6 +389,12 @@ export function createJournal(input: NewJournal): CreateJournalResult {
   // for the rest of this process's life.
   clearUserCache();
   clearConfigCache();
+
+  // Consumed only now that the write above actually succeeded — B92. The
+  // reservation has done its job: the name is a live journal again, so
+  // `journalTombstone`/`isDeletedUsername` must stop matching it, and with
+  // them the `410 Gone` `proxy.ts` serves off a tombstone still standing.
+  if (reclaimingTombstone) clearTombstone(username);
 
   return { ok: true, username, visibility };
 }
