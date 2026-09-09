@@ -564,6 +564,9 @@ type HelperSessionsTable = {
   said: string | null;
   answered: string | null;
   created_at: string;
+  /** "web" | "whatsapp" | "" — B1054. Empty for every row written before
+   *  that migration, which nobody marked. */
+  origin: Generated<string>;
 };
 
 /**
@@ -585,6 +588,24 @@ type IdempotencyTable = {
   /** JSON of the answer handed back the first time. */
   value: string;
   created_at: string;
+};
+
+/**
+ * The helper's live conversation, one row per journal — B1054.
+ *
+ * Mutable TTL state beside `helper_sessions`' append-only record — see
+ * `lib/db/migrations/029-helper-threads.ts` for why the two are separate
+ * tables. `turns` is `Turn[]` (`lib/helper/thread.ts`) as JSON, including the
+ * model-only notes `helper_sessions` never stored.
+ */
+type HelperThreadsTable = {
+  owner_id: string;
+  session_id: string;
+  /** "web" | "whatsapp" — the channel that most recently touched this
+   *  thread, which is what its TTL is read against. */
+  channel: Generated<string>;
+  turns: Generated<string>;
+  touched_at: string;
 };
 
 export type Database = {
@@ -609,6 +630,7 @@ export type Database = {
   usage: UsageTable;
   helper_sessions: HelperSessionsTable;
   idempotency: IdempotencyTable;
+  helper_threads: HelperThreadsTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -635,4 +657,5 @@ export const TABLE_NAMES = [
   "usage",
   "helper_sessions",
   "idempotency",
+  "helper_threads",
 ] as const satisfies readonly (keyof Database)[];

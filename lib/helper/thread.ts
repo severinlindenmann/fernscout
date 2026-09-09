@@ -1,4 +1,5 @@
 import "server-only";
+import { getDatabaseOrNull } from "../db";
 import { newId } from "../db/owner";
 import { recordPress } from "./sessions";
 
@@ -18,33 +19,34 @@ import { recordPress } from "./sessions";
  * list is generated from the array. This file is what is left when the tools
  * are taken out of it, which is the conversation itself.
  *
- * ## Where the conversation lives, and why it is a Map
+ * ## Where the conversation lives — B1054
  *
- * In this process's memory, keyed by journal, for `TTL_MS` below — see that
- * constant for what ends a conversation and why the number is what it is.
+ * A `Map`, anchored on `globalThis` for the reason B1168's comment on it
+ * gives, **is still the fast path**: within one warm process, every read and
+ * write here is exactly as cheap as it always was. What changed is that the
+ * Map is no longer the *only* copy. `helper_threads` (one row per journal,
+ * `lib/db/migrations/029-helper-threads.ts`) holds the same state durably,
+ * written fire-and-forget on every mutation and read back only on a cold
+ * cache — the first read for a journal since a restart, or after its TTL has
+ * quietly run out. A second door (WhatsApp) and a browser restart both need
+ * exactly this: not a faster Map, a Map that survives losing the process.
  *
- * The precedent for not inventing storage is `./draft.ts`: there is no
- * wizard-position field anywhere, because the step is a function of the draft
- * on disk and a second copy of a fact disagrees with the first within a month.
- * That reasoning does not reach here — nothing on disk knows what somebody
- * said out loud thirty seconds ago — so the conversation has to be *held*. The
- * question is only where, and the three candidates each answer themselves:
+ * **Notes are model-only, still.** `proposed()`, `wrote()` and `refused()`
+ * push `[proposed: …]` turns the person never sees, and `model.ts` folds them
+ * onto the *next* user message rather than sending them as turns of their own
+ * (B924). They are part of the same `turns` array and travel through the same
+ * persistence — there was never a reason to keep them out of it.
  *
- * - **Not the database.** A table outlives the conversation. What a person
- *   typed at their journal on a Tuesday would then sit in a backup, in a
- *   restore drill and in an export, and nobody asked for it to be kept. It is
- *   the same reason sent mail moved out from under `content/` in B636.
- * - **Not under `content/`.** That tree is the owner's own content and B510
- *   put everything else out of it. Chatter is not content.
- * - **Memory, then**, which is what `lib/rateLimit.ts` already does for the
- *   same shape of transient fact. A deploy or a restart drops every
- *   conversation, and the whole cost of that is one repeated sentence.
- *
- * What is kept is the plain text of each turn and nothing else — no tool
- * calls, no tool results. Trimming a history that carries `tool_use` blocks
- * can orphan a `tool_result` and earn a 400; the answer already carries what
- * the tools said, and a turn of text is a twentieth of the tokens.
+ * **Durability is best-effort.** A failed database write leaves the in-memory
+ * copy — which is still correct for this process — as the only one, exactly
+ * as it always was before this table existed; nothing here throws for it.
  */
+
+/** Which door the conversation is happening through, and (since B1054) which
+ *  door said or heard one particular turn. Not a `Caller["how"]` from
+ *  `./caller.ts` — that answers who proved a request, this answers where a
+ *  turn was said, and a `cookie`-proven caller's turns are always `web`. */
+export type Channel = "web" | "whatsapp";
 
 /**
  * One thing that was said, by one side — or a **note**, which is the third
@@ -61,49 +63,54 @@ import { recordPress } from "./sessions";
  *
  * Deliberately not the SDK's `MessageParam`: this holds text and never a tool
  * block.
+ *
+ * `origin` is absent on a note (nobody's door said it) and on a turn nobody
+ * has ever marked — every row written before B1054 — and present on every
+ * turn written after: which door this half of the exchange happened on.
  */
-export type Turn = { role: "user" | "assistant" | "note"; text: string };
+export type Turn = { role: "user" | "assistant" | "note"; text: string; origin?: Channel };
 
 /**
  * How much of a conversation is remembered.
  *
  * Six exchanges. Beyond that a person is on a different subject, and every
- * remembered turn is paid for again on the next one.
+ * remembered turn is paid for again on the next one. A token budget, not an
+ * artefact of living in memory — a longer-lived WhatsApp thread needs this
+ * trim more, not less.
  */
 const MAX_TURNS = 12;
 
 /**
- * What ends a conversation — B1109.
+ * What ends a conversation, per channel — B1054, and B1109 before it.
  *
- * Two ways, and this is the only one that is a clock rather than a press:
- * `forget()` (the "start over" control, `DELETE /api/helper/<user>/ask`) ends
- * one outright, and a gap this long ends one by itself, because coming back
- * after it is starting again, which is what a person expects. Reopening the
- * room — a closed tab, a phone locked and unlocked, a link followed back in —
- * is **not** on this list and does not end a conversation: the thread lives
- * on the server, keyed by journal, so it survives exactly as long as this gap
- * allows regardless of what the browser did in between. That is also what
- * makes "resume the last conversation" (`app/agent/page.tsx`) an honest
- * thing to offer rather than a guess.
+ * A gap this long ends a conversation by itself, because coming back after it
+ * is starting again — what a person expects. **The number is not the same for
+ * both doors.** A web room is a sitting: somebody sits down, works, and the
+ * old thirty-minute figure was the bug B1109 fixed (see the history on that
+ * ticket) by widening it to four hours. A messenger is read once at the end
+ * of a day; at thirty minutes, or even four hours, every WhatsApp message
+ * would be a cold start and the model would re-ask which trip and which day
+ * on every single one. So WhatsApp gets a day's own worth of quiet — long
+ * enough that "yesterday" still means something the next evening — and the
+ * web room keeps the shorter number that already works for it.
  *
- * Thirty minutes used to be this number and was the bug: a conversation held
- * up by a moment's thought, or by waiting on an answer, crossed it
- * constantly, so the same sitting was recorded as `helper_sessions` rows for
- * one turn each — the room's history list was a list of turns wearing a
- * "conversation" label (two rows in a row occasionally beat the clock, which
- * is why B1109's evidence showed the odd "(2 turns)" among sixteen single
- * ones). A gap of a few hours is what a person actually means by "still the
- * same conversation": long enough to survive a coffee, short enough that
- * returning tomorrow is unmistakably a new one. Nothing else changes:
  * `MAX_TURNS` above still caps what a model is shown regardless of how long
- * the thread has lived, so a longer TTL costs nothing per turn — it only
- * changes which rows in `helper_sessions` end up sharing a `session_id`.
+ * the thread has lived, so a longer TTL costs nothing per turn.
  */
-const TTL_MS = 4 * 60 * 60 * 1000;
+const TTL_MS: Record<Channel, number> = {
+  web: 4 * 60 * 60 * 1000,
+  whatsapp: 24 * 60 * 60 * 1000,
+};
+
+function ttlFor(channel: Channel): number {
+  return TTL_MS[channel];
+}
 
 /** Above this many journals mid-conversation, the expired ones are swept.
  *  Same shape as `lib/rateLimit.ts`, for the same reason. */
 const MAX_THREADS = 1000;
+
+type ThreadState = { id: string; turns: Turn[]; touched: number; channel: Channel };
 
 /**
  * Anchored on `globalThis`, not a bare module-level `Map` — B1168.
@@ -111,56 +118,156 @@ const MAX_THREADS = 1000;
  * Next compiles the page and each route handler as separate server chunks,
  * and a module can be instantiated once per chunk: `app/agent/page.tsx`
  * adopting a conversation wrote into one Map while the ask route answered
- * from another, so the adoption silently never happened. The process is
- * still the boundary (a deploy or restart drops every conversation, as the
- * note above accepts); this only makes "one process, one conversation
- * table" actually true.
+ * from another, so the adoption silently never happened. This is the
+ * *cache* now, not the only copy (see the module doc), so a chunk starting
+ * with an empty Map simply hydrates from `helper_threads` on its first read.
  */
-const threads = ((globalThis as { __fsHelperThreads?: Map<string, { id: string; turns: Turn[]; touched: number }> })
+const threads = ((globalThis as { __fsHelperThreads?: Map<string, ThreadState> })
   .__fsHelperThreads ??= new Map());
 
-/**
- * A name for one conversation — B976.
- *
- * The thread is keyed by journal, which is all it ever needed while nothing
- * outlived it. Storing what happened needs the turns of one sitting to be
- * grouped, and a person returning to an older conversation needs it to have a
- * name they can be sent back to.
- *
- * Minted when a conversation starts and dropped with it, so it lives exactly
- * as long as the conversation does: the same id for `TTL_MS` of talking,
- * a new one after `forget()` or after the TTL, which is the boundary a person
- * would draw too.
- */
-function openThread(): { id: string; turns: Turn[]; touched: number } {
-  return { id: newId(), turns: [], touched: Date.now() };
+function openThread(channel: Channel): ThreadState {
+  return { id: newId(), turns: [], touched: Date.now(), channel };
 }
 
-/** The conversation now in progress, starting one if there is none. */
-export function sessionId(username: string): string {
-  const thread = threads.get(username);
-  if (thread && Date.now() - thread.touched < TTL_MS) return thread.id;
-  const fresh = openThread();
-  threads.set(username, fresh);
-  return fresh.id;
+/** Whether a thread — cached or freshly loaded — is still inside its own
+ *  channel's TTL. A type guard so a caller can narrow `ThreadState |
+ *  undefined` in one line. */
+function isFresh(thread: ThreadState | undefined, now = Date.now()): thread is ThreadState {
+  return thread !== undefined && now - thread.touched < ttlFor(thread.channel);
 }
 
 function sweep(now: number) {
   if (threads.size <= MAX_THREADS) return;
   for (const [key, thread] of threads) {
-    if (now - thread.touched >= TTL_MS) threads.delete(key);
+    if (!isFresh(thread, now)) threads.delete(key);
   }
 }
 
-/** What has been said in this journal's conversation so far, oldest first. */
-export function history(username: string): Turn[] {
-  const thread = threads.get(username);
-  if (!thread) return [];
-  if (Date.now() - thread.touched >= TTL_MS) {
-    threads.delete(username);
-    return [];
+/**
+ * Fire-and-forget durability for one journal's thread — B1054.
+ *
+ * One row per journal (`onConflict` on `owner_id`), so a journal never holds
+ * two live rows to disagree with itself. Never awaited by a caller: the
+ * in-memory cache has already been updated by the time this is called, so a
+ * person's turn is never waiting on a database write to feel instant.
+ */
+function persist(username: string, state: ThreadState): void {
+  void (async () => {
+    try {
+      const handle = await getDatabaseOrNull();
+      if (!handle) return;
+      const row = {
+        session_id: state.id,
+        channel: state.channel,
+        turns: JSON.stringify(state.turns),
+        touched_at: new Date(state.touched).toISOString(),
+      };
+      await handle.db
+        .insertInto("helper_threads")
+        .values({ owner_id: username, ...row })
+        .onConflict((oc) => oc.column("owner_id").doUpdateSet(row))
+        .execute();
+    } catch {
+      // Best-effort — see the module doc. The in-memory cache still holds
+      // the correct state for this process.
+    }
+  })();
+}
+
+function drop(username: string): void {
+  void (async () => {
+    try {
+      const handle = await getDatabaseOrNull();
+      if (!handle) return;
+      await handle.db.deleteFrom("helper_threads").where("owner_id", "=", username).execute();
+    } catch {
+      // As above.
+    }
+  })();
+}
+
+async function loadFromDb(username: string): Promise<ThreadState | null> {
+  try {
+    const handle = await getDatabaseOrNull();
+    if (!handle) return null;
+    const row = await handle.db
+      .selectFrom("helper_threads")
+      .selectAll()
+      .where("owner_id", "=", username)
+      .executeTakeFirst();
+    if (!row) return null;
+    const channel: Channel = row.channel === "whatsapp" ? "whatsapp" : "web";
+    let turns: Turn[] = [];
+    try {
+      const parsed: unknown = JSON.parse(row.turns);
+      if (Array.isArray(parsed)) turns = parsed as Turn[];
+    } catch {
+      turns = [];
+    }
+    const state: ThreadState = { id: row.session_id, turns, touched: new Date(row.touched_at).getTime(), channel };
+    return isFresh(state) ? state : null;
+  } catch {
+    return null;
   }
-  return thread.turns;
+}
+
+/**
+ * The live thread for this journal — the cache if it is warm, the database
+ * if it is not, `undefined` if neither has one that is still inside its TTL.
+ *
+ * The only place a database read happens in this file; every mutation below
+ * reads the cache directly instead, because by the time one runs, whatever
+ * called it has already resolved this once in the same request (see
+ * `app/api/helper/[user]/ask/route.ts`).
+ */
+async function live(username: string): Promise<ThreadState | undefined> {
+  const cached = threads.get(username);
+  if (isFresh(cached)) return cached;
+  if (cached) threads.delete(username);
+  const loaded = await loadFromDb(username);
+  if (!loaded) return undefined;
+  threads.set(username, loaded);
+  return loaded;
+}
+
+/** The cache only, read synchronously — what `remember`/`note`/`wrote`
+ *  and their neighbours use. They run after a request has already resolved
+ *  `live()` once (the ask route reads `history()` before it ever writes), so
+ *  the cache is warm; a cold cache here behaves exactly as it always did
+ *  before this table existed, which is "start a new thread". */
+function cached(username: string): ThreadState | undefined {
+  const thread = threads.get(username);
+  if (!isFresh(thread)) {
+    if (thread) threads.delete(username);
+    return undefined;
+  }
+  return thread;
+}
+
+function syncSessionId(username: string, channel: Channel = "web"): string {
+  const thread = cached(username);
+  if (thread) return thread.id;
+  const opened = openThread(channel);
+  threads.set(username, opened);
+  persist(username, opened);
+  return opened.id;
+}
+
+function syncTurns(username: string): Turn[] {
+  return cached(username)?.turns ?? [];
+}
+
+/** The conversation now in progress, starting one if there is none. */
+export async function sessionId(username: string, channel: Channel = "web"): Promise<string> {
+  const thread = await live(username);
+  if (thread) return thread.id;
+  return syncSessionId(username, channel);
+}
+
+/** What has been said in this journal's conversation so far, oldest first. */
+export async function history(username: string): Promise<Turn[]> {
+  const thread = await live(username);
+  return thread?.turns ?? [];
 }
 
 /**
@@ -171,15 +278,24 @@ export function history(username: string): Turn[] {
  * before the model is called, and a refused sentence written into the history
  * would reach the model on the *next* turn instead. The route calls this only
  * on a turn that was actually answered.
+ *
+ * `channel` marks both halves of this exchange with where they happened
+ * (B1054's "every turn carries its origin") and decides which TTL the thread
+ * now runs on — the channel of the *most recent* touch, so a WhatsApp reply
+ * into a thread a browser started keeps it alive on WhatsApp's clock from
+ * then on.
  */
-export function remember(username: string, said: string, answered: string): void {
+export function remember(username: string, said: string, answered: string, channel: Channel = "web"): void {
   const now = Date.now();
   const turns = trimmed([
-    ...history(username),
-    { role: "user" as const, text: said },
-    { role: "assistant" as const, text: answered },
+    ...syncTurns(username),
+    { role: "user" as const, text: said, origin: channel },
+    { role: "assistant" as const, text: answered, origin: channel },
   ]);
-  threads.set(username, { id: sessionId(username), turns, touched: now });
+  const id = syncSessionId(username, channel);
+  const state: ThreadState = { id, turns, touched: now, channel };
+  threads.set(username, state);
+  persist(username, state);
   sweep(now);
 }
 
@@ -220,10 +336,13 @@ function trimmed(turns: Turn[]): Turn[] {
  * *after* that answer and *before* the next sentence), and `model.ts` is what
  * knows a note is not a turn.
  */
-export function note(username: string, text: string): void {
+export function note(username: string, text: string, channel: Channel = "web"): void {
   const now = Date.now();
-  const turns = trimmed([...history(username), { role: "note" as const, text }]);
-  threads.set(username, { id: sessionId(username), turns, touched: now });
+  const turns = trimmed([...syncTurns(username), { role: "note" as const, text }]);
+  const id = syncSessionId(username, channel);
+  const state: ThreadState = { id, turns, touched: now, channel };
+  threads.set(username, state);
+  persist(username, state);
   sweep(now);
 }
 
@@ -282,7 +401,7 @@ export function wrote(username: string, tool: string, facts: Record<string, unkn
    * product has. B935, B936 and B968 were each a proposal no press could
    * accept, and every one of them was found by a person driving the live site.
    */
-  void recordPress({ owner: username, session: sessionId(username), tool, ok: true });
+  void recordPress({ owner: username, session: syncSessionId(username), tool, ok: true });
 }
 
 /**
@@ -298,7 +417,7 @@ export function wrote(username: string, tool: string, facts: Record<string, unkn
  * they logged.
  */
 export function refused(username: string, tool: string, error: string): void {
-  void recordPress({ owner: username, session: sessionId(username), tool, ok: false, error });
+  void recordPress({ owner: username, session: syncSessionId(username), tool, ok: false, error });
 }
 
 /**
@@ -310,10 +429,9 @@ export function refused(username: string, tool: string, error: string): void {
  * what a next sentence would truly continue, instead of drawing a dead
  * conversation as though typing would extend it.
  */
-export function liveSession(username: string): string | null {
-  const thread = threads.get(username);
-  if (!thread || Date.now() - thread.touched >= TTL_MS) return null;
-  return thread.id;
+export async function liveSession(username: string): Promise<string | null> {
+  const thread = await live(username);
+  return thread ? thread.id : null;
 }
 
 /**
@@ -323,26 +441,34 @@ export function liveSession(username: string): string | null {
  * `helper_sessions`, and the next sentence extended whatever thread happened
  * to be in memory, recorded under *its* id — so the continuation of the
  * conversation on screen landed in the history as a separate one-turn
- * conversation. Adopting closes that gap: the in-memory thread takes the
- * stored session's id and its last turns, so what is on screen and what
- * answers are the same conversation again.
+ * conversation. Adopting closes that gap: the thread takes the stored
+ * session's id and its last turns, so what is on screen and what answers are
+ * the same conversation again — and, since B1054, that adoption is itself
+ * written through to `helper_threads`, so it survives a restart too.
  *
  * A no-op when that session is already live — reopening the conversation you
  * are in must not reset its clock or its turns.
  */
-export function adopt(
+export async function adopt(
   username: string,
   session: string,
-  turns: { said: string | null; answered: string | null }[],
-): void {
-  const thread = threads.get(username);
-  if (thread && thread.id === session && Date.now() - thread.touched < TTL_MS) return;
+  turns: { said: string | null; answered: string | null; origin?: string | null }[],
+): Promise<void> {
+  const now = threads.get(username);
+  if (now && now.id === session && isFresh(now)) return;
   const flat: Turn[] = [];
   for (const turn of turns) {
-    if (turn.said) flat.push({ role: "user", text: turn.said });
-    if (turn.answered) flat.push({ role: "assistant", text: turn.answered });
+    const origin: Channel | undefined = turn.origin === "whatsapp" ? "whatsapp" : turn.origin === "web" ? "web" : undefined;
+    if (turn.said) flat.push({ role: "user", text: turn.said, ...(origin ? { origin } : {}) });
+    if (turn.answered) flat.push({ role: "assistant", text: turn.answered, ...(origin ? { origin } : {}) });
   }
-  threads.set(username, { id: session, turns: trimmed(flat), touched: Date.now() });
+  // The channel this thread runs its TTL on from here: whatever the most
+  // recent turn was marked with, or `web` — the only door that can reopen a
+  // conversation this way today.
+  const channel: Channel = flat.length > 0 && flat[flat.length - 1].origin === "whatsapp" ? "whatsapp" : "web";
+  const state: ThreadState = { id: session, turns: trimmed(flat), touched: Date.now(), channel };
+  threads.set(username, state);
+  persist(username, state);
 }
 
 /**
@@ -355,4 +481,5 @@ export function adopt(
  */
 export function forget(username: string): void {
   threads.delete(username);
+  drop(username);
 }

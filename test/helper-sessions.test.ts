@@ -210,15 +210,15 @@ describe("a press", () => {
  * sent back to it. It lives exactly as long as the conversation does.
  */
 describe("the name of a conversation", () => {
-  test("is the same for every turn of one sitting", () => {
-    const first = sessionId("alex");
-    expect(sessionId("alex")).toBe(first);
+  test("is the same for every turn of one sitting", async () => {
+    const first = await sessionId("alex");
+    expect(await sessionId("alex")).toBe(first);
   });
 
-  test("and a new one after the conversation is ended", () => {
-    const first = sessionId("alex");
+  test("and a new one after the conversation is ended", async () => {
+    const first = await sessionId("alex");
     forget("alex");
-    expect(sessionId("alex")).not.toBe(first);
+    expect(await sessionId("alex")).not.toBe(first);
   });
 });
 

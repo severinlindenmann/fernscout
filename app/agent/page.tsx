@@ -118,9 +118,9 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
        * extend them, while the next sentence silently opened a new session.
        */
       const named = typeof asked.c === "string" ? asked.c : "";
-      const session = named === "new" ? "" : named !== "" ? named : liveSession(user) ?? "";
+      const session = named === "new" ? "" : named !== "" ? named : ((await liveSession(user)) ?? "");
       const history = session ? await turnsIn(user, session) : [];
-      if (named !== "" && named !== "new" && history.length > 0) adopt(user, session, history);
+      if (named !== "" && named !== "new" && history.length > 0) await adopt(user, session, history);
       return (
         <HelperRoom
           username={user}

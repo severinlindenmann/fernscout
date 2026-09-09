@@ -27,5 +27,5 @@ export async function GET(
   // `live` names the conversation a next sentence would extend, so the
   // panel can say which row is the one you are in — B1168. `null` when
   // nothing is in progress.
-  return Response.json({ ok: true, live: liveSession(user), sessions: await sessionsOf(user) });
+  return Response.json({ ok: true, live: await liveSession(user), sessions: await sessionsOf(user) });
 }
