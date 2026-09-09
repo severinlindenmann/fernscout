@@ -27,6 +27,7 @@ import * as idempotency from "./025-idempotency";
 import * as helperSessions from "./026-helper-sessions";
 import * as creditsHundredths from "./027-credits-hundredths";
 import * as signupPhone from "./028-signup-phone";
+import * as helperThreads from "./029-helper-threads";
 
 /**
  * Every migration, listed by hand.
@@ -69,6 +70,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "026-helper-sessions": helperSessions,
   "027-credits-hundredths": creditsHundredths,
   "028-signup-phone": signupPhone,
+  "029-helper-threads": helperThreads,
 };
 
 export const migrationProvider: MigrationProvider = {

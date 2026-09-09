@@ -208,7 +208,7 @@ describe("what the model is told", () => {
   test("the note carries the drafted title and prose, not just that one exists", async () => {
     await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST" }), params);
     await call();
-    const notes = history("alex").filter((turn) => turn.role === "note");
+    const notes = (await history("alex")).filter((turn) => turn.role === "note");
     const drafted = notes.find((turn) => turn.text.includes("drafted:"));
     expect(drafted).toBeDefined();
     expect(drafted?.text).toContain("set_day_words");

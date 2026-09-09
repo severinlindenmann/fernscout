@@ -1750,8 +1750,21 @@ export async function answerInThread(
          * line. It is false whenever the turn proposed nothing, whatever the
          * conversation has written before: nobody can press what is not on
          * the screen, and the person goes looking for it.
+         *
+         * **Except when a `choose` or `confirm` block really did draw
+         * something to press this turn** — B1056. Neither shape produces a
+         * `Proposal` (only a write tool's `form`/`confirm` with `.proposal`
+         * set does, and a `choose` never does), so `proposals.length === 0`
+         * was true on every one of them and the check had no way to tell "a
+         * button that is not there" from "the three rows this very turn
+         * drew". `ON_SCREEN`'s wording talks about a screen because it was
+         * written against one; the true condition was always "something the
+         * model can honestly say is in front of them", and a block is that
+         * regardless of whether "in front of them" means a page or a chat
+         * bubble — which is the fix a second channel with no page needed.
          */
-        if (claimsAButton(answer)) return "claim";
+        const drewSomethingToPress = blocks.some((one) => one.shape === "choose" || one.shape === "confirm");
+        if (!drewSomethingToPress && claimsAButton(answer)) return "claim";
         /**
          * A write, which is the half B943's evidence narrowed. With something
          * really written and nothing proposed, a past-tense sentence is a true

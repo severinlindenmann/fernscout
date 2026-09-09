@@ -18,15 +18,15 @@ const USER = "adopt-test-journal";
 afterEach(() => forget(USER));
 
 describe("adopting a stored conversation", () => {
-  test("makes it the live one, turns and id together", () => {
-    expect(liveSession(USER)).toBeNull();
-    adopt(USER, "stored-session-1", [
+  test("makes it the live one, turns and id together", async () => {
+    expect(await liveSession(USER)).toBeNull();
+    await adopt(USER, "stored-session-1", [
       { said: "What days are unfinished?", answered: "Two days are waiting." },
       { said: "Tell me about Friday", answered: "Friday is a draft." },
     ]);
-    expect(liveSession(USER)).toBe("stored-session-1");
-    expect(sessionId(USER)).toBe("stored-session-1");
-    expect(history(USER)).toEqual([
+    expect(await liveSession(USER)).toBe("stored-session-1");
+    expect(await sessionId(USER)).toBe("stored-session-1");
+    expect(await history(USER)).toEqual([
       { role: "user", text: "What days are unfinished?" },
       { role: "assistant", text: "Two days are waiting." },
       { role: "user", text: "Tell me about Friday" },
@@ -34,30 +34,30 @@ describe("adopting a stored conversation", () => {
     ]);
   });
 
-  test("the next exchange is remembered under the adopted id", () => {
-    adopt(USER, "stored-session-2", [{ said: "hello", answered: "hello back" }]);
+  test("the next exchange is remembered under the adopted id", async () => {
+    await adopt(USER, "stored-session-2", [{ said: "hello", answered: "hello back" }]);
     remember(USER, "a new sentence", "a new answer");
-    expect(liveSession(USER)).toBe("stored-session-2");
-    expect(history(USER)).toHaveLength(4);
+    expect(await liveSession(USER)).toBe("stored-session-2");
+    expect(await history(USER)).toHaveLength(4);
   });
 
-  test("re-adopting the live conversation is a no-op", () => {
-    adopt(USER, "stored-session-3", [{ said: "first", answered: "answer" }]);
+  test("re-adopting the live conversation is a no-op", async () => {
+    await adopt(USER, "stored-session-3", [{ said: "first", answered: "answer" }]);
     remember(USER, "second", "second answer");
     // The page re-renders and adopts again with the *stored* turns, which
     // are staler than the live thread — nothing may be lost to that.
-    adopt(USER, "stored-session-3", [{ said: "first", answered: "answer" }]);
-    expect(history(USER)).toHaveLength(4);
+    await adopt(USER, "stored-session-3", [{ said: "first", answered: "answer" }]);
+    expect(await history(USER)).toHaveLength(4);
   });
 
-  test("a turn with nothing said or answered contributes nothing", () => {
-    adopt(USER, "stored-session-4", [{ said: null, answered: "an answer alone" }]);
-    expect(history(USER)).toEqual([{ role: "assistant", text: "an answer alone" }]);
+  test("a turn with nothing said or answered contributes nothing", async () => {
+    await adopt(USER, "stored-session-4", [{ said: null, answered: "an answer alone" }]);
+    expect(await history(USER)).toEqual([{ role: "assistant", text: "an answer alone" }]);
   });
 
-  test("forget ends the adopted conversation like any other", () => {
-    adopt(USER, "stored-session-5", [{ said: "hi", answered: "hi" }]);
+  test("forget ends the adopted conversation like any other", async () => {
+    await adopt(USER, "stored-session-5", [{ said: "hi", answered: "hi" }]);
     forget(USER);
-    expect(liveSession(USER)).toBeNull();
+    expect(await liveSession(USER)).toBeNull();
   });
 });

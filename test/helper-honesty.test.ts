@@ -335,7 +335,7 @@ describe("a turn that claims a write it did not make", () => {
 
     const said = String(answered.body.answer);
     expect(said).not.toContain("angelegt");
-    expect(said).toContain("waiting on your screen");
+    expect(said).toContain("waiting to be confirmed");
     // And the button it made is still there — the correction is to the tense,
     // never to the proposal.
     expect((answered.body.blocks as { shape: string }[]).some((one) => one.shape === "form")).toBe(true);
@@ -578,7 +578,7 @@ describe("what is written for the model is never rendered", () => {
     expect(drawn).not.toContain("not written");
 
     expect(answered.status).toBe(200);
-    const turns = history("alex");
+    const turns = await history("alex");
     expect(turns.map((turn) => turn.role)).toEqual(["user", "assistant", "note"]);
     expect(turns[1].text).toBe("Hier ist der Tag zum Drücken.");
     expect(turns[2].text).toContain("waiting to be pressed");
@@ -594,7 +594,7 @@ describe("what is written for the model is never rendered", () => {
     expect(JSON.stringify(answered.body.blocks)).not.toContain("waiting to be pressed");
     // And it is not remembered as prose either, so the next turn has nothing
     // to imitate.
-    expect(history("alex")[1].text).not.toContain("waiting to be pressed");
+    expect((await history("alex"))[1].text).not.toContain("waiting to be pressed");
   });
 });
 

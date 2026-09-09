@@ -56,6 +56,8 @@ export type TurnRecord = {
   threadTurns: number;
   said: string;
   answered: string;
+  /** "web" | "whatsapp" — which door this exchange happened on. B1054. */
+  origin?: string;
 };
 
 /** One press of a proposal, and whether the route took it. */
@@ -111,6 +113,7 @@ export async function recordTurn(turn: TurnRecord): Promise<void> {
     thread_turns: turn.threadTurns,
     said: turn.said,
     answered: turn.answered,
+    origin: turn.origin ?? "",
   });
 }
 
@@ -217,7 +220,7 @@ export async function turnsIn(username: string, session: string) {
     if (!handle) return [];
     return await handle.db
       .selectFrom("helper_sessions")
-      .select(["created_at", "said", "answered"])
+      .select(["created_at", "said", "answered", "origin"])
       .where("owner_id", "=", username)
       // Scoped to the journal as well as to the session: an id is a random
       // string, and this is still not a thing to look up by id alone.

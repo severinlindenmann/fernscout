@@ -1,15 +1,14 @@
 import { isEnabled } from "@/lib/capabilities";
-import { refund, spend } from "@/lib/credits";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import {
-  creditsForSeconds,
   MAX_AUDIO_BYTES,
   MAX_SPEECH_SECONDS,
   SPEECH_LANGUAGES,
   speechLanguageFor,
 } from "@/lib/helper/speech";
-import { speechProvider, transcribeAudio } from "@/lib/helper/transcribe";
+import { speechProvider } from "@/lib/helper/transcribe";
+import { spendAndTranscribe } from "@/lib/helper/transcribeSpend";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
 import { defaultLocaleFor } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -118,39 +117,23 @@ export async function POST(
     return Response.json({ error: "idempotency_conflict" }, { status: 409 });
   }
 
-  const credits = creditsForSeconds(claimed);
-  const ledgerRef = `${user}/speech/${Math.ceil(claimed)}s`;
-  if (!(await spend(user, credits, "transcription", ledgerRef))) {
-    return Response.json({ error: "no_credits" }, { status: 402 });
-  }
-
-  let transcript;
-  try {
-    transcript = await transcribeAudio(audio, mediaType, language, user);
-  } catch {
-    // The credit bought nothing, so it goes back. What a provider says when it
-    // is unhappy is not something to render on somebody's phone.
-    await refund(user, credits, ledgerRef);
-    return Response.json({ error: "transcription_failed" }, { status: 502 });
-  }
-
-  // What the provider measured beats what the caller claimed, when it is
-  // longer: the seconds on the button are a stopwatch in a browser, and a
-  // caller could simply say "one" for ten minutes of audio. Charged after the
-  // fact because the duration is not knowable before the call; a top-up that
-  // cannot be paid is logged by the ledger's absence and not worth failing a
-  // transcript the person already has.
-  let spent = credits;
-  const measured = creditsForSeconds(transcript.seconds);
-  if (transcript.seconds > 0 && measured > credits) {
-    if (await spend(user, measured - credits, "transcription", ledgerRef)) spent = measured;
+  // Spend, call, refund on failure, reconcile to what was actually
+  // measured — the whole money path, shared with the WhatsApp door
+  // (B1060) through `lib/helper/transcribe.ts:spendAndTranscribe` rather
+  // than kept here as a copy for it to drift from.
+  const outcome = await spendAndTranscribe(user, audio, mediaType, language, claimed);
+  if (!outcome.ok) {
+    return Response.json(
+      { error: outcome.error },
+      { status: outcome.error === "no_credits" ? 402 : 502 },
+    );
   }
 
   const answer = {
     ok: true,
-    text: transcript.text,
+    text: outcome.text,
     language,
-    spent,
+    spent: outcome.spent,
     provider: speechProvider(),
   };
   await remember(key, fingerprint, answer);

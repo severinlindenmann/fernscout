@@ -57,8 +57,8 @@ function post(body: unknown, method = "POST") {
 }
 
 /** Every note the conversation is holding, as one string. */
-function notes() {
-  return history("alex")
+async function notes() {
+  return (await history("alex"))
     .filter((turn) => turn.role === "note")
     .map((turn) => turn.text)
     .join("\n");
@@ -115,37 +115,37 @@ describe("a press with no client behind it", () => {
     // The id the server derived — the one fact nobody in the conversation
     // could otherwise know, and the one the old note dropped.
     expect(made.id).toBe("am-see-2026");
-    expect(notes()).toContain("create_trip");
-    expect(notes()).toContain("am-see-2026");
+    expect(await notes()).toContain("create_trip");
+    expect(await notes()).toContain("am-see-2026");
 
     const started = await (
       await startDay(post({ trip: made.id, date: "2026-05-01", costs: "unknown", coordinates: "unknown" }), params)
     ).json();
     expect(started.ok).toBe(true);
-    expect(notes()).toContain(`start_day`);
-    expect(notes()).toContain(started.slug);
+    expect(await notes()).toContain(`start_day`);
+    expect(await notes()).toContain(started.slug);
 
     const worded = await setWords(
       post({ trip: made.id, slug: started.slug, title: "Der erste Tag", content: "Enten." }, "PATCH"),
       params,
     );
     expect(worded.status).toBe(200);
-    expect(notes()).toContain("set_day_words");
+    expect(await notes()).toContain("set_day_words");
 
     const cost = await addCost(
       post({ trip: made.id, slug: started.slug, label: "Kaffee", amount: "4.50", currency: "CHF", category: "food" }),
       params,
     );
     expect(cost.status).toBe(200);
-    expect(notes()).toContain("add_cost");
+    expect(await notes()).toContain("add_cost");
 
     const up = await publishDay(post({ trip: made.id, slug: started.slug, photos: "none" }), params);
     expect(up.status).toBe(200);
-    expect(notes()).toContain("publish_day");
+    expect(await notes()).toContain("publish_day");
 
     const down = await unpublishDay(post({ trip: made.id, slug: started.slug }), params);
     expect(down.status).toBe(200);
-    expect(notes()).toContain("unpublish_day");
+    expect(await notes()).toContain("unpublish_day");
   });
 
   test("a refused write leaves nothing behind", async () => {
@@ -154,6 +154,6 @@ describe("a press with no client behind it", () => {
     // B922's shape, at the other end: the conversation must not learn about a
     // write that did not happen. That is worse than not learning about one
     // that did — a person can be told again, but a false claim is unrecoverable.
-    expect(notes()).toBe("");
+    expect(await notes()).toBe("");
   });
 });

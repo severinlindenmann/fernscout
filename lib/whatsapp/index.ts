@@ -162,8 +162,13 @@ class CloudTransport implements WhatsappTransport {
  * `lib/capabilities.ts` has already refused to report the feature as on
  * without them, so this throwing means somebody changed the environment under
  * a running process — worth an exception rather than a silent skip.
+ *
+ * Exported since B1059/B1060: `lib/whatsapp/dispatch.ts` needs the same
+ * bearer token to fetch an inbound photograph or voice note's bytes
+ * (`downloadMedia` in `./cloud.ts`) — reading, not the sending this module
+ * otherwise does, but the same one pair of credentials either way.
  */
-function cloudCredentials(): CloudCredentials {
+export function cloudCredentials(): CloudCredentials {
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   if (!token || !phoneNumberId) {

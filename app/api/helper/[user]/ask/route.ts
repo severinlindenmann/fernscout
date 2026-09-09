@@ -236,7 +236,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     thread = await answerInThread(
       user,
       context === "" ? said : `${said}\n${context}`,
-      history(user),
+      await history(user),
       today,
       say,
       // What is ticked, resolved by the tool that needs it — B925. Nobody is
@@ -276,18 +276,23 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
    * conversation as it now stands. Not awaited and never able to fail the
    * turn: the person has their answer, and losing it to an analytics insert
    * would be trading the product for the bookkeeping.
+   *
+   * `sessionId`/`history` are awaited here rather than left unresolved — the
+   * cache `remember` just wrote to is warm, so this costs nothing beyond the
+   * `await` itself (B1054).
    */
   void recordTurn({
     owner: user,
-    session: sessionId(user),
+    session: await sessionId(user),
     locale,
     tools: thread.looked,
     proposed: thread.proposals.map((proposal) => proposal.tool),
     guard: thread.guard,
     recovered: thread.recovered,
-    threadTurns: history(user).length,
+    threadTurns: (await history(user)).length,
     said,
     answered: thread.answer,
+    origin: "web",
   });
   for (const proposal of thread.proposals) {
     proposed(user, proposal.tool, proposal.arguments);

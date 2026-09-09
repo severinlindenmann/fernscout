@@ -33,14 +33,14 @@ afterEach(() => {
   container = undefined;
 });
 
-function render(opening: Opening) {
+function render(opening: Opening, whatsappNumber?: string) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   act(() => {
     root!.render(
       <LocaleProvider locale="en" dictionary={dictionary}>
-        <RoomOpening opening={opening} onSay={() => {}} />
+        <RoomOpening opening={opening} onSay={() => {}} whatsappNumber={whatsappNumber} />
       </LocaleProvider>,
     );
   });
@@ -71,4 +71,29 @@ describe("one bright thing per state", () => {
       expect(brightButtons(node)).toHaveLength(1);
     });
   }
+});
+
+/**
+ * The wa.me chip — B1127. Both gating facts (a proven number, this
+ * journal's own `whatsappInbound` opt-in) are checked server-side before
+ * `whatsappNumber` ever reaches this component; here it is only ever "was a
+ * number handed over, or not".
+ */
+describe("the WhatsApp chip", () => {
+  test("is absent with no number handed over", () => {
+    const node = render({ state: "empty" });
+    expect(node.querySelector('a[href*="wa.me"]')).toBeNull();
+  });
+
+  test("is a wa.me link carrying the number and a prefilled greeting, in every state", () => {
+    for (const opening of STATES) {
+      const node = render(opening, "41782172640");
+      const link = node.querySelector('a[href*="wa.me"]');
+      expect(link).not.toBeNull();
+      expect(link!.getAttribute("href")).toContain("wa.me/41782172640");
+      expect(link!.getAttribute("href")).toContain("text=");
+      // A link out of the room, not a chip that sends a sentence through it.
+      expect(link!.getAttribute("target")).toBe("_blank");
+    }
+  });
 });

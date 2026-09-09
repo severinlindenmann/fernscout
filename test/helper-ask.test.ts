@@ -176,7 +176,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
     test("the thread remembers their sentence, not the selection", async () => {
       const stored = storeInboxFile("alex", "files", "statement.csv", Buffer.from("a,b\n"), {});
       await askWith("what is this", [`inbox:${stored.entry.id}`]);
-      const said = history("alex").map((turn) => turn.text);
+      const said = (await history("alex")).map((turn) => turn.text);
       expect(said[0]).toBe("what is this");
       expect(said.join("\n")).not.toContain("statement.csv");
     });
@@ -239,7 +239,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
 
     test("the proposal is remembered, so a correction has something to correct", async () => {
       await ask("make a new trip to Japan in March");
-      const remembered = history("alex")
+      const remembered = (await history("alex"))
         .map((turn) => turn.text)
         .join("\n");
       expect(remembered).toContain("create_trip");
@@ -445,7 +445,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       expect(told.status).toBe(200);
       // The one the fixture wrote, and no Japan.
       expect(getTrips("alex").map((trip) => trip.id)).toEqual(["reise"]);
-      expect(history("alex").map((turn) => turn.text).join("\n")).not.toContain("written:");
+      expect((await history("alex")).map((turn) => turn.text).join("\n")).not.toContain("written:");
     });
   });
 });

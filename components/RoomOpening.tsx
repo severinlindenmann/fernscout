@@ -40,10 +40,18 @@ import type { Opening, OpeningDay } from "@/lib/helper/opening";
 export default function RoomOpening({
   opening,
   onSay,
+  whatsappNumber,
 }: {
   opening: Opening;
   /** Sends a sentence as though it had been typed. */
   onSay: (said: string) => void;
+  /**
+   * The number for a `wa.me` chip, resolved on the server — B1127. Both
+   * gating facts (a proven number, `whatsappInbound` on for this journal)
+   * are already checked by the time this prop exists at all; the component
+   * only ever asks "is there one to draw".
+   */
+  whatsappNumber?: string;
 }) {
   const { t, tn, formatLongDate } = useI18n();
 
@@ -171,6 +179,22 @@ export default function RoomOpening({
         >
           {t("agent.open.newTrip")}
         </button>
+
+        {/* wa.me — B1127. Drawn whenever the server handed one over, which
+            is only once it has already checked both gating facts (a proven
+            number, `whatsappInbound` on for this journal); the component
+            itself decides nothing. A link, not a chip that calls `onSay` —
+            it leaves the room rather than sending a sentence through it. */}
+        {whatsappNumber && (
+          <a
+            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(t("agent.open.whatsappGreeting"))}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-11 items-center rounded-full border border-green-700 bg-green-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-green-500"
+          >
+            {t("agent.open.whatsapp")}
+          </a>
+        )}
       </div>
     </div>
   );

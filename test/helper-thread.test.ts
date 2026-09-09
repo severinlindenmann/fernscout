@@ -238,7 +238,7 @@ describe("the four German sentences that used to come back unknown", () => {
     expect(answered.status).toBe(502);
     expect(answered.body.error).toBe("model_failed");
     // Nothing half-said was remembered either.
-    expect(history("alex")).toEqual([]);
+    expect((await history("alex"))).toEqual([]);
   });
 });
 
@@ -253,7 +253,7 @@ describe("removal language never reaches the model — B817", () => {
       // The other half, and the one the thread makes newly necessary: a
       // refused sentence written into the conversation would reach the model
       // on the *next* turn instead.
-      expect(history("alex")).toEqual([]);
+      expect((await history("alex"))).toEqual([]);
     });
   }
 });
@@ -292,7 +292,7 @@ describe("the conversation", () => {
      * bracketed line is how that happened, so the assistant turn is now the
      * words and nothing else.
      */
-    const turns = history("alex");
+    const turns = (await history("alex"));
     expect(turns.map((turn) => turn.role)).toEqual(["user", "assistant", "note"]);
     expect(turns[1].text).toBe("Fertig zum Drücken.");
     expect(turns[1].text).not.toContain("create_trip");
@@ -313,8 +313,8 @@ describe("the conversation", () => {
   test("nothing carries over between journals", async () => {
     create.mockResolvedValueOnce(says("Hallo."));
     await ask("wie geht das hier");
-    expect(history("alex")).toHaveLength(2);
-    expect(history("somebody-else")).toEqual([]);
+    expect((await history("alex"))).toHaveLength(2);
+    expect((await history("somebody-else"))).toEqual([]);
   });
 });
 
@@ -368,7 +368,7 @@ describe("a proposal chained without the model — B926", () => {
     });
     expect(answered.status).toBe(200);
 
-    const turns = history("alex");
+    const turns = (await history("alex"));
     expect(turns).toHaveLength(1);
     expect(turns[0].role).toBe("note");
     expect(turns[0].text).toContain("draft_words");
@@ -752,11 +752,11 @@ describe("what a turn costs", () => {
  * and wrongly.
  */
 describe("a conversation long enough to forget its own beginning", () => {
-  test("says so, once, to the model and never to the person", () => {
+  test("says so, once, to the model and never to the person", async () => {
     forget("alex");
     for (let n = 0; n < 10; n += 1) remember("alex", `said ${n}`, `answered ${n}`);
 
-    const turns = history("alex");
+    const turns = (await history("alex"));
     const notes = turns.filter((turn) => turn.role === "note");
     expect(notes).toHaveLength(1);
     expect(notes[0].text).toContain("no longer in front of you");
@@ -764,23 +764,23 @@ describe("a conversation long enough to forget its own beginning", () => {
     expect(turns[0].role).toBe("note");
   });
 
-  test("a conversation short enough to remember everything says nothing", () => {
+  test("a conversation short enough to remember everything says nothing", async () => {
     forget("alex");
     remember("alex", "eins", "zwei");
     remember("alex", "drei", "vier");
-    expect(history("alex").some((turn) => turn.role === "note")).toBe(false);
+    expect((await history("alex")).some((turn) => turn.role === "note")).toBe(false);
   });
 
-  test("the note does not accumulate as the conversation goes on", () => {
+  test("the note does not accumulate as the conversation goes on", async () => {
     forget("alex");
     for (let n = 0; n < 40; n += 1) remember("alex", `said ${n}`, `answered ${n}`);
-    expect(history("alex").filter((turn) => turn.role === "note")).toHaveLength(1);
+    expect((await history("alex")).filter((turn) => turn.role === "note")).toHaveLength(1);
   });
 
-  test("and it does not crowd out what is still remembered", () => {
+  test("and it does not crowd out what is still remembered", async () => {
     forget("alex");
     for (let n = 0; n < 40; n += 1) remember("alex", `said ${n}`, `answered ${n}`);
-    const turns = history("alex");
+    const turns = (await history("alex"));
     expect(turns).toHaveLength(12);
     // The most recent exchange survives, which is the whole point of keeping
     // the newest twelve.

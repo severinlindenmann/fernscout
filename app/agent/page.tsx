@@ -17,6 +17,7 @@ import { currencyOptions } from "@/lib/rates";
 import { JOURNAL_COOKIE } from "@/lib/requestKeys";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
+import { whatsappDisplayNumber } from "@/lib/whatsapp/settings";
 
 // Reads the identity cookie on every request; there is nothing here to
 // prerender, the same reasoning as `/[user]/me`.
@@ -136,9 +137,9 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
        */
       const named = typeof asked.c === "string" ? asked.c : "";
       const session =
-        opening || named === "new" ? "" : named !== "" ? named : liveSession(user) ?? "";
+        opening || named === "new" ? "" : named !== "" ? named : ((await liveSession(user)) ?? "");
       const history = session ? await turnsIn(user, session) : [];
-      if (named !== "" && named !== "new" && history.length > 0) adopt(user, session, history);
+      if (named !== "" && named !== "new" && history.length > 0) await adopt(user, session, history);
       return (
         <HelperRoom
           username={user}
@@ -159,6 +160,16 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
           speech={isEnabled("transcription", user)}
           consentedSpeech={hasHelperConsent(user, "speech")}
           speechProvider={speechProvider()}
+          // B1127 — both gating facts checked here, server-side: a proven
+          // number and this journal's own opt-in. Absent either, or with no
+          // number configured for the instance at all, and the prop is
+          // simply not there — the component draws nothing rather than a
+          // chip that would fail.
+          whatsappNumber={
+            journal.owner.telProvenAt && isEnabled("whatsappInbound", user)
+              ? whatsappDisplayNumber()
+              : undefined
+          }
         />
       );
     }

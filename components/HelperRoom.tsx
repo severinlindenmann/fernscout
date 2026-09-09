@@ -117,6 +117,7 @@ export default function HelperRoom({
   speech,
   consentedSpeech,
   speechProvider,
+  whatsappNumber,
 }: {
   username: string;
   /** The journal's own title, so the room says whose it is. */
@@ -148,6 +149,11 @@ export default function HelperRoom({
   speech: boolean;
   consentedSpeech: boolean;
   speechProvider: string;
+  /** The wa.me number to chip in the opening — B1127. Only ever present when
+   *  the server has already checked both gating facts (a proven number,
+   *  `whatsappInbound` on for this journal); absent means the chip is
+   *  simply not drawn. */
+  whatsappNumber?: string;
 }) {
   const { t } = useI18n();
 
@@ -490,6 +496,7 @@ export default function HelperRoom({
             opened={history}
             opening={first}
             aboutOffer={opening !== null}
+            whatsappNumber={whatsappNumber}
             selected={selected}
             onSubject={(day) => {
               setSubject({ ...day, at: Date.now() });

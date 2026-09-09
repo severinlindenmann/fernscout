@@ -2,14 +2,13 @@ import "server-only";
 import fs from "node:fs";
 import { COSTS_IMPORTERS } from "@/importers/costs";
 import { GPS_IMPORTERS } from "@/importers/gps";
-import { isAdminEmail } from "../admin";
 import { resolveAccess } from "../auth/handshake";
 import { costForDay, costLocalForDay } from "../costs";
 import { AS_AUTHOR, getAllEntries, getAllMedia, getDays, getEntryBySlug } from "../entries";
 import { getTrips, tripRef } from "../trips";
 import type { Day, DaySummary } from "../types";
 import { findInboxFile, listInbox, type InboxEntry, type InboxKind } from "../inbox";
-import { getUser } from "../users";
+import { resolveCookieCaller } from "./caller";
 import { isWritten, type WizardDraft } from "./draft";
 
 /**
@@ -27,13 +26,13 @@ import { isWritten, type WizardDraft } from "./draft";
  *
  * The address is re-checked against `owner.email` on every call, so a
  * year-old identity cookie opens what its holder is entitled to today (B410).
+ *
+ * Since B1055 this is `./caller.ts`'s cookie proof, asked as a yes/no
+ * question — the resolver is what a WhatsApp caller goes through instead,
+ * and this route family keeps asking for a cookie exactly as before.
  */
 export async function isHelperOwner(username: string): Promise<boolean> {
-  const journal = getUser(username);
-  if (!journal) return false;
-  const { email } = await resolveAccess(username);
-  if (!email) return false;
-  return email === journal.owner.email || isAdminEmail(email);
+  return (await resolveCookieCaller(username)) !== null;
 }
 
 /**

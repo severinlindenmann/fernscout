@@ -304,6 +304,7 @@ export default function HelperAsk({
   inRoom = false,
   opened = [],
   opening,
+  whatsappNumber,
 }: {
   username: string;
   /** Whether this journal has already agreed to a model being spoken to
@@ -400,6 +401,9 @@ export default function HelperAsk({
   /** What the room says before anybody has said anything — B984. Absent under
    *  a journal's day card, where the conversation is not the whole page. */
   opening?: Opening;
+  /** The wa.me chip's number, resolved server-side — B1127. Threaded through
+   *  to `RoomOpening` unchanged; see `HelperRoom.tsx`'s own doc on it. */
+  whatsappNumber?: string;
 }) {
   const { t, formatLongDate } = useI18n();
   // Closed until somebody asks for it — B767. The one thing this card is for
@@ -862,7 +866,7 @@ export default function HelperAsk({
                   </div>
                 </div>
               ) : (
-                opening && <RoomOpening opening={opening} onSay={go} />
+                opening && <RoomOpening opening={opening} onSay={go} whatsappNumber={whatsappNumber} />
               )}
               <p className="mt-3 text-sm leading-6 text-navy-500">{t("agent.room.kept")}</p>
             </>
