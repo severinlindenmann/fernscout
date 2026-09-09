@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { forget, history, liveSession, remember, sessionId } from "@/lib/helper/thread";
+import { forget, history, liveSession, proposed, remember, sessionId, wrote } from "@/lib/helper/thread";
 
 /**
  * B1054 — the live conversation outlives the process, because a second door
@@ -91,5 +91,31 @@ describe("the TTL is per channel", () => {
       .execute();
 
     expect(await liveSession("alex")).not.toBeNull();
+  });
+});
+
+describe("wrote() and proposed() carry the channel that triggered them — B1193", () => {
+  test("wrote() defaults to web but a whatsapp caller lands as whatsapp", async () => {
+    wrote("alex", "start_day", { trip: "reise", slug: "2023-11-14", date: "2023-11-14" }, "whatsapp");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const { db } = (await getDatabase())!;
+    const row = await db.selectFrom("helper_threads").selectAll().where("owner_id", "=", "alex").executeTakeFirst();
+    expect(row?.channel).toBe("whatsapp");
+  });
+
+  test("proposed() defaults to web but a whatsapp caller lands as whatsapp", async () => {
+    proposed("alex", "start_day", { date: "2023-11-14" }, "whatsapp");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const { db } = (await getDatabase())!;
+    const row = await db.selectFrom("helper_threads").selectAll().where("owner_id", "=", "alex").executeTakeFirst();
+    expect(row?.channel).toBe("whatsapp");
+  });
+
+  test("with no channel given, both still default to web", async () => {
+    wrote("alex", "journal_settings", { changed: ["title"] });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const { db } = (await getDatabase())!;
+    const row = await db.selectFrom("helper_threads").selectAll().where("owner_id", "=", "alex").executeTakeFirst();
+    expect(row?.channel).toBe("web");
   });
 });

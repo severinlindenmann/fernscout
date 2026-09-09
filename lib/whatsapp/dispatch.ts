@@ -485,7 +485,7 @@ async function handleLocationPin(
     return;
   }
   await fillDayWeatherQuietly(ref, written.slug);
-  wrote(username, "start_day", { trip: trip.id, slug: written.slug, date });
+  wrote(username, "start_day", { trip: trip.id, slug: written.slug, date }, "whatsapp");
 
   await sendServiceReply(
     message.from,
@@ -591,7 +591,7 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
     answered: thread.answer,
     origin: "whatsapp",
   });
-  for (const proposal of thread.proposals) proposed(username, proposal.tool, proposal.arguments);
+  for (const proposal of thread.proposals) proposed(username, proposal.tool, proposal.arguments, "whatsapp");
 
   const blocks = [...thread.blocks, ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }])];
   const journalUrl = `${serverSite().url}/agent`;

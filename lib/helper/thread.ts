@@ -367,8 +367,8 @@ export function note(username: string, text: string, channel: Channel = "web"): 
  * the loop (`app/api/helper/[user]/proposal/route.ts`) — call this, once,
  * rather than each writing the marker line by hand.
  */
-export function proposed(username: string, tool: string, args: Record<string, string>): void {
-  note(username, `[proposed, not written, waiting to be pressed: ${tool} ${JSON.stringify(args)}]`);
+export function proposed(username: string, tool: string, args: Record<string, string>, channel: Channel = "web"): void {
+  note(username, `[proposed, not written, waiting to be pressed: ${tool} ${JSON.stringify(args)}]`, channel);
 }
 
 /**
@@ -389,8 +389,8 @@ export function proposed(username: string, tool: string, args: Record<string, st
  * creation: asked outright, the model said it did not know the id — honest,
  * and one question away from being unable to answer.
  */
-export function wrote(username: string, tool: string, facts: Record<string, unknown>): void {
-  note(username, `[written: ${tool} ${JSON.stringify(facts)}]`);
+export function wrote(username: string, tool: string, facts: Record<string, unknown>, channel: Channel = "web"): void {
+  note(username, `[written: ${tool} ${JSON.stringify(facts)}]`, channel);
   /**
    * And kept — B976. Every successful write already passes through here, which
    * makes it the one place a press can be counted without eight routes each
@@ -401,7 +401,7 @@ export function wrote(username: string, tool: string, facts: Record<string, unkn
    * product has. B935, B936 and B968 were each a proposal no press could
    * accept, and every one of them was found by a person driving the live site.
    */
-  void recordPress({ owner: username, session: syncSessionId(username), tool, ok: true });
+  void recordPress({ owner: username, session: syncSessionId(username, channel), tool, ok: true });
 }
 
 /**
