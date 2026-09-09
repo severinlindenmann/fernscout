@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (125)
+## backlog (126)
 
 ### security (1)
 
@@ -116,13 +116,14 @@ Do not edit them by hand; run the script.
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (3)
+### chore (4)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1146](backlog/chore/B1146-two-branches-in-flight-both-number.md) | Two branches in flight both number their migration 028, so the second to merge has two | CHORE | high | low |
 | [B1017](backlog/chore/B1017-photobook-fonts-are-embedded-whole-not.md) | Photobook fonts are embedded whole, not subset | CHORE | low | medium |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
+| [B1180](backlog/chore/B1180-the-subscribed-apps-post-is-a.md) | The subscribed_apps POST is a documented curl, not a one-shot script | CHORE | low | low |
 
 ### ops (9)
 
@@ -271,7 +272,7 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (14)
+## in-development (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -286,11 +287,10 @@ Do not edit them by hand; run the script.
 | [B1060](in-development/B1060-a-voice-note-sent-over-whatsapp.md) | A voice note sent over WhatsApp has no route to the transcriber that already exists | FEATURE | medium | low | `e910c430` |
 | [B1074](in-development/B1074-a-location-pin-and-a-shared.md) | A location pin and a shared contact card arrive as text and become nothing | FEATURE | medium | medium | `e910c430` |
 | [B1138](in-development/B1138-the-whatsapp-channel-discloses-ai-consent.md) | The WhatsApp channel discloses AI/consent once but never gates on an acknowledgement | ISSUE | medium | medium | `e910c430` |
-| [B1163](in-development/B1163-meta-s-ui-verifies-the-webhook.md) | Meta's UI verifies the webhook and subscribes the messages field but never subscribes the WABA to the app, so real inbound is silently dropped | DOCS | medium | low | `e910c430` |
 | [B1181](in-development/B1181-the-operator-console-answers-the-wrong.md) | The operator console answers the wrong question first: no single attention list, no net, no unit cost, and the roster is split across three panels | FEATURE | medium | high | `52950bf1` |
 | [B1127](in-development/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low | `e910c430` |
 
-## testing (52)
+## testing (53)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -340,6 +340,7 @@ Do not edit them by hand; run the script.
 | [B1152](testing/B1152-the-acceptance-gate-s-buttons-give.md) | The acceptance gate's buttons give no feedback and its second label says nothing, so a person cannot tell what they chose or where a ticket is | DOCS | medium | low | — |
 | [B1159](testing/B1159-the-off-site-bucket-is-opaque.md) | The off-site bucket is opaque blobs with no note in it, and keeps thirty nights | FEATURE | medium | low | — |
 | [B1162](testing/B1162-a-quoted-day-shows-its-blockquote.md) | A quoted day shows its blockquote marker, in the one block where quoting happens | ISSUE | medium | low | — |
+| [B1163](testing/B1163-meta-s-ui-verifies-the-webhook.md) | Meta's UI verifies the webhook and subscribes the messages field but never subscribes the WABA to the app, so real inbound is silently dropped | DOCS | medium | low | — |
 | [B1169](testing/B1169-the-room-re-renders-and-shifts.md) | The room re-renders and shifts: RoomOpening hydration mismatch and uncontained scrolling | ISSUE | medium | low | — |
 | [B1177](testing/B1177-the-conversation-has-no-reading-measure.md) | The conversation has no reading measure on a wide screen | ISSUE | medium | low | — |
 | [B1178](testing/B1178-c-new-sticks-in-the-address.md) | ?c=new sticks in the address bar and blanks a live conversation on reload | ISSUE | medium | low | — |
