@@ -20,6 +20,7 @@ translations:
       
       Wir haben zu zweit alle vier gegessen und sind in Italien ins Bett gegangen, was so nicht geplant war.
 weatherData: { tempMin: 10.6, tempMax: 18.3, code: 3, precipitation: 0, windMax: 12, source: "open-meteo", recordedAt: "2026-09-06T08:32:20.031Z" }
+timezone: "Europe/Rome"
 ---
 
 Decided in the car park not to drive back over the pass tonight. There was a room above the restaurant and the restaurant had a menu with four things on it.

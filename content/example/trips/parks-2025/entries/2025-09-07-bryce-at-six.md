@@ -34,6 +34,7 @@ translations:
       
       Die Hoodoos werden von oben nach unten orange, wenn die Sonne kommt, Reihe für Reihe. Es dauert etwa neun Minuten, dann ist es wieder ganz normales Tageslicht.
 weatherData: { tempMin: 8.2, tempMax: 21.3, code: 51, precipitation: 0.3, windMax: 16.1, source: "open-meteo", recordedAt: "2026-09-06T08:32:19.024Z" }
+timezone: "America/Denver"
 ---
 
 Set an alarm for half past five, which on holiday is a decision you resent in advance and forgive immediately.

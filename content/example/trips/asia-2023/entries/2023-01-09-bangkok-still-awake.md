@@ -18,6 +18,7 @@ translations:
       
       Második vacsora, állva megevett. Fotó nincs: a telefon kilencre lemerült, és egyikünk sem ment vissza a töltőért.
 weatherData: { tempMin: 23.2, tempMax: 31.9, code: 3, precipitation: 0, windMax: 20.6, source: "open-meteo", recordedAt: "2026-09-06T08:32:20.296Z" }
+timezone: "Asia/Bangkok"
 ---
 
 The street outside the guesthouse does its best trade at eleven at night, and we have stopped pretending we are going to sleep through it.
