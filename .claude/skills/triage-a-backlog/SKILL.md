@@ -41,9 +41,17 @@ asks map like this:
 | "bugs", "issues" | `backlog/issue/` |
 | "what's waiting to be checked" | `docs/tasks/testing/` — flat, no categories |
 
-`backlog/security/` is a deliberate decision, not a default: those tickets are
-live findings. Include them only when asked, and never in an artifact the
-person may share onward.
+`backlog/security/` is included in every one of those, and is not something to
+ask about: a live finding nobody triages is a finding that stays live, and
+leaving the folder out is how it stayed unread. Exclude it only when the person
+says so.
+
+What changes is not whether you read them but how you write them up. Describe
+the gap, never the recipe: what is unguarded and what it costs, with no
+worked exploit, no sample payload and no line-by-line route to it. **Say on
+the page, above the security rows, that the artifact is not for sharing
+onward** — an Artifact URL a person forwards is a list of this instance's open
+holes.
 
 Count the files first and say the number before you start. Forty tickets is a
 different job from four, and they should know which one they asked for.
