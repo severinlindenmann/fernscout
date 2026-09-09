@@ -107,11 +107,26 @@ operated and defended at all.
   it answered, and what it did about it: which tools it ran, what it offered,
   and whether the offer was accepted. They are kept so that an owner can open
   an old conversation and carry on where they left off, which is what makes
-  them worth keeping at all. Only the owner of a journal talks to the helper;
-  nobody else can, so a conversation holds one person's words. **We read them
-  to see what to improve, and an owner can turn that off** on their own page,
-  at any time. Turning it off does not delete anything — it means nobody but
-  them reads what is there or what comes next.
+  them worth keeping at all. **Only the owner of a journal talks to the
+  helper** — on the web because signing in requires it, and over WhatsApp
+  because only a phone number the owner has already proven is ever bound to a
+  journal. A message from any other number gets one fixed reply declining to
+  help and a link to sign in, and never reaches the model; so a conversation
+  still holds one person's words. **We read them to see what to improve, and
+  an owner can turn that off** on their own page, at any time. Turning it off
+  does not delete anything — it means nobody but them reads what is there or
+  what comes next.
+- **Messages, photographs, documents and voice notes sent by WhatsApp** — an
+  owner's own words and media, once their number is bound. A photograph or
+  document sits in the journal's inbox, unpublished, until a day claims it or
+  it is discarded. A voice note is turned into text by the transcription
+  service named below and the text is kept with the conversation; the
+  recording itself is never written to this server — see "The voice recording
+  is never stored" below, which is true of a WhatsApp voice note as much as
+  one spoken to the helper on the web. **Only send what you have the right to
+  share** — a photograph with somebody else in it, or a document with somebody
+  else's name on it, was never asked for their consent, and neither this page
+  nor the software can give it on their behalf.
 - **Page-open counts**, for journals whose author switched the visitor count
   on: which page, when, and the day-code described above. Nothing that names
   a reader, and deleted after about ninety days.
@@ -129,21 +144,48 @@ advertising or profiling.
 | Service | When it is used | What it receives |
 | --- | --- | --- |
 | **Meta Platforms Ireland** (WhatsApp Cloud API) | A reader asked to hear about new days by WhatsApp | Their phone number, and the message |
+| **Meta Platforms Ireland** (WhatsApp Cloud API) | An owner's own proven number messages the journal's WhatsApp number | Their phone number; the text, photograph, document or voice recording they sent; and, separately from message content, whatever WhatsApp Business Platform account data Meta holds for its own platform-safety and fraud-detection purposes |
 | **Stannp Ltd** (United Kingdom) | Somebody ordered a printed postcard | The photograph, the message and the recipient's postal address |
 | **Gelato ASA** (Norway) | Somebody ordered a printed photobook | The book's PDF and the delivery address |
 | **Proton AG** (Switzerland) | Sign-in codes, invitations, notifications | The recipient's address and the message |
-| **Anthropic PBC** (United States) | Somebody used the writing helper at `/agent` — to have a day written up, to have photographs captioned, or to have one typed sentence understood | What they typed or said; the facts their own day already carries (its date, place, country, and how many photographs are on it and between which times); and, for captions, the photographs themselves |
-| **Deepgram Inc.** (United States) | Somebody spoke to the helper at `/agent` instead of typing | The recording of their voice, and the language it is in |
+| **Anthropic PBC** (United States) | Somebody used the writing helper at `/agent`, on the web or over WhatsApp — to have a day written up, to have photographs captioned, or to have one typed or spoken sentence understood | What they typed or said; the facts their own day already carries (its date, place, country, and how many photographs are on it and between which times); and, for captions, the photographs themselves |
+| **Deepgram Inc.** (United States) | Somebody spoke to the helper instead of typing — on the web, or by sending a voice note over WhatsApp | The recording of their voice, and the language it is in |
 | **Open-Meteo** (Germany) | A journal asked what the weather was on a day it recorded | The coordinates and the date of that day — nothing about you |
 | **European Central Bank** (Germany) | A trip needed the exchange rate for a currency it spent in | Nothing at all — the request is for a published document and carries no question |
 
 That is the whole list. There is nobody else.
 
-**Those two rows carry a condition the others do not, and it is worth stating
+**Meta plays two different roles, and they are worth separating.** For the
+message content above — the text, photograph, document or voice recording you
+send — Meta Platforms Ireland acts as a **processor**, on this journal's
+instructions, and states that Cloud API messages are not used to target
+advertising. Separately, and on its own account, Meta acts as **its own
+controller** for platform safety, integrity and fraud detection across the
+WhatsApp Business Platform; that is Meta's relationship with you as a WhatsApp
+user, not this journal's, and [WhatsApp's own privacy policy](https://www.whatsapp.com/legal/privacy-policy)
+describes it. Using the Cloud API at all means accepting Meta's
+**WhatsApp Business Terms of Service**, its **Business Data Processing Terms**
+and the **Business Data Transfer Addendum** — named here rather than claimed
+as "reviewed", because they are standard click-through terms accepted when a
+WhatsApp Business number is set up, not a negotiated contract this operator
+signed. The transfer to the United States that both Meta and Anthropic involve
+is covered by the **Swiss–US Data Privacy Framework**. Using the writing
+helper's API at all likewise means accepting **Anthropic's commercial terms**,
+which carry its own data processing agreement by reference; that acceptance is
+named here on the same terms — a standard agreement accepted when the account
+was set up, not one negotiated or independently reviewed for this journal.
+Deepgram's data processing terms are not click-through in the same way, and
+whether one is in place for this instance is stated honestly: it is not,
+pending a request already sent to Deepgram's own privacy contact.
+
+**Those rows carry a condition the others do not, and it is worth stating
 plainly: nothing reaches Anthropic or Deepgram unless somebody uses the writing
-helper at `/agent`.** Reading a journal never does. Writing one through your own
-agent never does. An author who types their own days never causes a
-single request to either company, and a reader cannot cause one at all.
+helper, on the web or over WhatsApp.** Reading a journal never does. Writing
+one through your own agent never does. An author who types their own days
+never causes a single request to either company, and a reader cannot cause one
+at all — nor can a stranger who messages the journal's WhatsApp number: that
+message gets one fixed reply and never reaches the model (see "Only the owner
+of a journal talks to the helper", above).
 
 What is sent is what the person put in front of the helper, and the few facts
 their own day already carries — the ones already on their screen while they use
@@ -152,9 +194,10 @@ addresses are sent to either, ever.** A journal's position history, where it
 keeps one, is held in a folder no request of any kind can reach, and it is not
 among the facts the helper is given.
 
-**The voice recording is never stored.** It arrives in one request, goes to the
-transcription provider, and is dropped when the request ends — no copy is
-written to this server, to a backup or to a journal's own export. What is kept
+**The voice recording is never stored.** However it arrives — spoken to the
+helper on the web, or sent as a voice note over WhatsApp — it goes to the
+transcription provider in one request and is dropped when the request ends —
+no copy is written to this server, to a backup or to a journal's own export. What is kept
 is the text, because the text is what the person asked for. An instance that
 has not configured a transcription provider does not send the audio anywhere at
 all — nothing leaves the machine, and no company hears it.

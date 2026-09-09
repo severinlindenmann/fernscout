@@ -118,12 +118,28 @@ betrieben und verteidigt werden zu können.
   Werkzeuge er aufgerufen hat, was er vorgeschlagen hat, und ob der Vorschlag
   angenommen wurde. Sie werden gespeichert, damit man ein altes Gespräch
   wieder öffnen und dort weitermachen kann, wo man aufgehört hat — dafür sind
-  sie da. Mit dem Helfer spricht nur die Besitzerin eines Journals, sonst
-  niemand; ein Gespräch enthält also die Worte einer einzigen Person. **Wir
-  lesen sie, um zu sehen, was besser werden muss, und eine Besitzerin kann das
-  ausschalten** — auf ihrer eigenen Seite, jederzeit. Das Ausschalten löscht
-  nichts; es heisst, dass ausser ihr niemand liest, was da ist oder noch
-  kommt.
+  sie da. **Mit dem Helfer spricht nur die Besitzerin eines Journals** — im
+  Web, weil dafür eine Anmeldung nötig ist, und über WhatsApp, weil dort nur
+  eine Telefonnummer an ein Journal gebunden wird, die dessen Besitzerin
+  zuvor bereits bestätigt hat. Eine Nachricht von jeder anderen Nummer erhält
+  eine einzige feste Antwort, die ablehnt zu helfen, samt einem Link zur
+  Anmeldung, und erreicht das Modell nie — ein Gespräch enthält also weiterhin
+  die Worte einer einzigen Person. **Wir lesen sie, um zu sehen, was besser
+  werden muss, und eine Besitzerin kann das ausschalten** — auf ihrer eigenen
+  Seite, jederzeit. Das Ausschalten löscht nichts; es heisst, dass ausser ihr
+  niemand liest, was da ist oder noch kommt.
+- **Nachrichten, Fotos, Dokumente und Sprachnachrichten per WhatsApp** — die
+  eigenen Worte und Medien einer Besitzerin, sobald ihre Nummer gebunden ist.
+  Ein Foto oder Dokument liegt unveröffentlicht im Posteingang des Journals,
+  bis ein Tag es beansprucht oder es verworfen wird. Eine Sprachnachricht wird
+  vom unten genannten Transkriptionsdienst in Text umgewandelt, und dieser
+  Text bleibt beim Gespräch erhalten; die Aufnahme selbst wird nie auf diesem
+  Server gespeichert — siehe „Die Sprachaufnahme wird nirgends gespeichert"
+  weiter unten, was für eine WhatsApp-Sprachnachricht ebenso gilt wie für eine,
+  die dem Helfer im Web gesagt wird. **Schicke nur, wozu du berechtigt bist** —
+  ein Foto mit einer weiteren Person darauf oder ein Dokument mit dem Namen
+  einer weiteren Person wurde nie um deren Einwilligung gefragt, und weder
+  diese Seite noch die Software kann sie an deren Stelle geben.
 - **Aufrufzahlen**, bei Journalen, deren Autorin die Besuchszählung
   eingeschaltet hat: welche Seite, wann, und der oben beschriebene Tagescode.
   Nichts, was eine Leserin benennt, und nach etwa neunzig Tagen gelöscht.
@@ -141,22 +157,54 @@ für Werbung oder zur Profilbildung.
 | Dienst | Wann | Was er bekommt |
 | --- | --- | --- |
 | **Meta Platforms Ireland** (WhatsApp Cloud API) | Eine Leserin möchte per WhatsApp von neuen Tagen hören | Ihre Telefonnummer und die Nachricht |
+| **Meta Platforms Ireland** (WhatsApp Cloud API) | Die bereits bestätigte eigene Nummer einer Besitzerin schreibt an die WhatsApp-Nummer des Journals | Ihre Telefonnummer; den Text, das Foto, das Dokument oder die Sprachaufnahme, die sie geschickt hat; und, getrennt vom Nachrichteninhalt, jene Kontodaten der WhatsApp Business Platform, die Meta zu eigenen Zwecken der Plattformsicherheit und Betrugserkennung hält |
 | **Stannp Ltd** (Grossbritannien) | Jemand bestellt eine gedruckte Postkarte | Das Foto, den Text und die Postadresse der Empfängerin |
 | **Gelato ASA** (Norwegen) | Jemand bestellt ein gedrucktes Fotobuch | Das PDF des Buchs und die Lieferadresse |
 | **Proton AG** (Schweiz) | Anmeldecodes, Einladungen, Benachrichtigungen | Die Empfängeradresse und die Nachricht |
-| **Anthropic PBC** (USA) | Jemand nutzt die Schreibhilfe unter `/agent` — um einen Tag schreiben zu lassen, Fotos beschriften zu lassen oder einen getippten Satz verstehen zu lassen | Was die Person getippt oder gesagt hat; die Angaben, die ihr eigener Tag ohnehin trägt (Datum, Ort, Land sowie Anzahl und Zeitspanne der Fotos); und für Bildunterschriften die Fotos selbst |
-| **Deepgram Inc.** (USA) | Jemand spricht mit der Schreibhilfe unter `/agent`, statt zu tippen | Die Aufnahme der Stimme und die Sprache, in der sie ist |
+| **Anthropic PBC** (USA) | Jemand nutzt die Schreibhilfe — unter `/agent` im Web oder über WhatsApp — um einen Tag schreiben zu lassen, Fotos beschriften zu lassen oder einen getippten oder gesprochenen Satz verstehen zu lassen | Was die Person getippt oder gesagt hat; die Angaben, die ihr eigener Tag ohnehin trägt (Datum, Ort, Land sowie Anzahl und Zeitspanne der Fotos); und für Bildunterschriften die Fotos selbst |
+| **Deepgram Inc.** (USA) | Jemand spricht mit der Schreibhilfe, statt zu tippen — im Web, oder mit einer Sprachnachricht über WhatsApp | Die Aufnahme der Stimme und die Sprache, in der sie ist |
 | **Open-Meteo** (Deutschland) | Ein Journal hat gefragt, wie das Wetter an einem festgehaltenen Tag war | Die Koordinaten und das Datum dieses Tages — nichts über Sie |
 | **Europäische Zentralbank** (Deutschland) | Eine Reise brauchte den Wechselkurs für eine Währung, in der sie ausgegeben hat | Gar nichts — abgerufen wird ein veröffentlichtes Dokument, und es transportiert keine Frage |
 
 Das ist die vollständige Liste. Mehr ist da nicht.
 
-**Diese beiden Zeilen tragen eine Bedingung, die die anderen nicht haben, und
+**Meta übernimmt zwei verschiedene Rollen, und die gehören getrennt.** Für die
+oben genannten Nachrichteninhalte — Text, Foto, Dokument oder Sprachaufnahme —
+handelt Meta Platforms Ireland als **Auftragsverarbeiterin** im Auftrag dieses
+Journals und erklärt, dass Cloud-API-Nachrichten nicht zur Werbeausspielung
+genutzt werden. Getrennt davon, und in eigener Verantwortung, handelt Meta als
+**eigenständige Verantwortliche** für Plattformsicherheit, Integrität und
+Betrugserkennung auf der WhatsApp Business Platform; das ist Metas eigenes
+Verhältnis zu dir als WhatsApp-Nutzerin, nicht das dieses Journals, und
+[WhatsApps eigene Datenschutzrichtlinie](https://www.whatsapp.com/legal/privacy-policy)
+beschreibt es. Wer die Cloud API überhaupt nutzt, akzeptiert damit Metas
+**WhatsApp Business Terms of Service**, ihre **Business Data Processing
+Terms** und das **Business Data Transfer Addendum** — hier beim Namen
+genannt statt als „geprüft" behauptet, denn es handelt sich um
+Standardbedingungen per Klick-Zustimmung, die bei der Einrichtung einer
+WhatsApp-Business-Nummer akzeptiert werden, nicht um einen ausgehandelten
+Vertrag dieses Betreibers. Die Übermittlung in die USA, die sowohl Meta als
+auch Anthropic betrifft, ist über das **Swiss–US Data Privacy Framework**
+abgedeckt. Wer die API der Schreibhilfe nutzt, akzeptiert ebenso Anthropics
+**kommerzielle Geschäftsbedingungen**, die eine eigene
+Auftragsverarbeitungsvereinbarung per Verweis mit einschliessen; auch diese
+Zustimmung wird hier beim Namen genannt und nicht als geprüft dargestellt —
+eine Standardvereinbarung, akzeptiert bei der Einrichtung des Kontos, nicht
+eigens für dieses Journal ausgehandelt oder geprüft. Deepgrams
+Verarbeitungsbedingungen sind nicht in derselben Weise per Klick zu
+akzeptieren, und ob eine Vereinbarung für diese Instanz besteht, wird ehrlich
+gesagt: nein, noch nicht — eine Anfrage dazu ist bei Deepgrams eigener
+Datenschutzstelle bereits gestellt.
+
+**Diese Zeilen tragen eine Bedingung, die die anderen nicht haben, und
 sie gehört ausgesprochen: Zu Anthropic und zu Deepgram geht nichts, solange
-niemand die Schreibhilfe unter `/agent` benutzt.** Ein Journal zu lesen löst
-nichts aus. Ein Journal mit dem eigenen Agenten zu schreiben löst nichts aus.
-Wer seine Tage selbst tippt, verursacht keine einzige Anfrage an eine der
-beiden Firmen, und eine Leserin kann überhaupt keine auslösen.
+niemand die Schreibhilfe benutzt — im Web oder über WhatsApp.** Ein Journal zu
+lesen löst nichts aus. Ein Journal mit dem eigenen Agenten zu schreiben löst
+nichts aus. Wer seine Tage selbst tippt, verursacht keine einzige Anfrage an
+eine der beiden Firmen, und eine Leserin kann überhaupt keine auslösen — auch
+nicht jemand Fremdes, der die WhatsApp-Nummer des Journals anschreibt: diese
+Nachricht erhält eine einzige feste Antwort und erreicht das Modell nie (siehe
+„Mit dem Helfer spricht nur die Besitzerin eines Journals" weiter oben).
 
 Gesendet wird, was die Person der Schreibhilfe vorgelegt hat, und die wenigen
 Angaben, die ihr eigener Tag ohnehin trägt — dieselben, die währenddessen auf
@@ -166,10 +214,11 @@ Standortverlauf eines Journals — wo es einen führt — liegt in einem Ordner,
 keine Anfrage erreicht, und er gehört nicht zu den Angaben, die die
 Schreibhilfe bekommt.
 
-**Die Sprachaufnahme wird nirgends gespeichert.** Sie kommt mit einer Anfrage
-an, geht an den Transkriptionsdienst und wird mit dem Ende der Anfrage
-verworfen — keine Kopie auf diesem Server, keine im Backup, keine im Export
-eines Journals. Erhalten bleibt der Text, denn der Text ist das, worum gebeten
+**Die Sprachaufnahme wird nirgends gespeichert.** Wie auch immer sie
+ankommt — dem Helfer im Web gesagt, oder als Sprachnachricht über WhatsApp
+geschickt — geht sie mit einer Anfrage an den Transkriptionsdienst und wird
+mit dem Ende der Anfrage verworfen — keine Kopie auf diesem Server, keine im
+Backup, keine im Export eines Journals. Erhalten bleibt der Text, denn der Text ist das, worum gebeten
 wurde. Eine Instanz ohne eingerichteten Transkriptionsdienst schickt die
 Aufnahme gar nicht erst weg — nichts verlässt die Maschine, und keine Firma
 hört sie.
