@@ -23,10 +23,14 @@ told exists.
 1. **`app/sitemap.ts` lists journal pages and nothing else.** It loops
    `listedUsernames()` and stops, so the live sitemap is 84 URLs of which every
    one belongs to somebody's trip. `/` itself, `/docs`, the three
-   `/docs/guide/<guide>` pages and `/agent` are in no sitemap at all. Those are
-   the pages that answer "what is this software" — the ones a search engine
-   should be offered first, and the only ones on the instance that are about
-   the product rather than about a journey.
+   `/docs/guide/<guide>` pages and the four technical ones under `/docs` are
+   in no sitemap at all. Those are the pages that answer "what is this
+   software" — the ones a search engine should be offered first, and the only
+   ones on the instance that are about the product rather than about a
+   journey. (`/agent` is not among them: `app/agent/page.tsx` sets
+   `robots: { index: false, follow: false }` because signed in it names the
+   reader's own journal, so offering it in a sitemap would contradict the
+   page. Found while building; the first draft of this ticket had it wrong.)
 
 2. **`feed.xml` is undiscoverable.** `app/[user]/feed.xml/route.ts` serves a
    real feed per journal and nothing in the document head points at it. A
@@ -52,19 +56,21 @@ told exists.
 ## Work
 
 - `app/sitemap.ts`: emit the instance's own pages ahead of the journals — `/`,
-  `/docs`, `/docs/guide/<g>` for each of `GUIDES`, and `/agent`. Take the
-  guide list from `lib/docs.ts` rather than typing it out, the same rule the
-  contract tests apply to enums. Gate `/agent` on the helper capability if it
-  can be off, so the sitemap never offers a 404.
+  `/docs`, and every `href` in `DOCS_PAGES`. Read that constant from
+  `lib/docs.ts` rather than typing the list out, the same rule the contract
+  tests apply to enums: it is already the list the hub and the inner nav both
+  render, so a page added there is a page the sitemap gains for free.
 - `app/[user]/layout.tsx`: add `alternates.types` to the journal metadata —
   `application/rss+xml` → `/<user>/feed.xml`, `text/markdown` → `/agent.md`.
 - The two day pages (`app/[user]/(trip)/day/[slug]/page.tsx` and
   `app/[user]/trips/[trip]/day/[slug]/page.tsx`): `alternates.types` with
   `text/markdown` → that day's own `.md` URL. Both, because they render the
   same day at two paths.
-- `content/blindreader-a11y/config.json`: `visibility: guest`, so the journal
-  keeps working and stops being advertised. `listedUsernames()` already drops
-  it on that value.
+- `blindreader-a11y` is **not in this repository** — the checkout's `content/`
+  holds only `example`, and that journal exists in the deployed instance's own
+  `CONTENT_DIR`. So it is an edit on the server, not a diff here:
+  `visibility: "guest"` in its `config.json`, which `listedUsernames()`
+  already drops. Recorded here so it is not lost; it is the operator's file.
 
 Not doing: `/llms.txt` (see Why), a `.well-known/` discovery document, a
 per-day `opengraph-image` route, or an MCP endpoint. The last is a real piece
@@ -72,13 +78,18 @@ of work and belongs in its own ticket, not smuggled in here.
 
 ## Acceptance
 
-- `curl -s <url>/sitemap.xml | grep -c '<loc>'` includes `/`, `/docs`, each
-  `/docs/guide/*` and `/agent`, and every one of them answers 200.
-- `blindreader-a11y` appears in no `<loc>` of the sitemap, and
-  `/blindreader-a11y` still renders for somebody who opens it.
+- The sitemap's `<loc>` list includes `/`, `/docs` and every `DOCS_PAGES`
+  href, and each of them answers 200.
+- After the operator's config edit, `blindreader-a11y` appears in no `<loc>`
+  of the live sitemap, and `/blindreader-a11y` still renders for somebody who
+  opens it.
 - A journal page's HTML carries
   `<link rel="alternate" type="application/rss+xml" href=".../feed.xml">` and
   `<link rel="alternate" type="text/markdown" href="/agent.md">`.
 - A day page carries `<link rel="alternate" type="text/markdown">` pointing at
   a URL that answers 200 with that day's source, from both of its paths.
-- `npm run verify` passes.
+- `npm run verify` passes — build, `tsc`, `eslint`, the test suite and
+  `npm run unused`. (The `recordPrint` knip failure this branch once hit while
+  it was 927 commits behind was already found and fixed on `main`
+  independently — see B880/B881/B883 — so nothing here needed to capture it
+  again.)

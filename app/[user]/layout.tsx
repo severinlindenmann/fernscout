@@ -54,7 +54,26 @@ export async function generateMetadata({
       template: `%s · ${user.title}`,
     },
     description: user.tagline,
-    alternates: { canonical: `/${username}` },
+    alternates: {
+      canonical: `/${username}`,
+      /**
+       * The two machine readings of this journal — B879.
+       *
+       * `feed.xml` was served per journal and pointed at by nothing, so a feed
+       * reader looking at the page found none. `/agent.md` is the whole guide
+       * for an agent working over the network, and until this link an agent
+       * handed a journal URL had to already know the convention to find it.
+       *
+       * Deliberately not `/llms.txt`: `app/documentation.txt/route.ts` says
+       * why the off-convention name is the point. A `rel="alternate"` is
+       * discovery for somebody already holding the URL, without publishing a
+       * well-known path for every prober on the internet.
+       */
+      types: {
+        "application/rss+xml": `/${username}/feed.xml`,
+        "text/markdown": "/agent.md",
+      },
+    },
     ...(robots ? { robots } : {}),
   };
 }
