@@ -59,6 +59,15 @@ setup down where an operator will find it, most likely `docs/providers/` (a
   sends the diagnosis the wrong way.
 - The `health_status` → `entities` trick for getting the WABA id from a
   send-only token.
+- **Meta's app-level rate limit, because our webhook calls back.** The
+  ceiling is **`Calls within one hour = 200 × Number of Users`** — where
+  "Number of Users" is the count of people who have engaged the app, per
+  rolling hour, across the Graph API. Every reply, mark-read and (later)
+  typing-indicator is one such call, so the conversational reply machinery
+  (B1056/B1061) has to be designed under it, not discover it. Worth stating
+  beside the per-sender E.164 brake B1057 already added, since the two are
+  different limits: ours stops one number flooding us, Meta's caps our total
+  calls back to them.
 - The env keys the inbound path needs: `WHATSAPP_APP_SECRET`,
   `WHATSAPP_VERIFY_TOKEN` (beside the existing `WHATSAPP_ACCESS_TOKEN`,
   `WHATSAPP_PHONE_NUMBER_ID`), and that the app must be **published**, not in
