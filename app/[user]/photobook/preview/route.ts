@@ -3,6 +3,7 @@ import { isEnabled } from "@/lib/capabilities";
 import type { TranslationKey } from "@/lib/i18n";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { parseOptions } from "@/lib/photobook/options";
+import { quoteBookFor } from "@/lib/photobook/quote";
 import { followerNames, planFor, priceOf } from "@/lib/photobook/build";
 import { captionsFor } from "@/lib/photobook/captions";
 import { renderPreview } from "@/lib/photobook/preview";
@@ -47,9 +48,14 @@ export async function POST(
   }
 
   const body = (await request.json().catch(() => null)) as
-    | { trip?: unknown; options?: unknown }
+    | { trip?: unknown; options?: unknown; contactId?: unknown }
     | null;
   const trip = typeof body?.trip === "string" ? body.trip : "";
+  // Who the book is going to, so the price below includes their postage —
+  // B1157. Optional: the page asks for a preview before anybody has chosen,
+  // and a book with no eligible recipient still deserves its page count and
+  // its spread.
+  const contactId = typeof body?.contactId === "string" ? body.contactId.trim() : "";
   const parsed = parseTripRef(trip);
   const options = parseOptions(body?.options, Object.keys(BOOK_SIZES));
   if (!parsed || parsed.username !== user || !options) {
@@ -66,6 +72,10 @@ export async function POST(
   } catch {
     return Response.json({ error: "not_found" }, { status: 404 });
   }
+
+  // The same function `order/route.ts` charges from, so the number on the
+  // button and the number taken cannot differ — B1157.
+  const quote = contactId ? await quoteBookFor(user, book, options, contactId) : null;
 
   // The line under each page, in the reader's own language — B562.
   const locale = await requestLocale();
@@ -102,13 +112,31 @@ export async function POST(
       2,
     pages: book.volumes.reduce((n, v) => n + v.interiorPages, 0),
     volumes: book.volumes.length,
-    credits: priceOf(book),
+    // What the button will say — B1157. Building and printing are two costs
+    // and one purchase, so this is the total, quoted for whoever the book is
+    // going to: postage to Zurich and postage to Sydney are not the same
+    // number, and the page must not show one and charge the other.
+    //
+    // `priceOf` alone is the fallback for the moment before a recipient has
+    // been resolved — a journal with no postable contact, or a printer that
+    // cannot be reached. The page shows the book's own facts either way and
+    // refuses to offer the button, rather than quoting a price that leaves
+    // postage out.
+    credits: quote && !("error" in quote) ? quote.totalCredits : priceOf(book),
+    printCredits: quote && !("error" in quote) ? quote.printCredits : null,
+    quoteError: quote && "error" in quote ? quote.error : null,
     warnings: book.warnings,
     // A book with no photographs still plans — `expandToMinimum` pads it to a
     // legal page count — but it is not one anybody should pay 90+ credits
     // for. Refused here, once, rather than trusted to a client-side check the
     // options form might skip: the page disables Pay on `buyable: false`
     // rather than on counting `warnings` itself.
-    buyable: book.photoCount > 0,
+    // Two things now, not one — B1157. A book with no photographs still plans
+    // (`expandToMinimum` pads it to a legal page count) and is not one anybody
+    // should pay for; and since what is sold is a *printed* book, a book with
+    // no quote cannot be bought either, because there is no honest total. Both
+    // answered here rather than counted client-side: the page disables the
+    // button on this one flag.
+    buyable: book.photoCount > 0 && quote !== null && !("error" in quote),
   });
 }

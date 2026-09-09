@@ -14,6 +14,7 @@ import { outcomeFrom } from "@/lib/photobook/orders";
 import { loadUserConfig } from "@/lib/config";
 import { partyFor } from "@/lib/travellers/parse";
 import PhotobookPageContent from "./PhotobookPageContent";
+import { bookRecipientsWithAddress } from "@/lib/photobook/recipients";
 
 export async function generateMetadata(): Promise<Metadata> {
   const reader = await requestLocale();
@@ -81,6 +82,15 @@ export default async function PhotobookPage({
         hasCosts={hasCostsData(trip.ref, AS_AUTHOR)}
         hasWeather={hasWeather(weatherDays(days))}
         balance={await balanceOf(user)}
+        // Who this book can be posted to — B1157. A printed book is what is
+        // for sale, so the recipient is part of the purchase rather than a
+        // second decision afterwards, and the owner is the one preselected.
+        //
+        // The full address travels because the owner is checking an envelope
+        // before spending on a delivery (B1145). `bookRecipients` itself is
+        // unchanged and still answers a name and a town — that is the shape an
+        // agent gets — and this page is the owner's own, 404 for anybody else.
+        recipients={await bookRecipientsWithAddress(user)}
         locales={bookLocalesFor(user)}
         outcome={await outcomeFrom(user, await searchParams)}
       />

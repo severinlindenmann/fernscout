@@ -12,6 +12,12 @@ vi.mock("@/lib/credits", () => ({
   countSpends: vi.fn().mockResolvedValue(0),
 }));
 vi.mock("@/lib/photobook/receipt", () => ({ sendPhotobookReceipt: vi.fn() }));
+// B1157. One press buys a printed book, so the route quotes postage before it
+// charges and hands the built book to the printer after. Both are mocked here:
+// this file is about the money path, and the printer's own behaviour is
+// test/photobook-print.test.ts.
+vi.mock("@/lib/photobook/quote", () => ({ quoteBookFor: vi.fn() }));
+vi.mock("@/lib/photobook/print", () => ({ submitBuiltBook: vi.fn() }));
 // Partial mocks — both modules export helpers the *other* describe block
 // below (the download route) still needs for real: `ORDER_ID_RE` and
 // `orderDir` are exercised as themselves, only the three calls that plan,
@@ -30,13 +36,18 @@ import { GET } from "@/app/[user]/photobooks/[id]/[file]/route";
 import { balanceOf, spend } from "@/lib/credits";
 import { planFor, priceOf, buildPhotobook } from "@/lib/photobook/build";
 import { claimOrder, markFailed, markPrinted } from "@/lib/photobook/orders";
+import { quoteBookFor } from "@/lib/photobook/quote";
+import { submitBuiltBook } from "@/lib/photobook/print";
 
 const params = Promise.resolve({ user: "alex" });
 
 /** A book just real enough for `pages`/`volumes` to sum without throwing —
  * the layout itself is `planFor`'s business, not this route's. */
 const BOOK = { volumes: [{ interiorPages: 40 }], warnings: [], photoCount: 12 };
-const CREDITS = 88;
+const BUILD_CREDITS = 40;
+const PRINT_CREDITS = 48;
+/** What the button says: building and printing are one purchase — B1157. */
+const CREDITS = BUILD_CREDITS + PRINT_CREDITS;
 
 function orderRequest(orderId: string, previewedCredits: string = String(CREDITS)) {
   return new Request("https://example.test/alex/photobook/order", {
@@ -45,6 +56,9 @@ function orderRequest(orderId: string, previewedCredits: string = String(CREDITS
       trip: "alex/asia-2026",
       orderId,
       previewedCredits,
+      // B1157: a book is bought printed and posted, so it needs somebody
+      // to go to. `quoteBookFor` is mocked, so any id does here.
+      contactId: "contact-1",
       options: JSON.stringify({
         size: "square",
         // Required since the book learned to be printed in a language.
@@ -79,7 +93,20 @@ describe("the order route", () => {
     beforeEach(() => {
       vi.clearAllMocks();
       vi.mocked(planFor).mockReturnValue(BOOK as never);
-      vi.mocked(priceOf).mockReturnValue(CREDITS);
+      vi.mocked(priceOf).mockReturnValue(BUILD_CREDITS);
+      // Build plus print: what the button says, and what is charged.
+      vi.mocked(quoteBookFor).mockResolvedValue({
+        buildCredits: BUILD_CREDITS,
+        printCredits: PRINT_CREDITS,
+        totalCredits: CREDITS,
+        shipmentMethodUid: "swiss_post_economy",
+        country: "CH",
+      });
+      vi.mocked(submitBuiltBook).mockResolvedValue({
+        ok: true,
+        providerRef: "gel-1",
+        charged: CREDITS,
+      });
       vi.mocked(claimOrder).mockResolvedValue(true);
       vi.mocked(markFailed).mockResolvedValue(true);
       vi.mocked(markPrinted).mockResolvedValue(true);
@@ -180,10 +207,18 @@ describe("the order route", () => {
      */
     describe("the previewed price must still hold at Pay time", () => {
       test("a price that grew between preview and press refuses rather than charging the new one", async () => {
-        // `priceOf` now returns more than the form's `previewedCredits`
-        // (still `CREDITS`, from the default) — a trip that grew a day or a
-        // photograph in between.
-        vi.mocked(priceOf).mockReturnValue(CREDITS + 12);
+        // The quote now totals more than the form's `previewedCredits` (still
+        // `CREDITS`, from the default) — a trip that grew a day or a
+        // photograph in between, or postage that moved. Since B1157 the total
+        // is the quote's, not `priceOf`'s alone, so that is where the change
+        // has to be made for this to be the case it describes.
+        vi.mocked(quoteBookFor).mockResolvedValue({
+          buildCredits: BUILD_CREDITS + 12,
+          printCredits: PRINT_CREDITS,
+          totalCredits: CREDITS + 12,
+          shipmentMethodUid: "swiss_post_economy",
+          country: "CH",
+        });
 
         const response = await POST(orderRequest("order-price-grew"), { params });
 

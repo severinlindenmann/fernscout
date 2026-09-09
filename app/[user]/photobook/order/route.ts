@@ -2,7 +2,10 @@ import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
 import { balanceOf, spend } from "@/lib/credits";
 import { parseOptions } from "@/lib/photobook/options";
-import { buildPhotobook, followerNames, planFor, priceOf } from "@/lib/photobook/build";
+import { buildPhotobook, followerNames, planFor } from "@/lib/photobook/build";
+import { quoteBookFor } from "@/lib/photobook/quote";
+import { submitBuiltBook } from "@/lib/photobook/print";
+import { nowIso } from "@/lib/db";
 import {
   ORDER_ID_RE,
   claimOrder,
@@ -47,12 +50,17 @@ function back(
  * The button, and the only place in this codebase that spends credits on a
  * book.
  *
- * Claim, spend, build — in that order, and the order is the whole design.
+ * **One press buys a printed book** — B1157. Quote, claim, build, spend,
+ * print, and the order is the whole design. It used to stop after the build
+ * and hand back two PDFs, with printing sold separately on another page for
+ * more money; the owner's word for that was that it made no sense, and they
+ * were right. What is for sale is the object. The files come with it.
+ *
  * Claiming first is what makes a double press cost one book: the order id
  * comes from the page as the row's primary key, so two presses race to insert
- * it and one loses. Spending before building is `lib/credits.ts`'s
- * all-or-nothing rule. Refunding after a failed build is the other half of it:
- * a book nobody got bought nothing.
+ * it and one loses. Everything that can refuse for free — a missing recipient,
+ * an unreachable printer, a stale price — is checked above the claim, so a
+ * refusal costs nothing and pressing again after fixing it works.
  *
  * Not under `/api/v1/`, `isOwner` called without the request, bearer refused
  * outright — see `app/[user]/postcards/[id]/send/route.ts` for why each of the
@@ -157,7 +165,27 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
    * the plan itself is stale. The page's own answer to all three is to ask
    * for the preview again, which quotes the real, current price.
    */
-  const currentCredits = priceOf(book);
+  /**
+   * What the book costs, posted to the person named on the panel — B1157.
+   *
+   * One product and one price: building the PDF and printing the object are
+   * two costs and a single purchase. `quoteBookFor` is the same function the
+   * preview called to put a number on the button, so the check below compares
+   * like with like; it re-quotes rather than trusting the form, because
+   * postage is most of the difference between a cheap book and an expensive
+   * one and a stale quote is somebody else paying it.
+   *
+   * A refusal here costs nothing — nothing is claimed, built or spent yet.
+   */
+  const contactId = String(form.get("contactId") ?? "").trim();
+  if (!contactId) return back_("no_recipient");
+
+  const quote = await quoteBookFor(user, book, options, contactId);
+  if ("error" in quote) {
+    return back_(quote.error === "provider_unavailable" ? "printer_unavailable" : "no_recipient");
+  }
+
+  const currentCredits = quote.totalCredits;
   if (!Number.isFinite(previewedCredits) || previewedCredits !== currentCredits) {
     return back_("stale_preview");
   }
@@ -187,6 +215,16 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
     pages: book.volumes.reduce((n, v) => n + v.interiorPages, 0),
     volumes: book.volumes.length,
     credits,
+    // Who it is for, and the postage the price was quoted with, written before
+    // a single page is drawn — B1157. The book is bought printed and posted,
+    // so the address is part of the order rather than something added to it
+    // afterwards.
+    print: {
+      contactId,
+      quotedCredits: quote.printCredits,
+      quotedAt: nowIso(),
+      shipmentMethodUid: quote.shipmentMethodUid,
+    },
   };
 
   // 1. Claim. A second press finds the key taken and is told so.
@@ -251,6 +289,25 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
   // error about a book that in fact exists.
   if (!(await markPrinted(user, orderId, { ...payload, files: built.files }))) {
     console.warn(`[photobook] ${orderId} built but was not in 'submitted' when marked printed`);
+  }
+
+  /**
+   * 4. Send it to the printer — B1157.
+   *
+   * The whole point of the press. It runs after the spend because the book has
+   * to exist and be paid for before it can be printed, and it refunds *the
+   * whole amount* rather than the print half when Gelato refuses: what was
+   * bought is a printed book, so a pile of PDFs is not a partial delivery of
+   * it. `submitBuiltBook` owns that, and the files stay on disk either way.
+   *
+   * A refusal still redirects to `done`, not to `failed`: the order exists,
+   * the receipt is real and the money is back. The order page is where the
+   * refusal and the retry live, because that is the page that knows what the
+   * printer said.
+   */
+  const printed = await submitBuiltBook(user, orderId);
+  if (!printed.ok) {
+    console.warn(`[photobook] ${orderId} built and paid, printer refused: ${printed.reason}`);
   }
 
   // B483: this order is the newest `printed` one for this owner, so it is
