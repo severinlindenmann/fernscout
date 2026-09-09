@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: lib/helper/tools/areas/readers.ts, files.ts
 found: "2026-09-09T17:59:14Z"
+merged: "2026-09-09T19:41:25Z"
 ---
 
 # B1128 — The invites and inbox tools also say their own block back in prose

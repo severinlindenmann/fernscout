@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: components/HelperRoom.tsx
 found: "2026-09-09T19:32:19Z"
+merged: "2026-09-09T19:41:23Z"
 ---
 
 # B1160 — On a phone the preview sheet covers the Ask button, so a typed message cannot be sent

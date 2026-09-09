@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: lib/helper/model.ts, components/HelperAsk.tsx
 found: "2026-09-09T19:32:20Z"
+merged: "2026-09-09T19:41:24Z"
 ---
 
 # B1161 — A read tool's list is still said back in prose, so the answer appears twice
