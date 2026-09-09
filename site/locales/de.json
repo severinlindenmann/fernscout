@@ -1443,6 +1443,7 @@
   "agent.failed": "Das hat nicht geklappt: {error}",
   "agent.error.incomplete_day": "Es wurde nichts geschrieben. Diese Reise führt Buch darüber, was ein Tag gekostet hat und wo er war, und dieser Tag sagt zu beidem nichts. Beantworte die Fragen auf der Karte — „Niemand hat es“ ist eine echte Antwort — und drücke noch einmal.",
   "agent.error.day_exists": "Dieser Tag ist schon angefangen. Es wurde nichts Neues geschrieben — mach mit dem weiter, der schon da ist.",
+  "agent.error.slug_taken": "Ein anderer Tag in dieser Reise hat schon dieselbe Adresse — sein Titel liest sich gleich. Gib diesem Tag einen Titel, der sich um ein Wort unterscheidet, und drücke dann noch einmal.",
   "agent.error.consent_required": "Es wurde nichts geschrieben: dieses Journal hat dem Sprechen mit einem Modell noch nicht zugestimmt. Stimme oben zu und drücke dann noch einmal.",
   "agent.error.no_credits": "Dafür reichen die Credits nicht. Lade auf deiner eigenen Seite welche auf und drücke dann noch einmal.",
   "agent.error.already_published": "Dieser Tag steht schon auf der Seite, es gab also nichts zu veröffentlichen.",
