@@ -13,6 +13,7 @@ import {
 } from "./config";
 import { contentRoot } from "./contentRoot";
 import { normalizeCurrency, type RateTable } from "./currency";
+import { release, reserve } from "./registry";
 import { toE164 } from "./whatsapp/phone";
 import { issueStandingLink, signInUrl } from "./auth";
 import { LOCALE_LIST } from "./api/agentCopy";
@@ -95,6 +96,22 @@ export type NewJournal = {
   baseCurrency?: string;
   displayCurrencies?: string[];
   units?: "metric" | "imperial";
+  /**
+   * A number proven before this call — B1064/B1065. E.164 digits, already
+   * normalised by the caller (`toE164`); this function does not re-validate
+   * the shape, only that it is not already somebody else's.
+   *
+   * Absent for the two exemptions B1064 names (the operator address, and a
+   * `test-` journal) and for every caller that predates this field — a
+   * missing `ownerTel` simply reserves no number, exactly like an exempt
+   * journal.
+   */
+  ownerTel?: string;
+  /** When the number above was proven. Required together with `ownerTel` —
+   * see the check below — because an unproven number is not this registry's
+   * business (`lib/registry.ts:reconcile`). */
+  ownerTelProvenAt?: string;
+  ownerTelProvenMethod?: "sms" | "operator";
 };
 
 export type CreateJournalResult =
@@ -314,6 +331,25 @@ export function createJournal(input: NewJournal): CreateJournalResult {
     };
   }
 
+  // B1064's lock, on top of the disk scan above: an atomic exclusive file
+  // create rather than a race two concurrent creates could both win.
+  // Reserved *before* the config is written, so a caller that loses this
+  // race leaves nothing on disk — see `lib/registry.ts:reserve`.
+  const reserved = reserve(username, ownerEmail, input.ownerTel ?? null);
+  if (!reserved.ok) {
+    return reserved.conflict === "email"
+      ? {
+          ok: false,
+          error: "too_many_journals",
+          message: `This address already owns a journal, and one journal per address is the limit on this server.`,
+        }
+      : {
+          ok: false,
+          error: "tel_taken",
+          message: `That telephone number already belongs to another journal on this server.`,
+        };
+  }
+
   const config = {
     title,
     // Omitted rather than written empty when there is none. `readString` in
@@ -325,7 +361,14 @@ export function createJournal(input: NewJournal): CreateJournalResult {
     // `nickname` is required rather than derived from `name`: a first-word
     // split mangles any name whose given name is not first, so there is no
     // safe guess to fall back to — the caller must ask.
-    owner: { name: ownerName, nickname: ownerNickname, email: ownerEmail },
+    owner: {
+      name: ownerName,
+      nickname: ownerNickname,
+      email: ownerEmail,
+      ...(input.ownerTel ? { tel: input.ownerTel } : {}),
+      ...(input.ownerTel && input.ownerTelProvenAt ? { telProvenAt: input.ownerTelProvenAt } : {}),
+      ...(input.ownerTel && input.ownerTelProvenMethod ? { telProvenMethod: input.ownerTelProvenMethod } : {}),
+    },
     // Written only when it is `guest`, and never as the old word `private`
     // even when that is what the caller sent — see `normalizeJournalVisibility`.
     // A file that says `"visibility": "public"` on every journal makes the
@@ -378,12 +421,20 @@ export function createJournal(input: NewJournal): CreateJournalResult {
 
   // The trips folder is created with it. A journal whose `trips/` does not
   // exist reads as broken rather than as empty.
-  fs.mkdirSync(path.join(dir, "trips"), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, "config.json"),
-    JSON.stringify(config, null, 2) + "\n",
-    "utf8",
-  );
+  try {
+    fs.mkdirSync(path.join(dir, "trips"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify(config, null, 2) + "\n",
+      "utf8",
+    );
+  } catch (err) {
+    // The reservation above holds the address (and number) hostage against a
+    // journal that was never actually written — undo it, rather than leave
+    // that address locked out of ever signing up again by a disk fault.
+    release(username, ownerEmail, input.ownerTel ?? null);
+    throw err;
+  }
 
   // Both caches are keyed by path and would otherwise answer "no such user"
   // for the rest of this process's life.

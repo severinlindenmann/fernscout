@@ -306,3 +306,70 @@ anybody can tell from outside.
 
 The test-journal path (a real code written to disk) is the dry-run backend
 under another name, so it comes free and stays ours in production too.
+
+## Built — 2026-09-09
+
+Validity already established by the plan-a-run gate for group-phone; see
+`.claude/runs/2026-09-09-phone-and-gates/brief.json`. Built directly on B1064.
+
+**The seam is exactly what the "Dry-run first" section specified.**
+`lib/phoneVerify/types.ts` — `startVerification(phone, locale) -> {id}`,
+`checkVerification(id, code) -> {status:"ok", phone} | {status: "wrong"|"expired"|"burned"}`.
+`lib/phoneVerify/dryRun.ts` is this repository's own OTP discipline
+(hash-only, 30-minute TTL, 5-attempt burn, supersession on reissue) using
+`kind: "phone"` on `login_codes` — a plain string, deliberately outside the
+`SessionKind` union, since a phone proof opens no session.
+`lib/phoneVerify/twilio.ts` is the real backend (unverified against a live
+account — no Twilio credentials were available to this run; the two
+`UNVERIFIED` claims in this ticket's own "Decided: Twilio Verify" section
+still stand and should be confirmed before flipping `phoneBackend` to
+`"twilio"` anywhere real). Backend picked by `features.signup.phoneBackend`,
+wired into `lib/capabilities.ts` the same way `whatsapp.backend` is.
+
+**Where the proof lives, since the ticket didn't say:** on the `signup`
+session itself. `sessions` gained two nullable columns (`phone`,
+`phone_proven_at`, migration `028-signup-phone`), written once by
+`markPhoneProven()` on a successful check. `POST /api/v1/journals` reads
+them off the resolved session — never off a field the create request could
+simply assert — which is also what makes a stolen/guessed `id` at the verify
+step harmless: it can at most attach some number to *this* signup token, and
+the token is already proof of the address.
+
+**Routes**: `POST /api/auth/signup/phone/request` (rate-limited 3/tel/day,
+5/address/day, 50/instance/day, all via `lib/rateLimit.ts`'s generic keying —
+not IP) and `POST /api/auth/signup/phone/verify`. `POST /api/v1/journals`
+now refuses `phone_required` (400) unless the caller is `FERNSCOUT_ADMIN_EMAIL`
+or the username starts with `test-` (B1064's two exemptions) — this is where
+those exemptions are actually enforced, since `createJournal()` itself stays
+permissive for its ~10 direct test callers.
+
+**Simplification against the ticket's own "test journal" bullet**: no
+test-bypass flag was built on `/phone/request`. B1064's later "Decided
+further" section makes test journals **exempt from proving a number at
+all**, which already gives the "test journal, no real SMS cost" property the
+original bullet was reaching for — building a second bypass mechanism inside
+the verification service itself would have been redundant machinery. If a
+future ticket wants to exercise the *phone-proving flow itself* against a
+`test-` journal end to end, that is new scope, not a gap in this one.
+
+**Contract**: both new routes are in `lib/api/openapi.ts` with refusals;
+`phone_required`/`verification_failed` are in `lib/api/errorCodes.ts`.
+`test/openapi-contract.test.ts` and `test/api-route-schemas.test.ts` pass.
+
+Nine existing test files that drive `POST /api/v1/journals` through the real
+route (not through `createJournal()` directly) needed a `signupToken()`
+helper update to complete the phone step first — otherwise every one of
+them now gets `phone_required`. Each was given a unique fake E.164 number
+per call (a counter) so B1064's tel-uniqueness lock does not collide
+between them.
+
+Evidence: `test/signup-phone.test.ts` (6 tests) — start/check round trip
+with the code read back off disk exactly as an agent driving a real signup
+would have to, `phone_required` on a bare create, the proven number landing
+in the new journal's `owner.tel`, the `test-` exemption, one number refused
+for a second journal (`tel_taken`), and a national number with no country
+code refused. Full suite: `npx vitest run` — 472 files, 6343 passed, 4
+skipped, 0 failed.
+
+Pure backend; no page to screenshot (the signup wizard's browser flow that
+would add a phone step is not part of this ticket).

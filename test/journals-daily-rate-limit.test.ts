@@ -7,7 +7,8 @@ import { clearConfigCache } from "@/lib/config";
 import { balanceOf } from "@/lib/credits";
 import { clearUserCache, getUser } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
-import { NO_JOURNAL, issueCode, verifyCode } from "@/lib/auth";
+import { NO_JOURNAL, issueCode, markPhoneProven, resolveSession, verifyCode } from "@/lib/auth";
+import { checkVerification, startVerification } from "@/lib/phoneVerify";
 
 /**
  * B834 — the hourly budget resets, the daily one does not.
@@ -34,6 +35,19 @@ async function signupToken(): Promise<string> {
   const { code } = await issueCode(NO_JOURNAL, email, "signup");
   const result = await verifyCode(NO_JOURNAL, email, code, "signup");
   if (!result.ok) throw new Error("could not mint a signup token");
+
+  // B1065 requires a proven number too — driven directly, as in
+  // test/signup-token.test.ts, since this suite is not testing that step.
+  const tel = `417604${String(emailCounter).padStart(5, "0")}`;
+  process.env.AUTH_DEV_CODE = "424242";
+  const { id } = await startVerification(tel, "en");
+  const proof = await checkVerification(id, "424242");
+  delete process.env.AUTH_DEV_CODE;
+  if (proof.status !== "ok") throw new Error("could not prove a phone number");
+  const session = await resolveSession(result.token, "signup");
+  if (!session) throw new Error("no session for the token just minted");
+  await markPhoneProven(session.id, proof.phone);
+
   return result.token;
 }
 

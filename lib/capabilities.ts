@@ -36,6 +36,14 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   // Backend-specific, the same way mail is: `dry-run` needs nothing, which
   // is what keeps this developable with no Meta account at all.
   whatsapp: { env: [], db: false },
+  // B1057. A different switch from `whatsapp` above (see FEATURE_NAMES in
+  // lib/config.ts for why) and a different credential shape — reading a
+  // webhook needs the app secret and the handshake's verify token, neither
+  // of which sending needs. No `db: true` here: idempotency (lib/idempotency.ts)
+  // falls back to an in-memory store with no database, so this stays
+  // developable with `dry-run`'s discipline — a fixture posted locally,
+  // no Meta account, no database.
+  whatsappInbound: { env: ["WHATSAPP_APP_SECRET", "WHATSAPP_VERIFY_TOKEN"], db: false },
   auth: { env: ["SESSION_SECRET"], db: true },
   // Self-service journal creation. Needs somewhere to keep the codes it
   // issues, and — checked in the route rather than here — mail to send them
@@ -139,6 +147,16 @@ const TRANSPORT_ENV: Record<string, readonly string[]> = {
 const WHATSAPP_BACKEND_ENV: Record<string, readonly string[]> = {
   "dry-run": [],
   cloud: ["WHATSAPP_ACCESS_TOKEN", "WHATSAPP_PHONE_NUMBER_ID"],
+};
+
+/**
+ * What each phone-verification backend needs — B1065. `dry-run` needs
+ * nothing, which is what keeps the whole signup flow, phone step included,
+ * developable with no provider account. See `lib/phoneVerify/`.
+ */
+const PHONE_VERIFY_BACKEND_ENV: Record<string, readonly string[]> = {
+  "dry-run": [],
+  twilio: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_VERIFY_SERVICE_SID"],
 };
 
 /**
@@ -284,6 +302,17 @@ function configuredEnv(name: FeatureName, feature: Record<string, unknown>): {
       return {
         env: [],
         problem: `features.whatsapp.backend "${backend}" is unknown (expected one of: ${Object.keys(WHATSAPP_BACKEND_ENV).join(", ")})`,
+      };
+    }
+    return { env };
+  }
+  if (name === "signup") {
+    const backend = optionOf(feature, "phoneBackend") ?? "dry-run";
+    const env = PHONE_VERIFY_BACKEND_ENV[backend];
+    if (!env) {
+      return {
+        env: [],
+        problem: `features.signup.phoneBackend "${backend}" is unknown (expected one of: ${Object.keys(PHONE_VERIFY_BACKEND_ENV).join(", ")})`,
       };
     }
     return { env };

@@ -12,6 +12,7 @@ import type { TranslationKey } from "./i18n";
 import { translateIn } from "./locales";
 import { sendTransactional } from "./mail";
 import { renderMail, type MailBlock } from "./mail/template";
+import { release } from "./registry";
 import { serverSite } from "./site";
 import { writeTombstone } from "./tombstones";
 import { forgetEntries, getAllEntries } from "./entries";
@@ -587,6 +588,9 @@ async function deleteJournal(username: string, requestedBy: string): Promise<voi
   // Rendered before the config is removed — afterwards there is no journal to
   // read a language off. See `Tombstone.notice`.
   const notice = goneNotice({ kind: "journal", username, title: summary?.title ?? username });
+  // Read before the config is removed, for the same reason — B1064's "deleting
+  // a journal frees its address and its number" needs to know what they were.
+  const owner = getUser(username)?.owner;
 
   const { db } = await getDatabase();
   for (const table of [...TABLE_NAMES].reverse()) {
@@ -596,6 +600,7 @@ async function deleteJournal(username: string, requestedBy: string): Promise<voi
   for (const trip of getTrips(username)) forgetEntries(tripRef(username, trip.id));
   fs.rmSync(dir, { recursive: true, force: true });
   dropMediaCache();
+  release(username, owner?.email ?? null, owner?.tel ?? null);
 
   writeTombstone({
     kind: "journal",

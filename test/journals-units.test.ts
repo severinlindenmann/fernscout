@@ -6,7 +6,8 @@ import { POST } from "@/app/api/v1/journals/route";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache, getUser } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
-import { NO_JOURNAL, issueCode, verifyCode } from "@/lib/auth";
+import { NO_JOURNAL, issueCode, markPhoneProven, resolveSession, verifyCode } from "@/lib/auth";
+import { checkVerification, startVerification } from "@/lib/phoneVerify";
 
 /**
  * B553 — `units` is documented `metric | imperial`, and the handler used to
@@ -20,10 +21,25 @@ import { NO_JOURNAL, issueCode, verifyCode } from "@/lib/auth";
 let dir: string;
 let caller = 0;
 
+let phoneCounter = 0;
+
+/** B1065 requires a proven number too — driven directly, as in
+ * test/signup-token.test.ts, since this suite is not testing that step. */
 async function signupToken(email: string): Promise<string> {
   const { code } = await issueCode(NO_JOURNAL, email, "signup");
   const result = await verifyCode(NO_JOURNAL, email, code, "signup");
   if (!result.ok) throw new Error("could not mint a signup token");
+
+  const tel = `417605${String(phoneCounter++).padStart(5, "0")}`;
+  process.env.AUTH_DEV_CODE = "424242";
+  const { id } = await startVerification(tel, "en");
+  const proof = await checkVerification(id, "424242");
+  delete process.env.AUTH_DEV_CODE;
+  if (proof.status !== "ok") throw new Error("could not prove a phone number");
+  const session = await resolveSession(result.token, "signup");
+  if (!session) throw new Error("no session for the token just minted");
+  await markPhoneProven(session.id, proof.phone);
+
   return result.token;
 }
 

@@ -122,6 +122,8 @@ export const ERROR_CODES: Record<string, string> = {
   // ── this server cannot do that ─────────────────────────────────────────
   auth_disabled: "This server has authentication switched off entirely, so there are no tokens to hold. /api/health says what it can do.",
   signup_disabled: "This server does not take new journals.",
+  phone_required: "A journal needs a proven telephone number as well as a proven address. POST /api/auth/signup/phone/request with the signup token, then /api/auth/signup/phone/verify with the code, and retry.",
+  verification_failed: "The phone code could not be sent. Try again in a minute, or check the number.",
   contacts_disabled: "This server has contacts off, so invitations and approvals are unavailable.",
   postcards_disabled: "This server has postcards off.",
   photobook_disabled: "This journal does not have photobooks switched on. /api/health says which capabilities are on and why.",

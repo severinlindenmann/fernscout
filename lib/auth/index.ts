@@ -923,6 +923,8 @@ async function openSession(
       revoked_at: null,
       user_agent: userAgent,
       ip: null,
+      phone: null,
+      phone_proven_at: null,
     })
     .execute();
 
@@ -1039,6 +1041,11 @@ export type Session = {
    * return in a response body; never accepted as authentication. B412 names a
    * service worker cache after it. */
   publicId: string | null;
+  /** The E.164 number this `signup` session proved, and when — B1065. Null on
+   * every other kind, and null on a signup session until the phone step
+   * completes. See `markPhoneProven`. */
+  phone: string | null;
+  phoneProvenAt: string | null;
 };
 
 /**
@@ -1071,6 +1078,8 @@ async function lookUpSession(
       "sessions.public_id as publicId",
       "sessions.expires_at as expiresAt",
       "sessions.revoked_at as revokedAt",
+      "sessions.phone as phone",
+      "sessions.phone_proven_at as phoneProvenAt",
       "users.email as email",
     ])
     .where("sessions.token_hash", "=", hashSecret(token))
@@ -1095,7 +1104,28 @@ async function lookUpSession(
     scope: row.scope ?? SESSION_SCOPE[expected],
     email: row.email,
     publicId: row.publicId,
+    phone: row.phone,
+    phoneProvenAt: row.phoneProvenAt,
   };
+}
+
+/**
+ * Record that a `signup` session proved a number — B1065.
+ *
+ * The only writer of `sessions.phone`/`phone_proven_at`, and the only caller
+ * is `POST /api/auth/signup/phone/verify` on a successful check. Refuses to
+ * write to anything but a live `signup` row: a phone proof is meaningless
+ * attached to any other kind, and there is no session kind of its own for it
+ * to belong to — see the top of `lib/phoneVerify/`.
+ */
+export async function markPhoneProven(sessionId: string, phone: string): Promise<void> {
+  const { db } = await getDatabase();
+  await db
+    .updateTable("sessions")
+    .set({ phone, phone_proven_at: nowIso() })
+    .where("id", "=", sessionId)
+    .where("kind", "=", "signup")
+    .execute();
 }
 
 /**

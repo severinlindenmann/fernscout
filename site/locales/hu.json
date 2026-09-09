@@ -492,6 +492,8 @@
   "mail.identityButton": "Bejelentkezés",
   "mail.identityCode": "A kódod: {code}. {minutes} percig érvényes.",
   "mail.identityFooter": "Küldte: {site}.",
+  "wa.strangerReply": "Ez a szám valaki privát útinaplójába ír a {site} oldalon, és nem tud ebben segíteni. Ha most jársz itt először, jelentkezz be itt: {url}.",
+  "wa.firstReply": "Szia! Egy mesterséges intelligencia vagyok, és a naplódba írok itt: {journalUrl}. Ha inkább egy emberrel szeretnél beszélni, írj bármikor az agent@fernscout.ch címre. Amit ide küldesz, a Metához és a modellhez kerül — a részletekért lásd az impresszumot.",
   "mail.identityIgnore": "Ha nem te kérted, hagyd figyelmen kívül — semmi nem nyílt meg.",
   "mail.identityLasts": "Egy évig érvényes, ezen az eszközön. Bármikor megszüntetheted azon az oldalon, ahová bejelentkeztet.",
   "mail.identitySubject": "A kódod ide: {site}",

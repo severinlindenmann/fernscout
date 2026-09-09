@@ -21,6 +21,13 @@ export const FEATURE_NAMES = [
   "push",
   "mail",
   "whatsapp",
+  // B1057. Deliberately separate from `whatsapp` above, which means
+  // "send day announcements to readers" — the conversational channel is a
+  // different capability with a different cost and a different consent
+  // story, and a journal may want one without the other. Conflating the two
+  // would mean turning off announcements silently kills somebody's writing
+  // door.
+  "whatsappInbound",
   "auth",
   "signup",
   "contacts",
@@ -122,6 +129,23 @@ type Owner = {
    * `41…`), and a national `079…` is refused with a sentence saying why.
    */
   tel?: string;
+  /**
+   * When and how `tel` was proven to belong to this owner — B1064.
+   *
+   * A destination becomes an identity the moment something is checked against
+   * it (B1058's webhook compares an inbound E.164 against this field), so the
+   * proof has to travel with the number rather than live beside it in a
+   * separate table nothing here reads. Absent means unproven: every `tel`
+   * written before B1065 shipped, and any written since by the operator's own
+   * hand rather than through the SMS flow. `lib/journals.ts`'s registry is
+   * the lock that stops two journals claiming the same proven number; this is
+   * the record of *that* journal having proven it.
+   */
+  telProvenAt?: string;
+  /** `"sms"` for the Twilio/dry-run signup flow; `"operator"` for a number an
+   * operator typed in by hand, per B1064's decision that a number change is
+   * done by the operator, by hand, until there is a self-serve path. */
+  telProvenMethod?: "sms" | "operator";
 };
 
 /**
@@ -370,8 +394,16 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // `dry-run` writes the payload it would have sent, so the whole feature
   // develops without a Meta account — see lib/whatsapp/index.ts.
   whatsapp: { enabled: false, backend: "dry-run" },
+  // B1057. No backend option: unlike sending, reading has only one real
+  // implementation — Meta's webhook — plus off. See lib/capabilities.ts for
+  // what it needs (WHATSAPP_APP_SECRET, WHATSAPP_VERIFY_TOKEN).
+  whatsappInbound: { enabled: false },
   auth: { enabled: false },
-  signup: { enabled: false },
+  // `phoneBackend` picks how `POST /api/auth/signup/phone/*` proves the
+  // number a new journal is created with — B1065. `dry-run` writes the code
+  // where a dry-run mail already goes, so the whole signup flow, phone step
+  // included, develops with no provider account. See lib/phoneVerify/.
+  signup: { enabled: false, phoneBackend: "dry-run" },
   contacts: { enabled: false },
   postcards: { enabled: false, provider: "dry-run" },
   photobook: { enabled: false, provider: "dry-run" },
@@ -611,6 +643,20 @@ function parseOwner(src: Record<string, unknown>, problems: string[]): Owner {
       );
     } else {
       owner.tel = tel;
+    }
+  }
+  if (raw.telProvenAt !== undefined) {
+    if (typeof raw.telProvenAt !== "string" || Number.isNaN(Date.parse(raw.telProvenAt))) {
+      problems.push("owner.telProvenAt must be an ISO timestamp, or absent");
+    } else {
+      owner.telProvenAt = raw.telProvenAt;
+    }
+  }
+  if (raw.telProvenMethod !== undefined) {
+    if (raw.telProvenMethod !== "sms" && raw.telProvenMethod !== "operator") {
+      problems.push('owner.telProvenMethod must be "sms" or "operator", or absent');
+    } else {
+      owner.telProvenMethod = raw.telProvenMethod;
     }
   }
   if (raw.email !== undefined) {

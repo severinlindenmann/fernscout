@@ -74,6 +74,17 @@ type SessionsTable = {
   revoked_at: string | null;
   user_agent: string | null;
   ip: string | null;
+  /**
+   * The E.164 number a `signup` session proved, and when — B1065. Null for
+   * every other kind, and null on a signup session until the phone step
+   * completes: `POST /api/auth/signup/phone/verify` writes both together
+   * on success, and `createJournal` reads them off this row (via
+   * `phoneProofOn`) rather than trusting a number the request body could send
+   * unproven. Not a fifth `SessionKind` — see the top of `lib/phoneVerify/`
+   * for why proving a number opens no session of its own.
+   */
+  phone: string | null;
+  phone_proven_at: string | null;
 };
 
 type LoginCodesTable = {

@@ -1595,12 +1595,92 @@ export function openApiDocument() {
           },
         },
       },
+      "/api/auth/signup/phone/request": {
+        post: {
+          summary: "Prove a telephone number, step one — B1065",
+          description:
+            "The second half of proving who is signing up, after the address. Takes the " +
+            "signup token from /api/auth/signup/verify. A code is sent by SMS (or, on a " +
+            "server with no SMS provider configured, written where a dry-run mail already " +
+            "goes) to `tel`, which must carry its own country code — this server is not " +
+            "standing in any country, so a national number is refused rather than guessed. " +
+            "Rate-limited per number, per address and for the whole server, since every " +
+            "attempt may cost the operator a real SMS.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["tel"],
+                  properties: {
+                    tel: {
+                      type: "string",
+                      description: 'A telephone number with its country code, e.g. "+41 76 000 00 00".',
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "202": {
+              description:
+                "Accepted — `id` names this verification attempt; pass it back to " +
+                "/api/auth/signup/phone/verify with the code.",
+            },
+            "400": { description: "tel is missing, or not a number with a country code" },
+            "401": { description: "Missing or invalid signup token" },
+            "404": { description: "Signing up is not enabled on this server" },
+            "429": {
+              description:
+                "Too many attempts for this number (3/day), this address (5/day), or this " +
+                "server as a whole (50/day)",
+            },
+            "503": { description: "The code could not be sent" },
+          },
+        },
+      },
+      "/api/auth/signup/phone/verify": {
+        post: {
+          summary: "Prove a telephone number, step two — B1065",
+          description:
+            "Takes the signup token, the `id` from the request step, and the code. On " +
+            "success the proven number is attached to the signup token itself — nothing " +
+            "further to send; POST /api/v1/journals reads it automatically.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["id", "code"],
+                  properties: {
+                    id: { type: "string", description: "From the request step's response." },
+                    code: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Proven — `tel` echoes the number this token now carries." },
+            "401": { description: "The code is wrong, expired or already used, or the token is invalid" },
+            "404": { description: "Signing up is not enabled on this server" },
+            "429": { description: "Too many attempts" },
+          },
+        },
+      },
       "/api/v1/journals": {
         post: {
           summary: "Create a journal",
           description:
-            "Takes the signup token. Answers with an agent token for the journal it just " +
-            "created, so the caller can go straight on to creating a trip.",
+            "Takes the signup token. A journal needs a proven telephone number as well as " +
+            "a proven address (B1064) — complete /api/auth/signup/phone/request and " +
+            "/api/auth/signup/phone/verify with the same token first, unless the address " +
+            "is this instance's operator or the username starts with \"test-\", both " +
+            "exempt. Answers with an agent token for the journal it just created, so the " +
+            "caller can go straight on to creating a trip.",
           requestBody: {
             required: true,
             content: {
@@ -1732,12 +1812,13 @@ export function openApiDocument() {
                 "The username, title or owner name/nickname is not usable, or visibility, " +
                 "defaultLocale, locales or baseCurrency is missing or not a value this server " +
                 "accepts, or locales does not contain defaultLocale, or displayCurrencies does " +
-                "not contain baseCurrency.",
+                "not contain baseCurrency, or (`phone_required`) no proven number is attached " +
+                "to this signup token yet.",
             },
             "401": { description: "Missing or invalid signup token" },
             "403": { description: "This address already owns as many journals as it may" },
             "404": { description: "Signing up is not enabled on this server" },
-            "409": { description: "That username is taken" },
+            "409": { description: "That username is taken, or that phone number already belongs to another journal" },
           },
         },
       },

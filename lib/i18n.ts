@@ -2034,6 +2034,8 @@ export type TranslationKey =
   | "visitors.subtitle"
   | "visitors.title"
   | "visitors.trip"
+  | "wa.firstReply"
+  | "wa.strangerReply"
   | "weather.clear"
   | "weather.cloudy"
   | "weather.fog"

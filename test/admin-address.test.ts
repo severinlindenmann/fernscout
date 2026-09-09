@@ -249,6 +249,8 @@ describe("with no FERNSCOUT_ADMIN_EMAIL, the address is a stranger", () => {
       scope: "write:content",
       email: ADMIN,
       publicId: null,
+      phone: null,
+      phoneProvenAt: null,
     };
     expect(ownsUser(session, OWNER)).toBe(false);
   });

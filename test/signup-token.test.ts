@@ -6,7 +6,8 @@ import { POST } from "@/app/api/v1/journals/route";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache, getUser } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
-import { NO_JOURNAL, issueCode, verifyCode } from "@/lib/auth";
+import { NO_JOURNAL, issueCode, markPhoneProven, resolveSession, verifyCode } from "@/lib/auth";
+import { checkVerification, startVerification } from "@/lib/phoneVerify";
 
 /**
  * B55 — "it can create one journal, once".
@@ -23,10 +24,32 @@ import { NO_JOURNAL, issueCode, verifyCode } from "@/lib/auth";
 
 let dir: string;
 
+let phoneCounter = 0;
+
+/**
+ * A signup token that has already proven a number too — B1065 makes both
+ * halves required before `POST /api/v1/journals` will act. This suite is not
+ * testing the phone step itself (see test/signup-phone.test.ts), so it is
+ * driven directly here rather than through the HTTP routes.
+ */
 async function signupToken(email: string): Promise<string> {
   const { code } = await issueCode(NO_JOURNAL, email, "signup");
   const result = await verifyCode(NO_JOURNAL, email, code, "signup");
   if (!result.ok) throw new Error("could not mint a signup token");
+
+  const tel = `417600${String(phoneCounter++).padStart(5, "0")}`;
+  const previousDevCode = process.env.AUTH_DEV_CODE;
+  process.env.AUTH_DEV_CODE = "424242";
+  const { id } = await startVerification(tel, "en");
+  const proof = await checkVerification(id, "424242");
+  if (previousDevCode === undefined) delete process.env.AUTH_DEV_CODE;
+  else process.env.AUTH_DEV_CODE = previousDevCode;
+  if (proof.status !== "ok") throw new Error("could not prove a phone number");
+
+  const session = await resolveSession(result.token, "signup");
+  if (!session) throw new Error("no session for the token just minted");
+  await markPhoneProven(session.id, proof.phone);
+
   return result.token;
 }
 

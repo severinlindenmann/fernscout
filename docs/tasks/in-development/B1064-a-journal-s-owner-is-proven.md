@@ -115,3 +115,48 @@ Answered by the owner, walking the question book:
     unreachable after a SIM change.
   - **Test journals** — see B1065 for the mechanism, which is better than an
     exemption.
+
+## Built — 2026-09-09
+
+Validity already established by the plan-a-run gate for group-phone; see
+`.claude/runs/2026-09-09-phone-and-gates/brief.json`. Built directly from
+this ticket's two "Decided" sections, no re-validation performed.
+
+**The lock is a filesystem lock, not a database table.** The ticket's Work
+section says "a table with unique indexes"; what was actually built is
+`content/.registry/email/<sha256(email)>.json` and
+`content/.registry/tel/<e164>.json`, written with `fs.writeFileSync(...,
+{flag: "wx"})` — `O_CREAT|O_EXCL`, atomic at the OS level, the same guarantee
+a unique database index gives. Modelled on `lib/tombstones.ts` rather than a
+Kysely table for one reason that mattered a lot in practice: `createJournal()`
+is called synchronously from ~10 places across the test suite (routes and
+`test/*.test.ts`), and a database-backed lock would have forced it `async`,
+cascading into every caller. `signup`'s own capability already requires a
+database in production (`lib/capabilities.ts`), so nothing in the real
+signup path loses anything; the tests that call `createJournal()` directly
+keep working unmodified. `lib/registry.ts` carries the full reasoning.
+
+Built: `lib/registry.ts` (`reserve`, `release`, `reconcile`), wired into
+`createJournal()` (reserved before `config.json` is written, released on a
+write failure) and into `lib/deletions.ts`'s `deleteJournal` (frees both
+locks using the owner's email/tel read before the config is removed).
+`Owner.tel` in `lib/config.ts` gained `telProvenAt`/`telProvenMethod` beside
+it — the "proof stamp" the Decided section asked for. `npm run registry --
+reconcile` rebuilds `content/.registry/` from disk; `content/.registry/` is
+gitignored alongside `content/.deleted/`.
+
+**Not built: the two exemptions' enforcement.** This ticket is the store;
+*requiring* a number for a non-exempt journal is the signup route's job and
+is built in B1065, which is where the operator/test exemptions are actually
+checked.
+
+Evidence: `test/registry.test.ts` (6 tests) — one email per journal, one
+number per journal independent of email, release-then-reclaim, a
+same-microtask "concurrent" pair where exactly one wins, a
+same-number-different-email conflict caught only by the lock (the disk scan
+alone would have let both through), and reconcile rebuilding to the same
+state. `test/journals.test.ts`, `test/deletions.test.ts` and six other
+existing suites (218 tests total) still pass unmodified — nothing about
+`createJournal`'s existing call sites changed.
+
+Pure backend; no page to screenshot.

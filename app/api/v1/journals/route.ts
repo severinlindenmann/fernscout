@@ -1,5 +1,6 @@
 import { LOCALE_LIST, SECOND_LANGUAGE_COMMITMENT, VISIBILITY_MEANING } from "@/lib/api/agentCopy";
 import { SESSION_SCOPE, NO_JOURNAL, issueRelayLink, openAgentSession, resolveSession, revokeSession, signInUrl } from "@/lib/auth";
+import { isAdminEmail } from "@/lib/admin";
 import { isEnabled } from "@/lib/capabilities";
 import { normalizeJournalVisibility } from "@/lib/config";
 import { normalizeCurrency } from "@/lib/currency";
@@ -371,6 +372,34 @@ export async function POST(request: Request) {
   }
   const units = rawUnits === "imperial" ? "imperial" : "metric";
 
+  /**
+   * A proven number, or one of B1064's two exemptions — B1065.
+   *
+   * The operator address and a `test-` journal are the only two ways to
+   * create a journal with no proven number (`lib/journals.ts`'s
+   * `createJournal` itself stays permissive, the way every direct test
+   * caller needs it to; this is where the requirement is actually enforced).
+   * Everybody else must have completed `POST /api/auth/signup/phone/*`
+   * first — the proof lives on the signup session itself
+   * (`session.phone`/`session.phoneProvenAt`), never on a field this request
+   * body could simply assert.
+   */
+  const exempt = isAdminEmail(session.email) || username.startsWith("test-");
+  if (!exempt && !session.phone) {
+    return refuse(
+      {
+        error: "phone_required",
+        message:
+          "A journal needs a proven telephone number as well as a proven address. " +
+          'POST /api/auth/signup/phone/request with {"tel": "…"} using this same token, ' +
+          "then POST /api/auth/signup/phone/verify with the code, and retry this call. " +
+          '(A username starting with "test-" is exempt, for content nobody lived.)',
+        next: "POST /api/auth/signup/phone/request",
+      },
+      400,
+    );
+  }
+
   const created = createJournal({
     visibility,
     username,
@@ -385,11 +414,19 @@ export async function POST(request: Request) {
     baseCurrency,
     displayCurrencies,
     units,
+    ...(session.phone
+      ? { ownerTel: session.phone, ownerTelProvenAt: session.phoneProvenAt ?? undefined, ownerTelProvenMethod: "sms" as const }
+      : {}),
   });
 
   if (!created.ok) {
     // 409 for "that name is taken", 400 for "that name is not a name".
-    const status = created.error === "username_taken" ? 409 : created.error === "too_many_journals" ? 403 : 400;
+    const status =
+      created.error === "username_taken" || created.error === "tel_taken"
+        ? 409
+        : created.error === "too_many_journals"
+          ? 403
+          : 400;
     return refuse(
       {
         error: created.error,

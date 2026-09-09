@@ -110,6 +110,11 @@ content/.cache/
 # journals — so they live on the operator's disk, not in the repository.
 content/.deleted/
 
+# B1064's registry lock — one journal per proven email, one per proven
+# number (lib/registry.ts). Rebuildable from content/ with
+# `npm run registry -- reconcile`, and it names real addresses and numbers.
+content/.registry/
+
 # Journal backups from `npm run export`. Never committed: they hold private
 # trips and unpublished drafts.
 exports/
