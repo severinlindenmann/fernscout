@@ -8,6 +8,21 @@ import type { RoomFiles } from "@/lib/helper/server";
 import { dictionaryFor } from "@/lib/locales";
 import { typeInto } from "./support/type-input";
 
+// The room's own header carries a `BackLink` since B1121, which reads
+// `useRouter()` and renders `next/link` — the same stubs
+// `test/agent-short-consent.test.tsx` and `test/signup-wizard.test.tsx`
+// already use for the same component tree.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {}, back: () => {} }),
+}));
+vi.mock("next/link", () => ({
+  default: ({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) => (
+    <a href={href} className={className}>
+      {children}
+    </a>
+  ),
+}));
+
 /**
  * The three panes — B901 and B902, checklists C and D of
  * `docs/plans/2026-09-08-the-chat-is-the-product.md`.
@@ -151,16 +166,19 @@ test("at 390px neither side pane is drawn", () => {
 });
 
 test("the panes are dismissible from the keyboard, and the conversation stays", () => {
-  render();
-  const hide = [...document.querySelectorAll("button")].find(
-    (button) => button.textContent === "Hide files",
+  const box = render();
+  // The rail's own collapse icon, at the edge of the panel it closes — B1121
+  // moved this off a header sentence, so it is found by its accessible name.
+  const hide = [...box.querySelectorAll("button")].find(
+    (button) => button.getAttribute("aria-label") === "Hide files",
   )!;
   act(() => hide.click());
   expect(regions()).not.toContain("Files");
   expect(regions()).toContain("Conversation");
+  // Collapsed, the rail is a single button carrying the count — B1121.
   act(() => {
-    ([...document.querySelectorAll("button")].find(
-      (button) => button.textContent === "Show files",
+    ([...box.querySelectorAll("button")].find((button) =>
+      (button.getAttribute("aria-label") ?? "").startsWith("Files"),
     ) as HTMLButtonElement).click();
   });
   expect(regions()).toContain("Files");
@@ -278,8 +296,10 @@ describe("the files column on a journal with nothing waiting", () => {
 
   test("but the way back to it is still there", () => {
     const box = render(null, EMPTY);
-    const labels = [...box.querySelectorAll("button")].map((one) => one.textContent);
-    expect(labels).toContain("Show files");
+    // Collapsed to the ~40px rail rather than gone — B1121. No count badge
+    // on an empty journal, so the accessible name is the plain "Files".
+    const labels = [...box.querySelectorAll("button")].map((one) => one.getAttribute("aria-label"));
+    expect(labels).toContain("Files");
   });
 
   test("and a journal with something waiting still opens on it", () => {
@@ -390,6 +410,50 @@ test("the header carries no pills for files or preview", () => {
 });
 
 /**
+ * The top bar's own two icons — B1121. A clock opening a history panel (the
+ * shell only; B1109 owns its contents) and one accent button starting a new
+ * conversation, and nothing else.
+ */
+describe("the top bar's two icons", () => {
+  test("the clock opens an empty history shell", () => {
+    render();
+    const clock = [...document.querySelector("header")!.querySelectorAll("button")].find(
+      (button) => button.getAttribute("aria-label") === "History",
+    )!;
+    expect(document.querySelector("dialog")).toBeNull();
+    act(() => clock.click());
+    const panel = document.querySelector("dialog")!;
+    expect(panel.getAttribute("aria-label")).toBe("History");
+    expect(panel.textContent).toContain("Nothing yet");
+  });
+
+  test("a new conversation button sits beside it", () => {
+    render();
+    const named = [...document.querySelector("header")!.querySelectorAll("button")].map((button) =>
+      button.getAttribute("aria-label"),
+    );
+    expect(named).toContain("New conversation");
+  });
+});
+
+/**
+ * The preview's own bottom sheet peeks by itself — B1121, replacing the
+ * full-screen dialog a press used to open. A day already under discussion
+ * when the room opens (`opening`, from an unfinished draft or `?about=`) is
+ * as much "the subject changed" as a turn naming one mid-conversation, so it
+ * peeks from the first render rather than waiting for a press.
+ */
+test("the preview sheet peeks once a day is under discussion", () => {
+  const box = render({ trip: "a-trip", slug: "tuesday" });
+  expect(box.querySelector('[role="region"][aria-label="Preview"]')).not.toBeNull();
+});
+
+test("with nothing under discussion yet, the sheet has not appeared", () => {
+  const box = render();
+  expect(box.querySelector('[role="region"][aria-label="Preview"]')).toBeNull();
+});
+
+/**
  * The preview, inline in the turn that named the day — B1016.
  *
  * "A really small emoji or thumbnail in the chat with a button Preview, and
@@ -445,11 +509,15 @@ test("a turn that named a day carries a preview affordance", async () => {
   );
   expect(chip).toBeDefined();
 
-  expect(document.querySelector("dialog")).toBeNull();
-  act(() => chip!.click());
   // No `matchMedia` in jsdom — the room reads that defensively and falls back
-  // to the phone's own behaviour, which is the one this ticket is about.
-  expect(document.querySelector("dialog")).not.toBeNull();
+  // to the phone's own behaviour, which is the bottom sheet rather than the
+  // dialog it used to be — B1121. The proposal itself already named the day,
+  // so the sheet is peeking (112px) before the chip is even pressed; pressing
+  // it is what expands the sheet the rest of the way.
+  const sheet = () => box.querySelector<HTMLElement>('[role="region"][aria-label="Preview"]')!;
+  expect(sheet().style.height).toBe("112px");
+  act(() => chip!.click());
+  expect(sheet().style.height).not.toBe("112px");
 });
 
 /**

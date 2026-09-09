@@ -140,6 +140,7 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
       signedIn={Boolean(identity)}
       identityEmail={identity?.email ?? null}
       signupEnabled={isEnabled("signup")}
+      siteName={site.name}
     />
   );
 }

@@ -114,6 +114,7 @@ function door(signupEnabled: boolean) {
         signedIn={false}
         identityEmail={null}
         signupEnabled={signupEnabled}
+        siteName="T"
       />
     </LocaleProvider>,
   );
