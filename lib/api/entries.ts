@@ -185,6 +185,13 @@ export type DraftInput = {
    * days route.
    */
   idempotency_key?: string;
+  /**
+   * Run every check the real POST runs and write nothing — no draft, no
+   * idempotency record, no media move. `false` or absent behaves exactly as
+   * before. Never written to the file, and never read by `createDraft`: the
+   * days route returns before calling it. See B537.
+   */
+  dryRun?: boolean;
 };
 
 export type WriteResult =

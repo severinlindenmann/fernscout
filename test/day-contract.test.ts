@@ -9,6 +9,7 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { issueCode, verifyCode } from "@/lib/auth";
 import { getEntryBySlug } from "@/lib/entries";
 import { getTrip } from "@/lib/trips";
+import { fingerprintOf, idempotencyKey, recall } from "@/lib/idempotency";
 import { POST as writeDay } from "@/app/api/v1/[user]/trips/[trip]/days/route";
 import { POST as publishDay } from "@/app/api/v1/[user]/trips/[trip]/days/[slug]/publish/route";
 import { GET as readDay, PATCH as patchDay } from "@/app/api/v1/[user]/trips/[trip]/days/[slug]/route";
@@ -202,6 +203,71 @@ describe("a trip tracks everything unless it says otherwise", () => {
     const { status, body } = await post({ ...DAY, coordinates: "no", costs: false });
     expect(status).toBe(400);
     expect(JSON.stringify(body.problems)).toMatch(/coordinates/);
+  });
+});
+
+/**
+ * B537 — `dryRun: true` runs the same checks as a real write and writes
+ * nothing. The two claims that matter: a clean dry run never creates a day
+ * or an idempotency record, and a bad dry run gets the exact same refusal a
+ * real POST would, because it is the same checks running either way.
+ */
+describe("dryRun — check a day without writing it", () => {
+  test("a clean dry run writes no file and says nothing was written", async () => {
+    const { status, body } = await post({
+      ...DAY,
+      lat: 47.55,
+      lng: 7.59,
+      costs: false,
+      coordinates: false,
+      dryRun: true,
+    });
+    expect(status, JSON.stringify(body)).toBe(200);
+    expect(body).toMatchObject({ ok: true, written: false, dryRun: true });
+    expect(fs.readdirSync(path.join(dir, "alex", "trips", "reise", "entries"))).toEqual([]);
+  });
+
+  test("a clean dry run with an idempotency_key leaves no record behind", async () => {
+    await post({
+      ...DAY,
+      lat: 47.55,
+      lng: 7.59,
+      costs: false,
+      coordinates: false,
+      dryRun: true,
+      idempotency_key: "dry-run-key",
+    });
+    const key = idempotencyKey("alex", "create_day", "dry-run-key");
+    const fingerprint = fingerprintOf({ ...DAY, lat: 47.55, lng: 7.59, trip: REF });
+    const previous = await recall<{ slug: string; status: string }>(key, fingerprint);
+    expect(previous.kind).toBe("fresh");
+
+    // And the same key now writes for real rather than replaying a dry run.
+    const real = await post({
+      ...DAY,
+      lat: 47.55,
+      lng: 7.59,
+      costs: false,
+      coordinates: false,
+      idempotency_key: "dry-run-key",
+    });
+    expect(real.status).toBe(201);
+    expect(real.body.replayed).toBeUndefined();
+  });
+
+  test("an invalid body answers the same problems a real POST would, and writes nothing", async () => {
+    const dry = await post({ ...DAY, coordinates: "no", costs: false, dryRun: true });
+    const real = await post({ ...DAY, coordinates: "no", costs: false });
+    expect(dry.status).toBe(real.status);
+    expect(dry.body.problems).toEqual(real.body.problems);
+    expect(fs.readdirSync(path.join(dir, "alex", "trips", "reise", "entries"))).toEqual([]);
+  });
+
+  test("a day missing what the trip tracks is refused the same way with dryRun", async () => {
+    const { status, body } = await post({ ...DAY, dryRun: true });
+    expect(status).toBe(422);
+    expect(body.error).toBe("incomplete_day");
+    expect(fs.readdirSync(path.join(dir, "alex", "trips", "reise", "entries"))).toEqual([]);
   });
 });
 

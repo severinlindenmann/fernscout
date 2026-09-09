@@ -43,6 +43,7 @@ import {
   FRONTMATTER_TO_API,
   MIGRATION_INTRO,
   MIGRATION_RECONCILE,
+  CHECK_BEFORE_SENDING,
   PERFECT_TRIP_EXAMPLE,
   PERFECT_TRIP_INTRO,
   TRIP_FIELDS,
@@ -2694,6 +2695,10 @@ photographs, read it back — and only then the other thirteen. A mistake found
 on day one is a mistake you make once.
 
 ${wrap(MIGRATION_RECONCILE).join("\n")}
+
+### Checking it before you send it
+
+${wrap(CHECK_BEFORE_SENDING).join("\n")}
 
 ## If you need help extracting pictures or data
 

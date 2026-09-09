@@ -492,6 +492,19 @@ export function openApiDocument() {
                 "send it with a different body and the call is refused (409) and nothing is " +
                 "written. A new key for every day.",
             },
+            dryRun: {
+              type: "boolean",
+              description:
+                "Run every check this call would run — shape, the trip's own contract, " +
+                "weather-capability, whatever this trip tracks — and write nothing: no " +
+                "draft, no idempotency record. A clean body answers `200 { ok: true, " +
+                "written: false, dryRun: true }`; a bad one answers the exact `400`/`422` " +
+                "the real POST would, because it is the same checks running either way. " +
+                "This is how you check a folder of content against the instance before " +
+                "pushing it — read `/content-model.json` for the frontmatter-to-field " +
+                "mapping, then send each day here first. Absent or `false` behaves exactly " +
+                "as before.",
+            },
           },
         },
         DayEdit: {
@@ -1742,7 +1755,10 @@ export function openApiDocument() {
             "200": {
               description:
                 "Replayed: this idempotency_key had already been used for this exact call, " +
-                "and nothing was written again.",
+                "and nothing was written again. Or `dryRun: true` with a clean body — " +
+                "`{ ok: true, written: false, dryRun: true }` — every check passed and " +
+                "nothing was written; the two cases both answer 200 and never collide with " +
+                "the 201 a real write gets.",
             },
             "201": { description: "Created as a draft" },
             "400": {

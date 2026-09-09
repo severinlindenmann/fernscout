@@ -98,6 +98,7 @@ const DAY_WRITE_ONLY: Record<string, string> = {
   weather: "a request for a lookup, not a value — the answer arrives as weatherData",
   weatherData: "needs source and recordedAt, and is refused from an agent's own knowledge",
   idempotency_key: "names the write, and is not part of the day",
+  dryRun: "checks the body and writes nothing; covered by test/day-contract.test.ts instead",
 };
 
 let dir: string;
