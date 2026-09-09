@@ -10,6 +10,7 @@ import { manageTokenFor, listContacts, normaliseEmail } from "@/lib/contacts";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
 import { pickLocale } from "@/lib/contacts/locale";
 import { isEnabled } from "@/lib/capabilities";
+import { helperConsent } from "@/lib/helper/consent";
 import { operatorMayRead } from "@/lib/helper/sessions";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { ownerShortName, serverSite } from "@/lib/site";
@@ -118,6 +119,23 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
     : undefined;
 
   /**
+   * Every model-facing consent this journal has granted, and who each named —
+   * B723. Owner only, same as the withdraw route itself (`isHelperOwner`):
+   * this is a record of what was agreed to and who it went to, not something
+   * a guest reading the journal should learn.
+   *
+   * `sessions` is left out — it has its own control just below
+   * (`sessionsShared`), asked and worded differently since it starts on
+   * rather than off (B976).
+   */
+  const consent = viewer.owner ? helperConsent(user) : null;
+  const consentRows = consent
+    ? consent.scopes
+        .filter((scope): scope is "words" | "photos" | "speech" | "statement" => scope !== "sessions")
+        .map((scope) => ({ scope, provider: consent.providers[scope] ?? "" }))
+    : [];
+
+  /**
    * The trips this reader may edit — B621, owner only.
    *
    * Read from `viewer.trips` rather than the journal's own list, so the rows
@@ -162,6 +180,8 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
        * reads as "there is nothing here to switch".
        */
       sessionsShared={isEnabled("helper", user) ? operatorMayRead(user) : null}
+      consentAgreedAt={consent?.agreedAt}
+      consentRows={consentRows}
       canSignIn={isEnabled("auth", user)}
       codeMinutes={CODE_TTL_MINUTES}
       contactsEnabled={contactsEnabled}

@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import AgentHandover from "@/components/AgentHandover";
 import AgentKeys from "@/components/AgentKeys";
 import SessionsConsent from "@/components/SessionsConsent";
+import HelperConsentList, { type ConsentRow } from "@/components/HelperConsentList";
 import BuddyHandover from "@/components/BuddyHandover";
 import ContactManage, { type ManageContact } from "@/components/ContactManage";
 import GuestSignIn from "@/components/GuestSignIn";
@@ -464,6 +465,8 @@ export default function MePageContent({
   journal,
   editableTrips,
   sessionsShared = null,
+  consentAgreedAt,
+  consentRows = [],
   canSignIn,
   codeMinutes,
   contactsEnabled,
@@ -489,6 +492,11 @@ export default function MePageContent({
   /** Whether the operator may read this journal's conversations, or `null`
    *  where there is no helper on it to have any — B976. */
   sessionsShared?: boolean | null;
+  /** When this journal's model-facing consent was last written, and each
+   *  scope it currently covers — B723. Owner only; absent (and `consentRows`
+   *  empty) for everybody else and for an owner who has agreed to nothing. */
+  consentAgreedAt?: string;
+  consentRows?: ConsentRow[];
   canSignIn: boolean;
   /** How long a code lasts, from `CODE_TTL_MINUTES` — see GuestSignIn. */
   codeMinutes: string;
@@ -1074,6 +1082,16 @@ export default function MePageContent({
         */}
         {sessionsShared !== null && (
           <SessionsConsent username={username} shared={sessionsShared} />
+        )}
+
+        {/*
+          What else this journal has agreed to send a model, and a button to
+          take each back — B723, the plan's own version of the withdraw
+          button that B684 put inside the wizard instead. Absent with nothing
+          granted, same as the components either side of it.
+        */}
+        {consentAgreedAt && consentRows.length > 0 && (
+          <HelperConsentList username={username} agreedAt={consentAgreedAt} rows={consentRows} />
         )}
 
         {/*
