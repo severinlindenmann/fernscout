@@ -229,12 +229,12 @@ beforeEach(async () => {
       defaultLocale: "en",
       locales: ["en"],
       baseCurrency: "CHF",
-      // Contacts is opt-in per journal (unlike mail, which inherits the
-      // server's answer when a journal says nothing) — needed so
-      // `revoke_invite` can see the invite this file creates for it.
-      features: { contacts: { enabled: true } },
-      // `contacts` (and the `auth` it needs) are not operator-only, unlike
-      // `postcards` and `photobook` above — a journal has to say yes itself.
+      // `contacts` (and the `auth` it needs) are opt-in per journal, unlike
+      // mail, which inherits the server's answer when a journal says nothing,
+      // and unlike `postcards` and `photobook`, which are operator-only. A
+      // journal has to say yes itself — `revoke_invite` needs it to see the
+      // invite this file creates for it, and `propose_postcards` needs it to
+      // see a recipient.
       features: { auth: { enabled: true }, contacts: { enabled: true } },
     }),
   );
