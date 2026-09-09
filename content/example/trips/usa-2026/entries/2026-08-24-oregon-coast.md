@@ -2,6 +2,7 @@
 title: "Down the Oregon coast"
 date: "2026-08-24"
 time: "13:20"
+timezone: "America/Los_Angeles"
 location: "Cannon Beach"
 country: "United States"
 countryCode: "US"

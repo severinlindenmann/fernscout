@@ -692,6 +692,15 @@ const TRIPS = [
         // Two updates on one day, which is what `time:` is for and what the
         // day pager calls a branch. The first carries the day's arrival leg;
         // the second is just a note from the evening.
+        //
+        // The one pair of days that names its zone — B42. `time:` is always
+        // the wall clock where the day happened, and until this field existed
+        // there was no way to say so, which is how the feed came to stamp a
+        // Pacific afternoon as though it were UTC. Cannon Beach is
+        // America/Los_Angeles; recording it is what makes the reader's own
+        // clock appear beside this one, and it is a fact about the place
+        // rather than anything invented about the day.
+        timezone: "America/Los_Angeles",
         time: "13:20",
         slug: "oregon-coast",
         title: "Down the Oregon coast",
@@ -716,6 +725,8 @@ const TRIPS = [
         time: "21:40",
         slug: "oregon-coast-evening",
         title: "Later, from the same car park",
+        // The same zone as the update above it — the two are one day.
+        timezone: "America/Los_Angeles",
         location: "Cannon Beach",
         country: "United States",
         code: "US",
@@ -1307,6 +1318,9 @@ function writeEntry(trip, day) {
   // Only where a day holds more than one update — an entry that is the whole
   // day has no time to be ordered against.
   if (day.time) lines.push(`time: ${quote(day.time)}`);
+  // B42 — the IANA zone `time` is a wall clock in, written only where a day
+  // names one. Absent, a reader gets the bare time exactly as before.
+  if (day.timezone) lines.push(`timezone: ${quote(day.timezone)}`);
   lines.push(
     `location: ${quote(day.location)}`,
     `country: ${quote(day.country)}`,
