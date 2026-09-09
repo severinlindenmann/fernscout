@@ -155,6 +155,12 @@ export function openApiDocument() {
         "back; putting it on the site is a second call, POST .../days/{slug}/publish, " +
         "and that call is not how you edit a day — PATCH the same URL as the day " +
         "itself for that. " +
+        "Nothing that spends this instance's own model or transcription budget " +
+        "is here — drafting prose, captioning photos, transcribing audio and " +
+        "conversation search stay inside the helper at /agent and the WhatsApp " +
+        "channel, because a v1 door onto them would sell the operator's own " +
+        "Anthropic/Deepgram key in credits you did not buy for that purpose; " +
+        "bring your own model and hand this API the finished content. " +
         `The prose guide is at ${site.url}/agent.md.`,
       // No SPDX identifier exists for PolyForm Shield, so this is name+url
       // rather than `identifier` — B652.
