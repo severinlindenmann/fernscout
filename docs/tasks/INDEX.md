@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (148)
+## backlog (149)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1076](backlog/security/B1076-voice-recordings-are-sent-to-deepgram.md) | Voice recordings are sent to Deepgram without opting out of its model-training programme | SECURITY | high | low |
 | [B1045](backlog/security/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low |
 
-### issue (9)
+### issue (10)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -71,6 +71,7 @@ Do not edit them by hand; run the script.
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1044](backlog/issue/B1044-six-fonts-are-preloaded-on-every.md) | Six fonts are preloaded on every page and none of them is used in time | ISSUE | low | low |
+| [B1096](backlog/issue/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low |
 
 ### big-feature (21)
 
