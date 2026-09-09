@@ -388,7 +388,11 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // develops without a Meta account — see lib/whatsapp/index.ts.
   whatsapp: { enabled: false, backend: "dry-run" },
   auth: { enabled: false },
-  signup: { enabled: false },
+  // `phoneBackend` picks how `POST /api/auth/signup/phone/*` proves the
+  // number a new journal is created with — B1065. `dry-run` writes the code
+  // where a dry-run mail already goes, so the whole signup flow, phone step
+  // included, develops with no provider account. See lib/phoneVerify/.
+  signup: { enabled: false, phoneBackend: "dry-run" },
   contacts: { enabled: false },
   postcards: { enabled: false, provider: "dry-run" },
   photobook: { enabled: false, provider: "dry-run" },

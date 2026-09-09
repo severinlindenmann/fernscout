@@ -142,6 +142,16 @@ const WHATSAPP_BACKEND_ENV: Record<string, readonly string[]> = {
 };
 
 /**
+ * What each phone-verification backend needs — B1065. `dry-run` needs
+ * nothing, which is what keeps the whole signup flow, phone step included,
+ * developable with no provider account. See `lib/phoneVerify/`.
+ */
+const PHONE_VERIFY_BACKEND_ENV: Record<string, readonly string[]> = {
+  "dry-run": [],
+  twilio: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_VERIFY_SERVICE_SID"],
+};
+
+/**
  * What each transcription backend needs — B686. Beside `WHATSAPP_BACKEND_ENV`
  * rather than imported from `lib/helper/transcribe.ts`, which is
  * `server-only`: this module is read from places a `server-only` import would
@@ -284,6 +294,17 @@ function configuredEnv(name: FeatureName, feature: Record<string, unknown>): {
       return {
         env: [],
         problem: `features.whatsapp.backend "${backend}" is unknown (expected one of: ${Object.keys(WHATSAPP_BACKEND_ENV).join(", ")})`,
+      };
+    }
+    return { env };
+  }
+  if (name === "signup") {
+    const backend = optionOf(feature, "phoneBackend") ?? "dry-run";
+    const env = PHONE_VERIFY_BACKEND_ENV[backend];
+    if (!env) {
+      return {
+        env: [],
+        problem: `features.signup.phoneBackend "${backend}" is unknown (expected one of: ${Object.keys(PHONE_VERIFY_BACKEND_ENV).join(", ")})`,
       };
     }
     return { env };
