@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: agent tooling
 found: "2026-09-09T16:18:14Z"
+started: "2026-09-09T16:26:07Z"
+session: df031729-b5f3-42f2-bcac-c6c88d608ee0
+claimed: "2026-09-09T16:26:07Z"
 ---
 
 # B1097 — An agent judges a page from its own reading of the code, because there is no instrument that shows it the page

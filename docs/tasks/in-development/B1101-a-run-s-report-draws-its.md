@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: skills
 found: "2026-09-09T16:18:25Z"
+started: "2026-09-09T16:26:10Z"
+session: df031729-b5f3-42f2-bcac-c6c88d608ee0
+claimed: "2026-09-09T16:26:10Z"
 ---
 
 # B1101 — A run's report draws its before-and-after from the diff, and triage hands back a list nobody can paste into an agent
