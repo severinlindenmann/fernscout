@@ -494,6 +494,8 @@
   "mail.identityFooter": "Küldte: {site}.",
   "wa.strangerReply": "Ez a szám valaki privát útinaplójába ír a {site} oldalon, és nem tud ebben segíteni. Ha most jársz itt először, jelentkezz be itt: {url}.",
   "wa.firstReply": "Szia! Küldd el a fényképeidet és jegyzeteidet, és megírom belőlük a napjaidat a naplódba itt: {journalUrl}. Mesterséges intelligencia vagyok, és az üzeneteid a WhatsApp-on és az azokat megíró modellen keresztül haladnak.",
+  "wa.yes": "igen",
+  "wa.acknowledged": "Köszönöm — mesélj a napodról, amikor készen állsz.",
   "mail.identityIgnore": "Ha nem te kérted, hagyd figyelmen kívül — semmi nem nyílt meg.",
   "mail.identityLasts": "Egy évig érvényes, ezen az eszközön. Bármikor megszüntetheted azon az oldalon, ahová bejelentkeztet.",
   "mail.identitySubject": "A kódod ide: {site}",

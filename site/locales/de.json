@@ -494,6 +494,8 @@
   "mail.identityFooter": "Gesendet von {site}.",
   "wa.strangerReply": "Diese Nummer schreibt in das private Reisetagebuch einer anderen Person auf {site} und kann hier nicht weiterhelfen. Falls du zum ersten Mal hier bist, melde dich unter {url} an.",
   "wa.firstReply": "Hallo! Schick mir deine Fotos und Notizen, und ich schreibe daraus die Tage in dein Tagebuch unter {journalUrl}. Ich bin eine KI, und deine Nachrichten laufen über WhatsApp und das Modell, das sie schreibt.",
+  "wa.yes": "ja",
+  "wa.acknowledged": "Danke — leg los, erzähl mir von deinem Tag.",
   "mail.identityIgnore": "Wenn du das nicht angefordert hast, ignoriere diese E-Mail — es wurde nichts geöffnet.",
   "mail.identityLasts": "Sie gilt ein Jahr, auf diesem Gerät. Du kannst sie jederzeit auf der Seite beenden, auf die sie dich führt.",
   "mail.identitySubject": "Dein Code für {site}",

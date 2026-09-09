@@ -4,7 +4,8 @@ import { getUser } from "../users";
 import { translateIn } from "../locales";
 import { journalForNumber } from "../registry";
 import { serverSite } from "../site";
-import { hasBeenGreeted, markGreeted } from "./binding";
+import { isAcknowledgement } from "./acknowledge";
+import { hasAcknowledged, hasBeenGreeted, markAcknowledged, markGreeted } from "./binding";
 import { maskNumber } from "./index";
 import { sendServiceReply } from "./reply";
 import type { InboundMessage } from "./inbound";
@@ -61,9 +62,10 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
     return;
   }
 
+  const user = getUser(username);
+  const locale = user?.defaultLocale ?? "en";
+
   if (!hasBeenGreeted(username, message.from)) {
-    const user = getUser(username);
-    const locale = user?.defaultLocale ?? "en";
     const journalUrl = `${serverSite().url}/${username}`;
     const reply = translateIn(locale, "wa.firstReply", { journalUrl });
     await sendServiceReply(message.from, reply, username);
@@ -72,8 +74,26 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
     return;
   }
 
-  // An already-bound, already-greeted number's ordinary message. No model
-  // turn exists yet to answer it with (B1056) — logged, not dropped, so a
-  // person reading the server's log can see the channel is alive.
+  /**
+   * The disclosure the first reply carried has not been agreed to yet —
+   * B1138. Nothing past this point runs, model turn included (B1056 checks
+   * this same state before it ever calls one) — a "yes" is the only thing
+   * this number's messages are read for until one arrives.
+   */
+  if (!hasAcknowledged(username, message.from)) {
+    if (message.kind === "text" && isAcknowledgement(message.body, locale)) {
+      markAcknowledged(username, message.from);
+      await sendServiceReply(message.from, translateIn(locale, "wa.acknowledged"), username);
+      console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) acknowledged`);
+      return;
+    }
+    console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) not yet acknowledged — no model call`);
+    return;
+  }
+
+  // An already-bound, already-greeted, already-acknowledged number's
+  // ordinary message. No model turn exists yet to answer it with (B1056) —
+  // logged, not dropped, so a person reading the server's log can see the
+  // channel is alive.
   console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) — ${message.kind} (${message.id})`);
 }

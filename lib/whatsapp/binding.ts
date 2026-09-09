@@ -29,3 +29,26 @@ export function markGreeted(username: string, tel: string): void {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify({ tel, greetedAt: new Date().toISOString() }, null, 2) + "\n", "utf8");
 }
+
+/**
+ * Whether the disclosure sent with the first reply has been acknowledged —
+ * B1138. The mockup B1058 was built against ends the first message with
+ * "Reply 'yes' to continue", and this is the marker that fact needed and did
+ * not yet have: `hasBeenGreeted` above only says the disclosure went *out*,
+ * never whether anybody agreed to it. `lib/whatsapp/acknowledge.ts` is what
+ * decides whether a given message counts as a "yes"; this only remembers the
+ * answer, the same shape as its neighbour above.
+ */
+function ackMarkerPath(username: string, tel: string): string {
+  return path.join(contentRoot(), username, "whatsapp", ".acknowledged", `${tel}.json`);
+}
+
+export function hasAcknowledged(username: string, tel: string): boolean {
+  return fs.existsSync(ackMarkerPath(username, tel));
+}
+
+export function markAcknowledged(username: string, tel: string): void {
+  const file = ackMarkerPath(username, tel);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify({ tel, acknowledgedAt: new Date().toISOString() }, null, 2) + "\n", "utf8");
+}
