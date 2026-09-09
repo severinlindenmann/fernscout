@@ -7,8 +7,7 @@ complexity: low
 area: agent, model
 found: "2026-09-08T22:06:07Z"
 started: "2026-09-09T06:09:15Z"
-session: f88144a1-6520-4fc1-94bd-496a694b98c8
-claimed: "2026-09-09T06:09:15Z"
+merged: "2026-09-09T18:07:51Z"
 ---
 
 # B1039 — The ask box silently truncates a long message to 500 characters
