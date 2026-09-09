@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
-import { createJournal } from "@/lib/journals";
+import { createJournal, setJournalFeatures } from "@/lib/journals";
 import { handleInboundMessage } from "@/lib/whatsapp/dispatch";
 import type { InboundMessage } from "@/lib/whatsapp/inbound";
 
@@ -80,6 +80,10 @@ describe("binding an inbound number", () => {
       ownerTelProvenMethod: "sms",
     });
     expect(created.ok).toBe(true);
+    // The conversational channel is a per-journal opt-in, separate from
+    // `whatsapp` (day announcements) — B1058's whole point in having two
+    // capabilities. A freshly created journal has not said yes to either.
+    expect(setJournalFeatures("severin", { whatsappInbound: true }).ok).toBe(true);
 
     await handleInboundMessage(textMessage("41760001111", "wamid.first-1"));
     const files = repliesTo("severin");
@@ -93,5 +97,23 @@ describe("binding an inbound number", () => {
     // reply — B1058 says the greeting is "never on every conversation".
     await handleInboundMessage(textMessage("41760001111", "wamid.second-1"));
     expect(repliesTo("severin").length).toBe(1);
+  });
+
+  test("a bound number gets no reply if the journal has not opted into the channel", async () => {
+    const created = createJournal({
+      username: "optout",
+      title: "A journal",
+      ownerEmail: "optout@example.test",
+      ownerName: "Robin",
+      ownerNickname: "Robin",
+      ownerTel: "41760002222",
+      ownerTelProvenAt: new Date().toISOString(),
+      ownerTelProvenMethod: "sms",
+    });
+    expect(created.ok).toBe(true);
+    // No setJournalFeatures call: whatsappInbound defaults to off.
+
+    await handleInboundMessage(textMessage("41760002222", "wamid.optout-1"));
+    expect(repliesTo("optout").length).toBe(0);
   });
 });

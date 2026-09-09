@@ -1,4 +1,5 @@
 import "server-only";
+import { isEnabled } from "../capabilities";
 import { getUser } from "../users";
 import { translateIn } from "../locales";
 import { journalForNumber } from "../registry";
@@ -45,6 +46,18 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
     const reply = translateIn("en", "wa.strangerReply", { site: site.name, url: site.url });
     await sendServiceReply(message.from, reply, null);
     console.log(`[whatsapp:inbound] stranger ${maskNumber(message.from)} refused with no model call`);
+    return;
+  }
+
+  // The webhook route already checked the *server* can read WhatsApp at
+  // all (`isEnabled("whatsappInbound")`, no username — that question is
+  // asked before any binding is known). This is the other half: whether
+  // *this journal* has opted into the conversational channel, which is a
+  // different question from `whatsapp` (day announcements) — the two
+  // capabilities exist separately for exactly this reason, and checking the
+  // wrong one here would silently ignore a journal's own "no".
+  if (!isEnabled("whatsappInbound", username)) {
+    console.log(`[whatsapp:inbound] ${maskNumber(message.from)} matches ${username}, which has not opted into the channel — no reply`);
     return;
   }
 
