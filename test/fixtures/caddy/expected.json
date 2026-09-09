@@ -31,21 +31,61 @@
                             "gzip",
                             "zstd"
                           ]
-                        },
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group2",
+                      "handle": [
                         {
-                          "handler": "reverse_proxy",
-                          "headers": {
-                            "request": {
-                              "set": {
-                                "X-Forwarded-For": [
-                                  "{http.request.remote.host}"
-                                ]
-                              }
-                            }
-                          },
-                          "upstreams": [
+                          "handler": "subroute",
+                          "routes": [
                             {
-                              "dial": "127.0.0.1:3000"
+                              "handle": [
+                                {
+                                  "handler": "static_response",
+                                  "status_code": 405
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "method": [
+                            "TRACE",
+                            "TRACK"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group2",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "reverse_proxy",
+                                  "headers": {
+                                    "request": {
+                                      "set": {
+                                        "X-Forwarded-For": [
+                                          "{http.request.remote.host}"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "upstreams": [
+                                    {
+                                      "dial": "127.0.0.1:3000"
+                                    }
+                                  ]
+                                }
+                              ]
                             }
                           ]
                         }
