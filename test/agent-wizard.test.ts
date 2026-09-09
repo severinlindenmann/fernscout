@@ -115,16 +115,19 @@ describe("the helper routes", () => {
   // Nineteen since B931 added `invite`, which proposes the guest link that
   // lets somebody who was not on a trip ask to read it. Same cookie, same
   // owner check, and it issues a link and never a grant.
-  // Thirty-one. Twelve arrived in one run, when the conversation was given
+  // Thirty-three. Fourteen arrived in one run, when the conversation was given
   // the rest of what the API door already had: a trip's own settings
   // (`trip/visibility`, `trip/people`, `trip/tracks`, and the `trip` route's
   // own new PATCH), its money (`trip/rates`, `trip/budget`), who hears about a
-  // day (`invite/revoke`, `day/tell-readers`, `channels`), and the journal
-  // itself (`journal`, `storage/cleanup`, `storage`, `keys`). The number is
-  // not the point — the loop below is. Every one of them is the same cookie
-  // and the same owner check as the nineteen before them.
-  test("there are thirty-one of them, and each is guarded", () => {
-    expect(sources).toHaveLength(31);
+  // day (`invite/revoke`, `day/tell-readers`, `channels`), the journal itself
+  // (`journal`, `storage/cleanup`, `storage`, `keys`), and the printed things —
+  // `postcard`, which writes a real pending order the way `invite` writes a
+  // real invite, and `photobook`, which writes nothing and only hands back the
+  // maker's own URL. The number is not the point; the loop below is. Every one
+  // of them is the same cookie and the same owner check as the nineteen
+  // before them.
+  test("there are thirty-three of them, and each is guarded", () => {
+    expect(sources).toHaveLength(33);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

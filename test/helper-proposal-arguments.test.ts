@@ -8,6 +8,8 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { createInvite } from "@/lib/contacts/invites";
 import { storeInboxFile } from "@/lib/inbox";
+import { issueCode } from "@/lib/auth";
+import { approveContact, confirmContact, requestContact } from "@/lib/contacts";
 import type { Say } from "@/lib/helper/intents";
 import { TOOLS, runTool } from "@/lib/helper/tools";
 import { paintJpeg } from "./support/pictures";
@@ -94,6 +96,8 @@ const ROUTES: Record<string, () => Promise<Record<string, unknown>>> = {
   "/storage/cleanup": () => import("@/app/api/helper/[user]/storage/cleanup/route"),
   "/storage": () => import("@/app/api/helper/[user]/storage/route"),
   "/keys": () => import("@/app/api/helper/[user]/keys/route"),
+  "/postcard": () => import("@/app/api/helper/[user]/postcard/route"),
+  "/photobook": () => import("@/app/api/helper/[user]/photobook/route"),
 };
 
 /** What somebody says to reach each write tool. `files` is filled in per run,
@@ -139,20 +143,37 @@ const SAID: Record<string, Record<string, string>> = {
   cleanup: {},
   buy_room: {},
   revoke_key: {},
+  // `recipients` is filled in per run, from the contact `beforeEach` creates —
+  // a contact id is not something anybody could say in advance.
+  propose_postcards: { trip: AS_SAID, slug: DRAFT, message: "Grüße vom Pass!", from: "Alex" },
+  photobook: { trip: AS_SAID, size: "square", cover: "soft" },
 };
 
 const say: Say = ((key: string, vars?: Record<string, string>) =>
   vars ? `${key} ${Object.values(vars).join(" ")}` : key) as Say;
 
 let dir: string;
+let CONTACT_ID = "";
 const params = { params: Promise.resolve({ user: "alex" }) };
 
-function day(slug: string, date: string, status: "draft" | "published") {
+/** `gallery` is only ever set for the draft day, which is what
+ *  `propose_postcards` is pressed against below — a real file has to exist,
+ *  since the route resolves it through `resolveMediaFile` before writing an
+ *  order. */
+function day(slug: string, date: string, status: "draft" | "published", gallery = false) {
   fs.writeFileSync(
     path.join(dir, "alex", "trips", TRIP, "entries", `${date}-${slug}.md`),
-    ["---", `title: "${slug}"`, `date: "${date}"`, `status: ${status}`, "---", "", "Worte.", ""].join(
-      "\n",
-    ),
+    [
+      "---",
+      `title: "${slug}"`,
+      `date: "${date}"`,
+      `status: ${status}`,
+      ...(gallery ? ["gallery:", '  - src: "/media/reise/hafen.jpg"', "    type: image"] : []),
+      "---",
+      "",
+      "Worte.",
+      "",
+    ].join("\n"),
   );
 }
 
@@ -177,6 +198,8 @@ beforeEach(async () => {
         // still fails with `no_credits` (an empty balance), which is a fact
         // about the journal and not one of the SHAPE refusals below.
         credits: { enabled: true },
+        postcards: { enabled: true, provider: "dry-run" },
+        photobook: { enabled: true },
       },
     }),
   );
@@ -199,6 +222,9 @@ beforeEach(async () => {
       // server's answer when a journal says nothing) — needed so
       // `revoke_invite` can see the invite this file creates for it.
       features: { contacts: { enabled: true } },
+      // `contacts` (and the `auth` it needs) are not operator-only, unlike
+      // `postcards` and `photobook` above — a journal has to say yes itself.
+      features: { auth: { enabled: true }, contacts: { enabled: true } },
     }),
   );
   fs.writeFileSync(
@@ -216,11 +242,38 @@ beforeEach(async () => {
       "",
     ].join("\n"),
   );
-  day(DRAFT, "2026-05-04", "draft");
+  day(DRAFT, "2026-05-04", "draft", true);
   day(PUBLISHED, "2026-05-05", "published");
+  fs.mkdirSync(path.join(dir, "alex", "trips", TRIP, "media"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "alex", "trips", TRIP, "media", "hafen.jpg"), "x");
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
+
+  // A contact who asked for a real postcard, taken all the way to `active` —
+  // the same three steps `test/postcard-contacts.test.ts` uses. Only
+  // `propose_postcards` needs one; every other row ignores `CONTACT_ID`.
+  const { contactId } = await requestContact("alex", {
+    name: "Mira",
+    email: "mira@example.test",
+    locale: "en",
+    address: {
+      name: "Mira",
+      line1: "Bahnhofstrasse 1",
+      line2: "",
+      postcode: "8001",
+      city: "Zurich",
+      country: "Switzerland",
+      tel: "",
+    },
+    wantsEmailDigest: false,
+    wantsPostcard: true,
+    createdVia: "owner",
+  });
+  const { code } = await issueCode("alex", "mira@example.test", "guest");
+  await confirmContact("alex", "mira@example.test", code);
+  const approved = await approveContact("alex", contactId!);
+  CONTACT_ID = approved?.contact.id ?? "";
 });
 
 afterEach(async () => {
@@ -271,6 +324,7 @@ describe("a proposal's arguments are the press", () => {
       const [row] = await listSessions("alex");
       said.id = row.id;
     }
+    if (name === "propose_postcards") said.recipients = CONTACT_ID;
     const ran = await runTool("alex", name, said, say, "2026-05-06");
     const proposal = ran.proposal;
     expect(proposal, `${name} proposed nothing`).toBeTruthy();

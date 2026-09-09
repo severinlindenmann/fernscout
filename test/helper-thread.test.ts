@@ -441,6 +441,9 @@ describe("the tools", () => {
       // conversations (B1022).
       "keys",
       "past_conversations",
+      "postcard_recipients",
+      "postcard_texts",
+      "print_order",
       "read_day",
       "trip_costs",
       "trips",
@@ -468,6 +471,10 @@ describe("the tools", () => {
       // B931 — the only way somebody who was not on a trip can ever read it.
       "invite_guest",
       "journal_settings",
+      // The printed-things area: a postcard proposal that writes a real,
+      // pending order, and a photobook hand-over that writes nothing at all.
+      "photobook",
+      "propose_postcards",
       "publish_day",
       // B1051 — take one link back; everybody already approved stays in.
       "revoke_invite",

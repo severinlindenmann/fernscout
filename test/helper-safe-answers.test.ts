@@ -255,10 +255,19 @@ describe("a named refusal instead of silence — B783", () => {
     expect(day).toContain("status: draft");
   });
 
-  test("postcards say where the pressing happens", async () => {
+  /**
+   * Postcards used to be refused by name here, on the same reasoning as
+   * `delete` — there was no tool for them either. `propose_postcards` is one
+   * now (`lib/helper/tools/areas/printed.ts`), so a sentence naming a card
+   * reaches the conversation like any other write and proposes rather than
+   * being turned away before a model reads it.
+   */
+  test("a postcard reaches the conversation rather than a refusal", async () => {
+    writeTrip();
+    answerInThread.mockImplementation(turnCalling("propose_postcards", { trip: "reise", slug: "one" }));
     const answered = await read(await ask("send a postcard to my mum"));
-    expect(answered.body.intent).toBe("refuse_postcard");
-    expect(String(answered.body.answer)).toContain("postcards page");
+    expect(answered.body.refused).toBeUndefined();
+    expect(answerInThread).toHaveBeenCalledOnce();
   });
 
   /* ------------------------------------------------------------ B914 --- */
@@ -320,12 +329,12 @@ describe("a named refusal instead of silence — B783", () => {
     expect(refusalFor("lösche alles")?.name).toBe("remove");
   });
 
-  test("all three refusals answer in German and Hungarian too", () => {
+  test("both refusals answer in German and Hungarian too", () => {
     for (const locale of ["de", "hu"]) {
       const dictionary = JSON.parse(
         fs.readFileSync(path.join(process.cwd(), "site", "locales", `${locale}.json`), "utf8"),
       ) as Record<string, string>;
-      for (const name of ["Remove", "Postcard", "PublishAll"]) {
+      for (const name of ["Remove", "PublishAll"]) {
         expect(dictionary[`agent.askRefuse${name}`]?.length ?? 0).toBeGreaterThan(20);
       }
     }
