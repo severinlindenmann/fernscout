@@ -47,7 +47,7 @@ export type Shape = (typeof SHAPES)[number];
  * not carry an `href` — the list of trips, the list of days, the drafts —
  * because a link out of the conversation is a conversation ended.
  */
-type Option = { value: string; label: string; detail?: string; href?: string };
+export type Option = { value: string; label: string; detail?: string; href?: string };
 
 /**
  * One field of a proposal, prefilled and **editable** — B900.
@@ -70,6 +70,15 @@ export type ProposalField = {
   /** A closed list. Drawn as a select, so the words are read before choosing
    *  — this is how a trip's visibility is asked rather than defaulted. */
   options?: { value: string; label: string }[];
+  /**
+   * The server already resolved this — B1107. A trip id, a day slug, an
+   * invite id: values a person never typed and cannot usefully correct, drawn
+   * as a raw box before every card that has one. `HelperAsk` does not render
+   * a field carrying this at all; it still travels with the press, because a
+   * proposal's arguments *are* the press (B900) — this only changes what is
+   * shown, never what is sent.
+   */
+  fixed?: true;
 };
 
 /** What a tool's result looks like on the screen. */

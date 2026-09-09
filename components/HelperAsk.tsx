@@ -9,7 +9,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import { mediaLoader } from "@/components/mediaLoader";
 import RoomOpening from "@/components/RoomOpening";
 import type { Opening } from "@/lib/helper/opening";
-import type { Block, Proposal, ProposalField } from "@/lib/helper/blocks";
+import type { Block, Option, Proposal, ProposalField } from "@/lib/helper/blocks";
 import type { TranslationKey } from "@/lib/i18n";
 
 /**
@@ -201,6 +201,87 @@ function dateOf(blocks: Block[]): string | null {
   return null;
 }
 
+/**
+ * What kind of decision a proposal is — B1122.
+ *
+ * Read from the tool's own name rather than a table this file would have to
+ * keep in step with the registry: a second list beside `lib/helper/tools/`
+ * would disagree with it within a month, the same reasoning `AGENTS.md`
+ * gives for every enum in the API contract. A tool is named for the verb it
+ * performs, and the verb already says which of these it is — `revoke_key`,
+ * `discard_file` and `unpublish_day` take something away without anybody
+ * asking this file to know their names; a tool named the same way tomorrow
+ * classifies itself the same way.
+ *
+ * `edit` is everything else: writing a day's words, adding a cost, changing
+ * a title. Those stay the ordinary, cream card — the colour is the warning,
+ * never the wording.
+ */
+export function decisionKind(tool: string): "grant" | "spend" | "destroy" | "edit" {
+  if (/^(revoke|discard|remove|unpublish|delete)_|^cleanup$/.test(tool)) return "destroy";
+  if (/invite|people|visibility/.test(tool)) return "grant";
+  if (/^buy_/.test(tool)) return "spend";
+  return "edit";
+}
+
+const DECISION_ICON: Record<ReturnType<typeof decisionKind>, string> = {
+  grant: "🔑",
+  spend: "💳",
+  destroy: "🗑️",
+  edit: "✏️",
+};
+
+/**
+ * The wait between a sentence and an answer, drawn — B1124.
+ *
+ * Two states and no more. `"assembling"` is used the one place this
+ * component can actually name what is coming: `accept()`'s own chained
+ * `next` proposal, where the tool that is about to answer is already known
+ * because the first proposal named it. Everywhere else — every ordinary
+ * `ask()` — the shape of the answer is not known until it arrives, so the
+ * fallback is the three waymark lozenges: the mark itself, not a borrowed
+ * spinner. `prefers-reduced-motion` removes the animation entirely in
+ * `app/globals.css`, which for `fs-assemble-in` leaves every piece fully
+ * shown (nothing here sets an inline "hidden" state) and for
+ * `fs-waymark-bounce` leaves three still dots — none of it shorter, all of
+ * it gone.
+ */
+function TurnLoader({ shape }: { shape: "assembling" | "waymark" }) {
+  if (shape === "assembling") {
+    return (
+      <div
+        aria-hidden
+        className="mb-2 space-y-2 rounded-xl border border-navy-200 bg-cream-50 p-3"
+      >
+        <div className="fs-assemble-in h-3 w-24 rounded bg-navy-200" style={{ animationDelay: "0ms" }} />
+        <div
+          className="fs-assemble-in h-11 w-full rounded-xl bg-navy-100"
+          style={{ animationDelay: "90ms" }}
+        />
+        <div
+          className="fs-assemble-in h-11 w-full rounded-xl bg-navy-100"
+          style={{ animationDelay: "180ms" }}
+        />
+        <div
+          className="fs-assemble-in h-11 w-28 rounded-full bg-navy-200"
+          style={{ animationDelay: "270ms" }}
+        />
+      </div>
+    );
+  }
+  return (
+    <div aria-hidden className="mb-2 flex gap-2 px-1">
+      {[0, 150, 300].map((delay) => (
+        <span
+          key={delay}
+          className="fs-waymark-bounce h-3 w-3 rounded-full bg-yellow-400"
+          style={{ animationDelay: `${delay}ms` }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function HelperAsk({
   username,
   consented: initialConsent,
@@ -306,6 +387,9 @@ export default function HelperAsk({
   const [open, setOpen] = useState(inRoom);
   const [said, setSaid] = useState("");
   const [busy, setBusy] = useState(false);
+  /** Which of the two waits `TurnLoader` draws — B1124. `"waymark"` unless a
+   *  call below knows better before it starts. */
+  const [waitShape, setWaitShape] = useState<"assembling" | "waymark">("waymark");
   const [error, setError] = useState("");
   // B807 — told apart from every other failure, because it is the only one
   // with something the person can do about it. A man mid-write-up got
@@ -442,6 +526,9 @@ export default function HelperAsk({
     // this ran, which is why the words are an argument and not a `setSaid`.
     const words = override ?? said;
     setBusy(true);
+    // The shape of an ordinary ask is never known ahead of the answer —
+    // B1124's fallback, always, here.
+    setWaitShape("waymark");
     setError("");
     setLapsed(false);
     try {
@@ -506,6 +593,7 @@ export default function HelperAsk({
    */
   async function accept(proposal: Proposal, values: Record<string, string>) {
     setBusy(true);
+    setWaitShape("waymark");
     setError("");
     try {
       /**
@@ -566,6 +654,10 @@ export default function HelperAsk({
           const found = at(answer, path);
           if (typeof found === "string" && found !== "") carried[name] = found;
         }
+        // B1124's one "known" case: this proposal already names the tool
+        // that is about to answer, so the wait draws a card assembling
+        // rather than the shapeless fallback.
+        setWaitShape("assembling");
         const next = await send(
           `/api/helper/${encodeURIComponent(username)}/proposal`,
           {
@@ -776,11 +868,16 @@ export default function HelperAsk({
         </div>
       )}
 
-      {/* Something honest while it thinks — silence reads as broken. */}
+      {/* Something honest while it thinks — silence reads as broken. B1124
+          draws it, and the sentence stays for a screen reader even where the
+          drawing is `aria-hidden`. */}
       {busy && (
-        <p role="status" className="mb-2 text-sm leading-6 text-navy-600">
-          {t("agent.chat.working")}
-        </p>
+        <>
+          <p role="status" className="sr-only">
+            {t("agent.chat.working")}
+          </p>
+          <TurnLoader shape={waitShape} />
+        </>
       )}
 
       {/* The files strip, above the composer rather than beside the
@@ -971,6 +1068,86 @@ function DayChip({
   );
 }
 
+/** How many rows of a `choose` block show before "show more" — B1122. Four is
+ *  a screenful at 390px with the row height this needs for a thumb. */
+const CHOOSE_ROWS_SHOWN = 4;
+
+/**
+ * A `choose` block, drawn as full-width rows rather than desktop-sized
+ * chips — B1122. It is the block people meet most, and on a phone tapping
+ * beats typing, so its rows are bigger than a desktop control would need to
+ * be, not smaller: at least 44px tall, the label on the left and the date (if
+ * any) on the right. A long list cuts to four and offers "show more" rather
+ * than pushing the field below the fold.
+ *
+ * **A day with no title reads once, not twice.** `days`, `unfinished` and
+ * `find_day` all fall back to something that repeats the date when a day has
+ * no title of its own — the fallback is read here, from the shape every one
+ * of them already sends (a `label` that is empty or identical to its own
+ * `detail`), so a fix here covers all three without touching any of them.
+ * What gets **said** if the row is pressed is unchanged: the tool's own
+ * label, exactly as it always was, because it still has to identify the row
+ * to the model even when this screen shows something friendlier instead.
+ */
+function ChooseBlock({
+  text,
+  options,
+  onChoose,
+}: {
+  text: string;
+  options: Option[];
+  onChoose: (label: string) => void;
+}) {
+  const { t } = useI18n();
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? options : options.slice(0, CHOOSE_ROWS_SHOWN);
+  const rowClass =
+    "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-navy-300 bg-white px-4 py-2 text-left text-base text-navy-800 transition-colors hover:bg-cream-100";
+
+  return (
+    <div>
+      <p className="text-base leading-6 text-navy-800">{text}</p>
+      <ul className="mt-2 space-y-2">
+        {shown.map((option) => {
+          const untitled = option.label === "" || option.label === option.detail;
+          const row = (
+            <>
+              <span>{untitled ? t("agent.chat.noTitle") : option.label}</span>
+              {option.detail && (
+                <span className="shrink-0 text-sm text-navy-600">{option.detail}</span>
+              )}
+            </>
+          );
+          return (
+            <li key={option.value}>
+              {/* `href` navigates rather than filling the box — B1022, see
+                  the note on `Option` in lib/helper/blocks.ts. */}
+              {option.href ? (
+                <a href={option.href} className={rowClass}>
+                  {row}
+                </a>
+              ) : (
+                <button type="button" onClick={() => onChoose(option.label)} className={rowClass}>
+                  {row}
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {!expanded && options.length > CHOOSE_ROWS_SHOWN && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="mt-2 min-h-11 px-2 text-sm text-navy-600 underline underline-offset-4 transition-colors hover:text-navy-900"
+        >
+          {t("agent.chat.showMore")}
+        </button>
+      )}
+    </div>
+  );
+}
+
 /**
  * One block, drawn.
  *
@@ -999,46 +1176,7 @@ function BlockView({
   const { t } = useI18n();
 
   if (block.shape === "choose") {
-    return (
-      <div>
-        <p className="text-base leading-6 text-navy-800">{block.text}</p>
-        <ul className="mt-2 flex flex-wrap gap-2">
-          {block.options.map((option) => {
-            const chip = (
-              <>
-                {option.label}
-                {option.detail && (
-                  <span className="ml-2 text-sm text-navy-600">
-                    {option.detail}
-                  </span>
-                )}
-              </>
-            );
-            const chipClass =
-              "min-h-11 rounded-full border border-navy-300 bg-white px-4 text-base text-navy-800 transition-colors hover:bg-cream-100";
-            return (
-              <li key={option.value}>
-                {/* `href` navigates rather than filling the box — B1022, see
-                    the note on `Option` in lib/helper/blocks.ts. */}
-                {option.href ? (
-                  <a href={option.href} className={`inline-flex items-center ${chipClass}`}>
-                    {chip}
-                  </a>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => onChoose(option.label)}
-                    className={chipClass}
-                  >
-                    {chip}
-                  </button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-    );
+    return <ChooseBlock text={block.text} options={block.options} onChoose={onChoose} />;
   }
 
   if (block.shape === "preview") {
@@ -1176,6 +1314,48 @@ function ProposalView({
   }, [failure]);
   const id = `${proposal.tool}-${useId()}`;
 
+  // B1107 — a field the server already resolved (a trip id, a day slug, an
+  // invite id) is not drawn at all: it still travels with the press inside
+  // `values`, seeded from every field including this one, below.
+  const editable = fields.filter((field) => !field.fixed);
+
+  /**
+   * The keyboard problem — B1122. While any field on *this* card has focus,
+   * the accept button detaches from the card's own flow and pins itself to
+   * the top of the visual viewport, which is where the keyboard's own top
+   * edge is on both iOS and Android and on neither the browser bar nor a
+   * hardware keyboard changes it: `window.visualViewport` reports the space
+   * actually left for content, not a guessed keyboard height. `pinBottom` is
+   * how far that edge sits from the *layout* viewport's bottom — `null` when
+   * nothing on this card is focused, or the browser has no
+   * `visualViewport` at all, in which case the button stays exactly where it
+   * always sat.
+   */
+  const [fieldFocused, setFieldFocused] = useState(false);
+  const [pinBottom, setPinBottom] = useState<number | null>(null);
+  const fieldsBox = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const viewport = typeof window !== "undefined" ? window.visualViewport : undefined;
+    // Syncing this card's own pin to whether one of its fields has focus —
+    // the same disable `TripCountdown.tsx` already carries, for the same
+    // reason: there is no external event to wait for when the answer is
+    // "nothing is focused", so the sync happens here or not at all.
+    if (!fieldFocused || !viewport) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPinBottom(null);
+      return;
+    }
+    const update = () =>
+      setPinBottom(Math.max(0, window.innerHeight - (viewport.height + viewport.offsetTop)));
+    update();
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+    };
+  }, [fieldFocused]);
+
   if (settled !== "") {
     return (
       <div className="rounded-xl border border-navy-200 bg-cream-50 p-3">
@@ -1187,71 +1367,127 @@ function ProposalView({
     );
   }
 
+  const kind = decisionKind(proposal.tool);
+  const press = () => {
+    setPressing(true);
+    setFailure("");
+    void onAccept(proposal, values)
+      .then(() => setSettled("accepted"))
+      .catch((thrown: unknown) => setFailure(failureSentence(t, (thrown as Error).message)))
+      .finally(() => setPressing(false));
+  };
+  const actions = (
+    <div className="flex flex-wrap items-center gap-2">
+      <BusyButton
+        busy={busy || pressing}
+        type="button"
+        onClick={press}
+        className="min-h-11 rounded-full bg-navy-800 px-5 text-base font-semibold text-cream-50 transition-colors hover:bg-navy-900 disabled:opacity-50"
+        busyLabel={t("agent.chat.writing")}
+      >
+        {proposal.accept}
+      </BusyButton>
+      <button
+        type="button"
+        onClick={() => setSettled("left")}
+        className="min-h-11 px-2 text-sm text-navy-600 underline underline-offset-4 transition-colors hover:text-navy-900"
+      >
+        {t("agent.chat.leaveIt")}
+      </button>
+    </div>
+  );
+
   return (
     <div
       ref={focusRef}
       tabIndex={-1}
-      className="rounded-xl border border-navy-200 bg-cream-50 p-3 focus:outline-none"
+      className={`rounded-xl border bg-cream-50 p-3 focus:outline-none ${
+        kind === "edit" ? "border-navy-200" : "border-navy-200 border-t-4 border-t-coral-400"
+      }`}
     >
-      <p className="text-base leading-6 text-navy-900">{proposal.sentence}</p>
+      {/* An icon and a short title naming the kind of decision, above the
+          sentence — B1122. The colour is the warning; this is the words. */}
+      <p className="flex items-center gap-2 text-sm font-semibold text-navy-700">
+        <span aria-hidden>{DECISION_ICON[kind]}</span>
+        {t(`agent.card.${kind}`)}
+      </p>
+      <p className="mt-1 text-base leading-6 text-navy-900">{proposal.sentence}</p>
 
-      {fields.length > 0 && (
-        <div className="mt-3 space-y-3">
-          {fields.map((field) => (
-            <div key={field.name}>
-              <label
-                htmlFor={`${id}-${field.name}`}
-                className="block text-sm font-semibold text-navy-800"
-              >
-                {t(`agent.slot.${field.name}` as TranslationKey)}
-              </label>
-              {field.options ? (
-                <select
-                  id={`${id}-${field.name}`}
-                  value={values[field.name] ?? ""}
-                  onChange={(event) =>
-                    setValues((was) => ({
-                      ...was,
-                      [field.name]: event.target.value,
-                    }))
-                  }
-                  className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+      {editable.length > 0 && (
+        <div
+          ref={fieldsBox}
+          onFocusCapture={() => setFieldFocused(true)}
+          onBlurCapture={() => {
+            // Deferred a tick: moving focus from one field on this card to
+            // another fires blur before it fires the next field's focus, and
+            // closing the pin in between would flash it shut and open again.
+            window.setTimeout(() => {
+              if (!fieldsBox.current?.contains(document.activeElement)) setFieldFocused(false);
+            }, 0);
+          }}
+          className="mt-3 space-y-3"
+        >
+          {editable.map((field, index) => {
+            const last = index === editable.length - 1;
+            return (
+              <div key={field.name}>
+                <label
+                  htmlFor={`${id}-${field.name}`}
+                  className="block text-sm font-semibold text-navy-800"
                 >
-                  {field.options.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              ) : field.long ? (
-                <textarea
-                  id={`${id}-${field.name}`}
-                  rows={6}
-                  value={values[field.name] ?? ""}
-                  onChange={(event) =>
-                    setValues((was) => ({
-                      ...was,
-                      [field.name]: event.target.value,
-                    }))
-                  }
-                  className="mt-1 w-full rounded-xl border border-navy-300 bg-white p-3 text-base leading-6 text-navy-900"
-                />
-              ) : (
-                <input
-                  id={`${id}-${field.name}`}
-                  type={field.date ? "date" : "text"}
-                  value={values[field.name] ?? ""}
-                  onChange={(event) =>
-                    setValues((was) => ({
-                      ...was,
-                      [field.name]: event.target.value,
-                    }))
-                  }
-                  className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
-                />
-              )}
-            </div>
-          ))}
+                  {t(`agent.slot.${field.name}` as TranslationKey)}
+                </label>
+                {field.options ? (
+                  <select
+                    id={`${id}-${field.name}`}
+                    value={values[field.name] ?? ""}
+                    onChange={(event) =>
+                      setValues((was) => ({
+                        ...was,
+                        [field.name]: event.target.value,
+                      }))
+                    }
+                    className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+                  >
+                    {field.options.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : field.long ? (
+                  <textarea
+                    id={`${id}-${field.name}`}
+                    rows={6}
+                    value={values[field.name] ?? ""}
+                    onChange={(event) =>
+                      setValues((was) => ({
+                        ...was,
+                        [field.name]: event.target.value,
+                      }))
+                    }
+                    enterKeyHint={last ? "done" : "next"}
+                    className="mt-1 w-full rounded-xl border border-navy-300 bg-white p-3 text-base leading-6 text-navy-900"
+                  />
+                ) : (
+                  <input
+                    id={`${id}-${field.name}`}
+                    type={field.date ? "date" : "text"}
+                    inputMode={field.date ? undefined : "text"}
+                    enterKeyHint={last ? "done" : "next"}
+                    value={values[field.name] ?? ""}
+                    onChange={(event) =>
+                      setValues((was) => ({
+                        ...was,
+                        [field.name]: event.target.value,
+                      }))
+                    }
+                    className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -1266,33 +1502,20 @@ function ProposalView({
         </p>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <BusyButton
-          busy={busy || pressing}
-          type="button"
-          onClick={() => {
-            setPressing(true);
-            setFailure("");
-            void onAccept(proposal, values)
-              .then(() => setSettled("accepted"))
-              .catch((thrown: unknown) =>
-                setFailure(failureSentence(t, (thrown as Error).message)),
-              )
-              .finally(() => setPressing(false));
-          }}
-          className="min-h-11 rounded-full bg-navy-800 px-5 text-base font-semibold text-cream-50 transition-colors hover:bg-navy-900 disabled:opacity-50"
-          busyLabel={t("agent.chat.writing")}
-        >
-          {proposal.accept}
-        </BusyButton>
-        <button
-          type="button"
-          onClick={() => setSettled("left")}
-          className="min-h-11 px-2 text-sm text-navy-600 underline underline-offset-4 transition-colors hover:text-navy-900"
-        >
-          {t("agent.chat.leaveIt")}
-        </button>
+      {/* Pinned above the keyboard while a field on this card has focus, so
+          the button that presses it is never the thing the keyboard covers
+          — B1122. Off-screen otherwise, exactly where it always sat. */}
+      <div className={pinBottom === null ? "mt-3" : "mt-3 invisible"} aria-hidden={pinBottom !== null}>
+        {actions}
       </div>
+      {pinBottom !== null && (
+        <div
+          className="fixed inset-x-0 z-40 border-t border-navy-200 bg-cream-50 p-3 shadow-[0_-4px_12px_rgba(0,0,0,0.12)]"
+          style={{ bottom: pinBottom }}
+        >
+          {actions}
+        </div>
+      )}
 
       <p className="mt-2 text-sm leading-6 text-navy-600">
         {t("agent.chat.orSayWhatIsWrong")}
