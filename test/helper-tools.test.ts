@@ -290,6 +290,10 @@ describe("a proposal can only be pressed into the helper's own routes", () => {
     "/api/helper/alex/invite/revoke",
     "/api/helper/alex/day/tell-readers",
     "/api/helper/alex/channels",
+    "/api/helper/alex/journal",
+    "/api/helper/alex/storage/cleanup",
+    "/api/helper/alex/storage",
+    "/api/helper/alex/keys",
   ];
 
   test("every write tool names one of them, and nothing else", () => {

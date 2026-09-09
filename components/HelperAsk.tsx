@@ -986,41 +986,39 @@ function BlockView({
       <div>
         <p className="text-base leading-6 text-navy-800">{block.text}</p>
         <ul className="mt-2 flex flex-wrap gap-2">
-          {block.options.map((option) => (
-            <li key={option.value}>
-              {/*
-                An option that names a place is a link; everything else says
-                its label as though it had been typed — B1022. The two are
-                deliberately one control drawn two ways rather than two shapes,
-                because to a person they are the same gesture: press the thing
-                you meant.
-              */}
-              {option.href ? (
-                <a
-                  href={option.href}
-                  className="inline-flex min-h-11 items-center rounded-full border border-navy-300 bg-white px-4 text-base text-navy-800 transition-colors hover:bg-cream-100"
-                >
-                  {option.label}
-                  {option.detail && (
-                    <span className="ml-2 text-sm text-navy-600">{option.detail}</span>
-                  )}
-                </a>
-              ) : (
-              <button
-                type="button"
-                onClick={() => onChoose(option.label)}
-                className="min-h-11 rounded-full border border-navy-300 bg-white px-4 text-base text-navy-800 transition-colors hover:bg-cream-100"
-              >
+          {block.options.map((option) => {
+            const chip = (
+              <>
                 {option.label}
                 {option.detail && (
                   <span className="ml-2 text-sm text-navy-600">
                     {option.detail}
                   </span>
                 )}
-              </button>
-              )}
-            </li>
-          ))}
+              </>
+            );
+            const chipClass =
+              "min-h-11 rounded-full border border-navy-300 bg-white px-4 text-base text-navy-800 transition-colors hover:bg-cream-100";
+            return (
+              <li key={option.value}>
+                {/* `href` navigates rather than filling the box — B1022, see
+                    the note on `Option` in lib/helper/blocks.ts. */}
+                {option.href ? (
+                  <a href={option.href} className={`inline-flex items-center ${chipClass}`}>
+                    {chip}
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onChoose(option.label)}
+                    className={chipClass}
+                  >
+                    {chip}
+                  </button>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </div>
     );

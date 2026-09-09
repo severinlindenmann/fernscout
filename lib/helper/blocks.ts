@@ -32,7 +32,6 @@ export const SHAPES = [
 
 export type Shape = (typeof SHAPES)[number];
 
-/** One thing to pick from in a `choose`. `value` is what a later turn names. */
 /**
  * One thing to pick out of a list.
  *
@@ -43,9 +42,10 @@ export type Shape = (typeof SHAPES)[number];
  *
  * B1022 is that thing. A past conversation is reopened at `/agent?c=<id>`, and
  * saying its opening line back into the current conversation would be the
- * opposite of reopening it. Anything that can be answered by talking must not
- * carry an `href` — the list of trips, the list of days, the drafts — because
- * a link out of the conversation is a conversation ended.
+ * opposite of reopening it — the model has nothing left to do with it, the
+ * room just has to be there. Anything that *can* be answered by talking must
+ * not carry an `href` — the list of trips, the list of days, the drafts —
+ * because a link out of the conversation is a conversation ended.
  */
 type Option = { value: string; label: string; detail?: string; href?: string };
 
