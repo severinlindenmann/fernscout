@@ -213,13 +213,12 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (9)
+## in-development (8)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1014](in-development/B1014-the-embedded-print-fonts-are-read.md) | The embedded print fonts are read from the process's working directory, so npm run postcard fails outside the checkout | ISSUE | high | low | `b8352d66` |
 | [B1015](in-development/B1015-b984-moved-the-agent-room-s.md) | B984 moved the agent room's URL and left one test asserting the old one, so main is red | ISSUE | high | low | `b8352d66` |
-| [B537](in-development/B537-a-journal-on-disk-cannot-be.md) | A journal on disk cannot be checked against the instance that will receive it | FEATURE | high | high | `eef381a2` |
 | [B906](in-development/B906-nothing-can-find-the-day-with.md) | Nothing can find the day with the photograph of Anna in it | FEATURE | high | medium | `eef381a2` |
 | [B980](in-development/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | `a4bbb185` |
 | [B984](in-development/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | `fdfcf5f2` |
@@ -227,7 +226,7 @@ _Nothing here._
 | [B42](in-development/B42-an-entry-s-time-carries-no.md) | An entry's time carries no zone, so 09:15 means nothing to a reader in another one | FEATURE | medium | medium | `eef381a2` |
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 
-## testing (251)
+## testing (252)
 
 ### security (7)
 
@@ -399,10 +398,11 @@ _Nothing here._
 | [B876](testing/issue/B876-the-account-page-s-pointer-card.md) | The account page's pointer card on /me is a whole card to say a menu entry exists | ISSUE | low | low | — |
 | [B973](testing/issue/B973-a-cost-with-no-currency-is.md) | A cost with no currency is filed in the base one without anybody being asked | ISSUE | low | low | — |
 
-### big-feature (14)
+### big-feature (15)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B537](testing/big-feature/B537-a-journal-on-disk-cannot-be.md) | A journal on disk cannot be checked against the instance that will receive it | FEATURE | high | high | — |
 | [B746](testing/big-feature/B746-the-operator-cannot-see-what-the.md) | The operator cannot see what the instance costs to run | FEATURE | high | high | — |
 | [B792](testing/big-feature/B792-buying-credits-goes-through-a-real.md) | Buying credits goes through a real payment provider, not an operator approving by hand | FEATURE | high | high | — |
 | [B816](testing/big-feature/B816-a-published-day-cannot-be-corrected.md) | A published day cannot be corrected or taken down without an agent | FEATURE | high | high | — |
