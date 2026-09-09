@@ -179,8 +179,10 @@ took:
 
 ```bash
 node .claude/skills/test-in-a-browser/check-page.mjs <url> \
-  .claude/runs/<run-id>/<id> --widths 1280,390
-# writes <slug>-1280.png, <slug>-390.png, <slug>.json next to before-*.png
+  .claude/runs/<run-id>/<id> --widths 1280,390 --slug after
+# writes after-1280.png, after-390.png and after.json beside the before-* files
+# plan-a-run left. `--slug` is what makes those names; without it the script
+# names each capture after the URL and report-a-run finds neither half.
 ```
 
 Deploying per wave rather than once at the end is deliberate, not
@@ -188,6 +190,22 @@ incidental — see the numbers above: it is the bottleneck this skill exists
 to reinsert, so six hours of unattended building do not compound into one
 unreadable failure at the very end. A batch small enough to fit in one group
 is one wave; most batches are several.
+
+**Two things about the lane moves will bite once each, and both did on
+2026-09-09.**
+
+A task file is stamped in the frontmatter by every lane move, so a ticket
+moved on `main` *and* moved on the branch conflicts on `started:`, `session:`
+and `claimed:` — three lines, same session id, seconds apart. Keep `main`'s
+stamps and carry on; the branch's are the same fact recorded a moment later.
+Better still, move the lane on `main` before the branch is cut and never move
+it inside the worktree.
+
+And **read what the move printed.** `npm run tasks -- move` takes one id, and
+a shell loop that feeds it several while swallowing the output will happily
+move one of them and say nothing about the other three. Four tickets were
+dispatched to worktrees that day while three of them still sat in `open/`.
+One call per id, and check for the `→` line.
 
 ## Step 4 — end with the report
 

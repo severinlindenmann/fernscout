@@ -776,8 +776,10 @@ guide for it.
 | `keep-the-contract` | Check that `/openapi.json` and `/agent.md` still tell the truth after a change to a route |
 | `manage-tasks` | Capture something, and move it between lanes |
 | `triage-a-backlog` | Read a whole lane of `docs/tasks/` and hand back one page a person decides from |
+| `plan-a-run` | Ask every decision a batch of approved tickets needs — is it still valid, which of two stances, what is still open — before any of it is built |
 | `report-a-run` | Account for a finished batch of tickets on one page — what shipped, what was already fixed, what a person can see, what still needs their eyes |
 | `work-on-a-task` | Take one approved task, build it in a worktree, merge it |
+| `run-a-batch` | Carry an answered brief through build, merge, deploy and live check without stopping to ask |
 | `test-the-live-site` | Empty `testing/` against the deployed instance, one subagent per ticket |
 | `test-in-a-browser` | Drive a local checkout in a real browser: sign in as an owner, switch a capability on, check a page at 390px |
 | `test-with-personas` | Drive `/agent` as somebody who has never seen it — a subagent per persona, handed a URL and nothing else |

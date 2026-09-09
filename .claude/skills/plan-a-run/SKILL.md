@@ -100,9 +100,13 @@ Answer, in order:
 3. BEFORE-STATE — if a person would see this ticket's fix (a page, a card,
    an email, a printed layout), capture it now with B1097's script:
      node .claude/skills/test-in-a-browser/check-page.mjs <url> \
-       .claude/runs/<run-id>/<id> --widths 1280,390
+       .claude/runs/<run-id>/<id> --widths 1280,390 --slug before
    against a local dev server or the live site, whichever the ticket's own
-   evidence points at. If it is a bug rather than a visual, reproduce it and
+   evidence points at. `--slug before` is not optional: it is what names the
+   files `before-1280.png`, `before-390.png` and `before.json`, which is what
+   `report-a-run` looks for and what `run-a-batch`'s `--slug after` sits
+   beside. Without it the script names them after the URL and the report finds
+   nothing. If it is a bug rather than a visual, reproduce it and
    quote the actual wrong output — a stack trace, a wrong API response, a
    failing command. If neither applies (a pure refactor, a doc fix), say so
    explicitly. Never guess at what a before-state would show.
