@@ -117,6 +117,10 @@
 #                         `<base>/YYYY-MM-DD`, browsable as a list of dates,
 #                         each restorable on its own, at the cost of restic's
 #                         deduplication across nights. See step 8d.
+#                         SINGLE-QUOTE that value in the env file: systemd does
+#                         not shell-parse it, but `. /etc/fernscout/env` — which
+#                         every restore procedure begins with — reads the `<`
+#                         as a redirect and dies.
 #   BACKUP_SECONDARY_KEEP_DAYS  default: 7 — how many dated repositories are
 #                         kept. Read only in the dated layout; the
 #                         single-repository one uses BACKUP_KEEP_DAILY as
