@@ -2001,5 +2001,9 @@
   "notify.free": "free",
   "notify.costCredits": "{credits} credits",
   "notify.costCredits.one": "1 credit",
-  "notify.total": "That is {needed} in all, leaving {rest}."
+  "notify.total": "That is {needed} in all, leaving {rest}.",
+  "wa.speechConsentAsk": "Voice notes are transcribed by Deepgram, a separate company from the one that writes your days. Reply 'yes' to let me listen to this one — I'll ask again for the first voice note only.",
+  "wa.speechConsentGranted": "Thanks — send the voice note again and I'll listen to it.",
+  "wa.voiceTooLong": "That recording is longer than I can take — {maxMinutes} minutes at most. Send a shorter one.",
+  "wa.transcriptEcho": "I heard: \"{text}\""
 }

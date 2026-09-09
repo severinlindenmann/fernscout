@@ -2001,5 +2001,9 @@
   "notify.free": "ingyenes",
   "notify.costCredits": "{credits} kredit",
   "notify.costCredits.one": "1 kredit",
-  "notify.total": "Összesen {needed}, utána {rest} marad."
+  "notify.total": "Összesen {needed}, utána {rest} marad.",
+  "wa.speechConsentAsk": "A hangüzeneteket a Deepgram írja át, ami más cég, mint amelyik a napjaidat megírja. Válaszolj 'igen'-nel, hogy meghallgathassam ezt — csak az első hangüzenetnél kérdezem.",
+  "wa.speechConsentGranted": "Köszönöm — küldd el újra a hangüzenetet, és meghallgatom.",
+  "wa.voiceTooLong": "Ez a felvétel hosszabb, mint amit fel tudok dolgozni — legfeljebb {maxMinutes} perc. Küldj egy rövidebbet.",
+  "wa.transcriptEcho": "Ezt hallottam: „{text}”"
 }

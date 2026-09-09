@@ -1,20 +1,26 @@
 import "server-only";
 import { isEnabled } from "../capabilities";
+import { balanceOf } from "../credits";
 import { getUser } from "../users";
-import { currentHelperProvider, recordHelperConsent } from "../helper/consent";
+import { currentHelperProvider, hasHelperConsent, recordHelperConsent } from "../helper/consent";
 import type { Say } from "../helper/intents";
 import { answerInThread } from "../helper/model";
 import { recordTurn } from "../helper/sessions";
+import { MAX_AUDIO_BYTES, MAX_SPEECH_SECONDS, speechLanguageFor } from "../helper/speech";
 import { history, proposed, remember, sessionId } from "../helper/thread";
+import { spendAndTranscribe } from "../helper/transcribeSpend";
 import { translateIn } from "../locales";
 import { journalForNumber } from "../registry";
 import { serverSite } from "../site";
 import { isAcknowledgement } from "./acknowledge";
 import { hasAcknowledged, hasBeenGreeted, markAcknowledged, markGreeted } from "./binding";
+import { downloadMedia } from "./cloud";
 import { takeHeldAnswer } from "./held";
-import { maskNumber } from "./index";
+import { cloudCredentials, maskNumber } from "./index";
 import { renderForWhatsapp } from "./render";
+import { balanceRefusal } from "./refusal";
 import { sendOutboundReply, sendServiceReply } from "./reply";
+import { clearPendingSpeechAsk, hasPendingSpeechAsk, markPendingSpeechAsk } from "./speechConsent";
 import { markInbound } from "./window";
 import type { InboundMessage } from "./inbound";
 
@@ -125,34 +131,26 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
     return;
   }
 
-  await answerOnWhatsapp(username, locale, message);
-}
-
-/**
- * The model turn, over WhatsApp — B1056.
- *
- * **The same `answerInThread` the web room calls**, with the same thread
- * (`lib/helper/thread.ts`, durable since B1054) — a person who writes on
- * WhatsApp and then opens `/agent` finds the same conversation, origin marks
- * and all. Nothing here is a second implementation of the model turn; only
- * `lib/whatsapp/render.ts` (the answer's shape) and this function (how a
- * message becomes a `said` and how the reply goes out) are new.
- *
- * **What reaches the model.** `text` is the message body; `interactive` (a
- * tapped reply button or list row) is its *title*, said back exactly as
- * though typed — `lib/helper/blocks.ts`'s own rule for `choose`, extended to
- * `confirm` here (see `lib/whatsapp/render.ts`'s module doc for why a
- * confirm's accept button never itself writes anything). Every other kind
- * — image, audio, location, a shared contact — is somebody else's ticket
- * (B1059, B1060, B1074) and is left exactly as it arrived here: logged, not
- * answered.
- */
-async function answerOnWhatsapp(username: string, locale: string, message: InboundMessage): Promise<void> {
-  // The same capability the web room's own routes gate on — an instance
-  // running with no model at all must not try to run one here either.
-  if (!isEnabled("helper", username)) {
-    console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) — helper is not enabled here`);
+  if (message.kind === "audio") {
+    await handleVoiceNote(username, locale, message);
     return;
+  }
+
+  /**
+   * The answer to a `speech` consent ask, read before an ordinary turn would
+   * be — B1060. Cleared either way: a "yes" grants the scope, anything else
+   * is read as having moved on rather than as a standing refusal, so a later
+   * voice note asks again rather than being silently ignored forever.
+   */
+  if (message.kind === "text" && hasPendingSpeechAsk(username, message.from)) {
+    clearPendingSpeechAsk(username, message.from);
+    if (isAcknowledgement(message.body, locale)) {
+      recordHelperConsent(username, currentHelperProvider("speech"), "speech");
+      await sendServiceReply(message.from, translateIn(locale, "wa.speechConsentGranted"), username);
+      console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) granted speech consent`);
+      return;
+    }
+    // Not a "yes" — an ordinary sentence, answered ordinarily below.
   }
 
   const said =
@@ -163,6 +161,116 @@ async function answerOnWhatsapp(username: string, locale: string, message: Inbou
         : "";
   if (said === "") {
     console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) — ${message.kind} (${message.id}), no model turn for this kind yet`);
+    return;
+  }
+  await answerOnWhatsapp(username, locale, message.from, said);
+}
+
+/**
+ * One voice note, over WhatsApp — B1060.
+ *
+ * Consent first, and specific to `speech` — B684/B687's split, and B1138's
+ * acknowledgement is a different scope (`words`) that does not cover this.
+ * Then the money path: `spendAndTranscribe` is the exact four steps
+ * `app/api/helper/[user]/transcribe/route.ts` already takes (spend, call,
+ * refund on failure, reconcile to what Deepgram actually measured), shared
+ * rather than copied — B1060's own "Gap found" addendum is why that sharing
+ * is the point of this function and not an incidental tidiness.
+ *
+ * **Idempotency is already settled before this runs.** Meta retries a
+ * webhook for up to seven days, and `app/api/webhooks/whatsapp/route.ts`
+ * dedupes on the wamid *before* `handleInboundMessage` is ever called — so a
+ * retried voice note never reaches this function a second time, and never
+ * reaches Deepgram or the ledger twice for one recording.
+ *
+ * The transcript is echoed back **before** it becomes a `said` fed to the
+ * model — B1060's own instruction: a misheard place name that becomes a day
+ * is worse than one extra message.
+ */
+async function handleVoiceNote(
+  username: string,
+  locale: string,
+  message: Extract<InboundMessage, { kind: "audio" }>,
+): Promise<void> {
+  if (!isEnabled("helper", username) || !isEnabled("transcription", username)) {
+    console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) — transcription is not enabled here`);
+    return;
+  }
+
+  if (!hasHelperConsent(username, "speech")) {
+    markPendingSpeechAsk(username, message.from);
+    await sendServiceReply(message.from, translateIn(locale, "wa.speechConsentAsk"), username);
+    console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) asked for speech consent`);
+    return;
+  }
+
+  const language = speechLanguageFor(null, locale);
+  if (!language) {
+    console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) — no supported transcription language for locale "${locale}"`);
+    return;
+  }
+
+  let audio: { data: Buffer; mimeType: string };
+  try {
+    audio = await downloadMedia(cloudCredentials(), message.mediaId);
+  } catch (err) {
+    console.error(`[whatsapp:inbound] could not download voice note for ${username}:`, err);
+    return;
+  }
+
+  if (audio.data.byteLength > MAX_AUDIO_BYTES) {
+    await sendServiceReply(
+      message.from,
+      translateIn(locale, "wa.voiceTooLong", { maxMinutes: String(Math.floor(MAX_SPEECH_SECONDS / 60)) }),
+      username,
+    );
+    return;
+  }
+
+  const mediaType = (audio.mimeType || message.mimeType).split(";")[0].toLowerCase();
+  // WhatsApp's webhook carries no duration, so nothing is claimed up front —
+  // `spendAndTranscribe` prices that as its one-hundredth-credit floor and
+  // reconciles to Deepgram's own measured seconds afterwards, exactly as a
+  // web recording with the microphone's own estimate does when it under-
+  // reports.
+  const outcome = await spendAndTranscribe(username, audio.data, mediaType, language, 0);
+  if (!outcome.ok) {
+    if (outcome.error === "no_credits") {
+      const balance = (await balanceOf(username)) ?? 0;
+      await sendServiceReply(message.from, balanceRefusal(locale, username, outcome.cost, balance), username);
+    } else {
+      console.error(`[whatsapp:inbound] transcription failed for ${username}`);
+    }
+    return;
+  }
+
+  await sendServiceReply(message.from, translateIn(locale, "wa.transcriptEcho", { text: outcome.text }), username);
+  await answerOnWhatsapp(username, locale, message.from, outcome.text);
+}
+
+/**
+ * The model turn, over WhatsApp — B1056.
+ *
+ * **The same `answerInThread` the web room calls**, with the same thread
+ * (`lib/helper/thread.ts`, durable since B1054) — a person who writes on
+ * WhatsApp and then opens `/agent` finds the same conversation, origin marks
+ * and all. Nothing here is a second implementation of the model turn; only
+ * `lib/whatsapp/render.ts` (the answer's shape) and this function (how the
+ * reply goes out) are new.
+ *
+ * `said` is already resolved by the caller — the message body, an
+ * interactive reply's title (`lib/helper/blocks.ts`'s own "pressing one says
+ * its label" rule, extended to `confirm` here — see `lib/whatsapp/render.ts`'s
+ * module doc for why a confirm's accept button never itself writes anything),
+ * or a voice note's transcript, echoed back first (B1060). Every other kind
+ * — a photograph, a location, a shared contact — is somebody else's ticket
+ * (B1059, B1074) and never reaches this function.
+ */
+async function answerOnWhatsapp(username: string, locale: string, to: string, said: string): Promise<void> {
+  // The same capability the web room's own routes gate on — an instance
+  // running with no model at all must not try to run one here either.
+  if (!isEnabled("helper", username)) {
+    console.log(`[whatsapp:inbound] ${maskNumber(to)} (${username}) — helper is not enabled here`);
     return;
   }
 
@@ -196,5 +304,5 @@ async function answerOnWhatsapp(username: string, locale: string, message: Inbou
 
   const blocks = [...thread.blocks, ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }])];
   const journalUrl = `${serverSite().url}/agent`;
-  await sendOutboundReply(message.from, renderForWhatsapp(blocks, journalUrl), username);
+  await sendOutboundReply(to, renderForWhatsapp(blocks, journalUrl), username);
 }

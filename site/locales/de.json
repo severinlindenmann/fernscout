@@ -2001,5 +2001,9 @@
   "notify.free": "gratis",
   "notify.costCredits": "{credits} Credits",
   "notify.costCredits.one": "1 Credit",
-  "notify.total": "Zusammen {needed}, danach bleiben dir {rest}."
+  "notify.total": "Zusammen {needed}, danach bleiben dir {rest}.",
+  "wa.speechConsentAsk": "Sprachnachrichten werden von Deepgram transkribiert, einer anderen Firma als der, die deine Tage schreibt. Antworte mit 'ja', damit ich diese anhören darf — ich frage nur bei der ersten Sprachnachricht.",
+  "wa.speechConsentGranted": "Danke — schick die Sprachnachricht noch einmal, dann höre ich sie mir an.",
+  "wa.voiceTooLong": "Diese Aufnahme ist länger, als ich verarbeiten kann — höchstens {maxMinutes} Minuten. Schick eine kürzere.",
+  "wa.transcriptEcho": "Ich habe gehört: „{text}\""
 }

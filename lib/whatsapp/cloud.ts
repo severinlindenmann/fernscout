@@ -99,6 +99,33 @@ export async function uploadMedia(
 }
 
 /**
+ * Fetch one inbound media's bytes by its Meta media id — B1059/B1060.
+ *
+ * A two-step fetch, both authenticated: Meta first answers with a short-lived
+ * `url` (and the mime type it actually stored, which is more trustworthy
+ * than whatever the webhook envelope claimed), then that URL itself has to be
+ * fetched with the same bearer token — it is not publicly reachable. Media
+ * ids expire seven days after the message arrived, so this has to run on
+ * receipt rather than being deferred.
+ */
+export async function downloadMedia(
+  credentials: CloudCredentials,
+  mediaId: string,
+): Promise<{ data: Buffer; mimeType: string }> {
+  const metaResponse = await fetch(`${GRAPH}/${mediaId}`, {
+    headers: { Authorization: `Bearer ${credentials.token}` },
+  });
+  if (!metaResponse.ok) throw await failureOf(metaResponse);
+  const meta = (await metaResponse.json()) as { url?: string; mime_type?: string };
+  if (!meta.url) throw new WhatsappApiError("Meta answered with no media URL.");
+
+  const fileResponse = await fetch(meta.url, { headers: { Authorization: `Bearer ${credentials.token}` } });
+  if (!fileResponse.ok) throw await failureOf(fileResponse);
+  const data = Buffer.from(await fileResponse.arrayBuffer());
+  return { data, mimeType: meta.mime_type ?? "application/octet-stream" };
+}
+
+/**
  * Send one template message, and return the `wamid` Meta assigns it.
  *
  * **`accepted` is not `delivered`.** The response says Meta took the message,
