@@ -125,8 +125,11 @@ describe("the helper routes", () => {
   // `day/remove-photo` and `inbox/discard`. The number is not the point; the
   // loop below is. Every one is the same cookie and the same owner check as
   // the nineteen before them.
-  test("there are thirty-five of them, and each is guarded", () => {
-    expect(sources).toHaveLength(35);
+  // Thirty-six since B1109 added `sessions`, which is the history panel's own
+  // read of `sessionsOf` — the clock icon's door onto the same list
+  // `past_conversations` already answers from inside the conversation.
+  test("there are thirty-six of them, and each is guarded", () => {
+    expect(sources).toHaveLength(36);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

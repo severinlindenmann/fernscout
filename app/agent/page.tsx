@@ -8,7 +8,7 @@ import HelperRoom from "@/components/HelperRoom";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { draftsForWizard, filesForRoom, isHelperOwner } from "@/lib/helper/server";
 import { openingFor } from "@/lib/helper/opening";
-import { turnsIn } from "@/lib/helper/sessions";
+import { sessionsOf, turnsIn } from "@/lib/helper/sessions";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { journalsFor } from "@/lib/home";
 import { requestLocale, translateIn } from "@/lib/locales";
@@ -59,6 +59,17 @@ export async function generateMetadata(): Promise<Metadata> {
  *
  * `?about=<trip>/<slug>` is the third, and it is B994's: a link from a day,
  * opening a conversation that already knows what it was opened from.
+ *
+ * **Nothing in `?c=` is the ordinary case a person actually hits, though —
+ * B1109's other half.** Every plain visit to `/agent` — the address the room
+ * itself hands out, and the one anybody would bookmark — carried no `c` at
+ * all, so it opened blank however recently the room had last had something
+ * to say. `sessionsOf` answers the same question the history panel does —
+ * which conversation is the most recent one — so a bare `/agent` resumes it
+ * exactly as though its own link had been followed. The URL still reads
+ * `/agent`, not `/agent?c=…`: this is a courtesy on arrival, not a claim
+ * about which conversation the next sentence extends, and the room's own
+ * live thread (`lib/helper/thread.ts`) is what actually decides that.
  */
 export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
   const site = serverSite();
@@ -100,7 +111,14 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
             ? { trip: waiting.trip, slug: waiting.slug }
             : null;
 
-      const session = typeof asked.c === "string" ? asked.c : "";
+      // A conversation named by URL, or — with none named — the most recent
+      // one this journal has, so a bare `/agent` resumes rather than opening
+      // blank. `[latest]` is empty for a journal with no conversations yet,
+      // which is the honest first-ever visit.
+      const session =
+        typeof asked.c === "string" && asked.c !== ""
+          ? asked.c
+          : ((await sessionsOf(user, 1))[0]?.session ?? "");
       return (
         <HelperRoom
           username={user}
@@ -108,8 +126,8 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
           files={filesForRoom(user)}
           currency={currencyOptions(user)}
           opening={opening}
-          // A conversation reopened by URL, drawn from what was stored. Empty
-          // for anything that is not this journal's, which `turnsIn` decides.
+          // Drawn from what was stored. Empty for anything that is not this
+          // journal's, which `turnsIn` decides.
           history={session ? await turnsIn(user, session) : []}
           // What the room says before anybody has said anything — B984. Read
           // from disk here, drawn locally there: a page that spent a credit to

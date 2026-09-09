@@ -8,7 +8,8 @@ import { helperConsent } from "./consent";
  *
  * The owner asked to collect sessions so that, as operator, they could analyse
  * and improve them. Nothing was kept: `./thread.ts` holds a conversation in
- * process memory for half an hour and drops it on every deploy.
+ * process memory for a few hours of inactivity (see its `TTL_MS`) and drops
+ * it on every deploy.
  *
  * ## Two things, and only one of them is about the operator
  *
