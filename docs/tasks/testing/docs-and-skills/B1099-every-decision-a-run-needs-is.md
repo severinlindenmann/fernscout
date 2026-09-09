@@ -7,8 +7,7 @@ complexity: high
 area: skills
 found: "2026-09-09T16:18:24Z"
 started: "2026-09-09T16:26:09Z"
-session: df031729-b5f3-42f2-bcac-c6c88d608ee0
-claimed: "2026-09-09T16:26:09Z"
+merged: "2026-09-09T16:40:43Z"
 ---
 
 # B1099 — Every decision a run needs is asked mid-run, so a batch cannot be started and left alone

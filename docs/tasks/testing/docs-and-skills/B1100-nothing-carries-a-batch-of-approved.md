@@ -7,8 +7,7 @@ complexity: high
 area: skills
 found: "2026-09-09T16:18:24Z"
 started: "2026-09-09T16:20:49Z"
-session: df031729-b5f3-42f2-bcac-c6c88d608ee0
-claimed: "2026-09-09T16:20:49Z"
+merged: "2026-09-09T16:40:43Z"
 ---
 
 # B1100 — Nothing carries a batch of approved tickets through build, merge, deploy and live check without a person driving each step
