@@ -449,11 +449,17 @@ describe("the tools", () => {
       "attach_files",
       "create_trip",
       "draft_words",
+      // The trip's own settings, reached from the conversation instead of a
+      // shell — this round's four.
+      "edit_trip",
       // B931 — the only way somebody who was not on a trip can ever read it.
       "invite_guest",
       "publish_day",
       "set_day_words",
+      "set_visibility",
       "start_day",
+      "trip_people",
+      "trip_tracks",
       "unpublish_day",
     ]);
     expect(TOOLS.filter((tool) => tool.kind === "link").map((tool) => tool.name)).toEqual([
