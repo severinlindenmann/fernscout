@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (153)
+## backlog (152)
 
 ### security (2)
 
@@ -103,7 +103,7 @@ Do not edit them by hand; run the script.
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 | [B909](backlog/big-feature/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-### small-feature (30)
+### small-feature (29)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -113,7 +113,6 @@ Do not edit them by hand; run the script.
 | [B1062](backlog/small-feature/B1062-there-is-still-no-way-out.md) | There is still no way out of the WhatsApp channel from inside WhatsApp | FEATURE | high | medium |
 | [B1091](backlog/small-feature/B1091-the-two-model-calls-that-cost.md) | The two model calls that cost real money are free, so the ledger cannot account for what the instance spends | FEATURE | high | medium |
 | [B1092](backlog/small-feature/B1092-photobook-and-costs-are-gated-per.md) | Budget is gated per journal when it is the instance's decision | FEATURE | high | medium |
-| [B1093](backlog/small-feature/B1093-a-person-cannot-choose-who-a.md) | A person cannot choose who a photobook is posted to | FEATURE | high | medium |
 | [B994](backlog/small-feature/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium |
 | [B1060](backlog/small-feature/B1060-a-voice-note-sent-over-whatsapp.md) | A voice note sent over WhatsApp has no route to the transcriber that already exists | FEATURE | medium | low |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
@@ -257,7 +256,7 @@ Do not edit them by hand; run the script.
 | [B102](open/B102-mail-is-switched-on-at-fernscout.md) | Mail is switched on at fernscout.ch and nothing records that a message has ever arrived | OPS | high | medium |
 | [B103](open/B103-sign-in-is-switched-on-at.md) | Sign-in is switched on at fernscout.ch and no one has been through the code flow there end to end | OPS | high | medium |
 
-## in-development (13)
+## in-development (14)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -267,6 +266,7 @@ Do not edit them by hand; run the script.
 | [B1058](in-development/B1058-an-inbound-message-carries-a-telephone.md) | An inbound message carries a telephone number and nothing that says whose journal it is | FEATURE | high | high | `df031729` |
 | [B1064](in-development/B1064-a-journal-s-owner-is-proven.md) | A journal's owner is proven by an email alone, and an address costs nothing to make another of | FEATURE | high | high | `df031729` |
 | [B1065](in-development/B1065-there-is-no-way-to-prove.md) | There is no way to prove that somebody holds the telephone number they typed | FEATURE | high | medium | `df031729` |
+| [B1093](in-development/B1093-a-person-cannot-choose-who-a.md) | A person cannot choose who a photobook is posted to | FEATURE | high | medium | `ce87fdc2` |
 | [B1098](in-development/B1098-work-on-a-task-revalidates-a.md) | work-on-a-task revalidates a ticket in one sentence of prose, and asks for a visual check it leaves no evidence of | DOCS | high | low | `df031729` |
 | [B980](in-development/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | `a4bbb185` |
 | [B984](in-development/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | `fdfcf5f2` |
