@@ -108,6 +108,14 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
     // cheaper speech, it is unmetered speech billed to the operator.
     needs: { credits: "every minute is metered" },
   },
+  // B589. Names a `url` in config, checked in configuredEnv() alongside the
+  // other per-feature config problems, so an unset one refuses the same way
+  // a missing environment variable does.
+  fulfilmentRelay: { env: [], db: false },
+  // B589. Nothing here fits `needs` — that only asks whether a dependency is
+  // `.enabled`, and this depends on postcards/photobook being enabled *with a
+  // real provider*, and on a payment method. See fulfilmentAcceptProblem().
+  fulfilmentAccept: { env: [], db: false },
 };
 
 /** Transport and provider choices carry their own credential requirements.
@@ -310,7 +318,53 @@ function configuredEnv(name: FeatureName, feature: Record<string, unknown>): {
     const env = ADDRESS_LOOKUP_PROVIDER_ENV[provider] ?? ["ADDRESS_LOOKUP_API_KEY"];
     return { env };
   }
+  if (name === "fulfilmentRelay") {
+    // B589. No secret and no enumerable provider — this names another
+    // Fernscout instance, not a printer, and there is no default the way
+    // `photon` is one for addressLookup. An empty url is the shipped default,
+    // so this is what makes "enabled and unconfigured" a boot-time problem
+    // rather than a job that silently goes nowhere.
+    const url = optionOf(feature, "url");
+    if (!url) {
+      return {
+        env: [],
+        problem: `features.fulfilmentRelay is enabled but features.fulfilmentRelay.url is not set (which fulfilment instance to hand jobs to)`,
+      };
+    }
+    return { env: [] };
+  }
   return { env: [] };
+}
+
+/**
+ * `fulfilmentAccept` needs two things `Requirement.needs` cannot express,
+ * because `needs` only asks whether a dependency resolves `.enabled` — B589.
+ *
+ * Accepting a job from another instance means actually printing it and
+ * getting paid for it here, so this instance needs `postcards` or
+ * `photobook` enabled with a **real** provider — not `dry-run`, which
+ * relays nothing that was not already possible locally, exactly the claim
+ * `dryRunNote()` makes for a self-hoster's own orders — plus a configured
+ * payment method, read from `stripeMode()` the same way `paymentProviderNote`
+ * does.
+ */
+function fulfilmentAcceptProblem(): string | undefined {
+  const hasRealPrinter = (name: "postcards" | "photobook"): boolean => {
+    const state = resolveOne(name);
+    if (!state.enabled) return false;
+    const provider = optionOf(loadServerConfig().features[name], "provider") ?? "dry-run";
+    return provider !== "dry-run";
+  };
+  if (!hasRealPrinter("postcards") && !hasRealPrinter("photobook")) {
+    return (
+      "features.fulfilmentAccept is enabled but neither features.postcards nor features.photobook " +
+      "is enabled with a real provider (both are off or still on dry-run) — there is nothing here to fulfil a job with"
+    );
+  }
+  if (!stripeMode()) {
+    return `features.fulfilmentAccept is enabled but no payment method is configured (${stripeProblem()})`;
+  }
+  return undefined;
 }
 
 function hasDatabase(): boolean {
@@ -375,6 +429,11 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
 
   const extra = configuredEnv(name, feature);
   if (extra.problem) return { name, enabled: false, reason: extra.problem };
+
+  if (name === "fulfilmentAccept") {
+    const problem = fulfilmentAcceptProblem();
+    if (problem) return { name, enabled: false, reason: problem };
+  }
 
   if (base.db && !hasDatabase()) {
     return {
