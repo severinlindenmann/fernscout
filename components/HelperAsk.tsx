@@ -1224,7 +1224,7 @@ function ProposalView({
           ref={alarm}
           tabIndex={-1}
           role="alert"
-          className="mt-3 text-sm leading-6 text-coral-700 focus:outline-none"
+          className="mt-3 text-sm leading-6 text-coral-600 focus:outline-none"
         >
           {failure}
         </p>

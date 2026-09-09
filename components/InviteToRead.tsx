@@ -102,7 +102,7 @@ export default function InviteToRead({ username }: { username: string }) {
         <code className="mt-3 block break-all rounded-xl bg-cream-100 p-3 text-xs text-navy-900">
           {link}
         </code>
-        <p className="mt-2 text-xs text-coral-700">{t("contact.adminInviteCopy")}</p>
+        <p className="mt-2 text-xs text-coral-600">{t("contact.adminInviteCopy")}</p>
         <div className="mt-3 flex flex-wrap items-center gap-4">
           <CopyLine
             value={link}
@@ -126,7 +126,7 @@ export default function InviteToRead({ username }: { username: string }) {
         {t("invite.share")}
       </BusyButton>
       {failed && (
-        <p role="alert" className="text-xs text-coral-700">
+        <p role="alert" className="text-xs text-coral-600">
           {t("contact.adminInviteFailed")}
         </p>
       )}

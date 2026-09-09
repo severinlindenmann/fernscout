@@ -482,7 +482,7 @@ export default function EditDay({
       </div>
 
       {failed && (
-        <p role="alert" className="mt-2 text-xs text-coral-700">
+        <p role="alert" className="mt-2 text-xs text-coral-600">
           {t("edit.failed")}
         </p>
       )}

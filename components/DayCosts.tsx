@@ -244,7 +244,7 @@ export default function DayCosts({
         </p>
       )}
       {error && (
-        <p role="alert" className="mt-3 text-sm leading-6 text-coral-700">
+        <p role="alert" className="mt-3 text-sm leading-6 text-coral-600">
           {error}
         </p>
       )}
