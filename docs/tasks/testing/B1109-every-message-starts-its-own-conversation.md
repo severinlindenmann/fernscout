@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: lib/helper/sessions.ts
 found: "2026-09-09T16:48:05Z"
+merged: "2026-09-09T19:16:47Z"
 ---
 
 # B1109 — Every message starts its own conversation, so the past-conversations list is a list of single turns
