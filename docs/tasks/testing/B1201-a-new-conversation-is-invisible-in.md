@@ -7,8 +7,7 @@ complexity: low
 area: helper room
 found: "2026-09-09T22:54:56Z"
 started: "2026-09-09T22:55:27Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-09T22:55:27Z"
+merged: "2026-09-09T23:04:06Z"
 ---
 
 # B1201 — A new conversation is invisible in the history panel, so nothing says where you are

@@ -7,8 +7,7 @@ complexity: low
 area: helper room, i18n
 found: "2026-09-09T22:54:56Z"
 started: "2026-09-09T22:55:26Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-09T22:55:26Z"
+merged: "2026-09-09T23:04:05Z"
 ---
 
 # B1200 — The room's preview claims a German day is written in English
