@@ -49,13 +49,14 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (122)
+## backlog (123)
 
-### issue (12)
+### issue (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1041](backlog/issue/B1041-the-agent-asks-in-prose-for.md) | The agent asks in prose for what its own card would have asked in controls | ISSUE | high | low |
+| [B1042](backlog/issue/B1042-the-service-worker-caches-owner-only.md) | The service worker caches owner-only responses forever and ignores no-store | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1035](backlog/issue/B1035-navy-800-is-used-across-dozens.md) | navy-800 is used across dozens of components but no navy-800 token exists | ISSUE | medium | low |
 | [B1039](backlog/issue/B1039-the-ask-box-silently-truncates-a.md) | The ask box silently truncates a long message to 500 characters | ISSUE | medium | low |
@@ -68,12 +69,11 @@ Do not edit them by hand; run the script.
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 
-### big-feature (15)
+### big-feature (14)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
-| [B891](backlog/big-feature/B891-the-helper-can-answer-but-it.md) | The helper can answer but it still cannot do anything | FEATURE | high | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | A journal folder can be exported and never pushed back, so writing locally is a one-way trip | FEATURE | medium | high |
@@ -88,11 +88,10 @@ Do not edit them by hand; run the script.
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 | [B909](backlog/big-feature/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-### small-feature (22)
+### small-feature (21)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B892](backlog/small-feature/B892-the-helper-does-not-look-like.md) | The helper does not look like a conversation anybody has had before | FEATURE | high | medium |
 | [B994](backlog/small-feature/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium |
 | [B10](backlog/small-feature/B10-a-journal-never-says-who-is.md) | A journal never says who is writing it | FEATURE | medium | medium |
 | [B112](backlog/small-feature/B112-local-scripts-write-straight-to-content.md) | Local scripts still write straight to content, and the one guarantee they skip is the draft rule | FEATURE | medium | medium |
@@ -141,7 +140,7 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### superseded (54)
+### superseded (56)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -156,6 +155,8 @@ Do not edit them by hand; run the script.
 | [B848](backlog/superseded/B848-the-traveller-figures-never-appear-on.md) | The traveller figures never appear on a postcard: cqh does not resolve against an inline-size container | ISSUE | high | low |
 | [B858](backlog/superseded/B858-the-two-questions-people-ask-most.md) | The two questions people ask most have no answer | FEATURE | high | low |
 | [B884](backlog/superseded/B884-the-spine-is-computed-40-percent.md) | The spine is computed 40 percent too narrow and the cover artwork will creep | ISSUE | high | low |
+| [B891](backlog/superseded/B891-the-helper-can-answer-but-it.md) | The helper can answer but it still cannot do anything | FEATURE | high | high |
+| [B892](backlog/superseded/B892-the-helper-does-not-look-like.md) | The helper does not look like a conversation anybody has had before | FEATURE | high | medium |
 | [B950](backlog/superseded/B950-is-a-person-s-own-sentence.md) | Is a person's own sentence about the rain theirs to keep | DOCS | high | low |
 | [B06](backlog/superseded/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B1001](backlog/superseded/B1001-the-agent-guide-is-604-bytes.md) | The agent guide is 604 bytes over its own ceiling, so verify fails on main | ISSUE | medium | low |

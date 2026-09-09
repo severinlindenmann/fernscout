@@ -5,6 +5,7 @@ type: FEATURE
 priority: high
 complexity: high
 area: agent
+superseded: "B900 and the chain after it. The write-tools-as-proposals mechanism this ticket asks for is built: lib/helper/tools.ts carries create_trip, start_day, draft_words, set_day_words, add_cost, publish_day, unpublish_day, attach_files, invite_guest and add_photos, all returning proposals only."
 found: "2026-09-07T18:29:57Z"
 ---
 
@@ -103,3 +104,31 @@ than starting again. That is the difference between this and a form.
 "Ich war gestern in Lissabon, schreib das auf" produces a proposal naming the
 day, the trip and the words, writes nothing until it is pressed, and can be
 corrected by saying what is wrong.
+
+## What happened instead — 2026-09-09
+
+Re-validated before starting. **This is built.** Not partly — the mechanism
+this ticket describes is on `main` and has been iterated on for several
+ticket-generations since.
+
+`lib/helper/tools.ts` (1557 lines) carries the write tools: `create_trip`
+(with the visibility select B731 asked for), `start_day`, `draft_words`,
+`set_day_words`, `add_cost` (with currency and `COST_CATEGORIES` dropdowns),
+`publish_day`, `unpublish_day`, `attach_files`, `invite_guest` (guest-only, as
+this ticket required) and `add_photos`. Every one of them returns a proposal
+and writes nothing. There is no delete tool and no postcard-send tool, which
+matches this ticket's own "not doing" list.
+
+`lib/helper/model.ts` carries the net: `proposals: Proposal[]` on every turn,
+and `HONESTY_RETRY` / `PENDING_RETRY` / `WORDS_RETRY` catching the model
+claiming a save or a publish happened when no proposal was on the turn. Its
+comment states the rule this ticket was written to establish: *"a write tool
+does not write, it puts a proposal on their screen... only their press changes
+anything."*
+
+Two names from this ticket's tool list — `caption_photos` and `notify_readers`
+— do not appear in `tools.ts` under those names. That is the only residual, and
+it is captured separately rather than keeping a ticket open whose body
+describes work already done.
+
+Closed as superseded. The live successors are B1041 and B1038.

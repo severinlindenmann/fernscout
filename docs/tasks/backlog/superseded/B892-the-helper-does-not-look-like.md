@@ -5,6 +5,7 @@ type: FEATURE
 priority: high
 complexity: medium
 area: agent, ui
+superseded: "B900 and the chain after it. The thread UI this ticket asks for is built; components/HelperAskHere.tsx, the file it names, no longer exists."
 found: "2026-09-07T18:29:58Z"
 ---
 
@@ -56,3 +57,24 @@ interfaces most often get wrong.
 
 Somebody who has used a messaging app can hold a conversation without being
 told how, on a phone, and a screen-reader user can too.
+
+## What happened instead — 2026-09-09
+
+Re-validated before starting. **This is built**, and the file the ticket names
+to change is gone.
+
+`components/HelperAskHere.tsx` no longer exists — it was last touched at
+`a4fa7be5` (B1007). The helper surface is now `components/HelperRoom.tsx` (924
+lines) and `components/HelperAsk.tsx` (1266 lines), and it is the thread this
+ticket asks for: turns stacked and scrolling, a `fixed inset-x-0 bottom-0`
+input pane that stays reachable, a `role="status" aria-live="polite"` thinking
+announcement, and B891's proposals rendered inline as cards.
+
+What this ticket asked for that has *not* been separately proven is the part
+no test can reach: 390px with the keyboard open, focus retention across a turn,
+and announce-once behaviour. That is a browser session against the built
+surface, not a rebuild, and B795/B796 are the tickets that have been finding
+faults of that kind.
+
+Closed as superseded. Verifying the shipped thread at phone width belongs to a
+`test-in-a-browser` pass, not to this ticket.
