@@ -273,9 +273,12 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (0)
+## in-development (2)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B1200](in-development/B1200-the-room-s-preview-claims-a.md) | The room's preview claims a German day is written in English | ISSUE | high | low | `b9809a36` |
+| [B1201](in-development/B1201-a-new-conversation-is-invisible-in.md) | A new conversation is invisible in the history panel, so nothing says where you are | ISSUE | medium | low | `b9809a36` |
 
 ## testing (82)
 
