@@ -224,6 +224,9 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
       quotedCredits: quote.printCredits,
       quotedAt: nowIso(),
       shipmentMethodUid: quote.shipmentMethodUid,
+      // Bought, not proposed — B1164. `credits` above already includes the
+      // print, so nothing may charge for it a second time.
+      paid: true,
     },
   };
 
