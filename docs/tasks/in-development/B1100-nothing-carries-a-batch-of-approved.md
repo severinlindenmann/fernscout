@@ -70,3 +70,37 @@ task lane.
 - `npm run unused` is run after each merge, and a red one stops that merge
   rather than being carried forward.
 - The skill states its concurrency cap and its per-ticket budget as numbers.
+
+## Built
+
+`.claude/skills/run-a-batch/SKILL.md`. Numbers stated: concurrency cap 3
+groups in flight, per-ticket budget 3 failed `npm run verify` cycles. Notes:
+
+- **Grouping is read from `brief.json`'s `groups[]`, never recomputed** —
+  B1099's `plan-a-run` is now the one place that computation happens, for the
+  reason AGENTS.md gives everywhere else a fact lives in one place. This
+  skill's "group by shared files" bullet in Work is satisfied by that read,
+  not by a second pass over the tickets.
+- Dispatch is two-level, as the ticket asks: this skill spawns one subagent
+  per **group** (not per ticket), and that subagent runs `work-on-a-task` per
+  ticket inside its own worktree, sequentially, stopping before the merge step
+  — merging stays with this skill's orchestrator, serialised, because that is
+  the deliberately reinserted bottleneck the ticket's Why argues for.
+  `EnterWorktree` cannot be used by either level, since both this skill and
+  the group agents it spawns are subagents relative to whoever runs the batch;
+  absolute paths throughout, same as `work-on-a-task` already requires of a
+  dispatched agent.
+- **The chosen option's mockup HTML travels with the dispatch, pasted into
+  the group subagent's prompt, not left as a path** — a subagent starting a
+  fresh context has to go re-read a path, and the ticket's Why names exactly
+  that failure mode (a reviewer who knew the task but not the plan). The group
+  subagent is told explicitly to check its own verify/acceptance pass against
+  the same `chosen` option, not just the ticket file, closing the other half
+  of that same failure.
+- A wave's deploy failure parks **every ticket merged in that wave**, not only
+  the one whose change broke health — a wave is the unit that goes live
+  together, so a bad wave is bad for everyone in it.
+- `run-a-batch` ends by handing the whole `.claude/runs/<run-id>/` directory
+  to `report-a-run` rather than writing its own summary — same palette, same
+  machinery, reused by reference exactly as `plan-a-run` reuses
+  `triage-a-backlog`'s.
