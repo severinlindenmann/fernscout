@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (147)
+## backlog (148)
 
 ### security (4)
 
@@ -101,7 +101,7 @@ Do not edit them by hand; run the script.
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 | [B909](backlog/big-feature/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-### small-feature (28)
+### small-feature (29)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -110,6 +110,7 @@ Do not edit them by hand; run the script.
 | [B1061](backlog/small-feature/B1061-a-conversation-that-goes-quiet-for.md) | A conversation that goes quiet for a day cannot be answered, and nothing in the code knows it | FEATURE | high | medium |
 | [B1062](backlog/small-feature/B1062-there-is-still-no-way-out.md) | There is still no way out of the WhatsApp channel from inside WhatsApp | FEATURE | high | medium |
 | [B1065](backlog/small-feature/B1065-there-is-no-way-to-prove.md) | There is no way to prove that somebody holds the telephone number they typed | FEATURE | high | medium |
+| [B1091](backlog/small-feature/B1091-the-two-model-calls-that-cost.md) | The two model calls that cost real money are free, so the ledger cannot account for what the instance spends | FEATURE | high | medium |
 | [B994](backlog/small-feature/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium |
 | [B1060](backlog/small-feature/B1060-a-voice-note-sent-over-whatsapp.md) | A voice note sent over WhatsApp has no route to the transcriber that already exists | FEATURE | medium | low |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
@@ -247,12 +248,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (10)
+## in-development (11)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1014](in-development/B1014-the-embedded-print-fonts-are-read.md) | The embedded print fonts are read from the process's working directory, so npm run postcard fails outside the checkout | ISSUE | high | low | `b8352d66` |
 | [B1015](in-development/B1015-b984-moved-the-agent-room-s.md) | B984 moved the agent room's URL and left one test asserting the old one, so main is red | ISSUE | high | low | `b8352d66` |
+| [B1090](in-development/B1090-a-day-s-zone-must-be.md) | A day's zone must be worked out from where it happened, or B42 helps almost no day that exists | ISSUE | high | medium | `eef381a2` |
 | [B980](in-development/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | `a4bbb185` |
 | [B984](in-development/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | `fdfcf5f2` |
 | [B1035](in-development/B1035-navy-800-is-used-across-dozens.md) | navy-800 is used across dozens of components but no navy-800 token exists | ISSUE | medium | low | `f88144a1` |
