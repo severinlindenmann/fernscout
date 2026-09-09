@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: helper, model
 found: "2026-09-09T04:48:50Z"
+merged: "2026-09-09T05:48:24Z"
 ---
 
 # B1041 — The agent asks in prose for what its own card would have asked in controls
