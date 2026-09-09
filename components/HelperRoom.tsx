@@ -14,6 +14,7 @@ import CurrencyProvider from "@/components/CurrencyProvider";
 import HelperAsk from "@/components/HelperAsk";
 import { useI18n } from "@/components/LocaleProvider";
 import { mediaLoader } from "@/components/mediaLoader";
+import { InboxFileGroups } from "@/components/InboxFileGroups";
 import { PhotoPicker } from "@/components/PhotoPicker";
 import { DayCard } from "@/components/StoryPager";
 import { drain, enqueue, type QueueProgress } from "@/components/uploadQueue";
@@ -992,6 +993,16 @@ function PreviewSheet({
  * nobody has filed is not published. The name is what a person recognises
  * their own file by.
  */
+/**
+ * A staged file whose name says it is a moving picture — B1123.
+ *
+ * The inbox stores a video under `kind: "media"` beside a photograph, and the
+ * thumbnail route serves only still images, so a video would otherwise ask for
+ * a picture that never comes. Its own extension is the one thing known here
+ * without a lookup.
+ */
+const VIDEO = /\.(mp4|mov|m4v|webm|avi|mkv)$/i;
+
 function FilesPane({
   files,
   selected,
@@ -1060,12 +1071,34 @@ function FilesPane({
 
       {empty && <p className="mt-3 text-sm leading-6 text-navy-700">{t("agent.room.noFiles")}</p>}
 
+      {/**
+       * What is *waiting*, grouped by kind and newest first — B1123.
+       *
+       * This used to be one undifferentiated grid of tiles under a heading
+       * saying "inbox". A photograph and a bank statement drew the same empty
+       * square, and the pane led with what had been *chosen*, which a person
+       * already knows, rather than what is waiting, which they do not.
+       *
+       * `InboxFileGroups` is the view; `filesForRoom` grew `kind`, `bytes`
+       * and `uploadedAt` to feed it, and an inbox photograph's `src` now
+       * points at the owner-only thumbnail route rather than being undefined.
+       */}
       {files.inbox.length > 0 && (
-        <Group heading={t("agent.room.inbox")}>
-          {files.inbox.map((file) => (
-            <Tile key={file.id} file={file} on={selected.includes(file.id)} onToggle={onToggle} />
-          ))}
-        </Group>
+        <InboxFileGroups
+          files={files.inbox.map((file) => ({
+            id: file.id,
+            name: file.name,
+            // The four inbox kinds collapse to the three shapes a person sees.
+            // Only `media` has a picture; `files`, `photobook` and `postcards`
+            // are documents and draw their type instead of an empty frame.
+            kind: file.kind === "media" ? (VIDEO.test(file.name) ? "video" : "photo") : "document",
+            src: file.src,
+            bytes: file.bytes,
+            at: file.uploadedAt,
+          }))}
+          selected={selected}
+          onToggle={onToggle}
+        />
       )}
 
       {files.trip.length > 0 && (
