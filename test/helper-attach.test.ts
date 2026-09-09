@@ -176,6 +176,48 @@ describe("two photographs, ticked and put on a day", () => {
   });
 
   /**
+   * **Nothing ticked means everything waiting** — B1189.
+   *
+   * "Put the photos waiting in my inbox on today" with an empty selection
+   * used to propose nothing, one turn after the `inbox` read had listed
+   * those very files by name — a claim and its contradiction in one
+   * message, found by a persona on the live site. The proposal is what
+   * makes the fallback safe: every file is named on the card, and nothing
+   * moves until the press.
+   */
+  test("with nothing ticked and no ids, every waiting photograph is proposed", async () => {
+    const one = await stage("harbour.jpg", 1);
+    const two = await stage("boats.jpg", 2);
+    const ran = await runTool(
+      "alex",
+      "attach_files",
+      { date: "2026-05-04" },
+      (key) => key,
+      "2026-05-05",
+      [],
+    );
+    const files = ran.proposal?.fields.find((field) => field.name === "files");
+    expect(files?.value.split(",").sort()).toEqual([one.entry.id, two.entry.id].sort());
+  });
+
+  /** A filename the model typed instead of an id still names the file —
+   *  B1189's other half: the filename is on the screen, the id never is. */
+  test("a filename resolves like an id", async () => {
+    const one = await stage("harbour.jpg", 1);
+    await stage("boats.jpg", 2);
+    const ran = await runTool(
+      "alex",
+      "attach_files",
+      { date: "2026-05-04", files: "harbour.jpg" },
+      (key) => key,
+      "2026-05-05",
+      [],
+    );
+    const files = ran.proposal?.fields.find((field) => field.name === "files");
+    expect(files?.value).toBe(one.entry.id);
+  });
+
+  /**
    * **A trip is named, not identified** — B927, and very likely B925's own
    * root: an id derived from a title rather than remembered.
    */

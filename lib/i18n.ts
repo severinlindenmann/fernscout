@@ -332,6 +332,7 @@ export type TranslationKey =
   | "agent.open.empty"
   | "agent.open.finishIt"
   | "agent.open.finished"
+  | "agent.open.fresh"
   | "agent.open.invite"
   | "agent.open.more"
   | "agent.open.newDay"

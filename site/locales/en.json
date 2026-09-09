@@ -1595,6 +1595,7 @@
   "agent.open.clear": "Everything is written and on the site — the last of it {date}. What would you like to do?",
   "agent.open.finished": "{title} is finished — {count} days, all on the site. Shall we make something of it?",
   "agent.open.empty": "Welcome. There is no trip here yet — tell me about yours and I will set it up.",
+  "agent.open.fresh": "“{title}” is ready, and nothing is written in it yet. Tell me about your first day whenever you like.",
   "agent.open.newTrip": "New trip",
   "agent.open.newDay": "New day",
   "agent.open.catchPhotos": "Add missing photographs",

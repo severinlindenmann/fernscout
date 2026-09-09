@@ -53,6 +53,10 @@ export type Opening =
   | { state: "days"; days: OpeningDay[]; more: number }
   | { state: "clear"; lastDate: string }
   | { state: "finished"; trip: string; title: string; days: number }
+  /** A trip exists and not one day has been written — every new owner's
+   *  second screen. B1188: it used to fall into `clear` with no last date,
+   *  and the greeting read "the last of it undefined, NaN undefined". */
+  | { state: "fresh"; title: string }
   | { state: "empty" };
 
 /**
@@ -103,8 +107,16 @@ export function openingFor(username: string, today: string): Opening {
   const done = finished(username, today);
   if (done) return { state: "finished", ...done };
 
-  const dates = getTrips(username)
+  const trips = getTrips(username);
+  const dates = trips
     .flatMap((trip) => getAllEntries(trip.ref, AS_AUTHOR).map((entry) => entry.date))
     .sort();
-  return { state: "clear", lastDate: dates.at(-1) ?? "" };
+  const last = dates.at(-1);
+  if (!last) {
+    // Trips, and not one day written — B1188. "All clear, the last day
+    // was <nothing>" is not a sentence; "your trip is ready" is.
+    const newest = [...trips].sort((a, b) => b.start.localeCompare(a.start))[0];
+    return { state: "fresh", title: newest.title };
+  }
+  return { state: "clear", lastDate: last };
 }

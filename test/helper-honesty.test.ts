@@ -258,6 +258,11 @@ describe("pointing at something on the screen", () => {
     // saved, but try reloading" is still sending her away.
     "Try reloading the page.",
     "Lade die Seite neu.",
+    // B1190 — the imperative with an infinitive and no object, from a
+    // persona round on the live site: no "it", no "button", still a claim
+    // about a control the turn had not drawn.
+    "Press to save, or tell me if you want to change anything.",
+    "Drück zum Speichern.",
   ]) {
     test(`is a button: ${said}`, () => {
       expect(claimsAButton(said)).toBe(true);

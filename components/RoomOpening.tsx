@@ -103,6 +103,7 @@ export default function RoomOpening({
           t("agent.open.clear", { date: formatLongDate(opening.lastDate) })}
         {opening.state === "finished" &&
           t("agent.open.finished", { title: opening.title, count: String(opening.days) })}
+        {opening.state === "fresh" && t("agent.open.fresh", { title: opening.title })}
         {opening.state === "empty" && t("agent.open.empty")}
       </p>
 
@@ -120,7 +121,7 @@ export default function RoomOpening({
       )}
 
       <div className="flex flex-wrap gap-2">
-        {opening.state === "clear" && (
+        {(opening.state === "clear" || opening.state === "fresh") && (
           <>
             <button type="button" onClick={said("agent.open.sayNewDay")} className={bright}>
               {t("agent.open.newDay")}

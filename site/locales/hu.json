@@ -1595,6 +1595,7 @@
   "agent.open.clear": "Minden meg van írva és fent van — utoljára {date}. Mit szeretnél csinálni?",
   "agent.open.finished": "A(z) {title} kész — {count} nap, mind fent van. Csináljunk belőle valamit?",
   "agent.open.empty": "Üdv. Itt még nincs utazás — mesélj a tiédről, és létrehozom.",
+  "agent.open.fresh": "A(z) „{title}” készen áll, de még semmi sincs benne. Mesélj az első napról, amikor csak szeretnél.",
   "agent.open.newTrip": "Új utazás",
   "agent.open.newDay": "Új nap",
   "agent.open.catchPhotos": "Hiányzó fényképek",

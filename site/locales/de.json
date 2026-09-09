@@ -1595,6 +1595,7 @@
   "agent.open.clear": "Alles ist geschrieben und online — zuletzt {date}. Woran möchtest du arbeiten?",
   "agent.open.finished": "{title} ist fertig — {count} Tage, alle online. Sollen wir etwas daraus machen?",
   "agent.open.empty": "Willkommen. Hier ist noch keine Reise — erzähl mir von deiner, dann lege ich sie an.",
+  "agent.open.fresh": "«{title}» ist bereit, und noch ist nichts darin geschrieben. Erzähl mir vom ersten Tag, wann immer du magst.",
   "agent.open.newTrip": "Neue Reise",
   "agent.open.newDay": "Neuer Tag",
   "agent.open.catchPhotos": "Fotos nachtragen",
