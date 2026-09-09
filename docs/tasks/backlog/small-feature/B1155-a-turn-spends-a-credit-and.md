@@ -57,3 +57,19 @@ is a taxi meter, and this is somebody's travel journal.
 The pill shows the balance and turns amber below the threshold. Pressing opens
 the sheet. "Buy more" opens a payment page and the balance is unchanged until
 the webhook has granted — check the ledger, not the screen.
+
+## Decided, before building
+
+A person answered these on 2026-09-09; they are not open questions, and a
+build must not re-litigate them.
+
+- **Amber below five credits**, not ten. Tighter than recommended: the pill
+  stays quiet until it is nearly urgent.
+- **Credits only — no franc figure anywhere in the sheet.** Not even marked as
+  today's price. A money figure implies a refund value and a fixed rate, and
+  `lib/usage.ts` deliberately stores units so a period can be re-priced later.
+- **Totals only, no ledger rows.** Balance and this month's spend. The
+  question the pill raises is "am I about to run out", and that is what
+  answers it; the operator's own ledger is on `/admin`.
+- **Two sheets**: this one carries the balance and B1154's key list; the
+  handover prompt is B1153's own.

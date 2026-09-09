@@ -55,3 +55,12 @@ Issue a key through the handover sheet, then open the panel: it is listed with
 today's date. Revoke it and a call using it is refused. The rendered HTML
 contains no token — assert it in a test the way `test/helper-journal.test.ts`
 already does for the tool.
+
+## Decided, before building
+
+A person answered these on 2026-09-09; they are not open questions.
+
+- **The key list shares a sheet with the balance** (B1155), reached from the
+  credits pill. The handover prompt (B1153) is a separate sheet.
+- The key list is the more important half of that sheet, and should come
+  before the balance if only one can be read without scrolling.

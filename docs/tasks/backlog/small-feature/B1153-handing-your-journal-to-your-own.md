@@ -65,3 +65,11 @@ clipboard, a screenshot and a scrollback.
 Press the line under the composer. A sheet opens over the conversation with a
 copyable prompt and a clock time; the conversation is still behind it. No
 credential is minted until the press — check the transactions or the log.
+
+## Decided, before building
+
+A person answered these on 2026-09-09; they are not open questions.
+
+- **Two sheets, not one or three.** The handover prompt is a task you finish
+  and close, so it gets its own sheet. The key list and the balance are both
+  "the state of my account" and share the other one — B1154 and B1155.
