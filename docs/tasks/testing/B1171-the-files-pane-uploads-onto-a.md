@@ -7,8 +7,7 @@ complexity: medium
 area: helper room
 found: "2026-09-09T20:04:48Z"
 started: "2026-09-09T20:06:22Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-09T20:06:22Z"
+merged: "2026-09-09T20:26:54Z"
 ---
 
 # B1171 — The files pane uploads onto a day nobody chose and never shows the result

@@ -7,8 +7,7 @@ complexity: low
 area: helper room
 found: "2026-09-09T20:04:47Z"
 started: "2026-09-09T20:06:21Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-09T20:06:21Z"
+merged: "2026-09-09T20:26:53Z"
 ---
 
 # B1169 — The room re-renders and shifts: RoomOpening hydration mismatch and uncontained scrolling
