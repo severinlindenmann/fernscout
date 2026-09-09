@@ -19,6 +19,21 @@ export function whatsappCountryCode(): string | undefined {
 }
 
 /**
+ * This instance's own number, for a `wa.me` link — B1127.
+ *
+ * `features.whatsapp.number` in `site/config.json`, E.164 digits, no `+` —
+ * the same shape `toE164` produces and `wa.me/<number>` wants. Absent means
+ * the link simply is not rendered anywhere, which is the outcome the owner
+ * chose over a broken chip: nothing here guesses a number from the Cloud API
+ * credentials, because the phone number id `WHATSAPP_PHONE_NUMBER_ID` names
+ * is not the dialable number itself.
+ */
+export function whatsappDisplayNumber(): string | undefined {
+  const configured = loadServerConfig().features.whatsapp.number;
+  return typeof configured === "string" && configured.trim() !== "" ? configured.trim() : undefined;
+}
+
+/**
  * Which approved template announces a day in a given language.
  *
  * `features.whatsapp.templates` maps a locale to a template name, because

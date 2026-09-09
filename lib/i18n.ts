@@ -342,6 +342,8 @@ export type TranslationKey =
   | "agent.open.sayNewDay"
   | "agent.open.sayNewTrip"
   | "agent.open.sayPhotos"
+  | "agent.open.whatsapp"
+  | "agent.open.whatsappGreeting"
   | "agent.ownAgentOptional"
   | "agent.ownerNameHint"
   | "agent.ownerNameLabel"
