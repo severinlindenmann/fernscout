@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (112)
+## backlog (114)
 
 ### security (1)
 
@@ -133,7 +133,13 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### superseded (57)
+### docs-and-skills (1)
+
+| # | Finding | Type | Priority | Complexity |
+| --- | --- | --- | --- | --- |
+| [B1046](backlog/docs-and-skills/B1046-two-sessions-running-verify-in-the.md) | Two sessions running verify in the shared checkout collide on the next build lock | DOCS | low | low |
+
+### superseded (58)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -180,6 +186,7 @@ Do not edit them by hand; run the script.
 | [B1009](backlog/superseded/B1009-the-ask-box-on-agent-is.md) | The ask box on /agent is now the only underlined way into the room, beside a row that is not | ISSUE | low | low |
 | [B1023](backlog/superseded/B1023-npm-run-verify-fails-on-task.md) | npm run verify fails on task-ids.test.ts: five backlog/wont-do tasks have no wontDo field and are misfiled | CHORE | low | low |
 | [B1034](backlog/superseded/B1034-agentdoor-tsx-still-imports-agentrow-helperask.md) | AgentDoor.tsx still imports AgentRow, HelperAsk, AgentHandover and LOW_CREDITS from the journal card B984 removed | CHORE | low | low |
+| [B1047](backlog/superseded/B1047-two-sessions-running-verify-in-the.md) | Two sessions running verify in the shared checkout collide on the next build lock | DOCS | low | low |
 | [B176](backlog/superseded/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
 | [B243](backlog/superseded/B243-npm-run-postcard-prints-four-lines.md) | npm run postcard prints four lines of Node module-type warning before its own first line | ISSUE | low | low |
 | [B246](backlog/superseded/B246-openapi-json-does-not-document-costsvisibility.md) | openapi.json does not document costsVisibility on POST trips | ISSUE | low | low |
