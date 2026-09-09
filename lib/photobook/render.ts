@@ -952,18 +952,35 @@ export function renderCover(
     PdfBuilder.drawRect(page, b.x, b.y, b.width, b.height, PAPER);
   }
 
+  /**
+   * A cover has a gutter too, and it had been using the outer margin for it.
+   *
+   * The front panel's left edge *is* the hinge — the spine on a softcover, the
+   * joint on a case — so type set `safeMm` from it sits as close to the fold as
+   * an interior page would ever put a word, and closer than that once the book
+   * is bound and the first few millimetres curve away. An interior recto has
+   * had `gutterMm` on that edge since the beginning; the cover simply never
+   * asked for it, and the title looked all but cut off by the spine.
+   *
+   * The back panel is the mirror: its hinge is on the *right*, so its text
+   * keeps the outer margin on the left and loses the gutter's width from the
+   * measure instead.
+   */
+  const frontTextX = frontX + spec.gutterMm;
+  const frontMeasure = mm(panelW - spec.gutterMm - spec.safeMm);
+
   let y = panelH - 18;
-  for (const line of wrap(cover.title, type.heading, mm(panelW - spec.safeMm * 2), "bold")) {
-    text(page, frame, line, frontX + spec.safeMm, y, type.heading, INK, "F2");
+  for (const line of wrap(cover.title, type.heading, frontMeasure, "bold")) {
+    text(page, frame, line, frontTextX, y, type.heading, INK, "F2");
     y -= (type.heading * 1.2) / mm(1);
   }
   if (cover.subtitle) {
-    for (const line of wrap(cover.subtitle, type.caption, mm(panelW - spec.safeMm * 2)).slice(0, 2)) {
-      text(page, frame, line, frontX + spec.safeMm, y, type.caption, MUTED, "F3");
+    for (const line of wrap(cover.subtitle, type.caption, frontMeasure).slice(0, 2)) {
+      text(page, frame, line, frontTextX, y, type.caption, MUTED, "F3");
       y -= (type.caption * 1.4) / mm(1);
     }
   }
-  text(page, frame, eyebrow(cover.dates), frontX + spec.safeMm, y - 2, type.caption, ACCENT);
+  text(page, frame, eyebrow(cover.dates), frontTextX, y - 2, type.caption, ACCENT);
 
   // Back panel.
   let by = panelH - 24;
