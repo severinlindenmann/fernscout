@@ -37,9 +37,15 @@ a readonly textarea as the fallback, never a download):
 
 - Every ticket row carries **accept / needs another look**, nothing
   pre-selected, and the tally in the sticky bar counts the undecided.
+- **Every ticket row also carries a note field**, on both verdicts, and
+  whatever is typed there is carried into the generated text beside its id.
+  That is the half that makes the page worth filling in: "accepted, but the
+  spacing at 390 is tight" is a sentence the next agent can act on, and it is
+  lost entirely if the only output is a list of ids. An empty note contributes
+  nothing — no blank bullet, no placeholder.
 - "Build the list" writes a paste-ready instruction as its first line —
-  `move B1097 B1099 B1100 to completed` — followed by the tickets held back,
-  each with whatever the person typed in its note field.
+  `move B1097 B1099 B1100 to completed` — then the accepted tickets that
+  carry a note, then the tickets held back with theirs.
 - The closing box ("what still wants your eyes") stays exactly as it is. It is
   the thing the person reads *before* pressing the buttons.
 
@@ -52,4 +58,6 @@ person's gate; the deliverable is still text in their clipboard.
   nothing added.
 - A ticket the person marked "needs another look" appears below that line with
   its note, and is not in the move list.
+- A note typed against an accepted ticket survives into the clipboard text; a
+  ticket with no note adds no line.
 - The skill still says, in words, that the report does not move anything.
