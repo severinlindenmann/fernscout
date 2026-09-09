@@ -21,3 +21,37 @@ TODO
 ## Acceptance
 
 TODO
+
+## Why
+
+A key issued to an agent writes to this journal for seven days. The room shows
+none of them, so a key you forgot you issued is a key that is still writing and
+that you have no way to notice.
+
+`keys` and `revoke_key` exist in the tool registry and work — a person has to
+know to *ask the model* for them, in words. That is a discoverability failure
+for the one control that is about somebody else's access to your journal.
+
+`/<user>/me` has a device list, which is again a page away from the room.
+
+## Work
+
+A list in the room: what each key is, when it was made, when it was last used,
+and one control — revoke.
+
+The route is the work. A page holds a cookie and never a bearer token, so this
+needs a cookie-only, owner-only helper route the way
+`app/api/helper/[user]/keys/route.ts` already does it — check whether that
+route can simply be read from the panel rather than adding another.
+
+**Never print a token.** The list shows dates, never the key. `listSessions`
+does not return one and the panel must not be the place that starts.
+
+Not doing: renaming keys, or showing keys for other journals.
+
+## Acceptance
+
+Issue a key through the handover sheet, then open the panel: it is listed with
+today's date. Revoke it and a call using it is refused. The rendered HTML
+contains no token — assert it in a test the way `test/helper-journal.test.ts`
+already does for the tool.
