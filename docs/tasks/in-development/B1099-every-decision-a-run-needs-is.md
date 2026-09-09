@@ -81,3 +81,32 @@ this skill ends with the person's answer, and B1100 is what consumes it.
 - A ticket whose code shows it is already fixed appears as a dropped row with
   the file and line that shows it, and does not appear in the brief.
 - No task file moved.
+
+## Built
+
+`.claude/skills/plan-a-run/SKILL.md`. Notes for whoever reads this next:
+
+- **The grouping is computed here, once, in a new Step 3 that runs after every
+  per-ticket subagent reports** — an orchestrator step, not a subagent's, since
+  only the orchestrator sees every ticket's touched files at once. `brief.json`
+  carries `groups[]` (name, ticket ids, shared files) as a top-level array, and
+  `run-a-batch` (B1100) reads it rather than recomputing it — the file is now
+  the single place that fact lives, matching AGENTS.md's reasoning for `type:`
+  deciding a task's folder and nothing else duplicating it.
+- **`chosen` is `null`, not absent, on a ticket with no options** — B1100's
+  builder treats `null` as "build from the ticket's Work section directly" and
+  a `chosen: null` alongside a non-empty `options[]` as an unfinished brief
+  that must not be handed over.
+- The "same four answers as B1098's step 0" is: valid / already fixed
+  (superseded:, file it, stop) / superseded by \<id\> / premise is wrong
+  (wontDo:). B1098 was still open (not yet merged into `work-on-a-task`) while
+  this was written, so `plan-a-run` states the four verdicts itself rather than
+  pointing at code that may not exist yet when this skill is used.
+- `.claude/runs/` needed no new `.gitignore` line — `.claude/*` is already
+  ignored except `!.claude/skills/`, so a run directory is invisible to git by
+  construction, verified with a throwaway file and `git status --porcelain`.
+- The artifact writes the brief into a `readonly` textarea and attempts
+  `navigator.clipboard.writeText`, same mechanics as `triage-a-backlog`'s
+  decision bar — there is no way for a static Artifact to write
+  `.claude/runs/<run-id>/brief.json` to disk itself, so the person pastes the
+  JSON back and the assistant session is what writes the file.
