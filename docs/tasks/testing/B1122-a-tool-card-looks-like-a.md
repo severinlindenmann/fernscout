@@ -7,8 +7,7 @@ complexity: medium
 area: components/HelperAsk.tsx
 found: "2026-09-09T17:45:58Z"
 started: "2026-09-09T17:49:37Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-09T17:49:37Z"
+merged: "2026-09-09T18:37:34Z"
 ---
 
 # B1122 — A tool card looks like a form rather than a decision, and its controls are unreachable under a phone keyboard

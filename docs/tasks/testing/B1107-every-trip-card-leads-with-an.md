@@ -7,8 +7,7 @@ complexity: low
 area: lib/helper/tools/areas, components/HelperAsk.tsx
 found: "2026-09-09T16:46:47Z"
 started: "2026-09-09T17:49:39Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-09T17:49:39Z"
+merged: "2026-09-09T18:37:33Z"
 ---
 
 # B1107 — Every trip card leads with an editable box holding a raw trip id the person has never seen

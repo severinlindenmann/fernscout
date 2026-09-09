@@ -7,8 +7,7 @@ complexity: low
 area: components/HelperAsk.tsx
 found: "2026-09-09T17:45:59Z"
 started: "2026-09-09T17:49:38Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-09T17:49:38Z"
+merged: "2026-09-09T18:37:35Z"
 ---
 
 # B1124 — Sending a message and waiting for an answer has no motion at all
