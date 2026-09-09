@@ -72,7 +72,7 @@ export type InboundMessage =
       id: string;
       from: string;
       timestamp: string;
-      contacts: Array<{ name?: string; phones?: string[] }>;
+      contacts: Array<{ name?: string; phones?: string[]; emails?: string[] }>;
     }
   | {
       kind: "interactive";
@@ -96,7 +96,11 @@ type MetaMessage = {
   sticker?: MetaMedia;
   audio?: MetaMedia & { voice?: boolean };
   location?: { latitude: number; longitude: number; name?: string; address?: string };
-  contacts?: Array<{ name?: { formatted_name?: string }; phones?: Array<{ wa_id?: string; phone?: string }> }>;
+  contacts?: Array<{
+    name?: { formatted_name?: string };
+    phones?: Array<{ wa_id?: string; phone?: string }>;
+    emails?: Array<{ email?: string }>;
+  }>;
   interactive?: {
     type?: string;
     button_reply?: { id: string; title: string };
@@ -159,6 +163,9 @@ function normaliseOne(m: MetaMessage): InboundMessage {
           ...(c.name?.formatted_name ? { name: c.name.formatted_name } : {}),
           ...(c.phones?.length
             ? { phones: c.phones.map((p) => p.wa_id ?? p.phone ?? "").filter(Boolean) }
+            : {}),
+          ...(c.emails?.length
+            ? { emails: c.emails.map((e) => e.email ?? "").filter(Boolean) }
             : {}),
         })),
       };

@@ -1,19 +1,31 @@
 import "server-only";
+import fs from "node:fs";
+import path from "node:path";
+import { reversePlace } from "../addressLookup";
+import { createDraft, factsOfInput, type DraftInput } from "../api/entries";
+import { fillDayWeatherQuietly } from "../api/weather";
+import { isEmail } from "../auth";
 import { isEnabled } from "../capabilities";
+import { contentRoot } from "../contentRoot";
+import { createInvite, inviteLinkUrl } from "../contacts/invites";
 import { balanceOf } from "../credits";
 import { getUser } from "../users";
 import { currentHelperProvider, hasHelperConsent, recordHelperConsent } from "../helper/consent";
+import { NO_PROSE } from "../helper/draft";
 import type { Say } from "../helper/intents";
 import { answerInThread } from "../helper/model";
 import { recordTurn } from "../helper/sessions";
 import { MAX_AUDIO_BYTES, MAX_SPEECH_SECONDS, speechLanguageFor } from "../helper/speech";
-import { history, proposed, remember, sessionId } from "../helper/thread";
+import { history, proposed, remember, sessionId, wrote } from "../helper/thread";
 import { spendAndTranscribe } from "../helper/transcribeSpend";
 import { kindForExtension, listInbox, storeInboxFile } from "../inbox";
 import { translateIn } from "../locales";
 import { journalForNumber } from "../registry";
 import { serverSite } from "../site";
 import { storageRefusal } from "../storageQuota";
+import { missingFrom, UNKNOWN } from "../tracks";
+import { getTrips, tripRef } from "../trips";
+import type { Trip } from "../types";
 import { isAcknowledgement } from "./acknowledge";
 import { hasAcknowledged, hasBeenGreeted, markAcknowledged, markGreeted } from "./binding";
 import { downloadMedia } from "./cloud";
@@ -153,6 +165,16 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
 
   if (message.kind === "image" || message.kind === "document") {
     await handleMedia(username, locale, message);
+    return;
+  }
+
+  if (message.kind === "location") {
+    await handleLocationPin(username, locale, message);
+    return;
+  }
+
+  if (message.kind === "contacts") {
+    await handleContactCard(username, locale, message);
     return;
   }
 
@@ -354,6 +376,144 @@ async function handleMedia(username: string, locale: string, message: MediaMessa
   console.log(
     `[whatsapp:inbound] ${maskNumber(message.from)} (${username}) — ${message.kind} landed in the inbox as ${stored.entry.id}`,
   );
+}
+
+/**
+ * Which trip a date belongs to, when it might belong to several — B1074.
+ *
+ * **Never guessed past the tiebreak the owner chose.** No trip covering the
+ * date is a refusal; exactly one is used outright; more than one uses the
+ * most recently *created* — read from `trip.md`'s own file time, since
+ * nothing in `Trip` carries a creation timestamp — which is a real rule
+ * rather than "ask again", so ambiguity resolves the same way every time
+ * rather than depending on which trip happened to sort first.
+ */
+function tripForDate(username: string, date: string): Trip | null {
+  const covering = getTrips(username).filter((trip) => date >= trip.start && date <= trip.end);
+  if (covering.length === 0) return null;
+  if (covering.length === 1) return covering[0];
+  const withCreated = covering.map((trip) => {
+    let created = 0;
+    try {
+      created = fs.statSync(path.join(contentRoot(), username, "trips", trip.id, "trip.md")).mtimeMs;
+    } catch {
+      // No file to stat is not reachable in practice (a listed trip has one)
+      // — 0 just sorts it last rather than throwing on the pin somebody sent.
+    }
+    return { trip, created };
+  });
+  withCreated.sort((a, b) => b.created - a.created);
+  return withCreated[0].trip;
+}
+
+/**
+ * A location pin — B1074.
+ *
+ * The date is the message's own arrival date: WhatsApp carries no other date
+ * on a pin, and the sender is describing where they are *now*, not annotating
+ * a day they already wrote. `createDraft` is the exact function
+ * `app/api/helper/[user]/day/route.ts` calls — the same write, reached
+ * directly rather than through that cookie-gated route, the way every tool
+ * in `lib/helper/tools/` already reaches it.
+ */
+async function handleLocationPin(
+  username: string,
+  locale: string,
+  message: Extract<InboundMessage, { kind: "location" }>,
+): Promise<void> {
+  const date = new Date((Number(message.timestamp) || Date.now() / 1000) * 1000).toISOString().slice(0, 10);
+  const trip = tripForDate(username, date);
+  if (!trip) {
+    await sendServiceReply(message.from, translateIn(locale, "wa.locationNoTrip", { date }), username);
+    return;
+  }
+
+  const ref = tripRef(username, trip.id);
+  const place = isEnabled("addressLookup", username)
+    ? await reversePlace(message.latitude, message.longitude, locale)
+    : null;
+
+  const input: DraftInput = {
+    title: date,
+    date,
+    content: NO_PROSE,
+    lat: message.latitude,
+    lng: message.longitude,
+    ...(place ? { location: place.location, country: place.country } : {}),
+    ...(place?.countryCode ? { countryCode: place.countryCode } : {}),
+    weather: true,
+    // A pin carries no cost figures and nobody has been asked for any yet —
+    // "unknown" rather than "none", the same honest third answer
+    // `components/AgentWizard.tsx` gives for whatever a day is created with
+    // no answer to. `coordinates` needs no such marker: it is the one track
+    // this write actually satisfies.
+    costs: UNKNOWN,
+  };
+
+  const missing = missingFrom(factsOfInput(input), trip.tracks, "write");
+  if (missing.length > 0) {
+    await sendServiceReply(message.from, translateIn(locale, "wa.locationIncomplete", { title: trip.title }), username);
+    return;
+  }
+
+  const written = createDraft(ref, input);
+  if (!written.ok) {
+    await sendServiceReply(message.from, translateIn(locale, "wa.locationIncomplete", { title: trip.title }), username);
+    return;
+  }
+  await fillDayWeatherQuietly(ref, written.slug);
+  wrote(username, "start_day", { trip: trip.id, slug: written.slug, date });
+
+  await sendServiceReply(
+    message.from,
+    translateIn(locale, "wa.locationPinCreated", { date, title: trip.title }),
+    username,
+  );
+}
+
+/**
+ * A shared contact card — B1074, option A.
+ *
+ * **Reuses `createInvite` unchanged.** No new storage, no new page: the
+ * reply itself is the invitation waiting to be sent, and the owner forwards
+ * it — from here, or however they would actually reach this person. Double
+ * opt-in stays intact because nothing here grants anything; opening the link
+ * still lands the recipient in the owner's own approval queue, exactly as a
+ * guest link issued from `/‹user›/contacts` does.
+ *
+ * **Guest, never buddy** — a card carries no trip context, and a buddy link
+ * needs one. **An email is required and never guessed**: WhatsApp's contact
+ * cards usually carry a phone and sometimes an email; without one this stops
+ * rather than half-creating a row with no way to reach the person about it.
+ */
+async function handleContactCard(
+  username: string,
+  locale: string,
+  message: Extract<InboundMessage, { kind: "contacts" }>,
+): Promise<void> {
+  for (const contact of message.contacts) {
+    const email = (contact.emails ?? []).find((one) => isEmail(one.trim()))?.trim();
+    if (!email) {
+      await sendServiceReply(
+        message.from,
+        translateIn(locale, "wa.contactNeedsEmail", { name: contact.name ?? "" }),
+        username,
+      );
+      continue;
+    }
+    const created = await createInvite(username, {
+      kind: "guest",
+      name: contact.name,
+      locale,
+      email,
+    });
+    const url = inviteLinkUrl(serverSite().url, username, "guest", created.token);
+    await sendServiceReply(
+      message.from,
+      translateIn(locale, "wa.contactInviteMade", { name: contact.name ?? "", url }),
+      username,
+    );
+  }
 }
 
 /**
