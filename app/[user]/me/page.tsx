@@ -10,12 +10,14 @@ import { manageTokenFor, listContacts, normaliseEmail } from "@/lib/contacts";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
 import { pickLocale } from "@/lib/contacts/locale";
 import { isEnabled } from "@/lib/capabilities";
+import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { helperConsent } from "@/lib/helper/consent";
 import { operatorMayRead } from "@/lib/helper/sessions";
+import { postcardSuggestion } from "@/lib/postcard/suggest";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { ownerShortName, serverSite } from "@/lib/site";
 import { resolveViewer } from "@/lib/viewer";
-import { getTrip, tripRef } from "@/lib/trips";
+import { getTrip, parseTripRef, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import { whatsappCountryCode } from "@/lib/whatsapp/settings";
 
@@ -136,6 +138,27 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
     : [];
 
   /**
+   * The one postcard-shaped moment worth surfacing, if there is one — B436.
+   * The same function `journalStatus` calls, so the card here and the field
+   * an agent reads can never disagree; see `lib/postcard/suggest.ts`. Owner
+   * only, like the consent above: ordering one is an owner-only call.
+   */
+  const suggestion = viewer.owner ? await postcardSuggestion(user) : null;
+  const postcardCard = suggestion
+    ? {
+        // The API's own `reason` is written for the agent reading it — see
+        // `lib/postcard/suggest.ts`. This is the same fact in the reader's
+        // own language rather than that fixed English sentence, built from
+        // the day it names, which this page has to look up anyway to link
+        // to it.
+        reason: translateIn(await requestLocale(), "me.postcardCardBody", {
+          title: getEntryBySlug(suggestion.trip, suggestion.day, AS_AUTHOR)?.title ?? suggestion.day,
+        }),
+        dayHref: `/${user}/trips/${parseTripRef(suggestion.trip)?.tripId ?? ""}/day/${suggestion.day}`,
+      }
+    : undefined;
+
+  /**
    * The trips this reader may edit — B621, owner only.
    *
    * Read from `viewer.trips` rather than the journal's own list, so the rows
@@ -182,6 +205,7 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       sessionsShared={isEnabled("helper", user) ? operatorMayRead(user) : null}
       consentAgreedAt={consent?.agreedAt}
       consentRows={consentRows}
+      postcardCard={postcardCard}
       canSignIn={isEnabled("auth", user)}
       codeMinutes={CODE_TTL_MINUTES}
       contactsEnabled={contactsEnabled}
