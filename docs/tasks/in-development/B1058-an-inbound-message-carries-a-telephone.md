@@ -130,3 +130,64 @@ The general form, worth applying to anything added later: **a reply that says
 something about the system rather than about the journal does not need a
 model.** Confirmations, refusals, consent notices and the balance-empty
 sentence are all in that class.
+
+## Built — 2026-09-09
+
+Validity already established by the plan-a-run gate for group-phone; see
+`.claude/runs/2026-09-09-phone-and-gates/brief.json`. Buildable now because
+B1064 (the registry) and B1057 (the webhook) are both built ahead of it in
+this same branch.
+
+- `lib/registry.ts` gained `journalForNumber(tel)` — a plain read of the
+  existing lock file, with a comment stating explicitly that uniqueness is
+  enforced at *write* time only (`reserve`/`reconcile`) and this read trusts
+  it rather than re-verifying, per the owner's decision in the brief.
+- `lib/whatsapp/dispatch.ts`'s `handleInboundMessage` (a logging placeholder
+  from B1057) now does the real thing: `journalForNumber` decides automatic
+  binding, no confirmation tap; a stranger gets `wa.strangerReply` and no
+  model call; a newly bound number's first message gets `wa.firstReply` and
+  is marked greeted (`lib/whatsapp/binding.ts` — a marker file under
+  `content/<user>/whatsapp/.greeted/<tel>.json`, so the three disclosures go
+  out once and never again for that number); an already-greeted number's
+  message is logged and left for B1056/B1061's model turn, which does not
+  exist yet.
+- Both fixed strings are real translated strings in
+  `site/locales/{en,de,hu}.json` (`wa.strangerReply`, `wa.firstReply`),
+  assembled in code by `translateIn()` — never a model turn, per the "Gap
+  found" section above, which this ticket's build treats as settled. The
+  channel answers in the **journal's own locale** (`getUser().defaultLocale`)
+  for the greeting; a stranger, who binds to no journal, gets English —
+  there is no `Accept-Language` on a webhook delivery to pick from.
+- `lib/whatsapp/reply.ts` is new: a free-form `text` send, gated by
+  `whatsappInbound` (never `whatsapp`, which stays announcement-only) and
+  used only from inside the window an inbound message has just opened —
+  `types.ts`'s comment that outbound is "always a template" is updated to
+  say why that claim is still true for `sendTemplate` and does not extend to
+  a reply.
+
+**Not built, and said plainly rather than silently dropped:**
+
+- **The mockup's "Reply 'yes' to continue"** — an explicit consent gate
+  blocking further processing until the person agrees — was not built. The
+  three disclosures are sent; nothing yet tracks whether they were
+  acknowledged, because there is no downstream model turn (B1056) for an
+  unacknowledged consent to gate the first place. Building the gate before
+  there is anything to gate would have been speculative. Flag this for
+  whoever builds B1056: the consent state has to exist by the time a model
+  turn does.
+- **A `wa.me` entry point with a prefilled first message**, and a one-time
+  linking code for an owner already signed in — both listed in the ticket's
+  Work section, both about *discovery* of the channel rather than the
+  webhook's own correctness, and neither has a page to add them to yet.
+  Captured as B1127 (`npm run tasks -- new`) rather than built speculatively.
+
+Evidence: `test/whatsapp-binding.test.ts` (2 tests) — a stranger gets exactly
+one fixed reply and no journal is touched; a bound number's first message is
+greeted once, in German (the journal's `defaultLocale`), carrying its own
+`fernscout.ch/severin`-shaped URL, and a second message from the same number
+gets no further fixed reply. `test/whatsapp-webhook.test.ts` and
+`test/registry.test.ts` still pass with the real dispatcher wired in (they
+previously only exercised the B1057 logging placeholder). Pure backend; the
+only visible face is the two chat bubbles the mockup already showed, which
+this build's copy matches in substance if not verbatim (the "yes" prompt was
+deliberately dropped — see above).

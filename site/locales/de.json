@@ -492,6 +492,8 @@
   "mail.identityButton": "Anmelden",
   "mail.identityCode": "Dein Code lautet {code}. Er gilt {minutes} Minuten.",
   "mail.identityFooter": "Gesendet von {site}.",
+  "wa.strangerReply": "Diese Nummer schreibt in das private Reisetagebuch einer anderen Person auf {site} und kann hier nicht weiterhelfen. Falls du zum ersten Mal hier bist, melde dich unter {url} an.",
+  "wa.firstReply": "Hallo! Ich bin eine KI und schreibe in dein Tagebuch unter {journalUrl}. Schreib jederzeit an agent@fernscout.ch, um stattdessen eine Person zu erreichen. Was du hier schickst, geht an Meta und an das Modell — Details im Impressum.",
   "mail.identityIgnore": "Wenn du das nicht angefordert hast, ignoriere diese E-Mail — es wurde nichts geöffnet.",
   "mail.identityLasts": "Sie gilt ein Jahr, auf diesem Gerät. Du kannst sie jederzeit auf der Seite beenden, auf die sie dich führt.",
   "mail.identitySubject": "Dein Code für {site}",

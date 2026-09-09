@@ -59,6 +59,20 @@ function ownedByUs(file: string, username: string): boolean {
   return readLock(file)?.username === username;
 }
 
+/**
+ * The journal a proven number belongs to, or null — B1058.
+ *
+ * **Trusts the lock rather than re-verifying it.** The unique-key discipline
+ * lives entirely at *write* time (`reserve`/`reconcile`); a file that exists
+ * here was written by exactly one of them, and a webhook comparing an
+ * inbound E.164 against this has no reason to defensively re-check
+ * uniqueness on the read path — there is at most one journal a number can
+ * ever resolve to, by construction.
+ */
+export function journalForNumber(tel: string): string | null {
+  return readLock(telFile(tel))?.username ?? null;
+}
+
 export type ReserveResult = { ok: true } | { ok: false; conflict: "email" | "tel" };
 
 /** One lock, taken atomically. `true` on success — including "already ours",
