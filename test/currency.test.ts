@@ -311,10 +311,22 @@ describe("the shipped example content", () => {
     }
   });
 
-  test("it ships a rate cache, so a fresh clone can offer a currency switch", () => {
+  test("a clone with no rate cache offers its base currency and nothing else", () => {
+    // This used to assert the opposite — that a *shipped* `site/rates/ecb.json`
+    // let a fresh clone offer CHF/EUR/USD out of the box. B1084 deleted that
+    // file from git: a reference rate is a measurement with a date on it, and
+    // one that arrives by `git pull` only moves when somebody deploys, which
+    // left the live instance converting at a twelve-day-old table.
+    //
+    // The convenience really is gone, and this is the trade written down: until
+    // something refreshes the table into `<DATA_DIR>/rates/ecb.json`, a reader
+    // is offered the base currency alone. That is a visible absence rather than
+    // a wrong number, which is the choice this whole area is built around — and
+    // it must degrade rather than throw, which is what this asserts.
     const options = currencyOptions("example");
-    expect(options.currencies).toEqual(["CHF", "EUR", "USD"]);
-    expect(options.asOf).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(options.base).toBe("CHF");
+    expect(options.currencies).toEqual(["CHF"]);
+    expect(options.asOf).toBeUndefined();
   });
 });
 

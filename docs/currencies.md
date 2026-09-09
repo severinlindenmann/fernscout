@@ -38,11 +38,27 @@ every total, table row and chart axis follows it. Converted values are labelled
 so is cheaper than being asked.
 
 That second hop — base currency → the reader's — uses the **European Central
-Bank reference rates**, cached at `site/rates/ecb.json`:
+Bank reference rates**, cached at `<DATA_DIR>/rates/ecb.json`:
 
 ```
-npm run rates:update      # fetches, writes the cache, commit the result
+npm run rates:update      # fetches and writes this instance's cache
+npm run rates:update -- --dry-run
 ```
+
+**The cache is not in git** (B1084). It is a measurement with a date on it, so
+it lives beside the other instance state under `DATA_DIR`, where a rebuild
+cannot delete it and a deploy need not carry it. A deployed instance refreshes
+it every night, off the back of the backup timer (`scripts/backup.sh` step 0),
+so the number moves without anybody deploying — which it did not, before: the
+live instance was serving a twelve-day-old table when this was measured.
+
+Two consequences worth knowing. **It does nothing when `costs` is off** — an
+instance that does not do money has nothing to convert, so it neither fetches
+nor keeps a table. And **a fresh clone has no rates at all** until something
+refreshes them, which is a supported state: `lib/rates.ts` offers the base
+currency only, rather than a wrong number. An instance that still has the old
+committed copy, or a pre-B510 one under `CONTENT_DIR`, keeps reading it until
+its first refresh.
 
 Free, official, no API key, around 30 currencies. **The build never fetches
 anything**: it reads the committed cache off disk and succeeds with no network
@@ -66,7 +82,7 @@ with no error anywhere — every value converts, and every total is nonsense.
 | | Where | The number means | Example |
 | --- | --- | --- | --- |
 | a trip's `rates:` | `trip.md` frontmatter | units of the **base currency** per **1 unit of the keyed currency** | `THB: 0.0245` — 1 THB = 0.0245 CHF |
-| the ECB table | `site/rates/ecb.json`, and `site.manualRates` | units of the **keyed currency** per **1 EUR** | `CHF: 0.9364` — 1 EUR = 0.9364 CHF |
+| the ECB table | `<DATA_DIR>/rates/ecb.json`, and `site.manualRates` | units of the **keyed currency** per **1 EUR** | `CHF: 0.9364` — 1 EUR = 0.9364 CHF |
 
 The rule of thumb: a trip rate for a currency worth less than your base
 currency is a **small** number, because one unit of it buys very little.

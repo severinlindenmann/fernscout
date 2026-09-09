@@ -826,7 +826,71 @@ function HealthCard({ health, troubles }: { health: Health; troubles: Trouble[] 
           </li>
         </ul>
       )}
+      <BackupPanel backup={health.backup} />
     </section>
+  );
+}
+
+/**
+ * When the backup last worked, said positively.
+ *
+ * B1085 stopped the nightly "it worked" mail on the operator's request. The
+ * card above already shouts when a backup is stale, failing or has never been
+ * recorded — those are `wrong` entries and they are red. What went away with
+ * the mail is the *other* half: the standing evidence that the thing runs at
+ * all. An empty fault list is silence, and silence is exactly what a broken
+ * alarm also sounds like — this deployment has already spent two days that way
+ * (B138), which is why B458 added the success mail in the first place.
+ *
+ * So this states the good case out loud, with a date on it. It is deliberately
+ * always rendered, including when everything is fine: a panel that appears
+ * only on trouble is one more thing whose absence means two different things.
+ *
+ * The state word carries the colour, so it reads at a glance rather than being
+ * arithmetic the operator does on a timestamp at 2am.
+ */
+function BackupPanel({ backup }: { backup: Health["backup"] }) {
+  const tone =
+    backup.state === "ok"
+      ? "border-green-700 text-green-700"
+      : backup.state === "unknown"
+        ? "border-navy-300 text-navy-700"
+        : "border-coral-600 text-coral-600";
+  const when = backup.lastSuccessAt
+    ? `${backup.lastSuccessAt.slice(0, 16).replace("T", " ")} UTC`
+    : "never";
+  return (
+    <div className="mt-3 rounded-2xl border border-navy-200 bg-white p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="font-display font-semibold text-navy-900">Backups</h3>
+        <span
+          className={`rounded-full border px-2.5 py-0.5 font-mono text-xs font-semibold ${tone}`}
+        >
+          {backup.state}
+        </span>
+      </div>
+      <p className="mt-1 text-sm text-navy-700">
+        Last success {when}
+        {backup.ageHours !== null ? ` · ${Math.round(backup.ageHours)}h ago` : ""} · stale past{" "}
+        {backup.maxAgeHours}h
+      </p>
+      {backup.lastFailure && (
+        <p className="mt-1 text-sm text-coral-600 [overflow-wrap:anywhere]">
+          Last failure {backup.lastFailureAt?.slice(0, 16).replace("T", " ") ?? "unknown"} ·{" "}
+          {backup.lastFailure}
+        </p>
+      )}
+      <p className="mt-1 text-xs text-navy-500 [overflow-wrap:anywhere]">
+        Off-site copy: {backup.secondary.state}
+        {backup.secondary.lastSuccessAt
+          ? ` · ${backup.secondary.lastSuccessAt.slice(0, 16).replace("T", " ")} UTC`
+          : ""}
+      </p>
+      <p className="mt-2 text-xs text-navy-500">
+        A run that works no longer sends mail; this is where it says so. A run that fails still
+        mails.
+      </p>
+    </div>
   );
 }
 
