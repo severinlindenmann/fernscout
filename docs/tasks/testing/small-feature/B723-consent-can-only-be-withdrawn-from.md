@@ -7,8 +7,7 @@ complexity: low
 area: agent, ui
 found: "2026-09-07T11:44:12Z"
 started: "2026-09-09T05:44:39Z"
-session: eef381a2-5a19-477a-a5ce-5f4f2d3dacab
-claimed: "2026-09-09T05:44:39Z"
+merged: "2026-09-09T07:05:49Z"
 ---
 
 # B723 — Consent can only be withdrawn from inside the wizard
