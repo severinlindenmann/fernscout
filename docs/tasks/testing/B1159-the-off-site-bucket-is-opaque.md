@@ -7,8 +7,7 @@ complexity: low
 area: backup, DR, off-site
 found: "2026-09-09T19:28:26Z"
 started: "2026-09-09T19:28:59Z"
-session: c6d32890-d802-452a-9437-67c47132e6aa
-claimed: "2026-09-09T19:28:59Z"
+merged: "2026-09-09T19:29:55Z"
 ---
 
 # B1159 — The off-site bucket is opaque blobs with no note in it, and keeps thirty nights
