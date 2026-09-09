@@ -12,6 +12,15 @@ All six are here, one per size-and-cover this repository offers.
 
 Each is 31 pages: **one cover page, then thirty interior pages.**
 
+**Do the subtraction, because it is the whole file-count rule** (B1173). These
+are the **28**-page product — that is the book whose spine they match, below.
+So the interior carries **two more pages than the book has**, and the files
+together total `pageCount + 3`. Gelato's prepress refuses anything else, and
+says so in those words: *"Product requires exactly 49 page(s), while file(s)
+contain 47 page(s)"*. This sentence sat here for a day describing the answer
+to a bug nobody had connected it to; `lib/photobook/render.ts` now draws the
+two leaves, at the end.
+
 ## What they say, against what this repository emits
 
 Checked 2026-09-08 with a 28-page book, whose spine matches the templates'.
@@ -44,6 +53,16 @@ starts at 239.9 against their 240.
 ## What is still not settled by any of this
 
 These files prove **geometry**. They say nothing about **preflight** — the
-resolution, the fonts or the colour space Gelato will accept. This writer
-still emits RGB with unembedded base-14 Helvetica, and no draft order runs
-prepress. That is unchanged and is the open risk.
+resolution, the fonts or the colour space Gelato will accept.
+
+**Preflight is no longer unmeasured, and the way to measure it is worth
+knowing.** A real order (`orderType: "order"`) runs prepress *before* it checks
+the payment method, so an account with no card is an unlimited free test rig:
+the order always ends `failed / refused` with "Please add payment details", and
+everything prepress found is on it. A **draft** runs no prepress at all, which
+is why every check before 2026-09-09 passed and told us nothing.
+
+Measured that way, prepress accepts what this repository now emits: fonts
+embedded, RGB with an output intent, and photographs at 300 dpi (B1172 — it
+refused a 356 MB interior outright). The remaining unknown is what the printed
+object looks like, which no API answers.
