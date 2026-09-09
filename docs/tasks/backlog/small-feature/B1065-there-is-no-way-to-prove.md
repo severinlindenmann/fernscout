@@ -252,3 +252,54 @@ A test signup still gets a real code written to disk rather than sent (see
 above). That path must not go through Twilio at all — which is convenient,
 because it means the free local path stays ours regardless of what Verify
 does.
+
+## Dry-run first — and the seam that decides it works — 2026-09-09
+
+The owner: **build against a dry-run backend first, wire Twilio Verify
+second.** That matches the phase order already written (step 2 needs no
+provider account and can start before step 1 finishes), and it means the whole
+signup flow can be finished and tested before anybody signs a thing.
+
+**But the obvious seam breaks Verify, and the plan document leans the wrong
+way.** It describes *"a dry-run backend that writes the payload it would have
+sent"* — copied from `lib/mail` and `lib/whatsapp`, where the thing being
+abstracted really is *a message being sent*. Verify is not that. **Verify
+generates the code, stores it, counts the attempts and expires it.** A
+transport interface assumes *we* make the code and hand it over, so a real
+backend behind it can only be Twilio's raw Programmable SMS — which brings
+back the alphanumeric sender id, its per-country registration and the Austrian
+deadline. All the things Verify was chosen to avoid.
+
+So the seam is **not "send this SMS". It is "prove this number".**
+
+```
+startVerification(phone, locale) -> { id }
+checkVerification(id, code)      -> ok | wrong | expired | burned
+```
+
+Two calls, at the altitude of the capability rather than the mechanism, and
+both backends fit:
+
+- **`dry-run`** makes its own code, writes it where the mail already goes,
+  and checks it against `login_codes` with a `phone` kind — this
+  repository's own discipline: hash only, five attempts, thirty minutes,
+  superseded on reissue.
+- **`twilio`** delegates both calls to Verify and touches `login_codes` not at
+  all.
+
+This is the same instinct `lib/whatsapp/types.ts` already writes down at
+length — its message type is *"always a template"* because that is what the
+capability genuinely is at that boundary, not a simplification. Get the
+altitude right and the second implementation drops in; get it wrong and the
+second implementation cannot exist.
+
+**One honest cost of the split**, worth a comment where it is decided: in
+development the attempt counter and the TTL are ours, and in production they
+are Twilio's. So a bug in *our* attempt handling cannot show up in production,
+and a difference in *Twilio's* cannot show up in development. That is the same
+trade `file` versus `smtp` mail already makes and it is acceptable — but the
+numbers should be configured to match, so the two behave alike as far as
+anybody can tell from outside.
+
+The test-journal path (a real code written to disk) is the dry-run backend
+under another name, so it comes free and stays ours in production too.
