@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: tasks,tooling
 found: "2026-09-08T19:37:27Z"
+superseded: "Already fixed. All five files sit in backlog/ops/ today and test/task-ids.test.ts passes on a clean main; somebody ran tidy between the capture and 2026-09-09."
 ---
 
 # B1023 — npm run verify fails on task-ids.test.ts: five backlog/wont-do tasks have no wontDo field and are misfiled

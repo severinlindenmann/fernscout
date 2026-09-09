@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: signup, tasks
 found: "2026-09-08T21:42:46Z"
+merged: "2026-09-09T06:07:11Z"
 ---
 
 # B1037 — B92's Why section says the per-email cap is three; B840 already lowered it to one

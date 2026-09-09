@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (119)
+## backlog (118)
 
 ### issue (12)
 
@@ -110,14 +110,12 @@ Do not edit them by hand; run the script.
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (4)
+### chore (2)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1017](backlog/chore/B1017-photobook-fonts-are-embedded-whole-not.md) | Photobook fonts are embedded whole, not subset | CHORE | low | medium |
-| [B1023](backlog/chore/B1023-npm-run-verify-fails-on-task.md) | npm run verify fails on task-ids.test.ts: five backlog/wont-do tasks have no wontDo field and are misfiled | CHORE | low | low |
 | [B1033](backlog/chore/B1033-agentdoor-tsx-still-imports-the-per.md) | AgentDoor.tsx still imports the per-journal card B984 deleted | CHORE | low | low |
-| [B1037](backlog/chore/B1037-b92-s-why-section-says-the.md) | B92's Why section says the per-email cap is three; B840 already lowered it to one | CHORE | low | low |
 
 ### ops (12)
 
@@ -136,7 +134,7 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### superseded (56)
+### superseded (57)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -181,6 +179,7 @@ Do not edit them by hand; run the script.
 | [B993](backlog/superseded/B993-the-agent-guide-is-over-its.md) | The agent guide is over its own byte ceiling on main | ISSUE | medium | low |
 | [B998](backlog/superseded/B998-the-agent-guide-crossed-its-ceiling.md) | The agent guide crossed its ceiling and main went red for everybody | ISSUE | medium | low |
 | [B1009](backlog/superseded/B1009-the-ask-box-on-agent-is.md) | The ask box on /agent is now the only underlined way into the room, beside a row that is not | ISSUE | low | low |
+| [B1023](backlog/superseded/B1023-npm-run-verify-fails-on-task.md) | npm run verify fails on task-ids.test.ts: five backlog/wont-do tasks have no wontDo field and are misfiled | CHORE | low | low |
 | [B1034](backlog/superseded/B1034-agentdoor-tsx-still-imports-agentrow-helperask.md) | AgentDoor.tsx still imports AgentRow, HelperAsk, AgentHandover and LOW_CREDITS from the journal card B984 removed | CHORE | low | low |
 | [B176](backlog/superseded/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
 | [B243](backlog/superseded/B243-npm-run-postcard-prints-four-lines.md) | npm run postcard prints four lines of Node module-type warning before its own first line | ISSUE | low | low |
@@ -224,7 +223,7 @@ _Nothing here._
 | [B92](in-development/B92-one-address-may-own-three-journals.md) | One address may own three journals, and deleting one does not give the name back to the person who lost it | FEATURE | medium | medium | `eef381a2` |
 | [B723](in-development/B723-consent-can-only-be-withdrawn-from.md) | Consent can only be withdrawn from inside the wizard | FEATURE | low | low | `eef381a2` |
 
-## testing (255)
+## testing (256)
 
 ### security (7)
 
@@ -480,7 +479,7 @@ _Nothing here._
 | [B815](testing/small-feature/B815-stripe-asks-for-an-email-the.md) | Stripe asks for an email the owner has already given this server | FEATURE | low | low | — |
 | [B826](testing/small-feature/B826-the-checkout-page-is-stripe-s.md) | The checkout page is Stripe's grey, on a site that has a palette | FEATURE | low | low | — |
 
-### chore (14)
+### chore (15)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -492,6 +491,7 @@ _Nothing here._
 | [B912](testing/chore/B912-the-photobook-cover-strings-are-english.md) | The photobook cover strings are English in the Hungarian file | CHORE | medium | low | — |
 | [B930](testing/chore/B930-the-prompt-budget-has-one-token.md) | The prompt budget has one token of headroom and does not say what to do | CHORE | medium | low | — |
 | [B990](testing/chore/B990-the-agent-guide-is-over-its.md) | The agent guide is over its own ceiling on main, so every branch fails verify at the same test | CHORE | medium | low | — |
+| [B1037](testing/chore/B1037-b92-s-why-section-says-the.md) | B92's Why section says the per-email cap is three; B840 already lowered it to one | CHORE | low | low | — |
 | [B724](testing/chore/B724-a-capability-that-needs-another-one.md) | A capability that needs another one is an if rather than a field | CHORE | low | low | — |
 | [B736](testing/chore/B736-build-demo-content-mjs-still-cannot.md) | build-demo-content.mjs still cannot reproduce travelScene, per-item visibility, some captions, or six fixture days | CHORE | low | medium | — |
 | [B811](testing/chore/B811-the-payment-page-still-renders-the.md) | The payment page still renders the TWINT/card chooser under a provider, hidden with a class | CHORE | low | low | — |

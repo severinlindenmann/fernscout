@@ -19,13 +19,12 @@ The ask is two rules: **one journal per email**, and **a person who deletes
 their journal may recreate the same one but not a new one**. Neither holds
 today, and the second depends on the first.
 
-**Today an address may own three.** `MAX_JOURNALS_PER_EMAIL = 3`
-(`lib/journals.ts:74`), checked at `:190–205`. The signup flow already proves
-the address (`app/api/auth/signup/verify/route.ts`), and the create route
-already spends the token so one code makes one journal
-(`app/api/v1/journals/route.ts:167`). So the plumbing for "one per email" is
-almost all there — the cap is just set to three. Lowering it to one is a
-one-line change and is the smaller half.
+**The cap is already one, and this half has shipped.** `MAX_JOURNALS_PER_EMAIL = 1`
+(`lib/journals.ts:123`), checked at `:245`; `e8a9152e B840: say what it costs, and
+stop charging for email` is what lowered it. The signup flow already proves the
+address (`app/api/auth/signup/verify/route.ts`), and the create route already
+spends the token so one code makes one journal. What is left of this ticket is
+the second rule alone — reclaiming a reserved name after a delete. See B1037.
 
 **The larger half is what "the same one" means after a delete.** Deletion
 writes a tombstone — `content/.deleted/<username>.json`,
@@ -55,12 +54,6 @@ Two things this must not become:
   the cap refuses regardless of tombstones.
 
 ## Work
-
-**Lower the cap to one.** `MAX_JOURNALS_PER_EMAIL` → 1, and reword the refusal
-at `lib/journals.ts:194–204` — it currently says "which is the limit on this
-server" and lists the journals owned, which for a cap of one reads oddly. It
-should point the person at requesting a code for the journal they already own,
-which the `next` line at `:201` already does; check it still reads right at one.
 
 **Let the owner reclaim their own reserved name.** In `createJournal`, when the
 username is reserved by a tombstone, allow it through only when the tombstone is
