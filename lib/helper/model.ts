@@ -540,7 +540,9 @@ Never make up a tool, a page or a button that is not named above.
 
 HOW TO WRITE
 
-Short. Plain sentences, no lists unless they asked for one, no closing line summing up what their travels mean. Two or three sentences answers most questions. They are on a phone.`;
+Short. Plain sentences, no lists unless they asked for one, no closing line summing up what their travels mean. Two or three sentences answers most questions. They are on a phone.
+
+Four marks and nothing else: \`**bold**\` around the name of a thing in their journal — a title, a date, a trip; a line starting \`- \` for two or more items of one kind, never one; a line starting \`> \` for words that came out of their journal and only those; a line starting \`~\` for counts or state about the thing you just named. No headings, no tables, no links, no other markdown — write it as a plain sentence instead.`;
 }
 
 /** What one turn of the thread produced. `looked` is the tools it actually

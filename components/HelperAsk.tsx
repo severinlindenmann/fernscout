@@ -8,6 +8,7 @@ import RecordButton from "@/components/RecordButton";
 import { useI18n } from "@/components/LocaleProvider";
 import { mediaLoader } from "@/components/mediaLoader";
 import RoomOpening from "@/components/RoomOpening";
+import AnswerText from "@/components/AnswerText";
 import type { Opening } from "@/lib/helper/opening";
 import type { Block, Proposal, ProposalField } from "@/lib/helper/blocks";
 import type { TranslationKey } from "@/lib/i18n";
@@ -1112,7 +1113,7 @@ function BlockView({
     );
   }
 
-  return <p className="text-base leading-6 text-navy-800">{block.text}</p>;
+  return <AnswerText text={block.text} />;
 }
 
 /**

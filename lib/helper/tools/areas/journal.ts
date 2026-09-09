@@ -236,7 +236,8 @@ export const JOURNAL_TOOLS: readonly Tool[] = [
     name: "past_conversations",
     kind: "read",
     renders: "choose",
-    describe: "This owner's own past conversations with this helper, to reopen one.",
+    describe:
+      "This owner's own past conversations with this helper, to reopen one. The block already lists them — say one short sentence at most, never the list again in prose.",
     properties: {},
     run: async (username) => sessionsOf(username),
     block: (data, say) => {
