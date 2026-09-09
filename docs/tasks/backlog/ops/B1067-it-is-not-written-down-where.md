@@ -356,3 +356,82 @@ full price list by country"* for variations, so **confirm the four
 destinations — CH, DE, AT, HU — on the by-country list** rather than trusting
 the flat figure. It changes nothing about the recommendation at this volume,
 but the plan should not carry a number nobody checked.
+
+## Driven against a real account — 2026-09-09
+
+The owner opened a seven.io trial account and could not get a message
+delivered. Driven from the API with his key, against his own number
+(`+41 76 561 31 50`), five sends. **Every one was accepted by the API and then
+rejected before delivery, and refunded.**
+
+```
+2026-09-09 18:31:40  from=SMS          dlr=REJECTED  err=407001
+2026-09-09 18:30:06  from=Fernscout    dlr=REJECTED  err=407001
+2026-09-09 18:28:41  from=123123       dlr=REJECTED  err=407001
+2026-09-09 18:27:24  from=hellooo      dlr=REJECTED  err=407001
+2026-09-09 18:27:11  from=abc          dlr=REJECTED  err=407001
+```
+
+`mccmnc 22801`, latency 0.106s — an instant gateway rejection, not a carrier
+timeout. **The same error for an alphanumeric sender, a numeric sender, and
+seven.io's own default `SMS` sender**, so it is not the sender id.
+
+**What rules out everything else:** an HLR lookup on the same key and the same
+number **succeeds** — returns the live carrier (Swisscom, ported from
+Sunrise), a valid mobile. So the key is valid, the account can spend on paid
+products, the number is real and reachable, and the API is being called
+correctly. Only the SMS route refuses.
+
+`407001` is not in any public seven.io documentation that could be found.
+
+**The conclusion, and it revises this ticket's recommendation:** the research
+pass recorded seven.io as *"self-serve signup, no KYC found"*, and that is
+**wrong or at least incomplete** — a fresh account cannot send an SMS to a live
+Swiss mobile without something else happening first, most likely an account or
+identity verification that gates SMS while leaving lookups open. That is a
+normal anti-fraud posture and not a reason to reject the provider, but *"open
+an account and send"* is not the story, and this ticket should not have said
+it was.
+
+**Next step is seven.io support**, with the five message ids and the fact that
+HLR succeeds on the same account. Until that answer arrives, **the provider
+recommendation is not confirmed** and GatewayAPI and eCall stay live options —
+they may well have the same gate, which is worth asking each of them *before*
+opening an account rather than after.
+
+### What the run did confirm
+
+- **Swiss pricing is genuinely flat.** `GET /pricing?country=CH` returns
+  **€0.075 across all 16 Swiss networks**, so the headline rate is the real
+  rate for CH and the "confirm the by-country list" caveat above is answered
+  for Switzerland. DE, AT and HU remain unchecked.
+- **A rejected message costs nothing.** The balance was refunded on every one
+  of the five. That is the behaviour the ceilings in B1065 assume.
+- **The sandbox is a separate API key**, not a parameter — Developer → API
+  Access, Environment = Sandbox. It never sends and never touches a paid
+  product.
+
+### The encoding finding, which changes what the Hungarian message may say
+
+Measured, not assumed — the API reports encoding and parts even on a message
+it then rejects, so this cost nothing:
+
+| Text | Encoding | Parts | Price |
+| --- | --- | --- | --- |
+| German OTP, ~135 chars | `gsm` | 1 | €0.075 |
+| Hungarian OTP, accents stripped | `gsm` | 1 | €0.075 |
+| **Hungarian OTP with real accents** | **`ucs2`** | **2** | **€0.15** |
+
+`á í ó ú ő ű` are not in the GSM-7 alphabet, so a properly written Hungarian
+message falls to UCS-2, where a part is **70 characters** rather than 160 —
+and the same sentence costs double. German is unaffected: `ä ö ü ß` *are* in
+GSM-7.
+
+**The answer is not to strip the accents.** AGENTS.md is explicit that a
+plausible-looking imitation of a language ships and is read by somebody whose
+language it is, and a Hungarian OTP written without accents is exactly that.
+**The answer is to write the Hungarian one short enough to fit a single UCS-2
+part — under 70 characters.** That is comfortably achievable for a code, an
+expiry and nothing else, and it means the "do not reply" sentence may have to
+be dropped from the Hungarian version specifically. Decide that in B1065 with
+this table in front of you.
