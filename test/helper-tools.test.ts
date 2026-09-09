@@ -287,6 +287,8 @@ describe("a proposal can only be pressed into the helper's own routes", () => {
     "/api/helper/alex/day/publish",
     "/api/helper/alex/day/unpublish",
     "/api/helper/alex/day/attach",
+    "/api/helper/alex/day/remove-photo",
+    "/api/helper/alex/inbox/discard",
     "/api/helper/alex/invite",
     "/api/helper/alex/trip/rates",
     "/api/helper/alex/trip/budget",

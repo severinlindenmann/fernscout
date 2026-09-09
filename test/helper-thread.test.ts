@@ -434,6 +434,7 @@ describe("the tools", () => {
       // B906 — a sentence that names a thing rather than a date used to land
       // on the screen that starts a new day.
       "find_day",
+      "inbox",
       // B1051 — the other half of `invite_guest`: what links exist, never
       // the live token that would let a reader in.
       "invites",
@@ -464,6 +465,7 @@ describe("the tools", () => {
       "channels",
       "cleanup",
       "create_trip",
+      "discard_file",
       "draft_words",
       // The trip's own settings, reached from the conversation instead of a
       // shell — this round's four.
@@ -476,6 +478,7 @@ describe("the tools", () => {
       "photobook",
       "propose_postcards",
       "publish_day",
+      "remove_photo",
       // B1051 — take one link back; everybody already approved stays in.
       "revoke_invite",
       "revoke_key",

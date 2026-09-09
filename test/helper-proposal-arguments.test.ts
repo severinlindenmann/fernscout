@@ -69,6 +69,7 @@ const SHAPE = new Set([
   "incomplete_day",
   "expected_files",
   "expected_src",
+  "unknown_media",
   "unknown_inbox_file",
   "no_notes",
   "nothing_to_change",
@@ -86,6 +87,8 @@ const ROUTES: Record<string, () => Promise<Record<string, unknown>>> = {
   "/day/publish": () => import("@/app/api/helper/[user]/day/publish/route"),
   "/day/unpublish": () => import("@/app/api/helper/[user]/day/unpublish/route"),
   "/day/attach": () => import("@/app/api/helper/[user]/day/attach/route"),
+  "/day/remove-photo": () => import("@/app/api/helper/[user]/day/remove-photo/route"),
+  "/inbox/discard": () => import("@/app/api/helper/[user]/inbox/discard/route"),
   "/invite": () => import("@/app/api/helper/[user]/invite/route"),
   "/trip/rates": () => import("@/app/api/helper/[user]/trip/rates/route"),
   "/trip/budget": () => import("@/app/api/helper/[user]/trip/budget/route"),
@@ -99,6 +102,12 @@ const ROUTES: Record<string, () => Promise<Record<string, unknown>>> = {
   "/postcard": () => import("@/app/api/helper/[user]/postcard/route"),
   "/photobook": () => import("@/app/api/helper/[user]/photobook/route"),
 };
+
+/** The gallery item `remove_photo`'s own row below removes — `DRAFT`'s own
+ *  photograph, in the owner-prefixed form `AS_AUTHOR` hands back (the same
+ *  form a model would have read off `GET .../days/<slug>`, never the bare
+ *  `/media/...` frontmatter form). */
+const DRAFT_PHOTO = `/alex/media/${TRIP}/${DRAFT}/01.jpg`;
 
 /** What somebody says to reach each write tool. `files` is filled in per run,
  *  because an inbox id is a hash of the bytes staged in that test. */
@@ -131,6 +140,8 @@ const SAID: Record<string, Record<string, string>> = {
   publish_day: { trip: AS_SAID, slug: DRAFT },
   unpublish_day: { trip: AS_SAID, slug: PUBLISHED },
   attach_files: { trip: AS_SAID, slug: DRAFT },
+  remove_photo: { trip: AS_SAID, slug: DRAFT, src: DRAFT_PHOTO },
+  discard_file: {},
   invite_guest: { name: "Mira" },
   set_rate: { trip: AS_SAID, currency: "thb", rate: "0.03" },
   set_budget: { trip: AS_SAID, total: "500", days: "5" },
@@ -160,7 +171,7 @@ const params = { params: Promise.resolve({ user: "alex" }) };
  *  `propose_postcards` is pressed against below — a real file has to exist,
  *  since the route resolves it through `resolveMediaFile` before writing an
  *  order. */
-function day(slug: string, date: string, status: "draft" | "published", gallery = false) {
+function day(slug: string, date: string, status: "draft" | "published", gallery?: string[]) {
   fs.writeFileSync(
     path.join(dir, "alex", "trips", TRIP, "entries", `${date}-${slug}.md`),
     [
@@ -168,7 +179,7 @@ function day(slug: string, date: string, status: "draft" | "published", gallery 
       `title: "${slug}"`,
       `date: "${date}"`,
       `status: ${status}`,
-      ...(gallery ? ["gallery:", '  - src: "/media/reise/hafen.jpg"', "    type: image"] : []),
+      ...(gallery ? ["gallery:", ...gallery] : []),
       "---",
       "",
       "Worte.",
@@ -242,7 +253,13 @@ beforeEach(async () => {
       "",
     ].join("\n"),
   );
-  day(DRAFT, "2026-05-04", "draft", true);
+  // Two photographs on the one draft day, because two tools want different
+  // things of it: propose_postcards needs a picture that is really on disk,
+  // and remove_photo needs one it can name and take off again.
+  day(DRAFT, "2026-05-04", "draft", [
+    `  - src: "/media/${TRIP}/hafen.jpg"\n    type: image`,
+    `  - src: "/media/${TRIP}/${DRAFT}/01.jpg"\n    type: image\n    width: 40\n    height: 30`,
+  ]);
   day(PUBLISHED, "2026-05-05", "published");
   fs.mkdirSync(path.join(dir, "alex", "trips", TRIP, "media"), { recursive: true });
   fs.writeFileSync(path.join(dir, "alex", "trips", TRIP, "media", "hafen.jpg"), "x");
@@ -325,6 +342,10 @@ describe("a proposal's arguments are the press", () => {
       said.id = row.id;
     }
     if (name === "propose_postcards") said.recipients = CONTACT_ID;
+    if (name === "discard_file") {
+      const staged = await storeInboxFile("alex", "media", "boot.jpg", await paintJpeg(40, 30, 2), {});
+      said.file = staged.entry.id;
+    }
     const ran = await runTool("alex", name, said, say, "2026-05-06");
     const proposal = ran.proposal;
     expect(proposal, `${name} proposed nothing`).toBeTruthy();
