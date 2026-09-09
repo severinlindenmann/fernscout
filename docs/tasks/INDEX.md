@@ -49,13 +49,14 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (151)
+## backlog (152)
 
-### security (2)
+### security (3)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1076](backlog/security/B1076-voice-recordings-are-sent-to-deepgram.md) | Voice recordings are sent to Deepgram without opting out of its model-training programme | SECURITY | high | low |
+| [B1105](backlog/security/B1105-the-operator-s-personal-mobile-number.md) | The operator's personal mobile number is the example in the source, the public API spec and the agent guide | SECURITY | high | low |
 | [B1045](backlog/security/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low |
 
 ### issue (12)
