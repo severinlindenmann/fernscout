@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: lib/helper/tools/areas/journal.ts
 found: "2026-09-09T16:48:03Z"
+merged: "2026-09-09T17:58:59Z"
 ---
 
 # B1108 — Past conversations are listed twice, once as chips and again as prose with unrendered asterisks

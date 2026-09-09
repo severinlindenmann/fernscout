@@ -7,8 +7,7 @@ complexity: medium
 area: lib/helper/answer.ts, lib/helper/model.ts
 found: "2026-09-09T17:45:57Z"
 started: "2026-09-09T17:49:36Z"
-session: fdfcf5f2-0d32-4db4-bb1c-31e1dc373b09
-claimed: "2026-09-09T17:49:36Z"
+merged: "2026-09-09T17:58:57Z"
 ---
 
 # B1120 — The agent writes markdown into a plain-text answer, so people read literal asterisks
