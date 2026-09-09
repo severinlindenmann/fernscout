@@ -48,4 +48,12 @@ says nothing about whether a person can get to it.
 
 - Building a book ends on a panel that offers a way to print it, reachable by
   clicking rather than by typing a UUID.
-- `npm run verify`.
+  **Shown** — `/example/trips/alps-2024/photobook?state=done&order=eae6122c-…`
+  renders "Ordered. The files are ready…", the two Download links, then
+  **Print and post this book →**, then "Make another book".
+  `/tmp/b1145-done/…-1280.png` and its `.json`.
+- `npm run verify`. **Green** — all five.
+
+Built alongside B1145 in one branch: they are the same complaint from the two
+ends — the owner could not reach the panel, and could not read the address once
+they had.

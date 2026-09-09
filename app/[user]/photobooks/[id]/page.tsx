@@ -105,7 +105,26 @@ export default async function PhotobookOrderPage({
     // The owner's own contact is the default — `self` — and `?to=` is how the
     // panel's disclosure asks for somebody else. An existing proposal still
     // wins over both, so a book an agent addressed opens on that person.
-    const recipients = await bookRecipients(username);
+    // B1145. The owner sees the whole envelope, so an address is resolved for
+    // everybody they could choose — server-side, on a page that 404s for
+    // anyone else. `bookRecipients` itself is unchanged and still answers a
+    // name and a town, which is what an agent proposing a book receives.
+    // A journal has at most a handful of postable contacts, so walking
+    // `eligible()` once per person is cheaper than a shape that avoids it.
+    const listed = await bookRecipients(username);
+    const recipients = (
+      await Promise.all(
+        listed.map(async (r) => {
+          const address = await bookAddressFor(username, r.id);
+          return address ? { ...r, address } : null;
+        }),
+      )
+    )
+      .filter((r) => r !== null)
+      // The owner first: they are the default, and a list whose first row is
+      // not the selected one reads as though the choice had been made for
+      // them by an ordering they cannot see.
+      .sort((a, b) => Number(b.self) - Number(a.self));
     const wanted = typeof query.to === "string" ? query.to : print?.contactId;
     const recipient =
       recipients.find((r) => r.id === wanted) ??
@@ -118,9 +137,9 @@ export default async function PhotobookOrderPage({
     if (print && !recipients.some((r) => r.id === print.contactId)) {
       statusText = t("photobook.print.noLongerEligible");
     }
-    const to = recipient ? await bookAddressFor(username, recipient.id) : null;
-    const country = to ? isoCountry(to.country) : null;
-    if (!recipient || !to) {
+    // Already resolved above, for every candidate — no second lookup.
+    const country = recipient ? isoCountry(recipient.address.country) : null;
+    if (!recipient) {
       statusText = t("photobook.print.noRecipients");
     } else if (!size || !productUid) {
       statusText = t("photobook.print.notBuilt");
