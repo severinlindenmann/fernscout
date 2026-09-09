@@ -851,7 +851,7 @@ export const JOURNAL_FIELD_REFUSALS: Record<string, string> = {
     "The owner block is not writable as a whole. owner.email in particular is never writable " +
     "here — it is the address that decides who can get a token for this journal, so a token " +
     'cannot move it. The one part you can set is the telephone number, as "ownerTel": ' +
-    '"+41 76 561 31 50" — it is what the owner\'s own WhatsApp copy of a day is sent to, and ' +
+    '"+41 76 000 00 00" — it is what the owner\'s own WhatsApp copy of a day is sent to, and ' +
     "it costs no credits. Ask the person who runs the server for anything else in there.",
   baseCurrency:
     "baseCurrency is not writable after a journal exists. A cost written without a currency " +
@@ -1033,8 +1033,8 @@ export function setJournalProfile(
           return refuse(
             "invalid_ownerTel",
             `"${read.text}" is not a telephone number this can use. Include the country code — ` +
-              `+41 76 561 31 50, 0041 76 561 31 50 or 41765613150. A national number like ` +
-              `076 561 31 50 is refused: it means a different telephone in every country, and ` +
+              `+41 76 000 00 00, 0041 76 000 00 00 or 41760000000. A national number like ` +
+              `076 000 00 00 is refused: it means a different telephone in every country, and ` +
               `this server is not standing in any of them.`,
           );
         }

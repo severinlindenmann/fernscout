@@ -3,14 +3,14 @@
  *
  * The numbers this reads were typed by hand into a guestbook box next to a
  * postal address (`PostalAddress.tel`), so they arrive as
- * `+41 76 561 31 50`, `0041 76 561 31 50`, `076 561 31 50` and worse. Meta
- * accepts only the first form's digits — `41765613150` — and answers anything
+ * `+41 76 000 00 00`, `0041 76 000 00 00`, `076 000 00 00` and worse. Meta
+ * accepts only the first form's digits — `41760000000` — and answers anything
  * else with a delivery failure nobody sees, because a message to a wrong
  * number is accepted and then silently dropped.
  *
  * ## Why a national number is refused rather than guessed
  *
- * `076 561 31 50` is a Swiss number to a Swiss reader and an unroutable
+ * `076 000 00 00` is a Swiss number to a Swiss reader and an unroutable
  * string to everyone else. The leading zero is a *national* prefix whose
  * meaning depends on where the caller is standing, and this code is standing
  * on a server. Guessing it means picking a country for somebody, and picking
@@ -45,7 +45,7 @@ export function toE164(raw: string, defaultCountryCode?: string): string | null 
     if (!cc || !/^\d{1,3}$/.test(cc)) return null;
     digits = cc + cleaned.slice(1);
   } else {
-    // Already bare international, e.g. `41765613150`.
+    // Already bare international, e.g. `41760000000`.
     digits = cleaned;
   }
 

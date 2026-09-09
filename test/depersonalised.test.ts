@@ -158,6 +158,76 @@ describe("nothing personal in code", () => {
   }
 });
 
+/**
+ * The documentation telephone number, and why it is this one — B1105.
+ *
+ * A telephone number needs explaining in a dozen places here: the difference
+ * between `+41 …`, `0041 …` and a refused national `076 …` cannot be shown
+ * without printing one. For a year the number printed was the operator's own
+ * mobile, because that is the one the person writing the comment knew by
+ * heart — fourteen occurrences across `lib/`, `app/`, `components/` and
+ * `test/`, and, two generators later, served live in `/openapi.json` and
+ * `/agent.md` and published on GitHub.
+ *
+ * `personalTerms()` above could never have caught it: it reads *names* out of
+ * config and splits them into words, and a telephone number is not a word.
+ * Hence this, which judges by shape instead of by whose it is.
+ *
+ * **Switzerland has no drama range.** Several regulators reserve numbers for
+ * documentation and fiction — Ofcom's 07700 900xxx, the NANP's 555-01xx —
+ * and BAKOM does not, so there is no number here that is guaranteed to belong
+ * to nobody. `76 000 00 00` is the next best thing: it keeps the shape the
+ * examples need (a Swiss mobile, so `+41`, `0041` and `076` all read
+ * correctly), an all-zero subscriber number is not issued to anybody, and it
+ * reads as a placeholder to a human at a glance. **Do not make it look more
+ * realistic.** A plausible number is somebody's.
+ */
+const DOC_NUMBER = ["+41 76 000 00 00", "0041 76 000 00 00", "076 000 00 00", "41760000000"];
+
+/**
+ * Anything telephone-shaped, whoever it belongs to.
+ *
+ * Deliberately about the shape rather than about one number: the point is to
+ * catch the *next* one, not to re-catch this one. A hit that is a real
+ * example belongs in `DOC_NUMBER`; a hit that is a timestamp or an id is a
+ * pattern below that wants narrowing.
+ */
+const TELEPHONE_SHAPED = [
+  /\+\d{1,3}[\s.\u2011-]?(?:\d[\s.\u2011-]?){7,13}\d/g,
+  // The `00` and bare-digit forms need a separator or an exact length, or a
+  // long run of zeros — `lib/ingest/hash.ts` has one — reads as a number.
+  /\b00\d{2}[\s.\u2011-](?:\d+[\s.\u2011-]?){2,}\d/g,
+  /\b0\d{2}\s\d{3}\s\d{2}\s\d{2}\b/g,
+  /\b\d{11,13}\b/g,
+];
+
+describe("no telephone number in code but the documentation one", () => {
+  const files = CODE_DIRS.flatMap((d) => walk(path.join(ROOT, d)));
+
+  test("every telephone-shaped literal is the documentation number", () => {
+    const hits: string[] = [];
+    for (const file of files) {
+      if (EXEMPT.has(path.relative(ROOT, file))) continue;
+      fs.readFileSync(file, "utf8")
+        .split("\n")
+        .forEach((line, i) => {
+          for (const pattern of TELEPHONE_SHAPED) {
+            for (const match of line.match(pattern) ?? []) {
+              const found = match.trim();
+              if (DOC_NUMBER.some((allowed) => allowed === found)) continue;
+              hits.push(`${path.relative(ROOT, file)}:${i + 1}: ${found}`);
+            }
+          }
+        });
+    }
+    expect(
+      hits,
+      `use the documentation number (${DOC_NUMBER[0]}) — see the comment above this test. ` +
+        `A plausible-looking number is somebody's:\n${hits.join("\n")}`,
+    ).toEqual([]);
+  });
+});
+
 describe("the example content set", () => {
   const dir = path.join(ROOT, "content", "example");
 

@@ -602,7 +602,7 @@ function fieldsFor(
   const tel = postal?.tel ?? "";
   // Reading an existing row back into the form: a leading `+<cc>` this
   // picker recognises splits into the two parts, and anything else — a
-  // legacy `076 561 31 50`, or no record at all — is never guessed at.
+  // legacy `076 000 00 00`, or no record at all — is never guessed at.
   // `defaultCountryCode` only seeds a *brand-new* guest's blank number,
   // never a contact's actual (if unparseable) one — B385.
   const parsed = splitTel(tel);
