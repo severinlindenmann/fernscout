@@ -7,6 +7,7 @@ import { basemapProblem } from "./basemap";
 import { resolveCapabilities } from "./capabilities";
 import { contentRoot } from "./contentRoot";
 import { creditsFromUnits } from "./credits/format";
+import { MIN_CREDITS } from "./credits/pricing";
 import { getDatabaseOrNull } from "./db";
 import { collectStatus, type StatusReport } from "./statusReport";
 import { contentRootProblem, getUsernames } from "./users";
@@ -318,19 +319,12 @@ export type Week = { week: string; count: number };
  * otherwise read as three signups.
  */
 export async function signupsByWeek(weeks: number): Promise<Week[]> {
-  const handle = await getDatabaseOrNull();
   const buckets = emptyWeeks(weeks);
-  if (!handle) return buckets;
-  try {
-    const rows = await handle.db
-      .selectFrom("users")
-      .select(({ fn }) => ["owner_id", fn.min<string>("created_at").as("first")])
-      .groupBy("owner_id")
-      .execute();
-    for (const row of rows) put(buckets, String(row.first ?? "").slice(0, 10));
-  } catch {
-    return buckets;
-  }
+  // The dates themselves, since B1181, because the funnel needs them per
+  // journal and this needs only how many fell in each week. One query
+  // answering both rather than two of the same shape.
+  const dates = await signupDates();
+  for (const at of Object.values(dates ?? {})) put(buckets, at);
   return buckets;
 }
 
@@ -426,7 +420,17 @@ export function allTombstones(): Tombstone[] {
  * Is anything broken
  * ------------------------------------------------------------------ */
 
-type Wrong = { title: string; detail: string };
+type Wrong = {
+  title: string;
+  detail: string;
+  /** True on the ones `backupWrongs` raised — B1181.
+   *
+   *  The band above the tabs files an entry by kind, and the alternative was
+   *  matching this title against `/backup/i`: a list of phrases that is always
+   *  missing its next entry, and that missed "The off-site copy is 226 hours
+   *  old" the first time it was tried. The producer says what it produced. */
+  backup?: true;
+};
 
 export type Health = {
   commit: string | null;
@@ -486,16 +490,19 @@ export function backupWrongs(backup: BackupStatus): Wrong[] {
   const wrong: Wrong[] = [];
   if (backup.state === "failing") {
     wrong.push({
+      backup: true,
       title: "The backup is failing",
       detail: `Last success ${backup.lastSuccessAt?.slice(0, 16).replace("T", " ") ?? "never"}. ${backup.lastFailure ?? ""}`.trim(),
     });
   } else if (backup.state === "stale") {
     wrong.push({
+      backup: true,
       title: `The backup has not run in ${Math.round(backup.ageHours ?? 0)} hours`,
       detail: `Anything past ${backup.maxAgeHours} hours is stale. The timer may still look enabled.`,
     });
   } else if (backup.state === "unknown") {
     wrong.push({
+      backup: true,
       title: "No backup has ever been recorded",
       detail: backup.reason ?? "Nothing has written a backup status file on this server.",
     });
@@ -503,6 +510,7 @@ export function backupWrongs(backup: BackupStatus): Wrong[] {
 
   if (backup.secondary.state === "stale") {
     wrong.push({
+      backup: true,
       title: `The off-site copy has not arrived in ${Math.round(backup.secondary.ageHours ?? 0)} hours`,
       detail:
         `Anything past ${backup.secondary.maxAgeHours} hours is stale. The nightly run keeps ` +
@@ -597,4 +605,337 @@ function put(buckets: Week[], date: string): void {
   const week = weekOf(date);
   const found = buckets.find((bucket) => bucket.week === week);
   if (found) found.count += 1;
+}
+
+/* ------------------------------------------------------------------ *
+ * Is anybody still writing
+ * ------------------------------------------------------------------ */
+
+/** What one journal's `entries/` folders say about it — B1181. */
+export type Activity = {
+  /** Day files on disk, drafts included. Filenames, never parsed content. */
+  days: number;
+  /** Of those, the ones dated on or after the caller's `since` — the day
+   *  *described*, the convention `daysByWeek` sets and for its reasons. */
+  recentDays: number;
+  /** The latest day *described*, `YYYY-MM-DD`. The filename's own date. */
+  lastDay: string | null;
+  /**
+   * When a day file was last touched, ISO.
+   *
+   * **The only available answer to "is this person still writing", and an
+   * imperfect one.** Nothing records when a day was typed: `daysByWeek` counts
+   * the day being written *about*, which puts a trip written up a fortnight
+   * late on the fortnight it happened, and a whole journal caught up on in one
+   * evening reads as three months of activity. The file's own mtime is the
+   * moment somebody last changed something, which is the question being asked.
+   *
+   * What it cannot survive is a restore: the files are written anew, so the
+   * morning after a restore drill every journal looks like it was written to
+   * at once. The page says so beside the column rather than hiding it.
+   */
+  lastWroteAt: string | null;
+};
+
+/**
+ * Every journal's `entries/`, walked once — B1181.
+ *
+ * A sibling of `daysByWeek` and deliberately not part of it: that answers a
+ * question about the instance and this one about each journal, and merging
+ * them would leave the weekly chart carrying a per-journal map it never reads.
+ * Both are one `readdir` per trip; this adds a `stat` per file, against an
+ * inode the `readdir` has already brought into cache.
+ *
+ * Not folded into `collectStatus`, even though that walk is the expensive one
+ * and is already cached. Five minutes of staleness is right for a byte count
+ * and wrong for *did somebody write something*: the operator reloads the page
+ * precisely because they think somebody has.
+ */
+export function journalActivity(since: string): Record<string, Activity> {
+  const from = since.slice(0, 10);
+  const found: Record<string, Activity> = {};
+  for (const username of getUsernames()) {
+    const row: Activity = { days: 0, recentDays: 0, lastDay: null, lastWroteAt: null };
+    found[username] = row;
+    const trips = path.join(contentRoot(), username, "trips");
+    let ids: string[];
+    try {
+      ids = fs
+        .readdirSync(trips, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name);
+    } catch {
+      continue;
+    }
+    for (const id of ids) {
+      const dir = path.join(trips, id, "entries");
+      let files: string[];
+      try {
+        files = fs.readdirSync(dir);
+      } catch {
+        continue;
+      }
+      for (const file of files) {
+        if (!file.endsWith(".md")) continue;
+        row.days += 1;
+        const day = file.slice(0, 10);
+        if (day >= from) row.recentDays += 1;
+        if (!row.lastDay || day > row.lastDay) row.lastDay = day;
+        try {
+          const at = fs.statSync(path.join(dir, file)).mtime.toISOString();
+          if (!row.lastWroteAt || at > row.lastWroteAt) row.lastWroteAt = at;
+        } catch {
+          // A file that vanished between the readdir and the stat is one day
+          // missing from one timestamp, not a journal that fails to render.
+        }
+      }
+    }
+  }
+  return found;
+}
+
+/* ------------------------------------------------------------------ *
+ * Does anybody get through
+ * ------------------------------------------------------------------ */
+
+/**
+ * When each journal's first person signed in, `YYYY-MM-DD` by owner — B1181.
+ *
+ * Null when there is no database to ask, which is a different answer from an
+ * empty map: see `funnel`. The same `min(created_at)` per owner that
+ * `signupsByWeek` counts, kept separate because one needs the dates and the
+ * other needs only how many fell in each week.
+ */
+export async function signupDates(): Promise<Record<string, string> | null> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return null;
+  try {
+    const rows = await handle.db
+      .selectFrom("users")
+      .select(({ fn }) => ["owner_id", fn.min<string>("created_at").as("first")])
+      .groupBy("owner_id")
+      .execute();
+    const found: Record<string, string> = {};
+    for (const row of rows) {
+      const at = String(row.first ?? "").slice(0, 10);
+      if (at) found[row.owner_id] = at;
+    }
+    return found;
+  } catch {
+    return null;
+  }
+}
+
+/** How long after its last day a journal stops counting as still being
+ *  written. A fortnight: a week is a holiday, and a month is long enough that
+ *  a journal nobody has touched since the spring still reads as alive. */
+export const STILL_WRITING_DAYS = 14;
+
+export type FunnelStep = {
+  /** What this step is, in the operator's words. */
+  label: string;
+  /** Journals that got this far. */
+  count: number;
+  /** Why the ones between the previous step and this one stopped. Empty on the
+   *  first step, which nobody dropped out of. */
+  lost: string;
+};
+
+/**
+ * Everybody who arrived in the window, and how far each one got — B1181.
+ *
+ * **The only thing on the console that says whether the software works.** Its
+ * parts were already on the page, in two places and on two tabs: `Growth`
+ * counted arrivals and counted one failure, the journal rows listed spend, and
+ * the drop-off between them was arithmetic the operator did in their head.
+ *
+ * Cohorted by arrival rather than measured across everybody, because the
+ * question is about the software as it is now. An instance three years old
+ * whose first year went badly would otherwise report that first year for ever.
+ *
+ * `published` is `collectStatus`'s own count, which excludes drafts; `wrote` is
+ * the filenames on disk, which do not. The gap between those two steps is
+ * exactly the journals holding a draft nobody published — the one failure the
+ * helper exists to make impossible, and the one nothing counted.
+ *
+ * Null when there is no database. `users` is where an arrival is recorded, and
+ * an instance without one cannot say who arrived when; zero would be a claim
+ * that nobody did.
+ */
+export function funnel(
+  signups: Record<string, string> | null,
+  activity: Record<string, Activity>,
+  published: Record<string, number>,
+  windowDays: number,
+  now = new Date(),
+): FunnelStep[] | null {
+  if (!signups) return null;
+  const from = new Date(now.getTime() - windowDays * 86_400_000).toISOString().slice(0, 10);
+  const cohort = Object.entries(signups)
+    .filter(([, at]) => at >= from)
+    .map(([username]) => username);
+
+  const wrote = cohort.filter((name) => (activity[name]?.days ?? 0) > 0);
+  const put = wrote.filter((name) => (published[name] ?? 0) > 0);
+  const since = new Date(now.getTime() - STILL_WRITING_DAYS * 86_400_000).toISOString();
+  const still = put.filter((name) => (activity[name]?.lastWroteAt ?? "") >= since);
+
+  // One journal is the ordinary case on a small instance, and "1 have gone
+  // quiet" is the sentence somebody reads on the day it matters most.
+  const lost = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+  return [
+    { label: "Signed up", count: cohort.length, lost: "" },
+    {
+      label: "Wrote a day",
+      count: wrote.length,
+      lost: lost(cohort.length - wrote.length, "never wrote anything", "never wrote anything"),
+    },
+    {
+      label: "Published one",
+      count: put.length,
+      lost: lost(
+        wrote.length - put.length,
+        "has a draft and never published",
+        "have a draft and never published",
+      ),
+    },
+    {
+      label: `Wrote in ${STILL_WRITING_DAYS} days`,
+      count: still.length,
+      lost: lost(put.length - still.length, "has gone quiet since", "have gone quiet since"),
+    },
+  ];
+}
+
+/* ------------------------------------------------------------------ *
+ * What wants a person
+ * ------------------------------------------------------------------ */
+
+/** One thing that will not resolve itself — B1181. */
+export type Attend = {
+  /** The kind, which is also the order these are shown in. */
+  kind: "approve" | "fault" | "backup" | "disk" | "credits";
+  title: string;
+  detail: string;
+  /** The right-hand stamp: how long it has been like this. */
+  age: string;
+};
+
+/** Where a journal's disk use stops being headroom and starts being a refused
+ *  upload. Nine tenths: the last tenth is a photograph or two, which is one
+ *  afternoon's worth. */
+const DISK_FULL = 0.9;
+
+const ORDER: Attend["kind"][] = ["approve", "fault", "backup", "disk", "credits"];
+
+/** Whole days between then and now, for a stamp rather than a duration. */
+function daysSince(when: string | null, now: Date): number | null {
+  if (!when) return null;
+  const at = Date.parse(when);
+  if (Number.isNaN(at)) return null;
+  return Math.max(0, Math.floor((now.getTime() - at) / 86_400_000));
+}
+
+/**
+ * Everything that wants a person, in one list — B1181.
+ *
+ * **This is the change B1181 was written for.** Five different things needed
+ * the operator and the page had a list for one of them: the purchase queue
+ * stood at the top, a health fault was a badge on the third tab, a stale
+ * off-site copy was a line inside a card behind that badge, a journal at its
+ * quota ceiling was a meter nobody scrolled to, and a journal that had spent
+ * everything it was given was on no list at all. Four of those five were
+ * learned about from somebody complaining.
+ *
+ * Pure, over what the page already fetched, so it costs no query and is
+ * checkable without a database or a browser. It **shows and never acts**:
+ * `lib/credits.ts`'s property 1 stands, and the token that approves a purchase
+ * sits in a mailbox precisely so that it is not in a browser tab.
+ *
+ * Ordered by kind rather than by age. A purchase is somebody's money today and
+ * a stale backup is only ever bad news later; sorting by how long each had
+ * waited would put a fortnight-old disk warning above a person who paid this
+ * morning.
+ */
+export function attention(input: {
+  awaiting: Payment[];
+  health: Health;
+  troubles: Trouble[];
+  journals: StatusReport["journals"];
+  ceiling: number | null;
+  balances: { username: string; balance: number | null; granted: number }[];
+  now?: Date;
+}): Attend[] {
+  const now = input.now ?? new Date();
+  const found: Attend[] = [];
+
+  if (input.awaiting.length > 0) {
+    const oldest = input.awaiting.map((one) => one.requestedAt ?? one.createdAt).sort()[0];
+    const days = daysSince(oldest, now);
+    found.push({
+      kind: "approve",
+      title: `${input.awaiting.length} ${input.awaiting.length === 1 ? "purchase is" : "purchases are"} waiting`,
+      detail:
+        "The single-use approval link is in your mailbox. This page cannot grant, and that is deliberate.",
+      age: days === null ? "unknown" : `oldest ${days}d`,
+    });
+  }
+
+  // A backup's own faults arrive inside `health.wrong` carrying their own
+  // `backup` mark, so a stale copy is one entry here rather than one under
+  // `fault` and a second under `backup`. Marked at the source rather than
+  // matched by title: see the note on `Wrong`.
+  for (const wrong of input.health.wrong) {
+    const days = daysSince(input.health.backup.lastSuccessAt, now);
+    found.push({
+      kind: wrong.backup ? "backup" : "fault",
+      title: wrong.title,
+      detail: wrong.detail,
+      age: wrong.backup ? (days === null ? "never" : `${days}d`) : "now",
+    });
+  }
+
+  for (const trouble of input.troubles) {
+    found.push({
+      kind: "fault",
+      title: trouble.what,
+      detail: `${trouble.owner ? `${trouble.owner} · ` : ""}${trouble.detail}`,
+      age: trouble.when,
+    });
+  }
+
+  if (input.ceiling) {
+    for (const journal of input.journals) {
+      const full = journal.bytes / input.ceiling;
+      if (full < DISK_FULL) continue;
+      found.push({
+        kind: "disk",
+        title: `${journal.username} is at ${Math.round(full * 100)}% of their storage`,
+        detail:
+          full >= 1
+            ? "The next upload is refused. Buying past it is 5 GB at a time, from their own page."
+            : "The next few uploads are all that is left. Buying past it is 5 GB at a time.",
+        age: "measured",
+      });
+    }
+  }
+
+  // Granted-and-nearly-spent rather than merely low: a journal that was never
+  // given anything has not run out of anything, and saying it had would be an
+  // alarm about somebody who has done nothing.
+  const empty = input.balances.filter(
+    (row) => row.balance !== null && row.granted > 0 && row.balance < MIN_CREDITS,
+  );
+  if (empty.length > 0) {
+    const named = empty.slice(0, 4).map((row) => row.username).join(", ");
+    found.push({
+      kind: "credits",
+      title: `${empty.length} ${empty.length === 1 ? "journal has" : "journals have"} less than one purchase's worth left`,
+      detail: `${named}${empty.length > 4 ? ` and ${empty.length - 4} more` : ""} · under ${MIN_CREDITS} credits, which is the smallest amount anybody can buy.`,
+      age: "now",
+    });
+  }
+
+  return found.sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind));
 }

@@ -16,6 +16,19 @@ export type JournalView = {
   /** This journal's metered spend, one entry per day of the window — B996.
    *  Absent for a journal that spent nothing, which draws no line at all. */
   series?: number[];
+  /** When a day file was last touched, ISO — B1181. Null for a journal with
+   *  no day at all, which is a different row from one that has gone quiet. */
+  lastWroteAt: string | null;
+  /** What the journal takes up, in words, and how full that is — B1181,
+   *  folded in from the Disk panel that used to sit under this list.
+   *
+   *  Formatted on the server rather than here: `formatBytes` lives in
+   *  `lib/storageQuota`, which reaches the database, and importing it into a
+   *  client component pulls `better-sqlite3` into the browser bundle. The
+   *  build says so, at length. */
+  disk: string;
+  /** How full, 0 to 1, or null where the instance sets no ceiling. */
+  full: number | null;
   panel: ReactNode;
 };
 
@@ -29,9 +42,13 @@ const CROWDED = 6;
  *  sorted list. The rest is one button away. */
 const FIRST = 5;
 
-export type Order = "cost" | "name" | "balance";
+export type Order = "recent" | "cost" | "name" | "balance";
 
+/** `recent` is first and is the default since B1181: most journals spend
+ *  nothing, so a list sorted by cost puts three real rows above a tail of
+ *  zeroes in whatever order they happen to be in. */
 const ORDERS: { value: Order; label: string }[] = [
+  { value: "recent", label: "Last wrote" },
   { value: "cost", label: "Costliest" },
   { value: "name", label: "By name" },
   { value: "balance", label: "Lowest balance" },
@@ -50,8 +67,50 @@ export function pick<T extends JournalView>(rows: T[], query: string, order: Ord
         ? a.username.localeCompare(b.username)
         : order === "balance"
           ? (a.balance ?? 0) - (b.balance ?? 0)
-          : b.rappen - a.rappen,
+          : order === "recent"
+            ? // Newest first, and a journal that has never written anything
+              // sorts to the bottom rather than to the top of an ascending
+              // string comparison against "".
+              (b.lastWroteAt ?? "").localeCompare(a.lastWroteAt ?? "")
+            : b.rappen - a.rappen,
     );
+}
+
+/** How long a journal may go untouched before it is "quiet" rather than being
+ *  written, and then before it is dormant. A fortnight and a season: the same
+ *  fortnight `STILL_WRITING_DAYS` uses for the funnel. */
+const QUIET_DAYS = 14;
+const DORMANT_DAYS = 90;
+
+type State = { word: string; dot: string };
+
+/**
+ * Alive, quiet, dormant, or never started — B1181.
+ *
+ * The fact that makes every other column mean something. A journal at CHF 0.00
+ * that was written to yesterday and one at CHF 0.00 that nobody has opened
+ * since the spring are the same row without it, and they are opposite facts.
+ *
+ * Exported for the tests, which is also where the boundaries are pinned.
+ */
+export function stateOf(lastWroteAt: string | null, now = Date.now()): State {
+  if (!lastWroteAt) return { word: "never started", dot: "bg-white border border-navy-300" };
+  const days = (now - Date.parse(lastWroteAt)) / 86_400_000;
+  if (days <= QUIET_DAYS) return { word: "writing", dot: "bg-green-700" };
+  if (days <= DORMANT_DAYS) return { word: "quiet", dot: "bg-yellow-600" };
+  return { word: "dormant", dot: "bg-navy-300" };
+}
+
+/** When, in the coarsest words that are still true. An exact timestamp on a
+ *  row is a thing to decode; "3 weeks ago" is the answer to the question. */
+export function whenWords(lastWroteAt: string | null, now = Date.now()): string {
+  if (!lastWroteAt) return "never wrote a day";
+  const days = Math.floor((now - Date.parse(lastWroteAt)) / 86_400_000);
+  if (days <= 0) return "wrote today";
+  if (days === 1) return "wrote yesterday";
+  if (days < 14) return `wrote ${days} days ago`;
+  if (days < 60) return `wrote ${Math.round(days / 7)} weeks ago`;
+  return `wrote ${Math.round(days / 30)} months ago`;
 }
 
 /** The two smaller facts under a name, in one place so the row and the panel
@@ -109,7 +168,7 @@ function meterOf(journal: JournalView): { fraction: number; tone: "navy" | "aler
  */
 export default function Journals({ rows }: { rows: JournalView[] }) {
   const [query, setQuery] = useState("");
-  const [order, setOrder] = useState<Order>("cost");
+  const [order, setOrder] = useState<Order>("recent");
   const [all, setAll] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
 
@@ -155,6 +214,7 @@ export default function Journals({ rows }: { rows: JournalView[] }) {
         ) : null}
         {visible.map((journal) => {
           const meter = meterOf(journal);
+          const state = stateOf(journal.lastWroteAt);
           return (
           <button
             key={journal.username}
@@ -166,13 +226,33 @@ export default function Journals({ rows }: { rows: JournalView[] }) {
                 inside a flex-wrap put the cost under the username on a
                 phone, which is where it stopped being a summary. */}
             <span className="flex items-baseline justify-between gap-3">
-              <span className="min-w-0 break-words font-display font-semibold text-navy-900">
-                {journal.username}
+              <span className="flex min-w-0 items-baseline gap-2">
+                {/* The state before the name — B1181. Colour alone would be
+                    the whole signal, so the words are on the line below and
+                    the dot is `aria-hidden` decoration beside them. */}
+                <span
+                  aria-hidden
+                  className={`inline-block h-2 w-2 shrink-0 translate-y-[-1px] rounded-full ${state.dot}`}
+                />
+                <span className="min-w-0 break-words font-display font-semibold text-navy-900">
+                  {journal.username}
+                </span>
               </span>
               <span className="shrink-0 font-mono text-sm text-navy-900">
                 {formatChf(journal.rappen)}
               </span>
             </span>
+            <span className="mt-0.5 flex flex-wrap items-baseline justify-between gap-x-3 text-xs">
+              <span className="text-navy-700">{whenWords(journal.lastWroteAt)}</span>
+              <span className="font-mono text-navy-500">{journal.disk}</span>
+            </span>
+            {/* Only once it is worth looking at. Under half full the bar is a
+                sliver that says nothing the byte figure beside it has not
+                already said, and two hairline meters on every one of thirty
+                rows is a page of hairlines. */}
+            {journal.full !== null && journal.full >= 0.5 ? (
+              <Meter fraction={journal.full} tone={journal.full > 0.9 ? "alert" : "navy"} />
+            ) : null}
             {/* The shape of the journal, beside the words for it — B996.
                 The line says whether anything is happening at all, which no
                 total can: two journals at the same thirty-day figure look
