@@ -38,6 +38,11 @@
   --color-navy-600: #44546c;
   /* Dark enough for AA on cream-100 too, which #64748b was not (4.33:1). */
   --color-navy-500: #5a6a80;
+  /* One third of the way from navy-200 toward navy-500 — the ramp had a gap
+     here (B757): `border-navy-300` was used across the app with nothing
+     backing it, so Tailwind emitted no colour and every one of those borders
+     silently rendered in `currentColor` instead of a hairline. */
+  --color-navy-300: #aeb7c5;
   --color-navy-200: #d8dee8;
 
   --color-sky-300: #8fe0ef;
@@ -84,6 +89,7 @@
   --color-navy-700: var(--color-navy-700);
   --color-navy-600: var(--color-navy-600);
   --color-navy-500: var(--color-navy-500);
+  --color-navy-300: var(--color-navy-300);
   --color-navy-200: var(--color-navy-200);
 
   --color-sky-300: var(--color-sky-300);
@@ -280,4 +286,109 @@ body {
    order. */
 .quiet-inner-focus:focus-visible {
   outline: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Dropdowns — B1012.
+
+   Twenty-four `<select>`s and not one of them set `appearance`, so every one
+   drew the operating system's chevron, at its size, in its grey, on a page
+   that has gone to some trouble to look like somebody's travel journal. It is
+   the same argument this project already makes about `window.confirm`: a
+   control that arrives in the OS's own chrome has stopped belonging to the
+   page.
+
+   **One rule here rather than twenty-four class strings.** The call sites
+   already carry border, radius and size, and they differ on purpose — `text-sm`
+   in the photobook panel, `text-lg` on the contacts page. What was missing is
+   the same everywhere. Unlayered, for the reason B752 wrote out above: it has
+   to beat the `px-*` a call site sets, and Tailwind's utilities are layered.
+
+   The chevron is navy-500, which is this palette's decorative-icon token and
+   deliberately not one of its text colours. `[size]` and `[multiple]` are
+   excluded because those are list boxes, with nothing to drop down. */
+select:not([size]):not([multiple]) {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+select:disabled {
+  opacity: 0.6;
+}
+
+/* The chevron we draw ourselves, and only where we have to. Under
+   `base-select` below the browser lays out a real `::picker-icon` element and
+   reserves its own room for it — painting a background image *and* reserving
+   2.25rem here as well left the arrow doubled and squeezed a 150px control
+   enough to wrap "As this update" onto two lines. So the two branches are
+   exclusive rather than one overriding half of the other. */
+@supports not (appearance: base-select) {
+  select:not([size]):not([multiple]) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a6a80' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.625rem center;
+    background-size: 1rem 1rem;
+    padding-right: 2rem;
+  }
+}
+
+@supports (appearance: base-select) {
+  select:not([size]):not([multiple]),
+  ::picker(select) {
+    appearance: base-select;
+  }
+
+  select:not([size]):not([multiple])::picker-icon {
+    color: var(--color-navy-500);
+    transition: rotate 150ms ease;
+  }
+  select:not([size]):not([multiple]):open::picker-icon {
+    rotate: 180deg;
+  }
+
+  ::picker(select) {
+    border: 1px solid var(--color-navy-200);
+    border-radius: 12px;
+    background: var(--color-cream-50);
+    padding: 4px;
+    box-shadow: 0 12px 32px rgb(30 41 59 / 0.16);
+    /* The popup is the page's own surface now, so it inherits the page's own
+       type rather than the OS's. */
+    font: inherit;
+    /* It sizes itself to its longest option, and some of ours are whole
+       sentences — "Guests — everybody you have let into this journal" ran to
+       the edge of a 390px screen. Cap it and let the option wrap instead. */
+    max-width: min(88vw, 22rem);
+  }
+
+  option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: var(--color-navy-900);
+    /* See the cap above: a long option wraps rather than widening the popup
+       past the screen. */
+    white-space: normal;
+  }
+
+  option:hover,
+  option:focus {
+    background: var(--color-cream-100);
+    outline: none;
+  }
+
+  option:checked {
+    background: var(--color-yellow-300);
+    font-weight: 600;
+  }
+
+  /* The tick the base appearance puts in front of every option. Ours is the
+     brand's own dark yellow, and it holds its column when unchecked so the
+     labels do not shift as the selection moves. */
+  option::checkmark {
+    content: "";
+    color: var(--color-yellow-950);
+  }
 }

@@ -115,51 +115,53 @@ afterAll(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("correcting a mistake does not spend the completion budget", () => {
-  const ip = "10.44.0.7";
+describe("the whole file, kept in written order", { shuffle: false }, () => {
+  describe("correcting a mistake does not spend the completion budget", () => {
+    const ip = "10.44.0.7";
 
-  test("two mistyped addresses and a corrected one all go through, from one address", async () => {
-    const bad1 = await redeem(ip, { email: "not-an-email", name: "Robin" });
-    expect(bad1.status).toBe(400);
-    expect(bad1.body.error).toBe("invalid_email");
+    test("two mistyped addresses and a corrected one all go through, from one address", async () => {
+      const bad1 = await redeem(ip, { email: "not-an-email", name: "Robin" });
+      expect(bad1.status).toBe(400);
+      expect(bad1.body.error).toBe("invalid_email");
 
-    const bad2 = await redeem(ip, { email: "still-not-one", name: "Robin" });
-    expect(bad2.status).toBe(400);
-    expect(bad2.body.error).toBe("invalid_email");
+      const bad2 = await redeem(ip, { email: "still-not-one", name: "Robin" });
+      expect(bad2.status).toBe(400);
+      expect(bad2.body.error).toBe("invalid_email");
 
-    // The fix: this is the third call from the same address and it still
-    // works — before B237 it would have been the third of five attempts
-    // spent, one wrong code away from the limit.
-    const good = await redeem(ip, { email: "robin@example.test", name: "Robin" });
-    expect(good.status).toBe(202);
-    expect(good.body.status).toBe("code");
+      // The fix: this is the third call from the same address and it still
+      // works — before B237 it would have been the third of five attempts
+      // spent, one wrong code away from the limit.
+      const good = await redeem(ip, { email: "robin@example.test", name: "Robin" });
+      expect(good.status).toBe(202);
+      expect(good.body.status).toBe("code");
+    });
+
+    test("real redemptions still run out, and the message says why", async () => {
+      // One completion already spent by the previous test, from this same
+      // address — four more reaches the five-per-window ceiling exactly.
+      for (let i = 0; i < 4; i += 1) {
+        const result = await redeem(ip, { email: `guest${i}@example.test`, name: `Guest ${i}` });
+        expect(result.status).toBe(202);
+      }
+      const sixth = await redeem(ip, { email: "guest5@example.test", name: "Guest 5" });
+      expect(sixth.status).toBe(429);
+      expect(sixth.body.error).toBe("too_many_requests");
+    });
   });
 
-  test("real redemptions still run out, and the message says why", async () => {
-    // One completion already spent by the previous test, from this same
-    // address — four more reaches the five-per-window ceiling exactly.
-    for (let i = 0; i < 4; i += 1) {
-      const result = await redeem(ip, { email: `guest${i}@example.test`, name: `Guest ${i}` });
-      expect(result.status).toBe(202);
-    }
-    const sixth = await redeem(ip, { email: "guest5@example.test", name: "Guest 5" });
-    expect(sixth.status).toBe(429);
-    expect(sixth.body.error).toBe("too_many_requests");
-  });
-});
+  describe("a run of guessed tokens is still stopped", () => {
+    const ip = "10.44.0.8";
 
-describe("a run of guessed tokens is still stopped", () => {
-  const ip = "10.44.0.8";
+    test("twenty invented tokens from one address exhaust the refusal budget", async () => {
+      let lastStatus = 0;
+      for (let i = 0; i < 20; i += 1) {
+        const result = await redeem(ip, { token: `invented-${i}`, email: "x@example.test", name: "X" });
+        lastStatus = result.status;
+      }
+      expect(lastStatus).toBe(202); // "expired" — still not distinguishing a bad token
 
-  test("twenty invented tokens from one address exhaust the refusal budget", async () => {
-    let lastStatus = 0;
-    for (let i = 0; i < 20; i += 1) {
-      const result = await redeem(ip, { token: `invented-${i}`, email: "x@example.test", name: "X" });
-      lastStatus = result.status;
-    }
-    expect(lastStatus).toBe(202); // "expired" — still not distinguishing a bad token
-
-    const next = await redeem(ip, { token: "invented-final", email: "x@example.test", name: "X" });
-    expect(next.status).toBe(429);
+      const next = await redeem(ip, { token: "invented-final", email: "x@example.test", name: "X" });
+      expect(next.status).toBe(429);
+    });
   });
 });

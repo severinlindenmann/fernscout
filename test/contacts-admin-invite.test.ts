@@ -208,201 +208,203 @@ afterAll(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("the owner adding a guest by hand mails an invitation, not a bare code", () => {
-  const FAMILY = "family@example.test";
+describe("the whole file, kept in written order", { shuffle: false }, () => {
+  describe("the owner adding a guest by hand mails an invitation, not a bare code", () => {
+    const FAMILY = "family@example.test";
 
-  test("create mails a link, and the row is pre-approved the moment it is opened", async () => {
-    const token = await ownerToken();
+    test("create mails a link, and the row is pre-approved the moment it is opened", async () => {
+      const token = await ownerToken();
 
-    const created = await admin(
-      { action: "create", name: "Family", email: FAMILY, locale: "en" },
-      token,
-    );
-    expect(created.status).toBe(200);
-    expect(created.body.ok).toBe(true);
-    expect(created.body.contact?.status).toBe("pending");
-    expect(created.body.contact?.confirmedAt).toBeNull();
-    // Not `owner` any more — the row now points at the invite `sendInviteMail`
-    // used, which is what `preapprovedEmailFor` reads on confirmation.
-    expect(created.body.contact?.createdVia).toMatch(/^invite:/);
+      const created = await admin(
+        { action: "create", name: "Family", email: FAMILY, locale: "en" },
+        token,
+      );
+      expect(created.status).toBe(200);
+      expect(created.body.ok).toBe(true);
+      expect(created.body.contact?.status).toBe("pending");
+      expect(created.body.contact?.confirmedAt).toBeNull();
+      // Not `owner` any more — the row now points at the invite `sendInviteMail`
+      // used, which is what `preapprovedEmailFor` reads on confirmation.
+      expect(created.body.contact?.createdVia).toMatch(/^invite:/);
 
-    // A mail landed on disk, addressed to the family — the invitation, not
-    // the bare code B384 found.
-    expect(mailedTo("family-example-test")).toBe(true);
+      // A mail landed on disk, addressed to the family — the invitation, not
+      // the bare code B384 found.
+      expect(mailedTo("family-example-test")).toBe(true);
 
-    // Nothing was granted yet: the address has not proved itself.
-    const before = await contactRow(FAMILY);
-    expect(before?.status).toBe("pending");
-    expect(await grantExists(before!.id)).toBe(false);
+      // Nothing was granted yet: the address has not proved itself.
+      const before = await contactRow(FAMILY);
+      expect(before?.status).toBe("pending");
+      expect(await grantExists(before!.id)).toBe(false);
 
-    // The recipient opens the mailed link — the same door B319's own link
-    // leads to — and proves the address with the six-digit code that follows.
-    const inviteId = created.body.contact!.createdVia!.slice("invite:".length);
-    const { listInvitesWithLinks } = await import("@/lib/contacts/invites");
-    const { serverSite } = await import("@/lib/site");
-    const invite = (await listInvitesWithLinks(OWNER, serverSite().url)).find(
-      (candidate) => candidate.id === inviteId,
-    );
-    expect(invite?.url).toBeTruthy();
-    const inviteToken = invite!.url!.split("/").pop()!;
+      // The recipient opens the mailed link — the same door B319's own link
+      // leads to — and proves the address with the six-digit code that follows.
+      const inviteId = created.body.contact!.createdVia!.slice("invite:".length);
+      const { listInvitesWithLinks } = await import("@/lib/contacts/invites");
+      const { serverSite } = await import("@/lib/site");
+      const invite = (await listInvitesWithLinks(OWNER, serverSite().url)).find(
+        (candidate) => candidate.id === inviteId,
+      );
+      expect(invite?.url).toBeTruthy();
+      const inviteToken = invite!.url!.split("/").pop()!;
 
-    const redeemed = await redeem({ token: inviteToken, name: "Family", email: FAMILY });
-    expect(redeemed.body.status).toBe("code");
+      const redeemed = await redeem({ token: inviteToken, name: "Family", email: FAMILY });
+      expect(redeemed.body.status).toBe("code");
 
-    const code = await freshCode(FAMILY);
-    const result = await confirm(FAMILY, code);
+      const code = await freshCode(FAMILY);
+      const result = await confirm(FAMILY, code);
 
-    // `active`, not `pending`: the owner already vouched for this exact
-    // address by typing it in, so proving it is the whole of what was left.
-    expect(result.body.status).toBe("active");
+      // `active`, not `pending`: the owner already vouched for this exact
+      // address by typing it in, so proving it is the whole of what was left.
+      expect(result.body.status).toBe("active");
 
-    const after = await contactRow(FAMILY);
-    expect(after?.status).toBe("active");
-    expect(after?.approvedAt).not.toBeNull();
-    expect(await grantExists(after!.id)).toBe(true);
-  });
-
-  test("create refuses an address already on the list, same as before", async () => {
-    const token = await ownerToken();
-    const dup = await admin(
-      { action: "create", name: "Again", email: FAMILY, locale: "en" },
-      token,
-    );
-    expect(dup.status).toBe(409);
-    expect(dup.body.error).toBe("contact_exists");
-  });
-});
-
-describe("resending the mailed invitation", () => {
-  const LOST_IT = "lost-it@example.test";
-
-  test("mails the same link again for a row that has not confirmed yet", async () => {
-    const token = await ownerToken();
-    await admin({ action: "create", name: "Lost It", email: LOST_IT, locale: "en" }, token);
-    const contact = await contactRow(LOST_IT);
-
-    const resent = await admin({ action: "resend", id: contact!.id }, token);
-    expect(resent.status).toBe(200);
-    expect(resent.body.ok).toBe(true);
-    expect(resent.body.sent).toBe(true);
-
-    // Two mails to the same address now: the original and the resend.
-    const files = fs.readdirSync(path.join(dir, "mail", OWNER));
-    expect(files.filter((f) => f.includes("lost-it-example-test")).length).toBeGreaterThanOrEqual(2);
-  });
-
-  test("refuses once the address has confirmed — nothing left to resend", async () => {
-    const email = "already-confirmed@example.test";
-    const token = await ownerToken();
-    await admin({ action: "create", name: "Confirmed", email, locale: "en" }, token);
-    const code = await freshCode(email);
-    await confirm(email, code);
-    const contact = await contactRow(email);
-
-    const resent = await admin({ action: "resend", id: contact!.id }, token);
-    expect(resent.status).toBe(409);
-    expect(resent.body.error).toBe("already_confirmed");
-  });
-
-  // B388 — the button next to a pending row had no cooldown at all: every
-  // call re-mails the same link, for real, to `contact.email`. Past a small
-  // number of calls in an hour it is refused rather than mailed again.
-  test("is refused past a small number of calls in a window", async () => {
-    const email = "hammered@example.test";
-    const token = await ownerToken();
-    await admin({ action: "create", name: "Hammered", email, locale: "en" }, token);
-    const contact = await contactRow(email);
-
-    const before = fs.readdirSync(path.join(dir, "mail", OWNER)).filter((f) =>
-      f.includes("hammered-example-test"),
-    ).length;
-
-    // The first call above ("create") already sent one mail; three more
-    // resends is the configured limit.
-    for (let i = 0; i < 3; i++) {
-      const ok = await admin({ action: "resend", id: contact!.id }, token);
-      expect(ok.status).toBe(200);
-    }
-
-    const refused = await admin({ action: "resend", id: contact!.id }, token);
-    expect(refused.status).toBe(429);
-    expect(refused.body.error).toBe("too_many_requests");
-
-    // Refused means refused: no further mail went out for the blocked call.
-    const after = fs.readdirSync(path.join(dir, "mail", OWNER)).filter((f) =>
-      f.includes("hammered-example-test"),
-    ).length;
-    expect(after).toBe(before + 3);
-  });
-
-  test("refuses a row with no invite behind it — a legacy `owner` row", async () => {
-    const { requestContact } = await import("@/lib/contacts");
-    const token = await ownerToken();
-    const { contactId } = await requestContact(OWNER, {
-      name: "Legacy",
-      email: "legacy-owner@example.test",
-      locale: "en",
-      address: null,
-      wantsEmailDigest: false,
-      wantsPostcard: false,
-      createdVia: "owner",
+      const after = await contactRow(FAMILY);
+      expect(after?.status).toBe("active");
+      expect(after?.approvedAt).not.toBeNull();
+      expect(await grantExists(after!.id)).toBe(true);
     });
 
-    const resent = await admin({ action: "resend", id: contactId! }, token);
-    expect(resent.status).toBe(409);
-    expect(resent.body.error).toBe("no_invite");
-  });
-});
-
-/**
- * B244 — the response to `{"action":"approve"}` used to say only `ok: true`,
- * dropping the trip ids `approveTripPlaces` already computes. Now it names
- * them (as titles, for the owner reading the page), and names an empty list
- * rather than nothing when the approval opened no trip.
- */
-describe("approving names the trips it opened", () => {
-  test("names a trip the contact had asked to join, by title", async () => {
-    const { requestContact } = await import("@/lib/contacts");
-    const { claimTripPlace } = await import("@/lib/tripPeople");
-    const token = await ownerToken();
-
-    const { contactId } = await requestContact(OWNER, {
-      name: "Buddy",
-      email: "buddy@example.test",
-      locale: "en",
-      address: null,
-      wantsEmailDigest: false,
-      wantsPostcard: false,
-      createdVia: "owner",
+    test("create refuses an address already on the list, same as before", async () => {
+      const token = await ownerToken();
+      const dup = await admin(
+        { action: "create", name: "Again", email: FAMILY, locale: "en" },
+        token,
+      );
+      expect(dup.status).toBe(409);
+      expect(dup.body.error).toBe("contact_exists");
     });
-    const code = await freshCode("buddy@example.test");
-    await confirm("buddy@example.test", code);
-    await claimTripPlace(OWNER, "welcome-trip", contactId!, null);
-
-    const approved = await admin({ action: "approve", id: contactId! }, token);
-    expect(approved.status).toBe(200);
-    expect(approved.body.ok).toBe(true);
-    expect(approved.body.tripsOpened).toEqual(["Welcome Trip"]);
   });
 
-  test("names no trip when the approval only opens the journal itself", async () => {
-    const { requestContact } = await import("@/lib/contacts");
-    const token = await ownerToken();
+  describe("resending the mailed invitation", () => {
+    const LOST_IT = "lost-it@example.test";
 
-    const { contactId } = await requestContact(OWNER, {
-      name: "Reader",
-      email: "reader-only@example.test",
-      locale: "en",
-      address: null,
-      wantsEmailDigest: false,
-      wantsPostcard: false,
-      createdVia: "owner",
+    test("mails the same link again for a row that has not confirmed yet", async () => {
+      const token = await ownerToken();
+      await admin({ action: "create", name: "Lost It", email: LOST_IT, locale: "en" }, token);
+      const contact = await contactRow(LOST_IT);
+
+      const resent = await admin({ action: "resend", id: contact!.id }, token);
+      expect(resent.status).toBe(200);
+      expect(resent.body.ok).toBe(true);
+      expect(resent.body.sent).toBe(true);
+
+      // Two mails to the same address now: the original and the resend.
+      const files = fs.readdirSync(path.join(dir, "mail", OWNER));
+      expect(files.filter((f) => f.includes("lost-it-example-test")).length).toBeGreaterThanOrEqual(2);
     });
-    const code = await freshCode("reader-only@example.test");
-    await confirm("reader-only@example.test", code);
 
-    const approved = await admin({ action: "approve", id: contactId! }, token);
-    expect(approved.status).toBe(200);
-    expect(approved.body.tripsOpened).toEqual([]);
+    test("refuses once the address has confirmed — nothing left to resend", async () => {
+      const email = "already-confirmed@example.test";
+      const token = await ownerToken();
+      await admin({ action: "create", name: "Confirmed", email, locale: "en" }, token);
+      const code = await freshCode(email);
+      await confirm(email, code);
+      const contact = await contactRow(email);
+
+      const resent = await admin({ action: "resend", id: contact!.id }, token);
+      expect(resent.status).toBe(409);
+      expect(resent.body.error).toBe("already_confirmed");
+    });
+
+    // B388 — the button next to a pending row had no cooldown at all: every
+    // call re-mails the same link, for real, to `contact.email`. Past a small
+    // number of calls in an hour it is refused rather than mailed again.
+    test("is refused past a small number of calls in a window", async () => {
+      const email = "hammered@example.test";
+      const token = await ownerToken();
+      await admin({ action: "create", name: "Hammered", email, locale: "en" }, token);
+      const contact = await contactRow(email);
+
+      const before = fs.readdirSync(path.join(dir, "mail", OWNER)).filter((f) =>
+        f.includes("hammered-example-test"),
+      ).length;
+
+      // The first call above ("create") already sent one mail; three more
+      // resends is the configured limit.
+      for (let i = 0; i < 3; i++) {
+        const ok = await admin({ action: "resend", id: contact!.id }, token);
+        expect(ok.status).toBe(200);
+      }
+
+      const refused = await admin({ action: "resend", id: contact!.id }, token);
+      expect(refused.status).toBe(429);
+      expect(refused.body.error).toBe("too_many_requests");
+
+      // Refused means refused: no further mail went out for the blocked call.
+      const after = fs.readdirSync(path.join(dir, "mail", OWNER)).filter((f) =>
+        f.includes("hammered-example-test"),
+      ).length;
+      expect(after).toBe(before + 3);
+    });
+
+    test("refuses a row with no invite behind it — a legacy `owner` row", async () => {
+      const { requestContact } = await import("@/lib/contacts");
+      const token = await ownerToken();
+      const { contactId } = await requestContact(OWNER, {
+        name: "Legacy",
+        email: "legacy-owner@example.test",
+        locale: "en",
+        address: null,
+        wantsEmailDigest: false,
+        wantsPostcard: false,
+        createdVia: "owner",
+      });
+
+      const resent = await admin({ action: "resend", id: contactId! }, token);
+      expect(resent.status).toBe(409);
+      expect(resent.body.error).toBe("no_invite");
+    });
+  });
+
+  /**
+   * B244 — the response to `{"action":"approve"}` used to say only `ok: true`,
+   * dropping the trip ids `approveTripPlaces` already computes. Now it names
+   * them (as titles, for the owner reading the page), and names an empty list
+   * rather than nothing when the approval opened no trip.
+   */
+  describe("approving names the trips it opened", () => {
+    test("names a trip the contact had asked to join, by title", async () => {
+      const { requestContact } = await import("@/lib/contacts");
+      const { claimTripPlace } = await import("@/lib/tripPeople");
+      const token = await ownerToken();
+
+      const { contactId } = await requestContact(OWNER, {
+        name: "Buddy",
+        email: "buddy@example.test",
+        locale: "en",
+        address: null,
+        wantsEmailDigest: false,
+        wantsPostcard: false,
+        createdVia: "owner",
+      });
+      const code = await freshCode("buddy@example.test");
+      await confirm("buddy@example.test", code);
+      await claimTripPlace(OWNER, "welcome-trip", contactId!, null);
+
+      const approved = await admin({ action: "approve", id: contactId! }, token);
+      expect(approved.status).toBe(200);
+      expect(approved.body.ok).toBe(true);
+      expect(approved.body.tripsOpened).toEqual(["Welcome Trip"]);
+    });
+
+    test("names no trip when the approval only opens the journal itself", async () => {
+      const { requestContact } = await import("@/lib/contacts");
+      const token = await ownerToken();
+
+      const { contactId } = await requestContact(OWNER, {
+        name: "Reader",
+        email: "reader-only@example.test",
+        locale: "en",
+        address: null,
+        wantsEmailDigest: false,
+        wantsPostcard: false,
+        createdVia: "owner",
+      });
+      const code = await freshCode("reader-only@example.test");
+      await confirm("reader-only@example.test", code);
+
+      const approved = await admin({ action: "approve", id: contactId! }, token);
+      expect(approved.status).toBe(200);
+      expect(approved.body.tripsOpened).toEqual([]);
+    });
   });
 });

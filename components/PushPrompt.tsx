@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { usePathname } from "next/navigation";
 import { Bell, X } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
@@ -155,7 +156,9 @@ export default function PushPrompt({ username }: { username: string }) {
         return;
       }
 
-      const res = await fetch(`/api/push/subscribe?user=${encodeURIComponent(username)}`)
+      const res = await fetch(
+        `/api/push/subscribe?user=${encodeURIComponent(username)}`,
+      )
         .then((r) => r.json())
         .catch(() => null);
       if (cancelled || !res?.enabled || !res.publicKey) return;
@@ -191,7 +194,10 @@ export default function PushPrompt({ username }: { username: string }) {
 
   const notNow = useCallback(() => {
     const until = new Date(Date.now() + SNOOZE_DAYS * 24 * 60 * 60 * 1000);
-    window.localStorage.setItem(`${SNOOZE_PREFIX}${username}`, until.toISOString());
+    window.localStorage.setItem(
+      `${SNOOZE_PREFIX}${username}`,
+      until.toISOString(),
+    );
     setGone(true);
   }, [username]);
 
@@ -223,8 +229,12 @@ export default function PushPrompt({ username }: { username: string }) {
             <Bell className="h-4 w-4" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-semibold text-navy-900">{t("push.prompt.title")}</h2>
-            <p className="mt-1 text-sm leading-6 text-navy-600">{t("push.prompt.body")}</p>
+            <h2 className="text-sm font-semibold text-navy-900">
+              {t("push.prompt.title")}
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-navy-600">
+              {t("push.prompt.body")}
+            </p>
           </div>
           {/* The quiet way out. Same as "Not now": a reader who closes a card
               has not said never, and treating it as never would be putting
@@ -241,17 +251,18 @@ export default function PushPrompt({ username }: { username: string }) {
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button
+          <BusyButton
+            busy={busy}
             type="button"
             onClick={accept}
-            disabled={busy}
             className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-navy-900 px-4
                        text-sm font-semibold text-cream-50 transition-colors hover:bg-navy-700
                        disabled:opacity-50
                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+            busyLabel={t("push.working")}
           >
-            {busy ? t("push.working") : t("push.prompt.yes")}
-          </button>
+            {t("push.prompt.yes")}
+          </BusyButton>
           <button
             type="button"
             onClick={notNow}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import CopyLine from "./CopyLine";
 import { useI18n } from "./LocaleProvider";
 import { handoverPrompt } from "@/lib/api/agentCopy";
@@ -100,19 +101,24 @@ export default function AgentHandover({
 
   return (
     <div>
-      <h3 className="font-display text-base font-semibold text-navy-900">{t("me.agentTitle")}</h3>
-      <p className="mt-1 text-base leading-7 text-navy-700">{t("me.agentBody")}</p>
+      <h3 className="font-display text-base font-semibold text-navy-900">
+        {t("me.agentTitle")}
+      </h3>
+      <p className="mt-1 text-base leading-7 text-navy-700">
+        {t("me.agentBody")}
+      </p>
 
       {prompt === null ? (
         <>
-          <button
+          <BusyButton
+            busy={busy}
             type="button"
             onClick={mint}
-            disabled={busy}
             className="mt-3 inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:opacity-50"
+            busyLabel={t("me.handoverWorking")}
           >
-            {busy ? t("me.handoverWorking") : t("me.handoverCreate")}
-          </button>
+            {t("me.handoverCreate")}
+          </BusyButton>
           {failed && (
             <p role="alert" className="mt-3 text-base leading-7 text-coral-600">
               {t("me.handoverFailed")}
@@ -132,10 +138,23 @@ export default function AgentHandover({
  * from its own props rather than only being reachable by clicking the button
  * above, which a static render can never do.
  */
-export function HandoverPrompt({ prompt, expires }: { prompt: string; expires: string | null }) {
+export function HandoverPrompt({
+  prompt,
+  expires,
+}: {
+  prompt: string;
+  expires: string | null;
+}) {
   const { t } = useI18n();
+  const block = useRef<HTMLDivElement>(null);
+  // B812: the button that minted this vanishes the moment it appears, the
+  // same shape B795 fixed for ConfirmPanel — take focus once, here, so a
+  // screen reader lands on the credential instead of on nothing.
+  useEffect(() => {
+    block.current?.focus();
+  }, []);
   return (
-    <div className="mt-3">
+    <div ref={block} tabIndex={-1} className="mt-3 outline-none">
       <p className="text-base leading-7 text-navy-900">
         {t("me.handoverReady", {
           time: expires ? new Date(expires).toLocaleTimeString() : "",

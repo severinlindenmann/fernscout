@@ -3,6 +3,7 @@ import { editEntry, factsOfEntry, publishNotice, publishDraft } from "@/lib/api/
 import { isTestContent } from "@/lib/access";
 import { isEnabled } from "@/lib/capabilities";
 import { balanceOf } from "@/lib/credits";
+import { formatCredits } from "@/lib/credits/format";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
@@ -197,7 +198,7 @@ export async function POST(
             needed,
             balance,
             message:
-              `Sending this day would take ${needed} credit(s); this journal has ${balance} left. ` +
+              `Sending this day would take ${needed} credit(s); this journal has ${formatCredits(balance ?? 0)} left. ` +
               "Nothing was published.",
           },
           { status: 402 },

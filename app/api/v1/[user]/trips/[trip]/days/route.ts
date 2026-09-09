@@ -155,6 +155,25 @@ export async function POST(
   }
 
   /**
+   * `dryRun: true` — every check above has already run and found nothing
+   * wrong, so stop here. Nothing is written: no draft, no idempotency
+   * record, no media move — the idempotency key below is never even looked
+   * at. This is B537's answer to a folder on disk that cannot be checked
+   * against the instance that will receive it: send the same body here
+   * before the real POST, and a `problems`/`missing` refusal is the same
+   * shape either way, because it is the same checks answering both times.
+   *
+   * `ok: true` and `written: false` together, deliberately — a caller must
+   * never be able to mistake this for the real write's `201`.
+   */
+  if (body.dryRun === true) {
+    return Response.json(
+      { ok: true, written: false, dryRun: true, note: "Nothing was written. This body would be accepted." },
+      { status: 200 },
+    );
+  }
+
+  /**
    * `idempotency_key` — an optional field an agent sends to make a retry
    * safe. The same key with the same arguments replays the first answer; the
    * same key with *different* arguments is refused and nothing is written,
@@ -164,7 +183,7 @@ export async function POST(
   const supplied = typeof body.idempotency_key === "string" ? body.idempotency_key : undefined;
   const key = supplied ? idempotencyKey(user, "create_day", supplied) : null;
   const fingerprint = fingerprintOf({ ...body, trip: ref });
-  const previous = recall<{ slug: string; status: string }>(key, fingerprint);
+  const previous = await recall<{ slug: string; status: string }>(key, fingerprint);
 
   if (previous.kind === "conflict") {
     return Response.json(
@@ -223,7 +242,7 @@ export async function POST(
     status: result.status,
     ...(result.costCurrency ? { costCurrency: result.costCurrency } : {}),
   };
-  remember(key, fingerprint, written);
+  await remember(key, fingerprint, written);
 
   return Response.json(
     {

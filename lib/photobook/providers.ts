@@ -15,9 +15,16 @@
  * infrastructure decision, and it is much better made now than on the evening
  * you want to order a Christmas present.
  *
- * **Every field name below is written from published documentation and has not
- * been confirmed against a live account.** docs/providers/photobook.md says so
- * too, and lists what to verify first.
+ * **Gelato is measured; the other three are not.** A live probe on
+ * 2026-09-07 (no order placed) confirmed Gelato's product uids, its
+ * page-count rule, its Swiss shipment methods and real prices — those are in
+ * `BOOK_SIZES` (`lib/photobook/spec.ts`) and `docs/providers/photobook.md`
+ * rather than invented. What is still unconfirmed even for Gelato is the
+ * shape of the *create-order* request itself: only its quote endpoint has
+ * been called. Peecho, Cloudprinter and Lulu remain exactly as before —
+ * every field name below for those three is written from published
+ * documentation and has not been confirmed against a live account.
+ * docs/providers/photobook.md says so too, and lists what to verify first.
  */
 
 export type ProviderName = "dry-run" | "peecho" | "gelato" | "cloudprinter" | "lulu";
@@ -54,6 +61,12 @@ export type BookOrder = {
   to: ShippingAddress;
   /** True until you actually want paper to move. */
   test: boolean;
+  /** Gelato's own catalogue id for this book, e.g. `BOOK_SIZES[id].productUid`.
+   * Never constructed — see the header comment. */
+  productUid: string;
+  /** Gelato's own shipment method id, e.g. `swiss_post_economy` or
+   * `swiss_post_priority`. */
+  shipmentMethodUid: string;
   /**
    * The credit-ledger reference for this order — B07.
    *
@@ -153,19 +166,17 @@ export function buildPeechoRequest(order: BookOrder): PreparedRequest {
 // ---------------------------------------------------------------------------
 
 /**
- * Gelato — the widest network, and the one most likely to print in Switzerland.
+ * Gelato — the widest network, and the one that measurably prints in
+ * Switzerland.
  *
- * Gelato routes to whichever partner is nearest the address, which for a Swiss
- * or European recipient usually means no customs and two or three days. Its
- * catalogue is addressed by long product UIDs; the one below has the right
- * *shape* but must be taken from Gelato's live product API rather than typed
- * from memory.
+ * Gelato routes to whichever partner is nearest the address, which for a
+ * Swiss recipient means the Swiss book itself, printed in-country
+ * (`productionCountry: "CH"`, read from a live probe on 2026-09-07). The
+ * `productUid` below is copied verbatim from `BOOK_SIZES` — see the header
+ * comment for what "measured" means and does not mean here.
  */
 export function buildGelatoRequest(order: BookOrder): PreparedRequest {
   requirePayment(order);
-  const uid =
-    `photobook_pf_${order.trimWidthMm}x${order.trimHeightMm}-mm_` +
-    `pt_${order.pageCount}-pages_cl_4-4_ct_matt-lamination_ver_softcover`;
   return {
     provider: "gelato",
     method: "POST",
@@ -180,7 +191,7 @@ export function buildGelatoRequest(order: BookOrder): PreparedRequest {
       items: [
         {
           itemReferenceId: `${order.reference}-book`,
-          productUid: uid,
+          productUid: order.productUid,
           pageCount: order.pageCount,
           quantity: order.copies,
           files: [
@@ -189,7 +200,7 @@ export function buildGelatoRequest(order: BookOrder): PreparedRequest {
           ],
         },
       ],
-      shipmentMethodUid: "normal",
+      shipmentMethodUid: order.shipmentMethodUid,
       shippingAddress: {
         firstName: order.to.name.split(" ").slice(0, -1).join(" ") || order.to.name,
         lastName: order.to.name.split(" ").slice(-1).join(" "),
@@ -204,9 +215,9 @@ export function buildGelatoRequest(order: BookOrder): PreparedRequest {
     },
     requires: [
       "GELATO_API_KEY",
-      "The real productUid from GET https://product.gelatoapis.com/v3/... — the one above is the right shape, not a real id",
       "The interior and cover PDFs reachable at a public HTTPS URL",
       "orderType 'draft' first: Gelato validates the files without printing",
+      "This create-order shape confirmed against a live call — only the quote endpoint has been, so far",
     ],
   };
 }
@@ -369,8 +380,10 @@ export function availableProviders(): Record<ProviderName, { ready: boolean; not
       note: "Request builder written and tested. Needs PEECHO_API_KEY, a configured offering, and public file URLs.",
     },
     gelato: {
-      ready: false,
-      note: "Request builder written and tested. Needs GELATO_API_KEY and a real productUid from the product API.",
+      ready: Boolean(process.env.GELATO_API_KEY),
+      note: process.env.GELATO_API_KEY
+        ? "Wired, against a measured catalogue. The create-order shape is still unconfirmed — only the quote endpoint has been called live."
+        : "Request builder written and tested, against a measured catalogue. Needs GELATO_API_KEY and a placed order to confirm the create-order shape.",
     },
     cloudprinter: {
       ready: false,

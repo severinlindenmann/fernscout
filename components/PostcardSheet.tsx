@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import BusyButton from "@/components/BusyButton";
 import { X } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
 import { LOCALE_LABEL } from "@/lib/i18n";
@@ -58,13 +60,20 @@ import type { MediaTile } from "@/lib/types";
  * journal's default.
  */
 
-/** The API's own cap, repeated so the box can say so before the server does. */
-const MAX_MESSAGE = 600;
-
-type Candidate = { contactId: string; name: string; city: string; country: string | null };
+type Candidate = {
+  contactId: string;
+  name: string;
+  city: string;
+  country: string | null;
+};
 
 /** One day of the trip, with its opening in every language it has one in. */
-type DayText = { slug: string; date: string; title: string; texts: Record<string, string> };
+type DayText = {
+  slug: string;
+  date: string;
+  title: string;
+  texts: Record<string, string>;
+};
 
 export default function PostcardSheet({
   username,
@@ -85,6 +94,7 @@ export default function PostcardSheet({
   onClose: () => void;
 }) {
   const { t } = useI18n();
+  const router = useRouter();
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
   const [creditsEach, setCreditsEach] = useState(0);
   const [chosen, setChosen] = useState<string[]>([]);
@@ -100,7 +110,10 @@ export default function PostcardSheet({
     (async () => {
       const res = await fetch(`/api/v1/${username}/postcards/recipients`);
       if (!res.ok || !live) return;
-      const body = (await res.json()) as { recipients: Candidate[]; creditsEach: number };
+      const body = (await res.json()) as {
+        recipients: Candidate[];
+        creditsEach: number;
+      };
       if (!live) return;
       setCandidates(body.recipients);
       setCreditsEach(body.creditsEach);
@@ -119,7 +132,10 @@ export default function PostcardSheet({
         `/api/v1/${username}/postcards/texts?trip=${encodeURIComponent(trip)}`,
       );
       if (!res.ok || !live) return;
-      const body = (await res.json()) as { writtenLocale: string; days: DayText[] };
+      const body = (await res.json()) as {
+        writtenLocale: string;
+        days: DayText[];
+      };
       if (!live) return;
       setDays(body.days);
       // The day the photograph is from, in the language the journal is written
@@ -129,7 +145,9 @@ export default function PostcardSheet({
       // better start than an empty box with a select pointing at nothing.
       const start = body.days.find((d) => d.slug === tile.slug) ?? body.days[0];
       if (!start) return;
-      const loc = start.texts[body.writtenLocale] ? body.writtenLocale : Object.keys(start.texts)[0];
+      const loc = start.texts[body.writtenLocale]
+        ? body.writtenLocale
+        : Object.keys(start.texts)[0];
       setDay(start.slug);
       setLocale(loc);
       setMessage(start.texts[loc] ?? "");
@@ -152,7 +170,9 @@ export default function PostcardSheet({
    * which of the two is the one that reloads the text. */
   function take(nextDay: string, nextLocale: string) {
     const found = days.find((d) => d.slug === nextDay);
-    const loc = found?.texts[nextLocale] ? nextLocale : Object.keys(found?.texts ?? {})[0] ?? "";
+    const loc = found?.texts[nextLocale]
+      ? nextLocale
+      : (Object.keys(found?.texts ?? {})[0] ?? "");
     setDay(nextDay);
     setLocale(loc);
     setMessage(found?.texts[loc] ?? "");
@@ -183,7 +203,13 @@ export default function PostcardSheet({
       // Leaves this page entirely. The next thing the owner sees is the
       // preview, with the button on it — which is the handover this whole
       // component exists to perform.
-      window.location.assign(body.url);
+      //
+      // `router.push` and not `window.location.assign` — B982. The preview is
+      // a page on this site and this was the first of four white flashes on
+      // the way to posting a card; a soft navigation renders it in place,
+      // keeps the busy button spinning until it is actually there, and asks
+      // the server for exactly the same thing.
+      router.push(body.url);
     } catch {
       setFailed(true);
       setBusy(false);
@@ -255,24 +281,32 @@ export default function PostcardSheet({
           </div>
         ) : null}
 
-        <label className="mt-4 block text-sm font-semibold text-navy-700">
-          {t("postcard.messageLabel")}
-          <textarea
-            value={message}
-            maxLength={MAX_MESSAGE}
-            rows={5}
-            placeholder={t("postcard.messagePlaceholder")}
-            onChange={(e) => setMessage(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-navy-200 p-2.5 text-sm font-normal text-navy-900"
-          />
-        </label>
+        {/* The words are shown, not asked for — B1005.
+            There used to be a textarea here and another one on the preview
+            page, holding the same message, and nobody could tell which was
+            the real one. The second is: it sits under a drawing of the card
+            at print size, which is where a wrong word actually becomes
+            obvious. So this is where the words *start* — a day's own opening,
+            trimmed by the server — and the next screen is where they are
+            written. */}
+        <div className="mt-4">
+          <p className="text-sm font-semibold text-navy-700">
+            {t("postcard.startsFrom")}
+          </p>
+          <p className="mt-1 line-clamp-3 rounded-lg border border-navy-200 bg-cream-50 p-2.5 text-sm text-navy-800">
+            {message || t("postcard.startsFromNothing")}
+          </p>
+          <p className="mt-1 text-xs text-navy-600">{t("postcard.writeNext")}</p>
+        </div>
 
         <fieldset className="mt-4">
           <legend className="text-sm font-semibold text-navy-700">
             {t("postcard.recipientsLabel")}
           </legend>
           {candidates !== null && candidates.length === 0 ? (
-            <p className="mt-1 text-sm text-navy-600">{t("postcard.noRecipients")}</p>
+            <p className="mt-1 text-sm text-navy-600">
+              {t("postcard.noRecipients")}
+            </p>
           ) : (
             <ul className="mt-1 space-y-1">
               {(candidates ?? []).map((c) => (
@@ -301,20 +335,24 @@ export default function PostcardSheet({
           )}
         </fieldset>
 
-        {failed && <p className="mt-3 text-sm text-navy-800">{t("postcard.failed")}</p>}
+        {failed && (
+          <p className="mt-3 text-sm text-navy-800">{t("postcard.failed")}</p>
+        )}
 
         <p className="mt-4 text-sm font-semibold text-navy-900">
           {t("postcard.cost", { credits: String(total) })}
         </p>
         <p className="mt-1 text-xs text-navy-600">{t("postcard.nextStep")}</p>
 
-        <button
+        <BusyButton
+          busy={busy}
           onClick={create}
           disabled={!ready}
           className="mt-3 min-h-11 w-full rounded-full bg-navy-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-40"
+          busyLabel={t("postcard.creating")}
         >
-          {busy ? t("postcard.creating") : t("postcard.create")}
-        </button>
+          {t("postcard.create")}
+        </BusyButton>
       </div>
     </div>
   );
@@ -328,7 +366,11 @@ export default function PostcardSheet({
  * third slash", so a URL that is not the shape we expect returns something the
  * server will reject by name instead of a plausible-looking wrong file.
  */
-export function photoPathOf(src: string, username: string, trip: string): string {
+export function photoPathOf(
+  src: string,
+  username: string,
+  trip: string,
+): string {
   const prefix = `/${username}/media/${trip}/`;
   return src.startsWith(prefix) ? src.slice(prefix.length) : src;
 }

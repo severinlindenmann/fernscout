@@ -25,7 +25,7 @@
 // a linked worktree, where they say so and leave it alone. Add `--index` to
 // write it there anyway.
 //
-// The two lanes that accumulate — `backlog` and `testing` — hold their tasks
+// The lane that accumulates — `backlog` — holds its tasks
 // in **category folders**, one level below the lane. The category is derived
 // from `type` and `complexity` by categoryOf() and is never typed by hand, for
 // the same reason the status is not: two places to write one fact is two
@@ -130,19 +130,21 @@ const CATEGORIES = [
 /**
  * The lanes deep enough to need the folders.
  *
- * `backlog/` and `testing/` are where tasks accumulate — seventy-five and a
- * hundred and twenty-one on 2026-09-04 — and a flat directory of that size is
- * one nobody reads to the bottom of. The other three are transient by
- * construction: `open/` is a short reviewed queue, `in-development/` holds
- * what is being worked on right now, and `completed/` is read by id or not at
- * all. Folders there would be three more decisions per lane move buying
- * nothing.
+ * `backlog/` is where tasks accumulate — seventy-five and counting — and a
+ * flat directory of that size is one nobody reads to the bottom of. The other
+ * four are transient, or read a different way: `open/` is a short reviewed
+ * queue, `in-development/` holds what is being worked on right now,
+ * `completed/` is read by id or not at all, and `testing/` (since B1110) is
+ * read from the run report rather than browsed by category — a person
+ * reviews a finished batch from that one page, not by opening
+ * `testing/security/`. Folders there would be a destination every lane move
+ * has to compute, buying nothing.
  *
  * A task moving through an uncategorised lane loses nothing, because the
  * category was never stored in the path — `categoryOf()` derives it again on
  * the way back in.
  */
-const CATEGORISED = new Set(["backlog", "testing"]);
+const CATEGORISED = new Set(["backlog"]);
 
 /**
  * Which folder a task belongs in.
@@ -999,7 +1001,8 @@ function list() {
 }
 
 /**
- * Put every task in the folder its frontmatter says it belongs in.
+ * Put every task in the folder its frontmatter says it belongs in — and, in a
+ * lane that no longer has categories, back up to the lane root.
  *
  * The categories are derived, so this is a re-render rather than a decision —
  * which is what makes it safe to run at any time and the only way the folders
@@ -1007,6 +1010,12 @@ function list() {
  * are ordinary: a `type:` corrected by hand after the fact, a task arriving
  * through a merge from a branch cut before the folders existed, and a file
  * moved with `mv` by somebody who did not know about `move`.
+ *
+ * `testing/` was categorised until B1110 and a tree merged from before that
+ * change still has files sitting in `testing/security/` and the rest. Flat
+ * lanes are simply the same re-render with an empty category — the target is
+ * the lane root — so a categorised `testing/` un-categorises itself the next
+ * time this runs, with no separate migration to remember.
  *
  * `git mv` rather than `fs.renameSync` where git is available, so a rename
  * stays a rename in the history instead of a delete beside an add — 196 files
@@ -1016,10 +1025,12 @@ function list() {
 function tidy(argv) {
   const dry = argv.includes("--dry-run");
   let moved = 0;
-  for (const lane of LANES.filter((l) => CATEGORISED.has(l))) {
+  for (const lane of LANES) {
     for (const item of itemsIn(lane)) {
-      if (item.filed === item.category) continue;
-      const target = path.join(ROOT, lane, item.category, item.filename);
+      if (item.filed === (item.category ?? undefined)) continue;
+      const target = item.category
+        ? path.join(ROOT, lane, item.category, item.filename)
+        : path.join(ROOT, lane, item.filename);
       console.log(`  ${item.id.padEnd(5)} ${item.href} → ${path.relative(ROOT, target)}`);
       if (dry) {
         moved += 1;
@@ -1039,7 +1050,8 @@ function tidy(argv) {
 }
 
 /**
- * Say when a task is not in the folder its frontmatter puts it in.
+ * Say when a task is not in the folder its frontmatter puts it in — including
+ * a categorised leftover in a lane that no longer has categories.
  *
  * Same reasoning as warnDuplicates(): the index renders it wherever it is and
  * nothing else notices, so the drift is invisible until somebody browsing
@@ -1048,13 +1060,11 @@ function tidy(argv) {
  * without the command to clear it is a warning people learn to scroll past.
  */
 function warnMisfiled() {
-  const stray = LANES.filter((l) => CATEGORISED.has(l))
-    .flatMap(itemsIn)
-    .filter((i) => i.filed !== i.category);
+  const stray = LANES.flatMap(itemsIn).filter((i) => i.filed !== (i.category ?? undefined));
   if (stray.length === 0) return;
   console.error(`\nWARNING: ${stray.length} task${stray.length === 1 ? " is" : "s are"} not in the category folder their frontmatter names.`);
   for (const i of stray.slice(0, 10)) {
-    console.error(`  ${i.id.padEnd(5)} ${i.href}  →  ${i.lane}/${i.category}/`);
+    console.error(`  ${i.id.padEnd(5)} ${i.href}  →  ${i.lane}/${i.category ? `${i.category}/` : ""}`);
   }
   if (stray.length > 10) console.error(`  … and ${stray.length - 10} more.`);
   console.error("Run `npm run tasks -- tidy` to re-file them.\n");

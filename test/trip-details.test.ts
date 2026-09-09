@@ -41,7 +41,17 @@ async function tokenFor(email: string): Promise<string> {
   return result.token;
 }
 
-type Body = { ok?: boolean; error?: string; message?: string; title?: string; tagline?: string; visibility?: string };
+type Body = {
+  ok?: boolean;
+  error?: string;
+  message?: string;
+  title?: string;
+  tagline?: string;
+  visibility?: string;
+  accent?: string;
+  costsVisibility?: string;
+  intro?: string;
+};
 
 async function patch(
   body: Record<string, unknown>,
@@ -348,8 +358,8 @@ describe("the agent's door onto the same four fields", () => {
     expect(getTrip(`${OWNER}/${TRIP}`)?.title).toBe("Algarve 2026");
   });
 
-  test("a body naming none of the five is refused, not silently accepted", async () => {
-    const refused = await v1({ accent: "coral" }, await tokenFor(OWNER_EMAIL));
+  test("a body naming none of the writable fields is refused, not silently accepted", async () => {
+    const refused = await v1({ status: "current" }, await tokenFor(OWNER_EMAIL));
     expect(refused.status).toBe(400);
     expect(refused.body.error).toBe("nothing_to_change");
   });
@@ -454,5 +464,135 @@ describe("the fifth field, cover", () => {
     const saved = await v1({ cover: "" }, await tokenFor(OWNER_EMAIL));
     expect(saved.status).toBe(200);
     expect(fs.readFileSync(tripFile(), "utf8")).not.toContain("cover:");
+  });
+});
+
+/**
+ * B907 — `accent`, `costsVisibility` and `intro`, on the same door.
+ *
+ * `POST .../trips` validated and accepted all three and then nothing ever
+ * let them be corrected. `intro` is the prose below the frontmatter rather
+ * than a scalar line, so it is the one field here that replaces the whole
+ * body instead of splicing one line — proven by asserting every frontmatter
+ * key survives byte for byte while the prose changes.
+ */
+describe("B907's three fields: accent, costsVisibility, intro", () => {
+  async function v1(
+    body: Record<string, unknown>,
+    token?: string,
+  ): Promise<{ status: number; body: Body }> {
+    const { PATCH } = await import("@/app/api/v1/[user]/trips/[trip]/route");
+    const response = await PATCH(
+      new Request(`https://example.test/api/v1/${OWNER}/trips/${TRIP}`, {
+        method: "PATCH",
+        headers: headers(token ? { authorization: `Bearer ${token}` } : {}),
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ user: OWNER, trip: TRIP }) },
+    );
+    return { status: response.status, body: (await response.json()) as Body };
+  }
+
+  test("a trip's intro can be corrected over the API — the ticket's own acceptance line", async () => {
+    const saved = await v1(
+      { intro: "Corrected: four days, four passes and rather less rain than remembered." },
+      await tokenFor(OWNER_EMAIL),
+    );
+    expect(saved.status).toBe(200);
+    expect(saved.body.intro).toBe(
+      "Corrected: four days, four passes and rather less rain than remembered.",
+    );
+
+    const after = fs.readFileSync(tripFile(), "utf8");
+    expect(after).toContain("Corrected: four days, four passes");
+    expect(after).not.toContain("Four days, three passes and a great deal of rain.");
+    // Every frontmatter key, untouched — only the prose changed.
+    expect(after).toContain('id: "alps-2024"');
+    expect(after).toContain('status: "past"');
+    expect(after).toContain('title: "Four days round the Alps"');
+    expect(after).toContain('accent: "sky"');
+    expect(after).toContain('visibility: "private"');
+    expect(after).toContain('  - name: "Ana"');
+
+    await clearCaches();
+    const { getTrip } = await import("@/lib/trips");
+    expect(getTrip(`${OWNER}/${TRIP}`)?.intro).toBe(
+      "Corrected: four days, four passes and rather less rain than remembered.",
+    );
+  });
+
+  test("an intro can be cleared to empty — a trip may say nothing about itself", async () => {
+    const saved = await v1({ intro: "" }, await tokenFor(OWNER_EMAIL));
+    expect(saved.status).toBe(200);
+    expect(saved.body.intro).toBe("");
+    await clearCaches();
+    const { getTrip } = await import("@/lib/trips");
+    expect(getTrip(`${OWNER}/${TRIP}`)?.intro).toBe("");
+  });
+
+  test("accent is corrected and read back", async () => {
+    const saved = await v1({ accent: "coral" }, await tokenFor(OWNER_EMAIL));
+    expect(saved.status).toBe(200);
+    expect(saved.body.accent).toBe("coral");
+    expect(fs.readFileSync(tripFile(), "utf8")).toContain("accent: coral");
+    await clearCaches();
+    const { getTrip } = await import("@/lib/trips");
+    expect(getTrip(`${OWNER}/${TRIP}`)?.accent).toBe("coral");
+  });
+
+  test("an unrecognised accent is refused, not written", async () => {
+    const refused = await v1({ accent: "purple" }, await tokenFor(OWNER_EMAIL));
+    expect(refused.status).toBe(400);
+    expect(refused.body.error).toBe("invalid_accent");
+    expect(fs.readFileSync(tripFile(), "utf8")).toContain('accent: "sky"');
+  });
+
+  test("clearing accent removes the key", async () => {
+    const saved = await v1({ accent: "" }, await tokenFor(OWNER_EMAIL));
+    expect(saved.status).toBe(200);
+    expect(fs.readFileSync(tripFile(), "utf8")).not.toContain("accent:");
+  });
+
+  test("costsVisibility narrows to guests, and the line is written", async () => {
+    const saved = await v1({ costsVisibility: "guests" }, await tokenFor(OWNER_EMAIL));
+    expect(saved.status).toBe(200);
+    expect(saved.body.costsVisibility).toBe("guests");
+    expect(fs.readFileSync(tripFile(), "utf8")).toContain("costsVisibility: guests");
+    await clearCaches();
+    const { getTrip } = await import("@/lib/trips");
+    expect(getTrip(`${OWNER}/${TRIP}`)?.costsVisibility).toBe("guests");
+  });
+
+  test("costsVisibility cleared back to public writes no line, since absent already reads as public", async () => {
+    fs.writeFileSync(tripFile(), TRIP_MD.replace("tagline:", 'costsVisibility: "guests"\ntagline:'));
+    await clearCaches();
+
+    const saved = await v1({ costsVisibility: "" }, await tokenFor(OWNER_EMAIL));
+    expect(saved.status).toBe(200);
+    expect(saved.body.costsVisibility).toBe("public");
+    expect(fs.readFileSync(tripFile(), "utf8")).not.toContain("costsVisibility:");
+  });
+
+  test("an unrecognised costsVisibility is refused rather than defaulted", async () => {
+    const refused = await v1({ costsVisibility: "publik" }, await tokenFor(OWNER_EMAIL));
+    expect(refused.status).toBe(400);
+    expect(refused.body.error).toBe("invalid_costs_visibility");
+  });
+
+  test("a non-string intro is refused", async () => {
+    const refused = await v1({ intro: 42 }, await tokenFor(OWNER_EMAIL));
+    expect(refused.status).toBe(400);
+    expect(refused.body.error).toBe("invalid_intro");
+  });
+
+  test("a trip-scoped token cannot correct the intro either", async () => {
+    const { issueCode, verifyCode, tripWriteScope } = await import("@/lib/auth");
+    const { code } = await issueCode(OWNER, OWNER_EMAIL, "agent", { trip: TRIP });
+    const result = await verifyCode(OWNER, OWNER_EMAIL, code, "agent", tripWriteScope(TRIP));
+    if (!result.ok) throw new Error(`no trip token: ${result.reason}`);
+
+    const refused = await v1({ intro: "Not yours to correct" }, result.token);
+    expect(refused.status).toBe(403);
+    expect(refused.body.error).toBe("out_of_scope");
   });
 });

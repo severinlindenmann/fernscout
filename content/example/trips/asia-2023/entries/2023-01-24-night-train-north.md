@@ -29,6 +29,7 @@ costs:
   - { label: "Sleeper berth", amount: 881, category: "transport", currency: "THB" }
   - { label: "Breakfast on board", amount: 90, category: "food", currency: "THB" }
 weatherData: { tempMin: 14.3, tempMax: 29.4, code: 1, precipitation: 0, windMax: 10.5, source: "open-meteo", recordedAt: "2026-09-06T08:32:20.336Z" }
+timezone: "Asia/Bangkok"
 ---
 
 Thirteen hours, a bunk with a curtain, and a man with a trolley who appeared every ninety minutes whether or not anybody wanted anything.

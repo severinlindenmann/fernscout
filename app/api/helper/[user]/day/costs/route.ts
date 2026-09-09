@@ -1,8 +1,10 @@
 import { editEntry, type CostInput } from "@/lib/api/entries";
 import { AS_AUTHOR, getAllEntries, getEntryBySlug } from "@/lib/entries";
+import { refused } from "@/lib/helper/thread";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { getTrip, tripRef } from "@/lib/trips";
 import { validateEntryEdit } from "@/lib/validate/entry";
+import { wrote } from "@/lib/helper/thread";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +81,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   // the day was accepted when it was written.
   const problems = validateEntryEdit({ costs: [added] });
   if (problems.length > 0) {
+    refused(user, "add_cost", "invalid_cost");
     return Response.json({ error: "invalid_cost", problems }, { status: 400 });
   }
 
@@ -93,5 +96,6 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   }
 
   const now = getEntryBySlug(ref, target.slug, AS_AUTHOR);
+  wrote(user, "add_cost", { trip: tripId, slug: target.slug, date });
   return Response.json({ ok: true, trip: tripId, slug: target.slug, date, costs: now?.costs ?? costs });
 }

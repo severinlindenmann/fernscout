@@ -41,10 +41,15 @@
  * touched since before the rename — see `normalizeJournalVisibility` in
  * lib/config.ts — but this sentence is what an agent asking the question
  * should say, and it says the current word.
+ *
+ * B856: it used to name "its sitemap" as one of the three places `public`
+ * appears, and a tester who did not know what a sitemap was learned nothing
+ * from the word. Named surfaces stop at the two anyone recognises; `guest`'s
+ * half says what not being listed means instead of where it fails to appear.
  */
 export const VISIBILITY_MEANING =
-  "public is listed on this server's own index, on its landing page and in its sitemap; " +
-  "guest is on none of them and asks search engines not to index it — anyone sent the " +
+  "public is listed on this server's own index and on its landing page; guest is not " +
+  "listed anywhere, and search engines are asked not to index it — anyone sent the " +
   "address can still open it. It is also this journal's own answer for a new trip's " +
   "default, unless the create call says otherwise.";
 
@@ -151,6 +156,33 @@ export const TRANSLATIONS_REQUIRED =
   "forbids. Say so in your reply either way, so the owner knows which words are theirs and " +
   "can correct them. If they write in one language only, the fix is the journal's " +
   "`locales`, not the day: one `PATCH` to the journal's config, and nothing is owed.";
+
+/**
+ * What a second reader language actually costs — B855.
+ *
+ * B838 put this on the signup form, where a person ticking a checkbox reads it
+ * (`agent.readerLocalesHint` in `site/locales/*.json`, in all three languages,
+ * because a person sees it). `/agent.md` said it in its own words. The API said
+ * nothing at all, and accepted `["en", "de"]` in silence — so a tester picked a
+ * second language "because German sounded like a normal extra option, not a
+ * leap" and found out at his first day, which was refused until he produced a
+ * full German translation. On a phone at 2am that is a landmine, not a
+ * question.
+ *
+ * So the sentence lives here and the three agent-facing places read it: the
+ * `201` from `POST /api/v1/journals`, the guide, and the OpenAPI description of
+ * the field itself. Written to survive being dropped into all three, which is
+ * why it names the call rather than saying "this endpoint".
+ */
+export const SECOND_LANGUAGE_COMMITMENT =
+  "**More than one entry in `locales` is a promise to write every day twice.** Every day of " +
+  "every trip then has to exist in all of them, in the owner's own words: the day's own " +
+  "`title` and `content` are the `defaultLocale` version and `translations` holds the rest. " +
+  "A day missing one is refused — `POST .../days` answers `400` and names the language that " +
+  "is missing — so this is not a preference that shows up later, it is a bill due at the " +
+  "first day they write. One language is the honest answer for most people, and it can be " +
+  "widened afterwards with a `PATCH` to the journal's config. Say this to them **before** " +
+  "you send a second code, not after.";
 
 /**
  * What is not writable, said once so nobody has to discover it by guessing.
@@ -263,6 +295,14 @@ export const FRONTMATTER_TO_API: { key: string; api: string; note: string }[] = 
   { key: "title", api: "title", note: "Straight across. It becomes the slug." },
   { key: "date", api: "date", note: "Straight across, as `2026-08-26`." },
   { key: "time", api: "time", note: "`16:45`. Orders several days that share a date." },
+  {
+    key: "timezone",
+    api: "timezone",
+    note:
+      "The IANA name `time` is local to — `\"Asia/Bangkok\"`. Send it when the file has one; " +
+      "absent falls back to the journal's own zone for the feed and the on-page dual clock, " +
+      "rather than a guess from `lat`/`lng`.",
+  },
   { key: "location", api: "location", note: "The place's name, as written." },
   { key: "country", api: "country", note: "As written." },
   {
@@ -413,6 +453,32 @@ export const MIGRATION_RECONCILE =
   "rather than counting: counting duplicates some and silently drops others. And when the " +
   "trip is done, `GET .../trips/<trip>/costs` says how many of its days record any " +
   "spending, which is the number that would have caught this in one call.";
+
+/**
+ * How to check a folder against the instance before any of it is sent —
+ * B537. `MIGRATION_RECONCILE` above answers "did it land"; this answers the
+ * earlier question, "will it land", without writing anything to find out.
+ *
+ * It names two calls and nothing else, because that is the whole mechanism:
+ * a field list re-typed here would be the fourth copy of one B533 already
+ * built as `/content-model.json`, and B535's contract checker already runs
+ * inside the real POST — `dryRun: true` on the same call is that checker
+ * with nothing written, not a second implementation to keep in step.
+ */
+export const CHECK_BEFORE_SENDING =
+  "Before any of it leaves your machine: fetch `/content-model.json` once, and read it as " +
+  "the list of every frontmatter key a day or a trip may carry — which ones map straight " +
+  "onto a field, and which never cross at all (`status`, `gallery`, `id` among them). Then, " +
+  "for each day, send its body to `POST .../days` with `dryRun: true` added. Every check the " +
+  "real write would run — the shape of the body, this trip's own contract, whether weather " +
+  "or a track is being asked for that this journal cannot supply — runs the same way and " +
+  "answers the same `problems`/`missing` list a real POST would, and nothing is written: no " +
+  "draft, no idempotency record. A clean day answers `{ ok: true, written: false, dryRun: " +
+  "true }`. Do this for every day before sending any of them for real, and you find out what " +
+  "the instance will refuse before a single draft exists to clean up.\n\n" +
+  "It only checks what the server can check from the body — a `gallery:` path that does not " +
+  "exist on disk, or a photograph the wrong size, is still yours to catch by reading the " +
+  "file and the folder yourself; `dryRun` never opens a photograph.";
 
 export const PERFECT_TRIP_EXAMPLE = [
   "{",

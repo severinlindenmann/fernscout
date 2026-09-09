@@ -13,7 +13,7 @@ import { DEFAULT_OPTIONS } from "@/lib/photobook/options";
  * about — `expandToMinimum` splitting a multi-photo page into several.
  */
 
-const SPEC = defaultSpec(BOOK_SIZES["square-210"]);
+const SPEC = defaultSpec(BOOK_SIZES["square"]);
 
 function photo(n: number): BookPhoto {
   return { file: `p${n}.jpg`, webSrc: `/alex/media/asia-2026/day/${n}.jpg`, width: 4000, height: 3000 };

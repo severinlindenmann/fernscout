@@ -154,16 +154,19 @@ describe("the reason beside each trip", () => {
     return render({ viewer });
   }
 
+  // B887 turned these from sentences into tags. What is asserted is unchanged
+  // and is the point of B41: the wording is `resolveViewer`'s answer, never
+  // this component's, so an owner must not be told they were merely there.
   test("an owner is told the journal is theirs, not that they were there", () => {
     const html = seeing("owner", true);
-    expect(html).toContain("it is in your journal");
-    expect(html).not.toContain("you were on this trip");
+    expect(html).toContain(dictionaryFor("en")["me.tagOwner"]);
+    expect(html).not.toContain(dictionaryFor("en")["me.tagTraveller"]);
   });
 
   test("a traveller who is not the owner still reads that they were on it", () => {
     const html = seeing("traveller", false);
-    expect(html).toContain("you were on this trip");
-    expect(html).not.toContain("it is in your journal");
+    expect(html).toContain(dictionaryFor("en")["me.tagTraveller"]);
+    expect(html).not.toContain(dictionaryFor("en")["me.tagOwner"]);
   });
 });
 
@@ -575,21 +578,20 @@ describe("the notifications section", () => {
  * (test/account-page.test.tsx), and two live copies of a figure is how they
  * disagree.
  */
-describe("the account card", () => {
-  test("offers the owner a link to the account page", () => {
+describe("the account page is not advertised on /me — B876", () => {
+  test("no card, and no link to it, even for the owner", () => {
+    // B821 left a card here pointing at the moved panels; B876 removed it —
+    // the menu entry is the way in, and a card whose only content is "this
+    // lives elsewhere" is a whole card to say so.
     const html = render({ viewer: owner });
-    // `&` is escaped to `&amp;` by `renderToStaticMarkup`.
-    expect(html).toContain(dictionaryFor("en")["me.accountCardTitle"].replace("&", "&amp;"));
-    expect(html).toContain('href="/alex/account"');
-    // And never the figures themselves — those are the account page's job.
+    expect(html).not.toContain('href="/alex/account"');
+  });
+
+  test("and the figures are still not here", () => {
+    // The reason the panels moved at all: two live copies of a balance is how
+    // they disagree.
+    const html = render({ viewer: owner });
     expect(html).not.toContain(dictionaryFor("en")["me.paymentTitle"]);
     expect(html).not.toContain(dictionaryFor("en")["me.storageTitle"]);
   });
-
-  test("is absent for anybody but the owner", () => {
-    const html = render({ viewer: stranger });
-    expect(html).not.toContain(dictionaryFor("en")["me.accountCardTitle"].replace("&", "&amp;"));
-    expect(html).not.toContain("/alex/account");
-  });
 });
-

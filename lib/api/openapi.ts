@@ -6,11 +6,16 @@ import { getDefaultUsername, listedUsernames } from "@/lib/users";
 import {
   LOCALE_LIST,
   PRIVATE_SHUTS_OUT_GUESTS,
+  SECOND_LANGUAGE_COMMITMENT,
   VISIBILITY_ENUM_NOTE,
   VISIBILITY_MEANING,
   VISIBILITY_NOT_A_LOCK,
 } from "@/lib/api/agentCopy";
 import { EDITABLE_DAY_FIELDS } from "@/lib/api/entries";
+
+/** Markdown emphasis is prose's, not a JSON `description`'s — the same trim
+ * `VISIBILITY_NOT_A_LOCK` gets a few lines down, done once. */
+const plain = (text: string) => text.replace(/[`*]/g, "");
 import {
   CREDIT_STEP,
   EXTRA_STORAGE_BYTES,
@@ -35,6 +40,7 @@ import { COST_CATEGORIES } from "@/lib/costFormat";
 import { FEATURE_NAMES } from "@/lib/config";
 import { TRACKS } from "@/lib/tracks";
 import { ACCENTS, COSTS_VISIBILITIES, FIGURE_FIELDS, STATUSES, VISIBILITIES } from "@/lib/tripWrite";
+import { BOOK_SIZES, COVER_TYPES } from "@/lib/photobook/spec";
 import {
   CAPTION_MAX_CHARS,
   IMAGE_FORMATS,
@@ -339,6 +345,14 @@ export function openApiDocument() {
               pattern: "^\\d{2}:\\d{2}$",
               description: "24-hour, local to where the day happened. Orders several days that share a date.",
             },
+            timezone: {
+              type: "string",
+              description:
+                "The IANA name `time` is local to — `\"Asia/Bangkok\"`, never a numeric offset. " +
+                "Absent falls back to the journal's own zone when `time` is read — the RSS " +
+                "`pubDate` and the on-page dual clock both need one, and neither guesses it " +
+                "from `lat`/`lng`. A name `Intl` does not recognise is refused.",
+            },
             location: { type: "string", description: "Where this was, as a person would say it — a town, a place." },
             country: { type: "string", description: "The country's name, not its code." },
             countryCode: {
@@ -486,6 +500,19 @@ export function openApiDocument() {
                 "send it with a different body and the call is refused (409) and nothing is " +
                 "written. A new key for every day.",
             },
+            dryRun: {
+              type: "boolean",
+              description:
+                "Run every check this call would run — shape, the trip's own contract, " +
+                "weather-capability, whatever this trip tracks — and write nothing: no " +
+                "draft, no idempotency record. A clean body answers `200 { ok: true, " +
+                "written: false, dryRun: true }`; a bad one answers the exact `400`/`422` " +
+                "the real POST would, because it is the same checks running either way. " +
+                "This is how you check a folder of content against the instance before " +
+                "pushing it — read `/content-model.json` for the frontmatter-to-field " +
+                "mapping, then send each day here first. Absent or `false` behaves exactly " +
+                "as before.",
+            },
           },
         },
         DayEdit: {
@@ -500,6 +527,10 @@ export function openApiDocument() {
             title: { type: "string" },
             date: { type: "string", format: "date", description: "2026-08-26" },
             time: { type: "string", pattern: "^\\d{2}:\\d{2}$" },
+            timezone: {
+              type: "string",
+              description: "Same meaning as on creation — the IANA name `time` is local to.",
+            },
             location: { type: "string" },
             country: { type: "string", description: "The country's name, not its code." },
             countryCode: {
@@ -716,6 +747,14 @@ export function openApiDocument() {
           },
           responses: {
             "202": { description: "Accepted" },
+            "400": {
+              description:
+                "`invalid_user` — `user` is missing. Or `invalid_email` — `email` is " +
+                "missing or not a syntactically valid address. Both are shape checks that " +
+                "never touch a lookup, so refusing them names nothing about who is " +
+                "registered — unlike an unrecognised-but-valid address, which still " +
+                "answers 202.",
+            },
             "403": { description: "That address may not have an agent code for this journal" },
             "404": { description: "Authentication is off on this server" },
             "429": { description: "Too many attempts" },
@@ -827,19 +866,32 @@ export function openApiDocument() {
           },
         },
         patch: {
-          summary: "Rename a trip, move its dates, or set its cover",
+          summary: "Rename a trip, move its dates, correct its intro, or set its cover",
           description:
-            "Five fields of a trip nothing could write until B622 (four) and B245 (`cover`): " +
-            "`title`, `tagline`, `start`, `end` and `cover`. Send only what is changing. A " +
+            "Eight fields of a trip nothing could write until B622 (four), B245 (`cover`) and " +
+            "B907 (`accent`, `costsVisibility`, `intro`): `title`, `tagline`, `start`, `end`, " +
+            "`cover`, `accent`, `costsVisibility` and `intro`. Send only what is changing. A " +
             "title cannot be cleared — a trip.md without one does not load — while an emptied " +
-            "`tagline` or a `cover` sent as `null`/`\"\"` removes the key rather than storing " +
-            "an empty one. Dates are `YYYY-MM-DD`, and `end` may not precede `start`: the " +
-            "check is against the *result*, so either date may arrive on its own. `cover` " +
+            "`tagline`, `cover`, or `accent` sent as `null`/`\"\"` removes the key rather than " +
+            "storing an empty one, and an emptied `costsVisibility` clears back to the " +
+            "default, `public`. Dates are `YYYY-MM-DD`, and `end` may not precede `start`: " +
+            "the check is against the *result*, so either date may arrive on its own. `cover` " +
             "must be a `src` this trip's own gallery already carries — read " +
             "`GET .../trips/{trip}/media` for the list — since a value naming a photo the trip " +
             "does not have would render as a broken image on the trips index and the OG " +
-            "card.\n\nOnly the frontmatter lines you name are rewritten. The prose under it, " +
-            "the key order, and every other key are left byte for byte, so this is safe on a " +
+            "card. `intro` is the trip's own prose, not a frontmatter line, and any text is " +
+            "accepted including empty.\n\n" +
+            "**`visibility`, `listed`, `teaser`, `status` and `test` are not here.** The " +
+            "first three have their own door, `PATCH .../trips/{trip}/visibility`, which " +
+            "enforces rules this call must not carry a second, driftable copy of — an " +
+            "unrecognised visibility reads as private, `listed: true` on a trip nothing " +
+            "advertises is refused, `teaser: true` on a public trip is refused. `status` is " +
+            "derived from the calendar at almost every reading path rather than a fact a " +
+            "correction changes, and `test` on a trip that has already published real days is " +
+            "a bigger decision than fixing a typo — both stay file-only for now.\n\n" +
+            "Only the frontmatter lines you name are rewritten (and, when `intro` is named, " +
+            "the prose below them). The rest — the prose when `intro` is not named, the key " +
+            "order, and every other key — is left byte for byte, so this is safe on a " +
             "trip.md somebody wrote by hand.\n\n**Owner only.** A trip-scoped token belongs " +
             "to somebody who was on the journey, and adding a day to it is not the same " +
             "authority as saying what it is called.",
@@ -871,6 +923,27 @@ export function openApiDocument() {
                         "`null` or empty string clears it. A value naming a photo the trip " +
                         "does not have is refused rather than written.",
                     },
+                    accent: {
+                      type: "string",
+                      enum: [...ACCENTS],
+                      description:
+                        "Which of five colours this trip's cards and OG image draw in. " +
+                        "`null` or empty string clears it back to no preference.",
+                    },
+                    costsVisibility: {
+                      type: "string",
+                      enum: [...COSTS_VISIBILITIES],
+                      description:
+                        "Who among the readers who may open the trip may also see what it " +
+                        "cost — decides nothing about who may open the trip itself. `null` or " +
+                        "empty string clears it back to the default, `public`.",
+                    },
+                    intro: {
+                      type: "string",
+                      description:
+                        "The trip's own prose, not a frontmatter line. Any text is accepted, " +
+                        "including empty.",
+                    },
                   },
                 },
               },
@@ -880,11 +953,12 @@ export function openApiDocument() {
             "200": { description: "The fields named, as they now stand on disk" },
             "400": {
               description:
-                "A body naming none of the five (`nothing_to_change`), a cleared or " +
+                "A body naming none of the eight (`nothing_to_change`), a cleared or " +
                 "multi-line title (`invalid_title`), a date that is not one — an `end` " +
-                "before the `start` is the same `invalid_date` — or a `cover` naming a photo " +
-                "not in this trip's gallery (`invalid_cover`) — and nothing is written in " +
-                "any of those cases",
+                "before the `start` is the same `invalid_date` — a `cover` naming a photo " +
+                "not in this trip's gallery (`invalid_cover`), an `accent` not in the enum " +
+                "(`invalid_accent`), or a `costsVisibility` not in the enum " +
+                "(`invalid_costs_visibility`) — and nothing is written in any of those cases",
             },
             "401": { description: "Missing or invalid token" },
             "403": {
@@ -1059,6 +1133,90 @@ export function openApiDocument() {
             "200": { description: "The order, its cost and its status" },
             "403": { description: "Not this journal's owner" },
             "404": { description: "No such order in this journal" },
+          },
+        },
+      },
+      /**
+       * The one door onto printing a book — B434's shape again, followed
+       * exactly. There is deliberately no `/api/v1/{user}/photobooks` that
+       * *builds* one yet: a book is still composed at the owner's own
+       * `/[user]/(trip)/photobook` page, and this pair only covers what
+       * happens to a book once it exists — asking who it may be posted to is
+       * still `.../postcards/recipients`, which names the same population.
+       */
+      "/api/v1/{user}/photobooks/{id}/print": {
+        post: {
+          summary: "Propose printing a built photobook, for a person to press",
+          description:
+            "Writes who the book should go to and what it will cost, and answers with a URL. " +
+            "**It charges nothing and prints nothing.**\n\n" +
+            "There is no endpoint that sends. Not an owner-only one — none at all: the print " +
+            "is a button on the page this returns, because pressing it spends real money at a " +
+            "printer and posts a physical object to somebody's house. Hand the `url` over and " +
+            "stop; do not report the book as printed, or as being printed. " +
+            "`GET .../photobooks/{id}` says later whether it went.\n\n" +
+            "Owner only, and `contactId` must be an id from `.../postcards/recipients` — the " +
+            "same population a book may be posted to, so there is no separate list to fetch.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["contactId"],
+                  properties: {
+                    contactId: {
+                      type: "string",
+                      description:
+                        "A contact id from `.../postcards/recipients` — never an address. " +
+                        "Anything else is refused by name.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description:
+                "`url` a person opens to look at the price and press the button, plus the " +
+                "`quotedCredits` it will cost. Nothing has been charged.",
+            },
+            "400": {
+              description:
+                "Missing `contactId`, a contact this journal cannot post to, an order not yet " +
+                "built, or an address in a country this printer cannot quote (`unknown_country`)",
+            },
+            "403": { description: "Not this journal's owner" },
+            "404": { description: "No such journal or order, or photobooks are off" },
+            "502": { description: "The printer could not be reached for a quote" },
+          },
+        },
+      },
+      "/api/v1/{user}/photobooks/{id}": {
+        get: {
+          summary: "Where one photobook order stands",
+          description:
+            "What it is, what it cost to build, and — once `.../print` has been called — who " +
+            "it is proposed to go to, by `contactId`, and at what quote. **Never a street " +
+            "address.** `providerRef` and `status` only appear once the owner has actually " +
+            "pressed the button. Owner only.\n\n" +
+            `\`size\` is one of \`${Object.keys(BOOK_SIZES).join("\`, \`")}\`, and \`coverType\` ` +
+            `is one of \`${COVER_TYPES.join("\`, \`")}\` — the two the order was actually built ` +
+            "with, not every combination the catalogue offers: not every size exists in both " +
+            "covers (`sizesFor` in `lib/photobook/spec.ts` says which does).",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "The order, its build, and its print proposal if it has one" },
+            "403": { description: "Not this journal's owner" },
+            "404": { description: "No such order in this journal, or photobooks are off" },
           },
         },
       },
@@ -1355,7 +1513,7 @@ export function openApiDocument() {
                         "This trip's frozen rates: units of the journal's BASE currency for " +
                         "one unit of the keyed currency. `{\"THB\": 0.0245}` is " +
                         "\"1 THB = 0.0245 CHF\", so a currency worth less than the base one " +
-                        "has a small number — `site/rates/ecb.json` points the other way. " +
+                        "has a small number — the ECB reference table points the other way. " +
                         "Omitting a currency is supported: its costs are reported as " +
                         "unconverted rather than converted at a guess.",
                     },
@@ -1522,7 +1680,10 @@ export function openApiDocument() {
                       description:
                         `Required — there is no default. Which languages a reader may switch ` +
                         `the journal into, as distinct from defaultLocale, the owner's own. ` +
-                        `Must include defaultLocale. Each entry must be one of ${LOCALE_LIST}.`,
+                        `Must include defaultLocale. Each entry must be one of ${LOCALE_LIST}. ` +
+                        // B855: the field that quietly commits the owner to writing
+                        // everything twice. Same sentence as the guide and the 201.
+                        plain(SECOND_LANGUAGE_COMMITMENT),
                     },
                     baseCurrency: {
                       type: "string",
@@ -1562,7 +1723,9 @@ export function openApiDocument() {
                 "owner's welcome mail carries a **second, standing** link to the same " +
                 "place — a different token with no expiry, not this one. `signInNote` " +
                 "carries the same instruction as one sentence, for pasting into a reply. " +
-                "Both are absent when this server has auth off.",
+                "Both are absent when this server has auth off. When `locales` has more than " +
+                "one entry the reply also carries `localesNote`: " +
+                plain(SECOND_LANGUAGE_COMMITMENT),
             },
             "400": {
               description:
@@ -1612,7 +1775,10 @@ export function openApiDocument() {
             "200": {
               description:
                 "Replayed: this idempotency_key had already been used for this exact call, " +
-                "and nothing was written again.",
+                "and nothing was written again. Or `dryRun: true` with a clean body — " +
+                "`{ ok: true, written: false, dryRun: true }` — every check passed and " +
+                "nothing was written; the two cases both answer 200 and never collide with " +
+                "the 201 a real write gets.",
             },
             "201": { description: "Created as a draft" },
             "400": {
@@ -1789,6 +1955,62 @@ export function openApiDocument() {
             },
             "404": { description: "No such trip, or no such day" },
             "409": { description: "That day is already on the site" },
+          },
+        },
+      },
+      "/api/v1/{user}/trips/{trip}/days/{slug}/unpublish": {
+        post: {
+          summary: "Take a published day back off the site",
+          description:
+            "The day becomes a draft again: off the site, off the feed, off the sitemap, " +
+            "still on disk with every word and every photograph. **It is not a delete** — " +
+            "nothing is removed, and publishing it again puts it back exactly as it was. " +
+            "That is why this needs none of deletion's ceremony. " +
+            "Owner only, like publishing: a trip-scoped token may write days into its trip " +
+            "and may neither put them on the site nor take them off. " +
+            "Nothing is sent and nothing is spent, and there is no channel that announces a " +
+            "day coming down — somebody who already read it, or was sent it, still has what " +
+            "they saw. Say that to the person if what they want is for nobody to have seen it.",
+          operationId: "unpublishDay",
+          tags: ["Days"],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+            { name: "slug", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": {
+              description: "The day is a draft again",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      ok: { type: "boolean" },
+                      slug: { type: "string" },
+                      status: { type: "string", enum: ["draft"] },
+                      url: { type: "string" },
+                      note: {
+                        type: "string",
+                        description:
+                          "What happened, in words to repeat: nothing was deleted, and " +
+                          "anybody who already read it still has what they saw.",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "The day could not be taken down — the body says why" },
+            "401": { description: "Missing or invalid token" },
+            "403": {
+              description:
+                "Another journal's token, or one scoped to a single trip — which may write " +
+                "days but not take them off the site",
+            },
+            "404": { description: "No such trip, or no such day" },
+            "409": { description: "That day is not on the site" },
           },
         },
       },
@@ -2659,7 +2881,14 @@ export function openApiDocument() {
             "Two files are kept for each one sent: a resized copy for the browser and the " +
             "original for print. Send the largest you have — for a URL upload the original " +
             "is whatever the remote host served, so a 2000px source is what a photobook " +
-            "will be printed from, and there is no way to get the pixels back later.\n\n" +
+            "will be printed from, and there is no way to get the pixels back later. The " +
+            "served copy is always a JPEG, whatever was sent, which is why the reply names " +
+            "it `01.jpg`; the original is untouched and `kept` reports its bytes.\n\n" +
+            "**Nothing is read out of the files.** No EXIF is opened, so a photograph " +
+            "carrying GPS and a DateTimeOriginal adds no `lat`, `lng`, `location`, " +
+            "`country` or `time` to the day. Send those on the day itself — POST or PATCH " +
+            "`/days` take them. The local `npm run ingest` CLI is the one thing here that " +
+            "reads a card's EXIF, and it runs where the journal lives.\n\n" +
             `**The whole request may carry ${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(0)} MB**, which is a different limit from ` +
             "the per-file one and is the one a batch of phone originals meets first. Over " +
             "it the answer is 413 `body_too_large`, naming the cap and what arrived; " +
@@ -2784,11 +3013,15 @@ export function openApiDocument() {
                 "its dimensions are absent because for a video they describe the " +
                 "transcode, which `items` already carries. `advice` is present only when " +
                 "there is something worth saying about a batch that succeeded, today that " +
-                "a clip is long; it changed nothing and asks for nothing. `skipped` is " +
-                "the photographs this day already had: sending the same batch twice adds " +
-                "nothing the second time, and each entry names the file you sent and the " +
-                "`src` of the picture it matched, so fewer `items` than files is not a " +
-                "loss. Clips are not compared this way and a resent clip lands twice. " +
+                "a clip is long, or that a photograph looks like one this day already " +
+                "has — a likeness is stored rather than dropped, and the note names the " +
+                "`src` it resembles, because a duplicate tile is cheaper to fix than a " +
+                "picture discarded in silence. `skipped` is narrower and is the only " +
+                "thing that discards anything: photographs byte-for-byte identical to one " +
+                "this day already holds, so sending the same batch twice adds nothing the " +
+                "second time. Each entry names the file you sent and the `src` of the " +
+                "picture it matched, so fewer `items` than files is not a loss. Clips are " +
+                "not compared this way and a resent clip lands twice. " +
                 "`attached` is false only if the entry has " +
                 "no frontmatter to write into, in which case the files are still on disk " +
                 "and `items` is what to add by hand. `note` says plainly when the day is " +
@@ -2859,6 +3092,44 @@ export function openApiDocument() {
                 "response says which",
             },
             "404": { description: "No such day in this trip" },
+          },
+        },
+      },
+      "/api/v1/{user}/trips/{trip}/media/duplicates": {
+        get: {
+          summary: "Photographs this trip holds more than once",
+          description:
+            "**The same picture twice, across every day of the trip.** Uploading says so " +
+            "at the time — `advice` on POST .../media names the photograph a new one " +
+            "resembles — and stores the second copy anyway, because a resemblance is a " +
+            "guess and a dropped photograph cannot be got back. This is the question " +
+            "afterwards, for a journal you did not upload.\n\n" +
+            "`groups` holds one entry per photograph the trip has more than one copy of, " +
+            "each listing `src`, `day`, `width`, `height` and `bytes`, largest first. The " +
+            "largest is usually the one to keep — a full-size camera file beside the same " +
+            "shot as it came back off a messaging app — but this endpoint does not decide " +
+            "that and deletes nothing. Ask the owner which copy they want, then send the " +
+            "other to DELETE .../media.\n\n" +
+            "It compares what the browser is served, so what it says agrees with the advice " +
+            "an upload gave. Video is left out — a poster frame is not the clip. A " +
+            "resemblance is still a guess: two frames of one burst are different " +
+            "photographs and can appear here.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": {
+              description:
+                "`groups` — empty when no photograph on this trip looks like another one " +
+                "on it. Nothing has been changed either way.",
+            },
+            "401": { description: "No token, or one this journal does not know" },
+            "404": {
+              description:
+                "No such trip — and the same answer a trip-scoped token gets for a trip it " +
+                "does not name, so a probe cannot tell the two apart",
+            },
           },
         },
       },
@@ -3509,7 +3780,17 @@ export function openApiDocument() {
             "queue: a broken file is a thing you may have just caused and can fix yourself, " +
             "where the drafts are a person's decision. Present for an owner token only — a " +
             "trip-scoped token learns nothing about the rest of the journal, malformed or not " +
-            "— and absent entirely when there is nothing broken.",
+            "— and absent entirely when there is nothing broken.\n\n" +
+            "**`suggestions`** is the moment nobody would otherwise notice — a published, " +
+            "non-`test` day from the last week with a photograph, on a journal where " +
+            "`postcards`, `credits` and `contacts` are all on, at least one contact has " +
+            "asked for a postcard and given an address, and no order has been made for " +
+            "that trip in the last week either. Each entry carries `kind: \"postcard\"`, " +
+            "the `day` and `trip` it is about, a `reason` in words, and the `recipients` " +
+            "it would go to (the same shape as `GET .../postcards/recipients`). Absent — " +
+            "never an empty array — the moment any one of those conditions fails; the " +
+            "same function backs the card on `/{user}/me`, so the two can never disagree. " +
+            "`POST .../postcards` is the call that turns a suggestion into a proposal.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
           ],
@@ -3672,9 +3953,9 @@ export function openApiDocument() {
                         "the only part of the `owner` block a token may write. It is where " +
                         "the owner's own WhatsApp copy of a published day goes, and that copy " +
                         "costs no credits; without it the owner is the one person the channel " +
-                        "cannot reach. Include the country code — `+41 76 561 31 50`, " +
-                        "`0041 76 561 31 50` or `41765613150`. A national number like " +
-                        "`076 561 31 50` is refused rather than guessed at, because it means " +
+                        "cannot reach. Include the country code — `+41 76 000 00 00`, " +
+                        "`0041 76 000 00 00` or `41760000000`. A national number like " +
+                        "`076 000 00 00` is refused rather than guessed at, because it means " +
                         "a different telephone in every country. Stored and returned as E.164 " +
                         "digits, whatever form it was sent in. Empty string removes it, which " +
                         "is also how the owner stops their own messages.",

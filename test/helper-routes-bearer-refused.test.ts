@@ -121,6 +121,21 @@ describe("the helper's own routes never accept a bearer token", () => {
     expect(patch.status).toBe(404);
   });
 
+  test("search: GET and POST — B904", async () => {
+    const { GET, POST } = await import("@/app/api/helper/[user]/search/route");
+    const get = await GET(bearerOnly("https://t.test/api/helper/alex/search"), params);
+    expect(get.status).toBe(404);
+    const post = await POST(
+      bearerOnly("https://t.test/api/helper/alex/search", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ said: "the day we got lost" }),
+      }),
+      params,
+    );
+    expect(post.status).toBe(404);
+  });
+
   test("day/publish: POST", async () => {
     const { POST } = await import("@/app/api/helper/[user]/day/publish/route");
     const res = await POST(
@@ -153,6 +168,32 @@ describe("the helper's own routes never accept a bearer token", () => {
     expect(get.status).toBe(404);
     const post = await POST(bearerOnly("https://t.test/api/helper/alex/day/media", { method: "POST" }), params);
     expect(post.status).toBe(404);
+  });
+
+  test("day/attach: POST — B915", async () => {
+    const { POST } = await import("@/app/api/helper/[user]/day/attach/route");
+    const res = await POST(
+      bearerOnly("https://t.test/api/helper/alex/day/attach", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
+      params,
+    );
+    expect(res.status).toBe(404);
+  });
+
+  test("invite: POST — B931", async () => {
+    const { POST } = await import("@/app/api/helper/[user]/invite/route");
+    const res = await POST(
+      bearerOnly("https://t.test/api/helper/alex/invite", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
+      params,
+    );
+    expect(res.status).toBe(404);
   });
 
   test("day/write-day: POST", async () => {

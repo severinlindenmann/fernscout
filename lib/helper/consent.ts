@@ -2,6 +2,9 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { isValidUsername, userDir } from "../users";
+import { serverSite } from "../site";
+import { HELPER_PROVIDER } from "./model";
+import { speechProvider } from "./transcribe";
 
 /**
  * Consent to a model being spoken to on this journal's behalf — B684, and §6
@@ -50,7 +53,21 @@ import { isValidUsername, userDir } from "../users";
  * widened onto a scope it did not already carry.
  */
 
-export const HELPER_SCOPES = ["words", "photos", "speech", "statement"] as const;
+/**
+ * `sessions` is the odd one and says something different from the other four
+ * — B976.
+ *
+ * Those record **who a person's words are sent to**: `words` and `photos` to
+ * Anthropic, `speech` to Deepgram. This one sends nothing anywhere. A
+ * conversation is kept on this instance either way, because being able to
+ * return to it is a thing the owner asked for and their own history is theirs;
+ * what this scope decides is whether **the operator may read it** to see what
+ * to improve.
+ *
+ * So the panel for it must not borrow the others' words. Nobody is being asked
+ * to let their holiday out of the building.
+ */
+export const HELPER_SCOPES = ["words", "photos", "speech", "statement", "sessions"] as const;
 export type HelperScope = (typeof HELPER_SCOPES)[number];
 
 export type HelperConsent = {
@@ -64,6 +81,17 @@ export type HelperConsent = {
   /** What was actually agreed to. Never widened by anything but a fresh POST
    *  naming the new scope. */
   scopes: HelperScope[];
+  /**
+   * What was actively said **no** to — B976, and only `sessions` needs it
+   * today.
+   *
+   * The other four scopes are off until somebody says yes, so "not in
+   * `scopes`" is the whole answer for them. `sessions` starts on, so silence
+   * means yes and the only thing worth recording is a person turning it off.
+   * Without this there is nowhere to write that down: a revoked scope and one
+   * nobody was ever asked about look identical.
+   */
+  declined?: HelperScope[];
 };
 
 /** Exported so a journal's own export (`lib/exportZip.ts`) can carry the
@@ -96,7 +124,17 @@ export function helperConsent(username: string): HelperConsent | null {
     } else {
       return null;
     }
-    return { agreedAt: raw.agreedAt, providers, scopes };
+    // B976 — a scope actively said no to. Filtered like `scopes` so a hand-
+    // edited file cannot smuggle in a name that is not one.
+    const declined = Array.isArray(raw.declined)
+      ? raw.declined.filter((s): s is HelperScope => (HELPER_SCOPES as readonly string[]).includes(s))
+      : [];
+    return {
+      agreedAt: raw.agreedAt,
+      providers,
+      scopes,
+      ...(declined.length > 0 ? { declined } : {}),
+    };
   } catch {
     // No file, unreadable file, or nonsense in it: all three mean "nobody has
     // said yes here", which is the only safe reading of a missing consent.
@@ -104,10 +142,30 @@ export function helperConsent(username: string): HelperConsent | null {
   }
 }
 
-/** Whether this journal has said yes to this particular scope — never inferred
- *  from having said yes to another one. */
+/**
+ * Who a scope's yes would name today — the same mapping the consent route
+ * uses to record a fresh one (B750). Kept in one place because a second copy
+ * of it is a second thing to forget to update when a fifth scope arrives.
+ */
+export function currentHelperProvider(scope: HelperScope): string {
+  return scope === "speech" ? speechProvider() : scope === "sessions" ? serverSite().name : HELPER_PROVIDER;
+}
+
+/**
+ * Whether this journal has said yes to this particular scope, **for the
+ * provider that scope would actually go to today** — never inferred from
+ * having said yes to another one, and never honoured on the strength of a yes
+ * that named somebody else (B750). An operator switching, say, the
+ * transcription backend after a person consented to Deepgram must not let
+ * that old yes cover the new provider silently; the safe reading of a
+ * mismatch, same as of no record at all, is "not consented".
+ */
 export function hasHelperConsent(username: string, scope: HelperScope): boolean {
-  return helperConsent(username)?.scopes.includes(scope) ?? false;
+  const consent = helperConsent(username);
+  if (!consent?.scopes.includes(scope)) return false;
+  // No recorded provider for a granted scope should not happen, but fails
+  // safe the same way a mismatch does rather than assuming it is fine.
+  return consent.providers[scope] === currentHelperProvider(scope);
 }
 
 /** Records a scope, adding it to whatever this journal had already agreed to
@@ -122,7 +180,14 @@ export function recordHelperConsent(
   const existing = helperConsent(username);
   const scopes = existing?.scopes.includes(scope) ? existing.scopes : [...(existing?.scopes ?? []), scope];
   const providers = { ...existing?.providers, [scope]: provider };
-  const consent: HelperConsent = { agreedAt: new Date().toISOString(), providers, scopes };
+  // Saying yes takes back a no — B976, and it is the only thing that does.
+  const declined = (existing?.declined ?? []).filter((s) => s !== scope);
+  const consent: HelperConsent = {
+    agreedAt: new Date().toISOString(),
+    providers,
+    scopes,
+    ...(declined.length > 0 ? { declined } : {}),
+  };
   fs.writeFileSync(consentFile(username), `${JSON.stringify(consent, null, 2)}\n`);
   return consent;
 }
@@ -135,14 +200,24 @@ export function recordHelperConsent(
  */
 export function revokeHelperConsent(username: string, scope: HelperScope): void {
   const existing = helperConsent(username);
-  if (!existing) return;
-  const scopes = existing.scopes.filter((s) => s !== scope);
-  if (scopes.length === 0) {
-    fs.rmSync(consentFile(username), { force: true });
-    return;
-  }
-  const providers = { ...existing.providers };
+  /**
+   * **A no is written down, even with nothing else in the file** — B976.
+   *
+   * This used to delete the file when the last scope went, which is right
+   * while every scope is off until somebody says yes: an absent file and a
+   * file saying no mean the same thing. `sessions` starts on, so they stop
+   * meaning the same thing — and a person who turned it off and had the file
+   * deleted would have it back on next time anybody looked.
+   */
+  const declined = [...new Set([...(existing?.declined ?? []), scope])];
+  const scopes = (existing?.scopes ?? []).filter((s) => s !== scope);
+  const providers = { ...existing?.providers };
   delete providers[scope];
-  const consent: HelperConsent = { agreedAt: existing.agreedAt, providers, scopes };
+  const consent: HelperConsent = {
+    agreedAt: existing?.agreedAt ?? new Date().toISOString(),
+    providers,
+    scopes,
+    declined,
+  };
   fs.writeFileSync(consentFile(username), `${JSON.stringify(consent, null, 2)}\n`);
 }

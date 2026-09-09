@@ -132,9 +132,17 @@ describe("photobook orders", () => {
     expect(await outcomeFrom(OWNER, { state: "made-up-state" })).toBeNull();
   });
 
-  test("nothing under app/api can reach the order builder", () => {
+  test("nothing under app/api can reach the order builder or spend credits on one", () => {
     // The same guarantee test/postcard-orders.test.ts makes about sendOrder,
     // for the same reason: an agent must not be able to spend credits.
+    //
+    // Narrowed from "nothing under app/api names photobook/orders at all" —
+    // B434's photobook counterpart (Task 6) adds an agent-facing GET and a
+    // proposal POST that legitimately read and write an order row
+    // (`getPhotobookOrder`, `proposePrint`), neither of which builds a book
+    // or spends a credit. `claimOrder`, `markPrinted` and `markFailed` are
+    // the credit-spending build flow's own — see
+    // `app/[user]/photobook/order/route.ts` — and stay forbidden by name.
     const offenders: string[] = [];
     const walk = (root: string) => {
       for (const item of fs.readdirSync(root, { withFileTypes: true })) {
@@ -142,7 +150,12 @@ describe("photobook orders", () => {
         if (item.isDirectory()) walk(full);
         else if (item.name.endsWith(".ts") || item.name.endsWith(".tsx")) {
           const text = fs.readFileSync(full, "utf8");
-          if (text.includes("photobook/build") || text.includes("photobook/orders")) {
+          if (
+            text.includes("photobook/build") ||
+            text.includes("claimOrder") ||
+            text.includes("markPrinted") ||
+            text.includes("markFailed")
+          ) {
             offenders.push(full);
           }
         }

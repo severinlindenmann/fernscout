@@ -23,6 +23,9 @@ import * as analytics from "./021-analytics";
 import * as dayNotifications from "./022-day-notifications";
 import * as usage from "./023-usage";
 import * as paymentProviderRef from "./024-payment-provider-ref";
+import * as idempotency from "./025-idempotency";
+import * as helperSessions from "./026-helper-sessions";
+import * as creditsHundredths from "./027-credits-hundredths";
 
 /**
  * Every migration, listed by hand.
@@ -61,6 +64,9 @@ export const MIGRATIONS: Record<string, Migration> = {
   "022-day-notifications": dayNotifications,
   "023-usage": usage,
   "024-payment-provider-ref": paymentProviderRef,
+  "025-idempotency": idempotency,
+  "026-helper-sessions": helperSessions,
+  "027-credits-hundredths": creditsHundredths,
 };
 
 export const migrationProvider: MigrationProvider = {

@@ -181,123 +181,134 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-describe("a bearer token is refused outright — an agent has POST …/send-mail instead", () => {
-  test("GET", async () => {
+describe("the whole file, kept in written order", { shuffle: false }, () => {
+  describe("a bearer token is refused outright — an agent has POST …/send-mail instead", { shuffle: false }, () => {
+    test("GET", async () => {
+      const { GET } = await route();
+      const response = await GET(req("GET", { authorization: "Bearer whatever" }), paramsFor("x"));
+      expect(response.status).toBe(403);
+      expect(isOwnerMock).not.toHaveBeenCalled();
+    });
+
+    test("POST", async () => {
+      const { POST } = await route();
+      const response = await POST(req("POST", { authorization: "Bearer whatever" }), paramsFor("x"));
+      expect(response.status).toBe(403);
+      expect(isOwnerMock).not.toHaveBeenCalled();
+    });
+  });
+
+  test("somebody who is not the owner is refused, cookie or none", async () => {
+    isOwnerMock.mockResolvedValue(false);
+    writeEntry({ slug: "day-one" });
     const { GET } = await route();
-    const response = await GET(req("GET", { authorization: "Bearer whatever" }), paramsFor("x"));
+    const response = await GET(req("GET"), paramsFor("day-one"));
     expect(response.status).toBe(403);
-    expect(isOwnerMock).not.toHaveBeenCalled();
   });
 
-  test("POST", async () => {
-    const { POST } = await route();
-    const response = await POST(req("POST", { authorization: "Bearer whatever" }), paramsFor("x"));
-    expect(response.status).toBe(403);
-    expect(isOwnerMock).not.toHaveBeenCalled();
+  test("a draft has nothing to offer", async () => {
+    writeEntry({ slug: "draft-day", draft: true });
+    const { GET } = await route();
+    const response = await GET(req("GET"), paramsFor("draft-day"));
+    expect(response.status).toBe(409);
+    expect((await response.json()).error).toBe("not_published");
   });
-});
 
-test("somebody who is not the owner is refused, cookie or none", async () => {
-  isOwnerMock.mockResolvedValue(false);
-  writeEntry({ slug: "day-one" });
-  const { GET } = await route();
-  const response = await GET(req("GET"), paramsFor("day-one"));
-  expect(response.status).toBe(403);
-});
-
-test("a draft has nothing to offer", async () => {
-  writeEntry({ slug: "draft-day", draft: true });
-  const { GET } = await route();
-  const response = await GET(req("GET"), paramsFor("draft-day"));
-  expect(response.status).toBe(409);
-  expect((await response.json()).error).toBe("not_published");
-});
-
-test("test content has nothing to offer", async () => {
-  writeEntry({ slug: "test-day", test: true });
-  const { GET } = await route();
-  const response = await GET(req("GET"), paramsFor("test-day"));
-  expect(response.status).toBe(409);
-  expect((await response.json()).error).toBe("test_content");
-});
-
-describe("the ordinary path — quote, send, and stop offering it", () => {
-  test("shows the button, names the cost, sends once, and then says it was sent", async () => {
-    await addReader();
-    writeEntry({ slug: "day-one" });
-
-    const { GET, POST } = await route();
-
-    const before = await (await GET(req("GET"), paramsFor("day-one"))).json();
-    expect(before).toMatchObject({ ok: true, reachable: true, alreadySent: false, pending: ["mail"] });
-    // Credits are off by default (test/credits.test.ts), so nothing is
-    // billed and the balance question does not even apply.
-    expect(before.balance).toBeNull();
-    expect(before.short).toBe(false);
-
-    const sent = await (await POST(req("POST"), paramsFor("day-one"))).json();
-    expect(sent.ok).toBe(true);
-    // The owner's own free copy (B614) plus the one reader.
-    expect(mailFiles()).toHaveLength(2);
-
-    const after = await (await GET(req("GET"), paramsFor("day-one"))).json();
-    expect(after).toMatchObject({ ok: true, alreadySent: true, pending: [] });
-
-    // Pressing it again changes nothing and mails nobody a second time.
-    const again = await (await POST(req("POST"), paramsFor("day-one"))).json();
-    expect(again).toEqual({ ok: true, alreadySent: true });
-    expect(mailFiles()).toHaveLength(2);
+  test("test content has nothing to offer", async () => {
+    writeEntry({ slug: "test-day", test: true });
+    const { GET } = await route();
+    const response = await GET(req("GET"), paramsFor("test-day"));
+    expect(response.status).toBe(409);
+    expect((await response.json()).error).toBe("test_content");
   });
-});
 
-describe("two presses at once", () => {
-  test("only one actually sends — the other finds the channel already claimed", async () => {
-    await addReader();
-    writeEntry({ slug: "day-one" });
+  describe("the ordinary path — quote, send, and stop offering it", () => {
+    test("shows the button, names the cost, sends once, and then says it was sent", async () => {
+      await addReader();
+      writeEntry({ slug: "day-one" });
 
-    const { POST } = await route();
+      const { GET, POST } = await route();
 
-    // Both requests run `statusFor` before either has recorded anything, so
-    // both would see "mail" as pending without the claim in between —
-    // `Promise.all` is what makes this an actual race rather than two
-    // sequential calls that could never collide.
-    const [first, second] = await Promise.all([
-      POST(req("POST"), paramsFor("day-one")),
-      POST(req("POST"), paramsFor("day-one")),
-    ]);
-    const bodies = await Promise.all([first.json(), second.json()]);
+      const before = await (await GET(req("GET"), paramsFor("day-one"))).json();
+      // B1024 — the quote says who, not only what it costs. The count here is
+      // the owner's own free copy (B614) plus the one reader, which is the same
+      // two the send below actually writes: `mailFiles()` is asserted at 2 a few
+      // lines down, so a count that drifted from the send would fail here first.
+      expect(before).toMatchObject({
+        ok: true,
+        reachable: true,
+        alreadySent: false,
+        pending: [{ channel: "mail", count: 2, cost: 0 }],
+      });
+      // Credits are off by default (test/credits.test.ts), so nothing is
+      // billed and the balance question does not even apply.
+      expect(before.balance).toBeNull();
+      expect(before.short).toBe(false);
 
-    // Exactly one of the two actually attempted a send.
-    const attempted = bodies.filter((b) => b.mail);
-    expect(attempted).toHaveLength(1);
-    expect(attempted[0].mail).toMatchObject({ attempted: true });
+      const sent = await (await POST(req("POST"), paramsFor("day-one"))).json();
+      expect(sent.ok).toBe(true);
+      // The owner's own free copy (B614) plus the one reader.
+      expect(mailFiles()).toHaveLength(2);
 
-    // One reader plus the owner's own free copy — never two of each.
-    expect(mailFiles()).toHaveLength(2);
+      const after = await (await GET(req("GET"), paramsFor("day-one"))).json();
+      expect(after).toMatchObject({ ok: true, alreadySent: true, pending: [] });
+
+      // Pressing it again changes nothing and mails nobody a second time.
+      const again = await (await POST(req("POST"), paramsFor("day-one"))).json();
+      expect(again).toEqual({ ok: true, alreadySent: true });
+      expect(mailFiles()).toHaveLength(2);
+    });
   });
-});
 
-describe("an empty balance — B840", () => {
-  test("a mail-only announcement quotes nothing and goes out anyway", async () => {
-    writeServerConfig({ credits: true });
-    // No grant at all: a journal with no `credits` row has a balance of
-    // zero, which is what every journal starts with (`lib/credits.ts`). This
-    // used to quote one credit, answer 402 and send nothing.
-    await addReader();
-    writeEntry({ slug: "day-one" });
+  describe("two presses at once", () => {
+    test("only one actually sends — the other finds the channel already claimed", async () => {
+      await addReader();
+      writeEntry({ slug: "day-one" });
 
-    const { GET, POST } = await route();
+      const { POST } = await route();
 
-    const status = await (await GET(req("GET"), paramsFor("day-one"))).json();
-    expect(status).toMatchObject({ ok: true, needed: 0, balance: 0, short: false });
+      // Both requests run `statusFor` before either has recorded anything, so
+      // both would see "mail" as pending without the claim in between —
+      // `Promise.all` is what makes this an actual race rather than two
+      // sequential calls that could never collide.
+      const [first, second] = await Promise.all([
+        POST(req("POST"), paramsFor("day-one")),
+        POST(req("POST"), paramsFor("day-one")),
+      ]);
+      const bodies = await Promise.all([first.json(), second.json()]);
 
-    const response = await POST(req("POST"), paramsFor("day-one"));
-    expect(response.status).toBe(200);
+      // Exactly one of the two actually attempted a send.
+      const attempted = bodies.filter((b) => b.mail);
+      expect(attempted).toHaveLength(1);
+      expect(attempted[0].mail).toMatchObject({ attempted: true });
 
-    // Sent, and still nothing charged: the reader and the owner both got one.
-    expect(await balanceOf(OWNER)).toBe(0);
-    expect(mailFiles()).toHaveLength(2);
-    const still = await (await GET(req("GET"), paramsFor("day-one"))).json();
-    expect(still.alreadySent).toBe(true);
+      // One reader plus the owner's own free copy — never two of each.
+      expect(mailFiles()).toHaveLength(2);
+    });
+  });
+
+  describe("an empty balance — B840", () => {
+    test("a mail-only announcement quotes nothing and goes out anyway", async () => {
+      writeServerConfig({ credits: true });
+      // No grant at all: a journal with no `credits` row has a balance of
+      // zero, which is what every journal starts with (`lib/credits.ts`). This
+      // used to quote one credit, answer 402 and send nothing.
+      await addReader();
+      writeEntry({ slug: "day-one" });
+
+      const { GET, POST } = await route();
+
+      const status = await (await GET(req("GET"), paramsFor("day-one"))).json();
+      expect(status).toMatchObject({ ok: true, needed: 0, balance: 0, short: false });
+
+      const response = await POST(req("POST"), paramsFor("day-one"));
+      expect(response.status).toBe(200);
+
+      // Sent, and still nothing charged: the reader and the owner both got one.
+      expect(await balanceOf(OWNER)).toBe(0);
+      expect(mailFiles()).toHaveLength(2);
+      const still = await (await GET(req("GET"), paramsFor("day-one"))).json();
+      expect(still.alreadySent).toBe(true);
+    });
   });
 });

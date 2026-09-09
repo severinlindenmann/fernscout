@@ -299,6 +299,55 @@ export async function updateOrderFigures(
   return Number(result.numUpdatedRows ?? 0) === 1;
 }
 
+/**
+ * Change who a card that has not gone yet is going to — B1005.
+ *
+ * The people used to be frozen the moment the order existed: the preview page
+ * listed them and said that changing them meant composing another order, which
+ * it said *after* the writing was done. Nothing required that. `recipients` is
+ * read at send and nowhere else, so a draft can hold a different list as
+ * safely as it holds different words — and it is the same
+ * `where status = 'draft'` guard as `updateOrderCrop` and `updateOrderText`,
+ * for the same reason: a change arriving while a send is in flight must not
+ * alter what is being printed, or who it is printed for.
+ *
+ * **The caller decides who is admissible, and it must.** This writes the ids it
+ * is given. `postcardCandidates` — consent, an address, still active — is the
+ * question, and the route above answers it before calling this, the same way
+ * `createOrder`'s caller does. Two copies of that check would be two copies to
+ * keep in step.
+ *
+ * An empty list is refused rather than stored: an order going to nobody is not
+ * a state the send path or the price has any sensible answer for, and the page
+ * has a delete for that.
+ */
+export async function updateOrderRecipients(
+  owner: string,
+  id: string,
+  recipients: string[],
+): Promise<boolean> {
+  if (recipients.length === 0) return false;
+  const handle = await getDatabaseOrNull();
+  if (!handle) return false;
+  const order = await getOrder(owner, id);
+  if (!order || !isPending(order)) return false;
+
+  // Deduplicated: two of the same id would be two cards to one address, at
+  // twice the price, from a list the page renders as one row.
+  const unique = [...new Set(recipients)];
+  const result = await handle.db
+    .updateTable("print_orders")
+    .set({
+      payload: JSON.stringify({ ...order.payload, recipients: unique }),
+      updated_at: nowIso(),
+    })
+    .where("id", "=", id)
+    .where("owner_id", "=", owner)
+    .where("status", "=", "draft")
+    .executeTakeFirst();
+  return Number(result.numUpdatedRows ?? 0) === 1;
+}
+
 function toOrder(row: {
   id: string;
   owner_id: string;

@@ -172,103 +172,105 @@ beforeAll(async () => {
   clearUserCache();
 });
 
-describe("the code mail carries a one-press link", () => {
-  test("a reader types a name and an address, then presses once", async () => {
-    const email = "mum@example.test";
-    const token = await guestLink();
-    jar.cookies = {};
+describe("the whole file, kept in written order", { shuffle: false }, () => {
+  describe("the code mail carries a one-press link", () => {
+    test("a reader types a name and an address, then presses once", async () => {
+      const email = "mum@example.test";
+      const token = await guestLink();
+      jar.cookies = {};
 
-    expect(await redeem({ token, name: "Mum", email })).toEqual({ status: "code" });
+      expect(await redeem({ token, name: "Mum", email })).toEqual({ status: "code" });
 
-    const [mail] = mailsTo(email);
-    expect(mail, "the code mail should exist").toBeTruthy();
+      const [mail] = mailsTo(email);
+      expect(mail, "the code mail should exist").toBeTruthy();
 
-    // Both halves in one letter: the button, and the six digits underneath it
-    // for a client that mangles the link.
-    const link = mail.match(/https:\/\/example\.test\/ana\/s\/([\w-]+)/);
-    expect(link, "the code mail must carry a one-press sign-in link").not.toBeNull();
-    expect(mail, "and must keep the code as the fallback").toMatch(/\b\d{6}\b/);
+      // Both halves in one letter: the button, and the six digits underneath it
+      // for a client that mangles the link.
+      const link = mail.match(/https:\/\/example\.test\/ana\/s\/([\w-]+)/);
+      expect(link, "the code mail must carry a one-press sign-in link").not.toBeNull();
+      expect(mail, "and must keep the code as the fallback").toMatch(/\b\d{6}\b/);
 
-    // Pressing it — `/{user}/s/<token>` is a page with a button, and this is
-    // what the button posts (B142: a scanner following the URL spends
-    // nothing).
-    const spent = await spendLink(link![1]);
-    expect(spent.status).toBe(200);
-    // And it comes back to the page she started on, where the whole screen is
-    // now one button rather than a second form.
-    expect(spent.next).toBe(`/${OWNER}/invite/guest/${token}`);
+      // Pressing it — `/{user}/s/<token>` is a page with a button, and this is
+      // what the button posts (B142: a scanner following the URL spends
+      // nothing).
+      const spent = await spendLink(link![1]);
+      expect(spent.status).toBe(200);
+      // And it comes back to the page she started on, where the whole screen is
+      // now one button rather than a second form.
+      expect(spent.next).toBe(`/${OWNER}/invite/guest/${token}`);
 
-    // **Signing in granted nothing.** She is not confirmed, not approved, and
-    // no grant exists — a session is an address, not a permission.
-    const before = await contactRow(email);
-    expect(before?.status).toBe("pending");
-    expect(before?.confirmedAt).toBeNull();
-    expect(await grantExists(before!.id)).toBe(false);
-    const { isJournalGuest } = await import("@/lib/contacts/session");
-    expect(await isJournalGuest(OWNER)).toBe(false);
+      // **Signing in granted nothing.** She is not confirmed, not approved, and
+      // no grant exists — a session is an address, not a permission.
+      const before = await contactRow(email);
+      expect(before?.status).toBe("pending");
+      expect(before?.confirmedAt).toBeNull();
+      expect(await grantExists(before!.id)).toBe(false);
+      const { isJournalGuest } = await import("@/lib/contacts/session");
+      expect(await isJournalGuest(OWNER)).toBe(false);
 
-    // The one press on that page: no email field, no code, no typing.
-    expect(await redeem({ token })).toEqual({ status: "waiting" });
+      // The one press on that page: no email field, no code, no typing.
+      expect(await redeem({ token })).toEqual({ status: "waiting" });
 
-    const after = await contactRow(email);
-    expect(after?.confirmedAt, "the address is proved").not.toBeNull();
-    expect(after?.status, "and still only in the queue").toBe("pending");
-    expect(await grantExists(after!.id), "approveContact is the only thing that grants").toBe(
-      false,
-    );
-    expect(await isJournalGuest(OWNER)).toBe(false);
+      const after = await contactRow(email);
+      expect(after?.confirmedAt, "the address is proved").not.toBeNull();
+      expect(after?.status, "and still only in the queue").toBe("pending");
+      expect(await grantExists(after!.id), "approveContact is the only thing that grants").toBe(
+        false,
+      );
+      expect(await isJournalGuest(OWNER)).toBe(false);
+    });
+
+    test("the six digits still work for a reader whose client mangled the link", async () => {
+      const email = "aunt@example.test";
+      const token = await guestLink();
+      jar.cookies = {};
+
+      expect(await redeem({ token, name: "Aunt", email })).toEqual({ status: "code" });
+      const code = mailsTo(email)[0]?.match(/\b(\d{6})\b/)?.[1];
+      expect(code, "the code is still in the letter").toBeTruthy();
+
+      const { POST } = await import("@/app/api/contacts/confirm/route");
+      const response = await POST(
+        new Request("https://example.test/api/contacts/confirm", {
+          method: "POST",
+          headers: headers(),
+          body: JSON.stringify({ user: OWNER, email, code }),
+        }),
+      );
+      expect(response.status).toBe(200);
+      expect((await response.json()) as { status?: string }).toMatchObject({ status: "pending" });
+
+      const row = await contactRow(email);
+      expect(row?.confirmedAt).not.toBeNull();
+      expect(await grantExists(row!.id), "typing the code grants nothing either").toBe(false);
+    });
   });
 
-  test("the six digits still work for a reader whose client mangled the link", async () => {
-    const email = "aunt@example.test";
-    const token = await guestLink();
-    jar.cookies = {};
+  describe("B800 — a waiting reader is told so", () => {
+    test("awaitingApproval is true only while the owner has not decided", async () => {
+      const { awaitingApproval } = await import("@/lib/tripGate");
+      const email = "mum@example.test";
+      const row = await contactRow(email);
+      expect(row?.status).toBe("pending");
 
-    expect(await redeem({ token, name: "Aunt", email })).toEqual({ status: "code" });
-    const code = mailsTo(email)[0]?.match(/\b(\d{6})\b/)?.[1];
-    expect(code, "the code is still in the letter").toBeTruthy();
+      // The session the one-press link left behind is what makes the gate able
+      // to say "you are already in the queue" rather than showing the join form
+      // again.
+      jar.cookies = {};
+      expect(await awaitingApproval(OWNER), "a stranger is not waiting for anything").toBe(false);
 
-    const { POST } = await import("@/app/api/contacts/confirm/route");
-    const response = await POST(
-      new Request("https://example.test/api/contacts/confirm", {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify({ user: OWNER, email, code }),
-      }),
-    );
-    expect(response.status).toBe(200);
-    expect((await response.json()) as { status?: string }).toMatchObject({ status: "pending" });
+      const { issueStandingLink, verifyLink } = await import("@/lib/auth");
+      const { GUEST_COOKIE } = await import("@/lib/auth");
+      const signedIn = await verifyLink(OWNER, await issueStandingLink(OWNER, email));
+      if (!signedIn.ok) throw new Error("no session");
+      jar.cookies[GUEST_COOKIE] = signedIn.token;
+      expect(await awaitingApproval(OWNER)).toBe(true);
 
-    const row = await contactRow(email);
-    expect(row?.confirmedAt).not.toBeNull();
-    expect(await grantExists(row!.id), "typing the code grants nothing either").toBe(false);
-  });
-});
-
-describe("B800 — a waiting reader is told so", () => {
-  test("awaitingApproval is true only while the owner has not decided", async () => {
-    const { awaitingApproval } = await import("@/lib/tripGate");
-    const email = "mum@example.test";
-    const row = await contactRow(email);
-    expect(row?.status).toBe("pending");
-
-    // The session the one-press link left behind is what makes the gate able
-    // to say "you are already in the queue" rather than showing the join form
-    // again.
-    jar.cookies = {};
-    expect(await awaitingApproval(OWNER), "a stranger is not waiting for anything").toBe(false);
-
-    const { issueStandingLink, verifyLink } = await import("@/lib/auth");
-    const { GUEST_COOKIE } = await import("@/lib/auth");
-    const signedIn = await verifyLink(OWNER, await issueStandingLink(OWNER, email));
-    if (!signedIn.ok) throw new Error("no session");
-    jar.cookies[GUEST_COOKIE] = signedIn.token;
-    expect(await awaitingApproval(OWNER)).toBe(true);
-
-    // Once the owner decides, the sentence stops being true — they are a
-    // guest, not a queue entry.
-    const { approveContact } = await import("@/lib/contacts");
-    await approveContact(OWNER, row!.id);
-    expect(await awaitingApproval(OWNER)).toBe(false);
+      // Once the owner decides, the sentence stops being true — they are a
+      // guest, not a queue entry.
+      const { approveContact } = await import("@/lib/contacts");
+      await approveContact(OWNER, row!.id);
+      expect(await awaitingApproval(OWNER)).toBe(false);
+    });
   });
 });

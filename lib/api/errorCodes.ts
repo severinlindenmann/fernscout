@@ -41,7 +41,10 @@ export const ERROR_CODES: Record<string, string> = {
   missing_day: "The day this call names does not exist yet. Write the day first, then send this.",
   unknown_invite: "No invite of that id, or it has been revoked.",
   unknown_key: "No credential of that id. GET the keys list for the ids this journal has.",
-  unknown_order: "No postcard order of that id.",
+  unknown_order: "No order of that id — a postcard order or a photobook order, whichever this route deals in.",
+  not_built: "This photobook has not finished being built yet, or is already at the printer. Wait for the build to finish, or ask about a different order.",
+  unknown_contact: "That is not a contact this journal can post something to: not an approved contact with an address on file. There is no way to address it to anybody else — that is deliberate.",
+  unknown_country: "The recipient's country is not one this server's printer can quote postage to. Ask the owner to correct the contact's address.",
   unknown_payment: "No payment of that id.",
   invalid_amount:
     "Not a number of credits this server sells — out of range, not a whole number, or off the " +
@@ -60,6 +63,7 @@ export const ERROR_CODES: Record<string, string> = {
   invalid_costs: "The budget or a cost line is not usable; `problems` lists each one.",
   invalid_media: "The upload is not usable — a file this server does not take, one too large, or a `day` that is not a day of this trip. /api/health carries the formats and the limits.",
   invalid_email: "That is not an address this server can send to.",
+  invalid_user: "`user` is missing from the body. It is the journal's own address segment — the one in its URLs.",
   invalid_listed: "`listed` must be true or false, and it cannot be true on a trip no visibility advertises. A string is refused rather than read as truthy: `\"false\"` would otherwise have advertised the trip.",
   invalid_teaser:
     "`teaser` must be true or false, and it cannot be true on a public trip — there is nothing to tease. It names a `guest` or `private` trip on the trips page without opening it.",
@@ -69,6 +73,8 @@ export const ERROR_CODES: Record<string, string> = {
   invalid_date: "A date is not a real calendar date, or `end` is before `start`. Dates are `2026-09-01`.",
   invalid_tagline: "The subtitle is not usable — it must be one line, like the title. Send `\"\"` to remove it entirely.",
   invalid_cover: "`cover` must be a `src` this trip's own gallery already carries — read GET .../trips/{trip}/media for the list. `null` or `\"\"` clears it.",
+  invalid_accent: "`accent` must be one of the five named colours. `null` or `\"\"` clears it back to no preference.",
+  invalid_intro: "`intro` must be text — the trip's own prose, not a frontmatter line.",
   invalid_trip_id: "The trip id must be lowercase letters, digits and single hyphens. It is the URL segment and the folder name.",
   invalid_visibility: "`visibility` must be `private`, `public` or `guest`. An unrecognised value is refused here rather than written, because on the way back in it would read as private and the caller would never know.",
   invalid_people: "An entry in `people` is not usable — each needs a name and an email, and there may be at most ten. They get write access to the trip, so this is refused rather than trimmed.",
@@ -104,6 +110,10 @@ export const ERROR_CODES: Record<string, string> = {
 
   // ── publishing, and things already done ────────────────────────────────
   already_published: "This day is already on the site. Nothing was changed.",
+  already_draft:
+    "This day is not on the site, so there was nothing to take down. Nothing was changed — " +
+    "and if somebody asked you to take it down because they are worried about who saw it, " +
+    "say that it has not been up.",
   not_published: "This day is still a draft. Publish it before sending it to anybody.",
   test_content: "This is content nobody lived — `test: true`. It cannot be sent to real people, which is the point of the flag.",
   idempotency_key_reused: "That `idempotency_key` was used for a different body. Nothing was written. Reuse a key only to retry the same call; send a new key for a new day.",
@@ -114,6 +124,7 @@ export const ERROR_CODES: Record<string, string> = {
   signup_disabled: "This server does not take new journals.",
   contacts_disabled: "This server has contacts off, so invitations and approvals are unavailable.",
   postcards_disabled: "This server has postcards off.",
+  photobook_disabled: "This journal does not have photobooks switched on. /api/health says which capabilities are on and why.",
   credits_disabled: "This server has credits off.",
   mail_disabled: "This server cannot send mail, so anything that would have been mailed has not been.",
   mail_failed: "The mail could not be sent. Nothing else about the call failed; tell the person, and do not retry in a loop.",

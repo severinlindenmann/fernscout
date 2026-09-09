@@ -149,12 +149,30 @@ describe.each(dialectCases().map((c) => c.name))("with credits switched on (%s)"
     await spend("alice", 9, "day_whatsapp", "alice/t/c");
     await refund("alice", 1, "alice/t/a");
 
-    // The refund is a credit back, not a spend, and neither is the grant.
+    // The refund is a credit back, not a spend, and neither is the grant —
+    // but B922 says it must still be legible, as its own line rather than
+    // netted into `helper`.
     expect(await spentByReason("alice")).toEqual([
       { reason: "day_whatsapp", credits: 9 },
       { reason: "helper", credits: 5 },
+      { reason: "refunded", credits: 1 },
     ]);
     expect(await spentByReason("nobody")).toEqual([]);
+  });
+
+  test("B922: a refund shows as its own line, not silently netted out of the reason it came from", async () => {
+    await grant("alice", 10);
+    // The model ran and was charged, then the write failed underneath it.
+    await spend("alice", 1, "helper", "alice/t/2026-09-07");
+    await refund("alice", 1, "alice/t/2026-09-07");
+    expect(await balanceOf("alice")).toBe(10);
+    // Before this fix, a fully-refunded call vanished from the breakdown
+    // entirely (delta<0 excludes it, delta>0 was never read) — a person
+    // could not tell the call had happened, let alone that it came back.
+    expect(await spentByReason("alice")).toEqual([
+      { reason: "helper", credits: 1 },
+      { reason: "refunded", credits: 1 },
+    ]);
   });
 
   test("the ledger always sums to the balance", async () => {
@@ -183,9 +201,28 @@ describe.each(dialectCases().map((c) => c.name))("with credits switched on (%s)"
     expect(await balanceOf("alice")).toBe(10);
   });
 
-  test("a fractional spend is a programming error, not a rounding decision", async () => {
+  test("a hundredth is a real charge, and anything finer is a programming error", async () => {
+    // B987 — the stored unit is a hundredth of a credit, so 1.5 is now an
+    // ordinary amount and 0.005 is the mistake `Number.isInteger` used to
+    // catch. Rounding it silently would make a pricing bug invisible until an
+    // invoice disagreed.
     await grant("alice", 10);
-    await expect(spend("alice", 1.5, "day_mail", "alice/t/d")).rejects.toThrow(/fractional/);
+    expect(await spend("alice", 1.5, "day_mail", "alice/t/d")).toBe(true);
+    expect(await balanceOf("alice")).toBe(8.5);
+    expect(await spend("alice", 0.01, "day_mail", "alice/t/d2")).toBe(true);
+    expect(await balanceOf("alice")).toBe(8.49);
+    await expect(spend("alice", 0.005, "day_mail", "alice/t/d3")).rejects.toThrow(
+      /hundredths/,
+    );
+  });
+
+  test("a balance of one hundredth cannot pay for two", async () => {
+    await grant("alice", 1);
+    expect(await spend("alice", 0.99, "day_mail", "alice/t/a")).toBe(true);
+    expect(await balanceOf("alice")).toBe(0.01);
+    expect(await spend("alice", 0.02, "day_mail", "alice/t/b")).toBe(false);
+    expect(await spend("alice", 0.01, "day_mail", "alice/t/c")).toBe(true);
+    expect(await balanceOf("alice")).toBe(0);
   });
 
   test("a grant must be a positive whole number", async () => {

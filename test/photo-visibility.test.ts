@@ -231,274 +231,276 @@ afterAll(() => {
  * below is a wrapper around these three functions, so a rule that is wrong
  * here is wrong everywhere at once.
  */
-describe("the label, on its own", () => {
-  test("a src matches whichever side of the API it was seen from", () => {
-    expect(mediaKey("/ana/media/open-2026/bangkok/01.jpg")).toBe("open-2026/bangkok/01.jpg");
-    expect(mediaKey("/media/open-2026/bangkok/01.jpg")).toBe("open-2026/bangkok/01.jpg");
-    expect(mediaKey("open-2026/bangkok/01.jpg")).toBe("open-2026/bangkok/01.jpg");
-  });
-
-  test("an unrecognised word reads as private, never as no label", () => {
-    for (const word of PHOTO_VISIBILITIES) expect(parsePhotoVisibility(word)).toBe(word);
-    expect(parsePhotoVisibility(undefined)).toBeUndefined();
-    expect(parsePhotoVisibility(null)).toBeUndefined();
-    expect(parsePhotoVisibility("")).toBeUndefined();
-    // A typo must not publish somebody's photograph, and `public` is a typo
-    // here: a label narrows, so there is no such value to obey.
-    expect(parsePhotoVisibility("privte")).toBe("private");
-    expect(parsePhotoVisibility("public")).toBe("private");
-    expect(parsePhotoVisibility(true)).toBe("private");
-  });
-
-  test("the levels are ordered, and an unlabelled photograph is everybody's", () => {
-    expect(maySeePhoto(undefined, "public")).toBe(true);
-    expect(maySeePhoto("guest", "public")).toBe(false);
-    expect(maySeePhoto("guest", "guest")).toBe(true);
-    expect(maySeePhoto("guest", "person")).toBe(true);
-    expect(maySeePhoto("private", "guest")).toBe(false);
-    expect(maySeePhoto("private", "person")).toBe(true);
-  });
-});
-
-describe("what a reader is handed", () => {
-  /**
-   * The closed default, which is the whole design: some forty-five places read
-   * `entry.gallery`, and a call that says nothing about its reader has to get
-   * the safe answer rather than the generous one. B327 is what the other way
-   * round costs.
-   */
-  test("a read that says nothing about who is asking gets no labelled photograph", async () => {
-    const { getDays } = await import("@/lib/entries");
-    const days = getDays(`${OWNER}/open-2026`);
-    expect(days[0].lead.gallery).toHaveLength(1);
-    expect(days[0].lead.gallery[0].src).toContain("01.jpg");
-  });
-
-  for (const [viewer, byTrip] of Object.entries(EXPECTED)) {
-    for (const [tripId, expected] of Object.entries(byTrip)) {
-      test(`${viewer} on ${tripId}: ${expected === null ? "refused" : expected} of 3`, async () => {
-        const { getDays } = await import("@/lib/entries");
-        const { mayReadTrip, readFor } = await import("@/lib/tripGate");
-        as(viewer);
-        const trip = (await tripsByRef()).get(tripId)!;
-        expect(trip).toBeDefined();
-
-        if (expected === null) {
-          expect(await mayReadTrip(trip)).toBe(false);
-          return;
-        }
-        expect(await mayReadTrip(trip)).toBe(true);
-        const { read } = await readFor(trip);
-        expect(getDays(trip.ref, read)[0].lead.gallery).toHaveLength(expected);
-      });
-    }
-  }
-
-  /**
-   * The label narrows and never widens, stated as the one case where the two
-   * levels disagree: a `guest` photograph inside a `private` trip.
-   *
-   * A journal guest is refused by the trip's gate above, so this asserts the
-   * layer underneath it — that even asked directly, the read layer does not
-   * hand them the picture. Two answers rather than one, because a gate that is
-   * later moved or widened must not silently make this true.
-   */
-  test("a guest label inside a private trip is still only for the people who were there", async () => {
-    const { readerLevelFor } = await import("@/lib/tripGate");
-    const trip = (await tripsByRef()).get("closed-2026")!;
-
-    as("guest");
-    expect(await readerLevelFor(trip)).toBe("public");
-
-    as("traveller");
-    expect(await readerLevelFor(trip)).toBe("person");
-  });
-
-  /**
-   * `readAllEntries` caches the parse for the life of the process and hands
-   * the same objects to every request, so a filter that stripped in place
-   * would hide the photograph from the owner too — for as long as the server
-   * runs, and only on the second request, which is the worst way to find out.
-   */
-  test("filtering for one reader does not take the photograph away from the next", async () => {
-    const { getDays } = await import("@/lib/entries");
-    const ref = `${OWNER}/open-2026`;
-    expect(getDays(ref, { reader: "public" })[0].lead.gallery).toHaveLength(1);
-    expect(getDays(ref, { reader: "guest" })[0].lead.gallery).toHaveLength(2);
-    expect(getDays(ref, { reader: "person" })[0].lead.gallery).toHaveLength(3);
-    // And again, in the other order.
-    expect(getDays(ref, { reader: "public" })[0].lead.gallery).toHaveLength(1);
-  });
-
-  /** The counts the gallery and the hero render come off the same read. */
-  test("the trip's own media count follows the reader", async () => {
-    const { getTripStats } = await import("@/lib/entries");
-    const ref = `${OWNER}/open-2026`;
-    expect(getTripStats(ref, { reader: "public" }).totalMedia).toBe(1);
-    expect(getTripStats(ref, { reader: "person" }).totalMedia).toBe(3);
-  });
-});
-
-/**
- * The file itself, which is the half that makes this a feature rather than a
- * decoration. Keeping a picture out of the gallery leaves it one guessable URL
- * away, and the URLs here are `01.jpg`, `02.jpg`, `03.jpg`.
- */
-describe("the photograph itself", () => {
-  async function fetchPhoto(tripId: string, file: string, query = "") {
-    const { GET } = await import("@/app/[user]/media/[...path]/route");
-    const segments = [tripId, "bangkok", file];
-    return GET(
-      new Request(`https://example.test/${OWNER}/media/${segments.join("/")}${query}`),
-      { params: Promise.resolve({ user: OWNER, path: segments }) } as never,
-    );
-  }
-
-  const EXPECTED_STATUS: Record<string, Record<string, number>> = {
-    anonymous: { "01.jpg": 200, "02.jpg": 404, "03.jpg": 404 },
-    stranger: { "01.jpg": 200, "02.jpg": 404, "03.jpg": 404 },
-    guest: { "01.jpg": 200, "02.jpg": 200, "03.jpg": 404 },
-    traveller: { "01.jpg": 200, "02.jpg": 200, "03.jpg": 200 },
-    owner: { "01.jpg": 200, "02.jpg": 200, "03.jpg": 200 },
-  };
-
-  for (const [viewer, byFile] of Object.entries(EXPECTED_STATUS)) {
-    for (const [file, status] of Object.entries(byFile)) {
-      test(`${viewer} asking for ${file} on the public trip: ${status}`, async () => {
-        as(viewer);
-        expect((await fetchPhoto("open-2026", file)).status).toBe(status);
-      });
-    }
-  }
-
-  /** Same route, same gate — a thumbnail is not a way round it. */
-  test("a resized copy is refused too", async () => {
-    as("anonymous");
-    expect((await fetchPhoto("open-2026", "03.jpg", "?w=320")).status).toBe(404);
-  });
-
-  /**
-   * Nor is a different spelling of the same file.
-   *
-   * On a case-insensitive volume — APFS, so every Mac this is developed on —
-   * `03.JPG` opens `03.jpg`, and a byte comparison against the gallery's `src`
-   * called them different photographs and served the file. Asserted on both
-   * kinds of volume: where the name does not resolve the answer is 404 for
-   * being absent, and where it does the answer is 404 for being held back.
-   * The one status this must never be is 200.
-   */
-  test("a differently-cased path is not a way round it", async () => {
-    as("anonymous");
-    expect((await fetchPhoto("open-2026", "03.JPG")).status).toBe(404);
-  });
-
-  /**
-   * The bytes are the same for everybody who may have them; the *status* is
-   * what varies. A shared cache cannot see that, so the one 200 must not be
-   * storable.
-   */
-  test("a labelled photograph is never handed to a shared cache", async () => {
-    as("traveller");
-    const held = await fetchPhoto("open-2026", "03.jpg");
-    expect(held.headers.get("Cache-Control")).toBe("private, no-store");
-
-    const open = await fetchPhoto("open-2026", "01.jpg");
-    expect(open.headers.get("Cache-Control")).toContain("public");
-  });
-});
-
-/**
- * The write door. A field an agent cannot set does not exist — there is no
- * editing interface anywhere else (AGENTS.md decision 24), so a label that can
- * only be typed into a file by hand is a label nobody outside this checkout
- * will ever apply.
- */
-describe("labelling a photograph over the API", () => {
-  test("a PATCH writes the label, and null clears it", async () => {
-    const { editEntry } = await import("@/lib/api/entries");
-    const { getEntryBySlug, forgetEntries } = await import("@/lib/entries");
-    const ref = `${OWNER}/invited-2026`;
-    const src = `/media/invited-2026/bangkok/01.jpg`;
-
-    expect(editEntry(ref, "bangkok", { photoVisibility: { [src]: "private" } }).ok).toBe(true);
-    forgetEntries(ref);
-    const held = getEntryBySlug(ref, "bangkok", { reader: "person" })!;
-    expect(held.gallery.find((g) => g.src.endsWith("01.jpg"))?.visibility).toBe("private");
-    // And it is gone for a reader below that level, through the same read
-    // layer the pages use.
-    expect(getEntryBySlug(ref, "bangkok", { reader: "guest" })!.gallery).toHaveLength(1);
-
-    expect(editEntry(ref, "bangkok", { photoVisibility: { [src]: null } }).ok).toBe(true);
-    forgetEntries(ref);
-    const cleared = getEntryBySlug(ref, "bangkok", { reader: "person" })!;
-    expect(cleared.gallery.find((g) => g.src.endsWith("01.jpg"))?.visibility).toBeUndefined();
-  });
-
-  /**
-   * The key is forgiving about the owner prefix, because a caller sending back
-   * what `GET .../days/<slug>` handed it has to work — that reads
-   * `/<user>/media/…` while the file on disk carries `/media/…`.
-   */
-  test("the src may be spelled either way", async () => {
-    const { editEntry } = await import("@/lib/api/entries");
-    const { getEntryBySlug, forgetEntries } = await import("@/lib/entries");
-    const ref = `${OWNER}/invited-2026`;
-
-    const result = editEntry(ref, "bangkok", {
-      photoVisibility: { [`/${OWNER}/media/invited-2026/bangkok/02.jpg`]: "private" },
+describe("the whole file, kept in written order", { shuffle: false }, () => {
+  describe("the label, on its own", () => {
+    test("a src matches whichever side of the API it was seen from", () => {
+      expect(mediaKey("/ana/media/open-2026/bangkok/01.jpg")).toBe("open-2026/bangkok/01.jpg");
+      expect(mediaKey("/media/open-2026/bangkok/01.jpg")).toBe("open-2026/bangkok/01.jpg");
+      expect(mediaKey("open-2026/bangkok/01.jpg")).toBe("open-2026/bangkok/01.jpg");
     });
-    expect(result.ok).toBe(true);
-    forgetEntries(ref);
-    const entry = getEntryBySlug(ref, "bangkok", { reader: "person" })!;
-    expect(entry.gallery.find((g) => g.src.endsWith("02.jpg"))?.visibility).toBe("private");
+
+    test("an unrecognised word reads as private, never as no label", () => {
+      for (const word of PHOTO_VISIBILITIES) expect(parsePhotoVisibility(word)).toBe(word);
+      expect(parsePhotoVisibility(undefined)).toBeUndefined();
+      expect(parsePhotoVisibility(null)).toBeUndefined();
+      expect(parsePhotoVisibility("")).toBeUndefined();
+      // A typo must not publish somebody's photograph, and `public` is a typo
+      // here: a label narrows, so there is no such value to obey.
+      expect(parsePhotoVisibility("privte")).toBe("private");
+      expect(parsePhotoVisibility("public")).toBe("private");
+      expect(parsePhotoVisibility(true)).toBe("private");
+    });
+
+    test("the levels are ordered, and an unlabelled photograph is everybody's", () => {
+      expect(maySeePhoto(undefined, "public")).toBe(true);
+      expect(maySeePhoto("guest", "public")).toBe(false);
+      expect(maySeePhoto("guest", "guest")).toBe(true);
+      expect(maySeePhoto("guest", "person")).toBe(true);
+      expect(maySeePhoto("private", "guest")).toBe(false);
+      expect(maySeePhoto("private", "person")).toBe(true);
+    });
+  });
+
+  describe("what a reader is handed", () => {
+    /**
+     * The closed default, which is the whole design: some forty-five places read
+     * `entry.gallery`, and a call that says nothing about its reader has to get
+     * the safe answer rather than the generous one. B327 is what the other way
+     * round costs.
+     */
+    test("a read that says nothing about who is asking gets no labelled photograph", async () => {
+      const { getDays } = await import("@/lib/entries");
+      const days = getDays(`${OWNER}/open-2026`);
+      expect(days[0].lead.gallery).toHaveLength(1);
+      expect(days[0].lead.gallery[0].src).toContain("01.jpg");
+    });
+
+    for (const [viewer, byTrip] of Object.entries(EXPECTED)) {
+      for (const [tripId, expected] of Object.entries(byTrip)) {
+        test(`${viewer} on ${tripId}: ${expected === null ? "refused" : expected} of 3`, async () => {
+          const { getDays } = await import("@/lib/entries");
+          const { mayReadTrip, readFor } = await import("@/lib/tripGate");
+          as(viewer);
+          const trip = (await tripsByRef()).get(tripId)!;
+          expect(trip).toBeDefined();
+
+          if (expected === null) {
+            expect(await mayReadTrip(trip)).toBe(false);
+            return;
+          }
+          expect(await mayReadTrip(trip)).toBe(true);
+          const { read } = await readFor(trip);
+          expect(getDays(trip.ref, read)[0].lead.gallery).toHaveLength(expected);
+        });
+      }
+    }
+
+    /**
+     * The label narrows and never widens, stated as the one case where the two
+     * levels disagree: a `guest` photograph inside a `private` trip.
+     *
+     * A journal guest is refused by the trip's gate above, so this asserts the
+     * layer underneath it — that even asked directly, the read layer does not
+     * hand them the picture. Two answers rather than one, because a gate that is
+     * later moved or widened must not silently make this true.
+     */
+    test("a guest label inside a private trip is still only for the people who were there", async () => {
+      const { readerLevelFor } = await import("@/lib/tripGate");
+      const trip = (await tripsByRef()).get("closed-2026")!;
+
+      as("guest");
+      expect(await readerLevelFor(trip)).toBe("public");
+
+      as("traveller");
+      expect(await readerLevelFor(trip)).toBe("person");
+    });
+
+    /**
+     * `readAllEntries` caches the parse for the life of the process and hands
+     * the same objects to every request, so a filter that stripped in place
+     * would hide the photograph from the owner too — for as long as the server
+     * runs, and only on the second request, which is the worst way to find out.
+     */
+    test("filtering for one reader does not take the photograph away from the next", async () => {
+      const { getDays } = await import("@/lib/entries");
+      const ref = `${OWNER}/open-2026`;
+      expect(getDays(ref, { reader: "public" })[0].lead.gallery).toHaveLength(1);
+      expect(getDays(ref, { reader: "guest" })[0].lead.gallery).toHaveLength(2);
+      expect(getDays(ref, { reader: "person" })[0].lead.gallery).toHaveLength(3);
+      // And again, in the other order.
+      expect(getDays(ref, { reader: "public" })[0].lead.gallery).toHaveLength(1);
+    });
+
+    /** The counts the gallery and the hero render come off the same read. */
+    test("the trip's own media count follows the reader", async () => {
+      const { getTripStats } = await import("@/lib/entries");
+      const ref = `${OWNER}/open-2026`;
+      expect(getTripStats(ref, { reader: "public" }).totalMedia).toBe(1);
+      expect(getTripStats(ref, { reader: "person" }).totalMedia).toBe(3);
+    });
   });
 
   /**
-   * Refused rather than ignored, and this matters more here than for a
-   * caption: "I have marked that photograph private" followed by nothing
-   * landing is the worst answer this feature could give.
+   * The file itself, which is the half that makes this a feature rather than a
+   * decoration. Keeping a picture out of the gallery leaves it one guessable URL
+   * away, and the URLs here are `01.jpg`, `02.jpg`, `03.jpg`.
    */
-  test("an unknown word and an unknown photograph are both refused", async () => {
-    const { validateEntryEdit } = await import("@/lib/validate/entry");
-    const known = ["/ana/media/invited-2026/bangkok/01.jpg"];
+  describe("the photograph itself", () => {
+    async function fetchPhoto(tripId: string, file: string, query = "") {
+      const { GET } = await import("@/app/[user]/media/[...path]/route");
+      const segments = [tripId, "bangkok", file];
+      return GET(
+        new Request(`https://example.test/${OWNER}/media/${segments.join("/")}${query}`),
+        { params: Promise.resolve({ user: OWNER, path: segments }) } as never,
+      );
+    }
 
-    expect(
-      validateEntryEdit({ photoVisibility: { [known[0]]: "private" } }, undefined, known),
-    ).toEqual([]);
-    expect(validateEntryEdit({ photoVisibility: { [known[0]]: null } }, undefined, known)).toEqual(
-      [],
-    );
+    const EXPECTED_STATUS: Record<string, Record<string, number>> = {
+      anonymous: { "01.jpg": 200, "02.jpg": 404, "03.jpg": 404 },
+      stranger: { "01.jpg": 200, "02.jpg": 404, "03.jpg": 404 },
+      guest: { "01.jpg": 200, "02.jpg": 200, "03.jpg": 404 },
+      traveller: { "01.jpg": 200, "02.jpg": 200, "03.jpg": 200 },
+      owner: { "01.jpg": 200, "02.jpg": 200, "03.jpg": 200 },
+    };
 
-    const widened = validateEntryEdit(
-      { photoVisibility: { [known[0]]: "public" } },
-      undefined,
-      known,
-    );
-    expect(widened).toHaveLength(1);
-    expect(widened[0].expected).toContain("null");
+    for (const [viewer, byFile] of Object.entries(EXPECTED_STATUS)) {
+      for (const [file, status] of Object.entries(byFile)) {
+        test(`${viewer} asking for ${file} on the public trip: ${status}`, async () => {
+          as(viewer);
+          expect((await fetchPhoto("open-2026", file)).status).toBe(status);
+        });
+      }
+    }
 
-    const unknownSrc = validateEntryEdit(
-      { photoVisibility: { "/ana/media/invited-2026/bangkok/99.jpg": "private" } },
-      undefined,
-      known,
-    );
-    expect(unknownSrc).toHaveLength(1);
-    expect(unknownSrc[0].expected).toContain("this day's gallery actually has");
+    /** Same route, same gate — a thumbnail is not a way round it. */
+    test("a resized copy is refused too", async () => {
+      as("anonymous");
+      expect((await fetchPhoto("open-2026", "03.jpg", "?w=320")).status).toBe(404);
+    });
 
-    expect(validateEntryEdit({ photoVisibility: "private" }, undefined, known)).toHaveLength(1);
+    /**
+     * Nor is a different spelling of the same file.
+     *
+     * On a case-insensitive volume — APFS, so every Mac this is developed on —
+     * `03.JPG` opens `03.jpg`, and a byte comparison against the gallery's `src`
+     * called them different photographs and served the file. Asserted on both
+     * kinds of volume: where the name does not resolve the answer is 404 for
+     * being absent, and where it does the answer is 404 for being held back.
+     * The one status this must never be is 200.
+     */
+    test("a differently-cased path is not a way round it", async () => {
+      as("anonymous");
+      expect((await fetchPhoto("open-2026", "03.JPG")).status).toBe(404);
+    });
+
+    /**
+     * The bytes are the same for everybody who may have them; the *status* is
+     * what varies. A shared cache cannot see that, so the one 200 must not be
+     * storable.
+     */
+    test("a labelled photograph is never handed to a shared cache", async () => {
+      as("traveller");
+      const held = await fetchPhoto("open-2026", "03.jpg");
+      expect(held.headers.get("Cache-Control")).toBe("private, no-store");
+
+      const open = await fetchPhoto("open-2026", "01.jpg");
+      expect(open.headers.get("Cache-Control")).toContain("public");
+    });
   });
 
-  test("the media door takes one label per file, in the files' order", async () => {
-    const { visibilitiesFor } = await import("@/lib/validate/media");
-    expect(visibilitiesFor(undefined, 2)).toEqual({ ok: true, visibilities: [] });
-    expect(visibilitiesFor(["", "private"], 2)).toEqual({
-      ok: true,
-      visibilities: [undefined, "private"],
+  /**
+   * The write door. A field an agent cannot set does not exist — there is no
+   * editing interface anywhere else (AGENTS.md decision 24), so a label that can
+   * only be typed into a file by hand is a label nobody outside this checkout
+   * will ever apply.
+   */
+  describe("labelling a photograph over the API", { shuffle: false }, () => {
+    test("a PATCH writes the label, and null clears it", async () => {
+      const { editEntry } = await import("@/lib/api/entries");
+      const { getEntryBySlug, forgetEntries } = await import("@/lib/entries");
+      const ref = `${OWNER}/invited-2026`;
+      const src = `/media/invited-2026/bangkok/01.jpg`;
+
+      expect(editEntry(ref, "bangkok", { photoVisibility: { [src]: "private" } }).ok).toBe(true);
+      forgetEntries(ref);
+      const held = getEntryBySlug(ref, "bangkok", { reader: "person" })!;
+      expect(held.gallery.find((g) => g.src.endsWith("01.jpg"))?.visibility).toBe("private");
+      // And it is gone for a reader below that level, through the same read
+      // layer the pages use.
+      expect(getEntryBySlug(ref, "bangkok", { reader: "guest" })!.gallery).toHaveLength(1);
+
+      expect(editEntry(ref, "bangkok", { photoVisibility: { [src]: null } }).ok).toBe(true);
+      forgetEntries(ref);
+      const cleared = getEntryBySlug(ref, "bangkok", { reader: "person" })!;
+      expect(cleared.gallery.find((g) => g.src.endsWith("01.jpg"))?.visibility).toBeUndefined();
     });
-    // More labels than files is refused rather than misaligned: a label on the
-    // wrong photograph is worse than no label.
-    expect(visibilitiesFor(["private", "guest", "guest"], 2).ok).toBe(false);
-    expect(visibilitiesFor(["public"], 1).ok).toBe(false);
-    expect(visibilitiesFor("private", 1).ok).toBe(false);
+
+    /**
+     * The key is forgiving about the owner prefix, because a caller sending back
+     * what `GET .../days/<slug>` handed it has to work — that reads
+     * `/<user>/media/…` while the file on disk carries `/media/…`.
+     */
+    test("the src may be spelled either way", async () => {
+      const { editEntry } = await import("@/lib/api/entries");
+      const { getEntryBySlug, forgetEntries } = await import("@/lib/entries");
+      const ref = `${OWNER}/invited-2026`;
+
+      const result = editEntry(ref, "bangkok", {
+        photoVisibility: { [`/${OWNER}/media/invited-2026/bangkok/02.jpg`]: "private" },
+      });
+      expect(result.ok).toBe(true);
+      forgetEntries(ref);
+      const entry = getEntryBySlug(ref, "bangkok", { reader: "person" })!;
+      expect(entry.gallery.find((g) => g.src.endsWith("02.jpg"))?.visibility).toBe("private");
+    });
+
+    /**
+     * Refused rather than ignored, and this matters more here than for a
+     * caption: "I have marked that photograph private" followed by nothing
+     * landing is the worst answer this feature could give.
+     */
+    test("an unknown word and an unknown photograph are both refused", async () => {
+      const { validateEntryEdit } = await import("@/lib/validate/entry");
+      const known = ["/ana/media/invited-2026/bangkok/01.jpg"];
+
+      expect(
+        validateEntryEdit({ photoVisibility: { [known[0]]: "private" } }, undefined, known),
+      ).toEqual([]);
+      expect(validateEntryEdit({ photoVisibility: { [known[0]]: null } }, undefined, known)).toEqual(
+        [],
+      );
+
+      const widened = validateEntryEdit(
+        { photoVisibility: { [known[0]]: "public" } },
+        undefined,
+        known,
+      );
+      expect(widened).toHaveLength(1);
+      expect(widened[0].expected).toContain("null");
+
+      const unknownSrc = validateEntryEdit(
+        { photoVisibility: { "/ana/media/invited-2026/bangkok/99.jpg": "private" } },
+        undefined,
+        known,
+      );
+      expect(unknownSrc).toHaveLength(1);
+      expect(unknownSrc[0].expected).toContain("this day's gallery actually has");
+
+      expect(validateEntryEdit({ photoVisibility: "private" }, undefined, known)).toHaveLength(1);
+    });
+
+    test("the media door takes one label per file, in the files' order", async () => {
+      const { visibilitiesFor } = await import("@/lib/validate/media");
+      expect(visibilitiesFor(undefined, 2)).toEqual({ ok: true, visibilities: [] });
+      expect(visibilitiesFor(["", "private"], 2)).toEqual({
+        ok: true,
+        visibilities: [undefined, "private"],
+      });
+      // More labels than files is refused rather than misaligned: a label on the
+      // wrong photograph is worse than no label.
+      expect(visibilitiesFor(["private", "guest", "guest"], 2).ok).toBe(false);
+      expect(visibilitiesFor(["public"], 1).ok).toBe(false);
+      expect(visibilitiesFor("private", 1).ok).toBe(false);
+    });
   });
 });

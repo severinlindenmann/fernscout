@@ -6,7 +6,7 @@ import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { buildStoryProps } from "@/lib/tripView";
 import { BlogStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
-import { siteSummary, travellersOf } from "@/lib/site";
+import { siteSummary, travellerNamesOf, travellersOf } from "@/lib/site";
 import { getDefaultUsername, getUser } from "@/lib/users";
 import TripStory from "@/app/TripStory";
 
@@ -53,6 +53,9 @@ export default async function Home({ params }: PageProps<"/[user]">) {
         initialDate={initialDate}
         stats={stats}
         basemap={basemap}
+        // B10 — who took this trip, visible on the page itself rather than
+        // only inside the StructuredData script tag above.
+        travellerNames={travellerNamesOf(userConfig, trip)}
       />
     </TripProvider>
   );

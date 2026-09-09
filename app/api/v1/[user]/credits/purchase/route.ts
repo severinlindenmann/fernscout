@@ -13,6 +13,8 @@ import {
 import { isOwner } from "@/lib/contacts/session";
 import { sendTransactional } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
+import { pickLocale } from "@/lib/contacts/locale";
+import { translateIn } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
@@ -129,29 +131,35 @@ export async function POST(
   const base = serverSite().url;
   const payUrl = `${base}/${user}/payment/${payment.id}`;
   const price = formatChf(priceRappen(credits));
+
+  // The owner's own language — B857. The recipient is the address in the
+  // journal's own config, so its `defaultLocale` is the whole answer.
+  const locale = pickLocale(journal.defaultLocale);
+  const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) =>
+    translateIn(locale, key, vars);
+  // Built through the dictionary too, and not appended in English afterwards:
+  // an English clause inside a Hungarian sentence is the seam this task exists
+  // to remove.
   const discount =
-    discountFor(credits) > 0 ? ` (${discountLabel(credits)} off the per-credit price)` : "";
+    discountFor(credits) > 0
+      ? t("mail.buyDiscount", { label: discountLabel(credits) })
+      : "";
+  const vars = { credits: String(credits), price, discount, id: payment.id, user };
 
   // The same link the browser is sent to, so it can be finished from a phone
   // later — the email is the "come back to it" half of the flow.
   const mail = renderMail(
     to,
-    `Your credit purchase — ${price}`,
+    t("mail.buySubject", vars),
     {
-      preheader: `${credits} credits for ${price}${discount}`,
-      title: "Finish your credit purchase",
+      preheader: t("mail.buyPreheader", vars),
+      title: t("mail.buyTitle"),
       blocks: [
-        {
-          kind: "paragraph",
-          text: `${credits} credits for ${price}${discount}, started from your own page. Transaction ${payment.id}.`,
-        },
-        {
-          kind: "paragraph",
-          text: "Open the link below to choose how to pay. You can do it now or come back to the same link later — it shows where the transaction stands.",
-        },
-        { kind: "button", text: "Go to payment", href: payUrl },
+        { kind: "paragraph", text: t("mail.buyBody", vars) },
+        { kind: "paragraph", text: t("mail.buyHow") },
+        { kind: "button", text: t("mail.buyGo"), href: payUrl },
       ],
-      footer: `Sent because ${user}'s own page started this purchase.`,
+      footer: t("mail.buyFooter", vars),
     },
     user,
   );

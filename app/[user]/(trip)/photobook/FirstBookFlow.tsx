@@ -7,7 +7,7 @@ import { mediaLoader } from "@/components/mediaLoader";
 import { creditsInRappen, formatChf } from "@/lib/credits/pricing";
 import type { TranslationKey } from "@/lib/i18n";
 import { DAY_LAYOUTS, type BookOptions, type DayLayout } from "@/lib/photobook/options";
-import { BOOK_SIZES } from "@/lib/photobook/spec";
+import { COVER_TYPES, defaultSizeFor, sizesFor, type CoverType } from "@/lib/photobook/spec";
 import type { MediaTile } from "@/lib/types";
 import BookShape, { FormatShape, type BookShapeKind } from "./BookShape";
 import LayoutShape from "./LayoutShape";
@@ -20,8 +20,8 @@ import type { PreviewState } from "./BookLevelView";
  * The composer is right for somebody returning to a book they have already
  * arranged, and B548 was right to put its nine controls behind one entry. It
  * does nothing for the first one: a format dropdown, a cover picker, a
- * language dropdown, two binding radios and six checkboxes, all at once, none
- * of them illustrated. "Print chapter dividers" is a yes/no about a page the
+ * language dropdown and six checkboxes, all at once, none of them
+ * illustrated. "Print chapter dividers" is a yes/no about a page the
  * person has never seen.
  *
  * So the same decisions, asked in order, each with a drawing of what the
@@ -41,9 +41,7 @@ import type { PreviewState } from "./BookLevelView";
  * answers are written as they are made, so a phone locking half way through
  * loses nothing.
  *
- * **Two questions are still not asked.** The *binding* depends on the page
- * count, which the planner knows and the owner cannot guess before a book
- * exists; the last step states it instead. The *language* is asked only where
+ * **One question is still not asked.** The *language* is asked only where
  * the journal offers more than one — a dropdown with one option is a screen
  * about nothing.
  */
@@ -73,7 +71,12 @@ const EXTRAS: {
  * same table the settings panel uses, for the same reason. */
 const LANGUAGE_NAME: Record<string, string> = { en: "English", de: "Deutsch", hu: "Magyar" };
 
-type Step = "resume" | "size" | "text" | "layout" | "days" | "extras" | "cover" | "language" | "summary";
+/**
+ * `"cover"` is the photograph on the front, asked further down; `"coverType"`
+ * is soft-or-hard and comes first, so the size step it feeds can show a full
+ * grid of three either way — see `lib/photobook/spec.ts`'s `sizesFor`.
+ */
+type Step = "resume" | "coverType" | "size" | "text" | "layout" | "days" | "extras" | "cover" | "language" | "summary";
 
 /**
  * One card: a drawing, a name, and a line saying what it does.
@@ -173,6 +176,7 @@ export default function FirstBookFlow({
 }) {
   const steps: Step[] = [
     ...(hadSaved ? (["resume"] as const) : []),
+    "coverType",
     "size",
     "text",
     "layout",
@@ -237,6 +241,19 @@ export default function FirstBookFlow({
   const set = <K extends keyof BookOptions>(key: K, value: BookOptions[K]) =>
     setOptions((o) => ({ ...o, [key]: value }));
 
+  /**
+   * Soft or hard, correcting the size in the same update when the one
+   * already chosen has no product in the new cover — otherwise someone picks
+   * hardcover + large square, goes back, picks softcover, and carries a size
+   * that cannot be printed.
+   */
+  const chooseCoverType = (next: CoverType) =>
+    setOptions((o) => ({
+      ...o,
+      coverType: next,
+      size: sizesFor(next).some((s) => s.id === o.size) ? o.size : defaultSizeFor(next).id,
+    }));
+
   const excluded = (date: string) => options.days[date]?.excluded === true;
   const included = days.filter((d) => !excluded(d.date)).length;
 
@@ -274,10 +291,28 @@ export default function FirstBookFlow({
         </Question>
       )}
 
+      {at === "coverType" && (
+        <Question heading={t("photobook.first.coverType")} hint={t("photobook.first.coverTypeHint")} t={t}>
+          <div className="grid w-full grid-cols-2 gap-2">
+            {COVER_TYPES.map((c) => (
+              <Card
+                key={c}
+                chosen={options.coverType === c}
+                onChoose={() => chooseCoverType(c)}
+                label={t(`photobook.first.coverType.${c}`)}
+                hint={t(`photobook.first.coverType.${c}Hint`)}
+              >
+                <FormatShape sizeId="square" cover={c} />
+              </Card>
+            ))}
+          </div>
+        </Question>
+      )}
+
       {at === "size" && (
         <Question heading={t("photobook.first.size")} hint={t("photobook.first.sizeHint")} t={t}>
           <div className="grid w-full grid-cols-3 gap-2">
-            {Object.values(BOOK_SIZES).map((size) => (
+            {sizesFor(options.coverType).map((size) => (
               <Card
                 key={size.id}
                 chosen={options.size === size.id}
@@ -487,15 +522,10 @@ export default function FirstBookFlow({
           </h2>
           {preview ? (
             <>
-              {/* The binding, stated with the page count it follows from
-                  rather than asked as a question nobody can answer yet. */}
+              {/* The binding, stated with the page count: Gelato glues every
+                  photobook, so this is a fact rather than a choice. */}
               <p className="mt-2 text-sm text-navy-700">
-                {t(
-                  options.binding === "saddle"
-                    ? "photobook.first.bindingSaddle"
-                    : "photobook.first.bindingPerfect",
-                  { pages: String(preview.pages) },
-                )}
+                {t("photobook.first.bindingPerfect", { pages: String(preview.pages) })}
               </p>
               <p className="mt-1 text-sm text-navy-700">
                 {t("photobook.first.price", {

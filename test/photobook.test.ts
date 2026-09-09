@@ -1,19 +1,18 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it, test } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 
 import {
-  BINDING_PROFILES,
   BOOK_SIZES,
   contentBoxMm,
   defaultSpec,
   fitsRule,
+  GELATO_PAGE_RULE,
   HERO_FLOOR_DPI,
   normalisePageCount,
-  portableRule,
-  SADDLE_STITCH,
   sideOf,
-  spineWidthMm,
+  productUidFor,
+  sizesFor,
 } from "@/lib/photobook/spec";
 import {
   chaptersOf,
@@ -21,11 +20,14 @@ import {
   outline,
   photosIn,
   planBook,
+  routeFitsOnePage,
+  routeLabelPlacements,
   routeView,
   type BookDay,
   type BookPhoto,
   type BookSource,
   type BookVolume,
+  type ProjectedStop,
 } from "@/lib/photobook/plan";
 import { formatDate, formatDateRange, measure, toWinAnsi, wrap } from "@/lib/photobook/text";
 import { bookStrings } from "@/lib/photobook/strings";
@@ -126,30 +128,9 @@ describe("book geometry", () => {
     expect(SPEC.gutterMm).toBeGreaterThan(SPEC.safeMm);
   });
 
-  test("the spine is derived from leaves, not pages", () => {
-    expect(spineWidthMm(100, SPEC)).toBeCloseTo(50 * SPEC.paperCaliperMm, 6);
-    expect(spineWidthMm(0, SPEC)).toBe(0);
-  });
 });
 
 describe("page-count rules", () => {
-  test("the portable rule satisfies every provider's minimum", () => {
-    const rule = portableRule();
-    for (const profile of Object.values(BINDING_PROFILES)) {
-      expect(rule.min).toBeGreaterThanOrEqual(profile.min);
-      expect(rule.max).toBeLessThanOrEqual(profile.max);
-      expect(rule.multipleOf % profile.multipleOf).toBe(0);
-    }
-  });
-
-  test("no binding profile claims to be verified", () => {
-    // These numbers came from documentation, not from an account. If one is
-    // ever confirmed against a live API, this test is the reminder to say so.
-    for (const profile of Object.values(BINDING_PROFILES)) {
-      expect(profile.verified).toBe(false);
-    }
-  });
-
   test("rounds up to the minimum and to a whole signature", () => {
     const rule = { min: 32, max: 160, multipleOf: 4 };
     expect(normalisePageCount(5, rule)).toBe(32);
@@ -157,6 +138,54 @@ describe("page-count rules", () => {
     expect(normalisePageCount(36, rule)).toBe(36);
     expect(fitsRule(36, rule)).toBe(true);
     expect(fitsRule(34, rule)).toBe(false);
+  });
+});
+
+describe("Gelato's real page-count rule", () => {
+  it("is 28 to 200 in steps of 2", () => {
+    expect(GELATO_PAGE_RULE).toEqual({ min: 28, max: 200, multipleOf: 2 });
+  });
+
+  it("accepts what the API accepts and refuses what it refuses", () => {
+    for (const ok of [28, 30, 52, 160, 200]) expect(fitsRule(ok, GELATO_PAGE_RULE)).toBe(true);
+    for (const no of [4, 20, 24, 27, 31, 33, 202]) expect(fitsRule(no, GELATO_PAGE_RULE)).toBe(false);
+  });
+
+  it("rounds a short trip up to the floor rather than below it", () => {
+    expect(normalisePageCount(9, GELATO_PAGE_RULE)).toBe(28);
+    expect(normalisePageCount(53, GELATO_PAGE_RULE)).toBe(54);
+  });
+});
+
+describe("the sizes are the ones Gelato prints", () => {
+  it("offers four, every uid real and none of them built by hand", () => {
+    expect(Object.keys(BOOK_SIZES)).toEqual(["pocket", "square", "portrait", "large-square"]);
+    for (const size of Object.values(BOOK_SIZES)) {
+      expect(Object.keys(size.covers).length).toBeGreaterThan(0);
+      for (const [cover, uid] of Object.entries(size.covers)) {
+        expect(uid).toMatch(new RegExp(`^photobooks-${cover}cover_pf_`));
+        expect(uid).not.toMatch(/pages/);
+      }
+    }
+  });
+
+  it("offers three sizes in each cover, which is why the cover is asked first", () => {
+    expect(sizesFor("soft").map((s) => s.id)).toEqual(["pocket", "square", "portrait"]);
+    expect(sizesFor("hard").map((s) => s.id)).toEqual(["square", "portrait", "large-square"]);
+  });
+
+  it("has no uid for a book Gelato does not bind", () => {
+    // No 280 mm softcover and no 140 mm board. Null, never a fallback to
+    // another product — a book printed in the wrong cover is not a near miss.
+    expect(productUidFor("large-square", "soft")).toBeNull();
+    expect(productUidFor("pocket", "hard")).toBeNull();
+    expect(productUidFor("square", "hard")).toContain("photobooks-hardcover");
+    expect(productUidFor("square", "soft")).toContain("photobooks-softcover");
+  });
+
+  it("is 200 mm square by default, not 210", () => {
+    expect(BOOK_SIZES.square.trimWidthMm).toBe(200);
+    expect(BOOK_SIZES.square.trimHeightMm).toBe(200);
   });
 });
 
@@ -187,19 +216,6 @@ describe("planning a three-day trip", () => {
     expect(warning?.detail).toContain("saddle stitch");
   });
 
-  test("stapled instead, the same trip needs no padding at all", () => {
-    const stapled = defaultSpec();
-    stapled.pageCount = SADDLE_STITCH;
-    const stitched = planBook(source([day(0), day(1), day(2)]), stapled);
-    const pages = stitched.volumes[0].pages;
-    expect(fitsRule(pages.length, SADDLE_STITCH)).toBe(true);
-    expect(pages.length).toBeLessThan(volume.interiorPages);
-    // Trailing blanks are the padding; the ones in the middle are alignment,
-    // which every book has and which nothing is wrong with.
-    const trailing = pages.length - (pages.findLastIndex((p) => p.kind !== "blank") + 1);
-    expect(trailing).toBeLessThan(4);
-    expect(stitched.warnings.some((w) => w.code === "blank-padding")).toBe(false);
-  });
 
   test("opens with the title on a recto and ends with the colophon", () => {
     expect(volume.pages[0].kind).toBe("title");
@@ -849,7 +865,7 @@ describe("rendering", () => {
   });
 
   test("a book at a different trim size still lays out", () => {
-    const wide = defaultSpec(BOOK_SIZES["landscape-a4"]);
+    const wide = defaultSpec(BOOK_SIZES["portrait"]);
     const other = planBook(source([day(0), day(1), day(2)]), wide);
     expect(fitsRule(other.volumes[0].interiorPages, wide.pageCount)).toBe(true);
     expect(() => renderVolume(other.volumes[0], wide, { loadImage })).not.toThrow();
@@ -883,12 +899,22 @@ describe("PDF/X readiness", () => {
     expect(readiness.version).toBeUndefined();
   });
 
-  test("names the two things that are missing and why", () => {
+  test("names what is missing and why", () => {
     const unmet = pdfxReadiness(base)
       .requirements.filter((r) => !r.met)
       .map((r) => r.requirement);
-    expect(unmet).toContain("All fonts embedded and subset");
-    expect(unmet).toContain("Colour is CMYK or spot only (PDF/X-1a)");
+    // Under PDF/X-4 the colour space is no longer a failure: RGB is permitted
+    // when an output intent describes the printing condition. Against X-1a it
+    // was, which is what made font embedding look pointless for so long.
+    expect(unmet).toContain("All fonts embedded");
+    expect(unmet.some((r) => r.startsWith("Colour is"))).toBe(false);
+  });
+
+  test("a book with fonts embedded needs only the output intent", () => {
+    const unmet = pdfxReadiness({ ...base, fontsEmbedded: true })
+      .requirements.filter((r) => !r.met)
+      .map((r) => r.requirement);
+    expect(unmet).toEqual(["OutputIntent with an embedded ICC profile"]);
   });
 
   test("an output intent alone is not enough to claim a version", () => {
@@ -903,7 +929,7 @@ describe("PDF/X readiness", () => {
       transparency: false,
     });
     expect(readiness.claimable).toBe(true);
-    expect(readiness.version).toBe("PDF/X-1a:2001");
+    expect(readiness.version).toBe("PDF/X-4");
   });
 
   test("the report says plainly that the file makes no claim", () => {
@@ -956,6 +982,8 @@ const ORDER: BookOrder = {
   },
   test: true,
   paymentRef: "test-payment-ref",
+  productUid: productUidFor("square", "soft")!,
+  shipmentMethodUid: "swiss_post_economy",
 };
 
 describe("provider requests", () => {
@@ -993,6 +1021,21 @@ describe("provider requests", () => {
     }
   });
 
+  it("sends the catalogue's own product uid, never one it built", () => {
+    const req = buildGelatoRequest({ ...ORDER, productUid: productUidFor("square", "soft")! });
+    const body = req.body as { items: { productUid: string; pageCount: number }[] };
+    expect(body.items[0].productUid).toBe(productUidFor("square", "soft"));
+    expect(body.items[0].productUid).not.toContain("-pages_");
+    expect(body.items[0].pageCount).toBe(ORDER.pageCount);
+  });
+
+  it("names a real Swiss shipment method", () => {
+    const req = buildGelatoRequest({ ...ORDER, shipmentMethodUid: "swiss_post_economy" });
+    expect((req.body as { shipmentMethodUid: string }).shipmentMethodUid).toBe(
+      "swiss_post_economy",
+    );
+  });
+
   test("Lulu's test mode points at the sandbox, which is the only free one", () => {
     expect(buildLuluRequest({ ...ORDER, test: true }).url).toContain("sandbox");
     expect(buildLuluRequest({ ...ORDER, test: false }).url).not.toContain("sandbox");
@@ -1023,6 +1066,152 @@ describe("provider requests", () => {
     }
     for (const provider of ["peecho", "gelato", "cloudprinter", "lulu"] as const) {
       expect(() => buildRequest(provider, unpaid)).toThrow(/no recorded payment/);
+    }
+  });
+});
+
+describe("a route spread uses both pages — B914", () => {
+  /** Four days round the Alps: a compact route, about 0.6° of longitude. */
+  const ALPS = [
+    { location: "Susten Pass", country: "Switzerland", lat: 46.73, lng: 8.44 },
+    { location: "Grimsel Pass", country: "Switzerland", lat: 46.56, lng: 8.34 },
+    { location: "Domodossola", country: "Italy", lat: 46.12, lng: 8.29 },
+    { location: "Andermatt", country: "Switzerland", lat: 46.63, lng: 8.59 },
+  ];
+
+  it("draws the journey large enough to be a map rather than a squiggle", () => {
+    const view = routeView(ALPS);
+    // Map-space y: MAP_SPACE is 500 tall for 180 degrees.
+    const ys = ALPS.map((p) => ((90 - p.lat) / 180) * 500);
+    const routeHeight = Math.max(...ys) - Math.min(...ys);
+    // The route used to fill about a sixth of the spread's height, because a
+    // 6-unit padding floor swamped a trip spanning under a degree. Half is
+    // roughly what a 2:1 frame can give a route this shape.
+    expect(routeHeight / view.height).toBeGreaterThan(0.4);
+  });
+
+  it("keeps the route across the fold rather than dumping it on one page", () => {
+    const view = routeView(ALPS);
+    const fold = view.x + view.width / 2;
+    // The same equirectangular x the planner uses: MAP_SPACE is 1000 wide
+    // for 360 degrees. Recomputed here rather than exporting a private helper.
+    const xs = ALPS.map((p) => ((p.lng + 180) / 360) * 1000);
+    const routeCentre = (Math.min(...xs) + Math.max(...xs)) / 2;
+    // The whole point: a blank facing page is worse than a stop near the
+    // gutter, so the frame may not wander far from the route's own centre.
+    expect(Math.abs(fold - routeCentre)).toBeLessThanOrEqual(view.width / 6 + 1e-6);
+  });
+
+  it("still forces the spread's own 2:1 shape", () => {
+    const view = routeView(ALPS);
+    expect(view.width / view.height).toBeCloseTo(2, 5);
+  });
+});
+
+describe("a compact route prints on one page instead of a mostly-empty spread — B1000", () => {
+  /** Four days round the Alps: the same compact route as B914, above. */
+  const ALPS = [
+    day(0, { location: "Susten Pass", country: "Switzerland", lat: 46.73, lng: 8.44 }),
+    day(1, { location: "Grimsel Pass", country: "Switzerland", lat: 46.56, lng: 8.34 }),
+    day(2, { location: "Domodossola", country: "Italy", lat: 46.12, lng: 8.29 }),
+    day(3, { location: "Andermatt", country: "Switzerland", lat: 46.63, lng: 8.59 }),
+  ];
+
+  /** Coast to coast: wide east-west, narrow north-south — a shape a 2:1
+   * spread suits far better than one square page. */
+  const SPRAWLING = [
+    day(0, { location: "New York", country: "United States", lat: 40.71, lng: -74.0 }),
+    day(1, { location: "Chicago", country: "United States", lat: 41.88, lng: -87.63 }),
+    day(2, { location: "Denver", country: "United States", lat: 39.74, lng: -104.99 }),
+    day(3, { location: "Los Angeles", country: "United States", lat: 34.05, lng: -118.24 }),
+  ];
+
+  it("is what routeFitsOnePage sees for a square book on the Alps trip", () => {
+    expect(routeFitsOnePage(source(ALPS).route, 1)).toBe(true);
+  });
+
+  it("still spreads a sprawling trip across two pages", () => {
+    expect(routeFitsOnePage(source(SPRAWLING).route, 1)).toBe(false);
+  });
+
+  it("plans one route page, not a spread, for a compact trip on a square book", () => {
+    const book = planBook(source(ALPS), SPEC);
+    const routePages = book.volumes[0].pages.filter((p) => p.kind === "route");
+    expect(routePages).toHaveLength(1);
+    expect(routePages[0].kind === "route" && routePages[0].half).toBe("full");
+    // Every stop the trip had, still there to be labelled.
+    expect(routePages[0].kind === "route" && routePages[0].points).toHaveLength(ALPS.length);
+  });
+
+  it("still plans a two-page spread for a sprawling trip", () => {
+    const book = planBook(source(SPRAWLING), SPEC);
+    const routePages = book.volumes[0].pages.filter((p) => p.kind === "route");
+    expect(routePages).toHaveLength(2);
+    const halves = routePages.map((p) => p.kind === "route" && p.half);
+    expect(halves.sort()).toEqual(["left", "right"]);
+  });
+
+  it("frames the single page to its own trim aspect, not the spread's 2:1", () => {
+    const view = routeView(source(ALPS).route, 1, false);
+    expect(view.width / view.height).toBeCloseTo(1, 5);
+  });
+});
+
+describe("a stop in the gutter band still gets a label — B1000", () => {
+  const gutterStop: ProjectedStop = { location: "Andermatt", x: 90, y: 0 };
+  const widthOf = () => 20;
+
+  it("was lost entirely before a page could claim it by its own trim", () => {
+    // The old rule: a stop outside the safe content box (here, past 84)
+    // belongs to nobody, even though it is still on this page's own paper.
+    const left = routeLabelPlacements([gutterStop], 10, 84, 2, 5, widthOf);
+    expect(left).toHaveLength(0);
+  });
+
+  it("is claimed by the page whose own trim it falls inside", () => {
+    const left = routeLabelPlacements([gutterStop], 10, 84, 2, 5, widthOf, { left: 0, right: 100 });
+    expect(left).toHaveLength(1);
+    expect(left[0].location).toBe("Andermatt");
+    // Still anchored inside the safe content box, never past it.
+    expect(left[0].anchorX).toBeGreaterThanOrEqual(10);
+    expect(left[0].anchorX + 20).toBeLessThanOrEqual(84);
+  });
+
+  it("is not claimed a second time by the facing page", () => {
+    // The same stop, as the right page's own frame sees it — negative, since
+    // it falls outside this page's trim entirely.
+    const right = routeLabelPlacements([{ ...gutterStop, x: -10 }], 16, 90, 2, 5, widthOf, { left: 0, right: 100 });
+    expect(right).toHaveLength(0);
+  });
+});
+
+describe("the basemap under a route — B1000", () => {
+  /**
+   * The renderer recovers lat/lng from the projected points rather than making
+   * the plan carry both. That inversion is the one piece of arithmetic in the
+   * change that could be silently wrong — everything else is visible on the
+   * page. `MAP_SPACE` is 1000 x 500 for the whole world.
+   */
+  const toMapSpace = (lat: number, lng: number) => ({
+    x: ((lng + 180) / 360) * 1000,
+    y: ((90 - lat) / 180) * 500,
+  });
+  const fromMapSpace = (p: { x: number; y: number }) => ({
+    lat: 90 - (p.y / 500) * 180,
+    lng: (p.x / 1000) * 360 - 180,
+  });
+
+  it("round-trips the places a book actually plots", () => {
+    for (const [lat, lng] of [
+      [46.73, 8.44], // Susten Pass
+      [46.12, 8.29], // Domodossola
+      [38.57, -109.55], // Moab — a negative longitude
+      [-33.87, 151.21], // Sydney — the other hemisphere in both axes
+      [0, 0],
+    ] as [number, number][]) {
+      const back = fromMapSpace(toMapSpace(lat, lng));
+      expect(back.lat).toBeCloseTo(lat, 9);
+      expect(back.lng).toBeCloseTo(lng, 9);
     }
   });
 });

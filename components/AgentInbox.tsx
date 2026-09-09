@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
 import { COST_CATEGORIES, type CostCategory } from "@/lib/costFormat";
@@ -44,6 +45,7 @@ type Read = {
   notes: string[];
   preview: Row[];
   format?: string;
+  skipLines?: number;
 };
 
 const NONE = "";
@@ -53,11 +55,18 @@ export default function AgentInbox({
   items,
   trips,
   helper,
+  dedicatedImporters,
 }: {
   username: string;
   items: InboxItem[];
   trips: WizardTrip[];
   helper: { enabled: boolean; consented: boolean; credits: number };
+  /** Banks with their own parser (`importers/costs/`), for the sentence a
+   * mapped statement owes the person reading it — B760: a dedicated
+   * importer's rows may carry `charged`, the pair `readStatement` works
+   * exchange rates from; a mapping never does, because it only ever sees one
+   * amount column. */
+  dedicatedImporters: string[];
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState<string | null>(null);
@@ -69,19 +78,26 @@ export default function AgentInbox({
   const [read, setRead] = useState<Read | null>(null);
   const [trip, setTrip] = useState(trips[0]?.id ?? "");
   const [rows, setRows] = useState<Row[] | null>(null);
+  const [truncated, setTruncated] = useState(0);
   const [categories, setCategories] = useState<Record<number, string>>({});
   const [removing, setRemoving] = useState<string | null>(null);
   const [gone, setGone] = useState<string[]>([]);
 
   const base = `/api/helper/${encodeURIComponent(username)}`;
 
-  async function post(url: string, body: unknown): Promise<Record<string, unknown>> {
+  async function post(
+    url: string,
+    body: unknown,
+  ): Promise<Record<string, unknown>> {
     const response = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     });
-    const json = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    const json = (await response.json().catch(() => ({}))) as Record<
+      string,
+      unknown
+    >;
     if (!response.ok) throw new Error(String(json.error ?? response.status));
     return json;
   }
@@ -90,6 +106,7 @@ export default function AgentInbox({
     setOpen(id);
     setRead(null);
     setRows(null);
+    setTruncated(0);
     setCategories({});
     setSaid("");
     setError("");
@@ -122,7 +139,11 @@ export default function AgentInbox({
   const drawTrack = () =>
     run(async () => {
       const body = await post(`${base}/import`, { trip });
-      const track = (body.track ?? {}) as { points?: number; segments?: number; written?: boolean };
+      const track = (body.track ?? {}) as {
+        points?: number;
+        segments?: number;
+        written?: boolean;
+      };
       setSaid(
         track.written
           ? t("agent.inboxDrawn", {
@@ -133,17 +154,30 @@ export default function AgentInbox({
       );
     });
 
-  const readColumns = (id: string) =>
+  const readColumns = (id: string, skipLines = 0) =>
     run(async () => {
-      const body = await post(`${base}/statement`, { inbox: id, idempotency_key: id });
+      const body = await post(`${base}/statement`, {
+        inbox: id,
+        skipLines,
+        // A retry with a different header line is a different call — reusing
+        // the plain id would read back the *first* guess's mapping instead of
+        // asking again (B761).
+        idempotency_key: skipLines > 0 ? `${id}:skip${skipLines}` : id,
+      });
       setRead({
         mapping: body.mapping as ColumnMapping | undefined,
         header: (body.header ?? []) as string[],
         notes: (body.notes ?? []) as string[],
         preview: (body.preview ?? []) as Row[],
         format: typeof body.format === "string" ? body.format : undefined,
+        skipLines,
       });
     });
+
+  // "That is not the header row" — the screen's only say over how a preamble
+  // line is handled. Moves the guess down one line and asks the model again,
+  // since the sample it saw was wrong too.
+  const notTheHeader = (id: string) => readColumns(id, (read?.skipLines ?? 0) + 1);
 
   const readWholeFile = (id: string) =>
     run(async () => {
@@ -152,8 +186,10 @@ export default function AgentInbox({
         trip,
         mapping: read?.mapping,
         format: read?.format,
+        skipLines: read?.skipLines ?? 0,
       });
       setRows((body.spending ?? []) as Row[]);
+      setTruncated(Number(body.truncated ?? 0));
       setCategories({});
     });
 
@@ -163,7 +199,10 @@ export default function AgentInbox({
         .map((row, index) => ({ ...row, category: categories[index] }))
         .filter((row) => row.category !== undefined && row.category !== NONE);
       if (chosen.length === 0) throw new Error("no_rows");
-      const body = await post(`${base}/statement/apply`, { trip, rows: chosen });
+      const body = await post(`${base}/statement/apply`, {
+        trip,
+        rows: chosen,
+      });
       const written = (body.written ?? {}) as {
         total?: number;
         written?: unknown[];
@@ -175,13 +214,18 @@ export default function AgentInbox({
         t("agent.inboxWritten", {
           count: String(written.total ?? 0),
           days: String(written.written?.length ?? 0),
-        }) + (orphaned > 0 ? ` ${t("agent.inboxOrphaned", { count: String(orphaned) })}` : ""),
+        }) +
+          (orphaned > 0
+            ? ` ${t("agent.inboxOrphaned", { count: String(orphaned) })}`
+            : ""),
       );
     });
 
   const remove = (id: string) =>
     run(async () => {
-      const response = await fetch(`${base}/inbox/${encodeURIComponent(id)}`, { method: "DELETE" });
+      const response = await fetch(`${base}/inbox/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
       if (!response.ok) throw new Error(String(response.status));
       setGone((was) => [...was, id]);
       setRemoving(null);
@@ -193,13 +237,18 @@ export default function AgentInbox({
       await post(`${base}/consent`, { scope: "statement" });
       setConsented(true);
       setConsenting(false);
-      await post(`${base}/statement`, { inbox: id, idempotency_key: id }).then((body) =>
+      await post(`${base}/statement`, {
+        inbox: id,
+        skipLines: 0,
+        idempotency_key: id,
+      }).then((body) =>
         setRead({
           mapping: body.mapping as ColumnMapping | undefined,
           header: (body.header ?? []) as string[],
           notes: (body.notes ?? []) as string[],
           preview: (body.preview ?? []) as Row[],
           format: typeof body.format === "string" ? body.format : undefined,
+          skipLines: 0,
         }),
       );
     });
@@ -208,8 +257,12 @@ export default function AgentInbox({
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-8">
-      <h1 className="text-2xl font-semibold text-navy-900">{t("agent.inboxTitle")}</h1>
-      <p className="mt-2 text-sm leading-6 text-navy-700">{t("agent.inboxIntro")}</p>
+      <h1 className="text-2xl font-semibold text-navy-900">
+        {t("agent.inboxTitle")}
+      </h1>
+      <p className="mt-2 text-sm leading-6 text-navy-700">
+        {t("agent.inboxIntro")}
+      </p>
 
       {visible.length === 0 && (
         <p className="mt-6 rounded-2xl border border-navy-200 bg-cream-50 p-4 text-sm text-navy-700">
@@ -222,12 +275,16 @@ export default function AgentInbox({
           const id = item.entry.id;
           const isOpen = open === id;
           return (
-            <li key={id} className="rounded-2xl border border-navy-200 bg-cream-50 p-4">
+            <li
+              key={id}
+              className="rounded-2xl border border-navy-200 bg-cream-50 p-4"
+            >
               <p className="break-words text-base font-semibold text-navy-900">
                 {item.entry.filename}
               </p>
               <p className="mt-1 text-sm text-navy-600">
-                {Math.max(1, Math.round(item.entry.bytes / 1024))} kB · {offerWords(item.offer, t)}
+                {Math.max(1, Math.round(item.entry.bytes / 1024))} kB ·{" "}
+                {offerWords(item.offer, t)}
               </p>
 
               {!isOpen && (
@@ -257,7 +314,9 @@ export default function AgentInbox({
                 <div className="mt-3">
                   <ConfirmPanel
                     label={t("agent.inboxRemove")}
-                    question={t("agent.inboxRemoveQuestion", { name: item.entry.filename })}
+                    question={t("agent.inboxRemoveQuestion", {
+                      name: item.entry.filename,
+                    })}
                     confirmLabel={t("agent.inboxRemoveConfirm")}
                     busy={busy}
                     onConfirm={() => remove(id)}
@@ -268,24 +327,32 @@ export default function AgentInbox({
 
               {isOpen && item.offer.kind === "gps" && (
                 <div className="mt-4 space-y-3">
-                  <p className="text-sm leading-6 text-navy-700">{t("agent.inboxGpsFree")}</p>
-                  <button
+                  <p className="text-sm leading-6 text-navy-700">
+                    {t("agent.inboxGpsFree")}
+                  </p>
+                  <BusyButton
+                    busy={busy}
                     type="button"
-                    disabled={busy}
                     onClick={() => importGps(id)}
                     className="min-h-11 w-full rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 disabled:opacity-50"
                   >
                     {t("agent.inboxReadGps")}
-                  </button>
-                  <TripPicker trips={trips} value={trip} onChange={setTrip} label={t("agent.inboxTripLabel")} />
-                  <button
+                  </BusyButton>
+                  <TripPicker
+                    trips={trips}
+                    value={trip}
+                    onChange={setTrip}
+                    label={t("agent.inboxTripLabel")}
+                  />
+                  <BusyButton
+                    busy={busy}
                     type="button"
-                    disabled={busy || trip === ""}
+                    disabled={trip === ""}
                     onClick={drawTrack}
                     className="min-h-11 w-full rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-700 disabled:opacity-50"
                   >
                     {t("agent.inboxDrawTrip")}
-                  </button>
+                  </BusyButton>
                 </div>
               )}
 
@@ -293,38 +360,55 @@ export default function AgentInbox({
                 <div className="mt-4 space-y-3">
                   {"format" in item.offer ? (
                     <p className="text-sm leading-6 text-navy-700">
-                      {t("agent.inboxStatementKnown", { label: item.offer.label })}
+                      {t("agent.inboxStatementKnown", {
+                        label: item.offer.label,
+                      })}
                     </p>
                   ) : !helper.enabled ? (
-                    <p className="text-sm leading-6 text-navy-700">{t("agent.inboxOff")}</p>
+                    <p className="text-sm leading-6 text-navy-700">
+                      {t("agent.inboxOff")}
+                    </p>
                   ) : (
-                    <p className="text-sm leading-6 text-navy-700">{t("agent.inboxColumnsHint")}</p>
+                    <p className="text-sm leading-6 text-navy-700">
+                      {t("agent.inboxColumnsHint")}
+                    </p>
                   )}
 
-                  {!read && (helper.enabled || "format" in item.offer) && !consenting && (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() =>
-                        "format" in item.offer
-                          ? setRead({ header: [], notes: [], preview: [], format: item.offer.format })
-                          : consented
-                            ? readColumns(id)
-                            : setConsenting(true)
-                      }
-                      className="min-h-11 w-full rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 disabled:opacity-50"
-                    >
-                      {"format" in item.offer
-                        ? t("agent.inboxReadAll")
-                        : t("agent.inboxColumns", { credits: String(helper.credits) })}
-                    </button>
-                  )}
+                  {!read &&
+                    (helper.enabled || "format" in item.offer) &&
+                    !consenting && (
+                      <BusyButton
+                        busy={busy}
+                        type="button"
+                        onClick={() =>
+                          "format" in item.offer
+                            ? setRead({
+                                header: [],
+                                notes: [],
+                                preview: [],
+                                format: item.offer.format,
+                              })
+                            : consented
+                              ? readColumns(id)
+                              : setConsenting(true)
+                        }
+                        className="min-h-11 w-full rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 disabled:opacity-50"
+                      >
+                        {"format" in item.offer
+                          ? t("agent.inboxReadAll")
+                          : t("agent.inboxColumns", {
+                              credits: String(helper.credits),
+                            })}
+                      </BusyButton>
+                    )}
 
                   {consenting && (
                     <ConfirmPanel
                       label={t("agent.statementConsentLabel")}
                       question={t("agent.statementConsentShort")}
-                      details={t("agent.statementConsent", { credits: String(helper.credits) })}
+                      details={t("agent.statementConsent", {
+                        credits: String(helper.credits),
+                      })}
                       confirmLabel={t("agent.statementConsentConfirm")}
                       busy={busy}
                       onConfirm={() => consentThenRead(id)}
@@ -333,27 +417,50 @@ export default function AgentInbox({
                   )}
 
                   {read?.mapping && (
-                    <Mapping
-                      header={read.header}
-                      mapping={read.mapping}
-                      notes={read.notes}
-                      preview={read.preview}
-                      onChange={(mapping) => setRead({ ...read, mapping })}
-                    />
+                    <>
+                      <Mapping
+                        header={read.header}
+                        mapping={read.mapping}
+                        notes={read.notes}
+                        preview={read.preview}
+                        dedicatedImporters={dedicatedImporters}
+                        onChange={(mapping) => setRead({ ...read, mapping })}
+                      />
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => notTheHeader(id)}
+                        className="text-sm font-semibold text-navy-600 underline disabled:opacity-50"
+                      >
+                        {t("agent.inboxNotTheHeader")}
+                      </button>
+                    </>
                   )}
 
                   {read && !rows && (
                     <>
-                      <TripPicker trips={trips} value={trip} onChange={setTrip} label={t("agent.inboxTripLabel")} />
-                      <button
+                      <TripPicker
+                        trips={trips}
+                        value={trip}
+                        onChange={setTrip}
+                        label={t("agent.inboxTripLabel")}
+                      />
+                      <BusyButton
+                        busy={busy}
                         type="button"
-                        disabled={busy || trip === ""}
+                        disabled={trip === ""}
                         onClick={() => readWholeFile(id)}
                         className="min-h-11 w-full rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 disabled:opacity-50"
                       >
                         {t("agent.inboxReadAll")}
-                      </button>
+                      </BusyButton>
                     </>
+                  )}
+
+                  {rows && truncated > 0 && (
+                    <p className="text-sm leading-6 text-coral-600">
+                      {t("agent.inboxTruncated", { count: String(truncated) })}
+                    </p>
                   )}
 
                   {rows && (
@@ -364,7 +471,11 @@ export default function AgentInbox({
                         setCategories((was) => ({ ...was, [index]: value }))
                       }
                       onAll={(value) =>
-                        setCategories(Object.fromEntries(rows.map((_, index) => [index, value])))
+                        setCategories(
+                          Object.fromEntries(
+                            rows.map((_, index) => [index, value]),
+                          ),
+                        )
                       }
                       onWrite={write}
                       busy={busy}
@@ -374,7 +485,10 @@ export default function AgentInbox({
               )}
 
               {isOpen && said && (
-                <p role="status" className="mt-3 text-sm leading-6 text-navy-700">
+                <p
+                  role="status"
+                  className="mt-3 text-sm leading-6 text-navy-700"
+                >
                   {said}
                 </p>
               )}
@@ -402,7 +516,8 @@ export default function AgentInbox({
 
 function offerWords(offer: Offer, t: (key: TranslationKey) => string): string {
   if (offer.kind === "gps") return `${t("agent.inboxIsGps")} · ${offer.label}`;
-  if (offer.kind === "statement") return "label" in offer ? offer.label : t("agent.inboxIsStatement");
+  if (offer.kind === "statement")
+    return "label" in offer ? offer.label : t("agent.inboxIsStatement");
   return t("agent.inboxNothingToDo");
 }
 
@@ -436,18 +551,25 @@ function TripPicker({
 }
 
 /** The mapping, editable. Every column is a picker over the file's own header
- *  row, so a person cannot name a column that is not there. */
-function Mapping({
+ *  row, so a person cannot name a column that is not there.
+ *
+ *  Exported for `test/agent-inbox-rates-note.test.tsx` — B760: this is the
+ *  only screen a mapped statement reaches, and the only place to say that its
+ *  exchange rates are not on offer, because a mapping never carries the
+ *  `charged` pair a dedicated importer's own parser can. */
+export function Mapping({
   header,
   mapping,
   notes,
   preview,
+  dedicatedImporters,
   onChange,
 }: {
   header: string[];
   mapping: ColumnMapping;
   notes: string[];
   preview: Row[];
+  dedicatedImporters: string[];
   onChange: (mapping: ColumnMapping) => void;
 }) {
   const { t } = useI18n();
@@ -460,7 +582,9 @@ function Mapping({
       {t(label)}
       <select
         value={mapping[field] ?? NONE}
-        onChange={(event) => onChange({ ...mapping, [field]: event.target.value })}
+        onChange={(event) =>
+          onChange({ ...mapping, [field]: event.target.value })
+        }
         className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base font-normal text-navy-900"
       >
         {optional && <option value={NONE}>{t("agent.inboxColNone")}</option>}
@@ -475,8 +599,12 @@ function Mapping({
 
   return (
     <div className="space-y-3 rounded-2xl border border-navy-200 bg-white p-3">
-      <h2 className="text-base font-semibold text-navy-900">{t("agent.inboxMappingTitle")}</h2>
-      <p className="text-sm leading-6 text-navy-700">{t("agent.inboxMappingHint")}</p>
+      <h2 className="text-base font-semibold text-navy-900">
+        {t("agent.inboxMappingTitle")}
+      </h2>
+      <p className="text-sm leading-6 text-navy-700">
+        {t("agent.inboxMappingHint")}
+      </p>
       {column("agent.inboxColDate", "date")}
       {column("agent.inboxColAmount", "amount")}
       {column("agent.inboxColDescription", "description")}
@@ -486,7 +614,10 @@ function Mapping({
         <select
           value={mapping.dateFormat}
           onChange={(event) =>
-            onChange({ ...mapping, dateFormat: event.target.value as ColumnMapping["dateFormat"] })
+            onChange({
+              ...mapping,
+              dateFormat: event.target.value as ColumnMapping["dateFormat"],
+            })
           }
           className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base font-normal text-navy-900"
         >
@@ -501,7 +632,9 @@ function Mapping({
         <input
           type="checkbox"
           checked={mapping.decimalComma === true}
-          onChange={(event) => onChange({ ...mapping, decimalComma: event.target.checked })}
+          onChange={(event) =>
+            onChange({ ...mapping, decimalComma: event.target.checked })
+          }
         />
         {t("agent.inboxDecimalComma")}
       </label>
@@ -509,14 +642,26 @@ function Mapping({
         <input
           type="checkbox"
           checked={mapping.outgoingPositive === true}
-          onChange={(event) => onChange({ ...mapping, outgoingPositive: event.target.checked })}
+          onChange={(event) =>
+            onChange({ ...mapping, outgoingPositive: event.target.checked })
+          }
         />
         {t("agent.inboxOutgoingPositive")}
       </label>
 
+      {dedicatedImporters.length > 0 && (
+        <p className="text-sm leading-6 text-navy-700">
+          {t("agent.inboxMappingNoRates", {
+            banks: dedicatedImporters.join(", "),
+          })}
+        </p>
+      )}
+
       {notes.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-navy-900">{t("agent.inboxMappingNotes")}</h3>
+          <h3 className="text-sm font-semibold text-navy-900">
+            {t("agent.inboxMappingNotes")}
+          </h3>
           <ul className="mt-1 list-disc pl-5 text-sm text-navy-700">
             {notes.map((note) => (
               <li key={note}>{note}</li>
@@ -527,7 +672,9 @@ function Mapping({
 
       {preview.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-navy-900">{t("agent.inboxPreview")}</h3>
+          <h3 className="text-sm font-semibold text-navy-900">
+            {t("agent.inboxPreview")}
+          </h3>
           <ul className="mt-1 space-y-1 text-sm text-navy-700">
             {preview.map((row, index) => (
               <li key={index} className="flex flex-wrap justify-between gap-2">
@@ -579,7 +726,9 @@ function Rows({
       <h2 className="text-base font-semibold text-navy-900">
         {t("agent.inboxRowsTitle", { count: String(rows.length) })}
       </h2>
-      <p className="text-sm leading-6 text-navy-700">{t("agent.inboxRowsHint")}</p>
+      <p className="text-sm leading-6 text-navy-700">
+        {t("agent.inboxRowsHint")}
+      </p>
       <label className="block text-sm font-semibold text-navy-700">
         {t("agent.inboxCategoryAll")}
         <select
@@ -592,7 +741,10 @@ function Rows({
       </label>
       <ul className="space-y-3">
         {rows.map((row, index) => (
-          <li key={`${row.date}-${index}`} className="border-t border-navy-100 pt-2">
+          <li
+            key={`${row.date}-${index}`}
+            className="border-t border-navy-100 pt-2"
+          >
             <p className="flex flex-wrap justify-between gap-2 text-sm text-navy-700">
               <span>
                 {row.date} · {row.label}
@@ -611,14 +763,14 @@ function Rows({
           </li>
         ))}
       </ul>
-      <button
+      <BusyButton
+        busy={busy}
         type="button"
-        disabled={busy}
         onClick={onWrite}
         className="min-h-11 w-full rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 disabled:opacity-50"
       >
         {t("agent.inboxWrite")}
-      </button>
+      </BusyButton>
     </div>
   );
 }

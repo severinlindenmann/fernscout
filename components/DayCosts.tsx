@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 import { COST_CATEGORIES } from "@/lib/costFormat";
 import type { TranslationKey } from "@/lib/i18n";
@@ -29,7 +30,12 @@ import type { TranslationKey } from "@/lib/i18n";
  * the screen — a date with no day written for it is refused in words rather
  * than a day being conjured to hang a number on.
  */
-type Cost = { label: string; amount: number; currency: string; category: string };
+type Cost = {
+  label: string;
+  amount: number;
+  currency: string;
+  category: string;
+};
 
 export default function DayCosts({
   username,
@@ -69,13 +75,25 @@ export default function DayCosts({
     setBusy(true);
     setError(null);
     setAdded(null);
-    const response = await fetch(`/api/helper/${encodeURIComponent(username)}/day/costs`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ trip, slug, date: on, label, amount: Number(amount), currency, category }),
-    }).catch(() => null);
+    const response = await fetch(
+      `/api/helper/${encodeURIComponent(username)}/day/costs`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          trip,
+          slug,
+          date: on,
+          label,
+          amount: Number(amount),
+          currency,
+          category,
+        }),
+      },
+    ).catch(() => null);
     setBusy(false);
-    const body = (await response?.json().catch(() => ({}))) as Record<string, unknown> | undefined;
+    const body = (await response?.json().catch(() => ({}))) as
+      Record<string, unknown> | undefined;
     if (!response || !response.ok) {
       setError(
         body?.error === "no_day_on_date"
@@ -94,12 +112,18 @@ export default function DayCosts({
 
   return (
     <section className="mt-5 rounded-2xl border border-navy-200 bg-white p-4 sm:p-5">
-      <h3 className="font-display text-lg font-semibold text-navy-900">{t("cost.addHeading")}</h3>
-      <p className="mt-1 text-sm leading-6 text-navy-600">{t("cost.addHint")}</p>
+      <h3 className="font-display text-lg font-semibold text-navy-900">
+        {t("cost.addHeading")}
+      </h3>
+      <p className="mt-1 text-sm leading-6 text-navy-600">
+        {t("cost.addHint")}
+      </p>
 
       {costs.length > 0 ? (
         <>
-          <p className="mt-4 text-sm font-semibold text-navy-800">{t("cost.addOn")}</p>
+          <p className="mt-4 text-sm font-semibold text-navy-800">
+            {t("cost.addOn")}
+          </p>
           <ul className="mt-1 space-y-1 text-sm text-navy-700">
             {costs.map((cost, at) => (
               <li key={`${cost.label}-${at}`}>
@@ -113,7 +137,10 @@ export default function DayCosts({
         <p className="mt-4 text-sm text-navy-600">{t("cost.addNone")}</p>
       )}
 
-      <label className="mt-4 block text-sm font-semibold text-navy-800" htmlFor="cost-label">
+      <label
+        className="mt-4 block text-sm font-semibold text-navy-800"
+        htmlFor="cost-label"
+      >
         {t("cost.what")}
       </label>
       <input
@@ -125,7 +152,10 @@ export default function DayCosts({
 
       <div className="mt-4 flex flex-wrap gap-3">
         <div className="min-w-[8rem] flex-1">
-          <label className="block text-sm font-semibold text-navy-800" htmlFor="cost-amount">
+          <label
+            className="block text-sm font-semibold text-navy-800"
+            htmlFor="cost-amount"
+          >
             {t("cost.amount")}
           </label>
           <input
@@ -140,7 +170,10 @@ export default function DayCosts({
           />
         </div>
         <div className="min-w-[6rem]">
-          <label className="block text-sm font-semibold text-navy-800" htmlFor="cost-currency">
+          <label
+            className="block text-sm font-semibold text-navy-800"
+            htmlFor="cost-currency"
+          >
             {t("cost.currency")}
           </label>
           {/* A list rather than a select: a journal quotes in three currencies
@@ -161,7 +194,10 @@ export default function DayCosts({
         </div>
       </div>
 
-      <label className="mt-4 block text-sm font-semibold text-navy-800" htmlFor="cost-category">
+      <label
+        className="mt-4 block text-sm font-semibold text-navy-800"
+        htmlFor="cost-category"
+      >
         {t("cost.category")}
       </label>
       <select
@@ -177,7 +213,10 @@ export default function DayCosts({
         ))}
       </select>
 
-      <label className="mt-4 block text-sm font-semibold text-navy-800" htmlFor="cost-date">
+      <label
+        className="mt-4 block text-sm font-semibold text-navy-800"
+        htmlFor="cost-date"
+      >
         {t("cost.when")}
       </label>
       <input
@@ -188,14 +227,16 @@ export default function DayCosts({
         className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
       />
 
-      <button
+      <BusyButton
+        busy={busy}
         type="button"
-        disabled={busy || label.trim() === "" || !(Number(amount) > 0)}
+        disabled={label.trim() === "" || !(Number(amount) > 0)}
         onClick={() => void add()}
         className="mt-5 min-h-11 w-full rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 disabled:opacity-50"
+        busyLabel={t("cost.addBusy")}
       >
-        {busy ? t("cost.addBusy") : t("cost.addButton")}
-      </button>
+        {t("cost.addButton")}
+      </BusyButton>
 
       {added && (
         <p role="status" className="mt-3 text-sm leading-6 text-navy-700">

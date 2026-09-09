@@ -5,7 +5,7 @@ import { GPS_IMPORTERS } from "@/importers/gps";
 import { isAdminEmail } from "../admin";
 import { resolveAccess } from "../auth/handshake";
 import { costForDay, costLocalForDay } from "../costs";
-import { AS_AUTHOR, getAllEntries, getDays, getEntryBySlug } from "../entries";
+import { AS_AUTHOR, getAllEntries, getAllMedia, getDays, getEntryBySlug } from "../entries";
 import { getTrips, tripRef } from "../trips";
 import type { Day, DaySummary } from "../types";
 import { findInboxFile, listInbox, type InboxEntry } from "../inbox";
@@ -316,4 +316,129 @@ function offerFor(head: string, filename: string): InboxOffer {
   if (costs) return { kind: "statement", format: costs.id, label: costs.label };
   if (/\.csv$/i.test(filename)) return { kind: "statement" };
   return { kind: "unknown" };
+}
+
+/* -------------------------------------------------------------------------
+ * The files pane, and what a selection in it means — B902.
+ *
+ * Round 6 of `docs/plans/2026-09-08-the-chat-is-the-product.md`: the inbox and
+ * this trip's photographs, side by side, so that "put these on yesterday" has
+ * something to mean. Two folders that had no picker between them — the inbox
+ * screen (B689) reads statements and location exports and nothing offered a
+ * photograph at all — and one sentence that could not refer to either.
+ *
+ * **The pane is drawn from disk on the server and the browser is never
+ * believed about it.** `describeSelection` below re-resolves every id the
+ * browser sends against what is actually there, and silently drops the rest:
+ * an id is a reference, not a fact, and a sentence sent to a model must never
+ * carry a filename this journal does not have.
+ * ---------------------------------------------------------------------- */
+
+/** One tile in the files pane. `src` only where something can be drawn — the
+ *  inbox is reachable by no URL, by construction (`lib/inbox.ts`), so an
+ *  inbox tile is its name and its kind and no picture. */
+export type RoomFile = {
+  /** `inbox:<id>` or `photo:<slug>:<src>` — the whole of what a selection is. */
+  id: string;
+  name: string;
+  /** A thumbnail, for a photograph already on a day. */
+  src?: string;
+  /** What a person is looking at, so the tile can say so without a lookup. */
+  detail?: string;
+};
+
+/** What the left-hand pane holds: what is waiting, and what is already on the
+ *  trip a person is most likely talking about. */
+export type RoomFiles = {
+  inbox: RoomFile[];
+  trip: RoomFile[];
+  /** The trip the photographs come from, named so the pane can say which. */
+  tripTitle: string;
+};
+
+/** How many of a trip's photographs the pane offers. A trip of two thousand
+ *  is not a picker; the newest are the ones a day being written needs. */
+const TRIP_TILES = 60;
+
+export function filesForRoom(username: string): RoomFiles {
+  const staged = listInbox(username);
+  const inbox: RoomFile[] = [...staged.media, ...staged.files].map((entry) => ({
+    id: `inbox:${entry.id}`,
+    name: entry.filename,
+    detail: entry.description || entry.caption || undefined,
+  }));
+
+  const newest = [...getTrips(username)].sort((a, b) => b.start.localeCompare(a.start))[0];
+  const trip: RoomFile[] = newest
+    ? getAllMedia(newest.ref, AS_AUTHOR)
+        .slice(0, TRIP_TILES)
+        .map((tile) => ({
+          id: `photo:${tile.slug}:${tile.src}`,
+          name: tile.caption ?? tile.location ?? tile.date,
+          src: tile.src,
+          detail: tile.date,
+        }))
+    : [];
+
+  return { inbox, trip, tripTitle: newest?.title ?? "" };
+}
+
+/** A filename is somebody's own and may say anything at all. It is going into
+ *  one bracketed line of a model's context, so it loses the two characters
+ *  that would let it look like more than one. */
+function flat(text: string): string {
+  return text.replace(/[\r\n[\]]+/g, " ").trim().slice(0, 80);
+}
+
+/**
+ * What the person has selected, as one line the model reads — B902.
+ *
+ * The same shape B900 uses to remember a proposal: a bracketed line the model
+ * treats as context rather than as something said. It is **built here, from
+ * disk**, so an id nothing answers to contributes nothing — the browser can
+ * ask about a file it can see and about nothing else.
+ *
+ * Empty when nothing resolves, which is what makes the pane an addition: the
+ * conversation with nothing selected is exactly the conversation B899 built.
+ */
+export function describeSelection(username: string, ids: string[]): string {
+  const named: string[] = [];
+  const photos: string[] = [];
+  for (const id of ids.slice(0, 100)) {
+    if (id.startsWith("inbox:")) {
+      const found = findInboxFile(username, id.slice("inbox:".length));
+      // The id, spelled out, and only for a photograph — B915. It is what
+      // `attach_files` takes, and it is safe to say because it is a hash of
+      // the file's own bytes rather than anything about the person: an id the
+      // model invents resolves to nothing, here and again in the route.
+      if (found)
+        named.push(
+          found.entry.kind === "media"
+            ? `"${flat(found.entry.filename)}" (a photograph waiting in the inbox, id ${flat(found.entry.id)})`
+            : `"${flat(found.entry.filename)}" (waiting in the inbox)`,
+        );
+      continue;
+    }
+    if (!id.startsWith("photo:")) continue;
+    const rest = id.slice("photo:".length);
+    const at = rest.indexOf(":");
+    if (at < 0) continue;
+    const slug = rest.slice(0, at);
+    const src = rest.slice(at + 1);
+    for (const trip of getTrips(username)) {
+      const entry = getEntryBySlug(trip.ref, slug, AS_AUTHOR);
+      if (entry?.gallery.some((item) => item.src === src)) {
+        photos.push(`${flat(entry.date)} (${flat(entry.title)})`);
+        break;
+      }
+    }
+  }
+  if (named.length === 0 && photos.length === 0) return "";
+  const parts = [
+    named.length > 0 ? `${named.length} file(s) waiting in the inbox: ${named.join(", ")}` : "",
+    photos.length > 0
+      ? `${photos.length} photograph(s) already on days: ${[...new Set(photos)].join(", ")}`
+      : "",
+  ].filter((part) => part !== "");
+  return `[they have selected, in the files pane beside this conversation: ${parts.join("; ")}. "these", "those" and "the selected ones" mean exactly this and nothing else. To put the waiting photographs on a day, call attach_files with those ids, comma-separated, exactly as spelled here. You cannot receive a file yourself: add_photos hands them the day's own page, which has the picker.]`;
 }

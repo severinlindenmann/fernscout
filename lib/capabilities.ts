@@ -13,6 +13,19 @@ import { stripeMode, stripeProblem } from "./stripe";
 type Requirement = {
   env: readonly string[];
   db: boolean;
+  /**
+   * Capabilities that must be on before this one can be, and why in a few
+   * words — the words `/api/health` prints, so write them for whoever has to
+   * decide which switch to throw.
+   *
+   * A field rather than an `if` in the resolver — B724. `helper` was the first
+   * capability to require another and was written as one `if`; `transcription`
+   * arrived and made it two, which is the point at which the resolver becomes
+   * a place dependencies hide. As data, a missing dependency is reported the
+   * same way a missing environment variable is, from the same table a reader
+   * of this file is already looking at.
+   */
+  needs?: Readonly<Partial<Record<FeatureName, string>>>;
 };
 
 const REQUIREMENTS: Record<FeatureName, Requirement> = {
@@ -28,7 +41,23 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   // issues, and — checked in the route rather than here — mail to send them
   // with, since a signup nobody can complete is worse than one refused.
   signup: { env: ["SESSION_SECRET"], db: true },
-  contacts: { env: ["CONTACTS_ENCRYPTION_KEY"], db: true },
+  contacts: {
+    env: ["CONTACTS_ENCRYPTION_KEY"],
+    db: true,
+    /**
+     * **An approval that cannot grant anything is not an approval** — B938.
+     *
+     * Everything this capability does ends in somebody reading a journal they
+     * were let into, and being let in is a session. Without `auth` there are
+     * no sessions, so a guest grant is a row nothing consults and the mail
+     * telling her she is in links to the gate she has just been let past.
+     *
+     * That mail is the only one she gets, so nothing corrects it later. She
+     * was told yes, handed a door, and the door is locked — which is worse
+     * than a contacts page that is simply not there.
+     */
+    needs: { auth: "being let in is a session, and sessions are what auth is" },
+  },
   postcards: { env: [], db: true }, // provider-specific; see providerRequirements()
   // Orders are rows and so is the balance that pays for them, so a journal
   // with no database has no photobook button — /api/health says which.
@@ -57,14 +86,36 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   // people commit. The database is `credits`' storage rather than the
   // helper's own: nothing here writes a row except the ledger, and a spend
   // nobody could record would be a free model call with no trace.
-  helper: { env: ["ANTHROPIC_API_KEY"], db: true },
+  helper: {
+    env: ["ANTHROPIC_API_KEY"],
+    db: true,
+    // B684. `spend` with charging switched off succeeds without writing
+    // anything, so a helper on top of a credits that is off is not a cheaper
+    // helper — it is an unmetered one billed to the operator with no ledger to
+    // find it in.
+    needs: { credits: "every model call is metered" },
+  },
   // B686. The key is environment-only for the same reason the helper's is,
   // and the database is again `credits`' storage rather than this
   // capability's own: a minute of somebody's voice is metered, and a spend
   // nobody could record would be an unmetered call billed to the operator.
   // Backend-specific env is in `configuredEnv` below, so `dry-run` needs
   // nothing at all.
-  transcription: { env: [], db: true },
+  transcription: {
+    env: [],
+    db: true,
+    // B686. The same argument: speech on top of a credits that is off is not
+    // cheaper speech, it is unmetered speech billed to the operator.
+    needs: { credits: "every minute is metered" },
+  },
+  // B589. Names a `url` in config, checked in configuredEnv() alongside the
+  // other per-feature config problems, so an unset one refuses the same way
+  // a missing environment variable does.
+  fulfilmentRelay: { env: [], db: false },
+  // B589. Nothing here fits `needs` — that only asks whether a dependency is
+  // `.enabled`, and this depends on postcards/photobook being enabled *with a
+  // real provider*, and on a payment method. See fulfilmentAcceptProblem().
+  fulfilmentAccept: { env: [], db: false },
 };
 
 /** Transport and provider choices carry their own credential requirements.
@@ -267,7 +318,53 @@ function configuredEnv(name: FeatureName, feature: Record<string, unknown>): {
     const env = ADDRESS_LOOKUP_PROVIDER_ENV[provider] ?? ["ADDRESS_LOOKUP_API_KEY"];
     return { env };
   }
+  if (name === "fulfilmentRelay") {
+    // B589. No secret and no enumerable provider — this names another
+    // Fernscout instance, not a printer, and there is no default the way
+    // `photon` is one for addressLookup. An empty url is the shipped default,
+    // so this is what makes "enabled and unconfigured" a boot-time problem
+    // rather than a job that silently goes nowhere.
+    const url = optionOf(feature, "url");
+    if (!url) {
+      return {
+        env: [],
+        problem: `features.fulfilmentRelay is enabled but features.fulfilmentRelay.url is not set (which fulfilment instance to hand jobs to)`,
+      };
+    }
+    return { env: [] };
+  }
   return { env: [] };
+}
+
+/**
+ * `fulfilmentAccept` needs two things `Requirement.needs` cannot express,
+ * because `needs` only asks whether a dependency resolves `.enabled` — B589.
+ *
+ * Accepting a job from another instance means actually printing it and
+ * getting paid for it here, so this instance needs `postcards` or
+ * `photobook` enabled with a **real** provider — not `dry-run`, which
+ * relays nothing that was not already possible locally, exactly the claim
+ * `dryRunNote()` makes for a self-hoster's own orders — plus a configured
+ * payment method, read from `stripeMode()` the same way `paymentProviderNote`
+ * does.
+ */
+function fulfilmentAcceptProblem(): string | undefined {
+  const hasRealPrinter = (name: "postcards" | "photobook"): boolean => {
+    const state = resolveOne(name);
+    if (!state.enabled) return false;
+    const provider = optionOf(loadServerConfig().features[name], "provider") ?? "dry-run";
+    return provider !== "dry-run";
+  };
+  if (!hasRealPrinter("postcards") && !hasRealPrinter("photobook")) {
+    return (
+      "features.fulfilmentAccept is enabled but neither features.postcards nor features.photobook " +
+      "is enabled with a real provider (both are off or still on dry-run) — there is nothing here to fulfil a job with"
+    );
+  }
+  if (!stripeMode()) {
+    return `features.fulfilmentAccept is enabled but no payment method is configured (${stripeProblem()})`;
+  }
+  return undefined;
 }
 
 function hasDatabase(): boolean {
@@ -313,36 +410,30 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
     }
   }
 
-  // B684. The one capability that requires another. Every model call is
-  // metered, and `spend` with charging switched off succeeds without writing
-  // anything — so a helper on top of a credits that is off is not a cheaper
-  // helper, it is an unmetered one billed to the operator with no ledger to
-  // find it in. Refusing to come on is the honest answer, and `/api/health`
-  // says which of the two switches to throw.
-  if (name === "helper" && !resolveOne("credits").enabled) {
-    return {
-      name,
-      enabled: false,
-      reason: "features.helper is enabled but features.credits is not (every model call is metered)",
-    };
-  }
-
-  // B686. The same argument, for the same reason: a minute of transcription
-  // is metered, and `spend` with charging off succeeds without writing
-  // anything — so speech on top of a credits that is off is not cheaper
-  // speech, it is unmetered speech billed to the operator.
-  if (name === "transcription" && !resolveOne("credits").enabled) {
-    return {
-      name,
-      enabled: false,
-      reason:
-        "features.transcription is enabled but features.credits is not (every minute is metered)",
-    };
-  }
-
   const base = REQUIREMENTS[name];
+
+  // What this capability needs somebody else to have switched on first —
+  // B724. Refusing to come on is the honest answer, and the reason says which
+  // of the two switches to throw. Asked without a username on purpose: a
+  // dependency is a property of the instance, and a journal cannot satisfy one
+  // its server has not.
+  for (const [dependency, why] of Object.entries(base.needs ?? {})) {
+    if (!resolveOne(dependency as FeatureName).enabled) {
+      return {
+        name,
+        enabled: false,
+        reason: `features.${name} is enabled but features.${dependency} is not (${why})`,
+      };
+    }
+  }
+
   const extra = configuredEnv(name, feature);
   if (extra.problem) return { name, enabled: false, reason: extra.problem };
+
+  if (name === "fulfilmentAccept") {
+    const problem = fulfilmentAcceptProblem();
+    if (problem) return { name, enabled: false, reason: problem };
+  }
 
   if (base.db && !hasDatabase()) {
     return {

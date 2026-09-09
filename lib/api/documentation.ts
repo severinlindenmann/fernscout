@@ -28,6 +28,7 @@ import {
 } from "../credits/pricing";
 import { getDefaultUsername, getUser, listedUsernames } from "../users";
 import { getTrips } from "../trips";
+import { COVER_TYPES, sizesFor } from "../photobook/spec";
 import { isIndexable } from "../access";
 import { CODE_TTL_MINUTES } from "../auth";
 import { openApiDocument } from "./openapi";
@@ -42,6 +43,7 @@ import {
   FRONTMATTER_TO_API,
   MIGRATION_INTRO,
   MIGRATION_RECONCILE,
+  CHECK_BEFORE_SENDING,
   PERFECT_TRIP_EXAMPLE,
   PERFECT_TRIP_INTRO,
   TRIP_FIELDS,
@@ -59,6 +61,7 @@ import {
   tripQuestions,
   wrap,
   type FirstQuestion,
+  SECOND_LANGUAGE_COMMITMENT,
 } from "./agentCopy";
 
 // The numbered/tabled rendering of a question script is the same shape for
@@ -360,7 +363,9 @@ export function instanceDocumentation(): string {
         "was the only verb that touched an existing day, and put fifteen unreviewed " +
         "days on somebody's site while reporting them as drafts. If the call you want " +
         "does not exist, stop and say so — do not reach for the nearest verb that " +
-        "touches the file.",
+        "touches the file. Taking a day back off the site is its own call too: " +
+        `POST ${base()}/api/v1/their-name/trips/japan-2027/days/lanterns-of-hoi-an/unpublish, ` +
+        "which makes it a draft again and deletes nothing.",
       78,
     ),
     "",
@@ -540,6 +545,7 @@ export function userDocumentation(username: string): string | null {
     `- [Trips](${base()}/api/v1/${username}/trips): every trip, including ones the public cannot see`,
     `- [Days](${base()}/api/v1/${username}/trips/<trip-id>/days): read them, or POST to add one as a draft`,
     `- Editing a day: PATCH the day's own URL (${base()}/api/v1/${username}/trips/<trip-id>/days/<slug>) with the field you are correcting — never \`/publish\`, which is not an update and cannot be used to change one`,
+    `- Taking a day back off the site: POST ${base()}/api/v1/${username}/trips/<trip-id>/days/<slug>/unpublish — it becomes a draft again and nothing is deleted`,
     `- [Drafts](${base()}/api/v1/${username}/drafts): everything waiting for a person to approve`,
     `- Trips: POST to [the same URL](${base()}/api/v1/${username}/trips) to create one (owner only; defaults to this journal's own visibility)`,
     `- [Invites](${base()}/api/v1/${username}/invites): POST \`{"kind":"guest"}\` for a link that lets somebody read the journal's \`guest\` trips, or \`{"kind":"buddy","trip":"<trip-id>"}\` for one that leads to writing to a trip — owner only, see "Letting other people in" in the agent guide`,
@@ -547,7 +553,7 @@ export function userDocumentation(username: string): string | null {
     `- Deleting: DELETE [a trip](${base()}/api/v1/${username}/trips/<trip-id>) or [the journal](${base()}/api/v1/${username}) — owner only, and neither deletes anything: the owner is mailed a link with a button on it, so a 202 means the mail was sent`,
     `- [Search index](${root}/search-index.json): every public entry, for finding things`,
     `- [Feed](${root}/feed.xml): public entries as RSS`,
-    `- [Export](${root}/export.zip): the whole journal as markdown and photographs`,
+    `- [Export](${root}/export.zip): the whole journal as markdown and photographs — owner only, with the journal owner's own token (B1086); any other caller gets a 404`,
     "",
     ...wrap(PRIVATE_SHUTS_OUT_GUESTS.replace(/`/g, ""), 78),
     "",
@@ -657,6 +663,14 @@ is a thing that cannot be done at all.
 that changes that. Not to hold you back — so that there is a moment where the
 person can read a day back before it is on the site. Publishing is the second
 call, \`POST .../days/<slug>/publish\`, and it is yours to make.
+
+**And it comes back off with \`POST .../days/<slug>/unpublish\`.** The
+day becomes a draft again: off the site, off the feed, off the sitemap, still
+on disk with every word and every photograph, and publishing it again puts it
+back. It is not a delete and needs none of deletion's ceremony. What it cannot
+do is reach somebody who already read the day or was sent it, and that is worth
+saying plainly to anybody who asks for a takedown because they are worried
+about who saw it.
 
 **\`publish\` is not an update, and there is no other way to change a day
 except \`PATCH .../days/<slug>\`.** An agent that had written fifteen days and
@@ -845,6 +859,8 @@ is not on offer to its own readers is refused rather than written that way
 (B277 — the field used to default silently, and one owner asked for three
 languages and was given one).
 
+${SECOND_LANGUAGE_COMMITMENT}
+
 The reply carries an **agent token for the journal it just made**, so you can
 go straight on to creating a trip — no second code. It also carries
 \`welcomeMailed\`: this server mails the owner the journal's address when it is
@@ -855,6 +871,17 @@ the URL yourself.
 address of their site and cannot be changed afterwards — picking one for
 them, or even offering an example, is the sort of thing they will live with
 for years. Lowercase letters, digits and dashes.
+
+**Unless nobody is asking, because you are testing.** A journal you create to
+prove this API works belongs to no one, and the next person looking at the
+server has to be able to tell that from the name alone: **give it a
+\`test-\` prefix** — \`test-alps\`, \`test-qa-empty\` — and never a name that
+reads like somebody's. There is no flag for it, because a journal is a
+directory and the directory name is the one label that survives every export,
+backup and \`ls\`. \`test: true\` marks content nobody lived; the prefix marks a
+whole journal nobody owns, and it is what makes it safe to delete without
+asking. A real person's journal never starts with \`test-\`, so the rule costs
+them nothing.
 
 One address may own three journals on this server.
 
@@ -1004,6 +1031,35 @@ The token writes for **seven days** and is scoped to that one journal. Send it
 as \`Authorization: Bearer <token>\`. Do not put it in a URL, do not store it in
 a file the author did not ask for, and tell them if you no longer need it — they
 can revoke it.
+
+**Seven days is a floor, not a ceiling, and the owner should know which you are
+doing.** Holding an owner's live token, \`POST
+${site.url}/api/v1/<user>/handover\` accepts that token — cookie *or* bearer —
+and hands back a credential you spend for a fresh seven-day one. An agent that
+keeps working can therefore keep itself alive with the person never seeing
+another code. That is deliberate, and every renewal is a new row on the owner's
+access page at \`${site.url}/<user>/me\`, which is where they end it. What it
+asks of you is one sentence of honesty: if you intend to keep renewing, **say
+so**, rather than letting "seven days" be heard as "this stops by itself".
+
+A token scoped to one trip cannot do this — \`handover\` carries the journal, and
+widening a buddy's reach is exactly what it refuses.
+
+**And you can end your own key, without asking anybody.**
+
+\`\`\`http
+GET  ${site.url}/api/v1/<user>/keys
+POST ${site.url}/api/v1/<user>/keys      {"revoke": "<id>"}
+\`\`\`
+
+The \`GET\` lists the live keys you may see — the owner's token sees all of
+them, a trip-scoped one only its own address's — with scope, expiry and when
+each was last used, and never the tokens themselves. The \`POST\` ends one at
+once, **including the one you are holding**: the call after it is a \`401\`.
+
+When a job is finished and nobody asked you to keep writing, end your own key
+rather than leaving it live for the week. A lost token expires in seven days; a
+revoked one is over now.
 
 ## A web helper exists too, and it is not part of this contract
 
@@ -1221,13 +1277,14 @@ One part of the \`owner\` block *is* yours to write, as the flat field
 copy of a published day goes, and that copy costs no credits — as their own
 copy of the day's letter does not either. Without a number the owner is the
 one person this channel cannot reach, including for checking it works before a
-guest ever sees it. Include the country code — \`+41 76 561 31 50\` — because a
+guest ever sees it. Include the country code — \`+41 76 000 00 00\` — because a
 national number means a different telephone in every country and is refused
 rather than guessed at. Do not invent one: ask for it, or leave it absent.
 
 A journal's \`visibility\` is only whether this instance *advertises* it — the
-landing page, \`/documentation.txt\`, the sitemap. A \`guest\` journal (\`private\`
-before B306, still accepted) is unlisted, not locked; who may read a journey
+landing page and \`/documentation.txt\`; a \`guest\` journal is not listed
+anywhere, and search engines are asked not to index it (\`private\` before
+B306, still accepted). It is unlisted, not locked; who may read a journey
 is still that trip's own visibility, though this is also the answer a new
 trip in it gets by default. **Ask before making one public.**
 
@@ -1432,6 +1489,7 @@ one. The full schema, with the shape of each nested item, is in
 | | |
 | --- | --- |
 | \`time\` | \`"16:45"\`, local to where the day happened. Orders several days sharing a date. |
+| \`timezone\` | The IANA name \`time\` is local to — \`"Asia/Bangkok"\`, never a numeric offset. Send it when you know it; absent, the RSS feed and the on-page dual clock fall back to the journal's own zone rather than guessing one from \`lat\`/\`lng\`. A name \`Intl\` does not recognise is refused. |
 | \`location\`, \`country\` | The country's name, not its code. |
 | \`lat\`, \`lng\` | Decimal degrees, as numbers and not strings — \`15.8801\`, never \`"15.8801"\` and never \`15° 52' 48" N\`. **A pair or nothing**: half a coordinate is refused, since it is not a place. \`lat\` is -90 to 90, \`lng\` is -180 to 180; getting them the wrong way round puts the day in the sea, so check that the smaller-ranged number is the one in \`lat\`. Four decimal places is about eleven metres and is plenty — this marks where the day happened, not where a photograph was taken. Do not geocode and write in one breath: propose what you looked up, and let them confirm it. |
 | \`tags\` | Lowercase letters, digits and single hyphens. |
@@ -1874,8 +1932,8 @@ Two things worth telling them before they do:
   \`410 Gone\`.
 
 The page offers them a complete copy first — private trips and unpublished
-drafts included, not just the public export — because leaving with your data is
-the half of leaving that a delete button on its own does not give you.
+drafts included, the whole of it — because leaving with your data is the half
+of leaving that a delete button on its own does not give you.
 
 Only the journal's **owner** may ask. A token scoped to one trip can write days
 into that trip and cannot delete it, or the journal around it; being on
@@ -2330,6 +2388,14 @@ touched — and \`kept\` is there so you can see that the original survived rath
 than inferring it from a promise. If \`kept\` shows the same numbers you sent,
 the full-resolution file is on disk.
 
+**Nothing is read out of the file.** This route stores photographs and opens
+none of their EXIF: a picture carrying GPS and a \`DateTimeOriginal\` adds no
+\`lat\`, no \`lng\`, no \`location\`, no \`country\` and no \`time\` to the day. The
+day keeps exactly what you wrote on it, so send those fields yourself —
+\`POST .../days\` and \`PATCH .../days/<slug>\` both take them. Ingest is the one
+thing here that reads a card's EXIF, and it runs on the machine the journal
+lives on: **A folder of photographs, all at once**, below.
+
 **A caption is the one part of a photograph you write.** \`captions\` runs
 alongside \`files\` (or \`urls\`), one per picture and in the same order — send
 an empty one, or simply fewer, for a picture nobody said anything about. More
@@ -2420,6 +2486,13 @@ there is no way to get those pixels back later.
 
 HEIC straight off an iPhone is fine; so is anything in the table below. Send as
 many files as you like in one request, up to the per-day limit.
+
+**What the site serves is always a JPEG**, whatever you sent: a PNG, a HEIC or
+a webp is re-encoded, which is why the reply names the file \`01.jpg\`. That is
+right for a photograph and visibly wrong for flat colour — a screenshot, a map,
+a scan or a chart picks up banding that somebody who chose PNG deliberately
+will notice. The file you sent is not touched by any of it: \`kept\` reports its
+bytes, and a printed photobook is made from that and not from the JPEG.
 
 **Or give it URLs instead of bytes**, and this server downloads them — clips as
 well as photographs, on the same terms as sending the bytes yourself, and with
@@ -2522,16 +2595,58 @@ what you meant to send and upload the difference. Counting instead is how the
 same photograph gets uploaded twice and another one silently never arrives.
 Days written before this field existed do not carry it.
 
-**Sending the same photograph twice adds it once.** A batch that fails halfway,
-or a retry after a network error, can be sent again as it was: each arriving
-photograph is compared against the ones this day already holds, and a match is
-left out rather than appended. The 201 carries \`skipped\` — what you sent, and
-the \`src\` of the picture it matched — so a response with fewer \`items\` than
-you sent files is telling you the day already had them, not that anything was
-lost. The comparison is by what the picture looks like rather than by its bytes,
-because the same photograph exported twice is a different file; it is per day,
-so the same picture on two days is kept, that being a thing people do on
-purpose. Clips are not compared, and a clip sent twice lands twice.
+**Sending the same file twice adds it once.** A batch that fails halfway, or a
+retry after a network error, can be sent again as it was: an arriving
+photograph that is byte-for-byte one this day already holds is left out rather
+than appended. The 201 carries \`skipped\` — what you sent, and the \`src\` of
+the picture it matched — so a response with fewer \`items\` than you sent files
+is telling you the day already had those exact files, not that anything was
+lost. It is per day, so the same picture on two days is kept, that being a
+thing people do on purpose. Clips are not compared, and a clip sent twice
+lands twice.
+
+**A photograph that merely *resembles* one already here is kept, not dropped.**
+The server compares what pictures look like as well as what bytes they are, but
+a resemblance is a guess and the two ways of being wrong do not cost the same:
+a second tile in the gallery is deleted in ten seconds, while a photograph
+discarded in silence is gone. So a likeness is stored and named in \`advice\`,
+with the \`src\` of the picture it looks like — delete one of them if they
+really are the same. The same photograph exported twice, at a different size or
+quality, is the case this covers.
+
+**And to ask afterwards, on a journal you did not upload:**
+
+\`\`\`http
+GET ${site.url}/api/v1/${example}/trips/<trip-id>/media/duplicates
+Authorization: Bearer fs_agent_…
+\`\`\`
+
+\`groups\` is one row per photograph the trip holds more than one copy of, across
+every day of it, each copy with its \`src\`, \`day\`, \`width\`, \`height\` and
+\`bytes\`, largest first. The largest is usually the one to keep — a camera file
+beside the same shot as it came back off a messaging app at a twentieth of the
+size — but **this reports and never deletes**, and which copy a journal keeps
+is not yours to decide. Show the person the groups, ask which one they want,
+and only then:
+
+\`\`\`http
+DELETE ${site.url}/api/v1/${example}/trips/<trip-id>/media
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"day": "lanterns-of-hoi-an", "src": ["/${example}/media/<trip>/lanterns-of-hoi-an/16.jpg"]}
+\`\`\`
+
+One day per call, one or more \`src\` exactly as the gallery hands them back. A
+\`src\` this day does not have refuses the whole call rather than removing the
+rest, so you are never left guessing which one landed. The derivative, the kept
+original and any poster go from disk; a photobook or postcard order that
+already named the file is untouched, being a record of what was sent rather
+than a live link to it.
+
+A resemblance is still a guess — two frames of one burst are different
+photographs and can come back as a group. Look before you delete, and if you
+cannot look, ask.
 
 **The body limit is the one that bites, and it is not the per-file limit.**
 Forty photographs may go in one call and each may be ${(IMAGE_MAX_BYTES / 1024 / 1024).toFixed(0)} MB, but the request
@@ -2616,6 +2731,10 @@ on day one is a mistake you make once.
 
 ${wrap(MIGRATION_RECONCILE).join("\n")}
 
+### Checking it before you send it
+
+${wrap(CHECK_BEFORE_SENDING).join("\n")}
+
 ## If you need help extracting pictures or data
 
 The photographs are on the owner's machine and so are the receipts, and this
@@ -2659,6 +2778,15 @@ between a journal with ten days in it and a journal with an account.
 A journal that has \`postcards\` and \`contacts\` switched on can put a printed
 card from a day into somebody's letterbox. You compose it; **you never send
 it.**
+
+You do not have to notice the moment yourself. \`GET .../status\` carries a
+\`suggestions\` array when a day published in the last week has a photograph,
+somebody on the contacts list has asked for a real postcard, and nothing has
+already been ordered for that trip recently — each entry names the \`day\`,
+the \`trip\`, a \`reason\` in words and the \`recipients\` it would go to. It is
+absent, not empty, whenever any of that is not true; do not read its absence
+as "postcards are off" and do not propose one on your own initiative when it
+is missing. Mention it, ask, and only then make the call below.
 
 Start by asking who could receive one:
 
@@ -2723,6 +2851,53 @@ in the author's voice, about what they actually told you. A postcard is read by
 one person who knows them, which makes an invented detail worse rather than
 more forgivable. An order keeps for a week and then expires; make a new one
 rather than asking for the old one to be revived.
+
+## Printing a photobook
+
+A journal with \`photobook\` switched on that has already built a book — from
+the owner's own order page, not from here, since the size and the cover are
+the owner's own choice and there is no API call that builds one — can put a
+printed copy in somebody's letterbox the same way a postcard does: **you
+propose it, you never print it.**
+
+If the owner asks what a book could look like before opening that page: the
+cover (\`${COVER_TYPES.join("\` or \`")}\`) is chosen before the size, because
+not every size exists in both — softcover offers
+\`${sizesFor("soft").map((s) => s.id).join("\`, \`")}\`, hardcover offers
+\`${sizesFor("hard").map((s) => s.id).join("\`, \`")}\`.
+
+Find who it could go to the same way you would for a postcard — a book is
+posted to the same population, so there is no second list:
+
+\`\`\`http
+GET ${site.url}/api/v1/${example}/postcards/recipients
+Authorization: Bearer fs_agent_…
+\`\`\`
+
+Then propose the print, against a book that has already finished building:
+
+\`\`\`http
+POST ${site.url}/api/v1/${example}/photobooks/<id>/print
+Authorization: Bearer fs_agent_…
+Content-Type: application/json
+
+{"contactId": "<contactId>"}
+\`\`\`
+
+\`\`\`json
+{"url": "${site.url}/${example}/photobooks/…", "quotedCredits": 172, "contactId": "…",
+ "next": "Nothing has been printed or charged. Ask the owner to open the URL and press the button."}
+\`\`\`
+
+**This charges nothing and prints nothing.** On that page the owner sees what
+the book is, what it costs, what they have left — and one button. The button
+is the only thing in this system that sends a book to the printer, and there
+is no API call that does it, for the same reason there is none for a
+postcard: it spends real money and lands in somebody's post. \`GET
+.../photobooks/<id>\` tells you later whether it actually went.
+
+So: **hand over the URL and stop.** Do not say the book has been printed, or
+is being printed. Say a price is waiting and what it will cost.
 
 ## Errors
 

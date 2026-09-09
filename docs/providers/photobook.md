@@ -2,16 +2,124 @@
 
 What is built, what deliberately is not, and exactly what is needed to go live.
 
-**Status: everything up to the account boundary is done.** A trip becomes a
-planned, laid-out, print-ready book with a cover and a preview, and all four
-provider request builders are written and tested against fixtures. Nothing
-calls a provider, because calling one needs an account — and that is where this
-work package was told to stop.
+**Status: a draft order has been placed with Gelato, accepted, and its files
+fetched. They have not been preflighted, and no paper has been produced.** A trip becomes a
+planned, laid-out, print-ready book with a cover and a preview, and the whole
+chain to Gelato was driven end to end from the deployed instance on
+2026-09-08:
 
-**One thing in this document is uncomfortable and is stated plainly rather than
-buried: the PDF this writer emits is RGB with unembedded base-14 fonts, which
-is not PDF/X.** [What that means, and the one command that fixes it](#colour-the-honest-position),
-below.
+| Step | Result |
+| --- | --- |
+| Book built on fernscout.ch, charged 40 credits | 28-page interior 206 × 206 mm, cover 408.72 mm wide |
+| Signed file URL fetched with no cookie | `200`, 9.3 MB. Unsigned, tampered, expired, and signed-for-another-file all `404` |
+| `POST /v4/orders` with `orderType: "draft"` | accepted — `fulfillmentStatus: "draft"`, our product uid, our address |
+| Gelato fetched both PDFs | rehosted on its own S3, `filesSize` 8.9 MB, `refusalReason` null |
+| A product mock-up rendered | `preview_flat`, `preview_default`, `preview_thumbnail` — all three from the **cover** file alone |
+| Prepress did **not** run | `prepressWorkflowId` null, `dpi` 0, `eventLog` and `printJobs` empty |
+| Draft deleted afterwards | `200`, then `NOT_FOUND` |
+
+**So the create-order request shape in `lib/photobook/providers.ts` is
+confirmed against the live API**, which it had never been before — everything
+in it used to be written from published documentation. The cover Gelato
+rendered from our file is the one this repository draws.
+
+### The TrimBox is the fold line, not the content edge
+
+All six size-and-cover combinations were built on fernscout.ch and submitted as
+drafts on 2026-09-08. The hardcovers came back with the front-cover title
+clipped and the artwork shrunk into a corner; the softcovers were fine.
+
+The cause was one number. The cover PDF's `TrimBox` was inset by
+`wrapMm + bleedMm` — 20 mm, which is where the **board content** starts
+(`contentBackSize.left`). Gelato trims a case at its **fold**, which is
+`wraparoundEdgeSize` at 17 mm, and the remaining 3 mm is bleed carried round
+the turn-in. Gelato places artwork from the TrimBox, so a box 3 mm tight on
+every edge made it rescale the whole sheet.
+
+A softcover was right by accident: its wrap is 0, so `0 + bleed` is the bleed,
+which is exactly what its trim is. That is why the bug was invisible until a
+hardcover was submitted, and why it would never have shown up in a test that
+only exercised the default size.
+
+`CoverGeometry.trimInsetMm` now carries it explicitly — the bleed for a
+softcover, the wrap for a hardcover — and `fetchCoverGeometry` derives it from
+Gelato's own answer. Verified against all six products: our MediaBox equals
+`wraparoundInsideSize`, and our TrimBox equals `wraparoundEdgeSize`, to the
+hundredth of a millimetre.
+
+### Gelato's own template, which is the only reference that comes from them
+
+`docs/providers/gelato-templates/` holds a template downloaded from the Gelato
+dashboard, and its README is the detail. In short: for the 210 x 280
+softcover it is one cover page of **428.72 x 286 mm** and thirty interior
+pages of **216 x 286 mm** — exactly what this writer emits — and **every page
+carries `TrimBox == BleedBox == MediaBox`**.
+
+That last one is why our own trim box now spans the whole sheet rather than
+sitting inside the bleed, which is what print convention would say. Gelato
+positions artwork from the TrimBox; an inset one made it rescale the sheet.
+
+No hardcover template has been downloaded yet, and that is the gap worth
+closing: every hardcover measurement we hold comes from the API rather than
+from a file Gelato produced.
+
+**Both things that looked wrong in Gelato's previews were our TrimBox.**
+They are recorded here because the wrong explanation was written down twice
+before the right one was found, and both wrong explanations were plausible.
+
+The symptoms: a black band down the right and along the bottom of
+`preview_flat`, and a hardcover `preview_default` mock-up that cropped the
+front panel and clipped the first word of the title. The softcover mock-up of
+the same book was perfect, which is what made it look like a Gelato bug.
+
+It was not. **Gelato positions artwork from the TrimBox**, and this writer was
+declaring one inset from the sheet — first by `wrap + bleed`, then, after a
+half-fix, by the wrap. Gelato's own product template declares
+`TrimBox == BleedBox == MediaBox` on every page. Matching it fixed both
+symptoms at once:
+
+| | inset TrimBox | matching the template |
+| --- | --- | --- |
+| `preview_flat` fill, softcover | 97.3% | **100%** |
+| `preview_flat` fill, hardcover | 86.3% | **100%** |
+| hardcover mock-up | title clipped | **whole title** |
+
+Two lessons worth keeping. **The band was measured and explained correctly and
+the conclusion was still wrong** — `min(trimW/mediaW, trimH/mediaH)` predicted
+the fill to a tenth of a percent, which made "their compositor shows the
+trimmed area" convincing; it simply was not the reason it should be ignored.
+And **"the softcover works, so it must be their bug" was the wrong inference**:
+the softcover worked because its wrap is zero, so its inset was 3 mm rather
+than 20, small enough not to show.
+
+**A draft is a parked cart, not a preflight — and this is the trap in reading
+the result above.** Gelato builds the product mock-up from the cover as soon
+as it has the file, which looks like acceptance and is not. The page-by-page
+interior preview on its checkout page never appears for a draft; it comes from
+prepress, and prepress runs when a draft is promoted to an order. So **nothing
+has yet checked our interior PDF** — not its resolution, not its fonts, not
+its colour space. The one thing the draft proves about the files is that
+Gelato could reach and download them.
+
+That mattered more than it sounds, because this writer used to emit RGB with
+unembedded base-14 fonts — `pdffonts` reported Helvetica, Helvetica-Bold and
+Helvetica-Oblique all `emb: no` on both files. B1008 closed that: the writer
+now embeds Liberation Sans (TrueType, metric-compatible with Helvetica) as a
+real font program, and `pdffonts` now reports every face `emb: yes`. [What
+that means](#colour-the-honest-position), below.
+
+**What has still never happened: a real order.** `orderType` is `"order"` only
+when `features.photobook.live` is true, and it is not. The account behind the
+key has no payment method, so a real order would fail at billing rather than
+print. Nobody has held one of these books, and nobody has submitted one with
+fonts embedded — the improvement above is unverified against a live
+preflight until that happens.
+
+Two smaller things also remain untested: the in-product print flow
+(`POST /api/v1/<user>/photobooks/<id>/print`, then the owner's button) has
+never run against the live site, because the demo journal has no contact with
+a postal address to send a book to — the draft above was posted directly. And
+no hardcover has been through Gelato at all; only the 200 × 200 softcover has.
 
 ---
 
@@ -21,9 +129,9 @@ below.
 npm run photobook -- --trip <user>/<trip-id>                      # the whole book
 npm run photobook -- --trip <user>/<trip-id> --guides             # + trim and safe-area guides
 npm run photobook -- --trip <user>/<trip-id> --outline            # just the page plan, as text
-npm run photobook -- --trip <user>/<trip-id> --binding saddle     # short trip: staples, not glue
-npm run photobook -- --trip <user>/<trip-id> --size landscape-a4
-npm run photobook -- --trip <user>/<trip-id> --icc <profile.icc>  # embed an output intent
+npm run photobook -- --trip <user>/<trip-id> --size portrait      # pocket, square, portrait or large-square
+npm run photobook -- --trip <user>/<trip-id> --cover hard          # soft (default) or hard — not every size has both
+npm run photobook -- --trip <user>/<trip-id> --icc <profile.icc>  # embed an output intent, and claim PDF/X-4
 npm run photobook -- --providers
 ```
 
@@ -37,7 +145,7 @@ Writes to `content/<user>/photobooks/` (gitignored):
 | `<trip>-plan.json` | The page plan — what went where, and why |
 | `<trip>-pdfx.txt` | The PDF/X readiness report. Read it before ordering |
 | `<trip>-<provider>-request.json` | The request that *would* be sent, for each of the four |
-| `PDFX_def.ps`, `gs-pdfx.sh` | Written when `--icc` is given: the Ghostscript step, runnable as printed |
+| `PDFX_def.ps`, `gs-pdfx.sh` | Written when `--icc` is given, for providers that still insist on PDF/X-1a's CMYK conversion — see [below](#colour-the-honest-position) |
 
 A trip long enough to exceed the binder's maximum becomes several volumes,
 `<trip>-v1-interior.pdf` and so on, each a complete book with its own cover and
@@ -54,40 +162,57 @@ code the website uses, with no second parser to drift.
 
 | | |
 | --- | --- |
-| Default size | Square 210 × 210 mm — every one of the four providers lists it, and neither photo orientation is second class |
-| Also available | A4 landscape (297 × 210), A4 portrait (210 × 297) |
-| Bleed | 3 mm on all four edges → media box 216 × 216 mm (612.28 pt square) |
+| Default size | Square 200 × 200 mm — a real Gelato product, softcover, and neither photo orientation is second class. **Not** 210 × 210: that square is what this document used to say and is a size Gelato does not print |
+| Also available | Pocket 140 × 140 mm (softcover only — the cheapest thing on offer), Portrait 210 × 280 mm (the nearest Gelato product to A4, which Gelato does not print either), Large square 280 × 280 mm (hardcover only) |
+| Cover | Soft or hard, chosen **before** the size — not every size exists in both. Softcover: pocket, square, portrait. Hardcover: square, portrait, large-square. There is no 280 mm softcover and no 140 mm hardcover |
+| Bleed | 3 mm on all four edges → media box 206 × 206 mm for the square size |
 | Outer margin | 10 mm inside the trim |
 | Gutter | **16 mm** at the spine — wider than the outer margin, because a perfect-bound book does not open flat and the first few millimetres curve away from the reader |
-| Resolution | 300 DPI. A full-bleed square photo therefore needs **2551 px** |
+| Resolution | 300 DPI. A full-bleed square photo therefore needs **2363 px** at 200 mm |
 | Handedness | Page 1 is a recto. The gutter alternates from there, and the layout knows which hand it is on |
 | Spine | `pages / 2 × 0.115 mm` — leaves, not pages. Get this wrong and the front image creeps onto the spine |
 | Boxes | `TrimBox` and `BleedBox` on every page, including the cover |
 
+Every size carries a `covers` map (`{ soft?: uid, hard?: uid }`), each uid
+copied verbatim from Gelato's own catalogue in `BOOK_SIZES`
+(`lib/photobook/spec.ts`) rather than constructed — see [Gelato](#gelato).
+`productUidFor(sizeId, cover)` answers `null` where Gelato binds no such
+book, and `sizesFor(cover)` is the list to offer for a chosen cover.
+
+A hardcover's true panel and spine dimensions — not just its trim size — come
+from Gelato's own cover-dimensions endpoint:
+`GET https://product.gelatoapis.com/v3/products/{productUid}/cover-dimensions?pageCount=N&measureUnit=mm`.
+Gelato rounds the page count up by 4 (endpapers, presumably) before it
+answers, so the geometry for a 52-page book is quoted at 56. See
+`lib/photobook/coverGeometry.ts`.
+
 ### Page-count rules
 
-Printers bind in signatures; "any number of pages" is never true. The book is
-planned against the **intersection** of all four providers, so choosing one
-later does not mean re-laying it out:
+Printers bind in signatures; "any number of pages" is never true. What stood
+here before was four providers' published ranges intersected by hand, every
+row carrying `verified: false` because none had ever met an account — they
+were wrong in both directions. A live probe against Gelato's product API on
+2026-09-07 found one rule, the same for every photobook product it sells,
+soft or hard, square or portrait:
 
-| Binding | Min | Max | Multiple of |
-| --- | --- | --- | --- |
-| Perfect bound (default) | 32 | 160 | 4 |
-| Saddle stitch (`--binding saddle`) | 4 | 48 | 4 |
+| Min | Max | Multiple of |
+| --- | --- | --- |
+| 28 | 200 | 2 |
 
-The per-provider numbers those come from are in `BINDING_PROFILES`
-(`lib/photobook/spec.ts`), each carrying `verified: false`, because they are
-read from published documentation and not from an account. A unit test asserts
-that flag, so confirming one against a live API means changing the flag and
-noticing.
+That is `GELATO_PAGE_RULE` in `lib/photobook/spec.ts`, and it is what the
+planner now plans against. It is measured for Gelato only — the other three
+providers' own limits have not been checked against this rule and may be
+narrower.
 
 Two consequences the planner handles rather than hides:
 
 - **Too short.** A three-day trip is about fifteen pages of content against a
-  thirty-two page minimum. The planner first *grows* the book — breaking
+  twenty-eight page minimum. The planner first *grows* the book — breaking
   multi-photo pages into single-photo pages, largest groups first — and only
-  pads with blanks when there is nothing left to spread out. When it does pad,
-  it says so, and it says that saddle stitch is the right answer instead.
+  pads with blanks when there is nothing left to spread out. When it does pad
+  more than three pages, it says so — and says that a trip this short would
+  want saddle stitch, which Gelato does not offer: it prints glued-left only,
+  so there is no smaller-minimum product to fall back to.
 - **Too long.** A 180-day trip does not fit in 160 pages. It becomes several
   volumes, split at chapter boundaries and never mid-day, each with its own
   title page ("Volume 2 of 3"), cover and spine width.
@@ -120,7 +245,12 @@ A book no longer needs the CLI: the trip's photobook page has a Pay button
 that spends the owner's credits, builds the same PDFs this section describes,
 and mails links to them. `app/[user]/photobook/order/route.ts` calls no
 provider — see [The comparison](#the-comparison) and its
-[recommendation](#recommendation) for which one eventually will.
+[recommendation](#recommendation) for which one eventually will. It carries an
+output intent too, so a book ordered from the button is not worse off than one
+built from the CLI (B1008): set `PRINT_ICC_PROFILE` to the ICC profile your
+printer names, and every book built on this instance — CLI or button — claims
+PDF/X-4. Leave it unset and a book is still an ordinary, correctly-formed PDF
+with embedded fonts; it just claims no PDF/X version, honestly.
 `app/[user]/photobooks/[id]/[file]/route.ts`, which serves those PDFs back to
 the owner, is also the beginning of the reachable-URL requirement
 [The fact that shapes the deployment](#the-fact-that-shapes-the-deployment)
@@ -191,45 +321,55 @@ to print.
 
 ## Colour: the honest position
 
-Providers ask for **PDF/X (X-1a, X-3 or X-4), CMYK with an embedded ICC
-profile, 300 DPI, ~3 mm bleed, embedded fonts, flattened transparency**. Here is
-exactly where this pipeline stands against that, item by item. The same list is
-written to `<trip>-pdfx.txt` on every run, and is generated by
-`pdfxReadiness()` rather than typed, so it cannot drift from the truth.
+**The target is PDF/X-4, and it used to be measured against PDF/X-1a — the
+wrong standard (B1008).** Gelato's own downloadable template declares
+`GTS_PDFXVersion (PDF/X-4)`, and PDF/X-4 permits RGB content once an output
+intent names the printing condition; X-1a would have forced a CMYK conversion
+this writer was never going to do well in a few hundred dependency-free
+lines. Measuring against X-1a made the colour space look like the blocker;
+against X-4 it never was one.
+
+Providers still ask, in their own marketing copy, for **PDF/X, an embedded ICC
+profile, 300 DPI, ~3 mm bleed, embedded fonts, flattened transparency**. Here
+is where this pipeline stands against the standard it actually targets, item
+by item. The same list is written to `<trip>-pdfx.txt` on every run, and is
+generated by `pdfxReadiness()` rather than typed, so it cannot drift from the
+truth.
 
 | Requirement | Met | Why |
 | --- | --- | --- |
 | TrimBox and BleedBox on every page | ✅ | Written for every page, interior and cover |
 | No transparency, annotations, JavaScript or encryption | ✅ | The writer has no operator that produces any of them |
 | Info dictionary with `/Trapped`, plus an XMP packet | ✅ | Emitted whenever document options are passed |
-| OutputIntent with an embedded ICC profile | ⚠️ **only with `--icc`** | Supply a profile and it is embedded as a real `DestOutputProfile`. Verified against macOS's Generic CMYK profile: a 55 KB CMYK profile lands in the file and `pdfinfo` parses it |
-| All fonts embedded and subset | ❌ | The layouts use base-14 Helvetica, which every PDF consumer has and every part of PDF/X forbids. `pdffonts` reports `emb: no` |
-| Colour is CMYK or spot only | ❌ | Content is DeviceRGB |
+| OutputIntent with an embedded ICC profile | ⚠️ **only with `--icc`** (CLI) or `PRINT_ICC_PROFILE` (the web order button) | Supply a profile and it is embedded as a real `DestOutputProfile`. Verified against macOS's Generic CMYK profile: it lands in the file and `pdfinfo`/`pdffonts` parse it |
+| All fonts embedded | ✅ | Liberation Sans — metric-compatible with Helvetica, so no already-laid-out book moves — is embedded as a real TrueType `FontFile2` per face. `pdffonts` reports every face `emb: yes` on both the interior and the cover |
+| Colour is RGB or CMYK with a matching output intent | ✅ | Content is DeviceRGB. PDF/X-4 permits that when the output intent describes the printing condition, which is exactly what Gelato's own template does |
 
-**No PDF/X version is stamped**, and `--icc` alone does not change that. The
-flag is gated on every requirement being met, so a file that claims
-`GTS_PDFXVersion` and then fails a preflight cannot be produced. A false claim
-is worse than a documented gap, because the claim is what stops anyone checking.
+**`GTS_PDFXVersion (PDF/X-4)` is stamped once every row above is met** — which
+in practice means once an ICC profile is supplied, since everything else is
+unconditional now. The flag is still gated on every requirement, in
+`pdfxReadiness()`, so a file that claims it and would fail a preflight cannot
+be produced. A false claim is worse than a documented gap, because the claim
+is what stops anyone checking.
 
-### Why CMYK is not done natively
+### Fonts are embedded, not subsetted
 
-Converting an RGB photograph to CMYK needs a colour engine driving two ICC
-profiles with a rendering intent and black generation. There is no correct way
-to do that in a few hundred dependency-free lines. There *is* an incorrect way —
-the naive `k = 1 − max(r,g,b)` conversion — which produces colours that look
-plausible on screen and muddy on paper. Doing it badly would be worse than not
-doing it, because the failure would only be discovered on printed paper.
+Each of the three faces is embedded whole — about 400 KB apiece, roughly
+1.2 MB added to every interior and every cover — rather than reduced to the
+glyphs actually used. A subsetter (parsing `glyf`/`loca`/`cmap`/`hmtx` and
+rebuilding a smaller `sfnt`) is real work and was judged out of scope for
+B1008, which asked for *embedded*, not *embedded and minimal*: `pdffonts`
+already reports every face `emb: yes`, the one thing a printer's preflight
+checks. Subsetting is captured separately as a size optimisation, not a
+correctness gap.
 
-Font embedding is achievable — a TrueType `FontFile2` with a `/FontDescriptor`
-and a `/Widths` array is a day's work — but it would require vendoring a
-licensed font file, and it does not on its own get the file to PDF/X while (2)
-stands.
+### CMYK conversion remains available, for providers that still insist
 
-### The remedy, which is one command
-
-Ghostscript closes both gaps in a single pass: `-dPDFX` embeds the base-14
-fonts, converts DeviceRGB to the output intent's space, flattens what needs
-flattening, and fails loudly on what it cannot fix.
+Some providers' own preflight is stricter than the standard they publish and
+wants CMYK content regardless of what PDF/X-4 permits. For that case only,
+Ghostscript still closes the gap in one pass: `-dPDFX` converts DeviceRGB to
+the output intent's space and re-embeds fonts, in case a provider's tooling
+discards this writer's own embedding.
 
 ```bash
 npm run photobook -- --trip <user>/<trip-id> --icc /path/to/FOGRA39.icc
@@ -237,35 +377,34 @@ sh content/<user>/photobooks/gs-pdfx.sh   # needs: apt install ghostscript
 ```
 
 `gs-pdfx.sh` and the `PDFX_def.ps` prologue it needs are both generated with
-absolute paths already filled in, so the command is runnable as printed. This is
-a **deploy-time** dependency, not a runtime one: it is not needed to produce a
-book, only to produce one that satisfies the strictest preflight.
+absolute paths already filled in, so the command is runnable as printed. This
+remains a **deploy-time** dependency, not a runtime one — not installed on the
+machine this was written on, and not required to produce a book that already
+claims PDF/X-4 on its own.
 
 **None of this has been verified against a preflight tool.** There is no
 Ghostscript, no veraPDF and no Acrobat on the machine this was written on, and
 no account to submit a file to. What *has* been verified is that poppler
 (`pdfinfo`, `pdffonts`, `pdftoppm`) parses the output, that the output intent
-and its ICC stream are present and well-formed, that the fonts are reported as
-not embedded, and that every page rasterises with the artwork where the plan
-says it should be.
-
-### The practical mitigation
-
-Three of the four providers below accept RGB and convert it themselves. That is
-not as good as controlling the conversion — their profile choice is theirs, not
-yours — but it means the RGB gap blocks *nothing*. It changes a colour-critical
-book from "impossible" to "order a proof first", which is advice this document
-would give anyway.
+and its ICC stream are present and well-formed, that every font is reported
+`emb: yes`, that `GTS_PDFXVersion (PDF/X-4)` appears in both the Info
+dictionary and the XMP packet, and that every page rasterises with the artwork
+where the plan says it should be. A real order promoted at a printer, whose
+prepress accepts the file, is still the only check that counts and it has not
+happened — the account behind the key has no payment method, so a real order
+would fail at billing rather than print (above).
 
 ---
 
 ## The four providers
 
-Everything in this section is written from published documentation and **has not
-been confirmed against a live account**. Prices especially: they are order-of-
-magnitude figures for a 52-page 210 × 210 mm colour softcover, and every one of
-these APIs has a quote endpoint that will give a real number in one call once a
-key exists. Get the real number before deciding anything.
+**Gelato is measured; the other three are not.** A live probe against
+Gelato's public quote API on 2026-09-07 confirmed its real product uids, its
+page-count rule and real Swiss prices — see [Gelato](#gelato) below for
+exactly what that probe did and did not reach. Peecho, Cloudprinter and Lulu
+are unchanged: everything about them is still written from published
+documentation and **has not been confirmed against a live account**. Get a
+real quote from each before deciding anything.
 
 ### The fact that shapes the deployment
 
@@ -296,19 +435,65 @@ asserts it for all four.
 
 ### Gelato
 
-- **Endpoint:** `POST https://order.gelatoapis.com/v4/orders`
+- **Endpoint:** `POST https://order.gelatoapis.com/v4/orders` — **not yet
+  confirmed against a live call.** Only the quote endpoint below has been.
+- **Quote (measured):** `POST https://order.gelatoapis.com/v4/orders:quote` —
+  its `recipient` object takes a `country` key. The create-order endpoint
+  above uses `shippingAddress` instead; that shape has not been checked
+  against a live call.
 - **Auth:** API key in `X-API-KEY`
-- **Products:** `GET https://product.gelatoapis.com/v3/…`; prices at
-  `/v3/products/{productUid}/prices`
-- **Built:** `buildGelatoRequest()`
-- The widest production network of the four, and the only one plausibly able to
-  print **inside Switzerland**. That single fact dominates the cost comparison
-  below, because Switzerland is outside the EU customs union and every book
-  printed in the EU crosses a border on the way.
+- **Products (measured):** `POST /v3/catalogs/{catalog}/products:search`.
+  Real product uids are opaque catalogue strings copied verbatim into
+  `BOOK_SIZES` (`lib/photobook/spec.ts`), e.g. for the square softcover:
+
+  ```
+  photobooks-softcover_pf_200x200-mm-8x8-inch_pt_170-gsm-65lb-coated-silk_cl_4-4_ccl_4-4_bt_glued-left_ct_matt-lamination_prt_1-0_cpt_250-gsm-100-lb-cover-coated-silk_ver
+  ```
+
+  `pageCount` travels as a **sibling field** on the order item, never as part
+  of the uid — the builder used to build one by string concatenation
+  (`photobook_pf_…-pages_…`), and that string matched no real product.
+- **Page-count rule (measured):** every photobook product, soft and hard,
+  square and portrait, accepts 28–200 pages in steps of 2 — see
+  [Page-count rules](#page-count-rules).
+- **Fulfilment (measured):** these books are produced in Switzerland
+  (`productionCountry: "CH"`), which is the single fact that dominates the
+  cost comparison below — Switzerland is outside the EU customs union and
+  every book printed in the EU crosses a border on the way.
+- **Shipment methods (measured):** `swiss_post_economy` (CHF 8.52, 4–7 days)
+  and `swiss_post_priority` (CHF 10.64, 3 days). `shipmentMethodUid: "normal"`
+  — what the builder used to hardcode — is not a value Gelato accepts.
+- **Built:** `buildGelatoRequest()`. `BookOrder.productUid` and
+  `.shipmentMethodUid` are now required fields the caller supplies; the
+  builder no longer computes either.
 - `orderType: "draft"` validates the files without printing, which is the
-  closest thing it has to a sandbox.
-- The `productUid` in the builder has the right *shape* and is not a real id.
-  It must come from the live product API — this is the first thing to verify.
+  closest thing it has to a sandbox — but this too is unconfirmed, since it
+  lives on the create-order endpoint.
+
+**Real prices, ex-VAT CHF, quoted 2026-09-07, one copy, printed in
+Switzerland:**
+
+| Pages | Softcover 200×200 | Hardcover 200×200 | Softcover 210×280 |
+| --- | --- | --- | --- |
+| 32 | 11.18 | 14.68 | 11.43 |
+| 52 | 14.40 | 18.35 | 14.99 |
+| 100 | 22.12 | 27.14 | 23.51 |
+| 160 | 31.78 | 38.13 | 34.16 |
+
+Every combination Gelato actually binds, at 52 pages — the pocket, and the
+two sizes measured above only in one cover each:
+
+| Size | Softcover | Hardcover |
+| --- | --- | --- |
+| Pocket 140×140 | 10.68 | — (no hardcover) |
+| Square 200×200 | 14.40 | 18.35 |
+| Portrait 210×280 | 14.99 | 19.81 |
+| Large square 280×280 | — (no softcover) | 27.36 |
+
+Shipping is CHF 8.52 (`swiss_post_economy`, 4–7 days) or CHF 10.64
+(`swiss_post_priority`, 3 days) on top, per order rather than per copy.
+**No order has ever been placed** — these are quote-endpoint prices, not a
+confirmation that a create-order call with this shape succeeds.
 
 ### Cloudprinter
 
@@ -350,14 +535,14 @@ asserts it for all four.
 
 | | Peecho / Prodigi | Gelato | Cloudprinter | Lulu |
 | --- | --- | --- | --- | --- |
-| **PDF strictness** | Accepts RGB, converts | Accepts RGB, converts | Accepts RGB; strictest on file naming and MD5 | Wants PDF/X-1a; publishes the tightest spec of the four |
+| **PDF strictness** | Accepts RGB, converts | Accepts RGB, converts (this pipeline now claims PDF/X-4 on its own, with `--icc`/`PRINT_ICC_PROFILE`) | Accepts RGB; strictest on file naming and MD5 | Wants PDF/X-1a; publishes the tightest spec of the four |
 | **Validates before printing** | Order preflight | `orderType: "draft"` | Quote endpoint | **Free sandbox** |
 | **EU fulfilment** | Good (NL-based network) | Best (largest network) | Good (EU partner network) | EU production (Poland) |
 | **CH fulfilment** | Ships to CH; EU printed, so customs | **Likely printed in CH** — no border | Ships to CH; customs | Ships to CH; customs |
 | **Minimum order** | 1 | 1 | 1 | 1 |
 | **Subscription** | None | None (paid tier discounts) | None | None |
-| **Per unit, 5–10 copies** | ≈ €18–25 | ≈ €16–22 | ≈ €13–20 | ≈ €14–20 |
-| **Shipping to CH** | €8–14 | often domestic | €8–14 | €10–16 + duty |
+| **Per unit, 5–10 copies** | ≈ €18–25 | CHF 14.40–31.78 (measured, 52–160 pages, softcover) | ≈ €13–20 | ≈ €14–20 |
+| **Shipping to CH** | €8–14 | CHF 8.52–10.64 (measured, per order, domestic Swiss post) | €8–14 | €10–16 + duty |
 | **Auth** | Static key | Static key | Key in body | OAuth2 |
 | **Env** | `PEECHO_API_KEY` | `GELATO_API_KEY` | `CLOUDPRINTER_API_KEY` | `LULU_CLIENT_KEY`, `LULU_CLIENT_SECRET` |
 
@@ -394,20 +579,26 @@ up.
 4. **Create a Lulu account** (free) and get `LULU_CLIENT_KEY` /
    `LULU_CLIENT_SECRET`. Submit the interior and cover to the **sandbox** and
    read the validation errors. Fix them.
-5. **Decide about colour.** Either accept the provider's own RGB→CMYK
-   conversion and order a proof, or install Ghostscript and run
-   `content/<user>/photobooks/gs-pdfx.sh` with the profile your printer names.
+5. **Supply an output intent.** `--icc` on the CLI or `PRINT_ICC_PROFILE` on
+   the server, pointed at the profile your printer names (Gelato: GRACoL
+   2006). That is what turns the readiness report's last unmet row into a
+   file that claims PDF/X-4. Only reach for Ghostscript
+   (`content/<user>/photobooks/gs-pdfx.sh`) if a provider's own preflight
+   insists on CMYK content regardless.
 6. **Serve the PDFs.** All four fetch by URL. Decide now how a book gets a
    reachable, unguessable HTTPS address, and how it stops being reachable
    afterwards.
 7. **Confirm every field name** against the chosen provider's current
    documentation. The builders are written from published APIs, and field names
    drift; the first order is the wrong moment to find out.
-8. **Confirm the page-count rule and the `productUid` / `pod_package_id` /
-   offering ID** from the live product API. Then set `verified: true` on that
-   binding profile in `lib/photobook/spec.ts`.
-9. **Get a real quote** for 5 and for 10 copies, delivered, including duty.
-   Replace the estimates in the table above.
+8. **Confirm the `pod_package_id` / offering ID / product code** for Peecho,
+   Cloudprinter and Lulu from their live product APIs — Gelato's own
+   `productUid` and page-count rule are already measured (see
+   [Gelato](#gelato)), but its create-order request shape is not; confirm
+   that too before the first real order.
+9. **Get a real quote** for 5 and for 10 copies, delivered, including duty,
+   for the three providers not yet measured. Replace their estimates in the
+   table above.
 10. **Order one copy. Look at it on paper.** Colour, gutter and crop cannot be
     checked on a screen. Only then order the rest.
 
@@ -418,8 +609,8 @@ up.
 | | |
 | --- | --- |
 | Ordering | Needs an account. The boundary this stops at |
-| CMYK separation | Needs a colour engine. Documented above rather than done badly |
-| Font embedding | Needs a vendored licensed font, and buys nothing while the file is still RGB |
+| CMYK separation | Not required for the actual target, PDF/X-4 (B1008); still available through Ghostscript for a provider whose own preflight insists on it |
+| Font subsetting | Fonts are embedded whole, not reduced to the glyphs used — a real subsetter is more than B1008's scope. See [Fonts are embedded, not subsetted](#fonts-are-embedded-not-subsetted) |
 | Payments / checkout | Out of scope — this is a tool, not a shop |
 | Per-trip layout options | Deliberately absent. One user, one layout, no template system |
 | Localised books | The book uses each entry's own prose. Per-locale editions would need the translation layer from W04 and a language switch in the colophon |

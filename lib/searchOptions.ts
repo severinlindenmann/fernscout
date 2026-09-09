@@ -12,10 +12,18 @@ import type { Options } from "minisearch";
  */
 export type SearchDoc = {
   id: string;
-  /** "day" for an entry, "page" for a destination — Gallery, Costs, the
-   * account page — indexed beside them (B823). The client renders the two
-   * differently: a page result has no date or location to show. */
-  kind: "day" | "page";
+  /**
+   * What kind of thing this row points at, because the client renders the
+   * four differently — a page has no date to show, a doc belongs to no trip.
+   *
+   * - `day`  — an entry (B05).
+   * - `page` — a destination: Gallery, Analytics, the account page (B823),
+   *   or a journal-scoped row like `/trips` (B890).
+   * - `trip` — the trip itself, found by its own title, tagline or intro
+   *   rather than obliquely through one of its days (B890).
+   * - `doc`  — a documentation page, `DOCS_PAGES` in lib/docs.ts (B890).
+   */
+  kind: "day" | "page" | "trip" | "doc";
   title: string;
   location: string;
   country: string;
@@ -44,4 +52,23 @@ export const SEARCH_OPTIONS: Options<SearchDoc> = {
   idField: "id",
   fields: ["title", "location", "country", "tripTitle", "body", "tags", "terms"],
   storeFields: ["kind", "title", "location", "country", "tripTitle", "date", "url"],
+};
+
+/**
+ * How a query is asked of that index — B974.
+ *
+ * Beside the index's own options for the same reason those are here: the
+ * browser (components/SearchBox.tsx) and any test that asserts *which result
+ * comes first* have to ask the identical question, and a ranking assertion
+ * made with different boosts is an assertion about nothing.
+ *
+ * `fuzzy` is off below six letters. One edit on a four-letter word reaches
+ * half the dictionary, and with the documentation's prose in the index since
+ * B890 that is how "alps" came back with three guides above the trip it
+ * actually meant.
+ */
+export const SEARCH_QUERY = {
+  prefix: true,
+  fuzzy: (term: string) => (term.length > 5 ? 0.2 : false),
+  boost: { title: 3, tags: 3, terms: 2, location: 2, tripTitle: 1.5 },
 };

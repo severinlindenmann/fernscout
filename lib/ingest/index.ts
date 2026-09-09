@@ -18,12 +18,7 @@ import path from "node:path";
 import { fromDate, readExif, wallClockMs, type ExifData } from "./exif.ts";
 import { clusterMedia, fillMissingCoordinates } from "./cluster.ts";
 import { distanceKm, geodataAvailable, reverseGeocode, type Place } from "./geo.ts";
-import {
-  DUPLICATE_THRESHOLD,
-  contentHash,
-  hammingDistance,
-  sampledFileHash,
-} from "./hash.ts";
+import { contentHash, isDuplicate, sampledFileHash } from "./hash.ts";
 import {
   IMAGE_EXTENSIONS,
   decodeSource,
@@ -402,8 +397,11 @@ export async function ingest(options: IngestOptions): Promise<IngestResult> {
         item.decoded?.dispose();
         continue;
       }
-      const near =
-        item.phash && seenPhash.find((h) => hammingDistance(h, item.phash!) <= DUPLICATE_THRESHOLD);
+      // `isDuplicate` rather than a bare distance — B872. It is the one place
+      // that knows a hash can be evidence-free (a flat wall, fog, a gradient),
+      // and comparing distances directly walked straight past that and skipped
+      // every such photograph as a duplicate of the first one seen.
+      const near = item.phash && seenPhash.find((h) => isDuplicate(h, item.phash!));
       if (near) {
         skipped.push({ file: item.file, reason: "duplicate of a photo already in this trip" });
         item.decoded?.dispose();

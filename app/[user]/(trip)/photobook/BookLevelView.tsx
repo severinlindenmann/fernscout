@@ -1,13 +1,17 @@
 "use client";
 
 import { useRef, useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { creditsInRappen, formatChf } from "@/lib/credits/pricing";
 import type { TranslationKey } from "@/lib/i18n";
 import type { BookOptions } from "@/lib/photobook/options";
 import type { MediaTile } from "@/lib/types";
 import BookSettingsPanel, { SIZE_LABEL } from "./BookSettingsPanel";
 import { readingHtml } from "./previewSlice";
-import ReadTheBookView, { useHasKeyboard, useSpreadKeys } from "./ReadTheBookView";
+import ReadTheBookView, {
+  useHasKeyboard,
+  useSpreadKeys,
+} from "./ReadTheBookView";
 
 export type PreviewState = {
   html: string;
@@ -18,12 +22,22 @@ export type PreviewState = {
    * frame is sized from this, so the book is never a letterbox with its own
    * scrollbar. */
   ratio: number;
-  warnings: { code: string; detail: string; count?: number; date?: string; photos?: string[] }[];
+  warnings: {
+    code: string;
+    detail: string;
+    count?: number;
+    date?: string;
+    photos?: string[];
+  }[];
   buyable: boolean;
 } | null;
 
 type T = (key: TranslationKey, vars?: Record<string, string>) => string;
-type Tn = (key: TranslationKey, count: number, vars?: Record<string, string>) => string;
+type Tn = (
+  key: TranslationKey,
+  count: number,
+  vars?: Record<string, string>,
+) => string;
 
 /**
  * One line per kind of warning, in the reader's own words — B549.
@@ -53,9 +67,12 @@ const WARNING_TEXT: [code: string, key: TranslationKey][] = [
 /** How many *things* each code is about, not how many warnings carry it: one
  * `no-original` speaks for every photograph that fell back to a web copy, and
  * says so in `count`. */
-function countByCode(warnings: { code: string; count?: number }[]): Map<string, number> {
+function countByCode(
+  warnings: { code: string; count?: number }[],
+): Map<string, number> {
   const counts = new Map<string, number>();
-  for (const w of warnings) counts.set(w.code, (counts.get(w.code) ?? 0) + (w.count ?? 1));
+  for (const w of warnings)
+    counts.set(w.code, (counts.get(w.code) ?? 0) + (w.count ?? 1));
   return counts;
 }
 
@@ -66,7 +83,9 @@ function countByCode(warnings: { code: string; count?: number }[]): Map<string, 
  * ones, not only how many. Since B701 they are `webSrc`s and are shown as
  * pictures: a path under `content/` named the file but not the photograph.
  */
-function photosByCode(warnings: { code: string; photos?: string[] }[]): Map<string, string[]> {
+function photosByCode(
+  warnings: { code: string; photos?: string[] }[],
+): Map<string, string[]> {
   const photos = new Map<string, string[]>();
   for (const w of warnings) {
     if (!w.photos) continue;
@@ -172,15 +191,11 @@ export default function BookLevelView({
   const unbuyable = preview?.buyable === false;
 
   const sizeName = t(SIZE_LABEL[options.size] ?? "photobook.size.square");
-  const bindingName = t(
-    options.binding === "saddle" ? "photobook.binding.saddle" : "photobook.binding.perfect",
-  );
   const summary = preview
     ? t(preview.volumes > 1 ? "photobook.summaryVolumes" : "photobook.summary", {
         pages: String(preview.pages),
         volumes: String(preview.volumes),
         size: sizeName,
-        binding: bindingName,
       })
     : null;
 
@@ -189,31 +204,24 @@ export default function BookLevelView({
   /**
    * The remedy, not the description — B549's whole point.
    *
-   * `blank-padding` is the one the planner spells out and then declines to
-   * act on: it knows a trip this short wants stapling, and used to print a
-   * paragraph telling the reader to go and find a radio button. Offered here
-   * as a button that sets it.
+   * `blank-padding` used to offer a stapled remedy here; Gelato has no
+   * saddle-stitch product, so a short trip's padding has no button to press —
+   * the planner's warning is the whole of it now.
    *
-   * The resolution pair get the honest half of the same move: a smaller page
+   * The resolution fix is the honest half of the same move: a smaller page
    * needs fewer pixels, so offering the smallest format is a real remedy —
    * but whether it clears every photograph depends on the crop, so the button
    * changes the format and lets the re-plan (400 ms later) answer. It says
    * "print it smaller", never "this will fix it".
    */
   const fixes: { key: TranslationKey; apply: () => void }[] = [];
-  if (counts.has("blank-padding") && options.binding !== "saddle") {
-    fixes.push({
-      key: "photobook.fix.staple",
-      apply: () => setOptions((o) => ({ ...o, binding: "saddle" })),
-    });
-  }
   if (
     (counts.has("low-resolution") || counts.has("no-original") || counts.has("no-large-photo")) &&
-    options.size !== "square-210"
+    options.size !== "square"
   ) {
     fixes.push({
       key: "photobook.fix.smaller",
-      apply: () => setOptions((o) => ({ ...o, size: "square-210" })),
+      apply: () => setOptions((o) => ({ ...o, size: "square" })),
     });
   }
 
@@ -236,12 +244,18 @@ export default function BookLevelView({
         />
       </div>
 
-      <p className="mt-3 text-sm font-semibold text-navy-900">{summary ?? " "}</p>
-      <p className="mt-1 text-xs text-navy-600">{t("photobook.composer.tapHint")}</p>
+      <p className="mt-3 text-sm font-semibold text-navy-900">
+        {summary ?? " "}
+      </p>
+      <p className="mt-1 text-xs text-navy-600">
+        {t("photobook.composer.tapHint")}
+      </p>
       {/* Said only where a keyboard exists — a hint about arrow keys on a
           phone is noise. B561. */}
       {hasKeyboard && (
-        <p className="mt-1 text-xs text-navy-600">{t("photobook.composer.keyHint")}</p>
+        <p className="mt-1 text-xs text-navy-600">
+          {t("photobook.composer.keyHint")}
+        </p>
       )}
 
       {/* The way to read the book before paying for it — B561. Directly under
@@ -255,7 +269,9 @@ export default function BookLevelView({
       >
         {t("photobook.read.open")}
       </button>
-      <p className="mt-1 text-xs text-navy-600">{t("photobook.read.openHint")}</p>
+      <p className="mt-1 text-xs text-navy-600">
+        {t("photobook.read.openHint")}
+      </p>
 
       {/* Nothing at all when there is nothing wrong — B549. */}
       {lines.length > 0 && (
@@ -296,7 +312,9 @@ export default function BookLevelView({
         <summary className="min-h-11 cursor-pointer content-center text-sm font-semibold text-navy-800">
           {t("photobook.composer.bookSettings")}
         </summary>
-        <p className="mt-1 text-xs text-navy-600">{t("photobook.composer.bookSettingsHint")}</p>
+        <p className="mt-1 text-xs text-navy-600">
+          {t("photobook.composer.bookSettingsHint")}
+        </p>
         <div className="mt-3">
           <BookSettingsPanel
             options={options}
@@ -323,7 +341,9 @@ export default function BookLevelView({
         {summary && <p className="mt-1 text-sm text-navy-700">{summary}</p>}
         {/* The one thing about the printed object nobody sees until it
             arrives — B642. */}
-        <p className="mt-1 text-sm text-navy-600">{t("photobook.spine", { spine: spineText })}</p>
+        <p className="mt-1 text-sm text-navy-600">
+          {t("photobook.spine", { spine: spineText })}
+        </p>
         {credits !== null && (
           <p className="mt-2 text-base font-semibold text-navy-900">
             {t("photobook.price", {
@@ -333,13 +353,17 @@ export default function BookLevelView({
           </p>
         )}
         {balance !== null && (
-          <p className="text-sm text-navy-600">{t("photobook.balance", { balance: String(balance) })}</p>
+          <p className="text-sm text-navy-600">
+            {t("photobook.balance", { balance: String(balance) })}
+          </p>
         )}
 
         <p className="mt-3 text-sm text-navy-700">{t("photobook.orderNext")}</p>
         {/* Still a simulation, and it says so before the button rather than
             in the receipt afterwards — B434's rule, applied to a page. */}
-        <p className="mt-2 text-sm text-navy-600">{t("photobook.orderNotPrinted")}</p>
+        <p className="mt-2 text-sm text-navy-600">
+          {t("photobook.orderNotPrinted")}
+        </p>
 
         <form
           method="post"
@@ -353,19 +377,24 @@ export default function BookLevelView({
           {/* B595: the price this screen is showing right now, so
               `order/route.ts` can refuse rather than charge a number that
               silently grew between this render and the press. */}
-          <input type="hidden" name="previewedCredits" value={credits === null ? "" : String(credits)} />
-          <button
+          <input
+            type="hidden"
+            name="previewedCredits"
+            value={credits === null ? "" : String(credits)}
+          />
+          <BusyButton
             type="submit"
+            busy={submitting}
             // Not `tooPoor`: a short balance leaves the button live, and the
             // press comes back `no_credits` from `order/route.ts` before a
             // page is drawn or a credit moves. A dead button is a book the
             // owner cannot see the shape of; this way they meet the price
             // rather than a grey rectangle — B606.
-            disabled={submitting || unbuyable || !preview}
+            disabled={unbuyable || !preview}
             className="min-h-11 w-full rounded-full bg-navy-900 px-5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             {t("photobook.pay")}
-          </button>
+          </BusyButton>
           {/* The build is synchronous and a long trip is tens of seconds of
               PDF rendering — this is the only sign the page gives that the
               press was heard, between the click and the redirect. */}
@@ -374,13 +403,23 @@ export default function BookLevelView({
               {t("photobook.building")}
             </p>
           )}
-          {unbuyable && <p className="mt-2 text-sm text-red-700">{t("photobook.noPhotos")}</p>}
+          {unbuyable && (
+            <p className="mt-2 text-sm text-red-700">
+              {t("photobook.noPhotos")}
+            </p>
+          )}
           {/* Not a dead disabled button: the one place credits are bought is
               the owner's own page, and this is the link to it — B551. */}
           {tooPoor && credits !== null && balance !== null && (
             <p className="mt-2 text-sm text-red-700">
-              {t("photobook.tooPoor", { credits: String(credits), balance: String(balance) })}{" "}
-              <a className="font-semibold underline" href={`/${entryUsername}/me`}>
+              {t("photobook.tooPoor", {
+                credits: String(credits),
+                balance: String(balance),
+              })}{" "}
+              <a
+                className="font-semibold underline"
+                href={`/${entryUsername}/me`}
+              >
                 {t("photobook.getCredits")}
               </a>
             </p>
@@ -398,7 +437,9 @@ export default function BookLevelView({
           onBack={() => setReading(false)}
           onOrder={() => {
             setReading(false);
-            document.getElementById("photobook-order")?.scrollIntoView({ behavior: "smooth" });
+            document
+              .getElementById("photobook-order")
+              ?.scrollIntoView({ behavior: "smooth" });
           }}
           t={t}
         />

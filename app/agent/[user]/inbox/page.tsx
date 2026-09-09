@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import AgentInbox from "@/components/AgentInbox";
+import { COSTS_IMPORTERS } from "@/importers/costs";
 import { isEnabled } from "@/lib/capabilities";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { STATEMENT_CREDITS } from "@/lib/helper/model";
@@ -41,6 +42,7 @@ export default async function AgentInboxPage({ params }: PageProps<"/agent/[user
       username={user}
       items={inboxForWizard(user)}
       trips={tripsForWizard(user)}
+      dedicatedImporters={COSTS_IMPORTERS.map((importer) => importer.label)}
       helper={{
         // Off is absent rather than broken: a location export still imports,
         // a statement from a bank the repository knows still reads, and the

@@ -7,7 +7,9 @@ import { listContacts } from "../contacts";
 import { photobookCredits } from "../credits/pricing";
 import { planBook, type Photobook } from "./plan";
 import { buildBookSource, resolvePrintFile } from "./source";
-import { BOOK_SIZES, SADDLE_STITCH, defaultSpec, portableRule, type BookSpec } from "./spec";
+import { BOOK_SIZES, defaultSpec, productUidFor, type BookSpec } from "./spec";
+import { fetchCoverGeometry } from "./coverGeometry";
+import { outputIntentFor, pdfxReadiness, readIcc } from "./pdfx";
 import { renderCover, renderVolume } from "./render";
 import type { BookOptions } from "./options";
 
@@ -28,9 +30,8 @@ import type { BookOptions } from "./options";
  */
 
 export function specFor(options: BookOptions): BookSpec {
-  const size = BOOK_SIZES[options.size] ?? BOOK_SIZES["square-210"];
-  const spec = defaultSpec(size);
-  return { ...spec, pageCount: options.binding === "saddle" ? SADDLE_STITCH : portableRule() };
+  const size = BOOK_SIZES[options.size] ?? BOOK_SIZES["square"];
+  return defaultSpec(size, options.coverType);
 }
 
 export function planFor(trip: string, options: BookOptions, followers?: string[]): Photobook {
@@ -71,23 +72,94 @@ export async function followerNames(owner: string): Promise<string[]> {
   }
 }
 
-/** Per volume, because each volume is a separate book with its own cover and
- * its own postage. */
-export function priceOf(book: Photobook, options: BookOptions): number {
-  return book.volumes.reduce((sum, v) => sum + photobookCredits(v.interiorPages, options.size), 0);
+/**
+ * Per volume, because each volume is a separate book that has to be laid out.
+ *
+ * It no longer takes the options: building is a flat charge whatever the size
+ * or the cover, since the print step charges the paper from a live quote. The
+ * argument stayed behind for a while after the number stopped depending on
+ * it, which is how a signature starts lying about what a function reads.
+ */
+export function priceOf(book: Photobook): number {
+  return book.volumes.reduce((sum) => sum + photobookCredits(), 0);
 }
 
 export function orderDir(owner: string, orderId: string): string {
   return path.join(contentRoot(), owner, "photobooks", orderId);
 }
 
-export function buildPhotobook(
+/**
+ * Async since B885's follow-up, and only for one line: the cover geometry is
+ * asked of Gelato before anything is drawn.
+ *
+ * A softcover spine is a formula and `computeCoverGeometry` gets it exactly
+ * right. A hardcover's is a table Gelato maintains — 44, 60 and 72 pages give
+ * 6, 6 and 9 mm — so no formula reproduces it, and the offline fallback is an
+ * interpolation between measured rows. For a book somebody is about to pay to
+ * have printed, an interpolation is not good enough: a spine 2 mm narrow
+ * wraps the front image around onto the spine and nobody finds out until the
+ * parcel arrives. So the real answer is fetched, and the fallback is what a
+ * checkout with no API key draws with.
+ */
+/**
+ * Replace each volume's computed cover geometry with Gelato's own, where it
+ * will answer. Silent when it will not — no key, no network, a product it has
+ * never heard of — because a book that cannot be printed today should still
+ * be a book you can look at, and the fallback is close enough to look at.
+ */
+async function applyRealCoverGeometry(book: Photobook, options: BookOptions): Promise<void> {
+  const productUid = productUidFor(options.size, options.coverType);
+  if (!productUid) return;
+  for (const volume of book.volumes) {
+    const real = await fetchCoverGeometry(productUid, volume.interiorPages);
+    if (!real) continue;
+    volume.cover.geometry = real;
+    volume.cover.widthMm = real.sheetWidthMm;
+    volume.cover.heightMm = real.sheetHeightMm;
+    volume.cover.spineWidthMm = real.spineWidthMm;
+    volume.spineWidthMm = real.spineWidthMm;
+  }
+}
+
+/**
+ * The printing condition this instance's books declare, if the operator has
+ * named one.
+ *
+ * **Deliberately not a profile shipped in this repository.** Under PDF/X-4 the
+ * output intent describes where the file is going to be *printed*, not what
+ * colour the content happens to be — Gelato names GRACoL 2006, another
+ * printer names FOGRA51. Bundling one and defaulting to it would make every
+ * book claim conformance against a condition its printer may not use, and a
+ * false claim is worse than none: the claim is what stops anyone checking.
+ *
+ * So the operator drops the file their printer names beside the instance and
+ * sets `PRINT_ICC_PROFILE` to it. With nothing set, a book is an ordinary PDF
+ * with embedded fonts — which is most of the way there — and says so in its
+ * readiness report rather than pretending.
+ *
+ * Read on every build rather than cached: it is one small file, and an
+ * operator who has just installed a profile should not have to restart.
+ */
+function printOutputIntent(): ReturnType<typeof outputIntentFor> | undefined {
+  const at = process.env.PRINT_ICC_PROFILE?.trim();
+  if (!at) return undefined;
+  try {
+    return outputIntentFor(readIcc(new Uint8Array(fs.readFileSync(at))));
+  } catch (err) {
+    // Never fatal. A book that prints without an intent is worth far more
+    // than an order that fails because a profile path has a typo in it.
+    console.warn(`photobook: ignoring PRINT_ICC_PROFILE (${at}):`, (err as Error).message);
+    return undefined;
+  }
+}
+
+export async function buildPhotobook(
   owner: string,
   orderId: string,
   trip: string,
   options: BookOptions,
   followers?: string[],
-): { files: string[]; pages: number; volumes: number; missing: string[] } {
+): Promise<{ files: string[]; pages: number; volumes: number; missing: string[] }> {
   // Built once, not through `planFor`: the document metadata below needs the
   // `BookSource` `planFor` discards, and building it twice would mean two
   // reads of the trip's entries for one order.
@@ -98,20 +170,31 @@ export function buildPhotobook(
   });
   const spec = specFor(options);
   const book = planBook(source, spec, options);
+  await applyRealCoverGeometry(book, options);
   const dir = orderDir(owner, orderId);
   fs.mkdirSync(dir, { recursive: true });
 
-  // Matches `scripts/photobook.ts`'s `document`, minus `outputIntent` and
-  // `pdfxVersion`: those need an ICC profile from a CLI flag with no browser
-  // equivalent, so a book ordered from the button carries no PDF/X output
-  // intent. Everything else — title, author, subject, creator — costs
-  // nothing to set and is what makes this the same file a printer would see
-  // from the CLI, not merely the same pages.
+  // Matches `scripts/photobook.ts`'s `document`, output intent included —
+  // that used to be the one thing the CLI could do and the button could not,
+  // so a book ordered from the page could never claim PDF/X-4 however good
+  // the file was.
+  const intent = printOutputIntent();
+  // The version is claimed only when the audit says every requirement is met,
+  // which is the one place that flag may come from — a file claiming PDF/X-4
+  // that a preflight then fails is worse than a file claiming nothing.
+  const readiness = pdfxReadiness({
+    outputIntent: Boolean(intent),
+    fontsEmbedded: true,
+    cmykContent: false,
+    transparency: false,
+  });
   const document = {
     title: book.title,
     author: source.travellers.join(" & "),
     subject: `${source.trip.start} to ${source.trip.end}`,
     creator: "Fernscout photobook",
+    ...(intent ? { outputIntent: intent } : {}),
+    ...(readiness.version ? { pdfxVersion: readiness.version } : {}),
   };
 
   const loadImage = (file: string) => new Uint8Array(fs.readFileSync(resolvePrintFile(file)));

@@ -16,28 +16,31 @@ Wants=network-online.target
 # report its own failure for weeks.
 OnFailure=fernscout-alert@%n.service
 
-# And the good night is told too (B458). A quiet mailbox is otherwise
-# indistinguishable from a broken alarm — which this deployment has already
-# been once: fernscout-alert@.service was never copied to the server and
-# nobody noticed for two days, because an alarm that works and an alarm that
-# is absent send the same number of messages (B138).
+# **The good night is no longer mailed** (B1085). It used to be: `OnSuccess=`
+# pointed at the same handler, on B458's argument that "a quiet mailbox is
+# otherwise indistinguishable from a broken alarm" — which had already happened
+# here, when fernscout-alert@.service was never copied to the server and nobody
+# noticed for two days, because an alarm that works and an alarm that is absent
+# send the same number of messages (B138).
 #
-# Same handler, same instance name. `scripts/alert.sh` asks systemd which of
-# the two ran it, and treats anything it cannot prove was a success as a
-# failure. In [Unit] for the reason above — [Service] would swallow it.
+# That argument is answered rather than dismissed, and the answer is a page.
+# `/admin` shows when the last backup succeeded and how old that is against the
+# ceiling, so silence is no longer ambiguous: there is somewhere to look that
+# tells "nothing to report" apart from "nothing is running". A mail a night,
+# forever, was the cheapest way to prove liveness and not the only one.
 #
-# Because both directives name the same unit, every run logs:
-#   fernscout-alert@fernscout-backup.service.service: multiple trigger source
-#   candidates for exit status propagation (fernscout-backup.service,
-#   fernscout-backup.service), skipping.
-# That is systemd declining to set MONITOR_EXIT_STATUS and its siblings in the
-# handler's own environment, since it cannot say which of two identical
-# triggers to attribute the status to. Harmless here: `scripts/alert.sh` never
-# reads those variables, it asks `systemctl show` for Result and
-# ExecMainStatus directly. Splitting into two handler units would silence it,
-# at the cost of the one script and one template this duplication buys — not
-# doing that; the price is a log line, not a behaviour (B462).
-OnSuccess=fernscout-alert@%n.service
+# What did NOT change, and is the thing to check before touching this again:
+# the success stamp `/admin` reads is written by `scripts/backup.sh` itself, on
+# its last line, not by the alert handler. Removing the handler removes a mail
+# and nothing else. If a future change moves that stamp into `scripts/alert.sh`,
+# this deletion silently blanks the page.
+#
+# `scripts/alert.sh` keeps its success path, so the rehearsal in
+# deploy/fernscout-alert@.service's comment still works by hand.
+#
+# Removing OnSuccess= also ends the "multiple trigger source candidates" line
+# B462 catalogued: it was systemd declining to attribute an exit status when
+# two identical triggers named the same handler, and there is only one now.
 
 [Service]
 Type=oneshot

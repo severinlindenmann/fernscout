@@ -63,8 +63,14 @@ switched it on speculatively, switch it back off rather than inventing a key.
 DATABASE_URL="sqlite:.local-dev.db" \
 SESSION_SECRET="local-dev-only-not-a-real-secret-000000" \
 FERNSCOUT_ADMIN_EMAIL="agent@fernscout.ch" \
+AUTH_DEV_CODE=123456 \
 PORT=3001 npm run dev > /tmp/dev.log 2>&1 &
 ```
+
+`AUTH_DEV_CODE` fixes every sign-in code to that value (`generateCode()` in
+`lib/auth/index.ts` returns it before it reaches the random path), so step 3
+never has to open a mail. Set it here and nowhere else — it is a development
+switch, and an instance that has it set has no sign-in security at all.
 
 Use a port other than 3000 so you do not fight the main checkout's server.
 Config is read at boot — **restart after every `config.json` edit**, or you will
@@ -87,13 +93,18 @@ curl -s -X POST http://localhost:3001/api/auth/request \
   -d '{"user":"example","email":"agent@fernscout.ch"}'
 ```
 
-The code is in the newest `.eml` under `content/<user>/mail/`, and the body is
-base64 — grepping the file for six digits finds the wrong thing. Decode first:
+With `AUTH_DEV_CODE` set, the code is `123456` and there is nothing to read.
+
+Without it, the code is in the newest `.eml` under **`.data/mail/<user>/`** —
+`dataDir()` is `DATA_DIR` or `<cwd>/.data` (`lib/dataDir.ts`), and mail has not
+been under `content/<user>/mail/` since B636. Four sessions in one week searched
+the old path, `.local-dev-data/`, and finally `find .. -name '*.eml'`. The body
+is base64, so grepping the raw file for six digits finds the wrong number:
 
 ```bash
-f=$(ls -t content/example/mail/*.eml | head -1)
+f=$(ls -t .data/mail/example/*.eml | head -1)
 python3 -c "
-import sys,base64,re
+import base64,re
 raw=open('$f',encoding='utf-8',errors='replace').read()
 for b in re.findall(r'[A-Za-z0-9+/=]{40,}',raw):
     try:
@@ -103,6 +114,9 @@ for b in re.findall(r'[A-Za-z0-9+/=]{40,}',raw):
     except Exception: pass
 "
 ```
+
+A signup code belongs to no journal yet and lands in `.data/mail/.mail/`
+instead.
 
 Then verify into a cookie jar:
 
@@ -172,12 +186,61 @@ Assert what the ticket claims, not that the page rendered:
   hydration mismatch shows up nowhere else, and one shipped here because the
   stored arrangement was read in a `useState` initialiser instead of an effect.
 
+## The short way: one command, four kinds of evidence
+
+Everything above is the setup — a database, a capability, a sign-in, a cookie.
+Once you have those, **the looking itself is one command**, and it is the same
+command a dispatched subagent can run, which the MCP browser is not:
+
+```bash
+node .claude/skills/test-in-a-browser/check-page.mjs \
+    http://localhost:3011/example/trips/alps-2024 /tmp/shots \
+    --cookie "fs_session=$(grep fs_session /tmp/wt-cookies.txt | awk '{print $7}')"
+```
+
+It writes `<slug>-1280.png`, `<slug>-390.png` and `<slug>.json`, and the JSON
+is the half that matters: `innerText` as a reader meets it, `consoleErrors`,
+`failedRequests`, `status`, `title`. It exits non-zero on a 5xx or a failed
+navigation, so a run can gate on it.
+
+**Read the JSON as well as looking at the picture.** A page is the one thing an
+agent can genuinely check its own work on, and it is only true because a page
+hands back its text, its console and its requests beside the image. A
+screenshot on its own is a thing to have an opinion about.
+
+**And do not read the served markup instead.** `curl` on a trip page contains
+almost every word the page renders — plus JSON-LD, script payloads and markup
+the animation has not revealed — so a grep that finds a word has learned
+nothing about whether anybody sees it. B1097.
+
+Flags: `--widths 1280,390`, `--wait 2000` (after load, for debounced work),
+`--cookie name=value` repeatable, `--slug name` to control the filenames.
+`CHROME_PATH` if Chrome is not in the usual place.
+
 ## When you are done
 
 - Revert the config edits (above).
 - Stop the server: `pkill -f "next dev"`.
 - Delete any probe test file you wrote. A test that reads `content/` is not one
   to commit — those are real people's trips, and the suite stays off disk.
+
+## Open something that was already there
+
+The last step, and the one worth protecting: after the capability is on and
+the panel renders, **open a page nobody made for this test** — an existing
+day, an existing trip, the demo journal as it stood before your branch.
+
+A fixture you wrote to exercise a feature satisfies every condition the
+feature needs, because you wrote it that way. Real content does not. B42's
+second clock drew perfectly on the two days its own change had edited and on
+nothing else in the world, because the field that switches it on was empty
+everywhere else; the suite was green and the feature was inert. B1090.
+
+Two questions answer it:
+
+- On a page you did not touch, is the new thing there?
+- If it is deliberately absent, is that the designed absence, or is it absent
+  because nothing ever fills in what it needs?
 
 ## What this cannot tell you
 

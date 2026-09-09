@@ -141,7 +141,7 @@ afterAll(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("the owner's own contact row", () => {
+describe("the owner's own contact row", { shuffle: false }, () => {
   test("one call makes it, already confirmed and approved, with nothing mailed", async () => {
     const created = await admin({ action: "self" }, await tokenFor(OWNER_EMAIL));
     expect(created.status).toBe(200);
@@ -203,7 +203,7 @@ describe("the owner's own contact row", () => {
   });
 });
 
-describe("the journal's own name", () => {
+describe("the journal's own name", { shuffle: false }, () => {
   test("the owner can change it, and clearing it is refused", async () => {
     const token = await tokenFor(OWNER_EMAIL);
 

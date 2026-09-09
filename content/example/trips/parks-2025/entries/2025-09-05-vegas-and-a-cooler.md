@@ -30,6 +30,7 @@ translations:
       
       Wir waren nicht in der Nähe des Strip. Das fühlte sich nach dem richtigen Anfang an.
 weatherData: { tempMin: 23.4, tempMax: 34.6, code: 51, precipitation: 0.2, windMax: 10.5, source: "open-meteo", recordedAt: "2026-09-06T08:32:18.914Z" }
+timezone: "America/Los_Angeles"
 ---
 
 Landed at four, collected a white sedan that looked like every other white sedan in the lot, and spent an hour in a supermarket the size of an airport buying a cooler.

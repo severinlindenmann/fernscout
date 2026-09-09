@@ -6,8 +6,9 @@ import { NO_PROSE } from "@/lib/helper/draft";
 import { dayForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/helper/server";
 import { requestLocale } from "@/lib/locales";
 import { parsePhotoVisibility } from "@/lib/photos";
-import { missingFrom, TRACKS, UNKNOWN, type Track } from "@/lib/tracks";
+import { declinesIn, missingFrom } from "@/lib/tracks";
 import { getTrip, tripRef } from "@/lib/trips";
+import { refused, wrote } from "@/lib/helper/thread";
 
 export const dynamic = "force-dynamic";
 
@@ -36,30 +37,6 @@ export const dynamic = "force-dynamic";
  * written by this route is a draft, exactly as everything an agent writes is.
  */
 
-type Answer = "none" | "unknown";
-
-/**
- * The three answers a trip can ask a day for, and the two ways to say a day
- * has none of it — `lib/tracks.ts`.
- *
- * They travel as words rather than as `false`/`"unknown"` so that the wizard's
- * buttons and this parser cannot drift; the values below are the ones the
- * writer actually understands. `"none"` is a statement ("nothing was spent"),
- * `"unknown"` is the other one ("money was spent and nobody has the figures"),
- * and the difference is B540's — a decline that means "I do not know" is a
- * sentence somebody's journal will carry as fact.
- */
-function declines(raw: unknown): Partial<Record<Track, false | typeof UNKNOWN>> {
-  const given = (raw ?? {}) as Record<string, unknown>;
-  const out: Partial<Record<Track, false | typeof UNKNOWN>> = {};
-  for (const key of TRACKS) {
-    const said = given[key] as Answer | undefined;
-    if (said === "none") out[key] = false;
-    else if (said === "unknown") out[key] = UNKNOWN;
-  }
-  return out;
-}
-
 /** 404 for a journal that is not this reader's, the same answer as for one
  *  that does not exist — a wizard URL must not confirm whose journal it is. */
 async function gate(request: Request, user: string): Promise<Response | null> {
@@ -87,8 +64,8 @@ function state(user: string, trip: string, slug: string): Response {
 
 export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
   const { user } = await params;
-  const refused = await gate(request, user);
-  if (refused) return refused;
+  const gated = await gate(request, user);
+  if (gated) return gated;
 
   const url = new URL(request.url);
   const trip = url.searchParams.get("trip") ?? "";
@@ -119,8 +96,8 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
  */
 export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
   const { user } = await params;
-  const refused = await gate(request, user);
-  if (refused) return refused;
+  const gated = await gate(request, user);
+  if (gated) return gated;
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return Response.json({ error: "invalid_json" }, { status: 400 });
@@ -128,7 +105,10 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   const tripId = text(body.trip) ?? "";
   const ref = tripRef(user, tripId);
   const trip = getTrip(ref);
-  if (!trip) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  if (!trip) {
+    refused(user, "start_day", "unknown_trip");
+    return Response.json({ error: "unknown_trip" }, { status: 404 });
+  }
 
   const date = text(body.date) ?? "";
   const lat = number(body.lat);
@@ -151,7 +131,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     // B325 — a request for a lookup, never an answer. The archive is asked
     // below, once the day is on disk.
     weather: true,
-    ...declines(body.answers),
+    ...declinesIn(body),
   };
 
   // The same gate `POST /api/v1/.../days` applies, asked here so the wizard
@@ -159,6 +139,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   // handing somebody a 422 they cannot act on.
   const missing = missingFrom(factsOfInput(input), trip.tracks, "write");
   if (missing.length > 0) {
+    refused(user, "start_day", "incomplete_day");
     return Response.json(
       { error: "incomplete_day", missing: missing.map((m) => m.field) },
       { status: 422 },
@@ -167,10 +148,18 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
 
   const written = createDraft(ref, input);
   if (!written.ok) {
-    return Response.json({ error: written.error }, { status: written.bug ? 500 : 400 });
+    // `code`, when present, is the stable identifier `failureSentence()` in
+    // `components/HelperAsk.tsx` can turn into a sentence — B785. `error`
+    // itself is an English sentence written for an agent reading
+    // `/api/v1/…`, and this route is read by a person on a possibly-German
+    // screen.
+    const answer = written.code ?? written.error;
+    refused(user, "start_day", answer);
+    return Response.json({ error: answer }, { status: written.bug ? 500 : 400 });
   }
   await fillDayWeatherQuietly(ref, written.slug);
 
+  wrote(user, "start_day", { trip: tripId, slug: written.slug, date });
   return Response.json({ ok: true, trip: tripId, slug: written.slug }, { status: 201 });
 }
 
@@ -190,15 +179,18 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
  */
 export async function PATCH(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
   const { user } = await params;
-  const refused = await gate(request, user);
-  if (refused) return refused;
+  const gated = await gate(request, user);
+  if (gated) return gated;
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return Response.json({ error: "invalid_json" }, { status: 400 });
 
   const tripId = text(body.trip) ?? "";
   const ref = tripRef(user, tripId);
-  if (!getTrip(ref)) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  if (!getTrip(ref)) {
+    refused(user, "set_day_words", "unknown_trip");
+    return Response.json({ error: "unknown_trip" }, { status: 404 });
+  }
   const slug = text(body.slug) ?? "";
 
   // Captions, keyed by `src` — how a person keeps or edits what
@@ -234,15 +226,18 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/hel
     ...(typeof body.content === "string" ? { content: body.content } : {}),
     ...(captions ? { captions } : {}),
     ...(photoVisibility ? { photoVisibility } : {}),
-    ...declines(body.answers),
+    ...declinesIn(body),
   };
   if (Object.keys(input).length === 0) {
+    refused(user, "set_day_words", "nothing_to_change");
     return Response.json({ error: "nothing_to_change" }, { status: 400 });
   }
 
   const edited = editEntry(ref, slug, input);
   if (!edited.ok) {
+    refused(user, "set_day_words", edited.error);
     return Response.json({ error: edited.error }, { status: edited.bug ? 500 : 400 });
   }
+  wrote(user, "set_day_words", { trip: tripId, slug, changed: Object.keys(input) });
   return state(user, tripId, slug);
 }

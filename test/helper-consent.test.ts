@@ -81,6 +81,33 @@ describe("B743 — a provider per scope", () => {
   });
 });
 
+describe("B750 — a consented provider is checked against the one now configured", () => {
+  // With no site config written in this file, `speechProvider()` reports
+  // "dry-run" — the same default `lib/config.ts` uses when nothing is set.
+  // Consenting to speech going to "Deepgram" therefore names a provider the
+  // instance is not actually configured to use right now, the same shape as
+  // an operator switching the backend out from under a standing consent.
+
+  test("a scope granted under one provider is not honoured under a different one", () => {
+    recordHelperConsent("alex", "Deepgram", "speech");
+    expect(helperConsent("alex")?.scopes).toContain("speech"); // still recorded as granted...
+    expect(hasHelperConsent("alex", "speech")).toBe(false); // ...but "Deepgram" != "dry-run".
+  });
+
+  test("consenting to whatever is configured now is honoured", () => {
+    recordHelperConsent("alex", "dry-run", "speech");
+    expect(hasHelperConsent("alex", "speech")).toBe(true);
+  });
+
+  test("a mismatch on one scope leaves the others untouched", () => {
+    recordHelperConsent("alex", "Deepgram", "speech");
+    recordHelperConsent("alex", "Anthropic", "words");
+
+    expect(hasHelperConsent("alex", "speech")).toBe(false); // "Deepgram" != "dry-run"
+    expect(hasHelperConsent("alex", "words")).toBe(true); // HELPER_PROVIDER is "Anthropic"
+  });
+});
+
 describe("B735 — withdrawing one scope leaves the others standing", () => {
   test("revoking photos leaves words consent in place, and genuinely removes photos", () => {
     recordHelperConsent("alex", "Anthropic", "words");
@@ -98,12 +125,34 @@ describe("B735 — withdrawing one scope leaves the others standing", () => {
     expect(helperConsent("alex")?.providers.words).toBe("Anthropic");
   });
 
-  test("revoking the last scope removes the file entirely", () => {
+  /**
+   * The file used to be deleted when its last scope went, and that was right
+   * while every scope was off until somebody said yes: an absent file and a
+   * file saying no meant the same thing.
+   *
+   * **B976 gave one scope a different default.** `sessions` starts on, so a
+   * person turning it off is the only thing worth recording — and deleting
+   * the file would have handed it back on next time anybody looked. So the
+   * file survives to hold the no, with no scopes agreed to and nothing else
+   * in it.
+   */
+  test("revoking the last scope leaves a file that remembers the no", () => {
     recordHelperConsent("alex", "Anthropic", "words");
     revokeHelperConsent("alex", "words");
 
-    expect(helperConsent("alex")).toBeNull();
-    expect(fs.existsSync(consentFile())).toBe(false);
+    const after = helperConsent("alex");
+    expect(after?.scopes).toEqual([]);
+    expect(after?.declined).toEqual(["words"]);
+    expect(fs.existsSync(consentFile())).toBe(true);
+  });
+
+  test("and saying yes again takes the no back", () => {
+    revokeHelperConsent("alex", "words");
+    recordHelperConsent("alex", "Anthropic", "words");
+
+    const after = helperConsent("alex");
+    expect(after?.scopes).toEqual(["words"]);
+    expect(after?.declined ?? []).toEqual([]);
   });
 
   test("revoking a scope nobody agreed to is a no-op on the others", () => {

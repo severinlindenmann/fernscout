@@ -9,7 +9,7 @@ import { approveContact, confirmContact, requestContact } from "@/lib/contacts";
 import { issueCode } from "@/lib/auth";
 import { balanceOf, grant, ledgerFor } from "@/lib/credits";
 import { POSTCARD_CREDITS } from "@/lib/credits/pricing";
-import { postcardCandidates } from "@/lib/postcard/contacts";
+import { addressesFor, postcardCandidates } from "@/lib/postcard/contacts";
 import {
   createOrder,
   getOrder,
@@ -18,6 +18,7 @@ import {
   ORDER_TTL_MS,
 } from "@/lib/postcard/orders";
 import { sendOrder } from "@/lib/postcard/send";
+import { updateOrderRecipients } from "@/lib/postcard/orders";
 import { MAX_CROP_ZOOM } from "@/lib/postcard/spec";
 import { makeJpeg } from "./support/exif-jpeg";
 import { backToPreview } from "@/lib/postcard/redirectBack";
@@ -64,6 +65,8 @@ beforeEach(async () => {
   process.env.DATA_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "orders.db")}`;
   process.env.CONTACTS_ENCRYPTION_KEY = KEY;
+  // B938: contacts needs auth, and auth needs this.
+  process.env.SESSION_SECRET = "postcard-orders-secret-b938";
   delete process.env.AUTH_DEV_CODE;
 
   fs.writeFileSync(
@@ -74,6 +77,9 @@ beforeEach(async () => {
       features: {
         credits: { enabled: true },
         postcards: { enabled: true, provider: "dry-run" },
+        // B938: contacts needs auth. A postcard goes to somebody who asked
+        // this journal for one, and asking is a session.
+        auth: { enabled: true },
         contacts: { enabled: true },
         // B467's receipt. `file` writes .eml under <DATA_DIR>/mail/<user>,
         // which is what the address assertions below read.
@@ -114,6 +120,7 @@ afterEach(async () => {
   delete process.env.CONTENT_DIR;
   delete process.env.DATA_DIR;
   delete process.env.DATABASE_URL;
+  delete process.env.SESSION_SECRET;
   delete process.env.CONTACTS_ENCRYPTION_KEY;
   clearConfigCache();
   clearUserCache();
@@ -324,6 +331,71 @@ describe("correcting the words before it goes", () => {
   });
 });
 
+/**
+ * B1005 — the people stopped being frozen at creation.
+ *
+ * The preview page used to list them and say that changing them meant
+ * composing another order, which it said underneath the writing. Nothing in
+ * the send path required it: `recipients` is read once, at send. What must
+ * still hold is everything around that — the same draft-only guard the words
+ * and the crop carry, and the promise that a card only ever goes to somebody
+ * who asked this journal for one, which is the route's job and is asserted
+ * against the route in `test/postcard-recipients-route.test.ts`.
+ */
+describe("changing who a card is going to — B1005", () => {
+  test("the list is editable while it is a draft, and nothing else moves", async () => {
+    const one = await reader("first@example.test");
+    const two = await reader("second@example.test");
+    await grant(OWNER, 200);
+    const made = await order([one]);
+
+    expect(await updateOrderRecipients(OWNER, made.id, [one, two])).toBe(true);
+
+    const again = await getOrder(OWNER, made.id);
+    expect(again?.payload.recipients).toEqual([one, two]);
+    // The words, the photograph and the price per card are untouched — this
+    // changes who, and only who.
+    expect(again?.payload.message).toBe(made.payload.message);
+    expect(again?.payload.photo).toBe(made.payload.photo);
+    expect(again?.payload.creditsEach).toBe(made.payload.creditsEach);
+  });
+
+  test("the same person twice is one card, not two at twice the price", async () => {
+    const one = await reader("dupe@example.test");
+    await grant(OWNER, 200);
+    const made = await order([one]);
+    expect(await updateOrderRecipients(OWNER, made.id, [one, one])).toBe(true);
+    expect((await getOrder(OWNER, made.id))?.payload.recipients).toEqual([one]);
+  });
+
+  test("an empty list is refused rather than stored", async () => {
+    const one = await reader("empty@example.test");
+    await grant(OWNER, 200);
+    const made = await order([one]);
+    expect(await updateOrderRecipients(OWNER, made.id, [])).toBe(false);
+    expect((await getOrder(OWNER, made.id))?.payload.recipients).toEqual([one]);
+  });
+
+  test("a card that has gone cannot be readdressed", async () => {
+    const one = await reader("gone@example.test");
+    const two = await reader("late@example.test");
+    await grant(OWNER, 200);
+    const made = await order([one]);
+    await sendOrder(OWNER, made.id);
+
+    expect(await updateOrderRecipients(OWNER, made.id, [two])).toBe(false);
+    expect((await getOrder(OWNER, made.id))?.payload.recipients).toEqual([one]);
+  });
+
+  test("one journal cannot readdress another's order", async () => {
+    const one = await reader("mine3@example.test");
+    await grant(OWNER, 200);
+    const made = await order([one]);
+    expect(await updateOrderRecipients("someone-else", made.id, [])).toBe(false);
+    expect((await getOrder(OWNER, made.id))?.payload.recipients).toEqual([one]);
+  });
+});
+
 describe("repositioning the crop before it goes — B627", () => {
   test("absent until dragged, and then a fraction pair", async () => {
     const contact = await reader("crop@example.test");
@@ -401,6 +473,21 @@ describe("what an agent may learn", () => {
     expect(JSON.stringify(candidates)).not.toContain("8001");
   });
 
+  /**
+   * B1018 — the fact the preview page's send step now rests on.
+   *
+   * It resolves an envelope for every *candidate*, not only for the people
+   * already named on the order, because the owner can tick somebody new and
+   * that person is the one whose address they want to check. If `addressesFor`
+   * ever narrowed to "on an order", the disclosure would silently vanish for
+   * exactly the recipient it is for.
+   */
+  test("an address comes back for anybody eligible, order or no order", async () => {
+    const never = await reader("never-ordered@example.test");
+    const envelopes = await addressesFor(OWNER, [never]);
+    expect(envelopes.get(never)?.line1).toBe(ADDRESS.line1);
+  });
+
   test("no route under app/api can send an order", () => {
     // The enforcement is structural — the only caller of `sendOrder` is the
     // owner's own page route — so this is the assertion that keeps it that
@@ -452,6 +539,28 @@ describe("coming back from a form", () => {
   test("a username or id with a slash in it cannot escape the path", () => {
     const location = backToPreview("ana/../bob", "a b", "x").headers.get("location")!;
     expect(location).toBe("/ana%2F..%2Fbob/postcards/a%20b?result=x#send");
+  });
+
+  /**
+   * B982 — the same route, asked a different way.
+   *
+   * The send is a `fetch` from the page now, and a 303 to a document is not an
+   * answer a `fetch` can read. What must not drift is that the JSON branch is
+   * a second *phrasing* and never a second set of decisions: same guards, same
+   * words. The bearer refusal above it is what proves the agent door is still
+   * shut whichever `accept` header it carries.
+   */
+  test("an agent token is still refused whatever it asks for", async () => {
+    const { POST } = await import("@/app/[user]/postcards/[id]/send/route");
+    const response = await POST(
+      new Request("http://x/ana/postcards/abc/send", {
+        method: "POST",
+        headers: { accept: "application/json", authorization: "Bearer t" },
+      }),
+      { params: Promise.resolve({ user: OWNER, id: "abc" }) },
+    );
+    expect(response.status).toBe(403);
+    expect((await response.json()).error).toBe("not_for_agents");
   });
 
   test("neither form route builds an absolute redirect", () => {

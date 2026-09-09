@@ -387,7 +387,7 @@ describe("issuing a link", () => {
   });
 });
 
-describe("redeeming a guest link", () => {
+describe("redeeming a guest link", { shuffle: false }, () => {
   const OMA = "oma@example.test";
   let link = "";
   let inviteId = "";
@@ -512,7 +512,7 @@ describe("redeeming a guest link", () => {
   });
 });
 
-describe("redeeming a buddy link", () => {
+describe("redeeming a buddy link", { shuffle: false }, () => {
   const ROBIN = "robin@example.test";
   let link = "";
 
@@ -611,7 +611,7 @@ describe("redeeming a buddy link", () => {
  * sent to `/{user}/c/<token>` afterwards for the one thing the whole feature
  * exists for: somewhere to send a postcard.
  */
-describe("redeeming a guest link, with a postal address", () => {
+describe("redeeming a guest link, with a postal address", { shuffle: false }, () => {
   let link = "";
 
   const ADDRESS = {
@@ -789,7 +789,7 @@ describe("redeeming a guest link, with a postal address", () => {
   });
 });
 
-describe("somebody who already owns a journal on this instance", () => {
+describe("somebody who already owns a journal on this instance", { shuffle: false }, () => {
   let guestLink = "";
   let buddyLink = "";
 
@@ -1093,7 +1093,7 @@ describe("a journal created through the API can share itself", () => {
  * two: a brand-new reader's answer is honoured, and a returning reader's is
  * untouchable even by a request built by hand.
  */
-describe("redeeming a guest link, and the digest tick", () => {
+describe("redeeming a guest link, and the digest tick", { shuffle: false }, () => {
   let link = "";
 
   const ADDRESS = {

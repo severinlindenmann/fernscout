@@ -20,6 +20,7 @@ import {
 import { countryCodeFor } from "../flags";
 import type { TranslationKey } from "../i18n";
 import { translateIn } from "../locales";
+import { getUser } from "../users";
 // The same splicer ingest uses. One way of writing a gallery into an entry
 // that already exists, so the two doors cannot drift apart in how they format
 // it or in what they preserve of a file somebody has since edited.
@@ -47,6 +48,7 @@ import {
 import { tripGaps } from "./tripGaps";
 import { quoteScalar } from "../validate/frontmatter";
 import { type DayWeather, weatherLine } from "../weather";
+import { timezoneForCoordinates } from "../timezone";
 
 /**
  * Writing content through the API.
@@ -65,12 +67,21 @@ import { type DayWeather, weatherLine } from "../weather";
 
 /** One logged cost, as a caller sends it. Named because `DraftInput["costs"]`
  * stopped being only a list when B531 gave it `false` — see there. */
-export type CostInput = { label: string; amount: number; currency?: string; category?: string };
+export type CostInput = {
+  label: string;
+  amount: number;
+  currency?: string;
+  category?: string;
+};
 
 export type DraftInput = {
   title: string;
   date: string;
   time?: string;
+  /** The IANA name `time` is local to — B42. Validated by
+   * `lib/validate/entry.ts`'s `checkTimezone`; absent means the feed and the
+   * dual clock fall back to the journal's own zone rather than guessing. */
+  timezone?: string;
   location?: string;
   country?: string;
   /**
@@ -179,6 +190,13 @@ export type DraftInput = {
    * days route.
    */
   idempotency_key?: string;
+  /**
+   * Run every check the real POST runs and write nothing — no draft, no
+   * idempotency record, no media move. `false` or absent behaves exactly as
+   * before. Never written to the file, and never read by `createDraft`: the
+   * days route returns before calling it. See B537.
+   */
+  dryRun?: boolean;
 };
 
 export type WriteResult =
@@ -196,13 +214,21 @@ export type WriteResult =
    * caller's, so a door that speaks in status codes can say 500 instead of
    * blaming the request (B208). Absent on every refusal a caller can fix by
    * sending something else.
+   *
+   * `code` is a stable identifier for a refusal whose `error` is an English
+   * sentence written for an agent reading `/api/v1/…` — B785. The helper
+   * routes under `app/api/helper/` are read by a person on a possibly-German
+   * screen, and `error` here must stay the sentence an over-the-network agent
+   * matches against, so a helper route prefers `code` when one is present
+   * rather than translating `error` itself. Absent on every refusal whose
+   * `error` is already a stable code (`"unknown_trip"` and the like) — there
+   * is nothing for `code` to add there.
    */
-  | { ok: false; error: string; bug?: true };
+  | { ok: false; error: string; code?: string; bug?: true };
 
 /** A delete has no file left to name. */
 export type DeleteResult =
-  | { ok: true; slug: string; published: boolean }
-  | { ok: false; error: string };
+  { ok: true; slug: string; published: boolean } | { ok: false; error: string };
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
@@ -241,7 +267,8 @@ function resolveCostCurrency(
   place: { country?: string; lat?: number; lng?: number },
   baseCurrency: string,
 ): string {
-  const byCountry = CURRENCY_FOR_COUNTRY[countryCodeFor(place.country ?? "") ?? ""];
+  const byCountry =
+    CURRENCY_FOR_COUNTRY[countryCodeFor(place.country ?? "") ?? ""];
   if (byCountry) return byCountry;
   // `Number.isFinite`, not `typeof`: an edit reads `lat` off a file that may
   // not carry one, and `Number(undefined)` is a NaN that is typed `number`.
@@ -298,7 +325,9 @@ export function costLines(costs: CostInput[] | undefined): string[] {
         `label: ${quote(cost.label)}`,
         `amount: ${cost.amount}`,
         `category: ${quote(cost.category?.trim() || "other")}`,
-        ...(cost.currency?.trim() ? [`currency: ${quote(cost.currency.trim().toUpperCase())}`] : []),
+        ...(cost.currency?.trim()
+          ? [`currency: ${quote(cost.currency.trim().toUpperCase())}`]
+          : []),
       ];
       return `  - { ${fields.join(", ")} }`;
     }),
@@ -351,7 +380,10 @@ export function validateDraft(input: Partial<DraftInput>): string | null {
   }
   for (const key of ["lat", "lng"] as const) {
     const value = input[key];
-    if (value !== undefined && (typeof value !== "number" || Number.isNaN(value))) {
+    if (
+      value !== undefined &&
+      (typeof value !== "number" || Number.isNaN(value))
+    ) {
       return `${key} must be a number`;
     }
   }
@@ -402,7 +434,8 @@ function draftDoesNotReadBack(file: string, input: DraftInput): string | null {
   try {
     data = matter(fs.readFileSync(file, "utf8")).data;
   } catch (err) {
-    const said = err instanceof Error ? err.message.split("\n")[0] : String(err);
+    const said =
+      err instanceof Error ? err.message.split("\n")[0] : String(err);
     return `its frontmatter does not parse (${said})`;
   }
   if (String(data.title ?? "") !== input.title) {
@@ -466,7 +499,10 @@ function answerFor(input: Partial<DraftInput>, key: Track): unknown {
  * call, so no write can carry a photograph. `missingFrom` only asks about the
  * publish-time rows when it is publishing, so nothing is refused for it.
  */
-export function factsOfInput(input: Partial<DraftInput>, declined: Track[] = declinedIn(input)): DayFacts {
+export function factsOfInput(
+  input: Partial<DraftInput>,
+  declined: Track[] = declinedIn(input),
+): DayFacts {
   return {
     costs: Array.isArray(input.costs) && input.costs.length > 0,
     coordinates: typeof input.lat === "number" && typeof input.lng === "number",
@@ -499,7 +535,11 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
   const file = path.join(dir, `${input.date}-${slug}.md`);
 
   if (fs.existsSync(file)) {
-    return { ok: false, error: `an entry already exists at ${input.date}-${slug}` };
+    return {
+      ok: false,
+      code: "day_exists",
+      error: `an entry already exists at ${input.date}-${slug}`,
+    };
   }
 
   /*
@@ -528,6 +568,7 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
   if (taken) {
     return {
       ok: false,
+      code: "slug_taken",
       error:
         `an entry already exists with the slug "${slug}" in this trip — ${taken}. ` +
         "A slug is a day's address within its trip and only one day can hold it, so a " +
@@ -542,17 +583,31 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
     journalBaseCurrency(ref),
   );
 
+  // B1090: a day that carries where it happened gets its zone worked out from
+  // that, not left for the reader to guess. An explicit `timezone:` always
+  // wins; a day with no coordinates gets none, same as before this ticket.
+  const timezone =
+    input.timezone ??
+    (input.lat !== undefined && input.lng !== undefined
+      ? timezoneForCoordinates(input.lat, input.lng)
+      : undefined);
+
   const lines = [
     "---",
     `title: ${quote(input.title)}`,
     `date: ${quote(input.date)}`,
     ...(input.time ? [`time: ${quote(input.time)}`] : []),
+    ...(timezone ? [`timezone: ${quote(timezone)}`] : []),
     ...(input.location ? [`location: ${quote(input.location)}`] : []),
     ...(input.country ? [`country: ${quote(input.country)}`] : []),
-    ...(input.countryCode ? [`countryCode: ${quote(input.countryCode.toUpperCase())}`] : []),
+    ...(input.countryCode
+      ? [`countryCode: ${quote(input.countryCode.toUpperCase())}`]
+      : []),
     ...(input.lat !== undefined ? [`lat: ${input.lat}`] : []),
     ...(input.lng !== undefined ? [`lng: ${input.lng}`] : []),
-    ...(input.tags?.length ? [`tags: [${input.tags.map(quote).join(", ")}]`] : []),
+    ...(input.tags?.length
+      ? [`tags: [${input.tags.map(quote).join(", ")}]`]
+      : []),
     ...(input.transportMode
       ? [
           `transportMode: ${quote(input.transportMode)}`,
@@ -628,7 +683,13 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
     };
   }
 
-  return { ok: true, slug, file, status: "draft", ...(costCurrency ? { costCurrency } : {}) };
+  return {
+    ok: true,
+    slug,
+    file,
+    status: "draft",
+    ...(costCurrency ? { costCurrency } : {}),
+  };
 }
 
 /**
@@ -658,7 +719,8 @@ export function attachGallery(
   ref: string,
   slug: string,
   items: GalleryItem[],
-): { ok: true; attached: number } | { ok: false; error: string; bug?: boolean } {
+):
+  { ok: true; attached: number } | { ok: false; error: string; bug?: boolean } {
   if (items.length === 0) return { ok: true, attached: 0 };
 
   const dir = path.join(tripDir(ref), "entries");
@@ -668,9 +730,7 @@ export function attachGallery(
   } catch {
     return { ok: false, error: `no entry "${slug}" in this trip` };
   }
-  const match = files.find(
-    (f) => entrySlugFromFile(f) === slug,
-  );
+  const match = files.find((f) => entrySlugFromFile(f) === slug);
   if (!match) return { ok: false, error: `no entry "${slug}" in this trip` };
 
   const file = path.join(dir, match);
@@ -695,7 +755,8 @@ export function attachGallery(
   try {
     void matter(spliced).data;
   } catch (err) {
-    const said = err instanceof Error ? err.message.split("\n")[0] : String(err);
+    const said =
+      err instanceof Error ? err.message.split("\n")[0] : String(err);
     return {
       ok: false,
       bug: true,
@@ -713,7 +774,9 @@ export function attachGallery(
   // since moved past, which would otherwise silently take that writer's
   // change down with it.
   if (!fileUnchangedSince(file, raw)) {
-    console.warn(`[entries] ${ref}/${slug}: refused a gallery write — the day changed under it.`);
+    console.warn(
+      `[entries] ${ref}/${slug}: refused a gallery write — the day changed under it.`,
+    );
     return {
       ok: false,
       error:
@@ -746,20 +809,26 @@ export function attachGallery(
  * same file's `getEntryBySlug` read back, so reaching either case here would
  * be a bug in that match, not a caller mistake to explain to an agent.
  */
-function removeGalleryItems(markdown: string, keys: Set<string>): string | null {
+function removeGalleryItems(
+  markdown: string,
+  keys: Set<string>,
+): string | null {
   const lines = markdown.split("\n");
   if (lines[0]?.trim() !== "---") return null;
   let closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
   if (closing < 0) return null;
 
-  const galleryAt = lines.findIndex((line, i) => i > 0 && i < closing && /^gallery:\s*$/.test(line));
+  const galleryAt = lines.findIndex(
+    (line, i) => i > 0 && i < closing && /^gallery:\s*$/.test(line),
+  );
   if (galleryAt < 0) return null;
 
   let end = galleryAt + 1;
   while (end < closing && /^\s+\S/.test(lines[end])) end++;
 
   const starts: number[] = [];
-  for (let i = galleryAt + 1; i < end; i++) if (/^\s*-\s/.test(lines[i])) starts.push(i);
+  for (let i = galleryAt + 1; i < end; i++)
+    if (/^\s*-\s/.test(lines[i])) starts.push(i);
 
   for (let n = starts.length - 1; n >= 0; n--) {
     const from = starts[n];
@@ -767,7 +836,10 @@ function removeGalleryItems(markdown: string, keys: Set<string>): string | null 
     const item = lines.slice(from, to);
     const srcAt = item.findIndex((line) => /^\s*-?\s*src:/.test(line));
     if (srcAt < 0) continue;
-    const src = item[srcAt].replace(/^\s*-?\s*src:\s*/, "").trim().replace(/^["']|["']$/g, "");
+    const src = item[srcAt]
+      .replace(/^\s*-?\s*src:\s*/, "")
+      .trim()
+      .replace(/^["']|["']$/g, "");
     if (!keys.has(mediaKey(src))) continue;
     lines.splice(from, to - from);
     closing -= to - from;
@@ -830,11 +902,13 @@ export function detachGallery(
       problems.push({
         field: "src",
         got: JSON.stringify(src),
-        expected: "a src this day's gallery actually has — see the gallery in GET .../days/<slug>",
+        expected:
+          "a src this day's gallery actually has — see the gallery in GET .../days/<slug>",
       });
     }
   }
-  if (problems.length > 0) return { ok: false, error: "unknown_media", problems };
+  if (problems.length > 0)
+    return { ok: false, error: "unknown_media", problems };
 
   for (const item of matched) deleteMediaFiles(ref, item);
 
@@ -844,7 +918,10 @@ export function detachGallery(
   if (match) {
     const file = path.join(dir, match);
     const raw = fs.readFileSync(file, "utf8");
-    const spliced = removeGalleryItems(raw, new Set(matched.map((item) => mediaKey(item.src))));
+    const spliced = removeGalleryItems(
+      raw,
+      new Set(matched.map((item) => mediaKey(item.src))),
+    );
     // B643 — see `fileUnchangedSince`. The files themselves are already
     // deleted by `deleteMediaFiles` above regardless (on purpose, see the
     // comment on this function), so a refusal here only means the entry
@@ -879,10 +956,32 @@ export function detachGallery(
  * answer — "they can be added later; the day does not have to wait" said
  * nothing about a day already written not being allowed to say it.
  */
+/**
+ * The journal's declared languages, for B294's completeness refusal.
+ *
+ * `locales` is what a reader may switch into and `writtenLocale` is the
+ * language the prose itself is in — so a day owes a translation for every
+ * locale except that one. Read per request rather than cached: an owner can
+ * change both with one `PATCH .../config` (B220), and a day written a minute
+ * later must be judged against what the journal says now.
+ *
+ * Here rather than in the route that first needed it, because B980 gave the
+ * owner's own browser a second door onto `editEntry` and the two must judge a
+ * day by the same languages.
+ */
+export function journalLanguages(
+  user: string,
+): { locales: readonly string[]; writtenLocale: string } | undefined {
+  const journal = getUser(user);
+  if (!journal) return undefined;
+  return { locales: journal.locales, writtenLocale: journal.defaultLocale };
+}
+
 export const EDITABLE_DAY_FIELDS = [
   "title",
   "date",
   "time",
+  "timezone",
   "location",
   "country",
   "countryCode",
@@ -962,9 +1061,15 @@ export type EditInput = Partial<Omit<DraftInput, "idempotency_key">> & {
  * uses for `status: draft` — a `title:` inside the prose is a day about
  * titles, not a target.
  */
-function frontmatterLineOf(lines: string[], closing: number, key: string): number {
+function frontmatterLineOf(
+  lines: string[],
+  closing: number,
+  key: string,
+): number {
   const pattern = new RegExp(`^${key}:(\\s|$)`);
-  return lines.findIndex((line, i) => i > 0 && i < closing && pattern.test(line));
+  return lines.findIndex(
+    (line, i) => i > 0 && i < closing && pattern.test(line),
+  );
 }
 
 /**
@@ -973,7 +1078,12 @@ function frontmatterLineOf(lines: string[], closing: number, key: string): numbe
  * same as `appendGallery` appends a fresh `gallery:` block. Returns the
  * closing marker's index, which moves when a line is added or removed.
  */
-function spliceScalar(lines: string[], closing: number, key: string, rendered: string | null): number {
+function spliceScalar(
+  lines: string[],
+  closing: number,
+  key: string,
+  rendered: string | null,
+): number {
   const at = frontmatterLineOf(lines, closing, key);
   if (rendered === null) {
     if (at < 0) return closing;
@@ -993,7 +1103,11 @@ function spliceScalar(lines: string[], closing: number, key: string, rendered: s
  * diffed item by item, the same choice `appendGallery` makes for `gallery:`.
  * An empty array clears it: no manual costs recorded any more.
  */
-function spliceCosts(lines: string[], closing: number, costs: CostInput[] | undefined): number {
+function spliceCosts(
+  lines: string[],
+  closing: number,
+  costs: CostInput[] | undefined,
+): number {
   const at = frontmatterLineOf(lines, closing, "costs");
   let end = closing;
   if (at >= 0) {
@@ -1025,7 +1139,8 @@ function spliceTranslations(
     // Anything indented belongs to the block, blank lines inside a literal
     // scalar included — a paragraph break in somebody's prose must not be
     // read as the end of the key.
-    while (end < closing && (/^\s+/.test(lines[end]) || lines[end] === "")) end++;
+    while (end < closing && (/^\s+/.test(lines[end]) || lines[end] === ""))
+      end++;
     lines.splice(at, end - at);
     closing -= end - at;
   }
@@ -1076,7 +1191,8 @@ function spliceGalleryField(
   while (end < closing && /^\s+\S/.test(lines[end])) end++;
 
   const starts: number[] = [];
-  for (let i = at + 1; i < end; i++) if (/^\s*-\s/.test(lines[i])) starts.push(i);
+  for (let i = at + 1; i < end; i++)
+    if (/^\s*-\s/.test(lines[i])) starts.push(i);
 
   // Walked backwards: each splice moves everything after it, and going from
   // the end leaves the indices still ahead of the cursor valid.
@@ -1086,11 +1202,16 @@ function spliceGalleryField(
     const item = lines.slice(from, to);
     const srcAt = item.findIndex((line) => /^\s*-?\s*src:/.test(line));
     if (srcAt < 0) continue;
-    const src = item[srcAt].replace(/^\s*-?\s*src:\s*/, "").trim().replace(/^["']|["']$/g, "");
+    const src = item[srcAt]
+      .replace(/^\s*-?\s*src:\s*/, "")
+      .trim()
+      .replace(/^["']|["']$/g, "");
     const text = wanted.get(mediaKey(src));
     if (text === undefined) continue;
 
-    const fieldAt = item.findIndex((line) => new RegExp(`^\\s+${field}:`).test(line));
+    const fieldAt = item.findIndex((line) =>
+      new RegExp(`^\\s+${field}:`).test(line),
+    );
     if (text === "") {
       if (fieldAt >= 0) {
         lines.splice(from + fieldAt, 1);
@@ -1121,7 +1242,10 @@ function spliceGalleryField(
  * caller's cue to leave a hand-shaped file alone and say so, same as
  * `attachGallery`.
  */
-export function spliceEntryFields(markdown: string, input: EditInput): string | null {
+export function spliceEntryFields(
+  markdown: string,
+  input: EditInput,
+): string | null {
   const lines = markdown.split("\n");
   if (lines[0]?.trim() !== "---") return null;
   let closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
@@ -1133,43 +1257,83 @@ export function spliceEntryFields(markdown: string, input: EditInput): string | 
 
   if (input.title !== undefined) set("title", `title: ${quote(input.title)}`);
   if (input.date !== undefined) set("date", `date: ${quote(input.date)}`);
-  if (input.time !== undefined) set("time", input.time ? `time: ${quote(input.time)}` : null);
-  if (input.location !== undefined) set("location", input.location ? `location: ${quote(input.location)}` : null);
-  if (input.country !== undefined) set("country", input.country ? `country: ${quote(input.country)}` : null);
+  if (input.time !== undefined)
+    set("time", input.time ? `time: ${quote(input.time)}` : null);
+  if (input.timezone !== undefined)
+    set("timezone", input.timezone ? `timezone: ${quote(input.timezone)}` : null);
+  if (input.location !== undefined)
+    set(
+      "location",
+      input.location ? `location: ${quote(input.location)}` : null,
+    );
+  if (input.country !== undefined)
+    set("country", input.country ? `country: ${quote(input.country)}` : null);
   if (input.countryCode !== undefined) {
-    set("countryCode", input.countryCode ? `countryCode: ${quote(input.countryCode.toUpperCase())}` : null);
+    set(
+      "countryCode",
+      input.countryCode
+        ? `countryCode: ${quote(input.countryCode.toUpperCase())}`
+        : null,
+    );
   }
   if (input.lat !== undefined) set("lat", `lat: ${input.lat}`);
   if (input.lng !== undefined) set("lng", `lng: ${input.lng}`);
   if (input.tags !== undefined) {
-    set("tags", input.tags.length ? `tags: [${input.tags.map(quote).join(", ")}]` : null);
+    set(
+      "tags",
+      input.tags.length ? `tags: [${input.tags.map(quote).join(", ")}]` : null,
+    );
   }
   if (input.transportMode !== undefined) {
-    set("transportMode", input.transportMode ? `transportMode: ${quote(input.transportMode)}` : null);
+    set(
+      "transportMode",
+      input.transportMode
+        ? `transportMode: ${quote(input.transportMode)}`
+        : null,
+    );
   }
   if (input.transportFrom !== undefined) {
-    set("transportFrom", input.transportFrom ? `transportFrom: ${quote(input.transportFrom)}` : null);
+    set(
+      "transportFrom",
+      input.transportFrom
+        ? `transportFrom: ${quote(input.transportFrom)}`
+        : null,
+    );
   }
   if (input.transportTo !== undefined) {
-    set("transportTo", input.transportTo ? `transportTo: ${quote(input.transportTo)}` : null);
+    set(
+      "transportTo",
+      input.transportTo ? `transportTo: ${quote(input.transportTo)}` : null,
+    );
   }
   if (input.travelScene !== undefined) {
-    set("travelScene", input.travelScene ? `travelScene: ${quote(input.travelScene)}` : null);
+    set(
+      "travelScene",
+      input.travelScene ? `travelScene: ${quote(input.travelScene)}` : null,
+    );
   }
   // B632. `null` clears the label, same as `photoVisibility`'s.
   if (input.visibility !== undefined) {
-    set("visibility", input.visibility ? `visibility: ${quote(input.visibility)}` : null);
+    set(
+      "visibility",
+      input.visibility ? `visibility: ${quote(input.visibility)}` : null,
+    );
   }
   // Written only when true, like every other flag here — see the note on
   // NewTrip.test. `test: false` unsets it rather than writing a line nobody
   // wants to read.
-  if (input.test !== undefined) set("test", input.test === true ? "test: true" : null);
+  if (input.test !== undefined)
+    set("test", input.test === true ? "test: true" : null);
   // Same "written only when true" rule as `test` above, and for the same
   // reason. `weatherData: null` clears a reading; `weather: false` only
   // withdraws the request.
-  if (input.weather !== undefined) set("weather", input.weather === true ? "weather: true" : null);
+  if (input.weather !== undefined)
+    set("weather", input.weather === true ? "weather: true" : null);
   if (input.weatherData !== undefined) {
-    set("weatherData", input.weatherData ? weatherLine(input.weatherData) : null);
+    set(
+      "weatherData",
+      input.weatherData ? weatherLine(input.weatherData) : null,
+    );
   }
   if (input.costs !== undefined) {
     closing = spliceCosts(lines, closing, costLinesOf(input));
@@ -1188,7 +1352,8 @@ export function spliceEntryFields(markdown: string, input: EditInput): string | 
     const declined = new Set<Track>(parseWithout(front.without));
     const unknown = new Set<Track>(parseUnrecorded(front.unrecorded));
     for (const key of TRACKS) {
-      const said = key === "costs" ? input.costs : input[key as "coordinates" | "photos"];
+      const said =
+        key === "costs" ? input.costs : input[key as "coordinates" | "photos"];
       if (said === undefined) continue;
       // Three answers, and each one retracts the other two: a day cannot
       // sensibly say both that it had none of something and that nobody knows
@@ -1204,8 +1369,18 @@ export function spliceEntryFields(markdown: string, input: EditInput): string | 
       declined.delete("coordinates");
       unknown.delete("coordinates");
     }
-    closing = spliceScalar(lines, closing, "without", withoutLine([...declined])[0] ?? null);
-    closing = spliceScalar(lines, closing, "unrecorded", unrecordedLine([...unknown])[0] ?? null);
+    closing = spliceScalar(
+      lines,
+      closing,
+      "without",
+      withoutLine([...declined])[0] ?? null,
+    );
+    closing = spliceScalar(
+      lines,
+      closing,
+      "unrecorded",
+      unrecordedLine([...unknown])[0] ?? null,
+    );
   }
   if (input.translations !== undefined) {
     closing = spliceTranslations(lines, closing, input.translations);
@@ -1223,13 +1398,22 @@ export function spliceEntryFields(markdown: string, input: EditInput): string | 
       // `null` and `""`, mean the same thing here rather than one of them
       // writing `visibility: ""` into somebody's file.
       Object.fromEntries(
-        Object.entries(input.photoVisibility).map(([src, level]) => [src, level ?? ""]),
+        Object.entries(input.photoVisibility).map(([src, level]) => [
+          src,
+          level ?? "",
+        ]),
       ),
     );
   }
 
   if (input.content !== undefined) {
-    lines.splice(closing + 1, lines.length - (closing + 1), "", input.content.trim(), "");
+    lines.splice(
+      closing + 1,
+      lines.length - (closing + 1),
+      "",
+      input.content.trim(),
+      "",
+    );
   }
 
   return lines.join("\n");
@@ -1239,9 +1423,12 @@ export function spliceEntryFields(markdown: string, input: EditInput): string | 
  * present must not be present-and-empty. Mirrors `validateDraft`'s title,
  * date and content rules, but only for fields the caller actually sent. */
 function validateEditPresence(input: EditInput): string | null {
-  if (input.title !== undefined && input.title.trim() === "") return "title must not be empty";
-  if (input.date !== undefined && !DATE_RE.test(input.date)) return "date must be YYYY-MM-DD";
-  if (input.content !== undefined && input.content.trim() === "") return "content must not be empty";
+  if (input.title !== undefined && input.title.trim() === "")
+    return "title must not be empty";
+  if (input.date !== undefined && !DATE_RE.test(input.date))
+    return "date must be YYYY-MM-DD";
+  if (input.content !== undefined && input.content.trim() === "")
+    return "content must not be empty";
   return null;
 }
 
@@ -1274,7 +1461,14 @@ export function editEntry(
   ref: string,
   slug: string,
   input: EditInput,
-): { ok: true; slug: string; status: "draft" | "published"; costCurrency?: string } | { ok: false; error: string; bug?: true } {
+):
+  | {
+      ok: true;
+      slug: string;
+      status: "draft" | "published";
+      costCurrency?: string;
+    }
+  | { ok: false; error: string; bug?: true } {
   const problem = validateEditPresence(input);
   if (problem) return { ok: false, error: problem };
 
@@ -1302,13 +1496,35 @@ export function editEntry(
   if (Array.isArray(input.costs) && input.costs.length > 0) {
     const existing = matter(raw).data;
     const place = {
-      country: input.country !== undefined ? input.country : String(existing.country ?? ""),
+      country:
+        input.country !== undefined
+          ? input.country
+          : String(existing.country ?? ""),
       lat: input.lat !== undefined ? input.lat : Number(existing.lat),
       lng: input.lng !== undefined ? input.lng : Number(existing.lng),
     };
-    const stamped = stampCostCurrencies(input.costs, place, journalBaseCurrency(ref));
+    const stamped = stampCostCurrencies(
+      input.costs,
+      place,
+      journalBaseCurrency(ref),
+    );
     input = { ...input, costs: stamped.costs };
     costCurrency = stamped.applied;
+  }
+
+  // B1090, same rule as `createDraft`: an edit that supplies (or already
+  // finds) coordinates and names no zone of its own gets one worked out —
+  // unless the day already carries one, which is never overwritten.
+  if (input.timezone === undefined) {
+    const existing = matter(raw).data;
+    const hasZone =
+      typeof existing.timezone === "string" && existing.timezone.length > 0;
+    const lat = input.lat !== undefined ? input.lat : Number(existing.lat);
+    const lng = input.lng !== undefined ? input.lng : Number(existing.lng);
+    if (!hasZone && Number.isFinite(lat) && Number.isFinite(lng)) {
+      const zone = timezoneForCoordinates(lat, lng);
+      if (zone) input = { ...input, timezone: zone };
+    }
   }
 
   const spliced = spliceEntryFields(raw, input);
@@ -1323,7 +1539,8 @@ export function editEntry(
   try {
     after = matter(spliced).data;
   } catch (err) {
-    const said = err instanceof Error ? err.message.split("\n")[0] : String(err);
+    const said =
+      err instanceof Error ? err.message.split("\n")[0] : String(err);
     return {
       ok: false,
       bug: true,
@@ -1346,7 +1563,9 @@ export function editEntry(
   // moved since, writing `spliced` now would silently erase whatever wrote
   // it, because `spliced` was built from a copy that predates that change.
   if (!fileUnchangedSince(file, raw)) {
-    console.warn(`[entries] ${ref}/${slug}: refused an edit — the day changed under it.`);
+    console.warn(
+      `[entries] ${ref}/${slug}: refused an edit — the day changed under it.`,
+    );
     return {
       ok: false,
       error:
@@ -1432,7 +1651,11 @@ export function publishNotice(input: {
   const t = (key: TranslationKey, vars?: Record<string, string>) =>
     translateIn(input.locale ?? "en", key, vars);
 
-  const head = t("publish.head", { title: input.title, date: input.date, url: input.url });
+  const head = t("publish.head", {
+    title: input.title,
+    date: input.date,
+    url: input.url,
+  });
   const tail = t("publish.tail");
 
   if (input.visibility !== "public") {
@@ -1443,19 +1666,34 @@ export function publishNotice(input: {
     // The visibility itself is a *word*, not the raw value: `guest` is the
     // vocabulary of the config file, and a person reading this sentence in
     // German needs the German for it.
-    const who = t(input.visibility === "guest" ? "publish.whoGuest" : "publish.whoPrivate");
+    const who = t(
+      input.visibility === "guest" ? "publish.whoGuest" : "publish.whoPrivate",
+    );
     const closed = t("publish.closed", {
-      visibility: t(input.visibility === "guest" ? "publish.visibilityGuest" : "publish.visibilityPrivate"),
+      visibility: t(
+        input.visibility === "guest"
+          ? "publish.visibilityGuest"
+          : "publish.visibilityPrivate",
+      ),
       who,
     });
-    return [head, closed, ...(input.test ? [t("publish.testClosed")] : []), tail].join(" ");
+    return [
+      head,
+      closed,
+      ...(input.test ? [t("publish.testClosed")] : []),
+      tail,
+    ].join(" ");
   }
 
   if (input.test) {
     return [head, t("publish.testPublic"), tail].join(" ");
   }
 
-  return [head, t(input.listed === false ? "publish.unlisted" : "publish.listed"), tail].join(" ");
+  return [
+    head,
+    t(input.listed === false ? "publish.unlisted" : "publish.listed"),
+    tail,
+  ].join(" ");
 }
 
 /**
@@ -1489,9 +1727,7 @@ export function publishDraft(
   } catch {
     return { ok: false, error: `no entry "${slug}" in this trip` };
   }
-  const match = files.find(
-    (f) => entrySlugFromFile(f) === slug,
-  );
+  const match = files.find((f) => entrySlugFromFile(f) === slug);
   if (!match) return { ok: false, error: `no entry "${slug}" in this trip` };
 
   const file = path.join(dir, match);
@@ -1509,14 +1745,20 @@ export function publishDraft(
     return { ok: false, error: `"${slug}" has no frontmatter block to change` };
   }
   const closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
-  if (closing < 0) return { ok: false, error: `"${slug}" has no frontmatter block to change` };
+  if (closing < 0)
+    return { ok: false, error: `"${slug}" has no frontmatter block to change` };
 
   // Only inside the frontmatter, and only the status line. A `status: draft`
   // in the prose is somebody writing about drafts.
   const at = lines.findIndex(
-    (line, i) => i > 0 && i < closing && /^status:\s*draft\s*$/i.test(line.trim()),
+    (line, i) =>
+      i > 0 && i < closing && /^status:\s*draft\s*$/i.test(line.trim()),
   );
-  if (at < 0) return { ok: false, error: `"${slug}" has no "status: draft" line to remove` };
+  if (at < 0)
+    return {
+      ok: false,
+      error: `"${slug}" has no "status: draft" line to remove`,
+    };
 
   lines.splice(at, 1);
   // B643 — see `fileUnchangedSince`. Publishing is the one call in this file
@@ -1524,7 +1766,9 @@ export function publishDraft(
   // writer has since moved past would be the worst place of all for this to
   // happen silently.
   if (!fileUnchangedSince(file, raw)) {
-    console.warn(`[entries] ${ref}/${slug}: refused a publish — the day changed under it.`);
+    console.warn(
+      `[entries] ${ref}/${slug}: refused a publish — the day changed under it.`,
+    );
     return {
       ok: false,
       error:
@@ -1580,13 +1824,16 @@ export function unpublishEntry(
     return { ok: false, error: `"${slug}" has no frontmatter block to change` };
   }
   const closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
-  if (closing < 0) return { ok: false, error: `"${slug}" has no frontmatter block to change` };
+  if (closing < 0)
+    return { ok: false, error: `"${slug}" has no frontmatter block to change` };
 
   lines.splice(closing, 0, "status: draft");
   // B643 — the same guard publishing has, and for the same reason: writing
   // from a copy a second writer has since moved past would erase their change.
   if (!fileUnchangedSince(file, raw)) {
-    console.warn(`[entries] ${ref}/${slug}: refused a takedown — the day changed under it.`);
+    console.warn(
+      `[entries] ${ref}/${slug}: refused a takedown — the day changed under it.`,
+    );
     return {
       ok: false,
       error:
@@ -1629,7 +1876,8 @@ export function listDrafts(
   }
 
   const trip = getTrip(ref);
-  const drafts: { slug: string; title: string; date: string; test?: true }[] = [];
+  const drafts: { slug: string; title: string; date: string; test?: true }[] =
+    [];
   for (const file of files) {
     let parsed: ReturnType<typeof matter>;
     try {
@@ -1640,8 +1888,11 @@ export function listDrafts(
       // draft in the trip. Skipped and logged rather than thrown; see
       // `clearMatterCache` in lib/matterCache.ts for why that call is needed too.
       clearMatterCache();
-      const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
-      console.warn(`[entries] ${ref}/entries/${file}: its frontmatter could not be parsed: ${why}`);
+      const why =
+        err instanceof Error ? err.message.split("\n")[0] : String(err);
+      console.warn(
+        `[entries] ${ref}/entries/${file}: its frontmatter could not be parsed: ${why}`,
+      );
       continue;
     }
     if (parsed.data.status !== "draft") continue;
@@ -1649,7 +1900,9 @@ export function listDrafts(
       slug: entrySlugFromFile(file),
       title: String(parsed.data.title ?? ""),
       date: String(parsed.data.date ?? ""),
-      ...(isTestContent(trip, { test: parsed.data.test === true }) ? { test: true as const } : {}),
+      ...(isTestContent(trip, { test: parsed.data.test === true })
+        ? { test: true as const }
+        : {}),
     });
   }
   return drafts.sort((a, b) => a.date.localeCompare(b.date));
@@ -1727,6 +1980,7 @@ export function entrySummary(entry: Entry, trip: Trip | undefined) {
     title: entry.title,
     date: entry.date,
     time: entry.time,
+    ...(entry.timezone ? { timezone: entry.timezone } : {}),
     location: entry.location,
     country: entry.country,
     ...(entry.countryCode ? { countryCode: entry.countryCode } : {}),
@@ -1767,9 +2021,7 @@ export function deleteEntry(
     return { ok: false, error: `no entry "${slug}" in this trip` };
   }
 
-  const match = files.find(
-    (f) => entrySlugFromFile(f) === slug,
-  );
+  const match = files.find((f) => entrySlugFromFile(f) === slug);
   if (!match) return { ok: false, error: `no entry "${slug}" in this trip` };
 
   const file = path.join(dir, match);
@@ -1806,12 +2058,12 @@ export function isPublished(ref: string, slug: string): boolean {
   } catch {
     return false;
   }
-  const match = files.find(
-    (f) => entrySlugFromFile(f) === slug,
-  );
+  const match = files.find((f) => entrySlugFromFile(f) === slug);
   if (!match) return false;
   try {
-    return !isDraft(matter(fs.readFileSync(path.join(dir, match), "utf8")).data);
+    return !isDraft(
+      matter(fs.readFileSync(path.join(dir, match), "utf8")).data,
+    );
   } catch (err) {
     // A file that will not parse carries no readable `status: draft` line,
     // and `isDraft` already treats anything other than exactly that line as
@@ -1820,7 +2072,9 @@ export function isPublished(ref: string, slug: string): boolean {
     // `clearMatterCache` in lib/matterCache.ts for why that call is needed too.
     clearMatterCache();
     const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
-    console.warn(`[entries] ${ref}/entries/${match}: its frontmatter could not be parsed: ${why}`);
+    console.warn(
+      `[entries] ${ref}/entries/${match}: its frontmatter could not be parsed: ${why}`,
+    );
     return true;
   }
 }

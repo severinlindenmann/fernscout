@@ -518,6 +518,64 @@ type UsageTable = {
   created_at: string;
 };
 
+/**
+ * What happened in one turn of a conversation, or one press — B976.
+ *
+ * See `026-helper-sessions` for why this is not `usage`: that table is what
+ * the instance was charged, this one is what happened. `said` and `answered` hold
+ * the person's own history and are written for every journal; whether the
+ * **operator** may read them is `operatorMayRead` in lib/helper/sessions.ts.
+ * They are null on a press, which carries no prose at all.
+ */
+type HelperSessionsTable = {
+  id: string;
+  /** The username whose journal the conversation belongs to. */
+  owner_id: string;
+  /** One conversation, for as long as the thread holding it lives. */
+  session_id: string;
+  /** `turn` | `press`. The closed list is SESSION_KINDS in lib/helper/sessions.ts. */
+  kind: string;
+  /** The language the answer was in, which B921 and B972 both changed. */
+  locale: Generated<string>;
+  /** A turn: the read tools that ran, in order, comma-separated. */
+  tools: Generated<string>;
+  /** A turn: the write tools proposed. A press: the one tool pressed. */
+  proposed: Generated<string>;
+  /** Which honesty guard fired, if one did. The list is in lib/helper/model.ts. */
+  guard: Generated<string>;
+  /** Whether the retry after a guard produced an honest answer. */
+  recovered: Generated<number>;
+  /** A press: whether the route took it, and what it said if not. */
+  ok: Generated<number>;
+  error: Generated<string>;
+  /** How many turns the thread held — B957 is why this is worth knowing. */
+  thread_turns: Generated<number>;
+  said: string | null;
+  answered: string | null;
+  created_at: string;
+};
+
+/**
+ * One answer already given, so a retry does not do the work again — B718.
+ *
+ * `id` is the caller's own composed key (`<owner> <tool> <supplied>`), not a
+ * generated one: the row is found by what the caller sent. Durable because the
+ * helper's metered routes spend a credit and write nothing to disk, so the
+ * filesystem is no backstop for them and a restart used to mean a second
+ * charge for the same words.
+ */
+type IdempotencyTable = {
+  id: string;
+  /** The journal the call was made for, so the deletion sweep takes it. */
+  owner_id: string;
+  /** What the call was, from `fingerprintOf` — a different one under the same
+   * key is a conflict rather than a replay. */
+  fingerprint: string;
+  /** JSON of the answer handed back the first time. */
+  value: string;
+  created_at: string;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -538,6 +596,8 @@ export type Database = {
   analytics_events: AnalyticsEventsTable;
   day_notifications: DayNotificationsTable;
   usage: UsageTable;
+  helper_sessions: HelperSessionsTable;
+  idempotency: IdempotencyTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -562,4 +622,6 @@ export const TABLE_NAMES = [
   "analytics_events",
   "day_notifications",
   "usage",
+  "helper_sessions",
+  "idempotency",
 ] as const satisfies readonly (keyof Database)[];

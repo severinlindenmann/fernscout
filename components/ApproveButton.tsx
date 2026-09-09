@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { Check } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
 
@@ -23,15 +24,20 @@ export default function ApproveButton({
   amount: string;
 }) {
   const { t, tn } = useI18n();
-  const [state, setState] = useState<"idle" | "busy" | "done" | "failed">("idle");
+  const [state, setState] = useState<"idle" | "busy" | "done" | "failed">(
+    "idle",
+  );
 
   async function approve() {
     setState("busy");
-    const response = await fetch(`/api/v1/${username}/payments/${paymentId}/approve`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ token }),
-    }).catch(() => null);
+    const response = await fetch(
+      `/api/v1/${username}/payments/${paymentId}/approve`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token }),
+      },
+    ).catch(() => null);
     setState(response?.ok ? "done" : "failed");
   }
 
@@ -58,14 +64,15 @@ export default function ApproveButton({
                 user: username,
               })}
             </p>
-            <button
+            <BusyButton
+              busy={state === "busy"}
               type="button"
               onClick={approve}
-              disabled={state === "busy"}
               className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-yellow-400 px-6 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
+              busyLabel={t("approve.working")}
             >
-              {state === "busy" ? t("approve.working") : t("approve.accept")}
-            </button>
+              {t("approve.accept")}
+            </BusyButton>
             {state === "failed" && (
               <p role="alert" className="mt-3 text-base text-coral-600">
                 {t("approve.failed")}

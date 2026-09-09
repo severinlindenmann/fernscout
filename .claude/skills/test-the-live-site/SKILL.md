@@ -11,12 +11,13 @@ dev server — because the whole point is to catch what only production has:
 content that never got deployed, systemd units that stayed in git, real SMTP
 meeting a real mail scanner.
 
-The lane is filed into category folders — `security/`, `issue/`,
-`docs-and-skills/` and the rest — so read it with `npm run tasks`, which lists
-them grouped, rather than `ls docs/tasks/testing/`, which now shows eight
-directories and no tickets. The categories are a good grain for clustering:
-`docs-and-skills/` is read on the site with a browser and `security/` is
-probed with `curl`, and a subagent handed one kind at a time carries less.
+The lane is flat (since B1110 — what a person reviews a finished batch from
+is the run report, not a browse through category folders), so read it with
+`npm run tasks`, which lists what is waiting, or `ls docs/tasks/testing/`.
+Cluster tickets by `type` yourself when handing batches to subagents:
+something read on the site with a browser and something probed with `curl`
+are different kinds of work, and a subagent handed one kind at a time carries
+less, even without a folder to sort them into.
 
 **One subagent per ticket, three in flight, spawn a replacement as each
 finishes.** A ticket is a self-contained question; a fresh agent per ticket
@@ -74,7 +75,15 @@ own ticket is about them, and then it is told the budget it may spend.
 Three or four journals covers most campaigns: one busy, one in a second locale,
 one kept **empty** (several tickets need a journal with no trips, and it is the
 first thing an earlier agent destroys), one disposable for deletion tests.
-Addresses are always `xydhd-<something>@severin.io` — never a real person's.
+**Usernames are always `test-<something>`, and the address is the username
+at `fernscout.ch`** — journal `test-alps` is owned by `test-alps@fernscout.ch`.
+The prefix tells the next person on the server that the journal is disposable;
+tying the address to the name means the mail directory, the owner and the
+journal all read the same, so a copy found in `$DATA_DIR/mail/` needs nothing
+looked up to place it. Everybody else on a test journal is that name plus a
+role and a number: `test-alps-guest-1@fernscout.ch`,
+`test-alps-buddy-1@fernscout.ch`. Never a real person's address, never
+`severin.io` — a QA run must not put mail anywhere a person reads.
 
 Agent tokens last seven days, which outlives any campaign.
 

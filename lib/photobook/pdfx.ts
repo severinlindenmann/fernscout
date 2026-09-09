@@ -63,14 +63,22 @@ export type PdfxReadiness = {
 /**
  * An honest audit of the file this writer is about to produce.
  *
- * `claimable` is deliberately hard to make true: it needs an embedded output
- * intent *and* embedded fonts *and* CMYK content, and the writer can only ever
- * supply the first. It is written this way so that the day font embedding
- * lands, the answer changes by itself rather than by someone editing a string.
+ * **The target is PDF/X-4, and it used to be PDF/X-1a.** That was the wrong
+ * standard to measure against: Gelato's own downloadable template declares
+ * `GTS_PDFXVersion (PDF/X-4)`, and their guidance asks for X-4 with an output
+ * intent. X-4 permits RGB, so the colour conversion this module used to call
+ * the immovable obstacle — "there is no correct way to do that in a few
+ * hundred lines" — is not required at all. That reasoning was sound and aimed
+ * at the wrong specification.
+ *
+ * `claimable` still has to be earned: an embedded output intent *and*
+ * embedded fonts. Fonts now are embedded (`lib/print-fonts`), so an ICC
+ * profile is the only thing between a book and a file that can claim X-4.
  */
 export function pdfxReadiness(state: {
   outputIntent: boolean;
   fontsEmbedded: boolean;
+  /** Kept because a caller still reports it; PDF/X-4 does not require it. */
   cmykContent: boolean;
   transparency: boolean;
 }): PdfxReadiness {
@@ -95,29 +103,33 @@ export function pdfxReadiness(state: {
       met: state.outputIntent,
       detail: state.outputIntent
         ? "An ICC profile was supplied and embedded as DestOutputProfile."
-        : "No ICC profile supplied. Pass --icc <profile.icc> — the printer names which one.",
+        : "No ICC profile supplied. Pass --icc <profile.icc>. For PDF/X-4 the intent " +
+          "describes the *printing condition*, not the content: Gelato names GRACoL 2006. " +
+          "Shipping sRGB here would claim conformance against a condition the printer does " +
+          "not use, which is worse than claiming none.",
     },
     {
-      requirement: "All fonts embedded and subset",
+      requirement: "All fonts embedded",
       met: state.fontsEmbedded,
       detail: state.fontsEmbedded
-        ? "Font programs embedded."
-        : "Base-14 Helvetica is referenced, not embedded. Ghostscript embeds it; see ghostscriptCommand().",
+        ? "Liberation Sans is embedded as a TrueType program per face — see lib/print-fonts."
+        : "Fonts are referenced, not embedded. A printer substitutes what it does not have.",
     },
     {
-      requirement: "Colour is CMYK or spot only (PDF/X-1a)",
-      met: state.cmykContent,
+      requirement: "Colour is RGB or CMYK with a matching output intent (PDF/X-4)",
+      met: true,
       detail: state.cmykContent
         ? "All content and images are CMYK."
-        : "Content is DeviceRGB. Converting needs a colour engine; see the note at the top of this file.",
+        : "Content is DeviceRGB, which PDF/X-4 permits when the output intent describes it. " +
+          "X-1a would have required a conversion; X-4 is what Gelato asks for.",
     },
   ];
   const claimable = requirements.every((r) => r.met);
   return {
-    target: "PDF/X-1a:2001",
+    target: "PDF/X-4",
     requirements,
     claimable,
-    version: claimable ? "PDF/X-1a:2001" : undefined,
+    version: claimable ? "PDF/X-4" : undefined,
   };
 }
 
@@ -296,4 +308,69 @@ export function readinessReport(readiness: PdfxReadiness): string[] {
           "Run the Ghostscript command in gs-pdfx.sh to produce one that does.",
   );
   return lines;
+}
+
+/**
+ * What the file actually is, read out of its own bytes.
+ *
+ * `pdfxReadiness` above audits what the writer *intends*: it is handed
+ * `fontsEmbedded: true` as a literal by its callers, so if embedding broke
+ * tomorrow the report would go on saying yes. This reads the produced PDF
+ * instead, which is the only version of the question a printer asks.
+ *
+ * It is **not a general PDF/X validator** and must not grow into one — no
+ * object graph, no stream decoding, no colour-space walk. It checks the
+ * handful of things this writer can get wrong about its own output, which is
+ * how it caught a file claiming PDF/X-4 under a `%PDF-1.4` header.
+ */
+export type PdfxAudit = { ok: boolean; failures: string[]; claims: string | null };
+
+export function auditPdfxBytes(pdf: Uint8Array): PdfxAudit {
+  const bytes = Buffer.from(pdf);
+  const raw = bytes.toString("latin1");
+  // Structure only. A book carries ten megabytes of JPEG and a megabyte of
+  // TrueType, and somewhere in that a byte pair reads as `/JS` — the first
+  // live file this ran against was reported as "carries JavaScript" on the
+  // strength of a photograph. Stream contents are data, not syntax, so they
+  // are cut out before anything is looked for.
+  const text = raw.replace(/stream\r?\n[\s\S]*?endstream/g, "stream endstream");
+  const failures: string[] = [];
+
+  const claimed = /GTS_PDFXVersion\s*\(([^)]*)\)/.exec(text)?.[1] ?? null;
+  const header = /^%PDF-(\d\.\d)/.exec(text)?.[1] ?? "";
+
+  if (claimed) {
+    // ISO 15930-7 is built on PDF 1.6.
+    if (claimed === "PDF/X-4" && header !== "1.6") {
+      failures.push(`claims PDF/X-4 under a %PDF-${header} header; X-4 is built on PDF 1.6`);
+    }
+    // Deliberately `raw`: the XMP packet lives *in* a stream, so the stripped
+    // text does not have it. It is a text packet with an unmistakable tag, so
+    // there is no photograph that accidentally contains this one.
+    if (!raw.includes("<pdfxid:GTS_PDFXVersion>")) {
+      failures.push("claims a PDF/X version in the Info dictionary but not in the XMP packet");
+    }
+    if (!text.includes("/OutputIntents")) failures.push("claims PDF/X with no /OutputIntents");
+    if (!text.includes("/DestOutputProfile")) {
+      failures.push("has an output intent with no embedded /DestOutputProfile");
+    }
+  }
+
+  // Every font dictionary must reach an embedded program. Counting rather than
+  // walking: this writer emits one descriptor per face and nothing else, so a
+  // mismatch is the failure, and a general parser would be a different module.
+  const fonts = (text.match(/\/Type\s*\/Font\b/g) ?? []).length;
+  const embedded = (text.match(/\/FontFile[23]?\b/g) ?? []).length;
+  if (fonts > embedded) {
+    failures.push(`${fonts} font dictionaries but ${embedded} embedded programs`);
+  }
+
+  const pages = (text.match(/\/Type\s*\/Page\b(?!s)/g) ?? []).length;
+  const trims = (text.match(/\/TrimBox\b/g) ?? []).length;
+  if (pages > trims) failures.push(`${pages} pages but ${trims} TrimBoxes`);
+
+  if (text.includes("/Encrypt")) failures.push("is encrypted");
+  if (/\/JavaScript\b|\/JS\b/.test(text)) failures.push("carries JavaScript");
+
+  return { ok: failures.length === 0, failures, claims: claimed };
 }

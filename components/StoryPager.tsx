@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useTrip } from "@/components/TripProvider";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import DayNotify from "./DayNotify";
-import HelperAskHere from "./HelperAskHere";
-import InviteToRead from "./InviteToRead";
 import DayReactions from "./DayReactions";
+import DualTime from "./DualTime";
+import EditDay from "./EditDay";
+import OwnerTools from "./OwnerTools";
 import DayWeather from "./DayWeather";
 import DraftNotice from "./DraftNotice";
 import TestNotice from "./TestNotice";
@@ -20,7 +20,11 @@ import { useI18n } from "./LocaleProvider";
 import { flagFor } from "@/lib/flags";
 import { useMoney } from "./CurrencyProvider";
 import type { Day, DaySummary, Entry } from "@/lib/types";
-import { SOURCE_CREDIT, weatherGroup, type DayWeather as WeatherReading } from "@/lib/weather";
+import {
+  SOURCE_CREDIT,
+  weatherGroup,
+  type DayWeather as WeatherReading,
+} from "@/lib/weather";
 
 /**
  * The trip, one screen at a time.
@@ -115,42 +119,45 @@ export default function StoryPager({
 
   return (
     <div>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={stepIndex}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.28, ease: [0.22, 0.61, 0.36, 1] }}
-          >
-            {step.kind === "hero" && hero}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={stepIndex}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.28, ease: [0.22, 0.61, 0.36, 1] }}
+        >
+          {step.kind === "hero" && hero}
 
-            {/* A leg needs only where it went and how — all of which the index
+          {/* A leg needs only where it went and how — all of which the index
                 carries, so travel never waits for a fetch. `from` is the day
                 before it, in the same index, so the scene can measure the
                 distance it just crossed. */}
-            {step.kind === "travel" && (
-              <div className="py-4">
-                <TravelScene
-                  leg={index[step.dayIndex]}
-                  from={index[step.dayIndex - 1]}
-                  onDone={onLegDone}
-                />
-              </div>
-            )}
+          {step.kind === "travel" && (
+            <div className="py-4">
+              <TravelScene
+                leg={index[step.dayIndex]}
+                from={index[step.dayIndex - 1]}
+                onDone={onLegDone}
+              />
+            </div>
+          )}
 
-            {step.kind === "day" &&
-              (dayAt(step.dayIndex) ? (
-                <DayCard
-                  day={dayAt(step.dayIndex)!}
-                  summary={index[step.dayIndex]}
-                  dayIndex={step.dayIndex}
-                />
-              ) : (
-                <DayPlaceholder summary={index[step.dayIndex]} failed={loadFailed} />
-              ))}
-          </motion.div>
-        </AnimatePresence>
+          {step.kind === "day" &&
+            (dayAt(step.dayIndex) ? (
+              <DayCard
+                day={dayAt(step.dayIndex)!}
+                summary={index[step.dayIndex]}
+                dayIndex={step.dayIndex}
+              />
+            ) : (
+              <DayPlaceholder
+                summary={index[step.dayIndex]}
+                failed={loadFailed}
+              />
+            ))}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
@@ -162,7 +169,13 @@ export default function StoryPager({
  * so even on a stalled connection the reader can see they're in the right
  * place rather than staring at grey boxes.
  */
-function DayPlaceholder({ summary, failed }: { summary: DaySummary; failed: boolean }) {
+function DayPlaceholder({
+  summary,
+  failed,
+}: {
+  summary: DaySummary;
+  failed: boolean;
+}) {
   const { t, formatLongDate } = useI18n();
   return (
     <article
@@ -211,6 +224,12 @@ export function DayCard({
   const trip = useTrip();
   const { t, formatLongDate } = useI18n();
   const { spendParts } = useMoney();
+  const [editing, setEditing] = useState(false);
+  // The photograph the owner pressed "remove" on from the lightbox itself
+  // rather than from the correction panel — B862. Carried across into
+  // `EditDay` so it opens already marked to go, and cleared when the panel
+  // closes so a later, ordinary "Correct this day" starts from nothing.
+  const [removing, setRemoving] = useState<string | undefined>(undefined);
   const lead = day.lead;
   const multi = day.entries.length > 1;
   const cost = summary.cost;
@@ -225,7 +244,7 @@ export function DayCard({
   // `trip` here is the context, whose `.trip` is the trip itself.
   const isTest = trip?.trip.test === true || day.entries.some((e) => e.test);
 
-  return (
+  const card = (
     <article
       className={`rounded-2xl border bg-white p-5 shadow-sm sm:p-7 ${
         allDraft || isTest ? "border-coral-600" : "border-navy-200"
@@ -269,7 +288,10 @@ export function DayCard({
             390px a reserved corner left it 250px and every item — date,
             weather, spend — wrapped onto a row of its own. */}
         <div className="absolute right-0 top-0 text-right">
-          <span className="ml-auto block h-1 w-8 rounded-full bg-yellow-400" aria-hidden />
+          <span
+            className="ml-auto block h-1 w-8 rounded-full bg-yellow-400"
+            aria-hidden
+          />
           <span className="mt-1.5 block font-display text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-500">
             {t("day.label")} {dayIndex + 1}
           </span>
@@ -305,7 +327,9 @@ export function DayCard({
                 {paidAndConverted.paid}
               </span>
               {paidAndConverted.converted && (
-                <span className="text-[11px] text-navy-500">{paidAndConverted.converted}</span>
+                <span className="text-[11px] text-navy-500">
+                  {paidAndConverted.converted}
+                </span>
               )}
             </Link>
           )}
@@ -333,53 +357,65 @@ export function DayCard({
             branched={multi}
             first={i === 0}
             last={i === day.entries.length - 1}
+            onRemovePhoto={
+              trip?.canPublish
+                ? (src) => {
+                    setRemoving(src);
+                    setEditing(true);
+                  }
+                : undefined
+            }
           />
         ))}
 
         {/* Keyed on the lead slug, which is also what #day-… links use. */}
         <div className="mt-10 border-t border-navy-200 pt-4">
           <DayReactions daySlug={lead.slug} />
-          {/* Owner only, and only once the day is actually on the site —
-              `canPublish` is exactly `isOwner`, see `lib/tripGate.ts`.
-              `DayNotify` asks the server the rest: a draft, a test day, or a
-              journal with nothing to send it on all answer with nothing to
-              show, so no draft-specific gating is duplicated here. */}
-          {trip?.canPublish && (
-            <>
-              <DayNotify username={trip.trip.username} tripId={trip.trip.id} slug={lead.slug} />
-              {/* B799 — the day she has just published is where offering to
-                  show it to somebody belongs. A *guest* link, and only ever
-                  that: see `InviteToRead`, which hides itself on a journal
-                  with contacts switched off. */}
-              <InviteToRead username={trip.trip.username} />
-              {/* B816 — the way back into a day that is already on the site.
-                  Before this the browser went read-only the moment a day was
-                  published: a typo, a forgotten photograph and a friend asking
-                  to come out of a picture all needed an agent or the API.
-
-                  Owner only (this whole block is), and only on a published
-                  day — a draft has its own banner above and is in the resume
-                  list. It opens the wizard on the day's lead update, which is
-                  the one the page is named for. */}
-              {!allDraft && (
-                <p className="mt-4 text-sm">
-                  <Link
-                    href={`/agent/${encodeURIComponent(trip.trip.username)}?trip=${encodeURIComponent(trip.trip.id)}&slug=${lead.slug}&date=${day.date}`}
-                    className="font-semibold text-navy-800 underline underline-offset-4"
-                  >
-                    {t("agent.correctDay")}
-                  </Link>
-                </p>
-              )}
-              {/* B844 — the same owner check, one line below the link that
-                  already does the commonest version of this by hand. The box
-                  takes the sentence somebody was going to type into Search. */}
-              <HelperAskHere username={trip.trip.username} />
-            </>
-          )}
         </div>
       </div>
     </article>
+  );
+
+  // B877 put the owner's controls under the reactions row, inside the card.
+  // They are out of it again. Inside, they inherited the rail indent a multi-update day
+  // adds (`pl-6`), so the block sat off-centre — and, more than that, they were
+  // drawn as though they were part of the day. They are not: the day is what a
+  // reader sees, and this is the owner's own side of the page. Below the card,
+  // its own width, nothing of the reader's.
+  //
+  // `canPublish` is exactly `isOwner`, see `lib/tripGate.ts`. Each control
+  // still asks the server its own remaining question.
+  if (!trip?.canPublish) return card;
+  return (
+    <>
+      {card}
+      {editing ? (
+        // B980 — the panel takes the block's place rather than sitting under
+        // it: while a day is being corrected, the things to do *with* the day
+        // (tell the readers, invite somebody) are not the question.
+        <EditDay
+          username={trip.trip.username}
+          tripId={trip.trip.id}
+          day={day}
+          initialDrop={removing}
+          onClose={() => {
+            setEditing(false);
+            setRemoving(undefined);
+          }}
+        />
+      ) : (
+        <OwnerTools
+          username={trip.trip.username}
+          day={{
+            tripId: trip.trip.id,
+            slug: lead.slug,
+            date: day.date,
+            published: !allDraft,
+          }}
+          onCorrect={() => setEditing(true)}
+        />
+      )}
+    </>
   );
 }
 
@@ -415,12 +451,16 @@ function UpdateBlock({
   branched,
   first,
   last,
+  onRemovePhoto,
 }: {
   entry: Entry;
   branched: boolean;
   first: boolean;
   /** The last stop of the day — draws a dot and no rail below it. */
   last: boolean;
+  /** See `Gallery`'s `onRemove` — undefined for a reader who is not the
+   *  owner. */
+  onRemovePhoto?: (src: string) => void;
 }) {
   const { t, localized } = useI18n();
   const { title, content, fallbackNotice } = localized(entry);
@@ -455,7 +495,7 @@ function UpdateBlock({
           are two moments and not two days. */}
       {entry.time && (
         <div className="font-display text-xs font-semibold tracking-wide text-navy-600">
-          {entry.time}
+          <DualTime date={entry.date} time={entry.time} timezone={entry.timezone} />
         </div>
       )}
 
@@ -482,13 +522,15 @@ function UpdateBlock({
           for this reader's language. Quiet on purpose: unlike DraftNotice
           and TestNotice this is a legacy-only path, not a caution, so it is
           a line rather than a banner. */}
-      {fallbackNotice && <p className="mb-4 text-xs italic text-navy-500">{t(fallbackNotice)}</p>}
+      {fallbackNotice && (
+        <p className="mb-4 text-xs italic text-navy-500">{t(fallbackNotice)}</p>
+      )}
 
       <EntryContent markdown={content} />
 
       {entry.gallery.length > 0 && (
         <div className="mt-7">
-          <Gallery items={entry.gallery} />
+          <Gallery items={entry.gallery} onRemove={onRemovePhoto} />
         </div>
       )}
     </div>

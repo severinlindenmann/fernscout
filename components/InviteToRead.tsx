@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import CopyLine from "./CopyLine";
 import { useI18n } from "./LocaleProvider";
+import BusyButton from "@/components/BusyButton";
+import { OWNER_TOOL, OWNER_TOOL_CELL } from "./ownerToolClass";
 
 /**
  * "Invite family to read", on the day she just published — B799.
@@ -36,7 +38,9 @@ import { useI18n } from "./LocaleProvider";
  * say yes" — which is why it is the sentence rendered rather than a shorter
  * one written here.
  *
- * Rendered only where the viewer is already known to be the owner
+ * Rendered by `OwnerTools` as one cell of its grid — hence `col-span-full` on
+ * the state that is a panel rather than a tile (B877) — and only where the
+ * viewer is already known to be the owner
  * (`canPublish`, which is exactly `isOwner` — see `lib/tripGate.ts`), and it
  * asks the server the remaining question itself: `GET /api/v1/<user>/invites`
  * is owner-only *and* refuses a journal with `contacts` switched off, so a
@@ -90,7 +94,7 @@ export default function InviteToRead({ username }: { username: string }) {
 
   if (link) {
     return (
-      <div className="mt-3 rounded-2xl border border-navy-200 bg-white p-4">
+      <div className="col-span-full rounded-2xl border border-navy-200 bg-white p-4">
         <p className="font-display text-base font-semibold text-navy-900">
           {t("me.inviteGuestTitle")}
         </p>
@@ -117,17 +121,12 @@ export default function InviteToRead({ username }: { username: string }) {
   }
 
   return (
-    <div className="mt-3">
-      <button
-        type="button"
-        disabled={busy}
-        onClick={make}
-        className="min-h-11 rounded-full border border-navy-200 bg-white px-4 text-xs font-semibold text-navy-900 transition-colors hover:border-navy-500 disabled:opacity-60"
-      >
+    <div className={OWNER_TOOL_CELL}>
+      <BusyButton busy={busy} type="button" onClick={make} className={OWNER_TOOL}>
         {t("invite.share")}
-      </button>
+      </BusyButton>
       {failed && (
-        <p role="alert" className="mt-2 text-xs text-coral-700">
+        <p role="alert" className="text-xs text-coral-700">
           {t("contact.adminInviteFailed")}
         </p>
       )}

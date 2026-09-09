@@ -20,6 +20,7 @@ import {
   type RecipientResult,
 } from "./orders";
 import { renderPostcard, type PostalAddress, type PostcardWarning } from "./render";
+import { printSourceFor } from "../photobook/source";
 import { sendPostcard as sendViaStannp } from "./stannp";
 import { sendPostcardReceipt } from "./receipt";
 
@@ -107,6 +108,35 @@ export function orderPhotoFile(order: PostcardOrder): string | null {
 }
 
 /**
+ * Which copy of that photograph actually goes on the card — B1010.
+ *
+ * The one above is the *web* copy: ingest writes 2000px on the longest edge
+ * and keeps the original beside it, and a card was being printed from the
+ * derivative. On a 154 × 111 mm card with bleed a 4032 × 3024 phone photograph
+ * is about 660 dpi and the derivative is about 244, so the page then told the
+ * owner their photograph was too small — about a file this product had chosen
+ * for them.
+ *
+ * The photobook has done this since B13 (`printSourceFor`, and its comment
+ * about every plate printing at 125 dpi until somebody looked); this is that
+ * fix arriving at the other printer. Reused rather than copied: the fallbacks
+ * are the interesting part and they are the same ones — no original was kept,
+ * or the original is a HEIC or a RAW and the PDF writer can only embed JPEG.
+ *
+ * **`orderPhotoFile` stays the gate.** `payload.photo` is attacker-controlled
+ * in principle, `resolveMediaFile` is what refuses a path escaping the trip,
+ * and only once it has passed is a better copy looked for.
+ */
+export function orderPrintPhoto(
+  order: PostcardOrder,
+): { absolute: string; size?: { width: number; height: number } } | null {
+  const guarded = orderPhotoFile(order);
+  if (!guarded) return null;
+  const source = printSourceFor(order.payload.trip, order.payload.photo);
+  return { absolute: source.absolute, size: source.size };
+}
+
+/**
  * The party for this order, or none — B628.
  *
  * Resolved at send rather than stored on the order: the trip's `travellers:`
@@ -124,7 +154,7 @@ function figuresFor(order: PostcardOrder): Figure[] {
 }
 
 function readPhoto(order: PostcardOrder): Uint8Array | null {
-  const file = orderPhotoFile(order);
+  const file = orderPrintPhoto(order)?.absolute;
   if (!file) return null;
   try {
     return new Uint8Array(fs.readFileSync(file));
@@ -232,8 +262,16 @@ export async function sendOrder(owner: string, id: string): Promise<SendOutcome>
       warnings.push(...both.warnings);
       firstCard = both.pdf;
     }
-    const front = renderPostcard({ ...common, sides: "front" }).pdf;
-    const back = renderPostcard({ ...common, sides: "back" }).pdf;
+    // What the printer gets carries no address and no stamp box — B982.
+    // Stannp is handed the recipient as fields and lays its own address and
+    // postal indicia over the back; a back with ours already on it came out
+    // with the two overprinted, one name across the other. `both` above keeps
+    // drawing them, because that copy is the owner's proof and the receipt
+    // attachment, and there the question being answered is "who is this going
+    // to" rather than "what does the press receive".
+    const forPrinter = { ...common, address: "printer" as const };
+    const front = renderPostcard({ ...forPrinter, sides: "front" }).pdf;
+    const back = renderPostcard({ ...forPrinter, sides: "back" }).pdf;
 
     const outcome = await handToProvider(
       order.provider,

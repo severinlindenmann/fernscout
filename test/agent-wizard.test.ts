@@ -103,8 +103,30 @@ describe("the helper routes", () => {
   // where the guard is asserted — and it earned that on the B685/B687 merge,
   // where two branches built in parallel each updated it to a number that was
   // right on its own branch and wrong on main.
-  test("there are fifteen of them, and each is guarded", () => {
-    expect(sources).toHaveLength(15);
+  // Sixteen since B904, which added the search a person asks in their own
+  // words — the same gate, the same cookie-only family.
+  // Seventeen since B900 added `proposal`, which makes a write tool's fields
+  // without a model and tells the conversation that a press went through. It
+  // writes nothing itself — the press posts to one of the sixteen above it —
+  // and it is in this family because it is the same cookie and the same owner.
+  // Eighteen since B915 added `day/attach`, which puts a photograph already
+  // waiting in the inbox onto a day — the door the files pane presses, with
+  // the same cookie and the same owner check as the seventeen above it.
+  // Nineteen since B931 added `invite`, which proposes the guest link that
+  // lets somebody who was not on a trip ask to read it. Same cookie, same
+  // owner check, and it issues a link and never a grant.
+  // Thirty-five, and sixteen of them arrived in one run — the conversation
+  // was given the rest of what the API door already had. A trip's own
+  // settings (`trip/visibility`, `trip/people`, `trip/tracks`, and the `trip`
+  // route's own new PATCH), its money (`trip/rates`, `trip/budget`), who hears
+  // about a day (`invite/revoke`, `day/tell-readers`, `channels`), the journal
+  // itself (`journal`, `storage/cleanup`, `storage`, `keys`), the printed
+  // things (`postcard`, `photobook`), and what is on disk that nobody wants —
+  // `day/remove-photo` and `inbox/discard`. The number is not the point; the
+  // loop below is. Every one is the same cookie and the same owner check as
+  // the nineteen before them.
+  test("there are thirty-five of them, and each is guarded", () => {
+    expect(sources).toHaveLength(35);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

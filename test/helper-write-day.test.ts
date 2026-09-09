@@ -9,6 +9,7 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { balanceOf, grant } from "@/lib/credits";
 import { clearIdempotencyStore } from "@/lib/idempotency";
 import { buildPrompt, SYSTEM_PROMPT } from "@/lib/helper/model";
+import { history } from "@/lib/helper/thread";
 import { issueCode, verifyCode } from "@/lib/auth";
 import { POST as createTripRoute } from "@/app/api/v1/[user]/trips/route";
 
@@ -173,7 +174,10 @@ describe("what the model is told", () => {
    *  asserted rather than trusted to survive an edit. */
   test("the system prompt still carries the invention rule", () => {
     expect(SYSTEM_PROMPT).toContain("WRITE ONLY WHAT YOU WERE TOLD");
-    expect(SYSTEM_PROMPT).toMatch(/never write about the weather/i);
+    // B766: a person's own words about the weather stay; the model never
+    // supplies a temperature, a condition or a forecast of its own.
+    expect(SYSTEM_PROMPT).toMatch(/person's own memory of the weather stays in/i);
+    expect(SYSTEM_PROMPT).not.toMatch(/never write about the weather/i);
     expect(SYSTEM_PROMPT).toMatch(/never translate/i);
   });
 
@@ -190,6 +194,26 @@ describe("what the model is told", () => {
       country: "China",
       photos: 9,
     });
+  });
+
+  /**
+   * B971 — saying "that looks good, save it" re-offered the same
+   * `draft_words` card instead of the `set_day_words` one, because the model
+   * had nowhere the drafted title and prose actually lived: the note said a
+   * draft existed but not what it said, and the words themselves are shown
+   * only in the proposal's own form fields, which never reach the
+   * conversation. The note now carries them, so the next turn can call
+   * `set_day_words` with the words the person actually read.
+   */
+  test("the note carries the drafted title and prose, not just that one exists", async () => {
+    await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST" }), params);
+    await call();
+    const notes = history("alex").filter((turn) => turn.role === "note");
+    const drafted = notes.find((turn) => turn.text.includes("drafted:"));
+    expect(drafted).toBeDefined();
+    expect(drafted?.text).toContain("set_day_words");
+    expect(drafted?.text).toContain("The pass");
+    expect(drafted?.text).toContain("The bus took three hours.");
   });
 });
 
@@ -272,5 +296,37 @@ describe("with the capability off", () => {
     const state = resolveCapabilities("alex").helper;
     expect(state.enabled).toBe(false);
     expect(state.enabled === false && state.reason).toContain("ANTHROPIC_API_KEY");
+  });
+});
+
+/**
+ * The valve points at the model, not at the person — B945.
+ *
+ * `warnings` exists so the model has somewhere to say what it deliberately
+ * left out, which is what makes leaving something out an acceptable answer
+ * rather than a failure. Handing that list on turned it into a claim, and
+ * driven live it made a false one: notes saying *"rained most of the afternoon
+ * so we ducked into the maritime museum"* came back with the rain in the prose
+ * **and** a warning saying the weather had been omitted from it.
+ *
+ * Nothing rendered the list, so nobody saw it until a tester read the JSON.
+ */
+describe("what the drafted day is answered with", () => {
+  test("carries the title and the prose, and not the model's own notes to itself", async () => {
+    writeDay.mockResolvedValue({
+      title: "The pass",
+      prose: "It rained, so we went into the museum.",
+      warnings: ["Weather mentioned in notes but omitted from prose."],
+    });
+    await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST" }), params);
+    const answered = await call({ notes: "regen, museum", idempotency_key: "valve" });
+    expect(answered.status).toBe(200);
+
+    const body = (await answered.json()) as { draft: Record<string, unknown> };
+    expect(body.draft.title).toBe("The pass");
+    expect(body.draft.prose).toBe("It rained, so we went into the museum.");
+    expect(body.draft).not.toHaveProperty("warnings");
+    // And nowhere else in the answer either.
+    expect(JSON.stringify(body)).not.toContain("omitted");
   });
 });

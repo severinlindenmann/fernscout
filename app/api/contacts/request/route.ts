@@ -98,7 +98,7 @@ export async function POST(request: Request) {
 
   // The same refusal for the same reason, one channel over: consent to be
   // messaged on a number nothing can dial is a typo, not a preference. Named
-  // rather than silently dropped, so the person who typed `076 561 31 50` on
+  // rather than silently dropped, so the person who typed `076 000 00 00` on
   // an instance with no `defaultCountryCode` finds out now instead of
   // wondering for a month why nothing arrives (see lib/whatsapp/phone.ts).
   const wantsWhatsapp = body.wantsWhatsapp === true;
@@ -120,12 +120,29 @@ export async function POST(request: Request) {
   // still not identity: the *submitted* address is what identifies this
   // person, never the invite.
   const inviteToken = typeof body.invite === "string" ? body.invite : "";
-  const invite = inviteToken ? await resolveInvite(username, inviteToken) : null;
 
-  // Missing, invented, expired or revoked — all four end here, writing
-  // nothing, sending nothing, and answering exactly what a good token gets. A
-  // caller cannot tell the four apart from each other or from success, which
-  // is the point: otherwise this route answers "is that link still live?" for
+  // A body with no `invite` field at all is malformed, not merely a wrong
+  // guess — B801. Refusing it names nothing about any *token*: the caller
+  // already knows they sent none. The uniform 202 below is for a token that
+  // *was* supplied, real or not; leaving this case folded into it told a
+  // caller who mistyped the field name — `token`, say, in place of `invite`
+  // — that their request had succeeded when nothing was ever looked up.
+  if (inviteToken === "") {
+    return Response.json(
+      {
+        error: "invalid_invite",
+        message: "The `invite` field is missing or empty — this endpoint needs an invite token.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const invite = await resolveInvite(username, inviteToken);
+
+  // Invented, expired or revoked — all three end here, writing nothing,
+  // sending nothing, and answering exactly what a good token gets. A caller
+  // cannot tell the three apart from each other or from success, which is the
+  // point: otherwise this route answers "is that link still live?" for
   // anybody who asks.
   //
   // A **buddy** token joins them (B33), and for a different reason. This form

@@ -33,6 +33,8 @@ export const FEATURE_NAMES = [
   "analytics",
   "helper",
   "transcription",
+  "fulfilmentRelay",
+  "fulfilmentAccept",
 ] as const;
 
 export type FeatureName = (typeof FEATURE_NAMES)[number];
@@ -74,6 +76,14 @@ export const OPERATOR_ONLY_FEATURES = [
   // leaving the machine — is the `speech` scope in lib/helper/consent.ts,
   // which is a person reading a panel rather than a flag in a file.
   "transcription",
+  // B589. Both halves of the fulfilment relay (see
+  // docs/plans/2026-09-06-fulfilment-relay.md) spend something that belongs
+  // to the operator and not to a journal: `relay` names another instance to
+  // hand a job to, and `accept` spends this instance's own printer account
+  // and payment method on somebody else's order. Neither is a journal's to
+  // switch on.
+  "fulfilmentRelay",
+  "fulfilmentAccept",
 ] as const satisfies readonly FeatureName[];
 
 /**
@@ -423,6 +433,17 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // Deepgram account gets, and it returns a canned transcript rather than
   // failing — see lib/helper/transcribe.ts.
   transcription: { enabled: false, backend: "dry-run" },
+  // B589. Off by default like every optional capability. `url` names the
+  // fulfilment instance this one hands jobs to — read the same way
+  // `addressLookup.url` is, above — and there is no sensible default the way
+  // `photon` is one, since it names somebody else's server rather than a
+  // public API; off means no job ever leaves this instance.
+  fulfilmentRelay: { enabled: false, url: "" },
+  // B589. Off by default. Needs no config value of its own: whether this
+  // instance can actually fulfil a job is a question about `postcards` and
+  // `photobook`'s own provider and about Stripe, both checked in
+  // lib/capabilities.ts, not a separate setting here.
+  fulfilmentAccept: { enabled: false },
 };
 
 /**
@@ -584,8 +605,8 @@ function parseOwner(src: Record<string, unknown>, problems: string[]): Owner {
     const tel = typeof raw.tel === "string" ? toE164(raw.tel) : null;
     if (!tel) {
       problems.push(
-        "owner.tel must be a telephone number with its country code — +41 76 561 31 50, " +
-          "0041 76 561 31 50 or 41765613150 — or absent. A national number like 076 561 31 50 " +
+        "owner.tel must be a telephone number with its country code — +41 76 000 00 00, " +
+          "0041 76 000 00 00 or 41760000000 — or absent. A national number like 076 000 00 00 " +
           "is refused here: this file is read on a server, which is not standing in any country.",
       );
     } else {

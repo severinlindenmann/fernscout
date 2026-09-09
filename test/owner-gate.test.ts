@@ -26,7 +26,7 @@ import { SESSION_SCOPE, type Session } from "@/lib/auth";
  *   app/api/v1/[user]/trips/[trip]/days/[slug]/send-whatsapp/route.ts (POST)
  *   lib/api/tripParty.ts (people/travellers/tracks routes' shared resolver)
  *   lib/api/status.ts (the malformed-trips and credit-balance reveal)
- *   app/[user]/export.zip/route.ts (the owner's full archive vs. the public one)
+ *   app/[user]/export.zip/route.ts (owner-only archive, B1086)
  *
  * Two halves, because either alone misses what B240 is about. A per-route test
  * ("a trip-scoped token gets 403 here") is the case-by-case check the ticket

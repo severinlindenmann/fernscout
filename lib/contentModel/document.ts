@@ -203,6 +203,14 @@ export function contentModel(): ContentModelDocument {
         type: "string",
         pattern: { pattern: "^([01]\\d|2[0-3]):[0-5]\\d$", expected: "24-hour, like 18:40" },
       },
+      // B42. The IANA name `time` is a wall clock in. No pattern: the list
+      // of real zone names is the tz database's and changes with it, so the
+      // server asks `Intl` whether it knows the name (isUsableZone in
+      // lib/digest/quiet.ts) rather than keeping a copy that goes stale.
+      timezone: {
+        type: "string",
+        because: "what 09:15 means — an IANA name like Asia/Bangkok, never an offset",
+      },
       location: { type: "string" },
       country: { type: "string" },
       // B615: model.mjs's pattern was capitals-only. The server's own check
@@ -257,6 +265,7 @@ export function contentModel(): ContentModelDocument {
       coordinates: { apiOnly: true, because: "only ever false — this day has no one place" },
       photos: { apiOnly: true, because: "only ever false — this day has no photographs" },
       idempotency_key: { apiOnly: true, because: "names one write, so a retry is safe" },
+      dryRun: { apiOnly: true, because: "checks the body and writes nothing — never a file's own field" },
       // B616: model.mjs never gained a `type` for this one, even though
       // `checkTest` in lib/validate/entry.ts refuses anything but a real
       // boolean. Fixed here. B620: also one of the two keys model.mjs marks

@@ -72,6 +72,13 @@ export async function POST(
   const found = findInboxFile(user, body.inbox);
   if (!found) return Response.json({ error: "unknown_inbox_file" }, { status: 404 });
 
+  // "That is not the header row" — B761. A preamble line with a comma or two
+  // in it (an account name, an export date) can have as many cells as the
+  // real header, and detection cannot tell the two apart on its own. A person
+  // who sees nonsense column names says so, and this moves the guess down a
+  // line rather than trying to be cleverer about it.
+  const skipLines = Math.min(20, Math.max(0, Number(body.skipLines) || 0));
+
   const text = fs.readFileSync(found.file, "utf8");
 
   // **The Regelwerk first.** A bank one of `importers/costs/` already knows by
@@ -86,7 +93,7 @@ export async function POST(
     return Response.json({ ok: true, format: known.id, label: known.label, spent: 0 });
   }
 
-  const sample = statementSample(text, PREVIEW_ROWS);
+  const sample = statementSample(text, PREVIEW_ROWS, skipLines);
   if (!sample || sample.rows.length === 0) {
     // Refused before the credit: there is nothing in this file for a model to
     // read, and charging for that would be charging for a wrong answer.
@@ -100,8 +107,8 @@ export async function POST(
 
   const supplied = typeof body.idempotency_key === "string" ? body.idempotency_key.trim() : "";
   const key = supplied === "" ? null : idempotencyKey(user, "helper.statement", supplied);
-  const fingerprint = fingerprintOf({ inbox: found.entry.id });
-  const recalled = recall<Record<string, unknown>>(key, fingerprint);
+  const fingerprint = fingerprintOf({ inbox: found.entry.id, skipLines });
+  const recalled = await recall<Record<string, unknown>>(key, fingerprint);
   if (recalled.kind === "replay") return Response.json(recalled.value);
   if (recalled.kind === "conflict") {
     return Response.json({ error: "idempotency_conflict" }, { status: 409 });
@@ -132,13 +139,14 @@ export async function POST(
     mapping: read.mapping,
     notes: read.notes,
     problems,
+    skipLines,
     // Applied by code, to the sample only, so the person sees what the mapping
     // *does* rather than what it claims.
     preview: problems.length === 0 ? applyMapping(rejoin(sample), read.mapping) : [],
     spent: STATEMENT_CREDITS,
     provider: HELPER_PROVIDER,
   };
-  remember(key, fingerprint, answer);
+  await remember(key, fingerprint, answer);
   return Response.json(answer);
 }
 

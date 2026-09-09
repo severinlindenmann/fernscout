@@ -159,7 +159,8 @@ export async function DELETE(
 }
 
 /**
- * A trip's title, subtitle, dates and cover — B622, cover since B245.
+ * A trip's title, subtitle, dates, cover, accent, costs visibility and
+ * intro — B622, cover since B245, accent/costsVisibility/intro since B907.
  *
  * Title/tagline/start/end were the last four fields of a trip nothing could
  * write, and until B621 this handler said so: it was a `405` that named every
@@ -176,11 +177,20 @@ export async function DELETE(
  * gallery (`getAllMedia`) and refuses one that names a file the trip does not
  * have, rather than writing a value that would render as a broken image.
  *
+ * B907 is the same finding one level up: `POST .../trips` validates and
+ * accepts `accent`, `costsVisibility` and `intro`, and until now nothing let
+ * any of the three be corrected — a typo in a trip's own prose needed a shell
+ * on the server. `status` and `test` are deliberately still absent; see the
+ * comment above `patchTripDetails` in lib/api/tripDetails.ts for why each one
+ * is a different question rather than an oversight.
+ *
  * `patchTripDetails` (lib/api/tripDetails.ts) is the same function that door
  * calls, so the rules cannot differ between them: a title that cannot be
  * cleared, a subtitle whose emptying removes the key, dates that must parse
  * and must not run backwards, a cover that must name a photo already in the
- * trip, and a splice that leaves the prose and every other key byte for byte.
+ * trip, an accent and a costs visibility checked against the same enums
+ * `createTrip` checks the first value against, and a splice that leaves the
+ * prose (unless `intro` is named) and every other key byte for byte.
  *
  * **Owner only**, like `.../visibility` and unlike `.../days`. A trip-scoped
  * token belongs to somebody who was on the bus; adding a day to a journey is
@@ -226,15 +236,25 @@ export async function PATCH(
     return Response.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const FIELDS = ["title", "tagline", "start", "end", "cover"] as const;
+  const FIELDS = [
+    "title",
+    "tagline",
+    "start",
+    "end",
+    "cover",
+    "accent",
+    "costsVisibility",
+    "intro",
+  ] as const;
   if (!FIELDS.some((field) => body[field] !== undefined)) {
     return Response.json(
       {
         error: "nothing_to_change",
         message:
-          `Name at least one of ${FIELDS.join(", ")}. Everything else about a trip has a door ` +
-          `of its own: visibility, rates, people, travellers and tracks are each one level down ` +
-          `from here.`,
+          `Name at least one of ${FIELDS.join(", ")}. visibility, listed and teaser have a ` +
+          `door of their own (.../trips/{trip}/visibility) with rules this one must not ` +
+          `duplicate; rates, people, travellers and tracks are each one level down from here ` +
+          `too. status and test are not writable here at all — see the PATCH description.`,
       },
       { status: 400 },
     );
@@ -257,5 +277,8 @@ export async function PATCH(
     start: result.start,
     end: result.end,
     ...(result.cover ? { cover: result.cover } : {}),
+    ...(result.accent ? { accent: result.accent } : {}),
+    costsVisibility: result.costsVisibility,
+    intro: result.intro,
   });
 }

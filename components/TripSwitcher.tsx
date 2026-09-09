@@ -80,20 +80,28 @@ export default function TripSwitcher() {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t("trips.switch")}
-        className="flex min-h-11 items-center gap-1 rounded-full border border-navy-200 bg-white px-3 text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500 max-w-[13rem] sm:w-[14rem] sm:max-w-none sm:justify-between"
+        className="flex min-h-11 items-center gap-1 rounded-full border border-navy-200 bg-white px-3 text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500 sm:w-[14rem] sm:justify-between"
       >
-        {/* The label is shown at every width — B868.
+        {/* What it does, not which trip is open — B886.
 
-            It used to be `sm:inline` only, because below sm this chip shared
-            the header row with the seven nav icons and the label pushed the
-            total past 375px. B770 moved that nav into the menu panel, and
-            these chips went with it: below sm they now sit in a 332px column
-            with room to spare, so the constraint that hid the label is gone.
-            What it left behind was a suitcase and a chevron — a direction and
-            no subject — which is exactly how it read. */}
+            B868 showed the trip's own title here, which is right on a laptop
+            and wrong on a phone: "Achtzehn Tage, elf Parks" arrives as
+            "Achtzehn Tage, elf …" and a truncated title says less than a
+            fixed word. So below `sm` the chip carries the control's purpose
+            and the title stays on the wider header, where there is room for
+            it.
+
+            The word is `trips.chip` — "Reisen" / "Trips" — asked for twice
+            by the owner after "Reise wechseln" proved too long again on a
+            phone. It repeats `nav.trips`, a destination in the same panel
+            that lists every journey; that duplicate name is a real cost and
+            was raised and overruled, which B886 records. The `aria-label`
+            stays `trips.switch`, so a screen reader still hears what the
+            control does rather than a word shared with something else. */}
         <span className="flex min-w-0 items-center gap-1">
           <Luggage className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-          <span className="truncate">{label}</span>
+          <span className="truncate sm:hidden">{t("trips.chip")}</span>
+          <span className="hidden truncate sm:inline">{label}</span>
         </span>
         {/* A fixed width (B286) rather than a cap: the button's width used to
             follow the active trip's own title, so two trips with different

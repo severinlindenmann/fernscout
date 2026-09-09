@@ -1,5 +1,8 @@
 import "server-only";
 import { isEnabled } from "./capabilities";
+// The unit and its arithmetic live beside `pricing.ts` and not here, because
+// a balance is rendered in the browser and this file is `server-only` — B987.
+import { creditsFromUnits, toUnits } from "./credits/format";
 import { getDatabaseOrNull, newId, nowIso } from "./db";
 
 /**
@@ -71,10 +74,15 @@ type LedgerReason =
   | "digest"
   | "postcard"
   | "photobook"
+  | "photobook_print"
   | "storage"
   | "helper"
   | "transcription"
-  | "refund";
+  | "refund"
+  /** Credits taken back because the money that bought them was returned —
+   * B878. A negative delta that is not a spend, which is why
+   * `spentByReason` excludes it by name. */
+  | "purchase_refund";
 
 /**
  * What a *send* may charge for. Narrower than `LedgerReason` on purpose: it is
@@ -93,6 +101,14 @@ export type SpendReason =
   | "digest"
   | "postcard"
   | "photobook"
+  /** Turning a built book into a posted one — B434's photobook counterpart.
+   * Its own value rather than reusing `photobook`, for the reason `digest`
+   * is its own value above: the ledger is what an operator reconciles a
+   * supplier bill against, and rendering a PDF and printing a physical
+   * object are two different suppliers — one a model call, the other a
+   * Gelato invoice — so "photobook" spend alone cannot say which of the two
+   * a month's credits went on. */
+  | "photobook_print"
   /** More disk, bought once and for good — B661. The one spend that buys the
    * journal something rather than reaching somebody, and the reason it is
    * counted rather than merely logged: `purchasedBytes` in
@@ -148,6 +164,9 @@ export function creditsEnabled(): boolean {
  * What this journal has, or `null` when credits are switched off — which is
  * "there is no such number here", a different answer from zero and rendered
  * differently by `/[user]/me`.
+ *
+ * In credits, which since B987 may carry a fraction: the stored number is
+ * hundredths and this is where it stops being one.
  */
 export async function balanceOf(owner: string): Promise<number | null> {
   if (!creditsEnabled()) return null;
@@ -160,7 +179,7 @@ export async function balanceOf(owner: string): Promise<number | null> {
     .executeTakeFirst();
   // No row is a balance of zero. Every journal starts that way and nothing
   // back-fills; the row appears at the first grant.
-  return row ? Number(row.balance) : 0;
+  return row ? creditsFromUnits(Number(row.balance)) : 0;
 }
 
 /**
@@ -180,8 +199,10 @@ export async function spend(
   ref: string,
 ): Promise<boolean> {
   if (!creditsEnabled()) return true;
-  if (!Number.isInteger(n)) throw new Error(`credits: refusing a fractional spend of ${n}`);
-  if (n <= 0) return true;
+  // Hundredths since B987 — a spend of 0.01 is the smallest real charge, and
+  // anything finer is a pricing bug rather than a discount.
+  const units = toUnits(n, "a spend");
+  if (units <= 0) return true;
 
   const handle = await getDatabaseOrNull();
   // Credits are on and there is nowhere to record them. Refusing is the only
@@ -192,11 +213,11 @@ export async function spend(
   return handle.db.transaction().execute(async (trx) => {
     const result = await trx
       .updateTable("credits")
-      .set((eb) => ({ balance: eb("balance", "-", n), updated_at: nowIso() }))
+      .set((eb) => ({ balance: eb("balance", "-", units), updated_at: nowIso() }))
       .where("owner_id", "=", owner)
       // The whole guard, in one statement. A missing row affects nothing and
       // is therefore refused, the same answer as a row holding too little.
-      .where("balance", ">=", n)
+      .where("balance", ">=", units)
       .executeTakeFirst();
 
     // `numUpdatedRows` is a bigint on both dialects, and this file compiles
@@ -210,7 +231,7 @@ export async function spend(
       .values({
         id: newId(),
         owner_id: owner,
-        delta: -n,
+        delta: -units,
         reason,
         ref,
         note: null,
@@ -232,14 +253,15 @@ export async function spend(
  */
 export async function refund(owner: string, n: number, ref: string): Promise<void> {
   if (!creditsEnabled()) return;
-  if (n <= 0) return;
+  const units = toUnits(n, "a refund");
+  if (units <= 0) return;
   const handle = await getDatabaseOrNull();
   if (!handle) return;
 
   await handle.db.transaction().execute(async (trx) => {
     await trx
       .updateTable("credits")
-      .set((eb) => ({ balance: eb("balance", "+", n), updated_at: nowIso() }))
+      .set((eb) => ({ balance: eb("balance", "+", units), updated_at: nowIso() }))
       .where("owner_id", "=", owner)
       .execute();
     await trx
@@ -247,7 +269,7 @@ export async function refund(owner: string, n: number, ref: string): Promise<voi
       .values({
         id: newId(),
         owner_id: owner,
-        delta: n,
+        delta: units,
         reason: "refund",
         ref,
         note: null,
@@ -255,6 +277,80 @@ export async function refund(owner: string, n: number, ref: string): Promise<voi
       })
       .execute();
   });
+}
+
+/**
+ * Take credits back off a balance because the purchase was refunded — B878.
+ *
+ * **Floored at zero, and that is a decision rather than a limitation.** A
+ * journal that bought a hundred credits, spent sixty and asked for its money
+ * back has forty to give: the sixty are gone into letters that were delivered
+ * and models that answered, and there is no way to un-send them. A negative
+ * balance would be the alternative, and it would put `spend`'s one guard —
+ * `balance >= n` — in charge of a state it was never written for, on every
+ * send in the system, to express a debt of sixty credits that no route can
+ * collect. So it takes what is there, records what it took, and returns the
+ * shortfall for the operator to read; a person who was refunded more than
+ * they had left is a conversation, not a database state.
+ *
+ * Property 2 is kept the way `spend` keeps it: the deduction carries its own
+ * `balance >= taken` guard, so a spend landing between the read and the write
+ * makes the update affect nothing rather than push the balance under. When
+ * that happens it re-reads and tries again — a handful of times, because the
+ * loop is bounded by the balance falling, and a balance cannot fall forever.
+ *
+ * Returns what was actually taken. The caller has already moved real money and
+ * cannot be failed here.
+ */
+export async function clawBack(owner: string, n: number, ref: string): Promise<number> {
+  if (!creditsEnabled()) return 0;
+  if (!Number.isInteger(n) || n <= 0) return 0;
+  // A purchase is always a whole number of credits, so the guard above stands;
+  // the *balance* it is compared against is hundredths since B987, so the
+  // comparison has to happen down there rather than up here.
+  const wanted = toUnits(n, "a claw-back");
+  const handle = await getDatabaseOrNull();
+  if (!handle) return 0;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const row = await handle.db
+      .selectFrom("credits")
+      .select("balance")
+      .where("owner_id", "=", owner)
+      .executeTakeFirst();
+    const taken = Math.min(wanted, Number(row?.balance ?? 0));
+    if (taken <= 0) return 0;
+
+    const done = await handle.db.transaction().execute(async (trx) => {
+      const result = await trx
+        .updateTable("credits")
+        .set((eb) => ({ balance: eb("balance", "-", taken), updated_at: nowIso() }))
+        .where("owner_id", "=", owner)
+        .where("balance", ">=", taken)
+        .executeTakeFirst();
+      if (Number(result.numUpdatedRows ?? 0) === 0) return false;
+      await trx
+        .insertInto("credit_ledger")
+        .values({
+          id: newId(),
+          owner_id: owner,
+          delta: -taken,
+          reason: "purchase_refund" satisfies LedgerReason,
+          ref,
+          note: null,
+          created_at: nowIso(),
+        })
+        .execute();
+      return true;
+    });
+    if (done) return creditsFromUnits(taken);
+  }
+
+  // Five reads in a row each overtaken by a spend. Vanishingly unlikely, and
+  // the honest answer is that nothing was taken — never a deduction the guard
+  // did not agree to.
+  console.warn(`[credits] could not claw back ${n} from ${owner} for ${ref}; balance kept moving`);
+  return 0;
 }
 
 /** The first grant a new journal ever sees — B688, plan §6's "a free grant on
@@ -295,9 +391,14 @@ export const SIGNUP_CREDIT_GRANT = 10;
  * grant that silently did nothing would be found out much later.
  */
 export async function grant(owner: string, n: number, note?: string): Promise<void> {
+  // Still whole credits, and deliberately: everything that grants is a fixed
+  // amount or a purchase somebody made in whole credits (property 1 above),
+  // and a fractional grant would be a sign that something a caller controls
+  // had reached this function.
   if (!Number.isInteger(n) || n <= 0) {
     throw new Error(`credits: a grant must be a positive whole number, got ${n}`);
   }
+  const units = toUnits(n, "a grant");
   const handle = await getDatabaseOrNull();
   if (!handle) throw new Error("credits: no database is configured, so there is nowhere to grant");
 
@@ -314,13 +415,13 @@ export async function grant(owner: string, n: number, note?: string): Promise<vo
     if (existing) {
       await trx
         .updateTable("credits")
-        .set((eb) => ({ balance: eb("balance", "+", n), updated_at: nowIso() }))
+        .set((eb) => ({ balance: eb("balance", "+", units), updated_at: nowIso() }))
         .where("owner_id", "=", owner)
         .execute();
     } else {
       await trx
         .insertInto("credits")
-        .values({ owner_id: owner, balance: n, updated_at: nowIso() })
+        .values({ owner_id: owner, balance: units, updated_at: nowIso() })
         .execute();
     }
 
@@ -329,7 +430,7 @@ export async function grant(owner: string, n: number, note?: string): Promise<vo
       .values({
         id: newId(),
         owner_id: owner,
-        delta: n,
+        delta: units,
         reason: "grant",
         ref: null,
         note: note ?? null,
@@ -370,6 +471,16 @@ export async function countSpends(owner: string, reason: SpendReason): Promise<n
  * that drops without them named reads as unexplained. Grouped in SQL for the
  * reason `usageSince` is — a busy journal is thousands of rows and the answer
  * is at most eight lines.
+ *
+ * **`refunded` is its own row, deliberately not netted into the reasons
+ * above** — B922. A drafting call that failed still shows as, say, 3 credits
+ * under `helper`, because that is what was actually charged and the person
+ * pressed nothing wrong; netting it away would make "helper: 2" and
+ * "helper: 3, refunded: 1" look identical, and only one of those tells her a
+ * credit came back. So the ledger's own `refund` rows (never
+ * `purchase_refund`, which is money leaving the journal, not credit coming
+ * back into it) are summed on their own and appended as one more line —
+ * legible without disturbing what each reason actually cost.
  */
 export async function spentByReason(owner: string): Promise<{ reason: string; credits: number }[]> {
   const handle = await getDatabaseOrNull();
@@ -379,13 +490,29 @@ export async function spentByReason(owner: string): Promise<{ reason: string; cr
     .select((eb) => ["reason", eb.fn.sum<number>("delta").as("total")])
     .where("owner_id", "=", owner)
     .where("delta", "<", 0)
+    // Credits taken back with the money that bought them (B878). Negative,
+    // and not a thing the journal spent on anything — listing it under
+    // "where credits went" would invent a purchase nobody made.
+    .where("reason", "!=", "purchase_refund")
     .groupBy("reason")
     .execute();
-  return rows
+  const result = rows
     // `sum` is a bigint on Postgres and arrives as a string; negated here so
     // the caller renders a spend as the positive number a person would say.
-    .map((row) => ({ reason: row.reason, credits: -Number(row.total ?? 0) }))
-    .sort((a, b) => b.credits - a.credits);
+    // Hundredths in the table, credits out — B987, the same boundary
+    // `balanceOf` is.
+    .map((row) => ({ reason: row.reason, credits: creditsFromUnits(-Number(row.total ?? 0)) }));
+
+  const refunded = await handle.db
+    .selectFrom("credit_ledger")
+    .select((eb) => eb.fn.sum<number>("delta").as("total"))
+    .where("owner_id", "=", owner)
+    .where("reason", "=", "refund")
+    .executeTakeFirst();
+  const refundedCredits = creditsFromUnits(Number(refunded?.total ?? 0));
+  if (refundedCredits > 0) result.push({ reason: "refunded", credits: refundedCredits });
+
+  return result.sort((a, b) => b.credits - a.credits);
 }
 
 /** Newest first. For `npm run credits -- list`; there is no reader-facing
@@ -402,7 +529,8 @@ export async function ledgerFor(owner: string, limit = 50): Promise<LedgerRow[]>
     .execute();
   return rows.map((r) => ({
     id: r.id,
-    delta: Number(r.delta),
+    // In credits, like everything else this module hands out — B987.
+    delta: creditsFromUnits(Number(r.delta)),
     reason: r.reason,
     ref: r.ref,
     note: r.note,
@@ -435,9 +563,12 @@ export async function auditOwner(
       .where("owner_id", "=", owner)
       .executeTakeFirst(),
   ]);
-  const balance = row ? Number(row.balance) : 0;
+  // Both sides in credits — B987. The equality is the same question in either
+  // unit; the numbers are read by an operator, so they are reported in the
+  // unit an operator thinks in.
+  const balance = creditsFromUnits(row ? Number(row.balance) : 0);
   // `sum` is `numeric` on Postgres, which `pg` returns as a string, and null
   // when there are no rows at all.
-  const ledger = Number(sum?.total ?? 0);
+  const ledger = creditsFromUnits(Number(sum?.total ?? 0));
   return { balance, ledger, ok: balance === ledger };
 }

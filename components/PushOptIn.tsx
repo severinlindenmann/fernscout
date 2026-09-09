@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { Bell, BellOff, BellRing } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
 import { useTrip } from "./TripProvider";
@@ -74,9 +75,20 @@ export default function PushOptIn({
    * reading.
    */
   journal,
+  /**
+   * Icon only, for a mount where this is the least of several things offered
+   * — the trip hero, since B989. A labelled capsule there was a fourth
+   * control competing with three ways into the reading, and it is not one of
+   * them: it is what you press once and never again.
+   *
+   * The dead ends keep their sentence in either mode. "Add this to your Home
+   * Screen first" cannot be said with a bell.
+   */
+  compact,
 }: {
   heading?: { title: string; lede: string };
   journal?: string;
+  compact?: boolean;
 } = {}) {
   const { t } = useI18n();
   // The trip, when there is one — the hero. `journal` covers the mounts that
@@ -102,7 +114,9 @@ export default function PushOptIn({
       // no VAPID key should ever need to exist. Checking this before the iOS
       // Home Screen test also means a disabled deployment shows no install
       // hint either, on any device.
-      const res = await fetch(`/api/push/subscribe?user=${encodeURIComponent(username)}`)
+      const res = await fetch(
+        `/api/push/subscribe?user=${encodeURIComponent(username)}`,
+      )
         .then((r) => r.json())
         .catch(() => null);
       if (cancelled) return;
@@ -120,7 +134,9 @@ export default function PushOptIn({
         return;
       }
       const supported =
-        "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+        "serviceWorker" in navigator &&
+        "PushManager" in window &&
+        "Notification" in window;
       if (!supported) {
         if (!cancelled) setState("unsupported");
         return;
@@ -154,7 +170,9 @@ export default function PushOptIn({
         (await navigator.serviceWorker.getRegistration()) ??
         (await Promise.race([
           navigator.serviceWorker.ready.catch(() => null),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), WORKER_WAIT_MS)),
+          new Promise<null>((resolve) =>
+            setTimeout(() => resolve(null), WORKER_WAIT_MS),
+          ),
         ]));
       if (cancelled) return;
       if (!registered) {
@@ -227,7 +245,9 @@ export default function PushOptIn({
         <h2 className="font-display text-2xl font-semibold tracking-tight text-navy-900">
           {heading.title}
         </h2>
-        <p className="mt-1.5 text-base leading-7 text-navy-600">{heading.lede}</p>
+        <p className="mt-1.5 text-base leading-7 text-navy-600">
+          {heading.lede}
+        </p>
         {children}
       </section>
     ) : (
@@ -240,7 +260,11 @@ export default function PushOptIn({
   // again cannot work until they do — B446. The heading stays for these: they
   // are the answer to "why can I not turn this on", which is a question the
   // heading is what makes somebody ask.
-  if (state === "needs-install" || state === "blocked" || state === "unavailable") {
+  if (
+    state === "needs-install" ||
+    state === "blocked" ||
+    state === "unavailable"
+  ) {
     return inSection(
       <p className="mt-3 max-w-md text-[11px] leading-relaxed text-navy-500">
         {t(
@@ -255,6 +279,18 @@ export default function PushOptIn({
   }
 
   if (state === "on") {
+    if (compact) {
+      return (
+        <button
+          onClick={disable}
+          aria-label={t("push.turnOff")}
+          title={t("push.enabled")}
+          className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-navy-200 bg-white text-green-700 transition-colors hover:border-navy-500"
+        >
+          <BellRing className="h-4 w-4" aria-hidden />
+        </button>
+      );
+    }
     return inSection(
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-navy-500">
         <span className="inline-flex items-center gap-1.5 font-medium text-green-700">
@@ -272,16 +308,35 @@ export default function PushOptIn({
     );
   }
 
+  if (compact) {
+    return (
+      <BusyButton
+        busy={state === "working"}
+        busyLabel={null}
+        onClick={enable}
+        aria-label={t("push.enable")}
+        title={state === "failed" ? t("push.failed") : t("push.enable")}
+        className={`ml-auto inline-flex h-11 w-11 items-center justify-center rounded-full border bg-white transition-colors disabled:opacity-50 ${
+          state === "failed"
+            ? "border-coral-400 text-coral-600"
+            : "border-navy-200 text-navy-600 hover:border-navy-500"
+        }`}
+      >
+        <Bell className="h-4 w-4" aria-hidden />
+      </BusyButton>
+    );
+  }
+
   return inSection(
     <div className="mt-3">
-      <button
+      <BusyButton
+        busy={state === "working"}
         onClick={enable}
-        disabled={state === "working"}
         className="inline-flex items-center gap-1.5 rounded-full border border-navy-200 bg-white px-3 py-1.5 text-xs font-semibold text-navy-700 transition-colors hover:border-navy-500 disabled:opacity-50"
       >
         <Bell className="h-3.5 w-3.5" aria-hidden />
         {state === "working" ? t("push.working") : t("push.enable")}
-      </button>
+      </BusyButton>
       {state === "failed" && (
         <p className="mt-1.5 text-[11px] text-coral-600">{t("push.failed")}</p>
       )}

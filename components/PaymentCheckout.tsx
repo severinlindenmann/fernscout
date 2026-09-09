@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Smartphone, CreditCard } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
@@ -41,18 +42,27 @@ export default function PaymentCheckout({
   const { t, tn } = useI18n();
   const [status, setStatus] = useState<PaymentStatus>(payment.status);
   const [approver, setApprover] = useState<string | null>(null);
-  const [method, setMethod] = useState<PaymentMethod>(payment.method ?? "twint");
+  const [method, setMethod] = useState<PaymentMethod>(
+    payment.method ?? "twint",
+  );
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
   async function pay() {
     setBusy(true);
     setFailed(false);
-    const response = await fetch(`/api/v1/${username}/payments/${payment.id}/pay`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ method }),
-    }).catch(() => null);
+    const response = await fetch(
+      `/api/v1/${username}/payments/${payment.id}/pay`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        // Only the manual path reads this. Under a provider the route ignores
+        // it outright — the method is chosen on Stripe's own page and recorded
+        // by the webhook — so sending one would be stating a choice nobody
+        // made.
+        body: JSON.stringify(provider === "manual" ? { method } : {}),
+      },
+    ).catch(() => null);
     if (response?.ok) {
       const b = (await response.json().catch(() => null)) as {
         approver?: string | null;
@@ -115,12 +125,22 @@ export default function PaymentCheckout({
         <dl className="mt-4 space-y-1.5 text-base text-navy-700">
           <div className="flex justify-between gap-4">
             <dt className="text-navy-600">{t("pay.transaction")}</dt>
-            <dd className="font-mono text-sm text-navy-900 break-all">{payment.id}</dd>
+            <dd className="font-mono text-sm text-navy-900 break-all">
+              {payment.id}
+            </dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-navy-600">{t("pay.status")}</dt>
-            <dd className={`font-semibold ${paid ? "text-green-700" : "text-navy-900"}`}>
-              {t(paid ? "pay.statusPaid" : requested ? "pay.statusRequested" : "pay.statusPending")}
+            <dd
+              className={`font-semibold ${paid ? "text-green-700" : "text-navy-900"}`}
+            >
+              {t(
+                paid
+                  ? "pay.statusPaid"
+                  : requested
+                    ? "pay.statusRequested"
+                    : "pay.statusPending",
+              )}
             </dd>
           </div>
         </dl>
@@ -138,7 +158,11 @@ export default function PaymentCheckout({
         ) : requested ? (
           <div className="mt-5 rounded-xl border border-navy-200 bg-cream-50 p-4">
             <p className="font-display text-base font-semibold text-navy-900">
-              {t(provider === "stripe" ? "pay.confirmingTitle" : "pay.requestedTitle")}
+              {t(
+                provider === "stripe"
+                  ? "pay.confirmingTitle"
+                  : "pay.requestedTitle",
+              )}
             </p>
             {/* The manual-approval bridge, in plain words. */}
             <p className="mt-1.5 text-base leading-7 text-navy-700">
@@ -153,50 +177,70 @@ export default function PaymentCheckout({
           <div className="mt-5">
             {/* Under a provider there is nothing to choose here: Stripe's own
                 page offers TWINT, the device's wallet and a card, and a second
-                chooser in front of it would only be a guess at the first. */}
+                chooser in front of it would only be a guess at the first. Not
+                rendered at all rather than hidden with a class — B811. A dead
+                control in the DOM is one the next reader has to work out is
+                unreachable, and a Playwright run counted three buttons in
+                `main` on a page that shows one. */}
             <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
-              {t(provider === "stripe" ? "pay.methodsNote" : "pay.chooseMethod")}
+              {t(
+                provider === "stripe" ? "pay.methodsNote" : "pay.chooseMethod",
+              )}
             </p>
-            <div className={`mt-2 grid grid-cols-2 gap-3 ${provider === "stripe" ? "hidden" : ""}`}>
-              {(
-                [
-                  { id: "twint" as const, label: t("pay.twint"), Icon: Smartphone },
-                  { id: "card" as const, label: t("pay.card"), Icon: CreditCard },
-                ]
-              ).map(({ id, label, Icon }) => (
-                <button
-                  key={id}
-                  type="button"
-                  aria-pressed={method === id}
-                  onClick={() => setMethod(id)}
-                  className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 text-base font-semibold transition-colors ${
-                    method === id
-                      ? "border-navy-900 bg-cream-50 text-navy-900"
-                      : "border-navy-200 text-navy-700 hover:border-navy-500"
-                  }`}
-                >
-                  <Icon className="h-[18px] w-[18px] text-navy-600" aria-hidden="true" />
-                  {label}
-                </button>
-              ))}
-            </div>
+            {provider === "manual" && (
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                {[
+                  {
+                    id: "twint" as const,
+                    label: t("pay.twint"),
+                    Icon: Smartphone,
+                  },
+                  {
+                    id: "card" as const,
+                    label: t("pay.card"),
+                    Icon: CreditCard,
+                  },
+                ].map(({ id, label, Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={method === id}
+                    onClick={() => setMethod(id)}
+                    className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 text-base font-semibold transition-colors ${
+                      method === id
+                        ? "border-navy-900 bg-cream-50 text-navy-900"
+                        : "border-navy-200 text-navy-700 hover:border-navy-500"
+                    }`}
+                  >
+                    <Icon
+                      className="h-[18px] w-[18px] text-navy-600"
+                      aria-hidden="true"
+                    />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
 
-            <button
+            <BusyButton
+              busy={busy}
               type="button"
               onClick={pay}
-              disabled={busy}
               className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
+              busyLabel={t(
+                provider === "stripe" ? "pay.redirecting" : "pay.working",
+              )}
             >
-              {busy
-                ? t(provider === "stripe" ? "pay.redirecting" : "pay.working")
-                : t("pay.payNow", { amount: formatChf(payment.amountRappen) })}
-            </button>
+              {t("pay.payNow", { amount: formatChf(payment.amountRappen) })}
+            </BusyButton>
             {failed && (
               <p role="alert" className="mt-3 text-base text-coral-600">
                 {t("pay.failed")}
               </p>
             )}
-            <p className="mt-3 text-sm leading-6 text-navy-600">{t("pay.comeBack")}</p>
+            <p className="mt-3 text-sm leading-6 text-navy-600">
+              {t("pay.comeBack")}
+            </p>
           </div>
         )}
       </section>

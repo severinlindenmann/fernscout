@@ -11,6 +11,7 @@ transportFrom: "Luang Prabang"
 transportTo: "Phousi"
 tags: ["laos", "walking"]
 test: true
+timezone: "Asia/Vientiane"
 ---
 
 A fixture day for the one leg that has no vehicle at all. On foot the party *is* what crosses the screen — there is nothing else to draw, and the path goes past underneath them.

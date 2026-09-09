@@ -1,15 +1,18 @@
 import fs from "node:fs";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import NoticeShell from "@/components/NoticeShell";
 import PageHeader from "@/components/PageHeader";
 import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
 import { balanceOf, creditsEnabled } from "@/lib/credits";
+import { formatCredits } from "@/lib/credits/format";
 import { translateIn } from "@/lib/locales";
 import type { TranslationKey } from "@/lib/i18n";
 import { mediaUrl } from "@/lib/media";
-import { recipientsOf } from "@/lib/postcard/contacts";
+import { addressesFor, postcardCandidates, recipientsOf } from "@/lib/postcard/contacts";
+import { printerAddressLines } from "@/lib/postcard/providers";
 import { readJpeg } from "@/lib/postcard/pdf";
 import { backLayout, resolutionNote } from "@/lib/postcard/preview";
 import { getOrder, isExpired, isPending } from "@/lib/postcard/orders";
@@ -20,11 +23,14 @@ import { LOCALE_LABEL } from "@/lib/i18n";
 import { defaultLocaleFor, localesFor, requestLocale } from "@/lib/locales";
 import { pickLocale } from "@/lib/contacts/locale";
 import { formatDigestDate } from "@/lib/digest/content";
-import { orderPhotoFile } from "@/lib/postcard/send";
+import { orderPrintPhoto } from "@/lib/postcard/send";
 import { getTrip } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import PostcardCropper from "@/components/PostcardCropper";
 import PostcardBack from "./PostcardBack";
+import PostcardSend from "./PostcardSend";
+import PostcardSteps from "./PostcardSteps";
+import PostcardPeople from "./PostcardPeople";
 
 export const dynamic = "force-dynamic";
 
@@ -112,7 +118,9 @@ export default async function PostcardOrderPage({
         actions={[
           {
             href: `/${username}`,
-            label: translateIn(locale, "err.goToJournal", { title: user.title }),
+            label: translateIn(locale, "err.goToJournal", {
+              title: user.title,
+            }),
           },
         ]}
       />
@@ -123,6 +131,20 @@ export default async function PostcardOrderPage({
   if (!order) notFound();
 
   const people = await recipientsOf(username, order.payload.recipients);
+  // Everyone who could be on this card, not only who is — B1005's send step
+  // offers the list rather than reciting it. Same source the composer sheet
+  // reads, so "who may be posted to" is decided in one place.
+  const candidates = await postcardCandidates(username);
+  // Every candidate's envelope, not only the ones already on the order —
+  // B1018. Since B1005 the list is editable, so "already named on the order"
+  // stopped meaning "who you are posting to": the person you have just ticked
+  // is exactly the one whose address you want to check. Still the owner's own
+  // page, still only rendered for a ticked recipient, and still behind the
+  // disclosure B434 put it behind.
+  const envelopes = await addressesFor(
+    username,
+    candidates.map((candidate) => candidate.contactId),
+  );
   const lost = order.payload.recipients.filter((c) => !people.has(c)).length;
   const live = order.payload.recipients.filter((c) => people.has(c));
   const cost = order.payload.creditsEach * live.length;
@@ -135,7 +157,11 @@ export default async function PostcardOrderPage({
   // was printing it at a reader ("Vom sierra-smoke"). The day has a title, and
   // a postcard is about a date, so both go in. Drafts included: an order can
   // be made from a day that is not on the site yet.
-  const entry = getEntryBySlug(order.payload.trip, order.payload.day, AS_AUTHOR);
+  const entry = getEntryBySlug(
+    order.payload.trip,
+    order.payload.day,
+    AS_AUTHOR,
+  );
   const dayName = entry
     ? t("postcard.page.dayWithTitle", {
         title: entry.title,
@@ -143,8 +169,12 @@ export default async function PostcardOrderPage({
       })
     : order.payload.day;
 
-  const photoFile = orderPhotoFile(order);
-  const photo = photoFile ? dimensionsOf(photoFile) : null;
+  // The copy that actually prints, and its size — B1010. `printSourceFor`
+  // hands back the original's dimensions when the original is what will be
+  // embedded, which is the whole point: measuring the derivative said 244 dpi
+  // about a photograph that prints at about 660.
+  const print = orderPrintPhoto(order);
+  const photo = print ? (print.size ?? dimensionsOf(print.absolute)) : null;
   const resolution = photo ? resolutionNote(photo.width, photo.height) : null;
   const back = backLayout();
   // B452. The card's own language, and the journals's — so the picker offers
@@ -174,7 +204,14 @@ export default async function PostcardOrderPage({
   return (
     <div className="min-h-screen">
       <PageHeader />
-      <main className="mx-auto w-full max-w-3xl px-4 py-8">
+      {/* Wider from `lg` — B1005. The write step puts the card beside its
+          form, and two columns inside 48rem is two narrow columns; the other
+          two steps cap themselves at `max-w-2xl`, so nothing else stretches.
+          They are capped and *not* centred — B1010: the heading, the step bar
+          and the forward button all start at the left margin, and a panel
+          floating in the middle of them made the button look like it belonged
+          to something else. */}
+      <main className="mx-auto w-full max-w-3xl px-4 py-8 lg:max-w-5xl">
         {/* B474. Both of these were written once and rendered whatever had
             happened, so an order already at the printer was headed "ready to
             send" above a line promising nothing had been printed or charged —
@@ -201,285 +238,269 @@ export default async function PostcardOrderPage({
                 })}
         </p>
 
+        <PostcardSteps
+          start={typeof result === "string" || confirming ? "send" : "look"}
+          settled={!isPending(order) || expired}
+          labels={{
+            look: t("postcard.step.look"),
+            write: t("postcard.step.write"),
+            send: t("postcard.step.send"),
+            of: t("postcard.step.of"),
+          }}
+          next={{
+            look: t("postcard.step.nextLook"),
+            write: t("postcard.step.nextWrite"),
+          }}
+          back={t("postcard.step.back")}
+          /**
+           * The `key` on each panel is not decoration — B1005.
+           *
+           * These elements are built here, on the server, and handed to a
+           * client component as props. Crossing that boundary loses React's
+           * "these children are static" marker, so on the client the panel's
+           * children arrive as an array React feels entitled to validate — and
+           * it then asks for a key on elements this page owns. One attribute
+           * each, and the dev overlay is quiet. Nothing about the rendering
+           * changes: a key outside an array is ignored.
+           */
+          lookPanel={
+            <div key="look" className="max-w-2xl">
+              <figure>
+                <PostcardCropper
+                  username={username}
+                  id={id}
+                  src={mediaUrl(order.payload.trip, order.payload.photo)}
+                  aspect={back.aspect}
+                  initial={order.payload.crop ?? { x: 0.5, y: 0.5 }}
+                  editable={isPending(order) && !expired}
+                  hint={t("postcard.page.cropHint")}
+                  savingLabel={t("postcard.page.cropSaving")}
+                  resetLabel={t("postcard.page.cropReset")}
+                  zoomLabel={t("postcard.page.cropZoom")}
+                />
+                <figcaption className="mt-1 text-xs text-navy-600">
+                  {t("postcard.page.front")}
+                </figcaption>
+              </figure>
+              {/* Beside the photograph rather than four screens later — B1005.
+                  It is advice about *this* picture, and it is only useful
+                  while choosing another one is still cheap.
 
-        <section className="mt-6 grid gap-4 sm:grid-cols-2">
-          <figure>
-            <PostcardCropper
-              username={username}
-              id={id}
-              src={mediaUrl(order.payload.trip, order.payload.photo)}
-              aspect={back.aspect}
-              initial={order.payload.crop ?? { x: 0.5, y: 0.5 }}
-              editable={isPending(order) && !expired}
-              hint={t("postcard.page.cropHint")}
-              savingLabel={t("postcard.page.cropSaving")}
-              resetLabel={t("postcard.page.cropReset")}
-              zoomLabel={t("postcard.page.cropZoom")}
-            />
-            <figcaption className="mt-1 text-xs text-navy-600">
-              {t("postcard.page.front")}
-            </figcaption>
-          </figure>
-
-          <PostcardBack
-            username={username}
-            id={id}
-            layout={back}
-            initial={{
-              message: order.payload.message,
-              from: order.payload.from,
-              locale: cardLocale,
-              figures: showFigures,
-            }}
-            locales={offered}
-            localeLabel={Object.fromEntries(offered.map((code) => [code, label(code)]))}
-            figuresSvg={hasParty ? travellersSvg(100, party) : null}
-            address={
-              live[0]
-                ? {
-                    name: people.get(live[0])!.to.name,
-                    line1: people.get(live[0])!.to.line1,
-                    postcode: people.get(live[0])!.to.postcode,
-                    city: people.get(live[0])!.to.city,
-                  }
-                : null
-            }
-            editable={isPending(order) && !expired}
-            strings={{
-              messageLabel: t("postcard.page.messageLabel"),
-              signed: t("postcard.page.signed"),
-              writtenIn: t("postcard.page.writtenIn"),
-              figuresLabel: t("postcard.page.figuresLabel"),
-              save: t("postcard.page.save"),
-              saving: t("postcard.page.saving"),
-              saved: t("postcard.page.savedNow"),
-              failed: t("postcard.page.saveFailed"),
-              sameCard: t("postcard.page.sameCard"),
-              fixed: t("postcard.page.fixed"),
-              caption:
-                live.length > 1
-                  ? t("postcard.page.backFirstOf", { count: String(live.length) })
-                  : t("postcard.page.back"),
-            }}
-          />
-        </section>
-
-        {/* B628 — the one thing left outside the form: a trip nobody has
-            described has nothing to switch on, and saying so is the only
-            useful thing this space can do. */}
-        {isPending(order) && !expired && !hasParty ? (
-          <p className="mt-4 text-xs text-navy-600">{t("postcard.page.figuresNone")}</p>
-        ) : null}
-
-        {mismatched > 0 && isPending(order) ? (
-          <p className="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
-            {mismatched === 1 && firstMismatch
-              ? t("postcard.page.mismatchOne", {
-                  name: people.get(firstMismatch)!.to.name,
-                  theirs: label(people.get(firstMismatch)!.locale),
-                  card: label(cardLocale),
-                })
-              : t("postcard.page.mismatchMany", {
-                  count: String(mismatched),
-                  card: label(cardLocale),
-                })}
-          </p>
-        ) : null}
-
-        {resolution && !resolution.ok && isPending(order) ? (
-          <p className="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
-            {t("postcard.page.lowRes", { dpi: String(resolution.dpi) })}
-          </p>
-        ) : null}
-
-        <section className="mt-8">
-          <h2 className="font-display text-lg font-semibold text-navy-900">
-            {live.length === 1
-              ? t("postcard.page.goingOne")
-              : t("postcard.page.goingMany", { count: String(live.length) })}
-          </h2>
-          {lost > 0 ? (
-            <p className="mt-1 text-sm">
-              {t("postcard.page.lost", { count: String(lost) })}
-            </p>
-          ) : null}
-          <ul className="mt-2 space-y-1 text-sm">
-            {live.map((contactId) => {
-              const { to, locale } = people.get(contactId)!;
-              return (
-                <li key={contactId}>
-                  <details>
-                    <summary className="cursor-pointer">
-                      {to.name} — {to.city}
-                      {to.country ? `, ${to.country}` : ""}
-                      {/* B452: the language this journal writes to them in. It
-                          is how an owner notices a German reader being sent an
-                          English card, which a postcard gives them no other
-                          way to find out. */}
-                      {locale && locale !== cardLocale ? (
-                        <span className="opacity-60">
-                          {" · "}
-                          {t("postcard.page.reads", { language: label(locale) })}
-                        </span>
-                      ) : null}
-                    </summary>
-                    <address className="mt-1 pl-4 text-xs not-italic opacity-80">
-                      {to.line1}
-                      {to.line2 ? (
-                        <>
-                          <br />
-                          {to.line2}
-                        </>
-                      ) : null}
-                      <br />
-                      {to.postcode} {to.city}
-                    </address>
-                  </details>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-
-        {/* `id="send"` is the anchor every step of the send flow returns to —
-            B850. All three of them are navigations, and a navigation with no
-            fragment lands at the top of a long page: the `?confirm=1` link
-            below (the *first* press, and the one that was actually being
-            complained about), the "back" link out of the confirm panel, and the
-            303 out of the send route. The reader presses a button in this box
-            and has to end up looking at this box; anchoring the result banner
-            alone fixed only the third of the three, and did it two lines under
-            the `<h1>`, where scrolling to it and jumping to the top are the
-            same movement. */}
-        <section
-          id="send"
-          className="mt-8 scroll-mt-4 rounded-xl border-2 border-navy-900 bg-cream-100 p-4"
-        >
-          {/* The outcome belongs where the button was, not at the top of the
-              page — B850, second attempt. The first put an `id` on this banner
-              and pointed the redirect at it, which was correct and useless: the
-              banner lived two lines under the `<h1>`, so scrolling to it and
-              jumping to the top are the same movement. The reader pressed a
-              button at the bottom of a long page and was shown a heading about
-              the order instead of an answer about their press. Moving it into
-              this box is the actual fix; the anchor now has somewhere worth
-              going. */}
-          {typeof result === "string" && RESULTS[result] ? (
-            <p
-              // `scroll-mt-4` keeps it off the very top edge once scrolled to.
-              id="send-result"
-              className="mb-3 scroll-mt-4 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900"
-              role="status"
-              data-testid="send-result"
-            >
-              {t(RESULTS[result])}
-            </p>
-          ) : null}
-          <p className="text-sm">
-            {t("postcard.page.cost", {
-              each: String(order.payload.creditsEach),
-              count: String(live.length),
-              total: String(cost),
-            })}
-            {balance !== null ? (
-              <>
-                {" — "}
-                {t("postcard.page.balance", { balance: String(balance) })}
-              </>
-            ) : null}
-          </p>
-          {short ? (
-            <p className="mt-2 text-sm">
-              {t("postcard.page.short", {
-                missing: String(cost - (balance ?? 0)),
-                date: formatDigestDate(locale, order.payload.expiresAt.slice(0, 10)),
-              })}{" "}
-              <a className="underline" href={`/${username}/me`}>
-                {t("postcard.page.buy")}
-              </a>
-            </p>
-          ) : null}
-
-          {!isPending(order) ? (
-            <p className="mt-2 text-sm">{t("postcard.page.alreadySent")}</p>
-          ) : expired ? (
-            <p className="mt-2 text-sm">
-              {t("postcard.page.expiredOn", {
-                date: formatDigestDate(locale, order.payload.expiresAt.slice(0, 10)),
-              })}
-            </p>
-          ) : (
-            confirming && sendable ? (
-              <div className="mt-3 rounded-lg border border-navy-900 bg-white px-4 py-3">
-                <p className="font-semibold">{t("postcard.confirm.heading")}</p>
-                <p className="mt-1 text-sm">
-                  {live.length === 1
-                    ? t("postcard.confirm.bodyOne", { name: people.get(live[0])!.to.name })
-                    : t("postcard.confirm.bodyMany", { count: String(live.length) })}
+                  A plain line and not a yellow panel — B1010. Yellow is what
+                  this product uses for something that stops a send; this stops
+                  nothing, and it appeared on a page where somebody is about to
+                  spend twenty credits. It also no longer carries the dpi
+                  figure: a number a person cannot act on is not advice, and it
+                  reads as a fault rather than as a suggestion. */}
+              {resolution && !resolution.ok && isPending(order) ? (
+                <p className="mt-3 text-sm text-navy-600">
+                  {t("postcard.page.smallPhoto")}
                 </p>
-                {/* Suppressed when the balance is short: "leaving you -3" is
-                    not a sentence, and the shortfall line above already says
-                    the number and where to buy — B606. */}
-                {!short && (
-                  <p className="mt-1 text-sm">
-                    {t("postcard.confirm.cost", {
+              ) : null}
+              {isPending(order) && !expired ? (
+                <p className="mt-2 text-xs text-navy-600">
+                  {t("postcard.page.photoFixed")}
+                </p>
+              ) : null}
+            </div>
+          }
+          writePanel={
+            <div key="write">
+              <PostcardBack
+                username={username}
+                id={id}
+                layout={back}
+                initial={{
+                  message: order.payload.message,
+                  from: order.payload.from,
+                  locale: cardLocale,
+                  figures: showFigures,
+                }}
+                locales={offered}
+                localeLabel={Object.fromEntries(
+                  offered.map((code) => [code, label(code)]),
+                )}
+                figuresSvg={hasParty ? travellersSvg(100, party) : null}
+                // As the printer will set it, not as this product used to print
+                // it — B982. The card that goes to Stannp now carries no address
+                // at all, because Stannp lays down its own; what is worth showing
+                // here is therefore theirs.
+                address={
+                  live[0] ? printerAddressLines(people.get(live[0])!.to) : null
+                }
+                editable={isPending(order) && !expired}
+                strings={{
+                  messageLabel: t("postcard.page.messageLabel"),
+                  signed: t("postcard.page.signed"),
+                  writtenIn: t("postcard.page.writtenIn"),
+                  figuresLabel: t("postcard.page.figuresLabel"),
+                  save: t("postcard.page.save"),
+                  saving: t("postcard.page.saving"),
+                  saved: t("postcard.page.savedNow"),
+                  failed: t("postcard.page.saveFailed"),
+                  sameCard: t("postcard.page.sameCard"),
+                  printerAdds: t("postcard.page.printerAdds"),
+                  caption:
+                    live.length > 1
+                      ? t("postcard.page.backFirstOf", {
+                          count: String(live.length),
+                        })
+                      : t("postcard.page.back"),
+                }}
+              />
+
+              {/* B628 — a trip nobody has described has nothing to switch on,
+                  and saying so is the only useful thing this space can do. */}
+              {isPending(order) && !expired && !hasParty ? (
+                <p className="mt-4 text-xs text-navy-600">
+                  {t("postcard.page.figuresNone")}
+                </p>
+              ) : null}
+
+              {mismatched > 0 && isPending(order) ? (
+                <p className="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
+                  {mismatched === 1 && firstMismatch
+                    ? t("postcard.page.mismatchOne", {
+                        name: people.get(firstMismatch)!.to.name,
+                        theirs: label(people.get(firstMismatch)!.locale),
+                        card: label(cardLocale),
+                      })
+                    : t("postcard.page.mismatchMany", {
+                        count: String(mismatched),
+                        card: label(cardLocale),
+                      })}
+                </p>
+              ) : null}
+            </div>
+          }
+          sendPanel={
+            <div key="send" className="max-w-2xl">
+              <PostcardPeople
+                username={username}
+                id={id}
+                candidates={candidates.map((candidate) => ({
+                  contactId: candidate.contactId,
+                  name: candidate.name,
+                  city: candidate.city,
+                  country: candidate.country,
+                  // Formatted here, on the server, because `t` cannot cross
+                  // into a client component — B1005.
+                  readsNote:
+                    candidate.locale && candidate.locale !== cardLocale
+                      ? t("postcard.page.reads", { language: label(candidate.locale) })
+                      : null,
+                  address: envelopes.has(candidate.contactId)
+                    ? {
+                        line1: envelopes.get(candidate.contactId)!.line1,
+                        line2: envelopes.get(candidate.contactId)!.line2 ?? "",
+                        postcode: envelopes.get(candidate.contactId)!.postcode,
+                        city: envelopes.get(candidate.contactId)!.city,
+                      }
+                    : null,
+                }))}
+                chosen={live}
+                editable={isPending(order) && !expired}
+                strings={{
+                  heading:
+                    live.length === 1
+                      ? t("postcard.page.goingOne")
+                      : t("postcard.page.goingMany", {
+                          count: String(live.length),
+                        }),
+                  save: t("postcard.people.save"),
+                  saving: t("postcard.page.saving"),
+                  saved: t("postcard.page.savedNow"),
+                  failed: t("postcard.page.saveFailed"),
+                  lost:
+                    lost > 0
+                      ? t("postcard.page.lost", { count: String(lost) })
+                      : null,
+                  none: t("postcard.noRecipients"),
+                }}
+              />
+
+              <div className="mt-4">
+                <PostcardSend
+                  username={username}
+                  id={id}
+                  confirming={confirming}
+                  sendable={sendable}
+                  statusLine={
+                    !isPending(order)
+                      ? t("postcard.page.alreadySent")
+                      : expired
+                        ? t("postcard.page.expiredOn", {
+                            date: formatDigestDate(
+                              locale,
+                              order.payload.expiresAt.slice(0, 10),
+                            ),
+                          })
+                        : null
+                  }
+                  short={short}
+                  initialResult={typeof result === "string" ? result : null}
+                  results={Object.fromEntries(
+                    Object.entries(RESULTS).map(([word, key]) => [
+                      word,
+                      t(key),
+                    ]),
+                  )}
+                  strings={{
+                    cost: t("postcard.page.cost", {
+                      each: String(order.payload.creditsEach),
+                      count: String(live.length),
+                      total: String(cost),
+                    }),
+                    balance:
+                      balance !== null
+                        ? t("postcard.page.balance", {
+                            balance: formatCredits(balance),
+                          })
+                        : null,
+                    short: short
+                      ? t("postcard.page.short", {
+                          missing: String(cost - (balance ?? 0)),
+                          date: formatDigestDate(
+                            locale,
+                            order.payload.expiresAt.slice(0, 10),
+                          ),
+                        })
+                      : null,
+                    buy: t("postcard.page.buy"),
+                    heading: t("postcard.confirm.heading"),
+                    body:
+                      live.length === 1 && live[0]
+                        ? t("postcard.confirm.bodyOne", {
+                            name: people.get(live[0])!.to.name,
+                          })
+                        : t("postcard.confirm.bodyMany", {
+                            count: String(live.length),
+                          }),
+                    confirmCost: t("postcard.confirm.cost", {
                       total: String(cost),
                       rest: String((balance ?? cost) - cost),
-                    })}
-                  </p>
-                )}
-                <p className="mt-1 text-sm font-medium">{t("postcard.confirm.undone")}</p>
-                <form
-                  method="post"
-                  action={`/${username}/postcards/${id}/send`}
-                  className="mt-3 flex flex-wrap items-center gap-3"
-                >
-                  <button
-                    type="submit"
-                    // The weight is CSS only — a press that visibly moves, and
-                    // a ring while it is held. A spinner would need
-                    // JavaScript, and this button's whole design is that it
-                    // does not.
-                    className="min-h-11 rounded-full bg-navy-900 px-5 text-sm font-semibold text-white shadow-md transition-all duration-150 hover:bg-navy-700 hover:shadow-lg focus-visible:ring-4 focus-visible:ring-yellow-400 active:translate-y-px active:shadow-sm motion-safe:animate-[pulse_2.5s_ease-in-out_infinite]"
-                  >
-                    {live.length === 1
-                      ? t("postcard.confirm.yesOne")
-                      : t("postcard.confirm.yesMany")}
-                  </button>
-                  <a
-                    className="text-sm underline"
-                    href={`/${username}/postcards/${id}#send`}
-                  >
-                    {t("postcard.confirm.back")}
-                  </a>
-                </form>
+                    }),
+                    undone: t("postcard.confirm.undone"),
+                    yes:
+                      live.length === 1
+                        ? t("postcard.confirm.yesOne")
+                        : t("postcard.confirm.yesMany"),
+                    sending: t("postcard.confirm.sending"),
+                    back: t("postcard.confirm.back"),
+                    send:
+                      live.length === 1
+                        ? t("postcard.page.sendOne", { total: String(cost) })
+                        : t("postcard.page.sendMany", {
+                            count: String(live.length),
+                            total: String(cost),
+                          }),
+                    warning: t("postcard.page.sendWarning"),
+                  }}
+                />
               </div>
-            ) : (
-              <div className="mt-3">
-                {/* A link, not a submit: the first press only *asks*. */}
-                <a
-                  href={
-                    sendable ? `/${username}/postcards/${id}?confirm=1#send` : undefined
-                  }
-                  aria-disabled={!sendable}
-                  className={`inline-flex min-h-11 items-center rounded-full px-5 text-sm font-semibold transition-colors ${
-                    sendable
-                      ? "bg-navy-900 text-white hover:bg-navy-700"
-                      : "pointer-events-none bg-navy-900/40 text-white"
-                  }`}
-                >
-                  {live.length === 1
-                    ? t("postcard.page.sendOne", { total: String(cost) })
-                    : t("postcard.page.sendMany", {
-                        count: String(live.length),
-                        total: String(cost),
-                      })}
-                </a>
-                <p className="mt-2 text-xs text-navy-600">{t("postcard.page.sendWarning")}</p>
-              </div>
-            )
-          )}
-        </section>
+            </div>
+          }
+        />
       </main>
     </div>
   );

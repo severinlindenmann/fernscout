@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { countKinds, PICKER_ACCEPT } from "@/components/AgentWizard";
+import { countKinds, PICKER_ACCEPT } from "@/components/PhotoPicker";
 import { INBOX_FILE_EXTENSIONS } from "@/lib/inbox";
 import { dictionaryFor } from "@/lib/locales";
 import { translate } from "@/lib/i18n";
@@ -72,6 +72,22 @@ describe("where a file goes, said on the screen", () => {
       const said = translate(dictionaryFor(locale), "agent.filesToInbox");
       expect(said).not.toBe("agent.filesToInbox");
       expect(said.length).toBeGreaterThan(20);
+    }
+  });
+});
+
+describe("the section that holds the picker", () => {
+  test("B863 — its heading does not call every pick a photograph", () => {
+    // `PhotoPicker`'s own count line already told the two kinds apart
+    // (B845); the heading above it — `agent.uploadTitle`, shared by the
+    // wizard's photos step and the room's upload panel — still said only
+    // "Photographs" while the same unnarrowed picker took a spreadsheet or a
+    // PDF into the exact same panel.
+    for (const locale of ["en", "de", "hu"]) {
+      const said = translate(dictionaryFor(locale), "agent.uploadTitle");
+      expect(said).not.toBe("agent.uploadTitle");
+      expect(said).toMatch(/photo|foto|fénykép/i);
+      expect(said.toLowerCase()).not.toMatch(/^(photographs?|fotos?|fényképek)[.!]?$/i);
     }
   });
 });

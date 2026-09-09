@@ -398,11 +398,41 @@ export function readerLocaleForPath(
   chosen: string | null | undefined,
   acceptLanguage?: string | null,
 ): string {
-  const first = (pathname ?? "").split("/").filter(Boolean)[0];
-  if (first && userExists(first)) {
-    return readerLocale(chosen, localesFor(first), defaultLocaleFor(first), acceptLanguage);
+  const journal = journalInPath(pathname);
+  if (journal) {
+    return readerLocale(chosen, localesFor(journal), defaultLocaleFor(journal), acceptLanguage);
   }
   return readerLocale(chosen, installedLocales(), instanceLocale(), acceptLanguage);
+}
+
+/**
+ * Whose journal a path is about — B921.
+ *
+ * It used to be the first segment and nothing else, which is right for
+ * `/anna/day/…` and wrong for the two places a journal's name is not first.
+ * A 71-year-old whose daughter set up her iPhone has English menus and a
+ * German journal, and met the whole conversation in English: `/agent/anna/chat`
+ * begins with `agent`, which is nobody, so it fell through to her phone.
+ *
+ * Worse than the room's furniture, and invisible until somebody looked:
+ * `POST /api/helper/anna/ask` begins with `api`, so **every sentence the
+ * conversation itself said** was chosen the same way. The model is told which
+ * language to answer in from this.
+ *
+ * Written out rather than "the first segment that happens to be a journal",
+ * because that would make any journal sharing a name with a route prefix
+ * decide the language of pages that are not theirs.
+ */
+function journalInPath(pathname: string | null | undefined): string | null {
+  const parts = (pathname ?? "").split("/").filter(Boolean);
+  if (parts[0] && userExists(parts[0])) return parts[0];
+  // The room and the wizard: /agent/<user>/…
+  if (parts[0] === "agent" && parts[1] && userExists(parts[1])) return parts[1];
+  // The doors: /api/helper/<user>/… and /api/v1/<user>/…
+  if (parts[0] === "api" && (parts[1] === "helper" || parts[1] === "v1")) {
+    return parts[2] && userExists(parts[2]) ? parts[2] : null;
+  }
+  return null;
 }
 
 /**

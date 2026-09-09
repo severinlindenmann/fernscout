@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import BusyButton from "@/components/BusyButton";
 import { useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
 import { tellWorkerSignedOut } from "@/lib/signedOut";
@@ -35,7 +36,9 @@ export type HomeJournal = {
  * which B494 renders as a row rather than a card. A predicate rather than a
  * bare `filter`, so the card and its badge are typed against the four-value
  * union minus the one they cannot draw. */
-type MineJournal = HomeJournal & { role: Exclude<HomeJournal["role"], "admin"> };
+type MineJournal = HomeJournal & {
+  role: Exclude<HomeJournal["role"], "admin">;
+};
 
 function isMine(journal: HomeJournal): journal is MineJournal {
   return journal.role !== "admin";
@@ -137,11 +140,15 @@ function JournalCard({ journal }: { journal: MineJournal }) {
 
       <p className="mt-2 font-mono text-xs text-navy-600">
         /{journal.username} ·{" "}
-        {tn("landing.trips", journal.trips.length, { count: String(journal.trips.length) })}
+        {tn("landing.trips", journal.trips.length, {
+          count: String(journal.trips.length),
+        })}
       </p>
 
       {journal.role === "owner" && (
-        <p className="mt-2 text-xs leading-5 text-navy-600">{t("home.ownerHint")}</p>
+        <p className="mt-2 text-xs leading-5 text-navy-600">
+          {t("home.ownerHint")}
+        </p>
       )}
     </li>
   );
@@ -173,7 +180,9 @@ function AdminJournals({ journals }: { journals: HomeJournal[] }) {
       >
         {t("home.adminSection")}
       </h2>
-      <p className="mt-1 text-xs leading-5 text-navy-600">{t("home.adminSectionBody")}</p>
+      <p className="mt-1 text-xs leading-5 text-navy-600">
+        {t("home.adminSectionBody")}
+      </p>
 
       <ul className="mt-3 divide-y divide-navy-200 border-y border-navy-200">
         {journals.map((journal) => (
@@ -203,7 +212,13 @@ function AdminJournals({ journals }: { journals: HomeJournal[] }) {
   );
 }
 
-export function YourJournals({ email, journals }: { email: string; journals: HomeJournal[] }) {
+export function YourJournals({
+  email,
+  journals,
+}: {
+  email: string;
+  journals: HomeJournal[];
+}) {
   const { t } = useI18n();
   // Two lists, one query: a journal this address holds a real role in is a
   // card, and one it merely runs the server for is a row below (B494).
@@ -241,7 +256,9 @@ export function YourJournals({ email, journals }: { email: string; journals: Hom
            no journals is in a real and explicable state — nobody has approved
            them yet, or they have not started their own — and saying so is the
            difference between a working page and a broken-looking one. */
-        <p className="mt-4 text-base leading-6 text-navy-700">{t("home.none")}</p>
+        <p className="mt-4 text-base leading-6 text-navy-700">
+          {t("home.none")}
+        </p>
       ) : (
         <ul className="mt-5 grid gap-4">
           {mine.map((journal) => (
@@ -299,17 +316,28 @@ export function YourDevices({
   if (devices.length === 0) return null;
 
   return (
-    <section aria-labelledby="your-devices" className="mt-12 border-t border-navy-200 pt-8">
-      <h2 id="your-devices" className="font-display text-xl font-semibold text-navy-900">
+    <section
+      aria-labelledby="your-devices"
+      className="mt-12 border-t border-navy-200 pt-8"
+    >
+      <h2
+        id="your-devices"
+        className="font-display text-xl font-semibold text-navy-900"
+      >
         {t("home.devices")}
       </h2>
-      <p className="mt-2 text-sm leading-6 text-navy-700">{t("home.devicesBody")}</p>
+      <p className="mt-2 text-sm leading-6 text-navy-700">
+        {t("home.devicesBody")}
+      </p>
 
       <ul className="mt-4 divide-y divide-navy-200 border-y border-navy-200">
         {devices.map((device) => {
           const name = deviceName(device.userAgent);
           return (
-            <li key={device.id} className="flex items-center justify-between gap-4 py-3">
+            <li
+              key={device.id}
+              className="flex items-center justify-between gap-4 py-3"
+            >
               <div className="min-w-0">
                 <p className="text-sm font-semibold leading-5 text-navy-900">
                   {name ?? t("home.unknownDevice")}
@@ -321,20 +349,22 @@ export function YourDevices({
                 </p>
                 <p className="mt-0.5 font-mono text-xs text-navy-600">
                   {device.lastSeenAt
-                    ? t("home.lastUsed", { when: device.lastSeenAt.slice(0, 10) })
+                    ? t("home.lastUsed", {
+                        when: device.lastSeenAt.slice(0, 10),
+                      })
                     : t("home.neverUsed")}
                 </p>
               </div>
-              <button
+              <BusyButton
+                busy={busy === device.id}
                 type="button"
                 onClick={() => revoke(device.id)}
-                disabled={busy === device.id}
                 className="min-h-11 shrink-0 rounded-lg border border-navy-200 px-3 text-sm font-semibold text-navy-900
                            hover:border-navy-700 disabled:opacity-50
                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
               >
                 {t("home.revoke")}
-              </button>
+              </BusyButton>
             </li>
           );
         })}

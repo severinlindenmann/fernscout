@@ -4,12 +4,13 @@ import path from "node:path";
 import matter from "gray-matter";
 import { AS_AUTHOR, getAllMedia } from "../entries";
 import { getTrip, parseTripRef, tripDir, type TripRef } from "../trips";
-import { DATE_RE } from "../tripWrite";
+import { ACCENTS, COSTS_VISIBILITIES, DATE_RE } from "../tripWrite";
 import { spliceScalar } from "../frontmatterScalar";
 
 /**
- * A trip's `title:`, `tagline:`, `start:`, `end:` and `cover:`, after it
- * exists — B621, and `cover` since B245.
+ * A trip's `title:`, `tagline:`, `start:`, `end:`, `cover:`, `accent:`,
+ * `costsVisibility:` and `intro`, after it exists — B621, `cover` since
+ * B245, and `accent`/`costsVisibility`/`intro` since B907.
  *
  * `title`/`tagline`/`start`/`end` were the last four fields of a trip that
  * nothing could write. Every other one got a door as somebody needed it —
@@ -28,6 +29,33 @@ import { spliceScalar } from "../frontmatterScalar";
  * gallery (`getAllMedia`, read `AS_AUTHOR` so an owner may cover a trip with a
  * photo still in draft) rather than merely being well-formed text.
  *
+ * `accent`, `costsVisibility` and `intro` were B907's finding: `createTrip`
+ * validated and accepted all three and then nothing ever let them be
+ * corrected — a typo in a trip's own prose, or a cover colour picked by
+ * mistake, needed a shell on the server exactly like the four above did.
+ * `accent` and `costsVisibility` are checked against the same enums
+ * `createTrip` checks against (`ACCENTS`, `COSTS_VISIBILITIES`), cleared by
+ * `null`/`""` the same way `tagline` and `cover` are, and spliced as one
+ * frontmatter line each. `intro` is the prose below the closing `---` rather
+ * than a frontmatter line, so it is replaced whole rather than spliced —
+ * there is only one paragraph of it to preserve, unlike the several
+ * frontmatter keys a splice has to leave untouched.
+ *
+ * Two fields `createTrip` also accepts are deliberately still not here.
+ * `status` is `upcoming`/`current`/`past`, derived from the calendar at every
+ * reading path (`effectiveStatus`, lib/tripTime.ts) except when the file says
+ * `current` — correcting it well needs its own door the way a day's `status`
+ * does (B905), not a slot on this one. `test` marks a trip as content nobody
+ * lived; flipping it on a trip that has already published real days is a
+ * different, larger question than fixing a typo, so it stays file-only until
+ * somebody decides what should happen to what is already on the site.
+ * `visibility`, `listed` and `teaser` are not here either, but for the
+ * opposite reason: they already have their own door,
+ * `PATCH .../trips/{trip}/visibility`, which enforces the rules those three
+ * carry (an unrecognised visibility reads as private, `listed: true` on a
+ * trip nothing advertises is refused, `teaser: true` on a public one is
+ * refused) — rules this file must not duplicate a second, driftable copy of.
+ *
  * Built exactly like `tripVisibility.ts` beside it, and sharing its splice:
  * change the one frontmatter line asked about, leave the prose and every
  * other key byte for byte, `matter()`-parse the result before writing so a
@@ -39,21 +67,23 @@ import { spliceScalar } from "../frontmatterScalar";
  * may restate.
  */
 
+type TripDetailsShape = {
+  title: string;
+  tagline: string;
+  start: string;
+  end: string;
+  cover?: string;
+  accent?: string;
+  costsVisibility: string;
+  intro: string;
+};
+
 export type TripDetailsWriteResult =
-  | {
-      ok: true;
-      title: string;
-      tagline: string;
-      start: string;
-      end: string;
-      cover?: string;
-    }
+  | ({ ok: true } & TripDetailsShape)
   | { ok: false; error: string; message?: string; bug?: true };
 
-/** The five as they stand, for the form that edits them. */
-function readTripDetails(
-  ref: TripRef,
-): { title: string; tagline: string; start: string; end: string; cover?: string } | null {
+/** The fields as they stand, for the form that edits them. */
+function readTripDetails(ref: TripRef): TripDetailsShape | null {
   const trip = getTrip(ref);
   if (!trip) return null;
   return {
@@ -62,7 +92,29 @@ function readTripDetails(
     start: trip.start,
     end: trip.end,
     cover: trip.cover,
+    accent: trip.accent,
+    costsVisibility: trip.costsVisibility,
+    intro: trip.intro,
   };
+}
+
+/**
+ * Replace the prose below the closing `---`, leaving the frontmatter block
+ * exactly as it was found.
+ *
+ * `spliceScalar` (lib/frontmatterScalar.ts) edits one frontmatter line and
+ * refuses to touch the body on purpose — `intro` is the mirror of that: there
+ * is one block of prose to replace, not several keys to leave alone, so a
+ * targeted line-splice would be the wrong tool. Mirrors the shape
+ * `createTrip` writes a fresh trip.md in (a blank line, the prose, a blank
+ * line) so a corrected trip reads the same as a freshly written one.
+ */
+function spliceIntro(markdown: string, intro: string): string | null {
+  const lines = markdown.split("\n");
+  if (lines[0]?.trim() !== "---") return null;
+  const closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
+  if (closing < 0) return null;
+  return [...lines.slice(0, closing + 1), "", intro, ""].join("\n");
 }
 
 /**
@@ -98,6 +150,9 @@ export function patchTripDetails(ref: TripRef, raw: unknown): TripDetailsWriteRe
     start?: unknown;
     end?: unknown;
     cover?: unknown;
+    accent?: unknown;
+    costsVisibility?: unknown;
+    intro?: unknown;
   };
 
   const before = readTripDetails(ref)!;
@@ -183,6 +238,59 @@ export function patchTripDetails(ref: TripRef, raw: unknown): TripDetailsWriteRe
     }
   }
 
+  // `accent` is cosmetic — which of five colours a trip's cards and OG image
+  // draw in — checked against the same enum `createTrip` checks the first
+  // value against. `null`/`""` clears it, the same as `tagline` and `cover`
+  // above: an absent accent is a real state (the site assigns one), not a
+  // value nobody has picked yet.
+  if (body.accent !== undefined) {
+    if (body.accent === null || body.accent === "") {
+      next.accent = undefined;
+    } else if (!ACCENTS.includes(body.accent as never)) {
+      return {
+        ok: false,
+        error: "invalid_accent",
+        message: `accent "${String(body.accent)}" is not one of ${ACCENTS.join(", ")}. null or "" clears it.`,
+      };
+    } else {
+      next.accent = body.accent as (typeof ACCENTS)[number];
+    }
+  }
+
+  // `costsVisibility` decides nothing about who may open the trip, only
+  // whether the numbers on it are drawn once a reader is in — see
+  // `NewTrip["costsVisibility"]` in lib/tripWrite.ts. An unrecognised value
+  // is refused rather than defaulted, the same rule `createTrip` follows,
+  // because either fallback would be a silent decision about somebody's
+  // money. `null`/`""` clears it back to the default, `public`.
+  if (body.costsVisibility !== undefined) {
+    if (body.costsVisibility === null || body.costsVisibility === "") {
+      next.costsVisibility = "public";
+    } else if (!COSTS_VISIBILITIES.includes(body.costsVisibility as never)) {
+      return {
+        ok: false,
+        error: "invalid_costs_visibility",
+        message:
+          `costsVisibility "${String(body.costsVisibility)}" is not a value this reads. It is ` +
+          `"public" or "guests" — see POST .../trips for what each means. null or "" clears ` +
+          "it back to the default, public.",
+      };
+    } else {
+      next.costsVisibility = body.costsVisibility as (typeof COSTS_VISIBILITIES)[number];
+    }
+  }
+
+  // `intro` is the trip's own prose, not a frontmatter line — the fix B907
+  // was written for. Any text is accepted, including empty (a trip may say
+  // nothing about itself); there is no "one line" rule here because prose is
+  // the point.
+  if (body.intro !== undefined) {
+    if (typeof body.intro !== "string") {
+      return { ok: false, error: "invalid_intro", message: "intro must be text." };
+    }
+    next.intro = body.intro.trim();
+  }
+
   const file = path.join(tripDir(ref), "trip.md");
   const text = fs.readFileSync(file, "utf8");
 
@@ -228,6 +336,20 @@ export function patchTripDetails(ref: TripRef, raw: unknown): TripDetailsWriteRe
           ],
         ] as [string, string | null][])
       : []),
+    ...(body.accent !== undefined
+      ? ([["accent", next.accent ? `accent: ${next.accent}` : null]] as [string, string | null][])
+      : []),
+    // Written only when it narrows, exactly as `createTrip` writes it — an
+    // absent key already reads as `public`, so a `costsVisibility: public`
+    // line would say nothing a reader could not already tell.
+    ...(body.costsVisibility !== undefined
+      ? ([
+          [
+            "costsVisibility",
+            next.costsVisibility === "guests" ? "costsVisibility: guests" : null,
+          ],
+        ] as [string, string | null][])
+      : []),
   ];
   for (const [key, line] of lines) {
     if (spliced === null) break;
@@ -239,6 +361,20 @@ export function patchTripDetails(ref: TripRef, raw: unknown): TripDetailsWriteRe
       error: "no_frontmatter",
       message: "trip.md has no frontmatter block to edit. Edit the file by hand.",
     };
+  }
+
+  // The one field that is not a frontmatter line: replaces the prose whole,
+  // after every scalar splice above, so the two never fight over which one
+  // owns the closing `---`.
+  if (body.intro !== undefined) {
+    spliced = spliceIntro(spliced, next.intro);
+    if (spliced === null) {
+      return {
+        ok: false,
+        error: "no_frontmatter",
+        message: "trip.md has no frontmatter block to edit. Edit the file by hand.",
+      };
+    }
   }
 
   try {
@@ -261,7 +397,10 @@ export function patchTripDetails(ref: TripRef, raw: unknown): TripDetailsWriteRe
     after.tagline !== next.tagline ||
     after.start !== next.start ||
     after.end !== next.end ||
-    (after.cover ?? undefined) !== (next.cover ?? undefined)
+    (after.cover ?? undefined) !== (next.cover ?? undefined) ||
+    (after.accent ?? undefined) !== (next.accent ?? undefined) ||
+    after.costsVisibility !== next.costsVisibility ||
+    after.intro !== next.intro
   ) {
     return {
       ok: false,

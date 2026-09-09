@@ -11,6 +11,7 @@ transportFrom: "Chiang Rai"
 transportTo: "Huay Xai"
 tags: ["laos", "borders", "buses"]
 test: true
+timezone: "Asia/Vientiane"
 ---
 
 A fixture day, and the one that puts the trip on the right bank for the boat two weeks later.

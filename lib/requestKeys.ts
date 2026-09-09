@@ -20,3 +20,13 @@ export const LOCALE_COOKIE = "fs.locale";
 /** The request path, carried to the root layout — `headers()` is readable in
  * a layout and the pathname is not. */
 export const PATH_HEADER = "x-fernscout-path";
+
+/**
+ * Which journal `/agent` opens on, for somebody who owns more than one — B984.
+ *
+ * A cookie rather than a path segment, because putting the name back in the
+ * URL is the thing that ticket exists to stop. Almost nobody owns two, so this
+ * is remembered rather than asked: the switcher writes it, and a name the
+ * person no longer owns falls back to their first rather than answering 404.
+ */
+export const JOURNAL_COOKIE = "fs.journal";

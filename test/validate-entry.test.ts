@@ -70,6 +70,26 @@ describe("dates", () => {
   });
 });
 
+/** B42 — the IANA name `time` is local to. Checked with `Intl`, the same way
+ * `lib/digest/quiet.ts` checks the instance's own zone, never a hand-kept
+ * list of valid names. */
+describe("timezone", () => {
+  test("a real IANA name is accepted", () => {
+    expect(validateEntry({ ...ok, time: "09:15", timezone: "Asia/Bangkok" })).toEqual([]);
+  });
+
+  test("a bogus name is refused", () => {
+    expect(only({ timezone: "Mars/Olympus_Mons" })).toMatchObject({
+      field: "timezone",
+      got: '"Mars/Olympus_Mons"',
+    });
+  });
+
+  test("absent is fine — the reader falls back to the journal's zone", () => {
+    expect(validateEntry({ ...ok, time: "09:15" })).toEqual([]);
+  });
+});
+
 describe("coordinates", () => {
   test("out of range is refused, with the range", () => {
     expect(only({ lat: 195, lng: 10 })).toMatchObject({ field: "lat", got: "195", expected: "-90 to 90" });

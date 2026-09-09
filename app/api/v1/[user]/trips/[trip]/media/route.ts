@@ -8,9 +8,8 @@ import {
   type UploadCandidate,
 } from "@/lib/api/media";
 import { getTrip, mediaWithOwner, tripRef } from "@/lib/trips";
-import fs from "node:fs";
 import { fetchMedia } from "@/lib/api/fetchMedia";
-import { findInboxFile, removeInboxFile } from "@/lib/inbox";
+import { attachStagedFiles } from "@/lib/api/staged";
 import { getUser } from "@/lib/users";
 import {
   IMAGE_MAX_BYTES,
@@ -133,11 +132,20 @@ function stored(
     : `${error} The originals in \`kept\` are stored either way.`;
   // Said before anything else, because a 201 carrying fewer items than files
   // were sent reads as loss until this sentence explains it — B604.
+  //
+  // What it may claim is exactly what was checked — B875. It used to say
+  // "nothing was lost" about a *resemblance*, and thirty-eight photographs
+  // were lost behind that sentence (B872). A file is left out now only when
+  // the picture already on the day is byte-for-byte the one that arrived, so
+  // the sentence is a fact about those bytes and about nothing else.
+  const one = skipped.length === 1;
   const skippedNote =
     skipped.length > 0
-      ? `${skipped.length} of them ${skipped.length === 1 ? "was" : "were"} already on this ` +
-        `day and ${skipped.length === 1 ? "was" : "were"} left out rather than added twice — ` +
-        `\`skipped\` names each one and the photograph it matched. Nothing was lost. `
+      ? `${skipped.length} of them ${one ? "was" : "were"} byte-for-byte identical to a ` +
+        `photograph already on this day — the same file, not a resemblance — so ${one ? "it was" : "they were"} ` +
+        `left out rather than stored twice. \`skipped\` names each one and the photograph it ` +
+        `matched, and what is on the day is exactly what you sent, so nothing is missing. ` +
+        `A picture that merely looks like one already here is stored, and said so in \`advice\`. `
       : "";
   return Response.json(
     {
@@ -228,52 +236,38 @@ export async function POST(
         return Response.json({ error: "invalid_media", problems: [shown.problem] }, { status: 400 });
       }
 
-      const staged: UploadCandidate[] = [];
-      const missing: string[] = [];
-      for (const [at, id] of inbox.entries()) {
-        const found = findInboxFile(user, id);
-        if (!found || found.entry.kind !== "media") {
-          missing.push(id);
-          continue;
+      // The three steps — resolve, store, then empty the inbox — are
+      // `attachStagedFiles` (lib/api/staged.ts), shared since B915 with the
+      // cookie door the room's files pane presses.
+      const moved = await attachStagedFiles(user, ref, day, inbox, {
+        captions: said.captions,
+        visibilities: shown.visibilities,
+      });
+      if (!moved.ok) {
+        if (moved.error === "invalid_media") {
+          return Response.json({ error: "invalid_media", problems: moved.problems }, { status: 400 });
         }
-        staged.push({
-          filename: found.entry.filename,
-          bytes: fs.readFileSync(found.file),
-          caption: said.captions[at] || found.entry.caption,
-          visibility: shown.visibilities[at],
-        });
-      }
-      if (missing.length > 0) {
         return Response.json(
           {
             error: "unknown_inbox_file",
-            missing,
+            missing: moved.missing,
             message:
-              `Nothing staged under ${missing.map((m) => `"${m}"`).join(", ")} — or it is not a ` +
+              `Nothing staged under ${moved.missing.map((m) => `"${m}"`).join(", ")} — or it is not a ` +
               `photograph. GET /api/v1/${user}/inbox for what is there. Nothing was written.`,
           },
           { status: 400 },
         );
       }
 
-      const written = await storeUploads(ref, day, staged);
-      if (!written.ok) {
-        return Response.json({ error: "invalid_media", problems: written.problems }, { status: 400 });
-      }
-      // Only once the files are in the trip. The other order would delete
-      // somebody's only copy on a batch that then failed to store.
-      for (const id of inbox) removeInboxFile(user, id);
-
-      const attached = attachGallery(ref, day, written.items);
       return stored(
         ref,
         day,
-        withOwner(written.items, user),
-        written.kept,
-        attached.ok,
-        attached.ok ? undefined : attached.error,
-        written.advice,
-        withOwnerSkipped(written.skipped, user),
+        withOwner(moved.items, user),
+        moved.kept,
+        moved.attached.ok,
+        moved.attached.ok ? undefined : moved.attached.error,
+        moved.advice,
+        withOwnerSkipped(moved.skipped, user),
       );
     }
 

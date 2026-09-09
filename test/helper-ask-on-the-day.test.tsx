@@ -57,6 +57,13 @@ const DAY = {
   entries: [ENTRY],
 } as unknown as Day;
 
+/** The same day before it is on the site — `allDraft` in `StoryPager`. */
+const DRAFT_DAY = {
+  date: "2026-08-01",
+  lead: { ...ENTRY, draft: true },
+  entries: [{ ...ENTRY, draft: true }],
+} as unknown as Day;
+
 let root: Root | undefined;
 let container: HTMLDivElement | undefined;
 const fetched: string[] = [];
@@ -91,7 +98,7 @@ afterEach(() => {
 });
 
 /** Mount the real day card, and let the one fetch its ask box makes settle. */
-async function dayPage(canPublish: boolean) {
+async function dayPage(canPublish: boolean, draft = false) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -100,7 +107,11 @@ async function dayPage(canPublish: boolean) {
       <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
         <CurrencyProvider options={{ base: "CHF", currencies: ["CHF"], rates: { CHF: 1 } }}>
           <TripProvider trip={TRIP} isCurrent canPublish={canPublish} reader="person">
-            <DayCard day={DAY} summary={SUMMARY} dayIndex={0} />
+            <DayCard
+              day={draft ? DRAFT_DAY : DAY}
+              summary={SUMMARY}
+              dayIndex={0}
+            />
           </TripProvider>
         </CurrencyProvider>
       </LocaleProvider>,
@@ -111,28 +122,59 @@ async function dayPage(canPublish: boolean) {
   return container;
 }
 
+/**
+ * The words changed in B994. The old ones — *"Ask for anything else, in your
+ * own words"* — are the sentence you write for a blank text box: they ask
+ * somebody to compose, when what is on the other end is an agent that could
+ * be told "this day, please".
+ */
 describe("the ask box, where the owner actually is", () => {
   test("an owner on a day page is offered it", async () => {
     const host = await dayPage(true);
-    expect(host.textContent).toContain("Or ask for a change to this journal");
+    expect(host.textContent).toContain("Tell your agent what is missing");
     expect(fetched.some((url) => url.includes("/api/helper/alex/ask"))).toBe(true);
   });
 
-  test("it is not Search, and says so in a word each", async () => {
+  // B979 — it leads to the room rather than opening a lesser copy of it in
+  // place, and it carries the day it was pressed on. B984 moved the room to
+  // `/agent` and made the day an `about` parameter; B994 is what makes the
+  // conversation on the other end know about it rather than merely drawing it
+  // in a pane.
+  test("it leads to the room, on this day", async () => {
     const host = await dayPage(true);
-    const opener = [...host.querySelectorAll("button")].find((button) =>
-      button.textContent?.includes("Or ask for a change"),
-    ) as HTMLButtonElement;
-    act(() => opener.click());
-    expect(host.textContent).toContain("Search finds. Asking changes.");
+    const link = [...host.querySelectorAll("a")].find((anchor) =>
+      anchor.textContent?.includes("Tell your agent what is missing"),
+    ) as HTMLAnchorElement;
+    // B984 — one URL, and the day rides as `about`. The room no longer lives
+    // at a path carrying the journal's name.
+    expect(link.getAttribute("href")).toBe("/agent?about=reise-2026%2Fbellinzona");
+  });
+
+  /**
+   * B1007 — the draft row. The banner above a draft day has always *said* to
+   * ask the agent to publish it, with nothing to press; this is the thing to
+   * press, and it is drawn only while the day is not on the site.
+   */
+  test("a draft day offers the publish row, into the same room", async () => {
+    const host = await dayPage(true, true);
+    const link = [...host.querySelectorAll("a")].find((anchor) =>
+      anchor.textContent?.includes("Ask to have it published"),
+    ) as HTMLAnchorElement;
+    // B984 — one URL, and the day rides as `about`.
+    expect(link.getAttribute("href")).toBe("/agent?about=reise-2026%2Fbellinzona");
+  });
+
+  test("a day already on the site does not", async () => {
+    const host = await dayPage(true);
+    expect(host.textContent).not.toContain("Ask to have it published");
   });
 
   test("a reader is offered nothing, and the journal is not even asked about", async () => {
     const host = await dayPage(false);
-    expect(host.textContent).not.toContain("Or ask for a change to this journal");
+    expect(host.textContent).not.toContain("Tell your agent what is missing");
     // The correction link is the neighbouring owner-only control; if it were
     // showing, the gate under test would be the wrong one.
-    expect(host.textContent).not.toContain("Correct or take down this day");
+    expect(host.textContent).not.toContain("Correct or take down");
     expect(fetched.some((url) => url.includes("/api/helper/alex/ask"))).toBe(false);
   });
 });

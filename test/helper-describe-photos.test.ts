@@ -174,6 +174,14 @@ describe("the system prompt", () => {
     expect(PHOTO_SYSTEM_PROMPT).toMatch(/do not name a place/i);
     expect(PHOTO_SYSTEM_PROMPT).toMatch(/never guess a mood/i);
   });
+
+  // B874 — the honesty rules held, but the register invited an inventory of
+  // shapes ("the colours, the setting, the action") rather than a caption a
+  // person would write under their own photograph.
+  test("asks for a label, not an inventory of shapes", () => {
+    expect(PHOTO_SYSTEM_PROMPT).toMatch(/not an inventory of every shape/i);
+    expect(PHOTO_SYSTEM_PROMPT).not.toMatch(/the colours, the setting, the action/i);
+  });
 });
 
 describe("consent, and that words alone is not enough", () => {
@@ -261,6 +269,43 @@ describe("what it costs", () => {
     expect(refused.status).toBe(400);
     expect(refused.body.error).toBe("no_photos");
     expect(await balanceOf("alex")).toBe(10);
+  });
+});
+
+describe("a mixed day — B873", () => {
+  test("a video on the day gets its own row, marked skipped, not silently dropped", async () => {
+    await writeDayWithPhotos(2);
+    // A third gallery item, a video, appended straight into the frontmatter
+    // already written by writeDayWithPhotos — no file needs to exist on disk
+    // for it, since a video is never resolved or resized here.
+    const entryPath = path.join(dir, "alex", "trips", TRIP, "entries", `2026-05-04-${SLUG}.md`);
+    const withVideo = fs
+      .readFileSync(entryPath, "utf8")
+      .replace(
+        "---\n\nWords.",
+        '  - src: "/media/a-trip/the-pass/clip.mp4"\n    type: video\n---\n\nWords.',
+      );
+    fs.writeFileSync(entryPath, withVideo);
+
+    await consent("photos");
+    // A distinct IP, so this extra call spends from its own rate-limit
+    // bucket rather than the one every other test in this file shares —
+    // that shared bucket is sized to exactly the calls already here.
+    const request = json({ trip: TRIP, slug: SLUG, idempotency_key: "video-row" });
+    request.headers.set("x-forwarded-for", "203.0.113.9");
+    const done = await read(await POST(request, params));
+    expect(done.status).toBe(200);
+    const captions = done.body.captions as { src: string; caption: string; skipped?: string }[];
+    // Every gallery item is accounted for — two photographs and the video —
+    // not just the two the model actually saw.
+    expect(captions).toHaveLength(3);
+    const video = captions.find((c) => c.src === "/alex/media/a-trip/the-pass/clip.mp4");
+    expect(video).toEqual({ src: "/alex/media/a-trip/the-pass/clip.mp4", caption: "", skipped: "video" });
+    // The credit spend and the model call still cover photographs only.
+    expect(describePhotos).toHaveBeenCalledTimes(1);
+    const [images] = describePhotos.mock.calls[0] as [unknown[]];
+    expect(images).toHaveLength(2);
+    expect(done.body.spent).toBe(1);
   });
 });
 

@@ -25,6 +25,7 @@ costs:
   - { label: "Motel, two nights", amount: 210, category: "accommodation", currency: "USD" }
   - { label: "Registration and plates", amount: 165, category: "other", currency: "USD" }
 weatherData: { tempMin: 12.2, tempMax: 28.6, code: 51, precipitation: 0.2, windMax: 18.1, source: "open-meteo", recordedAt: "2026-09-06T08:32:18.504Z" }
+timezone: "America/Denver"
 ---
 
 Four days of looking at other people's trucks in other people's driveways. Bought the fifth one we saw, which is either decisive or foolish and we will find out in Utah.

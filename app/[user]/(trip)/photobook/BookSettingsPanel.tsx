@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { mediaLoader } from "@/components/mediaLoader";
 import type { TranslationKey } from "@/lib/i18n";
-import { BOOK_SIZES } from "@/lib/photobook/spec";
+import { COVER_TYPES, defaultSizeFor, sizesFor } from "@/lib/photobook/spec";
 import type { BookOptions } from "@/lib/photobook/options";
 import type { MediaTile } from "@/lib/types";
 
@@ -17,9 +17,10 @@ import type { MediaTile } from "@/lib/types";
  * and the order block name the same format and must not drift from this.
  */
 export const SIZE_LABEL: Record<string, TranslationKey> = {
-  "square-210": "photobook.size.square",
-  "landscape-a4": "photobook.size.landscape",
-  "portrait-a4": "photobook.size.portrait",
+  pocket: "photobook.size.pocket",
+  square: "photobook.size.square",
+  portrait: "photobook.size.portrait",
+  "large-square": "photobook.size.largeSquare",
 };
 
 /** Each language named in itself, which is how a language picker should read
@@ -34,7 +35,7 @@ const LANGUAGE_NAME: Record<string, string> = {
  * Level 1's whole-book settings — B534.
  *
  * Everything here describes the book, not one day of it: size, cover
- * language, binding, what to include. It is deliberately the same block
+ * language, what to include. It is deliberately the same block
  * whether it is reached at level 1 (the book's own page) or drilled into from
  * a front-matter spread at level 2 — "every level-1 setting stays reachable
  * from level 2" is the ticket's own rule, and this is the one form that makes
@@ -67,6 +68,41 @@ export default function BookSettingsPanel({
 
   return (
     <div className="space-y-6">
+      {/*
+       * Soft or hard — B845. A `<select>` like the size and language pickers
+       * beside it, for the same reason those are selects: this is one choice
+       * out of two named options, not a photograph to look at. It comes first
+       * because it decides which sizes the one below may offer.
+       */}
+      <label className="block">
+        <span className="text-sm font-semibold text-navy-800">
+          {t("photobook.option.coverType")}
+        </span>
+        <select
+          value={options.coverType}
+          onChange={(e) => {
+            const coverType = e.target.value as (typeof COVER_TYPES)[number];
+            setOptions((o) => ({
+              ...o,
+              coverType,
+              size: sizesFor(coverType).some((s) => s.id === o.size)
+                ? o.size
+                : defaultSizeFor(coverType).id,
+            }));
+          }}
+          className="mt-1 block w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm"
+        >
+          {COVER_TYPES.map((c) => (
+            <option key={c} value={c}>
+              {t(`photobook.option.coverType.${c}`)}
+            </option>
+          ))}
+        </select>
+        <span className="mt-1 block text-xs text-navy-600">
+          {t("photobook.option.coverTypeHint")}
+        </span>
+      </label>
+
       <label className="block">
         <span className="text-sm font-semibold text-navy-800">
           {t("photobook.option.size")}
@@ -76,7 +112,7 @@ export default function BookSettingsPanel({
           onChange={(e) => setOptions((o) => ({ ...o, size: e.target.value }))}
           className="mt-1 block w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm"
         >
-          {Object.values(BOOK_SIZES).map((size) => (
+          {sizesFor(options.coverType).map((size) => (
             <option key={size.id} value={size.id}>
               {SIZE_LABEL[size.id] ? t(SIZE_LABEL[size.id]) : size.name}
             </option>
@@ -182,29 +218,6 @@ export default function BookSettingsPanel({
           </span>
         </label>
       )}
-
-      <fieldset>
-        <legend className="text-sm font-semibold text-navy-800">
-          {t("photobook.option.binding")}
-        </legend>
-        <div className="mt-1 space-y-1">
-          {(["perfect", "saddle"] as const).map((binding) => (
-            <label key={binding} className="flex items-center gap-2 text-sm text-navy-700">
-              <input
-                type="radio"
-                name="binding"
-                checked={options.binding === binding}
-                onChange={() => setOptions((o) => ({ ...o, binding }))}
-              />
-              {t(
-                binding === "perfect"
-                  ? "photobook.option.bindingPerfect"
-                  : "photobook.option.bindingSaddle",
-              )}
-            </label>
-          ))}
-        </div>
-      </fieldset>
 
       <fieldset className="space-y-1">
         {(

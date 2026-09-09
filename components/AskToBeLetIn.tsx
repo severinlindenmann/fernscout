@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 
 /**
@@ -66,10 +67,20 @@ export default function AskToBeLetIn({ username }: { username: string }) {
   }
 
   return (
-    <form onSubmit={ask} className="mt-6 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
-      <h2 className="font-display text-xl font-semibold text-navy-900">{t("gate.askTitle")}</h2>
-      <p className="mt-2 text-base leading-7 text-navy-700">{t("gate.askBody")}</p>
-      <label htmlFor="ask-name" className="mt-4 block text-base font-medium text-navy-700">
+    <form
+      onSubmit={ask}
+      className="mt-6 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6"
+    >
+      <h2 className="font-display text-xl font-semibold text-navy-900">
+        {t("gate.askTitle")}
+      </h2>
+      <p className="mt-2 text-base leading-7 text-navy-700">
+        {t("gate.askBody")}
+      </p>
+      <label
+        htmlFor="ask-name"
+        className="mt-4 block text-base font-medium text-navy-700"
+      >
         {t("gate.askName")}
       </label>
       <input
@@ -84,13 +95,15 @@ export default function AskToBeLetIn({ username }: { username: string }) {
       <p role="alert" className="mt-3 text-base text-coral-600 empty:mt-0">
         {done === "failed" ? t("gate.askFailed") : ""}
       </p>
-      <button
+      <BusyButton
+        busy={busy}
         type="submit"
-        disabled={busy || name.trim() === ""}
+        disabled={name.trim() === ""}
         className="mt-4 min-h-12 w-full rounded-xl bg-navy-900 px-4 py-3 text-lg font-medium text-cream-50 disabled:opacity-50"
+        busyLabel={t("gate.askSending")}
       >
-        {busy ? t("gate.askSending") : t("gate.askSubmit")}
-      </button>
+        {t("gate.askSubmit")}
+      </BusyButton>
     </form>
   );
 }

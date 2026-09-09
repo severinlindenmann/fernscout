@@ -12,15 +12,15 @@ transportFrom: "Las Vegas"
 transportTo: "Springdale"
 gallery:
   - src: "/media/parks-2025/zion-narrows/01.jpg"
+    type: "image"
+    width: 1600
+    height: 1066
     caption: "The water going over, and the spray coming straight back up"
-    type: "image"
-    width: 1600
-    height: 1066
   - src: "/media/parks-2025/zion-narrows/02.jpg"
-    caption: "Steps down into the fog, and nothing at the bottom of them"
     type: "image"
     width: 1600
     height: 1066
+    caption: "Steps down into the fog, and nothing at the bottom of them"
   - src: "/media/parks-2025/zion-narrows/03.jpg"
     type: "image"
     width: 1600
@@ -37,6 +37,7 @@ translations:
       
       A kanyonban mindenki csendben volt. Nem áhítatból — csak a lábukra figyeltek.
 weatherData: { tempMin: 13.1, tempMax: 24.5, code: 1, precipitation: 0, windMax: 19.2, source: "open-meteo", recordedAt: "2026-09-06T08:32:18.968Z" }
+timezone: "America/Denver"
 ---
 
 Three hours of walking up a river between walls three hundred metres high, with the water somewhere between knee and waist depending on how well you read the gravel.

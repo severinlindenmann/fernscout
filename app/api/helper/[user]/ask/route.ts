@@ -1,8 +1,11 @@
 import { isEnabled } from "@/lib/capabilities";
-import { hasHelperConsent, helperConsent } from "@/lib/helper/consent";
-import { intentFor, refusalFor, slotsFor, type Say } from "@/lib/helper/intents";
-import { routeAsk, UNKNOWN_INTENT } from "@/lib/helper/model";
-import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
+import { hasHelperConsent } from "@/lib/helper/consent";
+import type { Block } from "@/lib/helper/blocks";
+import { refusalFor, type Say } from "@/lib/helper/intents";
+import { answerInThread } from "@/lib/helper/model";
+import { describeSelection, isHelperOwner, notYourJournal } from "@/lib/helper/server";
+import { recordTurn } from "@/lib/helper/sessions";
+import { forget, history, proposed, remember, sessionId } from "@/lib/helper/thread";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -10,22 +13,33 @@ import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 export const dynamic = "force-dynamic";
 
 /**
- * A sentence in, a row name out — B685, §3 of
- * `docs/plans/2026-09-07-web-helper-agent.md`.
+ * A sentence in, a conversation out — B685, B889, and B900.
  *
  * **Free.** Nothing here touches the ledger, and that is a decision rather
  * than an oversight: at roughly a third of a rappen a turn, metering the front
  * door would cost more in people not daring to knock than it could ever
- * recover. What it lands on may cost something, and that button says so.
+ * recover. A *write* may cost something — one of them does — and it is charged
+ * by the route the press posts to, once, when it is accepted. A proposal
+ * corrected three times and then abandoned costs nothing at all.
  * `lib/rateLimit.ts` is the brake instead.
  *
- * **The model routes; it never executes.** It is given no client and no tools
- * (`routeAsk` in `lib/helper/model.ts`), and what it returns is a row name
- * this route looks up in the registry. A read-only row is answered here and
- * now — those are GETs a person could make from their own page and there is
- * nothing to confirm about being told a number. A row that writes comes back
- * as fields to confirm, however confident the router was; the confirming is
- * the browser's job and the writing is a second call.
+ * **One path, since B900.** There was a router in front of this: a model that
+ * classified the sentence into a row of `lib/helper/intents.ts`, answered it
+ * from the row, and only sent what fitted no row to the conversation. So a
+ * sentence a row happened to cover never reached a tool at all. The rows are
+ * gone; every sentence that is not refused goes to `answerInThread` with the
+ * whole registry (`lib/helper/tools.ts`) in front of it.
+ *
+ * **A read runs; a write proposes.** A read tool executes and draws its own
+ * block. A write tool has no `run` to call: it returns a proposal — the
+ * fields, a sentence, and the helper route a press posts to — and the person
+ * edits, presses, or says what is wrong and the conversation carries on.
+ * Nothing in this file writes anything.
+ *
+ * **The refusal table still runs first**, from the raw sentence, before their
+ * words leave the machine, and a refused sentence is not remembered either so
+ * it cannot reach a model on the following turn instead. That is B817's guard
+ * and B900 did not move it.
  *
  * Cookie only, owner only, bearer refused by construction — `isHelperOwner`.
  */
@@ -33,15 +47,6 @@ export const dynamic = "force-dynamic";
 /** Fifteen minutes. Well above a person thinking out loud, well below a
  *  script working through a phrasebook. */
 const LIMIT = { max: 40, windowMs: 15 * 60 * 1000 };
-
-/**
- * Below this, the router's own answer is treated as `unknown`.
- *
- * A model that says it is half sure is a model guessing, and a guess that
- * opens the wrong screen is worse than the menu the person already had —
- * which is exactly what `unknown` lands on.
- */
-const SURE_ENOUGH = 0.5;
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -73,11 +78,37 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
   }
   return Response.json({
     ok: true,
-    consented: Boolean(helperConsent(user)),
+    // The scope rather than the file, for the reason the POST gate gives at
+    // length — B976. A record can now hold a no.
+    consented: hasHelperConsent(user, "words"),
     speech: isEnabled("transcription", user),
     consentedSpeech: hasHelperConsent(user, "speech"),
     speechProvider: speechProvider(),
   });
+}
+
+/**
+ * Start the conversation over — B899.
+ *
+ * `forget()` has existed since B889 and nothing called it, so somebody who had
+ * confused the thread waited half an hour for the TTL to run out. A
+ * conversation you cannot end is one you stop trusting, and this is the whole
+ * of ending it: the map entry goes, and the next sentence starts from nothing.
+ *
+ * `DELETE` on the same address rather than a route of its own — there is no
+ * body to read and nothing to document beyond "the conversation is gone", and
+ * a second file would be a second place to keep the owner check in step.
+ */
+export async function DELETE(request: Request, { params }: RouteContext<"/api/helper/[user]/ask">) {
+  const { user } = await params;
+  if (!(await isHelperOwner(user))) {
+    return notYourJournal(request, user);
+  }
+  if (!isEnabled("helper", user)) {
+    return Response.json({ error: "helper_unavailable" }, { status: 404 });
+  }
+  forget(user);
+  return Response.json({ ok: true });
 }
 
 export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/ask">) {
@@ -127,61 +158,140 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
       slots: {},
       confidence: 1,
       answer: say(refused.key),
+      // B898 — one sentence, drawn as the `say` shape, so the conversation
+      // has one way of drawing a turn and a refusal is not a special case
+      // the surface has to know about.
+      blocks: [{ shape: "say", text: say(refused.key) }] satisfies Block[],
     });
   }
 
-  // Their words go to a provider, so the same panel guards this as guards a
-  // write-up. Free or not, it is the sentence that leaves the machine.
-  if (!helperConsent(user)) {
+  /**
+   * Their words go to a provider, so the same panel guards this as guards a
+   * write-up. Free or not, it is the sentence that leaves the machine.
+   *
+   * **The scope, not the file** — B976. This asked whether a consent record
+   * existed at all, which was the same question while the file only ever held
+   * yeses and vanished when the last one went. It stopped being the same
+   * question the moment a record could hold a *no*: a person who turned off
+   * the operator reading their conversations would have left a file behind,
+   * and this would have read it as agreeing to send their words to a model.
+   */
+  if (!hasHelperConsent(user, "words")) {
     return Response.json({ error: "consent_required" }, { status: 403 });
   }
 
-  // The person's own today, because "in March" is answered from where they
+  // The person's own today, because "yesterday" is answered from where they
   // are standing. Anything that is not a date falls back to the server's.
   const today =
     typeof body.today === "string" && DATE_RE.test(body.today)
       ? body.today
       : new Date().toISOString().slice(0, 10);
 
-  let routed;
+  /**
+   * What is selected in the files pane, if anything — B902.
+   *
+   * The browser sends ids; **this resolves them against disk** and drops what
+   * nothing answers to, so a sentence going to a model can only ever name a
+   * file this journal actually has. It rides as one bracketed line after
+   * their words — the same shape B900 uses to carry a waiting proposal — and
+   * it is *not* remembered: the pane sends what is selected on every turn, so
+   * a thread cannot come to believe in a selection that has been cleared.
+   *
+   * Nothing selected is the ordinary case and produces nothing at all, which
+   * is what keeps the pane an addition rather than a requirement.
+   */
+  const selected = Array.isArray(body.selected)
+    ? body.selected.filter((id): id is string => typeof id === "string")
+    : [];
+  const context = selected.length > 0 ? describeSelection(user, selected) : "";
+
+  /**
+   * The whole of it — B900. The conversation so far, one new sentence, and
+   * the registry. Reads run; writes propose and write nothing.
+   */
+  let thread;
   try {
-    routed = await routeAsk(said, today, user);
+    thread = await answerInThread(
+      user,
+      context === "" ? said : `${said}\n${context}`,
+      history(user),
+      today,
+      say,
+      // What is ticked, resolved by the tool that needs it — B925. Nobody is
+      // asked to read an id off a screen that shows none.
+      selected,
+    );
   } catch {
     return Response.json({ error: "model_failed" }, { status: 502 });
   }
-
-  const intent = routed.confidence >= SURE_ENOUGH ? intentFor(routed.intent) : null;
-  if (!intent) {
-    return Response.json({
-      ok: true,
-      intent: UNKNOWN_INTENT,
-      kind: UNKNOWN_INTENT,
-      slots: {},
-      confidence: routed.confidence,
-    });
+  // Nothing said and nothing drawn is a failed turn, and it is honest to say
+  // so: their own words are still in the box. A turn that drew something and
+  // said nothing is not — the blocks are the answer.
+  if (thread.answer === "" && thread.blocks.length === 0) {
+    return Response.json({ error: "model_failed" }, { status: 502 });
   }
 
-  const slots = slotsFor(intent, routed.slots);
-  const common = { ok: true, intent: intent.name, slots, confidence: routed.confidence };
-
-  if (intent.kind === "read") {
-    return Response.json({ ...common, kind: "read", answer: await intent.answer(user, say) });
+  /**
+   * What is remembered, and **who each half is written for** — B924.
+   *
+   * "no, the 14th" is the sentence this whole feature is for, and it is only
+   * answerable if the next turn knows what was proposed. So the arguments ride
+   * along in one bracketed line, marked as *not written* so a later turn
+   * cannot mistake a proposal for a fact about the journal.
+   *
+   * That line used to be glued onto the end of the assistant's own answer,
+   * which is how it reached a person's screen: the model read its last answer
+   * back as prose containing a bracketed marker and, every so often, wrote one
+   * itself — a proposal "waiting to be pressed" with no card and no button.
+   * It is a **note** now (`lib/helper/thread.ts`): the model sees it, it is
+   * never assistant text, and there is nothing left to imitate.
+   */
+  remember(user, said, thread.answer);
+  /**
+   * What happened, kept — B976.
+   *
+   * After `remember`, so the thread has this turn in it and the count is the
+   * conversation as it now stands. Not awaited and never able to fail the
+   * turn: the person has their answer, and losing it to an analytics insert
+   * would be trading the product for the bookkeeping.
+   */
+  void recordTurn({
+    owner: user,
+    session: sessionId(user),
+    locale,
+    tools: thread.looked,
+    proposed: thread.proposals.map((proposal) => proposal.tool),
+    guard: thread.guard,
+    recovered: thread.recovered,
+    threadTurns: history(user).length,
+    said,
+    answered: thread.answer,
+  });
+  for (const proposal of thread.proposals) {
+    proposed(user, proposal.tool, proposal.arguments);
   }
 
-  if (intent.kind === "open") {
-    return Response.json({ ...common, kind: "open", href: intent.href(user, slots) });
-  }
-
-  // Nothing is written here. The fields go back to be looked at, and the
-  // endpoint is called only if somebody presses.
   return Response.json({
-    ...common,
-    kind: "write",
-    endpoint: intent.endpoint(user),
-    fields: intent.slots.map((slot) => ({
-      name: slot.name,
-      value: slots[slot.name] ?? "",
-      date: Boolean(slot.date),
-    })),
+    ok: true,
+    kind: "read",
+    answer: thread.answer,
+    // What it actually ran, in order — so the claim its answer makes about
+    // what it looked at is checkable from outside.
+    looked: thread.looked,
+    /**
+     * What the turn draws — B898. The tools' own blocks in the order they
+     * ran, and then the model's sentence as a `say`. The model chose the
+     * tools and no part of it chose a shape.
+     */
+    blocks: [
+      ...thread.blocks,
+      ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }]),
+    ] satisfies Block[],
+    /**
+     * Proposals a write tool made — B900. **Nothing has been written**: each
+     * carries the helper route its press posts to, and the press is the
+     * person's.
+     */
+    proposals: thread.proposals,
   });
 }

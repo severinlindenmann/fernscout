@@ -8,8 +8,9 @@ import { clearUserCache, getUser, listedUsernames } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { NO_JOURNAL, issueCode, verifyCode } from "@/lib/auth";
 import { instanceDocumentation } from "@/lib/api/documentation";
-import { firstQuestions } from "@/lib/api/agentCopy";
+import { SECOND_LANGUAGE_COMMITMENT, firstQuestions } from "@/lib/api/agentCopy";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
+import { setJournalProfile } from "@/lib/journals";
 
 /**
  * B263 — visibility and defaultLocale must be asked, never assumed. B277 —
@@ -127,6 +128,13 @@ describe("visibility is required", () => {
     // narrower `private`, and reusing the word here is the bug this refusal
     // used to walk an agent straight into.
     expect(body.message).toMatch(/visibility must be "public" or "guest"/i);
+    // B856: this refusal used to explain only what a value listed, and left
+    // out that it also sets a new trip's default — a half a tester learned
+    // three screens later, from a different message. It also used to name
+    // "the sitemap", a word a tester who picked "public" then asked what it
+    // meant.
+    expect(body.message).toMatch(/new trip('|’)s default/i);
+    expect(body.message).not.toMatch(/sitemap/i);
   });
 });
 
@@ -169,6 +177,46 @@ describe("defaultLocale is required", () => {
     const body = (await response.json()) as { message?: string };
     expect(body.message).toContain("German");
     expect(getUser("silent-e")).toBeNull();
+  });
+});
+
+/**
+ * B855 — accepting the choice is where the cost has to be said.
+ *
+ * A tester picked English and German because German "sounded like a normal
+ * extra option, not a leap", and met the bill at his first day, refused for
+ * want of a German translation.
+ */
+describe("a second locale says what it commits the owner to", () => {
+  test("the 201 carries it when there is more than one", async () => {
+    const token = await signupToken("two-languages@example.test");
+    const response = await create(token, {
+      ...BASE,
+      username: "zweisprachig",
+      visibility: "public",
+      defaultLocale: "de",
+      locales: ["de", "en"],
+    });
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as { localesNote?: string };
+    // The same constant the guide and the OpenAPI document read — one sentence
+    // in lib/api/agentCopy.ts, never a third hand-written copy.
+    expect(body.localesNote).toBe(SECOND_LANGUAGE_COMMITMENT);
+    expect(body.localesNote).toMatch(/every day twice/i);
+    expect(body.localesNote).toMatch(/refused/i);
+  });
+
+  test("a one-language journal is told nothing, because it owes nothing", async () => {
+    const token = await signupToken("one-language@example.test");
+    const response = await create(token, {
+      ...BASE,
+      username: "einsprachig",
+      visibility: "public",
+      defaultLocale: "en",
+      locales: ["en"],
+    });
+    expect(response.status).toBe(201);
+    expect((await response.json()).localesNote).toBeUndefined();
   });
 });
 
@@ -388,5 +436,46 @@ describe("B839 — the currency nobody can change is the currency everybody is a
     });
     expect(response.status).toBe(400);
     expect(getUser("silent-disp")).toBeNull();
+  });
+
+  test("B790 — creating and correcting a journal refuse the same currencies, because they share one check", async () => {
+    // `setJournalProfile` (the correcting route, via `PATCH
+    // /api/v1/<user>/config`) refuses `displayCurrencies` through the exact
+    // same `normalizeCurrency` this route calls on `baseCurrency` and
+    // `displayCurrencies` above — imported, not copied, the way B777 shares
+    // `MAINTAINED_LOCALES` between the two routes. Prove it by running the
+    // same non-code and the same whitespace-padded code through both: a copy
+    // of the check could drift, one shared function cannot disagree with
+    // itself.
+    const token = await signupToken("shared-check@example.test");
+    const created = await create(token, {
+      ...BASE,
+      username: "shared-check",
+      visibility: "public",
+      defaultLocale: "en",
+      locales: ["en"],
+    });
+    expect(created.status).toBe(201);
+
+    const bad = setJournalProfile("shared-check", { displayCurrencies: ["francs"] });
+    expect(bad.ok).toBe(false);
+
+    const secondToken = await signupToken("shared-check-2@example.test");
+    const notACodeEither = await create(secondToken, {
+      ...BASE,
+      displayCurrencies: ["francs"],
+      username: "shared-check-create",
+      visibility: "public",
+      defaultLocale: "en",
+      locales: ["en"],
+    });
+    expect(notACodeEither.status).toBe(400);
+    expect(getUser("shared-check-create")).toBeNull();
+
+    // Both trim and upper-case a padded code the same way, rather than one
+    // route being stricter than the other.
+    const padded = setJournalProfile("shared-check", { displayCurrencies: [" chf "] });
+    expect(padded.ok).toBe(true);
+    expect(getUser("shared-check")?.displayCurrencies).toContain("CHF");
   });
 });

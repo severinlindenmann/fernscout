@@ -1,6 +1,7 @@
 import "server-only";
 import { sql } from "kysely";
 import { getDatabaseOrNull, newId, nowIso } from "./db";
+import type { Operation } from "./operations";
 
 /**
  * What the paid providers actually consumed — B746.
@@ -41,17 +42,7 @@ import { getDatabaseOrNull, newId, nowIso } from "./db";
 const PROVIDERS = ["anthropic", "deepgram"] as const;
 type Provider = (typeof PROVIDERS)[number];
 
-/** Which call site spent it, so a bill can be attributed to a feature. */
-const OPERATIONS = [
-  "write_day",
-  "describe_photos",
-  "route_ask",
-  "transcribe",
-  // B689 — one call per statement, whatever its length: the model returns a
-  // column mapping and code applies it to every row.
-  "map_statement",
-] as const;
-export type Operation = (typeof OPERATIONS)[number];
+export type { Operation };
 
 export type UsageRecord = {
   owner: string;
@@ -211,6 +202,11 @@ export type UsageDay = {
   date: string;
   provider: string;
   model: string;
+  /** Which feature spent it — B996. The column was always on the row and was
+   *  simply not grouped by; adding it to the `GROUP BY` costs one more column
+   *  in an answer that is already a dozen rows a day, and is what lets the
+   *  chart say *what* grew rather than only that something did. */
+  operation: string;
   inputTokens: number;
   outputTokens: number;
   seconds: number;
@@ -243,17 +239,69 @@ export async function usageDailySince(since: string): Promise<UsageDay[]> {
       day.as("day"),
       "provider",
       "model",
+      "operation",
       fn.sum<number>("input_tokens").as("input_tokens"),
       fn.sum<number>("output_tokens").as("output_tokens"),
       fn.sum<number>("seconds").as("seconds"),
     ])
     .where("created_at", ">=", since)
-    .groupBy([day, "provider", "model"])
+    .groupBy([day, "provider", "model", "operation"])
     .orderBy(day)
     .execute();
 
   return rows.map((row) => ({
     date: String(row.day),
+    provider: row.provider,
+    model: row.model,
+    operation: row.operation,
+    inputTokens: Number(row.input_tokens ?? 0),
+    outputTokens: Number(row.output_tokens ?? 0),
+    seconds: Number(row.seconds ?? 0),
+  }));
+}
+
+/** One journal's consumption on one day — the sparkline on its row, B996. */
+export type OwnerDay = {
+  date: string;
+  owner: string;
+  provider: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  seconds: number;
+};
+
+/**
+ * The daily series again, per journal — B996.
+ *
+ * A separate query rather than one more column on `usageDailySince`, because
+ * the two multiply: thirty days by thirty-five journals by two models by seven
+ * operations is a five-figure answer to a question about a sparkline. Grouped
+ * without the operation, which is the column this one does not need.
+ */
+export async function usageDailyByOwnerSince(since: string): Promise<OwnerDay[]> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return [];
+  const day = sql<string>`substr(created_at, 1, 10)`;
+  const rows = await handle.db
+    .selectFrom("usage")
+    .select(({ fn }) => [
+      day.as("day"),
+      "owner_id",
+      "provider",
+      "model",
+      fn.sum<number>("input_tokens").as("input_tokens"),
+      fn.sum<number>("output_tokens").as("output_tokens"),
+      fn.sum<number>("seconds").as("seconds"),
+    ])
+    .where("created_at", ">=", since)
+    .groupBy([day, "owner_id", "provider", "model"])
+    .orderBy(day)
+    .execute();
+
+  return rows.map((row) => ({
+    date: String(row.day),
+    owner: row.owner_id,
     provider: row.provider,
     model: row.model,
     inputTokens: Number(row.input_tokens ?? 0),

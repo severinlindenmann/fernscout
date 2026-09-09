@@ -25,6 +25,7 @@ costs:
   - { label: "Motel", amount: 104, category: "accommodation", currency: "USD" }
   - { label: "Diner, twice", amount: 47, category: "food", currency: "USD" }
 weatherData: { tempMin: 9.7, tempMax: 29.4, code: 2, precipitation: 0, windMax: 19.7, source: "open-meteo", recordedAt: "2026-09-06T08:32:19.071Z" }
+timezone: "America/Denver"
 ---
 
 Highway 12 runs along a ridge with a drop on both sides and no barrier on either, which is the most Utah thing that has happened so far.

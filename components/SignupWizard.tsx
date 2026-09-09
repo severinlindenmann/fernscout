@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { PRIMARY_BUTTON } from "@/components/LandingSections";
 import { useI18n } from "@/components/LocaleProvider";
 import { LOCALE_LABEL, MAINTAINED_LOCALES } from "@/lib/i18n";
@@ -10,12 +11,7 @@ import { LOCALE_LABEL, MAINTAINED_LOCALES } from "@/lib/i18n";
  * is what actually decides; this never has to be the last word. */
 const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
 
-type Step =
-  | "email"
-  | "code"
-  | "journal"
-  | "trip"
-  | "signing-in";
+type Step = "email" | "code" | "journal" | "trip" | "signing-in";
 
 /**
  * A brand-new visitor's whole way in, without leaving `/agent` — B688.
@@ -117,7 +113,11 @@ export default function SignupWizard({
   const [tripStart, setTripStart] = useState("");
   const [tripEnd, setTripEnd] = useState("");
 
-  async function post(path: string, body: unknown, auth?: string): Promise<Record<string, unknown> | null> {
+  async function post(
+    path: string,
+    body: unknown,
+    auth?: string,
+  ): Promise<Record<string, unknown> | null> {
     const response = await fetch(path, {
       method: "POST",
       headers: {
@@ -126,33 +126,48 @@ export default function SignupWizard({
       },
       body: JSON.stringify(body),
     }).catch(() => null);
-    const json = (await response?.json().catch(() => null)) as Record<string, unknown> | null;
+    const json = (await response?.json().catch(() => null)) as Record<
+      string,
+      unknown
+    > | null;
     if (!response?.ok) {
-      const message = typeof json?.message === "string" ? json.message : response?.statusText || "unknown";
+      const message =
+        typeof json?.message === "string"
+          ? json.message
+          : response?.statusText || "unknown";
       setError(t("agent.failed", { error: message }));
       return null;
     }
     return json;
   }
 
-  async function requestCode(event: React.FormEvent) {
+  async function requestCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Read what the field actually holds rather than trusting `email` to
+    // have followed autofill — see IdentitySignIn's own `requestCode` (B787).
+    const value = String(new FormData(event.currentTarget).get("email") ?? "");
+    setEmail(value);
     setBusy(true);
     setError(null);
     await fetch("/api/auth/signup/request", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email: value }),
     }).catch(() => null);
     setBusy(false);
     setStep("code");
   }
 
-  async function verifyCode(event: React.FormEvent) {
+  async function verifyCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const value = String(new FormData(event.currentTarget).get("code") ?? "").replace(
+      /\D/g,
+      "",
+    );
+    setCode(value);
     setBusy(true);
     setError(null);
-    const result = await post("/api/auth/signup/verify", { email, code });
+    const result = await post("/api/auth/signup/verify", { email, code: value });
     setBusy(false);
     if (!result) return;
     setSignupToken(result.token as string);
@@ -212,7 +227,10 @@ export default function SignupWizard({
     // everything after the last "/s/".
     const linkToken = signInUrl.split("/s/").pop() ?? "";
     const signedIn = linkToken
-      ? await post("/api/auth/link", { user: journalUsername, token: linkToken })
+      ? await post("/api/auth/link", {
+          user: journalUsername,
+          token: linkToken,
+        })
       : null;
     setBusy(false);
     if (!signedIn) {
@@ -226,16 +244,22 @@ export default function SignupWizard({
     onSignedIn(journalUsername);
   }
 
-  const label = "block font-mono text-[11px] uppercase tracking-[0.08em] text-navy-600";
+  const label =
+    "block font-mono text-[11px] uppercase tracking-[0.08em] text-navy-600";
   const field =
     "mt-4 min-h-11 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 " +
     "focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500";
-  const input = "block w-full border-0 bg-transparent p-0 text-base text-navy-900 focus:outline-none focus:ring-0";
+  const input =
+    "block w-full border-0 bg-transparent p-0 text-base text-navy-900 focus:outline-none focus:ring-0";
 
   return (
     <section className="rounded-2xl border border-navy-200 bg-cream-50 p-5 sm:p-6">
-      <h2 className="font-display text-xl font-semibold text-navy-900">{t("agent.startTitle")}</h2>
-      <p className="mt-2 text-base leading-7 text-navy-700">{t("agent.startIntro")}</p>
+      <h2 className="font-display text-xl font-semibold text-navy-900">
+        {t("agent.startTitle")}
+      </h2>
+      <p className="mt-2 text-base leading-7 text-navy-700">
+        {t("agent.startIntro")}
+      </p>
 
       {error && (
         <p role="alert" className="mt-4 text-base leading-7 text-coral-600">
@@ -251,6 +275,7 @@ export default function SignupWizard({
             </label>
             <input
               id="signup-email"
+              name="email"
               type="email"
               autoComplete="email"
               inputMode="email"
@@ -260,24 +285,39 @@ export default function SignupWizard({
               className={input}
             />
           </div>
-          <button type="submit" disabled={busy || email === ""} className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}>
-            {busy ? t("me.signInSending") : t("me.signInSend")}
-          </button>
+          {/* No `disabled={email === ""}` — B787. Autofill can set the field
+              without firing `onChange`, leaving that state stale; `required`
+              above is what refuses a genuinely empty submit, natively. */}
+          <BusyButton
+            busy={busy}
+            type="submit"
+            className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
+            busyLabel={t("me.signInSending")}
+          >
+            {t("me.signInSend")}
+          </BusyButton>
         </form>
       )}
 
       {step === "code" && (
         <form onSubmit={verifyCode}>
-          <p className="mt-2 text-base leading-7 text-navy-700">{t("agent.startCodeSent", { minutes: codeMinutes })}</p>
+          <p className="mt-2 text-base leading-7 text-navy-700">
+            {t("agent.startCodeSent", { minutes: codeMinutes })}
+          </p>
           <div className={field}>
             <label className={label} htmlFor="signup-code">
               {t("me.signInCode")}
             </label>
             <input
               id="signup-code"
+              name="code"
               autoComplete="one-time-code"
               inputMode="numeric"
               pattern="[0-9]*"
+              // `minLength` makes "fewer than 6 digits" a submit the browser
+              // itself refuses (B787), rather than one gated on React state
+              // that autofill or a code-filling keyboard can bypass.
+              minLength={6}
               maxLength={6}
               required
               value={code}
@@ -285,9 +325,14 @@ export default function SignupWizard({
               className={`${input} font-mono text-2xl tracking-[0.3em]`}
             />
           </div>
-          <button type="submit" disabled={busy || code.length < 6} className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}>
-            {busy ? t("me.signInSending") : t("agent.startVerify")}
-          </button>
+          <BusyButton
+            busy={busy}
+            type="submit"
+            className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
+            busyLabel={t("me.signInSending")}
+          >
+            {t("agent.startVerify")}
+          </BusyButton>
         </form>
       )}
 
@@ -308,7 +353,9 @@ export default function SignupWizard({
           {/* B809 — above the field, not below it. A tester chose an address
               and only then read that it was going to be a web address, which
               is the one thing here that cannot be corrected afterwards. */}
-          <p className="mt-4 text-sm leading-6 text-navy-600">{t("agent.usernameHint")}</p>
+          <p className="mt-4 text-sm leading-6 text-navy-600">
+            {t("agent.usernameHint")}
+          </p>
           <div className={`${field} mt-2`}>
             <label className={label} htmlFor="signup-username">
               {t("agent.usernameLabel")}
@@ -339,7 +386,9 @@ export default function SignupWizard({
               className={input}
             />
           </div>
-          <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.ownerNameHint")}</p>
+          <p className="mt-2 text-sm leading-6 text-navy-600">
+            {t("agent.ownerNameHint")}
+          </p>
           <div className={field}>
             <label className={label} htmlFor="signup-owner-nickname">
               {t("agent.ownerNicknameLabel")}
@@ -352,13 +401,17 @@ export default function SignupWizard({
               className={input}
             />
           </div>
-          <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.ownerNicknameHint")}</p>
+          <p className="mt-2 text-sm leading-6 text-navy-600">
+            {t("agent.ownerNicknameHint")}
+          </p>
 
           {/* B838, first half — which language the owner writes in. It was
               read off the browser and never asked, so a German speaker whose
               phone is in English got an English journal. */}
           <p className={`${label} mt-5`}>{t("agent.localeLabel")}</p>
-          <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.localeHint")}</p>
+          <p className="mt-2 text-sm leading-6 text-navy-600">
+            {t("agent.localeHint")}
+          </p>
           <div className="mt-2 space-y-2">
             {MAINTAINED_LOCALES.map((code) => (
               <label
@@ -387,34 +440,42 @@ export default function SignupWizard({
               from. The hint says what a second language commits somebody to
               (B294), because it is a promise to write everything twice. */}
           <p className={`${label} mt-5`}>{t("agent.readerLocalesLabel")}</p>
-          <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.readerLocalesHint")}</p>
+          <p className="mt-2 text-sm leading-6 text-navy-600">
+            {t("agent.readerLocalesHint")}
+          </p>
           <div className="mt-2 space-y-2">
-            {MAINTAINED_LOCALES.filter((code) => code !== defaultLocale).map((code) => (
-              <label
-                key={code}
-                className="flex min-h-11 items-center gap-3 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 text-sm text-navy-800"
-              >
-                <input
-                  type="checkbox"
-                  name="signup-reader-locales"
-                  value={code}
-                  checked={extraLocales.includes(code)}
-                  onChange={(e) =>
-                    setExtraLocales((prev) =>
-                      e.target.checked ? [...prev, code] : prev.filter((c) => c !== code),
-                    )
-                  }
-                />
-                {LOCALE_LABEL[code] ?? code}
-              </label>
-            ))}
+            {MAINTAINED_LOCALES.filter((code) => code !== defaultLocale).map(
+              (code) => (
+                <label
+                  key={code}
+                  className="flex min-h-11 items-center gap-3 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 text-sm text-navy-800"
+                >
+                  <input
+                    type="checkbox"
+                    name="signup-reader-locales"
+                    value={code}
+                    checked={extraLocales.includes(code)}
+                    onChange={(e) =>
+                      setExtraLocales((prev) =>
+                        e.target.checked
+                          ? [...prev, code]
+                          : prev.filter((c) => c !== code),
+                      )
+                    }
+                  />
+                  {LOCALE_LABEL[code] ?? code}
+                </label>
+              ),
+            )}
           </div>
 
           {/* B839 — the one permanent field, asked at the one moment it can
               still be answered. `setJournalProfile` refuses it for ever
               after, on purpose: every cost in the journal is denominated
               against it. */}
-          <p className="mt-5 text-sm leading-6 text-navy-600">{t("agent.currencyHint")}</p>
+          <p className="mt-5 text-sm leading-6 text-navy-600">
+            {t("agent.currencyHint")}
+          </p>
           <div className={`${field} mt-2`}>
             <label className={label} htmlFor="signup-currency">
               {t("agent.currencyLabel")}
@@ -453,12 +514,17 @@ export default function SignupWizard({
                   checked={visibility === option}
                   onChange={() => setVisibility(option)}
                 />
-                {t(option === "public" ? "agent.visibilityPublic" : "agent.visibilityGuest")}
+                {t(
+                  option === "public"
+                    ? "agent.visibilityPublic"
+                    : "agent.visibilityGuest",
+                )}
               </label>
             ))}
           </div>
 
-          <button
+          <BusyButton
+            busy={busy}
             type="submit"
             disabled={
               busy ||
@@ -469,15 +535,18 @@ export default function SignupWizard({
               !/^[A-Z]{3}$/.test(baseCurrency)
             }
             className={`mt-5 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
+            busyLabel={t("agent.creatingJournal")}
           >
-            {busy ? t("agent.creatingJournal") : t("agent.createJournal")}
-          </button>
+            {t("agent.createJournal")}
+          </BusyButton>
         </form>
       )}
 
       {step === "trip" && (
         <form onSubmit={createTripStep}>
-          <h3 className="mt-4 font-display text-lg font-semibold text-navy-900">{t("agent.tripHeading")}</h3>
+          <h3 className="mt-4 font-display text-lg font-semibold text-navy-900">
+            {t("agent.tripHeading")}
+          </h3>
           <div className={field}>
             <label className={label} htmlFor="signup-trip-title">
               {t("agent.tripTitleLabel")}
@@ -517,17 +586,23 @@ export default function SignupWizard({
               className={input}
             />
           </div>
-          <button
+          <BusyButton
+            busy={busy}
             type="submit"
-            disabled={busy || !tripTitle || !tripStart || !tripEnd}
+            disabled={!tripTitle || !tripStart || !tripEnd}
             className={`mt-5 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
+            busyLabel={t("agent.creatingTrip")}
           >
-            {busy ? t("agent.creatingTrip") : t("agent.createTrip")}
-          </button>
+            {t("agent.createTrip")}
+          </BusyButton>
         </form>
       )}
 
-      {step === "signing-in" && <p className="mt-4 text-base leading-7 text-navy-700">{t("agent.signingIn")}</p>}
+      {step === "signing-in" && (
+        <p className="mt-4 text-base leading-7 text-navy-700">
+          {t("agent.signingIn")}
+        </p>
+      )}
     </section>
   );
 }

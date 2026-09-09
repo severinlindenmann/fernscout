@@ -13,7 +13,14 @@ other.example {
 
 journal.example {
 	encode gzip zstd
-	reverse_proxy 127.0.0.1:3000 {
-		header_up X-Forwarded-For {remote_host}
+	@debugmethods method TRACE TRACK
+	handle @debugmethods {
+		respond 405
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:3000 {
+			header_up X-Forwarded-For {remote_host}
+		}
 	}
 }

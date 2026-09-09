@@ -9,6 +9,8 @@ import {
   signInUrl,
   type SessionKind,
 } from "@/lib/auth";
+import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
+import { translateIn } from "@/lib/locales";
 import { sendTransactional } from "@/lib/mail";
 import { renderMail, type MailBlock } from "@/lib/mail/template";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -29,11 +31,13 @@ export const dynamic = "force-dynamic";
  * signal about who was asked for.
  *
  * The refusals that are not about the address are exempt, and each says so
- * where it stands: `auth` off (404), the rate limit (429), an agent code for
- * an address this journal does not recognise (403, and the trade is argued
- * below), mail switched off for the whole server (503), and a send that failed
- * (503). None of them varies with the address, which is the property that
- * matters rather than the uniform status.
+ * where it stands: `auth` off (404), the rate limit (429), a missing
+ * `username` or an `email` that fails the syntax check (400 — B1026, shape
+ * only, never a lookup), an agent code for an address this journal does not
+ * recognise (403, and the trade is argued below), mail switched off for the
+ * whole server (503), and a send that failed (503). None of them varies with
+ * the address, which is the property that matters rather than the uniform
+ * status.
  */
 export async function POST(request: Request) {
   if (!isEnabled("auth")) {
@@ -112,9 +116,25 @@ export async function POST(request: Request) {
    */
   const destination = safeDestination(username, body.destination);
 
-  const accepted = Response.json({ status: "accepted" }, { status: 202 });
-  if (!isEmail(email) || !username) return accepted;
+  /**
+   * **Shape, not existence.** Whether `isEmail()` accepts a string is a pure
+   * format check that no lookup touches, so refusing it by name leaks nothing
+   * about who is registered — the same is true of `username` being present at
+   * all. Naming the broken field is what the uniform `202` below still exists
+   * to keep from doing for a *syntactically valid* address this journal
+   * simply does not recognise. B1026.
+   */
+  if (!username) {
+    return Response.json({ error: "invalid_user", message: "user is required." }, { status: 400 });
+  }
+  if (!isEmail(email)) {
+    return Response.json(
+      { error: "invalid_email", message: "email is required and must be a valid address." },
+      { status: 400 },
+    );
+  }
 
+  const accepted = Response.json({ status: "accepted" }, { status: 202 });
   const user = getUser(username);
   if (!user) return accepted;
 
@@ -190,6 +210,29 @@ export async function POST(request: Request) {
   const base = serverSite().url;
 
   /**
+   * The language the mail is written in — B857.
+   *
+   * The journal's own `defaultLocale` first, because a journal that says it is
+   * Hungarian is one whose owner and readers are, and only then whatever the
+   * request asked for. English is what is left when neither names a language
+   * this instance ships chrome for. The journal's *title* is not translated
+   * and never could be: it is the owner's own words, interpolated as they
+   * wrote them (B316).
+   */
+  const locale = pickLocale(
+    user.defaultLocale,
+    fromAcceptLanguage(request.headers.get("accept-language")),
+  );
+  const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) =>
+    translateIn(locale, key, vars);
+  const vars = {
+    site: serverSite().name,
+    title: user.title,
+    code,
+    minutes: CODE_TTL_MINUTES,
+  };
+
+  /**
    * A reader gets a button; an agent gets a code.
    *
    * The button is first and the code is underneath, because one tap is what a
@@ -199,19 +242,17 @@ export async function POST(request: Request) {
    */
   const guestBlocks: MailBlock[] = linkToken
     ? [
+        { kind: "paragraph", text: t("mail.signinTap", vars) },
         {
-          kind: "paragraph",
-          text: `Tap the button to open ${user.title}. It works once, for ${CODE_TTL_MINUTES} minutes.`,
+          kind: "button",
+          text: t("mail.signinOpen", vars),
+          href: signInUrl(base, username, linkToken),
         },
-        { kind: "button", text: `Open ${user.title}`, href: signInUrl(base, username, linkToken) },
-        {
-          kind: "paragraph",
-          text: `Or sign in by hand with this code: ${code}`,
-        },
+        { kind: "paragraph", text: t("mail.signinCode", vars) },
       ]
     : [
-        { kind: "paragraph", text: `Your code is ${code}. It works for ${CODE_TTL_MINUTES} minutes.` },
-        { kind: "button", text: `Open ${user.title}`, href: `${base}/${username}` },
+        { kind: "paragraph", text: t("mail.identityCode", vars) },
+        { kind: "button", text: t("mail.signinOpen", vars), href: `${base}/${username}` },
       ];
 
   /**
@@ -222,15 +263,12 @@ export async function POST(request: Request) {
   const scopedTrip = kind === "agent" && tripId ? getTrip(tripRef(username, tripId)) : null;
 
   const agentBlocks: MailBlock[] = [
-    { kind: "paragraph", text: `Your code is ${code}. It works for ${CODE_TTL_MINUTES} minutes.` },
+    { kind: "paragraph", text: t("mail.identityCode", vars) },
     {
       kind: "paragraph",
       text: scopedTrip
-        ? `Give this code to the agent that asked for it. It will exchange the code for a ` +
-          `token that can write to one trip in ${user.title} — ${scopedTrip.title} — for seven ` +
-          `days, and nothing else in the journal.`
-        : "Give this code to the agent that asked for it. It will exchange the code " +
-          "for a token that can write to your journal for seven days.",
+        ? t("mail.agentScoped", { ...vars, trip: scopedTrip.title })
+        : t("mail.agentAll"),
     },
   ];
 
@@ -256,26 +294,18 @@ export async function POST(request: Request) {
     await sendTransactional(
       renderMail(
         email,
-        kind === "agent" ? "Your Fernscout agent code" : `Sign in to ${user.title}`,
+        kind === "agent" ? t("mail.agentSubject", vars) : t("mail.signinSubject", vars),
         {
           // What a phone shows next to the subject. The code, not the link:
           // a reader who only glances at the notification can still type it in.
-          preheader: `Your code is ${code}`,
-          title: kind === "agent" ? "Agent access code" : `Sign in to ${user.title}`,
+          preheader: t("mail.identityCode", vars),
+          title: kind === "agent" ? t("mail.agentTitle") : t("mail.signinSubject", vars),
           blocks: [
             ...(kind === "agent" ? agentBlocks : guestBlocks),
-            {
-              kind: "paragraph",
-              text:
-                `Asked for at ${requestedAt()}. If you have an older mail like this one, ` +
-                "its code no longer works — the newest is the only live one.",
-            },
-            {
-              kind: "paragraph",
-              text: "If you did not ask for this, ignore it — nothing has changed.",
-            },
+            { kind: "paragraph", text: t("mail.codeAsked", { when: requestedAt(locale) }) },
+            { kind: "paragraph", text: t("mail.signinIgnore") },
           ],
-          footer: `Sent by ${serverSite().name}.`,
+          footer: t("mail.identityFooter", vars),
         },
         username,
       ),
@@ -298,17 +328,23 @@ export async function POST(request: Request) {
   return accepted;
 }
 
-/** `14:32 UTC on 1 September` — enough to tell two identical mails apart,
- * without pretending to know the reader's timezone. */
-function requestedAt(): string {
+/** `14:32 UTC, 1 September` — enough to tell two identical mails apart,
+ * without pretending to know the reader's timezone. The month is written in
+ * the reader's own language (B857). */
+function requestedAt(locale: string): string {
   const now = new Date();
   const time = now.toISOString().slice(11, 16);
-  const day = now.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    timeZone: "UTC",
-  });
-  return `${time} UTC on ${day}`;
+  const day = now
+    .toLocaleDateString(locale === "en" ? "en-GB" : locale, {
+      day: "numeric",
+      month: "long",
+      timeZone: "UTC",
+    })
+    // Hungarian writes the day as "szeptember 7." — full stop included — and
+    // the sentence this lands in ends with one of its own. Two in a row reads
+    // like a typo in a mail whose whole job is to look trustworthy.
+    .replace(/\.$/, "");
+  return `${time} UTC, ${day}`;
 }
 
 /**

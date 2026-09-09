@@ -206,3 +206,69 @@ function bodyLocaleFor(username: string, cookie: string | undefined): string {
     request.cookieLocale = previous;
   }
 }
+
+/**
+ * The two places a journal's name is not the first thing in the path — B921.
+ *
+ * A 71-year-old whose daughter set up her iPhone has English menus and a
+ * German journal, and met the whole conversation in English. `/agent/mila/chat`
+ * begins with `agent`, which is nobody, so the room fell through to her phone's
+ * language — and `POST /api/helper/mila/ask` begins with `api`, so **every
+ * sentence the conversation itself said** was chosen the same way, which is the
+ * half nobody would have seen by looking at the screen.
+ *
+ * Her words: *"It should follow the journal's own language, not my phone's
+ * menu setting."* B857 settled the same rule for mail.
+ */
+describe("a journal whose name is not the first segment", () => {
+  /**
+   * `oma` writes only German — which is the case that shows this at all. Where
+   * a journal offers English too, an English phone getting English is the rule
+   * working (`readerLocale`: the reader's own device wins if the journal
+   * offers it), not the bug.
+   */
+  function withGermanOnlyJournal() {
+    instance();
+    const dir = process.env.CONTENT_DIR!;
+    fs.mkdirSync(path.join(dir, "oma", "trips"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "oma", "config.json"), userCfg(["de"], "de"));
+    clearConfigCache();
+    clearUserCache();
+    clearLocaleCache();
+  }
+
+  for (const where of [
+    "/oma/day/erster",
+    "/agent/oma/chat",
+    "/agent/oma",
+    "/api/helper/oma/ask",
+    "/api/v1/oma/trips",
+  ]) {
+    test(`${where} is answered in the journal's own language`, () => {
+      withGermanOnlyJournal();
+      // Her phone is in English because her daughter set it up. Her journal is
+      // in German and offers nothing else.
+      expect(readerLocaleForPath(where, undefined, "en-GB,en;q=0.9")).toBe("de");
+    });
+  }
+
+  test("the journal's set is what the device is narrowed against, not the instance's", () => {
+    instance();
+    // `mila` writes German and English. A Hungarian phone gets neither, and
+    // must land on her default rather than on a language she does not write.
+    expect(readerLocaleForPath("/agent/mila/chat", undefined, "hu-HU,hu;q=0.9")).toBe("de");
+    expect(readerLocaleForPath("/api/helper/mila/ask", undefined, "hu-HU,hu;q=0.9")).toBe("de");
+  });
+
+  test("a path naming nobody still falls through to the instance", () => {
+    withGermanOnlyJournal();
+    expect(readerLocaleForPath("/agent/nobody/chat", undefined, "en-GB")).toBe("en");
+    expect(readerLocaleForPath("/api/helper", undefined, "en-GB")).toBe("en");
+    expect(readerLocaleForPath("/agent", undefined, "en-GB")).toBe("en");
+  });
+
+  test("her own choice still wins over the journal's default", () => {
+    instance();
+    expect(readerLocaleForPath("/agent/mila/chat", "en", "de-DE")).toBe("en");
+  });
+});

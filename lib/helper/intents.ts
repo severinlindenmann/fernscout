@@ -1,263 +1,31 @@
 import "server-only";
-import { balanceOf } from "../credits";
-import { AS_AUTHOR, getAllEntries } from "../entries";
-import { formatBytes, storageFor } from "../storageQuota";
-import { getTrips } from "../trips";
-import { draftsForWizard } from "./server";
 
 /**
- * The registry — B685, and §3 of `docs/plans/2026-09-07-web-helper-agent.md`.
+ * The refusal table — B817, and what is left of the registry B900 retired.
  *
- * **One row per thing the helper can do.** The row carries the intent's name,
- * the slots it takes, and what runs; the list the model is shown is *generated
- * from this array* (`intentList()`, used by `ROUTER_SYSTEM_PROMPT` in
- * `./model.ts`), so the prompt cannot promise a capability that does not exist
- * and cannot forget one that does. Adding a capability later is a row here and
- * nothing else.
+ * ## What used to be here
  *
- * **The model routes; it never executes.** It is handed no client, no tools
- * and no way to call anything: it returns a row name and some strings, and the
- * code below looks the row up. Everything that happens afterwards happens
- * because a person pressed something.
+ * One row per thing the helper could do, matched by a model *before* the
+ * conversation was reached. It was the right shape when there was no
+ * conversation: seven rows and a text box in front of them. It became the
+ * wrong shape the moment the thread had tools, because a sentence a row
+ * happened to cover never reached one — "zeig mir meine reisen" answered as
+ * prose where the `trips` tool answers as a list, and "mach mir einen tag von
+ * gestern" handed over a wizard URL where `start_day` proposes a day. Two
+ * routers that can disagree is worse than either, so the registry is gone and
+ * `lib/helper/tools.ts` is the only one.
  *
- * Three kinds, and the difference between them is who is asked and when:
+ * ## What did not move, and must not
  *
- * - `read` answers immediately. These are GETs a person could make themselves
- *   from their own page; there is nothing to confirm about being told a
- *   number.
- * - `open` goes to a screen with the fields filled in. It writes nothing —
- *   the screen it lands on has its own gates and its own buttons.
- * - `write` is confirmed with its fields visible, **however confident the
- *   router was**, and only then posts to the endpoint named here. Publish,
- *   postcards and deletion are deliberately not rows: they keep their own
- *   existing gates, and deletion still ends in a mailbox.
- */
-
-/** One field the model may fill in. Never applied silently — a slot is a
- *  prefilled, editable box, so a wrong guess costs a tap to correct. */
-type Slot = {
-  name: string;
-  /** What it is, in the words the model is shown. */
-  describe: string;
-  /** ISO `YYYY-MM-DD`. A value that is not one is dropped rather than shown. */
-  date?: true;
-};
-
-export type Slots = Record<string, string>;
+ * The refusals below, and they are the half that never asked a model
+ * anything. They are matched **in this file, from the sentence itself, before
+ * any model is called at all** — not a low-confidence fallback and not a check
+ * on what came back.
+ * ---------------------------------------------------------------------- */
 
 /** Translating, passed in rather than imported, so an answer is in the
  *  reader's own language and this file holds no English. */
 export type Say = (key: string, vars?: Record<string, string>) => string;
-
-type Row = {
-  name: string;
-  describe: string;
-  slots: Slot[];
-};
-
-export type Intent = Row &
-  (
-    | { kind: "read"; answer: (username: string, say: Say) => Promise<string> }
-    | { kind: "open"; href: (username: string, slots: Slots) => string }
-    | { kind: "write"; endpoint: (username: string) => string }
-  );
-
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-export const REGISTRY: readonly Intent[] = [
-  {
-    name: "new_trip",
-    kind: "write",
-    describe: "Start a new trip — a journey with a title and a first and last day.",
-    slots: [
-      { name: "title", describe: "what the trip is called, in the writer's own words" },
-      { name: "start", describe: "the first day", date: true },
-      { name: "end", describe: "the last day", date: true },
-    ],
-    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/trip`,
-  },
-  {
-    name: "write_day",
-    kind: "open",
-    describe: "Write up a day of a trip — photographs, what happened, and the words.",
-    slots: [
-      { name: "date", describe: "the day being written up", date: true },
-      { name: "trip", describe: "the trip id it belongs to, if the person named one" },
-    ],
-    // The wizard is the multi-step machine and it is already built; this only
-    // opens it. The slots ride along in the query string, which is where the
-    // wizard reads a prefill from when it learns to.
-    href: (username, slots) => {
-      const query = new URLSearchParams(
-        Object.entries(slots).filter(([, value]) => value !== ""),
-      ).toString();
-      return `/agent/${encodeURIComponent(username)}${query ? `?${query}` : ""}`;
-    },
-  },
-  {
-    /**
-     * B844 — "fix a typo in tuesday", from the day she just published.
-     *
-     * The nearest row was `write_day`, which opens the wizard on a *new* day:
-     * a correction understood as a creation is exactly the misroute B817 was
-     * about, one shape along. This resolves the day herself — the entry on
-     * that date, in that trip — and hands the wizard the same three query
-     * parameters the "Correct or take down this day" link already carries, so
-     * it opens on the day that exists rather than beside it.
-     *
-     * `open`, never `write`: the wizard has its own save button and its own
-     * sentence about a day that is already on the site.
-     */
-    name: "fix_day",
-    kind: "open",
-    describe:
-      "Correct a day that is already written — fix a typo, change the words, add a photograph to it. A day that exists, never a new one.",
-    slots: [
-      { name: "date", describe: "the day being corrected", date: true },
-      { name: "trip", describe: "the trip id it belongs to, if the person named one" },
-    ],
-    href: (username, slots) => {
-      const trips = getTrips(username);
-      const trip =
-        trips.find((one) => one.id === slots.trip) ??
-        [...trips].sort((a, b) => b.start.localeCompare(a.start))[0];
-      // No trip at all, or no day on that date: fall through to the wizard's
-      // own opening logic rather than inventing a slug. It lands on the same
-      // screen, one step further back, which is recoverable; a slug nobody
-      // has is a 404 in the middle of a correction.
-      const entry = trip
-        ? getAllEntries(trip.ref, AS_AUTHOR).find((one) => one.date === slots.date)
-        : undefined;
-      const query = new URLSearchParams(
-        Object.entries({
-          trip: entry ? trip!.id : (slots.trip ?? ""),
-          slug: entry?.slug ?? "",
-          date: slots.date ?? "",
-        }).filter(([, value]) => value !== ""),
-      ).toString();
-      return `/agent/${encodeURIComponent(username)}${query ? `?${query}` : ""}`;
-    },
-  },
-  {
-    name: "storage",
-    kind: "read",
-    // B808 — "How much room this journal is using" caught "wheres my stuff" at
-    // 0.72, and the person was told about disk space when they meant their
-    // photographs. The row answers about bytes and nothing else, so it says so.
-    describe:
-      "How much disk space this journal is taking up, and how many megabytes are left before its storage limit. Bytes on disk only — never where a photograph, a day or a file has got to.",
-    slots: [],
-    answer: async (username, say) => {
-      const usage = await storageFor(username);
-      if (usage.limitBytes === null) {
-        return say("agent.askStorageNoLimit", { used: formatBytes(usage.usedBytes) });
-      }
-      return say("agent.askStorage", {
-        used: formatBytes(usage.usedBytes),
-        limit: formatBytes(usage.limitBytes),
-        left: formatBytes(usage.remainingBytes ?? 0),
-      });
-    },
-  },
-  {
-    // B783 — "whats my trip called" came back `unknown` at 0.1. It is the
-    // first thing anybody asks and there was no row for it.
-    name: "what_is_my_trip",
-    kind: "read",
-    describe:
-      "What the trip being written is called, the days it runs between, how many of its days are written and how many are still drafts.",
-    slots: [],
-    answer: async (username, say) => {
-      const trips = getTrips(username);
-      if (trips.length === 0) return say("agent.askTripNone");
-      // The newest by start date: the one somebody writing today means.
-      const trip = [...trips].sort((a, b) => b.start.localeCompare(a.start))[0];
-      const entries = getAllEntries(trip.ref, AS_AUTHOR);
-      // Days, not updates — several updates on one date are one day to a
-      // reader, and "how many days are written" is the reader's question.
-      const days = (draft: boolean) =>
-        // `draft` is absent rather than false on a published entry, so this
-        // asks Boolean of it — `=== false` counted every published day as
-        // neither written nor a draft.
-        String(new Set(entries.filter((e) => Boolean(e.draft) === draft).map((e) => e.date)).size);
-      return say("agent.askTrip", {
-        title: trip.title,
-        start: trip.start,
-        end: trip.end,
-        written: days(false),
-        drafts: days(true),
-      });
-    },
-  },
-  {
-    name: "credits",
-    kind: "read",
-    describe: "How many credits are left on this journal.",
-    slots: [],
-    answer: async (username, say) => {
-      const balance = await balanceOf(username);
-      return balance === null
-        ? say("agent.askCreditsOff")
-        : say("agent.askCredits", { count: String(balance) });
-    },
-  },
-  {
-    name: "unfinished",
-    kind: "read",
-    describe: "What is still a draft in this journal — days started and not published.",
-    slots: [],
-    answer: async (username, say) => {
-      const drafts = draftsForWizard(username);
-      if (drafts.length === 0) return say("agent.askUnfinishedNone");
-      return say("agent.askUnfinished", {
-        count: String(drafts.length),
-        date: drafts[0].date,
-      });
-    },
-  },
-];
-
-export function intentFor(name: string): Intent | null {
-  return REGISTRY.find((row) => row.name === name) ?? null;
-}
-
-/**
- * The menu the model is shown, generated.
- *
- * This is the whole point of the registry being an array: a hand-written list
- * in the prompt is a list that goes stale the first afternoon somebody adds a
- * capability, and stale here means the model routing to a row that no longer
- * exists or never offering one that does.
- */
-export function intentList(): string {
-  return REGISTRY.map((row) => {
-    const slots =
-      row.slots.length === 0
-        ? "no slots"
-        : row.slots.map((slot) => `${slot.name} (${slot.describe})`).join("; ");
-    return `- ${row.name}: ${row.describe} Slots: ${slots}.`;
-  }).join("\n");
-}
-
-/**
- * The model's strings, kept only where they fit a slot this row declares.
- *
- * Anything else it invented — a slot nobody asked for, a date that is not one,
- * a paragraph where a title was wanted — is dropped here rather than shown to
- * somebody as a prefilled field they might not read.
- */
-export function slotsFor(intent: Intent, raw: unknown): Slots {
-  const given = (raw ?? {}) as Record<string, unknown>;
-  const out: Slots = {};
-  for (const slot of intent.slots) {
-    const value = given[slot.name];
-    const text = typeof value === "string" ? value.trim().slice(0, 200) : "";
-    if (text === "") continue;
-    if (slot.date && !DATE_RE.test(text)) continue;
-    out[slot.name] = text;
-  }
-  return out;
-}
 
 /* -------------------------------------------------------------------------
  * The territories with no row, and what is said instead — B817 and B783.
@@ -293,33 +61,138 @@ export type Refusal = {
   key: string;
 };
 
+/**
+ * ## What B900 narrowed, and why that is not a softening
+ *
+ * There used to be three rows and one of them was `publish`, because there was
+ * nothing in this software a sentence could safely lead to that put a day on
+ * the site. There is now: `publish_day` renders the day as its readers will
+ * see it and then one button, and `unpublish_day` puts a day back to being a
+ * draft. Both end in a press, and a refusal in front of them would only be
+ * telling somebody to go and press the identical button somewhere else.
+ *
+ * So the words that mean *take it off the site* now reach the conversation,
+ * and the words that mean *destroy it* still do not — the split is the point,
+ * and it is the same split B816 made when it built a takedown that is not a
+ * delete. **There is no delete tool**, so a sentence matched below has
+ * nowhere to land at all; that is why these are answers rather than errors.
+ *
+ * Postcards used to be a third row here, on the same reasoning: there was no
+ * tool for them either. There is now — `propose_postcards` in
+ * `lib/helper/tools/areas/printed.ts` writes a real, pending order — so a
+ * sentence naming one reaches the conversation like any other, and the row
+ * that used to intercept it is gone. What stays true, and is the tool's own
+ * job to say, is that pressing still happens on the owner's own postcards
+ * page and never here.
+ *
+ * ## The floor B914 put back, and the one case it covers
+ *
+ * B900's loosening was reviewed by the owner and kept — **with a floor**:
+ * publishing may only ever be proposed from a sentence that names a day,
+ * never from *"publish everything now"*. That is the one shape where a vague
+ * sentence touches the path that puts things on the site, which is the
+ * dangerous direction; unpublishing has no equivalent row, because taking
+ * everything down is reversible and errs the safe way.
+ *
+ * **Half of it was already built and is not here.** `proposeWith` in
+ * `./tools.ts` refuses to offer any proposal whose `slug` came back empty
+ * (B925) — so a publish sentence the model could not resolve to a day already
+ * ends in "which day did you mean" and no button. What that cannot catch is
+ * the model being *helpful*: asked to publish everything, picking the first
+ * unpublished day and resolving it perfectly. B925 waves that through, because
+ * nothing about the proposal is empty. Only a check on the sentence itself,
+ * before a model reads it, closes that — which is why the row is here and not
+ * there.
+ *
+ * It is deliberately narrow. "Publish all the photographs on the day about the
+ * pass" is caught too, and answered by asking which day — a person says it
+ * again naming the day and it works. That is a second sentence, not a refusal
+ * of something they are entitled to do, and the alternative is a regex trying
+ * to decide whether a day was named, which is not a thing a regex knows.
+ */
+/** Wanting something gone, in the three languages the box is offered in. */
+const DESTROY = String.raw`\b(delete|deleting|deleted|erase|erasing|wipe|destroy|get rid of|remove|removing)\b|lösch|vernicht|entfern|törl|töröl|megsemmisít`;
+
+/** The two things this helper can actually take away: a photograph on a day,
+ *  and a file still waiting in the inbox. `remove_photo` and `discard_file`. */
+const REMOVABLE = String.raw`\b(photo|photos|photograph|photographs|picture|pictures|image|images|file|files|foto|fotos|bild|bilder|datei|dateien|kép|képet|képek|képével|fénykép|fényképet|fényképével|fájl|fájlt)\b`;
+
+/** And the things nothing here can: naming one of these refuses the sentence
+ *  even when it also names a photograph, because "delete the day with the
+ *  photo of Anna" is a request to delete a day. */
+const KEPT = String.raw`\b(day|days|trip|trips|journal|account|everything|all|entry|entries|yesterday)\b|\btage?\b|reise|tagebuch|konto|\balles?\b|\bnapot?\b|napló|\bútat?\b|mindent|fiók`;
+
 const REFUSALS: readonly Refusal[] = [
   {
-    // First, always: "unpublish" is removal before it is publishing, and a
-    // sentence that says both is a sentence about taking something away.
+    /**
+     * Destruction, and nothing else.
+     *
+     * A day, a trip or a journal that somebody wants *gone* is unrecoverable
+     * and finishes in a mailbox or on its own page. "Unpublish", "take it
+     * down", "nimm das runter" and "vedd le" are deliberately not here any
+     * more: they mean the day leaves the site and stays on disk, which is
+     * `unpublish_day`, which proposes and waits to be pressed.
+     *
+     * **A photograph is no longer among them.** This row used to match
+     * "remove … photo" on purpose, because nothing could do it and a refusal
+     * was the honest answer. `remove_photo` and `discard_file` are that
+     * something now, and a refusal firing first would make each unreachable
+     * by the only sentence anybody says out loud.
+     *
+     * The rule is not "let a picture through", and the first attempt at this
+     * got it wrong in the way worth recording: *"lösche den Tag mit dem Foto
+     * von Anna"* names a picture and asks for a **day**. So the sentence has
+     * to carry a destruction word, and then it is refused unless it names
+     * something removable *and nothing kept* — the three lists below, in the
+     * three languages the box is offered in.
+     *
+     * That is a pre-filter widening, not a guard removed. Nothing downstream
+     * can delete a day or a trip, because no tool exists that could: a
+     * sentence slipping past this row reaches a model with no way to do what
+     * it asks, which is the ordinary case for every sentence this file
+     * answers with null.
+     */
     name: "remove",
-    match:
-      /\b(delete|deleting|deleted|remove|removing|removed|erase|unpublish|takedown|take down|get rid of)\b|\btake\b[^.!?]{0,40}\bdown\b|lösch|entfern|runternehm|wegnehm|nimm[^.!?]{0,40}(runter|herunter|weg)|törl|töröl|távolít|vedd le|levesz|levenn|leszed/i,
+    match: new RegExp(
+      `^(?=[\\s\\S]*(${DESTROY}))(?:(?![\\s\\S]*(${REMOVABLE}))|(?=[\\s\\S]*(${KEPT})))`,
+      "i",
+    ),
     key: "agent.askRefuseRemove",
   },
   {
-    name: "publish",
-    match: /\b(publish|publishing|publishes|go live)\b|veröffentlich|publizier|freischalt|közzé|publikál/i,
-    key: "agent.askRefusePublish",
-  },
-  {
-    name: "postcard",
-    match: /\bpostcards?\b|postkarte|ansichtskarte|képeslap|levelezőlap/i,
-    key: "agent.askRefusePostcard",
+    /**
+     * Publishing in bulk — B914, and the owner's own floor under B900.
+     *
+     * Two lookaheads rather than one alternation: the sentence has to carry
+     * *both* a publishing word and a word that means all of them, in either
+     * order, so "publish the day about the pass" is untouched and "publish
+     * everything now" never reaches a model.
+     *
+     * `\bpublish` and not `publish`, so **"unpublish everything" is not
+     * matched** — in "unpublish" there is no word boundary before the p.
+     * Taking everything down is the reversible direction and has no row.
+     *
+     * `put … online` and `stell … online` are in the publishing half because
+     * German and English both split that verb, and *"stell alles online"* is
+     * the same sentence as *"veröffentliche alles"*. Bare `online` is
+     * deliberately not a publishing word: *"are all my days online?"* is a
+     * question, and refusing to answer it would be this box going quiet at
+     * exactly the moment B783 was about.
+     */
+    name: "publish_all",
+    match:
+      /^(?=[\s\S]*(\bpublish|veröffentlich|publizier|közzé|publikál|\b(put|stell)[\s\S]*\bonline\b))(?=[\s\S]*(\b(all|everything|the lot|the whole (lot|journal|trip))\b|\balles?\b|sämtlich|\bmindet\b|\bmindent\b|\bmindegyik\b|összes))/i,
+    key: "agent.askRefusePublishAll",
   },
 ];
 
 /**
  * The refusal a sentence has earned, or null.
  *
- * Null is the ordinary case and means the router runs as before. `unknown`
- * keeps its own job — a sentence nobody could map — and this is the other
- * thing: a sentence understood well enough to be refused by name.
+ * Null is the ordinary case and means the sentence goes to the conversation,
+ * which is now the only other place it can go. This is the sentence
+ * understood well enough to be refused by name — and refused before a model
+ * has read a word of it.
  */
 export function refusalFor(said: string): Refusal | null {
   return REFUSALS.find((refusal) => refusal.match.test(said)) ?? null;

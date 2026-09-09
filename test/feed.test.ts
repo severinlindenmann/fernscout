@@ -83,3 +83,62 @@ describe("buildFeedXml", () => {
     expect(xml).toContain("<link>https://example.test/creator</link>");
   });
 });
+
+/**
+ * B42 — `rfc822()` used to build `pubDate` as `` `${date}T${time}:00Z` ``,
+ * which stamps a local wall clock with a literal `Z` and reads a Bangkok
+ * morning as that same clock reading in UTC. Fixed to read the entry's own
+ * `timezone`, falling back to the journal/instance zone (`journalTimezone()`
+ * in lib/digest/quiet.ts) when an entry carries none.
+ */
+describe("pubDate reflects the entry's own zone, not a literal Z", () => {
+  /**
+   * Its own journal, not the `feed/` fixture the tests above share with
+   * `test/search.test.ts`. That one is a *visibility* fixture whose document
+   * count is asserted exactly, with a comment reasoning about which row each
+   * trip contributes; two extra days for a clock made that comment wrong and
+   * broke two assertions about privacy. See test/fixtures/feed-zones/README.md.
+   */
+  const ZONES = path.join(process.cwd(), "test", "fixtures", "feed-zones");
+
+  const itemFor = (xml: string, marker: string) => {
+    const at = xml.indexOf(marker);
+    expect(at).toBeGreaterThan(-1);
+    const start = xml.lastIndexOf("<item>", at);
+    const end = xml.indexOf("</item>", at);
+    return xml.slice(start, end);
+  };
+
+  beforeEach(() => {
+    delete process.env.DIGEST_TIMEZONE;
+    process.env.CONTENT_DIR = ZONES;
+  });
+
+  test("09:15 in Asia/Bangkok is 02:15 GMT, not 09:15 GMT", () => {
+    const xml = buildFeedXml("zoner")!;
+    const item = itemFor(xml, "ZONEDMARKERTWO");
+    expect(item).toContain("<pubDate>Sun, 04 Jan 2026 02:15:00 GMT</pubDate>");
+    expect(item).not.toContain("09:15:00 GMT");
+  });
+
+  test("an entry with a time and no timezone falls back to the journal's zone, not NaN", () => {
+    const xml = buildFeedXml("zoner")!;
+    const item = itemFor(xml, "UNTIMEZONEDMARKERTHREE");
+    const match = item.match(/<pubDate>([^<]+)<\/pubDate>/);
+    expect(match).not.toBeNull();
+    const [, pubDate] = match!;
+    expect(pubDate).not.toMatch(/Invalid|NaN/);
+    expect(new Date(pubDate).toString()).not.toBe("Invalid Date");
+    // Europe/Zurich (the default journal zone) is UTC+1 in January.
+    expect(pubDate).toBe("Mon, 05 Jan 2026 08:15:00 GMT");
+  });
+
+  test("an entry with no time at all still gets a sane pubDate", () => {
+    process.env.CONTENT_DIR = FIXTURES;
+    const xml = buildFeedXml("creator")!;
+    const item = itemFor(xml, "PUBLICMARKERONE");
+    const match = item.match(/<pubDate>([^<]+)<\/pubDate>/);
+    expect(match).not.toBeNull();
+    expect(new Date(match![1]).toString()).not.toBe("Invalid Date");
+  });
+});

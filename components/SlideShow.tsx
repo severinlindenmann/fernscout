@@ -32,6 +32,7 @@ import { useWorldLand } from "./useWorldLand";
 import { TRANSPORT_STYLE } from "@/lib/transport";
 import { flagFor } from "@/lib/flags";
 import { buildNarratedCut, type NarratedCutSlide } from "@/lib/narratedCut";
+import DualTime from "./DualTime";
 import { useWakeLock } from "./useWakeLock";
 import { useI18n } from "./LocaleProvider";
 import type { PlaceView } from "./WorldMap";
@@ -58,7 +59,9 @@ type FullStep =
       place: PlaceView;
       item: GalleryItem;
       dayLabel: string;
+      date: string;
       time?: string;
+      timezone?: string;
       placeIndex: number;
     };
 
@@ -102,7 +105,9 @@ export default function SlideShow({
             place,
             item,
             dayLabel: formatShortDate(entry.date),
+            date: entry.date,
             time: entry.time,
+            timezone: entry.timezone,
             placeIndex,
           });
         });
@@ -352,11 +357,20 @@ export default function SlideShow({
                       {flagFor(fullPlace.country, fullPlace.countryCode)} {fullPlace.location}
                     </div>
                     <div className="mt-1 text-white/70 text-[clamp(0.8rem,1.4vw,1.25rem)]">
-                      {showingFullMedia && fullStep.kind === "media"
-                        ? [fullStep.dayLabel, fullStep.time, fullStep.item.caption]
-                            .filter(Boolean)
-                            .join(" · ")
-                        : `${fullPlace.country} · ${formatShortDate(fullPlace.firstDate)}`}
+                      {showingFullMedia && fullStep.kind === "media" ? (
+                        <>
+                          {fullStep.dayLabel}
+                          {fullStep.time && (
+                            <>
+                              {" · "}
+                              <DualTime date={fullStep.date} time={fullStep.time} timezone={fullStep.timezone} />
+                            </>
+                          )}
+                          {fullStep.item.caption && <>{" · "}{fullStep.item.caption}</>}
+                        </>
+                      ) : (
+                        `${fullPlace.country} · ${formatShortDate(fullPlace.firstDate)}`
+                      )}
                     </div>
                   </motion.div>
                 </AnimatePresence>

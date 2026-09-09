@@ -121,3 +121,12 @@ exports/
 # output in lib/mapdata/ is committed, these are not.
 .mapdata-cache/
 .qa-shots/
+
+# The ECB reference rates are a measurement with a date on them, refreshed
+# nightly on the server into DATA_DIR — instance state, not source (B1084).
+# They were committed here until then, and this entry is what stops a stray
+# `npm run rates:update` on somebody's laptop putting them back: a table that
+# arrives by `git pull` is one that only moves when a person deploys, which is
+# the bug.
+site/rates/
+

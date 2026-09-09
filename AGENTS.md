@@ -66,6 +66,39 @@ memory presented to somebody's family as fact is not recoverable. So: write
 what you were told. No weather nobody mentioned, no meals nobody ate, no
 feelings nobody expressed. An empty field beats a plausible fiction.
 
+**Part of that rule is now machinery, and you should know it is there.** A
+71-year-old was told *"Der Text ist gespeichert."* Every mechanical guard had
+held; no write had happened; the sentence was simply untrue. She had no way to
+know, and the words on the screen are all a person has.
+
+So `lib/helper/model.ts` holds a **net**: after the model has answered, the
+server compares what it *said* against what the turn actually *did* — it holds
+both halves, and nothing else does. Each check is the same four parts: a
+matcher for the kind of claim, a condition on what the turn did, one retry
+telling the model what it got wrong, and a plain sentence in the person's own
+language when the retry fails too. What is checked and why is written beside
+each one; there is no list here, because a list in two places disagrees with
+itself within a month.
+
+Three things about it are worth carrying into any change:
+
+- **A claim is checked against the turn, never against the phrasing.** Whether
+  a sentence is true depends on what was proposed, what was read and what was
+  written — all of which the server knows. Matching text alone is how a guard
+  becomes a list of verb phrases that is always missing its next entry.
+- **A guard that fires on an honest turn is a bug**, and as serious as one that
+  misses. Being told *"I would rather not give you a figure"* when you asked a
+  fair question is its own way of making the software useless.
+- **Adding a tool may mean adding a check.** A tool that lets the model assert
+  something new about somebody's journal has made a new kind of claim
+  possible.
+
+And the finding that produced all of it, since it will save somebody a week:
+**rewording the prompt did not fix any of these, and a code guard fixed all of
+them.** B829 is the first record of it and every ticket since has agreed. The
+prompt is also the scarcer resource — four separate fixes ran into its token
+ceiling, and each time the answer was a guard rather than more words.
+
 **Weather has one true route, and it is not your memory.** Since B325 a day
 may carry `weather: true`, and the *server* looks it up — from a public
 archive, at the coordinates that day already carries, credited to the archive
@@ -86,6 +119,13 @@ in a banner, and it is kept out of the feed, the search index and the sitemap.
 Use it when you were asked to invent something. Writing "this is a test" into
 the prose instead is a convention, not a guarantee — the next reader has no way
 to know whether you bothered.
+
+**A whole journal made for testing is named for it**, since `test:` is a field
+on content and a journal has none: create it as `test-<something>` and never
+under a name that reads like a person's. The directory name is the one label
+that survives an export, a backup and an `ls`, and it is what lets anybody —
+or any later agent — delete the thing without stopping to find out whose it
+is.
 
 ## The content model
 
@@ -116,14 +156,25 @@ site/
                               file with FERNSCOUT_CONFIG, because its config is
                               the operator's and must survive a `git pull`.
   locales/<code>.json         the UI's own strings, per language
-  rates/ecb.json              shared currency reference rates
   legal/<code>.md             this instance's imprint (optional — no file, no
                               page and no footer link)
 ```
 
-An instance may still override `locales/`, `rates/` and `legal/` by putting
-its own beside its journals under `CONTENT_DIR`; that is where all four lived
-before B510, so an instance that has not migrated keeps working.
+**The currency reference rates are not here, and are in no checkout** (B1084).
+`<DATA_DIR>/rates/ecb.json` is a *measurement with a date on it*, so it sits
+with the other instance state rather than with the source: a rate that arrives
+by `git pull` only moves when somebody deploys, and the live instance was
+serving a twelve-day-old table before this changed. A deployed instance
+refreshes it nightly off the back of the backup timer
+(`scripts/backup.sh` step 0 → `scripts/rates-refresh.mts`), which also means
+**nothing fetches or keeps a table on an instance with `costs` switched off**.
+A fresh clone has none at all and offers the base currency only, which is a
+visible absence rather than a wrong number.
+
+An instance may still override `locales/` and `legal/` by putting its own
+beside its journals under `CONTENT_DIR`; that is where they lived before B510,
+so an instance that has not migrated keeps working. A pre-B1084 rates file in
+either old place is still read, until the first refresh writes the new one.
 
 ```
 content/
@@ -354,6 +405,17 @@ order that matters, and running them separately is how the order gets lost. The
 dev server must still boot with a capability both on and off; nothing automates
 that.
 
+**And it is not the gate for anything a person looks at.** A green suite says
+the mechanism works on the case you built for it — which is the one case that
+cannot surprise you. A visible change is finished when it has been seen on
+content that existed *before* the branch: an existing day, an existing trip, a
+page nobody wrote for the test. B42 shipped a reader's own clock beside a day's
+local time, checked it on the two demo days the same change had edited to carry
+the new field, and passed; every day already written showed nothing at all,
+because nothing filled that field in. The feature was inert everywhere it
+mattered and no test could have said so. B1090. `work-on-a-task` step 5,
+`test-in-a-browser` and `check-a-drawing` each carry the procedure.
+
 **While you are iterating, run the one test file** — `npx vitest run
 test/thing.test.ts` — and keep `verify` for the end. The full suite is fifty
 seconds and the build seventy, and a change is usually wrong in one file at a
@@ -391,6 +453,26 @@ dropping the `export` keyword rather than deleting the code. Unused *exported
 members* (of an enum, say) it still only prints. `knip.jsonc` carries the
 entry points, which are the whole configuration — nearly nothing here is
 imported by name. B24.
+
+### A new string in the UI is three files and a script
+
+`t("nav.gallery")` resolves against `site/locales/en.json`, `de.json` and
+`hu.json`, and a key added to one of them is a broken build in two ways at
+once. `test/locales.test.ts` asserts that **every maintained locale covers
+every key English has**, so English alone fails; and `lib/i18n.ts` carries a
+`TranslationKey` union that must hold *exactly* the shipped English keys, so
+a hand-written union fails too. Regenerate it rather than typing it:
+
+```bash
+npm run i18n:keys      # rewrites the union in lib/i18n.ts from site/locales/en.json
+```
+
+Write real German and real Hungarian. Nothing checks that a translation means
+anything — the tests only check that a key is present and, for a sample, that
+it differs from the English — so a plausible-looking machine translation ships
+and is read by somebody whose language it is. If you cannot write the language,
+say so and leave the ticket short of done; that is the same rule as inventing a
+day, one level down.
 
 ### Changing a route means changing the contract
 
@@ -449,6 +531,7 @@ and merged back:
 
 ```bash
 git worktree add .claude/worktrees/<branch> -b <branch>
+cp -Rc node_modules .claude/worktrees/<branch>/node_modules   # see below
 # … build it there, verify it there …
 git merge --no-ff <branch>          # from the main checkout
 git worktree remove .claude/worktrees/<branch>
@@ -516,8 +599,14 @@ Four things that follow, and are easy to get wrong:
   `git log --oneline main..HEAD`, then run `git diff --stat`, and let the merge
   into the shared checkout be its own call from the shared checkout.
 - **A worktree has no `node_modules`.** `npx tsc`, `eslint` and `vitest`
-  resolve upward and appear to work; `npm run build` does not. Run `npm ci` in
-  the worktree before trusting a green run.
+  resolve upward and appear to work; `npm run build` does not. Clone the main
+  checkout's with `cp -Rc` — copy-on-write on APFS, so it is about eight
+  seconds and no real disk — rather than `npm ci`, which is minutes and was run
+  sixty-five times in one week here. **Not a symlink**: `npm run build` then
+  dies in Turbopack with *"Symlink [project]/node_modules is invalid, it points
+  out of the filesystem root"*, and `verify` fails at step one for a reason
+  that has nothing to do with the change. On a filesystem without `cp -Rc`,
+  `npm ci` is still the answer.
 - **`.claude/worktrees/` already holds other sessions' work.** Never work in
   one you did not create, and never assume `main` is ahead of them — an id or
   a change captured in a sibling worktree has not reached `main` yet.
@@ -564,12 +653,15 @@ npm run tasks -- claim B01          # say you are on it, without moving it
 npm run tasks -- tidy               # re-file into the category folders
 ```
 
-**The two lanes that accumulate are filed into category folders.** `backlog/`
-and `testing/` hold their tasks one level down — `security/`, `issue/`,
-`big-feature/`, `small-feature/`, `chore/`, `ops/`, `docs-and-skills/`,
-`superseded/` — because a flat directory of a hundred and twenty is one nobody
-reads to the bottom of. The other three lanes stay flat: they are transient,
-and three more decisions per lane move would buy nothing.
+**The lane that accumulates is filed into category folders.** `backlog/`
+holds its tasks one level down — `security/`, `issue/`, `big-feature/`,
+`small-feature/`, `chore/`, `ops/`, `docs-and-skills/`, `superseded/`,
+`wont-do/` — because a flat directory of a hundred and twenty is one nobody
+reads to the bottom of. `testing/` used to as well, until B1110: what a
+person now reviews from is the run report, not a browse through
+`testing/security/`, so a ticket landing there is filed flat. The other
+lanes stay flat too: they are transient, and more decisions per lane move
+would buy nothing.
 
 **You never choose the folder.** It is derived from `type` and `complexity`,
 the same way the status is derived from the lane and for the same reason — a
@@ -686,9 +778,14 @@ guide for it.
 | `deploy` | Ship it to the VPS, and know it is healthy |
 | `keep-the-contract` | Check that `/openapi.json` and `/agent.md` still tell the truth after a change to a route |
 | `manage-tasks` | Capture something, and move it between lanes |
+| `triage-a-backlog` | Read a whole lane of `docs/tasks/` and hand back one page a person decides from |
+| `plan-a-run` | Ask every decision a batch of approved tickets needs — is it still valid, which of two stances, what is still open — before any of it is built |
+| `report-a-run` | Account for a finished batch of tickets on one page — what shipped, what was already fixed, what a person can see, what still needs their eyes |
 | `work-on-a-task` | Take one approved task, build it in a worktree, merge it |
+| `run-a-batch` | Carry an answered brief through build, merge, deploy and live check without stopping to ask |
 | `test-the-live-site` | Empty `testing/` against the deployed instance, one subagent per ticket |
 | `test-in-a-browser` | Drive a local checkout in a real browser: sign in as an owner, switch a capability on, check a page at 390px |
+| `test-with-personas` | Drive `/agent` as somebody who has never seen it — a subagent per persona, handed a URL and nothing else |
 
 ### The workbenches
 

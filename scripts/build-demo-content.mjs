@@ -313,6 +313,29 @@ const TRIPS = [
     planNote:
       "Bangkok to Hanoi overland. This is the version we drew on a napkin in December; the trip mostly agreed with it, which surprised us both.",
     days: [
+      // ------------------------------------------------------------------
+      // Fixture days — B736. Written by hand for travel-scene vehicle
+      // coverage and folded back into the generator here, so that
+      // `content/example/` is regenerable rather than partly regenerable.
+      // Every one carries `test: true`: nobody lived them, the page says so
+      // in a banner, and they are kept out of the feed, the search index and
+      // the sitemap. AGENTS.md's one exception, used the way it is meant to
+      // be.
+      // ------------------------------------------------------------------
+      {
+        date: "2023-01-08",
+        time: "21:40",
+        slug: "leaving-zurich",
+        title: "Leaving Zurich",
+        location: "Zurich",
+        country: "Switzerland",
+        code: "CH",
+        lat: 47.3769,
+        lng: 8.5417,
+        tags: ["switzerland", "flights"],
+        test: true,
+        text: "The trip's first leg, and the only one that leaves the ground. Written to show\nwhat a flight looks like on the map: a long dashed arc between two continents,\nagainst the solid train line and the dotted boat further east.\n\nNobody took this day. It exists so the map has an aeroplane on it.",
+      },
       {
         date: "2023-01-09",
         // Three updates on one day — the arrival day, written as it went.
@@ -328,6 +351,7 @@ const TRIPS = [
         lng: 100.5018,
         transport: { mode: "flight", from: "Zurich", to: "Bangkok" },
         photos: 4,
+        captions: [undefined, "The camera, put down for five minutes"],
         tags: ["thailand", "cities", "food"],
         costs: [
           { label: "Street noodles", amount: 120, category: "food", currency: "THB" },
@@ -387,6 +411,8 @@ const TRIPS = [
         lat: 18.7883,
         lng: 98.9853,
         transport: { mode: "train", from: "Bangkok", to: "Chiang Mai" },
+        // Thirteen hours in one line: the scene plays, briefly.
+        travelScene: "quick",
         photos: 3,
         tags: ["thailand", "trains", "sleeper"],
         costs: [
@@ -394,6 +420,36 @@ const TRIPS = [
           { label: "Breakfast on board", amount: 90, category: "food", currency: "THB" },
         ],
         text: "Thirteen hours, a bunk with a curtain, and a man with a trolley who appeared every ninety minutes whether or not anybody wanted anything.\n\nWoke somewhere past Lampang with the window full of green and no idea what time it was. Best sleep of the trip so far.",
+      },
+      {
+        date: "2023-02-10",
+        slug: "chiang-rai-by-car",
+        title: "Hired a car as far as Chiang Rai",
+        location: "Chiang Rai",
+        country: "Thailand",
+        code: "TH",
+        lat: 19.9105,
+        lng: 99.8406,
+        weather: false,
+        transport: { mode: "car", from: "Chiang Mai", to: "Chiang Rai" },
+        tags: ["thailand", "roads"],
+        test: true,
+        text: "A fixture day: the road leg the scene needs to draw tarmac, a centre line and a car with its wheels turning.\n\nThree hours of highway, which is the shortest thing in this trip and the fastest thing on this page.",
+      },
+      {
+        date: "2023-02-20",
+        slug: "the-slow-bus-to-the-border",
+        title: "The slow bus to the border",
+        location: "Huay Xai",
+        country: "Laos",
+        code: "LA",
+        lat: 20.2806,
+        lng: 100.4128,
+        weather: false,
+        transport: { mode: "bus", from: "Chiang Rai", to: "Huay Xai" },
+        tags: ["laos", "borders", "buses"],
+        test: true,
+        text: "A fixture day, and the one that puts the trip on the right bank for the boat two weeks later.\n\nThe bus is the same road as the car and a different vehicle on it — which is the whole thing this day is here to show.",
       },
       {
         date: "2023-03-02",
@@ -417,6 +473,21 @@ const TRIPS = [
         hu: "Két nap egy fahajón, aminek a hátuljába autómotort építettek. Nincs semmi tennivaló, ami az egésznek a lényege, és körülbelül négy órába telik megérteni.\n\nA második délutánon felvettünk tíz másodpercnyi partot. Ez az egyetlen videó az egész útról — és mégis ez az első, amit megmutatunk.",
       },
       {
+        date: "2023-03-05",
+        slug: "up-the-hill-on-foot",
+        title: "Up the hill on foot",
+        location: "Phousi",
+        country: "Laos",
+        code: "LA",
+        lat: 19.8895,
+        lng: 102.1355,
+        weather: false,
+        transport: { mode: "walk", from: "Luang Prabang", to: "Phousi" },
+        tags: ["laos", "walking"],
+        test: true,
+        text: "A fixture day for the one leg that has no vehicle at all. On foot the party *is* what crosses the screen — there is nothing else to draw, and the path goes past underneath them.\n\nThree hundred steps, and the shortest leg in the journal.",
+      },
+      {
         date: "2023-04-18",
         slug: "hue-to-hoi-an",
         title: "Over the Hai Van Pass",
@@ -426,6 +497,8 @@ const TRIPS = [
         lat: 15.8801,
         lng: 108.338,
         transport: { mode: "motorbike", from: "Hue", to: "Hoi An" },
+        // The one day that opts out of the animation altogether.
+        travelScene: "skip",
         photos: 4,
         tags: ["vietnam", "motorbike", "mountains"],
         costs: [
@@ -433,6 +506,21 @@ const TRIPS = [
           { label: "Tailored shirt", amount: 620000, category: "other", currency: "VND" },
         ],
         text: "Rode the pass on the back of somebody else's motorbike with our bags strapped to a third one. It rained at the top and cleared before the bottom, which everyone had told us it would.\n\nHoi An is lit entirely by paper lanterns after dark, and it is exactly as good as that sounds.",
+      },
+      {
+        date: "2023-04-25",
+        slug: "over-to-da-nang",
+        title: "Over to Da Nang and back",
+        location: "Da Nang",
+        country: "Vietnam",
+        code: "VN",
+        lat: 16.0544,
+        lng: 108.2022,
+        weather: false,
+        transport: { mode: "motorbike", from: "Hoi An", to: "Da Nang" },
+        tags: ["vietnam", "motorbikes"],
+        test: true,
+        text: "A fixture day. The motorbike leg earlier in this trip carries `travelScene: skip`, which is exactly what it says — the pager leaves it out entirely — so there was no way to see the rider drawn.\n\nThis is that leg, played.",
       },
       {
         date: "2023-05-30",
@@ -515,6 +603,30 @@ const TRIPS = [
       { location: "Denver", country: "United States", code: "US", lat: 39.7392, lng: -104.9903, note: "Sell the truck, fly home" },
     ],
     days: [
+      // A fixture day's neighbour — B736, and see the note in asia-2023 above.
+      // Not `test: true` like the other five: this is a real update of a real
+      // day, held back from a public trip, and the demo's only per-update
+      // `visibility:` in its narrower form (B596).
+      {
+        date: "2026-06-03",
+        time: "22:10",
+        slug: "denver-money",
+        title: "The part about the money",
+        location: "Denver",
+        country: "United States",
+        code: "US",
+        lat: 39.7392,
+        lng: -104.9903,
+        weather: false,
+        visibility: "private",
+        tags: ["colorado", "logistics"],
+        de: {
+          title: "Der Teil mit dem Geld",
+          content:
+            "Was der Truck wirklich gekostet hat, aufgeschrieben, solange wir es noch genau wissen — und für uns beide, nicht für den Rest der Welt.",
+        },
+        text: "What the truck actually cost, written down while we still remember it exactly, and kept to the two of us rather than put on the internet.\n\nNot a secret so much as nobody else's business — which is the whole reason a single update can be held back without the day around it going with it.",
+      },
       {
         date: "2026-06-03",
         slug: "denver-and-a-truck",
@@ -543,6 +655,8 @@ const TRIPS = [
         lng: -109.5498,
         transport: { mode: "car", from: "Denver", to: "Moab" },
         photos: 4,
+        // B596: one photograph out of four held back from a public trip.
+        photoVisibility: [undefined, undefined, "guest"],
         tags: ["utah", "desert", "camping"],
         costs: [
           { label: "Fuel", amount: 96, category: "transport", currency: "USD" },
@@ -563,6 +677,8 @@ const TRIPS = [
         lat: 37.3614,
         lng: -118.3951,
         transport: { mode: "car", from: "Moab", to: "Bishop" },
+        // B596, the coarser half: the whole update held back.
+        visibility: "guest",
         photos: 3,
         tags: ["california", "mountains", "wildfire"],
         costs: [
@@ -576,6 +692,15 @@ const TRIPS = [
         // Two updates on one day, which is what `time:` is for and what the
         // day pager calls a branch. The first carries the day's arrival leg;
         // the second is just a note from the evening.
+        //
+        // The one pair of days that names its zone — B42. `time:` is always
+        // the wall clock where the day happened, and until this field existed
+        // there was no way to say so, which is how the feed came to stamp a
+        // Pacific afternoon as though it were UTC. Cannon Beach is
+        // America/Los_Angeles; recording it is what makes the reader's own
+        // clock appear beside this one, and it is a fact about the place
+        // rather than anything invented about the day.
+        timezone: "America/Los_Angeles",
         time: "13:20",
         slug: "oregon-coast",
         title: "Down the Oregon coast",
@@ -586,6 +711,8 @@ const TRIPS = [
         lng: -123.9615,
         transport: { mode: "car", from: "Bishop", to: "Cannon Beach" },
         photos: 4,
+        captions: ["One leaf still holding the rain", undefined, "The beach at low tide, and one person on the whole of it"],
+        photoVisibility: [undefined, undefined, undefined, "private"],
         tags: ["oregon", "coast", "pacific"],
         costs: [
           { label: "Fuel", amount: 88, category: "transport", currency: "USD" },
@@ -598,11 +725,14 @@ const TRIPS = [
         time: "21:40",
         slug: "oregon-coast-evening",
         title: "Later, from the same car park",
+        // The same zone as the update above it — the two are one day.
+        timezone: "America/Los_Angeles",
         location: "Cannon Beach",
         country: "United States",
         code: "US",
         lat: 45.8918,
         lng: -123.9615,
+        visibility: "guest",
         tags: ["oregon", "coast"],
         costs: [
           { label: "Laundrette", amount: 9, category: "other", currency: "USD" },
@@ -695,6 +825,10 @@ const TRIPS = [
         lng: -113.0263,
         transport: { mode: "car", from: "Las Vegas", to: "Springdale" },
         photos: 3,
+        captions: [
+          "The water going over, and the spray coming straight back up",
+          "Steps down into the fog, and nothing at the bottom of them",
+        ],
         tags: ["utah", "national-parks", "hiking", "water"],
         costs: [
           { label: "Fuel", amount: 44, category: "transport", currency: "USD" },
@@ -1147,10 +1281,18 @@ function galleryBlock(trip, day) {
     // demo where every one carries a line would not show that the layout
     // holds either way. `captions` is indexed from the first photo (B522).
     const caption = day.captions?.[i - 1];
+    // B596/B736. One photograph held back from a day everyone else can read.
+    // `photoVisibility` is indexed like `captions`, from the first photo, and
+    // an absent entry is the ordinary case: seen by everyone the trip lets in.
+    // The line goes after `caption` because that is where
+    // `lib/ingest/entry.ts` puts it — a demo file the product could not have
+    // written is a demo file that teaches the wrong shape.
+    const shown = day.photoVisibility?.[i - 1];
     items.push(
       `  - src: "/media/${trip.id}/${day.slug}/${String(i).padStart(2, "0")}.jpg"\n` +
         `    type: "image"\n    width: ${shape.w}\n    height: ${shape.h}` +
-        (caption ? `\n    caption: ${quote(caption)}` : ""),
+        (caption ? `\n    caption: ${quote(caption)}` : "") +
+        (shown ? `\n    visibility: ${shown}` : ""),
     );
   }
   if (day.video) {
@@ -1176,6 +1318,9 @@ function writeEntry(trip, day) {
   // Only where a day holds more than one update — an entry that is the whole
   // day has no time to be ordered against.
   if (day.time) lines.push(`time: ${quote(day.time)}`);
+  // B42 — the IANA zone `time` is a wall clock in, written only where a day
+  // names one. Absent, a reader gets the bare time exactly as before.
+  if (day.timezone) lines.push(`timezone: ${quote(day.timezone)}`);
   lines.push(
     `location: ${quote(day.location)}`,
     `country: ${quote(day.country)}`,
@@ -1201,12 +1346,20 @@ function writeEntry(trip, day) {
   // `weather` first, and a field order the generator disagrees with is a
   // field order it reports as drift on every single day.
   if (day.weather !== false) lines.push("weather: true");
+  // B596/B736 — the whole update held back, which is the coarser half of the
+  // same field. Before `transportMode`, matching every committed entry that
+  // carries one.
+  if (day.visibility) lines.push(`visibility: ${day.visibility}`);
   if (day.transport) {
     lines.push(
       `transportMode: ${quote(day.transport.mode)}`,
       `transportFrom: ${quote(day.transport.from)}`,
       `transportTo: ${quote(day.transport.to)}`,
     );
+    // B736 — the per-day override on the arrival animation. Only meaningful
+    // beside a `transportMode`, since without one there is no leg to play, so
+    // it is written inside this block rather than beside it.
+    if (day.travelScene) lines.push(`travelScene: ${quote(day.travelScene)}`);
   }
   // The other half of the field: a reading a person took, which is the only
   // kind a caller may supply and must always name its source. Exercised on
@@ -1214,6 +1367,11 @@ function writeEntry(trip, day) {
   if (day.weatherData) lines.push(day.weatherData);
   if (day.photos || day.video) lines.push("gallery:", galleryBlock(trip, day));
   if (day.tags?.length) lines.push(`tags: [${day.tags.map(quote).join(", ")}]`);
+  // B736 — a day nobody lived, written to prove something the product draws.
+  // AGENTS.md's one exception: the page says so in a banner, and the day is
+  // kept out of the feed, the search index and the sitemap. Named here rather
+  // than written into the prose, because a convention is not a guarantee.
+  if (day.test) lines.push("test: true");
   if (day.costs?.length) {
     lines.push("costs:");
     for (const c of day.costs) {
@@ -1338,7 +1496,10 @@ function writeTrip(trip) {
     // is still one point on the route line, and it used to be three of them
     // stacked on the same coordinate — which the map draws as a marker that
     // will not go away when you click past it.
-    trip.days.reduce((route, day) => {
+    // B736 — a fixture day is not a stop. `test: true` days exist to give the
+    // travel scene a vehicle to draw, and putting the places they name on the
+    // planned route would draw a journey nobody took.
+    trip.days.filter((day) => !day.test).reduce((route, day) => {
       const last = route.at(-1);
       if (last && last.location === day.location && last.country === day.country) {
         return route;

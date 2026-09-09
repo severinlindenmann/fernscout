@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import { MAX_CROP_ZOOM } from "@/lib/postcard/spec";
 import type { Crop } from "@/lib/postcard/orders";
 
@@ -66,7 +67,10 @@ export default function PostcardCropper({
 
   function fromPoint(clientX: number, clientY: number) {
     const box = boxRef.current!.getBoundingClientRect();
-    return { x: (clientX - box.left) / box.width, y: (clientY - box.top) / box.height };
+    return {
+      x: (clientX - box.left) / box.width,
+      y: (clientY - box.top) / box.height,
+    };
   }
 
   /**
@@ -107,10 +111,18 @@ export default function PostcardCropper({
 
   if (!editable) {
     return (
-      <div className="relative overflow-hidden rounded" style={{ aspectRatio: aspect }}>
+      <div
+        className="relative overflow-hidden rounded"
+        style={{ aspectRatio: aspect }}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element -- see page.tsx: the
             frame is exactly the card, in millimetres. */}
-        <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" style={imageStyle} />
+        <img
+          src={src}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          style={imageStyle}
+        />
       </div>
     );
   }
@@ -151,10 +163,14 @@ export default function PostcardCropper({
         }}
         onKeyDown={(e) => {
           let next: Crop | null = null;
-          if (e.key === "ArrowLeft") next = { ...crop, x: clamp(crop.x - STEP) };
-          else if (e.key === "ArrowRight") next = { ...crop, x: clamp(crop.x + STEP) };
-          else if (e.key === "ArrowUp") next = { ...crop, y: clamp(crop.y - STEP) };
-          else if (e.key === "ArrowDown") next = { ...crop, y: clamp(crop.y + STEP) };
+          if (e.key === "ArrowLeft")
+            next = { ...crop, x: clamp(crop.x - STEP) };
+          else if (e.key === "ArrowRight")
+            next = { ...crop, x: clamp(crop.x + STEP) };
+          else if (e.key === "ArrowUp")
+            next = { ...crop, y: clamp(crop.y - STEP) };
+          else if (e.key === "ArrowDown")
+            next = { ...crop, y: clamp(crop.y + STEP) };
           if (!next) return;
           e.preventDefault();
           save(next);
@@ -186,13 +202,14 @@ export default function PostcardCropper({
           onKeyUp={() => save(crop)}
           className="h-6 min-w-0 flex-1 accent-yellow-500"
         />
-        <button
+        <BusyButton
+          busy={saving}
           type="button"
           onClick={() => save(CENTRE)}
-          className="shrink-0 rounded-full border border-navy-300 px-3 py-1.5 text-xs font-semibold text-navy-700 transition-colors hover:bg-cream-100"
+          className="shrink-0 rounded-full border border-navy-300 px-3 py-1.5 text-xs font-semibold text-navy-700 transition-colors hover:bg-cream-100 disabled:opacity-60"
         >
           {resetLabel}
-        </button>
+        </BusyButton>
       </div>
       <p className="mt-1 text-xs opacity-70" role="status">
         {saving ? savingLabel : hint}

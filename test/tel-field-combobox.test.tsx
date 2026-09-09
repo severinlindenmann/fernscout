@@ -3,6 +3,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, test } from "vitest";
 import TelField from "@/components/TelField";
+import { typeInto } from "./support/type-input";
 
 /**
  * B391 — `TelField`'s country combobox (searchable text box, arrow keys,
@@ -55,12 +56,7 @@ function type(value: string): void {
   const el = ccInput();
   act(() => {
     el.focus();
-    const setter = Object.getOwnPropertyDescriptor(
-      window.HTMLInputElement.prototype,
-      "value",
-    )!.set!;
-    setter.call(el, value);
-    el.dispatchEvent(new Event("input", { bubbles: true }));
+    typeInto(el, value);
   });
 }
 
@@ -91,11 +87,11 @@ describe("TelField's country combobox", () => {
     let picked: [string, string] | undefined;
     render((cc, national) => {
       picked = [cc, national];
-    }, "", "76 561 31 50");
+    }, "", "76 000 00 00");
     act(() => ccInput().focus());
     type("Switzerland");
     keydown("Enter");
-    expect(picked).toEqual(["41", "76 561 31 50"]);
+    expect(picked).toEqual(["41", "76 000 00 00"]);
     expect(options().length).toBe(0);
   });
 
@@ -131,14 +127,14 @@ describe("TelField's country combobox", () => {
     let picked: [string, string] | undefined;
     render((cc, national) => {
       picked = [cc, national];
-    }, "", "76 561 31 50");
+    }, "", "76 000 00 00");
     act(() => ccInput().focus());
     type("Switzerland");
     const option = options()[0];
     act(() => {
       option.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
     });
-    expect(picked).toEqual(["41", "76 561 31 50"]);
+    expect(picked).toEqual(["41", "76 000 00 00"]);
   });
 
   test("clicking outside the field closes the list", () => {

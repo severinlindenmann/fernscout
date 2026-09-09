@@ -40,13 +40,19 @@ describe("the share control on a day", () => {
   });
 
   test("is on the day she just published, and on the trip page", () => {
+    // Both render it through `OwnerTools` since B877 — one block, so a fifth
+    // control lands in one place rather than being added twice in two styles.
+    const tools = fs.readFileSync(path.join(root, "components/OwnerTools.tsx"), "utf8");
+    expect(tools).toContain("<InviteToRead");
+
     const day = fs.readFileSync(path.join(root, "components/StoryPager.tsx"), "utf8");
     const trip = fs.readFileSync(path.join(root, "app/TripStory.tsx"), "utf8");
-    expect(day).toContain("<InviteToRead");
-    expect(trip).toContain("<InviteToRead");
     // Only for somebody who could have published it. `canPublish` is exactly
     // `isOwner` — see `lib/tripGate.ts`.
-    expect(day).toMatch(/trip\?\.canPublish[\s\S]{0,900}<InviteToRead/);
-    expect(trip).toMatch(/trip\?\.canPublish[\s\S]{0,120}<InviteToRead/);
+    // B980 put the edit panel in the same branch, so the gate and the block
+    // are further apart than they were — what matters is that nothing between
+    // them reopens it.
+    expect(day).toMatch(/trip\?\.canPublish[\s\S]{0,600}<OwnerTools/);
+    expect(trip).toMatch(/trip\?\.canPublish[\s\S]{0,80}<OwnerTools/);
   });
 });

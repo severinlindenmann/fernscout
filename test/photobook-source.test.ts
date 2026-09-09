@@ -24,7 +24,7 @@ import { defaultSpec, BOOK_SIZES } from "@/lib/photobook/spec";
 
 let dir: string;
 const REF = "alex/asia-2026";
-const SPEC = defaultSpec(BOOK_SIZES["square-210"]);
+const SPEC = defaultSpec(BOOK_SIZES["square"]);
 
 const tripPath = () => path.join(dir, "alex", "trips", "asia-2026");
 

@@ -103,6 +103,15 @@ operated and defended at all.
   order to receive a WhatsApp message or a printed postcard. Postal addresses
   are stored encrypted and are never shown to an agent.
 - **Copies of the mail this site sends**, kept with the journal that sent it.
+- **Conversations with the helper** — what an owner typed or said to it, what
+  it answered, and what it did about it: which tools it ran, what it offered,
+  and whether the offer was accepted. They are kept so that an owner can open
+  an old conversation and carry on where they left off, which is what makes
+  them worth keeping at all. Only the owner of a journal talks to the helper;
+  nobody else can, so a conversation holds one person's words. **We read them
+  to see what to improve, and an owner can turn that off** on their own page,
+  at any time. Turning it off does not delete anything — it means nobody but
+  them reads what is there or what comes next.
 - **Page-open counts**, for journals whose author switched the visitor count
   on: which page, when, and the day-code described above. Nothing that names
   a reader, and deleted after about ninety days.

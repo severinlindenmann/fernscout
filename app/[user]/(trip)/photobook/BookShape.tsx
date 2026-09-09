@@ -1,4 +1,4 @@
-import { BOOK_SIZES } from "@/lib/photobook/spec";
+import { BOOK_SIZES, type CoverType } from "@/lib/photobook/spec";
 
 /**
  * The pages a whole-book decision adds or takes away, drawn — B704.
@@ -181,8 +181,32 @@ export default function BookShape({ kind, size = 40 }: { kind: BookShapeKind; si
  * every format is drawn inside the same box, scaled by the longest edge any of
  * them has, which is also roughly how they compare in the hand.
  */
-export function FormatShape({ sizeId, box = 56 }: { sizeId: string; box?: number }) {
-  const size = BOOK_SIZES[sizeId] ?? BOOK_SIZES["square-210"];
+export function FormatShape({
+  sizeId,
+  box = 56,
+  cover = "soft",
+}: {
+  sizeId: string;
+  box?: number;
+  /**
+   * Soft or hard — B845's cover-type step reuses this same drawing to show
+   * the difference between the two, rather than inventing a second one.
+   *
+   * Softcover is thin-lined, flush with the page block, and slightly rounded
+   * at the corners: a cover that bends. Hardcover is drawn heavy — a thick
+   * board standing a little proud of the pages on the three open edges, and a
+   * spine as tall as the board rather than the block.
+   *
+   * It used to draw the 8 mm joint Gelato reports, beside the spine. That was
+   * accurate and wrong: at the size these cards are actually seen, the line
+   * read as a scratch and the pale overhang read as a drop shadow, and a
+   * person looking at the two could not tell them apart. Weight is what reads
+   * small. The joint is still in the print geometry, which is where it
+   * matters — see `lib/photobook/coverGeometry.ts`.
+   */
+  cover?: CoverType;
+}) {
+  const size = BOOK_SIZES[sizeId] ?? BOOK_SIZES["square"];
   const longest = Math.max(
     ...Object.values(BOOK_SIZES).map((s) => Math.max(s.trimWidthMm, s.trimHeightMm)),
   );
@@ -194,6 +218,20 @@ export function FormatShape({ sizeId, box = 56 }: { sizeId: string; box?: number
   const pages = Math.max(w * 0.06, 2);
   const x = (box - (w + spine + pages)) / 2 + spine;
   const y = (box - h) / 2;
+  // How far the boards stand proud of the page block
+  // falls — both zero for softcover, which draws exactly as before.
+  // The true overhang is about 3 mm on a 200 mm board — a percent and a half,
+  // invisible at this size — so it is exaggerated. But the overhang alone was
+  // not what read: at 40 px a paler rectangle behind the cover looks like a
+  // drop shadow, and the groove that used to be drawn beside the spine looked
+  // like a scratch. What reads at this size is **weight**, so a hardcover is
+  // drawn thick and a softcover thin, and the overhang is only a supporting
+  // hint. The groove is gone: it was a bookbinder's detail on a card whose job
+  // is to say "stiff" or "bendy".
+  const overhang = cover === "hard" ? Math.max(w * 0.1, 2.5) : 0;
+  // A softcover bends; a case does not. One rounded corner on the fore edge
+  // says that at a glance, and costs nothing at this size.
+  const softRadius = cover === "soft" ? Math.max(w * 0.06, 1.5) : 0;
   return (
     <svg viewBox={`0 0 ${box} ${box}`} width={box} height={box} aria-hidden="true" className="shrink-0">
       {/* The page block, showing past the fore edge — thin rules rather than a
@@ -209,15 +247,39 @@ export function FormatShape({ sizeId, box = 56 }: { sizeId: string; box?: number
           opacity="0.25"
         />
       ))}
+      {/* The board: bigger than the page block by `overhang` on the top,
+          bottom and fore edge for a hardcover, and absent for a soft one —
+          the flush rectangle a softcover already draws needs nothing extra. */}
+      {cover === "hard" && (
+        <rect
+          x={x}
+          y={y - overhang}
+          width={w + pages + overhang}
+          height={h + overhang * 2}
+          fill="currentColor"
+          fillOpacity="0.2"
+          stroke="currentColor"
+          strokeOpacity="0.75"
+          strokeWidth="2.4"
+        />
+      )}
       {/* The spine, darker: it is the edge in shadow, and it is the part that
           carries the title on a real one. */}
-      <rect x={x - spine} y={y} width={spine} height={h} fill="currentColor" opacity="0.5" />
-      <rect x={x} y={y} width={w} height={h} fill="currentColor" opacity="0.18" />
+      <rect
+        x={x - spine}
+        y={y - overhang}
+        width={spine}
+        height={h + overhang * 2}
+        fill="currentColor"
+        opacity="0.5"
+      />
+      <rect x={x} y={y} width={w} height={h} rx={softRadius} fill="currentColor" opacity="0.18" />
       <rect
         x={x}
         y={y}
         width={w}
         height={h}
+        rx={softRadius}
         fill="none"
         stroke="currentColor"
         strokeOpacity="0.45"
