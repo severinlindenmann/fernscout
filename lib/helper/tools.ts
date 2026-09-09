@@ -7,6 +7,7 @@ import { conversionFor, COST_CATEGORIES, getCostSummary } from "../costs";
 import { normalizeCurrency } from "../currency";
 import { AS_AUTHOR, getAllEntries } from "../entries";
 import { findInboxFile } from "../inbox";
+import { type CatalogueRow, searchCatalogueFor } from "../search";
 import { formatBytes, storageFor } from "../storageQuota";
 import { ALL_TRACKED, missingFrom, TRACK_ROWS, TRACKS, UNKNOWN } from "../tracks";
 import { getTrip, getTrips, tripRef } from "../trips";
@@ -448,7 +449,7 @@ export const TOOLS: readonly Tool[] = [
     kind: "read",
     renders: "choose",
     describe:
-      "The days of one trip: the date, what each is called, and whether it is on the site or still a draft.",
+      "One trip's days: date, title, and whether each is published or still a draft.",
     properties: TRIP_ARG,
     run: async (username, args) => {
       const trip = resolveTrip(username, args.trip);
@@ -481,7 +482,7 @@ export const TOOLS: readonly Tool[] = [
     kind: "read",
     renders: "choose",
     describe:
-      "The days started and not yet published — what is waiting, which trip and date each belongs to, whether it has photographs and whether the words are written.",
+      "Days started but not published: which trip, which date, whether it has photographs or words yet.",
     properties: {},
     run: async (username) => draftsForWizard(username),
     block: (data, say) => {
@@ -503,7 +504,7 @@ export const TOOLS: readonly Tool[] = [
     kind: "read",
     renders: "preview",
     describe:
-      "One day of a trip: its title, its slug, whether it is published, how many photographs it carries and the words on it.",
+      "One day: its title, slug, publish state, photo count and words.",
     properties: {
       ...TRIP_ARG,
       date: { type: "string", description: "The day, as YYYY-MM-DD." },
@@ -536,6 +537,73 @@ export const TOOLS: readonly Tool[] = [
         lines: [day.date, day.title, day.words.slice(0, PREVIEW_CHARACTERS)].filter(
           (line) => line !== "",
         ),
+      };
+    },
+  },
+  {
+    name: "find_day",
+    kind: "read",
+    renders: "choose",
+    describe:
+      "Find a day by what was in it, not by date. Try before start_day or create_trip.",
+    properties: {
+      said: { type: "string", description: "What they are looking for." },
+    },
+    /**
+     * B906 — "the day with the photograph of Anna in it", which named a thing
+     * rather than a date and used to land on the screen that creates a day.
+     *
+     * No second search: `searchCatalogueFor` and `findInJournal` are B904's
+     * own, the same two calls `app/api/helper/[user]/search/route.ts` makes
+     * for the search box's own fallback. The catalogue is already this
+     * reader's own (`buildDocsForReader`, `visible()`, `readFor`) — nothing
+     * here reinterprets who may see what. And the same discipline that route
+     * applies: **ids in, ids out.** A hit for an id the catalogue never
+     * carried (another journal's day, a private trip this reader is not on)
+     * is dropped rather than returned, the same `byId.get` filter, so a model
+     * cannot repeat a name it was never shown.
+     *
+     * Nothing found is not a soft failure to paper over with a guess: `why`
+     * tells the model to say so, in words, rather than to fall through to
+     * proposing a new day for it.
+     */
+    run: async (username, args) => {
+      const said = args.said ?? "";
+      if (said === "") return { found: false, why: "nothing was said to search for" };
+      const rows = await searchCatalogueFor(username);
+      if (rows.length === 0) {
+        return { found: false, why: "there is nothing in this journal to search yet" };
+      }
+      const byId = new Map(rows.map((row) => [row.id, row]));
+      const today = new Date().toISOString().slice(0, 10);
+      // A dynamic import, not a top-level one: `./model` imports `TOOLS` from
+      // this file already (for its own honesty checks), so a static import
+      // here the other way would be a cycle that leaves `TOOLS` undefined
+      // partway through either module's own load.
+      const { findInJournal } = await import("./model");
+      const found = await findInJournal(said, rows, today, username);
+      const hits = found.hits
+        .map((hit) => ({ row: byId.get(hit.id), why: hit.why }))
+        .filter((pair): pair is { row: CatalogueRow; why: string } => Boolean(pair.row));
+      if (hits.length === 0) {
+        return {
+          found: false,
+          why: "nothing in this journal matches: say so plainly and do not offer to start a new day for it",
+        };
+      }
+      return { found: true, hits: hits.map(({ row, why }) => ({ ...row, why })) };
+    },
+    block: (data, say) => {
+      const result = data as { found: boolean; hits?: (CatalogueRow & { why: string })[] };
+      if (!result.found || !result.hits || result.hits.length === 0) return null;
+      return {
+        shape: "choose",
+        text: say("agent.block.findDay"),
+        options: result.hits.map((row) => ({
+          value: row.id,
+          label: row.title,
+          detail: row.where,
+        })),
       };
     },
   },
@@ -638,7 +706,7 @@ export const TOOLS: readonly Tool[] = [
     kind: "read",
     renders: "say",
     describe:
-      "Who a trip is open to: public (everybody), guest (everybody let into this journal) or private (only the people who were on it), whether it is advertised, and how many people are named on it.",
+      "Who may read a trip: public, guest (journal contacts) or private (only who was there); advertised or not; how many are named.",
     properties: TRIP_ARG,
     run: async (username, args) => {
       const trip = resolveTrip(username, args.trip);
@@ -1138,7 +1206,7 @@ export const TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "confirm",
     describe:
-      "Propose taking a day back off the site. It becomes a draft again — nothing is deleted, every photograph stays, and publishing it again puts it back. Nothing happens until they press.",
+      "Propose taking a day off the site; it becomes a draft again — nothing is deleted, photos stay, republishing undoes it. Nothing happens until they press.",
     properties: DAY_ARGS,
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/unpublish`,
     propose: async (username, args, say) => {
@@ -1190,7 +1258,7 @@ export const TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "confirm",
     describe:
-      "Propose putting photographs waiting in the inbox onto a day — \"put these on yesterday\", about the files pane. Leave `files` out: what they ticked is known here. Never ask them for an id.",
+      "Propose putting inbox photographs onto a day — the files pane's own sentence. Leave `files` out: what's ticked is known here. Never ask for an id.",
     properties: {
       ...DAY_ARGS,
       files: {

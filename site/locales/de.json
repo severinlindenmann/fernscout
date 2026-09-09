@@ -1553,6 +1553,7 @@
   "agent.block.trips": "Reisen in diesem Journal",
   "agent.block.unfinished": "Angefangen und noch nicht veröffentlicht",
   "agent.block.day": "Der Tag, wie er ist",
+  "agent.block.findDay": "Was passt",
   "agent.room.title": "Im Gespräch schreiben",
   "agent.room.roomLink": "Oder im Gespräch schreiben",
   "agent.room.files": "Dateien",

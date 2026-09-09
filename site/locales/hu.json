@@ -1553,6 +1553,7 @@
   "agent.block.trips": "Utazások ebben a naplóban",
   "agent.block.unfinished": "Elkezdve, még nincs közzétéve",
   "agent.block.day": "A nap úgy, ahogy most áll",
+  "agent.block.findDay": "Ami illik",
   "agent.room.title": "Beszéljük meg",
   "agent.room.roomLink": "Vagy beszéljük meg",
   "agent.room.files": "Fájlok",
