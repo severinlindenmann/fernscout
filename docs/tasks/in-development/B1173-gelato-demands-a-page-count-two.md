@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: photobook, gelato
 found: "2026-09-09T22:22:00Z"
+started: "2026-09-09T20:39:40Z"
+session: ce87fdc2-3f66-428c-90d3-ae9d8df84e40
+claimed: "2026-09-09T20:39:40Z"
 ---
 
 # B1173 — Gelato demands a page count two higher than the one it accepted a quote for
