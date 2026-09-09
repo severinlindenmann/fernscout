@@ -1893,14 +1893,19 @@ export function openApiDocument() {
           },
         },
         delete: {
-          summary: "Delete a day",
+          summary: "Delete a draft day",
           description:
-            "Refused the first time on purpose. The first call answers 409 with " +
-            "a signed `confirm` code and a question; repeat the call with that " +
-            "code to go through. The code is bound to the journal, trip, day and " +
-            "verb, and lasts five minutes. A published day is a different verb " +
-            "from a draft, so a code issued for one will not verify against the " +
-            "other. The entry file is removed; its photographs are left on disk.",
+            "Deletes a **draft** only. Refused the first time on purpose: the " +
+            "first call answers 409 with a signed `confirm` code and a question; " +
+            "repeat the call with that code to go through. The code is bound to " +
+            "the journal, trip, day and verb, and lasts five minutes. The entry " +
+            "file is removed; its photographs are left on disk.\n\n" +
+            "**A published day is not deleted here.** It answers 409 " +
+            "`published_day_not_deletable` with no code that could ever satisfy " +
+            "it — destroying content people have already read is not a self-served " +
+            "round trip (B224, B1118). Take the day off the site first with " +
+            "`POST .../days/{slug}/unpublish`, which is reversible; that makes it a " +
+            "draft, and a draft deletes the normal way.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
             { name: "trip", in: "path", required: true, schema: { type: "string" } },
@@ -1924,9 +1929,13 @@ export function openApiDocument() {
             },
           },
           responses: {
-            "200": { description: "Deleted" },
+            "200": { description: "Deleted (draft only)" },
             "400": { description: "No such day" },
-            "409": { description: "Confirmation required — the body carries the code" },
+            "409": {
+              description:
+                "Confirmation required — the body carries the code — or " +
+                "`published_day_not_deletable` if the day is on the site (unpublish it first)",
+            },
           },
         },
       },

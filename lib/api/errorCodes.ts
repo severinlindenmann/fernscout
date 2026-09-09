@@ -110,6 +110,8 @@ export const ERROR_CODES: Record<string, string> = {
 
   // ── publishing, and things already done ────────────────────────────────
   already_published: "This day is already on the site. Nothing was changed.",
+  published_day_not_deletable:
+    "This day is on the site, and a published day is not deleted here — destroying something people have already read is not a self-served step. Take it off the site first with the unpublish call (reversible); once it is a draft again it can be deleted.",
   already_draft:
     "This day is not on the site, so there was nothing to take down. Nothing was changed — " +
     "and if somebody asked you to take it down because they are worried about who saw it, " +

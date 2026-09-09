@@ -96,3 +96,47 @@ not enforce.
   unchanged.
 - The stale "Only drafts" comment is corrected to describe what the code
   actually does.
+
+## Built — 2026-09-09
+
+Validated by the plan gate (owner promoted it after the live WhatsApp session)
+and fixed with the smallest change that closes the hole and matches the route's
+own doctrine comment.
+
+**Shape chosen: drafts-only deletion.** A published day is refused outright at
+`app/api/v1/[user]/trips/[trip]/days/route.ts` — 409 `published_day_not_deletable`,
+with no code that could ever satisfy it — and the agent is pointed at
+`POST .../days/<slug>/unpublish`, which is reversible and already
+bearer-callable (B980). Unpublishing turns the day back into a draft and takes
+it off the site (a visible, undoable change) before anything is removed; a
+draft then deletes through the unchanged `agentConfirm` handshake, which B224
+kept specifically for content nobody but the owner has read. The one-request
+destruction of live content B101 reproduced is gone.
+
+Two guards, not one: the route refuses a published day up front, and
+`deleteEntry` is now called without `allowPublished`, so it refuses again if
+the day is published in the gap between the check and the delete (TOCTOU).
+
+**Why not the mailbox.** B224's doctrine points at the mailbox
+(`lib/deletions.ts`), and that remains the heavier option if the owner later
+wants a published day *directly* deletable with a human step. It was not built
+here because `DeletionTarget` only knows `journal` and `trip`; extending it to
+`day` is a new mail body, a confirmation page and new de/hu strings — medium
+work and a product decision, where drafts-only is a few lines that make the
+code match the comment it already carried. Captured as the follow-up option
+rather than built.
+
+**Residual, stated honestly:** a bearer token can still remove a day's file in
+two steps (unpublish, then delete-draft). That is acceptable — the owner
+delegated write access to that agent, unpublish is reversible and visible, and
+the destructive step only ever applies to non-live content, which is exactly
+the case B224 blesses. What is closed is the *self-served destruction of
+content people are reading*.
+
+Contract updated (`lib/api/openapi.ts`): the DELETE operation now documents
+drafts-only and the `published_day_not_deletable` refusal. Stale "Only drafts"
+comment corrected to describe what the code now enforces.
+
+Evidence: `test/delete-published-day-refused.test.ts` — a published day is
+refused with `published_day_not_deletable`, no confirm code, file survives; a
+draft still deletes through the handshake.
