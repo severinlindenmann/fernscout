@@ -45,7 +45,7 @@ export default function HelperConsentList({
   agreedAt: string;
   rows: ConsentRow[];
 }) {
-  const { t } = useI18n();
+  const { t, formatLongDate } = useI18n();
   const [rows, setRows] = useState(initial);
   const [busy, setBusy] = useState<Scope | null>(null);
 
@@ -68,7 +68,14 @@ export default function HelperConsentList({
         {t("me.consentTitle")}
       </h2>
       <p className="mt-1 text-sm leading-6 text-navy-600">
-        {t("me.consentBody", { date: new Date(agreedAt).toLocaleDateString() })}
+        {/* `formatLongDate`, never `toLocaleDateString` — B723 shipped with
+            the latter and it threw a hydration mismatch on every load of this
+            page: bare, it formats in the *server's* locale on the server and
+            the *browser's* on the client, so "01/09/2026" and "9/1/2026" were
+            rendered into the same slot. lib/i18n.ts carries month names per
+            locale for exactly this reason. `agreedAt` is a whole instant and
+            the formatter takes a day, hence the slice. */}
+        {t("me.consentBody", { date: formatLongDate(agreedAt.slice(0, 10)) })}
       </p>
       <ul className="mt-3 space-y-2">
         {rows.map((row) => (
