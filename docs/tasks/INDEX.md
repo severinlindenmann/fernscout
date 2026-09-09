@@ -283,9 +283,14 @@ Do not edit them by hand; run the script.
 | [B1115](open/B1115-a-brief-can-say-a-ticket.md) | A brief can say a ticket is dropped or live, and B1058 is neither | DOCS | high | low |
 | [B994](open/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium |
 
-## in-development (0)
+## in-development (4)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B1168](in-development/B1168-new-conversation-and-reopened-conversations-disagree.md) | New conversation and reopened conversations disagree with the thread that answers | ISSUE | high | medium | `b9809a36` |
+| [B1170](in-development/B1170-the-preview-opens-by-itself-and.md) | The preview opens by itself and cannot be dismissed on a phone | ISSUE | high | medium | `b9809a36` |
+| [B1171](in-development/B1171-the-files-pane-uploads-onto-a.md) | The files pane uploads onto a day nobody chose and never shows the result | ISSUE | high | medium | `b9809a36` |
+| [B1169](in-development/B1169-the-room-re-renders-and-shifts.md) | The room re-renders and shifts: RoomOpening hydration mismatch and uncontained scrolling | ISSUE | medium | low | `b9809a36` |
 
 ## testing (40)
 
