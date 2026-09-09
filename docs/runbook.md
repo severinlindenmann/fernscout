@@ -802,9 +802,16 @@ the literal token `/<date>` and each night gets a complete standalone restic
 repository of its own:
 
 ```bash
-RESTIC_REPOSITORY_SECONDARY=s3:https://<endpoint>/<bucket>/<date>
+RESTIC_REPOSITORY_SECONDARY='s3:https://<endpoint>/<bucket>/<date>'
 BACKUP_SECONDARY_KEEP_DAYS=7
 ```
+
+**Quote it.** systemd's `EnvironmentFile=` does not shell-parse, so an
+unquoted `<date>` reaches the script perfectly well — but every restore
+procedure on this page starts with `set -a; . /etc/fernscout/env`, and to a
+shell `<` is a redirect. Unquoted, that line dies with `Syntax error: newline
+unexpected` at the exact moment somebody is trying to get the journals back.
+systemd strips the single quotes, so both readers get the same value.
 
 The bucket then reads as a list of dates rather than as restic's blob store,
 any one of which restores the instance without the others, and a `RESTORE.txt`
