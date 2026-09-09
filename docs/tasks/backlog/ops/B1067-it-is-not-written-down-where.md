@@ -303,3 +303,56 @@ data-protection statement may be worth more here than €0.01 a message.
 - Whether `eCall` or ASPSMS will quote CH/DE/AT/HU, and what their DSG
   statement actually covers.
 - That the chosen provider's sandbox really sends nothing, by driving it.
+
+## Clarified — 2026-09-09, after the owner read seven.io's price page
+
+**The ~€200/year is a dedicated inbound number, and it is an optional add-on
+this design must never buy.** Recorded here because the price page shows it
+next to the sending price and it will be re-discovered otherwise.
+
+| | Price | Needed |
+| --- | --- | --- |
+| Sending an SMS | €0.075, pay-as-you-go | **yes** |
+| "Own sender" — alphanumeric, ≤11 characters | **free** | **yes** |
+| Account, subscription, monthly minimum | **none** | — |
+| Dedicated inbound number | **€19.90/month + €9.90 setup** | **no** |
+| Receiving an SMS on one | €0.01 | no |
+
+€19.90 × 12 = €238.80 a year, which is the figure that caused the question.
+
+**The reason never to buy it is not the money.** An alphanumeric sender id
+**cannot receive a reply at all** — there is no number behind "Fernscout" for
+one to route to, which is the same fact that forces the OTP text not to imply
+a reply channel. An inbound number would be €239 a year for a mailbox nothing
+in this codebase reads, which is B386's mistake bought rather than written.
+
+If a reply channel is ever genuinely wanted, the answer is not an inbound SMS
+number — it is the WhatsApp number that already exists and, after B1057, will
+actually answer.
+
+### The sandbox is real, and better than reported
+
+Not a trial credit: **a separate API key with `Environment = Sandbox`**, made
+under Developer → API Access. Requests with it never send and never touch a
+paid product. That is what satisfies AGENTS.md's rule that no feature may need
+a paid account to develop or test, and it means step 2 of the phase 1 plan
+(the transport with nothing calling it) can be driven for real before any
+money is spent.
+
+There is also €0.50 of free credit for a new account — useful for the one
+real end-to-end send, and unrelated to the sandbox.
+
+### The running cost, honestly
+
+One message per account for its lifetime (B1065). At one signup a day that is
+**about 365 messages, roughly €27 a year, and no fixed cost at all**. The
+instance ceiling of 50/day is a worst case of about CHF 3 in one day, not a
+recurring commitment.
+
+### Still to confirm
+
+The €0.075 is seven.io's headline rate. Their own page says to *"check our
+full price list by country"* for variations, so **confirm the four
+destinations — CH, DE, AT, HU — on the by-country list** rather than trusting
+the flat figure. It changes nothing about the recommendation at this volume,
+but the plan should not carry a number nobody checked.
