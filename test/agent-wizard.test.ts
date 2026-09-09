@@ -115,8 +115,11 @@ describe("the helper routes", () => {
   // Nineteen since B931 added `invite`, which proposes the guest link that
   // lets somebody who was not on a trip ask to read it. Same cookie, same
   // owner check, and it issues a link and never a grant.
-  test("there are nineteen of them, and each is guarded", () => {
-    expect(sources).toHaveLength(19);
+  // Twenty-one since B1042 added `trip/rates` and `trip/budget` — a trip's
+  // exchange rates and its planned budget, each amended the way the rest of
+  // this family writes: cookie only, owner only.
+  test("there are twenty-one of them, and each is guarded", () => {
+    expect(sources).toHaveLength(21);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

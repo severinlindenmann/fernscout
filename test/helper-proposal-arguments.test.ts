@@ -81,6 +81,8 @@ const ROUTES: Record<string, () => Promise<Record<string, unknown>>> = {
   "/day/unpublish": () => import("@/app/api/helper/[user]/day/unpublish/route"),
   "/day/attach": () => import("@/app/api/helper/[user]/day/attach/route"),
   "/invite": () => import("@/app/api/helper/[user]/invite/route"),
+  "/trip/rates": () => import("@/app/api/helper/[user]/trip/rates/route"),
+  "/trip/budget": () => import("@/app/api/helper/[user]/trip/budget/route"),
 };
 
 /** What somebody says to reach each write tool. `files` is filled in per run,
@@ -111,6 +113,8 @@ const SAID: Record<string, Record<string, string>> = {
   unpublish_day: { trip: AS_SAID, slug: PUBLISHED },
   attach_files: { trip: AS_SAID, slug: DRAFT },
   invite_guest: { name: "Mira" },
+  set_rate: { trip: AS_SAID, currency: "thb", rate: "0.03" },
+  set_budget: { trip: AS_SAID, total: "500", days: "5" },
 };
 
 const say: Say = ((key: string, vars?: Record<string, string>) =>
