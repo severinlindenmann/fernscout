@@ -89,11 +89,10 @@ Do not edit them by hand; run the script.
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 | [B909](backlog/big-feature/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-### small-feature (27)
+### small-feature (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B858](backlog/small-feature/B858-the-two-questions-people-ask-most.md) | The two questions people ask most have no answer | FEATURE | high | low |
 | [B892](backlog/small-feature/B892-the-helper-does-not-look-like.md) | The helper does not look like a conversation anybody has had before | FEATURE | high | medium |
 | [B906](backlog/small-feature/B906-nothing-can-find-the-day-with.md) | Nothing can find the day with the photograph of Anna in it | FEATURE | high | medium |
 | [B994](backlog/small-feature/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium |
@@ -147,7 +146,7 @@ Do not edit them by hand; run the script.
 | [B109](backlog/ops/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
 | [B110](backlog/ops/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
 
-### superseded (53)
+### superseded (54)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -160,6 +159,7 @@ Do not edit them by hand; run the script.
 | [B680](backlog/superseded/B680-a-person-without-an-agent-has.md) | A person without an agent has nowhere to start | FEATURE | high | medium |
 | [B829](backlog/superseded/B829-rewording-a-row-did-not-stop.md) | Rewording a row did not stop the wrong one matching | ISSUE | high | low |
 | [B848](backlog/superseded/B848-the-traveller-figures-never-appear-on.md) | The traveller figures never appear on a postcard: cqh does not resolve against an inline-size container | ISSUE | high | low |
+| [B858](backlog/superseded/B858-the-two-questions-people-ask-most.md) | The two questions people ask most have no answer | FEATURE | high | low |
 | [B884](backlog/superseded/B884-the-spine-is-computed-40-percent.md) | The spine is computed 40 percent too narrow and the cover artwork will creep | ISSUE | high | low |
 | [B950](backlog/superseded/B950-is-a-person-s-own-sentence.md) | Is a person's own sentence about the rain theirs to keep | DOCS | high | low |
 | [B06](backlog/superseded/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
