@@ -56,3 +56,37 @@ Three things are genuinely different and are the ticket:
 A voice note sent to the number becomes a transcript in the conversation, the
 audio is provably not on disk afterwards, and somebody who has not agreed to
 `speech` is asked before any of it leaves the machine.
+
+## Gap found — 2026-09-09
+
+**This ticket never said who spends the credit, and that is a hole with real
+money in it.**
+
+On the web, the *route* does it — `app/api/helper/[user]/transcribe/route.ts`
+spends before the call (`:123`), refunds on a throw, and then **reconciles
+against Deepgram's own measured duration** (`:146`), charging more where the
+audio was longer than claimed and never less. The model layer does none of it.
+
+A webhook handler that simply calls `transcribeAudio()` would therefore make a
+**creditless Deepgram call**: real money leaving the operator's account with
+nothing in the journal's ledger to account for it, and no refusal when a
+balance is empty.
+
+So, explicitly, the WhatsApp path owes the same four things in the same order:
+
+1. Check the `speech` consent scope. No consent, no bytes leave.
+2. `spend()` the estimated seconds **before** the call, and refuse in a
+   sentence when the balance cannot cover it (see B1061's wording rule).
+3. Call, and `refund()` on a throw.
+4. Reconcile to the measured duration afterwards.
+
+The lazy way to guarantee it is to not re-implement it: **extract what the
+route does around `transcribeAudio` so both doors call one function**, rather
+than the webhook growing a second copy of the same four steps. Two
+implementations of a money path disagree, and this one has a reconciliation
+step that is easy to leave out of the copy.
+
+One WhatsApp-specific hazard on top: **Meta retries a webhook for up to seven
+days.** Idempotency (B1057) must be settled *before* the transcription is
+reached, or a retried voice note is a second Deepgram call and a second debit
+for one recording.

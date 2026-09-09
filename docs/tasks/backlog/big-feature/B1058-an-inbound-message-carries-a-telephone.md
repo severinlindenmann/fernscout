@@ -106,3 +106,24 @@ Answered by the owner:
   regardless, so a German sentence still gets a German reply; what is fixed is
   the interface: buttons, refusals, and the honesty guards' fallback
   sentences.
+
+## Gap found — 2026-09-09
+
+**The first reply to a newly bound number must be a fixed string, not a model
+turn.** The ticket says what it has to carry (the AI disclosure, which journal,
+the consent notice) and never said what produces it.
+
+If it is generated, then *binding a number* becomes a free model call, and the
+cheapest thing anybody can do to this instance — send one message from a number
+that happens to match — is also a thing that costs the operator money. It also
+makes three sentences that have legal weight (B1063, B1077) into three
+sentences a model composes differently each time.
+
+So: translated strings in `site/locales/*.json`, assembled in code. Same for
+the stranger reply, which this ticket already specifies costs no model call —
+the two are the same rule and should be stated once.
+
+The general form, worth applying to anything added later: **a reply that says
+something about the system rather than about the journal does not need a
+model.** Confirmations, refusals, consent notices and the balance-empty
+sentence are all in that class.
