@@ -414,30 +414,47 @@ describe("a proposal chained without the model — B926", () => {
 const READS = TOOLS.filter((tool) => tool.kind === "read");
 
 describe("the tools", () => {
+  /**
+   * **The set, not the sequence** — B1042.
+   *
+   * This pinned the exact order of every read, which was worth having while
+   * the registry was one array somebody appended to. It is now assembled from
+   * areas, so the order is a property of how the areas are stacked — trips,
+   * days, money, files, readers, journal — and pinning the flat sequence would
+   * mean a test failing every time a capability is added in the middle of an
+   * area rather than at the end of the file.
+   *
+   * What is worth protecting is unchanged: *these* tools exist, and no other.
+   * A tool appearing here that nobody meant to add is the thing to catch.
+   */
   test("are the reads the plan names, and B900's writes and one link", () => {
-    expect(READS.map((tool) => tool.name)).toEqual([
-      "trips",
+    expect([...READS.map((tool) => tool.name)].sort()).toEqual([
+      "account",
       "days",
-      "unfinished",
-      "read_day",
       // B906 — a sentence that names a thing rather than a date used to land
       // on the screen that starts a new day.
       "find_day",
-      "account",
+      "read_day",
       "trip_costs",
+      "trips",
+      "unfinished",
       "who_can_read",
     ]);
-    expect(TOOLS.filter((tool) => tool.kind === "write").map((tool) => tool.name)).toEqual([
-      "create_trip",
-      "start_day",
-      "draft_words",
-      "set_day_words",
+    expect(
+      TOOLS.filter((tool) => tool.kind === "write")
+        .map((tool) => tool.name)
+        .sort(),
+    ).toEqual([
       "add_cost",
-      "publish_day",
-      "unpublish_day",
       "attach_files",
+      "create_trip",
+      "draft_words",
       // B931 — the only way somebody who was not on a trip can ever read it.
       "invite_guest",
+      "publish_day",
+      "set_day_words",
+      "start_day",
+      "unpublish_day",
     ]);
     expect(TOOLS.filter((tool) => tool.kind === "link").map((tool) => tool.name)).toEqual([
       "add_photos",
@@ -482,14 +499,30 @@ describe("the tools", () => {
     expect(JSON.stringify(result)).toContain("no tool called delete_day");
   });
 
-  test("nothing here reaches the position history", () => {
-    const source = fs.readFileSync(
-      path.join(process.cwd(), "lib", "helper", "tools.ts"),
-      "utf8",
-    );
-    // The comment above `TOOLS` says why, at length; what must not be
-    // here is an import of the store or a path into the folder.
-    expect(source).not.toMatch(/from "[^"]*gps|content[^"']*\/gps\//);
+  /**
+   * **Every file in the registry, not one file** — B1042.
+   *
+   * This read `lib/helper/tools.ts` when there was one. The registry is a
+   * directory now, and a guard that reads a single file while capabilities are
+   * added in six others is a guard that has quietly stopped guarding — which
+   * matters more here than almost anywhere: `gps/` is the most sensitive
+   * folder in the repository, and `test/gps-store.test.ts` asserts the import
+   * graph precisely because nothing else would notice.
+   */
+  test("nothing in the registry reaches the position history", () => {
+    const root = path.join(process.cwd(), "lib", "helper", "tools");
+    const files = fs
+      .readdirSync(root, { recursive: true, encoding: "utf8" })
+      .filter((name) => name.endsWith(".ts"));
+    // The split is what makes this worth asserting: if it ever reads one file
+    // again, it is checking a sixth of the registry.
+    expect(files.length).toBeGreaterThan(6);
+    for (const name of files) {
+      const source = fs.readFileSync(path.join(root, name), "utf8");
+      // What must not be here is an import of the store or a path into the
+      // folder. `resolve.ts` explains why at length.
+      expect(source, name).not.toMatch(/from "[^"]*gps|content[^"']*\/gps\//);
+    }
   });
 
   test("the model is shown every tool, and told what it cannot do", () => {
@@ -550,11 +583,41 @@ describe("what a turn costs", () => {
    * fraction of a rappen a turn.
    */
   /**
-   * The ceiling itself, named once so the number in the message and the number
-   * in the assertion cannot disagree — which is the shape of every other
-   * "written down twice" bug in this repository.
+   * **Six thousand five hundred since B1043**, raised from 4,100 — and this
+   * one is a different kind of raise from the last two, so it is worth saying
+   * what it is and what it is not.
+   *
+   * The last two were paid for by a sentence: a paragraph earned its place, a
+   * hundred tokens went with it. This is structural. The registry covers
+   * seventeen of the seventy-four operations in the published contract, and
+   * the round this raise opens brings that to roughly forty — trip settings,
+   * exchange rates, telling readers a day is up, postcards, the photobook,
+   * every one of them a capability that exists in the API and has never been
+   * offered to anybody.
+   *
+   * The arithmetic, measured rather than guessed: a tool costs about 459
+   * characters of schema and description, so 115 tokens.
+   *
+   *     18 tools  ~4,200 tokens    38 tools  ~6,500 tokens
+   *
+   * At Haiku's input price that is $0.0042 a turn against $0.0065 — a quarter
+   * of a rappen, on a turn that already spends a credit's worth of output.
+   * **The money is not the constraint and pretending otherwise would be the
+   * dishonest reading**; the real cost of a long list is that a model choosing
+   * among forty tools chooses worse than one choosing among seventeen, and
+   * that is a thing to watch in the honesty counters rather than to prevent
+   * with a byte budget.
+   *
+   * So: raised once, deliberately, with room for the whole round rather than
+   * a raise per capability. **If this fails again, the answer is almost
+   * certainly not another raise** — it is that the list has grown past what a
+   * model can choose well from, and the fix is grouping, not budget. B930 is
+   * still open and this does not close it.
+   *
+   * Named once so the number in the message and the number in the assertion
+   * cannot disagree — the shape of every other "written down twice" bug here.
    */
-  const CEILING = 4100;
+  const CEILING = 6500;
 
   /**
    * **What to do when this fails** — B930, and it is the half the number never

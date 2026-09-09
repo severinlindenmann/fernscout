@@ -22,7 +22,20 @@ import path from "node:path";
  * because nothing was looking. A test that reads the file is what looks.
  */
 
-const FILE = path.join(process.cwd(), "lib/helper/tools.ts");
+/**
+ * **Every file in the registry** — B1042 split it into areas, and a guard that
+ * reads one file while capabilities are added in six others is checking a
+ * sixth of the thing it claims to check.
+ */
+const ROOT = path.join(process.cwd(), "lib/helper/tools");
+
+function registrySource(): string {
+  return fs
+    .readdirSync(ROOT, { recursive: true, encoding: "utf8" })
+    .filter((name) => name.endsWith(".ts"))
+    .map((name) => fs.readFileSync(path.join(ROOT, name), "utf8"))
+    .join("\n");
+}
 
 /** Every call to a content reader in the registry, with its arguments. */
 function readsIn(source: string): { call: string; args: string }[] {
@@ -46,13 +59,13 @@ function readsIn(source: string): { call: string; args: string }[] {
 }
 
 describe("the reader every tool in the registry reads as", () => {
-  const source = fs.readFileSync(FILE, "utf-8");
+  const source = registrySource();
 
   test("there is something to check", () => {
     expect(readsIn(source).length).toBeGreaterThan(3);
   });
 
-  for (const { call, args } of readsIn(fs.readFileSync(FILE, "utf-8"))) {
+  for (const { call, args } of readsIn(registrySource())) {
     test(`${call}(${args.replace(/\s+/g, " ").slice(0, 60)}) says whose eyes it reads with`, () => {
       // `AS_AUTHOR` is the whole assertion. This file is the owner's own
       // conversation: there is no caller here for whom the public view is the
