@@ -1296,9 +1296,65 @@ Answer again with both halves: keep what you already did for the change, and now
 const DATE_FORMAT = /\b(?:yyyy[-./]mm[-./]dd|jjjj-mm-tt|tt\.mm\.jjjj|éééé-hh-nn)\b/i;
 
 /** True when the answer is asking for values a card would have asked for. */
+/**
+ * The list, said a second time — B1161.
+ *
+ * `past_conversations` draws four rows a person can press, and the model then
+ * wrote underneath: *"You have 18 earlier conversations. The most recent was
+ * about making your trip visible to guests. Others include renaming your
+ * journal to Reisen mit Renate…"* — the same answer twice, once as a control
+ * and once as prose nobody can press.
+ *
+ * B1120 fixed this in the tool's `describe`, in words. It did not hold, which
+ * is the third time this file has learned the same thing: **rewording did not
+ * fix any of these and a code guard fixed all of them** (B829). So this is the
+ * guard.
+ *
+ * ## Why length, and not matching what it said
+ *
+ * The obvious version compares the answer against the labels in the block and
+ * fires when enough of them come back. It does not work, and the live evidence
+ * is why: the model *paraphrased*. "rename my journal to Reisen mit Renate"
+ * came back as "renaming your journal to Reisen mit Renate". Matching text
+ * would need to catch every rewording, which is the list that is always
+ * missing its next entry — exactly what this file's own header warns against.
+ *
+ * So the condition is the shape of the turn, which the server knows for
+ * certain: **a block already lists the things, and the answer beside it is
+ * long.** When the answer is on screen as a list, the sentence next to it has
+ * one job — say what the list is and how to use it. Two sentences do that.
+ * Anything past that is the list again, whatever words it chose.
+ *
+ * The threshold is deliberately generous. A guard that fires on an honest turn
+ * is a bug and as serious as one that misses, so this leaves room for a real
+ * sentence and catches only a paragraph.
+ */
+const A_SENTENCE_OR_TWO = 240;
+
+/** Rows a person can already press or read, on this turn. */
+function alreadyListed(blocks: Block[]): number {
+  return blocks.reduce((most, block) => {
+    if (block.shape === "choose") return Math.max(most, block.options.length);
+    if (block.shape === "files") return Math.max(most, block.files.length);
+    return most;
+  }, 0);
+}
+
+export function saysTheListAgain(text: string, blocks: Block[]): boolean {
+  // Three is where a list becomes a list. Two rows and a sentence naming both
+  // is a person being told what they are looking at.
+  if (alreadyListed(blocks) < 3) return false;
+  return withoutMarkers(text).trim().length > A_SENTENCE_OR_TWO;
+}
+
 export function asksForFields(text: string): boolean {
   return DATE_FORMAT.test(withoutMarkers(text));
 }
+
+/**
+ * What the model is told when it said the list twice — B1161.
+ */
+const LIST_RETRY = `Stop. The list is already on their screen — you drew it, as rows they can press — and then you wrote it out again underneath as a paragraph they cannot. Say what the list is and how to use it, in a sentence or two, and stop there. Do not name the rows one by one: they are looking at them.`;
 
 /**
  * What the model is told when it wrote a paragraph where a card belongs.
@@ -1556,7 +1612,8 @@ export async function answerInThread(
     | "partial"
     | "invented"
     | "dropped"
-    | "fields" {
+    | "fields"
+    | "list" {
     /**
      * **A paragraph where a card belongs** — B1041, and it is the fault the
      * whole product is arranged against.
@@ -1581,6 +1638,9 @@ export async function answerInThread(
      * been a card is one where nothing else has been decided yet.
      */
     if (proposals.length === 0 && asksForFields(answer)) return "fields";
+    // B1161 — the rows are on screen; the paragraph under them is the same
+    // answer again, in a form nobody can press.
+    if (saysTheListAgain(answer, blocks)) return "list";
     if (claimsAccess(answer) && !proposals.some((one) => one.tool === "invite_guest")) {
       return "access";
     }
@@ -1695,6 +1755,7 @@ export async function answerInThread(
   const RETRY = {
     claim: HONESTY_RETRY,
     fields: FIELDS_RETRY,
+    list: LIST_RETRY,
     pending: PENDING_RETRY,
     words: WORDS_RETRY,
     access: ACCESS_RETRY,
@@ -1727,6 +1788,9 @@ export async function answerInThread(
     partial: "agent.notCounted",
     invented: "agent.notCounted",
     dropped: "agent.stillHasAQuestion",
+    // B1161 — the rows are already drawn, so the honest fallback is the
+    // shortest sentence there is: look at them.
+    list: "agent.theListIsAbove",
   } as const;
 
   const wrong = amiss();

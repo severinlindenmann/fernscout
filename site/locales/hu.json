@@ -1721,6 +1721,7 @@
   "agent.noAccessYet": "Nem mondhatom, hogy valaki el tudja olvasni ezt. Egy utazás, ami nem nyilvános, azoknak van nyitva, akik ott voltak, és a vendégeknek, akiket jóváhagytál — attól, hogy megnevezel valakit, még nem jut be. Mondd meg, kinek kellene olvasnia, és odateszek egy linket, amit elküldhetsz.",
   "agent.notRead": "Ebben a válaszban nem olvastam el azt a napot, így nem tudom megmondani, mi áll benne — a saját szavaidra pedig nem tippelek. Mondd el újra, megnyitom a napot, és idézem neked.",
   "agent.notCounted": "Inkább nem mondok olyan számot, amit nem számoltam ki rendesen — a saját pénzedről egy rossz szám rosszabb, mint semmi. Kérdezd meg újra, és előbb megnézem a költségeket.",
+  "agent.theListIsAbove": "A lista fent van — koppints rá, hogy megnyisd.",
   "agent.stillHasAQuestion": "Azt hiszem, csak a kérdésed egyik felére válaszoltam — kérdezd meg még egyszer a másik részt, és most rendesen utánanézek.",
   "agent.tool.addPhotos": "A fényképek a nap saját oldalán kerülnek fel, ott van a választó és a feltöltés.",
   "agent.tool.addPhotosLabel": "Nap megnyitása",
