@@ -7,8 +7,7 @@ complexity: medium
 area: helper
 found: "2026-09-09T22:34:29Z"
 started: "2026-09-09T22:44:19Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-09T22:44:19Z"
+merged: "2026-09-09T22:51:39Z"
 ---
 
 # B1198 — Six exchanges of memory runs out mid-sitting and reads as malfunction

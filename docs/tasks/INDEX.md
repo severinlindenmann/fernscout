@@ -273,14 +273,11 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (2)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1198](in-development/B1198-six-exchanges-of-memory-runs-out.md) | Six exchanges of memory runs out mid-sitting and reads as malfunction | ISSUE | medium | medium | `b9809a36` |
-| [B1199](in-development/B1199-the-day-context-offer-still-offers.md) | The day-context offer still offers taking a draft off the site | ISSUE | low | low | `b9809a36` |
+_Nothing here._
 
-## testing (80)
+## testing (82)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -359,11 +356,13 @@ Do not edit them by hand; run the script.
 | [B1190](testing/B1190-the-model-says-press-to-save.md) | The model says 'press to save' on a turn that drew no button | ISSUE | medium | medium | — |
 | [B1192](testing/B1192-a-held-whatsapp-answer-is-delivered.md) | A held WhatsApp answer is delivered with no sign it was delayed | ISSUE | medium | low | — |
 | [B1193](testing/B1193-whatsapp-triggered-thread-notes-are-recorded.md) | WhatsApp-triggered thread notes are recorded with origin web, not whatsapp | ISSUE | medium | low | — |
+| [B1198](testing/B1198-six-exchanges-of-memory-runs-out.md) | Six exchanges of memory runs out mid-sitting and reads as malfunction | ISSUE | medium | medium | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
 | [B1096](testing/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low | — |
 | [B1127](testing/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low | — |
 | [B1128](testing/B1128-the-invites-and-inbox-tools-also.md) | The invites and inbox tools also say their own block back in prose | ISSUE | low | low | — |
 | [B1179](testing/B1179-a-reopened-conversation-reads-as-one.md) | A reopened conversation reads as one undifferentiated wall with no date | ISSUE | low | low | — |
+| [B1199](testing/B1199-the-day-context-offer-still-offers.md) | The day-context offer still offers taking a draft off the site | ISSUE | low | low | — |
 
 ## completed (903)
 
