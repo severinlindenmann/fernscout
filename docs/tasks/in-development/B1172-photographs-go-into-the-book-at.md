@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: photobook, print
 found: "2026-09-09T22:20:00Z"
+started: "2026-09-09T20:14:16Z"
+session: ce87fdc2-3f66-428c-90d3-ae9d8df84e40
+claimed: "2026-09-09T20:14:16Z"
 ---
 
 # B1172 — Photographs go into the book at camera resolution, so the printer cannot render it
