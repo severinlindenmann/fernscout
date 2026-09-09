@@ -20,7 +20,8 @@ import { recordPress } from "./sessions";
  *
  * ## Where the conversation lives, and why it is a Map
  *
- * In this process's memory, keyed by journal, for half an hour.
+ * In this process's memory, keyed by journal, for `TTL_MS` below — see that
+ * constant for what ends a conversation and why the number is what it is.
  *
  * The precedent for not inventing storage is `./draft.ts`: there is no
  * wizard-position field anywhere, because the step is a function of the draft
@@ -71,9 +72,34 @@ export type Turn = { role: "user" | "assistant" | "note"; text: string };
  */
 const MAX_TURNS = 12;
 
-/** Half an hour of nothing said, and the conversation is over. Somebody
- *  returning after that is starting again, which is what they expect. */
-const TTL_MS = 30 * 60 * 1000;
+/**
+ * What ends a conversation — B1109.
+ *
+ * Two ways, and this is the only one that is a clock rather than a press:
+ * `forget()` (the "start over" control, `DELETE /api/helper/<user>/ask`) ends
+ * one outright, and a gap this long ends one by itself, because coming back
+ * after it is starting again, which is what a person expects. Reopening the
+ * room — a closed tab, a phone locked and unlocked, a link followed back in —
+ * is **not** on this list and does not end a conversation: the thread lives
+ * on the server, keyed by journal, so it survives exactly as long as this gap
+ * allows regardless of what the browser did in between. That is also what
+ * makes "resume the last conversation" (`app/agent/page.tsx`) an honest
+ * thing to offer rather than a guess.
+ *
+ * Thirty minutes used to be this number and was the bug: a conversation held
+ * up by a moment's thought, or by waiting on an answer, crossed it
+ * constantly, so the same sitting was recorded as `helper_sessions` rows for
+ * one turn each — the room's history list was a list of turns wearing a
+ * "conversation" label (two rows in a row occasionally beat the clock, which
+ * is why B1109's evidence showed the odd "(2 turns)" among sixteen single
+ * ones). A gap of a few hours is what a person actually means by "still the
+ * same conversation": long enough to survive a coffee, short enough that
+ * returning tomorrow is unmistakably a new one. Nothing else changes:
+ * `MAX_TURNS` above still caps what a model is shown regardless of how long
+ * the thread has lived, so a longer TTL costs nothing per turn — it only
+ * changes which rows in `helper_sessions` end up sharing a `session_id`.
+ */
+const TTL_MS = 4 * 60 * 60 * 1000;
 
 /** Above this many journals mid-conversation, the expired ones are swept.
  *  Same shape as `lib/rateLimit.ts`, for the same reason. */
@@ -90,7 +116,7 @@ const threads = new Map<string, { id: string; turns: Turn[]; touched: number }>(
  * name they can be sent back to.
  *
  * Minted when a conversation starts and dropped with it, so it lives exactly
- * as long as the conversation does: the same id for half an hour of talking,
+ * as long as the conversation does: the same id for `TTL_MS` of talking,
  * a new one after `forget()` or after the TTL, which is the boundary a person
  * would draw too.
  */

@@ -590,7 +590,11 @@ export default function HelperRoom({
       />
 
       {historyOpen && (
-        <HistoryPanel label={t("agent.room.history")} onClose={() => setHistoryOpen(false)} />
+        <HistoryPanel
+          username={username}
+          label={t("agent.room.history")}
+          onClose={() => setHistoryOpen(false)}
+        />
       )}
     </div>
   );
@@ -812,23 +816,79 @@ function PreviewColumn({
   );
 }
 
+/** One conversation, as the panel lists it — the same shape `sessionsOf`
+ *  answers, read back over `GET /api/helper/<user>/sessions`. */
+type SessionRow = { session: string; from: string; to: string; turns: number; opening: string };
+
 /**
- * The clock in the top right, and what it opens — B1121, and only the shell.
+ * The clock in the top right, and what it opens — B1121 built the shell;
+ * B1109 is what fills it.
  *
- * A list of past conversations is B1109's own work; this is the button and an
- * empty panel that says so rather than nothing at all, so the affordance
- * exists before its contents do. Drawn as the same accessible `<dialog>` as
- * `Sheet`, but not `lg:hidden` — a history panel is not a phone-only idea,
- * and a laptop gets exactly the same slide-over the phone does rather than a
- * second treatment invented for it.
+ * **A fetch of its own, not a prop.** Every other thing this room draws
+ * arrives from the server render that made the page, but a list that changes
+ * every time somebody presses "New conversation" would go stale the moment it
+ * did if it were a prop instead — so this reads `GET
+ * /api/helper/<user>/sessions` itself, once, when the panel opens.
+ *
+ * **Grouped by the day it started, oldest conversation of a day last** — the
+ * same "one thing on a fixed local clock" a person's own calendar draws,
+ * using `formatLongDate` rather than `toLocaleDateString` for the reason
+ * `HelperConsentList.tsx` gives at length: a server render and a browser must
+ * agree on what day it is.
+ *
+ * **A row is a link, not a button with an `onClick`.** `/agent?c=<session>`
+ * is `past_conversations`' own `href` (`lib/helper/tools/areas/journal.ts`)
+ * — the same address, so a conversation opened from the model's own list and
+ * one opened from this panel land on exactly the same page. A full
+ * navigation, matching "New conversation" a few lines above: `HelperAsk`
+ * holds the turns on screen and this file may not reach into it, so the one
+ * honest way to swap them is the round trip the journal switcher already
+ * takes.
  */
-function HistoryPanel({ label, onClose }: { label: string; onClose: () => void }) {
-  const { t } = useI18n();
+function HistoryPanel({
+  username,
+  label,
+  onClose,
+}: {
+  username: string;
+  label: string;
+  onClose: () => void;
+}) {
+  const { t, tn, formatLongDate } = useI18n();
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     dialog.current?.showModal?.();
   }, []);
   const dismiss = () => (dialog.current?.close ? dialog.current.close() : onClose());
+
+  // `null` while loading, `[]` once answered with nothing — two different
+  // facts, the same distinction `said`/`answered` draws in the table itself.
+  const [sessions, setSessions] = useState<SessionRow[] | null>(null);
+  useEffect(() => {
+    let live = true;
+    fetch(`/api/helper/${encodeURIComponent(username)}/sessions`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { sessions?: SessionRow[] } | null) => {
+        if (live) setSessions(body?.sessions ?? []);
+      })
+      .catch(() => {
+        if (live) setSessions([]);
+      });
+    return () => {
+      live = false;
+    };
+  }, [username]);
+
+  // Newest conversation first, and within that the days themselves in the
+  // order `sessionsOf` already returned them — grouping must not re-sort
+  // what is already the right order.
+  const days: { day: string; rows: SessionRow[] }[] = [];
+  for (const row of sessions ?? []) {
+    const day = row.from.slice(0, 10);
+    const last = days[days.length - 1];
+    if (last && last.day === day) last.rows.push(row);
+    else days.push({ day, rows: [row] });
+  }
 
   return (
     <dialog
@@ -848,7 +908,38 @@ function HistoryPanel({ label, onClose }: { label: string; onClose: () => void }
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
-        <p className="text-sm leading-6 text-navy-700">{t("agent.room.historyEmpty")}</p>
+        {sessions === null ? (
+          <p className="text-sm leading-6 text-navy-700">{t("agent.room.historyLoading")}</p>
+        ) : days.length === 0 ? (
+          <p className="text-sm leading-6 text-navy-700">{t("agent.room.historyEmpty")}</p>
+        ) : (
+          <div className="flex flex-col gap-5">
+            {days.map(({ day, rows }) => (
+              <section key={day}>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-navy-500">
+                  {formatLongDate(day)}
+                </h3>
+                <ul className="flex flex-col gap-1">
+                  {rows.map((row) => (
+                    <li key={row.session}>
+                      <a
+                        href={`/agent?c=${encodeURIComponent(row.session)}`}
+                        className="block rounded-xl border border-navy-200 bg-cream-50 px-3 py-2 transition-colors hover:bg-cream-100"
+                      >
+                        <p className="truncate text-sm font-medium text-navy-900">
+                          {row.opening || t("agent.tool.pastConversationUntitled")}
+                        </p>
+                        <p className="text-xs text-navy-500">
+                          {tn("agent.room.historyTurns", row.turns, { count: String(row.turns) })}
+                        </p>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        )}
       </div>
     </dialog>
   );

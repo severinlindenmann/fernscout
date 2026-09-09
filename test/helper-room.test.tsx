@@ -415,16 +415,59 @@ test("the header carries no pills for files or preview", () => {
  * conversation, and nothing else.
  */
 describe("the top bar's two icons", () => {
-  test("the clock opens an empty history shell", () => {
+  test("the clock opens a history panel, empty for a journal with no past conversations", async () => {
     render();
     const clock = [...document.querySelector("header")!.querySelectorAll("button")].find(
       (button) => button.getAttribute("aria-label") === "History",
     )!;
     expect(document.querySelector("dialog")).toBeNull();
-    act(() => clock.click());
+    await act(async () => {
+      clock.click();
+    });
     const panel = document.querySelector("dialog")!;
     expect(panel.getAttribute("aria-label")).toBe("History");
+    // The global `fetch` stub answers every call with `{ ok: true, blocks: [] }`
+    // — no `sessions` at all — which is exactly the shape a journal with none
+    // yet gets back for real, so the empty state is what this exercises.
     expect(panel.textContent).toContain("Nothing yet");
+  });
+
+  test("lists past conversations grouped by day, newest first, as a link to reopen one", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.endsWith("/sessions")) {
+          return {
+            ok: true,
+            json: async () => ({
+              ok: true,
+              sessions: [
+                { session: "s2", from: "2026-09-09T10:00:00.000Z", to: "2026-09-09T10:05:00.000Z", turns: 1, opening: "1 baht is how many francs" },
+                { session: "s1", from: "2026-09-08T09:00:00.000Z", to: "2026-09-08T09:20:00.000Z", turns: 3, opening: "how many credits do I have left?" },
+              ],
+            }),
+          } as Response;
+        }
+        return { ok: true, json: async () => ({ ok: true, blocks: [] }) } as Response;
+      }),
+    );
+    render();
+    const clock = [...document.querySelector("header")!.querySelectorAll("button")].find(
+      (button) => button.getAttribute("aria-label") === "History",
+    )!;
+    await act(async () => {
+      clock.click();
+    });
+    const panel = document.querySelector("dialog")!;
+    const links = [...panel.querySelectorAll("a")];
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/agent?c=s2",
+      "/agent?c=s1",
+    ]);
+    expect(links[0].textContent).toContain("1 baht is how many francs");
+    expect(links[0].textContent).toContain("1 turn");
+    expect(links[1].textContent).toContain("how many credits do I have left?");
+    expect(links[1].textContent).toContain("3 turns");
   });
 
   test("a new conversation button sits beside it", () => {
