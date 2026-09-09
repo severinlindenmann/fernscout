@@ -2,7 +2,7 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 
-import { readBackupStatus } from "./backupStatus";
+import { readBackupStatus, type BackupStatus } from "./backupStatus";
 import { basemapProblem } from "./basemap";
 import { resolveCapabilities } from "./capabilities";
 import { contentRoot } from "./contentRoot";
@@ -436,6 +436,18 @@ export type Health = {
   /** Capabilities the operator switched off. Not a fault, and shown as such. */
   offByChoice: string[];
   backupAgeHours: number | null;
+  /**
+   * The whole backup status, not just its age.
+   *
+   * B1085 stopped the nightly success mail, and this is what replaced it. The
+   * `wrong` list above already shouts when a backup is stale, failing or never
+   * recorded — but a mail every good night was also the operator's standing
+   * proof that the thing still runs at all, and an empty `wrong` list cannot
+   * distinguish "backed up four hours ago" from "nothing has been watching".
+   * So the page states the good case too, positively, rather than only the
+   * bad one by exception.
+   */
+  backup: BackupStatus;
 };
 
 /** The phrase `resolveCapabilities` uses for "the operator did not ask for
@@ -507,6 +519,7 @@ export async function health(): Promise<Health> {
     wrong,
     offByChoice,
     backupAgeHours: backup.ageHours,
+    backup,
   };
 }
 

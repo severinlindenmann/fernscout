@@ -256,6 +256,25 @@ else
   skip "build" "nothing the build reads changed"
 fi
 
+# The currency reference rates, which this deploy may just have deleted.
+#
+# B1084 took `site/rates/ecb.json` out of git and moved the table under
+# DATA_DIR, so the `git pull` above removes the checkout copy from any instance
+# that last deployed before that change — and the nightly refresh in
+# scripts/backup.sh will not run until 03:20. Without this line, every costs
+# page on the instance would offer nothing but its base currency until then.
+#
+# Cheap, idempotent, and it decides for itself: nothing happens on an instance
+# with `costs` switched off, and a failure leaves whatever table is already
+# there. Never fatal — a deploy that reached this point has already built and
+# is about to restart, and reference rates are not worth aborting that for.
+log "refreshing the currency reference rates"
+if as_service npm run --silent rates:update; then
+  :
+else
+  echo "    WARNING: could not refresh the rates — the instance keeps whatever table it has" >&2
+fi
+
 # The systemd units that ship with this release, into /etc/systemd/system.
 # Until B138 the only thing this script wrote there was the drop-in below, and
 # a unit was installed by a person running `cp` — so a unit change merged after

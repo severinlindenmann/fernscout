@@ -156,14 +156,25 @@ site/
                               file with FERNSCOUT_CONFIG, because its config is
                               the operator's and must survive a `git pull`.
   locales/<code>.json         the UI's own strings, per language
-  rates/ecb.json              shared currency reference rates
   legal/<code>.md             this instance's imprint (optional — no file, no
                               page and no footer link)
 ```
 
-An instance may still override `locales/`, `rates/` and `legal/` by putting
-its own beside its journals under `CONTENT_DIR`; that is where all four lived
-before B510, so an instance that has not migrated keeps working.
+**The currency reference rates are not here, and are in no checkout** (B1084).
+`<DATA_DIR>/rates/ecb.json` is a *measurement with a date on it*, so it sits
+with the other instance state rather than with the source: a rate that arrives
+by `git pull` only moves when somebody deploys, and the live instance was
+serving a twelve-day-old table before this changed. A deployed instance
+refreshes it nightly off the back of the backup timer
+(`scripts/backup.sh` step 0 → `scripts/rates-refresh.mts`), which also means
+**nothing fetches or keeps a table on an instance with `costs` switched off**.
+A fresh clone has none at all and offers the base currency only, which is a
+visible absence rather than a wrong number.
+
+An instance may still override `locales/` and `legal/` by putting its own
+beside its journals under `CONTENT_DIR`; that is where they lived before B510,
+so an instance that has not migrated keeps working. A pre-B1084 rates file in
+either old place is still read, until the first refresh writes the new one.
 
 ```
 content/

@@ -384,6 +384,30 @@ stage_json_stores() {
   shopt -u nullglob
 }
 
+# --- 0. Refresh the currency reference rates (B1084) -----------------------
+# Not a backup step, and here anyway: this is the one thing on the box that
+# already runs every night, already reports its own failures, and has been
+# debugged twice for it (B64, B138). A second timer would be a second thing to
+# forget to enable.
+#
+# Before the staging below, so tonight's snapshot carries tonight's table.
+#
+# The script decides for itself whether to do anything: it writes under
+# DATA_DIR, never into the checkout, and it does nothing at all on an instance
+# with `costs` switched off. Neither of those judgements belongs in shell —
+# see scripts/rates-refresh.mts.
+#
+# Never fatal. A rates fetch needs the open internet; a backup does not, and
+# the backup is the half that matters. A failed fetch leaves the previous
+# table in place and logs a WARNING, exactly like the secondary-repository
+# copy in step 8d.
+log "refreshing the currency reference rates"
+if (cd "$APP_DIR" && npm run --silent rates:update); then
+  log "rates refreshed (or skipped, if this instance has costs switched off)"
+else
+  log "WARNING: refreshing the reference rates failed — the previous table is still in place and tonight's backup is unaffected"
+fi
+
 # --- 1. Database dump, if this deployment has one -------------------------
 # The prototype tier (docs/ROADMAP.md §2.2) has no DATABASE_URL and Postgres is
 # not even installed — that's not a failure, there is simply nothing to dump.

@@ -27,7 +27,7 @@
     "postcard": "tsx --conditions=react-server scripts/postcard.ts",
     "photobook": "tsx --conditions=react-server scripts/photobook.ts",
     "export": "tsx --conditions=react-server scripts/export.mts",
-    "rates:update": "node scripts/update-rates.mjs",
+    "rates:update": "tsx --conditions=react-server scripts/rates-refresh.mts",
     "weather:update": "tsx --conditions=react-server scripts/weather-update.mts",
     "timezone:update": "tsx --conditions=react-server scripts/timezone-update.mts",
     "rates:fill": "tsx --conditions=react-server scripts/rates-fill.mts",
