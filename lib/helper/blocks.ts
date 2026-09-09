@@ -33,7 +33,21 @@ export const SHAPES = [
 export type Shape = (typeof SHAPES)[number];
 
 /** One thing to pick from in a `choose`. `value` is what a later turn names. */
-type Option = { value: string; label: string; detail?: string };
+/**
+ * One thing to pick out of a list.
+ *
+ * Pressing one ordinarily **says its label**, as though the person had typed
+ * it — which is what makes a `choose` a shortcut for talking rather than a
+ * menu. `href` is the exception, and there is exactly one thing it is for:
+ * a list whose items are *places* rather than answers.
+ *
+ * B1022 is that thing. A past conversation is reopened at `/agent?c=<id>`, and
+ * saying its opening line back into the current conversation would be the
+ * opposite of reopening it. Anything that can be answered by talking must not
+ * carry an `href` — the list of trips, the list of days, the drafts — because
+ * a link out of the conversation is a conversation ended.
+ */
+type Option = { value: string; label: string; detail?: string; href?: string };
 
 /**
  * One field of a proposal, prefilled and **editable** — B900.
