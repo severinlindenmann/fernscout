@@ -2005,5 +2005,8 @@
   "wa.speechConsentAsk": "A hangüzeneteket a Deepgram írja át, ami más cég, mint amelyik a napjaidat megírja. Válaszolj 'igen'-nel, hogy meghallgathassam ezt — csak az első hangüzenetnél kérdezem.",
   "wa.speechConsentGranted": "Köszönöm — küldd el újra a hangüzenetet, és meghallgatom.",
   "wa.voiceTooLong": "Ez a felvétel hosszabb, mint amit fel tudok dolgozni — legfeljebb {maxMinutes} perc. Küldj egy rövidebbet.",
-  "wa.transcriptEcho": "Ezt hallottam: „{text}”"
+  "wa.transcriptEcho": "Ezt hallottam: „{text}”",
+  "wa.mediaLanded": "Megérkezett — {count} vár a beérkező mappádban. Mondd meg, melyik naphoz tartozik, és odateszem.",
+  "wa.mediaTip": " Még valami: a fényképként küldött kép tömöríti a WhatsApp, és elveszti a dátumát és a helyét. Küldd dokumentumként (a gemkapocs, nem a kamera ikon), hogy megkapd az eredeti felbontást a valódi adatokkal.",
+  "wa.videoNotSupported": "A videó itt még nem támogatott — küldd el a fényképeket külön, vagy mesélj róla, és feljegyzem."
 }

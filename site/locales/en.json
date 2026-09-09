@@ -2005,5 +2005,8 @@
   "wa.speechConsentAsk": "Voice notes are transcribed by Deepgram, a separate company from the one that writes your days. Reply 'yes' to let me listen to this one — I'll ask again for the first voice note only.",
   "wa.speechConsentGranted": "Thanks — send the voice note again and I'll listen to it.",
   "wa.voiceTooLong": "That recording is longer than I can take — {maxMinutes} minutes at most. Send a shorter one.",
-  "wa.transcriptEcho": "I heard: \"{text}\""
+  "wa.transcriptEcho": "I heard: \"{text}\"",
+  "wa.mediaLanded": "Got it — {count} waiting in your inbox. Tell me which day it belongs to and I'll put it there.",
+  "wa.mediaTip": " One thing worth knowing: a photo sent as a photo is compressed by WhatsApp and loses its date and location. Send it as a document (the paperclip, not the camera) for the full-resolution original with its real details intact.",
+  "wa.videoNotSupported": "Video isn't supported here yet — send the photos separately, or write about it and I'll note it down."
 }

@@ -9,9 +9,11 @@ import { recordTurn } from "../helper/sessions";
 import { MAX_AUDIO_BYTES, MAX_SPEECH_SECONDS, speechLanguageFor } from "../helper/speech";
 import { history, proposed, remember, sessionId } from "../helper/thread";
 import { spendAndTranscribe } from "../helper/transcribeSpend";
+import { kindForExtension, listInbox, storeInboxFile } from "../inbox";
 import { translateIn } from "../locales";
 import { journalForNumber } from "../registry";
 import { serverSite } from "../site";
+import { storageRefusal } from "../storageQuota";
 import { isAcknowledgement } from "./acknowledge";
 import { hasAcknowledged, hasBeenGreeted, markAcknowledged, markGreeted } from "./binding";
 import { downloadMedia } from "./cloud";
@@ -21,8 +23,21 @@ import { renderForWhatsapp } from "./render";
 import { balanceRefusal } from "./refusal";
 import { sendOutboundReply, sendServiceReply } from "./reply";
 import { clearPendingSpeechAsk, hasPendingSpeechAsk, markPendingSpeechAsk } from "./speechConsent";
+import { hasBeenTold, markTold } from "./toldOnce";
 import { markInbound } from "./window";
 import type { InboundMessage } from "./inbound";
+
+/** WhatsApp gives an image or a sticker no filename at all, only a mime type
+ *  — this is the whole of the mapping `lib/inbox.ts:kindForExtension` needs
+ *  to route it correctly. A type this does not recognise falls back to
+ *  `.bin`, which `kindForExtension` reads as "files" rather than "media" —
+ *  the safe direction, since a photograph misfiled as a document is still
+ *  found in the inbox and a document misfiled as a photograph is not. */
+const MIME_EXTENSION: Record<string, string> = {
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+};
 
 /**
  * What happens to a normalised inbound message, once it has been verified,
@@ -133,6 +148,22 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
 
   if (message.kind === "audio") {
     await handleVoiceNote(username, locale, message);
+    return;
+  }
+
+  if (message.kind === "image" || message.kind === "document") {
+    await handleMedia(username, locale, message);
+    return;
+  }
+
+  if (message.kind === "video" || message.kind === "sticker") {
+    // Not doing video in this release — decided on B1059. A sticker is the
+    // same "not a photograph, not a document" shape and gets the same
+    // sentence, told once per number, same as the tip below.
+    if (!hasBeenTold(username, message.from, "video")) {
+      await sendServiceReply(message.from, translateIn(locale, "wa.videoNotSupported"), username);
+      markTold(username, message.from, "video");
+    }
     return;
   }
 
@@ -249,6 +280,83 @@ async function handleVoiceNote(
 }
 
 /**
+ * One photograph or document, over WhatsApp — B1059.
+ *
+ * **Stored as it arrives, with where it came from.** `lib/inbox.ts`'s
+ * `InboxMeta` gained `source`/`receivedAt` for exactly this: a photograph
+ * sent *as a photograph* has already had its EXIF stripped by WhatsApp
+ * (compressed, no capture time, no coordinates), so `receivedAt` — when the
+ * message arrived — is the one honest timestamp there is to keep. The same
+ * file sent *as a document* arrives byte-for-byte intact; this does not
+ * re-read its EXIF (a documented scope cut, not an oversight — see the
+ * ticket), but it does land at full resolution rather than WhatsApp's
+ * roughly-1600px re-encode, which is most of the reason the document route
+ * exists at all.
+ *
+ * **The storage ceiling is checked before a byte is written**, the same
+ * `storageRefusal` the web upload doors use, so this channel cannot be the
+ * way round a journal's own limit.
+ *
+ * **The documents-versus-photos tip is said once**, on whichever of the two
+ * a person happens to send first, and never again.
+ */
+/** `sha256` is the field this variant of `InboundMessage` has that no other
+ *  does (audio's shares `mediaId`/`mimeType` but never a hash), so it is
+ *  what actually narrows `Extract` here — matching on `kind` does not, since
+ *  `InboundMessage` types "image" | "video" | "document" | "sticker" as one
+ *  member with a unioned `kind` field rather than as four separate ones. */
+type MediaMessage = Extract<InboundMessage, { sha256: string }>;
+
+async function handleMedia(username: string, locale: string, message: MediaMessage): Promise<void> {
+  let downloaded: { data: Buffer; mimeType: string };
+  try {
+    downloaded = await downloadMedia(cloudCredentials(), message.mediaId);
+  } catch (err) {
+    console.error(`[whatsapp:inbound] could not download ${message.kind} for ${username}:`, err);
+    return;
+  }
+
+  const refusal = await storageRefusal(username, downloaded.data.byteLength);
+  if (refusal) {
+    await sendServiceReply(message.from, refusal, username);
+    return;
+  }
+
+  const mimeType = (downloaded.mimeType || message.mimeType).split(";")[0].toLowerCase();
+  // A photograph sent *as a photograph* carries no filename at all — and
+  // deliberately not one built from `message.mediaId` either: `storeInboxFile`
+  // hashes the filename stem alongside the bytes, so an id built from a
+  // per-send media id would make the same photograph, sent twice, two files
+  // rather than one. A fixed generic name keeps the id a function of the
+  // bytes, which is the whole of the "sent twice" acceptance line.
+  const filename =
+    message.kind === "document" && message.filename
+      ? message.filename
+      : `whatsapp-photo${MIME_EXTENSION[mimeType] ?? ".bin"}`;
+  const kind = kindForExtension(filename) ?? "files";
+
+  const stored = storeInboxFile(username, kind, filename, downloaded.data, {
+    ...(message.caption ? { caption: message.caption } : {}),
+    source: "whatsapp",
+    receivedAt: new Date(Number(message.timestamp) * 1000 || Date.now()).toISOString(),
+  });
+
+  const topic = message.kind === "document" ? "document" : "photo";
+  const alreadyToldEitherWay = hasBeenTold(username, message.from, "photo") || hasBeenTold(username, message.from, "document");
+  const total = Object.values(listInbox(username))
+    .flat()
+    .filter((entry) => entry.kind === "media" || entry.kind === "files").length;
+  const landed = translateIn(locale, "wa.mediaLanded", { count: String(total) });
+  const body = alreadyToldEitherWay ? landed : `${landed}${translateIn(locale, "wa.mediaTip")}`;
+  if (!alreadyToldEitherWay) markTold(username, message.from, topic);
+
+  await sendServiceReply(message.from, body, username);
+  console.log(
+    `[whatsapp:inbound] ${maskNumber(message.from)} (${username}) — ${message.kind} landed in the inbox as ${stored.entry.id}`,
+  );
+}
+
+/**
  * The model turn, over WhatsApp — B1056.
  *
  * **The same `answerInThread` the web room calls**, with the same thread
@@ -262,9 +370,9 @@ async function handleVoiceNote(
  * interactive reply's title (`lib/helper/blocks.ts`'s own "pressing one says
  * its label" rule, extended to `confirm` here — see `lib/whatsapp/render.ts`'s
  * module doc for why a confirm's accept button never itself writes anything),
- * or a voice note's transcript, echoed back first (B1060). Every other kind
- * — a photograph, a location, a shared contact — is somebody else's ticket
- * (B1059, B1074) and never reaches this function.
+ * or a voice note's transcript, echoed back first (B1060). A photograph and
+ * a document land in the inbox instead (`handleMedia`, B1059) and never
+ * reach this function; a location pin and a shared contact card are B1074's.
  */
 async function answerOnWhatsapp(username: string, locale: string, to: string, said: string): Promise<void> {
   // The same capability the web room's own routes gate on — an instance

@@ -2005,5 +2005,8 @@
   "wa.speechConsentAsk": "Sprachnachrichten werden von Deepgram transkribiert, einer anderen Firma als der, die deine Tage schreibt. Antworte mit 'ja', damit ich diese anhören darf — ich frage nur bei der ersten Sprachnachricht.",
   "wa.speechConsentGranted": "Danke — schick die Sprachnachricht noch einmal, dann höre ich sie mir an.",
   "wa.voiceTooLong": "Diese Aufnahme ist länger, als ich verarbeiten kann — höchstens {maxMinutes} Minuten. Schick eine kürzere.",
-  "wa.transcriptEcho": "Ich habe gehört: „{text}\""
+  "wa.transcriptEcho": "Ich habe gehört: „{text}\"",
+  "wa.mediaLanded": "Angekommen — {count} warten in deiner Inbox. Sag mir, zu welchem Tag es gehört, dann lege ich es dort ab.",
+  "wa.mediaTip": " Noch etwas: Ein als Foto gesendetes Bild wird von WhatsApp komprimiert und verliert Datum und Ort. Schick es als Dokument (die Büroklammer, nicht die Kamera) für das Original in voller Auflösung mit den echten Angaben.",
+  "wa.videoNotSupported": "Videos werden hier noch nicht unterstützt — schick die Fotos einzeln, oder erzähl mir davon, dann halte ich es fest."
 }

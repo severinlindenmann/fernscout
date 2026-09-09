@@ -84,6 +84,22 @@ export type InboxMeta = {
   takenAt?: string;
   caption?: string;
   tags?: string[];
+  /**
+   * Where this arrived from, when it was not the ordinary web upload —
+   * B1059. Absent means the web door, as it always meant before this field
+   * existed.
+   */
+  source?: "whatsapp";
+  /**
+   * When the *message* carrying this file was received — never a guess at
+   * when the photograph was taken. Set alongside `source`, and only then: a
+   * photograph sent *as a photograph* over WhatsApp has had its EXIF
+   * stripped, so this is the one honest timestamp there is for it, and it is
+   * an arrival time rather than a capture time even when the file itself
+   * carried a real one (a document is not re-read for it here — see B1059's
+   * own note on why that is a documented scope cut rather than an oversight).
+   */
+  receivedAt?: string;
 };
 
 /** A sidecar as it sits on disk: what was measured, plus what was said. */
