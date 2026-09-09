@@ -7,9 +7,6 @@ complexity: low
 area: Print
 superseded: "Fixed in eb0e71c0 by the session that introduced it — the faces are found from the module now, not from the caller's working directory."
 found: "2026-09-08T18:50:00Z"
-started: "2026-09-08T18:57:29Z"
-session: b8352d66-3105-4f5d-a703-f8809d0b08e6
-claimed: "2026-09-08T18:57:29Z"
 ---
 
 # B1014 — The embedded print fonts are read from the process's working directory, so npm run postcard fails outside the checkout

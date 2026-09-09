@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (153)
+## backlog (155)
 
 ### security (3)
 
@@ -176,12 +176,14 @@ Do not edit them by hand; run the script.
 | [B1116](backlog/docs-and-skills/B1116-plan-a-run-re-opens-questions.md) | plan-a-run re-opens questions a ticket has already decided unless the dispatch says not to | DOCS | medium | low |
 | [B1046](backlog/docs-and-skills/B1046-two-sessions-running-verify-in-the.md) | Two sessions running verify in the shared checkout collide on the next build lock | DOCS | low | low |
 
-### superseded (60)
+### superseded (62)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1002](backlog/superseded/B1002-the-credits-hundredths-migration-opens-a.md) | The credits-hundredths migration opens a transaction inside the one it is already in, and Postgres refuses | ISSUE | high | low |
 | [B1003](backlog/superseded/B1003-the-agent-guide-is-over-its.md) | The agent guide is over its size ceiling and main is red | ISSUE | high | low |
+| [B1014](backlog/superseded/B1014-the-embedded-print-fonts-are-read.md) | The embedded print fonts are read from the process's working directory, so npm run postcard fails outside the checkout | ISSUE | high | low |
+| [B1015](backlog/superseded/B1015-b984-moved-the-agent-room-s.md) | B984 moved the agent room's URL and left one test asserting the old one, so main is red | ISSUE | high | low |
 | [B1050](backlog/superseded/B1050-main-does-not-build-a-merge.md) | main does not build: a merge left two features keys in one object literal in helper-proposal-arguments.test.ts | ISSUE | high | low |
 | [B1071](backlog/superseded/B1071-the-helper-prompt-is-7617-tokens.md) | The helper prompt is 7617 tokens against its 6500 ceiling, so main's test suite is red | ISSUE | high | medium |
 | [B373](backlog/superseded/B373-the-backup-success-marker-vanished-from.md) | The backup success marker vanished from DATA_DIR between two deploys minutes apart | OPS | high | low |
@@ -256,38 +258,36 @@ Do not edit them by hand; run the script.
 | [B102](open/B102-mail-is-switched-on-at-fernscout.md) | Mail is switched on at fernscout.ch and nothing records that a message has ever arrived | OPS | high | medium |
 | [B103](open/B103-sign-in-is-switched-on-at.md) | Sign-in is switched on at fernscout.ch and no one has been through the code flow there end to end | OPS | high | medium |
 
-## in-development (20)
+## in-development (16)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1014](in-development/B1014-the-embedded-print-fonts-are-read.md) | The embedded print fonts are read from the process's working directory, so npm run postcard fails outside the checkout | ISSUE | high | low | `b8352d66` |
-| [B1015](in-development/B1015-b984-moved-the-agent-room-s.md) | B984 moved the agent room's URL and left one test asserting the old one, so main is red | ISSUE | high | low | `b8352d66` |
 | [B1057](in-development/B1057-nothing-reads-an-inbound-whatsapp-message.md) | Nothing reads an inbound WhatsApp message, so the number can be written to and never answers | FEATURE | high | high | `df031729` |
 | [B1058](in-development/B1058-an-inbound-message-carries-a-telephone.md) | An inbound message carries a telephone number and nothing that says whose journal it is | FEATURE | high | high | `df031729` |
 | [B1064](in-development/B1064-a-journal-s-owner-is-proven.md) | A journal's owner is proven by an email alone, and an address costs nothing to make another of | FEATURE | high | high | `df031729` |
 | [B1065](in-development/B1065-there-is-no-way-to-prove.md) | There is no way to prove that somebody holds the telephone number they typed | FEATURE | high | medium | `df031729` |
 | [B1093](in-development/B1093-a-person-cannot-choose-who-a.md) | A person cannot choose who a photobook is posted to | FEATURE | high | medium | `ce87fdc2` |
-| [B1098](in-development/B1098-work-on-a-task-revalidates-a.md) | work-on-a-task revalidates a ticket in one sentence of prose, and asks for a visual check it leaves no evidence of | DOCS | high | low | `df031729` |
 | [B1102](in-development/B1102-signing-in-at-agent-lands-in.md) | Signing in at /agent lands in the six-step wizard, not the room B984 made the whole of it | ISSUE | high | low | `fdfcf5f2` |
 | [B1120](in-development/B1120-the-agent-writes-markdown-into-a.md) | The agent writes markdown into a plain-text answer, so people read literal asterisks | FEATURE | high | medium | `fdfcf5f2` |
 | [B1121](in-development/B1121-the-room-s-frame-spends-its.md) | The room's frame spends its top bar on two sentences and has no history, no new conversation and a cramped preview | FEATURE | high | high | `fdfcf5f2` |
 | [B1122](in-development/B1122-a-tool-card-looks-like-a.md) | A tool card looks like a form rather than a decision, and its controls are unreachable under a phone keyboard | FEATURE | high | medium | `fdfcf5f2` |
 | [B1124](in-development/B1124-sending-a-message-and-waiting-for.md) | Sending a message and waiting for an answer has no motion at all | FEATURE | high | low | `fdfcf5f2` |
 | [B980](in-development/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | `a4bbb185` |
-| [B984](in-development/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | `fdfcf5f2` |
 | [B1035](in-development/B1035-navy-800-is-used-across-dozens.md) | navy-800 is used across dozens of components but no navy-800 token exists | ISSUE | medium | low | `f88144a1` |
 | [B1039](in-development/B1039-the-ask-box-silently-truncates-a.md) | The ask box silently truncates a long message to 500 characters | ISSUE | medium | low | `f88144a1` |
 | [B108](in-development/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium | `6b9bf0a6` |
 | [B1107](in-development/B1107-every-trip-card-leads-with-an.md) | Every trip card leads with an editable box holding a raw trip id the person has never seen | ISSUE | medium | low | `fdfcf5f2` |
 | [B879](in-development/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | `d84a547d` |
 
-## testing (4)
+## testing (6)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B101](testing/B101-nobody-has-attacked-a-running-instance.md) | Nobody has attacked a running instance from the outside with the source in hand | OPS | high | high | — |
+| [B1098](testing/B1098-work-on-a-task-revalidates-a.md) | work-on-a-task revalidates a ticket in one sentence of prose, and asks for a visual check it leaves no evidence of | DOCS | high | low | — |
 | [B1105](testing/B1105-the-operator-s-personal-mobile-number.md) | The operator's personal mobile number is the example in the source, the public API spec and the agent guide | SECURITY | high | low | — |
 | [B1111](testing/B1111-a-run-report-ends-with-no.md) | A run report ends with no way to say which tickets a person accepted | DOCS | high | low | — |
+| [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B1110](testing/B1110-the-testing-lane-is-filed-into.md) | The testing lane is filed into nine category folders nobody reads, now that the run report is what a person reviews from | CHORE | medium | low | — |
 
 ## completed (903)

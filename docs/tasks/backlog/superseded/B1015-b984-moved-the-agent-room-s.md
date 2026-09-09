@@ -7,9 +7,6 @@ complexity: low
 area: Tests
 superseded: "The session that made the change was already fixing it — their edit was in the checkout within the minute."
 found: "2026-09-08T19:05:00Z"
-started: "2026-09-08T19:05:42Z"
-session: b8352d66-3105-4f5d-a703-f8809d0b08e6
-claimed: "2026-09-08T19:05:42Z"
 ---
 
 # B1015 — B984 moved the agent room's URL and left one test asserting the old one, so main is red

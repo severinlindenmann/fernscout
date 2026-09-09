@@ -7,8 +7,7 @@ complexity: low
 area: skills
 found: "2026-09-09T16:18:23Z"
 started: "2026-09-09T16:39:22Z"
-session: df031729-b5f3-42f2-bcac-c6c88d608ee0
-claimed: "2026-09-09T16:39:22Z"
+merged: "2026-09-09T17:54:49Z"
 ---
 
 # B1098 — work-on-a-task revalidates a ticket in one sentence of prose, and asks for a visual check it leaves no evidence of
