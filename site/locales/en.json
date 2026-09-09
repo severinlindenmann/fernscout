@@ -2023,7 +2023,7 @@
   "wa.locationIncomplete": "I have your location, but {title} needs a bit more before I can start a day — tell me about it in words and I'll try again.",
   "wa.contactNeedsEmail": "I'd need an email address for {name} to make an invite — that contact card didn't have one. Send it again with an email, or tell me theirs.",
   "wa.contactInviteMade": "Got {name}'s details. I've made an invite link — send it yourself, from here or however you'd reach them:\n\n{url}\n\nThey'll need to open it and confirm their own email before anything happens.",
-  "wa.stopReply": "You've been unsubscribed from this journal's messages. If that was a mistake, or you'd like to change what you get, use this link: {url}",
+  "wa.stopReply": "To stop these messages, open this link and press the button there — that is what unsubscribes you, and you can change what you get on the same page: {url}",
   "agent.open.whatsapp": "Message us on WhatsApp →",
   "agent.open.whatsappGreeting": "Hi"
 }
