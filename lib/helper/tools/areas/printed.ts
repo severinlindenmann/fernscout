@@ -236,8 +236,8 @@ export const PRINTED_TOOLS: readonly Tool[] = [
         done: say("agent.tool.proposePostcardsDone"),
         preview: entry ? [entry.date, entry.title, args.message ?? ""].filter((line) => line !== "") : [],
         fields: [
-          { name: "trip", value: tripIdFor(username, args, found) },
-          { name: "slug", value: entry?.slug ?? args.slug ?? "" },
+          { name: "trip", value: tripIdFor(username, args, found), fixed: true },
+          { name: "slug", value: entry?.slug ?? args.slug ?? "", fixed: true },
           { name: "photo", value: photo },
           { name: "message", value: args.message ?? "", long: true },
           { name: "from", value: args.from ?? "" },
@@ -300,7 +300,7 @@ export const PRINTED_TOOLS: readonly Tool[] = [
         accept: say("agent.tool.photobookAccept"),
         done: say("agent.tool.photobookDone"),
         fields: [
-          { name: "trip", value: trip?.id ?? "" },
+          { name: "trip", value: trip?.id ?? "", fixed: true },
           {
             name: "size",
             value: sizeId,

@@ -195,7 +195,7 @@ export const DAYS_TOOLS: readonly Tool[] = [
         accept: say("agent.tool.startDayAccept"),
         done: say("agent.tool.startDayDone"),
         fields: [
-          { name: "trip", value: trip?.id ?? "" },
+          { name: "trip", value: trip?.id ?? "", fixed: true },
           { name: "date", value: date, date: true },
           ...asked.map((row) => ({
             name: row,
@@ -240,12 +240,17 @@ export const DAYS_TOOLS: readonly Tool[] = [
     propose: async (username, args, say) => {
       const found = resolveDay(username, args);
       return {
-        sentence: say("agent.tool.draftWords", { credits: "1" }),
+        sentence: say("agent.tool.draftWords", {
+          credits: "1",
+          // B1107: the resolved day is no longer drawn, so the sentence says
+          // which day this credit is being spent on.
+          date: found?.entry.date ?? args.date ?? "",
+        }),
         accept: say("agent.tool.draftWordsAccept"),
         done: say("agent.tool.draftWordsDone"),
         fields: [
-          { name: "trip", value: tripIdFor(username, args, found) },
-          { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
+          { name: "trip", value: tripIdFor(username, args, found), fixed: true },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "", fixed: true },
           { name: "date", value: found?.entry.date ?? args.date ?? "", date: true },
           { name: "notes", value: args.notes ?? "", long: true },
         ],
@@ -289,8 +294,8 @@ export const DAYS_TOOLS: readonly Tool[] = [
         accept: say("agent.tool.setWordsAccept"),
         done: say("agent.tool.setWordsDone"),
         fields: [
-          { name: "trip", value: tripIdFor(username, args, found) },
-          { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
+          { name: "trip", value: tripIdFor(username, args, found), fixed: true },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "", fixed: true },
           { name: "title", value: args.title ?? found?.entry.title ?? "" },
           /**
            * What the day already says, when nothing was proposed — B942.
@@ -385,8 +390,8 @@ export const DAYS_TOOLS: readonly Tool[] = [
             )
           : [],
         fields: [
-          { name: "trip", value: tripIdFor(username, args, found) },
-          { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
+          { name: "trip", value: tripIdFor(username, args, found), fixed: true },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "", fixed: true },
           ...asked.map((row) => ({
             name: row,
             value: UNKNOWN,
@@ -435,8 +440,8 @@ export const DAYS_TOOLS: readonly Tool[] = [
         accept: say("agent.tool.unpublishDayAccept"),
         done: say("agent.tool.unpublishDayDone"),
         fields: [
-          { name: "trip", value: tripIdFor(username, args, found) },
-          { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
+          { name: "trip", value: tripIdFor(username, args, found), fixed: true },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "", fixed: true },
         ],
       };
     },

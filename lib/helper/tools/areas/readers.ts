@@ -148,7 +148,7 @@ export const READERS_TOOLS: readonly Tool[] = [
           : say("agent.tool.noInvite"),
         accept: say("agent.tool.revokeInviteAccept"),
         done: say("agent.tool.revokeInviteDone"),
-        fields: [{ name: "invite", value: invite?.id ?? "" }],
+        fields: [{ name: "invite", value: invite?.id ?? "", fixed: true }],
       };
     },
   },
@@ -226,8 +226,8 @@ export const READERS_TOOLS: readonly Tool[] = [
         accept: say("agent.tool.tellReadersAccept"),
         done: say("agent.tool.tellReadersDone"),
         fields: [
-          { name: "trip", value: tripIdFor(username, args, found) },
-          { name: "slug", value: found?.entry.slug ?? args.slug ?? "" },
+          { name: "trip", value: tripIdFor(username, args, found), fixed: true },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "", fixed: true },
           {
             name: "channel",
             value: channel,

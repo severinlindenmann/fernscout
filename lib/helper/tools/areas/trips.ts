@@ -193,7 +193,7 @@ export const TRIPS_TOOLS: readonly Tool[] = [
         accept: say("agent.tool.editTripAccept"),
         done: say("agent.tool.editTripDone"),
         fields: [
-          { name: "trip", value: trip?.id ?? "" },
+          { name: "trip", value: trip?.id ?? "", fixed: true },
           { name: "title", value: args.title ?? trip?.title ?? "" },
           { name: "start", value: args.start ?? trip?.start ?? "", date: true },
           { name: "end", value: args.end ?? trip?.end ?? "", date: true },
@@ -237,7 +237,7 @@ export const TRIPS_TOOLS: readonly Tool[] = [
         accept: say("agent.tool.setVisibilityAccept"),
         done: say("agent.tool.setVisibilityDone"),
         fields: [
-          { name: "trip", value: trip?.id ?? "" },
+          { name: "trip", value: trip?.id ?? "", fixed: true },
           {
             name: "visibility",
             value: (VISIBILITIES as readonly string[]).includes(args.visibility ?? "")
@@ -298,7 +298,7 @@ export const TRIPS_TOOLS: readonly Tool[] = [
         accept: say("agent.tool.tripPeopleAccept"),
         done: say("agent.tool.tripPeopleDone"),
         fields: [
-          { name: "trip", value: trip?.id ?? "" },
+          { name: "trip", value: trip?.id ?? "", fixed: true },
           { name: "person", value: name },
           { name: "email", value: email },
         ],
@@ -343,7 +343,7 @@ export const TRIPS_TOOLS: readonly Tool[] = [
         accept: say("agent.tool.tripTracksAccept"),
         done: say("agent.tool.tripTracksDone"),
         fields: [
-          { name: "trip", value: trip?.id ?? "" },
+          { name: "trip", value: trip?.id ?? "", fixed: true },
           ...TRACKS.map((row) => ({
             name: row,
             value: on(row) ? "true" : "false",
