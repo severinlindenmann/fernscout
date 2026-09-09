@@ -7,8 +7,7 @@ complexity: medium
 area: photobook, print, credits
 found: "2026-09-09T22:05:00Z"
 started: "2026-09-09T19:43:06Z"
-session: ce87fdc2-3f66-428c-90d3-ae9d8df84e40
-claimed: "2026-09-09T19:43:06Z"
+merged: "2026-09-09T19:56:43Z"
 ---
 
 # B1164 — A book already bought printed offers to be printed again, at a different price
