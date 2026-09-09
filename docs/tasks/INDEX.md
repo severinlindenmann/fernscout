@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (126)
+## backlog (127)
 
 ### security (1)
 
@@ -57,7 +57,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 
-### issue (14)
+### issue (15)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -69,6 +69,7 @@ Do not edit them by hand; run the script.
 | [B1148](backlog/issue/B1148-a-refused-print-credential-is-reported.md) | A refused print credential is reported to the owner as the printer being unreachable, with advice to try again | ISSUE | medium | low |
 | [B1165](backlog/issue/B1165-a-printer-refusal-says-nothing-about.md) | A printer refusal says nothing about why, to anybody who could act on it | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
+| [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
@@ -271,7 +272,7 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (16)
+## in-development (17)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -290,6 +291,7 @@ Do not edit them by hand; run the script.
 | [B1138](in-development/B1138-the-whatsapp-channel-discloses-ai-consent.md) | The WhatsApp channel discloses AI/consent once but never gates on an acknowledgement | ISSUE | medium | medium | `e910c430` |
 | [B1181](in-development/B1181-the-operator-console-answers-the-wrong.md) | The operator console answers the wrong question first: no single attention list, no net, no unit cost, and the roster is split across three panels | FEATURE | medium | high | `52950bf1` |
 | [B1185](in-development/B1185-choosing-a-language-at-signup-does.md) | Choosing a language at signup does not set the person's own reading language | ISSUE | medium | low | `b9809a36` |
+| [B1186](in-development/B1186-a-transient-upstream-failure-reads-as.md) | A transient upstream failure reads as 'That did not work: 502' with no words | ISSUE | medium | low | `b9809a36` |
 | [B1127](in-development/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low | `e910c430` |
 
 ## testing (53)
