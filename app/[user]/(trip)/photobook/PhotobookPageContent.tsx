@@ -595,6 +595,25 @@ export default function PhotobookPageContent({
               // them.
               <p className="mt-3 text-sm text-navy-700">{t("photobook.done.filesInMail")}</p>
             )}
+            {/* B1140. The way to the order page, which is where the book is
+                actually printed and posted. Its URL is a UUID, so without
+                this the only routes to it were an agent's proposal call
+                answering with it, or typing it — and an owner who had just
+                built a book could not find the print panel at all. Above
+                "another book", because printing the one just built is the
+                likelier next step than starting a second. Rendered whenever
+                there is an order id, including in the no-files branch above:
+                that order can still be printed. */}
+            {outcome.orderId ? (
+              <p className="mt-4">
+                <a
+                  className="font-semibold underline"
+                  href={`/${entry.username}/photobooks/${outcome.orderId}`}
+                >
+                  {t("photobook.done.print")}
+                </a>
+              </p>
+            ) : null}
             <a href="?" className="mt-4 inline-block text-sm underline">
               {t("photobook.anotherBook")}
             </a>

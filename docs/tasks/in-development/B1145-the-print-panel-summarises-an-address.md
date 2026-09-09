@@ -64,3 +64,26 @@ dropdown.
 - Both are visible only to the owner: the page 404s for everybody else, and no
   API response gains an address.
 - `npm run verify`.
+
+## Evidence
+
+Checked on `/example/photobooks/eae6122c-…`, a journal and a book this branch
+did not write.
+
+- The envelope block: "GOING TO / **Alex Berger** / Feldweg 18 / 5512
+  Wohlenschwil / Switzerland", centred, name a step larger.
+  `/tmp/b1145-final/…-1280.png`, `…-390.png`.
+- The disclosure open on the second person: both rows carry the full address,
+  the chosen one is outlined, and the quote re-took for them.
+  `/tmp/b1145-open/…-1280.png`.
+- `npm run verify` — all five green.
+
+Two things changed after looking, which is what looking is for: the envelope
+box sat flush against the price line (`mt-1` → `mt-3`), and the list came back
+in contact order, so the owner — the default — was second. It is sorted
+`self` first now: a list whose first row is not the selected one reads as
+though the choice were made by an ordering the reader cannot see.
+
+The four Hungarian strings this ticket and B1093 add are English copies. I can
+write the German and did; I cannot write Hungarian well enough to put it in
+front of somebody whose language it is. They join what B912 already tracks.

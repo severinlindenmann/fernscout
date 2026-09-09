@@ -1,6 +1,29 @@
 import type { TranslationKey } from "@/lib/i18n";
 import { formatCredits } from "@/lib/credits/format";
 import type { BookRecipient } from "@/lib/photobook/recipients";
+import type { PostalAddress } from "@/lib/postcard/render";
+
+/**
+ * A recipient as this panel needs them: the agent-safe row, plus the address
+ * the owner is about to post to — B1145.
+ *
+ * The address is added *here* rather than in `bookRecipients`, which stays a
+ * name and a town: that shape is what an agent proposing a book receives, and
+ * a street must not join it. This page is the owner's own and 404s for anybody
+ * else, which is the same line `lib/postcard` draws for a card's preview.
+ */
+export type PanelRecipient = BookRecipient & { address: PostalAddress };
+
+/**
+ * The address under the name, one line at a time. The name is rendered
+ * separately and is therefore not repeated here, and an empty `line2` is
+ * dropped rather than left as a blank line in the middle of an envelope.
+ */
+function addressLines(to: PostalAddress): string[] {
+  return [to.line1, to.line2, `${to.postcode} ${to.city}`.trim(), to.country]
+    .map((line) => line?.trim() ?? "")
+    .filter((line) => line !== "");
+}
 
 /**
  * The panel B434's postcard rule holds a photobook to as well: an owner sees
@@ -55,9 +78,9 @@ export default function PhotobookPrintPanel({
   username: string;
   id: string;
   /** The one the quote below was taken for. */
-  recipient: BookRecipient;
+  recipient: PanelRecipient;
   /** Everybody this journal may post a book to, for the disclosure. */
-  recipients: BookRecipient[];
+  recipients: PanelRecipient[];
   /** The print portion of the quote, in minor units of `currency`. */
   printMinor: number;
   /** The postage portion, in minor units of `currency`. */
@@ -74,14 +97,23 @@ export default function PhotobookPrintPanel({
 
   return (
     <div className="mt-3 rounded-xl border-2 border-navy-900 bg-cream-100 p-4">
-      <p className="text-sm">
-        {t("photobook.print.to", {
-          name: recipient.name,
-          city: recipient.city,
-          country: recipient.country,
-        })}
-      </p>
-      <p className="mt-1 text-sm">
+      {/* The envelope, not a summary of it — B1145. Centred, with the name a
+          step larger than the lines under it, because that is the order an
+          address is read in: who first, the street confirming it. A sentence
+          naming a town cannot be checked against the parcel you are paying
+          for. */}
+      <address className="rounded-lg border border-dashed border-navy-300 bg-cream-50 px-3 py-3 text-center not-italic">
+        <span className="block text-[0.7rem] font-semibold uppercase tracking-wider text-navy-600">
+          {t("photobook.print.toLabel")}
+        </span>
+        <span className="mt-1 block text-base font-semibold text-navy-900">{recipient.name}</span>
+        {addressLines(recipient.address).map((line) => (
+          <span key={line} className="block text-sm text-navy-700">
+            {line}
+          </span>
+        ))}
+      </address>
+      <p className="mt-3 text-sm">
         {t("photobook.print.quote", {
           print: money(printMinor),
           postage: money(shipMinor),
@@ -107,31 +139,42 @@ export default function PhotobookPrintPanel({
           {/* GET, so choosing somebody changes the page's own URL and the
               server re-quotes for their country. Nothing is written and
               nothing is charged by this form. */}
+          {/* Radios rather than a `<select>` — B1145. The browser draws a
+              menu's rows and will not put an address on a second line, which
+              is exactly the case two people at one address need: a dropdown
+              reads "Name — Town" twice and only the first name tells them
+              apart. Radios carry the whole envelope, show the choice without
+              opening anything, and submit through the same GET form. */}
           <form method="get" action={`/${username}/photobooks/${id}`} className="mt-2">
-            <label className="block text-sm" htmlFor="book-recipient">
-              {t("photobook.print.chooseLabel")}
-            </label>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <select
-                id="book-recipient"
-                name="to"
-                defaultValue={recipient.id}
-                className="min-h-11 rounded-lg border-2 border-navy-300 bg-cream-50 px-2 text-sm"
-              >
+            <fieldset>
+              <legend className="text-sm">{t("photobook.print.chooseLabel")}</legend>
+              <div className="mt-1 flex flex-col gap-1">
                 {recipients.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name} — {r.city}
-                    {r.country ? `, ${r.country}` : ""}
-                  </option>
+                  <label
+                    key={r.id}
+                    className="flex items-start gap-2 rounded-lg border-2 border-navy-200 px-3 py-2 text-sm has-[:checked]:border-navy-900 has-[:checked]:bg-cream-50"
+                  >
+                    <input
+                      type="radio"
+                      name="to"
+                      value={r.id}
+                      defaultChecked={r.id === recipient.id}
+                      className="mt-1"
+                    />
+                    <span>
+                      <span className="block font-semibold text-navy-900">{r.name}</span>
+                      <span className="block text-navy-700">{addressLines(r.address).join(", ")}</span>
+                    </span>
+                  </label>
                 ))}
-              </select>
-              <button
-                type="submit"
-                className="min-h-11 rounded-full border-2 border-navy-900 px-4 text-sm font-semibold text-navy-900 transition-colors duration-150 hover:bg-navy-900 hover:text-white focus-visible:ring-4 focus-visible:ring-yellow-400"
-              >
-                {t("photobook.print.chooseSubmit")}
-              </button>
-            </div>
+              </div>
+            </fieldset>
+            <button
+              type="submit"
+              className="mt-2 min-h-11 rounded-full border-2 border-navy-900 px-4 text-sm font-semibold text-navy-900 transition-colors duration-150 hover:bg-navy-900 hover:text-white focus-visible:ring-4 focus-visible:ring-yellow-400"
+            >
+              {t("photobook.print.chooseSubmit")}
+            </button>
           </form>
         </details>
       ) : null}
