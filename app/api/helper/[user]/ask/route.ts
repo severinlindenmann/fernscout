@@ -50,6 +50,11 @@ const LIMIT = { max: 40, windowMs: 15 * 60 * 1000 };
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Wide enough for a whole day's dictated notes (roughly a thousand tokens),
+ *  narrow enough to leave room in the prompt for history and tools — see
+ *  B1039 below. */
+const MAX_SAID = 4000;
+
 /**
  * Whether this box belongs on the page asking, and what it needs to draw
  * itself — B844.
@@ -84,6 +89,9 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
     speech: isEnabled("transcription", user),
     consentedSpeech: hasHelperConsent(user, "speech"),
     speechProvider: speechProvider(),
+    // B1039 — readable before the box is filled, the way `/api/health`
+    // carries an upload's own size ceiling.
+    sayLimit: MAX_SAID,
   });
 }
 
@@ -131,8 +139,22 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return Response.json({ error: "invalid_json" }, { status: 400 });
 
-  const said = typeof body.said === "string" ? body.said.trim().slice(0, 500) : "";
+  const said = typeof body.said === "string" ? body.said.trim() : "";
   if (said === "") return Response.json({ error: "no_question" }, { status: 400 });
+  /**
+   * B1039 — a dictated day's notes are longer than "one sentence", and this
+   * box used to cut them to 500 characters with nothing said: half a day's
+   * write-up went to the model, and the person had no way to know less
+   * arrived than they typed. `search`'s own box caps at 300 for the "one
+   * sentence" case (`app/api/helper/[user]/search/route.ts`); this one is
+   * where a whole day's notes legitimately land, so the ceiling is wide
+   * enough for that and a refusal past it rather than a silent cut —
+   * AGENTS.md's "an empty field beats a plausible fiction" applies exactly
+   * as much to a shortened one.
+   */
+  if (said.length > MAX_SAID) {
+    return Response.json({ error: "too_long", limit: MAX_SAID }, { status: 400 });
+  }
 
   const locale = await requestLocale();
   const say: Say = (key, vars) =>

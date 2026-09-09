@@ -1464,6 +1464,7 @@
   "agent.error.helper_unavailable": "Ez a beszélgetés ki van kapcsolva ebben a naplóban.",
   "agent.error.too_many_requests": "Ez sok volt egyszerre. Várj egy percet, és nyomd meg újra.",
   "agent.error.invalid_json": "Valami nem érkezett meg rendesen. Mondd el újra, és készítek egy újat.",
+  "agent.error.too_long": "Ez túl hosszú egyetlen üzenetnek. Semmi nem lett elküldve — rövidítsd le, vagy oszd szét több üzenetre.",
   "agent.startTitle": "Új vagy itt?",
   "agent.startIntro": "Indítsd el a saját naplódat — egy e-mail-cím, egy név hozzá, és az első utad. Ezután senki nem fog kérni, hogy űrlapot tölts ki.",
   "agent.signupOff": "Az új napló indítása itt nincs bekapcsolva. Kérd meg a szerver üzemeltetőjét, hogy engedélyezze.",

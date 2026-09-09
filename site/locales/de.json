@@ -1464,6 +1464,7 @@
   "agent.error.helper_unavailable": "Dieses Gespräch ist in diesem Journal ausgeschaltet.",
   "agent.error.too_many_requests": "Das war viel auf einmal. Warte eine Minute und drück noch einmal.",
   "agent.error.invalid_json": "Etwas an diesem Druck ist nicht richtig angekommen. Sag es noch einmal, dann lege ich dir einen neuen hin.",
+  "agent.error.too_long": "Das ist zu lang für eine Nachricht. Es wurde nichts gesendet — kürze es, oder teile es in mehrere Nachrichten auf.",
   "agent.startTitle": "Neu hier?",
   "agent.startIntro": "Starte dein eigenes Journal — eine E-Mail-Adresse, ein Name dafür, und deine erste Reise. Danach wird dich niemand mehr bitten, ein Formular auszufüllen.",
   "agent.signupOff": "Ein neues Journal zu starten ist hier nicht eingeschaltet. Bitte, wer diesen Server betreibt, es zu aktivieren.",

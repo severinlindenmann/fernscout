@@ -1464,6 +1464,7 @@
   "agent.error.helper_unavailable": "This conversation is switched off on this journal.",
   "agent.error.too_many_requests": "That was a lot at once. Wait a minute and press again.",
   "agent.error.invalid_json": "Something in that press did not arrive properly. Say it again and I will make a fresh one.",
+  "agent.error.too_long": "That is too long to send in one message. Nothing was sent — shorten it, or split it into a couple of messages.",
   "agent.startTitle": "New here?",
   "agent.startIntro": "Start your own journal — an email, a name for it, and your first trip. Nobody will ask you to fill in a form again after this.",
   "agent.signupOff": "Starting a new journal isn't switched on here. Ask whoever runs this server to enable it.",
