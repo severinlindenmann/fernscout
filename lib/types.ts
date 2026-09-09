@@ -122,6 +122,9 @@ export type PlaceEntry = {
   slug: string;
   date: string;
   time?: string;
+  /** See `Entry.timezone` — carried through so the dual clock (`DualTime`)
+   * can tell whether the reader's own zone differs, without guessing. */
+  timezone?: string;
   location: string;
   country: string;
   countryCode?: string;
@@ -199,8 +202,19 @@ export type Entry = {
   slug: string;
   title: string;
   date: string; // ISO yyyy-mm-dd
-  /** HH:mm — orders several updates within the same day. */
+  /** HH:mm — orders several updates within the same day. Local to
+   * `location`/`lat`/`lng`, always. */
   time?: string;
+  /**
+   * The IANA name `time` is local to — `"Asia/Bangkok"` — B42. Absent means
+   * nobody said, and every reader of `time` (the feed's `pubDate`, the dual
+   * clock) falls back to the journal's own zone rather than guessing from
+   * `lat`/`lng`: an offset is a property of a place *at an instant*, not a
+   * lookup this codebase performs. See `isUsableZone` in lib/digest/quiet.ts,
+   * which validates this field, and `AGENTS.md` for why there is no
+   * lat/lng-to-zone resolver here.
+   */
+  timezone?: string;
   location: string;
   country: string;
   /** ISO 3166-1 alpha-2, used for the flag. */

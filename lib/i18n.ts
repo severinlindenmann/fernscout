@@ -1824,6 +1824,8 @@ export type TranslationKey =
   | "story.tripEnd"
   | "test.body"
   | "test.title"
+  | "time.local"
+  | "time.yourTime"
   | "trips.allTrips"
   | "trips.chip"
   | "trips.daysAway"

@@ -67,6 +67,7 @@ export async function GET(
     title: entry.title,
     date: entry.date,
     ...(entry.time ? { time: entry.time } : {}),
+    ...(entry.timezone ? { timezone: entry.timezone } : {}),
     location: entry.location,
     country: entry.country,
     ...(entry.countryCode ? { countryCode: entry.countryCode } : {}),

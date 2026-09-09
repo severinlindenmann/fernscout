@@ -6,6 +6,7 @@ import { useTrip } from "@/components/TripProvider";
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import DayReactions from "./DayReactions";
+import DualTime from "./DualTime";
 import EditDay from "./EditDay";
 import OwnerTools from "./OwnerTools";
 import DayWeather from "./DayWeather";
@@ -494,7 +495,7 @@ function UpdateBlock({
           are two moments and not two days. */}
       {entry.time && (
         <div className="font-display text-xs font-semibold tracking-wide text-navy-600">
-          {entry.time}
+          <DualTime date={entry.date} time={entry.time} timezone={entry.timezone} />
         </div>
       )}
 

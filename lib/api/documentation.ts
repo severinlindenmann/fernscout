@@ -1489,6 +1489,7 @@ one. The full schema, with the shape of each nested item, is in
 | | |
 | --- | --- |
 | \`time\` | \`"16:45"\`, local to where the day happened. Orders several days sharing a date. |
+| \`timezone\` | The IANA name \`time\` is local to — \`"Asia/Bangkok"\`, never a numeric offset. Send it when you know it; absent, the RSS feed and the on-page dual clock fall back to the journal's own zone rather than guessing one from \`lat\`/\`lng\`. A name \`Intl\` does not recognise is refused. |
 | \`location\`, \`country\` | The country's name, not its code. |
 | \`lat\`, \`lng\` | Decimal degrees, as numbers and not strings — \`15.8801\`, never \`"15.8801"\` and never \`15° 52' 48" N\`. **A pair or nothing**: half a coordinate is refused, since it is not a place. \`lat\` is -90 to 90, \`lng\` is -180 to 180; getting them the wrong way round puts the day in the sea, so check that the smaller-ranged number is the one in \`lat\`. Four decimal places is about eleven metres and is plenty — this marks where the day happened, not where a photograph was taken. Do not geocode and write in one breath: propose what you looked up, and let them confirm it. |
 | \`tags\` | Lowercase letters, digits and single hyphens. |

@@ -1,0 +1,6 @@
+{
+  "configVersion": 1,
+  "site": { "name": "Test", "url": "https://example.test" },
+  "users": { "reserved": [] },
+  "features": {}
+}

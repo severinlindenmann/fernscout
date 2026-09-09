@@ -64,6 +64,9 @@ const DAY_SAMPLES: Record<string, unknown> = {
   date: "2026-09-02",
   content: "Die Prosa des Tages.",
   time: "14:30",
+  // B42 — the zone `time` is a wall clock in, so a reader elsewhere and the
+  // RSS pubDate both know what 14:30 meant.
+  timezone: "Asia/Bangkok",
   location: "Lissabon",
   country: "Portugal",
   countryCode: "PT",
