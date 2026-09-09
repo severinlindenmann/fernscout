@@ -173,17 +173,57 @@ the health output as evidence, and stop scheduling further waves. Do not
 retry the deploy a second time inside this run; a failed deploy is exactly
 the kind of thing a person needs to see, not a thing to retry into silence.
 
-Then, live-check every ticket in the wave: B1097's script against the
-now-deployed page, written beside the `before` capture `plan-a-run` already
-took:
+Then **validate the wave against the live instance, and write down a verdict
+per ticket.** This is the step that makes "deployed" mean something, and it is
+the one most easily faked: a capture written to disk that nobody compares
+proves only that a page still returns bytes. B1090 is the recorded version of
+that mistake one level down — a feature checked against the two rows the same
+change had edited, inert everywhere else, green the whole way.
 
-```bash
-node .claude/skills/test-in-a-browser/check-page.mjs <url> \
-  .claude/runs/<run-id>/<id> --widths 1280,390 --slug after
-# writes after-1280.png, after-390.png and after.json beside the before-* files
-# plan-a-run left. `--slug` is what makes those names; without it the script
-# names each capture after the URL and report-a-run finds neither half.
-```
+So every live ticket in the wave gets exactly one of three verdicts, written
+to `.claude/runs/<run-id>/<id>/live.json` as `{"verdict": …, "evidence": …}`:
+
+- **`shows`** — the ticket changes something a person sees. Capture the
+  deployed page beside the `before` `plan-a-run` already took, then **look at
+  both** and say what differs:
+
+  ```bash
+  node .claude/skills/test-in-a-browser/check-page.mjs <url> \
+    .claude/runs/<run-id>/<id> --widths 1280,390 --slug after
+  # writes after-1280.png, after-390.png and after.json beside the before-*
+  # files. `--slug` is what makes those names; without it the script names
+  # each capture after the URL and report-a-run finds neither half.
+  ```
+
+  Read the two images. The evidence is a sentence naming the visible
+  difference — *"the budget panel now renders on a journal with no features
+  block"* — not "captured" and not a file path. If `plan-a-run` recorded no
+  before-state, there is nothing to compare and this is not the right verdict.
+
+- **`answers`** — the ticket changes behaviour with no visible face, which is
+  most backend work. Name a request against the deployed instance whose
+  response proves the change, run it, and paste the actual response:
+  `/api/health` for a capability or a limit, a documented `/api/v1` call for a
+  route, a refusal for a gate that should now refuse. A test passing in CI is
+  not this: CI ran against a checkout, and this step is about the machine
+  serving the site.
+
+- **`cannot`** — nothing observable from outside without a credential or a
+  side effect this run must not produce: an owner's cookie session, a real
+  postal address, a message to somebody's phone, money moving. Say which, in
+  one sentence. **This is a legitimate verdict and must not be avoided by
+  inventing a weaker check** — but a run where most tickets land here is a run
+  whose acceptance lines were written against things nobody can see, and that
+  is worth saying in the report.
+
+**A live check that contradicts the ticket's Acceptance parks the ticket.** It
+does not go to `testing/` looking finished. Merged and deployed and wrong is
+the worst of the three states, because it is the one a person stops looking
+at: the lane says somebody already decided it works.
+
+The run is **not finished** while any wave is undeployed, or any live ticket
+in a deployed wave has no verdict. Steps 3 and 4 do not begin until this one
+has an answer for every ticket in the wave.
 
 Deploying per wave rather than once at the end is deliberate, not
 incidental — see the numbers above: it is the bottleneck this skill exists
@@ -209,12 +249,20 @@ One call per id, and check for the `→` line.
 
 ## Step 4 — end with the report
 
-When every group has either merged-and-deployed or parked, hand the whole run
-directory to `report-a-run` — every merged ticket, every parked one with its
+When every group has either merged-and-deployed-and-verdicted or parked, hand
+the whole run directory to `report-a-run` — every merged ticket **with its
+`live.json` verdict and that verdict's evidence**, every parked one with its
 evidence, every dropped ticket from the brief, and the questions parked
 mid-run (there should be none if `plan-a-run` did its job; if there are any,
 that is worth a sentence of its own). Do not write the report yourself outside
 that skill — same palette, same machinery, reused rather than restated.
+
+The report is what a person tests from, so the `shows` tickets have to reach
+it as **a live URL each, and the before-and-after pair** — a person verifying
+a batch should not have to work out which page a ticket landed on. A ticket
+whose verdict is `cannot` needs the opposite: say plainly that nothing was
+checked live and what it would take, so it is obvious which rows still rest on
+a test alone.
 
 ## Not doing
 
@@ -242,6 +290,12 @@ that skill — same palette, same machinery, reused rather than restated.
 - A group's own subagent merging its branch itself, instead of handing a
   ready worktree back for the serialised merge.
 - Moving a parked ticket to `testing/` because most of the batch passed.
+- Taking an `after` capture and never opening it, or writing a `shows`
+  verdict whose evidence is a file path rather than the difference seen.
+- Giving a backend ticket no live verdict because it has no page — that is
+  what `answers` is for, and `/api/health` answers most of them.
+- Reaching `report-a-run` with a wave deployed and unverdicted, or with a
+  ticket in `testing/` whose live check contradicted its Acceptance.
 - Promoting anything to `open/` or `completed/`.
 - Handing the implementer a summary of the chosen option instead of the
   brief's actual mockup HTML, or verifying against the ticket alone without
