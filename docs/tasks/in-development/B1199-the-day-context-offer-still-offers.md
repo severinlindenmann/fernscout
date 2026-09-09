@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: helper room
 found: "2026-09-09T22:34:30Z"
+started: "2026-09-09T22:45:04Z"
+session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
+claimed: "2026-09-09T22:45:04Z"
 ---
 
 # B1199 — The day-context offer still offers taking a draft off the site
