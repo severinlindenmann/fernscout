@@ -7,8 +7,7 @@ complexity: low
 area: public/sw.js, app/[user]/trips/[trip]/day/[slug]/notify/route.ts
 found: "2026-09-09T08:20:00Z"
 started: "2026-09-09T04:59:30Z"
-session: 79cece02-4661-45ef-809b-52b592e67f95
-claimed: "2026-09-09T04:59:30Z"
+merged: "2026-09-09T05:16:12Z"
 ---
 
 # B1042 — The service worker caches owner-only responses forever and ignores no-store
