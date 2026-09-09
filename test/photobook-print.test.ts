@@ -195,6 +195,35 @@ describe("submitBuiltBook", () => {
     expect((await getPhotobookOrder(OWNER, ID))?.payload.print?.providerRef).toBe("gel-1");
   });
 
+  test("printOrder refuses a book whose print was already bought", async () => {
+    const { printOrder } = await import("@/lib/photobook/print");
+    const { getDatabaseOrNull } = await import("@/lib/db");
+    const handle = await getDatabaseOrNull();
+    const order = await getPhotobookOrder(OWNER, ID);
+    // The shape `order/route.ts` writes since B1157: bought printed.
+    await handle!.db
+      .updateTable("print_orders")
+      .set({
+        payload: JSON.stringify({
+          ...order!.payload,
+          print: { ...order!.payload.print, paid: true },
+        }),
+      })
+      .where("id", "=", ID)
+      .execute();
+    const before = (await balanceOf(OWNER)) ?? 0;
+
+    const result = await printOrder(OWNER, ID, QUOTED);
+
+    // B1164. The order page used to offer this as a second, smaller charge for
+    // a book already bought printed. Refused at the route, so hiding the
+    // button is not the only thing standing between the owner and paying
+    // twice.
+    expect(result).toEqual({ ok: false, reason: "already_paid" });
+    expect((await balanceOf(OWNER)) ?? 0).toBe(before);
+    expect(submitBookPrint).not.toHaveBeenCalled();
+  });
+
   test("does not quote — the price was agreed before the book was built", async () => {
     const { submitBuiltBook } = await import("@/lib/photobook/print");
     await submitBuiltBook(OWNER, ID);

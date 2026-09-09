@@ -62,6 +62,17 @@ export type PhotobookPayload = {
     quotedCredits: number;
     quotedAt: string;
     shipmentMethodUid: string;
+    /**
+     * The print was bought with the book — B1164.
+     *
+     * Set by `order/route.ts`, and the only thing that distinguishes a print
+     * already paid for from one an agent has merely *proposed*: both write a
+     * `print` block, so its presence says nothing. Without this the order page
+     * offered a second, smaller charge for a book already bought printed —
+     * 165 credits against the 205 that had been paid — and `printOrder` was
+     * happy to take it.
+     */
+    paid?: boolean;
     providerRef?: string;
     /** Set by `markPrintFailed`; the row returns to `printed` alongside it. */
     failure?: string;

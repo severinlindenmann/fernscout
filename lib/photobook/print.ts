@@ -50,6 +50,8 @@ type PrintFailure =
   | "not_built"
   | "already_printing"
   | "no_recipient"
+  /** Bought printed already — B1164. Nothing to charge for a second time. */
+  | "already_paid"
   | "no_credits"
   | "stale_quote"
   /** The address has a country Gelato cannot be asked about. */
@@ -81,6 +83,7 @@ export const PHOTOBOOK_PRINT_OUTCOME_STATES = [
   "not_built",
   "already_printing",
   "no_recipient",
+  "already_paid",
   "no_credits",
   "stale_quote",
   "unknown_country",
@@ -220,6 +223,14 @@ export async function printOrder(owner: string, id: string, quotedCredits: numbe
 
   const print = order.payload.print;
   if (!print?.contactId) return { ok: false, reason: "no_recipient" };
+
+  // B1164. This function quotes and spends the *print portion*, which is right
+  // for a book bought before B1157 — those paid for the build alone. A book
+  // bought printed has already paid for all of it, and charging again here is
+  // a second, smaller charge for the same object: 165 against the 205 that had
+  // been paid. Refused at the route rather than only hidden on the page,
+  // because the page is not the only way to reach this.
+  if (print.paid) return { ok: false, reason: "already_paid" };
 
   // A stored order can name a size, or a size-and-cover pair, that this
   // server no longer prints — Gelato's catalogue is not ours to freeze. That

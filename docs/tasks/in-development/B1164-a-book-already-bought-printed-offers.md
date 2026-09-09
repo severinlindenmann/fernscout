@@ -61,3 +61,52 @@ says here 165."*
 - The only price shown is the one that was paid.
 - `printOrder` refuses an order whose print was already paid for, with a test.
 - `npm run verify`.
+
+## Evidence
+
+Checked on a row shaped exactly like the two on the live instance — `credits:
+205`, a `print` block, `failure: refused` — because that is the case the owner
+met and a fixture with a happier shape would not have found it.
+
+Before: the envelope, "Druck CHF 13.43 + Porto CHF 8.52 = 165 Credits", and
+**Jetzt drucken — 165 Credits**. After:
+
+```
+Your order
+Four days round the Alps — 52 pages, Square 200 × 200 mm
+  book-interior.pdf   book-cover.pdf
+Printing
+The printer would not take this order. All 205.00 credits are back on your
+account, and the files below are yours. Order the book again from the trip's
+photobook page when you want to try once more.
+```
+
+No button, and the only number is the one that was paid.
+`/tmp/b1164-final/…-1280.png`.
+
+`printOrder` refuses `already_paid` with a test that also asserts the balance
+does not move and nothing reaches the printer — the route is closed, not just
+the button hidden.
+
+The heading changed too: "Print this book" is an offer, and this page has
+nothing to sell for a book already bought. A book built before B1157 keeps it,
+because printing one really is still a purchase.
+
+## The two rows already on the live instance
+
+`efb1f315-…` and `f37f667a-…` were written before `paid` existed, so they carry
+no flag and would still show the button after this deploy. They need it set
+once, by hand:
+
+```sql
+update print_orders
+set payload = jsonb_set(payload::jsonb, '{print,paid}', 'true')::text
+where owner_id = 'severin' and kind = 'photobook'
+  and payload::jsonb ? 'print'
+  and (payload::jsonb ->> 'credits')::int > (payload::jsonb -> 'print' ->> 'quotedCredits')::int;
+```
+
+The condition is the honest discriminator for rows that predate the flag: a
+purchase that included the print cost more than the print alone. Not used in
+code — a numeric inference is the wrong thing to decide money on — only to
+find the handful of rows that need the flag they were written without.

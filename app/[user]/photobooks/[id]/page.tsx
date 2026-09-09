@@ -6,6 +6,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
 import { balanceOf, creditsEnabled } from "@/lib/credits";
 import { photobookPrintCredits } from "@/lib/credits/pricing";
+import { formatCredits } from "@/lib/credits/format";
 import { isoCountry } from "@/lib/photobook/country";
 import { fetchOrderStatus, quoteBook } from "@/lib/photobook/gelato";
 import { getPhotobookOrder } from "@/lib/photobook/orders";
@@ -49,6 +50,9 @@ const RESULT: Record<PrintOutcomeState, TranslationKey> = {
   not_built: "photobook.print.result.notBuilt",
   already_printing: "photobook.print.result.alreadyPrinting",
   no_recipient: "photobook.print.result.noRecipient",
+  // B1164. Reachable only by posting to the route directly: no page offers
+  // this button for a book that was bought printed.
+  already_paid: "photobook.print.result.alreadyPaid",
   no_credits: "photobook.print.result.noCredits",
   stale_quote: "photobook.print.result.staleQuote",
   unknown_country: "photobook.print.result.unknownCountry",
@@ -99,6 +103,25 @@ export default async function PhotobookOrderPage({
     const gelatoStatus = await fetchOrderStatus(print.providerRef);
     statusText = t("photobook.print.status", {
       status: gelatoStatus ?? t("photobook.print.status.unknown"),
+    });
+  } else if (print?.paid) {
+    /**
+     * Bought printed, and the printer would not take it — B1164.
+     *
+     * This page is a **receipt** for such a book, never a second checkout.
+     * Until this branch existed it fell through to the panel below, which
+     * quoted the print portion on its own and offered to spend it: 165 credits
+     * against the 205 already paid, for the same object. The owner pressed it,
+     * and only the refund path made that harmless.
+     *
+     * So: what happened, and that the money is back. Ordering it again is the
+     * wizard's job, because there is one place that buys a book and this is
+     * not it. Nothing here says *why* the printer refused — on a hosted
+     * instance that is the operator's account, not this owner's business
+     * (B1165).
+     */
+    statusText = t("photobook.print.refusedRefunded", {
+      credits: formatCredits(order.payload.credits),
     });
   } else if (order.status === "printed") {
     // B1093. Who this is for is chosen here, not only by an agent beforehand.
@@ -184,7 +207,11 @@ export default async function PhotobookOrderPage({
       <PageHeader />
       <main className="mx-auto w-full max-w-2xl px-4 py-8">
         <h1 className="font-display text-2xl font-semibold text-navy-900">
-          {t("photobook.print.orderTitle")}
+          {/* B1164. "Print this book" is an offer, and for a book already
+              bought printed this page is a receipt — it has nothing to sell.
+              A book built before B1157 still has printing to buy here, and
+              keeps the old heading. */}
+          {t(print?.paid ? "photobook.print.receiptTitle" : "photobook.print.orderTitle")}
         </h1>
         <p className="mt-1 text-sm text-navy-600">
           {t("photobook.print.orderIntro", {
