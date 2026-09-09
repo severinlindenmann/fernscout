@@ -248,19 +248,18 @@ Do not edit them by hand; run the script.
 | [B520](backlog/wont-do/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (1)
+## open (0)
 
-| # | Finding | Type | Priority | Complexity |
-| --- | --- | --- | --- | --- |
-| [B1098](open/B1098-work-on-a-task-revalidates-a.md) | work-on-a-task revalidates a ticket in one sentence of prose, and asks for a visual check it leaves no evidence of | DOCS | high | low |
+_Nothing here._
 
-## in-development (12)
+## in-development (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1014](in-development/B1014-the-embedded-print-fonts-are-read.md) | The embedded print fonts are read from the process's working directory, so npm run postcard fails outside the checkout | ISSUE | high | low | `b8352d66` |
 | [B1015](in-development/B1015-b984-moved-the-agent-room-s.md) | B984 moved the agent room's URL and left one test asserting the old one, so main is red | ISSUE | high | low | `b8352d66` |
 | [B1097](in-development/B1097-an-agent-judges-a-page-from.md) | An agent judges a page from its own reading of the code, because there is no instrument that shows it the page | CHORE | high | medium | `df031729` |
+| [B1098](in-development/B1098-work-on-a-task-revalidates-a.md) | work-on-a-task revalidates a ticket in one sentence of prose, and asks for a visual check it leaves no evidence of | DOCS | high | low | `df031729` |
 | [B1099](in-development/B1099-every-decision-a-run-needs-is.md) | Every decision a run needs is asked mid-run, so a batch cannot be started and left alone | DOCS | high | high | `df031729` |
 | [B1100](in-development/B1100-nothing-carries-a-batch-of-approved.md) | Nothing carries a batch of approved tickets through build, merge, deploy and live check without a person driving each step | DOCS | high | high | `df031729` |
 | [B980](in-development/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | `a4bbb185` |
