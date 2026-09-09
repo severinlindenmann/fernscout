@@ -300,6 +300,7 @@ export default function HelperAsk({
   filesStrip,
   onOpenFiles,
   aboutOffer = false,
+  aboutDraft = null,
   onFieldFocusChange,
   inRoom = false,
   opened = [],
@@ -381,6 +382,9 @@ export default function HelperAsk({
    * no model call until a press.
    */
   aboutOffer?: boolean;
+  /** Whether the day the offer is about is a draft — B1199. `null` until
+   *  the preview's read lands; the state-dependent option waits for it. */
+  aboutDraft?: boolean | null;
   /**
    * The field gained or lost focus — B1016. The strip above the composer
    * collapses while somebody is about to type, because the arithmetic in
@@ -849,7 +853,19 @@ export default function HelperAsk({
                     {t("agent.about.offer")}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {(["rewrite", "addPhoto", "addCost", "unpublish"] as const).map((what, n) => (
+                    {/* The last option follows the day's real state — B1199:
+                        offering to take a draft off the site is a small lie
+                        about it. Absent until the preview's read answers. */}
+                    {([
+                      "rewrite" as const,
+                      "addPhoto" as const,
+                      "addCost" as const,
+                      ...(aboutDraft === true
+                        ? ["publish" as const]
+                        : aboutDraft === false
+                          ? ["unpublish" as const]
+                          : []),
+                    ]).map((what, n) => (
                       <button
                         key={what}
                         type="button"

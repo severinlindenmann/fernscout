@@ -1996,6 +1996,7 @@
   "agent.about.rewrite": "Den Text dieses Tages überarbeiten",
   "agent.about.addPhoto": "Fotos zu diesem Tag hinzufügen",
   "agent.about.addCost": "Eine Ausgabe zu diesem Tag notieren",
+  "agent.about.publish": "Diesen Tag auf die Seite stellen",
   "agent.about.unpublish": "Diesen Tag von der Seite nehmen",
   "agent.publishRow": "Veröffentlichen lassen",
   "agent.publishRowHint": "Bis du es sagst, sieht den Tag niemand außer dir.",

@@ -781,9 +781,10 @@ describe("a conversation long enough to forget its own beginning", () => {
     forget("alex");
     for (let n = 0; n < 40; n += 1) remember("alex", `said ${n}`, `answered ${n}`);
     const turns = (await history("alex"));
-    expect(turns).toHaveLength(12);
+    expect(turns).toHaveLength(16);
     // The most recent exchange survives, which is the whole point of keeping
-    // the newest twelve.
+    // the newest sixteen (B1198 widened it from twelve — seven exchanges of
+    // one sitting used to fall off the front).
     expect(turns.at(-2)?.text).toBe("said 39");
     expect(turns.at(-1)?.text).toBe("answered 39");
   });

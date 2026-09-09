@@ -78,7 +78,14 @@ export type Turn = { role: "user" | "assistant" | "note"; text: string; origin?:
  * artefact of living in memory — a longer-lived WhatsApp thread needs this
  * trim more, not less.
  */
-const MAX_TURNS = 12;
+/**
+ * Sixteen since B1198 — twelve ran out at seven exchanges, inside one
+ * ordinary sitting: a persona was told "I don't have the earlier turns in
+ * front of you" about a suggestion the model had made two turns before,
+ * which is honest and reads as malfunction. Eight exchanges clears a real
+ * sitting; the budget this trades against is B1053's to win back.
+ */
+const MAX_TURNS = 16;
 
 /**
  * What ends a conversation, per channel — B1054, and B1109 before it.
@@ -319,7 +326,7 @@ export function remember(username: string, said: string, answered: string, chann
  * One note, replaced rather than accumulated: the fact is "the beginning is
  * gone", not "the beginning is gone, and again, and again".
  */
-const FORGOT = "[earlier turns of this conversation are no longer in front of you: say so rather than answering from a day's prose, and ask them to tell you again]";
+const FORGOT = "[the earliest turns of this conversation are no longer in front of you. If they ask about something you cannot see, ask them to say it again in a word or two — never announce a memory problem unprompted, and never answer from a day's prose instead]";
 
 function trimmed(turns: Turn[]): Turn[] {
   if (turns.length <= MAX_TURNS) return turns;
