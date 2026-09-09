@@ -143,18 +143,15 @@ export default function OwnerTools({
             resume list. It opens the wizard on the day's lead update, which is
             the one the page is named for.
 
-            **The two branches say different things, because they can do
-            different things** — B1013. The wizard has `takeDown()` behind a
-            `ConfirmPanel`, so "Correct or take down" is true of it. `EditDay`
-            has no unpublish and was never meant to (B980 kept it to one job),
-            so the same words on the panel branch offered a capability that is
-            not there — somebody who wants a day off the site would press it,
-            get an editor, and have nowhere to go. They are never on the same
-            page, so there is nothing to reconcile. */}
+            **Both branches say "Correct or take down" again, as of B980 round
+            3.** B1013 split the label because `EditDay` could edit and could
+            not unpublish; round 3 gave it its own `.../unpublish` door and its
+            own `ConfirmPanel`, so the promise the tile makes is true on both
+            branches once more — see `EditDay`'s own doc comment. */}
         {day?.published &&
           (onCorrect ? (
             <button type="button" onClick={onCorrect} className={OWNER_TOOL}>
-              {t("agent.editDay")}
+              {t("agent.correctDay")}
             </button>
           ) : (
             <Link

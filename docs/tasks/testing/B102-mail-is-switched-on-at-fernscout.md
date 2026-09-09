@@ -181,14 +181,45 @@ met as written. What can be shown instead: mail is on at the server —
 messages were sent for that journal in this run and each is in the log with a
 relay queue id. A journal with mail off sends none.
 
+### Delivery, confirmed by the owner — 2026-09-09
+
+The half this session could not reach from the server, answered by the person
+who can open the mailboxes:
+
+- **Every mail landed in the inbox. None was filtered to spam or junk.**
+  Confirmed for `test@severin.io`, `de-b102@severin.io` and
+  `de2-b102@severin.io`.
+- Two were quoted back verbatim and match the copies on disk exactly — the
+  German signup code (*"Ein Reisetagebuch beginnen … Dein Code lautet 212887.
+  Er gilt 30 Minuten."*) and the deletion link for `test-b102-de`. So the
+  copies under `<dataDir>/mail/` are what actually arrived, not merely what was
+  handed to the transport. That closes the B57 half of this ticket with
+  evidence from both ends.
+
+Sender authentication, read from DNS rather than from a header:
+
+```
+fernscout.ch          TXT   "v=spf1 include:_spf.protonmail.ch ~all"
+_dmarc.fernscout.ch   TXT   "v=DMARC1; p=quarantine;"
+protonmail{,2,3}._domainkey.fernscout.ch  CNAME  …domains.proton.ch.
+```
+
+SPF, three DKIM selectors and DMARC at `quarantine`, all present and consistent
+with inbox placement at two unrelated receiving domains — `severin.io` here, and
+`gmail.com` on 2026-09-06. **Mail from this instance is delivered.** That is the
+question B102 was asked and the answer is yes.
+
+One gap remains and is filed as **B1135**: the DMARC record has no `rua=`, so
+nothing would tell the operator if this stopped being true.
+
 ### Still needs a person
 
-1. **Open `test@severin.io` and `de-b102@severin.io`** and say, for each mail
-   above: did it arrive, and in which folder. That is the half of this ticket
-   no agent on this instance can reach, and it is the half B102 was really
-   asking about — SPF, DKIM and spam placement are decided at the receiving
-   end.
-2. **The two test journals are still there.** `test-b102-de` has a deletion
-   mail waiting at `de-b102@severin.io` with a link that expired at 18:57 UTC
-   on 2026-09-09; ask for a fresh one. `test-b102-mail` has had no deletion
-   requested. Nothing was written into any journal in real use.
+**The two test journals are still there**, and they are the only thing this
+engagement left behind. `test-b102-de` has a deletion mail waiting at
+`de-b102@severin.io`; the link on it is good for 60 minutes from 17:57 UTC on
+2026-09-09, and a fresh one is a `DELETE` away if it has lapsed.
+`test-b102-mail` has had no deletion requested — ask for one when the findings
+in B1130–B1135 no longer need the journal to reproduce against.
+
+Pressing the button is a person's step, by design (B38), and no agent in this
+run pressed it. Nothing was written into any journal in real use.

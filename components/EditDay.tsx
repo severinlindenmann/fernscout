@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import BusyButton from "@/components/BusyButton";
+import ConfirmPanel from "@/components/ConfirmPanel";
 import { PhotoPicker } from "@/components/PhotoPicker";
 import { useI18n } from "./LocaleProvider";
-import type { Day, Entry } from "@/lib/types";
+import type { Day, Entry, TripVisibility } from "@/lib/types";
 
 /** The fields of one update, as the panel holds them while they are typed. */
 type Draft = {
@@ -64,25 +65,38 @@ function draftOf(entry: Entry): Draft {
  * lived it — the same thing `PATCH .../days/<slug>` has done since B266,
  * reached from where the mistake is visible.
  *
- * **It cannot publish and it cannot unpublish.** That is B28's separation and
- * it holds here exactly as it holds for an agent: writing and putting on the
- * site are two decisions, and this panel makes only the first.
+ * **It cannot publish.** That is still B28's separation for the way *onto*
+ * the site: writing and putting on the site are two decisions, and Save makes
+ * only the first. **It can take a day down again** — B980 round 3, through
+ * `.../unpublish`, its own owner-cookie door — because that half of "correct
+ * or take down" is the same kind of decision publishing is (owner-only,
+ * reversible, never folded into a save), not the kind writing a paragraph is,
+ * and it is behind its own button and its own confirmation rather than a side
+ * effect of Save.
  *
- * Every write goes to `/<user>/trips/<trip>/day/<slug>/edit`, which is the
- * owner's cookie door onto the same validator and the same writer. One call
- * per update actually changed — a day with three updates where one word moved
- * writes one file.
+ * Every word and every photograph write to
+ * `/<user>/trips/<trip>/day/<slug>/edit`, the owner's cookie door onto the
+ * same validator and the same writer. One call per update actually changed —
+ * a day with three updates where one word moved writes one file. The trip's
+ * own `visibility` and `listed` write to `/<user>/trips/<trip>/visibility`,
+ * the same door opened for `patchTripVisibility` — a different file, so a
+ * different call, sent only when either actually moved.
  */
 export default function EditDay({
   username,
   tripId,
   day,
+  tripVisibility,
   initialDrop,
   onClose,
 }: {
   username: string;
   tripId: string;
   day: Day;
+  /** The trip's own audience, as it stands — not the day's. Editable here
+   *  because it is the other half of "who may see what happened", and the
+   *  owner is already looking at the one page that draws both. */
+  tripVisibility: { visibility: TripVisibility; listed: boolean };
   /**
    * A photograph already on its way out when this panel opened — B862, the
    * owner pressing "remove" on the picture itself, in the lightbox, rather
@@ -103,6 +117,11 @@ export default function EditDay({
   );
   /** Files chosen to be added, per update index. */
   const [adding, setAdding] = useState<Record<number, File[]>>({});
+  const [tripVis, setTripVis] = useState(tripVisibility.visibility);
+  const [tripListed, setTripListed] = useState(tripVisibility.listed);
+  /** The take-down confirmation, open or not — B28: a second press, never a
+   *  side effect of Save. */
+  const [takingDown, setTakingDown] = useState(false);
 
   const set = (at: number, patch: Partial<Draft>) =>
     setDrafts((prev) =>
@@ -211,11 +230,59 @@ export default function EditDay({
         return;
       }
     }
+
+    // The trip's own audience — a different file from every update above, so
+    // its own call, and only when either field actually moved.
+    const tripPatch: Record<string, unknown> = {};
+    if (tripVis !== tripVisibility.visibility) tripPatch.visibility = tripVis;
+    if (tripListed !== tripVisibility.listed) tripPatch.listed = tripListed;
+    if (Object.keys(tripPatch).length > 0) {
+      const response = await fetch(
+        `/${encodeURIComponent(username)}/trips/${encodeURIComponent(tripId)}/visibility`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(tripPatch),
+        },
+      ).catch(() => null);
+      if (!response?.ok) {
+        setBusy(false);
+        setFailed(tripId);
+        return;
+      }
+    }
+
     // The day on screen came from `/<user>/story.json`, which this page fetched
     // and holds in state; there is no server render to revalidate. Rather than
     // teach the pager to re-fetch one day, ask the browser for the page again —
     // it happens once, after a deliberate press, and it is the one thing that
     // cannot show a stale day.
+    window.location.reload();
+  }
+
+  /**
+   * Take the day back off the site — B980 round 3.
+   *
+   * Every update that is not already a draft, one call each: a day with two
+   * updates where only the lead was ever published takes down only that one,
+   * and the notice above the card asks by whether *every* update is a draft,
+   * so this is what actually earns it. Deliberately its own function and its
+   * own button behind `ConfirmPanel`, never folded into `save()` — B28.
+   */
+  async function takeDown() {
+    setFailed(null);
+    setBusy(true);
+    for (const entry of day.entries) {
+      if (entry.draft) continue;
+      const response = await fetch(dayUrl(entry.slug, "unpublish"), {
+        method: "POST",
+      }).catch(() => null);
+      if (!response?.ok) {
+        setBusy(false);
+        setFailed(entry.slug);
+        return;
+      }
+    }
     window.location.reload();
   }
 
@@ -240,6 +307,38 @@ export default function EditDay({
           className={`mt-1 ${FIELD}`}
         />
       </label>
+
+      {/* The trip's own audience, not the day's — B980 round 3. Same field a
+          reader's own trip-level `visibility` and `listed` come from, edited
+          from the day where the owner is already standing. */}
+      <label className="mt-2 block">
+        <span className="text-xs font-semibold text-navy-700">
+          {t("edit.tripVisibility")}
+        </span>
+        <select
+          value={tripVis}
+          onChange={(event) => {
+            const next = event.target.value as TripVisibility;
+            setTripVis(next);
+            if (next !== "public") setTripListed(false);
+          }}
+          className={`mt-1 ${FIELD}`}
+        >
+          <option value="public">{t("agent.tool.visibilityPublic")}</option>
+          <option value="guest">{t("agent.tool.visibilityGuest")}</option>
+          <option value="private">{t("agent.tool.visibilityPrivate")}</option>
+        </select>
+      </label>
+      {tripVis === "public" && (
+        <label className="mt-2 flex items-center gap-2 text-xs text-navy-700">
+          <input
+            type="checkbox"
+            checked={tripListed}
+            onChange={(event) => setTripListed(event.target.checked)}
+          />
+          {t("edit.tripListed")}
+        </label>
+      )}
 
       {drafts.map((draft, at) => (
         <div
@@ -479,9 +578,36 @@ export default function EditDay({
         >
           {t("edit.cancel")}
         </BusyButton>
+        {/* Only where there is something left to take down — a day whose
+            every update is already a draft has nothing this button would do. */}
+        {!takingDown && day.entries.some((entry) => !entry.draft) && (
+          <button
+            type="button"
+            onClick={() => setTakingDown(true)}
+            className="min-h-11 rounded-full border border-coral-300 px-4 text-xs font-semibold text-coral-600 transition-colors hover:bg-coral-50"
+          >
+            {t("edit.takeDown")}
+          </button>
+        )}
       </div>
 
-      {failed && (
+      {/* Its own press, its own confirmation — B28. Never a side effect of
+          Save, and never a `window.confirm` — B633/B668. */}
+      {takingDown && (
+        <div className="mt-3">
+          <ConfirmPanel
+            label={t("edit.takeDown")}
+            question={t("edit.takeDownQuestion")}
+            confirmLabel={t("edit.takeDownConfirm")}
+            busy={busy}
+            error={failed ? t("edit.failed") : undefined}
+            onConfirm={() => void takeDown()}
+            onCancel={() => setTakingDown(false)}
+          />
+        </div>
+      )}
+
+      {failed && !takingDown && (
         <p role="alert" className="mt-2 text-xs text-coral-600">
           {t("edit.failed")}
         </p>

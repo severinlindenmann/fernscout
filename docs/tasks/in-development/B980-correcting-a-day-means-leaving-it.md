@@ -58,14 +58,35 @@ Round 2 — the pictures:
   and removal. `PATCH` with `captions` and `photoVisibility`.
 - Adding photographs through the existing media endpoint.
 
-Round 3 — still to build:
+Round 3 — built:
 
-- Taking a day off the site. The tile says "correct or take down" and the
-  panel can do only the first half; `POST .../days/<slug>/unpublish` is the
-  call and it needs its own owner-cookie door, kept a separate press from
-  save (B28).
-- The trip's own `visibility` and `listed`, from the same panel, through
-  `PATCH .../trips/<trip>`.
+- Taking a day off the site. `app/[user]/trips/[trip]/day/[slug]/unpublish/route.ts`
+  is the owner's cookie door onto `unpublishEntry` — same three properties as
+  `edit/route.ts` beside it: not under `/api/v1/`, owner's cookie only (any
+  `Authorization` header, trip-scoped or not, is refused outright before
+  `isOwner` is even asked), same writer an agent uses. `EditDay` gained a
+  "Take this day off the site" button behind its own `ConfirmPanel` — a
+  separate press from Save, never folded into it (B28) — that unpublishes
+  every update of the day that is not already a draft, one call each, so the
+  day's own `DraftNotice` (which asks whether *every* update is a draft)
+  actually lights up. `OwnerTools`'s tile went back to saying "Correct or take
+  down" on both branches, since both can now back the words up — B1013 had
+  split the label for the round the panel had not been built yet.
+- The trip's own `visibility` and `listed`, from the same panel.
+  `app/[user]/trips/[trip]/visibility/route.ts` is the owner's cookie door
+  onto `patchTripVisibility` (the same writer `PATCH .../trips/<trip>/visibility`
+  uses over the API — the general trip PATCH refuses these three fields on
+  purpose and points at the dedicated door). `EditDay` carries a select for
+  `visibility` (private/guest/public) and a checkbox for `listed`, shown only
+  once the trip is public, seeded from `trip.trip.visibility`/`listed` via a
+  new `tripVisibility` prop from `StoryPager`. Sent as its own PATCH, and only
+  when either field actually changed.
+
+Not doing: a confirmation panel on the trip-visibility change specifically —
+Save already asks once, the same as the day's own per-update `visibility`
+field beside it, and the widening warning the API route's response carries is
+not surfaced further than that. A capture if a reviewer wants the widening
+called out more loudly.
 
 Not doing: writing a day from nothing in the browser. Creating a day stays
 the agent's, which is decision 24. This edits what exists.

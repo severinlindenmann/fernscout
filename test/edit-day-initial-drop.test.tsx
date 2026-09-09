@@ -45,6 +45,7 @@ function render(initialDrop?: string) {
         username="alex"
         tripId="reise"
         day={day}
+        tripVisibility={{ visibility: "public", listed: false }}
         initialDrop={initialDrop}
         onClose={() => {}}
       />
