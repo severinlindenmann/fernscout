@@ -49,16 +49,18 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (143)
+## backlog (147)
 
-### security (2)
+### security (4)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1076](backlog/security/B1076-voice-recordings-are-sent-to-deepgram.md) | Voice recordings are sent to Deepgram without opting out of its model-training programme | SECURITY | high | low |
+| [B1086](backlog/security/B1086-anonymous-export-zip-hands-out-the.md) | Anonymous export.zip hands out the owner's name, email and home town | SECURITY | high | low |
 | [B1045](backlog/security/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low |
+| [B1087](backlog/security/B1087-owner-only-json-and-auth-responses.md) | Owner-only JSON and auth responses carry no no-store cache header | SECURITY | low | low |
 
-### issue (8)
+### issue (10)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -70,6 +72,8 @@ Do not edit them by hand; run the script.
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1044](backlog/issue/B1044-six-fonts-are-preloaded-on-every.md) | Six fonts are preloaded on every page and none of them is used in time | ISSUE | low | low |
+| [B1088](backlog/issue/B1088-trace-returns-http-500-instead-of.md) | TRACE returns HTTP 500 instead of 405 on pages and API | ISSUE | low | low |
+| [B1089](backlog/issue/B1089-x-powered-by-header-advertises-next.md) | x-powered-by header advertises Next.js to anonymous callers | ISSUE | low | low |
 
 ### big-feature (21)
 

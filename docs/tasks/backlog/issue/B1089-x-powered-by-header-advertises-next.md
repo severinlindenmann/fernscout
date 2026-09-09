@@ -1,0 +1,23 @@
+---
+id: B1089
+title: x-powered-by header advertises Next.js to anonymous callers
+type: ISSUE
+priority: low
+complexity: low
+area: http, headers, info-disclosure
+found: "2026-09-09T15:49:15Z"
+---
+
+# B1089 — x-powered-by header advertises Next.js to anonymous callers
+
+## Why
+
+TODO — the problem, not the fix.
+
+## Work
+
+TODO
+
+## Acceptance
+
+TODO
