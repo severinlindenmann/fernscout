@@ -100,3 +100,25 @@ final.
 `npm run verify` result: see commit for the full run; `test/task-ids.test.ts`
 and any 30s-timeout files are known noise per dispatch instructions and were
 re-run alone where relevant.
+
+## Ratified — 2026-09-09
+
+The owner was asked whether `#aeb7c5` should stand, given it was derived
+arithmetically (one third from `navy-200` toward `navy-500`) rather than taken
+from a brand document that never named a `navy-300`. Their answer: **define it
+yourself, that is fine.**
+
+So this is no longer a stopgap awaiting a brand decision — `--color-navy-300:
+#aeb7c5` is the shade, and `app/globals.css` is where it lives. The
+`apply-the-brand` skill already points at the tokens rather than carrying its
+own copy of the hex, so there is nothing to update there and nothing to keep
+in step.
+
+The open question this leaves is not this shade but the next one:
+`test/undefined-color-tokens.test.ts` covers the `-300` shade on this
+palette's own hues. Its own doc comment records that `navy`, `cream` and
+`coral` have no Tailwind default to fall back on — so an undefined shade there
+is unambiguously this bug — while `sky`, `yellow`, `green` and `blue` share
+names with Tailwind's stock palette and would silently resolve to *Tailwind's*
+colour instead. That is a different, quieter fault, and B1035 (`navy-800`)
+is the one already captured.
