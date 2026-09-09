@@ -25,6 +25,27 @@ Live at `https://fernscout.ch/docs/branding`, and on any local checkout at
 capability — the pages are above all of that, which is why they are the fastest
 thing in this repository to open.
 
+## The bench proves the drawing, not the feature
+
+A bench renders the real component with props you hand it, which is what makes
+it trustworthy about *shape* — and blind to whether anything on the site ever
+passes those props. Both halves have to hold before a visible change is done:
+
+1. **It draws correctly** — the bench, held still.
+2. **Something real reaches it** — the page a reader opens, on content that
+   existed before your branch.
+
+The second is the one that gets skipped, and it fails silently. B42 drew a
+reader's own clock beside a day's local time; the drawing was right, and it
+appeared on exactly two days in the world, both of them edited by the same
+change to carry the field that switches it on. Every other day rendered as
+before. Nothing was broken and nothing worked. B1090.
+
+So when a change adds a field, a prop or a condition that decides whether a
+thing is drawn at all, the question is never "does it draw" — it is **how many
+of the things a person will actually open satisfy that condition today**. If
+the answer is none, the feature is inert and the ticket is not finished.
+
 ## The one move that matters: hold it still
 
 The animation bench has **Hold at a moment** and a slider. Use it. Every bug

@@ -215,6 +215,28 @@ If a line cannot be demonstrated, the task is not finished. Say which line,
 leave it in `in-development/`, and stop. Do not rewrite the acceptance criteria
 to match what you built.
 
+**If a person can see it, look at it — on content you did not write.** A green
+suite means the mechanism works on the case you built for it, which is exactly
+the case that cannot surprise you. Open the thing a reader opens: an existing
+day, an existing trip, a page that was there before your branch. Two rules
+make that check worth running:
+
+- **Never verify on a fixture you authored for the verification.** B42 shipped
+  a second clock beside a day's time, and it was checked on the two demo days
+  the same change had edited to carry the new field. Both passed. Every day
+  that already existed showed nothing at all, because nothing filled the field
+  in — the feature was inert everywhere it mattered and the check could not
+  have found that. The owner found it in one click. B1090.
+- **A page is not `curl` output.** Anything rendered in or below `TripHero` —
+  a byline, a cover, the stats — is not in the server HTML at all, because the
+  hero is handed to the animated story component. Grepping the response finds
+  nothing and looks like a broken prop chain. Drive a browser:
+  `test-in-a-browser` for a local checkout, and read `document.body.innerText`
+  after the page settles rather than the fetched markup.
+
+For a *drawing* — an SVG, an animation, a card, a print margin — that check is
+`check-a-drawing` and its benches, not a screenshot of the whole site.
+
 **One more pass if the change touched a door.** Auth, tokens, grants,
 visibility, an API route, anything that decides who sees what: run the
 `claude-security` skill over the branch before merging. The four commands above

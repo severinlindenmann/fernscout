@@ -193,6 +193,24 @@ Assert what the ticket claims, not that the page rendered:
 - Delete any probe test file you wrote. A test that reads `content/` is not one
   to commit — those are real people's trips, and the suite stays off disk.
 
+## Open something that was already there
+
+The last step, and the one worth protecting: after the capability is on and
+the panel renders, **open a page nobody made for this test** — an existing
+day, an existing trip, the demo journal as it stood before your branch.
+
+A fixture you wrote to exercise a feature satisfies every condition the
+feature needs, because you wrote it that way. Real content does not. B42's
+second clock drew perfectly on the two days its own change had edited and on
+nothing else in the world, because the field that switches it on was empty
+everywhere else; the suite was green and the feature was inert. B1090.
+
+Two questions answer it:
+
+- On a page you did not touch, is the new thing there?
+- If it is deliberately absent, is that the designed absence, or is it absent
+  because nothing ever fills in what it needs?
+
 ## What this cannot tell you
 
 It runs against a dev build with the demo journal's content. It will not catch a

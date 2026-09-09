@@ -31,6 +31,13 @@ Two things follow:
 - **An unmet acceptance line stays unmet on the page.** If a ticket shipped
   with a line nobody could demonstrate, it is a row in "what still wants your
   eyes", not a silent omission.
+- **A visible change was checked on content nobody wrote for the check**, or
+  the page says which content it was checked on. "The dual clock works" and
+  "the dual clock works on the two demo days this change edited" are different
+  claims, and only the second was true of B42 — every day that already existed
+  showed nothing. Drawing a before-and-after from a fixture built to make the
+  after look right is the most flattering mistake available here, and the
+  hardest for a reader to catch.
 
 ## Step 1 — establish what the run actually was
 

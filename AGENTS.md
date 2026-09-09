@@ -394,6 +394,17 @@ order that matters, and running them separately is how the order gets lost. The
 dev server must still boot with a capability both on and off; nothing automates
 that.
 
+**And it is not the gate for anything a person looks at.** A green suite says
+the mechanism works on the case you built for it — which is the one case that
+cannot surprise you. A visible change is finished when it has been seen on
+content that existed *before* the branch: an existing day, an existing trip, a
+page nobody wrote for the test. B42 shipped a reader's own clock beside a day's
+local time, checked it on the two demo days the same change had edited to carry
+the new field, and passed; every day already written showed nothing at all,
+because nothing filled that field in. The feature was inert everywhere it
+mattered and no test could have said so. B1090. `work-on-a-task` step 5,
+`test-in-a-browser` and `check-a-drawing` each carry the procedure.
+
 **While you are iterating, run the one test file** — `npx vitest run
 test/thing.test.ts` — and keep `verify` for the end. The full suite is fifty
 seconds and the build seventy, and a change is usually wrong in one file at a
