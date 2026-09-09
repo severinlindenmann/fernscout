@@ -7,8 +7,7 @@ complexity: low
 area: helper
 found: "2026-09-09T22:34:28Z"
 started: "2026-09-09T22:35:07Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-09T22:35:07Z"
+merged: "2026-09-09T22:42:18Z"
 ---
 
 # B1197 — The preview column's width is stored and never read back after a reload

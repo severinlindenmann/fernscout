@@ -7,8 +7,7 @@ complexity: low
 area: helper
 found: "2026-09-09T22:34:27Z"
 started: "2026-09-09T22:35:04Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-09T22:35:04Z"
+merged: "2026-09-09T22:42:17Z"
 ---
 
 # B1195 — A refused exchange vanishes from the stored conversation the person saw
