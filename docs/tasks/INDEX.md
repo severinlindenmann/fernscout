@@ -271,7 +271,7 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (14)
+## in-development (16)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -283,11 +283,13 @@ Do not edit them by hand; run the script.
 | [B1062](in-development/B1062-there-is-still-no-way-out.md) | There is still no way out of the WhatsApp channel from inside WhatsApp | FEATURE | high | medium | `e910c430` |
 | [B1063](in-development/B1063-the-imprint-does-not-say-that.md) | The imprint does not say that a message sent to the WhatsApp number is read, stored and sent to Meta | DOCS | high | low | `e910c430` |
 | [B1173](in-development/B1173-gelato-demands-a-page-count-two.md) | Gelato demands a page count two higher than the one it accepted a quote for | ISSUE | high | low | `ce87fdc2` |
+| [B1184](in-development/B1184-the-agent-room-and-door-offer.md) | The agent room and door offer no way to change their language | ISSUE | high | low | `b9809a36` |
 | [B994](in-development/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | `b9809a36` |
 | [B1060](in-development/B1060-a-voice-note-sent-over-whatsapp.md) | A voice note sent over WhatsApp has no route to the transcriber that already exists | FEATURE | medium | low | `e910c430` |
 | [B1074](in-development/B1074-a-location-pin-and-a-shared.md) | A location pin and a shared contact card arrive as text and become nothing | FEATURE | medium | medium | `e910c430` |
 | [B1138](in-development/B1138-the-whatsapp-channel-discloses-ai-consent.md) | The WhatsApp channel discloses AI/consent once but never gates on an acknowledgement | ISSUE | medium | medium | `e910c430` |
 | [B1181](in-development/B1181-the-operator-console-answers-the-wrong.md) | The operator console answers the wrong question first: no single attention list, no net, no unit cost, and the roster is split across three panels | FEATURE | medium | high | `52950bf1` |
+| [B1185](in-development/B1185-choosing-a-language-at-signup-does.md) | Choosing a language at signup does not set the person's own reading language | ISSUE | medium | low | `b9809a36` |
 | [B1127](in-development/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low | `e910c430` |
 
 ## testing (53)
