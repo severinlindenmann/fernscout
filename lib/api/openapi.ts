@@ -3953,9 +3953,9 @@ export function openApiDocument() {
                         "the only part of the `owner` block a token may write. It is where " +
                         "the owner's own WhatsApp copy of a published day goes, and that copy " +
                         "costs no credits; without it the owner is the one person the channel " +
-                        "cannot reach. Include the country code — `+41 76 561 31 50`, " +
-                        "`0041 76 561 31 50` or `41765613150`. A national number like " +
-                        "`076 561 31 50` is refused rather than guessed at, because it means " +
+                        "cannot reach. Include the country code — `+41 76 000 00 00`, " +
+                        "`0041 76 000 00 00` or `41760000000`. A national number like " +
+                        "`076 000 00 00` is refused rather than guessed at, because it means " +
                         "a different telephone in every country. Stored and returned as E.164 " +
                         "digits, whatever form it was sent in. Empty string removes it, which " +
                         "is also how the owner stops their own messages.",

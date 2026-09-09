@@ -605,8 +605,8 @@ function parseOwner(src: Record<string, unknown>, problems: string[]): Owner {
     const tel = typeof raw.tel === "string" ? toE164(raw.tel) : null;
     if (!tel) {
       problems.push(
-        "owner.tel must be a telephone number with its country code — +41 76 561 31 50, " +
-          "0041 76 561 31 50 or 41765613150 — or absent. A national number like 076 561 31 50 " +
+        "owner.tel must be a telephone number with its country code — +41 76 000 00 00, " +
+          "0041 76 000 00 00 or 41760000000 — or absent. A national number like 076 000 00 00 " +
           "is refused here: this file is read on a server, which is not standing in any country.",
       );
     } else {

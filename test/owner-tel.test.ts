@@ -75,8 +75,8 @@ afterEach(() => {
 
 describe("the number in the file", () => {
   test("every international form is stored as the same digits", () => {
-    for (const raw of ["+41 76 561 31 50", "+41765613150", "0041 76 561 31 50", "41765613150"]) {
-      expect(parseUserConfig(OWNER, journalFile(raw)).owner.tel).toBe("41765613150");
+    for (const raw of ["+41 76 000 00 00", "+41760000000", "0041 76 000 00 00", "41760000000"]) {
+      expect(parseUserConfig(OWNER, journalFile(raw)).owner.tel).toBe("41760000000");
     }
   });
 
@@ -85,7 +85,7 @@ describe("the number in the file", () => {
   });
 
   test("a national number is refused, and the message says why", () => {
-    expect(() => parseUserConfig(OWNER, journalFile("076 561 31 50"))).toThrow(
+    expect(() => parseUserConfig(OWNER, journalFile("076 000 00 00"))).toThrow(
       /owner\.tel must be a telephone number with its country code/,
     );
   });
@@ -98,11 +98,11 @@ describe("the number in the file", () => {
 describe("setting it through PATCH /api/v1/<user>/config", () => {
   test("writes owner.tel and leaves the rest of the owner block alone", () => {
     writeJournal();
-    const result = setJournalProfile(OWNER, { ownerTel: "+41 76 561 31 50" });
+    const result = setJournalProfile(OWNER, { ownerTel: "+41 76 000 00 00" });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.changed).toEqual(["ownerTel"]);
-    expect(result.journal.ownerTel).toBe("41765613150");
+    expect(result.journal.ownerTel).toBe("41760000000");
 
     // The block is rewritten, so the fields nobody may set through here have
     // to survive it — the email in particular, which decides who can get a
@@ -111,13 +111,13 @@ describe("setting it through PATCH /api/v1/<user>/config", () => {
       name: "Ana B",
       nickname: "Ana",
       email: "ana@example.test",
-      tel: "41765613150",
+      tel: "41760000000",
     });
-    expect(getUser(OWNER)?.owner.tel).toBe("41765613150");
+    expect(getUser(OWNER)?.owner.tel).toBe("41760000000");
   });
 
   test("an empty string clears it, and the key leaves the file", () => {
-    writeJournal("+41765613150");
+    writeJournal("+41760000000");
     const result = setJournalProfile(OWNER, { ownerTel: "" });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -128,7 +128,7 @@ describe("setting it through PATCH /api/v1/<user>/config", () => {
 
   test("a national number is refused rather than guessed, and nothing is written", () => {
     writeJournal();
-    const result = setJournalProfile(OWNER, { ownerTel: "076 561 31 50" });
+    const result = setJournalProfile(OWNER, { ownerTel: "076 000 00 00" });
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error).toBe("invalid_ownerTel");
@@ -138,7 +138,7 @@ describe("setting it through PATCH /api/v1/<user>/config", () => {
 
   test("the owner block as a whole is still refused, and now points at the field that works", () => {
     writeJournal();
-    const result = setJournalProfile(OWNER, { owner: { tel: "+41765613150" } });
+    const result = setJournalProfile(OWNER, { owner: { tel: "+41760000000" } });
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error).toBe("unsupported_field");
@@ -147,8 +147,8 @@ describe("setting it through PATCH /api/v1/<user>/config", () => {
   });
 
   test("the read-back a caller checks its own work against carries it", () => {
-    writeJournal("+41765613150");
+    writeJournal("+41760000000");
     const user = getUser(OWNER)!;
-    expect(journalProfile(user).ownerTel).toBe("41765613150");
+    expect(journalProfile(user).ownerTel).toBe("41760000000");
   });
 });

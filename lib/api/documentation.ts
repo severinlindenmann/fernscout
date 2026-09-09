@@ -1277,7 +1277,7 @@ One part of the \`owner\` block *is* yours to write, as the flat field
 copy of a published day goes, and that copy costs no credits — as their own
 copy of the day's letter does not either. Without a number the owner is the
 one person this channel cannot reach, including for checking it works before a
-guest ever sees it. Include the country code — \`+41 76 561 31 50\` — because a
+guest ever sees it. Include the country code — \`+41 76 000 00 00\` — because a
 national number means a different telephone in every country and is refused
 rather than guessed at. Do not invent one: ask for it, or leave it absent.
 
