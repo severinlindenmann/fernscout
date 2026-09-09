@@ -155,6 +155,7 @@ const NAMED_FAILURES = [
   "invalid_people",
   "too_many_requests",
   "invalid_json",
+  "too_long",
 ] as const;
 
 function failureSentence(

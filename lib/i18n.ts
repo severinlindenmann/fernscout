@@ -208,6 +208,7 @@ export type TranslationKey =
   | "agent.error.not_attached"
   | "agent.error.nothing_to_change"
   | "agent.error.slug_taken"
+  | "agent.error.too_long"
   | "agent.error.too_many_requests"
   | "agent.error.unknown_day"
   | "agent.error.unknown_inbox_file"

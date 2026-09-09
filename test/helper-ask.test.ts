@@ -325,6 +325,38 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       expect(refused.body.error).toBe("consent_required");
       expect(answerInThread).not.toHaveBeenCalled();
     });
+
+    /**
+     * B1039 — this used to cut a long message to 500 characters and send the
+     * front half on, with nothing telling the person or the model that
+     * anything was missing. Past the ceiling it now refuses outright, and
+     * `answerInThread` never sees the sentence at all — the model must never
+     * be handed less than a person typed while believing it has the whole
+     * thing.
+     */
+    test("a message past the ceiling is refused, not quietly shortened", async () => {
+      const long = "a".repeat(4001);
+      const refused = await read(await ask(long));
+      expect(refused.status).toBe(400);
+      expect(refused.body.error).toBe("too_long");
+      expect(refused.body.limit).toBe(4000);
+      expect(answerInThread).not.toHaveBeenCalled();
+    });
+
+    test("a message right at the ceiling still goes through, whole", async () => {
+      answerInThread.mockImplementation(async () => ({
+        answer: "Right you are.",
+        looked: [],
+        blocks: [],
+        proposals: [],
+      }));
+      const atCeiling = "a".repeat(4000);
+      const ok = await read(await ask(atCeiling));
+      expect(ok.status).toBe(200);
+      expect(answerInThread).toHaveBeenCalledTimes(1);
+      const sentSentence = answerInThread.mock.calls[0][1] as string;
+      expect(sentSentence).toBe(atCeiling);
+    });
   });
 
   /**
