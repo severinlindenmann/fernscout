@@ -81,6 +81,10 @@ const ROUTES: Record<string, () => Promise<Record<string, unknown>>> = {
   "/day/unpublish": () => import("@/app/api/helper/[user]/day/unpublish/route"),
   "/day/attach": () => import("@/app/api/helper/[user]/day/attach/route"),
   "/invite": () => import("@/app/api/helper/[user]/invite/route"),
+  "/journal": () => import("@/app/api/helper/[user]/journal/route"),
+  "/storage/cleanup": () => import("@/app/api/helper/[user]/storage/cleanup/route"),
+  "/storage": () => import("@/app/api/helper/[user]/storage/route"),
+  "/keys": () => import("@/app/api/helper/[user]/keys/route"),
 };
 
 /** What somebody says to reach each write tool. `files` is filled in per run,
@@ -111,6 +115,10 @@ const SAID: Record<string, Record<string, string>> = {
   unpublish_day: { trip: AS_SAID, slug: PUBLISHED },
   attach_files: { trip: AS_SAID, slug: DRAFT },
   invite_guest: { name: "Mira" },
+  journal_settings: { title: "Neu", tagline: "t" },
+  cleanup: {},
+  buy_room: {},
+  revoke_key: {},
 };
 
 const say: Say = ((key: string, vars?: Record<string, string>) =>
@@ -144,10 +152,19 @@ beforeEach(async () => {
         auth: { enabled: true },
         helper: { enabled: true },
         contacts: { enabled: true },
+        // So `buy_room` can propose at all — B1042 batch. The spend itself
+        // still fails with `no_credits` (an empty balance), which is a fact
+        // about the journal and not one of the SHAPE refusals below.
+        credits: { enabled: true },
       },
     }),
   );
   fs.mkdirSync(path.join(dir, "alex", "trips", TRIP, "entries"), { recursive: true });
+  // A postcard sheet already on disk, so `cleanup` has something to report —
+  // otherwise `cleanupPlan` answers zero bytes and the tool declines itself
+  // before there is anything to press (B951's rule, correctly applied).
+  fs.mkdirSync(path.join(dir, "alex", "postcards", "card1"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "alex", "postcards", "card1", "sheet.pdf"), "x");
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -215,6 +232,15 @@ describe("a proposal's arguments are the press", () => {
     if (name === "attach_files") {
       const staged = await storeInboxFile("alex", "media", "hafen.jpg", await paintJpeg(40, 30, 1), {});
       said.files = staged.entry.id;
+    }
+    if (name === "revoke_key") {
+      // A real key to take back — `listSessions` is where its id comes from,
+      // the same way the room's own `keys` tool would have handed it over.
+      const { issueCode, listSessions, verifyCode } = await import("@/lib/auth");
+      const { code } = await issueCode("alex", OWNER_EMAIL, "agent");
+      await verifyCode("alex", OWNER_EMAIL, code, "agent");
+      const [row] = await listSessions("alex");
+      said.id = row.id;
     }
     const ran = await runTool("alex", name, said, say, "2026-05-06");
     const proposal = ran.proposal;

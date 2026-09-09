@@ -434,6 +434,10 @@ describe("the tools", () => {
       // B906 — a sentence that names a thing rather than a date used to land
       // on the screen that starts a new day.
       "find_day",
+      // B1042 — the keys that can write here, and this owner's own past
+      // conversations (B1022).
+      "keys",
+      "past_conversations",
       "read_day",
       "trip_costs",
       "trips",
@@ -447,18 +451,25 @@ describe("the tools", () => {
     ).toEqual([
       "add_cost",
       "attach_files",
+      // B1042 — the journal's own account, read out and now writable too.
+      "buy_room",
+      "cleanup",
       "create_trip",
       "draft_words",
       // B931 — the only way somebody who was not on a trip can ever read it.
       "invite_guest",
+      "journal_settings",
       "publish_day",
+      "revoke_key",
       "set_day_words",
       "start_day",
       "unpublish_day",
     ]);
-    expect(TOOLS.filter((tool) => tool.kind === "link").map((tool) => tool.name)).toEqual([
-      "add_photos",
-    ]);
+    expect(
+      TOOLS.filter((tool) => tool.kind === "link")
+        .map((tool) => tool.name)
+        .sort(),
+    ).toEqual(["add_photos", "buy_credits"]);
   });
 
   /**

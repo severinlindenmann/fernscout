@@ -115,8 +115,12 @@ describe("the helper routes", () => {
   // Nineteen since B931 added `invite`, which proposes the guest link that
   // lets somebody who was not on a trip ask to read it. Same cookie, same
   // owner check, and it issues a link and never a grant.
-  test("there are nineteen of them, and each is guarded", () => {
-    expect(sources).toHaveLength(19);
+  // Twenty-three since the B1042 journal-capabilities batch added four: a
+  // title and tagline (`journal`), a cleanup press (`storage/cleanup`), a
+  // room purchase (`storage`) and a key taken back (`keys`) — same cookie,
+  // same owner check as the nineteen above them.
+  test("there are twenty-three of them, and each is guarded", () => {
+    expect(sources).toHaveLength(23);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

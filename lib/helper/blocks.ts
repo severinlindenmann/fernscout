@@ -32,8 +32,16 @@ export const SHAPES = [
 
 export type Shape = (typeof SHAPES)[number];
 
-/** One thing to pick from in a `choose`. `value` is what a later turn names. */
-type Option = { value: string; label: string; detail?: string };
+/**
+ * One thing to pick from in a `choose`. `value` is what a later turn names.
+ *
+ * `href` is the exception to that — B1022. Picking a day or a trip names it
+ * back into the conversation because the model still has to act on it; picking
+ * a past *conversation* has nothing left for the model to do, the room just
+ * has to be there. So an option carrying `href` navigates instead of filling
+ * the box, and is the only one of the seven shapes where a chip is a link.
+ */
+type Option = { value: string; label: string; detail?: string; href?: string };
 
 /**
  * One field of a proposal, prefilled and **editable** — B900.
