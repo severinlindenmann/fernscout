@@ -186,6 +186,37 @@ Assert what the ticket claims, not that the page rendered:
   hydration mismatch shows up nowhere else, and one shipped here because the
   stored arrangement was read in a `useState` initialiser instead of an effect.
 
+## The short way: one command, four kinds of evidence
+
+Everything above is the setup — a database, a capability, a sign-in, a cookie.
+Once you have those, **the looking itself is one command**, and it is the same
+command a dispatched subagent can run, which the MCP browser is not:
+
+```bash
+node .claude/skills/test-in-a-browser/check-page.mjs \
+    http://localhost:3011/example/trips/alps-2024 /tmp/shots \
+    --cookie "fs_session=$(grep fs_session /tmp/wt-cookies.txt | awk '{print $7}')"
+```
+
+It writes `<slug>-1280.png`, `<slug>-390.png` and `<slug>.json`, and the JSON
+is the half that matters: `innerText` as a reader meets it, `consoleErrors`,
+`failedRequests`, `status`, `title`. It exits non-zero on a 5xx or a failed
+navigation, so a run can gate on it.
+
+**Read the JSON as well as looking at the picture.** A page is the one thing an
+agent can genuinely check its own work on, and it is only true because a page
+hands back its text, its console and its requests beside the image. A
+screenshot on its own is a thing to have an opinion about.
+
+**And do not read the served markup instead.** `curl` on a trip page contains
+almost every word the page renders — plus JSON-LD, script payloads and markup
+the animation has not revealed — so a grep that finds a word has learned
+nothing about whether anybody sees it. B1097.
+
+Flags: `--widths 1280,390`, `--wait 2000` (after load, for debounced work),
+`--cookie name=value` repeatable, `--slug name` to control the filenames.
+`CHROME_PATH` if Chrome is not in the usual place.
+
 ## When you are done
 
 - Revert the config edits (above).
