@@ -2184,10 +2184,14 @@ function coverFor(
     subtitle: volume.of > 1 ? fill(s.volume, { index: String(volume.index), of: String(volume.of) }) : source.trip.tagline,
     dates: formatDateRange(source.trip.start, source.trip.end, s),
     spineText: spineTextFor(source.trip.title, source.trip.start),
+    // The back panel's hinge is on its right, so the measure loses the gutter
+    // there and keeps the outer margin on the left — the mirror of the front
+    // panel in `renderCover`, and the reason a blurb no longer runs into the
+    // spine on a thick book.
     backLines: wrap(
       source.trip.intro.split(/\n{2,}/)[0]?.replace(/\s*\n\s*/g, " ").trim() ?? "",
       typeScale(spec).body,
-      mm(spec.size.trimWidthMm - spec.safeMm * 2),
+      mm(spec.size.trimWidthMm - spec.safeMm - spec.gutterMm),
     ).slice(0, 8),
   };
 }

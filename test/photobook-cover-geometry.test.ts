@@ -405,3 +405,31 @@ describe("the audit reads structure, not photographs", () => {
     expect(auditPdfxBytes(new Uint8Array(real)).failures.join(" ")).toContain("JavaScript");
   });
 });
+
+describe("the cover has a gutter too — B1024", () => {
+  /**
+   * The front panel's left edge is the hinge: the spine on a softcover, the
+   * joint on a case. Type set at the outer margin there sits as close to the
+   * fold as an interior page would ever put a word, and closer once the book
+   * is bound and the first millimetres curve away. It looked all but cut off.
+   */
+  it("sets the front panel's type at the gutter, not the outer margin", () => {
+    const spec = defaultSpec(BOOK_SIZES.square, "soft");
+    const volume = planBook(source([day(0), day(1), day(2)]), spec, DEFAULT_OPTIONS).volumes[0];
+    const pdf = Buffer.from(renderCover(volume, spec, { loadImage }).pdf).toString("latin1");
+
+    const geometry = volume.cover.geometry;
+    const frontX = geometry.back.widthMm + (geometry.joint?.widthMm ?? 0) * 2 + geometry.spineWidthMm;
+    const inset = geometry.wrapMm + geometry.bleedMm;
+    // Text is placed with a `Td` x in points; the title's is the leftmost one
+    // on the front panel.
+    const wantMm = inset + frontX + spec.gutterMm;
+    const wantPt = (wantMm / 25.4) * 72;
+    const xs = [...pdf.matchAll(/BT [^)]*?([\d.]+) [\d.]+ Td/g)].map((m) => Number(m[1]));
+    const onFront = xs.filter((x) => x > ((inset + frontX) / 25.4) * 72);
+    expect(onFront.length).toBeGreaterThan(0);
+    expect(Math.min(...onFront)).toBeCloseTo(wantPt, 0);
+    // And emphatically not the old outer-margin position.
+    expect(Math.min(...onFront)).not.toBeCloseTo(((inset + frontX + spec.safeMm) / 25.4) * 72, 0);
+  });
+});
