@@ -179,8 +179,8 @@ question they were never actually asked.
 - The `type:` or `complexity:` turns out to be wrong — a "chore" that is really
   an engagement against the live instance, a `medium` feature that is a
   fortnight — → correct the frontmatter and run `npm run tasks -- tidy`. Those
-  two fields decide the category folder in `backlog/` and `testing/`, so
-  editing one in place leaves the file where it no longer belongs and
+  two fields decide the category folder in `backlog/`, so editing one in
+  place leaves the file where it no longer belongs and
   `test/task-ids.test.ts` fails on the merge. Never move the file by hand.
 - You find a second problem → that is a new capture in `backlog/`, not scope
   you silently absorb. Reference it by id from this task. **But a problem this

@@ -39,7 +39,7 @@ asks map like this:
 | "the backlog" with no qualifier | `docs/tasks/backlog/` — every category |
 | "features" | `backlog/big-feature/` + `backlog/small-feature/` |
 | "bugs", "issues" | `backlog/issue/` |
-| "what's waiting to be checked" | `docs/tasks/testing/` (all categories) |
+| "what's waiting to be checked" | `docs/tasks/testing/` — flat, no categories |
 
 `backlog/security/` is a deliberate decision, not a default: those tickets are
 live findings. Include them only when asked, and never in an artifact the
