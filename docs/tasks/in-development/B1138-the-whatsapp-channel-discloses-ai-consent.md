@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: whatsapp, consent
 found: "2026-09-09T20:17:00Z"
+started: "2026-09-09T20:27:29Z"
+session: e910c430-ff9a-40d7-90f2-9e6f530e409f
+claimed: "2026-09-09T20:27:29Z"
 ---
 
 # B1138 — The WhatsApp channel discloses AI/consent once but never gates on an acknowledgement

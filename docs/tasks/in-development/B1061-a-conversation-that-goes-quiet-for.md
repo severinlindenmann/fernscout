@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: whatsapp, policy, cost
 found: "2026-09-09T07:11:44Z"
+started: "2026-09-09T20:27:31Z"
+session: e910c430-ff9a-40d7-90f2-9e6f530e409f
+claimed: "2026-09-09T20:27:31Z"
 ---
 
 # B1061 — A conversation that goes quiet for a day cannot be answered, and nothing in the code knows it

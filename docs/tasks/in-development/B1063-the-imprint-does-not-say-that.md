@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: legal, privacy, whatsapp
 found: "2026-09-09T07:11:45Z"
+started: "2026-09-09T20:27:44Z"
+session: e910c430-ff9a-40d7-90f2-9e6f530e409f
+claimed: "2026-09-09T20:27:44Z"
 ---
 
 # B1063 — The imprint does not say that a message sent to the WhatsApp number is read, stored and sent to Meta

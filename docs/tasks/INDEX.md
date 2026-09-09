@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (170)
+## backlog (162)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1045](backlog/security/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low |
 
-### issue (28)
+### issue (27)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -75,7 +75,6 @@ Do not edit them by hand; run the script.
 | [B1130](backlog/issue/B1130-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
 | [B1131](backlog/issue/B1131-removing-somebody-from-a-trip-tells.md) | Removing somebody from a trip tells the owner their token keeps working, and it does not | ISSUE | medium | low |
 | [B1132](backlog/issue/B1132-the-address-confirmation-mail-says-nothing.md) | The address-confirmation mail says nothing opens yet, but a pre-approved invite admits the reader on confirming | ISSUE | medium | low |
-| [B1138](backlog/issue/B1138-the-whatsapp-channel-discloses-ai-consent.md) | The WhatsApp channel discloses AI/consent once but never gates on an acknowledgement | ISSUE | medium | medium |
 | [B1139](backlog/issue/B1139-a-hold-in-in-development-survives.md) | A hold in in-development survives the session that took it, and nothing says the work already merged | ISSUE | medium | medium |
 | [B1148](backlog/issue/B1148-a-refused-print-credential-is-reported.md) | A refused print credential is reported to the owner as the printer being unreachable, with advice to try again | ISSUE | medium | low |
 | [B1165](backlog/issue/B1165-a-printer-refusal-says-nothing-about.md) | A printer refusal says nothing about why, to anybody who could act on it | ISSUE | medium | low |
@@ -91,14 +90,12 @@ Do not edit them by hand; run the script.
 | [B1142](backlog/issue/B1142-the-share-control-gate-test-asserts.md) | The share-control gate test asserts proximity with a character window that is widened every time the file grows | ISSUE | low | low |
 | [B1149](backlog/issue/B1149-the-pdf-x-report-tells-you.md) | The PDF/X report tells you to run gs-pdfx.sh, which is only written when the run already had an ICC | ISSUE | low | low |
 
-### big-feature (17)
+### big-feature (15)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1056](backlog/big-feature/B1056-a-helper-answer-can-only-be.md) | A helper answer can only be drawn in the web room, because Block has exactly one renderer | FEATURE | high | high |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B1049](backlog/big-feature/B1049-a-model-choosing-among-forty-three.md) | A model choosing among forty-three tools chooses worse than one choosing among seventeen | FEATURE | medium | high |
-| [B1068](backlog/big-feature/B1068-an-agent-that-brings-its-own.md) | An agent that brings its own model cannot write a day from notes, caption a photograph, or hear a voice note | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | A journal folder can be exported and never pushed back, so writing locally is a one-way trip | FEATURE | medium | high |
@@ -113,17 +110,14 @@ Do not edit them by hand; run the script.
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 | [B909](backlog/big-feature/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-### small-feature (29)
+### small-feature (25)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1061](backlog/small-feature/B1061-a-conversation-that-goes-quiet-for.md) | A conversation that goes quiet for a day cannot be answered, and nothing in the code knows it | FEATURE | high | medium |
 | [B1153](backlog/small-feature/B1153-handing-your-journal-to-your-own.md) | Handing your journal to your own agent means leaving the conversation to fetch the key | FEATURE | high | low |
 | [B1154](backlog/small-feature/B1154-a-key-that-can-write-to.md) | A key that can write to this journal for seven days is visible nowhere in the room | FEATURE | high | medium |
-| [B1060](backlog/small-feature/B1060-a-voice-note-sent-over-whatsapp.md) | A voice note sent over WhatsApp has no route to the transcriber that already exists | FEATURE | medium | low |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
 | [B1069](backlog/small-feature/B1069-there-is-no-tool-surface-for.md) | There is no tool surface for an agent that would rather be guided than read a spec | FEATURE | medium | medium |
-| [B1074](backlog/small-feature/B1074-a-location-pin-and-a-shared.md) | A location pin and a shared contact card arrive as text and become nothing | FEATURE | medium | medium |
 | [B112](backlog/small-feature/B112-local-scripts-write-straight-to-content.md) | Local scripts still write straight to content, and the one guarantee they skip is the draft rule | FEATURE | medium | medium |
 | [B1155](backlog/small-feature/B1155-a-turn-spends-a-credit-and.md) | A turn spends a credit and nothing on screen says so | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
@@ -137,7 +131,6 @@ Do not edit them by hand; run the script.
 | [B1028](backlog/small-feature/B1028-the-owner-s-own-trip-form.md) | The owner's own trip form cannot edit the three fields the API just gained | FEATURE | low | low |
 | [B1043](backlog/small-feature/B1043-the-helper-has-no-tool-for.md) | The helper has no tool for captioning a photograph or telling readers a day is up | FEATURE | low | low |
 | [B1073](backlog/small-feature/B1073-nothing-shows-the-operator-which-journal.md) | Nothing shows the operator which journal names are held in reserve | FEATURE | low | low |
-| [B1127](backlog/small-feature/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low |
 | [B1134](backlog/small-feature/B1134-accept-language-is-the-only-way.md) | Accept-Language is the only way to set the language of the two pre-journal mails and no agent-facing document says so | FEATURE | low | low |
 | [B1143](backlog/small-feature/B1143-making-a-trip-public-from-the.md) | Making a trip public from the day panel is the same single press as fixing a typo | FEATURE | low | low |
 | [B442](backlog/small-feature/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
@@ -178,7 +171,7 @@ Do not edit them by hand; run the script.
 | [B1119](backlog/ops/B1119-fernscout-ch-s-caddy-block-is.md) | fernscout.ch's Caddy block is hand-merged, so proxy directives drift until applied by hand | OPS | low | low |
 | [B1150](backlog/ops/B1150-ghostscript-is-not-installed-on-the.md) | Ghostscript is not installed on the VPS, so the instance cannot produce a conformant PDF/X-4 | OPS | low | low |
 
-### docs-and-skills (6)
+### docs-and-skills (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -186,7 +179,6 @@ Do not edit them by hand; run the script.
 | [B1112](backlog/docs-and-skills/B1112-a-triage-decision-carries-no-reason.md) | A triage decision carries no reason, so the run brief starts from ids alone | DOCS | medium | low |
 | [B1116](backlog/docs-and-skills/B1116-plan-a-run-re-opens-questions.md) | plan-a-run re-opens questions a ticket has already decided unless the dispatch says not to | DOCS | medium | low |
 | [B1141](backlog/docs-and-skills/B1141-a-worktree-s-cloned-node-modules.md) | A worktree's cloned node_modules goes stale when main adds a dependency, and the build fails as if the change were wrong | DOCS | medium | low |
-| [B1163](backlog/docs-and-skills/B1163-meta-s-ui-verifies-the-webhook.md) | Meta's UI verifies the webhook and subscribes the messages field but never subscribes the WABA to the app, so real inbound is silently dropped | DOCS | medium | low |
 | [B1046](backlog/docs-and-skills/B1046-two-sessions-running-verify-in-the.md) | Two sessions running verify in the shared checkout collide on the next build lock | DOCS | low | low |
 
 ### superseded (64)
@@ -266,16 +258,11 @@ Do not edit them by hand; run the script.
 | [B520](backlog/wont-do/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (14)
+## open (9)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1053](open/B1053-the-helper-s-tool-list-has.md) | The helper's tool list has outgrown the budget its own test set, and the fix is grouping | ISSUE | high | medium |
-| [B1054](open/B1054-the-helper-s-live-conversation-lives.md) | The helper's live conversation lives in one process's memory, so no second door can ever join it | FEATURE | high | high |
-| [B1055](open/B1055-every-helper-route-proves-the-caller.md) | Every helper route proves the caller with a browser cookie, so nothing but a browser can speak to the helper | FEATURE | high | medium |
-| [B1059](open/B1059-a-photograph-sent-over-whatsapp-has.md) | A photograph sent over WhatsApp has nowhere to land, and arrives compressed when it does | FEATURE | high | medium |
-| [B1062](open/B1062-there-is-still-no-way-out.md) | There is still no way out of the WhatsApp channel from inside WhatsApp | FEATURE | high | medium |
-| [B1063](open/B1063-the-imprint-does-not-say-that.md) | The imprint does not say that a message sent to the WhatsApp number is read, stored and sent to Meta | DOCS | high | low |
 | [B1070](open/B1070-the-three-ways-to-reach-this.md) | The three ways to reach this journal are not written down anywhere as three ways | DOCS | high | medium |
 | [B1076](open/B1076-voice-recordings-are-sent-to-deepgram.md) | Voice recordings are sent to Deepgram without opting out of its model-training programme | SECURITY | high | low |
 | [B1091](open/B1091-the-two-model-calls-that-cost.md) | The two model calls that cost real money are free, so the ledger cannot account for what the instance spends | FEATURE | high | medium |
@@ -285,11 +272,24 @@ Do not edit them by hand; run the script.
 | [B1115](open/B1115-a-brief-can-say-a-ticket.md) | A brief can say a ticket is dropped or live, and B1058 is neither | DOCS | high | low |
 | [B994](open/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium |
 
-## in-development (1)
+## in-development (14)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1054](in-development/B1054-the-helper-s-live-conversation-lives.md) | The helper's live conversation lives in one process's memory, so no second door can ever join it | FEATURE | high | high | `e910c430` |
+| [B1055](in-development/B1055-every-helper-route-proves-the-caller.md) | Every helper route proves the caller with a browser cookie, so nothing but a browser can speak to the helper | FEATURE | high | medium | `e910c430` |
+| [B1056](in-development/B1056-a-helper-answer-can-only-be.md) | A helper answer can only be drawn in the web room, because Block has exactly one renderer | FEATURE | high | high | `e910c430` |
+| [B1059](in-development/B1059-a-photograph-sent-over-whatsapp-has.md) | A photograph sent over WhatsApp has nowhere to land, and arrives compressed when it does | FEATURE | high | medium | `e910c430` |
+| [B1061](in-development/B1061-a-conversation-that-goes-quiet-for.md) | A conversation that goes quiet for a day cannot be answered, and nothing in the code knows it | FEATURE | high | medium | `e910c430` |
+| [B1062](in-development/B1062-there-is-still-no-way-out.md) | There is still no way out of the WhatsApp channel from inside WhatsApp | FEATURE | high | medium | `e910c430` |
+| [B1063](in-development/B1063-the-imprint-does-not-say-that.md) | The imprint does not say that a message sent to the WhatsApp number is read, stored and sent to Meta | DOCS | high | low | `e910c430` |
 | [B1172](in-development/B1172-photographs-go-into-the-book-at.md) | Photographs go into the book at camera resolution, so the printer cannot render it | ISSUE | high | medium | `ce87fdc2` |
+| [B1060](in-development/B1060-a-voice-note-sent-over-whatsapp.md) | A voice note sent over WhatsApp has no route to the transcriber that already exists | FEATURE | medium | low | `e910c430` |
+| [B1068](in-development/B1068-an-agent-that-brings-its-own.md) | An agent that brings its own model cannot write a day from notes, caption a photograph, or hear a voice note | FEATURE | medium | high | `e910c430` |
+| [B1074](in-development/B1074-a-location-pin-and-a-shared.md) | A location pin and a shared contact card arrive as text and become nothing | FEATURE | medium | medium | `e910c430` |
+| [B1138](in-development/B1138-the-whatsapp-channel-discloses-ai-consent.md) | The WhatsApp channel discloses AI/consent once but never gates on an acknowledgement | ISSUE | medium | medium | `e910c430` |
+| [B1163](in-development/B1163-meta-s-ui-verifies-the-webhook.md) | Meta's UI verifies the webhook and subscribes the messages field but never subscribes the WABA to the app, so real inbound is silently dropped | DOCS | medium | low | `e910c430` |
+| [B1127](in-development/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low | `e910c430` |
 
 ## testing (46)
 

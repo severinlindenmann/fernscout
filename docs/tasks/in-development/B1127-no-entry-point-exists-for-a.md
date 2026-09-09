@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: whatsapp
 found: "2026-09-09T17:56:46Z"
+started: "2026-09-09T20:27:38Z"
+session: e910c430-ff9a-40d7-90f2-9e6f530e409f
+claimed: "2026-09-09T20:27:38Z"
 ---
 
 # B1127 — No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code

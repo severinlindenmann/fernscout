@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: whatsapp, ops, docs
 found: "2026-09-09T19:36:07Z"
+started: "2026-09-09T20:27:42Z"
+session: e910c430-ff9a-40d7-90f2-9e6f530e409f
+claimed: "2026-09-09T20:27:42Z"
 ---
 
 # B1163 — Meta's UI verifies the webhook and subscribes the messages field but never subscribes the WABA to the app, so real inbound is silently dropped
