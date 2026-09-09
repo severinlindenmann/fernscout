@@ -88,7 +88,8 @@ of work and belongs in its own ticket, not smuggled in here.
   `<link rel="alternate" type="text/markdown" href="/agent.md">`.
 - A day page carries `<link rel="alternate" type="text/markdown">` pointing at
   a URL that answers 200 with that day's source, from both of its paths.
-- `npm run verify` passes — build, `tsc`, `eslint` and the 4860-test suite.
-  Its last step, `npm run unused`, fails on an export this diff does not
-  touch and which fails identically on a clean `main`; captured as B882 and
-  not absorbed here.
+- `npm run verify` passes — build, `tsc`, `eslint`, the test suite and
+  `npm run unused`. (The `recordPrint` knip failure this branch once hit while
+  it was 927 commits behind was already found and fixed on `main`
+  independently — see B880/B881/B883 — so nothing here needed to capture it
+  again.)
