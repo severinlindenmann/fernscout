@@ -285,7 +285,7 @@ Do not edit them by hand; run the script.
 | [B1115](open/B1115-a-brief-can-say-a-ticket.md) | A brief can say a ticket is dropped or live, and B1058 is neither | DOCS | high | low |
 | [B994](open/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium |
 
-## in-development (6)
+## in-development (5)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -293,10 +293,9 @@ Do not edit them by hand; run the script.
 | [B1170](in-development/B1170-the-preview-opens-by-itself-and.md) | The preview opens by itself and cannot be dismissed on a phone | ISSUE | high | medium | `b9809a36` |
 | [B1171](in-development/B1171-the-files-pane-uploads-onto-a.md) | The files pane uploads onto a day nobody chose and never shows the result | ISSUE | high | medium | `b9809a36` |
 | [B1172](in-development/B1172-photographs-go-into-the-book-at.md) | Photographs go into the book at camera resolution, so the printer cannot render it | ISSUE | high | medium | `ce87fdc2` |
-| [B1174](in-development/B1174-an-off-site-copy-that-stops.md) | An off-site copy that stops arriving says nothing wrong on /admin | ISSUE | high | low | `c6d32890` |
 | [B1169](in-development/B1169-the-room-re-renders-and-shifts.md) | The room re-renders and shifts: RoomOpening hydration mismatch and uncontained scrolling | ISSUE | medium | low | `b9809a36` |
 
-## testing (41)
+## testing (42)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -326,6 +325,7 @@ Do not edit them by hand; run the script.
 | [B1160](testing/B1160-on-a-phone-the-preview-sheet.md) | On a phone the preview sheet covers the Ask button, so a typed message cannot be sent | ISSUE | high | low | — |
 | [B1161](testing/B1161-a-read-tool-s-list-is.md) | A read tool's list is still said back in prose, so the answer appears twice | ISSUE | high | low | — |
 | [B1164](testing/B1164-a-book-already-bought-printed-offers.md) | A book already bought printed offers to be printed again, at a different price | ISSUE | high | medium | — |
+| [B1174](testing/B1174-an-off-site-copy-that-stops.md) | An off-site copy that stops arriving says nothing wrong on /admin | ISSUE | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B1035](testing/B1035-navy-800-is-used-across-dozens.md) | navy-800 is used across dozens of components but no navy-800 token exists | ISSUE | medium | low | — |

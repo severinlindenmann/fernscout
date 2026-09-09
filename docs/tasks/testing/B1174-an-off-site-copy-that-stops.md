@@ -7,8 +7,7 @@ complexity: low
 area: admin, backup, DR
 found: "2026-09-09T20:10:14Z"
 started: "2026-09-09T20:10:35Z"
-session: c6d32890-d802-452a-9437-67c47132e6aa
-claimed: "2026-09-09T20:10:35Z"
+merged: "2026-09-09T20:23:11Z"
 ---
 
 # B1174 — An off-site copy that stops arriving says nothing wrong on /admin
@@ -64,3 +63,38 @@ mail already fires on the primary.
 entry and an `unknown` one produces none. On the page, an off-site state of
 `stale` is visually distinguishable from `ok` without reading the timestamp,
 at 390px.
+
+## Outcome (2026-09-09)
+
+Both halves done, merged and deployed.
+
+`lib/adminConsole.ts` — the backup rules came out of `health()` into an
+exported `backupWrongs(backup)`. That was not tidying: `health()` reaches the
+database, the config and three directories, which is why the rules that matter
+most here had no test at all. Five now cover it, including the two that
+express the judgement — a stale secondary alarms while the primary is fine,
+and an `unknown` secondary does not alarm at all.
+
+`app/admin/page.tsx` — the off-site copy is a sibling block with its own state
+pill, age, threshold and `reason`, sharing one `stateTone()` with the primary
+so the two cannot drift apart.
+
+### Seen, not just tested
+
+Driven in a browser at 390px against the demo journal, all three states, with
+the stamps under `.data` moved by hand:
+
+- **stale (74h)** — coral `stale` pill beside the primary's green `ok`, the
+  alarm in the red card above, and a `1` badge on the Instance tab. The detail
+  says why no mail arrived, which is the part that stops the alarm reading as
+  noise.
+- **ok (2h)** — green pill, card back to "Nothing is wrong."
+- **unknown (no stamp)** — navy pill, no alarm, and the panel prints the
+  health route's own reason: unset by choice, or set and never succeeded.
+
+The panel is on the `instance` tab, which is a hash — `/admin#instance`.
+Panels are rendered and hidden rather than mounted on tap, so `innerText` on
+`/admin` alone shows none of this; that cost a screenshot before it was
+noticed and is worth knowing for the next check of this page.
+
+Zero console errors, zero failed requests, at 390px.
