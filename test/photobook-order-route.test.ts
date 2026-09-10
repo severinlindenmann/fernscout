@@ -15,7 +15,10 @@ vi.mock("@/lib/credits", () => ({
   // is under test, unchanged.
   countSpends: vi.fn().mockResolvedValue(0),
 }));
-vi.mock("@/lib/photobook/receipt", () => ({ sendPhotobookReceipt: vi.fn() }));
+vi.mock("@/lib/photobook/receipt", () => ({
+  sendPhotobookReceipt: vi.fn(),
+  sendPhotobookRefused: vi.fn(),
+}));
 // B1157. One press buys a printed book, so the route quotes postage before it
 // charges and hands the built book to the printer after. Both are mocked here:
 // this file is about the money path, and the printer's own behaviour is
@@ -42,6 +45,7 @@ import { planFor, priceOf, buildPhotobook } from "@/lib/photobook/build";
 import { claimOrder, markFailed, markPrinted } from "@/lib/photobook/orders";
 import { quoteBookFor } from "@/lib/photobook/quote";
 import { submitBuiltBook } from "@/lib/photobook/print";
+import { sendPhotobookReceipt, sendPhotobookRefused } from "@/lib/photobook/receipt";
 
 const params = Promise.resolve({ user: "alex" });
 
@@ -209,7 +213,54 @@ describe("the order route", () => {
      * ways this can fail answer the same `stale_preview`, and none of them
      * claims an order, builds a book or spends a credit.
      */
-    describe("the previewed price must still hold at Pay time", () => {
+    /**
+   * B1330. The receipt is for a book that is actually being printed — it
+   * carries the PDFs. A refused, refunded order used to get the same mail,
+   * links and all, which reads as "here is what you paid for" over a purchase
+   * that was given back.
+   */
+  describe("what the buyer is told when the printer refuses", () => {
+    test("gets the refusal notice and no receipt, and the page says so", async () => {
+      vi.mocked(buildPhotobook).mockResolvedValue({
+        files: ["book.pdf"],
+        pages: 40,
+        volumes: 1,
+        missing: [],
+      });
+      vi.mocked(spend).mockResolvedValue(true);
+      vi.mocked(submitBuiltBook).mockResolvedValue({ ok: false, reason: "refused" });
+
+      const response = await POST(orderRequest("order-refused"), { params });
+
+      expect(response.headers.get("location")).toContain("state=print_refused");
+      // The order id rides along: it is the only thing the owner can quote.
+      expect(response.headers.get("location")).toContain("order=order-refused");
+      expect(sendPhotobookReceipt).not.toHaveBeenCalled();
+      expect(sendPhotobookRefused).toHaveBeenCalledWith(
+        expect.objectContaining({ orderId: "order-refused", creditsRefunded: CREDITS }),
+      );
+    });
+
+    test("a printed book still gets the receipt, with its files", async () => {
+      vi.mocked(buildPhotobook).mockResolvedValue({
+        files: ["book.pdf"],
+        pages: 40,
+        volumes: 1,
+        missing: [],
+      });
+      vi.mocked(spend).mockResolvedValue(true);
+
+      const response = await POST(orderRequest("order-printed"), { params });
+
+      expect(response.headers.get("location")).toContain("state=done");
+      expect(sendPhotobookRefused).not.toHaveBeenCalled();
+      expect(sendPhotobookReceipt).toHaveBeenCalledWith(
+        expect.objectContaining({ files: ["book.pdf"] }),
+      );
+    });
+  });
+
+  describe("the previewed price must still hold at Pay time", () => {
       test("a price that grew between preview and press refuses rather than charging the new one", async () => {
         // The quote now totals more than the form's `previewedCredits` (still
         // `CREDITS`, from the default) — a trip that grew a day or a

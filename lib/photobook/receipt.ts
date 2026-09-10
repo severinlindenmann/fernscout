@@ -56,6 +56,63 @@ function canPrint(): boolean {
   return provider !== "dry-run";
 }
 
+/**
+ * The other mail: the book was built and paid for, and the printer refused —
+ * B1330.
+ *
+ * **No links.** The receipt carries the files because there is a book on its
+ * way and those are its PDFs; this one carries none, because nothing was
+ * bought in the end. Offering a download here would read as "here is what you
+ * paid for" over an order that was refunded, which is the same confusion the
+ * on-page message was fixed for.
+ *
+ * What it does carry is the reference. Every order is "my photobook" to the
+ * person who made it, and this id is the only way anybody can find out what
+ * actually happened.
+ *
+ * Best effort and never throws, like its sibling: the credits are already back
+ * by the time this runs, and a dead SMTP host must not turn a handled refusal
+ * into an unhandled one.
+ */
+export async function sendPhotobookRefused(input: {
+  owner: string;
+  orderId: string;
+  tripTitle: string;
+  creditsRefunded: number;
+}): Promise<void> {
+  const user = getUser(input.owner);
+  const to = user?.owner.email;
+  if (!to) return;
+
+  const locale: Locale = pickLocale(user.defaultLocale);
+  const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) =>
+    translateIn(locale, key, vars);
+  const vars = { trip: input.tripTitle, credits: String(input.creditsRefunded) };
+
+  try {
+    await sendTransactional(
+      renderMail(
+        to,
+        t("photobook.refused.subject", vars),
+        {
+          preheader: t("photobook.refused.preheader", vars),
+          title: t("photobook.refused.title"),
+          blocks: [
+            { kind: "paragraph" as const, text: t("photobook.refused.body", vars) },
+            { kind: "paragraph" as const, text: t("photobook.refused.reference", { id: input.orderId }) },
+            { kind: "paragraph" as const, text: t("photobook.refused.next") },
+          ],
+          footer: t("photobook.receipt.footer"),
+        },
+        input.owner,
+      ),
+      `photobook refusal for ${input.orderId}`,
+    );
+  } catch (error) {
+    console.error(`[photobook] refusal notice for ${input.orderId} could not be sent:`, error);
+  }
+}
+
 export async function sendPhotobookReceipt(input: PhotobookReceiptInput): Promise<void> {
   const user = getUser(input.owner);
   const to = user?.owner.email;
