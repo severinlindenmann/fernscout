@@ -1597,7 +1597,12 @@ function ProposalView({
     setPressing(true);
     setFailure("");
     void onAccept(proposal, values)
-      .then(() => setSettled("accepted"))
+      .then(() => {
+        setSettled("accepted");
+        // One short buzz where the platform allows it — B1220 (D41): the
+        // moment something was actually written is the one worth feeling.
+        navigator.vibrate?.(15);
+      })
       .catch((thrown: unknown) => setFailure(failureSentence(t, (thrown as Error).message)))
       .finally(() => setPressing(false));
   };

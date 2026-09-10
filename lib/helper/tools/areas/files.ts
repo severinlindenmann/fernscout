@@ -155,29 +155,21 @@ export const FILES_TOOLS: readonly Tool[] = [
   },
   {
     /**
-     * Photographs are files, and files are not a sentence. The day's own page
-     * has the picker, the upload and what the camera recorded; this hands
-     * somebody to it, on the right day, and changes nothing. Choosing files
-     * inside the conversation is round 6 of the plan.
+     * Photographs come in through the room's own pane now — B1220 (D52).
+     * This used to hand people out to the step-wizard page; since B1171
+     * the pane uploads into the inbox and `attach_files` puts things on a
+     * day, so the honest answer is a sentence about the controls already
+     * on this screen. Server text, not the model's — the screen-claim
+     * guard checks the model's own answer, never a tool's block.
      */
     name: "add_photos",
-    kind: "link",
-    renders: "link",
+    kind: "read",
+    renders: "say",
     describe:
-      "Where photographs are added to a day — the picker, what the camera recorded, and the upload. Use this whenever they want to put pictures on a day. It only hands them the page.",
+      "How photographs are added: say where the controls on this screen are. Use this whenever they want to put pictures on a day.",
     properties: DAY_ARGS,
-    link: (username, args, say) => {
-      const query = new URLSearchParams(
-        Object.entries({ trip: args.trip ?? "", slug: args.slug ?? "", date: args.date ?? "" }).filter(
-          ([, value]) => value !== "",
-        ),
-      ).toString();
-      return {
-        text: say("agent.tool.addPhotos"),
-        href: `/agent/${encodeURIComponent(username)}${query ? `?${query}` : ""}`,
-        label: say("agent.tool.addPhotosLabel"),
-      };
-    },
+    run: async () => ({ wrote: false }),
+    block: (_data, say) => ({ shape: "say", text: say("agent.tool.addPhotosPane") }),
   },
   {
     /**

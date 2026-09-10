@@ -341,6 +341,54 @@ export default function HelperRoom({
     lastDayText.current = text;
   }, [preview]);
 
+  /**
+   * Three keyboard shortcuts and a card that lists them — B1220 (D42).
+   * ⌘/Ctrl+K starts fresh, ⌘/ focuses the field, "?" (outside the field)
+   * opens the cheatsheet; Esc already closes every dialog through the
+   * platform's own <dialog> behaviour.
+   */
+  const [cheatsheetOpen, setCheatsheetOpen] = useState(false);
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      const inField =
+        event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement;
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        void newConversation();
+      } else if ((event.metaKey || event.ctrlKey) && event.key === "/") {
+        event.preventDefault();
+        document.getElementById(`ask-${username}`)?.focus();
+      } else if (event.key === "?" && !inField) {
+        setCheatsheetOpen(true);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username]);
+
+  /**
+   * One dismissible install hint, from the second visit — B1220 (D40).
+   * Never inside a standalone display (already installed), never again
+   * once dismissed.
+   */
+  const [installHint, setInstallHint] = useState(false);
+  useEffect(() => {
+    try {
+      if (window.matchMedia("(display-mode: standalone)").matches) return;
+      if (window.localStorage.getItem("fs.agent.installHintDismissed") === "1") return;
+      const visits = Number(window.localStorage.getItem("fs.agent.visits") ?? "0") + 1;
+      window.localStorage.setItem("fs.agent.visits", String(visits));
+      if (visits >= 2) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setInstallHint(true);
+      }
+    } catch {
+      // Storage refused (private mode) — the hint simply never shows.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /** The bring-your-own-agent sheet — B1210 (D11/D12). */
   const [agentSheetOpen, setAgentSheetOpen] = useState(false);
   /**
@@ -1007,6 +1055,22 @@ export default function HelperRoom({
               {t("agent.open.bringAgent")}
             </button>
           </p>
+          {installHint && (
+            <p className="mt-1 flex shrink-0 items-center justify-center gap-2 text-center text-xs text-navy-500">
+              {t("agent.room.installHint")}
+              <button
+                type="button"
+                onClick={() => {
+                  setInstallHint(false);
+                  window.localStorage.setItem("fs.agent.installHintDismissed", "1");
+                }}
+                aria-label={t("agent.room.closeAccount")}
+                className="rounded-full px-1.5 text-navy-500 hover:text-navy-800"
+              >
+                ✕
+              </button>
+            </p>
+          )}
           </div>
         </main>
 
@@ -1112,6 +1176,29 @@ export default function HelperRoom({
           dark={darkRoom}
           onDark={chooseDark}
         />
+      )}
+
+      {cheatsheetOpen && (
+        <Sheet
+          label={t("agent.room.shortcuts")}
+          close={t("agent.room.closeAccount")}
+          onClose={() => setCheatsheetOpen(false)}
+        >
+          <ul className="space-y-2 text-sm text-navy-800">
+            <li className="flex items-center justify-between gap-3">
+              <span>{t("agent.room.newConversation")}</span>
+              <kbd className="rounded border border-navy-300 px-1.5 font-mono text-xs">⌘K</kbd>
+            </li>
+            <li className="flex items-center justify-between gap-3">
+              <span>{t("agent.room.focusField")}</span>
+              <kbd className="rounded border border-navy-300 px-1.5 font-mono text-xs">⌘/</kbd>
+            </li>
+            <li className="flex items-center justify-between gap-3">
+              <span>{t("agent.room.closePanels")}</span>
+              <kbd className="rounded border border-navy-300 px-1.5 font-mono text-xs">Esc</kbd>
+            </li>
+          </ul>
+        </Sheet>
       )}
 
       {agentSheetOpen && (
