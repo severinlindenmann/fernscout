@@ -88,15 +88,22 @@ function at(answer: unknown, path: string): unknown {
  * draw contributes nothing here, and the sentence saying what happened is
  * still said.
  */
-function previewOf(answer: Record<string, unknown>): Block[] {
+function previewOf(answer: Record<string, unknown>, t: (key: TranslationKey) => string): Block[] {
   const draft = answer.draft as Record<string, unknown> | undefined;
-  // `url` is the invite link, and it is answered exactly once — B931. Read as
-  // a field of the answer, like `draft` above, so this component still knows
-  // the name of no tool.
-  const lines = [draft?.date, draft?.title, answer.url].filter(
+  const lines = [draft?.date, draft?.title].filter(
     (line): line is string => typeof line === "string" && line !== "",
   );
-  return lines.length > 0 ? [{ shape: "preview", text: "", lines }] : [];
+  const blocks: Block[] = lines.length > 0 ? [{ shape: "preview", text: "", lines }] : [];
+  // `url` is the invite link, the postcards preview, or the photobook maker,
+  // and it is answered exactly once — B931. A bare URL in a chat bubble is
+  // not tappable on a phone (B1278), so this reaches the screen as a real
+  // `<a>` — the same shape `kind: "link"` tools already draw — rather than as
+  // one more line of plain text.
+  const url = answer.url;
+  if (typeof url === "string" && url !== "") {
+    blocks.push({ shape: "link", text: "", href: url, label: t("agent.room.openOnSite") });
+  }
+  return blocks;
 }
 
 /** Whether a turn ends in something to check before it happens. Focus goes
@@ -925,7 +932,7 @@ export default function HelperAsk({
         ...was,
         {
           said: "",
-          blocks: [...previewOf(answer), { shape: "say", text: proposal.done }],
+          blocks: [...previewOf(answer, t), { shape: "say", text: proposal.done }],
           at: Date.now(),
         },
       ]);
