@@ -990,6 +990,49 @@ function addEndLeaves(builder: PdfBuilder, spec: BookSpec): void {
  * the font size — see the spine title in `renderCover`. Measured, not derived. */
 const SPINE_INK_CENTRE_EM = 0.3;
 
+/**
+ * How much of the spine the binding can wander by, each side — B1309.
+ *
+ * Perfect binding does not fold the cover to the millimetre: the block shifts
+ * inside the wrap, and type set to the full width of the spine ends up on the
+ * front. Everything outside this margin is what the title gets.
+ */
+const SPINE_TOLERANCE_MM = 0.8;
+
+/**
+ * The ink band of rotated type, as a fraction of its size — cap height plus
+ * descender for the bold face, the same measurement `SPINE_INK_CENTRE_EM`
+ * above is derived from.
+ */
+const SPINE_INK_BAND_EM = 0.924;
+
+/** Below this a spine title is a smudge, and no title is the better answer. */
+const SPINE_MIN_PT = 5;
+
+/**
+ * The size a spine title is set at, or `null` where there is no room — B1309.
+ *
+ * This used to be `if (spineW >= 6)` at the caption size, which meant a
+ * softcover never carried one: 42 pages of 200 × 200 is a 3.81 mm spine, and
+ * the owner found the covers bare on every soft book while the hardcovers were
+ * lettered. Six millimetres was never the real threshold, only a safe one.
+ *
+ * The real question is whether the type fits between the binding's own
+ * tolerances, so that is what is asked: take the spine, keep
+ * {@link SPINE_TOLERANCE_MM} clear either side, and set the title to whatever
+ * fits in what is left — never larger than the caption size it would have had.
+ * Below {@link SPINE_MIN_PT} there is nothing worth printing.
+ *
+ * A 3.81 mm spine gets about 6.8 pt where the caption would have been 7. A
+ * 28-page softcover is 2.41 mm and still gets nothing, which is right.
+ */
+function spineTextSize(spineWidthMm: number, captionPt: number): number | null {
+  const usablePt = mm(spineWidthMm - SPINE_TOLERANCE_MM * 2);
+  if (usablePt <= 0) return null;
+  const fitted = Math.min(captionPt, usablePt / SPINE_INK_BAND_EM);
+  return fitted >= SPINE_MIN_PT ? Math.round(fitted * 10) / 10 : null;
+}
+
 export function renderCover(
   volume: BookVolume,
   spec: BookSpec,
@@ -1142,13 +1185,14 @@ function drawCoverPage(
   // the extra comes from the digits and the middot in a spine title. It is
   // measured rather than derived: at 226-232 mm the title now lands
   // 227.9-230.1, which is 1.9 mm clear of each hinge.
-  if (spineW >= 6) {
+  const spineSize = spineTextSize(spineW, type.caption);
+  if (spineSize !== null) {
     PdfBuilder.drawTextRotated(
       page,
       toWinAnsi(cover.spineText),
-      frame.x(spineX0 + spineW / 2 + (type.caption / mm(1)) * SPINE_INK_CENTRE_EM),
-      frame.y(panelH / 2 - measure(cover.spineText, type.caption) / mm(1) / 2),
-      type.caption,
+      frame.x(spineX0 + spineW / 2 + (spineSize / mm(1)) * SPINE_INK_CENTRE_EM),
+      frame.y(panelH / 2 - measure(cover.spineText, spineSize) / mm(1) / 2),
+      spineSize,
       90,
       INK,
       "F2",
