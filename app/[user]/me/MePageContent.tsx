@@ -22,6 +22,7 @@ import BuddyHandover from "@/components/BuddyHandover";
 import ContactManage, { type ManageContact } from "@/components/ContactManage";
 import GuestSignIn from "@/components/GuestSignIn";
 import PushOptIn from "@/components/PushOptIn";
+import DeleteAccount from "@/components/DeleteAccount";
 import SignOut from "@/components/SignOut";
 import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
@@ -1157,6 +1158,15 @@ export default function MePageContent({
           sign out of and is not offered a control that would do nothing.
         */}
         {viewer.email && <SignOut />}
+
+        {/*
+          And the way out for good — B1346. Under signing out, because the two
+          are the same kind of thing in the wrong order for anybody who reaches
+          the foot of this page by accident. Owner only: there is no journal to
+          delete for a guest, and `viewer.owner` is what every other owner-only
+          panel here is gated on.
+        */}
+        {viewer.owner && <DeleteAccount username={username} />}
       </main>
     </div>
   );
