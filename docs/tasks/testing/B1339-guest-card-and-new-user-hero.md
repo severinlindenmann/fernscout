@@ -7,8 +7,7 @@ complexity: low
 area: landing, i18n
 found: "2026-09-10T17:00:44Z"
 started: "2026-09-10T17:01:04Z"
-session: d63a4633-98ee-480b-92fa-3162601e242d
-claimed: "2026-09-10T17:01:04Z"
+merged: "2026-09-10T17:07:58Z"
 ---
 
 # B1339 — Guest card and new-user hero run together on the landing page
