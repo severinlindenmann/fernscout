@@ -7,8 +7,7 @@ complexity: medium
 area: admin, costs
 found: "2026-09-10T17:10:00Z"
 started: "2026-09-10T17:15:02Z"
-session: 0b65a2c0-133d-4fda-b7d5-b9e50d6f6b55
-claimed: "2026-09-10T17:15:02Z"
+merged: "2026-09-10T17:35:04Z"
 ---
 
 # B1347 — The money dashboard under-counts: print costs are a confident zero, WhatsApp sends are uncounted and unpriced, SMS appear nowhere
