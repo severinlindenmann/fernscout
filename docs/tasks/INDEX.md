@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (159)
+## backlog (160)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (42)
+### issue (43)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -104,6 +104,7 @@ Do not edit them by hand; run the script.
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1266](backlog/issue/B1266-asking-for-the-last-day-only.md) | Asking for the last day only searches unfinished drafts | ISSUE | low | low |
 | [B1267](backlog/issue/B1267-the-menu-holds-two-entries-both.md) | The menu holds two entries both labelled Trips that go to different places | ISSUE | low | low |
+| [B1270](backlog/issue/B1270-the-account-page-quotes-send-prices.md) | The account page quotes send prices for nought people and offers to sell 5 GB to a journal using one kilobyte | ISSUE | low | low |
 
 ### big-feature (14)
 
