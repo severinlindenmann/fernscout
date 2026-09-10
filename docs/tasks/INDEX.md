@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (143)
+## backlog (141)
 
 ### security (1)
 
@@ -101,14 +101,12 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (25)
+### small-feature (23)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1153](backlog/small-feature/B1153-handing-your-journal-to-your-own.md) | Handing your journal to your own agent means leaving the conversation to fetch the key | FEATURE | high | low |
 | [B1154](backlog/small-feature/B1154-a-key-that-can-write-to.md) | A key that can write to this journal for seven days is visible nowhere in the room | FEATURE | high | medium |
-| [B1209](backlog/small-feature/B1209-room-decisions-the-account-sheet-with.md) | Room decisions: the account sheet with display settings (D09 D03 D04) | FEATURE | high | medium |
-| [B1210](backlog/small-feature/B1210-room-decisions-the-bring-your-own.md) | Room decisions: the bring-your-own-agent bottom sheet (D11 D12) | FEATURE | high | medium |
 | [B1211](backlog/small-feature/B1211-room-decisions-the-composer-rebuilt-textarea.md) | Room decisions: the composer rebuilt — textarea, send, voice, drafts, camera (D13 D14 D15 D16 D33) | FEATURE | high | medium |
 | [B1212](backlog/small-feature/B1212-room-decisions-conversation-rendering-bubbles-lists.md) | Room decisions: conversation rendering — bubbles, lists, time marks, retry, chips, dedupe (D02 D21 D22 D20 D18 D23) | FEATURE | high | medium |
 | [B1214](backlog/small-feature/B1214-room-decisions-the-preview-grows-a.md) | Room decisions: the preview grows a header, memory, publish and highlights (D24 D25 D26 D27) | FEATURE | high | medium |
@@ -287,10 +285,12 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (5)
+## in-development (7)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1209](in-development/B1209-room-decisions-the-account-sheet-with.md) | Room decisions: the account sheet with display settings (D09 D03 D04) | FEATURE | high | medium | `b9809a36` |
+| [B1210](in-development/B1210-room-decisions-the-bring-your-own.md) | Room decisions: the bring-your-own-agent bottom sheet (D11 D12) | FEATURE | high | medium | `b9809a36` |
 | [B1219](in-development/B1219-room-decisions-an-evening-reminder-during.md) | Room decisions: an evening reminder during a trip (D46) | FEATURE | high | high | `b9809a36` |
 | [B1221](in-development/B1221-room-decisions-a-30-second-demo.md) | Room decisions: a 30-second demo conversation at the door (D50) | FEATURE | high | medium | `b9809a36` |
 | [B1222](in-development/B1222-the-phone-passcode-has-no-live.md) | The phone passcode has no live transport - the decided Twilio backend is on hold | FEATURE | high | medium | `445f2c45` |
