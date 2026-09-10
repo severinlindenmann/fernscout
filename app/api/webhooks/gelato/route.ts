@@ -72,8 +72,36 @@ type Body = {
 
 export async function POST(request: Request) {
   const secret = process.env.GELATO_WEBHOOK_SECRET?.trim();
-  if (!secret) return new Response("Not found", { status: 404 });
-  if (!authentic(request, secret)) return new Response("Not found", { status: 404 });
+  if (!secret) {
+    console.warn("[gelato] webhook delivery refused: GELATO_WEBHOOK_SECRET is not set");
+    return new Response("Not found", { status: 404 });
+  }
+  if (!authentic(request, secret)) {
+    /**
+     * Say so — B1349.
+     *
+     * A refused delivery and an accepted one are the same line in the request
+     * log, so a webhook configured with the wrong header 404s for ever and
+     * looks exactly like one that is working. That is the shape of silence
+     * this codebase keeps having to fix, and the cost here is that a refused
+     * print is settled five minutes late instead of at once, without anybody
+     * knowing why.
+     *
+     * Whether a header arrived at all is the difference between "Gelato is
+     * not configured to send one" and "the value is wrong", which are
+     * different things to go and fix. Neither the offered value nor the real
+     * one is logged: journald is not where a credential belongs.
+     */
+    const offered = request.headers.get(SECRET_HEADER);
+    console.warn(
+      `[gelato] webhook delivery refused: ${
+        offered === null
+          ? `no ${SECRET_HEADER} header — check the authorization settings on the webhook`
+          : `${SECRET_HEADER} does not match GELATO_WEBHOOK_SECRET`
+      }`,
+    );
+    return new Response("Not found", { status: 404 });
+  }
 
   let body: Body;
   try {
@@ -83,6 +111,22 @@ export async function POST(request: Request) {
     // not retry these and should not.
     return Response.json({ error: "invalid_json" }, { status: 400 });
   }
+
+  /**
+   * One line per accepted delivery — B1349.
+   *
+   * The other half of the same silence. Most deliveries are correctly ignored
+   * — a status we do not act on, an order that is not ours — and if only the
+   * acted-on ones were logged, a person wiring this up would have no way to
+   * see it working short of breaking an order on purpose. This is what turns
+   * "did Gelato reach us?" into a question with an answer.
+   *
+   * The event and the status, and nothing from the body beyond them: the rest
+   * is somebody's shipping address.
+   */
+  console.info(
+    `[gelato] webhook accepted: event=${String(body.event)} status=${String(body.fulfillmentStatus ?? "-")}`,
+  );
 
   // Only the order-level event carries the status this acts on. The
   // item-level one (`order_item_status_updated`) describes a line rather than
