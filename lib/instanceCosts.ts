@@ -3,7 +3,9 @@ import { loadServerConfig } from "./config";
 import { balanceOf } from "./credits";
 import { creditsFromUnits } from "./credits/format";
 import { getDatabaseOrNull } from "./db";
+import { crossRate } from "./currency";
 import { paymentsAwaiting, paymentsPaidSince, takings, type Payment } from "./payments";
+import { loadEcbRates } from "./rates";
 import { getUsernames } from "./users";
 import {
   usageByOwnerSince,
@@ -106,10 +108,12 @@ export function priceUsage(totals: UsageTotal[], costs = loadServerConfig().cost
  * provider (`draft`, `failed`) are counted and cost nothing, which is what
  * `cost_minor IS NULL` means.
  *
- * A caveat the page states rather than hides: `currency` is the provider's,
- * not necessarily the journal's. Mixed currencies are summed as-is here and
- * the currencies are listed, because converting them would need a rate this
- * module has no business fetching.
+ * `currency` is the provider's, not necessarily the journal's, so each
+ * group is converted into rappen through the ECB table before it joins the
+ * total — B1347; summing pence and cents as-is was how a GBP charge landed
+ * in a CHF column at face value. A group whose currency the table cannot
+ * answer for (or whose rows never named one) is flagged `unpriced` instead:
+ * a figure the page cannot convert must not be a figure it adds up.
  */
 async function printCosts(since: string): Promise<CostLine[]> {
   const handle = await getDatabaseOrNull();
@@ -127,43 +131,98 @@ async function printCosts(since: string): Promise<CostLine[]> {
     .groupBy(["kind", "provider", "currency"])
     .execute();
 
-  return rows.map((row) => ({
-    label: `${row.kind === "photobook" ? "Photobooks" : "Postcards"} · ${row.provider}`,
-    detail: row.currency ? `charged in ${row.currency}` : "nothing charged",
-    calls: Number(row.orders ?? 0),
-    rappen: Number(row.cost ?? 0),
-    unpriced: false,
-  }));
+  const rates = loadEcbRates()?.rates ?? {};
+  return rows.map((row) => {
+    const minor = Number(row.cost ?? 0);
+    const rate = row.currency ? crossRate(row.currency, "CHF", rates) : undefined;
+    const converted = rate === undefined ? 0 : rappenOf(minor * rate);
+    return {
+      label: `${row.kind === "photobook" ? "Photobooks" : "Postcards"} · ${row.provider}`,
+      detail:
+        minor > 0 && row.currency
+          ? `${row.currency} ${(minor / 100).toFixed(2)}${rate === undefined ? ", no rate to convert it" : " ≈"}`
+          : "nothing charged",
+      calls: Number(row.orders ?? 0),
+      rappen: converted,
+      unpriced: minor > 0 && rate === undefined,
+    };
+  });
 }
 
 /**
- * What was sent to readers — WhatsApp, mail, and the notifications beside
- * them.
+ * What was sent to readers — WhatsApp, SMS, mail, and the notifications
+ * beside them.
  *
- * **Counted, never priced, and that is the honest answer rather than a gap.**
- * A WhatsApp conversation's price depends on Meta's category and the
- * recipient's country, mail through Proton costs nothing per message, and a
- * push notification costs nothing at all. Inventing a per-message rate for any
- * of them would put a made-up number in a column of measured ones. What the
- * operator needs from this group is the volume, and the volume is exact.
+ * Mail and SMS are **counted, never priced**: mail through the mailbox costs
+ * nothing per message, and the Twilio number's rent is a fixed line, so an
+ * invented per-message rate would put a made-up number in a column of
+ * measured ones. WhatsApp is counted per message and per Meta category from
+ * `whatsapp_sends` (B1347 — `day_notifications` dedupes to one row per day
+ * and never sees a reminder or a code), and priced from
+ * `costs.whatsappPerMessageRappen` where the operator has priced a category.
+ * Meta actually bills per conversation, so the figure is an approximation
+ * the line says out loud; `service` replies are free by Meta's own
+ * 24-hour-window rule and are counted at zero rather than "not priced".
  */
 async function sendCounts(since: string): Promise<CostLine[]> {
   const handle = await getDatabaseOrNull();
   if (!handle) return [];
-  const rows = await handle.db
+  const mailRows = await handle.db
     .selectFrom("day_notifications")
     .select(({ fn }) => ["channel", fn.countAll<number>().as("sent")])
     .where("sent_at", ">=", since)
+    .where("channel", "=", "mail")
     .groupBy("channel")
     .execute();
 
-  return rows.map((row) => ({
-    label: row.channel === "whatsapp" ? "WhatsApp · day announcements" : "Email · day announcements",
-    detail: row.channel === "whatsapp" ? "priced by Meta per conversation" : "included in the mailbox",
+  const whatsappRows = await handle.db
+    .selectFrom("whatsapp_sends")
+    .select(({ fn }) => ["category", fn.countAll<number>().as("sent")])
+    .where("sent_at", ">=", since)
+    .groupBy("category")
+    .execute();
+
+  const smsRows = await handle.db
+    .selectFrom("sms_messages")
+    .select(({ fn }) => [fn.countAll<number>().as("sent")])
+    .where("created_at", ">=", since)
+    .where("direction", "=", "out")
+    .execute();
+
+  const prices = loadServerConfig().costs.whatsappPerMessageRappen;
+  const lines: CostLine[] = mailRows.map((row) => ({
+    label: "Email · day announcements",
+    detail: "included in the mailbox",
     calls: Number(row.sent ?? 0),
     rappen: 0,
-    unpriced: row.channel === "whatsapp",
+    unpriced: false,
   }));
+
+  for (const row of whatsappRows) {
+    const calls = Number(row.sent ?? 0);
+    const free = row.category === "service";
+    const price = prices[row.category];
+    lines.push({
+      label: `WhatsApp · ${row.category}`,
+      detail: free ? "free inside Meta's service window" : "per message — Meta bills per conversation",
+      calls,
+      rappen: free ? 0 : rappenOf(calls * (price ?? 0)),
+      unpriced: !free && price === undefined && calls > 0,
+    });
+  }
+
+  const smsSent = Number(smsRows[0]?.sent ?? 0);
+  if (smsSent > 0) {
+    lines.push({
+      label: "SMS · Twilio",
+      detail: "counted — the number's rent is a fixed line",
+      calls: smsSent,
+      rappen: 0,
+      unpriced: false,
+    });
+  }
+
+  return lines;
 }
 
 /** The lines that are owed whether anybody writes a day or not. */

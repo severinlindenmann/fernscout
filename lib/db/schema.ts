@@ -662,6 +662,25 @@ type SmsMessagesTable = {
   created_at: string;
 };
 
+/**
+ * One outbound WhatsApp message per recipient, with the category Meta bills
+ * it under — B1347. The money log `day_notifications` cannot be: that table
+ * dedupes per day announcement and never sees a reminder, a code or a
+ * free-form reply. The closed category list is WHATSAPP_CATEGORIES in
+ * lib/whatsapp/sends.ts.
+ */
+type WhatsappSendsTable = {
+  id: string;
+  /** The journal sent on behalf of, or NO_JOURNAL ("*") when there is none
+   * yet — a signup code, a stranger reply. Same convention as sms_messages. */
+  owner_id: string;
+  /** `marketing` | `utility` | `authentication` | `service`. */
+  category: string;
+  /** The template's approved name, or `reply` for a free-form message. */
+  template: string;
+  sent_at: string;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -687,6 +706,7 @@ export type Database = {
   helper_threads: HelperThreadsTable;
   admin_acks: AdminAcksTable;
   sms_messages: SmsMessagesTable;
+  whatsapp_sends: WhatsappSendsTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -716,4 +736,5 @@ export const TABLE_NAMES = [
   "helper_threads",
   "admin_acks",
   "sms_messages",
+  "whatsapp_sends",
 ] as const satisfies readonly (keyof Database)[];

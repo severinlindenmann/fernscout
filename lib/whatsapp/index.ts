@@ -5,6 +5,7 @@ import { hasSwitchedOff, isEnabled } from "../capabilities";
 import { loadServerConfig } from "../config";
 import { contentRoot } from "../contentRoot";
 import { sendTemplate, uploadMedia, WhatsappApiError, type CloudCredentials } from "./cloud";
+import { recordWhatsappSend } from "./sends";
 import type { WhatsappMessage, WhatsappSendResult, WhatsappTransport } from "./types";
 
 
@@ -219,7 +220,13 @@ export async function sendWhatsapp(
 ): Promise<WhatsappSendResult | null> {
   if (!isEnabled("whatsapp")) return null;
   if (message.username && hasSwitchedOff("whatsapp", message.username)) return null;
-  return transportFor(backendName()).send(message);
+  const result = await transportFor(backendName()).send(message);
+  await recordWhatsappSend({
+    owner: message.username ?? null,
+    category: message.category,
+    template: message.template,
+  });
+  return result;
 }
 
 /**
@@ -239,5 +246,11 @@ export async function sendWhatsappCode(
   message: WhatsappMessage,
 ): Promise<WhatsappSendResult | null> {
   if (!isEnabled("whatsapp")) return null;
-  return transportFor(backendName()).send(message);
+  const result = await transportFor(backendName()).send(message);
+  await recordWhatsappSend({
+    owner: message.username ?? null,
+    category: message.category,
+    template: message.template,
+  });
+  return result;
 }

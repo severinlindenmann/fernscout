@@ -7,6 +7,7 @@ import { contentRoot } from "../contentRoot";
 import { holdAnswer } from "./held";
 import { maskNumber } from "./index";
 import type { WhatsappOutbound } from "./render";
+import { recordWhatsappSend } from "./sends";
 import { isWindowOpen } from "./window";
 
 /**
@@ -187,5 +188,8 @@ export async function sendOutboundReply(
   } else {
     sendDryRun(to, outbound, username);
   }
+  // Free inside Meta's window by their own rule, but the volume belongs on
+  // /admin beside the priced categories — B1347.
+  await recordWhatsappSend({ owner: username, category: "service", template: "reply" });
   return { sent: true };
 }

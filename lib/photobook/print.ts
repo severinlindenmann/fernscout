@@ -163,7 +163,17 @@ export async function submitBuiltBook(owner: string, id: string): Promise<PrintO
   }
 
   const payload: PhotobookPayload = { ...order.payload, print: { ...print, providerRef: result.providerRef } };
-  await recordPrint(owner, id, payload, result.providerRef);
+  await recordPrint(
+    owner,
+    id,
+    payload,
+    result.providerRef,
+    // The figure frozen when the book was bought printed; a pre-B1347 order
+    // has none, and its cost stays honestly unrecorded.
+    print.quotedMinor && print.quotedCurrency
+      ? { minor: print.quotedMinor, currency: print.quotedCurrency }
+      : undefined,
+  );
 
   /**
    * Accepting an order is not the same as taking it — B1333.
@@ -333,6 +343,9 @@ export async function printOrder(owner: string, id: string, quotedCredits: numbe
   }
 
   const payload: PhotobookPayload = { ...order.payload, print: { ...print, providerRef: result.providerRef } };
-  await recordPrint(owner, id, payload, result.providerRef);
+  await recordPrint(owner, id, payload, result.providerRef, {
+    minor: quote.printMinor + quote.shipMinor,
+    currency: quote.currency,
+  });
   return { ok: true, providerRef: result.providerRef, charged: quotedCredits };
 }

@@ -398,6 +398,9 @@ export async function sendDayWhatsapp(
       buttonPath: `${trip.username}/trips/${trip.id}/day/${slug}`,
       photo: photo ?? undefined,
       username: owner,
+      // A business-initiated announcement is Meta's marketing category,
+      // whatever the template's tone — B1347.
+      category: "marketing",
     };
 
     try {

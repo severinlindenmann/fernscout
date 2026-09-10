@@ -361,6 +361,7 @@ export async function POST(request: Request) {
         body: [code],
         buttonPath: code,
         username,
+        category: "authentication",
       });
       if (!sent) throw new Error("the whatsapp capability went away mid-request");
     } else await sendTransactional(

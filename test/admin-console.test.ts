@@ -115,6 +115,7 @@ describe("what the models were asked to do", () => {
     models: { m: { inputPerMillionRappen: 1_000_000, outputPerMillionRappen: 0 } },
     transcriptionPerThousandMinutesRappen: 0,
     fixedMonthly: [],
+    whatsappPerMessageRappen: {},
   };
 
   test("rows are grouped by operation across models, biggest first", () => {

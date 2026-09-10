@@ -30,6 +30,7 @@ async function start(phone: string, locale: string): Promise<StartResult> {
     // takes as a `url` button whose text is the code.
     body: [code],
     buttonPath: code,
+    category: "authentication",
   });
   if (!result) {
     // `sendWhatsappCode` answers null only when the whatsapp capability is
