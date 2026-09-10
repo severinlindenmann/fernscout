@@ -7,8 +7,7 @@ complexity: medium
 area: helper
 found: "2026-09-10T16:54:18Z"
 started: "2026-09-10T16:56:26Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-10T16:56:26Z"
+merged: "2026-09-10T17:03:04Z"
 ---
 
 # B1337 — A proposal's Save and Leave buttons render detached at the page foot on desktop

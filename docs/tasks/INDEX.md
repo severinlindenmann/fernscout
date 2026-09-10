@@ -337,15 +337,13 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (3)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1337](in-development/B1337-a-proposal-s-save-and-leave.md) | A proposal's Save and Leave buttons render detached at the page foot on desktop | ISSUE | high | medium | `b9809a36` |
-| [B1338](in-development/B1338-enter-does-not-send-from-the.md) | Enter does not send from the desktop composer | ISSUE | high | low | `b9809a36` |
 | [B1339](in-development/B1339-guest-card-and-new-user-hero.md) | Guest card and new-user hero run together on the landing page | FEATURE | medium | low | `d63a4633` |
 
-## testing (117)
+## testing (119)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -426,6 +424,8 @@ Do not edit them by hand; run the script.
 | [B1333](testing/B1333-a-print-the-printer-accepts-and.md) | A print the printer accepts and then refuses is never noticed, so the money stays spent | ISSUE | high | medium | — |
 | [B1335](testing/B1335-sharp-is-bundled-rather-than-external.md) | sharp is bundled rather than external, so ordering a book 500s on the server | ISSUE | high | low | — |
 | [B1336](testing/B1336-nothing-reconciles-a-submitted-print-with.md) | Nothing reconciles a submitted print with what the printer finally did | FEATURE | high | medium | — |
+| [B1337](testing/B1337-a-proposal-s-save-and-leave.md) | A proposal's Save and Leave buttons render detached at the page foot on desktop | ISSUE | high | medium | — |
+| [B1338](testing/B1338-enter-does-not-send-from-the.md) | Enter does not send from the desktop composer | ISSUE | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |

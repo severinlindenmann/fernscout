@@ -7,8 +7,7 @@ complexity: low
 area: helper
 found: "2026-09-10T16:54:18Z"
 started: "2026-09-10T16:56:26Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-10T16:56:26Z"
+merged: "2026-09-10T17:03:05Z"
 ---
 
 # B1338 — Enter does not send from the desktop composer
