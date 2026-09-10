@@ -7,8 +7,7 @@ complexity: medium
 area: helper
 found: "2026-09-10T17:04:25Z"
 started: "2026-09-10T17:04:38Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-10T17:04:38Z"
+merged: "2026-09-10T17:23:48Z"
 ---
 
 # B1340 — The credits sheet carries display settings and the storage bar sits away from the files

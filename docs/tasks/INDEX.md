@@ -49,12 +49,13 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (152)
+## backlog (153)
 
-### security (2)
+### security (3)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B1348](backlog/security/B1348-two-settlers-of-one-refused-print.md) | Two settlers of one refused print both refund it | SECURITY | high | low |
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
@@ -338,18 +339,13 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (6)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1340](in-development/B1340-the-credits-sheet-carries-display-settings.md) | The credits sheet carries display settings and the storage bar sits away from the files | FEATURE | high | medium | `b9809a36` |
-| [B1341](in-development/B1341-asked-for-a-new-journal-the.md) | Asked for a new journal, the helper proposes renaming the existing one | FEATURE | high | medium | `b9809a36` |
-| [B1342](in-development/B1342-who-may-read-a-new-trip.md) | Who may read a new trip is asked in prose, not as a choice | FEATURE | high | medium | `b9809a36` |
-| [B1343](in-development/B1343-a-new-proposal-can-land-outside.md) | A new proposal can land outside the visible chat | FEATURE | high | medium | `b9809a36` |
-| [B1344](in-development/B1344-a-turn-that-arrived-via-whatsapp.md) | A turn that arrived via WhatsApp looks identical to a web turn | FEATURE | high | medium | `b9809a36` |
 | [B1347](in-development/B1347-the-money-dashboard-under-counts-print.md) | The money dashboard under-counts: print costs are a confident zero, WhatsApp sends are uncounted and unpriced, SMS appear nowhere | FEATURE | high | medium | `0b65a2c0` |
 
-## testing (121)
+## testing (126)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -432,6 +428,11 @@ Do not edit them by hand; run the script.
 | [B1336](testing/B1336-nothing-reconciles-a-submitted-print-with.md) | Nothing reconciles a submitted print with what the printer finally did | FEATURE | high | medium | — |
 | [B1337](testing/B1337-a-proposal-s-save-and-leave.md) | A proposal's Save and Leave buttons render detached at the page foot on desktop | ISSUE | high | medium | — |
 | [B1338](testing/B1338-enter-does-not-send-from-the.md) | Enter does not send from the desktop composer | ISSUE | high | low | — |
+| [B1340](testing/B1340-the-credits-sheet-carries-display-settings.md) | The credits sheet carries display settings and the storage bar sits away from the files | FEATURE | high | medium | — |
+| [B1341](testing/B1341-asked-for-a-new-journal-the.md) | Asked for a new journal, the helper proposes renaming the existing one | FEATURE | high | medium | — |
+| [B1342](testing/B1342-who-may-read-a-new-trip.md) | Who may read a new trip is asked in prose, not as a choice | FEATURE | high | medium | — |
+| [B1343](testing/B1343-a-new-proposal-can-land-outside.md) | A new proposal can land outside the visible chat | FEATURE | high | medium | — |
+| [B1344](testing/B1344-a-turn-that-arrived-via-whatsapp.md) | A turn that arrived via WhatsApp looks identical to a web turn | FEATURE | high | medium | — |
 | [B1345](testing/B1345-the-printer-can-tell-us-an.md) | The printer can tell us an order failed, and nothing is listening | FEATURE | high | medium | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
