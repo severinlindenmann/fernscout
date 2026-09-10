@@ -145,3 +145,14 @@ Live use still needs an operator step: an approved **authentication**
 template named `fernscout_auth_code` (or `features.whatsapp.authTemplates`
 pointed at one) in the Meta Business Manager, and
 `features.signup.phoneBackend: "whatsapp"` in the deployed config.
+
+## Live template attempt — 2026-09-10
+
+Creating the authentication template on the real WABA is blocked on Meta
+business verification (see B1232 for the whole finding and the unlock
+procedure). A utility-category template with the code was auto-rejected, as
+predicted. The channel itself is proven live: a `fernscout_day_published_v2`
+send to the owner's number was accepted (wamid returned). Until B1232 is
+done, production keeps email-only codes; everything else of B1222 is inert
+behind `features.signup.phoneBackend`, which stays `dry-run` in the deployed
+config.
