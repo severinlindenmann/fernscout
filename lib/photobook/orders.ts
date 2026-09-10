@@ -206,6 +206,11 @@ export const PHOTOBOOK_OUTCOME_STATES = [
   // may not post to — a contact removed or un-approved between the page
   // rendering and the press. Refused before anything is claimed or charged.
   "no_recipient",
+  // B1330. The book was built and paid for, and the printer would not take it.
+  // Every credit is back. The one state on this page that has to name the
+  // order, because the owner cannot describe what went wrong without it and
+  // nobody can look it up for them from "my photobook failed".
+  "print_refused",
   // B1157. The printer could not be asked what postage costs, so there is no
   // honest total to charge. Nothing is claimed, built or spent; pressing again
   // when Gelato is reachable works.
@@ -292,7 +297,11 @@ export async function outcomeFrom(
   // all, rather than reaching the page as a value `OUTCOME_MESSAGE` was never
   // going to have an entry for.
   if (typeof state !== "string" || !isOutcomeState(state)) return null;
-  if (state !== "done" || typeof order !== "string" || !ORDER_ID_RE.test(order)) {
+  // The id travels with any outcome that carries one, not only `done` — B1330.
+  // A refused print has to name the order, because that is what the owner
+  // quotes when they write in, and it used to be dropped here on the way to a
+  // page that then had nothing to show them.
+  if (typeof order !== "string" || !ORDER_ID_RE.test(order)) {
     return { state, orderId: null, files: [] };
   }
   const found = await getPhotobookOrder(owner, order);

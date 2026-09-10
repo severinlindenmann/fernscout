@@ -14,7 +14,7 @@ import {
   type PhotobookOutcomeState,
 } from "@/lib/photobook/orders";
 import { pruneOldPhotobooks } from "@/lib/photobook/retention";
-import { sendPhotobookReceipt } from "@/lib/photobook/receipt";
+import { sendPhotobookReceipt, sendPhotobookRefused } from "@/lib/photobook/receipt";
 import { BOOK_SIZES } from "@/lib/photobook/spec";
 import { storageRefusal } from "@/lib/storageQuota";
 import { getTrip, parseTripRef } from "@/lib/trips";
@@ -324,13 +324,34 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
     console.error(`[photobook] pruning old orders for ${user} failed:`, error);
   });
 
-  // `missing` lists photographs the build could not read — pages that will
-  // print as gaps in a book the owner has already paid for. That is not a
-  // reason to fail the order (the rest of the book is real and the money is
-  // spent), but it must reach the owner rather than be silently swallowed:
-  // the receipt mail is the one place written for this owner to actually
-  // read, so it carries the list there. `sendPhotobookReceipt` is best-effort
-  // and never throws.
+  /**
+   * The mail, and **which** mail — B1330.
+   *
+   * The receipt is for a book that is actually being printed: it carries the
+   * PDFs, because those are the files of an object on its way. It used to be
+   * sent whatever the printer said, so a refused, refunded order still got
+   * "thank you, your photobook is ready" with two download links attached —
+   * which reads as "here is what you paid for" over a purchase that was given
+   * back.
+   *
+   * A refusal gets its own mail instead, with no links: sorry, the money is
+   * back, here is the reference, try again or write to us.
+   *
+   * `missing` lists photographs the build could not read — pages that print as
+   * gaps in a book already paid for. Not a reason to fail the order, and it
+   * must not be swallowed either, so the receipt carries it. Both senders are
+   * best-effort and neither throws.
+   */
+  if (!printed.ok) {
+    await sendPhotobookRefused({
+      owner: user,
+      orderId,
+      tripTitle: getTrip(trip)?.title ?? parsed.tripId,
+      creditsRefunded: credits,
+    });
+    return back_("print_refused", { order: orderId });
+  }
+
   await sendPhotobookReceipt({
     owner: user,
     orderId,

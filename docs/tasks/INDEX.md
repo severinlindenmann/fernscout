@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (153)
+## backlog (152)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (30)
+### issue (29)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -69,7 +69,6 @@ Do not edit them by hand; run the script.
 | [B1322](backlog/issue/B1322-postcard-proposals-are-still-refused-after.md) | Postcard proposals are still refused after B1284, now because the helper sends an empty signature | ISSUE | high | low |
 | [B1323](backlog/issue/B1323-the-helper-said-a-postcard-was.md) | The helper said a postcard was on the postcards page when the proposal had failed | ISSUE | high | low |
 | [B1324](backlog/issue/B1324-a-failed-card-press-disables-the.md) | A failed card press disables the composer for good, and the only way out wipes the conversation | ISSUE | high | low |
-| [B1330](backlog/issue/B1330-a-refused-print-tells-the-buyer.md) | A refused print tells the buyer their book is being printed | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1129](backlog/issue/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
@@ -344,7 +343,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## testing (109)
+## testing (110)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -419,6 +418,7 @@ _Nothing here._
 | [B1321](testing/B1321-deleting-a-trip-requires-a-mailbox.md) | Deleting a trip requires a mailbox round-trip even for the owner standing on its page | FEATURE | high | medium | — |
 | [B1326](testing/B1326-the-room-s-light-mode-is.md) | The room's light mode is white-grey while the rest of the site is cream-navy | ISSUE | high | low | — |
 | [B1327](testing/B1327-bring-your-own-agent-is-in.md) | Bring-your-own-agent is in the footer twice, and the menu entry opens nothing on desktop | ISSUE | high | low | — |
+| [B1330](testing/B1330-a-refused-print-tells-the-buyer.md) | A refused print tells the buyer their book is being printed | ISSUE | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |

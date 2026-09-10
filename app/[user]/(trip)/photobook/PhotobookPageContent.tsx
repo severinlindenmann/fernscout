@@ -44,6 +44,8 @@ const OUTCOME_MESSAGE: Record<Exclude<PhotobookOutcomeState, "done">, Translatio
   // B1157. Both refuse before anything is claimed, built or charged.
   no_recipient: "photobook.print.noRecipients",
   printer_unavailable: "photobook.printerUnavailable",
+  // B1330. Built, paid for, refused by the printer, refunded in full.
+  print_refused: "photobook.printRefused",
 };
 
 /**
@@ -643,12 +645,23 @@ export default function PhotobookPageContent({
         ) : (
           <>
             {outcome && (
-              <p
+              <div
                 className="mt-6 max-w-xl rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900"
                 role="status"
               >
-                {t(OUTCOME_MESSAGE[outcome.state])}
-              </p>
+                <p>{t(OUTCOME_MESSAGE[outcome.state])}</p>
+                {/* B1330. The one outcome that has to be quotable. A refused
+                    print has already taken the money and given it back, and
+                    the owner cannot describe which book it was — every order
+                    is "my photobook" — so the id goes on the page, selectable,
+                    beside the address to send it to. */}
+                {outcome.state === "print_refused" && outcome.orderId && (
+                  <p className="mt-2">
+                    {t("photobook.printRefused.reference")}{" "}
+                    <code className="select-all font-mono text-xs">{outcome.orderId}</code>
+                  </p>
+                )}
+              </div>
             )}
 
             {/* The question, where the outcome notice appears — B668. Both
