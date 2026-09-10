@@ -337,13 +337,14 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (3)
+## in-development (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1337](in-development/B1337-a-proposal-s-save-and-leave.md) | A proposal's Save and Leave buttons render detached at the page foot on desktop | ISSUE | high | medium | `b9809a36` |
 | [B1338](in-development/B1338-enter-does-not-send-from-the.md) | Enter does not send from the desktop composer | ISSUE | high | low | `b9809a36` |
 | [B1290](in-development/B1290-journals-named-test-are-advertised-on.md) | Journals named test- are advertised on the public landing page beside the demo | ISSUE | medium | low | `0b65a2c0` |
+| [B1339](in-development/B1339-guest-card-and-new-user-hero.md) | Guest card and new-user hero run together on the landing page | FEATURE | medium | low | `d63a4633` |
 
 ## testing (116)
 
