@@ -2,7 +2,7 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { reversePlace } from "../addressLookup";
-import { createDraft, factsOfInput, type DraftInput } from "../api/entries";
+import { createDraft, editEntry, factsOfInput, type DraftInput } from "../api/entries";
 import { fillDayWeatherQuietly } from "../api/weather";
 import { isEmail } from "../auth";
 import { isEnabled } from "../capabilities";
@@ -10,6 +10,7 @@ import { contentRoot } from "../contentRoot";
 import { createInvite, inviteLinkUrl } from "../contacts/invites";
 import { balanceOf } from "../credits";
 import { getUser } from "../users";
+import { AS_AUTHOR, getAllEntries } from "../entries";
 import { currentHelperProvider, hasHelperConsent, recordHelperConsent } from "../helper/consent";
 import { NO_PROSE } from "../helper/draft";
 import type { Say } from "../helper/intents";
@@ -433,6 +434,10 @@ async function handleMedia(username: string, locale: string, message: MediaMessa
     downloaded = await downloadMedia(cloudCredentials(), message.mediaId);
   } catch (err) {
     console.error(`[whatsapp:inbound] could not download ${message.kind} for ${username}:`, err);
+    // B1263 — a sender who just sent a photo and gets nothing back cannot
+    // tell a real failure from "still typing…". One honest sentence, rather
+    // than the silence this used to leave.
+    await sendServiceReply(message.from, translateIn(locale, "wa.mediaDownloadFailed"), username);
     return;
   }
 
@@ -526,6 +531,35 @@ async function handleLocationPin(
     ? await reversePlace(message.latitude, message.longitude, locale)
     : null;
 
+  /**
+   * A day already on this date gets the coordinates attached, rather than
+   * refusing because `createDraft`'s slug (`slugify(date)`) collides with it
+   * — B1263. This is exactly what `handleInboundMessage`'s own turn resolves
+   * a date against elsewhere (`resolveDay` in `lib/helper/tools/resolve.ts`),
+   * read directly here rather than through a tool.
+   */
+  const existing = getAllEntries(ref, AS_AUTHOR).find((entry) => entry.date === date);
+  if (existing) {
+    const edited = editEntry(ref, existing.slug, {
+      lat: message.latitude,
+      lng: message.longitude,
+      ...(place ? { location: place.location, country: place.country } : {}),
+      ...(place?.countryCode ? { countryCode: place.countryCode } : {}),
+    });
+    if (edited.ok) {
+      wrote(username, "edit_entry", { trip: trip.id, slug: existing.slug, date }, "whatsapp");
+      await sendServiceReply(
+        message.from,
+        translateIn(locale, "wa.locationAttached", { date, title: trip.title }),
+        username,
+      );
+    } else {
+      console.error(`[whatsapp:inbound] could not attach a location pin to ${ref}/${existing.slug}: ${edited.error}`);
+      await sendServiceReply(message.from, translateIn(locale, "wa.locationIncomplete", { title: trip.title }), username);
+    }
+    return;
+  }
+
   const input: DraftInput = {
     title: date,
     date,
@@ -551,6 +585,11 @@ async function handleLocationPin(
 
   const written = createDraft(ref, input);
   if (!written.ok) {
+    // The `day_exists` collision this used to hit here is handled above now
+    // — whatever reaches this refusal is a genuine reason nothing could be
+    // written, worth the real reason in the log even though the sentence to
+    // the sender stays the same honest "needs more first".
+    console.error(`[whatsapp:inbound] could not create a day for a location pin in ${ref}: ${written.error}`);
     await sendServiceReply(message.from, translateIn(locale, "wa.locationIncomplete", { title: trip.title }), username);
     return;
   }

@@ -2099,6 +2099,8 @@
   "wa.locationPinCreated": "Standort erhalten — ich habe einen Entwurf für den {date} in {title} angelegt, vorerst nur mit den Koordinaten. Erzähl mir davon, dann fülle ich ihn aus.",
   "wa.locationNoTrip": "Dieser Standort ist für den {date}, und ich finde keine Reise, die dieses Datum abdeckt. Sag mir, zu welcher Reise er gehört.",
   "wa.locationIncomplete": "Ich habe deinen Standort, aber {title} braucht noch etwas mehr, bevor ich einen Tag anlegen kann — erzähl mir in Worten davon, dann versuche ich es noch einmal.",
+  "wa.locationAttached": "Standort erhalten — ich habe die Koordinaten zum {date} in {title} hinzugefügt.",
+  "wa.mediaDownloadFailed": "Ich konnte nicht herunterladen, was du gerade geschickt hast — kannst du es noch einmal senden?",
   "wa.contactNeedsEmail": "Ich bräuchte eine E-Mail-Adresse für {name}, um eine Einladung zu erstellen — diese Visitenkarte hatte keine. Schick sie noch einmal mit einer E-Mail, oder sag mir ihre.",
   "wa.contactInviteMade": "Angaben von {name} erhalten. Ich habe einen Einladungslink erstellt — schick ihn selbst, von hier aus oder wie auch immer du sie erreichst:\n\n{url}\n\nSie müssen ihn öffnen und ihre eigene E-Mail bestätigen, bevor irgendetwas passiert.",
   "wa.stopReply": "Um diese Nachrichten zu beenden, öffne diesen Link und drücke dort die Taste — erst das bestellt sie ab, und auf derselben Seite kannst du auch ändern, was du bekommst: {url}",

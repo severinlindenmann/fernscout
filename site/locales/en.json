@@ -2099,6 +2099,8 @@
   "wa.locationPinCreated": "Got your location — I've started a draft day for {date} in {title}, with just the coordinates. Tell me about it and I'll fill it in.",
   "wa.locationNoTrip": "That location is for {date}, and I can't find a trip that covers that date. Tell me which trip it belongs to.",
   "wa.locationIncomplete": "I have your location, but {title} needs a bit more before I can start a day — tell me about it in words and I'll try again.",
+  "wa.locationAttached": "Got your location — I've added the coordinates to {date} in {title}.",
+  "wa.mediaDownloadFailed": "I could not download what you just sent — could you send it again?",
   "wa.contactNeedsEmail": "I'd need an email address for {name} to make an invite — that contact card didn't have one. Send it again with an email, or tell me theirs.",
   "wa.contactInviteMade": "Got {name}'s details. I've made an invite link — send it yourself, from here or however you'd reach them:\n\n{url}\n\nThey'll need to open it and confirm their own email before anything happens.",
   "wa.stopReply": "To stop these messages, open this link and press the button there — that is what unsubscribes you, and you can change what you get on the same page: {url}",
