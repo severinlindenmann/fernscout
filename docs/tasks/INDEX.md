@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (141)
+## backlog (140)
 
 ### security (2)
 
@@ -101,7 +101,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (22)
+### small-feature (21)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -112,7 +112,6 @@ Do not edit them by hand; run the script.
 | [B1217](backlog/small-feature/B1217-room-decisions-history-clean-titles-search.md) | Room decisions: history — clean titles, search, a Tage tab (D35 D36 D44) | FEATURE | high | medium |
 | [B1218](backlog/small-feature/B1218-room-decisions-opening-and-follow-through.md) | Room decisions: opening and follow-through — progress, undo, weather, costs, share (D45 D47 D48 D49 D51) | FEATURE | high | medium |
 | [B1220](backlog/small-feature/B1220-room-decisions-platform-polish-pwa-hint.md) | Room decisions: platform polish — PWA hint, haptics, shortcuts, wizard retirement (D40 D41 D42 D52) | FEATURE | high | medium |
-| [B1230](backlog/small-feature/B1230-a-proposal-on-whatsapp-points-at.md) | A proposal on WhatsApp points at a screen instead of offering its own button | FEATURE | high | medium |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
 | [B1069](backlog/small-feature/B1069-there-is-no-tool-surface-for.md) | There is no tool surface for an agent that would rather be guided than read a spec | FEATURE | medium | medium |
 | [B1155](backlog/small-feature/B1155-a-turn-spends-a-credit-and.md) | A turn spends a credit and nothing on screen says so | FEATURE | medium | medium |
@@ -291,7 +290,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- | --- |
 | [B1219](in-development/B1219-room-decisions-an-evening-reminder-during.md) | Room decisions: an evening reminder during a trip (D46) | FEATURE | high | high | `b9809a36` |
 
-## testing (103)
+## testing (104)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -357,6 +356,7 @@ Do not edit them by hand; run the script.
 | [B1227](testing/B1227-the-receipt-names-two-files-and.md) | The receipt names two files and a missing print account, and neither the format nor the cover | ISSUE | high | low | — |
 | [B1228](testing/B1228-only-one-of-the-six-size.md) | Only one of the six size-and-cover combinations has ever reached a printer | CHORE | high | medium | — |
 | [B1229](testing/B1229-the-combined-pdf-is-written-but.md) | The combined PDF is written but cannot be downloaded | ISSUE | high | low | — |
+| [B1230](testing/B1230-a-proposal-on-whatsapp-points-at.md) | A proposal on WhatsApp points at a screen instead of offering its own button | FEATURE | high | medium | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |

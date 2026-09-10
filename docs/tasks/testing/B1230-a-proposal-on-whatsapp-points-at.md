@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: whatsapp, helper, proposals
 found: "2026-09-10T05:25:02Z"
+merged: "2026-09-10T05:46:58Z"
 ---
 
 # B1230 — A proposal on WhatsApp points at a screen instead of offering its own button
