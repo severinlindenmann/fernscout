@@ -167,6 +167,9 @@ export function dayForWizard(
     photos: entry.gallery.length,
     written: isWritten(entry.content),
     ...(entry.draft ? {} : { published: true as const }),
+    ...(entry.lat !== undefined && entry.lng !== undefined
+      ? { hasCoordinates: true as const }
+      : {}),
   };
 }
 

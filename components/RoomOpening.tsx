@@ -115,6 +115,42 @@ export default function RoomOpening({
         {opening.state === "empty" && t("agent.open.empty")}
       </p>
 
+      {/* Trip progress — B1218 (D45). Present on any state, since a running
+          trip's untold days matter whatever else the opening is about. */}
+      {opening.progress && (
+        <div className="space-y-2">
+          <p className="text-sm text-navy-600">
+            {t("agent.open.progressDay", {
+              day: String(opening.progress.day),
+              total: String(opening.progress.total),
+            })}
+            {" — "}
+            {tn("agent.open.progressMissing", opening.progress.missing.length, {
+              count: String(opening.progress.missing.length),
+            })}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {opening.progress.missing.slice(0, 5).map((date) => (
+              <button
+                key={date}
+                type="button"
+                onClick={() => onSay(t("agent.open.sayAbout", { date: formatLongDate(date) }))}
+                className={chip}
+              >
+                {formatLongDate(date)}
+              </button>
+            ))}
+            {opening.progress.missing.length > 5 && (
+              <span className="self-center text-sm text-navy-500">
+                {tn("agent.open.more", opening.progress.missing.length - 5, {
+                  count: String(opening.progress.missing.length - 5),
+                })}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {opening.state === "days" && (
         <>
           {opening.days.map((day, n) => (

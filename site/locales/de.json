@@ -2097,5 +2097,19 @@
   "wa.proposalWebOnly": "Das braucht das Web — öffne das Journal, um es dort abzuschließen.",
   "wa.proposalFailed": "Das konnte nicht gespeichert werden ({error}) — versuch es im Web noch einmal.",
   "agent.open.whatsapp": "Auf WhatsApp schreiben →",
-  "agent.open.whatsappGreeting": "Hallo"
+  "agent.open.whatsappGreeting": "Hallo",
+  "agent.open.progressDay": "Tag {day} von {total}",
+  "agent.open.progressMissing": "{count} Tage noch nicht erzählt",
+  "agent.open.progressMissing.one": "{count} Tag noch nicht erzählt",
+  "agent.open.sayAbout": "Erzähl mir von {date}.",
+  "agent.tool.undoWords": "{date} — die Worte wiederherstellen, wie sie vor der letzten Änderung waren.",
+  "agent.tool.undoWordsAccept": "Vorherige Version wiederherstellen",
+  "agent.tool.undoWordsDone": "Die vorherigen Worte sind zurück. Nochmaliges Drücken macht das rückgängig.",
+  "agent.tool.lookUpWeather": "{date} — das Wetter dieses Tages im öffentlichen Archiv nachschlagen, an seinen eigenen Koordinaten.",
+  "agent.tool.lookUpWeatherAccept": "Wetter nachschlagen lassen",
+  "agent.tool.lookUpWeatherDone": "Beim Archiv nachgefragt. Was es geantwortet hat — oder dass es noch nichts wusste — steht jetzt beim Tag.",
+  "agent.follow.undo": "Rückgängig",
+  "agent.follow.weather": "Wetter nachschlagen lassen",
+  "agent.follow.addCost": "+ Ausgabe",
+  "agent.follow.share": "Teilen"
 }

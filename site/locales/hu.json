@@ -2097,5 +2097,19 @@
   "wa.proposalWebOnly": "Ehhez a web kell — nyisd meg a naplót, hogy ott fejezd be.",
   "wa.proposalFailed": "Ezt nem sikerült menteni ({error}) — próbáld meg újra a weben.",
   "agent.open.whatsapp": "Írj nekünk WhatsAppon →",
-  "agent.open.whatsappGreeting": "Szia"
+  "agent.open.whatsappGreeting": "Szia",
+  "agent.open.progressDay": "{day}. nap ({total}-ból)",
+  "agent.open.progressMissing": "{count} nap még nincs elmesélve",
+  "agent.open.progressMissing.one": "{count} nap még nincs elmesélve",
+  "agent.open.sayAbout": "Mesélj a {date} napról.",
+  "agent.tool.undoWords": "{date} — állítsd vissza a szöveget arra, ami az utolsó változtatás előtt volt.",
+  "agent.tool.undoWordsAccept": "Előző változat visszaállítása",
+  "agent.tool.undoWordsDone": "Az előző szöveg visszakerült. Ha újra megnyomod, ez is visszavonható.",
+  "agent.tool.lookUpWeather": "{date} — nézzük meg ennek a napnak az időjárását a nyilvános archívumban, a saját koordinátáin.",
+  "agent.tool.lookUpWeatherAccept": "Időjárás lekérdezése",
+  "agent.tool.lookUpWeatherDone": "Megkérdeztük az archívumot. Amit válaszolt — vagy hogy még nem tudott semmit —, most már a napnál látható.",
+  "agent.follow.undo": "Visszavonás",
+  "agent.follow.weather": "Időjárás lekérdezése",
+  "agent.follow.addCost": "+ Kiadás",
+  "agent.follow.share": "Megosztás"
 }

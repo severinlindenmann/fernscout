@@ -102,6 +102,8 @@ const ROUTES: Record<string, () => Promise<Record<string, unknown>>> = {
   "/keys": () => import("@/app/api/helper/[user]/keys/route"),
   "/postcard": () => import("@/app/api/helper/[user]/postcard/route"),
   "/photobook": () => import("@/app/api/helper/[user]/photobook/route"),
+  "/day/undo": () => import("@/app/api/helper/[user]/day/undo/route"),
+  "/day/weather": () => import("@/app/api/helper/[user]/day/weather/route"),
 };
 
 /** The gallery item `remove_photo`'s own row below removes — `DRAFT`'s own
@@ -160,6 +162,12 @@ const SAID: Record<string, Record<string, string>> = {
   // a contact id is not something anybody could say in advance.
   propose_postcards: { trip: AS_SAID, slug: DRAFT, message: "Grüße vom Pass!", from: "Alex" },
   photobook: { trip: AS_SAID, size: "square", cover: "soft" },
+  // Neither route's own refusal is a SHAPE one: `undo_words` with no stash
+  // yet answers `no_undo`, and `look_up_weather` with the capability off
+  // (this file's config never turns it on) answers `weather_unavailable` —
+  // both facts about the instance, not about the body.
+  undo_words: { trip: AS_SAID, slug: DRAFT },
+  look_up_weather: { trip: AS_SAID, slug: DRAFT },
 };
 
 const say: Say = ((key: string, vars?: Record<string, string>) =>
