@@ -279,13 +279,11 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (1)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1218](in-development/B1218-room-decisions-opening-and-follow-through.md) | Room decisions: opening and follow-through — progress, undo, weather, costs, share (D45 D47 D48 D49 D51) | FEATURE | high | medium | `b9809a36` |
+_Nothing here._
 
-## testing (115)
+## testing (116)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -349,6 +347,7 @@ Do not edit them by hand; run the script.
 | [B1215](testing/B1215-room-decisions-the-phone-gets-a.md) | Room decisions: the phone gets a tab bar — Chat, Dateien, Vorschau (D39 D28) | FEATURE | high | high | — |
 | [B1216](testing/B1216-room-decisions-files-drop-paste-progress.md) | Room decisions: files — drop, paste, progress rings, nudge, tile menu (D29 D30 D31 D32 D34) | FEATURE | high | medium | — |
 | [B1217](testing/B1217-room-decisions-history-clean-titles-search.md) | Room decisions: history — clean titles, search, a Tage tab (D35 D36 D44) | FEATURE | high | medium | — |
+| [B1218](testing/B1218-room-decisions-opening-and-follow-through.md) | Room decisions: opening and follow-through — progress, undo, weather, costs, share (D45 D47 D48 D49 D51) | FEATURE | high | medium | — |
 | [B1219](testing/B1219-room-decisions-an-evening-reminder-during.md) | Room decisions: an evening reminder during a trip (D46) | FEATURE | high | high | — |
 | [B1220](testing/B1220-room-decisions-platform-polish-pwa-hint.md) | Room decisions: platform polish — PWA hint, haptics, shortcuts, wizard retirement (D40 D41 D42 D52) | FEATURE | high | medium | — |
 | [B1221](testing/B1221-room-decisions-a-30-second-demo.md) | Room decisions: a 30-second demo conversation at the door (D50) | FEATURE | high | medium | — |

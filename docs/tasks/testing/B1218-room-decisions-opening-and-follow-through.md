@@ -7,8 +7,7 @@ complexity: medium
 area: helper room
 found: "2026-09-10T04:39:40Z"
 started: "2026-09-10T06:24:03Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-10T06:24:03Z"
+merged: "2026-09-10T07:05:13Z"
 ---
 
 # B1218 — Room decisions: opening and follow-through — progress, undo, weather, costs, share (D45 D47 D48 D49 D51)
