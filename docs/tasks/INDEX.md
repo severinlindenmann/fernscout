@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (170)
+## backlog (171)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (53)
+### issue (54)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -102,6 +102,7 @@ Do not edit them by hand; run the script.
 | [B1277](backlog/issue/B1277-the-helper-tells-the-owner-that.md) | The helper tells the owner that a preview is waiting on their postcards page, in the third person | ISSUE | medium | low |
 | [B1278](backlog/issue/B1278-open-the-photobook-maker-opens-nothing.md) | Open the photobook maker opens nothing and prints a bare URL that is not a link | ISSUE | medium | low |
 | [B1281](backlog/issue/B1281-add-a-guest-reuses-the-guest.md) | Add a guest reuses the guest's own form, so the owner is asked for Your name and Write to me in | ISSUE | medium | low |
+| [B1285](backlog/issue/B1285-the-postcard-page-tells-the-owner.md) | The postcard page tells the owner to answer an API endpoint and write a YAML block | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
