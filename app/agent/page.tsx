@@ -179,6 +179,7 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
           // The chip in the header — B1208 (D06). `null` when this instance
           // charges for nothing, and then no chip is drawn.
           credits={await balanceOf(user)}
+          siteUrl={site.url}
           // B1127 — both gating facts checked here, server-side: a proven
           // number and this journal's own opt-in. Absent either, or with no
           // number configured for the instance at all, and the prop is

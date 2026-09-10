@@ -12,6 +12,7 @@ import {
   Paperclip,
   Plus,
 } from "lucide-react";
+import AgentHandover from "@/components/AgentHandover";
 import BackLink from "@/components/BackLink";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import CurrencyProvider from "@/components/CurrencyProvider";
@@ -122,6 +123,7 @@ export default function HelperRoom({
   speechProvider,
   whatsappNumber,
   credits = null,
+  siteUrl,
 }: {
   username: string;
   /** The journal's own title, so the room says whose it is. */
@@ -161,6 +163,8 @@ export default function HelperRoom({
   /** The journal's credit balance, or `null` when this instance charges for
    *  nothing — then no chip is drawn at all. B1208 (D06). */
   credits?: number | null;
+  /** This instance's public base URL, for the handover prompt — B1210. */
+  siteUrl: string;
 }) {
   const { t } = useI18n();
 
@@ -298,6 +302,36 @@ export default function HelperRoom({
   const [historyOpen, setHistoryOpen] = useState(false);
   /** The account sheet (balance, month, storage) — B1208 (D07/D09). */
   const [accountOpen, setAccountOpen] = useState(false);
+  /** The bring-your-own-agent sheet — B1210 (D11/D12). */
+  const [agentSheetOpen, setAgentSheetOpen] = useState(false);
+  /**
+   * The two display settings the account sheet holds — B1209 (D03/D04).
+   * Read after mount (the storage-in-initializer trap, B1197), written on
+   * every change; the classes they map to live in globals.css, scoped to
+   * the room.
+   */
+  const [textScale, setTextScale] = useState<"s" | "m" | "l">("m");
+  const [darkRoom, setDarkRoom] = useState(false);
+  useEffect(() => {
+    const scale = window.localStorage.getItem("fs.agent.textScale");
+    if (scale === "s" || scale === "l") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTextScale(scale);
+    }
+    if (window.localStorage.getItem("fs.agent.dark") === "1") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDarkRoom(true);
+    }
+  }, []);
+  function chooseTextScale(next: "s" | "m" | "l") {
+    setTextScale(next);
+    window.localStorage.setItem("fs.agent.textScale", next);
+  }
+  function chooseDark(next: boolean) {
+    setDarkRoom(next);
+    window.localStorage.setItem("fs.agent.dark", next ? "1" : "0");
+  }
+
   /** The ⋯ menu holding what left the header — B1208 (D10). */
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -427,7 +461,11 @@ export default function HelperRoom({
     // header's own left edge, so there is no second frame to subtract.
     // Outer paints the ground edge to edge; inner caps the app at 1680px —
     // B1208 (D43): three panes floating in 2560px of ground looked lost.
-    <div className="h-dvh bg-navy-50">
+    <div
+      className={`h-dvh bg-navy-50 ${textScale === "s" ? "fs-scale-s" : textScale === "l" ? "fs-scale-l" : ""} ${
+        darkRoom ? "fs-room-dark" : ""
+      }`}
+    >
     <div className="mx-auto flex h-full max-w-[1680px] flex-col">
       <header className="flex items-center gap-2 border-b border-navy-200 bg-white px-2 py-2">
         {/* "Zurück" moves here — a chevron before the journal name rather
@@ -573,12 +611,16 @@ export default function HelperRoom({
                     {t("agent.room.account")}
                   </button>
                 )}
-                <a
-                  href={`/${encodeURIComponent(username)}/me`}
-                  className="block rounded-lg px-2 py-1.5 text-left text-sm text-navy-800 hover:bg-navy-50"
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setAgentSheetOpen(true);
+                  }}
+                  className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-navy-800 hover:bg-navy-50"
                 >
                   {t("agent.open.bringAgent")}
-                </a>
+                </button>
               </div>
             )}
           </div>
@@ -688,12 +730,17 @@ export default function HelperRoom({
             this was always a second door onto a control that has a home.
           */}
           <p className="mt-3 shrink-0 text-center">
-            <a
-              href={`/${encodeURIComponent(username)}/me`}
+            {/* A sheet in the room now, not a trip to /me — B1210 (D11):
+                the line navigated to a dense settings page, which read as
+                broken. The sheet mints the credential and hands over the
+                prompt right here. */}
+            <button
+              type="button"
+              onClick={() => setAgentSheetOpen(true)}
               className="text-xs text-navy-500 underline underline-offset-4 transition-colors hover:text-navy-700"
             >
               {t("agent.open.bringAgent")}
-            </a>
+            </button>
           </p>
           </div>
         </main>
@@ -756,7 +803,32 @@ export default function HelperRoom({
           username={username}
           label={t("agent.room.account")}
           onClose={() => setAccountOpen(false)}
+          textScale={textScale}
+          onTextScale={chooseTextScale}
+          dark={darkRoom}
+          onDark={chooseDark}
         />
+      )}
+
+      {agentSheetOpen && (
+        <Sheet
+          label={t("agent.open.bringAgent")}
+          close={t("agent.room.closeAccount")}
+          onClose={() => setAgentSheetOpen(false)}
+        >
+          {/* The same block /me renders — one implementation of minting and
+              the prompt, two homes. B1210 (D12). */}
+          <p className="mb-3 text-sm leading-6 text-navy-700">{t("agent.room.bringAgentIntro")}</p>
+          <AgentHandover username={username} siteUrl={siteUrl} />
+          <p className="mt-4 border-t border-navy-200 pt-3">
+            <a
+              href={`/${encodeURIComponent(username)}/me`}
+              className="text-sm text-navy-600 underline underline-offset-4 hover:text-navy-900"
+            >
+              {t("agent.room.bringAgentMore")}
+            </a>
+          </p>
+        </Sheet>
       )}
     </div>
     </div>
@@ -1166,10 +1238,19 @@ function AccountSheet({
   username,
   label,
   onClose,
+  textScale,
+  onTextScale,
+  dark,
+  onDark,
 }: {
   username: string;
   label: string;
   onClose: () => void;
+  /** The two display settings the sheet is the home of — B1209 (D03/D04). */
+  textScale: "s" | "m" | "l";
+  onTextScale: (next: "s" | "m" | "l") => void;
+  dark: boolean;
+  onDark: (next: boolean) => void;
 }) {
   const { t } = useI18n();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -1243,6 +1324,50 @@ function AccountSheet({
                 </a>
               </div>
             )}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-navy-500">
+                {t("agent.room.display")}
+              </p>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="text-sm text-navy-800">{t("agent.room.textSize")}</span>
+                <div className="flex gap-1" role="group" aria-label={t("agent.room.textSize")}>
+                  {(["s", "m", "l"] as const).map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      aria-pressed={textScale === size}
+                      onClick={() => onTextScale(size)}
+                      className={`min-h-9 min-w-9 rounded-full border text-sm font-semibold transition-colors ${
+                        textScale === size
+                          ? "border-navy-800 bg-navy-800 text-white"
+                          : "border-navy-300 bg-white text-navy-800 hover:bg-navy-50"
+                      }`}
+                    >
+                      {size.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="text-sm text-navy-800">{t("agent.room.darkRoom")}</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={dark}
+                  onClick={() => onDark(!dark)}
+                  className={`relative h-6 w-11 rounded-full transition-colors ${
+                    dark ? "bg-navy-800" : "bg-navy-200"
+                  }`}
+                >
+                  <span
+                    aria-hidden
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                      dark ? "translate-x-[22px]" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-navy-500">
                 {t("agent.room.accountStorage")}
