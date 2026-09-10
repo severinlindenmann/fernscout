@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: photobook, print, webhooks
 found: "2026-09-10T19:20:00Z"
+merged: "2026-09-10T17:15:27Z"
 ---
 
 # B1345 — The printer can tell us an order failed, and nothing is listening
