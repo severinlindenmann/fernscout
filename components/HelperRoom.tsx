@@ -7,6 +7,9 @@ import {
   Coins,
   History,
   MoreVertical,
+  Share,
+  Smartphone,
+  SquarePlus,
   PanelLeftClose,
   PanelRightClose,
   Paperclip,
@@ -387,6 +390,7 @@ export default function HelperRoom({
    * once dismissed.
    */
   const [installHint, setInstallHint] = useState(false);
+  const [installHowOpen, setInstallHowOpen] = useState(false);
   useEffect(() => {
     try {
       if (window.matchMedia("(display-mode: standalone)").matches) return;
@@ -1053,8 +1057,17 @@ export default function HelperRoom({
               same sheet the ⋯ menu opens, said twice on one screen. The menu
               entry is its one home now. */}
           {installHint && (
-            <p className="mt-1 flex shrink-0 items-center justify-center gap-2 text-center text-xs text-navy-500">
-              {t("agent.room.installHint")}
+            <p className="mx-auto mt-1 flex w-full max-w-md shrink-0 items-center justify-center gap-2 text-center text-xs text-navy-500">
+              <span className="min-w-0">{t("agent.room.installHint")}</span>
+              {/* "How?" opens the three steps in a sheet — there is no reader
+                  doc page for this, so the sheet is the doc. B1334. */}
+              <button
+                type="button"
+                onClick={() => setInstallHowOpen(true)}
+                className="shrink-0 whitespace-nowrap font-semibold text-navy-700 underline underline-offset-2 hover:text-navy-900"
+              >
+                {t("agent.room.installHow")} →
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -1062,7 +1075,7 @@ export default function HelperRoom({
                   window.localStorage.setItem("fs.agent.installHintDismissed", "1");
                 }}
                 aria-label={t("agent.room.closeAccount")}
-                className="rounded-full px-1.5 text-navy-500 hover:text-navy-800"
+                className="shrink-0 rounded-full px-1.5 text-navy-500 hover:text-navy-800"
               >
                 ✕
               </button>
@@ -1195,6 +1208,32 @@ export default function HelperRoom({
               <kbd className="rounded border border-navy-300 px-1.5 font-mono text-xs">Esc</kbd>
             </li>
           </ul>
+        </Sheet>
+      )}
+
+      {installHowOpen && (
+        <Sheet
+          label={t("agent.room.installTitle")}
+          close={t("agent.room.closeAccount")}
+          onClose={() => setInstallHowOpen(false)}
+        >
+          <p className="mb-3 text-sm leading-6 text-navy-700">{t("agent.room.installHint")}</p>
+          <ol className="space-y-3.5">
+            {(
+              [
+                [Share, t("agent.room.installStep1")],
+                [SquarePlus, t("agent.room.installStep2")],
+                [Smartphone, t("agent.room.installStep3")],
+              ] as const
+            ).map(([Icon, label], index) => (
+              <li key={index} className="flex items-center gap-3 text-sm text-navy-700">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cream-100 text-navy-600">
+                  <Icon className="h-4 w-4" aria-hidden />
+                </span>
+                {label}
+              </li>
+            ))}
+          </ol>
         </Sheet>
       )}
 
