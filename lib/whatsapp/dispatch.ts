@@ -13,7 +13,7 @@ import { getUser } from "../users";
 import { currentHelperProvider, hasHelperConsent, recordHelperConsent } from "../helper/consent";
 import { NO_PROSE } from "../helper/draft";
 import type { Say } from "../helper/intents";
-import { answerInThread } from "../helper/model";
+import { answerInThread, WRITE_DAY_CREDITS } from "../helper/model";
 import { recordTurn } from "../helper/sessions";
 import { MAX_AUDIO_BYTES, MAX_SPEECH_SECONDS, speechLanguageFor } from "../helper/speech";
 import { history, proposed, remember, sessionId, wrote } from "../helper/thread";
@@ -600,7 +600,7 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
 
   let thread;
   try {
-    thread = await answerInThread(username, said, await history(username), today, say, [], locale);
+    thread = await answerInThread(username, said, await history(username), today, say, [], locale, "whatsapp");
   } catch (err) {
     console.error(`[whatsapp:inbound] model turn failed for ${username}:`, err);
     return;
@@ -624,7 +624,11 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
   for (const proposal of thread.proposals) proposed(username, proposal.tool, proposal.arguments, "whatsapp");
 
   const blocks = [...thread.blocks, ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }])];
-  const journalUrl = `${serverSite().url}/agent`;
+  // The session link, not the bare room — B1237. `/agent?c=<id>` (built the
+  // same way the greeting's own `agentUrl` above already is) adopts this
+  // exact conversation; a bare `/agent` opens the room to a stranger who has
+  // to start over, which is worse than a link doing nothing at all.
+  const journalUrl = `${serverSite().url}/agent?c=${await sessionId(username, "whatsapp")}`;
   let outbound = renderForWhatsapp(blocks, journalUrl);
 
   // At most one write proposal reaches a WhatsApp screen at a time in
@@ -675,6 +679,15 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
  * panel shows after the identical press, so this can never claim more than
  * the write actually did — or a plain, honest "that could not be saved".
  */
+/**
+ * What one write here costs on the press itself, for the one sentence that
+ * needs to say so — B1235. Only `draft_words` spends on the press today (a
+ * fixed credit, `WRITE_DAY_CREDITS`); a tool absent from this map still
+ * refuses `"no_credits"` correctly, just with the plainer, cost-free
+ * sentence, because there is nothing here to compute its price from.
+ */
+const CREDIT_COST_BY_TOOL: Record<string, number> = { draft_words: WRITE_DAY_CREDITS };
+
 async function handleProposalReply(username: string, locale: string, to: string, accepted: boolean): Promise<void> {
   const pending = takePendingProposal(username, to);
   if (!pending) {
@@ -692,6 +705,18 @@ async function handleProposalReply(username: string, locale: string, to: string,
     console.log(`[whatsapp:inbound] ${maskNumber(to)} (${username}) pressed ${pending.tool} from WhatsApp`);
     return;
   }
+
+  // A write that cannot pay is said plainly — B1061's own decision, one
+  // sentence naming what it would have cost and what the balance is, the
+  // same shape `balanceRefusal` already gives a voice note that cannot pay.
+  const cost = CREDIT_COST_BY_TOOL[pending.tool];
+  if (result.error === "no_credits" && cost !== undefined) {
+    const balance = (await balanceOf(username)) ?? 0;
+    await sendOutboundReply(to, { kind: "text", body: balanceRefusal(locale, username, cost, balance) }, username);
+    console.log(`[whatsapp:inbound] ${maskNumber(to)} (${username}) press of ${pending.tool} refused: no_credits`);
+    return;
+  }
+
   const key = result.error === "web_only" ? "wa.proposalWebOnly" : "wa.proposalFailed";
   await sendOutboundReply(to, { kind: "text", body: translateIn(locale, key, { error: result.error }) }, username);
   console.log(`[whatsapp:inbound] ${maskNumber(to)} (${username}) press of ${pending.tool} refused: ${result.error}`);
