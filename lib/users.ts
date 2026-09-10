@@ -239,7 +239,12 @@ export function userExists(username: string): boolean {
 /**
  * The journals this instance advertises: everything `getUsernames()` returns,
  * minus the ones whose config says `visibility: "guest"` — or the old word,
- * `"private"`, which `getUser()` already reads as `guest` (B306).
+ * `"private"`, which `getUser()` already reads as `guest` (B306) — and minus
+ * anything named `test-<something>`. That prefix is the agreed marker for a
+ * journal nobody lived (AGENTS.md), the way `test: true` marks a day or a
+ * trip, and until B1290 nothing acted on it: two persona-run leftovers sat on
+ * the landing page beside the demo. A test journal is unlisted like a `guest`
+ * one — reachable at its address, advertised nowhere.
  *
  * Use this for anything that *hands out* the existence of a journal — the
  * instance documentation, the landing page, the sitemap. Never for resolving a
@@ -251,7 +256,9 @@ export function userExists(username: string): boolean {
  * safe direction: `getUser` has already warned about it.
  */
 export function listedUsernames(): string[] {
-  return getUsernames().filter((username) => getUser(username)?.visibility === "public");
+  return getUsernames().filter(
+    (username) => !username.startsWith("test-") && getUser(username)?.visibility === "public",
+  );
 }
 
 /** A user's config, or null when there is no such user. */

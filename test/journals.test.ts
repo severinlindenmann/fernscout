@@ -409,6 +409,20 @@ describe("journal visibility", () => {
     expect(getUser("quiet")?.title).toBe("A journal");
   });
 
+  // B1290: the `test-` naming convention finally does something. A journal
+  // named for testing is unlisted the way a `guest` journal is — off the
+  // landing page, the sitemap and the instance documentation, still there for
+  // anybody sent the address — whatever its own visibility says.
+  test("a journal named test- is not advertised, but is still there", () => {
+    make("test-run", { ownerEmail: "test-run@example.test" });
+
+    expect(getUser("test-run")?.visibility).toBe("public");
+    expect(listedUsernames()).not.toContain("test-run");
+    expect(instanceDocumentation()).not.toContain("/test-run/");
+    expect(getUsernames()).toContain("test-run");
+    expect(userExists("test-run")).toBe(true);
+  });
+
   test("the old word `private` still works as input, and is written as `guest`", () => {
     make("hush", { visibility: "private" });
 
