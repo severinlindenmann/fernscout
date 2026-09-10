@@ -147,7 +147,7 @@ export default function HelperRoom({
    * session into the live thread, so the next sentence continues exactly
    * the conversation on the screen and is recorded under it.
    */
-  history?: { created_at: string; said: string | null; answered: string | null }[];
+  history?: { created_at: string; said: string | null; answered: string | null; origin?: string | null }[];
   /** What the room says before anybody has said anything — B984. Named apart
    *  from `opening` above, which is the *preview's* day: two different first
    *  things, and one of them is a sentence. */
@@ -327,6 +327,9 @@ export default function HelperRoom({
   const [historyOpen, setHistoryOpen] = useState(false);
   /** The account sheet (balance, month, storage) — B1208 (D07/D09). */
   const [accountOpen, setAccountOpen] = useState(false);
+  /** The Darstellung sheet — B1340 (E01 A): display settings left the
+   *  credits sheet, so its label tells the truth again. */
+  const [displayOpen, setDisplayOpen] = useState(false);
   /**
    * The phone's own navigation — B1215 (D39): a bottom tab bar, Chat ·
    * Dateien · Vorschau, replacing the summoned sheets as the way to the
@@ -683,6 +686,7 @@ export default function HelperRoom({
         if (subject) setNudgeCount(added.length);
       }}
     />
+    <StorageLine username={username} />
     </>
   );
 
@@ -912,6 +916,16 @@ export default function HelperRoom({
                   <span className="text-sm text-navy-800">{t("agent.room.language")}</span>
                   <LocaleSwitcher subtle />
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setDisplayOpen(true);
+                  }}
+                  className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-navy-800 hover:bg-navy-50"
+                >
+                  {t("agent.room.display")}
+                </button>
                 {credits !== null && (
                   <button
                     type="button"
@@ -1183,11 +1197,55 @@ export default function HelperRoom({
           username={username}
           label={t("agent.room.account")}
           onClose={() => setAccountOpen(false)}
-          textScale={textScale}
-          onTextScale={chooseTextScale}
-          dark={darkRoom}
-          onDark={chooseDark}
         />
+      )}
+
+      {displayOpen && (
+        <Sheet
+          label={t("agent.room.display")}
+          close={t("agent.room.closeAccount")}
+          onClose={() => setDisplayOpen(false)}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-navy-800">{t("agent.room.textSize")}</span>
+            <div className="flex gap-1" role="group" aria-label={t("agent.room.textSize")}>
+              {(["s", "m", "l"] as const).map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  aria-pressed={textScale === size}
+                  onClick={() => chooseTextScale(size)}
+                  className={`min-h-9 min-w-9 rounded-full border text-sm font-semibold transition-colors ${
+                    textScale === size
+                      ? "border-navy-800 bg-navy-800 text-white"
+                      : "border-navy-300 bg-white text-navy-800 hover:bg-navy-50"
+                  }`}
+                >
+                  {size.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <span className="text-sm text-navy-800">{t("agent.room.darkRoom")}</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={darkRoom}
+              onClick={() => chooseDark(!darkRoom)}
+              className={`relative h-6 w-11 rounded-full transition-colors ${
+                darkRoom ? "bg-navy-800" : "bg-navy-200"
+              }`}
+            >
+              <span
+                aria-hidden
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  darkRoom ? "translate-x-[22px]" : "translate-x-0.5"
+                }`}
+              />
+            </button>
+          </div>
+        </Sheet>
       )}
 
       {cheatsheetOpen && (
@@ -1778,19 +1836,10 @@ function AccountSheet({
   username,
   label,
   onClose,
-  textScale,
-  onTextScale,
-  dark,
-  onDark,
 }: {
   username: string;
   label: string;
   onClose: () => void;
-  /** The two display settings the sheet is the home of — B1209 (D03/D04). */
-  textScale: "s" | "m" | "l";
-  onTextScale: (next: "s" | "m" | "l") => void;
-  dark: boolean;
-  onDark: (next: boolean) => void;
 }) {
   const { t } = useI18n();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -1812,10 +1861,6 @@ function AccountSheet({
       live = false;
     };
   }, [username]);
-
-  const gb = (n: number) => (n / (1024 * 1024 * 1024)).toFixed(n >= 1024 * 1024 * 1024 ? 1 : 2);
-  const used = facts?.storage.usedBytes ?? 0;
-  const ceiling = facts?.storage.ceilingBytes ?? null;
 
   return (
     <dialog
@@ -1867,72 +1912,59 @@ function AccountSheet({
                 </a>
               </div>
             )}
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-navy-500">
-                {t("agent.room.display")}
-              </p>
-              <div className="mt-2 flex items-center justify-between gap-3">
-                <span className="text-sm text-navy-800">{t("agent.room.textSize")}</span>
-                <div className="flex gap-1" role="group" aria-label={t("agent.room.textSize")}>
-                  {(["s", "m", "l"] as const).map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      aria-pressed={textScale === size}
-                      onClick={() => onTextScale(size)}
-                      className={`min-h-9 min-w-9 rounded-full border text-sm font-semibold transition-colors ${
-                        textScale === size
-                          ? "border-navy-800 bg-navy-800 text-white"
-                          : "border-navy-300 bg-white text-navy-800 hover:bg-navy-50"
-                      }`}
-                    >
-                      {size.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="mt-2 flex items-center justify-between gap-3">
-                <span className="text-sm text-navy-800">{t("agent.room.darkRoom")}</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={dark}
-                  onClick={() => onDark(!dark)}
-                  className={`relative h-6 w-11 rounded-full transition-colors ${
-                    dark ? "bg-navy-800" : "bg-navy-200"
-                  }`}
-                >
-                  <span
-                    aria-hidden
-                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                      dark ? "translate-x-[22px]" : "translate-x-0.5"
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-navy-500">
-                {t("agent.room.accountStorage")}
-              </p>
-              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-navy-100">
-                {ceiling !== null && (
-                  <div
-                    className="h-full rounded-full bg-yellow-400"
-                    style={{ width: `${Math.min(100, Math.round((used / ceiling) * 100))}%` }}
-                  />
-                )}
-              </div>
-              <p className="mt-1 text-sm text-navy-600">
-                {ceiling === null
-                  ? `${gb(used)} GB`
-                  : t("agent.room.accountStorageOf", { used: gb(used), ceiling: gb(ceiling) })}
-              </p>
-            </div>
           </div>
         )}
       </div>
     </dialog>
+  );
+}
+
+const GB = (n: number) => (n / (1024 * 1024 * 1024)).toFixed(n >= 1024 * 1024 * 1024 ? 1 : 2);
+
+/**
+ * The storage bar, at the foot of the files pane — B1340 (E07): how full the
+ * journal is belongs with the files that fill it, not with the credits. The
+ * whole line links to the owner's account page, where buying more lives.
+ */
+function StorageLine({ username }: { username: string }) {
+  const { t } = useI18n();
+  const [storage, setStorage] = useState<AccountFacts["storage"] | null>(null);
+  useEffect(() => {
+    let live = true;
+    fetch(`/api/helper/${encodeURIComponent(username)}/account`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: AccountFacts | null) => {
+        if (live && body?.storage) setStorage(body.storage);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [username]);
+  if (storage === null) return null;
+  const ceiling = storage.ceilingBytes;
+  return (
+    <a
+      href={`/${encodeURIComponent(username)}/account`}
+      className="mt-3 block border-t border-navy-100 pt-2.5"
+    >
+      <p className="text-xs font-semibold uppercase tracking-wide text-navy-500">
+        {t("agent.room.accountStorage")}
+      </p>
+      <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-navy-100">
+        {ceiling !== null && (
+          <div
+            className="h-full rounded-full bg-yellow-400"
+            style={{ width: `${Math.min(100, Math.round((storage.usedBytes / ceiling) * 100))}%` }}
+          />
+        )}
+      </div>
+      <p className="mt-1 text-xs text-navy-600">
+        {ceiling === null
+          ? `${GB(storage.usedBytes)} GB`
+          : t("agent.room.accountStorageOf", { used: GB(storage.usedBytes), ceiling: GB(ceiling) })}
+      </p>
+    </a>
   );
 }
 

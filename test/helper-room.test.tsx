@@ -88,6 +88,7 @@ function render(
   opening: { trip: string; slug: string } | null = null,
   files: RoomFiles = FILES,
   journals?: { username: string; title: string }[],
+  history?: { created_at: string; said: string | null; answered: string | null; origin?: string | null }[],
 ) {
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -108,6 +109,7 @@ function render(
           speechProvider="dry-run"
           siteUrl="https://t.test"
           journals={journals}
+          history={history}
         />
       </LocaleProvider>,
     );
@@ -238,7 +240,18 @@ test("the preview stays a closed rail until the conversation is about a day — 
 
 test("a day the room opens with is read from the same route the wizard reads", () => {
   render({ trip: "a-trip", slug: "tuesday" });
-  expect(calls[0].url).toBe("/api/helper/alex/day?trip=a-trip&slug=tuesday");
+  // Among the mount's requests, not the first of them — the files pane's own
+  // storage read (B1340) also fires on mount, and order is not the claim.
+  expect(calls.map((call) => call.url)).toContain("/api/helper/alex/day?trip=a-trip&slug=tuesday");
+});
+
+test("a turn that arrived over WhatsApp carries the mark, and a web turn carries nothing — B1344", () => {
+  const page = render(null, FILES, undefined, [
+    { created_at: "2026-09-10T08:00:00Z", said: "vom Handy", answered: "ok", origin: "whatsapp" },
+    { created_at: "2026-09-10T09:00:00Z", said: "vom Browser", answered: "ok", origin: "web" },
+  ]);
+  const marks = page.querySelectorAll(`svg[aria-label="${dictionary["agent.chat.viaWhatsapp"]}"]`);
+  expect(marks).toHaveLength(1);
 });
 
 test("the files tab is a full view with the same pane, one tap away — B1215", () => {

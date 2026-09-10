@@ -72,7 +72,7 @@ export const TRIPS_TOOLS: readonly Tool[] = [
       },
     },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/trip`,
-    propose: async (_username, args, say) => ({
+    propose: async (username, args, say) => ({
       /**
        * The sentence, and then the line about who may read it — B923.
        *
@@ -98,7 +98,17 @@ export const TRIPS_TOOLS: readonly Tool[] = [
           name: "visibility",
           value: ["public", "guest", "private"].includes(args.visibility ?? "")
             ? args.visibility
-            : "guest",
+            // The journal's own default, which is what the server would
+            // write for a create that says nothing (lib/tripWrite.ts) —
+            // B1342 (E04 A): a hardcoded "guest" here disagreed with the
+            // "public" a public journal actually gets. A journal this
+            // process cannot read stays on "guest", the closed-enough
+            // fallback the card has always opened on.
+            : getUser(username)
+              ? getUser(username)?.visibility === "guest"
+                ? "guest"
+                : "public"
+              : "guest",
           options: [
             { value: "public", label: say("agent.tool.visibilityPublic") },
             { value: "guest", label: say("agent.tool.visibilityGuest") },

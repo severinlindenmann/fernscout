@@ -1914,6 +1914,7 @@
   "agent.tool.coverSoft": "puha",
   "agent.chat.nothingWritten": "Semmi nem íródott.",
   "agent.chat.leftIt": "Így maradt. Semmi nem íródott és semmit nem számoltunk fel.",
+  "agent.chat.viaWhatsapp": "WhatsAppon érkezett",
   "agent.chat.writing": "Írás…",
   "agent.chat.leaveIt": "Hagyd így",
   "agent.chat.orSayWhatIsWrong": "Vagy mondd meg, mi nem stimmel — „nem, 14-én” —, és módosítva jön vissza.",

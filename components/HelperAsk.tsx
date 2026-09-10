@@ -63,7 +63,14 @@ import type { TranslationKey } from "@/lib/i18n";
  *  back. The real conversation is the server's (`lib/helper/thread.ts`); this
  *  is only what to draw, which is why a reload starts the drawing again while
  *  the server's conversation carries on. */
-type Exchange = { said: string; blocks: Block[]; at?: number };
+type Exchange = {
+  said: string;
+  blocks: Block[];
+  at?: number;
+  /** Where the person's sentence arrived from — B1344 (E08). Only ever set
+   *  for WhatsApp; a web turn is the normal case and carries no mark. */
+  via?: "whatsapp";
+};
 
 /** One value out of a route's answer, by the path a proposal's `next`
  *  declared — `"draft.prose"`. Anything missing is left out rather than
@@ -452,7 +459,7 @@ export default function HelperAsk({
   inRoom?: boolean;
   /** A conversation reopened by URL, oldest first — B984. Drawn, not resumed;
    *  see the state below. */
-  opened?: { created_at?: string; said: string | null; answered: string | null }[];
+  opened?: { created_at?: string; said: string | null; answered: string | null; origin?: string | null }[];
   /** What the room says before anybody has said anything — B984. Absent under
    *  a journal's day card, where the conversation is not the whole page. */
   opening?: Opening;
@@ -554,6 +561,7 @@ export default function HelperAsk({
       said: turn.said ?? "",
       blocks: turn.answered ? [{ shape: "say" as const, text: turn.answered }] : [],
       at: turn.created_at ? Date.parse(turn.created_at) : undefined,
+      via: turn.origin === "whatsapp" ? ("whatsapp" as const) : undefined,
     })),
   );
   /** The last thing the microphone heard — B893. Kept only so it can be said
@@ -624,8 +632,13 @@ export default function HelperAsk({
   useEffect(() => {
     const last = turns[turns.length - 1];
     if (!last) return;
-    if (last.blocks.some(isProposal)) proposal.current?.focus();
-    else {
+    if (last.blocks.some(isProposal)) {
+      proposal.current?.focus();
+      // B1343 (E05 A): focus alone scrolls the minimum, which on a tall
+      // card can leave its buttons below the fold. "nearest" shows as much
+      // of the card as fits, buttons included where the card fits at all.
+      proposal.current?.scrollIntoView?.({ block: "nearest" });
+    } else {
       silentFocus.current = true;
       box.current?.focus();
     }
@@ -1156,6 +1169,9 @@ export default function HelperAsk({
                   <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-cream-100 px-3.5 py-2 text-base leading-6 text-navy-800">
                     <span className="sr-only">{t("agent.chat.you")}: </span>
                     {turn.said}
+                    {/* Only a turn that came over WhatsApp is marked — B1344
+                        (E08): the web is the normal case and stays bare. */}
+                    {turn.via === "whatsapp" && <WhatsAppMark label={t("agent.chat.viaWhatsapp")} />}
                   </p>
                 )}
                 {turn.blocks.map((block, n) => (
@@ -1931,5 +1947,22 @@ function ProposalView({
         {t("agent.chat.orSayWhatIsWrong")}
       </p>
     </div>
+  );
+}
+
+/** The WhatsApp glyph, inline — B1344 (E08). lucide dropped brand icons, so
+ *  the path is drawn here; `role="img"` with the label is what a screen
+ *  reader gets instead of the shape. */
+function WhatsAppMark({ label }: { label: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      role="img"
+      aria-label={label}
+      className="ml-1.5 inline-block h-3.5 w-3.5 align-[-2px] fill-navy-500"
+    >
+      <title>{label}</title>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z" />
+    </svg>
   );
 }

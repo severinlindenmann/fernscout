@@ -201,7 +201,9 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
         { name: "title", value: "Japan" },
         { name: "start", value: "2027-03-01", date: true },
         { name: "end", value: "2027-03-31", date: true },
-        expect.objectContaining({ name: "visibility", value: "guest" }),
+        // "alex" is a public journal, so the card opens on the value the
+        // server would write anyway — B1342 (E04 A).
+        expect.objectContaining({ name: "visibility", value: "public" }),
       ]);
       // The whole point: a turn ran and the journal is untouched.
       expect(getTrips("alex")).toHaveLength(0);
@@ -234,7 +236,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       expect(created.status).toBe(201);
       expect(created.body.id).toBe("japan-2027");
       expect(getTrips("alex").map((t) => t.title)).toEqual(["Japan"]);
-      expect(getTrips("alex")[0].visibility).toBe("guest");
+      expect(getTrips("alex")[0].visibility).toBe("public");
     });
 
     test("the proposal is remembered, so a correction has something to correct", async () => {
@@ -258,7 +260,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       expect(proposed).not.toHaveProperty("teaser");
       // The declared ones are all there — since B935 the arguments are the whole
       // of what a press sends, fields and defaults included.
-      expect(proposed).toEqual({ title: "Japan", start: "", end: "", visibility: "guest" });
+      expect(proposed).toEqual({ title: "Japan", start: "", end: "", visibility: "public" });
     });
   });
 

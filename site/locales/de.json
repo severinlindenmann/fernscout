@@ -1914,6 +1914,7 @@
   "agent.tool.coverSoft": "weich",
   "agent.chat.nothingWritten": "Es wurde nichts geschrieben.",
   "agent.chat.leftIt": "So gelassen. Es wurde nichts geschrieben und nichts verrechnet.",
+  "agent.chat.viaWhatsapp": "über WhatsApp angekommen",
   "agent.chat.writing": "Wird geschrieben…",
   "agent.chat.leaveIt": "Sein lassen",
   "agent.chat.orSayWhatIsWrong": "Oder sag, was nicht stimmt — „nein, der 14.“ — und es kommt geändert zurück.",
