@@ -387,7 +387,9 @@ export default function HelperRoom({
   /**
    * One dismissible install hint, from the second visit — B1220 (D40).
    * Never inside a standalone display (already installed), never again
-   * once dismissed.
+   * once dismissed. Phone-only (`lg:hidden` on the row, B1334 round 2):
+   * on a desktop the browser installs from its own omnibox icon, not a
+   * share menu, so the sentence was simply untrue there.
    */
   const [installHint, setInstallHint] = useState(false);
   const [installHowOpen, setInstallHowOpen] = useState(false);
@@ -1057,7 +1059,7 @@ export default function HelperRoom({
               same sheet the ⋯ menu opens, said twice on one screen. The menu
               entry is its one home now. */}
           {installHint && (
-            <p className="mx-auto mt-1 flex w-full max-w-md shrink-0 items-center justify-center gap-2 text-center text-xs text-navy-500">
+            <p className="mx-auto mt-1 flex w-full max-w-md shrink-0 items-center justify-center gap-2 text-center text-xs text-navy-500 lg:hidden">
               <span className="min-w-0">{t("agent.room.installHint")}</span>
               {/* "How?" opens the three steps in a sheet — there is no reader
                   doc page for this, so the sheet is the doc. B1334. */}

@@ -32,4 +32,7 @@ adding a page to the home screen, so the sentence dead-ended. Owner's ask,
 
 At 390px with the hint visible, its box centre matches the viewport centre
 (measured 0px off in Playwright, 2026-09-10); pressing "Wie →" opens a sheet
-listing the three steps; ✕ still dismisses for good.
+listing the three steps; ✕ still dismisses for good. Round 2 (owner,
+2026-09-10): the row carries `lg:hidden` — at 1280px it does not render at
+all, because a desktop browser installs from its own omnibox PWA icon, not a
+share menu.
