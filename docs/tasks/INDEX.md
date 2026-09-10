@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (147)
+## backlog (148)
 
 ### security (2)
 
@@ -108,7 +108,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (17)
+### small-feature (18)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -127,6 +127,7 @@ Do not edit them by hand; run the script.
 | [B1028](backlog/small-feature/B1028-the-owner-s-own-trip-form.md) | The owner's own trip form cannot edit the three fields the API just gained | FEATURE | low | low |
 | [B1043](backlog/small-feature/B1043-the-helper-has-no-tool-for.md) | The helper has no tool for captioning a photograph or telling readers a day is up | FEATURE | low | low |
 | [B1143](backlog/small-feature/B1143-making-a-trip-public-from-the.md) | Making a trip public from the day panel is the same single press as fixing a typo | FEATURE | low | low |
+| [B1317](backlog/small-feature/B1317-the-sms-number-is-domestic-only.md) | The SMS number is domestic-only - a non-Swiss number cannot receive a code or a send | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
@@ -337,9 +338,11 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (0)
+## in-development (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B1316](in-development/B1316-twilio-sms-inbound-inbox-in-admin.md) | Twilio SMS - inbound inbox in admin, outbound sending, SMS signup fallback | FEATURE | high | medium | `35cb457b` |
 
 ## testing (97)
 
