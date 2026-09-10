@@ -18,6 +18,9 @@ import { sendPhotobookReceipt } from "@/lib/photobook/receipt";
 import { BOOK_SIZES } from "@/lib/photobook/spec";
 import { storageRefusal } from "@/lib/storageQuota";
 import { getTrip, parseTripRef } from "@/lib/trips";
+import { getUser } from "@/lib/users";
+import { translateIn } from "@/lib/locales";
+import { pickLocale } from "@/lib/contacts/locale";
 
 export const dynamic = "force-dynamic";
 
@@ -334,6 +337,14 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
     tripTitle: getTrip(trip)?.title ?? parsed.tripId,
     pages: built.pages,
     volumes: built.volumes,
+    // B1227. What was actually bought, in the owner's own language — the two
+    // facts a person checks a parcel against. Translated here because the
+    // receipt has a locale and the size table does not.
+    size: BOOK_SIZES[options.size]?.name ?? options.size,
+    cover: translateIn(
+      pickLocale(getUser(user)?.defaultLocale),
+      options.coverType === "hard" ? "photobook.cover.hard.name" : "photobook.cover.soft.name",
+    ),
     creditsSpent: credits,
     balance: await balanceOf(user),
     files: built.files,

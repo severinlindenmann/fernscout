@@ -1,5 +1,6 @@
 import "server-only";
 import { getUser } from "../users";
+import { loadServerConfig } from "../config";
 import { translateIn } from "../locales";
 import { pickLocale } from "../contacts/locale";
 import { sendTransactional } from "../mail";
@@ -26,6 +27,12 @@ export type PhotobookReceiptInput = {
   tripTitle: string;
   pages: number;
   volumes: number;
+  /** "Square 200 × 200 mm", in the reader's own language — B1227. The two
+   * facts a person checks a parcel against are the size and the cover, and
+   * this mail named neither. */
+  size: string;
+  /** "Softcover" or "Hardcover", already translated. */
+  cover: string;
   creditsSpent: number;
   balance: number | null;
   files: string[];
@@ -34,6 +41,20 @@ export type PhotobookReceiptInput = {
    * this mail is the one place written for them to actually read. */
   missing?: string[];
 };
+
+/**
+ * Whether this instance can actually put a book on paper — B1227.
+ *
+ * The same question `/api/health` answers and the order panel asks: a
+ * `dry-run` provider builds files and reaches no printer. Read here rather
+ * than passed in, because the caller knows what it built and not what the
+ * instance is for.
+ */
+function canPrint(): boolean {
+  const feature = loadServerConfig().features.photobook as Record<string, unknown>;
+  const provider = typeof feature.provider === "string" ? feature.provider : "dry-run";
+  return provider !== "dry-run";
+}
 
 export async function sendPhotobookReceipt(input: PhotobookReceiptInput): Promise<void> {
   const user = getUser(input.owner);
@@ -49,6 +70,8 @@ export async function sendPhotobookReceipt(input: PhotobookReceiptInput): Promis
     trip: input.tripTitle,
     pages: String(input.pages),
     volumes: String(input.volumes),
+    size: input.size,
+    cover: input.cover,
   };
 
   const content = {
@@ -88,7 +111,14 @@ export async function sendPhotobookReceipt(input: PhotobookReceiptInput): Promis
             },
           ]
         : []),
-      { kind: "paragraph" as const, text: t("photobook.receipt.notPrinted") },
+      // B1227. Only where it is true. This sentence told every instance it had
+      // no print account, which stopped being true the day Gelato was
+      // connected and survived because nobody reads their own receipts. On an
+      // instance that does print, the order page carries the printer's own
+      // status and this mail must not contradict it.
+      ...(canPrint()
+        ? []
+        : [{ kind: "paragraph" as const, text: t("photobook.receipt.notPrinted") }]),
     ],
     footer: t("photobook.receipt.footer"),
   };
