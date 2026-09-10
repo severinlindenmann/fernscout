@@ -123,11 +123,22 @@ const nextConfig: NextConfig = {
    * artefact of the preview, not a change to the project — discard it.
    */
   distDir: process.env.NEXT_DIST_DIR || ".next",
-  // Native and CJS database drivers, loaded through `require` at runtime
-  // rather than bundled. Next already externalises both by default; naming
-  // them here means a change to that default list can't quietly break the
-  // build. Only one of the two is ever actually loaded — see lib/db/client.ts.
-  serverExternalPackages: ["better-sqlite3", "pg"],
+  // Native and CJS packages, loaded through `require` at runtime rather than
+  // bundled. Next already externalises these by default; naming them here
+  // means a change to that default list can't quietly break the build. Only
+  // one of the two drivers is ever actually loaded — see lib/db/client.ts.
+  //
+  // **`sharp` earns its place the hard way** — B1335. It is a native binding,
+  // and a build that bundled it left the server unable to find it at all:
+  //
+  //     Failed to load external module sharp-20c6a5da84e2135f:
+  //     Cannot find package 'sharp-20c6a5da84e2135f'
+  //
+  // Ordering a photobook answered 500 on the live instance, because
+  // `lib/photobook/images.ts` re-encodes every photograph through it (B1172).
+  // `lib/api/media.ts` and `lib/ingest/image.ts` load it too and had been
+  // getting away with it.
+  serverExternalPackages: ["better-sqlite3", "pg", "sharp"],
   // Markdown twins: appending `.md` to a day page's URL serves its source. A
   // route handler and a page cannot share a path, so the suffix is rewritten
   // to a handler rather than routed directly.
