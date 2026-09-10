@@ -10,6 +10,7 @@ found: "2026-09-10T15:04:02Z"
 =======
 found: "2026-09-10T06:00:00Z"
 >>>>>>> b1232-spine
+merged: "2026-09-10T15:09:37Z"
 ---
 
 # B1309 — A softcover gets no spine text even where the spine is wide enough for one
