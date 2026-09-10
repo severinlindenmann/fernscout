@@ -7,8 +7,7 @@ complexity: medium
 area: helper room
 found: "2026-09-10T04:39:35Z"
 started: "2026-09-10T05:10:10Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-10T05:10:10Z"
+merged: "2026-09-10T05:17:06Z"
 ---
 
 # B1209 — Room decisions: the account sheet with display settings (D09 D03 D04)

@@ -285,18 +285,16 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (6)
+## in-development (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1209](in-development/B1209-room-decisions-the-account-sheet-with.md) | Room decisions: the account sheet with display settings (D09 D03 D04) | FEATURE | high | medium | `b9809a36` |
-| [B1210](in-development/B1210-room-decisions-the-bring-your-own.md) | Room decisions: the bring-your-own-agent bottom sheet (D11 D12) | FEATURE | high | medium | `b9809a36` |
 | [B1219](in-development/B1219-room-decisions-an-evening-reminder-during.md) | Room decisions: an evening reminder during a trip (D46) | FEATURE | high | high | `b9809a36` |
 | [B1221](in-development/B1221-room-decisions-a-30-second-demo.md) | Room decisions: a 30-second demo conversation at the door (D50) | FEATURE | high | medium | `b9809a36` |
 | [B1222](in-development/B1222-the-phone-passcode-has-no-live.md) | The phone passcode has no live transport - the decided Twilio backend is on hold | FEATURE | high | medium | `445f2c45` |
 | [B1228](in-development/B1228-only-one-of-the-six-size.md) | Only one of the six size-and-cover combinations has ever reached a printer | CHORE | high | medium | `ce87fdc2` |
 
-## testing (93)
+## testing (95)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -351,6 +349,8 @@ Do not edit them by hand; run the script.
 | [B1205](testing/B1205-a-book-is-two-pdfs-where.md) | A book is two PDFs where the printer wants one, cover first | ISSUE | high | medium | — |
 | [B1207](testing/B1207-room-decisions-the-clean-app-restyle.md) | Room decisions: the Clean App restyle and open two-column proposal cards (D01 D05) | FEATURE | high | high | — |
 | [B1208](testing/B1208-room-decisions-header-identity-credits-and.md) | Room decisions: header identity, credits and the overflow menu (D53 D06 D07 D08 D10 D17 D43) | FEATURE | high | medium | — |
+| [B1209](testing/B1209-room-decisions-the-account-sheet-with.md) | Room decisions: the account sheet with display settings (D09 D03 D04) | FEATURE | high | medium | — |
+| [B1210](testing/B1210-room-decisions-the-bring-your-own.md) | Room decisions: the bring-your-own-agent bottom sheet (D11 D12) | FEATURE | high | medium | — |
 | [B1224](testing/B1224-a-two-letter-message-makes-the.md) | A two-letter message makes the model guess its language, and it guessed Japanese | ISSUE | high | low | — |
 | [B1225](testing/B1225-get-token-sh-interpolated-its-journal.md) | get-token.sh interpolated its journal argument into an ssh command line running as root on the live instance | SECURITY | high | low | — |
 | [B1227](testing/B1227-the-receipt-names-two-files-and.md) | The receipt names two files and a missing print account, and neither the format nor the cover | ISSUE | high | low | — |
