@@ -2106,6 +2106,8 @@
   "wa.proposalGone": "Jelenleg nincs semmi, amire nyomni lehetne — lehet, hogy azt a gombot már használták, vagy azóta újabb dolog jött közbe.",
   "wa.proposalWebOnly": "Ehhez a web kell — nyisd meg a naplót, hogy ott fejezd be.",
   "wa.proposalFailed": "Ezt nem sikerült menteni ({error}) — próbáld meg újra a weben.",
+  "wa.newChat": "új beszélgetés,kezdjük elölről",
+  "wa.newChatStarted": "Új beszélgetést kezdtünk — a korábbi továbbra is megtalálható az előzményeidben itt: {url}.",
   "agent.open.whatsapp": "Írj nekünk WhatsAppon →",
   "agent.open.whatsappGreeting": "Szia",
   "agent.open.progressDay": "{day}. nap ({total}-ból)",

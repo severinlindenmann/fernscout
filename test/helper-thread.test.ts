@@ -597,6 +597,21 @@ describe("the tools", () => {
     expect(prompt).toContain("email");
     expect(prompt).toContain("It never happens because of a sentence");
   });
+
+  /** B1244 — the enrichment follow-up, prompt-only. */
+  test("asks for what a day is still missing, once started, never a questionnaire", () => {
+    const prompt = threadSystemPrompt("2026-09-07");
+    expect(prompt).toMatch(/one gap/i);
+    expect(prompt.toLowerCase()).toContain("place or cost");
+    expect(prompt.toLowerCase()).toContain("not weather");
+  });
+
+  /** B1245 — the topic-shift question, prompt-only. */
+  test("carries the topic-shift question for a long gap on a new subject", () => {
+    const prompt = threadSystemPrompt("2026-09-07");
+    expect(prompt.toLowerCase()).toContain("new subject");
+    expect(prompt.toLowerCase()).toContain("continue, or fresh");
+  });
 });
 
 /* ------------------------------------------------------------ the price --- */

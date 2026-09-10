@@ -16,7 +16,7 @@ import type { Say } from "../helper/intents";
 import { answerInThread, WRITE_DAY_CREDITS } from "../helper/model";
 import { recordTurn } from "../helper/sessions";
 import { MAX_AUDIO_BYTES, MAX_SPEECH_SECONDS, speechLanguageFor } from "../helper/speech";
-import { history, proposed, remember, sessionId, wrote } from "../helper/thread";
+import { forget, history, proposed, remember, sessionId, wrote } from "../helper/thread";
 import { spendAndTranscribe } from "../helper/transcribeSpend";
 import { kindForExtension, storeInboxFile } from "../inbox";
 import { translateIn } from "../locales";
@@ -27,7 +27,7 @@ import { storageRefusal } from "../storageQuota";
 import { missingFrom, UNKNOWN } from "../tracks";
 import { getTrips, tripRef } from "../trips";
 import type { Trip } from "../types";
-import { isAcknowledgement } from "./acknowledge";
+import { isAcknowledgement, isNewChatCommand } from "./acknowledge";
 import { hasAcknowledged, hasBeenGreeted, markAcknowledged, markGreeted } from "./binding";
 import { downloadMedia } from "./cloud";
 import { announceHeldAnswer, takeHeldAnswer } from "./held";
@@ -271,6 +271,24 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
       return;
     }
     // Not a "yes" — an ordinary sentence, answered ordinarily below.
+  }
+
+  /**
+   * "new chat" / "neues gespräch" — B1245, matched before the model exactly
+   * as `wa.yes` is (B1138) rather than left for the model to notice and
+   * call nothing for. `forget()` is the whole of "ends the live session
+   * cleanly" — B1054/B1168's own mechanism: the `helper_threads` row for
+   * this journal is cleared, so the very next message mints a fresh
+   * `sessionId()` rather than continuing the old one. The old conversation
+   * is not deleted — `helper_sessions` keeps every turn it ever had, which
+   * is what makes it reachable again from `/agent`'s history panel.
+   */
+  if (message.kind === "text" && isNewChatCommand(message.body, locale)) {
+    forget(username);
+    const url = `${serverSite().url}/agent`;
+    await sendServiceReply(message.from, translateIn(locale, "wa.newChatStarted", { url }), username);
+    console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) started a fresh conversation`);
+    return;
   }
 
   /**

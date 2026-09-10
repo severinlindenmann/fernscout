@@ -19,11 +19,35 @@ import { translateIn } from "../locales";
  * Hungarian is looking at when it is reviewed.
  */
 export function isAcknowledgement(text: string, locale: string): boolean {
+  return matchesPhrase(text, locale, "wa.yes");
+}
+
+/** The shared matcher: trimmed, case-folded, exact, against a comma-separated
+ *  list of phrases in one translation key — B1138's discipline, generalised
+ *  for B1245's "new chat" command so the two never drift into two different
+ *  ideas of what an exact match means. */
+function matchesPhrase(
+  text: string,
+  locale: string,
+  key: Parameters<typeof translateIn>[1],
+): boolean {
   const said = text.trim().toLowerCase();
   if (said === "") return false;
-  const words = translateIn(locale, "wa.yes")
+  const phrases = translateIn(locale, key)
     .split(",")
     .map((word) => word.trim().toLowerCase())
     .filter((word) => word !== "");
-  return words.includes(said);
+  return phrases.includes(said);
+}
+
+/**
+ * "new chat" / "neues gespräch" — B1245.
+ *
+ * The same exact-match discipline as `isAcknowledgement`: a sentence about
+ * their day that happens to contain these words is not the command, so this
+ * is matched trimmed, case-folded and whole against `wa.newChat`, sourced
+ * from `site/locales/*.json` exactly as `wa.yes` is.
+ */
+export function isNewChatCommand(text: string, locale: string): boolean {
+  return matchesPhrase(text, locale, "wa.newChat");
 }

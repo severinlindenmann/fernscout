@@ -2164,6 +2164,8 @@ export type TranslationKey =
   | "wa.locationPinCreated"
   | "wa.mediaLanded"
   | "wa.mediaTip"
+  | "wa.newChat"
+  | "wa.newChatStarted"
   | "wa.phoneLinkConfirmed"
   | "wa.phoneLinkExpired"
   | "wa.proposalDeclined"

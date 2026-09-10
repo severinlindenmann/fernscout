@@ -2106,6 +2106,8 @@
   "wa.proposalGone": "There's nothing waiting to be pressed right now — that button may already have been used, or something newer has come up since.",
   "wa.proposalWebOnly": "That one needs the web — open the journal to finish it there.",
   "wa.proposalFailed": "That couldn't be saved ({error}) — open the web to try again.",
+  "wa.newChat": "new chat,new conversation,start over",
+  "wa.newChatStarted": "Started a fresh conversation — the earlier one is still in your history at {url}.",
   "agent.open.whatsapp": "Message us on WhatsApp →",
   "agent.open.whatsappGreeting": "Hi",
   "agent.open.progressDay": "Day {day} of {total}",
