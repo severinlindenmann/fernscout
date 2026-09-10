@@ -7,8 +7,7 @@ complexity: low
 area: agent helper
 found: "2026-09-10T19:12:18Z"
 started: "2026-09-10T19:15:31Z"
-session: fb660571-5f19-4c13-9493-42fb41b86585
-claimed: "2026-09-10T19:15:31Z"
+merged: "2026-09-10T19:34:23Z"
 ---
 
 # B1373 — Homescreen guide does not say it needs Safari on iOS or how Android works

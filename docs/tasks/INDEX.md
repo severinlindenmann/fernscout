@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (169)
+## backlog (171)
 
 ### security (2)
 
@@ -117,7 +117,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (21)
+### small-feature (23)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -125,6 +125,7 @@ Do not edit them by hand; run the script.
 | [B1154](backlog/small-feature/B1154-a-key-that-can-write-to.md) | A key that can write to this journal for seven days is visible nowhere in the room | FEATURE | high | medium |
 | [B1315](backlog/small-feature/B1315-twilio-sms-inbound-inbox-in-admin.md) | Twilio SMS - inbound inbox in admin, outbound sending, SMS signup fallback | FEATURE | high | medium |
 | [B1392](backlog/small-feature/B1392-staged-files-are-counted-in-the.md) | Staged files are counted in the storage card and on /agent, and neither offers a way to clear them | FEATURE | high | low |
+| [B1393](backlog/small-feature/B1393-a-postcard-can-only-be-made.md) | A postcard can only be made from a photograph already on a day, and the helper cannot add the recipient it just asked for | FEATURE | high | medium |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
 | [B1069](backlog/small-feature/B1069-there-is-no-tool-surface-for.md) | There is no tool surface for an agent that would rather be guided than read a spec | FEATURE | medium | medium |
 | [B1155](backlog/small-feature/B1155-a-turn-spends-a-credit-and.md) | A turn spends a credit and nothing on screen says so | FEATURE | medium | medium |
@@ -132,6 +133,7 @@ Do not edit them by hand; run the script.
 | [B132](backlog/small-feature/B132-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to learn a new release exists, let alone install it | FEATURE | medium | medium |
 | [B1386](backlog/small-feature/B1386-a-signed-out-visitor-has-no.md) | A signed-out visitor has no way to get a journal of their own | FEATURE | medium | low |
 | [B1388](backlog/small-feature/B1388-whatsappinbound-has-no-owner-facing-switch.md) | whatsappInbound has no owner-facing switch | FEATURE | medium | medium |
+| [B1394](backlog/small-feature/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium |
 | [B592](backlog/small-feature/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
 | [B991](backlog/small-feature/B991-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium |
@@ -355,26 +357,11 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (14)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1370](in-development/B1370-whatsapp-confirm-step-still-shows-the.md) | WhatsApp confirm step still shows the intro text above it | ISSUE | high | low | `fb660571` |
-| [B1374](in-development/B1374-opening-warum-pins-the-footer-tab.md) | Opening warum pins the footer tab bar mid-page and the consent text cannot scroll | ISSUE | high | medium | `fb660571` |
-| [B1375](in-development/B1375-agent-handover-sheet-cannot-be-scrolled.md) | Agent handover sheet cannot be scrolled or closed on mobile | ISSUE | high | medium | `fb660571` |
-| [B1378](in-development/B1378-composer-in-voice-mode-is-cramped.md) | Composer in voice mode is cramped and the speech level animation never shows | ISSUE | high | medium | `fb660571` |
-| [B1379](in-development/B1379-chat-layout-breaks-while-scrolling-with.md) | Chat layout breaks while scrolling with the warning banner pinned | ISSUE | high | medium | `fb660571` |
-| [B1382](in-development/B1382-whatsapp-channel-dead-on-live-and.md) | WhatsApp channel dead on live and switching agent to whatsapp breaks the session | ISSUE | high | high | `fb660571` |
-| [B1383](in-development/B1383-microphone-stays-held-after-leaving-the.md) | Microphone stays held after leaving the page | ISSUE | high | medium | `fb660571` |
-| [B1371](in-development/B1371-low-credit-warning-fires-at-10.md) | Low-credit warning fires at 10 days left and cannot be dismissed | ISSUE | medium | low | `fb660571` |
-| [B1373](in-development/B1373-homescreen-guide-does-not-say-it.md) | Homescreen guide does not say it needs Safari on iOS or how Android works | ISSUE | medium | low | `fb660571` |
-| [B1376](in-development/B1376-chat-says-vorschlag-auf-deinem-bildschirm.md) | Chat says Vorschlag auf deinem Bildschirm but no button is visible | ISSUE | medium | low | `fb660571` |
-| [B1377](in-development/B1377-deepgram-voice-consent-renders-unusably-narrow.md) | Deepgram voice consent renders unusably narrow on a phone | ISSUE | medium | low | `fb660571` |
-| [B1380](in-development/B1380-uploaded-videos-get-no-thumbnail-in.md) | Uploaded videos get no thumbnail in the Dateien tab | ISSUE | medium | low | `fb660571` |
-| [B1381](in-development/B1381-speicher-meter-stays-at-0-00.md) | Speicher meter stays at 0.00 GB after uploads | ISSUE | medium | low | `fb660571` |
-| [B1372](in-development/B1372-quick-action-says-fotos-nachtragen-where.md) | Quick action says Fotos nachtragen where Fotos erfassen is meant | ISSUE | low | low | `fb660571` |
+_Nothing here._
 
-## testing (141)
+## testing (155)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -475,6 +462,13 @@ Do not edit them by hand; run the script.
 | [B1361](testing/B1361-the-installed-pwa-keeps-running-an.md) | The installed PWA keeps running an old build with nothing saying so | FEATURE | high | low | — |
 | [B1362](testing/B1362-helper-threads-writes-are-unordered-so.md) | helper_threads writes are unordered, so forget() can lose to an in-flight persist() | ISSUE | high | low | — |
 | [B1363](testing/B1363-a-stranger-who-takes-the-landing.md) | A stranger who takes the landing page's WhatsApp door is told to go away | FEATURE | high | high | — |
+| [B1370](testing/B1370-whatsapp-confirm-step-still-shows-the.md) | WhatsApp confirm step still shows the intro text above it | ISSUE | high | low | — |
+| [B1374](testing/B1374-opening-warum-pins-the-footer-tab.md) | Opening warum pins the footer tab bar mid-page and the consent text cannot scroll | ISSUE | high | medium | — |
+| [B1375](testing/B1375-agent-handover-sheet-cannot-be-scrolled.md) | Agent handover sheet cannot be scrolled or closed on mobile | ISSUE | high | medium | — |
+| [B1378](testing/B1378-composer-in-voice-mode-is-cramped.md) | Composer in voice mode is cramped and the speech level animation never shows | ISSUE | high | medium | — |
+| [B1379](testing/B1379-chat-layout-breaks-while-scrolling-with.md) | Chat layout breaks while scrolling with the warning banner pinned | ISSUE | high | medium | — |
+| [B1382](testing/B1382-whatsapp-channel-dead-on-live-and.md) | WhatsApp channel dead on live and switching agent to whatsapp breaks the session | ISSUE | high | high | — |
+| [B1383](testing/B1383-microphone-stays-held-after-leaving-the.md) | Microphone stays held after leaving the page | ISSUE | high | medium | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |
@@ -513,12 +507,19 @@ Do not edit them by hand; run the script.
 | [B1346](testing/B1346-the-owner-cannot-ask-to-delete.md) | The owner cannot ask to delete their journal from a browser | FEATURE | medium | low | — |
 | [B1354](testing/B1354-a-deleted-journal-s-name-can.md) | A deleted journal's name can only be freed with a shell on the server | FEATURE | medium | low | — |
 | [B1355](testing/B1355-a-webhook-refused-at-the-door.md) | A webhook refused at the door is indistinguishable from one that worked | ISSUE | medium | low | — |
+| [B1371](testing/B1371-low-credit-warning-fires-at-10.md) | Low-credit warning fires at 10 days left and cannot be dismissed | ISSUE | medium | low | — |
+| [B1373](testing/B1373-homescreen-guide-does-not-say-it.md) | Homescreen guide does not say it needs Safari on iOS or how Android works | ISSUE | medium | low | — |
+| [B1376](testing/B1376-chat-says-vorschlag-auf-deinem-bildschirm.md) | Chat says Vorschlag auf deinem Bildschirm but no button is visible | ISSUE | medium | low | — |
+| [B1377](testing/B1377-deepgram-voice-consent-renders-unusably-narrow.md) | Deepgram voice consent renders unusably narrow on a phone | ISSUE | medium | low | — |
+| [B1380](testing/B1380-uploaded-videos-get-no-thumbnail-in.md) | Uploaded videos get no thumbnail in the Dateien tab | ISSUE | medium | low | — |
+| [B1381](testing/B1381-speicher-meter-stays-at-0-00.md) | Speicher meter stays at 0.00 GB after uploads | ISSUE | medium | low | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
 | [B1096](testing/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low | — |
 | [B1128](testing/B1128-the-invites-and-inbox-tools-also.md) | The invites and inbox tools also say their own block back in prose | ISSUE | low | low | — |
 | [B1179](testing/B1179-a-reopened-conversation-reads-as-one.md) | A reopened conversation reads as one undifferentiated wall with no date | ISSUE | low | low | — |
 | [B1199](testing/B1199-the-day-context-offer-still-offers.md) | The day-context offer still offers taking a draft off the site | ISSUE | low | low | — |
 | [B1202](testing/B1202-one-reply-can-carry-the-same.md) | One reply can carry the same proposal card twice, verbatim | ISSUE | low | low | — |
+| [B1372](testing/B1372-quick-action-says-fotos-nachtragen-where.md) | Quick action says Fotos nachtragen where Fotos erfassen is meant | ISSUE | low | low | — |
 
 ## completed (940)
 
