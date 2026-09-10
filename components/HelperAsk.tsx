@@ -303,6 +303,7 @@ export default function HelperAsk({
   onOpenFiles,
   aboutOffer = false,
   aboutDraft = null,
+  injected = null,
   onFieldFocusChange,
   inRoom = false,
   opened = [],
@@ -391,6 +392,10 @@ export default function HelperAsk({
   /** Whether the day the offer is about is a draft — B1199. `null` until
    *  the preview's read lands; the state-dependent option waits for it. */
   aboutDraft?: boolean | null;
+  /** A turn handed in from outside the conversation — B1214 (D26): the
+   *  preview header's publish shortcut fetches the ordinary publish
+   *  proposal and this is how its card enters the thread. */
+  injected?: { blocks: Block[]; at: number } | null;
   /**
    * The field gained or lost focus — B1016. The strip above the composer
    * collapses while somebody is about to type, because the arithmetic in
@@ -561,6 +566,14 @@ export default function HelperAsk({
   useEffect(() => {
     if (log.current) log.current.scrollTop = log.current.scrollHeight;
   }, [turns, busy]);
+
+  /** An injected turn joins the thread once per stamp — B1214 (D26). */
+  const injectedAt = useRef(0);
+  useEffect(() => {
+    if (!injected || injected.at === injectedAt.current) return;
+    injectedAt.current = injected.at;
+    setTurns((was) => [...was, { said: "", blocks: injected.blocks, at: injected.at }]);
+  }, [injected]);
 
   /** The one failure with a way out of it, told apart from the rest — B807. */
   function failed(thrown: unknown) {

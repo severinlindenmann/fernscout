@@ -495,3 +495,14 @@ select:disabled {
   background-color: #171d29; color: #f2ecdd;
 }
 .fs-room-dark .shadow-sm { --tw-shadow-color: rgb(0 0 0 / 0.4); }
+
+/* One short pulse when an accepted write changed the previewed day —
+   B1214 (D27). Removed for prefers-reduced-motion with everything else. */
+.fs-pulse { animation: fs-preview-pulse 1.2s ease-out 1; border-radius: 0.75rem; }
+@keyframes fs-preview-pulse {
+  0% { box-shadow: 0 0 0 3px rgb(255 210 63 / 0.9); }
+  100% { box-shadow: 0 0 0 3px rgb(255 210 63 / 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fs-pulse { animation: none; }
+}

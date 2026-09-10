@@ -232,24 +232,30 @@ test("a day the room opens with is read from the same route the wizard reads", (
   expect(calls[0].url).toBe("/api/helper/alex/day?trip=a-trip&slug=tuesday");
 });
 
-test("the files sheet is a dialog with one obvious way back", () => {
+test("the files tab is a full view with the same pane, one tap away — B1215", () => {
   const box = render();
-  // The trigger is the strip above the composer now — B1016 — rather than a
-  // header pill, so it is found by its accessible name rather than by
-  // visible text: what is visible is thumbnails, not the word "Files".
+  // The way in is the composer's paperclip (or the strip); a tap lands on
+  // the Dateien tab, not a sheet: nothing overlays the conversation.
   const open = [...box.querySelectorAll("button")].find(
     (button) => button.getAttribute("aria-label") === "Files",
   )!;
   act(() => open.click());
-  const sheet = document.querySelector("dialog")!;
-  expect(sheet.getAttribute("aria-label")).toBe("Files");
-  // The same pane, the same checkboxes: one selection, two places to make it.
-  expect(sheet.querySelectorAll("input[type=checkbox]")).toHaveLength(3);
-  const back = [...sheet.querySelectorAll("button")].find(
-    (button) => button.textContent === "Close",
-  )!;
-  act(() => back.click());
   expect(document.querySelector("dialog")).toBeNull();
+  const pane = [...document.querySelectorAll("section")].find(
+    (one) => one.getAttribute("aria-label") === "Files" && one.className.includes("lg:hidden"),
+  )!;
+  // The same pane, the same checkboxes: one selection, two places to make it.
+  expect(pane.querySelectorAll("input[type=checkbox]")).toHaveLength(3);
+  // And the way back is the tab bar's own Chat tab.
+  const chat = [...document.querySelectorAll<HTMLButtonElement>("nav button")].find(
+    (button) => (button.textContent ?? "").includes("Chat"),
+  )!;
+  act(() => chat.click());
+  expect(
+    [...document.querySelectorAll("section")].some(
+      (one) => one.getAttribute("aria-label") === "Files" && one.className.includes("lg:hidden"),
+    ),
+  ).toBe(false);
 });
 
 /**
@@ -558,11 +564,16 @@ test("a turn that named a day carries a preview affordance", async () => {
   expect(chip).toBeDefined();
 
   // No `matchMedia` in jsdom — the room reads that defensively and falls back
-  // to the phone's own behaviour, which is the modal sheet — B1170. Nothing
-  // is open before the press; pressing the chip is what opens it.
-  expect(box.querySelector('dialog[aria-label="How it looks"]')).toBeNull();
+  // to the phone's own behaviour, which is the Vorschau tab — B1215.
+  // Nothing is open before the press; pressing the chip switches tabs.
+  const previewTab = () =>
+    [...document.querySelectorAll("section")].some(
+      (one) =>
+        one.getAttribute("aria-label") === "How it looks" && one.className.includes("lg:hidden"),
+    );
+  expect(previewTab()).toBe(false);
   act(() => chip!.click());
-  expect(box.querySelector('dialog[aria-label="How it looks"]')).not.toBeNull();
+  expect(previewTab()).toBe(true);
 });
 
 /**

@@ -231,6 +231,21 @@ export default function HelperRoom({
     !(files.inbox.length > 0 || files.trip.length > 0),
   );
   const [previewCollapsed, setPreviewCollapsed] = useState(false);
+  // Remembered across visits — B1214 (D24 B). Applied after mount (the
+  // storage-in-initializer trap, B1197).
+  useEffect(() => {
+    if (window.localStorage.getItem("fs.agent.previewCollapsed") === "1") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPreviewCollapsed(true);
+    }
+  }, []);
+  function togglePreviewCollapsed() {
+    setPreviewCollapsed((was) => {
+      window.localStorage.setItem("fs.agent.previewCollapsed", was ? "0" : "1");
+      return !was;
+    });
+    setPreviewUnseen(false);
+  }
   /** The preview column's width, 380–440px, dragged from its own edge and
    *  kept across visits — B1121. Read once, lazily, so a server render and a
    *  browser with nothing stored both land on the same default. */
@@ -302,6 +317,30 @@ export default function HelperRoom({
   const [historyOpen, setHistoryOpen] = useState(false);
   /** The account sheet (balance, month, storage) — B1208 (D07/D09). */
   const [accountOpen, setAccountOpen] = useState(false);
+  /**
+   * The phone's own navigation — B1215 (D39): a bottom tab bar, Chat ·
+   * Dateien · Vorschau, replacing the summoned sheets as the way to the
+   * panes. Desktop ignores it entirely (`lg:` keeps the rails).
+   */
+  const [tab, setTab] = useState<"chat" | "files" | "preview">("chat");
+  /**
+   * A short pulse on the preview when an accepted write changed the day —
+   * B1214 (D27, the coarse half: the card pulses and scrolls to top; a
+   * per-passage diff was deliberately not built). Keyed by time so two
+   * writes in a row pulse twice.
+   */
+  const [pulse, setPulse] = useState(0);
+  const lastDayText = useRef<string>("");
+  useEffect(() => {
+    if (!preview) return;
+    const text = `${preview.day.lead.title}\n${preview.day.lead.content ?? ""}`;
+    if (lastDayText.current && lastDayText.current !== text) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPulse(Date.now());
+    }
+    lastDayText.current = text;
+  }, [preview]);
+
   /** The bring-your-own-agent sheet — B1210 (D11/D12). */
   const [agentSheetOpen, setAgentSheetOpen] = useState(false);
   /**
@@ -367,8 +406,7 @@ export default function HelperRoom({
    * layout appears without being asked for. The day chip in the turn stays
    * as the way back in.
    */
-  const [filesSheetOpen, setFilesSheetOpen] = useState(false);
-  const [previewSheetOpen, setPreviewSheetOpen] = useState(false);
+
   /** A turn named a day while the desktop preview rail was collapsed — the
    *  rail shows a dot instead of opening itself. B1170. */
   const [previewUnseen, setPreviewUnseen] = useState(false);
@@ -403,6 +441,32 @@ export default function HelperRoom({
     setSelected((was) => (was.includes(id) ? was.filter((one) => one !== id) : [...was, id]));
   }
 
+  /**
+   * A turn injected from outside the conversation — B1214 (D26): the
+   * preview header's "Put this day on the site" fetches the same
+   * publish_day proposal the model would draw, and this is how the card
+   * reaches the thread. Publishing itself still happens only on the
+   * card's own press, in the conversation, exactly as everywhere else.
+   */
+  const [injected, setInjected] = useState<{ blocks: unknown[]; at: number } | null>(null);
+  async function publishFromPreview() {
+    if (!subject) return;
+    const response = await fetch(`/api/helper/${encodeURIComponent(username)}/proposal`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        tool: "publish_day",
+        arguments: { trip: subject.trip, slug: subject.slug },
+        today: new Date().toISOString().slice(0, 10),
+      }),
+    }).catch(() => null);
+    const body = (await response?.json().catch(() => null)) as { blocks?: unknown[] } | null;
+    if (body?.blocks?.length) {
+      setInjected({ blocks: body.blocks, at: Date.now() });
+      setTab("chat");
+    }
+  }
+
   const filesPane = (
     <FilesPane
       files={{ ...files, inbox }}
@@ -418,7 +482,41 @@ export default function HelperRoom({
   );
 
   const previewPane = (
-    <PreviewPane preview={preview} reading={reading} currency={currency} />
+    <>
+      {/* A real header for the pane — B1214 (D25): the day it shows, the
+          way onto the site for a published day, and for a draft the
+          publish shortcut that opens the ordinary confirm card in the
+          conversation (D26). */}
+      {preview && subject && (
+        <div className="mb-2 flex items-center gap-2 border-b border-navy-100 pb-2">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-navy-900">
+              {preview.day.lead.title || preview.day.lead.date}
+            </p>
+            <p className="text-xs text-navy-500">{preview.day.lead.date}</p>
+          </div>
+          {preview.day.lead.draft ? (
+            <button
+              type="button"
+              onClick={() => void publishFromPreview()}
+              className="shrink-0 rounded-full border border-navy-300 bg-white px-3 py-1.5 text-xs font-semibold text-navy-800 transition-colors hover:bg-navy-50"
+            >
+              {t("agent.about.publish")}
+            </button>
+          ) : (
+            <a
+              href={`/${encodeURIComponent(username)}/trips/${encodeURIComponent(subject.trip)}/day/${encodeURIComponent(subject.slug)}`}
+              className="shrink-0 text-xs font-semibold text-navy-700 underline underline-offset-4 hover:text-navy-900"
+            >
+              {t("agent.room.openOnSite")}
+            </a>
+          )}
+        </div>
+      )}
+      <div key={pulse || undefined} className={pulse ? "fs-pulse" : undefined}>
+        <PreviewPane preview={preview} reading={reading} currency={currency} />
+      </div>
+    </>
   );
 
   const filesStrip = (
@@ -426,7 +524,7 @@ export default function HelperRoom({
       files={{ ...files, inbox }}
       selected={selected}
       collapsed={fieldFocused}
-      onOpen={() => setFilesSheetOpen(true)}
+      onOpen={() => setTab("files")}
     />
   );
 
@@ -641,12 +739,14 @@ export default function HelperRoom({
           {filesPane}
         </FilesRail>
 
-        {/* Middle, and on a phone the whole of it. The inner wrapper caps
+        {/* Middle — on a phone, the Chat tab (B1215). The inner wrapper caps
             the reading measure — B1177: at 1440px the column is ~1000px and
             a line of conversation spanned all of it, three times the width
             a paragraph stays readable at. The column keeps its flex width;
             only the content is held to ~65-75 characters. */}
-        <main className="flex min-h-0 flex-1 flex-col px-4 py-3">
+        <main
+          className={`min-h-0 flex-1 flex-col px-4 py-3 ${tab === "chat" ? "flex" : "hidden"} lg:flex`}
+        >
           <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
           <HelperAsk
             username={username}
@@ -661,6 +761,7 @@ export default function HelperRoom({
             // The day's own state, once the preview has read it — B1199:
             // the offer must not include taking a draft off the site.
             aboutDraft={preview ? preview.day.lead.draft === true : null}
+            injected={injected as { blocks: never[]; at: number } | null}
             whatsappNumber={whatsappNumber}
             selected={selected}
             onSubject={(day) => {
@@ -698,7 +799,8 @@ export default function HelperRoom({
                 setPreviewCollapsed(false);
                 setScrollTick((n) => n + 1);
               } else {
-                setPreviewSheetOpen(true);
+                // The Vorschau tab, not a sheet — B1215.
+                setTab("preview");
               }
             }}
             filesStrip={filesStrip}
@@ -715,7 +817,7 @@ export default function HelperRoom({
                 </p>
               ) : undefined
             }
-            onOpenFiles={() => setFilesSheetOpen(true)}
+            onOpenFiles={() => setTab("files")}
             onFieldFocusChange={setFieldFocused}
           />
 
@@ -750,10 +852,7 @@ export default function HelperRoom({
           innerRef={previewRef}
           collapsed={previewCollapsed}
           unseen={previewUnseen}
-          onToggleCollapsed={() => {
-            setPreviewCollapsed((was) => !was);
-            setPreviewUnseen(false);
-          }}
+          onToggleCollapsed={togglePreviewCollapsed}
           width={previewWidth}
           onResizeDown={onResizeDown}
           onResizeMove={onResizeMove}
@@ -765,30 +864,66 @@ export default function HelperRoom({
         >
           {previewPane}
         </PreviewColumn>
+
+        {/* The phone's two other tabs — B1215 (D39). Full views, not
+            sheets: one tap each from the bar below, nothing summoned over
+            the conversation. */}
+        {tab === "files" && (
+          <section
+            aria-label={t("agent.room.files")}
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 lg:hidden"
+          >
+            {filesPane}
+          </section>
+        )}
+        {tab === "preview" && (
+          <section
+            aria-label={t("agent.room.preview")}
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 lg:hidden"
+          >
+            {previewPane}
+          </section>
+        )}
       </div>
 
-      {filesSheetOpen && (
-        <Sheet
-          label={t("agent.room.files")}
-          close={t("agent.room.closeFiles")}
-          onClose={() => setFilesSheetOpen(false)}
-        >
-          {filesPane}
-        </Sheet>
-      )}
+      {/* The tab bar — B1215 (D39). Chat is the home; the dot on Vorschau
+          is the same claim the desktop rail's dot makes. */}
+      <nav
+        aria-label={t("agent.room.tabs")}
+        className="flex shrink-0 border-t border-navy-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
+      >
+        {(
+          [
+            ["chat", t("agent.room.tabChat")],
+            ["files", t("agent.room.files")],
+            ["preview", t("agent.room.preview")],
+          ] as const
+        ).map(([which, label]) => (
+          <button
+            key={which}
+            type="button"
+            aria-current={tab === which ? "page" : undefined}
+            onClick={() => {
+              setTab(which);
+              if (which === "preview") setPreviewUnseen(false);
+            }}
+            className={`relative min-h-12 flex-1 text-sm transition-colors ${
+              tab === which ? "font-semibold text-navy-900" : "text-navy-500 hover:text-navy-800"
+            }`}
+          >
+            {label}
+            {tab === which && (
+              <span aria-hidden className="absolute inset-x-1/4 top-0 h-0.5 rounded-full bg-yellow-400" />
+            )}
+            {/* A day arrived while the person was on another tab — the
+                same claim the desktop rail's dot makes. */}
+            {which === "preview" && previewUnseen && tab !== "preview" && (
+              <span aria-hidden className="absolute right-1/4 top-2 h-2 w-2 rounded-full bg-yellow-400" />
+            )}
+          </button>
+        ))}
+      </nav>
 
-      {/* Phone only — B1170. The same modal `Sheet` the files use, opened by
-          a turn's day chip and closed by its own button. Nothing on the
-          phone layout appears without being asked for. */}
-      {previewSheetOpen && (
-        <Sheet
-          label={t("agent.room.preview")}
-          close={t("agent.room.closePreview")}
-          onClose={() => setPreviewSheetOpen(false)}
-        >
-          {previewPane}
-        </Sheet>
-      )}
 
       {historyOpen && (
         <HistoryPanel
@@ -872,7 +1007,7 @@ function Sheet({
       ref={dialog}
       aria-label={label}
       onClose={onClose}
-      className="m-0 flex w-full max-w-none flex-col border-0 bg-white p-0 backdrop:bg-navy-900/40 fixed inset-x-0 bottom-0 top-24 max-h-none rounded-t-2xl lg:hidden"
+      className="m-0 flex w-full max-w-none flex-col border-0 bg-white p-0 backdrop:bg-navy-900/40 fixed inset-x-0 bottom-0 top-[8dvh] max-h-none rounded-t-2xl lg:hidden"
     >
       <div className="flex items-center gap-3 border-b border-navy-200 px-4 py-2">
         {/* The handle, and it is the button: a bar somebody can only drag is a
