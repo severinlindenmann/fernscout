@@ -39,17 +39,29 @@ both in the first viewport (screenshot in the run).
 
 ## Work
 
-- Make the threshold strictly below the grant, so a new journal is not born in
-  it. Whatever number is chosen, the invariant worth stating in the code beside
-  `SIGNUP_CREDIT_GRANT` is that the two must not meet.
-- Consider whether the *first* balance deserves a different sentence entirely —
-  "10 credits to start with" is the same fact without the alarm — but that is a
-  second decision and can be split out.
+**Decided: the warning fires at 5 credits.** (Severin, 2026-09-10, at triage.)
+So `lowCredits` becomes `credits <= 5` against a `SIGNUP_CREDIT_GRANT` of 10 —
+half the grant spent before the alarm, and a new journal is not born in it.
+
+- Change the threshold in `components/HelperRoom.tsx:450` to 5.
+- State the invariant in the code beside `SIGNUP_CREDIT_GRANT`: the threshold and
+  the grant must not meet. A future change to either has to keep that true, and
+  the comment is what tells the next person why the two numbers are related at
+  all.
+- The sentence itself needs re-checking against the new number.
+  `agent.room.lowCredits` reads *"Your credits are nearly used up — about ten
+  more written days."* At a threshold of 5 that says ten when it means five, so
+  the string is now wrong in all three locales — either make it count, or say
+  something that does not name a number.
 - Not in scope: the value of the grant, which `lib/credits.ts` argues for at
-  length.
+  length; and whether the *first* balance deserves a different sentence, which
+  is a separate decision.
 
 ## Acceptance
 
 - Create a journal on a fresh instance and open the helper: no coral panel, and
   the balance pill is the ordinary navy treatment.
-- Spend down to the low threshold and both appear.
+- Spend to 6 credits: still no alarm. Spend to 5: the panel and the coral pill
+  both appear.
+- The warning's own sentence does not claim a number of days the balance does
+  not carry, in English, German or Hungarian.
