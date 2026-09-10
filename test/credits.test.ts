@@ -268,6 +268,19 @@ describe("the grant path is not reachable over HTTP", () => {
     // guarantees the approve route above rests on, from a credential this
     // server verified rather than a session or a bearer token.
     "app/api/webhooks/stripe/route.ts",
+    /**
+     * B1363. The WhatsApp signup gives the identical fixed
+     * `SIGNUP_CREDIT_GRANT` the journals route above gives, under the
+     * identical condition — after a journal has actually been written, for a
+     * proven address and a proven number — because the two are the same act
+     * through two doors, and a journal created over WhatsApp whose first day
+     * refuses for want of credits would be a worse answer than either.
+     *
+     * It is also the first grant caller outside `app/`, which is why the walk
+     * below covers `lib/` now: this guard was written when every route was a
+     * route, and a grant reached from a library was invisible to it.
+     */
+    "lib/whatsapp/onboarding.ts",
   ];
 
   test("only the sanctioned routes import grant from lib/credits", () => {
@@ -288,6 +301,7 @@ describe("the grant path is not reachable over HTTP", () => {
       }
     };
     walk(path.join(process.cwd(), "app"));
+    walk(path.join(process.cwd(), "lib"));
     expect(offenders).toEqual([]);
   });
 

@@ -35,6 +35,7 @@ import { downloadMedia } from "./cloud";
 import { announceHeldAnswer, takeHeldAnswer } from "./held";
 import { cloudCredentials, maskNumber } from "./index";
 import { flushMediaBatch, noteMedia } from "./mediaBatch";
+import { handleOnboarding, onboardingOffered } from "./onboarding";
 import { clearPendingProposal, holdProposal, peekPendingProposal, takePendingProposal } from "./pendingProposal";
 import { isWhatsappExecutable, pressProposal } from "./proposalExecution";
 import { BUTTON_TITLE_MAX, CONFIRM_NO_ID, CONFIRM_YES_ID, confirmButtonsFor, renderForWhatsapp, truncate } from "./render";
@@ -129,8 +130,8 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
      * "ignore it" for anyone this number could plausibly be other than a
      * reader.
      */
+    const found = await contactFor(message.from);
     if (message.kind === "text" && isStopWord(message.body)) {
-      const found = await contactFor(message.from);
       if (found && isEnabled("whatsappInbound", found.username)) {
         const url = stopReplyFor(found.username, found.contactId);
         await sendServiceReply(message.from, translateIn(found.locale, "wa.stopReply", { url }), null);
@@ -138,6 +139,22 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
         return;
       }
     }
+
+    /**
+     * Or this number has come to make a journal of its own — B1363, and the
+     * reason the sentence below is no longer the end of the road. Two things
+     * hold it back from everybody:
+     *
+     * - **An instance that cannot finish it never starts it**
+     *   (`onboardingOffered`: `signup` and `mail`), so where signup is off
+     *   this channel behaves exactly as it did before.
+     * - **Somebody already known to a journal is not a stranger.** A reader
+     *   who replies to a day announcement is in `listContacts` (the same scan
+     *   the STOP branch above just made), and offering *them* a journal would
+     *   be answering a nice word about somebody's holiday with a sign-up
+     *   form. They get the sentence below, which is what they got before.
+     */
+    if (!found && onboardingOffered() && (await handleOnboarding(message))) return;
 
     const site = serverSite();
     // No journal to pick a locale from — a stranger's number binds to
