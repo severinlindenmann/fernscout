@@ -297,7 +297,7 @@ Do not edit them by hand; run the script.
 | [B1208](in-development/B1208-room-decisions-header-identity-credits-and.md) | Room decisions: header identity, credits and the overflow menu (D53 D06 D07 D08 D10 D17 D43) | FEATURE | high | medium | `b9809a36` |
 | [B1222](in-development/B1222-the-phone-passcode-has-no-live.md) | The phone passcode has no live transport - the decided Twilio backend is on hold | FEATURE | high | medium | `445f2c45` |
 
-## testing (88)
+## testing (89)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -350,6 +350,7 @@ Do not edit them by hand; run the script.
 | [B1197](testing/B1197-the-preview-column-s-width-is.md) | The preview column's width is stored and never read back after a reload | ISSUE | high | low | — |
 | [B1200](testing/B1200-the-room-s-preview-claims-a.md) | The room's preview claims a German day is written in English | ISSUE | high | low | — |
 | [B1205](testing/B1205-a-book-is-two-pdfs-where.md) | A book is two PDFs where the printer wants one, cover first | ISSUE | high | medium | — |
+| [B1225](testing/B1225-get-token-sh-interpolated-its-journal.md) | get-token.sh interpolated its journal argument into an ssh command line running as root on the live instance | SECURITY | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |
