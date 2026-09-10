@@ -124,6 +124,7 @@ export default function HelperRoom({
   whatsappNumber,
   credits = null,
   siteUrl,
+  weather = false,
 }: {
   username: string;
   /** The journal's own title, so the room says whose it is. */
@@ -165,6 +166,10 @@ export default function HelperRoom({
   credits?: number | null;
   /** This instance's public base URL, for the handover prompt — B1210. */
   siteUrl: string;
+  /** Whether the `weather` capability is on for this journal — B1218 (D48):
+   *  threaded to `HelperAsk` unchanged, which is where it decides whether
+   *  the follow-up chip after a words write may offer a lookup at all. */
+  weather?: boolean;
 }) {
   const { t, tn } = useI18n();
 
@@ -958,6 +963,8 @@ export default function HelperRoom({
             aboutDraft={preview ? preview.day.lead.draft === true : null}
             injected={injected as { blocks: never[]; at: number } | null}
             whatsappNumber={whatsappNumber}
+            weather={weather}
+            onProposal={proposeToThread}
             selected={selected}
             onSubject={(day) => {
               setSubject({ ...day, at: Date.now() });

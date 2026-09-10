@@ -190,6 +190,9 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
               ? whatsappDisplayNumber()
               : undefined
           }
+          // B1218 (D48) — the follow-up chip after a words write may only
+          // ever offer a lookup this server can actually service.
+          weather={isEnabled("weather", user)}
         />
         </LocaleProvider>
       );

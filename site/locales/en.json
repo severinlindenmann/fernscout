@@ -2106,5 +2106,19 @@
   "wa.proposalWebOnly": "That one needs the web — open the journal to finish it there.",
   "wa.proposalFailed": "That couldn't be saved ({error}) — open the web to try again.",
   "agent.open.whatsapp": "Message us on WhatsApp →",
-  "agent.open.whatsappGreeting": "Hi"
+  "agent.open.whatsappGreeting": "Hi",
+  "agent.open.progressDay": "Day {day} of {total}",
+  "agent.open.progressMissing": "{count} days not told yet",
+  "agent.open.progressMissing.one": "{count} day not told yet",
+  "agent.open.sayAbout": "Tell me about {date}.",
+  "agent.tool.undoWords": "{date} — put back the words as they were before the last change.",
+  "agent.tool.undoWordsAccept": "Restore the previous version",
+  "agent.tool.undoWordsDone": "The previous words are back. Pressing this again would undo it.",
+  "agent.tool.lookUpWeather": "{date} — look this day's weather up in the public archive, at its own coordinates.",
+  "agent.tool.lookUpWeatherAccept": "Look the weather up",
+  "agent.tool.lookUpWeatherDone": "Asked the archive. Whatever it answered — or if it had nothing yet — is on the day now.",
+  "agent.follow.undo": "Undo",
+  "agent.follow.weather": "Look the weather up",
+  "agent.follow.addCost": "+ Add a cost",
+  "agent.follow.share": "Share"
 }

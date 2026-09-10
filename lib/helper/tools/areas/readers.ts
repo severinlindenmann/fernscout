@@ -46,7 +46,7 @@ export const READERS_TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "form",
     describe:
-      "Propose a link that lets somebody ask to read this journal — the answer when they name a person who should be able to read it. Nothing is made until they press, and it grants nothing even then: whoever opens it proves their own address and waits to be approved.",
+      "Propose a link that lets somebody ask to read this journal — for a named person who should read it. Nothing is made until they press; even then it grants nothing: whoever opens it proves their address and waits to be approved.",
     properties: {
       name: {
         type: "string",

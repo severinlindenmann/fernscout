@@ -139,8 +139,11 @@ describe("the helper routes", () => {
   // Forty: `trip/reminder` (B1219), the evening nudge's own on/off switch —
   // same cookie, same owner check, and a trip-scoped agent token cannot
   // reach it either.
-  test("there are forty of them, and each is guarded", () => {
-    expect(sources).toHaveLength(40);
+  // Forty-two: `day/undo` (B1218), the swap behind the "Rückgängig" chip, and
+  // `day/weather`, the one route the "look the weather up" chip may reach —
+  // same cookie, same owner check as the forty before them.
+  test("there are forty-two of them, and each is guarded", () => {
+    expect(sources).toHaveLength(42);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

@@ -2,8 +2,10 @@ import { reversePlace } from "@/lib/addressLookup";
 import { createDraft, editEntry, factsOfInput, type DraftInput, type EditInput } from "@/lib/api/entries";
 import { fillDayWeatherQuietly } from "@/lib/api/weather";
 import { isEnabled } from "@/lib/capabilities";
+import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { NO_PROSE } from "@/lib/helper/draft";
 import { dayForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/helper/server";
+import { stashWords } from "@/lib/helper/undo";
 import { requestLocale } from "@/lib/locales";
 import { parsePhotoVisibility } from "@/lib/photos";
 import { declinesIn, missingFrom } from "@/lib/tracks";
@@ -231,6 +233,20 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/hel
   if (Object.keys(input).length === 0) {
     refused(user, "set_day_words", "nothing_to_change");
     return Response.json({ error: "nothing_to_change" }, { status: 400 });
+  }
+
+  /**
+   * Stashed before the overwrite, and only for a words write — B1218 (D47).
+   *
+   * `undo_words` is what reads this back; one prior version per day, so a
+   * second words write before anybody presses undo simply replaces it. A
+   * caption or a track answer changing nothing about the prose has nothing
+   * here worth restoring, so the stash only fires when `content` is part of
+   * this press.
+   */
+  if (input.content !== undefined) {
+    const before = getEntryBySlug(ref, slug, AS_AUTHOR);
+    if (before) stashWords(ref, slug, { title: before.title, content: before.content });
   }
 
   const edited = editEntry(ref, slug, input);

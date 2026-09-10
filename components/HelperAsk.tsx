@@ -229,6 +229,21 @@ export function decisionKind(tool: string): "grant" | "spend" | "destroy" | "edi
   return "edit";
 }
 
+/**
+ * A next-step chip over the composer — B1212 (D18), extended by B1218.
+ *
+ * A plain string sends itself through the ordinary `ask()`, exactly as
+ * before this ticket. `{ tool, args }` opens that tool's own proposal card
+ * through `onProposal` instead — "Rückgängig", the weather lookup and the
+ * cost form, none of which are a sentence for the model to interpret.
+ * `{ share }` is D51's one non-server chip: it hands a URL to the platform's
+ * own share sheet and touches no route at all.
+ */
+type Suggestion =
+  | string
+  | { label: string; tool: string; args: Record<string, string> }
+  | { label: string; share: string };
+
 const DECISION_ICON: Record<ReturnType<typeof decisionKind>, string> = {
   grant: "🔑",
   spend: "💳",
@@ -325,6 +340,8 @@ export default function HelperAsk({
   opened = [],
   opening,
   whatsappNumber,
+  weather = false,
+  onProposal,
 }: {
   username: string;
   /** Whether this journal has already agreed to a model being spoken to
@@ -435,6 +452,18 @@ export default function HelperAsk({
   /** The wa.me chip's number, resolved server-side — B1127. Threaded through
    *  to `RoomOpening` unchanged; see `HelperRoom.tsx`'s own doc on it. */
   whatsappNumber?: string;
+  /** Whether the `weather` capability is on for this journal — B1218 (D48).
+   *  Off, and the follow-up chip after a words write never offers a lookup
+   *  this server could not service. */
+  weather?: boolean;
+  /**
+   * Open one tool's proposal in the thread without a sentence — B1218,
+   * reusing `HelperRoom.tsx`'s `proposeToThread`: the "Rückgängig", weather
+   * and cost chips after a words write call this rather than `go()`, because
+   * what they offer is a specific tool and specific arguments, not a
+   * sentence for the model to interpret.
+   */
+  onProposal?: (tool: string, args: Record<string, string>) => void;
 }) {
   const { t, formatLongDate } = useI18n();
   // Closed until somebody asks for it — B767. The one thing this card is for
@@ -464,7 +493,13 @@ export default function HelperAsk({
    * over the composer. No model involved; pressing one sends it through
    * the ordinary ask. Cleared by the next sentence either way.
    */
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  /**
+   * A plain string sends itself through the ordinary `ask()`, exactly as
+   * before B1218; `{ label, tool, args }` instead opens that tool's own
+   * proposal card through `onProposal` — the "Rückgängig", weather and cost
+   * chips, none of which are a sentence for the model to interpret.
+   */
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   /** Markers between exchanges need a clock comparison that the server
    *  cannot make identically — drawn only after mount. B1212 (D22). */
   const [mounted, setMounted] = useState(false);
@@ -905,9 +940,35 @@ export default function HelperAsk({
       const wroteWords = /draft_words|set_day_words|write_day/.test(proposal.tool);
       const published = /^publish_day$/.test(proposal.tool);
       if (wroteWords) {
-        setSuggestions([t("agent.about.publish"), t("agent.about.addPhoto")]);
+        const chips: Suggestion[] = [t("agent.about.publish"), t("agent.about.addPhoto")];
+        /**
+         * Undo, weather and cost — B1218 (D47/D48/D49) — only after the
+         * write that actually reached disk. `draft_words` is prose to read
+         * back, not yet kept: there is nothing on disk for undo to restore
+         * or for a coordinate to hang off yet.
+         */
+        if (proposal.tool === "set_day_words" && trip && slug) {
+          chips.push({ label: t("agent.follow.undo"), tool: "undo_words", args: { trip, slug } });
+          if (weather && wrote?.hasCoordinates) {
+            chips.push({
+              label: t("agent.follow.weather"),
+              tool: "look_up_weather",
+              args: { trip, slug },
+            });
+          }
+          chips.push({ label: t("agent.follow.addCost"), tool: "add_cost", args: { trip, slug } });
+        }
+        setSuggestions(chips);
       } else if (published) {
-        setSuggestions([t("agent.open.sayNewDay")]);
+        const chips: Suggestion[] = [t("agent.open.sayNewDay")];
+        // The system share sheet, beside the next-day suggestion — B1218
+        // (D51). Only where the platform actually has one, and only ever
+        // with the URL the publish route itself just answered.
+        const url = typeof answer.url === "string" ? answer.url : "";
+        if (url && typeof navigator !== "undefined" && typeof navigator.share === "function") {
+          chips.push({ label: t("agent.follow.share"), share: url });
+        }
+        setSuggestions(chips);
       }
     } catch (thrown) {
       /**
@@ -1155,17 +1216,27 @@ export default function HelperAsk({
            deterministic set per kind of write, no model involved. A chip
            is a shortcut for typing its own words. */
         <div className="mb-2 flex flex-wrap gap-2">
-          {suggestions.map((sentence) => (
-            <button
-              key={sentence}
-              type="button"
-              disabled={busy}
-              onClick={() => go(sentence)}
-              className="min-h-9 rounded-full border border-navy-300 bg-white px-3.5 text-sm text-navy-800 transition-colors hover:bg-navy-50 disabled:opacity-50"
-            >
-              {sentence}
-            </button>
-          ))}
+          {suggestions.map((one, index) => {
+            const label = typeof one === "string" ? one : one.label;
+            return (
+              <button
+                key={typeof one === "string" ? one : `${"tool" in one ? one.tool : "share"}-${index}`}
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  if (typeof one === "string") return go(one);
+                  if ("share" in one) {
+                    void navigator.share?.({ url: one.share });
+                    return;
+                  }
+                  onProposal?.(one.tool, one.args);
+                }}
+                className="min-h-9 rounded-full border border-navy-300 bg-white px-3.5 text-sm text-navy-800 transition-colors hover:bg-navy-50 disabled:opacity-50"
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       )}
       {notice}

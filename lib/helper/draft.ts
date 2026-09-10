@@ -47,6 +47,10 @@ export type WizardDraft = {
    * cannot publish and cannot unpublish, before this field existed or after.
    */
   published?: true;
+  /** Whether the day carries coordinates — B1218 (D48): the "look the
+   *  weather up" chip only ever offers itself where a lookup could answer,
+   *  never as a guess about a day that has none. */
+  hasCoordinates?: true;
 };
 
 export const WIZARD_STEPS = ["trip", "date", "photos", "words", "preview", "publish"] as const;

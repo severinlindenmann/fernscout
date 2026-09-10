@@ -488,6 +488,8 @@ describe("the tools", () => {
       // B931 — the only way somebody who was not on a trip can ever read it.
       "invite_guest",
       "journal_settings",
+      // B1218 (D48) — the one documented route to a day's weather.
+      "look_up_weather",
       // The printed-things area: a postcard proposal that writes a real,
       // pending order, and a photobook hand-over that writes nothing at all.
       "photobook",
@@ -508,6 +510,8 @@ describe("the tools", () => {
       "tell_readers",
       "trip_people",
       "trip_tracks",
+      // B1218 (D47) — the swap behind the "Rückgängig" chip.
+      "undo_words",
       "unpublish_day",
     ]);
     expect(

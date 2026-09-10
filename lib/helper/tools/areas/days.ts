@@ -2,7 +2,7 @@ import "server-only";
 import type { Tool } from "../types";
 import { ALL_TRACKED, TRACKS, TRACK_ROWS, UNKNOWN, missingFrom } from "../../../tracks";
 import { AS_AUTHOR, getAllEntries } from "../../../entries";
-import { DAY_ARGS, PREVIEW_CHARACTERS, TRIP_ARG } from "../args";
+import { DAY_ARGS, DAY_REF_ARGS, PREVIEW_CHARACTERS, TRIP_ARG } from "../args";
 import { draftsForWizard } from "../../server";
 import { type CatalogueRow, searchCatalogueFor } from "../../../search";
 import { factsOfEntry } from "../../../api/entries";
@@ -510,6 +510,60 @@ export const DAYS_TOOLS: readonly Tool[] = [
           label: row.title,
           detail: row.where,
         })),
+      };
+    },
+  },
+  {
+    /**
+     * "Rückgängig" — B1218 (D47). A swap, not a delete: `POST .../day/undo`
+     * stashes what is on the day now before restoring what was stashed
+     * before it, so pressing this a second time undoes the undo. Reached
+     * mostly through the chip after an accepted words write, never through a
+     * sentence — but a model asked to "put it back the way it was" can call
+     * it too.
+     */
+    name: "undo_words",
+    kind: "write",
+    renders: "confirm",
+    describe: "Restore a day's words to before the last write. One version back.",
+    properties: DAY_REF_ARGS,
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/undo`,
+    propose: async (username, args, say) => {
+      const found = resolveDay(username, args);
+      return {
+        sentence: say("agent.tool.undoWords", { date: found?.entry.date ?? args.date ?? "" }),
+        accept: say("agent.tool.undoWordsAccept"),
+        done: say("agent.tool.undoWordsDone"),
+        fields: [
+          { name: "trip", value: tripIdFor(username, args, found), fixed: true },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "", fixed: true },
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * "Wetter nachschlagen lassen" — B1218 (D48). The one documented route to
+     * a day's weather (AGENTS.md, B325): a public archive, at the day's own
+     * coordinates, never a word the model supplies. Reached through the chip
+     * after a words write on a day with coordinates.
+     */
+    name: "look_up_weather",
+    kind: "write",
+    renders: "confirm",
+    describe: "Look a day's weather up in the public archive. Never a guess.",
+    properties: DAY_REF_ARGS,
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/weather`,
+    propose: async (username, args, say) => {
+      const found = resolveDay(username, args);
+      return {
+        sentence: say("agent.tool.lookUpWeather", { date: found?.entry.date ?? args.date ?? "" }),
+        accept: say("agent.tool.lookUpWeatherAccept"),
+        done: say("agent.tool.lookUpWeatherDone"),
+        fields: [
+          { name: "trip", value: tripIdFor(username, args, found), fixed: true },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "", fixed: true },
+        ],
       };
     },
   },

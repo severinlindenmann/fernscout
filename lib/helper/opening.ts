@@ -49,7 +49,26 @@ export type OpeningDay = {
   written: boolean;
 };
 
-export type Opening =
+/**
+ * "Day 5 of 14 — 2 days not told yet" — B1218 (D45).
+ *
+ * Adapted from `gapsForWizard` in `./server.ts`, which asks the same question
+ * of a trip that has *ended*: here the trip is still running, so the missing
+ * dates are only those from its start through today, never the days still
+ * ahead of it — a day that has not happened yet is not a gap.
+ */
+type OpeningProgress = {
+  trip: string;
+  title: string;
+  /** Today's place in the trip, 1-based. */
+  day: number;
+  /** How many days the trip runs in total. */
+  total: number;
+  /** The dates through today with no entry of any kind, oldest first. */
+  missing: string[];
+};
+
+export type Opening = (
   | { state: "days"; days: OpeningDay[]; more: number }
   | { state: "clear"; lastDate: string }
   | { state: "finished"; trip: string; title: string; days: number }
@@ -57,7 +76,12 @@ export type Opening =
    *  second screen. B1188: it used to fall into `clear` with no last date,
    *  and the greeting read "the last of it undefined, NaN undefined". */
   | { state: "fresh"; title: string }
-  | { state: "empty" };
+  | { state: "empty" }
+) & {
+  /** Present whenever a trip is running and has a day through today with
+   *  nothing written for it — every state above may carry it. */
+  progress?: OpeningProgress;
+};
 
 /**
  * How many unfinished days the opening draws before it stops counting them out.
@@ -82,7 +106,43 @@ function finished(username: string, today: string) {
   return null;
 }
 
+/** The trip running today, if any — one at a time is what "the opening" can
+ *  say something about; a journal with two overlapping trips is rare enough
+ *  that the first found is an honest-enough answer. */
+function progressFor(username: string, today: string): OpeningProgress | null {
+  const trip = getTrips(username).find((one) => one.start <= today && today <= one.end);
+  if (!trip) return null;
+  const written = new Set(getAllEntries(trip.ref, AS_AUTHOR).map((entry) => entry.date));
+  const missing: string[] = [];
+  let day = 0;
+  let total = 0;
+  for (let at = new Date(`${trip.start}T00:00:00Z`); ; at.setUTCDate(at.getUTCDate() + 1)) {
+    const date = at.toISOString().slice(0, 10);
+    if (date > trip.end) break;
+    total += 1;
+    // Same defence as `gapsForWizard`: a trip whose dates run backwards, or
+    // a year long, stops rather than walking forever.
+    if (total > 400) break;
+    if (date <= today) {
+      day = total;
+      if (!written.has(date)) missing.push(date);
+    }
+  }
+  if (missing.length === 0) return null;
+  return { trip: trip.id, title: trip.title, day, total, missing };
+}
+
 export function openingFor(username: string, today: string): Opening {
+  const base = baseOpeningFor(username, today);
+  // Not on `fresh` or `empty` — B1188's own case: a trip nobody has started
+  // is not a gap to chase, it is the first day still to come, and that is
+  // already the whole of what those two states say.
+  if (base.state === "fresh" || base.state === "empty") return base;
+  const progress = progressFor(username, today) ?? undefined;
+  return progress ? { ...base, progress } : base;
+}
+
+function baseOpeningFor(username: string, today: string): Opening {
   const drafts = draftsForWizard(username);
   if (drafts.length > 0) {
     return {
