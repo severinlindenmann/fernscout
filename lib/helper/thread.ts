@@ -480,6 +480,27 @@ export async function adopt(
 ): Promise<void> {
   const now = threads.get(username);
   if (now && now.id === session && isFresh(now)) return;
+  /**
+   * **The durable copy, not the analytics log, when both name this same
+   * session — B1243.** `turns` above is read from `helper_sessions`, which
+   * never carries a note (`proposed()`/`wrote()` write only to
+   * `helper_threads`, B924/B939). A cold cache — the first request on a
+   * fresh process, or simply a worker that has not touched this journal yet
+   * — used to fall straight to rebuilding from that note-free log even when
+   * the session being reopened is the very session `helper_threads` still
+   * holds in full: a pressed write's own note, and everything that made the
+   * proposal make sense, silently gone the moment somebody reopened the
+   * conversation that already knew it. Reloading the durable row and using
+   * *its* turns whenever its id matches keeps the notes; only a session
+   * `helper_threads` no longer holds (a genuinely older, superseded one)
+   * falls back to reconstructing from what `helper_sessions` kept instead.
+   */
+  const durable = await loadFromDb(username);
+  if (durable && durable.id === session) {
+    threads.set(username, durable);
+    persist(username, durable);
+    return;
+  }
   const flat: Turn[] = [];
   for (const turn of turns) {
     const origin: Channel | undefined = turn.origin === "whatsapp" ? "whatsapp" : turn.origin === "web" ? "web" : undefined;
