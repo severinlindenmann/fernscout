@@ -776,6 +776,7 @@ guide for it.
 | `apply-the-brand` | The mark, the palette, and what not to do to them |
 | `check-a-drawing` | Look at something this software draws, at `/docs/branding` — the animation, the figures, a day card, a print margin |
 | `deploy` | Ship it to the VPS, and know it is healthy |
+| `github` | Read a CI run's logs and work out why it is red; issues and pull requests. Needs `gh`, and a person to have run `gh auth login` |
 | `get-a-credential` | Get signed in — an agent token, an owner's cookie, the operator's `/admin`, a throwaway test journal — locally or live |
 | `keep-the-contract` | Check that `/openapi.json` and `/agent.md` still tell the truth after a change to a route |
 | `manage-tasks` | Capture something, and move it between lanes |
