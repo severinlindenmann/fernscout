@@ -6,9 +6,21 @@ priority: medium
 complexity: low
 area: landing
 found: "2026-09-10T10:59:23Z"
+started: "2026-09-10T16:54:38Z"
+session: 0b65a2c0-133d-4fda-b7d5-b9e50d6f6b55
+claimed: "2026-09-10T16:54:38Z"
 ---
 
 # B1290 — Journals named test- are advertised on the public landing page beside the demo
+## Revalidation (2026-09-10)
+
+**Valid.** `listedUsernames()` in `lib/users.ts:253` filters only on
+`visibility === "public"`; nothing anywhere reads the `test-` prefix. The
+landing page (`publicJournals()` in `lib/home.ts:89`), the sitemap
+(`app/sitemap.ts`), the instance documentation (`lib/api/documentation.ts:129`)
+and the openapi example username all route through `listedUsernames()`, so it
+is the one place to act on the convention.
+
 ## Why
 
 The landing page of fernscout.ch, under **Public journals on this server**,

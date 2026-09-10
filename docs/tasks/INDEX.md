@@ -249,7 +249,7 @@ Do not edit them by hand; run the script.
 | [B520](backlog/wont-do/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (86)
+## open (85)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -304,7 +304,6 @@ Do not edit them by hand; run the script.
 | [B1286](open/B1286-the-postcard-back-is-labelled-at.md) | The postcard back is labelled at print size and renders its message at eight pixels on a phone | ISSUE | medium | low |
 | [B1288](open/B1288-nothing-on-the-live-instance-ever.md) | Nothing on the live instance ever fills in a day that asked for weather | OPS | medium | low |
 | [B1289](open/B1289-the-map-of-a-finished-trip.md) | The map of a finished trip is titled Where we're going and says no days are written when one is | ISSUE | medium | low |
-| [B1290](open/B1290-journals-named-test-are-advertised-on.md) | Journals named test- are advertised on the public landing page beside the demo | ISSUE | medium | low |
 | [B1292](open/B1292-creating-a-journal-is-confirmed-by.md) | Creating a journal is confirmed by nothing, and never shows the address the person just chose | ISSUE | medium | low |
 | [B1295](open/B1295-the-landing-page-promises-you-can.md) | The landing page promises you can export everything, and somebody without an agent has no way to | ISSUE | medium | medium |
 | [B1297](open/B1297-agents-md-says-there-is-no.md) | AGENTS.md says there is no form that maps fields onto frontmatter, and Correct this day is one | DOCS | medium | low |
@@ -340,9 +339,11 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (0)
+## in-development (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B1290](in-development/B1290-journals-named-test-are-advertised-on.md) | Journals named test- are advertised on the public landing page beside the demo | ISSUE | medium | low | `0b65a2c0` |
 
 ## testing (116)
 
