@@ -346,7 +346,7 @@ body {
   }
 }
 .fs-chat-dots {
-  animation: fs-chat-dots 0.5s ease-in-out both;
+  animation: fs-chat-dots 1s ease-in-out both;
 }
 
 /* Scrollable, but without the bar — used where the container is obviously

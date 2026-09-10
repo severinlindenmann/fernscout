@@ -45,7 +45,7 @@ export default function ChatVignette() {
 
   return (
     <div className="mt-5 flex max-w-sm flex-col gap-2">
-      <OwnBubble delayMs={300}>
+      <OwnBubble delayMs={500}>
         <div className="mb-1.5 flex gap-1.5">
           {THUMBS.map((src) => (
             <Image
@@ -63,14 +63,14 @@ export default function ChatVignette() {
         <Tick />
       </OwnBubble>
 
-      <AgentTurn dotsDelayMs={400} bubbleDelayMs={900} textKey="agent.chatAgent1" />
+      <AgentTurn dotsDelayMs={1200} bubbleDelayMs={2200} textKey="agent.chatAgent1" />
 
-      <OwnBubble delayMs={1500}>
+      <OwnBubble delayMs={3200}>
         {t("agent.chatOwn2")}
         <Tick />
       </OwnBubble>
 
-      <AgentTurn dotsDelayMs={1600} bubbleDelayMs={2100} textKey="agent.chatAgent2" />
+      <AgentTurn dotsDelayMs={3900} bubbleDelayMs={4900} textKey="agent.chatAgent2" />
     </div>
   );
 }
