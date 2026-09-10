@@ -228,6 +228,48 @@ function isOutcomeState(value: string): value is PhotobookOutcomeState {
  * status considered: a `submitted` order is a build in progress and must
  * never be touched, and a `failed` one left no files behind to prune.
  */
+/**
+ * Every order that has gone to a printer and not been heard about since —
+ * B1336.
+ *
+ * Across all journals, because reconciliation is the instance's business
+ * rather than one owner's, and nobody is going to run it per journal.
+ * `print_submitted` is exactly the in-flight set: `recordPrint` leaves an
+ * order there once Gelato has taken it, and only a terminal answer moves it
+ * on.
+ */
+export async function listSubmittedPrints(): Promise<
+  { owner: string; id: string; providerRef: string; credits: number; trip: string }[]
+> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return [];
+  const rows = await handle.db
+    .selectFrom("print_orders")
+    .select(["id", "owner_id", "provider_ref", "payload"])
+    .where("kind", "=", "photobook")
+    .where("status", "=", "print_submitted")
+    .orderBy("created_at", "asc")
+    .execute();
+  return rows.flatMap((r) => {
+    if (!r.provider_ref) return [];
+    let payload: PhotobookPayload;
+    try {
+      payload = JSON.parse(r.payload) as PhotobookPayload;
+    } catch {
+      return [];
+    }
+    return [
+      {
+        owner: r.owner_id,
+        id: r.id,
+        providerRef: r.provider_ref,
+        credits: payload.credits,
+        trip: payload.trip,
+      },
+    ];
+  });
+}
+
 export async function listPrintedOrderIds(owner: string): Promise<string[]> {
   const handle = await getDatabaseOrNull();
   if (!handle) return [];
