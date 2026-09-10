@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: whatsapp, helper, ux
 found: "2026-09-10T08:48:08Z"
+merged: "2026-09-10T09:20:06Z"
 ---
 
 # B1244 — The helper never asks for what a day is missing — time, place, costs

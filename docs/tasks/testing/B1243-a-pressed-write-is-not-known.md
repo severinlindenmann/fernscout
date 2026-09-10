@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: whatsapp, helper, ux
 found: "2026-09-10T08:48:07Z"
+merged: "2026-09-10T09:20:05Z"
 ---
 
 # B1243 — A pressed write is not known to the model, which asks for it again

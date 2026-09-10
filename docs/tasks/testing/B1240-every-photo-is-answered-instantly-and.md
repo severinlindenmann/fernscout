@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: whatsapp, helper, ux
 found: "2026-09-10T08:48:06Z"
+merged: "2026-09-10T09:20:04Z"
 ---
 
 # B1240 — Every photo is answered instantly and separately instead of waiting for the batch

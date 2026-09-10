@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: whatsapp, helper, ux
 found: "2026-09-10T08:48:08Z"
+merged: "2026-09-10T09:20:06Z"
 ---
 
 # B1245 — There is no way to start a fresh conversation from WhatsApp, and no topic-shift question

@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (141)
+## backlog (137)
 
 ### security (2)
 
@@ -58,16 +58,15 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (21)
+### issue (20)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1125](backlog/issue/B1125-every-photobook-print-quote-is-refused.md) | Every photobook print quote is refused, so the print panel can never appear | ISSUE | high | low |
 | [B1147](backlog/issue/B1147-gelato-rejects-fernscout-ch-s-credential.md) | Gelato rejects fernscout.ch's credential, so no photobook in a real journal can be priced | ISSUE | high | low |
 | [B1223](backlog/issue/B1223-three-failed-photobooks-for-one-journal.md) | Three failed photobooks for one journal share one attention-band id, so acknowledging one silently hides the other two and React sees duplicate keys | ISSUE | high | low |
-| [B1241](backlog/issue/B1241-the-decline-button-is-a-hardcoded.md) | The decline button is a hardcoded English No | ISSUE | high | medium |
-| [B1242](backlog/issue/B1242-the-preview-link-from-whatsapp-opens.md) | The preview link from WhatsApp opens the room but shows no preview | ISSUE | high | medium |
-| [B1243](backlog/issue/B1243-a-pressed-write-is-not-known.md) | A pressed write is not known to the model, which asks for it again | ISSUE | high | medium |
+| [B1246](backlog/issue/B1246-a-root-owned-content-registry-silently.md) | A root-owned content/.registry silently breaks every signup on the instance | ISSUE | high | low |
+| [B1247](backlog/issue/B1247-a-failed-journal-creation-says-unknown.md) | A failed journal creation says unknown and empties every field the person filled in | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1129](backlog/issue/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
@@ -103,18 +102,15 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (19)
+### small-feature (16)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1153](backlog/small-feature/B1153-handing-your-journal-to-your-own.md) | Handing your journal to your own agent means leaving the conversation to fetch the key | FEATURE | high | low |
 | [B1154](backlog/small-feature/B1154-a-key-that-can-write-to.md) | A key that can write to this journal for seven days is visible nowhere in the room | FEATURE | high | medium |
-| [B1245](backlog/small-feature/B1245-there-is-no-way-to-start.md) | There is no way to start a fresh conversation from WhatsApp, and no topic-shift question | FEATURE | high | medium |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
 | [B1069](backlog/small-feature/B1069-there-is-no-tool-surface-for.md) | There is no tool surface for an agent that would rather be guided than read a spec | FEATURE | medium | medium |
 | [B1155](backlog/small-feature/B1155-a-turn-spends-a-credit-and.md) | A turn spends a credit and nothing on screen says so | FEATURE | medium | medium |
-| [B1240](backlog/small-feature/B1240-every-photo-is-answered-instantly-and.md) | Every photo is answered instantly and separately instead of waiting for the batch | FEATURE | medium | medium |
-| [B1244](backlog/small-feature/B1244-the-helper-never-asks-for-what.md) | The helper never asks for what a day is missing — time, place, costs | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
 | [B132](backlog/small-feature/B132-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to learn a new release exists, let alone install it | FEATURE | medium | medium |
 | [B592](backlog/small-feature/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
@@ -289,7 +285,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## testing (116)
+## testing (122)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -366,6 +362,10 @@ _Nothing here._
 | [B1230](testing/B1230-a-proposal-on-whatsapp-points-at.md) | A proposal on WhatsApp points at a screen instead of offering its own button | FEATURE | high | medium | — |
 | [B1234](testing/B1234-proving-a-number-needs-a-template.md) | Proving a number needs a template Meta will not grant - the inbound message already proves it | FEATURE | high | medium | — |
 | [B1235](testing/B1235-attach-files-and-write-day-are.md) | attach_files and write_day are refused as web-only on WhatsApp, and they are the channel's core flows | ISSUE | high | low | — |
+| [B1241](testing/B1241-the-decline-button-is-a-hardcoded.md) | The decline button is a hardcoded English No | ISSUE | high | medium | — |
+| [B1242](testing/B1242-the-preview-link-from-whatsapp-opens.md) | The preview link from WhatsApp opens the room but shows no preview | ISSUE | high | medium | — |
+| [B1243](testing/B1243-a-pressed-write-is-not-known.md) | A pressed write is not known to the model, which asks for it again | ISSUE | high | medium | — |
+| [B1245](testing/B1245-there-is-no-way-to-start.md) | There is no way to start a fresh conversation from WhatsApp, and no topic-shift question | FEATURE | high | medium | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |
@@ -402,6 +402,8 @@ _Nothing here._
 | [B1231](testing/B1231-the-book-ends-on-two-blank.md) | The book ends on two blank pages instead of the colophon | ISSUE | medium | low | — |
 | [B1236](testing/B1236-a-proposal-turn-on-whatsapp-repeats.md) | A proposal turn on WhatsApp repeats itself and dumps raw lists into one message | ISSUE | medium | low | — |
 | [B1237](testing/B1237-the-model-claims-a-screen-on.md) | The model claims a screen on a channel that has none, and links the bare /agent | ISSUE | medium | low | — |
+| [B1240](testing/B1240-every-photo-is-answered-instantly-and.md) | Every photo is answered instantly and separately instead of waiting for the batch | FEATURE | medium | medium | — |
+| [B1244](testing/B1244-the-helper-never-asks-for-what.md) | The helper never asks for what a day is missing — time, place, costs | FEATURE | medium | medium | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
 | [B1096](testing/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low | — |
 | [B1127](testing/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low | — |

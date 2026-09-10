@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: whatsapp, helper, ux
 found: "2026-09-10T08:48:06Z"
+merged: "2026-09-10T09:20:04Z"
 ---
 
 # B1241 — The decline button is a hardcoded English No
