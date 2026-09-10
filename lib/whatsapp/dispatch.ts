@@ -176,6 +176,19 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
   // wrong one here would silently ignore a journal's own "no".
   if (!isEnabled("whatsappInbound", username)) {
     console.log(`[whatsapp:inbound] ${maskNumber(message.from)} matches ${username}, which has not opted into the channel — no reply`);
+    /**
+     * Said once, so the silence is not total — B1382. A number that matches a
+     * journal belongs to somebody standing in front of a chat that simply
+     * never answers, with no way to learn why. One sentence, once per number,
+     * naming the place that does answer; after that the channel is as quiet
+     * as the journal asked it to be.
+     */
+    if (!hasBeenTold(username, message.from, "channel-off")) {
+      const locale = getUser(username)?.defaultLocale ?? "en";
+      const agentUrl = `${serverSite().url.replace(/\/$/, "")}/agent`;
+      await sendServiceReply(message.from, translateIn(locale, "wa.channelOff", { agentUrl }), null);
+      markTold(username, message.from, "channel-off");
+    }
     return;
   }
 

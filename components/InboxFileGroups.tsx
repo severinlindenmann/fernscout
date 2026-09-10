@@ -114,7 +114,15 @@ export function InboxFileGroups({
                     className="sr-only"
                   />
                   <span className="relative block aspect-square bg-cream-200">
-                    {file.src ? (
+                    {/* A video's `src` is the same owner-only thumbnail route a
+                     *  photograph's is (`lib/helper/server.ts`), but
+                     *  `resizedCopy` (`lib/media.ts`) cannot make a derivative
+                     *  of a video — sharp does not read one — and 404s. Never
+                     *  point an `<img>` at that: B1380 was a video tile
+                     *  showing the browser's broken-image icon for exactly
+                     *  this reason. Fall through to the typed icon instead,
+                     *  same as a document with no picture at all. */}
+                    {file.src && file.kind !== "video" ? (
                       <Image
                         src={file.src}
                         loader={mediaLoader}

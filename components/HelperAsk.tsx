@@ -1282,7 +1282,14 @@ export default function HelperAsk({
          * word is gone; the arrow is the room's one bright pressable once
          * a conversation has started.
          */}
-        <div className="flex items-end gap-1.5">
+        {/* `flex-wrap` — B1378. Voice mode adds a language select to this
+            row (see `RecordButton`'s compact form); at 6rem and shrink-0
+            beside the paperclip, mic and send, it left the field — the one
+            item allowed to shrink — squeezed to a sliver. The select now
+            asks for a whole line to itself (`basis-full`) and wraps below
+            rather than fighting the field for space on the one it started
+            on. */}
+        <div className="flex flex-wrap items-end gap-1.5">
           {onOpenFiles && (
             <button
               type="button"
@@ -1317,7 +1324,7 @@ export default function HelperAsk({
               }
             }}
             placeholder={t("agent.askPlaceholder")}
-            className="max-h-[152px] min-h-11 w-full resize-none rounded-2xl bg-transparent px-3 py-2.5 text-base leading-6 text-navy-900 placeholder:text-navy-500 focus:outline-none"
+            className="min-w-[8rem] max-h-[152px] min-h-11 flex-1 resize-none rounded-2xl bg-transparent px-3 py-2.5 text-base leading-6 text-navy-900 placeholder:text-navy-500 focus:outline-none"
           />
           {speech && (
             <RecordButton

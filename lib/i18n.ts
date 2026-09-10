@@ -2195,6 +2195,7 @@ export type TranslationKey =
   | "visitors.trip"
   | "wa.acknowledged"
   | "wa.balanceRefusal"
+  | "wa.channelOff"
   | "wa.consentReminder"
   | "wa.contactInviteMade"
   | "wa.contactNeedsEmail"
