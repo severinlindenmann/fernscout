@@ -87,8 +87,9 @@ describe("the /agent door's chat vignette", () => {
     expect(html).toContain("fs-chat-dots");
     // Every stagger is a plain inline `animation-delay`, readable without a
     // browser.
-    expect(html).toMatch(/animation-delay:\s*300ms/);
-    expect(html).toMatch(/animation-delay:\s*2100ms/);
+    expect(html).toMatch(/animation-delay:\s*500ms/);
+    expect(html).toMatch(/animation-delay:\s*2200ms/);
+    expect(html).toMatch(/animation-delay:\s*4900ms/);
   });
 
   test("thumbnails come from the example journal's own shipped media, not a new binary", () => {
@@ -108,17 +109,14 @@ describe("the /agent door's chat vignette", () => {
     expect(reducedMotionBlock).toMatch(/\.fs-assemble-in,?\s*\n?\s*\.fs-waymark-bounce\s*\{\s*\n?\s*animation:\s*none;/);
   });
 
-  test("the scattered links now read as one quiet line, all present, none floating above the card", () => {
+  test("only the own-agent guide remains under the card; why? and the demo are gone", () => {
+    // The owner dropped "why?" and the demo from the door on 2026-09-10 —
+    // the vignette does their job. The guide stays, below the card.
     const html = renderDoor();
-    const cardIndex = html.indexOf("Hast du schon");
-    // German is not the render locale here; check the English strings instead.
-    const whyIndex = html.indexOf(">why?<");
-    const demoIndex = html.indexOf("See how it works");
     const ownAgentIndex = html.indexOf("Already using something like ChatGPT");
     const questionCardIndex = html.indexOf("Do you already have a journal?");
-    expect(cardIndex).toBe(-1);
-    expect(whyIndex).toBeGreaterThan(questionCardIndex);
-    expect(demoIndex).toBeGreaterThan(questionCardIndex);
+    expect(html.indexOf(">why?<")).toBe(-1);
+    expect(html.indexOf("See how it works")).toBe(-1);
     expect(ownAgentIndex).toBeGreaterThan(questionCardIndex);
   });
 });

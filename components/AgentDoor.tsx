@@ -8,8 +8,6 @@ import LocaleSwitcher from "@/components/LocaleSwitcher";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import SignupWizard from "@/components/SignupWizard";
 import { useI18n } from "@/components/LocaleProvider";
-import Why from "@/components/Why";
-import DoorDemo from "@/components/DoorDemo";
 import ChatVignette from "@/components/ChatVignette";
 import { JOURNAL_COOKIE } from "@/lib/requestKeys";
 
@@ -238,18 +236,10 @@ export default function AgentDoor({
             bring-your-own-agent line above and below the card, three
             differently-styled underlined links a reader met at three
             different moments. They fold into one quiet line under the card
-            instead: still three separate disclosures (B781's "why?",
-            B1221's demo, B751/B804's own-agent guide — none of that
-            changed), just read as one row rather than a scatter. */}
-        <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-navy-600">
-          <Why>{t("agent.introWhy")}</Why>
-          {!signedIn && (
-            <>
-              <span aria-hidden className="text-navy-300">·</span>
-              <DoorDemo />
-            </>
-          )}
-          <span aria-hidden className="text-navy-300">·</span>
+            instead. The owner then dropped "why?" and the demo from it
+            entirely (2026-09-10) — the vignette above does their job now;
+            only the own-agent guide (B751/B804) remains. */}
+        <div className="mt-6 text-sm text-navy-600">
           <details>
             <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm text-navy-600 underline underline-offset-4">
               {t("agent.ownAgentOptional")}
