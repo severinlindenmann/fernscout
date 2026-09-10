@@ -1303,6 +1303,12 @@ describe("the trip fields that had no writer", () => {
       // moment it is created — only `fillTripRates` (B543) ever writes it,
       // beside a `rates:` entry it filled itself.
       ratesFrom: "no rate has been looked up yet — B543",
+      // B1219 — an evening reminder is opted into from the room, conversing
+      // about a trip that already exists; only `patchTripReminder`
+      // (`lib/api/tripReminder.ts`) ever writes these two, the same way
+      // `patchTripVisibility` is the only writer of an *amended* visibility.
+      reminder: "opted into after the trip exists, through the room — B1219",
+      reminderChannel: "opted into after the trip exists, through the room — B1219",
     };
 
     const trip = createTrip("wanderer", {

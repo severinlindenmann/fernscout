@@ -136,8 +136,11 @@ describe("the helper routes", () => {
   // the same validation as the v1 door, behind the room's cookie.
   // Thirty-nine: `account` (B1208), the numbers behind the header's credit
   // chip — balance, month, storage — same cookie, same owner check.
-  test("there are thirty-nine of them, and each is guarded", () => {
-    expect(sources).toHaveLength(39);
+  // Forty: `trip/reminder` (B1219), the evening nudge's own on/off switch —
+  // same cookie, same owner check, and a trip-scoped agent token cannot
+  // reach it either.
+  test("there are forty of them, and each is guarded", () => {
+    expect(sources).toHaveLength(40);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

@@ -497,6 +497,8 @@ describe("the tools", () => {
       "set_budget",
       "set_day_words",
       "set_rate",
+      // B1219 — the evening reminder's own on/off switch.
+      "set_reminder",
       "set_visibility",
       "start_day",
       // B1051 — one tool for the two routes that announce a published day.

@@ -97,3 +97,24 @@ export function templateFor(locale: string, fallbackLocale: string): WhatsappTem
   if (fallback) return { name: fallback.name, language: fallbackLocale, manageLink: fallback.manageLink };
   return null;
 }
+
+/**
+ * The approved template an evening reminder sends — B1219, D46.
+ *
+ * A single `{name, language}` pair rather than `templateFor`'s per-locale
+ * map: a reminder is one short nudge, and a journal without an approved
+ * translation for its own default locale is exactly the case where mail —
+ * the channel that needs no Meta approval at all — is the honest choice.
+ * `features.whatsapp.reminderTemplate` in `site/config.json`, absent by
+ * default, so a reminder can never be set to `whatsapp` on an instance
+ * nobody has configured one for — `lib/api/tripReminder.ts` refuses the
+ * write rather than accepting a channel that would never actually send.
+ */
+export function reminderTemplate(): { name: string; language: string } | null {
+  const configured = loadServerConfig().features.whatsapp.reminderTemplate;
+  if (typeof configured !== "object" || configured === null) return null;
+  const { name, language } = configured as Record<string, unknown>;
+  if (typeof name !== "string" || name.trim() === "") return null;
+  if (typeof language !== "string" || language.trim() === "") return null;
+  return { name: name.trim(), language: language.trim() };
+}

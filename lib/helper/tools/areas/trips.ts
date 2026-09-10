@@ -6,6 +6,9 @@ import { isEnabled } from "../../../capabilities";
 import { listContacts } from "../../../contacts";
 import { ALL_TRACKED, TRACKS, type Track } from "../../../tracks";
 import { VISIBILITIES } from "../../../tripWrite";
+import { REMINDER_CHANNELS } from "../../../api/tripReminder";
+import { getUser } from "../../../users";
+import { reminderTemplate } from "../../../whatsapp/settings";
 import { noTrip, resolveTrip } from "../resolve";
 
 /**
@@ -355,6 +358,74 @@ export const TRIPS_TOOLS: readonly Tool[] = [
               { value: "false", label: say("agent.tool.tripTracksOff") },
             ],
           })),
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * The evening nudge — B1219, D46, and B673's open question with a
+     * decision made. "erinnere mich abends" turns it on; the same sentence
+     * with "nicht mehr" or "stop" turns it off, through the same tool and the
+     * same door, so there is exactly one place either direction is decided.
+     *
+     * `scripts/reminders.mts` is the only thing that ever *sends* one — this
+     * only sets the trip's own flag and preferred channel.
+     */
+    name: "set_reminder",
+    kind: "write",
+    renders: "form",
+    describe: "Turn this trip's evening reminder on or off, and pick mail or WhatsApp.",
+    properties: {
+      ...TRIP_ARG,
+      enabled: { type: "string", description: "on or off, as they said it." },
+      channel: { type: "string", description: "mail or whatsapp. Omit unless they said." },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/trip/reminder`,
+    method: "PATCH",
+    propose: async (username, args, say) => {
+      const trip = resolveTrip(username, args.trip);
+      const said = (args.enabled ?? "").toLowerCase();
+      const off = /off|aus|kikapcsol|stop|mute|nicht mehr/.test(said);
+      const on = /on|ein|bekapcsol|start|enable/.test(said);
+      const current = trip?.reminder;
+      const enabled = off ? false : on ? true : Boolean(current);
+      const requested = REMINDER_CHANNELS.includes(args.channel as never)
+        ? (args.channel as (typeof REMINDER_CHANNELS)[number])
+        : (current?.channel ?? "mail");
+
+      // Whatsapp is offered as an option regardless — a form is read before
+      // it is pressed either way — but proposing it as though it would work
+      // when it plainly cannot is the same mistake B944 already found once:
+      // a sentence that is false about somebody's own journal.
+      const whatsappReady =
+        isEnabled("whatsapp", username) && Boolean(getUser(username)?.owner.tel) && reminderTemplate() !== null;
+      const channel = requested === "whatsapp" && !whatsappReady ? "mail" : requested;
+
+      return {
+        sentence: say(enabled ? "agent.tool.setReminderOn" : "agent.tool.setReminderOff", {
+          trip: trip?.title ?? "",
+        }),
+        accept: say("agent.tool.setReminderAccept"),
+        done: say("agent.tool.setReminderDone"),
+        fields: [
+          { name: "trip", value: trip?.id ?? "", fixed: true },
+          {
+            name: "enabled",
+            value: enabled ? "on" : "off",
+            options: [
+              { value: "on", label: say("agent.tool.channelOn") },
+              { value: "off", label: say("agent.tool.channelOff") },
+            ],
+          },
+          {
+            name: "channel",
+            value: channel,
+            options: [
+              { value: "mail", label: say("agent.tool.channelMail") },
+              ...(whatsappReady ? [{ value: "whatsapp", label: say("agent.tool.channelWhatsapp") }] : []),
+            ],
+          },
         ],
       };
     },

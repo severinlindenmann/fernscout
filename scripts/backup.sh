@@ -423,6 +423,22 @@ else
   log "WARNING: refreshing the reference rates failed — the previous table is still in place and tonight's backup is unaffected"
 fi
 
+# --- 0b. The evening reminder sweep (B1219, D46) ---------------------------
+# The same reasoning as the rates refresh just above: this is the one thing
+# on the box that already runs every night, so it is where an opt-in nightly
+# check belongs rather than a second timer nobody remembers to enable.
+#
+# Sends at most one nudge per journal, only for a trip somebody has opted in
+# to (`set_reminder`, in the room) — every other journal on this instance is
+# untouched. Never fatal: a mail or WhatsApp send needs the open internet the
+# same way the rates fetch does, and a backup does not.
+log "checking for evening reminders due tonight"
+if (cd "$APP_DIR" && npm run --silent reminders:send); then
+  log "reminder sweep done"
+else
+  log "WARNING: the reminder sweep failed — tonight's backup is unaffected"
+fi
+
 # --- 1. Database dump, if this deployment has one -------------------------
 # The prototype tier (docs/ROADMAP.md §2.2) has no DATABASE_URL and Postgres is
 # not even installed — that's not a failure, there is simply nothing to dump.
