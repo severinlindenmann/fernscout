@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: pricing
 found: "2026-09-10T16:23:09Z"
+started: "2026-09-10T16:23:31Z"
+session: 82456949-2ed4-4811-88ba-62a78eebf6af
+claimed: "2026-09-10T16:23:31Z"
 ---
 
 # B1332 — The pricing table prices in credits a visitor cannot judge
