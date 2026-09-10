@@ -132,6 +132,8 @@ export const ERROR_CODES: Record<string, string> = {
   credits_disabled: "This server has credits off.",
   mail_disabled: "This server cannot send mail, so anything that would have been mailed has not been.",
   mail_failed: "The mail could not be sent. Nothing else about the call failed; tell the person, and do not retry in a loop.",
+  whatsapp_disabled: "This server cannot send WhatsApp messages. Ask for the code by mail instead (leave channel out); nothing was issued and any code already held is still live.",
+  whatsapp_failed: "The WhatsApp message could not be sent, so no code is live for that address. Retrying once in a minute is reasonable; a loop is not.",
   no_owner_address: "This journal's config.json has no owner address, and this call has to mail somebody. That is an edit to the file.",
   no_database: "This capability stores data and this server has no database configured.",
   provider_unavailable:

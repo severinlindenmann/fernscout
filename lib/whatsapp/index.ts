@@ -205,11 +205,10 @@ function transportFor(name: string): WhatsappTransport {
  * Send one message on a journal's behalf.
  *
  * Gated by the server's capability *and* the journal's own switch, the two
- * questions `sendMail` keeps separate for the reasons written there. There is
- * no `sendTransactional` counterpart and there must not be: every letter that
- * earns mail's exemption — a sign-in code, a deletion link, an operator alert
- * — is addressed to somebody exercising control of the journal, and none of
- * them goes to WhatsApp. This channel carries announcements only, so a
+ * questions `sendMail` keeps separate for the reasons written there. Since
+ * B1222 there is one `sendTransactional`-shaped counterpart, and exactly
+ * one: `sendWhatsappCode` below, for a one-time code the recipient just
+ * asked for. Everything else this channel carries is an announcement, so a
  * journal that switched it off has said the only thing there is to say.
  *
  * Returns null when the feature is off rather than throwing: a caller
@@ -220,5 +219,25 @@ export async function sendWhatsapp(
 ): Promise<WhatsappSendResult | null> {
   if (!isEnabled("whatsapp")) return null;
   if (message.username && hasSwitchedOff("whatsapp", message.username)) return null;
+  return transportFor(backendName()).send(message);
+}
+
+/**
+ * Send a one-time code — B1222, the WhatsApp counterpart of
+ * `sendTransactional` in lib/mail, and for the same reason (B60): the code
+ * is the door. It ignores a journal's own `features.whatsapp` switch —
+ * switching announcements off must not lock the owner out of the channel
+ * they chose to receive their passcode on — and it asks only whether this
+ * *server* can send at all, answering null when it cannot.
+ *
+ * The message must be an approved **authentication** template with the code
+ * as its one body variable and as its button parameter — see
+ * `authTemplateFor` in ./settings.ts. Nothing here checks that; Meta does,
+ * loudly, at send time.
+ */
+export async function sendWhatsappCode(
+  message: WhatsappMessage,
+): Promise<WhatsappSendResult | null> {
+  if (!isEnabled("whatsapp")) return null;
   return transportFor(backendName()).send(message);
 }

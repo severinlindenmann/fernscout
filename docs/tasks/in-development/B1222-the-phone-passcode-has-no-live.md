@@ -109,3 +109,40 @@ live.
   The code goes out over WhatsApp only when the address is the journal
   owner's and `owner.tel` was proven; anything else is a silent 202, exactly
   the property the mail path already has for an unknown address.
+
+## Built — 2026-09-10
+
+- `lib/phoneVerify/codes.ts` — the code lifecycle (hash-only, 30 min, 5
+  attempts, superseded on reissue) lifted out of `dryRun.ts`, shared by both
+  backends. `lib/phoneVerify/whatsapp.ts` delivers it as an authentication
+  template through `lib/whatsapp`; dry-run keeps writing to disk. Registered
+  in `lib/phoneVerify/index.ts`; `lib/capabilities.ts` refuses
+  `phoneBackend: "whatsapp"` with `features.whatsapp` off.
+- `authTemplateFor` + `sendWhatsappCode` (`lib/whatsapp/settings.ts`,
+  `index.ts`): template name from `features.whatsapp.authTemplates`
+  (locale → name, `en` fallback), default `fernscout_auth_code`; the send
+  ignores a journal's own announcement switch, the same B60 reasoning as
+  `sendTransactional` — the code is the door.
+- `POST /api/auth/request` takes `channel: "whatsapp"` — delivers only for
+  the owner's address with a proven `owner.tel`, silent 202 otherwise
+  (checked *before* `issueCode`, so nothing live is revoked);
+  `whatsapp_disabled`/`whatsapp_failed` published in errorCodes, openapi and
+  /agent.md.
+- `SignupWizard` gains the phone steps, reached via `phone_required` from
+  the create call so exempt instances never see them, with the two decided
+  sentences. `GuestSignIn` gains the secondary WhatsApp button, offered only
+  where a journal can actually deliver (`whatsappSignInOffered`), threaded
+  through TripGate, MePageContent, TripsIndexContent.
+- Locales: ten new keys × en/de/hu. Tests: `test/phone-verify-whatsapp.test.ts`.
+
+Verified: full `npm run verify` green (6565 tests); wizard driven end to end
+in headless Chrome against a scratch instance — phone step wording, dry-run
+template payload, code verified, journal created; WhatsApp login driven the
+same way to a signed-in /me; button confirmed absent on the pre-existing
+`example` journal (no proven number) and present on the proven one.
+Screenshots under the session scratchpad `b1222/shots/`.
+
+Live use still needs an operator step: an approved **authentication**
+template named `fernscout_auth_code` (or `features.whatsapp.authTemplates`
+pointed at one) in the Meta Business Manager, and
+`features.signup.phoneBackend: "whatsapp"` in the deployed config.

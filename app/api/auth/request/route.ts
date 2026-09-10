@@ -12,6 +12,9 @@ import {
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { translateIn } from "@/lib/locales";
 import { sendTransactional } from "@/lib/mail";
+import { sendWhatsappCode } from "@/lib/whatsapp";
+import { toE164 } from "@/lib/whatsapp/phone";
+import { authTemplateFor } from "@/lib/whatsapp/settings";
 import { renderMail, type MailBlock } from "@/lib/mail/template";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
@@ -44,28 +47,39 @@ export async function POST(request: Request) {
     return Response.json({ error: "auth_disabled" }, { status: 404 });
   }
 
+  // Read before rate-limiting, because which bucket applies depends on what
+  // is being asked for.
+  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const email = typeof body.email === "string" ? body.email : "";
+  const username = typeof body.user === "string" ? body.user : "";
+  const kind: SessionKind = body.kind === "agent" ? "agent" : "guest";
+
+  /**
+   * How the code travels — B1222. `email` (the default) mails it; `whatsapp`
+   * sends it as an authentication template to the number this journal's
+   * owner proved at signup. Anything unrecognised reads as `email`, the way
+   * every other enum on this route falls back rather than errors.
+   */
+  const channel = body.channel === "whatsapp" ? "whatsapp" : "email";
+
   /**
    * **Before anything is issued** — B160.
    *
    * This route's rule is that every outcome is a 202, because a status that
    * varied by address would say which of somebody's family is registered. A
-   * server that cannot send mail at all says nothing about any address, so
-   * refusing here leaks nothing the uniform 202 was protecting.
+   * server that cannot send on the chosen channel at all says nothing about
+   * any address, so refusing here leaks nothing the uniform 202 was
+   * protecting.
    *
-   * What it stops is worse than an unhelpful answer. `issueCode` revokes every
-   * live code for the address before writing a new one, and the mail layer
-   * returns null rather than throwing when mail is off — so the route took the
-   * success path and answered 202 having *killed the code the person was still
-   * holding* and replaced it with one nobody would ever be told. The `catch`
-   * below already has the right answer for a transport that throws; "mail is
-   * switched off" is not an exception, so it never reached it.
-   *
-   * The signup route refuses the same way and for the same reason
-   * (`app/api/auth/signup/request/route.ts`), as does `lib/deletions.ts`.
-   * Before the rate limit, so a request that was never going to work does not
-   * spend a person's five attempts.
+   * What it stops is worse than an unhelpful answer: `issueCode` revokes
+   * every live code for the address before writing a new one, so taking the
+   * success path with no way to deliver would kill the code the person was
+   * still holding and replace it with one nobody would ever be told. The
+   * same check, per channel, since B1222 — a server with WhatsApp switched
+   * off must refuse a WhatsApp request the same way, before the rate limit,
+   * so a request that was never going to work does not spend attempts.
    */
-  if (!isEnabled("mail")) {
+  if (channel === "email" && !isEnabled("mail")) {
     return Response.json(
       {
         error: "mail_disabled",
@@ -76,13 +90,18 @@ export async function POST(request: Request) {
       { status: 503 },
     );
   }
-
-  // Read before rate-limiting, because which bucket applies depends on what
-  // is being asked for.
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-  const email = typeof body.email === "string" ? body.email : "";
-  const username = typeof body.user === "string" ? body.user : "";
-  const kind: SessionKind = body.kind === "agent" ? "agent" : "guest";
+  if (channel === "whatsapp" && !isEnabled("whatsapp")) {
+    return Response.json(
+      {
+        error: "whatsapp_disabled",
+        message:
+          "This server cannot send WhatsApp messages, so there is no way to deliver a code " +
+          'this way. Ask for the code by mail instead (leave "channel" out). Nothing has ' +
+          "been issued and any code you already hold is still live.",
+      },
+      { status: 503 },
+    );
+  }
 
   // Agent requests get a smaller bucket than guest ones: they are the path
   // that now says whether an address owns a journal, so enumerating addresses
@@ -203,6 +222,39 @@ export async function POST(request: Request) {
    * for a journal-wide token names none, and that is the one case that still
    * mints `write:content`.
    */
+  /**
+   * WhatsApp delivery is only possible to a number this journal has proven,
+   * and the only proven number is the owner's (`owner.tel` +
+   * `owner.telProvenAt`, written by the signup flow) — B1222. For any other
+   * address the answer is the same silent 202 an unknown address already
+   * gets by mail — saying more would answer the question the uniform 202
+   * exists to refuse. Checked **before** `issueCode`, because issuing would
+   * revoke the live code with no way to deliver its replacement (B160).
+   */
+  let whatsappTel: string | null = null;
+  if (channel === "whatsapp") {
+    const ownersAddress =
+      typeof user.owner.email === "string" &&
+      user.owner.email.trim().toLowerCase() === email.trim().toLowerCase();
+    const tel = user.owner.tel && user.owner.telProvenAt ? toE164(user.owner.tel) : null;
+    if (!ownersAddress || !tel) return accepted;
+    /**
+     * An authentication template is a paid send, and the per-IP bucket above
+     * is no ceiling against a distributed caller who knows an owner's
+     * address — the same reasoning as the signup phone route's own ceilings
+     * (B1065). Quietly the same 202 when exceeded, not a 429: these buckets
+     * only exist on the owner's path, so a distinct answer would confirm
+     * that the address owns the journal. The owner who hits it simply asks
+     * by mail instead, which is the default anyway.
+     */
+    const day = 24 * 60 * 60 * 1000;
+    const perNumber = rateLimitFor("whatsapp-code-number", tel, { max: 10, windowMs: day });
+    if (!perNumber.ok) return accepted;
+    const perInstance = rateLimitFor("whatsapp-code-instance", "*", { max: 100, windowMs: day });
+    if (!perInstance.ok) return accepted;
+    whatsappTel = tel;
+  }
+
   const { code, linkToken } = await issueCode(username, email, kind, {
     destination,
     trip: kind === "agent" && tripId ? tripId : null,
@@ -291,7 +343,27 @@ export async function POST(request: Request) {
      * token, so there would be nothing left to switch it back on with. See
      * `sendTransactional` in lib/mail, and B60.
      */
-    await sendTransactional(
+    if (whatsappTel) {
+      /**
+       * The code, as an approved authentication template — the same
+       * message the signup phone step sends (`lib/phoneVerify/whatsapp.ts`),
+       * via the same `sendWhatsappCode` exemption from the journal's own
+       * announcement switch. The mail's link button has no counterpart
+       * here: a template's buttons are fixed at approval, so the six
+       * digits are the whole of it, and typing them is the flow the form
+       * already has.
+       */
+      const template = authTemplateFor(locale);
+      const sent = await sendWhatsappCode({
+        to: whatsappTel,
+        template: template.name,
+        language: template.language,
+        body: [code],
+        buttonPath: code,
+        username,
+      });
+      if (!sent) throw new Error("the whatsapp capability went away mid-request");
+    } else await sendTransactional(
       renderMail(
         email,
         kind === "agent" ? t("mail.agentSubject", vars) : t("mail.signinSubject", vars),
@@ -312,14 +384,14 @@ export async function POST(request: Request) {
       "a one-time sign-in code the recipient just asked for",
     );
   } catch (err) {
-    console.error(`[auth] ${kind} code for ${username} could not be sent:`, err);
+    console.error(`[auth] ${kind} code for ${username} could not be sent (${channel}):`, err);
     await revokeCodes(username, email, kind).catch(() => {});
     return Response.json(
       {
-        error: "mail_failed",
+        error: channel === "whatsapp" ? "whatsapp_failed" : "mail_failed",
         message:
           "The code could not be sent, so no code is live for this address. Try again in a " +
-          "minute; if it keeps failing, this server's mail is broken.",
+          `minute; if it keeps failing, this server's ${channel === "whatsapp" ? "WhatsApp channel" : "mail"} is broken.`,
       },
       { status: 503, headers: { "Retry-After": "60" } },
     );
