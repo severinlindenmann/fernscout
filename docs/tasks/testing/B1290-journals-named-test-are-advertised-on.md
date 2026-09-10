@@ -7,8 +7,7 @@ complexity: low
 area: landing
 found: "2026-09-10T10:59:23Z"
 started: "2026-09-10T16:54:38Z"
-session: 0b65a2c0-133d-4fda-b7d5-b9e50d6f6b55
-claimed: "2026-09-10T16:54:38Z"
+merged: "2026-09-10T17:02:07Z"
 ---
 
 # B1290 — Journals named test- are advertised on the public landing page beside the demo

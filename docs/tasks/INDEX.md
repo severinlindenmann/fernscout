@@ -337,16 +337,15 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (4)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1337](in-development/B1337-a-proposal-s-save-and-leave.md) | A proposal's Save and Leave buttons render detached at the page foot on desktop | ISSUE | high | medium | `b9809a36` |
 | [B1338](in-development/B1338-enter-does-not-send-from-the.md) | Enter does not send from the desktop composer | ISSUE | high | low | `b9809a36` |
-| [B1290](in-development/B1290-journals-named-test-are-advertised-on.md) | Journals named test- are advertised on the public landing page beside the demo | ISSUE | medium | low | `0b65a2c0` |
 | [B1339](in-development/B1339-guest-card-and-new-user-hero.md) | Guest card and new-user hero run together on the landing page | FEATURE | medium | low | `d63a4633` |
 
-## testing (116)
+## testing (117)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -456,6 +455,7 @@ Do not edit them by hand; run the script.
 | [B1259](testing/B1259-a-trip-prints-the-span-of.md) | A trip prints the span of the days written rather than its own dates, and a single day reads as 5 Sep to 5 Sep | ISSUE | medium | low | — |
 | [B1277](testing/B1277-the-helper-tells-the-owner-that.md) | The helper tells the owner that a preview is waiting on their postcards page, in the third person | ISSUE | medium | low | — |
 | [B1278](testing/B1278-open-the-photobook-maker-opens-nothing.md) | Open the photobook maker opens nothing and prints a bare URL that is not a link | ISSUE | medium | low | — |
+| [B1290](testing/B1290-journals-named-test-are-advertised-on.md) | Journals named test- are advertised on the public landing page beside the demo | ISSUE | medium | low | — |
 | [B1309](testing/B1309-a-softcover-gets-no-spine-text.md) | A softcover gets no spine text even where the spine is wide enough for one | ISSUE | medium | low | — |
 | [B1318](testing/B1318-the-two-leaves-gelato-requires-are.md) | The two leaves Gelato requires are blank, so prepress calls them a fault | ISSUE | medium | low | — |
 | [B1325](testing/B1325-the-hero-buttons-stack-on-desktop.md) | The hero buttons stack on desktop and the agent page changes colour below the fold | ISSUE | medium | low | — |
