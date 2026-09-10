@@ -1,7 +1,8 @@
 import { NO_JOURNAL, resolveSession } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
-import { startVerification } from "@/lib/phoneVerify";
+import { phoneProofMode, startVerification } from "@/lib/phoneVerify";
+import { createPhoneLink } from "@/lib/phoneVerify/inboundLink";
 import { rateLimitFor } from "@/lib/rateLimit";
 import { toE164 } from "@/lib/whatsapp/phone";
 
@@ -51,6 +52,46 @@ export async function POST(request: Request) {
           "then bring that token here.",
       },
       { status: 401 },
+    );
+  }
+
+  /**
+   * Inbound mode — B1234 — takes no number at all: the person's own message
+   * will carry it. Only the address and instance ceilings apply (there is
+   * no number to key on, and nothing paid goes out); the row itself is the
+   * only cost.
+   */
+  if (phoneProofMode() === "whatsapp-inbound") {
+    const perAddress = rateLimitFor("phone-verify-address", session.email, PER_ADDRESS);
+    if (!perAddress.ok) return tooMany("address", perAddress.retryAfter);
+    const perInstance = rateLimitFor("phone-verify-instance", "*", PER_INSTANCE);
+    if (!perInstance.ok) return tooMany("instance", perInstance.retryAfter);
+
+    const locale = pickLocale(fromAcceptLanguage(request.headers.get("accept-language")));
+    const link = await createPhoneLink(session.id, locale);
+    if (!link) {
+      console.error("[signup] phone proof is whatsapp-inbound but features.whatsapp.number is not set");
+      return Response.json(
+        {
+          error: "verification_failed",
+          message: "This server cannot offer the WhatsApp confirmation right now.",
+        },
+        { status: 503 },
+      );
+    }
+    return Response.json(
+      {
+        status: "accepted",
+        mode: "whatsapp-inbound",
+        id: link.id,
+        link: link.link,
+        text: link.text,
+        next:
+          "Have the person open the link and send the prepared message, then poll " +
+          'POST /api/auth/signup/phone/verify with {"token", "id"} (no code) until the ' +
+          'answer stops being {"status": "pending"}.',
+      },
+      { status: 202 },
     );
   }
 

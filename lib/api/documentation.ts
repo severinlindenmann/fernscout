@@ -786,6 +786,17 @@ step on their own — say so plainly and point them at whoever runs this server
 rather than guessing a number or inventing a workaround. Once the number is
 proven, retry the create; the proof is attached to the token you already hold.
 
+**Some servers run the proof the other way around** — the \`phone_required\`
+refusal carries \`"mode": "whatsapp-inbound"\` (B1234). Then send **no
+number**: POST the request step with an empty body, and the answer carries a
+wa.me \`link\` whose prefilled \`text\` holds a one-time token. Hand the link
+to the person; they tap it and send the prepared message, and the number it
+comes *from* is thereby proven — no code exists at all. Poll the verify step
+with only the \`id\` until the answer stops being
+\`{"status": "pending"}\`; \`{"status": "expired"}\` means ask for a fresh
+link. Never invent a token or type one on the person's behalf — the whole
+proof is that *their* phone sent it.
+
 A refused creation does not spend the token either,
 so a taken username is worth correcting rather than starting over:
 

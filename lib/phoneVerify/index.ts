@@ -29,6 +29,17 @@ function backend(): PhoneVerifyBackend {
   }
 }
 
+/**
+ * Which *shape* the signup phone step takes — B1234. `"code"` is every
+ * backend that sends a passcode; `"whatsapp-inbound"` inverts the
+ * direction: the person messages us (lib/phoneVerify/inboundLink.ts) and no
+ * code exists at all. The routes branch on this before ever asking for a
+ * code backend, which is why the switch below needs no case for it.
+ */
+export function phoneProofMode(): "code" | "whatsapp-inbound" {
+  return backendName() === "whatsapp-inbound" ? "whatsapp-inbound" : "code";
+}
+
 export function startVerification(phone: string, locale: string): Promise<StartResult> {
   return backend().start(phone, locale);
 }

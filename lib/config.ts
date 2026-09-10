@@ -142,10 +142,12 @@ type Owner = {
    * the record of *that* journal having proven it.
    */
   telProvenAt?: string;
-  /** `"sms"` for the Twilio/dry-run signup flow; `"operator"` for a number an
-   * operator typed in by hand, per B1064's decision that a number change is
-   * done by the operator, by hand, until there is a self-serve path. */
-  telProvenMethod?: "sms" | "operator";
+  /** `"sms"` for a signup passcode (any code backend — Twilio, WhatsApp
+   * template, dry-run); `"whatsapp-inbound"` for a number proven by
+   * messaging us (B1234); `"operator"` for a number an operator typed in by
+   * hand, per B1064's decision that a number change is done by the
+   * operator, by hand, until there is a self-serve path. */
+  telProvenMethod?: "sms" | "operator" | "whatsapp-inbound";
 };
 
 /**
@@ -653,8 +655,8 @@ function parseOwner(src: Record<string, unknown>, problems: string[]): Owner {
     }
   }
   if (raw.telProvenMethod !== undefined) {
-    if (raw.telProvenMethod !== "sms" && raw.telProvenMethod !== "operator") {
-      problems.push('owner.telProvenMethod must be "sms" or "operator", or absent');
+    if (raw.telProvenMethod !== "sms" && raw.telProvenMethod !== "operator" && raw.telProvenMethod !== "whatsapp-inbound") {
+      problems.push('owner.telProvenMethod must be "sms", "operator" or "whatsapp-inbound", or absent');
     } else {
       owner.telProvenMethod = raw.telProvenMethod;
     }
