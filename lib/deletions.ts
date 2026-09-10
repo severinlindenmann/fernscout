@@ -632,7 +632,7 @@ async function deleteJournal(username: string, requestedBy: string): Promise<voi
  * left to write them into — but it is a difference, and it is said out loud in
  * the confirmation mail rather than discovered afterwards.
  */
-async function deleteTrip(
+export async function deleteTrip(
   username: string,
   tripId: string,
   requestedBy: string,

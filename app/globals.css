@@ -476,7 +476,7 @@ select:disabled {
    room's own surface classes; corners that stay light are B-tickets, not
    reasons to invert a brand with a filter. */
 .fs-room-dark { color-scheme: dark; }
-.fs-room-dark.bg-navy-50, .fs-room-dark .bg-navy-50 { background-color: #171d29; }
+.fs-room-dark.bg-navy-50, .fs-room-dark.bg-cream-50, .fs-room-dark .bg-navy-50 { background-color: #171d29; }
 .fs-room-dark .bg-white { background-color: #1f2736; }
 .fs-room-dark .bg-navy-100 { background-color: #2a3550; }
 .fs-room-dark .bg-cream-50 { background-color: #1f2736; }

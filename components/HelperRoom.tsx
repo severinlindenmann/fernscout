@@ -235,18 +235,20 @@ export default function HelperRoom({
   const [filesCollapsed, setFilesCollapsed] = useState(
     !(files.inbox.length > 0 || files.trip.length > 0),
   );
-  const [previewCollapsed, setPreviewCollapsed] = useState(false);
-  // Remembered across visits — B1214 (D24 B). Applied after mount (the
-  // storage-in-initializer trap, B1197).
-  useEffect(() => {
-    if (window.localStorage.getItem("fs.agent.previewCollapsed") === "1") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPreviewCollapsed(true);
-    }
-  }, []);
+  /**
+   * Closed until there is something to look at — B1320, the owner's own
+   * revision of D24: an open column holding an empty-state sentence was
+   * dead space on every arrival. It opens itself the first time the
+   * preview actually has content; after a manual close it stays closed
+   * (the dot says something new arrived) until a deliberate open or a
+   * pressed day chip. Nothing is remembered across visits any more —
+   * closed-when-empty is the memory.
+   */
+  const [previewCollapsed, setPreviewCollapsed] = useState(true);
+  const manuallyClosed = useRef(false);
   function togglePreviewCollapsed() {
     setPreviewCollapsed((was) => {
-      window.localStorage.setItem("fs.agent.previewCollapsed", was ? "0" : "1");
+      manuallyClosed.current = !was;
       return !was;
     });
     setPreviewUnseen(false);
@@ -338,6 +340,13 @@ export default function HelperRoom({
   const lastDayText = useRef<string>("");
   useEffect(() => {
     if (!preview) return;
+    // The column opens itself the moment there is a day to show — B1320 —
+    // unless the person closed it by hand, in which case the dot carries
+    // the news instead.
+    if (!manuallyClosed.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPreviewCollapsed(false);
+    }
     const text = `${preview.day.lead.title}\n${preview.day.lead.content ?? ""}`;
     if (lastDayText.current && lastDayText.current !== text) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -750,7 +759,7 @@ export default function HelperRoom({
     // Outer paints the ground edge to edge; inner caps the app at 1680px —
     // B1208 (D43): three panes floating in 2560px of ground looked lost.
     <div
-      className={`h-dvh bg-navy-50 ${textScale === "s" ? "fs-scale-s" : textScale === "l" ? "fs-scale-l" : ""} ${
+      className={`h-dvh bg-cream-50 ${textScale === "s" ? "fs-scale-s" : textScale === "l" ? "fs-scale-l" : ""} ${
         darkRoom ? "fs-room-dark" : ""
       }`}
     >
@@ -998,6 +1007,7 @@ export default function HelperRoom({
                 typeof window.matchMedia === "function" &&
                 window.matchMedia("(min-width: 1024px)").matches;
               if (desktop) {
+                manuallyClosed.current = false;
                 setPreviewCollapsed(false);
                 setScrollTick((n) => n + 1);
               } else {
@@ -1027,7 +1037,7 @@ export default function HelperRoom({
                 <p className="mb-2 shrink-0 rounded-xl border border-coral-400 bg-coral-50 px-3 py-2 text-sm leading-5 text-coral-600">
                   {t("agent.room.lowCredits")}{" "}
                   <a
-                    href={`/${encodeURIComponent(username)}/me`}
+                    href={`/${encodeURIComponent(username)}/account#buy`}
                     className="font-semibold underline underline-offset-2"
                   >
                     {t("agent.room.accountBuy")}
@@ -1039,29 +1049,9 @@ export default function HelperRoom({
             onFieldFocusChange={setFieldFocused}
           />
 
-          {/*
-            The one thing kept from the old door, at the weight it deserves —
-            B984. It used to be a second yellow button, as bright as writing a
-            day, for the rarest thing on the page: handing the journal to an
-            agent of your own.
-
-            A grey line at the foot, in every state. It leads to the owner's
-            own page, where the keys and the handover credential already live —
-            this was always a second door onto a control that has a home.
-          */}
-          <p className="mt-3 shrink-0 text-center">
-            {/* A sheet in the room now, not a trip to /me — B1210 (D11):
-                the line navigated to a dense settings page, which read as
-                broken. The sheet mints the credential and hands over the
-                prompt right here. */}
-            <button
-              type="button"
-              onClick={() => setAgentSheetOpen(true)}
-              className="text-xs text-navy-500 underline underline-offset-4 transition-colors hover:text-navy-700"
-            >
-              {t("agent.open.bringAgent")}
-            </button>
-          </p>
+          {/* Bring-your-own-agent lost its footer line in B1327: it was the
+              same sheet the ⋯ menu opens, said twice on one screen. The menu
+              entry is its one home now. */}
           {installHint && (
             <p className="mt-1 flex shrink-0 items-center justify-center gap-2 text-center text-xs text-navy-500">
               {t("agent.room.installHint")}
@@ -1270,7 +1260,7 @@ function Sheet({
       ref={dialog}
       aria-label={label}
       onClose={onClose}
-      className="m-0 flex w-full max-w-none flex-col border-0 bg-white p-0 backdrop:bg-navy-900/40 fixed inset-x-0 bottom-0 top-[8dvh] max-h-none rounded-t-2xl lg:hidden"
+      className="m-0 flex w-full max-w-none flex-col border-0 bg-white p-0 backdrop:bg-navy-900/40 fixed inset-x-0 bottom-0 top-[8dvh] max-h-none rounded-t-2xl lg:mx-auto lg:top-auto lg:max-h-[80dvh] lg:max-w-xl"
     >
       <div className="flex items-center gap-3 border-b border-navy-200 px-4 py-2">
         {/* The handle, and it is the button: a bar somebody can only drag is a
@@ -1826,7 +1816,10 @@ function AccountSheet({
                   </p>
                 )}
                 <a
-                  href={`/${encodeURIComponent(username)}/me`}
+                  // Straight onto the purchase control, not the /me page —
+                  // B1319: the account page now carries the slider inline
+                  // under this anchor.
+                  href={`/${encodeURIComponent(username)}/account#buy`}
                   className="mt-2 inline-block min-h-11 rounded-full border border-yellow-600 bg-yellow-400 px-5 py-2.5 text-sm font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
                 >
                   {t("agent.room.accountBuy")}
