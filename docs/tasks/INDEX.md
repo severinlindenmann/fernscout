@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (175)
+## backlog (180)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (57)
+### issue (62)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -106,6 +106,8 @@ Do not edit them by hand; run the script.
 | [B1285](backlog/issue/B1285-the-postcard-page-tells-the-owner.md) | The postcard page tells the owner to answer an API endpoint and write a YAML block | ISSUE | medium | low |
 | [B1286](backlog/issue/B1286-the-postcard-back-is-labelled-at.md) | The postcard back is labelled at print size and renders its message at eight pixels on a phone | ISSUE | medium | low |
 | [B1289](backlog/issue/B1289-the-map-of-a-finished-trip.md) | The map of a finished trip is titled Where we're going and says no days are written when one is | ISSUE | medium | low |
+| [B1290](backlog/issue/B1290-journals-named-test-are-advertised-on.md) | Journals named test- are advertised on the public landing page beside the demo | ISSUE | medium | low |
+| [B1292](backlog/issue/B1292-creating-a-journal-is-confirmed-by.md) | Creating a journal is confirmed by nothing, and never shows the address the person just chose | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
@@ -119,6 +121,9 @@ Do not edit them by hand; run the script.
 | [B1270](backlog/issue/B1270-the-account-page-quotes-send-prices.md) | The account page quotes send prices for nought people and offers to sell 5 GB to a journal using one kilobyte | ISSUE | low | low |
 | [B1271](backlog/issue/B1271-a-failed-voice-note-download-also.md) | A failed voice-note download also says nothing | ISSUE | low | low |
 | [B1283](backlog/issue/B1283-the-phone-country-field-is-too.md) | The phone country field is too narrow for its own default value, so the dialling code is cut off | ISSUE | low | low |
+| [B1291](backlog/issue/B1291-a-journal-with-no-usable-cover.md) | A journal with no usable cover renders half a card of flat colour on the landing page | ISSUE | low | low |
+| [B1293](backlog/issue/B1293-two-of-the-four-signup-hints.md) | Two of the four signup hints sit above their field and two below, so the address rule reads as the title rule | ISSUE | low | low |
+| [B1294](backlog/issue/B1294-the-photobook-route-answers-that-the.md) | The photobook route answers that the trip was taken down or renamed when the trip is still there | ISSUE | low | low |
 
 ### big-feature (14)
 
