@@ -568,13 +568,24 @@ export type ThreadAnswer = {
   /** Proposals a write tool made. Nothing was written; B900 is the press. */
   proposals: Proposal[];
   /**
-   * Which honesty check caught this turn, if one did, and whether asking again
-   * produced something true — B976.
+   * Which honesty check authored what actually shipped, and whether asking
+   * again produced something true — B976, corrected by B1262.
    *
    * Counted since B920 as three process-global integers, which answer "is the
    * rate rising" and nothing else: not which guard, not on what kind of turn,
    * and not across a restart. Every fault fixed on 2026-09-08 was found by
    * paying somebody to drive the live site, because this was not recorded.
+   *
+   * **Not always the first check's verdict.** A retry can trade one false
+   * claim for a different one — told "you claimed a screen", the model's
+   * second draft can go on to claim a write instead. When the retry also
+   * fails, the sentence the person receives is `PLAINLY[again]` — the
+   * *second* `amiss()` call's verdict — so that is what is recorded here,
+   * because a log meant for diagnosing exactly this class of bug has to name
+   * the rule that authored the delivered sentence, not the rule that only
+   * shaped a discarded first draft. When the retry recovers, there is no
+   * second violation to name, so the first check that fired (and was fixed)
+   * is what is recorded, same as before.
    */
   guard: string;
   recovered: boolean;
@@ -1954,9 +1965,10 @@ export async function answerInThread(
   } as const;
 
   const wrong = amiss();
-  // What was caught and whether the second answer was honest — kept so the row
-  // this turn writes can say so (B976), rather than only the counter.
+  // What was caught on the first pass — kept as the recorded guard unless a
+  // retry's own second violation replaces it below (B1262).
   const caught = wrong;
+  let shipped = caught;
   let recovered = false;
   if (wrong !== "") {
     honesty.claimed += 1;
@@ -1967,12 +1979,15 @@ export async function answerInThread(
     if (again !== "") {
       honesty.unrecovered += 1;
       answer = say(PLAINLY[again]);
+      // The fallback sentence is keyed by `again`, not by `caught` — record
+      // the check that actually authored what shipped (B1262's finding 1).
+      shipped = again;
     } else {
       recovered = true;
     }
   }
 
-  return { answer, looked, blocks, proposals, guard: caught, recovered };
+  return { answer, looked, blocks, proposals, guard: shipped, recovered };
 }
 
 /* -------------------------------------------------------------------------
