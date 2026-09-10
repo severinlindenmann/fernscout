@@ -92,6 +92,9 @@ describe("binding an inbound number", () => {
     // German, since defaultLocale: "de" — and carries the journal's own URL.
     expect(body.body).toMatch(/KI/);
     expect(body.body).toMatch(/severin/);
+    // And the web door to this same conversation — /agent?c=<session id>
+    // adopts it (B1168/B1054), so the greeting may honestly promise it.
+    expect(body.body).toMatch(/\/agent\?c=[A-Za-z0-9_-]+/);
 
     // A second message from the same, now-greeted number gets no fixed
     // reply — B1058 says the greeting is "never on every conversation".
