@@ -1759,7 +1759,7 @@ function HistoryPanel({
         </div>
       )}
       {panelTab === "days" && (
-        <div className="min-h-40 flex-1 overflow-y-auto overscroll-contain p-4 sm:min-h-0">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
           {tripDays.length === 0 ? (
             <p className="text-sm leading-6 text-navy-700">{t("agent.room.daysEmpty")}</p>
           ) : (
@@ -1931,7 +1931,10 @@ function AccountSheet({
           {t("agent.room.closeAccount")}
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+      {/* A floor while "Looking…" waits for the numbers — B1359 round 2,
+          landed on the wrong element in round 2's first attempt (the class
+          string existed three times; the sed hit the history panel). */}
+      <div className="min-h-40 flex-1 overflow-y-auto overscroll-contain p-4 sm:min-h-0">
         {facts === null ? (
           <p className="text-sm leading-6 text-navy-700">{t("agent.room.historyLoading")}</p>
         ) : (
