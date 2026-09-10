@@ -60,13 +60,21 @@ Two separable things:
 
 ## Work
 
-- Decide whether the landing list should skip `test-` journals, or whether a
-  journal needs its own switch. The prefix is free and already conventional; a
-  switch is more honest but is a field nobody will set.
-- Whatever is chosen, apply it consistently with `test: true` — the feed, the
-  search index and the sitemap, not only the landing page.
-- Note that this run added a third (`test-mobile`); it is being made unlisted
-  rather than left on the page.
+- **Chose the prefix, not a switch**: it is free, already the documented
+  convention, and (the ticket's own words) a switch is a field nobody will
+  set.
+- One filter in `listedUsernames()` (`lib/users.ts`): a `test-` journal is
+  treated like a `guest` one — unlisted, not gone. That is the root cause,
+  because everything that advertises a journal instance-wide routes through
+  it: the landing page (`publicJournals()`), `sitemap.xml`,
+  `/documentation.txt`, and the openapi example username. The feed and the
+  search index are per-journal (`/[user]/feed.xml`), the same surfaces an
+  unlisted `guest` journal already serves to anybody sent the address, so
+  they are deliberately unchanged — consistent with how `guest` behaves, and
+  `test: true` days inside are already filtered by `isIndexable`.
+- Test beside the `guest`-journal one in `test/journals.test.ts`.
+- Removing `test-elena` / `test-jonas` from the live instance stays an
+  operations task, as the ticket says.
 
 ## Acceptance
 
