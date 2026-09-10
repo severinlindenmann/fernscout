@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: whatsapp, helper
 found: "2026-09-10T10:06:01Z"
+merged: "2026-09-10T10:35:15Z"
 ---
 
 # B1263 — A failed media download says nothing, and a pin onto an existing day refuses instead of attaching

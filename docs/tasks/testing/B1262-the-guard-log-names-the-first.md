@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: whatsapp, helper
 found: "2026-09-10T10:06:00Z"
+merged: "2026-09-10T10:35:15Z"
 ---
 
 # B1262 — The guard log names the first verdict while the person received the second pass's fallback

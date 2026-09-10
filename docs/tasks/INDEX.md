@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (168)
+## backlog (165)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (51)
+### issue (48)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -71,9 +71,6 @@ Do not edit them by hand; run the script.
 | [B1250](backlog/issue/B1250-the-wizard-shows-an-api-refusal.md) | The wizard shows an API refusal naming HTTP endpoints to somebody who has no agent | ISSUE | high | low |
 | [B1251](backlog/issue/B1251-a-brand-new-journal-opens-on.md) | A brand new journal opens on a red nearly-out-of-credits alarm, because the grant equals the threshold | ISSUE | high | low |
 | [B1254](backlog/issue/B1254-reloading-the-helper-loses-every-interactive.md) | Reloading the helper loses every interactive card, leaving prose that points at one | ISSUE | high | medium |
-| [B1261](backlog/issue/B1261-the-renderer-drops-every-block-after.md) | The renderer drops every block after the first interactive one, and the thread remembers what was never sent | ISSUE | high | medium |
-| [B1262](backlog/issue/B1262-the-guard-log-names-the-first.md) | The guard log names the first verdict while the person received the second pass's fallback | ISSUE | high | low |
-| [B1263](backlog/issue/B1263-a-failed-media-download-says-nothing.md) | A failed media download says nothing, and a pin onto an existing day refuses instead of attaching | ISSUE | high | low |
 | [B1274](backlog/issue/B1274-one-press-of-the-preview-publish.md) | One press of the preview publish button fires three requests and stacks three identical publish cards | ISSUE | high | low |
 | [B1275](backlog/issue/B1275-the-preview-header-offers-put-this.md) | The preview header offers Put this day on the site, which does not put the day on the site | ISSUE | high | low |
 | [B1279](backlog/issue/B1279-a-photobook-of-a-trip-with.md) | A photobook of a trip with three photographs contains none and cannot be ordered | ISSUE | high | medium |
@@ -93,7 +90,6 @@ Do not edit them by hand; run the script.
 | [B1258](backlog/issue/B1258-the-publish-card-says-to-read.md) | The publish card says to read the day as readers will see it and does not show the day | ISSUE | medium | low |
 | [B1259](backlog/issue/B1259-a-trip-prints-the-span-of.md) | A trip prints the span of the days written rather than its own dates, and a single day reads as 5 Sep to 5 Sep | ISSUE | medium | low |
 | [B1260](backlog/issue/B1260-a-trip-with-nothing-recorded-yet.md) | A trip with nothing recorded yet fills two phone screens with an empty sky, the whole world map and six zeros | ISSUE | medium | medium |
-| [B1264](backlog/issue/B1264-the-enrichment-question-never-fires-because.md) | The enrichment question never fires because a prompt line cannot see what a day lacks | ISSUE | medium | low |
 | [B1265](backlog/issue/B1265-the-model-asserted-a-false-trip.md) | The model asserted a false trip date window and no check caught the arithmetic | ISSUE | medium | low |
 | [B1268](backlog/issue/B1268-the-budget-bar-is-red-at.md) | The budget bar is red at half the budget spent, because its colour and its length measure different things | ISSUE | medium | low |
 | [B1269](backlog/issue/B1269-the-low-credit-warning-s-buy.md) | The low-credit warning's Buy credits link goes to a page with no credits and no way to buy | ISSUE | medium | low |
@@ -113,6 +109,7 @@ Do not edit them by hand; run the script.
 | [B1266](backlog/issue/B1266-asking-for-the-last-day-only.md) | Asking for the last day only searches unfinished drafts | ISSUE | low | low |
 | [B1267](backlog/issue/B1267-the-menu-holds-two-entries-both.md) | The menu holds two entries both labelled Trips that go to different places | ISSUE | low | low |
 | [B1270](backlog/issue/B1270-the-account-page-quotes-send-prices.md) | The account page quotes send prices for nought people and offers to sell 5 GB to a journal using one kilobyte | ISSUE | low | low |
+| [B1271](backlog/issue/B1271-a-failed-voice-note-download-also.md) | A failed voice-note download also says nothing | ISSUE | low | low |
 
 ### big-feature (14)
 
@@ -316,7 +313,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## testing (122)
+## testing (126)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -397,6 +394,9 @@ _Nothing here._
 | [B1242](testing/B1242-the-preview-link-from-whatsapp-opens.md) | The preview link from WhatsApp opens the room but shows no preview | ISSUE | high | medium | — |
 | [B1243](testing/B1243-a-pressed-write-is-not-known.md) | A pressed write is not known to the model, which asks for it again | ISSUE | high | medium | — |
 | [B1245](testing/B1245-there-is-no-way-to-start.md) | There is no way to start a fresh conversation from WhatsApp, and no topic-shift question | FEATURE | high | medium | — |
+| [B1261](testing/B1261-the-renderer-drops-every-block-after.md) | The renderer drops every block after the first interactive one, and the thread remembers what was never sent | ISSUE | high | medium | — |
+| [B1262](testing/B1262-the-guard-log-names-the-first.md) | The guard log names the first verdict while the person received the second pass's fallback | ISSUE | high | low | — |
+| [B1263](testing/B1263-a-failed-media-download-says-nothing.md) | A failed media download says nothing, and a pin onto an existing day refuses instead of attaching | ISSUE | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |
@@ -435,6 +435,7 @@ _Nothing here._
 | [B1237](testing/B1237-the-model-claims-a-screen-on.md) | The model claims a screen on a channel that has none, and links the bare /agent | ISSUE | medium | low | — |
 | [B1240](testing/B1240-every-photo-is-answered-instantly-and.md) | Every photo is answered instantly and separately instead of waiting for the batch | FEATURE | medium | medium | — |
 | [B1244](testing/B1244-the-helper-never-asks-for-what.md) | The helper never asks for what a day is missing — time, place, costs | FEATURE | medium | medium | — |
+| [B1264](testing/B1264-the-enrichment-question-never-fires-because.md) | The enrichment question never fires because a prompt line cannot see what a day lacks | ISSUE | medium | low | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
 | [B1096](testing/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low | — |
 | [B1127](testing/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low | — |
