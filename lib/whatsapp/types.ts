@@ -37,6 +37,12 @@ export type WhatsappMessage = {
   photo?: WhatsappPhoto;
   /** Whose message this is. Decides where the dry-run backend writes it. */
   username?: string;
+  /**
+   * The category the template was approved under — what Meta bills by, and
+   * what `/admin`'s money page counts by (B1347). Required so a new
+   * template cannot be sent uncounted; the send itself does not vary by it.
+   */
+  category: "marketing" | "utility" | "authentication";
 };
 
 export type WhatsappPhoto = {

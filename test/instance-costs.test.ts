@@ -9,6 +9,9 @@ import { grant } from "@/lib/credits";
 import { createAdminGrant, createPayment, getPayment, paymentsAwaiting, submitRequest, takings } from "@/lib/payments";
 import { recordUsage, usageSince } from "@/lib/usage";
 import { dailyCosts, dashboard, priceUsage } from "@/lib/instanceCosts";
+import { clearRatesCache } from "@/lib/rates";
+import { recordSms } from "@/lib/sms/store";
+import { recordWhatsappSend, WHATSAPP_CATEGORIES } from "@/lib/whatsapp/sends";
 
 /**
  * B746: the operator's bill.
@@ -40,6 +43,7 @@ async function setup(): Promise<void> {
         models: { "test-model": { inputPerMillionRappen: 80, outputPerMillionRappen: 400 } },
         transcriptionPerThousandMinutesRappen: 344,
         fixedMonthly: [{ label: "Server", rappen: 5000 }],
+        whatsappPerMessageRappen: { marketing: 10 },
       },
     }),
   );
@@ -70,6 +74,7 @@ const PRICES: CostConfig = {
   models: { "test-model": { inputPerMillionRappen: 80, outputPerMillionRappen: 400 } },
   transcriptionPerThousandMinutesRappen: 344,
   fixedMonthly: [],
+  whatsappPerMessageRappen: {},
 };
 
 function total(provider: string, over: Partial<Parameters<typeof priceUsage>[0][number]> = {}) {
@@ -369,5 +374,118 @@ describe("money coming in", () => {
     expect(data.awaiting).toEqual([]);
     expect(data.paid).toEqual([]);
     expect(data.takenRappen).toBe(0);
+  });
+});
+
+/**
+ * B1347: the three groups that used to under-count. Print orders now carry
+ * what the provider charged and are converted into rappen through the ECB
+ * table; WhatsApp sends are counted per Meta category and priced from the
+ * config; outbound SMS appear as a counted line.
+ */
+describe("print, WhatsApp and SMS on the dashboard", () => {
+  beforeEach(async () => {
+    await setup();
+    // The rates the conversion reads. DATA_DIR points into the test dir so
+    // nothing outside it is touched; 1 EUR = 0.93 CHF = 0.84 GBP.
+    process.env.DATA_DIR = dir;
+    fs.mkdirSync(path.join(dir!, "rates"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir!, "rates", "ecb.json"),
+      JSON.stringify({ date: "2026-09-01", rates: { CHF: 0.93, GBP: 0.84 } }),
+    );
+    clearRatesCache();
+  });
+
+  afterEach(() => {
+    delete process.env.DATA_DIR;
+    clearRatesCache();
+  });
+
+  test("a print order's provider cost is converted into rappen for the total", async () => {
+    const { db } = await getDatabase();
+    await db
+      .insertInto("print_orders")
+      .values({
+        id: "order-1",
+        owner_id: "alice",
+        kind: "postcard",
+        provider: "stannp",
+        provider_ref: null,
+        status: "printed",
+        payload: "{}",
+        cost_minor: 840, // GBP 8.40
+        currency: "GBP",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .execute();
+
+    const data = await dashboard("1970-01-01T00:00:00.000Z");
+    const line = data.print.find((row) => row.label.includes("Postcards"));
+    // 840 pence × (0.93 / 0.84) = 930 rappen.
+    expect(line).toMatchObject({ rappen: 930, unpriced: false });
+    expect(line!.detail).toContain("GBP 8.40");
+  });
+
+  test("a charge in a currency the table cannot convert is flagged, not summed at face value", async () => {
+    const { db } = await getDatabase();
+    await db
+      .insertInto("print_orders")
+      .values({
+        id: "order-2",
+        owner_id: "alice",
+        kind: "photobook",
+        provider: "gelato",
+        provider_ref: null,
+        status: "print_submitted",
+        payload: "{}",
+        cost_minor: 2500,
+        currency: "SEK",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .execute();
+
+    const data = await dashboard("1970-01-01T00:00:00.000Z");
+    const line = data.print.find((row) => row.label.includes("Photobooks"));
+    expect(line).toMatchObject({ rappen: 0, unpriced: true });
+  });
+
+  test("WhatsApp sends are counted per category and priced where the config prices them", async () => {
+    await recordWhatsappSend({ owner: "alice", category: "marketing", template: "day_de" });
+    await recordWhatsappSend({ owner: "alice", category: "marketing", template: "day_de" });
+    await recordWhatsappSend({ owner: "alice", category: "utility", template: "reminder" });
+    await recordWhatsappSend({ owner: null, category: "service", template: "reply" });
+
+    const data = await dashboard("1970-01-01T00:00:00.000Z");
+    const marketing = data.sends.find((row) => row.label === "WhatsApp · marketing");
+    const utility = data.sends.find((row) => row.label === "WhatsApp · utility");
+    const service = data.sends.find((row) => row.label === "WhatsApp · service");
+    // Two sends at the configured 10 rappen; utility is unpriced and says so;
+    // service is free by Meta's own rule, never "not priced".
+    expect(marketing).toMatchObject({ calls: 2, rappen: 20, unpriced: false });
+    expect(utility).toMatchObject({ calls: 1, rappen: 0, unpriced: true });
+    expect(service).toMatchObject({ calls: 1, rappen: 0, unpriced: false });
+  });
+
+  /**
+   * Three places name the categories: the closed list in lib/whatsapp/sends.ts,
+   * the literal union on WhatsappMessage.category (which cannot import the
+   * list without pulling the db into every message type), and the price-map
+   * keys parseCosts accepts in lib/config.ts. This pins the list so a category
+   * added to one place fails here until the other two follow.
+   */
+  test("the category list is closed, and the priced ones are it minus the free one", () => {
+    expect(WHATSAPP_CATEGORIES).toEqual(["marketing", "utility", "authentication", "service"]);
+  });
+
+  test("outbound SMS are a counted line, and inbound are not", async () => {
+    await recordSms({ direction: "out", from: "41790000000", to: "41791111111", body: "hi", providerSid: "s1" });
+    await recordSms({ direction: "in", from: "41791111111", to: "41790000000", body: "hello", providerSid: "s2" });
+
+    const data = await dashboard("1970-01-01T00:00:00.000Z");
+    const sms = data.sends.find((row) => row.label === "SMS · Twilio");
+    expect(sms).toMatchObject({ calls: 1, rappen: 0, unpriced: false });
   });
 });

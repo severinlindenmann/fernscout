@@ -137,6 +137,7 @@ async function sendReminder(username: string, user: UserConfig, trip: Trip): Pro
       language: template.language,
       body: [trip.title],
       username,
+      category: "utility",
     });
     return result ? { sent: true, channel: "whatsapp" } : { sent: false, reason: "whatsapp_off" };
   } catch (err) {

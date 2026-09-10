@@ -366,6 +366,16 @@ export type CostConfig = {
    *  server, and a domain divided down from its yearly price. Each is a
    *  label and a figure, so an operator adds a line without a code change. */
   fixedMonthly: { label: string; rappen: number }[];
+  /**
+   * Per outbound WhatsApp message, in rappen, keyed by Meta's template
+   * category — `marketing`, `utility`, `authentication` (B1347). Meta
+   * actually bills per *conversation*, so a per-send price is an
+   * approximation the dashboard says out loud; it is still a measured count
+   * times an operator's figure rather than a guess. An absent category
+   * renders as "not priced". `service` replies are free by Meta's own
+   * 24-hour-window rule and are never priced.
+   */
+  whatsappPerMessageRappen: Record<string, number>;
 };
 
 type FeatureConfig = {
@@ -918,7 +928,12 @@ function rappen(value: unknown, where: string, problems: string[]): number {
  * which renders as a cost of zero rather than as a guess.
  */
 function parseCosts(raw: unknown, problems: string[]): CostConfig {
-  const empty: CostConfig = { models: {}, transcriptionPerThousandMinutesRappen: 0, fixedMonthly: [] };
+  const empty: CostConfig = {
+    models: {},
+    transcriptionPerThousandMinutesRappen: 0,
+    fixedMonthly: [],
+    whatsappPerMessageRappen: {},
+  };
   if (raw === undefined || raw === null) return empty;
   if (typeof raw !== "object" || Array.isArray(raw)) {
     problems.push("costs must be an object, or absent");
@@ -960,6 +975,31 @@ function parseCosts(raw: unknown, problems: string[]): CostConfig {
     }
   }
 
+  const whatsappPerMessageRappen: CostConfig["whatsappPerMessageRappen"] = {};
+  const whatsappRaw = src.whatsappPerMessageRappen;
+  if (whatsappRaw !== undefined) {
+    if (typeof whatsappRaw !== "object" || whatsappRaw === null || Array.isArray(whatsappRaw)) {
+      problems.push("costs.whatsappPerMessageRappen must be an object keyed by category, or absent");
+    } else {
+      for (const [category, value] of Object.entries(whatsappRaw as Record<string, unknown>)) {
+        // The closed list lives in lib/whatsapp/sends.ts; refusing a typo
+        // here beats a price that silently never matches a row.
+        if (!["marketing", "utility", "authentication"].includes(category)) {
+          problems.push(
+            `costs.whatsappPerMessageRappen.${category} is not a Meta template category ` +
+              `(marketing, utility, authentication — service is free by Meta's own rule)`,
+          );
+          continue;
+        }
+        whatsappPerMessageRappen[category] = rappen(
+          value,
+          `costs.whatsappPerMessageRappen.${category}`,
+          problems,
+        );
+      }
+    }
+  }
+
   return {
     models,
     transcriptionPerThousandMinutesRappen: rappen(
@@ -968,6 +1008,7 @@ function parseCosts(raw: unknown, problems: string[]): CostConfig {
       problems,
     ),
     fixedMonthly,
+    whatsappPerMessageRappen,
   };
 }
 

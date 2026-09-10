@@ -73,6 +73,9 @@ export type RecipientResult = {
   ok: boolean;
   /** The provider's own id for the card, when it gave one. */
   ref?: string;
+  /** What the provider said this card cost, in its own minor units — B1347.
+   * Absent when it named no figure (dry-run, or a refused card). */
+  costMinor?: number;
   error?: string;
 };
 
@@ -496,9 +499,17 @@ export async function recordResults(
   id: string,
   payload: OrderPayload,
   results: RecipientResult[],
+  /** The currency the provider's per-card costs are in — the account's, from
+   * `features.postcards.currency`. Null when unconfigured, in which case the
+   * summed figure is stored but /admin cannot convert it and says so. */
+  currency: string | null = null,
 ): Promise<void> {
   const handle = await getDatabaseOrNull();
   if (!handle) return;
+  // What the printer said the printed cards cost, summed in its minor units —
+  // B1347. Null when it named no figure, which is what `cost_minor IS NULL`
+  // has always meant; never zero, which would be a claim.
+  const costMinor = results.reduce((sum, r) => sum + (r.ok ? r.costMinor ?? 0 : 0), 0);
   await handle.db
     .updateTable("print_orders")
     .set({
@@ -508,6 +519,7 @@ export async function recordResults(
       // perfect".
       status: results.some((r) => r.ok) ? "printed" : "failed",
       payload: JSON.stringify({ ...payload, results }),
+      ...(costMinor > 0 ? { cost_minor: costMinor, currency } : {}),
       updated_at: nowIso(),
     })
     .where("id", "=", id)

@@ -62,6 +62,11 @@ export type PhotobookPayload = {
     quotedCredits: number;
     quotedAt: string;
     shipmentMethodUid: string;
+    /** The same quote in the provider's own money — print plus shipping in
+     * minor units, and its currency — so the print can record what it cost
+     * without a second quote (B1347). Absent on proposals written before. */
+    quotedMinor?: number;
+    quotedCurrency?: string;
     /**
      * The print was bought with the book — B1164.
      *
@@ -459,6 +464,10 @@ export async function recordPrint(
   id: string,
   payload: PhotobookPayload,
   providerRef: string,
+  /** What Gelato quoted for this exact print — print plus shipping, in the
+   * quote's own currency. The figure the press compared before spending, so
+   * it is the price actually paid — B1347. */
+  cost?: { minor: number; currency: string },
 ): Promise<void> {
   const handle = await getDatabaseOrNull();
   if (!handle) return;
@@ -468,6 +477,7 @@ export async function recordPrint(
       provider: "gelato",
       provider_ref: providerRef,
       payload: JSON.stringify(payload),
+      ...(cost && cost.minor > 0 ? { cost_minor: cost.minor, currency: cost.currency } : {}),
       updated_at: nowIso(),
     })
     .where("id", "=", id)

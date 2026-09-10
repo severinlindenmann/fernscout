@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "../contentRoot";
 import { isEnabled } from "../capabilities";
+import { loadServerConfig } from "../config";
 import { balanceOf, refund, spend } from "../credits";
 import { resolveMediaFile } from "../media";
 import { getTrip, parseTripRef } from "../trips";
@@ -175,6 +176,32 @@ function readPhoto(order: PostcardOrder): Uint8Array | null {
  * Anything else fails closed rather than quietly writing files and reporting a
  * send, which is the failure that looks fine in the logs.
  */
+/**
+ * Stannp's `cost` is a decimal string ("0.79") in the account's own
+ * currency — B1347. Minor units or nothing: a figure that does not parse is
+ * absent, never zero, because zero is a claim about money.
+ */
+function costToMinor(cost: string | undefined): number | undefined {
+  if (!cost) return undefined;
+  const value = Number.parseFloat(cost);
+  if (!Number.isFinite(value) || value <= 0) return undefined;
+  return Math.round(value * 100);
+}
+
+/**
+ * The currency Stannp's per-card `cost` figures are in. Their API names no
+ * currency — it bills in the account's own — so the operator says it once in
+ * `features.postcards.currency`. Unset, the summed cost is still stored and
+ * /admin reports it as unconvertible rather than guessing.
+ */
+function providerCurrency(): string | null {
+  const feature = loadServerConfig().features.postcards as Record<string, unknown>;
+  const currency = feature.currency;
+  return typeof currency === "string" && /^[A-Za-z]{3}$/.test(currency.trim())
+    ? currency.trim().toUpperCase()
+    : null;
+}
+
 async function handToProvider(
   provider: string,
   owner: string,
@@ -184,10 +211,12 @@ async function handToProvider(
   front: Uint8Array,
   back: Uint8Array,
   both: Uint8Array,
-): Promise<{ ok: boolean; ref?: string; error?: string }> {
+): Promise<{ ok: boolean; ref?: string; costMinor?: number; error?: string }> {
   if (provider === "stannp") {
     const result = await sendViaStannp({ to, front, back, paymentRef: orderId });
-    return result.ok ? { ok: true, ref: result.ref } : { ok: false, error: result.error };
+    return result.ok
+      ? { ok: true, ref: result.ref, costMinor: costToMinor(result.cost) }
+      : { ok: false, error: result.error };
   }
   if (provider !== "dry-run") {
     return { ok: false, error: `provider "${provider}" is not wired up` };
@@ -288,7 +317,7 @@ export async function sendOrder(owner: string, id: string): Promise<SendOutcome>
 
   const failed = results.filter((r) => !r.ok).length;
   if (failed > 0) await refund(owner, failed * order.payload.creditsEach, id);
-  await recordResults(owner, id, order.payload, results);
+  await recordResults(owner, id, order.payload, results, providerCurrency());
 
   const sent = results.length - failed;
   // Nothing printed is not a send, and reporting it as one is the failure that

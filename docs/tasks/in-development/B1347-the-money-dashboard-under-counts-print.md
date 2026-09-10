@@ -60,6 +60,21 @@ Per the approved plan (`~/.claude/plans/rosy-kindling-catmull.md`):
 - Not doing: pricing mail, Twilio Verify accounting, per-message SMS pricing,
   charging journals (that is B1091's territory).
 
+As built, two details differ from the sketch above and are deliberate:
+
+- The category is a **required field on `WhatsappMessage`** rather than a
+  name→category map in `settings.ts`: template names are configuration, so a
+  mapping keyed on them breaks the moment an operator renames one. The type
+  makes an uncategorised send a compile error, which is the stronger form of
+  "a new template cannot be sent uncategorised". Free-form replies record
+  `service` at the one choke point in `reply.ts`.
+- Stannp's create response names a cost but no currency (it bills in the
+  account's own), so the currency comes from a new optional
+  `features.postcards.currency` string; unset, the cost is stored and /admin
+  reports it as unconvertible rather than guessing. Gelato quotes already
+  carry their currency (CHF), stored via the quote frozen at proposal/press
+  (`quotedMinor`/`quotedCurrency` on the print block).
+
 ## Acceptance
 
 - A postcard/photobook order that reached a provider carries `cost_minor` and

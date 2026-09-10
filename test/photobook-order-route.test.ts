@@ -109,6 +109,8 @@ describe("the order route", () => {
         totalCredits: CREDITS,
         shipmentMethodUid: "swiss_post_economy",
         country: "CH",
+        quotedMinor: 2_000,
+        quotedCurrency: "CHF",
       });
       vi.mocked(submitBuiltBook).mockResolvedValue({
         ok: true,
@@ -273,6 +275,8 @@ describe("the order route", () => {
           totalCredits: CREDITS + 12,
           shipmentMethodUid: "swiss_post_economy",
           country: "CH",
+          quotedMinor: 2_000,
+          quotedCurrency: "CHF",
         });
 
         const response = await POST(orderRequest("order-price-grew"), { params });

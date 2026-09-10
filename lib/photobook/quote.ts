@@ -41,6 +41,11 @@ export type BookQuote = {
   shipmentMethodUid: string;
   /** ISO 3166-1 alpha-2, resolved from the recipient's own address. */
   country: string;
+  /** Gelato's own figure — print plus shipping in minor units, and its
+   * currency — kept beside the credit prices so the order can record what
+   * the print actually cost (B1347). */
+  quotedMinor: number;
+  quotedCurrency: string;
 };
 
 export type QuoteFailure =
@@ -87,5 +92,7 @@ export async function quoteBookFor(
     totalCredits: buildCredits + printCredits,
     shipmentMethodUid: quote.shipmentMethodUid,
     country,
+    quotedMinor: quote.printMinor + quote.shipMinor,
+    quotedCurrency: quote.currency,
   };
 }

@@ -89,6 +89,8 @@ export async function proposeBookPrint(
       quotedCredits,
       quotedAt: nowIso(),
       shipmentMethodUid: quote.shipmentMethodUid,
+      quotedMinor: quote.printMinor + quote.shipMinor,
+      quotedCurrency: quote.currency,
     },
   };
   // A conditional update on the row's status, so an order that changed under
