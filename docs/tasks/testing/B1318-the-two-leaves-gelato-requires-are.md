@@ -34,7 +34,22 @@ But nothing says they have to be *white*. They were left blank because they
 were thought of as filler, and prepress is right that a white page nobody
 chose looks like a mistake.
 
-## Work
+## Reverted, by the owner
+
+The tint shipped and was looked at, and the answer was no: **"instead of a
+white page it is just a coloured one, rather just have white."**
+
+They are right, and the reasoning in the Work section below was wrong about
+the object. A cream leaf two pages from the end of a perfect-bound book is not
+an endpaper — it is a coloured page in the middle of the paper stock, and it
+spends ink on something nobody asked for. A blank leaf at the back of a book
+is ordinary.
+
+So the leaves are white again and Gelato's "at least one page is empty" stands.
+It is accurate, it is a warning rather than a refusal, and it is the price of a
+page count that is not ours to choose.
+
+## What was built, and reverted
 
 Give them the warm wash `PALETTE.faint` — the tone the charts already use
 behind a row — across the full bleed. A tinted leaf at the back of a book is

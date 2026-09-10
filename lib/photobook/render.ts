@@ -965,27 +965,29 @@ function addEndLeaves(builder: PdfBuilder, spec: BookSpec): void {
   for (let i = 0; i < END_LEAVES; i++) {
     // Same media and the same whole-page TrimBox as every other interior page
     // — a leaf of a different size is a leaf the binder has to guess about.
-    const page = builder.addPage(mm(media.width), mm(media.height), {
+    /**
+     * White, and left white — B1318.
+     *
+     * These two exist only because Gelato counts `pageCount + 2` interior
+     * pages and refuses anything else. They were tinted for a while, to stop
+     * prepress reporting *"at least one page is empty"* — the warning is
+     * accurate and the tint silenced it, but the owner looked at the result
+     * and said plainly: **"instead of a white page it is just a coloured one,
+     * rather just have white."**
+     *
+     * They were right. A cream leaf two pages from the end is not an endpaper
+     * in a perfect-bound book — it is a coloured page in the middle of the
+     * paper stock, and it costs ink to print something nobody asked for. A
+     * blank leaf at the back of a book is ordinary; the warning is the price
+     * of a page count that is not ours to choose, and a warning is not a
+     * refusal.
+     */
+    builder.addPage(mm(media.width), mm(media.height), {
       x: 0,
       y: 0,
       width: mm(media.width),
       height: mm(media.height),
     });
-    /**
-     * Endpapers, not blanks — B1318.
-     *
-     * These two exist because Gelato counts `pageCount + 2` interior pages
-     * and refuses anything else; they are not pages of the book and nobody
-     * chose them. Left white, prepress calls them out — *"At least one page
-     * is empty (2), pages affected: 43 44"* — and the owner quite reasonably
-     * asked to delete them, which the page count does not allow.
-     *
-     * So they get the wash the charts already use behind a row: warm, quiet,
-     * unmistakably deliberate. A tinted leaf at the back of a book is an
-     * endpaper; a white one is a mistake. Full bleed, because a tint that
-     * stops at the trim shows a white edge wherever the guillotine lands.
-     */
-    PdfBuilder.drawRect(page, 0, 0, mm(media.width), mm(media.height), PALETTE.faint);
   }
 }
 
