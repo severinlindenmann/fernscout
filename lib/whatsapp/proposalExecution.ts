@@ -15,20 +15,33 @@ import type { Proposal } from "../helper/blocks";
  *
  * **Opt-in, and that is the scope guard (B1230's decision 4), not an
  * afterthought.** Only a tool listed below can ever be pressed from this
- * channel. A write tool the model can still propose here — `propose_
- * postcards`, `photobook` and `buy_room` (all spend credits at a printer or
- * on storage), `draft_words` (spends a credit on a model call before it has
- * even proposed a write), `cleanup` (an operator switch), `revoke_key`,
- * `discard_file`, `attach_files`, `remove_photo` and `set_day_words` — is
- * simply absent, so `pressProposal` refuses it with `"web_only"` rather than
- * the caller having to know which tools are money or irreversible. Adding a
- * tool to this file is a decision to let a phone do it; not adding one is
- * the safe default. The last four stay out for a narrower reason than money:
- * a WhatsApp accept sends exactly `proposal.arguments` with no per-field
- * editing, which is fine for a trip or a day's own dates but not yet
- * exercised for the ones that carry a file, a photograph's own path, or a
- * body of prose the person has not read back — a later ticket can widen this
- * list without touching anything else here.
+ * channel; `pressProposal` refuses anything else with `"web_only"` rather
+ * than the caller having to know which tools are money or irreversible.
+ * Adding a tool to this file is a decision to let a phone do it; not adding
+ * one is the safe default.
+ *
+ * **B1235 widened this from eight tools to nearly every ordinary write.**
+ * The live walkthrough that found it hit `attach_files` and `draft_words` —
+ * this channel's two core flows — refused as `"web_only"`, and the owner's
+ * own decision on B1061 already settled the question the old exclusion list
+ * was guessing at: writing a day up, captioning and transcribing spend this
+ * journal's credits from WhatsApp exactly as they do on the web, so "spends
+ * a credit" was never a reason to keep a tool off this list. What stays
+ * excluded now is only four kinds of thing: postcards and photobooks
+ * (`propose_postcards`, `photobook`, `print_order` — a real order at a
+ * printer, B434's own reasoning), buying room or credits (`buy_room`,
+ * `buy_credits` — nothing an agent holds can pay, AGENTS.md), anything
+ * deletion-shaped (`remove_photo` deletes the kept original with no undo;
+ * `discard_file` throws away inbox bytes for good; `revoke_key` ends an
+ * agent's own access; `cleanup` is the operator's storage broom), and an
+ * import that would decide costs' categories itself (none is a `Tool` here
+ * to begin with).
+ *
+ * `describe_photos` has no entry precisely because it is not a `Tool` in
+ * `lib/helper/tools/registry.ts` — a browser button posts to its route
+ * directly, the model never proposes it, and there is therefore no
+ * `Proposal` whose `tool` this file could ever be asked to press. Giving it
+ * a line here would be a route nothing can reach.
  */
 
 type RouteHandler = (
@@ -45,6 +58,18 @@ const ROUTE_BY_TOOL: Record<string, () => Promise<RouteHandler>> = {
   start_day: async () => (await import("@/app/api/helper/[user]/day/route")).POST,
   publish_day: async () => (await import("@/app/api/helper/[user]/day/publish/route")).POST,
   unpublish_day: async () => (await import("@/app/api/helper/[user]/day/unpublish/route")).POST,
+  // B1235 — the channel's own core flows, and everything else ordinary.
+  attach_files: async () => (await import("@/app/api/helper/[user]/day/attach/route")).POST,
+  draft_words: async () => (await import("@/app/api/helper/[user]/day/write-day/route")).POST,
+  set_day_words: async () => (await import("@/app/api/helper/[user]/day/route")).PATCH,
+  add_cost: async () => (await import("@/app/api/helper/[user]/day/costs/route")).POST,
+  set_rate: async () => (await import("@/app/api/helper/[user]/trip/rates/route")).POST,
+  set_budget: async () => (await import("@/app/api/helper/[user]/trip/budget/route")).POST,
+  invite_guest: async () => (await import("@/app/api/helper/[user]/invite/route")).POST,
+  revoke_invite: async () => (await import("@/app/api/helper/[user]/invite/revoke/route")).POST,
+  tell_readers: async () => (await import("@/app/api/helper/[user]/day/tell-readers/route")).POST,
+  channels: async () => (await import("@/app/api/helper/[user]/channels/route")).POST,
+  journal_settings: async () => (await import("@/app/api/helper/[user]/journal/route")).POST,
 };
 
 /** Whether B1230's executor below will actually press this tool's proposal —

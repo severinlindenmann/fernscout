@@ -114,27 +114,57 @@ export function confirmButtonsFor(body: string, acceptLabel: string): WhatsappOu
  * interactive blocks arriving together).
  */
 export function renderForWhatsapp(blocks: Block[], journalUrl: string): WhatsappOutbound {
-  const lines: string[] = [];
+  // Shape kept alongside each line — B1236 — so a `confirm` at the end can
+  // tell the raw dump that backs it (its own `preview`/`files` block) from
+  // the model's own prose, which stays.
+  const entries: { shape: Block["shape"]; text: string }[] = [];
+  const lines: string[] = []; // kept as a plain view for the non-confirm branches below
+  const push = (shape: Block["shape"], text: string) => {
+    entries.push({ shape, text });
+    lines.push(text);
+  };
+
+  /**
+   * One clean message for a `confirm` — B1236.
+   *
+   * `blocks` for a write proposal is always `[preview?, files?, confirm]` (or
+   * a subset), from `proposalFor` — and `preview.text` is the *same*
+   * sentence `confirm.text` carries, with the itemised list appended. Read
+   * live: the inbox dump, then the sentence, then that same sentence's own
+   * list a second time, then the sentence a third time from `confirm`. A
+   * `preview` or `files` block is dropped here rather than folded in,
+   * because it exists to be read on a screen with room for a table, not
+   * flattened into one WhatsApp bubble — the confirm's own sentence already
+   * says what is being proposed. What remains (the model's own `say` prose)
+   * stays, minus a line identical to the confirm's own sentence.
+   */
+  function confirmBody(finalText: string): string {
+    const kept = entries
+      .filter((entry) => entry.shape !== "preview" && entry.shape !== "files")
+      .map((entry) => entry.text)
+      .filter((text) => text.trim() !== finalText.trim());
+    return [...kept, finalText].filter(Boolean).join("\n\n");
+  }
 
   for (const block of blocks) {
     switch (block.shape) {
       case "say":
-        lines.push(block.text);
+        push("say", block.text);
         break;
 
       case "link":
-        lines.push(`${block.text}\n${block.href}`);
+        push("link", `${block.text}\n${block.href}`);
         break;
 
       case "preview": {
         const body = truncate(block.lines.join(" — "), PREVIEW_MAX);
-        lines.push([block.text, body].filter(Boolean).join("\n"));
+        push("preview", [block.text, body].filter(Boolean).join("\n"));
         break;
       }
 
       case "files": {
         const rows = block.files.map((file) => `• ${file.name}`);
-        lines.push([block.text, ...rows].join("\n"));
+        push("files", [block.text, ...rows].join("\n"));
         break;
       }
 
@@ -146,7 +176,7 @@ export function renderForWhatsapp(blocks: Block[], journalUrl: string): Whatsapp
           const rows = block.options.map((option) =>
             option.href ? `• ${option.label} — ${option.href}` : `• ${option.label}`,
           );
-          lines.push([block.text, ...rows].join("\n"));
+          push("choose", [block.text, ...rows].join("\n"));
           break;
         }
         if (block.options.length <= MAX_BUTTONS) {
@@ -172,20 +202,17 @@ export function renderForWhatsapp(blocks: Block[], journalUrl: string): Whatsapp
         }
         // More than ten — text with the link, same escape hatch a `form`
         // takes past its own ceiling.
-        lines.push(`${block.text}\n${journalUrl}`);
+        push("choose", `${block.text}\n${journalUrl}`);
         break;
       }
 
       case "confirm":
-        return confirmButtonsFor(
-          [...lines, block.text].filter(Boolean).join("\n\n"),
-          block.proposal?.accept ?? block.text,
-        );
+        return confirmButtonsFor(confirmBody(block.text), block.proposal?.accept ?? block.text);
 
       case "form":
         // No WhatsApp shape — the escape hatch the owner chose for this
         // release. See the module doc.
-        lines.push(`${block.text}\n${journalUrl}`);
+        push("form", `${block.text}\n${journalUrl}`);
         break;
     }
   }

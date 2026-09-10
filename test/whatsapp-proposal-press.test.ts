@@ -9,6 +9,9 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { createJournal, setJournalFeatures } from "@/lib/journals";
 import { forget } from "@/lib/helper/thread";
 import { getTrips } from "@/lib/trips";
+import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
+import { storeInboxFile } from "@/lib/inbox";
+import { paintJpeg } from "./support/pictures";
 import type { Say } from "@/lib/helper/intents";
 
 /**
@@ -243,6 +246,91 @@ describe("a money proposal that reaches the thread — the scope guard", () => {
 
     const last = repliesTo(username).at(-1);
     expect(last?.body).toContain("needs the web");
+    forget(username);
+  });
+});
+
+/**
+ * B1235 — the channel's own core flow, `attach_files` and `draft_words`,
+ * now actually press.
+ */
+describe("a newly-allowed ordinary write — B1235", () => {
+  test("attach_files presses and moves the staged photograph onto the day", async () => {
+    const username = "presstest6";
+    const tel = "41760006666";
+    forget(username);
+    await bindGreetAcknowledge(username, tel);
+
+    answerInThread.mockImplementationOnce(
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press6.trip", "plan a trip to japan"));
+    await handleInboundMessage(interactiveMessage(tel, "wamid.press6.trip-tap", "confirm:0:yes"));
+    const trip = getTrips(username)[0];
+    expect(trip).toBeDefined();
+
+    answerInThread.mockImplementationOnce(
+      turnCalling("start_day", { trip: trip.id, date: "2027-03-01" }, "Starting the first day."),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press6.day", "start the first day"));
+    await handleInboundMessage(interactiveMessage(tel, "wamid.press6.day-tap", "confirm:0:yes"));
+    const slug = "2027-03-01";
+    expect(getEntryBySlug(trip.ref, slug, AS_AUTHOR)).not.toBeNull();
+
+    const staged = storeInboxFile(username, "media", "whatsapp-photo.jpg", await paintJpeg(400, 300, 1), {});
+
+    answerInThread.mockImplementationOnce(
+      turnCalling(
+        "attach_files",
+        { trip: trip.id, slug, date: "2027-03-01", files: staged.entry.id },
+        "Putting the photo onto the day.",
+      ),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press6.attach", "put the photo on the first day"));
+    expect(repliesTo(username).at(-1)?.kind).toBe("buttons");
+
+    await handleInboundMessage(interactiveMessage(tel, "wamid.press6.attach-tap", "confirm:0:yes"));
+    const entry = getEntryBySlug(trip.ref, slug, AS_AUTHOR);
+    expect(entry?.gallery).toHaveLength(1);
+    forget(username);
+  });
+
+  test("draft_words presses and refuses plainly, with the cost and the balance, when the journal cannot pay", async () => {
+    const username = "presstest7";
+    const tel = "41760007777";
+    forget(username);
+    await bindGreetAcknowledge(username, tel);
+
+    answerInThread.mockImplementationOnce(
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press7.trip", "plan a trip to japan"));
+    await handleInboundMessage(interactiveMessage(tel, "wamid.press7.trip-tap", "confirm:0:yes"));
+    const trip = getTrips(username)[0];
+
+    answerInThread.mockImplementationOnce(
+      turnCalling("start_day", { trip: trip.id, date: "2027-03-01" }, "Starting the first day."),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press7.day", "start the first day"));
+    await handleInboundMessage(interactiveMessage(tel, "wamid.press7.day-tap", "confirm:0:yes"));
+
+    answerInThread.mockImplementationOnce(
+      turnCalling(
+        "draft_words",
+        { trip: trip.id, slug: "2027-03-01", date: "2027-03-01", notes: "A long day on trains, ramen for dinner." },
+        "Here's a card to write it up — one credit.",
+      ),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press7.draft", "write up the first day"));
+    expect(repliesTo(username).at(-1)?.kind).toBe("buttons");
+
+    // No grant was ever made — a fresh journal's balance is zero, so this
+    // press cannot pay and the model's own words are never reached.
+    await handleInboundMessage(interactiveMessage(tel, "wamid.press7.draft-tap", "confirm:0:yes"));
+    const last = repliesTo(username).at(-1);
+    expect(last?.body).toContain("1");
+    expect(last?.body).toContain("0");
+    expect(last?.body).not.toContain("needs the web");
     forget(username);
   });
 });

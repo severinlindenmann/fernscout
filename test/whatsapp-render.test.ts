@@ -138,6 +138,39 @@ describe("confirm", () => {
     if (out.kind !== "buttons") throw new Error("unreachable");
     expect(out.buttons[0].title.length).toBeLessThanOrEqual(20);
   });
+
+  /**
+   * B1236 — the live bug: an `inbox` read's `files` dump, then
+   * `attach_files`'s own `preview` (the same sentence, plus the list a
+   * second time), then `confirm` carrying that sentence a third time.
+   */
+  test("says the proposal sentence once, and drops the raw preview/files dumps that back it", () => {
+    const sentence = "Putting 1 photograph onto the 10th of September.";
+    const blocks: Block[] = [
+      { shape: "files", text: "Waiting in the inbox:", files: [{ id: "a", name: "whatsapp-photo.jpg" }] },
+      { shape: "preview", text: sentence, lines: ["2026-09-10 — 2026-09-10", "whatsapp-photo.jpg"] },
+      { shape: "confirm", text: sentence, proposal: PROPOSAL },
+    ];
+    const out = renderForWhatsapp(blocks, URL);
+    expect(out.kind).toBe("buttons");
+    if (out.kind !== "buttons") throw new Error("unreachable");
+    const occurrences = out.body.split(sentence).length - 1;
+    expect(occurrences).toBe(1);
+    expect(out.body).not.toContain("whatsapp-photo.jpg");
+    expect(out.body).not.toContain("—");
+  });
+
+  test("keeps the model's own prose ahead of the sentence", () => {
+    const sentence = "Putting 1 photograph onto the 10th of September.";
+    const blocks: Block[] = [
+      { shape: "say", text: "Sure, here it is." },
+      { shape: "confirm", text: sentence, proposal: PROPOSAL },
+    ];
+    const out = renderForWhatsapp(blocks, URL);
+    expect(out.kind).toBe("buttons");
+    if (out.kind !== "buttons") throw new Error("unreachable");
+    expect(out.body).toBe("Sure, here it is.\n\nPutting 1 photograph onto the 10th of September.");
+  });
 });
 
 describe("form", () => {

@@ -1793,6 +1793,7 @@
   "agent.tool.noDay": "There is no day in your journal for that date yet, so nothing has been saved and there is nothing to press. Start the day first, and then this can go on it.",
   "agent.tool.noFiles": "I cannot find those photographs waiting in the inbox, so nothing has moved and there is nothing to press. Tick them in the files pane and say which day again.",
   "agent.nothingHappened": "Nothing has been saved and nothing has changed in your journal — there is nothing waiting to be confirmed. Say it again, or say which trip and which day you mean, and I will put something in front of you to confirm.",
+  "agent.noScreenHere": "This is a chat, not a page — there is nothing to point at but this message. If something is waiting, its buttons are right here; if I sent a link, it opens the room, it is not already open.",
   "agent.notUntilYouPress": "That is waiting to be confirmed and nothing has been saved yet — confirming it is what makes it so. Read it, and confirm it if it is right.",
   "agent.noWordsProposed": "There are no words on that yet — what is waiting is an empty day with its date. Press it, and then tell me about the day and I will write it up.",
   "agent.noAccessYet": "I cannot tell you that somebody can read this. A trip that is not public is open to the people who were on it and to the guests you have approved — naming somebody does not let them in. Say who should read it and I will put a link in front of you to send them.",

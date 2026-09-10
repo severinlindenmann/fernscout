@@ -818,6 +818,54 @@ export function claimsWhatIsNotThere(text: string): boolean {
 }
 
 /**
+ * A claim, on WhatsApp only, that something is on a screen or a page —
+ * B1237.
+ *
+ * `ON_SCREEN` above is checked only when nothing was proposed this turn,
+ * because on the web a real proposal really is drawn on a real screen and
+ * "the button below" is then simply true. WhatsApp has neither: it is a
+ * chat, not a page, and there is no "below" to speak of even when a
+ * proposal really is waiting and really did get two real buttons. *"Ein
+ * Vorschlag liegt auf deinem Bildschirm"* and *"Die Seite zum Hochladen
+ * liegt vor dir"* were both said on turns that had, respectively, real
+ * buttons and a real link — the *claim* was false regardless, because
+ * neither a screen nor a page is what either of those is.
+ *
+ * Deliberately narrower than `ON_SCREEN`: it does not match "button",
+ * "press" or "Knopf" at all, because those ARE honest on WhatsApp exactly
+ * when a `choose` or `confirm` block really did attach two buttons to this
+ * message — `claimsAButton`'s own `drewSomethingToPress` carve-out already
+ * protects that sentence, and duplicating its words here would catch it a
+ * second time on a channel where it is true. This matches only "a screen"
+ * and "a page in front of you", which are never true in a chat, proposal or
+ * not.
+ */
+const CHAT_SCREEN_LIE = new RegExp(
+  [
+    // en — "on your screen", "the page is in front of you", "in front of you"
+    "\\bon (?:your|the) screen\\b",
+    "\\b(?:the page|it)\\s+(?:is\\s+)?in front of you\\b",
+    "\\bin front of you\\b",
+    // de — "auf deinem Bildschirm", "liegt vor dir", "die Seite … vor dir"
+    "\\bauf (?:deinem|dem) bildschirm\\b",
+    "\\bliegt\\s+(?:\\S+\\s+){0,4}?vor dir\\b",
+    "\\bvor dir\\b",
+    // hu — "a képernyődön", "előtted van"
+    "k\u00e9perny\u0151\\w*",
+    "\\bel\u0151tted\\s+van\\b",
+  ].join("|"),
+  "i",
+);
+
+/** True when this text claims a screen or a page — B1237, checked only on
+ *  the WhatsApp channel and regardless of whether a proposal is waiting. */
+function claimsAChatScreen(text: string): boolean {
+  return withoutMarkers(text)
+    .split(/(?<=[.!?\n])\s+/)
+    .some((sentence) => CHAT_SCREEN_LIE.test(sentence) && !DENIED.test(sentence));
+}
+
+/**
  * The third territory, and the one the product exists for — B931.
  *
  * *"nur meine Tochter soll das lesen können"* was answered with
@@ -1248,6 +1296,16 @@ You may not describe anything they cannot see. No button, no "press it", nothing
 Answer again. Either call the tool that proposes what they asked for — that is what puts a button in front of them — or say plainly, in their language, that nothing has been saved yet and what you need from them.`;
 
 /**
+ * What the model is told when it pointed at a screen or a page on
+ * WhatsApp — B1237. Never a claim about a write, so it is worded
+ * differently from `HONESTY_RETRY`: this fires even when a proposal really
+ * is waiting, because the *thing pointed at* is the lie, not the write.
+ */
+const SCREEN_RETRY = `Stop. Your last answer pointed at a screen or a page — but this is WhatsApp: there is no screen and no page here, only this chat. If a proposal is waiting, its buttons are attached to this very message and you may tell them to press one; if you handed them a link, say that the link opens the room, never that a page is already in front of them.
+
+Answer again, in the same language, without describing anything as on a screen or a page.`;
+
+/**
  * What the model is told when it has said somebody can read something — B931.
  *
  * The retry is worth more here than anywhere else, because the answer it
@@ -1438,6 +1496,15 @@ export async function answerInThread(
   say: Say,
   selected: string[] = [],
   journalLocale?: string,
+  /**
+   * `"web"` (the default) or `"whatsapp"` — B1237. The guard below reads it
+   * for exactly one thing: on WhatsApp there is no screen and no page to
+   * point at, ever, so a claim naming one is checked whether or not a
+   * proposal is waiting, which is not true on the web side of this same
+   * function. Nothing else here branches on it — the model's own system
+   * prompt stays one prompt for both channels.
+   */
+  channel: "web" | "whatsapp" = "web",
 ): Promise<ThreadAnswer> {
   const client = new Anthropic();
   /**
@@ -1635,6 +1702,7 @@ export async function answerInThread(
   function amiss():
     | ""
     | "claim"
+    | "screen"
     | "pending"
     | "words"
     | "access"
@@ -1646,6 +1714,11 @@ export async function answerInThread(
     | "dropped"
     | "fields"
     | "list" {
+    // B1237 — checked first and unconditionally on WhatsApp, because a
+    // screen or a page is never there on this channel whether or not a
+    // proposal is. Every other claim below is checked against what the turn
+    // *did*; this one is checked against what the channel *is*.
+    if (channel === "whatsapp" && claimsAChatScreen(answer)) return "screen";
     /**
      * **A paragraph where a card belongs** — B1041, and it is the fault the
      * whole product is arranged against.
@@ -1799,6 +1872,7 @@ export async function answerInThread(
 
   const RETRY = {
     claim: HONESTY_RETRY,
+    screen: SCREEN_RETRY,
     fields: FIELDS_RETRY,
     list: LIST_RETRY,
     pending: PENDING_RETRY,
@@ -1823,6 +1897,7 @@ export async function answerInThread(
    */
   const PLAINLY = {
     claim: "agent.nothingHappened",
+    screen: "agent.noScreenHere",
     fields: "agent.nothingHappened",
     pending: "agent.notUntilYouPress",
     words: "agent.noWordsProposed",
