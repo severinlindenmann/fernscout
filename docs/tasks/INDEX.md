@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (148)
+## backlog (147)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (26)
+### issue (25)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -66,7 +66,6 @@ Do not edit them by hand; run the script.
 | [B1147](backlog/issue/B1147-gelato-rejects-fernscout-ch-s-credential.md) | Gelato rejects fernscout.ch's credential, so no photobook in a real journal can be priced | ISSUE | high | low |
 | [B1223](backlog/issue/B1223-three-failed-photobooks-for-one-journal.md) | Three failed photobooks for one journal share one attention-band id, so acknowledging one silently hides the other two and React sees duplicate keys | ISSUE | high | low |
 | [B1287](backlog/issue/B1287-the-send-button-says-it-prints.md) | The send button says it prints and posts real cards while the instance is set to render free samples and post none | ISSUE | high | low |
-| [B1314](backlog/issue/B1314-the-whatsapp-doors-shipped-as-bare.md) | The WhatsApp doors shipped as bare text links instead of the chosen design | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1129](backlog/issue/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
@@ -344,7 +343,7 @@ Do not edit them by hand; run the script.
 | [B1320](in-development/B1320-the-desktop-preview-column-is-open.md) | The desktop preview column is open while empty; it should close until something arrives | ISSUE | high | low | `b9809a36` |
 | [B1321](in-development/B1321-deleting-a-trip-requires-a-mailbox.md) | Deleting a trip requires a mailbox round-trip even for the owner standing on its page | FEATURE | high | medium | `b9809a36` |
 
-## testing (101)
+## testing (102)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -412,6 +411,7 @@ Do not edit them by hand; run the script.
 | [B1234](testing/B1234-proving-a-number-needs-a-template.md) | Proving a number needs a template Meta will not grant - the inbound message already proves it | FEATURE | high | medium | — |
 | [B1284](testing/B1284-every-postcard-proposal-from-the-helper.md) | Every postcard proposal from the helper is refused, because it sends a name slug where a contact id is required | ISSUE | high | low | — |
 | [B1310](testing/B1310-the-whatsapp-door-is-invisible-to.md) | The WhatsApp door is invisible to anyone not already in their room | FEATURE | high | low | — |
+| [B1314](testing/B1314-the-whatsapp-doors-shipped-as-bare.md) | The WhatsApp doors shipped as bare text links instead of the chosen design | ISSUE | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |
