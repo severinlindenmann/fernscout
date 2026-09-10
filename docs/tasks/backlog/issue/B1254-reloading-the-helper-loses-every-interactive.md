@@ -45,6 +45,21 @@ true when written and the page made it false afterwards.
 
 Found on fernscout.ch at 390x844, 2026-09-10.
 
+### It gets worse one step further on
+
+Carried on to the end of a day and reloaded again, the transcript's **last line**
+was:
+
+> A draft of 5 September is on your screen for you to read and press. It costs
+> one credit when you do.
+
+The credit had already been spent and the words were already saved — the card
+that said so ("The words are saved", with *Put this day on the site*, *Add
+photographs*, *Undo*) was gone, and the only surviving instruction is one that
+invites the person to pay for the same day a second time. The reload does not
+merely lose the controls; it leaves the transcript ending on an out-of-date
+instruction with a price attached.
+
 ## Why it is not simply "re-render the cards"
 
 Worth deciding deliberately: a card is a *pending decision*, and some of them
