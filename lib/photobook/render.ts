@@ -852,8 +852,7 @@ export function renderVolume(
 ): RenderedVolume {
   const { images, missing } = loadAll(volume, options);
   const builder = new PdfBuilder(options.document ?? {});
-  for (const page of volume.pages) drawPage(builder, page, spec, options, images);
-  addEndLeaves(builder, spec);
+  drawInteriorPages(builder, volume, spec, options, images);
   return { pdf: builder.build(), pages: volume.pages.length, missing };
 }
 
@@ -889,8 +888,7 @@ export function renderBook(
   const { images, missing } = loadAll(volume, options);
   const builder = new PdfBuilder(options.document ?? {});
   drawCoverPage(builder, volume, spec, options, images);
-  for (const page of volume.pages) drawPage(builder, page, spec, options, images);
-  addEndLeaves(builder, spec);
+  drawInteriorPages(builder, volume, spec, options, images);
   return { pdf: builder.build(), pages: volume.pages.length, missing };
 }
 
@@ -925,6 +923,42 @@ export function renderBook(
  * first real one.
  */
 const END_LEAVES = 2;
+
+/**
+ * Every page of the book, with the two leaves **before the last one** —
+ * B1206.
+ *
+ * They used to go at the very end, and Gelato's preview showed what that
+ * means: page 43 the colophon, then two sheets of white. A book that ends on
+ * blank paper reads as though the printer ran out, and the colophon — the one
+ * page that says who made this and when — is no longer the last thing anybody
+ * sees.
+ *
+ * Moving them one page in fixes that and costs nothing, because **two is
+ * even**: inserting an even number of pages anywhere leaves every page after
+ * it on the same side of its leaf, so no spread the planner paired is broken.
+ * One leaf would have turned the whole book over.
+ *
+ * The count is unchanged and still `pageCount + 2`, which is what Gelato
+ * requires (B1173). Their "at least one page is empty" is a warning about
+ * those two and stays — a blank leaf at the back of a book is ordinary, and
+ * the alternative is failing their page count, which is not a warning.
+ */
+function drawInteriorPages(
+  builder: PdfBuilder,
+  volume: BookVolume,
+  spec: BookSpec,
+  options: RenderOptions,
+  images: Map<string, JpegImage | null>,
+): void {
+  const pages = volume.pages;
+  const last = pages.length - 1;
+  for (let i = 0; i < last; i++) drawPage(builder, pages[i], spec, options, images);
+  addEndLeaves(builder, spec);
+  // A one-page volume has nothing to put the leaves in front of; it gets them
+  // after, which is the old behaviour and the only sensible one.
+  if (last >= 0) drawPage(builder, pages[last], spec, options, images);
+}
 
 function addEndLeaves(builder: PdfBuilder, spec: BookSpec): void {
   const media = pageMediaBoxMm(spec);
