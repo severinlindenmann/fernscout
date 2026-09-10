@@ -7,8 +7,7 @@ complexity: medium
 area: helper room
 found: "2026-09-10T04:39:40Z"
 started: "2026-09-10T06:12:32Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-10T06:12:32Z"
+merged: "2026-09-10T06:23:01Z"
 ---
 
 # B1217 — Room decisions: history — clean titles, search, a Tage tab (D35 D36 D44)
