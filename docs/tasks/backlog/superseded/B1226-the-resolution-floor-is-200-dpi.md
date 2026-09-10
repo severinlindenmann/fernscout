@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: photobook, print
 found: "2026-09-10T05:10:00Z"
+superseded: "already built — photobook.warn.lowResolution says it plainly, and the owner chose to keep the 200 dpi floor"
 ---
 
 # B1226 — The resolution floor is 200 dpi where the printer starts warning at 225
@@ -36,7 +37,22 @@ kajak-in-lagos/02.jpeg is 1476px wide but is printed 174mm wide,
 book is 280 dpi or better, so this is the floor's edge and not a systemic
 problem — B1172 already fixed the systemic one.
 
-## The decision this needs
+## Decided: it already says it
+
+The owner chose "say it in the composer, and do not mention the printer". That
+is what `photobook.warn.lowResolution` already does, in the reader's own
+words:
+
+> These {count} photographs have too few pixels for this size and will look
+> slightly blurred on paper — perfectly visible, just not crisp. Pick a smaller
+> book, swap in bigger versions, or leave it as it is.
+
+B701 shows the offending photographs beside it. No printer is named, which is
+right: the person is choosing a photograph, not reading a preflight report.
+
+The floor stays at 200. The warning below stands as a warning.
+
+## The decision this needed
 
 Raising the floor to 225 would draw that photograph about 4% smaller and the
 warning would not appear. That is a layout change to every book for a
