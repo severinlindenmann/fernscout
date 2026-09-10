@@ -1835,6 +1835,7 @@
   "agent.chat.leaveIt": "Hagyd így",
   "agent.chat.orSayWhatIsWrong": "Vagy mondd meg, mi nem stimmel — „nem, 14-én” —, és módosítva jön vissza.",
   "agent.chat.noTitle": "Cím nélkül",
+  "agent.chat.retry": "Próbáld újra",
   "agent.chat.showMore": "Több megjelenítése",
   "agent.card.grant": "Hozzáférést ad",
   "agent.card.spend": "Kreditet költ",

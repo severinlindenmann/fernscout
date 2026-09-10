@@ -12,8 +12,14 @@
  * alongside a submit — because that differs per test and is not this
  * helper's business.
  */
-export function typeInto(el: HTMLInputElement, value: string): void {
-  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!;
+export function typeInto(el: HTMLInputElement | HTMLTextAreaElement, value: string): void {
+  // The ask field became a textarea in B1211; the native setter lives on
+  // each element's own prototype, so pick the right one.
+  const proto =
+    el instanceof window.HTMLTextAreaElement
+      ? window.HTMLTextAreaElement.prototype
+      : window.HTMLInputElement.prototype;
+  const setter = Object.getOwnPropertyDescriptor(proto, "value")!.set!;
   setter.call(el, value);
   el.dispatchEvent(new Event("input", { bubbles: true }));
 }

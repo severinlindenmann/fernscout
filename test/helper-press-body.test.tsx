@@ -134,7 +134,10 @@ async function ask(said: string) {
     typeInto(el, said);
   });
   await act(async () => {
-    buttonSaying(dictionary["agent.askGo"]).click();
+    // Icon-only since B1211 (D14): found by its accessible name.
+    (container!.querySelector(
+      `button[aria-label="${dictionary["agent.askGo"]}"]`,
+    ) as HTMLButtonElement).click();
   });
 }
 

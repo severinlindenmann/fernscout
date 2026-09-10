@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { ArrowUp } from "lucide-react";
 import Image from "next/image";
 import { Paperclip } from "lucide-react";
 import BusyButton from "@/components/BusyButton";
@@ -62,7 +63,7 @@ import type { TranslationKey } from "@/lib/i18n";
  *  back. The real conversation is the server's (`lib/helper/thread.ts`); this
  *  is only what to draw, which is why a reload starts the drawing again while
  *  the server's conversation carries on. */
-type Exchange = { said: string; blocks: Block[] };
+type Exchange = { said: string; blocks: Block[]; at?: number };
 
 /** One value out of a route's answer, by the path a proposal's `next`
  *  declared — `"draft.prose"`. Anything missing is left out rather than
@@ -420,6 +421,36 @@ export default function HelperAsk({
   // decision offered to somebody who has not made the first one.
   const [open, setOpen] = useState(inRoom);
   const [said, setSaid] = useState("");
+  /**
+   * A coarse pointer means a phone's keyboard — B1211 (D13): there, the
+   * return key breaks the line and the send button sends; on a fine
+   * pointer Enter sends and Shift+Enter breaks. Read once after mount so
+   * the server and the first client render agree.
+   */
+  const [coarse, setCoarse] = useState(false);
+  useEffect(() => {
+    if (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCoarse(true);
+    }
+  }, []);
+  /** The sentence a failed turn was carrying, so its error row can offer
+   *  one-press retry — B1212 (D20). */
+  const [lastFailed, setLastFailed] = useState("");
+  /**
+   * What to offer after a write went through — B1212 (D18): a small,
+   * deterministic set of next sentences per kind of write, drawn as chips
+   * over the composer. No model involved; pressing one sends it through
+   * the ordinary ask. Cleared by the next sentence either way.
+   */
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  /** Markers between exchanges need a clock comparison that the server
+   *  cannot make identically — drawn only after mount. B1212 (D22). */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
   const [busy, setBusy] = useState(false);
   /** Which of the two waits `TurnLoader` draws — B1124. `"waymark"` unless a
    *  call below knows better before it starts. */
@@ -446,6 +477,7 @@ export default function HelperAsk({
     opened.map((turn) => ({
       said: turn.said ?? "",
       blocks: turn.answered ? [{ shape: "say" as const, text: turn.answered }] : [],
+      at: turn.created_at ? Date.parse(turn.created_at) : undefined,
     })),
   );
   /** The last thing the microphone heard — B893. Kept only so it can be said
@@ -459,7 +491,34 @@ export default function HelperAsk({
   // `<body>` and the person is left exploring the page to find out whether
   // anything happened — B795. It carries its own label, so it is both the
   // announcement and the destination.
-  const box = useRef<HTMLInputElement>(null);
+  const box = useRef<HTMLTextAreaElement>(null);
+  /**
+   * Unsent words survive a reload — B1211 (D16). Restored once after
+   * mount (never in the initializer, B1197's lesson) and written on every
+   * change; sending clears the field, and the write effect empties the
+   * store with it.
+   */
+  const draftKey = `fs.agent.draft.${username}`;
+  useEffect(() => {
+    const kept = window.localStorage.getItem(draftKey);
+    if (kept && inRoom) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSaid((was) => (was === "" ? kept : was));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!inRoom) return;
+    window.localStorage.setItem(draftKey, said);
+  }, [said, draftKey, inRoom]);
+  /** The textarea grows with its words, to six lines — B1211 (D13). */
+  function autosize() {
+    const el = box.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 152)}px`;
+  }
+  useEffect(autosize, [said]);
   const proposal = useRef<HTMLDivElement>(null);
   const log = useRef<HTMLDivElement>(null);
   /**
@@ -513,9 +572,10 @@ export default function HelperAsk({
   /** Draw one more exchange and empty the field, because the next sentence is
    *  a next sentence and not a correction of the last one. */
   function landed(blocks: Block[], words = said) {
-    setTurns((was) => [...was, { said: words, blocks }]);
+    setTurns((was) => [...was, { said: words, blocks, at: Date.now() }]);
     setSaid("");
     setHeard("");
+    setSuggestions([]);
     const day = dayOf(blocks);
     if (day) onSubject?.(day);
   }
@@ -596,6 +656,8 @@ export default function HelperAsk({
         words,
       );
     } catch (thrown) {
+      // Kept so the error row can offer one press to resend — B1212 (D20).
+      setLastFailed(words);
       failed(thrown);
     } finally {
       setBusy(false);
@@ -730,8 +792,24 @@ export default function HelperAsk({
         {
           said: "",
           blocks: [...previewOf(answer), { shape: "say", text: proposal.done }],
+          at: Date.now(),
         },
       ]);
+
+      /**
+       * The next-step chips — B1212 (D18). Keyed on what was just written,
+       * from the tool's own name (the same self-classification
+       * `decisionKind` uses): words saved offer publishing and photographs;
+       * a day published offers the next one. Deterministic, free, and one
+       * press sends the sentence through the ordinary ask.
+       */
+      const wroteWords = /draft_words|set_day_words|write_day/.test(proposal.tool);
+      const published = /^publish_day$/.test(proposal.tool);
+      if (wroteWords) {
+        setSuggestions([t("agent.about.publish"), t("agent.about.addPhoto")]);
+      } else if (published) {
+        setSuggestions([t("agent.open.sayNewDay")]);
+      }
     } catch (thrown) {
       /**
        * The card that was pressed says so, and this does not — B916.
@@ -879,10 +957,30 @@ export default function HelperAsk({
           )}
           {turns.map((turn, index) => {
             const day = dayOf(turn.blocks);
+            /** A quiet clock between exchanges ten minutes apart — B1212
+             *  (D22). Client-only (`mounted`): a local-time string is the
+             *  one thing server and browser cannot agree on. */
+            const gapBefore =
+              mounted &&
+              turn.at !== undefined &&
+              index > 0 &&
+              turns[index - 1].at !== undefined &&
+              turn.at - (turns[index - 1].at as number) >= 10 * 60 * 1000;
             return (
               <div key={index} className="space-y-2">
+                {gapBefore && (
+                  <p aria-hidden className="text-center text-xs text-navy-400">
+                    {new Date(turn.at as number).toLocaleTimeString(undefined, {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                )}
                 {turn.said !== "" && (
-                  <p className="text-sm leading-6 text-navy-600">
+                  /* The person's own sentence as a quiet bubble on the
+                     right — B1212 (D02): scannable without avatars or a
+                     voice on the other side; the answer stays plain text. */
+                  <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-cream-100 px-3.5 py-2 text-base leading-6 text-navy-800">
                     <span className="sr-only">{t("agent.chat.you")}: </span>
                     {turn.said}
                   </p>
@@ -953,6 +1051,24 @@ export default function HelperAsk({
       {/* The files strip, above the composer rather than beside the
           conversation — B1016. The room draws it; this is only where "above
           the field" is, since the field's own footer is built here. */}
+      {suggestions.length > 0 && (
+        /* What usually comes next, offered once — B1212 (D18): a
+           deterministic set per kind of write, no model involved. A chip
+           is a shortcut for typing its own words. */
+        <div className="mb-2 flex flex-wrap gap-2">
+          {suggestions.map((sentence) => (
+            <button
+              key={sentence}
+              type="button"
+              disabled={busy}
+              onClick={() => go(sentence)}
+              className="min-h-9 rounded-full border border-navy-300 bg-white px-3.5 text-sm text-navy-800 transition-colors hover:bg-navy-50 disabled:opacity-50"
+            >
+              {sentence}
+            </button>
+          ))}
+        </div>
+      )}
       {notice}
       {filesStrip}
 
@@ -961,95 +1077,94 @@ export default function HelperAsk({
           stays under the thread as it grows rather than being scrolled off
           the end of it. */}
       <div className="sticky bottom-0 rounded-xl border border-navy-200 bg-white p-2 shadow-sm">
-        <input
-          ref={box}
-          id={`ask-${username}`}
-          type="text"
-          value={said}
-          aria-label={t("agent.askOpen")}
-          onChange={(event) => setSaid(event.target.value)}
-          onFocus={() => {
-            if (silentFocus.current) {
-              silentFocus.current = false;
-              return;
-            }
-            onFieldFocusChange?.(true);
-          }}
-          onBlur={() => onFieldFocusChange?.(false)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") go();
-          }}
-          placeholder={t("agent.askPlaceholder")}
-          className={`min-h-11 w-full rounded-full bg-transparent px-3 text-base text-navy-900 placeholder:text-navy-500 ${
-            speech ? "pr-14" : ""
-          }`}
-        />
-
-        {/* B686 — the same record button the wizard's words step mounts, so the
-            microphone drives the whole product rather than one field. What comes
-            back fills the field, editable before it is sent; it is not asked
-            until the person presses Ask. */}
-        {speech && (
-          <RecordButton
-            username={username}
-            consented={consentedSpeech}
-            provider={speechProvider}
-            disabled={busy}
-            compact
-            onText={(spoken) => {
-              // Added to what is already there rather than replacing it —
-              // B893. A turn is often spoken in two goes, or typed and then
-              // finished out loud, and a transcript that overwrote the field
-              // threw the first half away without saying so.
-              setSaid((was) =>
-                was.trim() === "" ? spoken : `${was.trim()} ${spoken}`,
-              );
-              setHeard(spoken);
-              box.current?.focus();
+        {/**
+         * One row: the way into files, a field that grows, the microphone,
+         * and one filled send button — B1211 (D13/D14/D15). "Ask" as a
+         * word is gone; the arrow is the room's one bright pressable once
+         * a conversation has started.
+         */}
+        <div className="flex items-end gap-1.5">
+          {onOpenFiles && (
+            <button
+              type="button"
+              onClick={onOpenFiles}
+              aria-label={t("agent.room.files")}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-navy-50 hover:text-navy-900 lg:hidden"
+            >
+              <Paperclip className="h-5 w-5" aria-hidden />
+            </button>
+          )}
+          <textarea
+            ref={box}
+            id={`ask-${username}`}
+            rows={1}
+            value={said}
+            aria-label={t("agent.askOpen")}
+            onChange={(event) => setSaid(event.target.value)}
+            onFocus={() => {
+              if (silentFocus.current) {
+                silentFocus.current = false;
+                return;
+              }
+              onFieldFocusChange?.(true);
             }}
+            onBlur={() => onFieldFocusChange?.(false)}
+            onKeyDown={(event) => {
+              // Enter sends on a fine pointer; on a phone the return key
+              // breaks the line and the button sends — B1211 (D13).
+              if (event.key === "Enter" && !event.shiftKey && !coarse) {
+                event.preventDefault();
+                go();
+              }
+            }}
+            placeholder={t("agent.askPlaceholder")}
+            className="max-h-[152px] min-h-11 w-full resize-none rounded-2xl bg-transparent px-3 py-2.5 text-base leading-6 text-navy-900 placeholder:text-navy-500 focus:outline-none"
           />
-        )}
+          {speech && (
+            <RecordButton
+              username={username}
+              consented={consentedSpeech}
+              provider={speechProvider}
+              disabled={busy}
+              compact
+              // Static in the row rather than pinned to a corner — B1211
+              // (D15): the microphone is a full-size control beside send.
+              compactClassName="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-navy-300 bg-white"
+              onText={(spoken) => {
+                // Added to what is already there rather than replacing it —
+                // B893. A turn is often spoken in two goes, or typed and then
+                // finished out loud, and a transcript that overwrote the field
+                // threw the first half away without saying so.
+                setSaid((was) =>
+                  was.trim() === "" ? spoken : `${was.trim()} ${spoken}`,
+                );
+                setHeard(spoken);
+                box.current?.focus();
+              }}
+            />
+          )}
+          <BusyButton
+            busy={busy}
+            type="button"
+            disabled={said.trim() === ""}
+            onClick={() => go()}
+            aria-label={t("agent.askGo")}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-yellow-400 text-navy-900 transition-colors hover:bg-yellow-300 disabled:opacity-40"
+            busyLabel={<span className="fs-waymark-bounce block h-2.5 w-2.5 rounded-full bg-navy-900" aria-hidden />}
+          >
+            <ArrowUp className="h-5 w-5" aria-hidden />
+          </BusyButton>
+        </div>
 
         {/* Where the transcript landed, said once — B893. A transcription is
             a guess, so a screen reader is told what was heard *and* that the
             box is where it gets corrected; the field itself announces
             nothing when its value changes. */}
         {heard !== "" && (
-          <p role="status" className="mt-2 text-sm leading-6 text-navy-600">
+          <p role="status" className="mt-2 px-3 text-sm leading-6 text-navy-600">
             {t("agent.speechHeard", { said: heard })}
           </p>
         )}
-
-        <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
-          {/* The way into the files pane that exists before any file does —
-              B1182. Phone widths only: the wide layout has the rail. */}
-          {onOpenFiles && (
-            <button
-              type="button"
-              onClick={onOpenFiles}
-              aria-label={t("agent.room.files")}
-              className="mr-auto flex min-h-11 min-w-11 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-navy-50 hover:text-navy-900 lg:hidden"
-            >
-              <Paperclip className="h-5 w-5" aria-hidden />
-            </button>
-          )}
-          {/* "Start over" is gone, function and button both — B1208 (D17):
-              the + in the header starts fresh, and two adjacent reset
-              controls confused more than they helped. */}
-          <BusyButton
-            busy={busy}
-            type="button"
-            disabled={said.trim() === ""}
-            // `() => go()`, not `go` itself — B1020 gave `go` an optional
-            // argument for a chip's own words, and a bare `onClick={go}`
-            // would have handed it the click's `MouseEvent` instead.
-            onClick={() => go()}
-            className="min-h-11 rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-800 transition-colors hover:bg-navy-50 disabled:opacity-50"
-            busyLabel={t("agent.askWorking")}
-          >
-            {t("agent.askGo")}
-          </BusyButton>
-        </div>
       </div>
 
       {consenting && (
@@ -1082,8 +1197,20 @@ export default function HelperAsk({
       )}
 
       {error && (
-        <p role="status" className="mt-2 text-sm text-coral-600">
+        <p role="status" className="mt-2 flex flex-wrap items-center gap-2 text-sm text-coral-600">
           {error}
+          {lastFailed !== "" && (
+            /* One press to resend the same sentence — B1212 (D20). What
+               failed is re-asked verbatim; nothing is retyped. */
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void ask(lastFailed)}
+              className="rounded-full border border-coral-400 px-3 py-1 text-sm font-semibold text-coral-600 transition-colors hover:bg-coral-50 disabled:opacity-50"
+            >
+              {t("agent.chat.retry")}
+            </button>
+          )}
         </p>
       )}
     </section>

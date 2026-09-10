@@ -1534,8 +1534,24 @@ export async function answerInThread(
           today,
           selected,
         );
-        blocks.push(...drawn);
-        if (proposal) proposals.push(proposal);
+        /**
+         * The same proposal twice in one turn draws once — B1202/B1212
+         * (D23). A model calling one write tool twice with identical
+         * arguments put two identical pressable cards on a live screen;
+         * either press did the same thing and the second card settled as
+         * "left it", but two copies of one decision is one too many. Same
+         * tool + same arguments is the whole test — a second card with
+         * anything different about it still draws.
+         */
+        const twin =
+          proposal &&
+          proposals.some(
+            (one) =>
+              one.tool === proposal.tool &&
+              JSON.stringify(one.arguments) === JSON.stringify(proposal.arguments),
+          );
+        if (!twin) blocks.push(...drawn);
+        if (proposal && !twin) proposals.push(proposal);
         if (call.name === "trip_costs") {
           const said = result as { notInTheTotal?: { currency?: unknown }[] } | null;
           for (const one of said?.notInTheTotal ?? []) {

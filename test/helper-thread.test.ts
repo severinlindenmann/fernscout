@@ -99,6 +99,18 @@ function calls(name: string, input: Record<string, string> = {}) {
   };
 }
 
+/** A scripted turn: the model asks for the SAME tool twice, identically —
+ *  B1202's live finding, and B1212 (D23)'s dedupe is what these exercise. */
+function callsTwice(name: string, input: Record<string, string> = {}) {
+  return {
+    content: [
+      { type: "tool_use", id: `t-${name}-1`, name, input },
+      { type: "tool_use", id: `t-${name}-2`, name, input },
+    ],
+    usage: { input_tokens: 1200, output_tokens: 60 },
+  };
+}
+
 /** Everything under this journal, path and bytes — the thing round 1 promises
  *  not to touch. The database is deliberately outside it: a turn does write a
  *  usage row, and that is the operator's bookkeeping rather than the journal. */
@@ -814,5 +826,39 @@ describe("the language rule the model is given", () => {
     expect(prompt).toMatch(/not the language of the conversation/i);
     // And the rule it must not lose: their words stay in their words.
     expect(prompt).toMatch(/never translate/i);
+  });
+});
+
+describe("the same proposal twice in one turn — B1202, D23", () => {
+  test("draws once, and the second identical call leaves no second card", async () => {
+    create.mockReset();
+    create
+      .mockResolvedValueOnce(callsTwice("start_day", { trip: "reise", date: "2026-05-03" }))
+      .mockResolvedValueOnce(says("Ein Tag für den 3. Mai."));
+    const response = await ask("start the third of may");
+    const body = (await response.json()) as { blocks: { shape: string }[] };
+    const cards = body.blocks.filter(
+      (block) => block.shape === "form" || block.shape === "confirm",
+    );
+    expect(cards).toHaveLength(1);
+  });
+
+  test("two calls with different arguments still both draw", async () => {
+    create.mockReset();
+    create
+      .mockResolvedValueOnce({
+        content: [
+          { type: "tool_use", id: "t-a", name: "start_day", input: { trip: "reise", date: "2026-05-03" } },
+          { type: "tool_use", id: "t-b", name: "start_day", input: { trip: "reise", date: "2026-05-04" } },
+        ],
+        usage: { input_tokens: 1200, output_tokens: 60 },
+      })
+      .mockResolvedValueOnce(says("Zwei Tage."));
+    const response = await ask("start both days");
+    const body = (await response.json()) as { blocks: { shape: string }[] };
+    const cards = body.blocks.filter(
+      (block) => block.shape === "form" || block.shape === "confirm",
+    );
+    expect(cards).toHaveLength(2);
   });
 });
