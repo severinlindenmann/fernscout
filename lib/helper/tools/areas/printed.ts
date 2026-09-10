@@ -145,7 +145,7 @@ export const PRINTED_TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "form",
     describe:
-      "Propose a set of real postcards: one photograph and one message from a day, sent to whoever they choose from postcard_recipients. This writes a pending order and hands over the URL of their own postcards page — it charges nothing and prints nothing. Only their press there, after they have seen the price and their balance, spends a credit at a printer.",
+      "Propose real postcards: one photograph and message from a day, to recipients from postcard_recipients. Writes a pending order and hands over their postcards page URL — charges and prints nothing; only their press there spends credits at a printer.",
     properties: {
       ...DAY_ARGS,
       photo: {

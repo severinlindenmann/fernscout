@@ -65,7 +65,7 @@ export const FILES_TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "confirm",
     describe:
-      "Propose putting photographs waiting in the inbox onto a day — \"put these on yesterday\", \"the ones waiting\", about the files pane. Leave `files` out: what they ticked is used, and with nothing ticked every waiting photograph is proposed by name for them to check. Never ask them for an id.",
+      "Propose putting photographs waiting in the inbox onto a day — \"put these on yesterday\", \"the ones waiting\". Leave `files` out: the ticked ones are used, or every waiting photograph when nothing is ticked, each named for them to check. Never ask for an id.",
     properties: {
       ...DAY_ARGS,
       files: {
