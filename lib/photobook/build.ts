@@ -10,7 +10,7 @@ import { buildBookSource, resolvePrintFile } from "./source";
 import { BOOK_SIZES, defaultSpec, productUidFor, type BookSpec } from "./spec";
 import { fetchCoverGeometry } from "./coverGeometry";
 import { outputIntentFor, pdfxReadiness, readIcc } from "./pdfx";
-import { renderCover, renderVolume } from "./render";
+import { renderBook, renderCover, renderVolume } from "./render";
 import { printReadyImages } from "./images";
 import type { BookOptions } from "./options";
 
@@ -213,10 +213,17 @@ export async function buildPhotobook(
     const stem = book.volumes.length > 1 ? `v${volume.index}` : "book";
     const interior = renderVolume(volume, spec, { loadImage, document });
     const cover = renderCover(volume, spec, { loadImage, document });
+    // B1180. The whole book in one file, cover first — the shape Gelato's own
+    // template has and its uploader demands. Written beside the two halves
+    // rather than instead of them: the halves are what the API submits and
+    // what somebody takes to a different printer, and this is what a person
+    // uploads to Gelato by hand.
+    const whole = renderBook(volume, spec, { loadImage, document });
     for (const file of [...interior.missing, ...cover.missing]) missing.add(file);
     fs.writeFileSync(path.join(dir, `${stem}-interior.pdf`), interior.pdf);
     fs.writeFileSync(path.join(dir, `${stem}-cover.pdf`), cover.pdf);
-    files.push(`${stem}-interior.pdf`, `${stem}-cover.pdf`);
+    fs.writeFileSync(path.join(dir, `${stem}.pdf`), whole.pdf);
+    files.push(`${stem}-interior.pdf`, `${stem}-cover.pdf`, `${stem}.pdf`);
   }
 
   return {

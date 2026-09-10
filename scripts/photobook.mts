@@ -28,8 +28,9 @@ import { displayPath } from "../lib/displayPath.ts";
 import { parseTripRef } from "../lib/trips.ts";
 import { buildBookSource, resolvePrintFile } from "../lib/photobook/source.ts";
 import { outline, planBook, type Photobook } from "../lib/photobook/plan.ts";
-import { renderCover, renderVolume } from "../lib/photobook/render.ts";
+import { renderBook, renderCover, renderVolume } from "../lib/photobook/render.ts";
 import { printReadyImages } from "../lib/photobook/images.ts";
+import { fetchCoverGeometry } from "../lib/photobook/coverGeometry.ts";
 import { DEFAULT_OPTIONS } from "../lib/photobook/options.ts";
 import { isBookLocale } from "../lib/photobook/strings.ts";
 import { renderPreview } from "../lib/photobook/preview.ts";
@@ -203,6 +204,33 @@ if (args.outline) {
   process.exit(0);
 }
 
+/**
+ * Gelato's own cover geometry, the same as `lib/photobook/build.ts` fetches —
+ * B1180.
+ *
+ * This was missing here, and the CLI is where a person looks at a book before
+ * anybody pays for one. It drew the computed spine while the button drew
+ * Gelato's, so a cover checked here was 408.72 mm wide and the one actually
+ * ordered was 409.81 — a millimetre of spine, on the axis where a millimetre
+ * wraps the front image around the corner. That is exactly the divergence the
+ * comment at the top of `lib/photobook/build.ts` says must not exist.
+ *
+ * Silent when it cannot ask, like its sibling: no key, no network, a product
+ * Gelato has never heard of. The fallback is close enough to look at.
+ */
+const coverProductUid = productUidFor(sizeId, coverType);
+if (coverProductUid) {
+  for (const volume of book.volumes) {
+    const real = await fetchCoverGeometry(coverProductUid, volume.interiorPages);
+    if (!real) continue;
+    volume.cover.geometry = real;
+    volume.cover.widthMm = real.sheetWidthMm;
+    volume.cover.heightMm = real.sheetHeightMm;
+    volume.cover.spineWidthMm = real.spineWidthMm;
+    volume.spineWidthMm = real.spineWidthMm;
+  }
+}
+
 // ---- what this file honestly is --------------------------------------------
 
 const readiness = pdfxReadiness({
@@ -254,9 +282,13 @@ for (const volume of book.volumes) {
   const stem = book.volumes.length > 1 ? `${bookSlug}-v${volume.index}` : bookSlug;
   const interior = renderVolume(volume, spec, { loadImage, guides: args.guides === true, document });
   const cover = renderCover(volume, spec, { loadImage, guides: args.guides === true, document });
+  // B1180. The whole book in one file, cover first — what Gelato's uploader
+  // wants from a person and what its own template looks like.
+  const whole = renderBook(volume, spec, { loadImage, guides: args.guides === true, document });
 
   write(`${stem}-interior.pdf`, interior.pdf);
   write(`${stem}-cover.pdf`, cover.pdf);
+  write(`${stem}.pdf`, whole.pdf);
   built.push({
     stem,
     pageCount: volume.interiorPages,
