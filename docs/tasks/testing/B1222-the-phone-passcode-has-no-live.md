@@ -7,8 +7,7 @@ complexity: medium
 area: auth, signup, otp, whatsapp
 found: "2026-09-10T04:47:42Z"
 started: "2026-09-10T04:58:19Z"
-session: 445f2c45-9999-43e6-8154-3b9b49a0d13f
-claimed: "2026-09-10T04:58:19Z"
+merged: "2026-09-10T05:34:31Z"
 ---
 
 # B1222 — The phone passcode has no live transport - the decided Twilio backend is on hold
