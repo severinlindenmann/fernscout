@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: ops, photobook, print
 found: "2026-09-09T18:38:34Z"
+wontDo: Server-side PDF/X conversion is not wanted; the readiness report's wording is B1149's job instead.
 ---
 
 # B1150 — Ghostscript is not installed on the VPS, so the instance cannot produce a conformant PDF/X-4

@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: photobook, gelato
 found: "2026-09-09T17:55:00Z"
+superseded: Already fixed. lib/photobook/gelato.ts:107-115 sends itemReferenceId: "book" with a comment naming B1125.
 ---
 
 # B1125 — Every photobook print quote is refused, so the print panel can never appear

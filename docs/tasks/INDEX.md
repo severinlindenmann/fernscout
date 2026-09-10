@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (187)
+## backlog (173)
 
 ### security (2)
 
@@ -58,13 +58,10 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (48)
+### issue (38)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1125](backlog/issue/B1125-every-photobook-print-quote-is-refused.md) | Every photobook print quote is refused, so the print panel can never appear | ISSUE | high | low |
-| [B1147](backlog/issue/B1147-gelato-rejects-fernscout-ch-s-credential.md) | Gelato rejects fernscout.ch's credential, so no photobook in a real journal can be priced | ISSUE | high | low |
-| [B1223](backlog/issue/B1223-three-failed-photobooks-for-one-journal.md) | Three failed photobooks for one journal share one attention-band id, so acknowledging one silently hides the other two and React sees duplicate keys | ISSUE | high | low |
 | [B1287](backlog/issue/B1287-the-send-button-says-it-prints.md) | The send button says it prints and posts real cards while the instance is set to render free samples and post none | ISSUE | high | low |
 | [B1322](backlog/issue/B1322-postcard-proposals-are-still-refused-after.md) | Postcard proposals are still refused after B1284, now because the helper sends an empty signature | ISSUE | high | low |
 | [B1323](backlog/issue/B1323-the-helper-said-a-postcard-was.md) | The helper said a postcard was on the postcards page when the proposal had failed | ISSUE | high | low |
@@ -78,14 +75,10 @@ Do not edit them by hand; run the script.
 | [B1400](backlog/issue/B1400-publish-mjs-reports-every-requested-feature.md) | publish.mjs reports every requested feature key as applied without reading the response back | ISSUE | high | low |
 | [B1401](backlog/issue/B1401-the-helper-client-s-yaml-parser.md) | The helper client's YAML parser stops at the first unsupported line and silently drops every key after it | ISSUE | high | medium |
 | [B1404](backlog/issue/B1404-a-matched-number-with-the-channel.md) | A matched number with the channel off gets silence instead of a fresh opt-in ask | ISSUE | high | medium |
-| [B1406](backlog/issue/B1406-a-book-with-no-recipient-is.md) | A book with no recipient is refused with the message for a book with no photographs | ISSUE | high | low |
-| [B1408](backlog/issue/B1408-an-en-dash-in-a-day.md) | An en dash in a day's words comes out as a blank gap in the book | ISSUE | high | low |
 | [B1410](backlog/issue/B1410-a-returning-identity-holder-s-buddy.md) | A returning identity-holder's buddy invite looks redeemed but the confirm step is never submitted | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1129](backlog/issue/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
-| [B1148](backlog/issue/B1148-a-refused-print-credential-is-reported.md) | A refused print credential is reported to the owner as the printer being unreachable, with advice to try again | ISSUE | medium | low |
-| [B1165](backlog/issue/B1165-a-printer-refusal-says-nothing-about.md) | A printer refusal says nothing about why, to anybody who could act on it | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
 | [B1265](backlog/issue/B1265-the-model-asserted-a-false-trip.md) | The model asserted a false trip date window and no check caught the arithmetic | ISSUE | medium | low |
@@ -96,22 +89,19 @@ Do not edit them by hand; run the script.
 | [B1390](backlog/issue/B1390-one-subject-two-sections-what-the.md) | One subject, two sections: what the helper does with your words is drawn twice on /me | ISSUE | medium | low |
 | [B1395](backlog/issue/B1395-a-buddy-listed-on-a-trip.md) | A buddy listed on a trip has no way to give or correct their address on /me | ISSUE | medium | low |
 | [B1397](backlog/issue/B1397-a-busy-button-draws-two-loaders.md) | A busy button draws two loaders at once when the caller gives its own busy label | ISSUE | medium | low |
-| [B1405](backlog/issue/B1405-the-first-book-flow-quotes-a.md) | The first-book flow quotes a price before the recipient is known, so the figure can change before the press | ISSUE | medium | low |
-| [B1407](backlog/issue/B1407-a-photograph-too-small-to-fill.md) | A photograph too small to fill its slot sits at the foot of the page instead of in the space it has | ISSUE | medium | medium |
 | [B1409](backlog/issue/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1106](backlog/issue/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low |
-| [B1149](backlog/issue/B1149-the-pdf-x-report-tells-you.md) | The PDF/X report tells you to run gs-pdfx.sh, which is only written when the run already had an ICC | ISSUE | low | low |
 | [B1191](backlog/issue/B1191-persona-automation-cannot-hit-the-sr.md) | Persona automation cannot hit the sr-only file inputs; confirm real hit areas are whole-tile | ISSUE | low | low |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1266](backlog/issue/B1266-asking-for-the-last-day-only.md) | Asking for the last day only searches unfinished drafts | ISSUE | low | low |
 | [B1271](backlog/issue/B1271-a-failed-voice-note-download-also.md) | A failed voice-note download also says nothing | ISSUE | low | low |
 | [B1402](backlog/issue/B1402-a-content-path-one-level-too.md) | A content path one level too shallow is reported accurately and without naming the likely cause | ISSUE | low | low |
 
-### big-feature (14)
+### big-feature (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -120,8 +110,6 @@ Do not edit them by hand; run the script.
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | A journal folder can be exported and never pushed back, so writing locally is a one-way trip | FEATURE | medium | high |
-| [B590](backlog/big-feature/B590-a-fulfilment-instance-has-no-route.md) | A fulfilment instance has no route to accept an uploaded print job | FEATURE | medium | high |
-| [B591](backlog/big-feature/B591-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to relay a print job to a fulfilment instance | FEATURE | medium | high |
 | [B672](backlog/big-feature/B672-everything-is-served-off-one-vps.md) | Everything is served off one VPS disk by one Node process | FEATURE | medium | high |
 | [B678](backlog/big-feature/B678-the-helper-re-implements-the-file.md) | The helper re-implements the file-shape rules, so a journal is judged by a copy of them | FEATURE | medium | high |
 | [B788](backlog/big-feature/B788-when-real-money-arrives-the-operator.md) | When real money arrives, the operator page shows a mock's idea of a transaction | FEATURE | medium | high |
@@ -130,7 +118,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (24)
+### small-feature (23)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -148,7 +136,6 @@ Do not edit them by hand; run the script.
 | [B1388](backlog/small-feature/B1388-whatsappinbound-has-no-owner-facing-switch.md) | whatsappInbound has no owner-facing switch | FEATURE | medium | medium |
 | [B1394](backlog/small-feature/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium |
 | [B1398](backlog/small-feature/B1398-choosing-the-postcard-picture-means-picking.md) | Choosing the postcard picture means picking a day from a list of titles, never seeing a photograph | FEATURE | medium | medium |
-| [B592](backlog/small-feature/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
 | [B991](backlog/small-feature/B991-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium |
 | [B1025](backlog/small-feature/B1025-push-exists-as-a-capability-and.md) | Push exists as a capability and is not a channel this day can be sent on | FEATURE | low | medium |
@@ -159,22 +146,16 @@ Do not edit them by hand; run the script.
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (10)
+### chore (4)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1146](backlog/chore/B1146-two-branches-in-flight-both-number.md) | Two branches in flight both number their migration 028, so the second to merge has two | CHORE | high | low |
 | [B1239](backlog/chore/B1239-the-retired-wizard-s-code-still.md) | The retired wizard's code still ships: AgentWizard, its queue and its suites await deletion | CHORE | medium | medium |
-| [B1017](backlog/chore/B1017-photobook-fonts-are-embedded-whole-not.md) | Photobook fonts are embedded whole, not subset | CHORE | low | medium |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
 | [B1180](backlog/chore/B1180-the-subscribed-apps-post-is-a.md) | The subscribed_apps POST is a documented curl, not a one-shot script | CHORE | low | low |
-| [B1364](backlog/chore/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
-| [B1365](backlog/chore/B1365-photobook-order-success-redirects-through-the.md) | Photobook order success redirects through the trip page instead of straight to the order page | CHORE | low | low |
-| [B1366](backlog/chore/B1366-order-page-shows-book-interior-pdf.md) | Order page shows book-interior.pdf and book-cover.pdf links nobody needs | CHORE | low | low |
-| [B1367](backlog/chore/B1367-photobook-order-page-reads-as-unstyled.md) | Photobook order page reads as unstyled text, not a Fernscout page | CHORE | low | low |
-| [B1368](backlog/chore/B1368-photobook-flow-doesn-t-say-the.md) | Photobook flow doesn't say the print is experimental | CHORE | low | low |
 
-### ops (14)
+### ops (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -184,7 +165,6 @@ Do not edit them by hand; run the script.
 | [B1311](backlog/ops/B1311-a-config-json-written-as-root.md) | A config.json written as root takes the whole site down at the next build | OPS | high | low |
 | [B1313](backlog/ops/B1313-two-deploys-can-run-at-once.md) | Two deploys can run at once and leave the site down with a corrupt build cache and a detached HEAD | OPS | high | low |
 | [B403](backlog/ops/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium |
-| [B911](backlog/ops/B911-the-print-flow-has-never-run.md) | The print flow has never run against the live site | OPS | high | low |
 | [B107](backlog/ops/B107-postcards-have-only-ever-run-from.md) | Postcards have only ever run from a laptop CLI, never as a capability of the deployed site | OPS | medium | medium |
 | [B1137](backlog/ops/B1137-there-is-no-place-to-try.md) | There is no place to try a change against real data before it reaches fernscout.ch | OPS | medium | medium |
 | [B1183](backlog/ops/B1183-whether-an-eu-art-27-representative.md) | Whether an EU Art. 27 representative is owed is a lawyer's question nobody has asked | OPS | medium | low |
@@ -202,7 +182,7 @@ Do not edit them by hand; run the script.
 | [B1403](backlog/docs-and-skills/B1403-nothing-an-outside-agent-reads-says.md) | Nothing an outside agent reads says weatherData is written by the server, so a filled block reads as fabricated | DOCS | medium | low |
 | [B1396](backlog/docs-and-skills/B1396-the-whatsapp-checkbox-carries-a-second.md) | The WhatsApp checkbox carries a second sentence about Meta that the form does not need | DOCS | low | low |
 
-### superseded (68)
+### superseded (69)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -212,6 +192,7 @@ Do not edit them by hand; run the script.
 | [B1015](backlog/superseded/B1015-b984-moved-the-agent-room-s.md) | B984 moved the agent room's URL and left one test asserting the old one, so main is red | ISSUE | high | low |
 | [B1050](backlog/superseded/B1050-main-does-not-build-a-merge.md) | main does not build: a merge left two features keys in one object literal in helper-proposal-arguments.test.ts | ISSUE | high | low |
 | [B1071](backlog/superseded/B1071-the-helper-prompt-is-7617-tokens.md) | The helper prompt is 7617 tokens against its 6500 ceiling, so main's test suite is red | ISSUE | high | medium |
+| [B1125](backlog/superseded/B1125-every-photobook-print-quote-is-refused.md) | Every photobook print quote is refused, so the print panel can never appear | ISSUE | high | low |
 | [B1156](backlog/superseded/B1156-the-order-panel-tells-every-instance.md) | The order panel tells every instance that nothing will be printed | ISSUE | high | low |
 | [B373](backlog/superseded/B373-the-backup-success-marker-vanished-from.md) | The backup success marker vanished from DATA_DIR between two deploys minutes apart | OPS | high | low |
 | [B377](backlog/superseded/B377-the-deploy-reported-a-healthy-backup.md) | The deploy reported a healthy backup this afternoon and none at all this evening | OPS | high | low |
@@ -275,15 +256,20 @@ Do not edit them by hand; run the script.
 | [B90](backlog/superseded/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 | [B988](backlog/superseded/B988-the-visitor-hash-test-pins-a.md) | The visitor-hash test pins a salt that has already been drawn, so it fails about one run in three hundred | ISSUE | low | low |
 
-### wont-do (3)
+### wont-do (8)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B386](backlog/wont-do/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
 | [B520](backlog/wont-do/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low |
+| [B590](backlog/wont-do/B590-a-fulfilment-instance-has-no-route.md) | A fulfilment instance has no route to accept an uploaded print job | FEATURE | medium | high |
+| [B591](backlog/wont-do/B591-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to relay a print job to a fulfilment instance | FEATURE | medium | high |
+| [B592](backlog/wont-do/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
+| [B1017](backlog/wont-do/B1017-photobook-fonts-are-embedded-whole-not.md) | Photobook fonts are embedded whole, not subset | CHORE | low | medium |
+| [B1364](backlog/wont-do/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (85)
+## open (99)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -295,7 +281,9 @@ Do not edit them by hand; run the script.
 | [B1095](open/B1095-personas-run-in-parallel-share-one.md) | Personas run in parallel share one browser tab and interleave, invalidating the round | CHORE | high | low |
 | [B1114](open/B1114-run-a-batch-has-no-shape.md) | run-a-batch has no shape for an engagement, so an OPS ticket cannot be in a batch at all | DOCS | high | medium |
 | [B1115](open/B1115-a-brief-can-say-a-ticket.md) | A brief can say a ticket is dropped or live, and B1058 is neither | DOCS | high | low |
+| [B1147](open/B1147-gelato-rejects-fernscout-ch-s-credential.md) | Gelato rejects fernscout.ch's credential, so no photobook in a real journal can be priced | ISSUE | high | low |
 | [B1175](open/B1175-a-journal-deletion-that-fails-partway.md) | a journal deletion that fails partway leaves the journal gone, no tombstone, and a spent confirmation link | ISSUE | high | medium |
+| [B1223](open/B1223-three-failed-photobooks-for-one-journal.md) | Three failed photobooks for one journal share one attention-band id, so acknowledging one silently hides the other two and React sees duplicate keys | ISSUE | high | low |
 | [B1246](open/B1246-a-root-owned-content-registry-silently.md) | A root-owned content/.registry silently breaks every signup on the instance | ISSUE | high | low |
 | [B1247](open/B1247-a-failed-journal-creation-says-unknown.md) | A failed journal creation says unknown and empties every field the person filled in | ISSUE | high | low |
 | [B1249](open/B1249-a-signup-token-is-spent-by.md) | A signup token is spent by a creation that failed, so the person cannot retry at all | ISSUE | high | low |
@@ -308,6 +296,9 @@ Do not edit them by hand; run the script.
 | [B1280](open/B1280-the-helper-offers-to-add-a.md) | The helper offers to add a postcard recipient, then refuses and names a settings page that does not exist | ISSUE | high | low |
 | [B1282](open/B1282-a-guest-confirming-their-invitation-silently.md) | A guest confirming their invitation silently deletes the postal address the owner entered for them | ISSUE | high | medium |
 | [B1301](open/B1301-an-approved-reader-who-opens-a.md) | An approved reader who opens a buddy link is given write access to the trip with no owner decision, and told there is nothing to do | SECURITY | high | medium |
+| [B1406](open/B1406-a-book-with-no-recipient-is.md) | A book with no recipient is refused with the message for a book with no photographs | ISSUE | high | low |
+| [B1408](open/B1408-an-en-dash-in-a-day.md) | An en dash in a day's words comes out as a blank gap in the book | ISSUE | high | low |
+| [B911](open/B911-the-print-flow-has-never-run.md) | The print flow has never run against the live site | OPS | high | low |
 | [B106](open/B106-push-has-never-been-switched-on.md) | Push has never been switched on anywhere, so nothing has proved a notification reaches a phone | OPS | medium | medium |
 | [B1094](open/B1094-editing-a-contact-opens-a-form.md) | Editing a contact opens a form off-screen above the button, so the button looks broken | ISSUE | medium | low |
 | [B1112](open/B1112-a-triage-decision-carries-no-reason.md) | A triage decision carries no reason, so the run brief starts from ids alone | DOCS | medium | low |
@@ -320,6 +311,8 @@ Do not edit them by hand; run the script.
 | [B1132](open/B1132-the-address-confirmation-mail-says-nothing.md) | The address-confirmation mail says nothing opens yet, but a pre-approved invite admits the reader on confirming | ISSUE | medium | low |
 | [B1139](open/B1139-a-hold-in-in-development-survives.md) | A hold in in-development survives the session that took it, and nothing says the work already merged | ISSUE | medium | medium |
 | [B1141](open/B1141-a-worktree-s-cloned-node-modules.md) | A worktree's cloned node_modules goes stale when main adds a dependency, and the build fails as if the change were wrong | DOCS | medium | low |
+| [B1148](open/B1148-a-refused-print-credential-is-reported.md) | A refused print credential is reported to the owner as the printer being unreachable, with advice to try again | ISSUE | medium | low |
+| [B1165](open/B1165-a-printer-refusal-says-nothing-about.md) | A printer refusal says nothing about why, to anybody who could act on it | ISSUE | medium | low |
 | [B1176](open/B1176-every-file-under-content-registry-was.md) | every file under content/.registry was root-owned, so the service account could not release a lock | OPS | medium | low |
 | [B1248](open/B1248-the-health-endpoint-reports-content-ok.md) | The health endpoint reports content ok without ever checking the content root is writable | ISSUE | medium | low |
 | [B1252](open/B1252-the-helper-composer-gives-the-text.md) | The helper composer gives the text under half the screen width on a phone | ISSUE | medium | low |
@@ -343,6 +336,8 @@ Do not edit them by hand; run the script.
 | [B1297](open/B1297-agents-md-says-there-is-no.md) | AGENTS.md says there is no form that maps fields onto frontmatter, and Correct this day is one | DOCS | medium | low |
 | [B1299](open/B1299-a-refusal-from-the-trip-people.md) | A refusal from the trip-people tool appears alone in the transcript during a conversation about costs | ISSUE | medium | low |
 | [B1300](open/B1300-with-one-day-of-costs-the.md) | With one day of costs the bar chart is a full-width block and the running total draws nothing | ISSUE | medium | low |
+| [B1405](open/B1405-the-first-book-flow-quotes-a.md) | The first-book flow quotes a price before the recipient is known, so the figure can change before the press | ISSUE | medium | low |
+| [B1407](open/B1407-a-photograph-too-small-to-fill.md) | A photograph too small to fill its slot sits at the foot of the page instead of in the space it has | ISSUE | medium | medium |
 | [B673](open/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium |
 | [B852](open/B852-a-journal-s-languages-units-and.md) | A journal's languages, units and currencies cannot be changed anywhere | FEATURE | medium | medium |
 | [B1044](open/B1044-six-fonts-are-preloaded-on-every.md) | Six fonts are preloaded on every page and none of them is used in time | ISSUE | low | low |
@@ -357,6 +352,7 @@ Do not edit them by hand; run the script.
 | [B1133](open/B1133-the-owner-s-own-copy-of.md) | The owner's own copy of a day letter says they asked to be kept posted and offers no way to stop it | ISSUE | low | low |
 | [B1134](open/B1134-accept-language-is-the-only-way.md) | Accept-Language is the only way to set the language of the two pre-journal mails and no agent-facing document says so | FEATURE | low | low |
 | [B1142](open/B1142-the-share-control-gate-test-asserts.md) | The share-control gate test asserts proximity with a character window that is widened every time the file grows | ISSUE | low | low |
+| [B1149](open/B1149-the-pdf-x-report-tells-you.md) | The PDF/X report tells you to run gs-pdfx.sh, which is only written when the run already had an ICC | ISSUE | low | low |
 | [B1150](open/B1150-ghostscript-is-not-installed-on-the.md) | Ghostscript is not installed on the VPS, so the instance cannot produce a conformant PDF/X-4 | OPS | low | low |
 | [B1151](open/B1151-macos-appledouble-files-are-synced-into.md) | macOS AppleDouble files are synced into the demo journal's originals on the server | CHORE | low | low |
 | [B1267](open/B1267-the-menu-holds-two-entries-both.md) | The menu holds two entries both labelled Trips that go to different places | ISSUE | low | low |
@@ -367,6 +363,10 @@ Do not edit them by hand; run the script.
 | [B1294](open/B1294-the-photobook-route-answers-that-the.md) | The photobook route answers that the trip was taken down or renamed when the trip is still there | ISSUE | low | low |
 | [B1296](open/B1296-the-room-names-trips-by-their.md) | The room names trips by their id and dates in ISO, in a conversation that otherwise speaks plainly | ISSUE | low | low |
 | [B1298](open/B1298-the-day-chip-in-the-helper.md) | The day chip in the helper downloads three 2000px photographs to draw three 38px thumbnails | ISSUE | low | low |
+| [B1365](open/B1365-photobook-order-success-redirects-through-the.md) | Photobook order success redirects through the trip page instead of straight to the order page | CHORE | low | low |
+| [B1366](open/B1366-order-page-shows-book-interior-pdf.md) | Order page shows book-interior.pdf and book-cover.pdf links nobody needs | CHORE | low | low |
+| [B1367](open/B1367-photobook-order-page-reads-as-unstyled.md) | Photobook order page reads as unstyled text, not a Fernscout page | CHORE | low | low |
+| [B1368](open/B1368-photobook-flow-doesn-t-say-the.md) | Photobook flow doesn't say the print is experimental | CHORE | low | low |
 | [B442](open/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 | [B539](open/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
 | [B666](open/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |

@@ -6,6 +6,7 @@ priority: medium
 complexity: high
 area: self-hosting, postcards, photobook
 found: "2026-09-06T14:29:08Z"
+wontDo: Part of the fulfilment relay chain, which is not being built. See B590.
 ---
 
 # B591 — A self-hosted instance has no way to relay a print job to a fulfilment instance

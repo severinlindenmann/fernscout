@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: photobook, i18n
 found: "2026-09-10T18:25:49Z"
+wontDo: Superseded in practice by B1405, which removes the string this ticket rewords.
 ---
 
 # B1364 — First-book price reads money-then-credits, unlike every other price line

@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: self-hosting, postcards, photobook
 found: "2026-09-06T14:29:13Z"
+wontDo: Part of the fulfilment relay chain, which is not being built. See B590.
 ---
 
 # B592 — A relayed job's status never flows back to the instance that sent it

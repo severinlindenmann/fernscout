@@ -6,6 +6,7 @@ priority: medium
 complexity: high
 area: self-hosting, postcards, photobook
 found: "2026-09-06T14:29:03Z"
+wontDo: The fulfilment relay is not work this instance needs; not building the chain B590/B591/B592.
 ---
 
 # B590 — A fulfilment instance has no route to accept an uploaded print job

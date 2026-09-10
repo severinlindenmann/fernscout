@@ -6,6 +6,7 @@ priority: low
 complexity: medium
 area: photobook, print
 found: "2026-09-08T19:17:39Z"
+wontDo: Font subsetting is font-table engineering for a storage win, at the cost of a bug class only visible in print.
 ---
 
 # B1017 — Photobook fonts are embedded whole, not subset
