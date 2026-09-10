@@ -106,6 +106,7 @@ function render(
           speech={false}
           consentedSpeech={false}
           speechProvider="dry-run"
+          siteUrl="https://t.test"
           journals={journals}
         />
       </LocaleProvider>,
@@ -379,6 +380,7 @@ test("a chip in the opening opens the consent panel rather than dead-ending on i
           speech={false}
           consentedSpeech={false}
           speechProvider="dry-run"
+          siteUrl="https://t.test"
         />
       </LocaleProvider>,
     );

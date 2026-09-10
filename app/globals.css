@@ -462,3 +462,36 @@ select:disabled {
     color: var(--color-yellow-950);
   }
 }
+
+/* ------------------------------------------------- the agent room's own --- */
+/* Text scale — B1209 (D03). `zoom` scales layout with the type, which is
+   exactly what a larger-print reader wants; the two steps bracket the
+   default rather than replacing the type scale. Scoped to the conversation
+   log so chrome (header, rails) keeps its size. */
+.fs-scale-s [role="log"] { zoom: 0.93; }
+.fs-scale-l [role="log"] { zoom: 1.12; }
+
+/* The dark room — B1209 (D04), a manual toggle, room-scoped: the journal
+   pages keep their daylight brand. A first pass by scoped override of the
+   room's own surface classes; corners that stay light are B-tickets, not
+   reasons to invert a brand with a filter. */
+.fs-room-dark { color-scheme: dark; }
+.fs-room-dark.bg-navy-50, .fs-room-dark .bg-navy-50 { background-color: #171d29; }
+.fs-room-dark .bg-white { background-color: #1f2736; }
+.fs-room-dark .bg-navy-100 { background-color: #2a3550; }
+.fs-room-dark .bg-cream-50 { background-color: #1f2736; }
+.fs-room-dark .bg-cream-100 { background-color: #242e40; }
+.fs-room-dark .bg-cream-200 { background-color: #2b3750; }
+.fs-room-dark .border-navy-100 { border-color: #2a3550; }
+.fs-room-dark .border-navy-200 { border-color: #33405a; }
+.fs-room-dark .border-navy-300 { border-color: #45536f; }
+.fs-room-dark .text-navy-900 { color: #f2ecdd; }
+.fs-room-dark .text-navy-800 { color: #e6e0d2; }
+.fs-room-dark .text-navy-700 { color: #c9c8c0; }
+.fs-room-dark .text-navy-600 { color: #a8aeba; }
+.fs-room-dark .text-navy-500 { color: #93a9bd; }
+.fs-room-dark .bg-navy-800 { background-color: #ffd23f; color: #1e293b; }
+.fs-room-dark input, .fs-room-dark textarea, .fs-room-dark select {
+  background-color: #171d29; color: #f2ecdd;
+}
+.fs-room-dark .shadow-sm { --tw-shadow-color: rgb(0 0 0 / 0.4); }
