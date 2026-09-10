@@ -184,7 +184,10 @@ describe("the landing page", () => {
   test("offers a WhatsApp link when this instance has a number configured", () => {
     const html = renderLanding("en", false, "41780000000");
     expect(html).toContain("https://wa.me/41780000000");
-    expect(html).toContain("Or start using WhatsApp");
+    expect(html).toContain("Start using WhatsApp");
+    // B1314 — the divider between "Start writing" and the WhatsApp button.
+    expect(html).toContain('role="separator"');
+    expect(html).toContain(">or<");
   });
 
   test("has no WhatsApp link when this instance has no number configured", () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, ChevronDown } from "lucide-react";
+import { BookOpen, ChevronDown, MessageCircle } from "lucide-react";
 import CopyLine from "@/components/CopyLine";
 import { flagFor } from "@/lib/flags";
 import { useI18n } from "@/components/LocaleProvider";
@@ -64,6 +64,63 @@ export const PRIMARY_BUTTON =
   "inline-flex min-h-14 items-center justify-center rounded-xl border border-yellow-600 bg-yellow-400 px-6 " +
   "text-lg font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
+
+/**
+ * A quiet "or" between two ways in — B1314, the owner's chosen design for
+ * both WhatsApp doors. A hairline on each side rather than a bare word, so
+ * it reads as a divider between two actions and not as a stray label.
+ */
+export function OrDivider() {
+  const { t } = useI18n();
+  return (
+    <div role="separator" className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-navy-400">
+      <span className="h-px flex-1 bg-navy-200" />
+      {t("common.or")}
+      <span className="h-px flex-1 bg-navy-200" />
+    </div>
+  );
+}
+
+/**
+ * The WhatsApp door itself — B1314. Transparent background, a green border
+ * and text, and a small round green glyph, per the drafts the owner picked
+ * from (`.claude/runs/2026-09-09-whatsapp-agent/door-drafts.html`, variants
+ * "Landing B" and "Agent A"). `MessageCircle` rather than a new icon: it is
+ * already the WhatsApp idiom `ContactsAdmin` and `DayNotify` use, and lucide
+ * is already a dependency. Shared between `LandingHero` and `AgentDoor`
+ * rather than drawn twice, since a colour or a radius edited in one and not
+ * the other is exactly how these two drifted apart the first time (B1310
+ * shipped both as a plain underlined line).
+ */
+export function WhatsAppButton({
+  number,
+  label,
+  className = "",
+}: {
+  number: string;
+  label: string;
+  className?: string;
+}) {
+  const { t } = useI18n();
+  return (
+    <a
+      href={`https://wa.me/${number}?text=${encodeURIComponent(t("agent.open.whatsappGreeting"))}`}
+      target="_blank"
+      rel="noreferrer"
+      className={
+        "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-green-700 bg-transparent px-5 " +
+        "text-base font-semibold text-green-700 transition-colors hover:bg-green-100 " +
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 " +
+        className
+      }
+    >
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-700 text-white" aria-hidden>
+        <MessageCircle className="h-3 w-3" strokeWidth={2.5} />
+      </span>
+      {label}
+    </a>
+  );
+}
 
 /**
  * A section title sitting on a rule — B733's "visible structure". Used
@@ -282,23 +339,18 @@ export function LandingHero({
           {t("landing.helperCta")}
         </Link>
       )}
-      {/* A second door beside the first — B1310. Secondary by design: a
-          quiet underlined link, the same shape as `AgentDisclosure`'s
-          trigger, rather than a second bright button competing with
-          "Start writing". Independent of `helperEnabled`: the WhatsApp
-          channel is answered by whatever agent the owner has put behind
-          it, not by this instance's own `/agent` wizard. */}
+      {/* A second door beside the first — B1310, redrawn to the owner's
+          chosen design in B1314: an "oder"-divider, then the green
+          WhatsApp button, rather than a plain underlined line competing
+          for attention with nothing to set it apart. Independent of
+          `helperEnabled`: the WhatsApp channel is answered by whatever
+          agent the owner has put behind it, not by this instance's own
+          `/agent` wizard. */}
       {whatsappNumber && (
-        <a
-          href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(t("agent.open.whatsappGreeting"))}`}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-4 inline-flex min-h-11 items-center text-base font-semibold text-navy-700 underline
-                     decoration-navy-300 underline-offset-4 transition-colors hover:decoration-navy-700
-                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-        >
-          {t("landing.whatsappCta")}
-        </a>
+        <div className="mt-4 flex w-full flex-col gap-3 sm:w-auto sm:max-w-xs">
+          <OrDivider />
+          <WhatsAppButton number={whatsappNumber} label={t("landing.whatsappCta")} className="w-full" />
+        </div>
       )}
     </>
   );

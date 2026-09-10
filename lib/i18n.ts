@@ -772,6 +772,7 @@ export type TranslationKey =
   | "approve.prompt"
   | "approve.title"
   | "approve.working"
+  | "common.or"
   | "contact.addrCity"
   | "contact.addrCountry"
   | "contact.addrCountryNoMatches"
