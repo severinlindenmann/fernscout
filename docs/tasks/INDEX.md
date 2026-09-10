@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (168)
+## backlog (169)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (51)
+### issue (52)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -113,6 +113,7 @@ Do not edit them by hand; run the script.
 | [B1267](backlog/issue/B1267-the-menu-holds-two-entries-both.md) | The menu holds two entries both labelled Trips that go to different places | ISSUE | low | low |
 | [B1270](backlog/issue/B1270-the-account-page-quotes-send-prices.md) | The account page quotes send prices for nought people and offers to sell 5 GB to a journal using one kilobyte | ISSUE | low | low |
 | [B1271](backlog/issue/B1271-a-failed-voice-note-download-also.md) | A failed voice-note download also says nothing | ISSUE | low | low |
+| [B1283](backlog/issue/B1283-the-phone-country-field-is-too.md) | The phone country field is too narrow for its own default value, so the dialling code is cut off | ISSUE | low | low |
 
 ### big-feature (14)
 
