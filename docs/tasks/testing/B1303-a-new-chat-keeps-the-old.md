@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: whatsapp, helper, honesty
 found: "2026-09-10T11:51:13Z"
+merged: "2026-09-10T12:27:09Z"
 ---
 
 # B1303 — A new chat keeps the old pending button, and the thread has no sense of time

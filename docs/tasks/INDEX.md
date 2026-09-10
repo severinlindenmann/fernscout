@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (193)
+## backlog (189)
 
 ### security (3)
 
@@ -59,7 +59,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (73)
+### issue (69)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -79,10 +79,6 @@ Do not edit them by hand; run the script.
 | [B1282](backlog/issue/B1282-a-guest-confirming-their-invitation-silently.md) | A guest confirming their invitation silently deletes the postal address the owner entered for them | ISSUE | high | medium |
 | [B1284](backlog/issue/B1284-every-postcard-proposal-from-the-helper.md) | Every postcard proposal from the helper is refused, because it sends a name slug where a contact id is required | ISSUE | high | low |
 | [B1287](backlog/issue/B1287-the-send-button-says-it-prints.md) | The send button says it prints and posts real cards while the instance is set to render free samples and post none | ISSUE | high | low |
-| [B1302](backlog/issue/B1302-a-typed-button-label-is-not.md) | A typed button label is not a press, and a false saved-claim slips a session-wide guard | ISSUE | high | low |
-| [B1303](backlog/issue/B1303-a-new-chat-keeps-the-old.md) | A new chat keeps the old pending button, and the thread has no sense of time | ISSUE | high | low |
-| [B1304](backlog/issue/B1304-two-form-proposals-merge-into-one.md) | Two form proposals merge into one message with one button set | ISSUE | high | low |
-| [B1305](backlog/issue/B1305-trip-costs-hides-the-budget-and.md) | trip_costs hides the budget and publish_day offers a double publish | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1129](backlog/issue/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
@@ -116,8 +112,8 @@ Do not edit them by hand; run the script.
 | [B1295](backlog/issue/B1295-the-landing-page-promises-you-can.md) | The landing page promises you can export everything, and somebody without an agent has no way to | ISSUE | medium | medium |
 | [B1299](backlog/issue/B1299-a-refusal-from-the-trip-people.md) | A refusal from the trip-people tool appears alone in the transcript during a conversation about costs | ISSUE | medium | low |
 | [B1300](backlog/issue/B1300-with-one-day-of-costs-the.md) | With one day of costs the bar chart is a full-width block and the running total draws nothing | ISSUE | medium | low |
-| [B1306](backlog/issue/B1306-three-model-habits-dropping-the-rest.md) | Three model habits: dropping the rest of a request, asserting absent capabilities, inventing tool prices | ISSUE | medium | low |
 | [B1307](backlog/issue/B1307-the-model-misstates-a-date-its.md) | The model misstates a date its own tool returned, and the error compounds into the next press | ISSUE | medium | low |
+| [B1308](backlog/issue/B1308-a-retry-s-blocks-accumulate-onto.md) | A retry's blocks accumulate onto the first, wrong attempt's own blocks | ISSUE | medium | medium |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
@@ -341,7 +337,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## testing (126)
+## testing (131)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -425,6 +421,10 @@ _Nothing here._
 | [B1261](testing/B1261-the-renderer-drops-every-block-after.md) | The renderer drops every block after the first interactive one, and the thread remembers what was never sent | ISSUE | high | medium | — |
 | [B1262](testing/B1262-the-guard-log-names-the-first.md) | The guard log names the first verdict while the person received the second pass's fallback | ISSUE | high | low | — |
 | [B1263](testing/B1263-a-failed-media-download-says-nothing.md) | A failed media download says nothing, and a pin onto an existing day refuses instead of attaching | ISSUE | high | low | — |
+| [B1302](testing/B1302-a-typed-button-label-is-not.md) | A typed button label is not a press, and a false saved-claim slips a session-wide guard | ISSUE | high | low | — |
+| [B1303](testing/B1303-a-new-chat-keeps-the-old.md) | A new chat keeps the old pending button, and the thread has no sense of time | ISSUE | high | low | — |
+| [B1304](testing/B1304-two-form-proposals-merge-into-one.md) | Two form proposals merge into one message with one button set | ISSUE | high | low | — |
+| [B1305](testing/B1305-trip-costs-hides-the-budget-and.md) | trip_costs hides the budget and publish_day offers a double publish | ISSUE | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |
@@ -464,6 +464,7 @@ _Nothing here._
 | [B1240](testing/B1240-every-photo-is-answered-instantly-and.md) | Every photo is answered instantly and separately instead of waiting for the batch | FEATURE | medium | medium | — |
 | [B1244](testing/B1244-the-helper-never-asks-for-what.md) | The helper never asks for what a day is missing — time, place, costs | FEATURE | medium | medium | — |
 | [B1264](testing/B1264-the-enrichment-question-never-fires-because.md) | The enrichment question never fires because a prompt line cannot see what a day lacks | ISSUE | medium | low | — |
+| [B1306](testing/B1306-three-model-habits-dropping-the-rest.md) | Three model habits: dropping the rest of a request, asserting absent capabilities, inventing tool prices | ISSUE | medium | low | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
 | [B1096](testing/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low | — |
 | [B1127](testing/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low | — |

@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: whatsapp, helper, honesty
 found: "2026-09-10T11:51:12Z"
+merged: "2026-09-10T12:27:08Z"
 ---
 
 # B1302 — A typed button label is not a press, and a false saved-claim slips a session-wide guard

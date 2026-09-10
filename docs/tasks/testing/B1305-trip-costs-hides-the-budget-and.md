@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: whatsapp, helper, honesty
 found: "2026-09-10T11:51:14Z"
+merged: "2026-09-10T12:27:10Z"
 ---
 
 # B1305 — trip_costs hides the budget and publish_day offers a double publish

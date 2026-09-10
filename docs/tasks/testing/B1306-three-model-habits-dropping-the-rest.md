@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: whatsapp, helper, honesty
 found: "2026-09-10T11:51:14Z"
+merged: "2026-09-10T12:27:10Z"
 ---
 
 # B1306 — Three model habits: dropping the rest of a request, asserting absent capabilities, inventing tool prices
