@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (144)
+## backlog (143)
 
 ### security (1)
 
@@ -101,7 +101,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (27)
+### small-feature (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -117,7 +117,6 @@ Do not edit them by hand; run the script.
 | [B1218](backlog/small-feature/B1218-room-decisions-opening-and-follow-through.md) | Room decisions: opening and follow-through — progress, undo, weather, costs, share (D45 D47 D48 D49 D51) | FEATURE | high | medium |
 | [B1220](backlog/small-feature/B1220-room-decisions-platform-polish-pwa-hint.md) | Room decisions: platform polish — PWA hint, haptics, shortcuts, wizard retirement (D40 D41 D42 D52) | FEATURE | high | medium |
 | [B1221](backlog/small-feature/B1221-room-decisions-a-30-second-demo.md) | Room decisions: a 30-second demo conversation at the door (D50) | FEATURE | high | medium |
-| [B1222](backlog/small-feature/B1222-the-phone-passcode-has-no-live.md) | The phone passcode has no live transport - the decided Twilio backend is on hold | FEATURE | high | medium |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
 | [B1069](backlog/small-feature/B1069-there-is-no-tool-surface-for.md) | There is no tool surface for an agent that would rather be guided than read a spec | FEATURE | medium | medium |
 | [B1155](backlog/small-feature/B1155-a-turn-spends-a-credit-and.md) | A turn spends a credit and nothing on screen says so | FEATURE | medium | medium |
@@ -240,7 +239,7 @@ Do not edit them by hand; run the script.
 | [B520](backlog/wont-do/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (43)
+## open (44)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -253,6 +252,7 @@ Do not edit them by hand; run the script.
 | [B1114](open/B1114-run-a-batch-has-no-shape.md) | run-a-batch has no shape for an engagement, so an OPS ticket cannot be in a batch at all | DOCS | high | medium |
 | [B1115](open/B1115-a-brief-can-say-a-ticket.md) | A brief can say a ticket is dropped or live, and B1058 is neither | DOCS | high | low |
 | [B1175](open/B1175-a-journal-deletion-that-fails-partway.md) | a journal deletion that fails partway leaves the journal gone, no tombstone, and a spent confirmation link | ISSUE | high | medium |
+| [B1222](open/B1222-the-phone-passcode-has-no-live.md) | The phone passcode has no live transport - the decided Twilio backend is on hold | FEATURE | high | medium |
 | [B106](open/B106-push-has-never-been-switched-on.md) | Push has never been switched on anywhere, so nothing has proved a notification reaches a phone | OPS | medium | medium |
 | [B1094](open/B1094-editing-a-contact-opens-a-form.md) | Editing a contact opens a form off-screen above the button, so the button looks broken | ISSUE | medium | low |
 | [B1112](open/B1112-a-triage-decision-carries-no-reason.md) | A triage decision carries no reason, so the run brief starts from ids alone | DOCS | medium | low |
