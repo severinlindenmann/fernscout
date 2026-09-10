@@ -1,6 +1,7 @@
 import "server-only";
 import { getDatabaseOrNull } from "../db";
 import { newId } from "../db/owner";
+import { trustedCaller } from "./caller";
 import { recordPress } from "./sessions";
 
 /**
@@ -374,7 +375,23 @@ export function note(username: string, text: string, channel: Channel = "web"): 
  * the loop (`app/api/helper/[user]/proposal/route.ts`) — call this, once,
  * rather than each writing the marker line by hand.
  */
-export function proposed(username: string, tool: string, args: Record<string, string>, channel: Channel = "web"): void {
+/**
+ * The channel a call carries when nobody names one — B1230.
+ *
+ * `proposed()`, `wrote()` and `refused()` below all defaulted to `"web"`
+ * (B1193's own fix threaded an explicit `channel` through the two WhatsApp
+ * call sites that existed then). Since B1230 a route's own `wrote()` call
+ * runs *inside* a WhatsApp accept tap too — `lib/helper/caller.ts`'s
+ * `runAsCaller` — and that route has no `channel` argument to pass, having
+ * been written once for a browser's cookie session. Reading the same trusted
+ * caller `isHelperOwner` already reads is what lets that note land on
+ * `"whatsapp"` without touching the route at all.
+ */
+function ambientChannel(): Channel {
+  return trustedCaller()?.how === "whatsapp" ? "whatsapp" : "web";
+}
+
+export function proposed(username: string, tool: string, args: Record<string, string>, channel: Channel = ambientChannel()): void {
   note(username, `[proposed, not written, waiting to be pressed: ${tool} ${JSON.stringify(args)}]`, channel);
 }
 
@@ -396,7 +413,7 @@ export function proposed(username: string, tool: string, args: Record<string, st
  * creation: asked outright, the model said it did not know the id — honest,
  * and one question away from being unable to answer.
  */
-export function wrote(username: string, tool: string, facts: Record<string, unknown>, channel: Channel = "web"): void {
+export function wrote(username: string, tool: string, facts: Record<string, unknown>, channel: Channel = ambientChannel()): void {
   note(username, `[written: ${tool} ${JSON.stringify(facts)}]`, channel);
   /**
    * And kept — B976. Every successful write already passes through here, which

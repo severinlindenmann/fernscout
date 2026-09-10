@@ -2053,6 +2053,10 @@
   "wa.contactNeedsEmail": "Ich bräuchte eine E-Mail-Adresse für {name}, um eine Einladung zu erstellen — diese Visitenkarte hatte keine. Schick sie noch einmal mit einer E-Mail, oder sag mir ihre.",
   "wa.contactInviteMade": "Angaben von {name} erhalten. Ich habe einen Einladungslink erstellt — schick ihn selbst, von hier aus oder wie auch immer du sie erreichst:\n\n{url}\n\nSie müssen ihn öffnen und ihre eigene E-Mail bestätigen, bevor irgendetwas passiert.",
   "wa.stopReply": "Um diese Nachrichten zu beenden, öffne diesen Link und drücke dort die Taste — erst das bestellt sie ab, und auf derselben Seite kannst du auch ändern, was du bekommst: {url}",
+  "wa.proposalDeclined": "Gelassen — es wurde nichts gespeichert.",
+  "wa.proposalGone": "Gerade wartet nichts mehr auf einen Druck — der Button wurde vielleicht schon benutzt, oder inzwischen ist etwas Neueres dazugekommen.",
+  "wa.proposalWebOnly": "Das braucht das Web — öffne das Journal, um es dort abzuschließen.",
+  "wa.proposalFailed": "Das konnte nicht gespeichert werden ({error}) — versuch es im Web noch einmal.",
   "agent.open.whatsapp": "Auf WhatsApp schreiben →",
   "agent.open.whatsappGreeting": "Hallo"
 }

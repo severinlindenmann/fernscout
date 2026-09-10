@@ -2053,6 +2053,10 @@
   "wa.contactNeedsEmail": "Szükségem lenne {name} e-mail címére a meghíváshoz — ezen a névjegykártyán nem volt. Küldd el újra e-mail címmel, vagy mondd meg nekem.",
   "wa.contactInviteMade": "Megkaptam {name} adatait. Készítettem egy meghívó linket — küldd el te magad, innen vagy ahogy el tudod érni:\n\n{url}\n\nMeg kell nyitniuk, és meg kell erősíteniük a saját e-mail címüket, mielőtt bármi történne.",
   "wa.stopReply": "Ha nem szeretnél több ilyen üzenetet, nyisd meg ezt a linket és nyomd meg ott a gombot — az iratkoztat le, és ugyanazon az oldalon azt is beállíthatod, mit kapsz: {url}",
+  "wa.proposalDeclined": "Rendben, hagytuk — nem mentettünk semmit.",
+  "wa.proposalGone": "Jelenleg nincs semmi, amire nyomni lehetne — lehet, hogy azt a gombot már használták, vagy azóta újabb dolog jött közbe.",
+  "wa.proposalWebOnly": "Ehhez a web kell — nyisd meg a naplót, hogy ott fejezd be.",
+  "wa.proposalFailed": "Ezt nem sikerült menteni ({error}) — próbáld meg újra a weben.",
   "agent.open.whatsapp": "Írj nekünk WhatsAppon →",
   "agent.open.whatsappGreeting": "Szia"
 }
