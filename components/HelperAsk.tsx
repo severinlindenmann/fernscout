@@ -251,7 +251,20 @@ const DECISION_ICON: Record<ReturnType<typeof decisionKind>, string> = {
  * `fs-waymark-bounce` leaves three still dots — none of it shorter, all of
  * it gone.
  */
-function TurnLoader({ shape }: { shape: "assembling" | "waymark" }) {
+function TurnLoader({
+  shape,
+  status,
+}: {
+  shape: "assembling" | "waymark";
+  /**
+   * The server's own honest line about what it is doing right now — B1213
+   * (D19): "reading the day…" rather than three dots with nothing behind
+   * them. Absent on the first render of a turn (nothing has started yet)
+   * and on a server too old to send one, in which case the dots alone carry
+   * the wait exactly as they always have.
+   */
+  status?: string;
+}) {
   if (shape === "assembling") {
     return (
       <div
@@ -275,14 +288,17 @@ function TurnLoader({ shape }: { shape: "assembling" | "waymark" }) {
     );
   }
   return (
-    <div aria-hidden className="mb-2 flex gap-2 px-1">
-      {[0, 150, 300].map((delay) => (
-        <span
-          key={delay}
-          className="fs-waymark-bounce h-3 w-3 rounded-full bg-yellow-400"
-          style={{ animationDelay: `${delay}ms` }}
-        />
-      ))}
+    <div aria-hidden className="mb-2 flex items-center gap-2 px-1">
+      {status && <span className="text-sm text-navy-600">{status}</span>}
+      <span className="flex gap-2">
+        {[0, 150, 300].map((delay) => (
+          <span
+            key={delay}
+            className="fs-waymark-bounce h-3 w-3 rounded-full bg-yellow-400"
+            style={{ animationDelay: `${delay}ms` }}
+          />
+        ))}
+      </span>
     </div>
   );
 }
@@ -460,6 +476,13 @@ export default function HelperAsk({
   /** Which of the two waits `TurnLoader` draws — B1124. `"waymark"` unless a
    *  call below knows better before it starts. */
   const [waitShape, setWaitShape] = useState<"assembling" | "waymark">("waymark");
+  /**
+   * The server's own line about what it is doing right now — B1213 (D19).
+   * Set from a streamed status line, cleared at the start of every turn and
+   * once it lands; a server that answers plain JSON instead never sets it
+   * and the dots read exactly as they did before this existed.
+   */
+  const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   // B807 — told apart from every other failure, because it is the only one
   // with something the person can do about it. A man mid-write-up got
@@ -639,6 +662,67 @@ export default function HelperAsk({
     return json;
   }
 
+  /**
+   * The `ask` endpoint, over NDJSON where the server offers it — B1213
+   * (D19). A status line is `{status: "…"}`; the answer is the one
+   * `{done: …}` line at the end, and it is the **same body** `send()` would
+   * have returned whole — a status event never stands in for it.
+   *
+   * `Accept` is what asks for the stream; whether it arrives is read from
+   * the response's own `content-type`, never assumed from having asked.
+   * Content negotiation both ways: a server too old to stream answers plain
+   * JSON regardless of the header, and this falls back to reading it exactly
+   * as `send()` does; a client too old to read the stream (there is none yet,
+   * but the shape is what makes that safe later) would see a
+   * `content-type` it does not recognise and could fall back the same way.
+   */
+  async function askStreamed(
+    url: string,
+    body: unknown,
+  ): Promise<Record<string, unknown>> {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/x-ndjson" },
+      body: JSON.stringify(body ?? {}),
+    });
+    const streaming = (response.headers?.get("content-type") ?? "").includes(
+      "application/x-ndjson",
+    );
+    if (!streaming) {
+      const json = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+      if (!response.ok) {
+        if (json.error == null && response.status >= 500) {
+          throw new Error("upstream_unavailable");
+        }
+        throw new Error(String(json.error ?? response.status));
+      }
+      return json;
+    }
+    if (!response.body) throw new Error("upstream_unavailable");
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let done: Record<string, unknown> | null = null;
+    for (;;) {
+      const { value, done: finished } = await reader.read();
+      if (value) buffer += decoder.decode(value, { stream: true });
+      for (;;) {
+        const at = buffer.indexOf("\n");
+        if (at < 0) break;
+        const raw = buffer.slice(0, at).trim();
+        buffer = buffer.slice(at + 1);
+        if (raw === "") continue;
+        const parsed = JSON.parse(raw) as { status?: unknown; done?: Record<string, unknown> };
+        if (typeof parsed.status === "string") setStatus(parsed.status);
+        if (parsed.done) done = parsed.done;
+      }
+      if (finished) break;
+    }
+    if (!done) throw new Error("upstream_unavailable");
+    if (typeof done.error === "string") throw new Error(done.error);
+    return done;
+  }
+
   async function ask(override?: string) {
     // B984 — a chip in the opening sends its sentence through here rather than
     // through anything of its own. State would not have settled by the time
@@ -648,10 +732,11 @@ export default function HelperAsk({
     // The shape of an ordinary ask is never known ahead of the answer —
     // B1124's fallback, always, here.
     setWaitShape("waymark");
+    setStatus("");
     setError("");
     setLapsed(false);
     try {
-      const body = await send(
+      const body = await askStreamed(
         `/api/helper/${encodeURIComponent(username)}/ask`,
         {
           said: words,
@@ -674,6 +759,7 @@ export default function HelperAsk({
       failed(thrown);
     } finally {
       setBusy(false);
+      setStatus("");
     }
   }
 
@@ -1055,9 +1141,9 @@ export default function HelperAsk({
       {busy && (
         <>
           <p role="status" className="sr-only">
-            {t("agent.chat.working")}
+            {status || t("agent.chat.working")}
           </p>
-          <TurnLoader shape={waitShape} />
+          <TurnLoader shape={waitShape} status={waitShape === "waymark" ? status : undefined} />
         </>
       )}
 

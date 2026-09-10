@@ -2,7 +2,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import type { Block } from "@/lib/helper/blocks";
 import { refusalFor, type Say } from "@/lib/helper/intents";
-import { answerInThread } from "@/lib/helper/model";
+import { answerInThread, statusKeyFor, type ToolKind } from "@/lib/helper/model";
 import { describeSelection, isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { recordTurn } from "@/lib/helper/sessions";
 import { forget, history, proposed, remember, sessionId } from "@/lib/helper/thread";
@@ -253,98 +253,156 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   /**
    * The whole of it — B900. The conversation so far, one new sentence, and
    * the registry. Reads run; writes propose and write nothing.
+   *
+   * **One turn, run exactly once, whichever door answers it** — B1213
+   * (D19). Streaming is a second way of *delivering* this turn's answer, not
+   * a second turn: the honesty guards inside `answerInThread`, `remember`,
+   * `recordTurn` and the proposals kept all happen here, so a streamed turn
+   * and a plain one can never disagree about what was recorded or charged.
+   * `onToolStart`, when given one, is told as each tool starts — never what
+   * it returned, only its `kind` (`./model.ts`'s `withoutPlumbing` is the
+   * reason a tool's *name* never reaches a screen either).
    */
-  let thread;
-  try {
-    thread = await answerInThread(
-      user,
-      context === "" ? said : `${said}\n${context}`,
-      await history(user),
-      today,
-      say,
-      // What is ticked, resolved by the tool that needs it — B925. Nobody is
-      // asked to read an id off a screen that shows none.
-      selected,
-      // The ambiguity anchor — B1224: a message too short to carry a language
-      // ("ja") is answered in the person's own UI language, never a guess.
+  async function runTurn(
+    onToolStart?: (tool: { name: string; kind: ToolKind }) => void,
+  ): Promise<{ status: number; body: Record<string, unknown> }> {
+    let thread;
+    try {
+      thread = await answerInThread(
+        user,
+        context === "" ? said : `${said}\n${context}`,
+        await history(user),
+        today,
+        say,
+        // What is ticked, resolved by the tool that needs it — B925. Nobody
+        // is asked to read an id off a screen that shows none.
+        selected,
+        // The ambiguity anchor — B1224: a message too short to carry a
+        // language ("ja") is answered in the person's own UI language,
+        // never a guess.
+        locale,
+        onToolStart,
+      );
+    } catch {
+      return { status: 502, body: { error: "model_failed" } };
+    }
+    // Nothing said and nothing drawn is a failed turn, and it is honest to
+    // say so: their own words are still in the box. A turn that drew
+    // something and said nothing is not — the blocks are the answer.
+    if (thread.answer === "" && thread.blocks.length === 0) {
+      return { status: 502, body: { error: "model_failed" } };
+    }
+
+    /**
+     * What is remembered, and **who each half is written for** — B924.
+     *
+     * "no, the 14th" is the sentence this whole feature is for, and it is
+     * only answerable if the next turn knows what was proposed. So the
+     * arguments ride along in one bracketed line, marked as *not written* so
+     * a later turn cannot mistake a proposal for a fact about the journal.
+     *
+     * That line used to be glued onto the end of the assistant's own answer,
+     * which is how it reached a person's screen: the model read its last
+     * answer back as prose containing a bracketed marker and, every so
+     * often, wrote one itself — a proposal "waiting to be pressed" with no
+     * card and no button. It is a **note** now (`lib/helper/thread.ts`): the
+     * model sees it, it is never assistant text, and there is nothing left
+     * to imitate.
+     */
+    remember(user, said, thread.answer);
+    /**
+     * What happened, kept — B976.
+     *
+     * After `remember`, so the thread has this turn in it and the count is
+     * the conversation as it now stands. Not awaited and never able to fail
+     * the turn: the person has their answer, and losing it to an analytics
+     * insert would be trading the product for the bookkeeping.
+     *
+     * `sessionId`/`history` are awaited here rather than left unresolved —
+     * the cache `remember` just wrote to is warm, so this costs nothing
+     * beyond the `await` itself (B1054).
+     */
+    void recordTurn({
+      owner: user,
+      session: await sessionId(user),
       locale,
-    );
-  } catch {
-    return Response.json({ error: "model_failed" }, { status: 502 });
-  }
-  // Nothing said and nothing drawn is a failed turn, and it is honest to say
-  // so: their own words are still in the box. A turn that drew something and
-  // said nothing is not — the blocks are the answer.
-  if (thread.answer === "" && thread.blocks.length === 0) {
-    return Response.json({ error: "model_failed" }, { status: 502 });
+      tools: thread.looked,
+      proposed: thread.proposals.map((proposal) => proposal.tool),
+      guard: thread.guard,
+      recovered: thread.recovered,
+      threadTurns: (await history(user)).length,
+      said,
+      answered: thread.answer,
+      origin: "web",
+    });
+    for (const proposal of thread.proposals) {
+      proposed(user, proposal.tool, proposal.arguments);
+    }
+
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        kind: "read",
+        answer: thread.answer,
+        // What it actually ran, in order — so the claim its answer makes
+        // about what it looked at is checkable from outside.
+        looked: thread.looked,
+        /**
+         * What the turn draws — B898. The tools' own blocks in the order
+         * they ran, and then the model's sentence as a `say`. The model
+         * chose the tools and no part of it chose a shape.
+         */
+        blocks: [
+          ...thread.blocks,
+          ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }]),
+        ] satisfies Block[],
+        /**
+         * Proposals a write tool made — B900. **Nothing has been written**:
+         * each carries the helper route its press posts to, and the press
+         * is the person's.
+         */
+        proposals: thread.proposals,
+      },
+    };
   }
 
   /**
-   * What is remembered, and **who each half is written for** — B924.
-   *
-   * "no, the 14th" is the sentence this whole feature is for, and it is only
-   * answerable if the next turn knows what was proposed. So the arguments ride
-   * along in one bracketed line, marked as *not written* so a later turn
-   * cannot mistake a proposal for a fact about the journal.
-   *
-   * That line used to be glued onto the end of the assistant's own answer,
-   * which is how it reached a person's screen: the model read its last answer
-   * back as prose containing a bracketed marker and, every so often, wrote one
-   * itself — a proposal "waiting to be pressed" with no card and no button.
-   * It is a **note** now (`lib/helper/thread.ts`): the model sees it, it is
-   * never assistant text, and there is nothing left to imitate.
+   * Content negotiation, not a flag — B1213 (D19). `Accept` is a header
+   * every `fetch` already carries, so a caller that never asks for NDJSON
+   * (an older client, a test, WhatsApp's own dispatch) gets exactly the JSON
+   * body it always got, and a new client talking to an instance that has not
+   * deployed this yet reads a `content-type` it did not ask for and falls
+   * back — `HelperAsk.tsx`'s `ask()` is what does that.
    */
-  remember(user, said, thread.answer);
-  /**
-   * What happened, kept — B976.
-   *
-   * After `remember`, so the thread has this turn in it and the count is the
-   * conversation as it now stands. Not awaited and never able to fail the
-   * turn: the person has their answer, and losing it to an analytics insert
-   * would be trading the product for the bookkeeping.
-   *
-   * `sessionId`/`history` are awaited here rather than left unresolved — the
-   * cache `remember` just wrote to is warm, so this costs nothing beyond the
-   * `await` itself (B1054).
-   */
-  void recordTurn({
-    owner: user,
-    session: await sessionId(user),
-    locale,
-    tools: thread.looked,
-    proposed: thread.proposals.map((proposal) => proposal.tool),
-    guard: thread.guard,
-    recovered: thread.recovered,
-    threadTurns: (await history(user)).length,
-    said,
-    answered: thread.answer,
-    origin: "web",
-  });
-  for (const proposal of thread.proposals) {
-    proposed(user, proposal.tool, proposal.arguments);
+  const wantsStream = (request.headers.get("accept") ?? "").includes("application/x-ndjson");
+  if (!wantsStream) {
+    const { status, body: answered } = await runTurn();
+    return Response.json(answered, status === 200 ? undefined : { status });
   }
 
-  return Response.json({
-    ok: true,
-    kind: "read",
-    answer: thread.answer,
-    // What it actually ran, in order — so the claim its answer makes about
-    // what it looked at is checkable from outside.
-    looked: thread.looked,
-    /**
-     * What the turn draws — B898. The tools' own blocks in the order they
-     * ran, and then the model's sentence as a `say`. The model chose the
-     * tools and no part of it chose a shape.
-     */
-    blocks: [
-      ...thread.blocks,
-      ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }]),
-    ] satisfies Block[],
-    /**
-     * Proposals a write tool made — B900. **Nothing has been written**: each
-     * carries the helper route its press posts to, and the press is the
-     * person's.
-     */
-    proposals: thread.proposals,
+  /**
+   * One NDJSON line per tool start, then one `{done: …}` line carrying
+   * **exactly** the body the non-streaming branch above answers with — a
+   * status event never replaces the final answer, it only fills the wait
+   * before it. A turn that fails still answers `200` here, because the
+   * stream's own headers are already sent by the time `runTurn` can know
+   * that: the failure rides inside `done` instead, the same
+   * `{ error: "model_failed" }` shape the plain path would have sent as a
+   * 502, and the client reads it the same way.
+   */
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const line = (value: Record<string, unknown>) => {
+        controller.enqueue(encoder.encode(`${JSON.stringify(value)}\n`));
+      };
+      const { body: answered } = await runTurn((tool) => {
+        line({ status: say(statusKeyFor(tool.kind)) });
+      });
+      line({ done: answered });
+      controller.close();
+    },
   });
+  return new Response(stream, { headers: { "content-type": "application/x-ndjson" } });
 }

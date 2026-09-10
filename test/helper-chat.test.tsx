@@ -232,6 +232,77 @@ describe("while it thinks", () => {
   });
 });
 
+/**
+ * B1213 (D19) — the same wait, said honestly. `askStreamed` in
+ * `HelperAsk.tsx` reads the route's NDJSON body line by line; this drives it
+ * with a real `ReadableStream` whose chunks are released by hand, the same
+ * shape `test/helper-thread.test.ts` proves the server actually writes.
+ */
+describe("while it thinks, and the server says what it is doing — B1213 (D19)", () => {
+  test("a streamed status line replaces the silence, and the answer still lands whole", async () => {
+    let controller: ReadableStreamDefaultController<Uint8Array> | undefined;
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(c) {
+        controller = c;
+      },
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          ({
+            ok: true,
+            headers: { get: () => "application/x-ndjson" },
+            body: stream,
+          }) as unknown as Response,
+      ),
+    );
+
+    render();
+    type("how many trips");
+    act(() => {
+      (container!.querySelector(
+        `button[aria-label="${dictionary["agent.askGo"]}"]`,
+      ) as HTMLButtonElement).click();
+    });
+
+    // Let the mocked fetch resolve and the reader start waiting on a chunk.
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    act(() => {
+      controller!.enqueue(encoder.encode(`${JSON.stringify({ status: "Reading the day…" })}\n`));
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(container!.textContent).toContain("Reading the day…");
+
+    act(() => {
+      controller!.enqueue(
+        encoder.encode(
+          `${JSON.stringify({ done: { ok: true, kind: "read", blocks: saying("Two.") } })}\n`,
+        ),
+      );
+      controller!.close();
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container!.textContent).toContain("Two.");
+    // The status line was the wait, not the answer — it does not linger
+    // beside it once the turn has landed.
+    expect(container!.textContent).not.toContain("Reading the day…");
+  });
+});
+
 describe("the blocks a tool declares", () => {
   test("`choose` is a list of buttons, and pressing one fills the field", async () => {
     answers({
