@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: photobook, build
 found: "2026-09-10T17:40:00Z"
+merged: "2026-09-10T16:39:28Z"
 ---
 
 # B1335 — sharp is bundled rather than external, so ordering a book 500s on the server
