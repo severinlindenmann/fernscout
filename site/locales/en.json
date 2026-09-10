@@ -2064,6 +2064,10 @@
   "wa.contactNeedsEmail": "I'd need an email address for {name} to make an invite — that contact card didn't have one. Send it again with an email, or tell me theirs.",
   "wa.contactInviteMade": "Got {name}'s details. I've made an invite link — send it yourself, from here or however you'd reach them:\n\n{url}\n\nThey'll need to open it and confirm their own email before anything happens.",
   "wa.stopReply": "To stop these messages, open this link and press the button there — that is what unsubscribes you, and you can change what you get on the same page: {url}",
+  "wa.proposalDeclined": "Left it — nothing was written.",
+  "wa.proposalGone": "There's nothing waiting to be pressed right now — that button may already have been used, or something newer has come up since.",
+  "wa.proposalWebOnly": "That one needs the web — open the journal to finish it there.",
+  "wa.proposalFailed": "That couldn't be saved ({error}) — open the web to try again.",
   "agent.open.whatsapp": "Message us on WhatsApp →",
   "agent.open.whatsappGreeting": "Hi"
 }

@@ -31,7 +31,9 @@ import { hasAcknowledged, hasBeenGreeted, markAcknowledged, markGreeted } from "
 import { downloadMedia } from "./cloud";
 import { announceHeldAnswer, takeHeldAnswer } from "./held";
 import { cloudCredentials, maskNumber } from "./index";
-import { renderForWhatsapp } from "./render";
+import { holdProposal, takePendingProposal } from "./pendingProposal";
+import { isWhatsappExecutable, pressProposal } from "./proposalExecution";
+import { CONFIRM_NO_ID, CONFIRM_YES_ID, confirmButtonsFor, renderForWhatsapp } from "./render";
 import { balanceRefusal } from "./refusal";
 import { sendOutboundReply, sendServiceReply } from "./reply";
 import { clearPendingSpeechAsk, hasPendingSpeechAsk, markPendingSpeechAsk } from "./speechConsent";
@@ -231,6 +233,19 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
       return;
     }
     // Not a "yes" — an ordinary sentence, answered ordinarily below.
+  }
+
+  /**
+   * A tap on the two buttons a waiting proposal offers — B1230, and read
+   * before the ordinary "say the button's label back" rule below, which is
+   * what every *other* button (a `choose`, a day-gap pick) still follows.
+   * `CONFIRM_YES_ID`/`CONFIRM_NO_ID` are the two fixed ids `render.ts`'s
+   * `confirmButtonsFor` always uses, never a locale-dependent title, so this
+   * matches regardless of what language the button was drawn in.
+   */
+  if (message.kind === "interactive" && (message.replyId === CONFIRM_YES_ID || message.replyId === CONFIRM_NO_ID)) {
+    await handleProposalReply(username, locale, message.from, message.replyId === CONFIRM_YES_ID);
+    return;
   }
 
   const said =
@@ -555,11 +570,22 @@ async function handleContactCard(
  *
  * `said` is already resolved by the caller — the message body, an
  * interactive reply's title (`lib/helper/blocks.ts`'s own "pressing one says
- * its label" rule, extended to `confirm` here — see `lib/whatsapp/render.ts`'s
- * module doc for why a confirm's accept button never itself writes anything),
- * or a voice note's transcript, echoed back first (B1060). A photograph and
- * a document land in the inbox instead (`handleMedia`, B1059) and never
- * reach this function; a location pin and a shared contact card are B1074's.
+ * its label" rule for a `choose`), or a voice note's transcript, echoed back
+ * first (B1060). A photograph and a document land in the inbox instead
+ * (`handleMedia`, B1059) and never reach this function; a location pin and a
+ * shared contact card are B1074's. **A tap on a proposal's own accept or
+ * decline button never reaches here at all** — `handleInboundMessage` reads
+ * `CONFIRM_YES_ID`/`CONFIRM_NO_ID` before it ever computes `said`, and hands
+ * those to `handleProposalReply` below instead (B1230).
+ *
+ * If this turn leaves a proposal waiting, it is held for that tap —
+ * `holdProposal` — and, when the turn's own blocks did not already draw a
+ * `confirm`'s buttons (a `form`-shaped proposal has no WhatsApp shape of its
+ * own otherwise), a real accept/decline pair is added on top, for exactly
+ * the tools `lib/whatsapp/proposalExecution.ts` knows how to press. A
+ * proposal that channel will not press keeps its pre-B1230 shape — text and
+ * a link into `/agent` — because a button that could not do anything is
+ * worse than no button.
  */
 async function answerOnWhatsapp(username: string, locale: string, to: string, said: string): Promise<void> {
   // The same capability the web room's own routes gate on — an instance
@@ -599,5 +625,74 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
 
   const blocks = [...thread.blocks, ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }])];
   const journalUrl = `${serverSite().url}/agent`;
-  await sendOutboundReply(to, renderForWhatsapp(blocks, journalUrl), username);
+  let outbound = renderForWhatsapp(blocks, journalUrl);
+
+  // At most one write proposal reaches a WhatsApp screen at a time in
+  // practice — the model calls one write tool a turn — so the first is the
+  // one a tap can be about; see the module doc above `holdProposal`.
+  const proposal = thread.proposals[0];
+  if (proposal) {
+    if (outbound.kind === "buttons") {
+      // A `confirm` block already drew these buttons (B1056) — hold the
+      // proposal so a tap on them can find it. Whether the tap goes on to
+      // execute or is told this lives on the web is `handleProposalReply`'s
+      // question, not this one's.
+      holdProposal(username, to, proposal);
+    } else if (isWhatsappExecutable(proposal.tool)) {
+      // A `form`-shaped proposal (B1230's own case: `create_trip` is exactly
+      // this) had no WhatsApp shape before this ticket. It gets one now,
+      // built over whatever text `renderForWhatsapp` already produced.
+      outbound = confirmButtonsFor(outbound.body, proposal.accept);
+      holdProposal(username, to, proposal);
+    }
+    // A `form`-shaped proposal for a tool this channel will never press
+    // (a postcard, a photobook) keeps its pre-B1230 text-and-link shape —
+    // no button is offered for a press that could not do anything.
+  }
+
+  await sendOutboundReply(to, outbound, username);
+}
+
+/**
+ * A tap on a waiting proposal's own accept or decline button — B1230.
+ *
+ * **Take-once, always.** `takePendingProposal` both answers "is anything
+ * waiting" and clears it in the same read, which is the whole of why a
+ * second tap — a genuine double-press, or Meta redelivering the interactive
+ * reply under a wamid its own webhook dedupe has never seen — cannot run a
+ * write twice: the second call finds nothing and says so, honestly, rather
+ * than repeating whatever the first one did.
+ *
+ * **Decline writes nothing and needs no route at all** — the proposal is
+ * simply discarded, the same "leave it" the web panel's own second button
+ * does with nothing to post.
+ *
+ * **Accept presses the same route the web panel's button would**, through
+ * `pressProposal`, which itself refuses a tool this channel does not run
+ * (`"web_only"`, B1230's decision 4 — a postcard, a photobook, buying
+ * credits). Every other outcome is what the route itself decided, and the
+ * one sentence sent back is either `proposal.done` — the exact words the web
+ * panel shows after the identical press, so this can never claim more than
+ * the write actually did — or a plain, honest "that could not be saved".
+ */
+async function handleProposalReply(username: string, locale: string, to: string, accepted: boolean): Promise<void> {
+  const pending = takePendingProposal(username, to);
+  if (!pending) {
+    await sendOutboundReply(to, { kind: "text", body: translateIn(locale, "wa.proposalGone") }, username);
+    return;
+  }
+  if (!accepted) {
+    await sendOutboundReply(to, { kind: "text", body: translateIn(locale, "wa.proposalDeclined") }, username);
+    return;
+  }
+
+  const result = await pressProposal(username, pending);
+  if (result.ok) {
+    await sendOutboundReply(to, { kind: "text", body: pending.done }, username);
+    console.log(`[whatsapp:inbound] ${maskNumber(to)} (${username}) pressed ${pending.tool} from WhatsApp`);
+    return;
+  }
+  const key = result.error === "web_only" ? "wa.proposalWebOnly" : "wa.proposalFailed";
+  await sendOutboundReply(to, { kind: "text", body: translateIn(locale, key, { error: result.error }) }, username);
+  console.log(`[whatsapp:inbound] ${maskNumber(to)} (${username}) press of ${pending.tool} refused: ${result.error}`);
 }

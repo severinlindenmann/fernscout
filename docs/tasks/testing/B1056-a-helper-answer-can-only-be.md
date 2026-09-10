@@ -86,3 +86,16 @@ Answered by the owner:
   mean the earliest WhatsApp turns are replaced by fallback sentences for no
   reason — a guard firing on an honest turn, which AGENTS.md rates as serious
   as one that misses.
+
+## Revised — 2026-09-10
+
+B1230 overrides this ticket's own boundary. `lib/whatsapp/render.ts`'s module
+doc, written here, said a `confirm`'s accept button on WhatsApp "never itself
+writes anything on this channel" — true when this ticket shipped, and wrong
+the moment an owner hit it live: the model proposed a trip, the reply pointed
+at a button that did not exist, and the routes it would have posted to are
+cookie-gated regardless. B1230 gives an ordinary journal write (a trip, a day,
+and the like) a real accept button that presses the same route the web
+panel's own button does, authenticated by the number binding rather than a
+cookie. Money and irreversible flows — a postcard, a photobook, buying
+credits — are unchanged and stay behind the web. See B1230 for the mechanism.
