@@ -746,6 +746,18 @@ export function openApiDocument() {
                         "appears in the mailed URL, and anything that is not a path inside " +
                         "`/{user}/` is ignored, landing the reader on the journal instead.",
                     },
+                    channel: {
+                      type: "string",
+                      enum: ["email", "whatsapp"],
+                      default: "email",
+                      description:
+                        "How the code travels. `whatsapp` sends it as a WhatsApp message " +
+                        "to the number the journal's owner proved at signup — so it only " +
+                        "ever delivers for the owner's own address; anything else answers " +
+                        "the same 202 with nothing sent, exactly like an unknown address " +
+                        "by mail. A server without WhatsApp answers 503 " +
+                        "`whatsapp_disabled`.",
+                    },
                   },
                 },
               },
@@ -769,7 +781,8 @@ export function openApiDocument() {
                 "`mail_disabled` — this server cannot send mail at all, so nothing was " +
                 "issued and any code you already hold is still live. Or `mail_failed` — " +
                 "the send was attempted and broke, so no code is live for this address " +
-                "and retrying is the remedy.",
+                "and retrying is the remedy. `whatsapp_disabled` and `whatsapp_failed` " +
+                "are the same two answers for `channel: \"whatsapp\"`.",
             },
           },
         },

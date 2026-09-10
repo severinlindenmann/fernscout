@@ -2,6 +2,7 @@ import "server-only";
 import { loadServerConfig } from "../config";
 import { dryRunPhoneVerify } from "./dryRun";
 import { twilioPhoneVerify } from "./twilio";
+import { whatsappPhoneVerify } from "./whatsapp";
 import type { CheckResult, PhoneVerifyBackend, StartResult } from "./types";
 
 export type { CheckResult, StartResult } from "./types";
@@ -20,6 +21,8 @@ function backend(): PhoneVerifyBackend {
       return dryRunPhoneVerify;
     case "twilio":
       return twilioPhoneVerify;
+    case "whatsapp":
+      return whatsappPhoneVerify;
     default:
       // Unreachable: lib/capabilities.ts refuses an unknown backend at boot.
       throw new Error(`Unknown phone verification backend "${backendName()}".`);

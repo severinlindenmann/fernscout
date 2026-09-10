@@ -7,6 +7,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { awaitingApproval, guestBlockedByPrivateTrip, mayReadTrip, signedInAs } from "@/lib/tripGate";
 import { getTrip, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
+import { whatsappSignInOffered } from "@/lib/whatsapp/settings";
 
 /**
  * Rendered per request, not prerendered.
@@ -62,6 +63,7 @@ export default async function TripLayout({
       canSignIn={isEnabled("auth", user)}
       canAsk={isEnabled("contacts", user)}
       codeMinutes={CODE_TTL_MINUTES}
+      whatsappSignIn={whatsappSignInOffered(user)}
       guestBlockedByPrivate={await guestBlockedByPrivateTrip(trip)}
       waiting={await awaitingApproval(user)}
     />

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import BusyButton from "@/components/BusyButton";
 import { PRIMARY_BUTTON } from "@/components/LandingSections";
 import { useI18n } from "@/components/LocaleProvider";
+import TelField from "@/components/TelField";
 import { LOCALE_LABEL, MAINTAINED_LOCALES } from "@/lib/i18n";
 import { LOCALE_COOKIE } from "@/lib/requestKeys";
 
@@ -21,7 +22,7 @@ function rememberLocale(code: string) {
  * is what actually decides; this never has to be the last word. */
 const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
 
-type Step = "email" | "code" | "journal" | "trip" | "signing-in";
+type Step = "email" | "code" | "phone" | "phone-code" | "journal" | "trip" | "signing-in";
 
 /**
  * A brand-new visitor's whole way in, without leaving `/agent` — B688.
@@ -129,6 +130,18 @@ export default function SignupWizard({
    * and the datalist, where they are visible without being chosen. */
   const [baseCurrency, setBaseCurrency] = useState("");
 
+  /**
+   * The phone step — B1222. Only reached when `POST /api/v1/journals`
+   * answers `phone_required`, so an instance whose operator address or
+   * `test-` prefix exempts it never sees these, and neither does one that
+   * drops the requirement. The passcode arrives over WhatsApp; the step
+   * says so, and says where somebody without WhatsApp can turn.
+   */
+  const [telCc, setTelCc] = useState("41");
+  const [telNational, setTelNational] = useState("");
+  const [phoneId, setPhoneId] = useState("");
+  const [phoneCode, setPhoneCode] = useState("");
+
   const [agentToken, setAgentToken] = useState("");
   const [signInUrl, setSignInUrl] = useState("");
   const [journalUsername, setJournalUsername] = useState("");
@@ -141,6 +154,9 @@ export default function SignupWizard({
     path: string,
     body: unknown,
     auth?: string,
+    /** Error codes the caller wants to branch on rather than show — the
+     * result then carries `error` and the caller decides (B1222). */
+    passthrough?: string[],
   ): Promise<Record<string, unknown> | null> {
     const response = await fetch(path, {
       method: "POST",
@@ -155,6 +171,9 @@ export default function SignupWizard({
       unknown
     > | null;
     if (!response?.ok) {
+      if (typeof json?.error === "string" && passthrough?.includes(json.error)) {
+        return json;
+      }
       const message =
         typeof json?.message === "string"
           ? json.message
@@ -198,8 +217,7 @@ export default function SignupWizard({
     setStep("journal");
   }
 
-  async function createJournalStep(event: React.FormEvent) {
-    event.preventDefault();
+  async function createJournal() {
     setBusy(true);
     setError(null);
     const result = await post(
@@ -215,13 +233,67 @@ export default function SignupWizard({
         baseCurrency,
       },
       signupToken,
+      ["phone_required"],
     );
     setBusy(false);
     if (!result) return;
+    // The server wants a proven number as well as the proven address
+    // (B1064/B1065). The wizard finds out here rather than asking up
+    // front, so an exempt instance never shows the step at all.
+    if (result.error === "phone_required") {
+      setStep("phone");
+      return;
+    }
     setAgentToken(result.token as string);
     setJournalUsername(result.user as string);
     setSignInUrl(typeof result.signIn === "string" ? result.signIn : "");
     setStep("trip");
+  }
+
+  async function createJournalStep(event: React.FormEvent) {
+    event.preventDefault();
+    await createJournal();
+  }
+
+  async function requestPhoneCode(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    const result = await post(
+      "/api/auth/signup/phone/request",
+      { tel: `+${telCc} ${telNational}` },
+      signupToken,
+    );
+    setBusy(false);
+    if (!result) return;
+    setPhoneId(result.id as string);
+    setPhoneCode("");
+    setStep("phone-code");
+  }
+
+  async function verifyPhoneCode(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    const result = await post(
+      "/api/auth/signup/phone/verify",
+      { id: phoneId, code: phoneCode },
+      signupToken,
+      ["invalid_code"],
+    );
+    if (!result) {
+      setBusy(false);
+      return;
+    }
+    if (result.error === "invalid_code") {
+      setBusy(false);
+      setError(t("agent.phoneWrong"));
+      setPhoneCode("");
+      return;
+    }
+    // The number is proven and attached to the signup token — retry the
+    // create that sent us here. `createJournal` manages busy itself.
+    await createJournal();
   }
 
   async function createTripStep(event: React.FormEvent) {
@@ -357,6 +429,88 @@ export default function SignupWizard({
           >
             {t("agent.startVerify")}
           </BusyButton>
+        </form>
+      )}
+
+      {step === "phone" && (
+        <form onSubmit={requestPhoneCode}>
+          <p className="mt-2 text-base leading-7 text-navy-700">
+            {t("agent.phoneIntro")}
+          </p>
+          <div className="mt-4">
+            <span className={label}>{t("agent.phoneLabel")}</span>
+            <TelField
+              id="signup-tel"
+              cc={telCc}
+              national={telNational}
+              onChange={(cc, national) => {
+                setTelCc(cc);
+                setTelNational(national);
+              }}
+              labelCountry={t("contact.telCountry")}
+              searchPlaceholder={t("contact.telSearchPlaceholder")}
+              noMatches={t("contact.telNoMatches")}
+              locale={locale}
+            />
+          </div>
+          <p className="mt-3 text-base leading-7 text-navy-700">
+            {t("agent.phoneWhatsapp")}
+          </p>
+          <p className="mt-2 text-sm leading-6 text-navy-600">
+            {t("agent.phoneNoWhatsapp")}
+          </p>
+          <BusyButton
+            busy={busy}
+            type="submit"
+            className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
+            busyLabel={t("me.signInSending")}
+          >
+            {t("agent.phoneSend")}
+          </BusyButton>
+        </form>
+      )}
+
+      {step === "phone-code" && (
+        <form onSubmit={verifyPhoneCode}>
+          <p className="mt-2 text-base leading-7 text-navy-700">
+            {t("agent.phoneCodeSent")}
+          </p>
+          <div className={field}>
+            <label className={label} htmlFor="signup-phone-code">
+              {t("me.signInCode")}
+            </label>
+            <input
+              id="signup-phone-code"
+              name="code"
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              minLength={6}
+              maxLength={6}
+              required
+              value={phoneCode}
+              onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, ""))}
+              className={`${input} font-mono text-2xl tracking-[0.3em]`}
+            />
+          </div>
+          <p className="mt-2 text-sm leading-6 text-navy-600">
+            {t("agent.phoneNoWhatsapp")}
+          </p>
+          <BusyButton
+            busy={busy}
+            type="submit"
+            className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
+            busyLabel={t("me.signInSending")}
+          >
+            {t("agent.startVerify")}
+          </BusyButton>
+          <button
+            type="button"
+            onClick={() => setStep("phone")}
+            className="mt-3 min-h-11 text-base text-navy-600 underline underline-offset-4"
+          >
+            {t("agent.phoneAgain")}
+          </button>
         </form>
       )}
 

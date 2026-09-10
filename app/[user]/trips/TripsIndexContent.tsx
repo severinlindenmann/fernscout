@@ -150,6 +150,7 @@ export default function TripsIndexContent({
   empty = null,
   malformed = [],
   codeMinutes,
+  whatsappSignIn,
 }: {
   trips: TripCardData[];
   /** Closed trips advertised as locked cards — see `LockedTripData`. */
@@ -174,6 +175,8 @@ export default function TripsIndexContent({
   /** How long a requested code lasts, from `CODE_TTL_MINUTES` — passed down
    * to the code-request form the empty state may offer. See `EmptyState`. */
   codeMinutes: string;
+  /** See `whatsappSignInOffered` — lib/whatsapp/settings. */
+  whatsappSignIn?: boolean;
 }) {
   const { t, tn, localizedTrip } = useI18n();
 
@@ -234,7 +237,7 @@ export default function TripsIndexContent({
           empty, so the empty state would be a second untruth.
         */}
         {empty ? (
-          <EmptyState empty={empty} codeMinutes={codeMinutes} />
+          <EmptyState empty={empty} codeMinutes={codeMinutes} whatsappSignIn={whatsappSignIn} />
         ) : trips.length === 0 && (malformed.length > 0 || locked.length > 0) ? (
           // Nothing to total and no cards to group, but a teasered trip's
           // countries are still worth drawing — see `map`.
@@ -357,7 +360,7 @@ function MalformedNotice({ malformed }: { malformed: BrokenFolder[] }) {
  * fact B264 closed off (whether there is anything to actually read). Nothing
  * here asks that question.
  */
-function EmptyState({ empty, codeMinutes }: { empty: EmptyJournal; codeMinutes: string }) {
+function EmptyState({ empty, codeMinutes, whatsappSignIn }: { empty: EmptyJournal; codeMinutes: string; whatsappSignIn?: boolean }) {
   const { t } = useI18n();
   const { username, canSignIn } = useSite();
   const title = empty.owner
@@ -396,7 +399,7 @@ function EmptyState({ empty, codeMinutes }: { empty: EmptyJournal; codeMinutes: 
           cannot issue codes at all (`canSignIn`); `me`'s panel makes the
           same call, for the same journal-wide reason. */}
       {!empty.owner && !empty.signedIn && canSignIn && (
-        <GuestSignIn username={username} codeMinutes={codeMinutes} />
+        <GuestSignIn username={username} codeMinutes={codeMinutes} whatsappSignIn={whatsappSignIn} />
       )}
     </>
   );
