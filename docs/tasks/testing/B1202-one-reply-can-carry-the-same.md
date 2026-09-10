@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: helper
 found: "2026-09-10T00:05:18Z"
+merged: "2026-09-10T05:40:50Z"
 ---
 
 # B1202 — One reply can carry the same proposal card twice, verbatim

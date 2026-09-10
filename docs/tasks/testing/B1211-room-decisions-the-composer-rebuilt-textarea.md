@@ -7,8 +7,7 @@ complexity: medium
 area: helper room
 found: "2026-09-10T04:39:36Z"
 started: "2026-09-10T05:24:21Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-10T05:24:21Z"
+merged: "2026-09-10T05:40:49Z"
 ---
 
 # B1211 — Room decisions: the composer rebuilt — textarea, send, voice, drafts, camera (D13 D14 D15 D16 D33)

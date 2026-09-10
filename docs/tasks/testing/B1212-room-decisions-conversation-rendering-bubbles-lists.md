@@ -7,8 +7,7 @@ complexity: medium
 area: helper room
 found: "2026-09-10T04:39:37Z"
 started: "2026-09-10T05:24:23Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-10T05:24:23Z"
+merged: "2026-09-10T05:40:49Z"
 ---
 
 # B1212 — Room decisions: conversation rendering — bubbles, lists, time marks, retry, chips, dedupe (D02 D21 D22 D20 D18 D23)
