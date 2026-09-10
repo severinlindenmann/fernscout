@@ -337,9 +337,15 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (0)
+## in-development (5)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B1349](in-development/B1349-the-files-tab-s-upload-block.md) | The files tab's upload block stacks two lonely buttons around a paragraph | ISSUE | high | low | `b9809a36` |
+| [B1350](in-development/B1350-the-storage-bar-does-not-move.md) | The storage bar does not move when an upload lands | ISSUE | high | low | `b9809a36` |
+| [B1351](in-development/B1351-the-phone-tab-bar-is-clipped.md) | The phone tab bar is clipped by the iPhone's rounded corners in the PWA | ISSUE | high | low | `b9809a36` |
+| [B1352](in-development/B1352-recording-squeezes-four-labels-into-the.md) | Recording squeezes four labels into the composer row | ISSUE | high | low | `b9809a36` |
+| [B1353](in-development/B1353-the-sheets-open-top-anchored-on.md) | The sheets open top-anchored on a phone and the credits entry still says Speicher | ISSUE | high | low | `b9809a36` |
 
 ## testing (129)
 
