@@ -339,7 +339,7 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (5)
+## in-development (6)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -348,6 +348,7 @@ Do not edit them by hand; run the script.
 | [B1342](in-development/B1342-who-may-read-a-new-trip.md) | Who may read a new trip is asked in prose, not as a choice | FEATURE | high | medium | `b9809a36` |
 | [B1343](in-development/B1343-a-new-proposal-can-land-outside.md) | A new proposal can land outside the visible chat | FEATURE | high | medium | `b9809a36` |
 | [B1344](in-development/B1344-a-turn-that-arrived-via-whatsapp.md) | A turn that arrived via WhatsApp looks identical to a web turn | FEATURE | high | medium | `b9809a36` |
+| [B1347](in-development/B1347-the-money-dashboard-under-counts-print.md) | The money dashboard under-counts: print costs are a confident zero, WhatsApp sends are uncounted and unpriced, SMS appear nowhere | FEATURE | high | medium | `0b65a2c0` |
 
 ## testing (120)
 
