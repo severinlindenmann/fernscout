@@ -16,9 +16,9 @@ import type { Say } from "../helper/intents";
 import { answerInThread, WRITE_DAY_CREDITS } from "../helper/model";
 import { recordTurn } from "../helper/sessions";
 import { MAX_AUDIO_BYTES, MAX_SPEECH_SECONDS, speechLanguageFor } from "../helper/speech";
-import { history, proposed, remember, sessionId, wrote } from "../helper/thread";
+import { forget, history, proposed, remember, sessionId, wrote } from "../helper/thread";
 import { spendAndTranscribe } from "../helper/transcribeSpend";
-import { kindForExtension, listInbox, storeInboxFile } from "../inbox";
+import { kindForExtension, storeInboxFile } from "../inbox";
 import { translateIn } from "../locales";
 import { claimPhoneLink } from "../phoneVerify/inboundLink";
 import { journalForNumber } from "../registry";
@@ -27,11 +27,12 @@ import { storageRefusal } from "../storageQuota";
 import { missingFrom, UNKNOWN } from "../tracks";
 import { getTrips, tripRef } from "../trips";
 import type { Trip } from "../types";
-import { isAcknowledgement } from "./acknowledge";
+import { isAcknowledgement, isNewChatCommand } from "./acknowledge";
 import { hasAcknowledged, hasBeenGreeted, markAcknowledged, markGreeted } from "./binding";
 import { downloadMedia } from "./cloud";
 import { announceHeldAnswer, takeHeldAnswer } from "./held";
 import { cloudCredentials, maskNumber } from "./index";
+import { flushMediaBatch, noteMedia } from "./mediaBatch";
 import { holdProposal, takePendingProposal } from "./pendingProposal";
 import { isWhatsappExecutable, pressProposal } from "./proposalExecution";
 import { CONFIRM_NO_ID, CONFIRM_YES_ID, confirmButtonsFor, renderForWhatsapp } from "./render";
@@ -164,6 +165,18 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
   const locale = user?.defaultLocale ?? "en";
 
   /**
+   * The fallback half of B1240: a batch that never gets a quiet moment
+   * answers the instant the sender moves on to something else, rather than
+   * staying silent because the window keeps resetting. Every kind but a
+   * photo or a document reaching here counts as "moved on" — including a
+   * held answer or the greeting a few lines down, both of which are
+   * themselves things this number just said in a sense.
+   */
+  if (message.kind !== "image" && message.kind !== "document") {
+    await flushMediaBatch(username, message.from);
+  }
+
+  /**
    * Whatever was ready before this number wrote again — B1061. "Never
    * initiate" means a late answer cannot be pushed; it waits for exactly
    * this moment, and is delivered before anything this message itself
@@ -258,6 +271,24 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
       return;
     }
     // Not a "yes" — an ordinary sentence, answered ordinarily below.
+  }
+
+  /**
+   * "new chat" / "neues gespräch" — B1245, matched before the model exactly
+   * as `wa.yes` is (B1138) rather than left for the model to notice and
+   * call nothing for. `forget()` is the whole of "ends the live session
+   * cleanly" — B1054/B1168's own mechanism: the `helper_threads` row for
+   * this journal is cleared, so the very next message mints a fresh
+   * `sessionId()` rather than continuing the old one. The old conversation
+   * is not deleted — `helper_sessions` keeps every turn it ever had, which
+   * is what makes it reachable again from `/agent`'s history panel.
+   */
+  if (message.kind === "text" && isNewChatCommand(message.body, locale)) {
+    forget(username);
+    const url = `${serverSite().url}/agent`;
+    await sendServiceReply(message.from, translateIn(locale, "wa.newChatStarted", { url }), username);
+    console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) started a fresh conversation`);
+    return;
   }
 
   /**
@@ -431,15 +462,10 @@ async function handleMedia(username: string, locale: string, message: MediaMessa
   });
 
   const topic = message.kind === "document" ? "document" : "photo";
-  const alreadyToldEitherWay = hasBeenTold(username, message.from, "photo") || hasBeenTold(username, message.from, "document");
-  const total = Object.values(listInbox(username))
-    .flat()
-    .filter((entry) => entry.kind === "media" || entry.kind === "files").length;
-  const landed = translateIn(locale, "wa.mediaLanded", { count: String(total) });
-  const body = alreadyToldEitherWay ? landed : `${landed}${translateIn(locale, "wa.mediaTip")}`;
-  if (!alreadyToldEitherWay) markTold(username, message.from, topic);
-
-  await sendServiceReply(message.from, body, username);
+  // One reply for the whole batch, not one per item — B1240. Resets a short
+  // window rather than answering instantly; `flushMediaBatch` (called on the
+  // next non-media message) is the fallback if the sender never pauses.
+  noteMedia(username, message.from, locale, topic);
   console.log(
     `[whatsapp:inbound] ${maskNumber(message.from)} (${username}) — ${message.kind} landed in the inbox as ${stored.entry.id}`,
   );
@@ -649,17 +675,35 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
   for (const proposal of thread.proposals) proposed(username, proposal.tool, proposal.arguments, "whatsapp");
 
   const blocks = [...thread.blocks, ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }])];
-  // The session link, not the bare room — B1237. `/agent?c=<id>` (built the
-  // same way the greeting's own `agentUrl` above already is) adopts this
-  // exact conversation; a bare `/agent` opens the room to a stranger who has
-  // to start over, which is worse than a link doing nothing at all.
-  const journalUrl = `${serverSite().url}/agent?c=${await sessionId(username, "whatsapp")}`;
-  let outbound = renderForWhatsapp(blocks, journalUrl);
-
   // At most one write proposal reaches a WhatsApp screen at a time in
   // practice — the model calls one write tool a turn — so the first is the
   // one a tap can be about; see the module doc above `holdProposal`.
   const proposal = thread.proposals[0];
+  /**
+   * What the link actually opens on — B1242.
+   *
+   * `?c=<id>` alone lands somebody in the conversation with nothing summoned
+   * (`components/HelperRoom.tsx`'s preview rail only draws once a `subject`
+   * is set, and nothing on arrival sets one from `?c=` by itself). The room
+   * already honours `?about=<trip>/<slug>` for exactly this — B994's link
+   * from a day — so the fix is naming the day this turn was about, not a new
+   * mechanism: a proposal whose arguments already carry a resolved `trip`
+   * and `slug` (attach a photo, write a day up, add a cost — everything past
+   * `start_day`, which has no slug yet to name) is the day the preview
+   * should open on.
+   */
+  const about =
+    proposal && proposal.arguments.trip && proposal.arguments.slug
+      ? `&about=${encodeURIComponent(proposal.arguments.trip)}/${encodeURIComponent(proposal.arguments.slug)}`
+      : "";
+  // The session link, not the bare room — B1237. `/agent?c=<id>` (built the
+  // same way the greeting's own `agentUrl` above already is) adopts this
+  // exact conversation; a bare `/agent` opens the room to a stranger who has
+  // to start over, which is worse than a link doing nothing at all.
+  const journalUrl = `${serverSite().url}/agent?c=${await sessionId(username, "whatsapp")}${about}`;
+  const declineLabel = translateIn(locale, "wa.declineButton");
+  let outbound = renderForWhatsapp(blocks, journalUrl, declineLabel);
+
   if (proposal) {
     if (outbound.kind === "buttons") {
       // A `confirm` block already drew these buttons (B1056) — hold the
@@ -671,7 +715,7 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
       // A `form`-shaped proposal (B1230's own case: `create_trip` is exactly
       // this) had no WhatsApp shape before this ticket. It gets one now,
       // built over whatever text `renderForWhatsapp` already produced.
-      outbound = confirmButtonsFor(outbound.body, proposal.accept);
+      outbound = confirmButtonsFor(outbound.body, proposal.accept, declineLabel);
       holdProposal(username, to, proposal);
     }
     // A `form`-shaped proposal for a tool this channel will never press

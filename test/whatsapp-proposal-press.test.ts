@@ -77,14 +77,14 @@ function repliesTo(username: string): Record<string, unknown>[] {
     .map((f) => JSON.parse(fs.readFileSync(path.join(replyDir, f), "utf8")));
 }
 
-async function bindGreetAcknowledge(username: string, tel: string): Promise<void> {
+async function bindGreetAcknowledge(username: string, tel: string, defaultLocale = "en"): Promise<void> {
   const created = createJournal({
     username,
     title: "A journal",
     ownerEmail: `${username}@example.test`,
     ownerName: "Owner",
     ownerNickname: "Owner",
-    defaultLocale: "en",
+    defaultLocale,
     ownerTel: tel,
     ownerTelProvenAt: new Date().toISOString(),
     ownerTelProvenMethod: "sms",
@@ -92,7 +92,8 @@ async function bindGreetAcknowledge(username: string, tel: string): Promise<void
   expect(created.ok).toBe(true);
   expect(setJournalFeatures(username, { whatsappInbound: true }).ok).toBe(true);
   await handleInboundMessage(textMessage(tel, `wamid.${username}.greet`, "hi"));
-  await handleInboundMessage(textMessage(tel, `wamid.${username}.yes`, "yes"));
+  const yes = defaultLocale === "de" ? "ja" : "yes";
+  await handleInboundMessage(textMessage(tel, `wamid.${username}.yes`, yes));
 }
 
 beforeEach(async () => {
@@ -205,6 +206,27 @@ describe("tapping accept", () => {
 
     const last = repliesTo(username).at(-1);
     expect(last?.body).toContain("nothing waiting");
+    forget(username);
+  });
+});
+
+describe("the decline button — B1241", () => {
+  test("is 'Nein' on a German journal, not a hardcoded English 'No'", async () => {
+    const username = "presstest8";
+    const tel = "41760008888";
+    forget(username);
+    await bindGreetAcknowledge(username, tel, "de");
+
+    answerInThread.mockImplementationOnce(
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Hier ist die Reise."),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press8.propose", "plane eine reise nach japan"));
+
+    const last = repliesTo(username).at(-1);
+    expect(last?.kind).toBe("buttons");
+    const buttons = last?.buttons as { id: string; title: string }[];
+    expect(buttons[1].id).toBe("confirm:1:no");
+    expect(buttons[1].title).toBe("Nein");
     forget(username);
   });
 });

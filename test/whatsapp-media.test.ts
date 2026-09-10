@@ -88,6 +88,9 @@ async function bindGreetAcknowledge(username: string, tel: string): Promise<void
 }
 
 beforeEach(() => {
+  // B1240's batch window: fake `setTimeout` only, so `receivedAt` and every
+  // other `Date.now()` in this flow stay real.
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-whatsapp-media-"));
   process.env.CONTENT_DIR = dir;
   process.env.DATA_DIR = dir;
@@ -109,6 +112,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   forget("mediatest");
   delete process.env.CONTENT_DIR;
   delete process.env.DATA_DIR;
@@ -132,6 +136,9 @@ describe("a photograph sent as a photo", () => {
     expect(entry.takenAt).toBeUndefined();
     expect(entry.caption).toBe("at the summit");
 
+    // The batch's own window — B1240 — before the one summary reply lands.
+    await vi.advanceTimersByTimeAsync(6000);
+
     const files = repliesTo("mediatest");
     const last = String(files[files.length - 1].body);
     expect(last).toContain("1 waiting");
@@ -139,16 +146,53 @@ describe("a photograph sent as a photo", () => {
     expect(last).toMatch(/document/i);
   });
 
-  test("the tip is said once, never on a second, different photograph", async () => {
+  test("the tip is said once, never on a second, later batch", async () => {
     await bindGreetAcknowledge("mediatest", "41760066666");
     await handleInboundMessage(imageMessage("41760066666", "wamid.img-2a"));
+    await vi.advanceTimersByTimeAsync(6000);
+    const first = repliesTo("mediatest").at(-1);
+    expect(String(first?.body)).toContain("1 waiting");
+    expect(String(first?.body)).toMatch(/document/i);
+
     downloadMedia.mockResolvedValueOnce({ data: Buffer.from("a different photograph entirely"), mimeType: "image/jpeg" });
     await handleInboundMessage(imageMessage("41760066666", "wamid.img-2b"));
+    await vi.advanceTimersByTimeAsync(6000);
 
-    const files = repliesTo("mediatest");
-    const last = String(files[files.length - 1].body);
-    expect(last).toContain("2 waiting");
-    expect(last).not.toMatch(/document/i);
+    const second = repliesTo("mediatest").at(-1);
+    expect(String(second?.body)).toContain("2 waiting");
+    expect(String(second?.body)).not.toMatch(/document/i);
+  });
+
+  test("three photos within the window produce one reply naming three — B1240", async () => {
+    await bindGreetAcknowledge("mediatest", "41760055566");
+    await handleInboundMessage(imageMessage("41760055566", "wamid.batch-1"));
+    downloadMedia.mockResolvedValueOnce({ data: Buffer.from("photo two"), mimeType: "image/jpeg" });
+    await handleInboundMessage(imageMessage("41760055566", "wamid.batch-2"));
+    downloadMedia.mockResolvedValueOnce({ data: Buffer.from("photo three"), mimeType: "image/jpeg" });
+    await handleInboundMessage(imageMessage("41760055566", "wamid.batch-3"));
+
+    // No reply yet — still inside the window.
+    const midway = repliesTo("mediatest");
+    expect(midway.filter((f) => String(f.body).includes("waiting"))).toHaveLength(0);
+
+    await vi.advanceTimersByTimeAsync(6000);
+
+    const files = repliesTo("mediatest").filter((f) => String(f.body).includes("waiting"));
+    expect(files).toHaveLength(1);
+    expect(String(files[0].body)).toContain("3 waiting");
+  });
+
+  test("a non-media message flushes a waiting batch instead of leaving it silent", async () => {
+    await bindGreetAcknowledge("mediatest", "41760055577");
+    await handleInboundMessage(imageMessage("41760055577", "wamid.flush-1"));
+
+    // No reply yet.
+    expect(repliesTo("mediatest").filter((f) => String(f.body).includes("waiting"))).toHaveLength(0);
+
+    await handleInboundMessage(textMessage("41760055577", "wamid.flush-2", "here's the photo, at the lake"));
+
+    const landed = repliesTo("mediatest").filter((f) => String(f.body).includes("waiting"));
+    expect(landed).toHaveLength(1);
   });
 });
 
