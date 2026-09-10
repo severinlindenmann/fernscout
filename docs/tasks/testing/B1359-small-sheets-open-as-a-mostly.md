@@ -29,4 +29,8 @@ Guthaben sheet already had.
 
 At 390px the Darstellung sheet is ~157px tall and hugs the bottom
 (measured 687→844 in Playwright); a tall sheet still stops at 92dvh and
-scrolls inside.
+scrolls inside. Round 2 (owner, iPhone): both sheet kinds pad the bottom
+with env(safe-area-inset-bottom) — viewport-fit=cover had put their lowest
+content under the home indicator — and each body has a minimum height, so
+the Guthaben sheet holds its shape while "Looking…" waits for the numbers
+instead of opening as a sliver and jumping.
