@@ -445,6 +445,11 @@ export type TripVisibility = "private" | "public" | "guest";
  * they get their own switch rather than riding on the trip's. */
 export type CostsVisibility = "public" | "guests";
 
+/** Where an evening reminder goes — B1219, D46. `lib/api/tripReminder.ts`
+ *  owns the write side and its own validated list; this is only the shape a
+ *  reader sees. */
+export type ReminderChannel = "mail" | "whatsapp";
+
 /**
  * Somebody who took the trip.
  *
@@ -598,4 +603,15 @@ export type Trip = {
    * dangerous.
    */
   unknownFields?: string[];
+  /**
+   * An opt-in evening nudge while this trip is running — B1219, D46.
+   *
+   * Absent means off, which is every trip written before this and every one
+   * nobody has asked for it on. Present only while `reminder: true` in
+   * `trip.md`, carrying the channel it goes out on — `lib/api/tripReminder.ts`
+   * is the only writer, and `scripts/reminders.mts` the only reader that acts
+   * on it. Never invented content: the message it sends says only that
+   * nothing has been written yet, never what should have been.
+   */
+  reminder?: { channel: ReminderChannel };
 };

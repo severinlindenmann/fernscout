@@ -79,6 +79,7 @@ const SHAPE = new Set([
 const ROUTES: Record<string, () => Promise<Record<string, unknown>>> = {
   "/trip": () => import("@/app/api/helper/[user]/trip/route"),
   "/trip/visibility": () => import("@/app/api/helper/[user]/trip/visibility/route"),
+  "/trip/reminder": () => import("@/app/api/helper/[user]/trip/reminder/route"),
   "/trip/people": () => import("@/app/api/helper/[user]/trip/people/route"),
   "/trip/tracks": () => import("@/app/api/helper/[user]/trip/tracks/route"),
   "/day": () => import("@/app/api/helper/[user]/day/route"),
@@ -115,6 +116,7 @@ const SAID: Record<string, Record<string, string>> = {
   create_trip: { title: "Japan", start: "2026-03-01", end: "2026-03-14" },
   edit_trip: { trip: AS_SAID, title: "Die neue Reise", start: "2026-05-02", end: "2026-05-12" },
   set_visibility: { trip: AS_SAID, visibility: "guest" },
+  set_reminder: { trip: AS_SAID, enabled: "on" },
   trip_people: { trip: AS_SAID, person: "Mira", email: "mira@example.test" },
   trip_tracks: { trip: AS_SAID, costs: "off" },
   start_day: { trip: AS_SAID },

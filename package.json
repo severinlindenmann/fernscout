@@ -19,6 +19,7 @@
     "alert": "tsx --conditions=react-server scripts/alert.mts",
     "status": "tsx --conditions=react-server scripts/status.mts",
     "notify": "tsx --conditions=react-server scripts/notify.mts",
+    "reminders:send": "tsx --conditions=react-server scripts/reminders.mts",
     "test": "vitest run",
     "test:watch": "vitest",
     "verify": "node scripts/verify.mjs",

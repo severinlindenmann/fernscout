@@ -279,6 +279,7 @@ describe("a proposal can only be pressed into the helper's own routes", () => {
   const ALLOWED = [
     "/api/helper/alex/trip",
     "/api/helper/alex/trip/visibility",
+    "/api/helper/alex/trip/reminder",
     "/api/helper/alex/trip/people",
     "/api/helper/alex/trip/tracks",
     "/api/helper/alex/day",
