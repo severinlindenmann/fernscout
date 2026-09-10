@@ -858,6 +858,43 @@ export function renderVolume(
 }
 
 /**
+ * The whole book as one document: the cover sheet, then every page — B1180.
+ *
+ * **This is the shape Gelato actually wants**, and the two-file split was ours
+ * rather than theirs. Their own downloadable template is one file whose first
+ * page is the wrap and whose remaining pages are the interior
+ * (`docs/providers/gelato-templates/README.md`), and their uploader says so in
+ * as many words when handed an interior on its own:
+ *
+ * ```
+ * Product requires exactly 45 pages, while PDF contains 44 pages
+ * Product requires that page 1 would be exactly 409.81 x 206.0 mm.
+ *   Page size in provided PDF is 206.0 x 206.0 mm.
+ * ```
+ *
+ * Both complaints are the same complaint: page 1 is missing, and page 1 is the
+ * cover. 45 = 42 pages of book + 2 blank leaves + 1 cover, which is the
+ * `pageCount + 3` the API had already been measured to want (B1173) — the two
+ * surfaces agree, and we were the odd one out.
+ *
+ * `pages` stays the book's own count for the same reason it does in
+ * `renderVolume`: it is what gets quoted, charged and declared. Neither the
+ * cover nor the leaves are pages of the book.
+ */
+export function renderBook(
+  volume: BookVolume,
+  spec: BookSpec,
+  options: RenderOptions,
+): RenderedVolume {
+  const { images, missing } = loadAll(volume, options);
+  const builder = new PdfBuilder(options.document ?? {});
+  drawCoverPage(builder, volume, spec, options, images);
+  for (const page of volume.pages) drawPage(builder, page, spec, options, images);
+  addEndLeaves(builder, spec);
+  return { pdf: builder.build(), pages: volume.pages.length, missing };
+}
+
+/**
  * The two blank leaves Gelato counts and we did not draw — B1173.
  *
  * Their prepress refuses a book whose files do not total `pageCount + 3`, and
@@ -925,9 +962,29 @@ export function renderCover(
   options: RenderOptions,
 ): RenderedVolume {
   const { images, missing } = loadAll(volume, options);
+  const builder = new PdfBuilder(options.document ?? {});
+  drawCoverPage(builder, volume, spec, options, images);
+  return { pdf: builder.build(), pages: 1, missing };
+}
+
+/**
+ * The cover sheet, drawn into whichever document is being built — B1180.
+ *
+ * Split out of `renderCover` so `renderBook` can put it in front of the
+ * interior in one file. Gelato's uploader wants exactly that: page 1 the
+ * cover, then the pages. Its own template is the same shape, and its error
+ * says so outright — *"Product requires that page 1 would be exactly
+ * 409.81 x 206.0 mm"*.
+ */
+function drawCoverPage(
+  builder: PdfBuilder,
+  volume: BookVolume,
+  spec: BookSpec,
+  options: RenderOptions,
+  images: Map<string, JpegImage | null>,
+): void {
   const cover = volume.cover;
   const geometry = cover.geometry;
-  const builder = new PdfBuilder(options.document ?? {});
   /**
    * TrimBox spans the whole sheet — the same as MediaBox and BleedBox.
    *
@@ -1076,5 +1133,4 @@ export function renderCover(
     PdfBuilder.drawLine(page, frame.x(-inset), frame.y(panelH), frame.x(rightEdge + inset), frame.y(panelH), 0.3, GUIDE);
   }
 
-  return { pdf: builder.build(), pages: 1, missing };
 }
