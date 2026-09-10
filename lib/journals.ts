@@ -111,7 +111,7 @@ export type NewJournal = {
    * see the check below — because an unproven number is not this registry's
    * business (`lib/registry.ts:reconcile`). */
   ownerTelProvenAt?: string;
-  ownerTelProvenMethod?: "sms" | "operator";
+  ownerTelProvenMethod?: "sms" | "operator" | "whatsapp-inbound";
 };
 
 export type CreateJournalResult =

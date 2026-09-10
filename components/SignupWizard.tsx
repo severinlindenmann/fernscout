@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import BusyButton from "@/components/BusyButton";
 import { PRIMARY_BUTTON } from "@/components/LandingSections";
@@ -22,7 +22,7 @@ function rememberLocale(code: string) {
  * is what actually decides; this never has to be the last word. */
 const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
 
-type Step = "email" | "code" | "phone" | "phone-code" | "journal" | "trip" | "signing-in";
+type Step = "email" | "code" | "phone" | "phone-code" | "phone-wa" | "journal" | "trip" | "signing-in";
 
 /**
  * A brand-new visitor's whole way in, without leaving `/agent` — B688.
@@ -141,6 +141,10 @@ export default function SignupWizard({
   const [telNational, setTelNational] = useState("");
   const [phoneId, setPhoneId] = useState("");
   const [phoneCode, setPhoneCode] = useState("");
+  /** B1234 — the inbound proof: no number typed, no code; a wa.me link
+   * with a one-time token, and a poll that waits for the webhook. */
+  const [waLink, setWaLink] = useState("");
+  const [waExpired, setWaExpired] = useState(false);
 
   const [agentToken, setAgentToken] = useState("");
   const [signInUrl, setSignInUrl] = useState("");
@@ -241,7 +245,8 @@ export default function SignupWizard({
     // (B1064/B1065). The wizard finds out here rather than asking up
     // front, so an exempt instance never shows the step at all.
     if (result.error === "phone_required") {
-      setStep("phone");
+      if (result.mode === "whatsapp-inbound") await requestWaLink();
+      else setStep("phone");
       return;
     }
     setAgentToken(result.token as string);
@@ -254,6 +259,54 @@ export default function SignupWizard({
     event.preventDefault();
     await createJournal();
   }
+
+  async function requestWaLink() {
+    setBusy(true);
+    setError(null);
+    setWaExpired(false);
+    const result = await post("/api/auth/signup/phone/request", {}, signupToken);
+    setBusy(false);
+    if (!result) return;
+    setPhoneId(result.id as string);
+    setWaLink(typeof result.link === "string" ? result.link : "");
+    setStep("phone-wa");
+  }
+
+  /**
+   * The poll. Every few seconds while the phone-wa step is showing, ask
+   * whether the webhook has seen the message; `ok` carries on into the
+   * create that sent us here, `expired` offers a fresh link. Transient
+   * fetch failures are simply the next tick's problem.
+   */
+  useEffect(() => {
+    if (step !== "phone-wa" || !phoneId || waExpired) return;
+    let done = false;
+    const tick = async () => {
+      const response = await fetch("/api/auth/signup/phone/verify", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${signupToken}`,
+        },
+        body: JSON.stringify({ id: phoneId }),
+      }).catch(() => null);
+      const json = (await response?.json().catch(() => null)) as Record<string, unknown> | null;
+      if (done || !json) return;
+      if (json.ok) {
+        done = true;
+        clearInterval(timer);
+        await createJournal();
+      } else if (json.status === "expired") {
+        setWaExpired(true);
+      }
+    };
+    const timer = setInterval(tick, 2500);
+    return () => {
+      done = true;
+      clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, phoneId, waExpired]);
 
   async function requestPhoneCode(event: React.FormEvent) {
     event.preventDefault();
@@ -512,6 +565,37 @@ export default function SignupWizard({
             {t("agent.phoneAgain")}
           </button>
         </form>
+      )}
+
+      {step === "phone-wa" && (
+        <div>
+          <p className="mt-2 text-base leading-7 text-navy-700">
+            {t("agent.phoneWaIntro")}
+          </p>
+          <a
+            href={waLink}
+            target="_blank"
+            rel="noreferrer"
+            className={`mt-4 block w-full text-center ${PRIMARY_BUTTON}`}
+          >
+            {t("agent.phoneWaOpen")}
+          </a>
+          <p className="mt-3 text-base leading-7 text-navy-700" role="status">
+            {waExpired ? t("agent.phoneWaExpired") : t("agent.phoneWaWaiting")}
+          </p>
+          {waExpired && (
+            <button
+              type="button"
+              onClick={requestWaLink}
+              className="mt-2 min-h-11 text-base text-navy-600 underline underline-offset-4"
+            >
+              {t("agent.phoneWaRetry")}
+            </button>
+          )}
+          <p className="mt-3 text-sm leading-6 text-navy-600">
+            {t("agent.phoneNoWhatsapp")}
+          </p>
+        </div>
       )}
 
       {step === "journal" && (

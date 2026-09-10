@@ -10,6 +10,7 @@ import { createJournal, sendWelcome } from "@/lib/journals";
 import { clientIp, rateLimitFor, rateLimitStatus } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
+import { phoneProofMode } from "@/lib/phoneVerify";
 
 export const dynamic = "force-dynamic";
 
@@ -389,6 +390,7 @@ export async function POST(request: Request) {
     return refuse(
       {
         error: "phone_required",
+        mode: phoneProofMode(),
         message:
           "A journal needs a proven telephone number as well as a proven address. " +
           'POST /api/auth/signup/phone/request with {"tel": "…"} using this same token, ' +
@@ -415,7 +417,14 @@ export async function POST(request: Request) {
     displayCurrencies,
     units,
     ...(session.phone
-      ? { ownerTel: session.phone, ownerTelProvenAt: session.phoneProvenAt ?? undefined, ownerTelProvenMethod: "sms" as const }
+      ? {
+          ownerTel: session.phone,
+          ownerTelProvenAt: session.phoneProvenAt ?? undefined,
+          // How it was proven is which mode the server ran when the proof
+          // was made — B1234. "sms" stays the word for every code backend.
+          ownerTelProvenMethod:
+            phoneProofMode() === "whatsapp-inbound" ? ("whatsapp-inbound" as const) : ("sms" as const),
+        }
       : {}),
   });
 

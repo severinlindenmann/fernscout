@@ -20,6 +20,7 @@ import { history, proposed, remember, sessionId, wrote } from "../helper/thread"
 import { spendAndTranscribe } from "../helper/transcribeSpend";
 import { kindForExtension, listInbox, storeInboxFile } from "../inbox";
 import { translateIn } from "../locales";
+import { claimPhoneLink } from "../phoneVerify/inboundLink";
 import { journalForNumber } from "../registry";
 import { serverSite } from "../site";
 import { storageRefusal } from "../storageQuota";
@@ -80,6 +81,30 @@ const MIME_EXTENSION: Record<string, string> = {
  * exist to serve *that* reply and have nothing to attach to yet.
  */
 export async function handleInboundMessage(message: InboundMessage): Promise<void> {
+  /**
+   * A signup phone-proof token — B1234 — before anything else, because the
+   * sender is by definition a number this instance has never seen: letting
+   * it fall through would hand them the stranger sentence instead of the
+   * confirmation they were promised. `claimPhoneLink` answers null for a
+   * message with no token in it, which is every ordinary message.
+   */
+  if (message.kind === "text") {
+    const claim = await claimPhoneLink(message.body, message.from);
+    if (claim) {
+      // No markInbound: there is no journal yet, and a username-less reply
+      // is always inside the window of the message it answers (reply.ts).
+      await sendServiceReply(
+        message.from,
+        translateIn(
+          claim.locale as Parameters<typeof translateIn>[0],
+          claim.outcome === "confirmed" ? "wa.phoneLinkConfirmed" : "wa.phoneLinkExpired",
+        ),
+        null,
+      );
+      return;
+    }
+  }
+
   const username = journalForNumber(message.from);
 
   if (!username) {

@@ -69,3 +69,35 @@ step within seconds and the journal is created with the sender's number
 proven. A wrong or expired token changes nothing and the sender is told.
 Locally, a simulated webhook POST drives the same path under vitest.
 
+
+## Built — 2026-09-10
+
+As decided, plus one honesty fix found while building: `telProvenMethod`
+gains the value `"whatsapp-inbound"` (config, journals, create route), since
+recording the inbound proof as "sms" would be a false statement in the
+owner's own config.json.
+
+- `lib/phoneVerify/inboundLink.ts` — token rows on `login_codes`
+  (`kind: "phone-link"`, hash-only, 30 min, superseded, single use, bound to
+  the signup session), `createPhoneLink`/`claimPhoneLink`/`pollPhoneLink`.
+- `lib/whatsapp/dispatch.ts` intercepts the token before the stranger path;
+  replies via `sendServiceReply` in the row's locale.
+- Routes: request answers with the wa.me link in inbound mode; verify
+  without a `code` is the poll; `phone_required` carries `mode`.
+- `lib/capabilities.ts`: `phoneBackend: "whatsapp-inbound"` demands
+  `whatsapp` + `whatsappInbound` + a configured number.
+- Wizard: `phone-wa` step — Open WhatsApp button, waiting line, expiry +
+  retry, the no-WhatsApp contact line. Locales en/de/hu.
+- Contract: openapi (both phone operations), /agent.md.
+
+Verified: full `npm run verify` green; `test/phone-link.test.ts` (4
+scenarios: end-to-end, invented token, session binding, supersession +
+replay); driven in headless Chrome against a dev instance in inbound mode —
+the wizard reached the phone-wa step, a signature-valid simulated webhook
+carried the prefilled message, the page advanced by itself, and the journal
+was created with `tel` proven and `telProvenMethod: "whatsapp-inbound"`.
+Screenshots in the session scratchpad `b1234/shots/`.
+
+Going live is config only: `features.signup.phoneBackend:
+"whatsapp-inbound"` in the VPS config (the number and webhook are already
+live there). No Meta review, no business verification — B1232 stays parked.
