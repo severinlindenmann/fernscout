@@ -155,13 +155,18 @@ export const PHOTOBOOK_PRICING_VERIFIED = true;
  * there was no second step to charge for, so the one charge had to cover a
  * printed object nobody could actually order.
  *
- * Now printing is its own step with its own live quote
- * (`photobookPrintCredits` below), and leaving the paper in this number would
- * charge for it twice. What is left is the render: laying the trip out,
- * choosing the pages, making the covers. That is the same work for a 28-page
- * book as for a 200-page one and the same work for every size, so it is one
- * flat number — and somebody who only ever wants the PDF pays CHF 8.00 for it
- * rather than CHF 52.80.
+ * Now printing has its own live quote (`photobookPrintCredits` below), and
+ * leaving the paper in this number would charge for it twice. What is left is
+ * the render: laying the trip out, choosing the pages, making the covers.
+ * That is the same work for a 28-page book as for a 200-page one and the same
+ * work for every size, so it is one flat number.
+ *
+ * **A component of one price, not a product** — B1157, restated by B1331.
+ * There is no PDF-only purchase: `quoteBookFor` (`lib/photobook/quote.ts`)
+ * adds this to the print quote and the order page charges the total in one
+ * press, with the files arriving alongside the book. The public pricing
+ * table quotes that combined figure and nothing separate for this half
+ * (B1332).
  *
  * `SIZE_FACTOR` went with it. It scaled this charge by measured *print* price
  * ratios, which belong to the print step and are now read from the quote.
