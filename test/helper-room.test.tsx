@@ -116,7 +116,7 @@ function render(
 }
 
 function type(box: HTMLElement, value: string) {
-  const field = box.querySelector<HTMLInputElement>("input[type=text]")!;
+  const field = box.querySelector<HTMLTextAreaElement>("textarea")!;
   act(() => {
     typeInto(field, value);
   });
@@ -152,7 +152,7 @@ test("the three panes are three named regions, with the conversation between the
   // The conversation is `HelperAsk`'s own region and is open from the first
   // render in the room — there is no line to press first.
   expect(named).toContain("Conversation");
-  expect(document.querySelector("input[type=text]")).not.toBeNull();
+  expect(document.querySelector("textarea")).not.toBeNull();
 });
 
 test("at 390px neither side pane is drawn", () => {
@@ -196,7 +196,7 @@ test("a selection is made with checkboxes and travels with the next sentence", a
   act(() => ticks[2].click());
 
   type(box, "put these on yesterday");
-  const ask = [...box.querySelectorAll("button")].find((button) => button.textContent === "Ask")!;
+  const ask = box.querySelector('button[aria-label="Ask"]') as HTMLButtonElement;
   await act(async () => {
     ask.click();
   });
@@ -214,7 +214,7 @@ test("nothing selected sends nothing, so the conversation is unchanged", async (
   type(box, "how many trips do I have");
   await act(async () => {
     ([...box.querySelectorAll("button")].find(
-      (button) => button.textContent === "Ask",
+      (button) => button.getAttribute("aria-label") === "Ask",
     ) as HTMLButtonElement).click();
   });
   const sent = calls.find((call) => call.url.endsWith("/ask"))!;
@@ -544,7 +544,7 @@ test("a turn that named a day carries a preview affordance", async () => {
 
   const box = render();
   type(box, "publish tuesday");
-  const ask = [...box.querySelectorAll("button")].find((button) => button.textContent === "Ask")!;
+  const ask = box.querySelector('button[aria-label="Ask"]') as HTMLButtonElement;
   await act(async () => {
     ask.click();
   });

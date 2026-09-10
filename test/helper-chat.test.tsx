@@ -81,8 +81,8 @@ function render() {
   });
 }
 
-function field(): HTMLInputElement {
-  return container!.querySelector("#ask-alex") as HTMLInputElement;
+function field(): HTMLTextAreaElement {
+  return container!.querySelector("#ask-alex") as HTMLTextAreaElement;
 }
 
 function type(value: string) {
@@ -103,7 +103,12 @@ function buttonSaying(text: string): HTMLButtonElement {
 async function ask(said: string) {
   type(said);
   await act(async () => {
-    buttonSaying(dictionary["agent.askGo"]).click();
+    // The send control is icon-only since B1211 (D14): found by its
+    // accessible name, which is what a person's screen reader finds too.
+    const send = container!.querySelector(
+      `button[aria-label="${dictionary["agent.askGo"]}"]`,
+    ) as HTMLButtonElement;
+    send.click();
   });
 }
 
@@ -215,7 +220,9 @@ describe("while it thinks", () => {
     render();
     type("how many trips");
     act(() => {
-      buttonSaying(dictionary["agent.askGo"]).click();
+      (container!.querySelector(
+        `button[aria-label="${dictionary["agent.askGo"]}"]`,
+      ) as HTMLButtonElement).click();
     });
     expect(container!.textContent).toContain(dictionary["agent.chat.working"]);
     await act(async () => {
