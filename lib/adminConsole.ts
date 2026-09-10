@@ -744,7 +744,7 @@ export async function signupDates(): Promise<Record<string, string> | null> {
 /** How long after its last day a journal stops counting as still being
  *  written. A fortnight: a week is a holiday, and a month is long enough that
  *  a journal nobody has touched since the spring still reads as alive. */
-export const STILL_WRITING_DAYS = 14;
+const STILL_WRITING_DAYS = 14;
 
 export type FunnelStep = {
   /** What this step is, in the operator's words. */

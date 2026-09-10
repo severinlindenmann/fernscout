@@ -368,19 +368,15 @@ describe("the blocks a tool declares", () => {
 });
 
 describe("starting over", () => {
-  test("reaches `forget()` and clears what is on the screen", async () => {
-    answers(
-      { ok: true, kind: "read", blocks: saying("Two trips.") },
-      { ok: true },
-    );
+  /** The control left the composer — B1208 (D17): the header's + is the
+   *  one way to start fresh (it DELETEs the thread and reloads), and two
+   *  adjacent reset controls confused more than they helped. What this
+   *  suite still owes is the negative: no second reset control here. */
+  test("the composer offers no start-over of its own", async () => {
+    answers({ ok: true, kind: "read", blocks: saying("Two trips.") });
     render();
     await ask("how many trips");
-    await act(async () => {
-      buttonSaying(dictionary["agent.chat.startOver"]).click();
-    });
-    expect(calls[1]).toMatchObject({ url: "/api/helper/alex/ask", method: "DELETE" });
-    expect(container!.textContent).not.toContain("Two trips.");
-    expect(container!.textContent).toContain(dictionary["agent.chat.startedOver"]);
+    expect(container!.textContent).not.toContain(dictionary["agent.chat.startOver"]);
   });
 });
 

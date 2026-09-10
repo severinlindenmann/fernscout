@@ -134,8 +134,10 @@ describe("the helper routes", () => {
   // same owner check, both.
   // Thirty-eight: `inbox` (B1171), the pane's own upload into the inbox —
   // the same validation as the v1 door, behind the room's cookie.
-  test("there are thirty-eight of them, and each is guarded", () => {
-    expect(sources).toHaveLength(38);
+  // Thirty-nine: `account` (B1208), the numbers behind the header's credit
+  // chip — balance, month, storage — same cookie, same owner check.
+  test("there are thirty-nine of them, and each is guarded", () => {
+    expect(sources).toHaveLength(39);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }
