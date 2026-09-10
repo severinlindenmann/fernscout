@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: photobook, print
 found: "2026-09-10T15:45:00Z"
+merged: "2026-09-10T15:42:20Z"
 ---
 
 # B1318 — The two leaves Gelato requires are blank, so prepress calls them a fault
