@@ -1488,6 +1488,33 @@ export function honestyCounts(): { turns: number; claimed: number; unrecovered: 
  * so that `attach_files` resolves it itself — B925. Nobody is ever asked to
  * read an id off a screen that does not show one.
  */
+/**
+ * The three kinds a tool call can be, and nothing narrower — B1213 (D19).
+ *
+ * A status line said while the model is still working must never name a
+ * tool: `withoutPlumbing` above exists because `trip_costs` read out loud
+ * mid-answer is the server narrating its own plumbing, and a status line is
+ * the same channel with the same audience. So `onToolStart` hands back only
+ * the `kind` every tool already declares (`./tools/types.ts`), and the
+ * handful of sentences below are keyed on that — three, not forty, and never
+ * stale when a tool is added.
+ */
+export type ToolKind = "read" | "write" | "link";
+
+/** Which honest sentence a tool starting says, while the model is still
+ *  working — B1213 (D19). Kept beside the kinds themselves rather than in
+ *  the route, so the route holds no vocabulary about what a tool is. */
+export function statusKeyFor(kind: ToolKind): Parameters<Say>[0] {
+  switch (kind) {
+    case "write":
+      return "agent.chat.statusWriting";
+    case "link":
+      return "agent.chat.statusLooking";
+    default:
+      return "agent.chat.statusReading";
+  }
+}
+
 export async function answerInThread(
   username: string,
   said: string,
@@ -1505,6 +1532,13 @@ export async function answerInThread(
    * prompt stays one prompt for both channels.
    */
   channel: "web" | "whatsapp" = "web",
+  /**
+   * Told when a tool starts running, so a caller streaming the turn back can
+   * say something honest while the model is still working — B1213 (D19).
+   * Optional and additive: every existing caller (WhatsApp's dispatch, the
+   * scripted tests) passes nothing and this turn behaves exactly as before.
+   */
+  onToolStart?: (tool: { name: string; kind: ToolKind }) => void,
 ): Promise<ThreadAnswer> {
   const client = new Anthropic();
   /**
@@ -1593,6 +1627,8 @@ export async function answerInThread(
       const results: Anthropic.ToolResultBlockParam[] = [];
       for (const call of calls) {
         looked.push(call.name);
+        const tool = TOOLS.find((one) => one.name === call.name);
+        if (tool) onToolStart?.({ name: tool.name, kind: tool.kind });
         const { ok, result, blocks: drawn, proposal } = await runTool(
           username,
           call.name,

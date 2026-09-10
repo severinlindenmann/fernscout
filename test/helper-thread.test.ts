@@ -867,3 +867,90 @@ describe("the same proposal twice in one turn — B1202, D23", () => {
     expect(cards).toHaveLength(2);
   });
 });
+
+/* -------------------------------------------------- streamed status lines, B1213 (D19) --- */
+
+function askStreamed(said: string) {
+  return POST(
+    new Request("https://t.test/api/helper/alex/ask", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/x-ndjson",
+      },
+      body: JSON.stringify({ said, today: "2026-09-07" }),
+    }),
+    params,
+  );
+}
+
+async function ndjsonLines(response: Response): Promise<Record<string, unknown>[]> {
+  const raw = await response.text();
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== "")
+    .map((line) => JSON.parse(line) as Record<string, unknown>);
+}
+
+describe("honest status lines while a turn runs — B1213 (D19)", () => {
+  test("a two-tool turn streams a status line per tool, then the answer whole", async () => {
+    create.mockReset();
+    create
+      .mockResolvedValueOnce({
+        content: [
+          { type: "tool_use", id: "t-1", name: "unfinished", input: {} },
+          { type: "tool_use", id: "t-2", name: "start_day", input: { trip: "reise", date: "2026-05-05" } },
+        ],
+        usage: { input_tokens: 1200, output_tokens: 60 },
+      })
+      .mockResolvedValueOnce(says("Ein neuer Tag."));
+
+    const response = await askStreamed("fang den 5. Mai an");
+    expect(response.headers.get("content-type")).toBe("application/x-ndjson");
+    const lines = await ndjsonLines(response);
+
+    const statuses = lines.filter((line) => typeof line.status === "string");
+    expect(statuses.length).toBe(2);
+    // One tool reads and one proposes — the two kinds this journal ever
+    // says while it works, never the tools' own names (`withoutPlumbing`'s
+    // rule applies here too).
+    expect(statuses.map((line) => line.status)).toEqual([
+      "Reading the day…",
+      "Writing the proposal…",
+    ]);
+    for (const line of statuses) {
+      expect(String(line.status)).not.toMatch(/unfinished|start_day/);
+    }
+
+    const finished = lines.filter((line) => "done" in line);
+    expect(finished).toHaveLength(1);
+    const done = finished[0]!.done as { ok: boolean; answer: string };
+    expect(done.ok).toBe(true);
+    expect(done.answer).toContain("Ein neuer Tag.");
+  });
+
+  test("the streamed done body is exactly what the plain path answers for the same turn", async () => {
+    create.mockReset();
+    create.mockResolvedValueOnce(says("Nur ein Satz."));
+    const plain = await ask("was ist ein test");
+    const plainBody = await plain.json();
+
+    create.mockReset();
+    create.mockResolvedValueOnce(says("Nur ein Satz."));
+    const streamed = await askStreamed("was ist ein test");
+    const lines = await ndjsonLines(streamed);
+    const done = lines.find((line) => "done" in line)?.done;
+
+    expect(done).toEqual(plainBody);
+  });
+
+  test("a request with no Accept header still gets plain JSON, unchanged", async () => {
+    create.mockReset();
+    create.mockResolvedValueOnce(says("Wie immer."));
+    const response = await ask("wie immer");
+    expect(response.headers.get("content-type")).not.toBe("application/x-ndjson");
+    const body = (await response.json()) as { answer: string };
+    expect(body.answer).toBe("Wie immer.");
+  });
+});
