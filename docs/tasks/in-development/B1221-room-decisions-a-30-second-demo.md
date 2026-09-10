@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: helper room
 found: "2026-09-10T04:39:42Z"
+started: "2026-09-10T05:08:55Z"
+session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
+claimed: "2026-09-10T05:08:55Z"
 ---
 
 # B1221 — Room decisions: a 30-second demo conversation at the door (D50)
