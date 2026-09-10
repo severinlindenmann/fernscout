@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: whatsapp, helper
 found: "2026-09-10T06:06:23Z"
+merged: "2026-09-10T06:32:55Z"
 ---
 
 # B1235 — attach_files and write_day are refused as web-only on WhatsApp, and they are the channel's core flows

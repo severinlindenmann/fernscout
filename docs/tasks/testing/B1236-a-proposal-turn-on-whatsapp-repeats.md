@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: whatsapp, helper
 found: "2026-09-10T06:06:24Z"
+merged: "2026-09-10T06:32:59Z"
 ---
 
 # B1236 — A proposal turn on WhatsApp repeats itself and dumps raw lists into one message

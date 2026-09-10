@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: whatsapp, helper
 found: "2026-09-10T06:06:25Z"
+merged: "2026-09-10T06:33:00Z"
 ---
 
 # B1237 — The model claims a screen on a channel that has none, and links the bare /agent
