@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (153)
+## backlog (152)
 
 ### security (3)
 
@@ -111,7 +111,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (19)
+### small-feature (18)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -123,7 +123,6 @@ Do not edit them by hand; run the script.
 | [B1155](backlog/small-feature/B1155-a-turn-spends-a-credit-and.md) | A turn spends a credit and nothing on screen says so | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
 | [B132](backlog/small-feature/B132-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to learn a new release exists, let alone install it | FEATURE | medium | medium |
-| [B1346](backlog/small-feature/B1346-the-owner-cannot-ask-to-delete.md) | The owner cannot ask to delete their journal from a browser | FEATURE | medium | low |
 | [B592](backlog/small-feature/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
 | [B991](backlog/small-feature/B991-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium |
@@ -345,7 +344,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- | --- |
 | [B1347](in-development/B1347-the-money-dashboard-under-counts-print.md) | The money dashboard under-counts: print costs are a confident zero, WhatsApp sends are uncounted and unpriced, SMS appear nowhere | FEATURE | high | medium | `0b65a2c0` |
 
-## testing (126)
+## testing (127)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -469,6 +468,7 @@ Do not edit them by hand; run the script.
 | [B1325](testing/B1325-the-hero-buttons-stack-on-desktop.md) | The hero buttons stack on desktop and the agent page changes colour below the fold | ISSUE | medium | low | — |
 | [B1334](testing/B1334-the-install-hint-is-off-centre.md) | The install hint is off-centre and explains nothing about how | ISSUE | medium | low | — |
 | [B1339](testing/B1339-guest-card-and-new-user-hero.md) | Guest card and new-user hero run together on the landing page | FEATURE | medium | low | — |
+| [B1346](testing/B1346-the-owner-cannot-ask-to-delete.md) | The owner cannot ask to delete their journal from a browser | FEATURE | medium | low | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
 | [B1096](testing/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low | — |
 | [B1128](testing/B1128-the-invites-and-inbox-tools-also.md) | The invites and inbox tools also say their own block back in prose | ISSUE | low | low | — |

@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: app/[user]/me
 found: "2026-09-10T17:10:27Z"
+merged: "2026-09-10T17:24:28Z"
 ---
 
 # B1346 — The owner cannot ask to delete their journal from a browser
