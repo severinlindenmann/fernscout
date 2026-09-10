@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (175)
+## backlog (142)
 
 ### security (2)
 
@@ -58,49 +58,29 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (39)
+### issue (19)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1287](backlog/issue/B1287-the-send-button-says-it-prints.md) | The send button says it prints and posts real cards while the instance is set to render free samples and post none | ISSUE | high | low |
-| [B1322](backlog/issue/B1322-postcard-proposals-are-still-refused-after.md) | Postcard proposals are still refused after B1284, now because the helper sends an empty signature | ISSUE | high | low |
-| [B1323](backlog/issue/B1323-the-helper-said-a-postcard-was.md) | The helper said a postcard was on the postcards page when the proposal had failed | ISSUE | high | low |
-| [B1324](backlog/issue/B1324-a-failed-card-press-disables-the.md) | A failed card press disables the composer for good, and the only way out wipes the conversation | ISSUE | high | low |
 | [B1358](backlog/issue/B1358-the-guthaben-sheet-shows-no-numbers.md) | The Guthaben sheet shows no numbers in the installed PWA | ISSUE | high | low |
 | [B1369](backlog/issue/B1369-whatsapp-confirm-step-still-shows-the.md) | WhatsApp confirm step still shows the intro text above it | ISSUE | high | low |
-| [B1385](backlog/issue/B1385-the-conversation-storage-consent-block-is.md) | The conversation-storage consent block is shown to signed-out visitors | ISSUE | high | low |
-| [B1387](backlog/issue/B1387-deleting-one-trip-offers-an-export.md) | Deleting one trip offers an export of the whole journal, and the zip carries machine state | ISSUE | high | medium |
-| [B1391](backlog/issue/B1391-the-helper-refuses-a-bare-yes.md) | The helper refuses a bare yes to its own delete question, and an inbox cannot be emptied at all | ISSUE | high | medium |
-| [B1399](backlog/issue/B1399-the-helper-tells-an-owner-who.md) | The helper tells an owner who has just saved their own contact to go and save a contact | ISSUE | high | medium |
-| [B1400](backlog/issue/B1400-publish-mjs-reports-every-requested-feature.md) | publish.mjs reports every requested feature key as applied without reading the response back | ISSUE | high | low |
-| [B1401](backlog/issue/B1401-the-helper-client-s-yaml-parser.md) | The helper client's YAML parser stops at the first unsupported line and silently drops every key after it | ISSUE | high | medium |
-| [B1404](backlog/issue/B1404-a-matched-number-with-the-channel.md) | A matched number with the channel off gets silence instead of a fresh opt-in ask | ISSUE | high | medium |
 | [B1410](backlog/issue/B1410-a-returning-identity-holder-s-buddy.md) | A returning identity-holder's buddy invite looks redeemed but the confirm step is never submitted | ISSUE | high | low |
 | [B1411](backlog/issue/B1411-a-payment-abandoned-at-stripe-leaves.md) | a payment abandoned at Stripe leaves the checkout page with no way to pay again | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
-| [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
-| [B1129](backlog/issue/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
 | [B1265](backlog/issue/B1265-the-model-asserted-a-false-trip.md) | The model asserted a false trip date window and no check caught the arithmetic | ISSUE | medium | low |
-| [B1276](backlog/issue/B1276-a-day-written-through-the-helper.md) | A day written through the helper gets the date as its slug, so its address is fernscout.ch slash day slash 2026-09-05 | ISSUE | medium | low |
 | [B1307](backlog/issue/B1307-the-model-misstates-a-date-its.md) | The model misstates a date its own tool returned, and the error compounds into the next press | ISSUE | medium | low |
 | [B1308](backlog/issue/B1308-a-retry-s-blocks-accumulate-onto.md) | A retry's blocks accumulate onto the first, wrong attempt's own blocks | ISSUE | medium | medium |
-| [B1389](backlog/issue/B1389-teaser-is-missing-from-content-model.md) | `teaser` is missing from /content-model.json, so the helper's validator calls it not a field | ISSUE | medium | low |
-| [B1390](backlog/issue/B1390-one-subject-two-sections-what-the.md) | One subject, two sections: what the helper does with your words is drawn twice on /me | ISSUE | medium | low |
-| [B1395](backlog/issue/B1395-a-buddy-listed-on-a-trip.md) | A buddy listed on a trip has no way to give or correct their address on /me | ISSUE | medium | low |
-| [B1397](backlog/issue/B1397-a-busy-button-draws-two-loaders.md) | A busy button draws two loaders at once when the caller gives its own busy label | ISSUE | medium | low |
 | [B1409](backlog/issue/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
-| [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1106](backlog/issue/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low |
 | [B1191](backlog/issue/B1191-persona-automation-cannot-hit-the-sr.md) | Persona automation cannot hit the sr-only file inputs; confirm real hit areas are whole-tile | ISSUE | low | low |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1266](backlog/issue/B1266-asking-for-the-last-day-only.md) | Asking for the last day only searches unfinished drafts | ISSUE | low | low |
-| [B1271](backlog/issue/B1271-a-failed-voice-note-download-also.md) | A failed voice-note download also says nothing | ISSUE | low | low |
-| [B1402](backlog/issue/B1402-a-content-path-one-level-too.md) | A content path one level too shallow is reported accurately and without naming the likely cause | ISSUE | low | low |
 
 ### big-feature (12)
 
@@ -119,50 +99,40 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (23)
+### small-feature (16)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1153](backlog/small-feature/B1153-handing-your-journal-to-your-own.md) | Handing your journal to your own agent means leaving the conversation to fetch the key | FEATURE | high | low |
-| [B1154](backlog/small-feature/B1154-a-key-that-can-write-to.md) | A key that can write to this journal for seven days is visible nowhere in the room | FEATURE | high | medium |
 | [B1315](backlog/small-feature/B1315-twilio-sms-inbound-inbox-in-admin.md) | Twilio SMS - inbound inbox in admin, outbound sending, SMS signup fallback | FEATURE | high | medium |
 | [B1392](backlog/small-feature/B1392-staged-files-are-counted-in-the.md) | Staged files are counted in the storage card and on /agent, and neither offers a way to clear them | FEATURE | high | low |
-| [B1393](backlog/small-feature/B1393-a-postcard-can-only-be-made.md) | A postcard can only be made from a photograph already on a day, and the helper cannot add the recipient it just asked for | FEATURE | high | medium |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
 | [B1069](backlog/small-feature/B1069-there-is-no-tool-surface-for.md) | There is no tool surface for an agent that would rather be guided than read a spec | FEATURE | medium | medium |
-| [B1155](backlog/small-feature/B1155-a-turn-spends-a-credit-and.md) | A turn spends a credit and nothing on screen says so | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
 | [B132](backlog/small-feature/B132-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to learn a new release exists, let alone install it | FEATURE | medium | medium |
-| [B1386](backlog/small-feature/B1386-a-signed-out-visitor-has-no.md) | A signed-out visitor has no way to get a journal of their own | FEATURE | medium | low |
 | [B1388](backlog/small-feature/B1388-whatsappinbound-has-no-owner-facing-switch.md) | whatsappInbound has no owner-facing switch | FEATURE | medium | medium |
-| [B1394](backlog/small-feature/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium |
 | [B1398](backlog/small-feature/B1398-choosing-the-postcard-picture-means-picking.md) | Choosing the postcard picture means picking a day from a list of titles, never seeing a photograph | FEATURE | medium | medium |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
 | [B991](backlog/small-feature/B991-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium |
 | [B1025](backlog/small-feature/B1025-push-exists-as-a-capability-and.md) | Push exists as a capability and is not a channel this day can be sent on | FEATURE | low | medium |
 | [B1028](backlog/small-feature/B1028-the-owner-s-own-trip-form.md) | The owner's own trip form cannot edit the three fields the API just gained | FEATURE | low | low |
-| [B1043](backlog/small-feature/B1043-the-helper-has-no-tool-for.md) | The helper has no tool for captioning a photograph or telling readers a day is up | FEATURE | low | low |
 | [B1143](backlog/small-feature/B1143-making-a-trip-public-from-the.md) | Making a trip public from the day panel is the same single press as fixing a typo | FEATURE | low | low |
 | [B1317](backlog/small-feature/B1317-the-sms-number-is-domestic-only.md) | The SMS number is domestic-only - a non-Swiss number cannot receive a code or a send | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (5)
+### chore (3)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1146](backlog/chore/B1146-two-branches-in-flight-both-number.md) | Two branches in flight both number their migration 028, so the second to merge has two | CHORE | high | low |
-| [B1239](backlog/chore/B1239-the-retired-wizard-s-code-still.md) | The retired wizard's code still ships: AgentWizard, its queue and its suites await deletion | CHORE | medium | medium |
 | [B1412](backlog/chore/B1412-the-delete-trip-link-sits-on.md) | the delete-trip link sits on the trip page, where a reader is reading, rather than with the trip's other owner controls | CHORE | medium | low |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
-| [B1180](backlog/chore/B1180-the-subscribed-apps-post-is-a.md) | The subscribed_apps POST is a documented curl, not a one-shot script | CHORE | low | low |
 
-### ops (13)
+### ops (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1067](backlog/ops/B1067-it-is-not-written-down-where.md) | It is not written down where this instance's telephone number comes from, or what one message costs | OPS | high | low |
-| [B1077](backlog/ops/B1077-meta-bans-general-purpose-ai-chatbots.md) | Meta bans general-purpose AI chatbots on WhatsApp, and nothing establishes which side of that line the helper is on | OPS | high | low |
 | [B1232](backlog/ops/B1232-authentication-templates-are-gated-on-a.md) | Authentication templates are gated on a business verification this account has not passed | OPS | high | low |
 | [B1311](backlog/ops/B1311-a-config-json-written-as-root.md) | A config.json written as root takes the whole site down at the next build | OPS | high | low |
 | [B1313](backlog/ops/B1313-two-deploys-can-run-at-once.md) | Two deploys can run at once and leave the site down with a corrupt build cache and a detached HEAD | OPS | high | low |
@@ -175,14 +145,11 @@ Do not edit them by hand; run the script.
 | [B546](backlog/ops/B546-the-open-meteo-free-tier-is.md) | The Open-Meteo free tier is non-commercial and this instance takes money | OPS | medium | low |
 | [B1036](backlog/ops/B1036-content-example-s-new-trips-can.md) | content/example's new trips can flicker as malformed during ship.sh's demo sync | OPS | low | low |
 
-### docs-and-skills (4)
+### docs-and-skills (1)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1144](backlog/docs-and-skills/B1144-a-dispatched-worktree-agent-cannot-run.md) | A dispatched worktree agent cannot run claude-security, so the one skill work-on-a-task requires on an auth change is the one it cannot reach | DOCS | high | low |
-| [B1384](backlog/docs-and-skills/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high |
-| [B1403](backlog/docs-and-skills/B1403-nothing-an-outside-agent-reads-says.md) | Nothing an outside agent reads says weatherData is written by the server, so a filled block reads as fabricated | DOCS | medium | low |
-| [B1396](backlog/docs-and-skills/B1396-the-whatsapp-checkbox-carries-a-second.md) | The WhatsApp checkbox carries a second sentence about Meta that the form does not need | DOCS | low | low |
 
 ### superseded (69)
 
@@ -271,19 +238,22 @@ Do not edit them by hand; run the script.
 | [B1364](backlog/wont-do/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (99)
+## open (132)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1053](open/B1053-the-helper-s-tool-list-has.md) | The helper's tool list has outgrown the budget its own test set, and the fix is grouping | ISSUE | high | medium |
 | [B1070](open/B1070-the-three-ways-to-reach-this.md) | The three ways to reach this journal are not written down anywhere as three ways | DOCS | high | medium |
 | [B1076](open/B1076-voice-recordings-are-sent-to-deepgram.md) | Voice recordings are sent to Deepgram without opting out of its model-training programme | SECURITY | high | low |
+| [B1077](open/B1077-meta-bans-general-purpose-ai-chatbots.md) | Meta bans general-purpose AI chatbots on WhatsApp, and nothing establishes which side of that line the helper is on | OPS | high | low |
 | [B1091](open/B1091-the-two-model-calls-that-cost.md) | The two model calls that cost real money are free, so the ledger cannot account for what the instance spends | FEATURE | high | medium |
 | [B1092](open/B1092-photobook-and-costs-are-gated-per.md) | Budget is gated per journal when it is the instance's decision | FEATURE | high | medium |
 | [B1095](open/B1095-personas-run-in-parallel-share-one.md) | Personas run in parallel share one browser tab and interleave, invalidating the round | CHORE | high | low |
 | [B1114](open/B1114-run-a-batch-has-no-shape.md) | run-a-batch has no shape for an engagement, so an OPS ticket cannot be in a batch at all | DOCS | high | medium |
 | [B1115](open/B1115-a-brief-can-say-a-ticket.md) | A brief can say a ticket is dropped or live, and B1058 is neither | DOCS | high | low |
 | [B1147](open/B1147-gelato-rejects-fernscout-ch-s-credential.md) | Gelato rejects fernscout.ch's credential, so no photobook in a real journal can be priced | ISSUE | high | low |
+| [B1153](open/B1153-handing-your-journal-to-your-own.md) | Handing your journal to your own agent means leaving the conversation to fetch the key | FEATURE | high | low |
+| [B1154](open/B1154-a-key-that-can-write-to.md) | A key that can write to this journal for seven days is visible nowhere in the room | FEATURE | high | medium |
 | [B1175](open/B1175-a-journal-deletion-that-fails-partway.md) | a journal deletion that fails partway leaves the journal gone, no tombstone, and a spent confirmation link | ISSUE | high | medium |
 | [B1223](open/B1223-three-failed-photobooks-for-one-journal.md) | Three failed photobooks for one journal share one attention-band id, so acknowledging one silently hides the other two and React sees duplicate keys | ISSUE | high | low |
 | [B1246](open/B1246-a-root-owned-content-registry-silently.md) | A root-owned content/.registry silently breaks every signup on the instance | ISSUE | high | low |
@@ -298,24 +268,39 @@ Do not edit them by hand; run the script.
 | [B1280](open/B1280-the-helper-offers-to-add-a.md) | The helper offers to add a postcard recipient, then refuses and names a settings page that does not exist | ISSUE | high | low |
 | [B1282](open/B1282-a-guest-confirming-their-invitation-silently.md) | A guest confirming their invitation silently deletes the postal address the owner entered for them | ISSUE | high | medium |
 | [B1301](open/B1301-an-approved-reader-who-opens-a.md) | An approved reader who opens a buddy link is given write access to the trip with no owner decision, and told there is nothing to do | SECURITY | high | medium |
+| [B1322](open/B1322-postcard-proposals-are-still-refused-after.md) | Postcard proposals are still refused after B1284, now because the helper sends an empty signature | ISSUE | high | low |
+| [B1323](open/B1323-the-helper-said-a-postcard-was.md) | The helper said a postcard was on the postcards page when the proposal had failed | ISSUE | high | low |
+| [B1324](open/B1324-a-failed-card-press-disables-the.md) | A failed card press disables the composer for good, and the only way out wipes the conversation | ISSUE | high | low |
+| [B1385](open/B1385-the-conversation-storage-consent-block-is.md) | The conversation-storage consent block is shown to signed-out visitors | ISSUE | high | low |
+| [B1387](open/B1387-deleting-one-trip-offers-an-export.md) | Deleting one trip offers an export of the whole journal, and the zip carries machine state | ISSUE | high | medium |
+| [B1391](open/B1391-the-helper-refuses-a-bare-yes.md) | The helper refuses a bare yes to its own delete question, and an inbox cannot be emptied at all | ISSUE | high | medium |
+| [B1393](open/B1393-a-postcard-can-only-be-made.md) | A postcard can only be made from a photograph already on a day, and the helper cannot add the recipient it just asked for | FEATURE | high | medium |
+| [B1399](open/B1399-the-helper-tells-an-owner-who.md) | The helper tells an owner who has just saved their own contact to go and save a contact | ISSUE | high | medium |
+| [B1400](open/B1400-publish-mjs-reports-every-requested-feature.md) | publish.mjs reports every requested feature key as applied without reading the response back | ISSUE | high | low |
+| [B1401](open/B1401-the-helper-client-s-yaml-parser.md) | The helper client's YAML parser stops at the first unsupported line and silently drops every key after it | ISSUE | high | medium |
+| [B1404](open/B1404-a-matched-number-with-the-channel.md) | A matched number with the channel off gets silence instead of a fresh opt-in ask | ISSUE | high | medium |
 | [B1406](open/B1406-a-book-with-no-recipient-is.md) | A book with no recipient is refused with the message for a book with no photographs | ISSUE | high | low |
 | [B1408](open/B1408-an-en-dash-in-a-day.md) | An en dash in a day's words comes out as a blank gap in the book | ISSUE | high | low |
 | [B911](open/B911-the-print-flow-has-never-run.md) | The print flow has never run against the live site | OPS | high | low |
 | [B106](open/B106-push-has-never-been-switched-on.md) | Push has never been switched on anywhere, so nothing has proved a notification reaches a phone | OPS | medium | medium |
+| [B1072](open/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1094](open/B1094-editing-a-contact-opens-a-form.md) | Editing a contact opens a form off-screen above the button, so the button looks broken | ISSUE | medium | low |
 | [B1112](open/B1112-a-triage-decision-carries-no-reason.md) | A triage decision carries no reason, so the run brief starts from ids alone | DOCS | medium | low |
 | [B1113](open/B1113-api-health-cannot-say-whether-this.md) | /api/health cannot say whether this instance actually prints photobooks | ISSUE | medium | low |
 | [B1116](open/B1116-plan-a-run-re-opens-questions.md) | plan-a-run re-opens questions a ticket has already decided unless the dispatch says not to | DOCS | medium | low |
 | [B1117](open/B1117-a-lane-move-can-invalidate-another.md) | A lane move can invalidate another ticket's acceptance section and nothing notices | ISSUE | medium | low |
 | [B112](open/B112-local-scripts-write-straight-to-content.md) | Local scripts still write straight to content, and the one guarantee they skip is the draft rule | FEATURE | medium | medium |
+| [B1129](open/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
 | [B1130](open/B1130-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
 | [B1131](open/B1131-removing-somebody-from-a-trip-tells.md) | Removing somebody from a trip tells the owner their token keeps working, and it does not | ISSUE | medium | low |
 | [B1132](open/B1132-the-address-confirmation-mail-says-nothing.md) | The address-confirmation mail says nothing opens yet, but a pre-approved invite admits the reader on confirming | ISSUE | medium | low |
 | [B1139](open/B1139-a-hold-in-in-development-survives.md) | A hold in in-development survives the session that took it, and nothing says the work already merged | ISSUE | medium | medium |
 | [B1141](open/B1141-a-worktree-s-cloned-node-modules.md) | A worktree's cloned node_modules goes stale when main adds a dependency, and the build fails as if the change were wrong | DOCS | medium | low |
 | [B1148](open/B1148-a-refused-print-credential-is-reported.md) | A refused print credential is reported to the owner as the printer being unreachable, with advice to try again | ISSUE | medium | low |
+| [B1155](open/B1155-a-turn-spends-a-credit-and.md) | A turn spends a credit and nothing on screen says so | FEATURE | medium | medium |
 | [B1165](open/B1165-a-printer-refusal-says-nothing-about.md) | A printer refusal says nothing about why, to anybody who could act on it | ISSUE | medium | low |
 | [B1176](open/B1176-every-file-under-content-registry-was.md) | every file under content/.registry was root-owned, so the service account could not release a lock | OPS | medium | low |
+| [B1239](open/B1239-the-retired-wizard-s-code-still.md) | The retired wizard's code still ships: AgentWizard, its queue and its suites await deletion | CHORE | medium | medium |
 | [B1248](open/B1248-the-health-endpoint-reports-content-ok.md) | The health endpoint reports content ok without ever checking the content root is writable | ISSUE | medium | low |
 | [B1252](open/B1252-the-helper-composer-gives-the-text.md) | The helper composer gives the text under half the screen width on a phone | ISSUE | medium | low |
 | [B1253](open/B1253-a-proposal-card-taller-than-the.md) | A proposal card taller than the phone opens scrolled past its own explanation, mid-sentence | ISSUE | medium | low |
@@ -328,6 +313,7 @@ Do not edit them by hand; run the script.
 | [B1269](open/B1269-the-low-credit-warning-s-buy.md) | The low-credit warning's Buy credits link goes to a page with no credits and no way to buy | ISSUE | medium | low |
 | [B1272](open/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low |
 | [B1273](open/B1273-six-person-facing-strings-print-photograph.md) | Six person-facing strings print photograph(s) and Credit(s) instead of using the plural mechanism | ISSUE | medium | low |
+| [B1276](open/B1276-a-day-written-through-the-helper.md) | A day written through the helper gets the date as its slug, so its address is fernscout.ch slash day slash 2026-09-05 | ISSUE | medium | low |
 | [B1281](open/B1281-add-a-guest-reuses-the-guest.md) | Add a guest reuses the guest's own form, so the owner is asked for Your name and Write to me in | ISSUE | medium | low |
 | [B1285](open/B1285-the-postcard-page-tells-the-owner.md) | The postcard page tells the owner to answer an API endpoint and write a YAML block | ISSUE | medium | low |
 | [B1286](open/B1286-the-postcard-back-is-labelled-at.md) | The postcard back is labelled at print size and renders its message at eight pixels on a phone | ISSUE | medium | low |
@@ -338,10 +324,20 @@ Do not edit them by hand; run the script.
 | [B1297](open/B1297-agents-md-says-there-is-no.md) | AGENTS.md says there is no form that maps fields onto frontmatter, and Correct this day is one | DOCS | medium | low |
 | [B1299](open/B1299-a-refusal-from-the-trip-people.md) | A refusal from the trip-people tool appears alone in the transcript during a conversation about costs | ISSUE | medium | low |
 | [B1300](open/B1300-with-one-day-of-costs-the.md) | With one day of costs the bar chart is a full-width block and the running total draws nothing | ISSUE | medium | low |
+| [B1384](open/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high |
+| [B1386](open/B1386-a-signed-out-visitor-has-no.md) | A signed-out visitor has no way to get a journal of their own | FEATURE | medium | low |
+| [B1389](open/B1389-teaser-is-missing-from-content-model.md) | `teaser` is missing from /content-model.json, so the helper's validator calls it not a field | ISSUE | medium | low |
+| [B1390](open/B1390-one-subject-two-sections-what-the.md) | One subject, two sections: what the helper does with your words is drawn twice on /me | ISSUE | medium | low |
+| [B1394](open/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium |
+| [B1395](open/B1395-a-buddy-listed-on-a-trip.md) | A buddy listed on a trip has no way to give or correct their address on /me | ISSUE | medium | low |
+| [B1397](open/B1397-a-busy-button-draws-two-loaders.md) | A busy button draws two loaders at once when the caller gives its own busy label | ISSUE | medium | low |
+| [B1403](open/B1403-nothing-an-outside-agent-reads-says.md) | Nothing an outside agent reads says weatherData is written by the server, so a filled block reads as fabricated | DOCS | medium | low |
 | [B1405](open/B1405-the-first-book-flow-quotes-a.md) | The first-book flow quotes a price before the recipient is known, so the figure can change before the press | ISSUE | medium | low |
 | [B1407](open/B1407-a-photograph-too-small-to-fill.md) | A photograph too small to fill its slot sits at the foot of the page instead of in the space it has | ISSUE | medium | medium |
 | [B673](open/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium |
 | [B852](open/B852-a-journal-s-languages-units-and.md) | A journal's languages, units and currencies cannot be changed anywhere | FEATURE | medium | medium |
+| [B1038](open/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
+| [B1043](open/B1043-the-helper-has-no-tool-for.md) | The helper has no tool for captioning a photograph or telling readers a day is up | FEATURE | low | low |
 | [B1044](open/B1044-six-fonts-are-preloaded-on-every.md) | Six fonts are preloaded on every page and none of them is used in time | ISSUE | low | low |
 | [B1045](open/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low |
 | [B1046](open/B1046-two-sessions-running-verify-in-the.md) | Two sessions running verify in the shared checkout collide on the next build lock | DOCS | low | low |
@@ -357,8 +353,10 @@ Do not edit them by hand; run the script.
 | [B1149](open/B1149-the-pdf-x-report-tells-you.md) | The PDF/X report tells you to run gs-pdfx.sh, which is only written when the run already had an ICC | ISSUE | low | low |
 | [B1150](open/B1150-ghostscript-is-not-installed-on-the.md) | Ghostscript is not installed on the VPS, so the instance cannot produce a conformant PDF/X-4 | OPS | low | low |
 | [B1151](open/B1151-macos-appledouble-files-are-synced-into.md) | macOS AppleDouble files are synced into the demo journal's originals on the server | CHORE | low | low |
+| [B1180](open/B1180-the-subscribed-apps-post-is-a.md) | The subscribed_apps POST is a documented curl, not a one-shot script | CHORE | low | low |
 | [B1267](open/B1267-the-menu-holds-two-entries-both.md) | The menu holds two entries both labelled Trips that go to different places | ISSUE | low | low |
 | [B1270](open/B1270-the-account-page-quotes-send-prices.md) | The account page quotes send prices for nought people and offers to sell 5 GB to a journal using one kilobyte | ISSUE | low | low |
+| [B1271](open/B1271-a-failed-voice-note-download-also.md) | A failed voice-note download also says nothing | ISSUE | low | low |
 | [B1283](open/B1283-the-phone-country-field-is-too.md) | The phone country field is too narrow for its own default value, so the dialling code is cut off | ISSUE | low | low |
 | [B1291](open/B1291-a-journal-with-no-usable-cover.md) | A journal with no usable cover renders half a card of flat colour on the landing page | ISSUE | low | low |
 | [B1293](open/B1293-two-of-the-four-signup-hints.md) | Two of the four signup hints sit above their field and two below, so the address rule reads as the title rule | ISSUE | low | low |
@@ -369,6 +367,8 @@ Do not edit them by hand; run the script.
 | [B1366](open/B1366-order-page-shows-book-interior-pdf.md) | Order page shows book-interior.pdf and book-cover.pdf links nobody needs | CHORE | low | low |
 | [B1367](open/B1367-photobook-order-page-reads-as-unstyled.md) | Photobook order page reads as unstyled text, not a Fernscout page | CHORE | low | low |
 | [B1368](open/B1368-photobook-flow-doesn-t-say-the.md) | Photobook flow doesn't say the print is experimental | CHORE | low | low |
+| [B1396](open/B1396-the-whatsapp-checkbox-carries-a-second.md) | The WhatsApp checkbox carries a second sentence about Meta that the form does not need | DOCS | low | low |
+| [B1402](open/B1402-a-content-path-one-level-too.md) | A content path one level too shallow is reported accurately and without naming the likely cause | ISSUE | low | low |
 | [B442](open/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
 | [B539](open/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
 | [B666](open/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
