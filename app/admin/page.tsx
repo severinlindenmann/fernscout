@@ -6,6 +6,7 @@ import AdminGrant from "./AdminGrant";
 import AdminRefund from "./AdminRefund";
 import Console from "./Console";
 import Journals from "./Journals";
+import ReleaseName from "./ReleaseName";
 import SmsSend from "./SmsSend";
 import SpendChart from "./SpendChart";
 import { BarChart, Breakdown, CountBars, Meter, type Week } from "./Charts";
@@ -161,6 +162,9 @@ export default async function AdminPage() {
   const smsMessages = smsOn || smsInboundOn ? await listSms() : [];
   const money = takingsBreakdown(data.paid, data.awaiting);
   const stones = allTombstones();
+  // A trip's tombstone holds no name back — only a journal's does, and only a
+  // journal's is what the Release button acts on.
+  const journalStones = stones.filter((stone) => stone.kind === "journal");
   const byName = new Map(report.journals.map((row) => [row.username, row]));
   const ceiling = loadServerConfig().media.perUserBytes;
 
@@ -403,7 +407,7 @@ export default async function AdminPage() {
               <>
                 <HealthCard health={healthNow} troubles={troubleRows} />
                 <WhatItDid days={days} sends={sends} print={data.print} />
-                <Roster report={report} stones={stones.length} />
+                <Roster report={report} stones={journalStones} />
               </>
             ),
           },
@@ -1473,8 +1477,19 @@ function WhatItDid({
  * The signup bars this used to carry are on the People tab now, beside the
  * funnel they are the first step of. What is left is the standing shape of the
  * instance, which is what the Instance tab is.
+ *
+ * The held names are listed rather than counted — B1354. A count answers "is
+ * anything held" and the operator's actual question is "is *that* name held,
+ * and may I have it back": freeing one was `rm` on the server, which is a
+ * shell nobody but the operator has and nobody should need for this.
  */
-function Roster({ report, stones }: { report: { journals: StatusRow[] }; stones: number }) {
+function Roster({
+  report,
+  stones,
+}: {
+  report: { journals: StatusRow[] };
+  stones: { username: string; title: string; deletedAt: string }[];
+}) {
   const empty = report.journals.filter((row) => row.days === 0).length;
   return (
     <section className="mt-8">
@@ -1490,9 +1505,27 @@ function Roster({ report, stones }: { report: { journals: StatusRow[] }; stones:
         </li>
         <li className="flex items-baseline justify-between gap-3 py-2">
           <span className="text-sm text-navy-700">Deleted, name still held</span>
-          <span className="font-mono text-sm text-navy-900">{stones}</span>
+          <span className="font-mono text-sm text-navy-900">{stones.length}</span>
         </li>
       </ul>
+      {stones.length > 0 && (
+        <ul className="mt-4 space-y-2">
+          {stones.map((stone) => (
+            <li
+              key={stone.username}
+              className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-xl border border-navy-200 bg-cream-50 p-3"
+            >
+              <div>
+                <p className="font-mono text-sm text-navy-900">/{stone.username}</p>
+                <p className="text-xs text-navy-700">
+                  “{stone.title}” · deleted {stone.deletedAt.slice(0, 10)}
+                </p>
+              </div>
+              <ReleaseName username={stone.username} title={stone.title} />
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
