@@ -175,15 +175,47 @@ export type SessionSummary = {
  * Their words, shown to them, with no consent involved: this is the reading
  * that makes keeping them worth anything to the person who wrote them.
  */
-export async function sessionsOf(username: string, limit = 30): Promise<SessionSummary[]> {
+/**
+ * A first sentence, made listable — B1217 (D35). Whitespace collapsed,
+ * trailing punctuation dropped, capped at a word boundary: the raw first
+ * message was the title and read like a transcript. (The decision's other
+ * half — falling back to the day a conversation touched when the opener
+ * was a chip sentence — needs the proposal arguments stored per turn,
+ * which they are not; deliberately not built here.)
+ */
+function listable(said: string): string {
+  const flat = said.replace(/\s+/g, " ").trim().replace(/[.!,;:]+$/, "");
+  if (flat.length <= 60) return flat;
+  const cut = flat.slice(0, 60);
+  const word = cut.lastIndexOf(" ");
+  return `${cut.slice(0, word > 30 ? word : 60)}…`;
+}
+
+export async function sessionsOf(
+  username: string,
+  limit = 30,
+  /** Case-insensitive match against what was said or answered — B1217
+   *  (D36). Empty matches everything. */
+  q = "",
+): Promise<SessionSummary[]> {
   try {
     const handle = await getDatabaseOrNull();
     if (!handle) return [];
-    const rows = await handle.db
+    let query = handle.db
       .selectFrom("helper_sessions")
       .select(["session_id", "created_at", "said"])
       .where("owner_id", "=", username)
-      .where("kind", "=", "turn")
+      .where("kind", "=", "turn");
+    if (q.trim() !== "") {
+      const like = `%${q.trim().toLowerCase()}%`;
+      query = query.where((eb) =>
+        eb.or([
+          eb(eb.fn("lower", ["said"]), "like", like),
+          eb(eb.fn("lower", ["answered"]), "like", like),
+        ]),
+      );
+    }
+    const rows = await query
       .orderBy("created_at", "desc")
       .limit(limit * 40)
       .execute();
@@ -196,7 +228,7 @@ export async function sessionsOf(username: string, limit = 30): Promise<SessionS
       if (found) {
         found.turns += 1;
         found.from = row.created_at;
-        if (row.said) found.opening = row.said;
+        if (row.said) found.opening = listable(row.said);
         continue;
       }
       bySession.set(row.session_id, {
@@ -204,7 +236,7 @@ export async function sessionsOf(username: string, limit = 30): Promise<SessionS
         from: row.created_at,
         to: row.created_at,
         turns: 1,
-        opening: row.said ?? "",
+        opening: listable(row.said ?? ""),
       });
     }
     return [...bySession.values()].slice(0, limit);

@@ -1,6 +1,8 @@
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { sessionsOf } from "@/lib/helper/sessions";
 import { liveSession } from "@/lib/helper/thread";
+import { AS_AUTHOR, getAllEntries } from "@/lib/entries";
+import { getTrips } from "@/lib/trips";
 
 export const dynamic = "force-dynamic";
 
@@ -24,8 +26,30 @@ export async function GET(
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
   }
+  // `q` filters against the stored words (B1217, D36); `days` is the
+  // newest trip's days for the panel's Tage tab (D44) — the same trip the
+  // files pane already scopes to, read the same way.
+  const q = new URL(request.url).searchParams.get("q") ?? "";
+  const newest = [...getTrips(user)].sort((a, b) => b.start.localeCompare(a.start))[0];
+  const days = newest
+    ? getAllEntries(newest.ref, AS_AUTHOR)
+        .map((entry) => ({
+          trip: newest.id,
+          slug: entry.slug,
+          date: entry.date,
+          title: entry.title,
+          draft: entry.draft === true,
+        }))
+        .sort((a, b) => b.date.localeCompare(a.date))
+    : [];
   // `live` names the conversation a next sentence would extend, so the
   // panel can say which row is the one you are in — B1168. `null` when
   // nothing is in progress.
-  return Response.json({ ok: true, live: await liveSession(user), sessions: await sessionsOf(user) });
+  return Response.json({
+    ok: true,
+    live: await liveSession(user),
+    sessions: await sessionsOf(user, 30, q),
+    tripTitle: newest?.title ?? "",
+    days,
+  });
 }
