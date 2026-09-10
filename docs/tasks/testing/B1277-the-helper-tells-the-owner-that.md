@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: helper, i18n
 found: "2026-09-10T10:26:45Z"
+merged: "2026-09-10T15:39:42Z"
 ---
 
 # B1277 — The helper tells the owner that a preview is waiting on their postcards page, in the third person

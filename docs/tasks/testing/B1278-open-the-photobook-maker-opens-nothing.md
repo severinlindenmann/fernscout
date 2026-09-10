@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: helper, photobook
 found: "2026-09-10T10:26:45Z"
+merged: "2026-09-10T15:38:33Z"
 ---
 
 # B1278 — Open the photobook maker opens nothing and prints a bare URL that is not a link

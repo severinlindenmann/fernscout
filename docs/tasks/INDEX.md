@@ -244,7 +244,7 @@ Do not edit them by hand; run the script.
 | [B520](backlog/wont-do/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (88)
+## open (86)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -294,8 +294,6 @@ Do not edit them by hand; run the script.
 | [B1269](open/B1269-the-low-credit-warning-s-buy.md) | The low-credit warning's Buy credits link goes to a page with no credits and no way to buy | ISSUE | medium | low |
 | [B1272](open/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low |
 | [B1273](open/B1273-six-person-facing-strings-print-photograph.md) | Six person-facing strings print photograph(s) and Credit(s) instead of using the plural mechanism | ISSUE | medium | low |
-| [B1277](open/B1277-the-helper-tells-the-owner-that.md) | The helper tells the owner that a preview is waiting on their postcards page, in the third person | ISSUE | medium | low |
-| [B1278](open/B1278-open-the-photobook-maker-opens-nothing.md) | Open the photobook maker opens nothing and prints a bare URL that is not a link | ISSUE | medium | low |
 | [B1281](open/B1281-add-a-guest-reuses-the-guest.md) | Add a guest reuses the guest's own form, so the owner is asked for Your name and Write to me in | ISSUE | medium | low |
 | [B1285](open/B1285-the-postcard-page-tells-the-owner.md) | The postcard page tells the owner to answer an API endpoint and write a YAML block | ISSUE | medium | low |
 | [B1286](open/B1286-the-postcard-back-is-labelled-at.md) | The postcard back is labelled at print size and renders its message at eight pixels on a phone | ISSUE | medium | low |
@@ -343,7 +341,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- | --- |
 | [B1316](in-development/B1316-twilio-sms-inbound-inbox-in-admin.md) | Twilio SMS - inbound inbox in admin, outbound sending, SMS signup fallback | FEATURE | high | medium | `35cb457b` |
 
-## testing (98)
+## testing (100)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -438,6 +436,8 @@ Do not edit them by hand; run the script.
 | [B1206](testing/B1206-getting-a-credential-into-a-session.md) | Getting a credential into a session is rediscovered every time: the four kinds are described in three skills, none of them says how to make a test journal, and the admin cookie is in none | DOCS | medium | low | — |
 | [B1231](testing/B1231-the-book-ends-on-two-blank.md) | The book ends on two blank pages instead of the colophon | ISSUE | medium | low | — |
 | [B1259](testing/B1259-a-trip-prints-the-span-of.md) | A trip prints the span of the days written rather than its own dates, and a single day reads as 5 Sep to 5 Sep | ISSUE | medium | low | — |
+| [B1277](testing/B1277-the-helper-tells-the-owner-that.md) | The helper tells the owner that a preview is waiting on their postcards page, in the third person | ISSUE | medium | low | — |
+| [B1278](testing/B1278-open-the-photobook-maker-opens-nothing.md) | Open the photobook maker opens nothing and prints a bare URL that is not a link | ISSUE | medium | low | — |
 | [B1309](testing/B1309-a-softcover-gets-no-spine-text.md) | A softcover gets no spine text even where the spine is wide enough for one | ISSUE | medium | low | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
 | [B1096](testing/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low | — |
