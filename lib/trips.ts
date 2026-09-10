@@ -444,11 +444,36 @@ export const KNOWN_TRIP_FIELDS = new Set([
   "teaser",
   "costsVisibility",
   "tracks",
+  "reminder",
+  "reminderChannel",
 ]);
 
 function unknownFields(data: Record<string, unknown>): string[] | undefined {
   const extra = Object.keys(data).filter((k) => !KNOWN_TRIP_FIELDS.has(k));
   return extra.length > 0 ? extra : undefined;
+}
+
+/**
+ * `reminder:` / `reminderChannel:` — the evening nudge, B1219.
+ *
+ * Fails open like every reader here: an unrecognised channel or a
+ * `reminder: true` with no channel reads as no reminder at all, rather than
+ * guessing which one was meant. The writer, `lib/api/tripReminder.ts`, is
+ * the one place a bad value is refused instead of dropped.
+ */
+function parseReminder(
+  raw: unknown,
+  rawChannel: unknown,
+  folder: string,
+): { channel: "mail" | "whatsapp" } | undefined {
+  if (raw !== true) return undefined;
+  if (rawChannel === "mail" || rawChannel === "whatsapp") return { channel: rawChannel };
+  console.warn(
+    `[trips] ${folder}/trip.md says reminder: true but reminderChannel is ${JSON.stringify(
+      rawChannel ?? null,
+    )}, which is not "mail" or "whatsapp" — treating the reminder as off.`,
+  );
+  return undefined;
 }
 
 function parseCostsVisibility(raw: unknown, folder: string): CostsVisibility {
@@ -644,6 +669,7 @@ function readTrip(username: string, dir: string, folder: string): Trip | Malform
     // everything — which is the default an owner should not have to find, and
     // the only default that would have caught the run this came from.
     tracks: parseTracks(data.tracks),
+    reminder: parseReminder(data.reminder, data.reminderChannel, folder),
     unknownFields: unknownFields(data),
   };
 }
