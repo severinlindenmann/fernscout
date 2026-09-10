@@ -1638,6 +1638,14 @@ export async function answerInThread(
 
       messages.push({ role: "assistant", content: response.content });
       const results: Anthropic.ToolResultBlockParam[] = [];
+      // B1261, ctxloss finding 1 — `trips`' own `choose` (every trip, a
+      // picker) is honest only when nothing else this round already
+      // resolved which one to use. Held back rather than pushed straight
+      // in, and only added once the whole round is known to be free of a
+      // write proposal — a round that both lists trips and proposes a write
+      // has, by definition, already decided which trip the write is for.
+      let roundHasProposal = false;
+      const deferredTripsBlocks: Block[] = [];
       for (const call of calls) {
         looked.push(call.name);
         const tool = TOOLS.find((one) => one.name === call.name);
@@ -1650,6 +1658,7 @@ export async function answerInThread(
           today,
           selected,
         );
+        if (proposal) roundHasProposal = true;
         /**
          * The same proposal twice in one turn draws once — B1202/B1212
          * (D23). A model calling one write tool twice with identical
@@ -1666,7 +1675,11 @@ export async function answerInThread(
               one.tool === proposal.tool &&
               JSON.stringify(one.arguments) === JSON.stringify(proposal.arguments),
           );
-        if (!twin) blocks.push(...drawn);
+        if (!twin && call.name === "trips") {
+          deferredTripsBlocks.push(...drawn);
+        } else if (!twin) {
+          blocks.push(...drawn);
+        }
         if (proposal && !twin) proposals.push(proposal);
         if (call.name === "trip_costs") {
           const said = result as { notInTheTotal?: { currency?: unknown }[] } | null;
@@ -1684,6 +1697,7 @@ export async function answerInThread(
           content: JSON.stringify(result).slice(0, 20000),
         });
       }
+      if (!roundHasProposal) blocks.push(...deferredTripsBlocks);
       messages.push({ role: "user", content: results });
     }
 

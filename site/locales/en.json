@@ -498,6 +498,8 @@
   "wa.firstReply": "Hi! Send me your photos and notes and I'll write your days into your journal at {journalUrl}. I'm an AI, and your messages pass through WhatsApp and the model that writes them. Messaging here is free; writing a day up or transcribing a voice note still spends your journal's credits, same as on the web. Reply 'yes' to continue. You can also continue this conversation on the web: {agentUrl}",
   "wa.yes": "yes,y",
   "wa.declineButton": "No",
+  "wa.secondProposalNote": "This one has to wait until the first is done — ask again once it is, or continue on the web: {url}",
+  "wa.moreInThread": "There's more than fits in these messages — see the rest at",
   "wa.acknowledged": "Thanks — go ahead, tell me about your day.",
   "wa.heldAnswer": "Answering what you asked {when}:",
   "wa.balanceRefusal": "That would have cost {cost} credits and the balance is {balance} — top up at {url}",

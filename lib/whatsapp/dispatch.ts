@@ -698,23 +698,8 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
   }
   if (thread.answer === "" && thread.blocks.length === 0) return;
 
-  remember(username, said, thread.answer, "whatsapp");
-  void recordTurn({
-    owner: username,
-    session: await sessionId(username, "whatsapp"),
-    locale,
-    tools: thread.looked,
-    proposed: thread.proposals.map((proposal) => proposal.tool),
-    guard: thread.guard,
-    recovered: thread.recovered,
-    threadTurns: (await history(username)).length,
-    said,
-    answered: thread.answer,
-    origin: "whatsapp",
-  });
   for (const proposal of thread.proposals) proposed(username, proposal.tool, proposal.arguments, "whatsapp");
 
-  const blocks = [...thread.blocks, ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }])];
   // At most one write proposal reaches a WhatsApp screen at a time in
   // practice — the model calls one write tool a turn — so the first is the
   // one a tap can be about; see the module doc above `holdProposal`.
@@ -742,20 +727,57 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
   // to start over, which is worse than a link doing nothing at all.
   const journalUrl = `${serverSite().url}/agent?c=${await sessionId(username, "whatsapp")}${about}`;
   const declineLabel = translateIn(locale, "wa.declineButton");
-  let outbound = renderForWhatsapp(blocks, journalUrl, declineLabel);
+
+  /**
+   * A turn that proposes more than once — B1261, scenario-guards.md finding
+   * 2. The pending-proposal store holds exactly one waiting write per
+   * number, so only `proposal` (the first) can ever be pressed from here.
+   * Every other write's `confirm`/`form` block is turned into plain prose
+   * with its own honest next-step, *before* rendering — rather than drawing
+   * buttons a tap could never find (`pendingProposal.ts`'s take-once read
+   * only ever has room for one).
+   */
+  const blocks = [
+    ...thread.blocks.map((block) => {
+      if ((block.shape !== "confirm" && block.shape !== "form") || !block.proposal || block.proposal === proposal) {
+        return block;
+      }
+      return {
+        shape: "say" as const,
+        text: `${block.text} ${translateIn(locale, "wa.secondProposalNote", { url: journalUrl })}`,
+      };
+    }),
+    ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }]),
+  ];
+
+  const moreText = translateIn(locale, "wa.moreInThread");
+  const messages = renderForWhatsapp(blocks, journalUrl, declineLabel, moreText);
 
   if (proposal) {
-    if (outbound.kind === "buttons") {
+    const tagged = messages.findIndex((message) => message.proposal === proposal);
+    if (tagged !== -1) {
       // A `confirm` block already drew these buttons (B1056) — hold the
       // proposal so a tap on them can find it. Whether the tap goes on to
       // execute or is told this lives on the web is `handleProposalReply`'s
       // question, not this one's.
       holdProposal(username, to, proposal);
     } else if (isWhatsappExecutable(proposal.tool)) {
-      // A `form`-shaped proposal (B1230's own case: `create_trip` is exactly
-      // this) had no WhatsApp shape before this ticket. It gets one now,
-      // built over whatever text `renderForWhatsapp` already produced.
-      outbound = confirmButtonsFor(outbound.body, proposal.accept, declineLabel);
+      /**
+       * A `form`-shaped proposal (B1230's own case: `create_trip` is exactly
+       * this) had no WhatsApp shape before B1230, and draws no message of
+       * its own from `renderForWhatsapp` (see the module doc: `form` only
+       * ever folds into the running prose). Given how `blocks` is built
+       * above — every read tool's own block, then this turn's own write
+       * proposal, then the model's own trailing sentence — that prose always
+       * ends up in the *last* message `renderForWhatsapp` returns. Upgrade
+       * that one to real buttons, built over whatever text it already
+       * carries.
+       */
+      const last = messages[messages.length - 1];
+      messages[messages.length - 1] = {
+        ...confirmButtonsFor(last.kind === "text" ? last.body : "", proposal.accept, declineLabel),
+        proposal,
+      };
       holdProposal(username, to, proposal);
     }
     // A `form`-shaped proposal for a tool this channel will never press
@@ -763,7 +785,27 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
     // no button is offered for a press that could not do anything.
   }
 
-  await sendOutboundReply(to, outbound, username);
+  // B1261 — what the person actually saw, not the model's own undropped
+  // prose, is what the conversation and the diagnostic log both remember
+  // from here on: every message this turn actually sent, joined the same
+  // way a person reads several bubbles in a row.
+  const delivered = messages.map((message) => message.body).join("\n\n");
+  remember(username, said, delivered, "whatsapp");
+  void recordTurn({
+    owner: username,
+    session: await sessionId(username, "whatsapp"),
+    locale,
+    tools: thread.looked,
+    proposed: thread.proposals.map((one) => one.tool),
+    guard: thread.guard,
+    recovered: thread.recovered,
+    threadTurns: (await history(username)).length,
+    said,
+    answered: delivered,
+    origin: "whatsapp",
+  });
+
+  for (const message of messages) await sendOutboundReply(to, message, username);
 }
 
 /**

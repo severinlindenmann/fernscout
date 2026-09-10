@@ -7,7 +7,7 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { createJournal, setJournalFeatures } from "@/lib/journals";
-import { forget } from "@/lib/helper/thread";
+import { forget, history } from "@/lib/helper/thread";
 import { getTrips } from "@/lib/trips";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { storeInboxFile } from "@/lib/inbox";
@@ -57,6 +57,27 @@ function turnCalling(name: string, args: Record<string, string>, answer = "Here 
       guard: "",
       recovered: false,
     };
+  };
+}
+
+/**
+ * A turn that calls two real tools in the one round — B1261. What
+ * `lib/helper/model.ts`'s own `rounds()` does when the model asks for more
+ * than one tool in a single response, exercised here without a live model.
+ */
+function turnCallingBoth(
+  calls: { name: string; args: Record<string, string> }[],
+  answer = "Here it is.",
+) {
+  return async (user: string, _said: string, _turns: unknown, today: string, say: Say) => {
+    const blocks = [];
+    const proposals = [];
+    for (const { name, args } of calls) {
+      const ran = await runTool(user, name, args, say, today);
+      blocks.push(...ran.blocks);
+      if (ran.proposal) proposals.push(ran.proposal);
+    }
+    return { answer, looked: calls.map((c) => c.name), blocks, proposals, guard: "", recovered: false };
   };
 }
 
@@ -261,7 +282,9 @@ describe("a money proposal that reaches the thread — the scope guard", () => {
     answerInThread.mockImplementationOnce(turnCalling("buy_room", {}, "That would spend credits."));
     await handleInboundMessage(textMessage(tel, "wamid.press5.propose", "buy more room"));
 
-    const proposeReply = repliesTo(username).at(-1);
+    // B1261 — the model's own trailing sentence after a proposal is no
+    // longer dropped; it now arrives as its own message after the buttons.
+    const proposeReply = repliesTo(username).filter((r) => r.kind === "buttons").at(-1);
     expect(proposeReply?.kind).toBe("buttons");
 
     await handleInboundMessage(interactiveMessage(tel, "wamid.press5.tap", "confirm:0:yes"));
@@ -309,7 +332,9 @@ describe("a newly-allowed ordinary write — B1235", () => {
       ),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press6.attach", "put the photo on the first day"));
-    expect(repliesTo(username).at(-1)?.kind).toBe("buttons");
+    // B1261 — the model's own trailing sentence after a proposal is no
+    // longer dropped; it now arrives as its own message after the buttons.
+    expect(repliesTo(username).filter((r) => r.kind === "buttons").at(-1)?.kind).toBe("buttons");
 
     await handleInboundMessage(interactiveMessage(tel, "wamid.press6.attach-tap", "confirm:0:yes"));
     const entry = getEntryBySlug(trip.ref, slug, AS_AUTHOR);
@@ -475,6 +500,114 @@ describe("the enrichment question after a day-writing press — B1264", () => {
 
     const last = repliesTo(username).at(-1);
     expect(last?.body).toBe("The words are saved.");
+    forget(username);
+  });
+});
+
+/**
+ * B1261 — the ctxloss reproduction: a turn that calls a read tool drawing a
+ * `choose` (a trip picker) and a write tool drawing its own `confirm`/`form`
+ * in the same round. The old renderer sent the first interactive shape and
+ * silently dropped everything after it — including the proposal itself and
+ * the model's own trailing sentence. Now every message this turn draws
+ * actually reaches the phone, in order.
+ */
+describe("two interactive shapes drawn in one turn — B1261", () => {
+  test("both arrive, nothing is dropped, and remember() stores what was actually sent", async () => {
+    const username = "presstest12";
+    const tel = "41760009994";
+    forget(username);
+    await bindGreetAcknowledge(username, tel);
+
+    answerInThread.mockImplementationOnce(
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press12.trip", "plan a trip to japan"));
+    await handleInboundMessage(interactiveMessage(tel, "wamid.press12.trip-tap", "confirm:0:yes"));
+    const trip = getTrips(username)[0];
+
+    answerInThread.mockImplementationOnce(
+      turnCallingBoth(
+        [
+          { name: "trips", args: {} },
+          { name: "start_day", args: { trip: trip.id, date: "2027-03-01" } },
+        ],
+        "Once you press, the day is ready.",
+      ),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press12.day", "start the first day"));
+
+    const replies = repliesTo(username);
+    // The trip picker (from `trips`, a genuine read-only choose with no
+    // write behind it) and the day's own proposal — folded with the
+    // model's own trailing sentence, since `start_day` draws a `form` and a
+    // `form` never breaks a message of its own — each arrived, where the
+    // old renderer sent exactly one message and silently dropped the rest.
+    const thisTurn = replies.slice(-2);
+    expect(thisTurn.some((r) => r.kind === "buttons" && JSON.stringify(r).includes("Japan"))).toBe(true);
+    const dayMessage = thisTurn.find((r) => r.kind === "buttons" && JSON.stringify(r).includes("Start this day"));
+    expect(dayMessage).toBeDefined();
+    expect(String(dayMessage?.body)).toContain("Once you press, the day is ready.");
+
+    // remember() stored what was actually delivered, not the model's own
+    // undropped prose — every body the person actually saw is somewhere in
+    // the thread's own record of this turn.
+    const turns = await history(username);
+    const lastAnswer = turns.filter((t) => t.role === "assistant").at(-1);
+    for (const message of thisTurn) {
+      const body = (message as { body: string }).body;
+      if (body) expect(lastAnswer?.text).toContain(body);
+    }
+    forget(username);
+  });
+});
+
+/**
+ * B1261, scenario-guards.md finding 2 — a turn that proposes twice. The
+ * pending-proposal store holds exactly one waiting write per number, so only
+ * the first proposal ever gets real buttons; the second is said in words,
+ * with its own honest next-step, rather than drawing buttons a tap could
+ * never find.
+ */
+describe("a turn that proposes twice — B1261", () => {
+  test("the first gets real buttons; the second is words with a next-step, never a stray button", async () => {
+    const username = "presstest13";
+    const tel = "41760009995";
+    forget(username);
+    await bindGreetAcknowledge(username, tel);
+
+    answerInThread.mockImplementationOnce(
+      turnCallingBoth(
+        [
+          { name: "create_trip", args: { title: "Japan", start: "2027-03-01", end: "2027-03-31" } },
+          { name: "create_trip", args: { title: "France", start: "2027-06-01", end: "2027-06-14" } },
+        ],
+        "Two trips you might mean.",
+      ),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press13.propose", "plan trips to japan and france"));
+
+    const replies = repliesTo(username);
+    const buttonMessages = replies.filter((r) => r.kind === "buttons");
+    // Exactly one message with real buttons this turn, and its buttons are
+    // only ever "Make this trip" / "No" — Japan's, the first proposal.
+    // France's own sentence may still be read as prose in the same bubble
+    // (both proposals fold into one message here, since `create_trip` draws
+    // a `form` and a `form` never breaks a message of its own), but nothing
+    // about France is ever a *button* a tap could find nothing behind.
+    expect(buttonMessages).toHaveLength(1);
+    const buttons = buttonMessages[0].buttons as { id: string; title: string }[];
+    expect(buttons.map((b) => b.title)).toEqual(["Make this trip", "No"]);
+
+    // France is said in words, with its own honest next-step — it has to
+    // wait — rather than a button that could never be pressed.
+    expect(String(buttonMessages[0].body)).toContain("France");
+    expect(String(buttonMessages[0].body)).toMatch(/has to wait/);
+
+    await handleInboundMessage(interactiveMessage(tel, "wamid.press13.tap", "confirm:0:yes"));
+    const trips = getTrips(username);
+    expect(trips).toHaveLength(1);
+    expect(trips[0].title).toBe("Japan");
     forget(username);
   });
 });

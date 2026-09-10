@@ -1,8 +1,9 @@
 import "server-only";
-import type { Block } from "../helper/blocks";
+import type { Block, Proposal } from "../helper/blocks";
 
 /**
- * `Block[]` in, one WhatsApp message out — B1056.
+ * `Block[]` in, an ORDERED SEQUENCE of WhatsApp messages out — B1056, and
+ * B1261 corrected the shape.
  *
  * `components/HelperAsk.tsx`'s `BlockView` is the *other* implementation of
  * the same seam: it draws the seven shapes with native HTML controls, this
@@ -38,6 +39,20 @@ import type { Block } from "../helper/blocks";
  * these two buttons is built, so a `confirm` block and a `form`-shaped
  * proposal B1230 also gives buttons to (see `dispatch.ts`) end up with
  * identical ids and the identical 20-character ceiling on the accept label.
+ *
+ * **B1261 — one message per interactive shape, not one message for the whole
+ * turn.** Meta's real ceiling is one interactive element per *message*, not
+ * per turn: WhatsApp has no notion of "several messages that belong
+ * together" the way a chat transcript does, but it has every notion of
+ * sending several messages in a row. The old shape returned the first
+ * interactive block and silently dropped everything after it — a real live
+ * failure once a turn called both a listing tool and a proposing tool (the
+ * scenario this ticket is named for). `renderForWhatsapp` now walks the
+ * whole block list and returns a message per interactive shape encountered,
+ * with the plain prose before it folded into that message's body exactly as
+ * before, and returns to accumulating prose afterward for whatever follows.
+ * Nothing is dropped any more; `capMessages` below is the one place that
+ * still trims, and it says so rather than doing it silently.
  */
 
 /** Meta's own ceilings — B1056. */
@@ -51,14 +66,38 @@ const LIST_ROW_TITLE_MAX = 24;
  *  too long for a message", reused rather than re-decided. */
 const PREVIEW_MAX = 300;
 
+/** At most this many messages leave `renderForWhatsapp` for one turn —
+ *  B1261. Not Meta's own limit (there is none on messages sent in
+ *  sequence); this instance's own choice about how many bubbles one reply
+ *  should ever become before the honest answer is "there's more, go look". */
+const MAX_MESSAGES = 3;
+
 export type WhatsappOutbound =
   | { kind: "text"; body: string }
   | { kind: "buttons"; body: string; buttons: { id: string; title: string }[] }
   | { kind: "list"; body: string; buttonLabel: string; rows: { id: string; title: string }[] };
 
+/** One message in the sequence, tagged with the write proposal its buttons
+ *  belong to when it carries one — B1261. `lib/whatsapp/dispatch.ts` reads
+ *  this to know which message to hold a tap against; a `choose` never
+ *  carries one (see `Block`'s own doc: only a write tool's `confirm`/`form`
+ *  ever does), so most messages carry `proposal: undefined`. */
+export type WhatsappMessage = WhatsappOutbound & { proposal?: Proposal };
+
 function truncate(text: string, max: number): string {
   const flat = text.replace(/\s+/g, " ").trim();
-  return flat.length > max ? `${flat.slice(0, max - 1).trimEnd()}…` : flat;
+  if (flat.length <= max) return flat;
+  /**
+   * At a word boundary, not mid-word — the dayflow scenario found button
+   * titles truncated as "Für mich ausformuli…" and "Diesen Text speiche…",
+   * each unreadable as a word. Cut at the last space inside the budget; only
+   * a single word longer than the whole budget falls back to a hard cut,
+   * because there is nowhere else to break it.
+   */
+  const cut = flat.slice(0, max - 1);
+  const lastSpace = cut.lastIndexOf(" ");
+  const trimmed = lastSpace > 0 ? cut.slice(0, lastSpace) : cut;
+  return `${trimmed.trimEnd()}…`;
 }
 
 /** One id a button or row's reply carries — opaque to the model, read back
@@ -97,31 +136,65 @@ export function confirmButtonsFor(body: string, acceptLabel: string, declineLabe
 }
 
 /**
- * Render the whole answer as one WhatsApp message.
+ * Fold everything past `MAX_MESSAGES` into one honest link-out — B1261.
+ *
+ * The first `MAX_MESSAGES - 1` messages are kept as they were drawn. The
+ * *last* message is always kept too, rather than being the one that gets
+ * dropped: given how `blocks` is built (every read tool's own block, then
+ * the turn's write proposal, then the model's own trailing prose — see
+ * `lib/whatsapp/dispatch.ts`), the last message is the one most likely to
+ * carry the turn's actual proposal or its final sentence, and dropping it
+ * would be losing the thing the person most needs to see. Anything strictly
+ * between those two groups is summarised in one line rather than sent.
+ */
+function capMessages(messages: WhatsappMessage[], journalUrl: string, moreText: string): WhatsappMessage[] {
+  if (messages.length <= MAX_MESSAGES) return messages;
+  const kept = messages.slice(0, MAX_MESSAGES - 1);
+  const last = messages[messages.length - 1];
+  const droppedCount = messages.length - MAX_MESSAGES;
+  if (droppedCount > 0) {
+    kept.push({ kind: "text", body: `${moreText} ${journalUrl}`.trim() });
+  }
+  kept.push(last);
+  return kept;
+}
+
+/**
+ * Render a whole turn as the ordered sequence of WhatsApp messages it takes
+ * to say it — B1056, reshaped by B1261.
  *
  * `journalUrl` is where a `form` (and, past the ten-row ceiling, an
- * over-long `choose`) points — the room a browser can finish in.
+ * over-long `choose`) points — the room a browser can finish in. `moreText`
+ * is the sentence `capMessages` above uses when there is more than
+ * `MAX_MESSAGES` allows — passed in already translated, the same way
+ * `declineLabel` always has been, so this file holds no English prose of its
+ * own.
  *
- * Blocks combine into a single message rather than one per block: WhatsApp
- * has no notion of "several messages that belong together" the way a chat
- * transcript does, and a `say` immediately followed by a `choose` reads as
- * one turn either way. The **first** interactive shape (a `choose` needing
- * buttons or a list, or a `confirm`) wins the message's own type — Meta
- * allows exactly one action per message — and everything before it becomes
- * that message's body text; anything after it is lost this turn, which is
- * the trade every tool here already accepts (a tool draws one block, almost
- * always, and `test/helper-whatsapp-render.test.ts` is what would catch two
- * interactive blocks arriving together).
+ * **One message per interactive shape.** Plain blocks (`say`, `link`,
+ * `preview`, `files`, an over-long `choose`, a `form`) accumulate into a
+ * running body; hitting a `choose` that fits in buttons or a list, or a
+ * `confirm`, flushes that accumulated body plus the block's own sentence as
+ * one message of the interactive kind, and accumulation starts over for
+ * whatever comes after it. Anything left over once every block has been
+ * walked becomes one final `text` message. Nothing from `blocks` is dropped
+ * any more — B1261's whole point — except by `capMessages`, and that says so.
  */
-export function renderForWhatsapp(blocks: Block[], journalUrl: string, declineLabel: string): WhatsappOutbound {
+export function renderForWhatsapp(blocks: Block[], journalUrl: string, declineLabel: string, moreText = ""): WhatsappMessage[] {
+  const messages: WhatsappMessage[] = [];
+
   // Shape kept alongside each line — B1236 — so a `confirm` at the end can
   // tell the raw dump that backs it (its own `preview`/`files` block) from
-  // the model's own prose, which stays.
-  const entries: { shape: Block["shape"]; text: string }[] = [];
-  const lines: string[] = []; // kept as a plain view for the non-confirm branches below
+  // the model's own prose, which stays. Reset after every flush, so each
+  // message's own `confirmBody` only ever sees what led up to *it*.
+  let entries: { shape: Block["shape"]; text: string }[] = [];
+  let lines: string[] = [];
   const push = (shape: Block["shape"], text: string) => {
     entries.push({ shape, text });
     lines.push(text);
+  };
+  const flush = () => {
+    entries = [];
+    lines = [];
   };
 
   /**
@@ -180,17 +253,19 @@ export function renderForWhatsapp(blocks: Block[], journalUrl: string, declineLa
           break;
         }
         if (block.options.length <= MAX_BUTTONS) {
-          return {
+          messages.push({
             kind: "buttons",
             body: [...lines, block.text].filter(Boolean).join("\n\n"),
             buttons: block.options.map((option, i) => ({
               id: optionId("choose", i, option.value),
               title: truncate(option.label, BUTTON_TITLE_MAX),
             })),
-          };
+          });
+          flush();
+          break;
         }
         if (block.options.length <= MAX_LIST_ROWS) {
-          return {
+          messages.push({
             kind: "list",
             body: [...lines, block.text].filter(Boolean).join("\n\n"),
             buttonLabel: "Choose",
@@ -198,7 +273,9 @@ export function renderForWhatsapp(blocks: Block[], journalUrl: string, declineLa
               id: optionId("choose", i, option.value),
               title: truncate(option.label, LIST_ROW_TITLE_MAX),
             })),
-          };
+          });
+          flush();
+          break;
         }
         // More than ten — text with the link, same escape hatch a `form`
         // takes past its own ceiling.
@@ -207,7 +284,12 @@ export function renderForWhatsapp(blocks: Block[], journalUrl: string, declineLa
       }
 
       case "confirm":
-        return confirmButtonsFor(confirmBody(block.text), block.proposal?.accept ?? block.text, declineLabel);
+        messages.push({
+          ...confirmButtonsFor(confirmBody(block.text), block.proposal?.accept ?? block.text, declineLabel),
+          ...(block.proposal ? { proposal: block.proposal } : {}),
+        });
+        flush();
+        break;
 
       case "form":
         // No WhatsApp shape — the escape hatch the owner chose for this
@@ -217,5 +299,10 @@ export function renderForWhatsapp(blocks: Block[], journalUrl: string, declineLa
     }
   }
 
-  return { kind: "text", body: lines.filter(Boolean).join("\n\n") };
+  const trailing = lines.filter(Boolean).join("\n\n");
+  if (trailing !== "" || messages.length === 0) {
+    messages.push({ kind: "text", body: trailing });
+  }
+
+  return capMessages(messages, journalUrl, moreText);
 }
