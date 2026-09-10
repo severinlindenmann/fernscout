@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: photobook, print, credits
 found: "2026-09-10T17:55:00Z"
+merged: "2026-09-10T16:49:11Z"
 ---
 
 # B1336 — Nothing reconciles a submitted print with what the printer finally did

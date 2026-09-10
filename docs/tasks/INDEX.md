@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (152)
+## backlog (151)
 
 ### security (2)
 
@@ -110,14 +110,13 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (19)
+### small-feature (18)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1153](backlog/small-feature/B1153-handing-your-journal-to-your-own.md) | Handing your journal to your own agent means leaving the conversation to fetch the key | FEATURE | high | low |
 | [B1154](backlog/small-feature/B1154-a-key-that-can-write-to.md) | A key that can write to this journal for seven days is visible nowhere in the room | FEATURE | high | medium |
 | [B1315](backlog/small-feature/B1315-twilio-sms-inbound-inbox-in-admin.md) | Twilio SMS - inbound inbox in admin, outbound sending, SMS signup fallback | FEATURE | high | medium |
-| [B1336](backlog/small-feature/B1336-nothing-reconciles-a-submitted-print-with.md) | Nothing reconciles a submitted print with what the printer finally did | FEATURE | high | medium |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
 | [B1069](backlog/small-feature/B1069-there-is-no-tool-surface-for.md) | There is no tool surface for an agent that would rather be guided than read a spec | FEATURE | medium | medium |
 | [B1155](backlog/small-feature/B1155-a-turn-spends-a-credit-and.md) | A turn spends a credit and nothing on screen says so | FEATURE | medium | medium |
@@ -343,7 +342,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## testing (115)
+## testing (116)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -423,6 +422,7 @@ _Nothing here._
 | [B1332](testing/B1332-the-pricing-table-prices-in-credits.md) | The pricing table prices in credits a visitor cannot judge | FEATURE | high | medium | — |
 | [B1333](testing/B1333-a-print-the-printer-accepts-and.md) | A print the printer accepts and then refuses is never noticed, so the money stays spent | ISSUE | high | medium | — |
 | [B1335](testing/B1335-sharp-is-bundled-rather-than-external.md) | sharp is bundled rather than external, so ordering a book 500s on the server | ISSUE | high | low | — |
+| [B1336](testing/B1336-nothing-reconciles-a-submitted-print-with.md) | Nothing reconciles a submitted print with what the printer finally did | FEATURE | high | medium | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |
