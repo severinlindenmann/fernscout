@@ -337,10 +337,15 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (1)
+## in-development (6)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1340](in-development/B1340-the-credits-sheet-carries-display-settings.md) | The credits sheet carries display settings and the storage bar sits away from the files | FEATURE | high | medium | `b9809a36` |
+| [B1341](in-development/B1341-asked-for-a-new-journal-the.md) | Asked for a new journal, the helper proposes renaming the existing one | FEATURE | high | medium | `b9809a36` |
+| [B1342](in-development/B1342-who-may-read-a-new-trip.md) | Who may read a new trip is asked in prose, not as a choice | FEATURE | high | medium | `b9809a36` |
+| [B1343](in-development/B1343-a-new-proposal-can-land-outside.md) | A new proposal can land outside the visible chat | FEATURE | high | medium | `b9809a36` |
+| [B1344](in-development/B1344-a-turn-that-arrived-via-whatsapp.md) | A turn that arrived via WhatsApp looks identical to a web turn | FEATURE | high | medium | `b9809a36` |
 | [B1339](in-development/B1339-guest-card-and-new-user-hero.md) | Guest card and new-user hero run together on the landing page | FEATURE | medium | low | `d63a4633` |
 
 ## testing (119)
