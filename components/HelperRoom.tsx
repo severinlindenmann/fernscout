@@ -1411,7 +1411,7 @@ function Sheet({
       ref={dialog}
       aria-label={label}
       onClose={onClose}
-      className="m-0 flex w-full max-w-none flex-col border-0 bg-white p-0 backdrop:bg-navy-900/40 fixed inset-x-0 bottom-0 top-auto h-auto max-h-[92dvh] rounded-t-2xl lg:mx-auto lg:max-h-[80dvh] lg:max-w-xl"
+      className="m-0 flex w-full max-w-none flex-col border-0 bg-white p-0 pb-[env(safe-area-inset-bottom)] backdrop:bg-navy-900/40 fixed inset-x-0 bottom-0 top-auto h-auto max-h-[92dvh] rounded-t-2xl lg:mx-auto lg:max-h-[80dvh] lg:max-w-xl"
     >
       <div className="flex items-center gap-3 border-b border-navy-200 px-4 py-2">
         {/* The handle, and it is the button: a bar somebody can only drag is a
@@ -1427,7 +1427,7 @@ function Sheet({
           {close}
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">{children}</div>
+      <div className="min-h-24 flex-1 overflow-y-auto overscroll-contain p-3">{children}</div>
     </dialog>
   );
 }
@@ -1759,7 +1759,7 @@ function HistoryPanel({
         </div>
       )}
       {panelTab === "days" && (
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+        <div className="min-h-40 flex-1 overflow-y-auto overscroll-contain p-4 sm:min-h-0">
           {tripDays.length === 0 ? (
             <p className="text-sm leading-6 text-navy-700">{t("agent.room.daysEmpty")}</p>
           ) : (
@@ -1919,7 +1919,7 @@ function AccountSheet({
       ref={dialog}
       aria-label={label}
       onClose={onClose}
-      className="fixed inset-x-0 bottom-0 top-auto m-0 flex w-full max-w-none flex-col rounded-t-2xl border-0 bg-white p-0 backdrop:bg-navy-900/40 sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-96 sm:max-w-[90vw] sm:rounded-l-2xl sm:rounded-tr-none"
+      className="fixed inset-x-0 bottom-0 top-auto m-0 flex w-full max-w-none flex-col rounded-t-2xl border-0 bg-white p-0 pb-[env(safe-area-inset-bottom)] backdrop:bg-navy-900/40 sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-96 sm:max-w-[90vw] sm:rounded-l-2xl sm:rounded-tr-none"
     >
       <div className="flex shrink-0 items-center gap-3 border-b border-navy-200 px-4 py-2">
         <p className="min-w-0 flex-1 truncate text-sm font-semibold text-navy-900">{label}</p>
