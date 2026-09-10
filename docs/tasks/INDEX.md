@@ -49,13 +49,12 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (144)
+## backlog (143)
 
-### security (3)
+### security (2)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1301](backlog/security/B1301-an-approved-reader-who-opens-a.md) | An approved reader who opens a buddy link is given write access to the trip with no owner decision, and told there is nothing to do | SECURITY | high | medium |
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
@@ -240,7 +239,7 @@ Do not edit them by hand; run the script.
 | [B520](backlog/wont-do/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (89)
+## open (90)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -265,6 +264,7 @@ Do not edit them by hand; run the script.
 | [B1280](open/B1280-the-helper-offers-to-add-a.md) | The helper offers to add a postcard recipient, then refuses and names a settings page that does not exist | ISSUE | high | low |
 | [B1282](open/B1282-a-guest-confirming-their-invitation-silently.md) | A guest confirming their invitation silently deletes the postal address the owner entered for them | ISSUE | high | medium |
 | [B1284](open/B1284-every-postcard-proposal-from-the-helper.md) | Every postcard proposal from the helper is refused, because it sends a name slug where a contact id is required | ISSUE | high | low |
+| [B1301](open/B1301-an-approved-reader-who-opens-a.md) | An approved reader who opens a buddy link is given write access to the trip with no owner decision, and told there is nothing to do | SECURITY | high | medium |
 | [B106](open/B106-push-has-never-been-switched-on.md) | Push has never been switched on anywhere, so nothing has proved a notification reaches a phone | OPS | medium | medium |
 | [B1094](open/B1094-editing-a-contact-opens-a-form.md) | Editing a contact opens a form off-screen above the button, so the button looks broken | ISSUE | medium | low |
 | [B1112](open/B1112-a-triage-decision-carries-no-reason.md) | A triage decision carries no reason, so the run brief starts from ids alone | DOCS | medium | low |
