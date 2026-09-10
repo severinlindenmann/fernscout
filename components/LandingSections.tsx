@@ -69,14 +69,19 @@ export const PRIMARY_BUTTON =
  * A quiet "or" between two ways in — B1314, the owner's chosen design for
  * both WhatsApp doors. A hairline on each side rather than a bare word, so
  * it reads as a divider between two actions and not as a stray label.
+ *
+ * B1325: `compact` drops the hairlines from `sm` up, for the one caller
+ * (`LandingHero`) whose two doors sit in a row on desktop — a hairline there
+ * has nothing to span. `AgentDoor`'s stacked divider stays as it was.
  */
-export function OrDivider() {
+export function OrDivider({ compact = false }: { compact?: boolean } = {}) {
   const { t } = useI18n();
+  const hairline = `h-px flex-1 bg-navy-200 ${compact ? "sm:hidden" : ""}`;
   return (
     <div role="separator" className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-navy-400">
-      <span className="h-px flex-1 bg-navy-200" />
+      <span className={hairline} />
       {t("common.or")}
-      <span className="h-px flex-1 bg-navy-200" />
+      <span className={hairline} />
     </div>
   );
 }
@@ -331,25 +336,37 @@ export function LandingHero({
       <p className="mt-4 text-lg leading-7 text-navy-700">
         {t("landing.lede")}
       </p>
-      {helperEnabled && (
-        <Link
-          href="/agent"
-          className={`mt-6 w-full sm:w-auto ${PRIMARY_BUTTON}`}
+      {/* B1325: on desktop the two doors sit side by side in one row, with
+          the divider shrunk to the inline word between them; on mobile they
+          stay stacked exactly as before (`sm:flex-row` only applies above
+          the breakpoint). The margin above still depends on which doors are
+          actually present, matching what each used to carry on its own:
+          `mt-6` when the primary button leads, `mt-4` when the WhatsApp door
+          is the first thing shown. */}
+      {(helperEnabled || whatsappNumber) && (
+        <div
+          className={`flex w-full flex-col items-stretch gap-4 sm:w-auto sm:flex-row sm:items-center ${
+            helperEnabled ? "mt-6" : "mt-4"
+          }`}
         >
-          {t("landing.helperCta")}
-        </Link>
-      )}
-      {/* A second door beside the first — B1310, redrawn to the owner's
-          chosen design in B1314: an "oder"-divider, then the green
-          WhatsApp button, rather than a plain underlined line competing
-          for attention with nothing to set it apart. Independent of
-          `helperEnabled`: the WhatsApp channel is answered by whatever
-          agent the owner has put behind it, not by this instance's own
-          `/agent` wizard. */}
-      {whatsappNumber && (
-        <div className="mt-4 flex w-full flex-col gap-3 sm:w-auto sm:max-w-xs">
-          <OrDivider />
-          <WhatsAppButton number={whatsappNumber} label={t("landing.whatsappCta")} className="w-full" />
+          {helperEnabled && (
+            <Link href="/agent" className={`w-full sm:w-auto ${PRIMARY_BUTTON}`}>
+              {t("landing.helperCta")}
+            </Link>
+          )}
+          {/* A second door beside the first — B1310, redrawn to the owner's
+              chosen design in B1314: an "oder"-divider, then the green
+              WhatsApp button, rather than a plain underlined line competing
+              for attention with nothing to set it apart. Independent of
+              `helperEnabled`: the WhatsApp channel is answered by whatever
+              agent the owner has put behind it, not by this instance's own
+              `/agent` wizard. */}
+          {whatsappNumber && (
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+              <OrDivider compact />
+              <WhatsAppButton number={whatsappNumber} label={t("landing.whatsappCta")} className="w-full sm:w-auto" />
+            </div>
+          )}
         </div>
       )}
     </>

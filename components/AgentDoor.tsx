@@ -105,7 +105,14 @@ export default function AgentDoor({
   return (
     // Full-bleed paper ground — B733, the same two-step as `/`: `cream-100`
     // behind, `cream-50` on every card. Scoped to this page.
-    <div className="min-h-full bg-cream-100">
+    //
+    // B1325: `min-h-full` resolves against the ancestor chain's height, and
+    // neither `html` nor `body` sets one — so on short content (signed out,
+    // signup off) this div stopped at its own content height instead of the
+    // viewport, and the `body` background (`--background`, `cream-50`) showed
+    // through below it as a second, slightly different tone. `min-h-screen`
+    // is the idiom every other full-bleed page here already uses instead.
+    <div className="min-h-screen bg-cream-100">
       <div className="mx-auto flex max-w-2xl items-center justify-between px-6 pt-6">
         {/* B1121 — `app/agent/layout.tsx` used to draw this above every page
             under `/agent`; it draws nothing now, so the door carries its own
