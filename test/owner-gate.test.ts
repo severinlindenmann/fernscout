@@ -79,6 +79,7 @@ function session(over: Partial<Session>): Session {
     publicId: null,
     phone: null,
     phoneProvenAt: null,
+    phoneProvenMethod: null,
     ...over,
   };
 }

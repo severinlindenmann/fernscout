@@ -134,6 +134,8 @@ export const ERROR_CODES: Record<string, string> = {
   mail_failed: "The mail could not be sent. Nothing else about the call failed; tell the person, and do not retry in a loop.",
   whatsapp_disabled: "This server cannot send WhatsApp messages. Ask for the code by mail instead (leave channel out); nothing was issued and any code already held is still live.",
   whatsapp_failed: "The WhatsApp message could not be sent, so no code is live for that address. Retrying once in a minute is reasonable; a loop is not.",
+  sms_disabled: "This server cannot send SMS. Use the WhatsApp confirmation instead; nothing was issued.",
+  sms_unreachable: "This server's SMS number cannot reach that number's country — the `message` names the restriction. Use the WhatsApp confirmation instead; nothing was sent and nothing was spent.",
   no_owner_address: "This journal's config.json has no owner address, and this call has to mail somebody. That is an edit to the file.",
   no_database: "This capability stores data and this server has no database configured.",
   provider_unavailable:

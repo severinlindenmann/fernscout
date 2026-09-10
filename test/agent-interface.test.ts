@@ -377,9 +377,17 @@ describe("the documents an agent reads", () => {
    * agent needs on arrival and what it needs at the point of use are two
    * documents, only one of which has to be read in full.
    */
+  /**
+   * **Argued past to 146 KiB — B1316.** It tripped 11 bytes over: the guide
+   * was sitting 432 bytes under the 144 KiB line before the SMS signup
+   * fallback needed its five lines, and a capability an agent cannot learn
+   * about anywhere else is exactly what the guide exists to carry. The
+   * addition was trimmed twice before the raise; B311 remains the
+   * structural answer to the guide's growth.
+   */
   test("the agent guide stays within a ceiling that has to be argued past", () => {
     const bytes = Buffer.byteLength(agentGuide(), "utf8");
-    expect(bytes).toBeLessThan(144 * 1024);
+    expect(bytes).toBeLessThan(146 * 1024);
   });
 
   test("the instance document lists every journal", () => {

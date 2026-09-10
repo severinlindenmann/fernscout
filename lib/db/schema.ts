@@ -85,6 +85,9 @@ type SessionsTable = {
    */
   phone: string | null;
   phone_proven_at: string | null;
+  /** How the number was proven — `sms` | `whatsapp-inbound`. Null before
+   * B1316, meaning "whatever mode the server ran at the time". */
+  phone_proven_method: string | null;
 };
 
 type LoginCodesTable = {
@@ -638,6 +641,27 @@ type AdminAcksTable = {
   ended_why: Generated<string>;
 };
 
+/**
+ * One SMS, either direction — B1316. See `031-sms-messages` for why one
+ * table holds both, and why `provider_sid`'s UNIQUE constraint is the
+ * inbound dedupe.
+ */
+type SmsMessagesTable = {
+  id: string;
+  /** Always NO_JOURNAL ("*") — the number is the instance's, not a
+   * journal's; see 031-sms-messages. */
+  owner_id: string;
+  /** `in` | `out`. The closed list is DIRECTIONS in lib/sms/store.ts. */
+  direction: string;
+  /** E.164 digits, no `+` — `toE164`'s shape. Empty for a dry-run send. */
+  from_e164: string;
+  to_e164: string;
+  body: string;
+  /** Twilio's message sid; null for a dry-run send. */
+  provider_sid: string | null;
+  created_at: string;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -662,6 +686,7 @@ export type Database = {
   idempotency: IdempotencyTable;
   helper_threads: HelperThreadsTable;
   admin_acks: AdminAcksTable;
+  sms_messages: SmsMessagesTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -690,4 +715,5 @@ export const TABLE_NAMES = [
   "idempotency",
   "helper_threads",
   "admin_acks",
+  "sms_messages",
 ] as const satisfies readonly (keyof Database)[];

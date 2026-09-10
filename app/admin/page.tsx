@@ -6,10 +6,13 @@ import AdminGrant from "./AdminGrant";
 import AdminRefund from "./AdminRefund";
 import Console from "./Console";
 import Journals from "./Journals";
+import SmsSend from "./SmsSend";
 import SpendChart from "./SpendChart";
 import { BarChart, Breakdown, CountBars, Meter, type Week } from "./Charts";
 import { applyAcks, listAcks, sweepAcks, type Ack } from "@/lib/adminAcks";
 import { isInstanceAdmin } from "@/lib/adminGate";
+import { isEnabled } from "@/lib/capabilities";
+import { listSms } from "@/lib/sms/store";
 import { creditsEnabled } from "@/lib/credits";
 import { formatCredits } from "@/lib/credits/format";
 import { formatChf } from "@/lib/credits/pricing";
@@ -151,6 +154,11 @@ export default async function AdminPage() {
   ]);
 
   const metered = creditsEnabled();
+  // B1316 — the SMS tab's own reads. `listSms` is empty with no database,
+  // so a checkout with neither capability shows an explained-empty panel.
+  const smsOn = isEnabled("sms");
+  const smsInboundOn = isEnabled("smsInbound");
+  const smsMessages = smsOn || smsInboundOn ? await listSms() : [];
   const money = takingsBreakdown(data.paid, data.awaiting);
   const stones = allTombstones();
   const byName = new Map(report.journals.map((row) => [row.username, row]));
@@ -334,6 +342,55 @@ export default async function AdminPage() {
                     content/ is the slowest thing this page can do, so it is held for five
                     minutes.
                   </p>
+                </section>
+              </>
+            ),
+          },
+          {
+            // B1316 — the instance's own SMS number: what arrived, what was
+            // sent, and a form to send one. Server-rendered like every other
+            // panel; the send posts to /api/admin/sms.
+            id: "sms",
+            label: "SMS",
+            panel: (
+              <>
+                <section className="mt-2">
+                  <h2 className="font-display text-lg font-semibold text-navy-900">Messages</h2>
+                  {!smsInboundOn && (
+                    <p className="mt-1 text-sm text-navy-700">
+                      Receiving is switched off (features.smsInbound) — /api/health says what it
+                      needs. Nothing arriving at the number lands here until it is on and the
+                      Twilio webhook points at /api/webhooks/twilio.
+                    </p>
+                  )}
+                  {smsMessages.length === 0 ? (
+                    <p className="mt-2 text-sm text-navy-500">No messages yet.</p>
+                  ) : (
+                    <ul className="mt-3 space-y-3">
+                      {smsMessages.map((sms) => (
+                        <li key={sms.id} className="rounded-xl border border-navy-200 bg-cream-50 p-3">
+                          <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-navy-600">
+                            {sms.direction === "in" ? `from +${sms.from}` : `to +${sms.to}`} ·{" "}
+                            {sms.createdAt.slice(0, 16).replace("T", " ")} UTC
+                            {sms.direction === "out" && !sms.providerSid ? " · dry-run" : ""}
+                          </p>
+                          <p className="mt-1 whitespace-pre-wrap break-words text-base leading-7 text-navy-900">
+                            {sms.body}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+                <section className="mt-8">
+                  <h2 className="font-display text-lg font-semibold text-navy-900">Send one</h2>
+                  {smsOn ? (
+                    <SmsSend />
+                  ) : (
+                    <p className="mt-1 text-sm text-navy-700">
+                      Sending is switched off (features.sms) — /api/health says what it needs.
+                    </p>
+                  )}
                 </section>
               </>
             ),

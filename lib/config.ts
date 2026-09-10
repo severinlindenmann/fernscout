@@ -28,6 +28,11 @@ export const FEATURE_NAMES = [
   // would mean turning off announcements silently kills somebody's writing
   // door.
   "whatsappInbound",
+  // B1316. The instance's own SMS number. Like whatsapp/whatsappInbound the
+  // two directions are separate switches: sending spends the operator's
+  // money per message, receiving is a webhook with its own credential.
+  "sms",
+  "smsInbound",
   "auth",
   "signup",
   "contacts",
@@ -83,6 +88,10 @@ export const OPERATOR_ONLY_FEATURES = [
   // leaving the machine — is the `speech` scope in lib/helper/consent.ts,
   // which is a person reading a panel rather than a flag in a file.
   "transcription",
+  // B1316. Both spend the operator's money on the operator's own number, and
+  // the inbox is the operator's page — a journal has nothing to consent to.
+  "sms",
+  "smsInbound",
   // B589. Both halves of the fulfilment relay (see
   // docs/plans/2026-09-06-fulfilment-relay.md) spend something that belongs
   // to the operator and not to a journal: `relay` names another instance to
@@ -400,6 +409,16 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // implementation — Meta's webhook — plus off. See lib/capabilities.ts for
   // what it needs (WHATSAPP_APP_SECRET, WHATSAPP_VERIFY_TOKEN).
   whatsappInbound: { enabled: false },
+  // B1316. `dry-run` writes the payload under <dataDir>/sms/, so the whole
+  // channel develops with no Twilio account. `allowedPrefixes` (e.g.
+  // ["+41"]) names a sender restriction on the instance's number, so an
+  // unreachable recipient is refused with a reason rather than silently
+  // undelivered — see smsUnreachable in lib/sms.
+  sms: { enabled: false, backend: "dry-run" },
+  // B1316. Like whatsappInbound: reading has one real implementation —
+  // Twilio's webhook — plus off. Needs TWILIO_AUTH_TOKEN (the signature
+  // key); see lib/capabilities.ts.
+  smsInbound: { enabled: false },
   auth: { enabled: false },
   // `phoneBackend` picks how `POST /api/auth/signup/phone/*` proves the
   // number a new journal is created with — B1065. `dry-run` writes the code

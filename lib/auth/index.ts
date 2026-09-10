@@ -1046,6 +1046,10 @@ export type Session = {
    * completes. See `markPhoneProven`. */
   phone: string | null;
   phoneProvenAt: string | null;
+  /** How the number was proven — `"sms"` or `"whatsapp-inbound"` — B1316.
+   * Null on pre-B1316 rows, meaning the mode the server was configured to
+   * at the time. */
+  phoneProvenMethod: string | null;
 };
 
 /**
@@ -1080,6 +1084,7 @@ async function lookUpSession(
       "sessions.revoked_at as revokedAt",
       "sessions.phone as phone",
       "sessions.phone_proven_at as phoneProvenAt",
+      "sessions.phone_proven_method as phoneProvenMethod",
       "users.email as email",
     ])
     .where("sessions.token_hash", "=", hashSecret(token))
@@ -1106,6 +1111,7 @@ async function lookUpSession(
     publicId: row.publicId,
     phone: row.phone,
     phoneProvenAt: row.phoneProvenAt,
+    phoneProvenMethod: row.phoneProvenMethod,
   };
 }
 
@@ -1118,11 +1124,16 @@ async function lookUpSession(
  * attached to any other kind, and there is no session kind of its own for it
  * to belong to — see the top of `lib/phoneVerify/`.
  */
-export async function markPhoneProven(sessionId: string, phone: string): Promise<void> {
+export async function markPhoneProven(
+  sessionId: string,
+  phone: string,
+  /** Which path actually proved it — B1316, now that there are two. */
+  method: "sms" | "whatsapp-inbound",
+): Promise<void> {
   const { db } = await getDatabase();
   await db
     .updateTable("sessions")
-    .set({ phone, phone_proven_at: nowIso() })
+    .set({ phone, phone_proven_at: nowIso(), phone_proven_method: method })
     .where("id", "=", sessionId)
     .where("kind", "=", "signup")
     .execute();

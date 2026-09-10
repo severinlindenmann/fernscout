@@ -29,6 +29,7 @@ import * as creditsHundredths from "./027-credits-hundredths";
 import * as signupPhone from "./028-signup-phone";
 import * as helperThreads from "./029-helper-threads";
 import * as adminAcks from "./030-admin-acks";
+import * as smsMessages from "./031-sms-messages";
 
 /**
  * Every migration, listed by hand.
@@ -73,6 +74,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "028-signup-phone": signupPhone,
   "029-helper-threads": helperThreads,
   "030-admin-acks": adminAcks,
+  "031-sms-messages": smsMessages,
 };
 
 export const migrationProvider: MigrationProvider = {
