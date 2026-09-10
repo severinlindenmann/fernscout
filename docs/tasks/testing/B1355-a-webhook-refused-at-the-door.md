@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: photobook, webhooks, ops
 found: "2026-09-10T20:10:00Z"
+merged: "2026-09-10T17:49:06Z"
 ---
 
 # B1355 — A webhook refused at the door is indistinguishable from one that worked

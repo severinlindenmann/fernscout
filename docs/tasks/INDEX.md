@@ -348,7 +348,7 @@ Do not edit them by hand; run the script.
 | [B1352](in-development/B1352-recording-squeezes-four-labels-into-the.md) | Recording squeezes four labels into the composer row | ISSUE | high | low | `b9809a36` |
 | [B1353](in-development/B1353-the-sheets-open-top-anchored-on.md) | The sheets open top-anchored on a phone and the credits entry still says Speicher | ISSUE | high | low | `b9809a36` |
 
-## testing (129)
+## testing (130)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -475,6 +475,7 @@ Do not edit them by hand; run the script.
 | [B1334](testing/B1334-the-install-hint-is-off-centre.md) | The install hint is off-centre and explains nothing about how | ISSUE | medium | low | — |
 | [B1339](testing/B1339-guest-card-and-new-user-hero.md) | Guest card and new-user hero run together on the landing page | FEATURE | medium | low | — |
 | [B1346](testing/B1346-the-owner-cannot-ask-to-delete.md) | The owner cannot ask to delete their journal from a browser | FEATURE | medium | low | — |
+| [B1355](testing/B1355-a-webhook-refused-at-the-door.md) | A webhook refused at the door is indistinguishable from one that worked | ISSUE | medium | low | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
 | [B1096](testing/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low | — |
 | [B1128](testing/B1128-the-invites-and-inbox-tools-also.md) | The invites and inbox tools also say their own block back in prose | ISSUE | low | low | — |
