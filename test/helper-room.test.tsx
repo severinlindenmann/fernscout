@@ -152,7 +152,7 @@ test("the three panes are named regions, the preview closed until it has content
   expect(named).toContain("Files");
   // The preview starts as a collapsed rail (a button, not a region): an
   // open column holding an empty-state sentence was dead space — B1320.
-  expect(named).not.toContain("How it looks");
+  expect(named).not.toContain("Preview");
   expect(
     [...document.querySelectorAll("button")].some(
       (one) => one.getAttribute("aria-label") === "Show preview",
@@ -234,7 +234,7 @@ test("the preview stays a closed rail until the conversation is about a day — 
   render();
   // Closed, and nothing fetched: an empty column with a sentence in it was
   // what this replaced.
-  expect(document.querySelector('section[aria-label="How it looks"]')).toBeNull();
+  expect(document.querySelector('section[aria-label="Preview"]')).toBeNull();
   expect(calls.filter((call) => call.url.includes("/day?"))).toHaveLength(0);
 });
 
@@ -426,7 +426,7 @@ test("a chip in the opening opens the consent panel rather than dead-ending on i
 /**
  * The two mobile pills, and where they went — B1016.
  *
- * "Files" and "How it looks" sat in the header, one of them disabled until a
+ * "Files" and "Preview" sat in the header, one of them disabled until a
  * day was under discussion — a new owner's first impression of the room. Both
  * are chrome for things that are local, and both are gone from here; what
  * replaced them is checked below.
@@ -437,7 +437,7 @@ test("the header carries no pills for files or preview", () => {
     (button) => button.textContent,
   );
   expect(labels).not.toContain("Files");
-  expect(labels).not.toContain("How it looks");
+  expect(labels).not.toContain("Preview");
 });
 
 /**
@@ -521,12 +521,12 @@ describe("the top bar's two icons", () => {
  */
 test("a day under discussion does not open the preview sheet by itself", () => {
   const box = render({ trip: "a-trip", slug: "tuesday" });
-  expect(box.querySelector('dialog[aria-label="How it looks"]')).toBeNull();
+  expect(box.querySelector('dialog[aria-label="Preview"]')).toBeNull();
 });
 
 test("with nothing under discussion, there is no sheet either", () => {
   const box = render();
-  expect(box.querySelector('dialog[aria-label="How it looks"]')).toBeNull();
+  expect(box.querySelector('dialog[aria-label="Preview"]')).toBeNull();
 });
 
 /**
@@ -581,7 +581,7 @@ test("a turn that named a day carries a preview affordance", async () => {
     // The marker's emoji is part of the button's own text too (`aria-hidden`
     // only hides it from a screen reader, not from `textContent`), so this
     // checks for the label rather than the label alone.
-    (button.textContent ?? "").includes("How it looks"),
+    (button.textContent ?? "").includes("Preview"),
   );
   expect(chip).toBeDefined();
 
@@ -591,7 +591,7 @@ test("a turn that named a day carries a preview affordance", async () => {
   const previewTab = () =>
     [...document.querySelectorAll("section")].some(
       (one) =>
-        one.getAttribute("aria-label") === "How it looks" && one.className.includes("lg:hidden"),
+        one.getAttribute("aria-label") === "Preview" && one.className.includes("lg:hidden"),
     );
   expect(previewTab()).toBe(false);
   act(() => chip!.click());

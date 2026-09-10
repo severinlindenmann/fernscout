@@ -513,6 +513,7 @@ export type TranslationKey =
   | "agent.room.tabs"
   | "agent.room.textSize"
   | "agent.room.title"
+  | "agent.room.updateReady"
   | "agent.room.uploadedWaiting"
   | "agent.room.uploadedWaiting.one"
   | "agent.room.whichJournal"

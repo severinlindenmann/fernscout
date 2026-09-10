@@ -5,8 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Coins,
+  Eye,
+  Folder,
   History,
+  MessageCircle,
   MoreVertical,
+  RefreshCw,
   Share,
   Smartphone,
   SquarePlus,
@@ -327,6 +331,37 @@ export default function HelperRoom({
   const [historyOpen, setHistoryOpen] = useState(false);
   /** The account sheet (balance, month, storage) — B1208 (D07/D09). */
   const [accountOpen, setAccountOpen] = useState(false);
+  /**
+   * The version chip — B1361 (F03 A). The service worker updates only on
+   * the next launch, so the installed PWA keeps running an old build with
+   * nothing saying so. The room remembers the server's build id from its
+   * first health read and re-asks whenever the app comes back to the
+   * foreground; a different answer draws one quiet reload chip. Unsent
+   * words survive the reload — the draft is stored on every keystroke.
+   */
+  const [updateReady, setUpdateReady] = useState(false);
+  const firstCommit = useRef<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    const check = async () => {
+      const body = (await fetch("/api/health")
+        .then((response) => (response.ok ? response.json() : null))
+        .catch(() => null)) as { commit?: string | null } | null;
+      const commit = body?.commit ?? null;
+      if (!live || !commit) return;
+      if (firstCommit.current === null) firstCommit.current = commit;
+      else if (commit !== firstCommit.current) setUpdateReady(true);
+    };
+    void check();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void check();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      live = false;
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
   /** The Darstellung sheet — B1340 (E01 A): display settings left the
    *  credits sheet, so its label tells the truth again. */
   const [displayOpen, setDisplayOpen] = useState(false);
@@ -954,6 +989,17 @@ export default function HelperRoom({
         </div>
       </header>
 
+      {updateReady && (
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="flex min-h-10 w-full shrink-0 items-center justify-center gap-2 border-b border-yellow-600/30 bg-yellow-400/20 px-4 text-sm font-semibold text-navy-800"
+        >
+          <RefreshCw className="h-4 w-4" aria-hidden />
+          {t("agent.room.updateReady")}
+        </button>
+      )}
+
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {/* Left. Never drawn below `lg`: half a screen of thumbnails beside a
             conversation is the thing this layout is for not doing. */}
@@ -1147,11 +1193,11 @@ export default function HelperRoom({
       >
         {(
           [
-            ["chat", t("agent.room.tabChat")],
-            ["files", t("agent.room.files")],
-            ["preview", t("agent.room.preview")],
+            ["chat", t("agent.room.tabChat"), MessageCircle],
+            ["files", t("agent.room.files"), Folder],
+            ["preview", t("agent.room.preview"), Eye],
           ] as const
-        ).map(([which, label]) => (
+        ).map(([which, label, Icon]) => (
           <button
             key={which}
             type="button"
@@ -1160,18 +1206,24 @@ export default function HelperRoom({
               setTab(which);
               if (which === "preview") setPreviewUnseen(false);
             }}
-            className={`relative min-h-12 flex-1 text-sm transition-colors ${
-              tab === which ? "font-semibold text-navy-900" : "text-navy-500 hover:text-navy-800"
-            }`}
+            className="relative flex min-h-14 flex-1 items-center justify-center px-1 py-2"
           >
-            {label}
-            {tab === which && (
-              <span aria-hidden className="absolute inset-x-1/4 top-0 h-0.5 rounded-full bg-yellow-400" />
-            )}
+            {/* F02 A (B1360): the active tab is a filled yellow pill around
+                icon and word; the other two are quiet icon-and-word. */}
+            <span
+              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+                tab === which
+                  ? "bg-yellow-400 font-semibold text-navy-900"
+                  : "text-navy-500"
+              }`}
+            >
+              <Icon className="h-5 w-5 shrink-0" aria-hidden />
+              {label}
+            </span>
             {/* A day arrived while the person was on another tab — the
                 same claim the desktop rail's dot makes. */}
             {which === "preview" && previewUnseen && tab !== "preview" && (
-              <span aria-hidden className="absolute right-1/4 top-2 h-2 w-2 rounded-full bg-yellow-400" />
+              <span aria-hidden className="absolute right-3 top-2 h-2 w-2 rounded-full bg-yellow-400" />
             )}
           </button>
         ))}
@@ -1359,7 +1411,7 @@ function Sheet({
       ref={dialog}
       aria-label={label}
       onClose={onClose}
-      className="m-0 flex w-full max-w-none flex-col border-0 bg-white p-0 backdrop:bg-navy-900/40 fixed inset-x-0 bottom-0 top-[8dvh] h-[92dvh] max-h-none rounded-t-2xl lg:mx-auto lg:top-auto lg:h-auto lg:max-h-[80dvh] lg:max-w-xl"
+      className="m-0 flex w-full max-w-none flex-col border-0 bg-white p-0 backdrop:bg-navy-900/40 fixed inset-x-0 bottom-0 top-auto h-auto max-h-[92dvh] rounded-t-2xl lg:mx-auto lg:max-h-[80dvh] lg:max-w-xl"
     >
       <div className="flex items-center gap-3 border-b border-navy-200 px-4 py-2">
         {/* The handle, and it is the button: a bar somebody can only drag is a
