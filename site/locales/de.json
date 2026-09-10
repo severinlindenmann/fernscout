@@ -1733,7 +1733,7 @@
   "agent.room.tabChat": "Chat",
   "agent.room.tabs": "Bereiche",
   "agent.room.openOnSite": "Auf der Seite öffnen",
-  "agent.room.account": "Guthaben & Speicher",
+  "agent.room.account": "Guthaben",
   "agent.room.closeAccount": "Schliessen",
   "agent.room.accountBalance": "Guthaben",
   "agent.room.accountMonth": "{count} diesen Monat verbraucht",

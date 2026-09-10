@@ -112,7 +112,8 @@ describe("pressing the microphone", () => {
   test("a click starts it, and it is still listening afterwards", async () => {
     const button = render(() => {});
     await click(button);
-    expect(container!.textContent).toContain("Listening");
+    // B1352: the compact row shows the stopwatch, not a sentence.
+    expect(container!.textContent).toContain("0s");
   });
 
   // The likeliest shape of the report: you click the microphone, then move the
@@ -130,7 +131,8 @@ describe("pressing the microphone", () => {
         new PointerEvent("pointerout", { bubbles: true, relatedTarget: document.body }),
       );
     });
-    expect(container!.textContent).toContain("Listening");
+    // B1352: the compact row shows the stopwatch, not a sentence.
+    expect(container!.textContent).toContain("0s");
   });
 
   test("the next click stops it, and what was said comes back", async () => {
@@ -170,7 +172,8 @@ describe("pressing the microphone", () => {
       button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       await new Promise((r) => setTimeout(r, 5));
     });
-    expect(container!.textContent).toContain("Listening");
+    // B1352: the compact row shows the stopwatch, not a sentence.
+    expect(container!.textContent).toContain("0s");
 
     await act(async () => {
       button.dispatchEvent(
@@ -178,7 +181,8 @@ describe("pressing the microphone", () => {
       );
       await new Promise((r) => setTimeout(r, 5));
     });
-    expect(container!.textContent).toContain("Listening");
+    // B1352: the compact row shows the stopwatch, not a sentence.
+    expect(container!.textContent).toContain("0s");
   });
 
   test("with hold on, a long press still ends on release — the wizard is unchanged", async () => {
@@ -201,8 +205,9 @@ describe("pressing the microphone", () => {
   test("the elapsed line is drawn beside the button, not inside it", async () => {
     const button = render(() => {});
     await click(button);
-    expect(button.textContent).not.toContain("Listening");
-    expect(container!.textContent).toContain("Listening");
+    expect(button.textContent).not.toContain("0s");
+    // B1352: the compact row shows the stopwatch, not a sentence.
+    expect(container!.textContent).toContain("0s");
   });
 
   /**
@@ -216,7 +221,8 @@ describe("pressing the microphone", () => {
     const said: string[] = [];
     const button = render((text) => said.push(text), { maxSeconds: 1 });
     await click(button);
-    expect(container!.textContent).toContain("Listening");
+    // B1352: the compact row shows the stopwatch, not a sentence.
+    expect(container!.textContent).toContain("0s");
     await act(async () => {
       // Past the ceiling, and past the half-second below which a recording is
       // dropped as a slip — so it stops *and* sends.

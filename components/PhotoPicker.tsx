@@ -72,6 +72,7 @@ export function PhotoPicker({
   chosen,
   disabled,
   accept = PICKER_ACCEPT,
+  bare,
   onPick,
 }: {
   id: string;
@@ -87,6 +88,9 @@ export function PhotoPicker({
    * then falls away on its own, because `countKinds` counts nothing else.
    */
   accept?: string;
+  /** Button only, no paragraphs — B1349: the room's files pane lays the
+   *  picker beside the camera button and says the rest itself. */
+  bare?: boolean;
   onPick: (files: FileList | null) => void;
 }) {
   const { t, tn } = useI18n();
@@ -103,7 +107,7 @@ export function PhotoPicker({
       : []),
   ].join(` ${t("agent.andJoin")} `);
   return (
-    <div className="mt-3">
+    <div className={bare ? "" : "mt-3"}>
       <input
         id={id}
         type="file"
@@ -121,11 +125,11 @@ export function PhotoPicker({
       >
         {t("agent.chooseFiles")}
       </label>
-      <p className="mt-2 text-sm text-navy-700">
-        {chosen.length === 0
-          ? t("agent.noneChosen")
-          : t("agent.chosenParts", { parts })}
-      </p>
+      {!bare && (
+        <p className="mt-2 text-sm text-navy-700">
+          {chosen.length === 0 ? t("agent.noneChosen") : t("agent.chosenParts", { parts })}
+        </p>
+      )}
       {/* Where the thing that is not a photograph has gone — B845. Said only
           when one was actually chosen, because it is also the only place the
           import feature is advertised, and a sentence about the inbox on a
@@ -139,7 +143,7 @@ export function PhotoPicker({
           B791. The route sorts them; this stops the screen lying about what
           is welcome. Only where anything else *is* welcome, though (B1012):
           it names the inbox, and a narrowed picker has no inbox behind it. */}
-      {accept === PICKER_ACCEPT && (
+      {!bare && accept === PICKER_ACCEPT && (
         <p className="mt-1 text-sm leading-6 text-navy-600">
           {t("agent.pickAnyFile")}
         </p>

@@ -1733,7 +1733,7 @@
   "agent.room.tabChat": "Chat",
   "agent.room.tabs": "Room sections",
   "agent.room.openOnSite": "Open on the site",
-  "agent.room.account": "Credits & storage",
+  "agent.room.account": "Credits",
   "agent.room.closeAccount": "Close",
   "agent.room.accountBalance": "Credits",
   "agent.room.accountMonth": "{count} spent this month",

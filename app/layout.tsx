@@ -68,6 +68,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   themeColor: "#ffd23f",
   colorScheme: "light",
+  // Without cover, env(safe-area-inset-*) is 0 in the installed PWA and the
+  // room's tab bar sat inside the iPhone's rounded corners — B1351. The body
+  // paints its own cream ground, so drawing into the insets shows colour,
+  // never black bars.
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

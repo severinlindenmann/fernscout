@@ -580,9 +580,46 @@ export default function RecordButton({
         >
           {icon ?? <Mic className="h-5 w-5" aria-hidden />}
         </button>
-        {heard && <p className="mt-2 text-sm text-navy-700">{heard}</p>}
+        {/* B1352 — the compact form lives inside a composer row, where a
+            sentence and a labelled select exploded the layout on a phone.
+            The coral button is the state; the stopwatch is two digits; the
+            language select keeps its label for screen readers only. */}
+        {(recording || busy) && (
+          <span
+            aria-hidden
+            className="shrink-0 self-center text-xs font-semibold tabular-nums text-coral-600"
+          >
+            {busy ? "…" : `${Math.floor(seconds)}s`}
+          </span>
+        )}
+        {speaking && !fixedLanguage && (
+          <>
+            <label htmlFor={`speech-language-${username}`} className="sr-only">
+              {t("agent.speechLanguage")}
+            </label>
+            <select
+              id={`speech-language-${username}`}
+              value={chosen}
+              onChange={(event) => {
+                setLanguage(event.target.value);
+                try {
+                  window.localStorage.setItem(`fs.speech.${username}`, event.target.value);
+                } catch {
+                  // A browser with no storage still records; it just forgets.
+                }
+              }}
+              className="h-9 max-w-[6rem] shrink-0 self-center rounded-lg border border-navy-300 bg-white px-1 text-xs text-navy-800"
+            >
+              <option value="">{t("agent.speechLanguageDefault")}</option>
+              {SPEECH_LANGUAGES.map((code) => (
+                <option key={code} value={code}>
+                  {LANGUAGE_LABEL[code] ?? code}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
         {spoken}
-        {chooseLanguage}
         {failed}
       </>
     );
