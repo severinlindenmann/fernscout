@@ -7,8 +7,7 @@ complexity: high
 area: whatsapp, signup, onboarding
 found: "2026-09-10T18:25:28Z"
 started: "2026-09-10T18:26:10Z"
-session: d59a99c0-2d52-4301-8586-d98c6b288162
-claimed: "2026-09-10T18:26:10Z"
+merged: "2026-09-10T18:48:09Z"
 ---
 
 # B1363 — A stranger who takes the landing page's WhatsApp door is told to go away

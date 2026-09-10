@@ -345,13 +345,11 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (1)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1363](in-development/B1363-a-stranger-who-takes-the-landing.md) | A stranger who takes the landing page's WhatsApp door is told to go away | FEATURE | high | high | `d59a99c0` |
+_Nothing here._
 
-## testing (140)
+## testing (141)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -451,6 +449,7 @@ Do not edit them by hand; run the script.
 | [B1360](testing/B1360-the-phone-tab-bar-is-three.md) | The phone tab bar is three bare words with a dash of yellow | FEATURE | high | low | — |
 | [B1361](testing/B1361-the-installed-pwa-keeps-running-an.md) | The installed PWA keeps running an old build with nothing saying so | FEATURE | high | low | — |
 | [B1362](testing/B1362-helper-threads-writes-are-unordered-so.md) | helper_threads writes are unordered, so forget() can lose to an in-flight persist() | ISSUE | high | low | — |
+| [B1363](testing/B1363-a-stranger-who-takes-the-landing.md) | A stranger who takes the landing page's WhatsApp door is told to go away | FEATURE | high | high | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |
