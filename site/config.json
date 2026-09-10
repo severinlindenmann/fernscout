@@ -7,11 +7,11 @@
     "repository": "https://github.com/severinlindenmann/fernscout",
     "banner": {
       "enabled": true,
-      "text": "Beta – Testphase: Einige Funktionen sind noch unvollständig, und Datenverlust ist nicht auszuschliessen.",
+      "text": "Beta – Fernscout ist noch unterwegs: Einzelne Funktionen verhalten sich vielleicht noch nicht wie gedacht.",
       "translations": {
-        "de": "Beta – Testphase: Einige Funktionen sind noch unvollständig, und Datenverlust ist nicht auszuschliessen.",
-        "en": "Beta – testing phase: some features are still incomplete, and data loss cannot be ruled out.",
-        "hu": "Béta – tesztidőszak: egyes funkciók még nem teljesek, és az adatvesztés sem zárható ki."
+        "de": "Beta – Fernscout ist noch unterwegs: Einzelne Funktionen verhalten sich vielleicht noch nicht wie gedacht.",
+        "en": "Beta – Fernscout is still on its way: a few things may not work as intended yet.",
+        "hu": "Béta – a Fernscout még úton van: néhány funkció talán még nem úgy működik, ahogy kellene."
       }
     },
     "credit": {
