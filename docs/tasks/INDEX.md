@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (151)
+## backlog (153)
 
 ### security (2)
 
@@ -168,7 +168,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B1144](backlog/docs-and-skills/B1144-a-dispatched-worktree-agent-cannot-run.md) | A dispatched worktree agent cannot run claude-security, so the one skill work-on-a-task requires on an auth change is the one it cannot reach | DOCS | high | low |
 
-### superseded (66)
+### superseded (68)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -195,6 +195,8 @@ Do not edit them by hand; run the script.
 | [B1001](backlog/superseded/B1001-the-agent-guide-is-604-bytes.md) | The agent guide is 604 bytes over its own ceiling, so verify fails on main | ISSUE | medium | low |
 | [B1167](backlog/superseded/B1167-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1331](backlog/superseded/B1331-the-pricing-table-sells-a-pdf.md) | The pricing table sells a PDF-only photobook the owner says is not offered | ISSUE | medium | low |
+| [B1356](backlog/superseded/B1356-the-owner-cannot-select-themselves-as.md) | The owner cannot select themselves as a postcard recipient | ISSUE | medium | low |
+| [B1357](backlog/superseded/B1357-the-owner-cannot-select-themselves-as.md) | The owner cannot select themselves as a postcard recipient | ISSUE | medium | low |
 | [B14](backlog/superseded/B14-postcards-cannot-address-themselves-from-the.md) | Postcards cannot address themselves from the contacts that hold the addresses | FEATURE | medium | medium |
 | [B260](backlog/superseded/B260-the-mcp-resource-advertises-no-authorization.md) | The MCP resource advertises no authorization server, so a connector cannot get a token by itself | FEATURE | medium | high |
 | [B275](backlog/superseded/B275-a-day-cannot-be-held-back.md) | A day cannot be held back from a public trip, so one private afternoon makes the whole trip guests-only | FEATURE | medium | high |
