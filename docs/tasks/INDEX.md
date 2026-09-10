@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (154)
+## backlog (153)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (31)
+### issue (30)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -81,7 +81,6 @@ Do not edit them by hand; run the script.
 | [B1276](backlog/issue/B1276-a-day-written-through-the-helper.md) | A day written through the helper gets the date as its slug, so its address is fernscout.ch slash day slash 2026-09-05 | ISSUE | medium | low |
 | [B1307](backlog/issue/B1307-the-model-misstates-a-date-its.md) | The model misstates a date its own tool returned, and the error compounds into the next press | ISSUE | medium | low |
 | [B1308](backlog/issue/B1308-a-retry-s-blocks-accumulate-onto.md) | A retry's blocks accumulate onto the first, wrong attempt's own blocks | ISSUE | medium | medium |
-| [B1325](backlog/issue/B1325-the-hero-buttons-stack-on-desktop.md) | The hero buttons stack on desktop and the agent page changes colour below the fold | ISSUE | medium | low |
 | [B1331](backlog/issue/B1331-the-pricing-table-sells-a-pdf.md) | The pricing table sells a PDF-only photobook the owner says is not offered | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
@@ -349,7 +348,7 @@ Do not edit them by hand; run the script.
 | [B1320](in-development/B1320-the-desktop-preview-column-is-open.md) | The desktop preview column is open while empty; it should close until something arrives | ISSUE | high | low | `b9809a36` |
 | [B1321](in-development/B1321-deleting-a-trip-requires-a-mailbox.md) | Deleting a trip requires a mailbox round-trip even for the owner standing on its page | FEATURE | high | medium | `b9809a36` |
 
-## testing (103)
+## testing (104)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -450,6 +449,7 @@ Do not edit them by hand; run the script.
 | [B1278](testing/B1278-open-the-photobook-maker-opens-nothing.md) | Open the photobook maker opens nothing and prints a bare URL that is not a link | ISSUE | medium | low | — |
 | [B1309](testing/B1309-a-softcover-gets-no-spine-text.md) | A softcover gets no spine text even where the spine is wide enough for one | ISSUE | medium | low | — |
 | [B1318](testing/B1318-the-two-leaves-gelato-requires-are.md) | The two leaves Gelato requires are blank, so prepress calls them a fault | ISSUE | medium | low | — |
+| [B1325](testing/B1325-the-hero-buttons-stack-on-desktop.md) | The hero buttons stack on desktop and the agent page changes colour below the fold | ISSUE | medium | low | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
 | [B1096](testing/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low | — |
 | [B1128](testing/B1128-the-invites-and-inbox-tools-also.md) | The invites and inbox tools also say their own block back in prose | ISSUE | low | low | — |

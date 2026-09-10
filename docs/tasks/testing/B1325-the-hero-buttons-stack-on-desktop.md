@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: landing, agent, design
 found: "2026-09-10T15:55:16Z"
+merged: "2026-09-10T16:10:21Z"
 ---
 
 # B1325 — The hero buttons stack on desktop and the agent page changes colour below the fold
