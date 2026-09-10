@@ -34,3 +34,12 @@ step — not taken now.
 
 Rerunning Elena's sentence on the live site yields a day correction and no
 trip-dates proposal (persona retest).
+
+## Verified live, 2026-09-10 02:0x CEST
+
+Re-ran the exact scenario on fernscout.ch (test-elena, fresh day on
+2026-09-05, then "actually that was the 6th, not the 5th"): the reply
+proposed only the day-level fix — a new day on 2026-09-06 — and no card
+anywhere referenced the trip's start or end. The describe boundary holds
+against the live model. Screenshot: .playwright-mcp/b1196-check.png.
+One unrelated observation from the same reply captured as B1202.
