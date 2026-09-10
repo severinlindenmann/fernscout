@@ -1873,6 +1873,7 @@
   "agent.tool.postcardsUnavailable": "Ebben az útinaplóban nincs bekapcsolva a képeslap, így nincs mit javasolni.",
   "agent.tool.postcardsTestDay": "Ez a nap test: true jelölésű — senki nem élte át —, ezért nem kerülhet lapra.",
   "agent.tool.postcardsNoPhoto": "Ehhez a naphoz nincs fénykép a laphoz.",
+  "agent.tool.postcardsUnknownRecipient": "Senki nincs a listán a postcard_recipients szerint — nézd meg ott az azonosítót, és azzal próbáld újra, ne névvel.",
   "agent.tool.proposePostcards": "{count} lap {date} napjáról — „{title}”, laponként {each} kredit ({total} összesen). Az egyenlege {balance} kredit. Addig semmi nem kerül nyomdába, amíg meg nem nyomja.",
   "agent.tool.proposePostcardsFree": "{count} lap {date} napjáról — „{title}”. Ez a szerver nem számít fel semmit a nyomtatásért. Addig semmi nem kerül nyomdába, amíg meg nem nyomja.",
   "agent.tool.proposePostcardsAccept": "Javasold ezeket a lapokat",

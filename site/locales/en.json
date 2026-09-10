@@ -1873,6 +1873,7 @@
   "agent.tool.postcardsUnavailable": "This journal has not switched postcards on, so there is nothing to propose.",
   "agent.tool.postcardsTestDay": "That day is marked test: true — content nobody lived — so it cannot go on a card.",
   "agent.tool.postcardsNoPhoto": "That day has no photograph to put on a card.",
+  "agent.tool.postcardsUnknownRecipient": "Nobody on that list is on postcard_recipients — look up their id there and try again with that, not a name.",
   "agent.tool.proposePostcards": "{count} card(s) from {date} — “{title}”, at {each} credits each ({total} total). Your balance is {balance} credits. Nothing is printed until you press.",
   "agent.tool.proposePostcardsFree": "{count} card(s) from {date} — “{title}”. This server charges nothing for printing. Nothing is printed until you press.",
   "agent.tool.proposePostcardsAccept": "Propose these cards",

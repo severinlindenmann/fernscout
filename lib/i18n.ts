@@ -666,6 +666,7 @@ export type TranslationKey =
   | "agent.tool.postcardsNoPhoto"
   | "agent.tool.postcardsTestDay"
   | "agent.tool.postcardsUnavailable"
+  | "agent.tool.postcardsUnknownRecipient"
   | "agent.tool.proposePostcards"
   | "agent.tool.proposePostcardsAccept"
   | "agent.tool.proposePostcardsDone"
