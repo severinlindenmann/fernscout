@@ -193,7 +193,7 @@ export const PRINTED_TOOLS: readonly Tool[] = [
         : undefined;
       const photo = entry && trip && photoSrc ? relativePhoto(trip.id, photoSrc) : "";
 
-      const recipients = [
+      const requested = [
         ...new Set(
           (args.recipients ?? "")
             .split(",")
@@ -201,6 +201,24 @@ export const PRINTED_TOOLS: readonly Tool[] = [
             .filter(Boolean),
         ),
       ];
+      /**
+       * **Only ids `postcard_recipients` actually offered — B1284.** The
+       * description already said "look the id up first"; a live run sent
+       * `"bea-muster"` instead — the name it had just shown the person,
+       * slugified, never a `contactId` — and `POST .../postcard` refused
+       * with `unknown_recipient` for every recipient, always. Rewording the
+       * prompt is not the fix AGENTS.md asks for; filtering here is the same
+       * guard `POST /<user>/postcards/<id>/recipients` already applies to a
+       * human editing the same list by hand
+       * (`test/postcard-recipients-route.test.ts`): drop what was never
+       * offered, keep what was. The route still checks the same set on its
+       * own — this is what stops a bad id from reaching it at all, and lets
+       * the model be told why rather than getting back a bare error code.
+       */
+      const candidates = unavailable ? [] : await postcardCandidates(username);
+      const validIds = new Set(candidates.map((c) => c.contactId));
+      const recipients = requested.filter((id) => validIds.has(id));
+      const unknownRecipients = requested.length > 0 && recipients.length === 0;
       const each = POSTCARD_CREDITS;
       const total = each * Math.max(recipients.length, 1);
       const metered = creditsEnabled();
@@ -223,6 +241,17 @@ export const PRINTED_TOOLS: readonly Tool[] = [
               title: entry.title,
             });
 
+      // The recipient's own language, when exactly one is known and nobody
+      // said otherwise — the same idea `add_cost`'s currency guess is,
+      // shown rather than silently substituted (B973's reasoning, one field
+      // over): the model was leaving this "" and the route fell back to the
+      // journal's own default locale instead of the person actually being
+      // written to.
+      const locale =
+        args.locale ||
+        (recipients.length === 1 ? candidates.find((c) => c.contactId === recipients[0])?.locale : null) ||
+        "";
+
       return {
         ...(unavailable
           ? { refuse: "agent.tool.postcardsUnavailable" }
@@ -230,7 +259,9 @@ export const PRINTED_TOOLS: readonly Tool[] = [
             ? { refuse: "agent.tool.postcardsTestDay" }
             : entry && !photo
               ? { refuse: "agent.tool.postcardsNoPhoto" }
-              : {}),
+              : unknownRecipients
+                ? { refuse: "agent.tool.postcardsUnknownRecipient" }
+                : {}),
         sentence,
         accept: say("agent.tool.proposePostcardsAccept"),
         done: say("agent.tool.proposePostcardsDone"),
@@ -242,7 +273,7 @@ export const PRINTED_TOOLS: readonly Tool[] = [
           { name: "message", value: args.message ?? "", long: true },
           { name: "from", value: args.from ?? "" },
           { name: "recipients", value: recipients.join(",") },
-          { name: "locale", value: args.locale ?? "" },
+          { name: "locale", value: locale },
         ],
       };
     },

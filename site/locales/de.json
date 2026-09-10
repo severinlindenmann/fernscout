@@ -1871,6 +1871,7 @@
   "agent.tool.postcardsUnavailable": "Dieses Tagebuch hat Postkarten nicht eingeschaltet, also gibt es nichts vorzuschlagen.",
   "agent.tool.postcardsTestDay": "Dieser Tag ist mit test: true markiert — Inhalt, den niemand erlebt hat — und kann deshalb nicht auf eine Karte.",
   "agent.tool.postcardsNoPhoto": "Für diesen Tag gibt es kein Foto für eine Karte.",
+  "agent.tool.postcardsUnknownRecipient": "Niemand auf dieser Liste steht bei postcard_recipients — dort die Id nachschlagen und mit dieser statt mit einem Namen erneut versuchen.",
   "agent.tool.proposePostcards": "{count} Karte(n) von {date} — „{title}“, zu je {each} Credits ({total} insgesamt). Dein Guthaben beträgt {balance} Credits. Gedruckt wird erst, wenn du drückst.",
   "agent.tool.proposePostcardsFree": "{count} Karte(n) von {date} — „{title}“. Dieser Server berechnet nichts für den Druck. Gedruckt wird erst, wenn du drückst.",
   "agent.tool.proposePostcardsAccept": "Diese Karten vorschlagen",
