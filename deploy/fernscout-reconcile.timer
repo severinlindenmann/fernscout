@@ -1,0 +1,30 @@
+# Settle photobook orders the printer has finally refused — B1336.
+#
+# Installed and reloaded by scripts/deploy.sh; enabling it once is the
+# operator's:
+#
+#   sudo systemctl enable --now fernscout-reconcile.timer
+#   systemctl list-timers fernscout-reconcile   # when the NEXT run is due
+#   systemctl status fernscout-reconcile        # how the LAST one went
+#
+# **Every five minutes, not nightly.** This is the only thing that gives a
+# person their money back when Gelato refuses an order after the request has
+# ended, and the measured gap between submitting and being refused was 62
+# seconds. A nightly sweep would mean somebody spending an evening believing
+# they had bought a book that was never going to exist.
+#
+# Cheap to run this often: it reads the orders that are actually in flight —
+# normally none — and asks Gelato once about each. With nothing in flight it
+# makes no network calls at all.
+[Unit]
+Description=Settle photobook orders the printer refused
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+# Catch up after the machine has been off, rather than waiting for the next
+# slot: an order refused overnight should be refunded by breakfast.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

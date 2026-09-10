@@ -1,0 +1,41 @@
+# One reconciliation pass: ask the printer what became of the books it took,
+# and settle the ones it refused. Driven by fernscout-reconcile.timer, not
+# enabled directly.
+#
+# Why this exists at all (B1336): Gelato answers a create with a reference and
+# decides whether it will actually print the order separately, up to minutes
+# later — 62 seconds, measured. Nothing in the request can wait that long, so
+# an order refused after the button was pressed used to sit paid-for and
+# unprinted, with the owner told it was on its way.
+[Unit]
+Description=Fernscout photobook reconciliation
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+# The same handler the backup uses. A sweep that stops running is exactly as
+# quiet as one that has nothing to do, and the difference is somebody's money.
+OnFailure=fernscout-alert@%n.service
+
+[Service]
+Type=oneshot
+User=fernscout
+Group=fernscout
+WorkingDirectory=/srv/fernscout
+EnvironmentFile=/etc/fernscout/env
+ExecStart=/usr/bin/npm run photobook:reconcile
+# It walks the in-flight orders and asks Gelato about each. A handful of
+# HTTP calls; anything beyond this is a network that is not coming back, and
+# the next run will pick the same orders up.
+TimeoutStartSec=10min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+# The content root, because settling an order writes the refusal mail's kept
+# copy under DATA_DIR.
+ReadWritePaths=/srv/fernscout /var/lib/fernscout
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fernscout-reconcile
