@@ -280,7 +280,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- | --- |
 | [B1203](in-development/B1203-every-entry-in-the-operator-s.md) | Every entry in the operator's attention band is unanswerable: it can be read but not acknowledged, so a thing you have decided to live with is on the list for ever | FEATURE | medium | medium | `52950bf1` |
 
-## testing (85)
+## testing (86)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -332,6 +332,7 @@ Do not edit them by hand; run the script.
 | [B1196](testing/B1196-one-ambiguous-date-correction-proposes-shifting.md) | One ambiguous date correction proposes shifting the whole trip's dates | ISSUE | high | low | — |
 | [B1197](testing/B1197-the-preview-column-s-width-is.md) | The preview column's width is stored and never read back after a reload | ISSUE | high | low | — |
 | [B1200](testing/B1200-the-room-s-preview-claims-a.md) | The room's preview claims a German day is written in English | ISSUE | high | low | — |
+| [B1205](testing/B1205-a-book-is-two-pdfs-where.md) | A book is two PDFs where the printer wants one, cover first | ISSUE | high | medium | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |
