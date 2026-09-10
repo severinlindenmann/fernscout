@@ -24,3 +24,7 @@ TODO
 ## Acceptance
 
 TODO
+
+## Findings and fix (2026-09-10, branch agent-mobile-fixes)
+
+Same root cause and fix as B1374 (no scroll container behind the sticky composer/banner). Check: scroll a long chat on a phone with the credit banner visible — no mid-page pinning.

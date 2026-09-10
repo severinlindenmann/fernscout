@@ -24,3 +24,7 @@ TODO
 ## Acceptance
 
 TODO
+
+## Findings and fix (2026-09-10, branch agent-mobile-fixes)
+
+Threshold moved from credits<=10 to <=5 in HelperRoom.tsx; banner now has a dismiss X (sessionStorage per journal); locale strings no longer hard-code 'ten days'. Check: banner absent at 10 credits, present at 5, X hides it for the session.

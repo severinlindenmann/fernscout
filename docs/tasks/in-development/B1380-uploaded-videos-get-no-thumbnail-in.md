@@ -24,3 +24,7 @@ TODO
 ## Acceptance
 
 TODO
+
+## Findings and fix (2026-09-10, branch agent-mobile-fixes)
+
+Root cause: filesForRoom pointed every media tile at the sharp thumbnail route, which 404s for video; the tile rendered a broken <img>. InboxFileGroups now falls back to the typed film icon for video. No poster frames (no ffmpeg by design).

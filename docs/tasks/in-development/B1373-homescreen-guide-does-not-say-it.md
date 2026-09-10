@@ -24,3 +24,7 @@ TODO
 ## Acceptance
 
 TODO
+
+## Findings and fix (2026-09-10, branch agent-mobile-fixes)
+
+installHint/installStep1-3 rewritten in de/en/hu: iPhone needs Safari (share menu -> Zum Home-Bildschirm), Android needs Chrome (menu -> App installieren).

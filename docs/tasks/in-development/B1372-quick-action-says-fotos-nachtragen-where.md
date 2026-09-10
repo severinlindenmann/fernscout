@@ -24,3 +24,7 @@ TODO
 ## Acceptance
 
 TODO
+
+## Findings and fix (2026-09-10, branch agent-mobile-fixes)
+
+de.json agent.open.catchPhotos is now 'Fotos erfassen'. en/hu unchanged (no nachtragen connotation).

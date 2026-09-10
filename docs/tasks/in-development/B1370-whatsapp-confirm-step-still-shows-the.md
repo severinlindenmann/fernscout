@@ -24,3 +24,7 @@ TODO
 ## Acceptance
 
 TODO
+
+## Findings and fix (2026-09-10, branch agent-mobile-fixes)
+
+SignupWizard.tsx now suppresses the intro paragraph and the agent@ mail line on the phone-wa step; the SMS fallback link stays. Check: signup on a phone, WhatsApp step shows only 'Noch ein Schritt…', button, waiting line, SMS link.

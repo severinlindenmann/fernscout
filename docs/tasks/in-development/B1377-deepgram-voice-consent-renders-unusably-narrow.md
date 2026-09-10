@@ -24,3 +24,7 @@ TODO
 ## Acceptance
 
 TODO
+
+## Findings and fix (2026-09-10, branch agent-mobile-fixes)
+
+Root cause: RecordButton's consenting ConfirmPanel rendered as a flex sibling inside the composer row, squeezed to the mic slot's width. In compact mode it is now absolutely positioned full-width above the composer.

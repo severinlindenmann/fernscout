@@ -24,3 +24,7 @@ TODO
 ## Acceptance
 
 TODO
+
+## Findings and fix (2026-09-10, branch agent-mobile-fixes)
+
+Root cause: StorageLine's GB-only formatter — a few MB rounds to 0.00 GB; the refetch-on-upload wiring (B1350) was fine. Now unit-aware (KB/MB/GB, mirrors lib/storageQuota.ts formatBytes); accountStorageOf strings no longer hard-code GB.

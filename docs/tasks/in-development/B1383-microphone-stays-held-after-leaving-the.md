@@ -24,3 +24,7 @@ TODO
 ## Acceptance
 
 TODO
+
+## Findings and fix (2026-09-10, branch agent-mobile-fixes)
+
+Root cause: tracks only stopped in MediaRecorder.onstop, never on unmount/pagehide/visibility-hidden or the getUserMedia-in-flight race. RecordButton now hard-releases the stream (and closes the AudioContext) on all of those paths.

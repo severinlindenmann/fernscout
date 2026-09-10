@@ -24,3 +24,7 @@ TODO
 ## Acceptance
 
 TODO
+
+## Findings and fix (2026-09-10, branch agent-mobile-fixes)
+
+Root cause shared with B1379: the chat column (<main> in HelperRoom.tsx) had no scroll container of its own, so overflow scrolled the document and every sticky element stuck to the wrong thing. Fixed with overflow-y-auto overscroll-contain on the chat column. Check on a phone: expand 'warum?' — text scrolls, tab bar stays at the bottom.

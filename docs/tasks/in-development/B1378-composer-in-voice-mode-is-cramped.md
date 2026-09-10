@@ -24,3 +24,7 @@ TODO
 ## Acceptance
 
 TODO
+
+## Findings and fix (2026-09-10, branch agent-mobile-fixes)
+
+Language select now takes its own row (basis-full, flex-wrap) and the textarea keeps usable width (min-w + flex-1). The speaking animation never existed; added an AnalyserNode level meter that pulses the mic button while recording.
