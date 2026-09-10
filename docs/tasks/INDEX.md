@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (138)
+## backlog (140)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (21)
+### issue (23)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -67,6 +67,8 @@ Do not edit them by hand; run the script.
 | [B1223](backlog/issue/B1223-three-failed-photobooks-for-one-journal.md) | Three failed photobooks for one journal share one attention-band id, so acknowledging one silently hides the other two and React sees duplicate keys | ISSUE | high | low |
 | [B1246](backlog/issue/B1246-a-root-owned-content-registry-silently.md) | A root-owned content/.registry silently breaks every signup on the instance | ISSUE | high | low |
 | [B1247](backlog/issue/B1247-a-failed-journal-creation-says-unknown.md) | A failed journal creation says unknown and empties every field the person filled in | ISSUE | high | low |
+| [B1249](backlog/issue/B1249-a-signup-token-is-spent-by.md) | A signup token is spent by a creation that failed, so the person cannot retry at all | ISSUE | high | low |
+| [B1250](backlog/issue/B1250-the-wizard-shows-an-api-refusal.md) | The wizard shows an API refusal naming HTTP endpoints to somebody who has no agent | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1129](backlog/issue/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
