@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: app/admin
 found: "2026-09-10T17:33:41Z"
+merged: "2026-09-10T17:49:46Z"
 ---
 
 # B1354 — A deleted journal's name can only be freed with a shell on the server
