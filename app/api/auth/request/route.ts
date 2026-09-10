@@ -238,6 +238,20 @@ export async function POST(request: Request) {
       user.owner.email.trim().toLowerCase() === email.trim().toLowerCase();
     const tel = user.owner.tel && user.owner.telProvenAt ? toE164(user.owner.tel) : null;
     if (!ownersAddress || !tel) return accepted;
+    /**
+     * An authentication template is a paid send, and the per-IP bucket above
+     * is no ceiling against a distributed caller who knows an owner's
+     * address — the same reasoning as the signup phone route's own ceilings
+     * (B1065). Quietly the same 202 when exceeded, not a 429: these buckets
+     * only exist on the owner's path, so a distinct answer would confirm
+     * that the address owns the journal. The owner who hits it simply asks
+     * by mail instead, which is the default anyway.
+     */
+    const day = 24 * 60 * 60 * 1000;
+    const perNumber = rateLimitFor("whatsapp-code-number", tel, { max: 10, windowMs: day });
+    if (!perNumber.ok) return accepted;
+    const perInstance = rateLimitFor("whatsapp-code-instance", "*", { max: 100, windowMs: day });
+    if (!perInstance.ok) return accepted;
     whatsappTel = tel;
   }
 

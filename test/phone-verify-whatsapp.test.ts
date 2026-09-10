@@ -125,11 +125,18 @@ describe("the whatsapp phone-verification backend", () => {
 });
 
 describe("channel: whatsapp on POST /api/auth/request", () => {
+  let nextIp = 1;
   function request(body: Record<string, unknown>) {
     return authRequestPOST(
       new Request("https://t.test/api/auth/request", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          // A fresh address per call: the generic per-IP bucket is not what
+          // this file is about, and `lib/rateLimit`'s buckets are in-process
+          // state that survives between tests.
+          "x-forwarded-for": `203.0.113.${nextIp++}`,
+        },
         body: JSON.stringify(body),
       }),
     );
@@ -181,6 +188,28 @@ describe("channel: whatsapp on POST /api/auth/request", () => {
     });
     expect(response.status).toBe(202);
     expect(payloads(path.join(OWNER, "whatsapp"))).toHaveLength(0);
+  });
+
+  test("the daily ceiling turns into the same silent 202, never a distinct answer", async () => {
+    // A number of its own: the per-number bucket is in-process state shared
+    // with this file's other tests.
+    const tel = "41790000099";
+    writeUserConfig({ tel, telProvenAt: "2026-09-10T00:00:00Z" });
+    const sentTo = () => payloads(path.join(OWNER, "whatsapp")).filter((m) => m.to === tel);
+    for (let i = 0; i < 10; i++) {
+      const r = await request({ user: OWNER, email: OWNER_EMAIL, channel: "whatsapp" });
+      expect(r.status).toBe(202);
+    }
+    // Two dry-run payloads written in the same millisecond share a filename,
+    // so the file count under-reads a rapid loop — what matters is that
+    // sending happened at all, and that the eleventh adds nothing.
+    const afterTen = sentTo().length;
+    expect(afterTen).toBeGreaterThan(0);
+    const eleventh = await request({ user: OWNER, email: OWNER_EMAIL, channel: "whatsapp" });
+    // Quietly refused: still 202, nothing more sent, and the live code —
+    // the tenth — is not revoked by the refused request.
+    expect(eleventh.status).toBe(202);
+    expect(sentTo()).toHaveLength(afterTen);
   });
 
   test("a server without whatsapp refuses before issuing anything", async () => {
