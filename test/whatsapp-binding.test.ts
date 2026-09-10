@@ -96,10 +96,12 @@ describe("binding an inbound number", () => {
     // adopts it (B1168/B1054), so the greeting may honestly promise it.
     expect(body.body).toMatch(/\/agent\?c=[A-Za-z0-9_-]+/);
 
-    // A second message from the same, now-greeted number gets no fixed
-    // reply — B1058 says the greeting is "never on every conversation".
+    // A second message from the same, now-greeted number gets no *second
+    // greeting* — B1058 says the greeting is "never on every conversation".
+    // Since B1302 it does get one short consent reminder (not silence,
+    // since this number has not yet acknowledged) — still not a re-greeting.
     await handleInboundMessage(textMessage("41760001111", "wamid.second-1"));
-    expect(repliesTo("severin").length).toBe(1);
+    expect(repliesTo("severin").length).toBe(2);
   });
 
   test("a bound number gets no reply if the journal has not opted into the channel", async () => {

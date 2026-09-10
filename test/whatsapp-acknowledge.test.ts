@@ -85,21 +85,40 @@ describe("isAcknowledgement", () => {
     expect(isAcknowledgement("igen", "hu")).toBe(true);
   });
 
-  test("a sentence that merely contains the word is not an acknowledgement", () => {
-    expect(isAcknowledgement("yes I will tell you about my day", "en")).toBe(false);
+  test("a sentence with the word buried in it, not leading it, is not an acknowledgement", () => {
+    expect(isAcknowledgement("well yes I suppose so", "en")).toBe(false);
     expect(isAcknowledgement("", "en")).toBe(false);
     expect(isAcknowledgement("ja", "en")).toBe(false);
+  });
+
+  // B1302 — a narrow widening: an emphatic first word ("jaa", "yesss") reads
+  // as the word it obviously is, without fuzzy-matching a "yes" out of an
+  // ordinary sentence.
+  test("an emphatic spelling of the yes-word, as the first word, still counts", () => {
+    expect(isAcknowledgement("jaa gerne", "de")).toBe(true);
+    expect(isAcknowledgement("jaaa!", "de")).toBe(true);
+    expect(isAcknowledgement("yesss please", "en")).toBe(true);
+    expect(isAcknowledgement("yes please", "en")).toBe(true);
+  });
+
+  test("a word that merely starts the same is not read as yes", () => {
+    expect(isAcknowledgement("jamais", "de")).toBe(false);
+    expect(isAcknowledgement("yesterday was nice", "en")).toBe(false);
   });
 });
 
 describe("the gate", () => {
-  test("an ordinary message before 'yes' gets no further reply", async () => {
+  test("an ordinary message before 'yes' gets one short reminder, not silence", async () => {
     bindJournal("gatetest", "41760003333");
     await handleInboundMessage(textMessage("41760003333", "wamid.g1", "hi"));
     expect(repliesTo("gatetest").length).toBe(1); // the greeting only
 
     await handleInboundMessage(textMessage("41760003333", "wamid.g2", "here is my day"));
-    expect(repliesTo("gatetest").length).toBe(1); // still nothing more
+    expect(repliesTo("gatetest").length).toBe(2); // one reminder
+
+    // A second miss does not repeat the reminder — said once per number.
+    await handleInboundMessage(textMessage("41760003333", "wamid.g3", "still nothing"));
+    expect(repliesTo("gatetest").length).toBe(2);
   });
 
   test("'yes' is acknowledged, in the journal's own locale, and confirmed once", async () => {

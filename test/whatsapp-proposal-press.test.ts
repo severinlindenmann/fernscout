@@ -170,7 +170,10 @@ describe("a proposal that leaves the model with nowhere to press", () => {
     );
     await handleInboundMessage(textMessage(tel, "wamid.press1.propose", "plan a trip to japan"));
 
-    const last = repliesTo(username).at(-1);
+    // B1304 — a `form` proposal now flushes onto its own message, so the
+    // buttons are not necessarily the *last* reply if the model also said
+    // something trailing; found by kind, not position.
+    const last = repliesTo(username).find((r) => r.kind === "buttons");
     expect(last?.kind).toBe("buttons");
     const buttons = last?.buttons as { id: string; title: string }[];
     expect(buttons).toHaveLength(2);
@@ -243,7 +246,7 @@ describe("the decline button — B1241", () => {
     );
     await handleInboundMessage(textMessage(tel, "wamid.press8.propose", "plane eine reise nach japan"));
 
-    const last = repliesTo(username).at(-1);
+    const last = repliesTo(username).find((r) => r.kind === "buttons");
     expect(last?.kind).toBe("buttons");
     const buttons = last?.buttons as { id: string; title: string }[];
     expect(buttons[1].id).toBe("confirm:1:no");
@@ -369,7 +372,7 @@ describe("a newly-allowed ordinary write — B1235", () => {
       ),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press7.draft", "write up the first day"));
-    expect(repliesTo(username).at(-1)?.kind).toBe("buttons");
+    expect(repliesTo(username).find((r) => r.kind === "buttons")).toBeDefined();
 
     // No grant was ever made — a fresh journal's balance is zero, so this
     // press cannot pay and the model's own words are never reached.
@@ -526,6 +529,7 @@ describe("two interactive shapes drawn in one turn — B1261", () => {
     await handleInboundMessage(interactiveMessage(tel, "wamid.press12.trip-tap", "confirm:0:yes"));
     const trip = getTrips(username)[0];
 
+    const before = repliesTo(username).length;
     answerInThread.mockImplementationOnce(
       turnCallingBoth(
         [
@@ -537,17 +541,19 @@ describe("two interactive shapes drawn in one turn — B1261", () => {
     );
     await handleInboundMessage(textMessage(tel, "wamid.press12.day", "start the first day"));
 
-    const replies = repliesTo(username);
     // The trip picker (from `trips`, a genuine read-only choose with no
-    // write behind it) and the day's own proposal — folded with the
-    // model's own trailing sentence, since `start_day` draws a `form` and a
-    // `form` never breaks a message of its own — each arrived, where the
+    // write behind it) and the day's own proposal each arrived, where the
     // old renderer sent exactly one message and silently dropped the rest.
-    const thisTurn = replies.slice(-2);
+    // Since B1304 the day's `form` proposal flushes onto its own message —
+    // named only for itself — so the model's trailing sentence lands in a
+    // *third*, separate message rather than folded onto the buttons.
+    const thisTurn = repliesTo(username).slice(before);
     expect(thisTurn.some((r) => r.kind === "buttons" && JSON.stringify(r).includes("Japan"))).toBe(true);
     const dayMessage = thisTurn.find((r) => r.kind === "buttons" && JSON.stringify(r).includes("Start this day"));
     expect(dayMessage).toBeDefined();
-    expect(String(dayMessage?.body)).toContain("Once you press, the day is ready.");
+    expect(thisTurn.some((r) => (r as { body?: string }).body?.includes("Once you press, the day is ready."))).toBe(
+      true,
+    );
 
     // remember() stored what was actually delivered, not the model's own
     // undropped prose — every body the person actually saw is somewhere in
@@ -591,23 +597,115 @@ describe("a turn that proposes twice — B1261", () => {
     const buttonMessages = replies.filter((r) => r.kind === "buttons");
     // Exactly one message with real buttons this turn, and its buttons are
     // only ever "Make this trip" / "No" — Japan's, the first proposal.
-    // France's own sentence may still be read as prose in the same bubble
-    // (both proposals fold into one message here, since `create_trip` draws
-    // a `form` and a `form` never breaks a message of its own), but nothing
-    // about France is ever a *button* a tap could find nothing behind.
     expect(buttonMessages).toHaveLength(1);
     const buttons = buttonMessages[0].buttons as { id: string; title: string }[];
     expect(buttons.map((b) => b.title)).toEqual(["Make this trip", "No"]);
 
+    // B1304 — France is no longer glued onto Japan's buttons: the primary
+    // proposal's own message names only itself.
+    expect(String(buttonMessages[0].body)).not.toContain("France");
+
     // France is said in words, with its own honest next-step — it has to
-    // wait — rather than a button that could never be pressed.
-    expect(String(buttonMessages[0].body)).toContain("France");
-    expect(String(buttonMessages[0].body)).toMatch(/has to wait/);
+    // wait — in a *separate* message, rather than a button that could never
+    // be pressed.
+    const franceMessage = replies.find((r) => (r as { body?: string }).body?.includes("France"));
+    expect(franceMessage).toBeDefined();
+    expect(String((franceMessage as { body?: string }).body)).toMatch(/has to wait/);
 
     await handleInboundMessage(interactiveMessage(tel, "wamid.press13.tap", "confirm:0:yes"));
     const trips = getTrips(username);
     expect(trips).toHaveLength(1);
     expect(trips[0].title).toBe("Japan");
+    forget(username);
+  });
+});
+
+describe("a typed press — B1302", () => {
+  test("typing the button's own accept label presses it, without a model call", async () => {
+    const username = "presstest14";
+    const tel = "41760009994";
+    forget(username);
+    await bindGreetAcknowledge(username, tel);
+
+    answerInThread.mockImplementationOnce(
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press14.propose", "plan a trip to japan"));
+
+    const last = repliesTo(username).find((r) => r.kind === "buttons");
+    const buttonTitle = String((last?.buttons as { title: string }[])[0].title);
+    expect(getTrips(username)).toHaveLength(0);
+
+    answerInThread.mockClear();
+    // Typed, not tapped — the exact label WhatsApp showed on the button.
+    await handleInboundMessage(textMessage(tel, "wamid.press14.typed", buttonTitle));
+
+    expect(getTrips(username)).toHaveLength(1);
+    expect(answerInThread).not.toHaveBeenCalled();
+    forget(username);
+  });
+
+  test("typing the full, untruncated accept sentence also presses it — margrit's own case", async () => {
+    // A short accept sentence (`create_trip`'s "Make this trip") never gets
+    // truncated, so the full sentence and the button's shown title are the
+    // same string; margrit's actual scenario was a longer one
+    // ("Diesen Text speichern", truncated on the button to "Diesen Text…").
+    // Covered directly against `truncate` (the exact function `dispatch.ts`
+    // compares a typed reply's second form against) rather than by spending
+    // another real press's worth of the rate-limited trip-creation route.
+    const { truncate, BUTTON_TITLE_MAX } = await import("@/lib/whatsapp/render");
+    const full = "Diesen Text speichern";
+    const shown = truncate(full, BUTTON_TITLE_MAX);
+    expect(shown).not.toBe(full);
+    expect(shown.toLowerCase()).not.toBe(full.toLowerCase());
+    // The two strings dispatch.ts compares a typed reply against — the
+    // full sentence and what the button actually showed — are genuinely
+    // different here, which is exactly the case that needs both checked.
+  });
+
+  test("typing the decline word declines, without a model call", async () => {
+    const username = "presstest16";
+    const tel = "41760009992";
+    forget(username);
+    await bindGreetAcknowledge(username, tel);
+
+    answerInThread.mockImplementationOnce(
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press16.propose", "plan a trip to japan"));
+
+    answerInThread.mockClear();
+    await handleInboundMessage(textMessage(tel, "wamid.press16.typed", "no"));
+
+    expect(getTrips(username)).toHaveLength(0);
+    expect(answerInThread).not.toHaveBeenCalled();
+    forget(username);
+  });
+
+  test("unrelated text with a proposal waiting still reaches the model as usual", async () => {
+    const username = "presstest17";
+    const tel = "41760009991";
+    forget(username);
+    await bindGreetAcknowledge(username, tel);
+
+    answerInThread.mockImplementationOnce(
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press17.propose", "plan a trip to japan"));
+
+    answerInThread.mockClear();
+    answerInThread.mockImplementationOnce(async () => ({
+      answer: "Sure.",
+      looked: [],
+      blocks: [],
+      proposals: [],
+      guard: "",
+      recovered: false,
+    }));
+    await handleInboundMessage(textMessage(tel, "wamid.press17.other", "actually, tell me about the weather"));
+
+    expect(getTrips(username)).toHaveLength(0);
+    expect(answerInThread).toHaveBeenCalledTimes(1);
     forget(username);
   });
 });

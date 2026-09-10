@@ -279,6 +279,22 @@ export async function history(username: string): Promise<Turn[]> {
 }
 
 /**
+ * When this thread was last touched, in epoch milliseconds — `null` for no
+ * live thread at all — B1303.
+ *
+ * The system prompt has always promised "long gap, new subject: ask —
+ * continue, or fresh" with nothing behind it: `Turn` carries no timestamp, so
+ * the model had no way to know how long ago the previous turn was short of
+ * the thread having actually expired. This is what a caller reads *before*
+ * that expiry to fold an honest elapsed-time note in — see
+ * `lib/whatsapp/dispatch.ts`.
+ */
+export async function lastTouched(username: string): Promise<number | null> {
+  const thread = await live(username);
+  return thread?.touched ?? null;
+}
+
+/**
  * Add an exchange to the conversation.
  *
  * **A refused sentence is never remembered**, and that is a gate rather than

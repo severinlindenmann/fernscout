@@ -57,7 +57,10 @@ import type { Block, Proposal } from "../helper/blocks";
 
 /** Meta's own ceilings — B1056. */
 const MAX_BUTTONS = 3;
-const BUTTON_TITLE_MAX = 20;
+/** Exported so a typed reply can be compared against what the button
+ *  actually shows — B1302: the accept button's own truncated title, not
+ *  only the full `proposal.accept` sentence, is a valid typed "press". */
+export const BUTTON_TITLE_MAX = 20;
 const MAX_LIST_ROWS = 10;
 const LIST_ROW_TITLE_MAX = 24;
 
@@ -84,7 +87,7 @@ export type WhatsappOutbound =
  *  ever does), so most messages carry `proposal: undefined`. */
 export type WhatsappMessage = WhatsappOutbound & { proposal?: Proposal };
 
-function truncate(text: string, max: number): string {
+export function truncate(text: string, max: number): string {
   const flat = text.replace(/\s+/g, " ").trim();
   if (flat.length <= max) return flat;
   /**
@@ -292,9 +295,29 @@ export function renderForWhatsapp(blocks: Block[], journalUrl: string, declineLa
         break;
 
       case "form":
-        // No WhatsApp shape — the escape hatch the owner chose for this
-        // release. See the module doc.
+        // No WhatsApp shape of its own — the escape hatch the owner chose
+        // for this release (a link into `/agent`, not a Flow or a
+        // turn-per-field conversation). See the module doc.
+        //
+        // **A proposal still flushes its own message — B1304.** `form` used
+        // to only ever accumulate, on the theory that a later step
+        // (`lib/whatsapp/dispatch.ts`'s own upgrade-to-buttons fallback)
+        // would always find it as "the last message" and turn it into real
+        // buttons. That was only true for a turn with exactly one proposal:
+        // with two, the accumulated body by the time the primary's `form`
+        // block was reached already held nothing from a second proposal yet
+        // — but everything accumulated *after* it (a demoted second
+        // proposal's own honest wait-note, the model's trailing sentence)
+        // kept piling into the *same* running body, so the eventual buttons
+        // ended up glued to prose describing an unrelated day. Flushing here
+        // — tagged with the proposal, exactly as `confirm` tags its own
+        // message — gives the primary proposal a message that names only
+        // itself, whether or not anything else follows it in the turn.
         push("form", `${block.text}\n${journalUrl}`);
+        if (block.proposal) {
+          messages.push({ kind: "text", body: lines.filter(Boolean).join("\n\n"), proposal: block.proposal });
+          flush();
+        }
         break;
     }
   }

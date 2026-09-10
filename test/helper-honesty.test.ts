@@ -400,6 +400,12 @@ describe("a turn that claims a write it did not make", () => {
     expect(String(answered.body.answer)).toBe("Der Tag ist angelegt.");
   });
 
+  // B1302's own test of the per-turn narrowing lives in
+  // test/helper-honesty-per-turn.test.ts, in its own file rather than here —
+  // this file's `ask()` calls already sit exactly at `LIMIT.max` for
+  // `"helper-ask"` (40, `app/api/helper/[user]/ask/route.ts`), and one more
+  // real call here starves whatever test runs after it in the same process.
+
   /**
    * And what makes the two decidable: the tool's own name. A proposal for
    * something this conversation has *not* written with is the flag, so a turn

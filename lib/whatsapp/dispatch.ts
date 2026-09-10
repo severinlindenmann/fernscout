@@ -18,7 +18,7 @@ import type { Say } from "../helper/intents";
 import { answerInThread, WRITE_DAY_CREDITS } from "../helper/model";
 import { recordTurn } from "../helper/sessions";
 import { MAX_AUDIO_BYTES, MAX_SPEECH_SECONDS, speechLanguageFor } from "../helper/speech";
-import { forget, history, proposed, remember, sessionId, wrote } from "../helper/thread";
+import { forget, history, lastTouched, proposed, remember, sessionId, wrote } from "../helper/thread";
 import { spendAndTranscribe } from "../helper/transcribeSpend";
 import { kindForExtension, storeInboxFile } from "../inbox";
 import { translateIn } from "../locales";
@@ -35,9 +35,9 @@ import { downloadMedia } from "./cloud";
 import { announceHeldAnswer, takeHeldAnswer } from "./held";
 import { cloudCredentials, maskNumber } from "./index";
 import { flushMediaBatch, noteMedia } from "./mediaBatch";
-import { holdProposal, takePendingProposal } from "./pendingProposal";
+import { clearPendingProposal, holdProposal, peekPendingProposal, takePendingProposal } from "./pendingProposal";
 import { isWhatsappExecutable, pressProposal } from "./proposalExecution";
-import { CONFIRM_NO_ID, CONFIRM_YES_ID, confirmButtonsFor, renderForWhatsapp } from "./render";
+import { BUTTON_TITLE_MAX, CONFIRM_NO_ID, CONFIRM_YES_ID, confirmButtonsFor, renderForWhatsapp, truncate } from "./render";
 import { balanceRefusal } from "./refusal";
 import { sendOutboundReply, sendServiceReply } from "./reply";
 import { clearPendingSpeechAsk, hasPendingSpeechAsk, markPendingSpeechAsk } from "./speechConsent";
@@ -57,6 +57,12 @@ const MIME_EXTENSION: Record<string, string> = {
   "image/png": ".png",
   "image/webp": ".webp",
 };
+
+/** How long a gap gets a note folded in for the model to read — B1303. Well
+ *  under the WhatsApp thread's own 24h TTL (`lib/helper/thread.ts`'s
+ *  `TTL_MS.whatsapp`), so the system prompt's "long gap, new subject: ask"
+ *  line has something to fire on long before the thread itself expires. */
+const GAP_NOTE_HOURS = 4;
 
 /**
  * What happens to a normalised inbound message, once it has been verified,
@@ -223,6 +229,19 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
       console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) acknowledged`);
       return;
     }
+    /**
+     * A miss used to be total silence — B1302, scenario-margrit.md finding 4.
+     * A 71-year-old told "reply with 'ja' to continue" who typed a warm,
+     * natural "jaa gerne" instead had no way to tell "the AI is thinking"
+     * from "the AI never got this". One short reminder, said once per
+     * number (not on every miss — a person still finding the right words
+     * for "yes" should not be nagged on each try), rather than loosening the
+     * exact match itself.
+     */
+    if (!hasBeenTold(username, message.from, "consentReminder")) {
+      await sendServiceReply(message.from, translateIn(locale, "wa.consentReminder"), username);
+      markTold(username, message.from, "consentReminder");
+    }
     console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) not yet acknowledged — no model call`);
     return;
   }
@@ -287,6 +306,11 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
    */
   if (message.kind === "text" && isNewChatCommand(message.body, locale)) {
     forget(username);
+    // B1303, scenario-multimsg.md defect 2 — a proposal made before the
+    // reset is not a proposal this fresh thread ever made. Without this, a
+    // stale `confirm:0:yes` tap after "neues gespräch" silently wrote into
+    // the new, nominally-empty conversation.
+    clearPendingProposal(username, message.from);
     const url = `${serverSite().url}/agent`;
     await sendServiceReply(message.from, translateIn(locale, "wa.newChatStarted", { url }), username);
     console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) started a fresh conversation`);
@@ -304,6 +328,31 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
   if (message.kind === "interactive" && (message.replyId === CONFIRM_YES_ID || message.replyId === CONFIRM_NO_ID)) {
     await handleProposalReply(username, locale, message.from, message.replyId === CONFIRM_YES_ID);
     return;
+  }
+
+  /**
+   * A typed press — B1302, scenario-margrit.md's headline finding. Nothing
+   * mechanical ever recognised somebody typing a proposal's own button label
+   * back instead of tapping it, so the turn reached the model with the write
+   * already "described" as done and nothing left to do — the exact
+   * "Der Text ist gespeichert" shape AGENTS.md names. Compared here, before
+   * any model call, against the three strings a typed reply could honestly
+   * mean: the button's own (truncated) title, the full accept sentence
+   * underneath it, and the decline word — anything else falls through to the
+   * model exactly as before.
+   */
+  if (message.kind === "text") {
+    const pending = peekPendingProposal(username, message.from);
+    if (pending) {
+      const typed = message.body.trim().toLowerCase();
+      const declineWord = translateIn(locale, "wa.declineButton").trim().toLowerCase();
+      const acceptFull = pending.accept.trim().toLowerCase();
+      const acceptShown = truncate(pending.accept, BUTTON_TITLE_MAX).trim().toLowerCase();
+      if (typed !== "" && (typed === declineWord || typed === acceptFull || typed === acceptShown)) {
+        await handleProposalReply(username, locale, message.from, typed !== declineWord);
+        return;
+      }
+    }
   }
 
   const said =
@@ -689,9 +738,30 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
   const say: Say = (key, vars) => translateIn(locale, key as Parameters<typeof translateIn>[1], vars);
   const today = new Date().toISOString().slice(0, 10);
 
+  /**
+   * A turn has no sense of time otherwise — B1303, scenario-edges.md
+   * finding 6. The system prompt has always promised "long gap, new
+   * subject: ask — continue, or fresh" with nothing behind it: `Turn`
+   * carries no timestamp, so this is what actually gives the model
+   * something to read. Folded in the same way any other note is — riding on
+   * this turn's own message — rather than persisted, since it is a fact
+   * about *when this turn is happening*, true once and never again.
+   */
+  const touched = await lastTouched(username);
+  // Copied rather than mutated in place — `history()` hands back the live
+  // thread's own array, and this note is true of this turn only, never
+  // meant to persist into the next one.
+  const turns = [...(await history(username))];
+  if (touched !== null) {
+    const hours = Math.round((Date.now() - touched) / (60 * 60 * 1000));
+    if (hours >= GAP_NOTE_HOURS) {
+      turns.push({ role: "note", text: `[gap: about ${hours} hours since the last message]` });
+    }
+  }
+
   let thread;
   try {
-    thread = await answerInThread(username, said, await history(username), today, say, [], locale, "whatsapp");
+    thread = await answerInThread(username, said, turns, today, say, [], locale, "whatsapp");
   } catch (err) {
     console.error(`[whatsapp:inbound] model turn failed for ${username}:`, err);
     return;
@@ -754,28 +824,27 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
   const messages = renderForWhatsapp(blocks, journalUrl, declineLabel, moreText);
 
   if (proposal) {
-    const tagged = messages.findIndex((message) => message.proposal === proposal);
-    if (tagged !== -1) {
+    const taggedIndex = messages.findIndex((message) => message.proposal === proposal);
+    const tagged = taggedIndex === -1 ? undefined : messages[taggedIndex];
+    if (tagged?.kind === "buttons") {
       // A `confirm` block already drew these buttons (B1056) — hold the
       // proposal so a tap on them can find it. Whether the tap goes on to
       // execute or is told this lives on the web is `handleProposalReply`'s
       // question, not this one's.
       holdProposal(username, to, proposal);
-    } else if (isWhatsappExecutable(proposal.tool)) {
+    } else if (tagged && isWhatsappExecutable(proposal.tool)) {
       /**
        * A `form`-shaped proposal (B1230's own case: `create_trip` is exactly
-       * this) had no WhatsApp shape before B1230, and draws no message of
-       * its own from `renderForWhatsapp` (see the module doc: `form` only
-       * ever folds into the running prose). Given how `blocks` is built
-       * above — every read tool's own block, then this turn's own write
-       * proposal, then the model's own trailing sentence — that prose always
-       * ends up in the *last* message `renderForWhatsapp` returns. Upgrade
-       * that one to real buttons, built over whatever text it already
-       * carries.
+       * this) had no WhatsApp shape before B1230. Since B1304,
+       * `renderForWhatsapp` flushes it onto its own tagged message rather
+       * than folding it into whatever else the turn drew — found by tag
+       * here, not by position ("the last message"), which is what used to
+       * merge a second proposal's own prose onto the first's buttons. Upgrade
+       * that one message to real buttons, over whatever text it already
+       * carries, and nothing else in the turn.
        */
-      const last = messages[messages.length - 1];
-      messages[messages.length - 1] = {
-        ...confirmButtonsFor(last.kind === "text" ? last.body : "", proposal.accept, declineLabel),
+      messages[taggedIndex] = {
+        ...confirmButtonsFor(tagged.kind === "text" ? tagged.body : "", proposal.accept, declineLabel),
         proposal,
       };
       holdProposal(username, to, proposal);

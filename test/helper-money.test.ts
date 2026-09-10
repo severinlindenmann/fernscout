@@ -150,11 +150,13 @@ function post(route: (request: Request, context: typeof params) => Promise<Respo
 async function tripCosts(): Promise<{
   total: number;
   notInTheTotal: { currency: string; amount: number; items: number }[];
+  budget?: { total: number; days: number; perDay: number; remaining: number };
 }> {
   return (await runTool("alex", "trip_costs", { trip: "reise" }, say, "2026-09-07"))
     .result as {
     total: number;
     notInTheTotal: { currency: string; amount: number; items: number }[];
+    budget?: { total: number; days: number; perDay: number; remaining: number };
   };
 }
 
@@ -182,6 +184,22 @@ describe("set_rate — the open half of B960, closed", () => {
 
     const [stat] = await sessionStats("2020-01-01");
     expect(stat.refused).toBeGreaterThan(0);
+  });
+});
+
+describe("trip_costs — B1305, scenario-costs.md defect C", () => {
+  test("carries the budget once one is set, rather than dropping it", async () => {
+    const before = await tripCosts();
+    expect(before.budget).toBeUndefined();
+
+    const proposal = await propose("set_budget", { total: "1000", days: "10", currency: "CHF" });
+    const answered = await post(setBudget, pressed(proposal));
+    expect(answered.status).toBe(200);
+
+    const after = await tripCosts();
+    expect(after.budget).toBeDefined();
+    expect(after.budget?.total).toBe(1000);
+    expect(after.budget?.days).toBe(10);
   });
 });
 

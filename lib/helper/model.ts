@@ -498,6 +498,8 @@ Say what you looked at. If you read the trips, or the costs, or the storage, nam
 
 Long gap, new subject: ask — continue, or fresh
 
+After a press, answer the rest of what they asked. Never state a price or capability from memory — check first.
+
 WHAT YOU CAN DO
 
 You can look things up. These are the tools:
@@ -1747,6 +1749,21 @@ export async function answerInThread(
   );
 
   /**
+   * Which tools **this** turn actually wrote with — B1302, scenario-margrit's
+   * headline finding. `written` above answers "ever, this session", which is
+   * the wrong question for a plain "it's saved" claim with nothing proposed:
+   * a write two turns ago does not make a claim about a *different*, unwritten
+   * change true. `pending` is the notes not yet folded into a user message —
+   * i.e. exactly the ones riding on *this* turn's own `said` — so a write note
+   * only lands here when the press that produced it was the immediately
+   * preceding thing that happened, which is the one case a plain "saved"
+   * sentence is honestly describing.
+   */
+  const writtenThisTurn = new Set(
+    Array.from(pending.matchAll(/^\[written: (\w+)/gm)).map((match) => match[1]),
+  );
+
+  /**
    * Figures in a sentence, next to a currency — B963.
    *
    * Only currency-adjacent numbers, so a date, a day count or a credit balance
@@ -1923,11 +1940,15 @@ export async function answerInThread(
         if (!drewSomethingToPress && claimsAButton(answer)) return "claim";
         /**
          * A write, which is the half B943's evidence narrowed. With something
-         * really written and nothing proposed, a past-tense sentence is a true
-         * report of a press, and flagging it is what led to the replacement
-         * denying the whole journal.
+         * really written **this turn** and nothing proposed, a past-tense
+         * sentence is a true report of a press, and flagging it is what led
+         * to the replacement denying the whole journal. B1302 narrowed
+         * "written" from the whole session to this turn: a press five turns
+         * back does not make a claim about *today's* unwritten paragraph
+         * true, which is exactly how a typed "Diesen Text speichern" slipped
+         * a false "Gspeicheret" past this guard.
          */
-        if (written.size === 0 && claimsAWrite(answer)) return "claim";
+        if (writtenThisTurn.size === 0 && claimsAWrite(answer)) return "claim";
       }
     }
     return "";

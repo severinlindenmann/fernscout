@@ -380,6 +380,16 @@ export const DAYS_TOOLS: readonly Tool[] = [
         ? `${say("agent.tool.publishDay", { date: found.entry.date, title: found.entry.title })} ${audience}`
         : say("agent.tool.publishNoDay");
       return {
+        /**
+         * A day already on the site does not go up twice — B1305,
+         * scenario-edges.md finding 3. `unpublish_day`'s own mirror check
+         * below (`agent.tool.alreadyDraft`) claimed this one "has always"
+         * existed; it had not — asking to publish an already-published day
+         * drew a full "read this the way your readers will" card and a
+         * wasted press (the route's own `already_published` 409 kept the
+         * write itself safe, but the card shown before it was pointless).
+         */
+        ...(found && !found.entry.draft ? { refuse: "agent.tool.alreadyPublished" } : {}),
         sentence:
           asked.length > 0 ? `${sentence} ${say("agent.tool.publishDayUnknown")}` : sentence,
         accept: say("agent.tool.publishDayAccept"),
@@ -426,12 +436,13 @@ export const DAYS_TOOLS: readonly Tool[] = [
         /**
          * A day that was never up does not come down — B951.
          *
-         * `publish_day` has always refused a day that is already published;
-         * its mirror had no such check, so asking to take down a draft
-         * produced a confirmation card saying it *"comes off the site and
-         * goes back to being a draft"* about a day that had never been on the
-         * site. The press would have answered `already_draft`; the sentence
-         * she read before pressing said her day was live.
+         * The comment here used to claim `publish_day` "has always refused"
+         * the mirror case (an already-published day) — it had not, until
+         * B1305: asking to publish an already-published day drew a full
+         * "read this the way your readers will" card and a wasted press. The
+         * two are symmetric now, each its own `refuse` line beside its own
+         * `propose`, rather than one comment asserting a fact about the
+         * other function that nobody kept true.
          */
         ...(found?.entry.draft ? { refuse: "agent.tool.alreadyDraft" } : {}),
         sentence: found
