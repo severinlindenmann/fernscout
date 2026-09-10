@@ -1,15 +1,18 @@
 import { describe, expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import Pricing from "@/components/Pricing";
+import { SIGNUP_CREDIT_GRANT } from "@/lib/credits";
 import {
   EXTRA_STORAGE_CREDITS,
   POSTCARD_CREDITS,
-  BASE_RAPPEN_PER_CREDIT,
   MAX_CREDITS,
   MIN_CREDITS,
+  PHOTOBOOK_QUOTE_EXAMPLE,
   creditsInRappen,
   formatChf,
   photobookCredits,
+  photobookPrintCredits,
+  priceRappen,
 } from "@/lib/credits/pricing";
 import { dictionaryFor } from "@/lib/locales";
 
@@ -24,6 +27,11 @@ import { dictionaryFor } from "@/lib/locales";
  * page says the new number" — which is what asserting against the imported
  * constants, rather than against literals, actually checks.
  *
+ * Since B1332 the table prices in francs, not credits: a visitor should not
+ * have to learn a private unit to judge a price. Credits appear exactly
+ * twice — the signup-gift line and the explaining note — and both are
+ * asserted here so neither can quietly disappear.
+ *
  * Whether the table appears at all is the caller's decision (`isEnabled
  * ("credits")` on `/` and `/docs`), so it is not this file's business.
  */
@@ -31,35 +39,51 @@ import { dictionaryFor } from "@/lib/locales";
 const html = () => renderToStaticMarkup(<Pricing locale="en" />);
 
 describe("the pricing table", () => {
-  test("prices a postcard from the constant the send charges", () => {
-    expect(html()).toContain(`>${POSTCARD_CREDITS}<`);
+  test("prices a postcard in francs, from the constant the send charges", () => {
+    expect(html()).toContain(formatChf(creditsInRappen(POSTCARD_CREDITS)));
   });
 
-  test("prices extra storage from the constant the purchase spends", () => {
-    expect(html()).toContain(`>${EXTRA_STORAGE_CREDITS}<`);
+  test("prices extra storage in francs, from the constant the purchase spends", () => {
+    expect(html()).toContain(formatChf(creditsInRappen(EXTRA_STORAGE_CREDITS)));
   });
 
-  test("quotes the photobook from the smallest book the planner will bind, printed in Switzerland", () => {
-    const from = photobookCredits();
+  test("quotes the printed photobook as build plus the measured example print order", () => {
+    // No PDF-only row since B1332 (the owner does not sell one — B1331), so
+    // the printed price must carry the build charge too, or a first book
+    // costs more than the page said.
+    const rappen = creditsInRappen(
+      photobookCredits() +
+        photobookPrintCredits(
+          PHOTOBOOK_QUOTE_EXAMPLE.printMinor,
+          PHOTOBOOK_QUOTE_EXAMPLE.shipMinor,
+        ),
+    );
     const rendered = html();
-    expect(rendered).toContain(String(from));
-    // Said in the row itself, not only in a source comment: since B841 the
-    // price is measured, and the row says where it is printed rather than
-    // hedging with "estimate".
-    expect(rendered).toContain("Printed in Switzerland");
+    expect(rendered).toContain(formatChf(rappen));
+    // Printed near the recipient, not "in Switzerland" — Gelato prints in
+    // the destination country, and the old wording was only true for Swiss
+    // recipients.
+    expect(rendered).toContain("printed locally");
+    expect(rendered).not.toContain("Switzerland");
   });
 
-  test("states the range it sells and both ends of the per-credit price", () => {
+  test("explains the credit unit once: worth, gift value, smallest and best purchase", () => {
     const rendered = html();
-    // B854 replaced the tier rows with the range the slider covers. A page
-    // still naming a fixed tier would be naming a purchase the route refuses.
-    expect(rendered).toContain(String(MIN_CREDITS));
-    expect(rendered).toContain(String(MAX_CREDITS));
-    expect(rendered).toContain(formatChf(BASE_RAPPEN_PER_CREDIT));
+    expect(rendered).toContain(formatChf(creditsInRappen(1)));
+    expect(rendered).toContain(formatChf(creditsInRappen(SIGNUP_CREDIT_GRANT)));
+    expect(rendered).toContain(formatChf(priceRappen(MIN_CREDITS)));
+    expect(rendered).toContain(
+      formatChf(Math.round(priceRappen(MAX_CREDITS) / MAX_CREDITS)),
+    );
   });
 
-  test("prints what one credit is worth in francs, not only in credits", () => {
-    expect(html()).toContain(formatChf(creditsInRappen(1)));
+  test("highlights the signup gift from the constant signup actually grants", () => {
+    expect(html()).toContain(
+      dictionaryFor("en")["pricing.freeGrant"].replace(
+        "{credits}",
+        String(SIGNUP_CREDIT_GRANT),
+      ),
+    );
   });
 
   test("says email is free, which is the whole of B840's fairness claim", () => {
@@ -70,6 +94,6 @@ describe("the pricing table", () => {
     const de = renderToStaticMarkup(<Pricing locale="de" />);
     expect(de).toContain(dictionaryFor("de")["pricing.title"]);
     // Prices are not translated — they are arithmetic, in the same currency.
-    expect(de).toContain(`>${POSTCARD_CREDITS}<`);
+    expect(de).toContain(formatChf(creditsInRappen(POSTCARD_CREDITS)));
   });
 });

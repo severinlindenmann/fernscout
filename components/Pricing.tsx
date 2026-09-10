@@ -1,7 +1,6 @@
 import { Check } from "lucide-react";
 import { SIGNUP_CREDIT_GRANT } from "@/lib/credits";
 import {
-  BASE_RAPPEN_PER_CREDIT,
   EXTRA_STORAGE_BYTES,
   EXTRA_STORAGE_CREDITS,
   MAX_CREDITS,
@@ -24,16 +23,26 @@ import { translateIn } from "@/lib/locales";
 import type { TranslationKey } from "@/lib/i18n";
 
 /**
- * What this costs, before anybody signs up — B840.
+ * What this costs, before anybody signs up — B840, repriced into money by
+ * B1332.
  *
  * The prices existed and were unreachable: the first place a person met one
  * was the "Buy credits" panel on their own account page, which is behind
  * signing up. So somebody deciding whether to use this had to commit in order
  * to find out whether it was free.
  *
+ * **Money first, credits explained once** — B1332. Every row used to lead
+ * with a credit count, which asked a visitor to learn a private unit before
+ * they could judge a price (the same trap B806 closed one screen deeper).
+ * Now every row is CHF, and credits appear exactly twice: the highlighted
+ * signup-gift line at the top of the free card, and a two-sentence note under
+ * the price list saying that Fernscout counts in credits behind the scenes
+ * and what one is worth. CHF because that is the billing currency; a
+ * journal's own display currency is deliberately not converted here.
+ *
  * **Every figure here is read from the constant that charges it.** Not one
- * number is typed into a translation string — the strings carry `{credits}`
- * and `{price}` and this file fills them in, because a price kept in two
+ * number is typed into a translation string — the strings carry `{price}`
+ * and `{credits}` and this file fills them in, because a price kept in two
  * places disagrees with itself within a month, and a *published* price that
  * disagrees with the till is the worst version of that. Same rule
  * `lib/api/openapi.ts` follows for enums, for the same reason.
@@ -45,9 +54,8 @@ import type { TranslationKey } from "@/lib/i18n";
  *
  * **The caller decides whether it appears at all** — both check
  * `isEnabled("credits")` first. An instance with credits switched off charges
- * nothing, and "20 credits per postcard" would be a straight lie there; a
- * self-hoster gets no pricing table, which is correct, because they are the
- * one paying the printer.
+ * nothing, and a price table would be a straight lie there; a self-hoster
+ * gets none, which is correct, because they are the one paying the printer.
  */
 export default function Pricing({ locale }: { locale: string }) {
   const t = (key: string, vars?: Record<string, string>) =>
@@ -71,49 +79,48 @@ export default function Pricing({ locale }: { locale: string }) {
     t("pricing.freeExport"),
   ];
 
-  /** Two rows, because there are two things to buy and they cost very
-   *  different amounts. Laying the book out is a flat charge whatever the
-   *  trip; printing it is quoted per order, because postage to Sydney is not
-   *  postage to Zurich. The printed figure is the example book every measured
-   *  number in `lib/credits/pricing.ts` was taken from, so the table and the
-   *  constants cannot quote different books. */
-  const photobookFrom = photobookCredits();
-  const photobookPrintExample = photobookPrintCredits(
-    PHOTOBOOK_QUOTE_EXAMPLE.printMinor,
-    PHOTOBOOK_QUOTE_EXAMPLE.shipMinor,
+  /** The printed book is one price now: laying it out plus the measured
+   *  example print order (`PHOTOBOOK_QUOTE_EXAMPLE`, the book every measured
+   *  number in `lib/credits/pricing.ts` was taken from). There is no
+   *  PDF-only row — the owner does not sell one (B1331 holds the remaining
+   *  product decision) — so quoting print without the build charge would
+   *  understate what a first book costs. */
+  const photobookRappen = creditsInRappen(
+    photobookCredits() +
+      photobookPrintCredits(
+        PHOTOBOOK_QUOTE_EXAMPLE.printMinor,
+        PHOTOBOOK_QUOTE_EXAMPLE.shipMinor,
+      ),
   );
 
-  const rows: { label: string; detail: string; credits: number; from?: boolean }[] = [
+  const rows: { label: string; detail: string; rappen: number; from?: boolean }[] = [
     {
       label: t("pricing.rowHelp"),
       detail: t("pricing.rowHelpDetail", {
         photos: String(PHOTOS_PER_CREDIT),
         minutes: String(MINUTES_PER_CREDIT),
       }),
-      credits: WRITE_DAY_CREDITS,
+      rappen: creditsInRappen(WRITE_DAY_CREDITS),
     },
-    { label: t("pricing.rowWhatsapp"), detail: t("pricing.rowWhatsappDetail"), credits: 1 },
+    {
+      label: t("pricing.rowWhatsapp"),
+      detail: t("pricing.rowWhatsappDetail"),
+      rappen: creditsInRappen(1),
+    },
     {
       label: t("pricing.rowPostcard"),
       detail: t("pricing.rowPostcardDetail"),
-      credits: POSTCARD_CREDITS,
+      rappen: creditsInRappen(POSTCARD_CREDITS),
     },
     {
       label: t("pricing.rowStorage", { size: formatBytes(EXTRA_STORAGE_BYTES) }),
       detail: t("pricing.rowStorageDetail"),
-      credits: EXTRA_STORAGE_CREDITS,
-    },
-    {
-      label: t("pricing.rowPhotobook"),
-      detail: t("pricing.rowPhotobookDetail"),
-      credits: photobookFrom,
+      rappen: creditsInRappen(EXTRA_STORAGE_CREDITS),
     },
     {
       label: t("pricing.rowPhotobookPrint"),
-      detail: t("pricing.rowPhotobookPrintDetail", {
-        pages: String(PHOTOBOOK_QUOTE_EXAMPLE.pages),
-      }),
-      credits: photobookPrintExample,
+      detail: t("pricing.rowPhotobookPrintDetail"),
+      rappen: photobookRappen,
       from: true,
     },
   ];
@@ -131,6 +138,23 @@ export default function Pricing({ locale }: { locale: string }) {
             {t("pricing.freeTitle")}
           </h3>
           <ul className="mt-3 space-y-1.5">
+            {/* The signup gift, first and highlighted: the one place credits
+                lead, because it is a credit balance a new journal actually
+                receives (`SIGNUP_CREDIT_GRANT`, granted once at signup). */}
+            <li className="-mx-2 flex gap-2 rounded-lg bg-yellow-300/60 px-2 py-1 text-yellow-950">
+              <Check className="mt-1 h-4 w-4 shrink-0" aria-hidden strokeWidth={2.4} />
+              <span>
+                <span className="block font-semibold">
+                  {t("pricing.freeGrant", { credits: String(SIGNUP_CREDIT_GRANT) })}
+                </span>
+                <span className="block text-sm">
+                  {t("pricing.freeGrantDetail", {
+                    value: formatChf(creditsInRappen(SIGNUP_CREDIT_GRANT)),
+                    credits: String(SIGNUP_CREDIT_GRANT),
+                  })}
+                </span>
+              </span>
+            </li>
             {free.map((item) => (
               <li key={item} className="flex gap-2 text-navy-700">
                 <Check
@@ -148,9 +172,7 @@ export default function Pricing({ locale }: { locale: string }) {
           <h3 className="font-display text-lg font-semibold text-navy-900">
             {t("pricing.creditsTitle")}
           </h3>
-          <p className="mt-1 text-sm text-navy-600">
-            {t("pricing.creditsLede", { price: formatChf(creditsInRappen(1)) })}
-          </p>
+          <p className="mt-1 text-sm text-navy-600">{t("pricing.creditsLede")}</p>
           <ul className="mt-3 divide-y divide-navy-200">
             {rows.map((row) => (
               <li key={row.label} className="flex items-baseline justify-between gap-3 py-2">
@@ -160,29 +182,23 @@ export default function Pricing({ locale }: { locale: string }) {
                 </span>
                 <span className="shrink-0 text-right font-semibold tabular-nums text-navy-900">
                   {row.from
-                    ? t("pricing.fromCredits", { credits: String(row.credits) })
-                    : row.credits}
-                  <span className="block text-xs font-normal text-navy-600">
-                    {formatChf(creditsInRappen(row.credits))}
-                  </span>
+                    ? t("pricing.fromPrice", { price: formatChf(row.rappen) })
+                    : formatChf(row.rappen)}
                 </span>
               </li>
             ))}
           </ul>
-          {/* The range and both ends of the per-credit price, from the price
-              function itself — B854 replaced a list of tiers with a slider, so
-              there are no rows left to print, and "from X down to Y" is the
-              honest summary of a curve. */}
+          {/* The one place credits are explained: the unit, the gift's worth,
+              the smallest purchase and the best rate — all arithmetic on the
+              price function, nothing typed into a locale string. */}
           <p className="mt-3 text-sm leading-6 text-navy-600">
-            {t("pricing.range", {
-              from: String(MIN_CREDITS),
-              to: String(MAX_CREDITS),
-              min: formatChf(BASE_RAPPEN_PER_CREDIT),
-              max: formatChf(Math.round(priceRappen(MAX_CREDITS) / MAX_CREDITS)),
+            {t("pricing.creditNote", {
+              one: formatChf(creditsInRappen(1)),
+              grant: String(SIGNUP_CREDIT_GRANT),
+              grantValue: formatChf(creditsInRappen(SIGNUP_CREDIT_GRANT)),
+              min: formatChf(priceRappen(MIN_CREDITS)),
+              best: formatChf(Math.round(priceRappen(MAX_CREDITS) / MAX_CREDITS)),
             })}
-          </p>
-          <p className="mt-1 text-sm leading-6 text-navy-600">
-            {t("pricing.grant", { credits: String(SIGNUP_CREDIT_GRANT) })}
           </p>
         </div>
       </div>
