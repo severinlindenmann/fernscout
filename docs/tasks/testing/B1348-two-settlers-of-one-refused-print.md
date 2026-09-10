@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: photobook, credits
 found: "2026-09-10T19:40:00Z"
+merged: "2026-09-10T17:28:31Z"
 ---
 
 # B1348 — Two settlers of one refused print both refund it

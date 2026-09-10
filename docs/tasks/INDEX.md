@@ -49,13 +49,12 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (152)
+## backlog (151)
 
-### security (3)
+### security (2)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1348](backlog/security/B1348-two-settlers-of-one-refused-print.md) | Two settlers of one refused print both refund it | SECURITY | high | low |
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
@@ -344,7 +343,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- | --- |
 | [B1347](in-development/B1347-the-money-dashboard-under-counts-print.md) | The money dashboard under-counts: print costs are a confident zero, WhatsApp sends are uncounted and unpriced, SMS appear nowhere | FEATURE | high | medium | `0b65a2c0` |
 
-## testing (127)
+## testing (128)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -433,6 +432,7 @@ Do not edit them by hand; run the script.
 | [B1343](testing/B1343-a-new-proposal-can-land-outside.md) | A new proposal can land outside the visible chat | FEATURE | high | medium | — |
 | [B1344](testing/B1344-a-turn-that-arrived-via-whatsapp.md) | A turn that arrived via WhatsApp looks identical to a web turn | FEATURE | high | medium | — |
 | [B1345](testing/B1345-the-printer-can-tell-us-an.md) | The printer can tell us an order failed, and nothing is listening | FEATURE | high | medium | — |
+| [B1348](testing/B1348-two-settlers-of-one-refused-print.md) | Two settlers of one refused print both refund it | SECURITY | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |
