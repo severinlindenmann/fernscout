@@ -102,6 +102,7 @@ export function InboxFileGroups({
             {photos.map((file) => (
               <li key={file.id}>
                 <label
+                  data-inbox-id={file.id}
                   className={`flex cursor-pointer flex-col overflow-hidden rounded-lg border bg-white focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-navy-800 ${
                     selected.includes(file.id) ? "border-navy-800 ring-2 ring-navy-800" : "border-navy-200"
                   }`}
@@ -147,6 +148,7 @@ export function InboxFileGroups({
             {documents.map((file) => (
               <li key={file.id}>
                 <label
+                  data-inbox-id={file.id}
                   className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-navy-800 ${
                     selected.includes(file.id) ? "border-navy-800 ring-2 ring-navy-800" : "border-navy-200 bg-white"
                   }`}

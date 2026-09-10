@@ -166,7 +166,7 @@ export default function HelperRoom({
   /** This instance's public base URL, for the handover prompt — B1210. */
   siteUrl: string;
 }) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
 
   const [selected, setSelected] = useState<string[]>([]);
   /**
@@ -442,6 +442,106 @@ export default function HelperRoom({
   }
 
   /**
+   * Files arriving by drop or paste land in the inbox — B1216 (D29/D30).
+   * The same door the pane's picker uses; the answer's stored descriptors
+   * become tiles at once, exactly as `UploadPanel` echoes them.
+   */
+  const [dropping, setDropping] = useState(false);
+  /** How many files just landed while a day was on the table — drawn as
+   *  one attach-nudge chip. B1216 (D32). */
+  const [nudgeCount, setNudgeCount] = useState(0);
+  const dragDepth = useRef(0);
+  /** In-flight tiles for the drop/paste path — B1216 (D31): thumbnails
+   *  appear at once with a ring, replaced by the stored tiles when the
+   *  route answers. (The picker path keeps its own status line.) */
+  const [pending, setPending] = useState<{ key: string; url: string | null }[]>([]);
+  async function sendToInbox(files: File[]) {
+    if (files.length === 0) return;
+    const stamp = Date.now();
+    setPending(
+      files.map((file, n) => ({
+        key: `${stamp}-${n}`,
+        url: file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
+      })),
+    );
+    const form = new FormData();
+    for (const file of files) form.append("files", file);
+    const response = await fetch(`/api/helper/${encodeURIComponent(username)}/inbox`, {
+      method: "POST",
+      body: form,
+    }).catch(() => null);
+    const body = (await response?.json().catch(() => null)) as
+      | { items?: { id: string; filename: string; kind: RoomFile["kind"]; bytes: number; uploadedAt: string }[] }
+      | null;
+    setPending((was) => {
+      for (const one of was) if (one.url) URL.revokeObjectURL(one.url);
+      return [];
+    });
+    if (!response?.ok || !body?.items) return;
+    if (subject) setNudgeCount(body.items.length);
+    setInbox((was) => [
+      ...body.items!.map((item) => ({
+        id: `inbox:${item.id}`,
+        name: item.filename,
+        src:
+          item.kind === "media"
+            ? `/api/helper/${encodeURIComponent(username)}/inbox/${encodeURIComponent(item.id)}/thumbnail`
+            : undefined,
+        kind: item.kind,
+        bytes: item.bytes,
+        uploadedAt: item.uploadedAt,
+      })),
+      ...was,
+    ]);
+  }
+  useEffect(() => {
+    // Whole-window handlers: the room is the drop target (D29), and ⌘V
+    // with an image lands it too (D30). Files only — dragging text or a
+    // link changes nothing.
+    function hasFiles(event: DragEvent) {
+      return [...(event.dataTransfer?.types ?? [])].includes("Files");
+    }
+    function onDragEnter(event: DragEvent) {
+      if (!hasFiles(event)) return;
+      dragDepth.current += 1;
+      setDropping(true);
+    }
+    function onDragLeave() {
+      dragDepth.current = Math.max(0, dragDepth.current - 1);
+      if (dragDepth.current === 0) setDropping(false);
+    }
+    function onDragOver(event: DragEvent) {
+      if (hasFiles(event)) event.preventDefault();
+    }
+    function onDrop(event: DragEvent) {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      dragDepth.current = 0;
+      setDropping(false);
+      void sendToInbox([...(event.dataTransfer?.files ?? [])]);
+    }
+    function onPaste(event: ClipboardEvent) {
+      const files = [...(event.clipboardData?.files ?? [])].filter((file) =>
+        file.type.startsWith("image/"),
+      );
+      if (files.length > 0) void sendToInbox(files);
+    }
+    window.addEventListener("dragenter", onDragEnter);
+    window.addEventListener("dragleave", onDragLeave);
+    window.addEventListener("dragover", onDragOver);
+    window.addEventListener("drop", onDrop);
+    window.addEventListener("paste", onPaste);
+    return () => {
+      window.removeEventListener("dragenter", onDragEnter);
+      window.removeEventListener("dragleave", onDragLeave);
+      window.removeEventListener("dragover", onDragOver);
+      window.removeEventListener("drop", onDrop);
+      window.removeEventListener("paste", onPaste);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username]);
+
+  /**
    * A turn injected from outside the conversation — B1214 (D26): the
    * preview header's "Put this day on the site" fetches the same
    * publish_day proposal the model would draw, and this is how the card
@@ -449,25 +549,53 @@ export default function HelperRoom({
    * card's own press, in the conversation, exactly as everywhere else.
    */
   const [injected, setInjected] = useState<{ blocks: unknown[]; at: number } | null>(null);
-  async function publishFromPreview() {
-    if (!subject) return;
-    const response = await fetch(`/api/helper/${encodeURIComponent(username)}/proposal`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        tool: "publish_day",
-        arguments: { trip: subject.trip, slug: subject.slug },
-        today: new Date().toISOString().slice(0, 10),
-      }),
-    }).catch(() => null);
-    const body = (await response?.json().catch(() => null)) as { blocks?: unknown[] } | null;
-    if (body?.blocks?.length) {
-      setInjected({ blocks: body.blocks, at: Date.now() });
-      setTab("chat");
-    }
+  /**
+   * Fetch one tool's proposal and put its card in the thread — the shared
+   * mechanism behind the preview's publish shortcut (B1214), the attach
+   * nudge and the tile menu (B1216). Every write still happens only on
+   * the card's own press, in the conversation.
+   */
+  function proposeToThread(tool: string, args: Record<string, string>) {
+    void (async () => {
+      const response = await fetch(`/api/helper/${encodeURIComponent(username)}/proposal`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ tool, arguments: args, today: new Date().toISOString().slice(0, 10) }),
+      }).catch(() => null);
+      const body = (await response?.json().catch(() => null)) as { blocks?: unknown[] } | null;
+      if (body?.blocks?.length) {
+        setInjected({ blocks: body.blocks, at: Date.now() });
+        setTab("chat");
+      }
+    })();
+  }
+  /** The nudge chip's press — B1216 (D32): everything waiting, proposed by
+   *  name (B1189's fallback is what makes one press safe). */
+  function askNudge() {
+    if (subject) proposeToThread("attach_files", { trip: subject.trip, slug: subject.slug });
+  }
+  function publishFromPreview() {
+    if (subject) proposeToThread("publish_day", { trip: subject.trip, slug: subject.slug });
   }
 
   const filesPane = (
+    <>
+      {pending.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-2" aria-hidden>
+          {pending.map((one) => (
+            <span
+              key={one.key}
+              className="relative block h-12 w-12 overflow-hidden rounded-lg border border-navy-200 bg-navy-50"
+            >
+              {one.url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={one.url} alt="" className="h-full w-full object-cover opacity-60" />
+              )}
+              <span className="absolute inset-0 m-auto h-5 w-5 animate-spin rounded-full border-2 border-yellow-400 border-t-transparent" />
+            </span>
+          ))}
+        </div>
+      )}
     <FilesPane
       files={{ ...files, inbox }}
       selected={selected}
@@ -477,8 +605,17 @@ export default function HelperRoom({
       // What the pane's own upload just put in the inbox — B1171. Prepended,
       // because newest-first is the pane's own order, and echoed here rather
       // than re-fetched: the route answered with exactly what it stored.
-      onInboxAdded={(added) => setInbox((was) => [...added, ...was])}
+      subject={subject}
+      onProposal={proposeToThread}
+      onInboxAdded={(added) => {
+        setInbox((was) => [...added, ...was]);
+        // One chip over the composer when a day is under discussion —
+        // B1216 (D32): a shortcut for the sentence, through the ordinary
+        // confirm; sending anything clears it.
+        if (subject) setNudgeCount(added.length);
+      }}
     />
+    </>
   );
 
   const previewPane = (
@@ -498,7 +635,7 @@ export default function HelperRoom({
           {preview.day.lead.draft ? (
             <button
               type="button"
-              onClick={() => void publishFromPreview()}
+              onClick={publishFromPreview}
               className="shrink-0 rounded-full border border-navy-300 bg-white px-3 py-1.5 text-xs font-semibold text-navy-800 transition-colors hover:bg-navy-50"
             >
               {t("agent.about.publish")}
@@ -565,6 +702,16 @@ export default function HelperRoom({
       }`}
     >
     <div className="mx-auto flex h-full max-w-[1680px] flex-col">
+      {dropping && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center border-4 border-dashed border-yellow-600 bg-yellow-400/10"
+        >
+          <p className="rounded-full bg-white px-5 py-2.5 font-display text-base font-semibold text-navy-900 shadow-lg">
+            {t("agent.room.dropHere")}
+          </p>
+        </div>
+      )}
       <header className="flex items-center gap-2 border-b border-navy-200 bg-white px-2 py-2">
         {/* "Zurück" moves here — a chevron before the journal name rather
             than its own bar above the whole page — B1121. */}
@@ -805,7 +952,23 @@ export default function HelperRoom({
             }}
             filesStrip={filesStrip}
             notice={
-              lowCredits ? (
+              nudgeCount > 0 && subject ? (
+                <div className="mb-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNudgeCount(0);
+                      // Everything waiting is proposed by name before the
+                      // press — B1189's fallback is what makes this one
+                      // sentence safe.
+                      askNudge();
+                    }}
+                    className="min-h-9 rounded-full border border-navy-300 bg-white px-3.5 text-sm text-navy-800 transition-colors hover:bg-navy-50"
+                  >
+                    {tn("agent.room.attachNudge", nudgeCount, { count: String(nudgeCount) })}
+                  </button>
+                </div>
+              ) : lowCredits ? (
                 <p className="mb-2 shrink-0 rounded-xl border border-coral-400 bg-coral-50 px-3 py-2 text-sm leading-5 text-coral-600">
                   {t("agent.room.lowCredits")}{" "}
                   <a
@@ -930,6 +1093,12 @@ export default function HelperRoom({
           username={username}
           label={t("agent.room.history")}
           onClose={() => setHistoryOpen(false)}
+          onOpenDay={(day) => {
+            setSubject({ ...day, at: Date.now() });
+            setPreviewUnseen(false);
+            setPreviewCollapsed(false);
+            setTab("preview");
+          }}
         />
       )}
 
@@ -1220,14 +1389,20 @@ type SessionRow = { session: string; from: string; to: string; turns: number; op
  * honest way to swap them is the round trip the journal switcher already
  * takes.
  */
+/** One day, as the panel's Tage tab lists it — B1217 (D44). */
+type PanelDay = { trip: string; slug: string; date: string; title: string; draft: boolean };
+
 function HistoryPanel({
   username,
   label,
   onClose,
+  onOpenDay,
 }: {
   username: string;
   label: string;
   onClose: () => void;
+  /** A Tage row was pressed: the room opens that day in the preview. */
+  onOpenDay: (day: { trip: string; slug: string }) => void;
 }) {
   const { t, tn, formatLongDate } = useI18n();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -1242,23 +1417,48 @@ function HistoryPanel({
   /** The conversation a next sentence would extend, so its row can say so —
    *  B1168. `null` while loading and when nothing is in progress. */
   const [liveId, setLiveId] = useState<string | null>(null);
+  /** Which of the panel's two tabs — B1217 (D44). */
+  const [panelTab, setPanelTab] = useState<"history" | "days">("history");
+  /** The search words — B1217 (D36). Debounced by the effect below. */
+  const [q, setQ] = useState("");
+  const [tripDays, setTripDays] = useState<PanelDay[]>([]);
+  const [tripTitle, setTripTitle] = useState("");
   useEffect(() => {
     let live = true;
-    fetch(`/api/helper/${encodeURIComponent(username)}/sessions`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((body: { sessions?: SessionRow[]; live?: string | null } | null) => {
-        if (live) {
-          setSessions(body?.sessions ?? []);
-          setLiveId(body?.live ?? null);
-        }
-      })
-      .catch(() => {
-        if (live) setSessions([]);
-      });
+    const load = () => {
+      fetch(
+        `/api/helper/${encodeURIComponent(username)}/sessions${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`,
+      )
+        .then((response) => (response.ok ? response.json() : null))
+        .then(
+          (
+            body: {
+              sessions?: SessionRow[];
+              live?: string | null;
+              days?: PanelDay[];
+              tripTitle?: string;
+            } | null,
+          ) => {
+            if (live) {
+              setSessions(body?.sessions ?? []);
+              setLiveId(body?.live ?? null);
+              setTripDays(body?.days ?? []);
+              setTripTitle(body?.tripTitle ?? "");
+            }
+          },
+        )
+        .catch(() => {
+          if (live) setSessions([]);
+        });
+    };
+    // Immediate on open; a quarter-second of quiet while typing a search.
+    const timer = q === "" ? null : window.setTimeout(load, 250);
+    if (q === "") load();
     return () => {
       live = false;
+      if (timer !== null) window.clearTimeout(timer);
     };
-  }, [username]);
+  }, [username, q]);
 
   // Newest conversation first, and within that the days themselves in the
   // order `sessionsOf` already returned them — grouping must not re-sort
@@ -1288,6 +1488,85 @@ function HistoryPanel({
           {t("agent.room.closeHistory")}
         </button>
       </div>
+      <div className="flex shrink-0 gap-1 border-b border-navy-200 px-4 pt-2">
+        {(
+          [
+            ["history", label],
+            ["days", t("agent.room.daysTab")],
+          ] as const
+        ).map(([which, name]) => (
+          <button
+            key={which}
+            type="button"
+            aria-current={panelTab === which ? "page" : undefined}
+            onClick={() => setPanelTab(which)}
+            className={`relative min-h-10 rounded-t-lg px-3 text-sm transition-colors ${
+              panelTab === which ? "font-semibold text-navy-900" : "text-navy-500 hover:text-navy-800"
+            }`}
+          >
+            {name}
+            {panelTab === which && (
+              <span aria-hidden className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-yellow-400" />
+            )}
+          </button>
+        ))}
+      </div>
+      {panelTab === "history" && (
+        <div className="shrink-0 px-4 pt-3">
+          <input
+            type="search"
+            value={q}
+            onChange={(event) => setQ(event.target.value)}
+            placeholder={t("agent.room.searchHistory")}
+            aria-label={t("agent.room.searchHistory")}
+            className="min-h-10 w-full rounded-full border border-navy-300 bg-white px-4 text-sm text-navy-900 placeholder:text-navy-500"
+          />
+        </div>
+      )}
+      {panelTab === "days" && (
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+          {tripDays.length === 0 ? (
+            <p className="text-sm leading-6 text-navy-700">{t("agent.room.daysEmpty")}</p>
+          ) : (
+            <>
+              {tripTitle && (
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-navy-500">
+                  {tripTitle}
+                </h3>
+              )}
+              <ul className="flex flex-col gap-1">
+                {tripDays.map((day) => (
+                  <li key={`${day.trip}/${day.slug}`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onOpenDay({ trip: day.trip, slug: day.slug });
+                        dismiss();
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl border border-navy-200 bg-white px-3 py-2 text-left transition-colors hover:bg-navy-50"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-navy-900">
+                          {day.title || day.date}
+                        </span>
+                        <span className="block text-xs text-navy-500">{day.date}</span>
+                      </span>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                          day.draft ? "bg-yellow-400 text-navy-900" : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        {day.draft ? t("draft.badge") : t("agent.room.dayOnline")}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
+      {panelTab === "history" && (
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
         {sessions === null ? (
           <p className="text-sm leading-6 text-navy-700">{t("agent.room.historyLoading")}</p>
@@ -1348,6 +1627,7 @@ function HistoryPanel({
           </div>
         )}
       </div>
+      )}
     </dialog>
   );
 }
@@ -1558,6 +1838,8 @@ function FilesPane({
   onToggle,
   onClear,
   username,
+  subject,
+  onProposal,
   onInboxAdded,
 }: {
   files: RoomFiles;
@@ -1565,11 +1847,32 @@ function FilesPane({
   onToggle: (id: string) => void;
   onClear: () => void;
   username: string;
+  /** The day under discussion, for the tile menu's attach — B1216 (D34). */
+  subject: { trip: string; slug: string } | null;
+  /** Open one tool's confirm card in the conversation — never a direct
+   *  write. The tile menu's two actions both go through it. */
+  onProposal: (tool: string, args: Record<string, string>) => void;
   /** The pane's upload stored these in the inbox — B1171. The room prepends
    *  them to its own copy, so the tiles appear the moment the route answers. */
   onInboxAdded: (added: RoomFile[]) => void;
 }) {
   const { t, tn } = useI18n();
+  /**
+   * The tile menu — B1216 (D34): right-click, or the long-press that fires
+   * `contextmenu` on phones, on a waiting file. Both actions open the same
+   * confirmation proposals the conversation uses; nothing here writes.
+   */
+  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    document.addEventListener("click", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("click", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [menu]);
   const empty = files.inbox.length === 0 && files.trip.length === 0;
 
   return (
@@ -1626,7 +1929,52 @@ function FilesPane({
        * and `uploadedAt` to feed it, and an inbox photograph's `src` now
        * points at the owner-only thumbnail route rather than being undefined.
        */}
+      {menu && (
+        <div
+          role="menu"
+          className="fixed z-50 w-52 rounded-xl border border-navy-200 bg-white p-1.5 shadow-lg"
+          style={{ left: menu.x, top: menu.y }}
+        >
+          {subject && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setMenu(null);
+                onProposal("attach_files", {
+                  trip: subject.trip,
+                  slug: subject.slug,
+                  files: menu.id.replace(/^inbox:/, ""),
+                });
+              }}
+              className="block w-full rounded-lg px-2.5 py-1.5 text-left text-sm text-navy-800 hover:bg-navy-50"
+            >
+              {t("agent.room.menuAttach")}
+            </button>
+          )}
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setMenu(null);
+              onProposal("discard_file", { file: menu.id.replace(/^inbox:/, "") });
+            }}
+            className="block w-full rounded-lg px-2.5 py-1.5 text-left text-sm text-coral-600 hover:bg-coral-50"
+          >
+            {t("agent.room.menuDiscard")}
+          </button>
+        </div>
+      )}
       {files.inbox.length > 0 && (
+        <div
+          onContextMenu={(event) => {
+            const tile = (event.target as HTMLElement).closest("[data-inbox-id]");
+            const id = tile?.getAttribute("data-inbox-id");
+            if (!id) return;
+            event.preventDefault();
+            setMenu({ id, x: Math.min(event.clientX, window.innerWidth - 220), y: event.clientY });
+          }}
+        >
         <InboxFileGroups
           files={files.inbox.map((file) => ({
             id: file.id,
@@ -1642,6 +1990,7 @@ function FilesPane({
           selected={selected}
           onToggle={onToggle}
         />
+        </div>
       )}
 
       {files.trip.length > 0 && (
@@ -1863,6 +2212,29 @@ function UploadPanel({
           if (files.length > 0) void upload(files);
         }}
       />
+      {/* Straight to the camera, phone widths — B1216 (D33). `capture`
+          is what opens the camera rather than the roll; the file lands in
+          the same inbox as every other upload. */}
+      <div className="mt-2 lg:hidden">
+        <input
+          id={`${pickerId}-camera`}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          disabled={busy}
+          onChange={(event) => {
+            const files = Array.from(event.target.files ?? []);
+            if (files.length > 0) void upload(files);
+          }}
+          className="peer sr-only"
+        />
+        <label
+          htmlFor={`${pickerId}-camera`}
+          className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-navy-300 bg-white px-5 text-base font-semibold text-navy-800 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-500 peer-disabled:opacity-50"
+        >
+          {t("agent.room.camera")}
+        </label>
+      </div>
 
       {/* Mounted from the first render, empty until there is something to
        *  say — B949 again, in the pane that taught this file the rule the
