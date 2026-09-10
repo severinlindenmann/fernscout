@@ -7,8 +7,7 @@ complexity: low
 area: photobook, mail
 found: "2026-09-10T05:30:00Z"
 started: "2026-09-10T05:08:47Z"
-session: ce87fdc2-3f66-428c-90d3-ae9d8df84e40
-claimed: "2026-09-10T05:08:47Z"
+merged: "2026-09-10T05:14:21Z"
 ---
 
 # B1227 — The receipt names two files and a missing print account, and neither the format nor the cover

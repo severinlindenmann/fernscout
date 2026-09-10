@@ -285,7 +285,7 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (7)
+## in-development (6)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -294,10 +294,9 @@ Do not edit them by hand; run the script.
 | [B1219](in-development/B1219-room-decisions-an-evening-reminder-during.md) | Room decisions: an evening reminder during a trip (D46) | FEATURE | high | high | `b9809a36` |
 | [B1221](in-development/B1221-room-decisions-a-30-second-demo.md) | Room decisions: a 30-second demo conversation at the door (D50) | FEATURE | high | medium | `b9809a36` |
 | [B1222](in-development/B1222-the-phone-passcode-has-no-live.md) | The phone passcode has no live transport - the decided Twilio backend is on hold | FEATURE | high | medium | `445f2c45` |
-| [B1227](in-development/B1227-the-receipt-names-two-files-and.md) | The receipt names two files and a missing print account, and neither the format nor the cover | ISSUE | high | low | `ce87fdc2` |
 | [B1228](in-development/B1228-only-one-of-the-six-size.md) | Only one of the six size-and-cover combinations has ever reached a printer | CHORE | high | medium | `ce87fdc2` |
 
-## testing (92)
+## testing (93)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -354,6 +353,7 @@ Do not edit them by hand; run the script.
 | [B1208](testing/B1208-room-decisions-header-identity-credits-and.md) | Room decisions: header identity, credits and the overflow menu (D53 D06 D07 D08 D10 D17 D43) | FEATURE | high | medium | — |
 | [B1224](testing/B1224-a-two-letter-message-makes-the.md) | A two-letter message makes the model guess its language, and it guessed Japanese | ISSUE | high | low | — |
 | [B1225](testing/B1225-get-token-sh-interpolated-its-journal.md) | get-token.sh interpolated its journal argument into an ssh command line running as root on the live instance | SECURITY | high | low | — |
+| [B1227](testing/B1227-the-receipt-names-two-files-and.md) | The receipt names two files and a missing print account, and neither the format nor the cover | ISSUE | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |
