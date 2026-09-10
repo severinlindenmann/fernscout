@@ -154,11 +154,14 @@ describe("a write tool never writes", () => {
   });
 });
 
-describe("a link tool returns a sentence and a URL and touches nothing", () => {
-  test("the day helper is handed over, not imitated", async () => {
+describe("asking about photographs points at the room's own controls", () => {
+  /** B1220 (D52): this was a link out to the retired wizard page; the
+   *  answer is a server sentence about the pane now — text the screen-claim
+   *  guard never checks, because it is not the model's own claim. */
+  test("add_photos says where the pane is, and touches nothing", async () => {
     const ran = await runTool("alex", "add_photos", {}, say, "2026-09-07");
     expect(ran.ok).toBe(true);
-    expect(ran.blocks[0]).toMatchObject({ shape: "link", href: "/agent/alex" });
+    expect(ran.blocks[0]).toMatchObject({ shape: "say", text: "agent.tool.addPhotosPane" });
     expect(ran.result).toMatchObject({ wrote: false });
     expect(ran.proposal).toBeUndefined();
   });

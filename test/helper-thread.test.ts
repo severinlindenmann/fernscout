@@ -442,6 +442,9 @@ describe("the tools", () => {
   test("are the reads the plan names, and B900's writes and one link", () => {
     expect([...READS.map((tool) => tool.name)].sort()).toEqual([
       "account",
+      // B1220 (D52) — this was the one link, out to the retired wizard;
+      // it answers with a sentence about the room's own pane now.
+      "add_photos",
       "days",
       // B906 — a sentence that names a thing rather than a date used to land
       // on the screen that starts a new day.
@@ -511,7 +514,7 @@ describe("the tools", () => {
       TOOLS.filter((tool) => tool.kind === "link")
         .map((tool) => tool.name)
         .sort(),
-    ).toEqual(["add_photos", "buy_credits"]);
+    ).toEqual(["buy_credits"]);
   });
 
   /**
