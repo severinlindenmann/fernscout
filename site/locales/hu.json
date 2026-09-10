@@ -2101,6 +2101,8 @@
   "wa.locationIncomplete": "Megvan a helyzeted, de {title} még többet igényel, mielőtt elkezdhetnék egy napot — mesélj róla szavakkal, és megpróbálom újra.",
   "wa.locationAttached": "Megkaptam a helyzetedet — hozzáadtam a koordinátákat ehhez a naphoz: {date}, ebben az utazásban: {title}.",
   "wa.mediaDownloadFailed": "Nem sikerült letöltenem, amit most küldtél — el tudnád küldeni újra?",
+  "wa.enrichLocation": "Hol volt ez? Küldj egy helyzetjelzőt, ha van, és hozzáadom.",
+  "wa.enrichCosts": "Van valami, amit fel kellene jegyezni, amibe ez került? Szólj, ha készen állsz.",
   "wa.contactNeedsEmail": "Szükségem lenne {name} e-mail címére a meghíváshoz — ezen a névjegykártyán nem volt. Küldd el újra e-mail címmel, vagy mondd meg nekem.",
   "wa.contactInviteMade": "Megkaptam {name} adatait. Készítettem egy meghívó linket — küldd el te magad, innen vagy ahogy el tudod érni:\n\n{url}\n\nMeg kell nyitniuk, és meg kell erősíteniük a saját e-mail címüket, mielőtt bármi történne.",
   "wa.stopReply": "Ha nem szeretnél több ilyen üzenetet, nyisd meg ezt a linket és nyomd meg ott a gombot — az iratkoztat le, és ugyanazon az oldalon azt is beállíthatod, mit kapsz: {url}",

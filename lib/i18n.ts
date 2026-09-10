@@ -2157,6 +2157,8 @@ export type TranslationKey =
   | "wa.contactInviteMade"
   | "wa.contactNeedsEmail"
   | "wa.declineButton"
+  | "wa.enrichCosts"
+  | "wa.enrichLocation"
   | "wa.firstReply"
   | "wa.heldAnswer"
   | "wa.locationAttached"

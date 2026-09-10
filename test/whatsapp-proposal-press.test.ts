@@ -356,3 +356,125 @@ describe("a newly-allowed ordinary write — B1235", () => {
     forget(username);
   });
 });
+
+/**
+ * B1264 — a day the press just created or wrote is read back, and the fixed
+ * confirmation gets ONE question appended when it verifiably still lacks
+ * something. Mechanical, not prompted: `test/helper-thread.test.ts` asserts
+ * the prompt no longer asks for this in words at all.
+ */
+describe("the enrichment question after a day-writing press — B1264", () => {
+  test("no coordinates: the confirmation invites a location pin", async () => {
+    const username = "presstest9";
+    const tel = "41760009991";
+    forget(username);
+    await bindGreetAcknowledge(username, tel);
+
+    answerInThread.mockImplementationOnce(
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press9.trip", "plan a trip to japan"));
+    await handleInboundMessage(interactiveMessage(tel, "wamid.press9.trip-tap", "confirm:0:yes"));
+    const trip = getTrips(username)[0];
+
+    answerInThread.mockImplementationOnce(
+      turnCalling("start_day", { trip: trip.id, date: "2027-03-01" }, "Starting the first day."),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press9.day", "start the first day"));
+    await handleInboundMessage(interactiveMessage(tel, "wamid.press9.day-tap", "confirm:0:yes"));
+
+    const last = repliesTo(username).at(-1);
+    expect(last?.body).toMatch(/location pin|coordinates/i);
+    forget(username);
+  });
+
+  test("coordinates present, no costs: the confirmation asks about spend, never about weather", async () => {
+    const username = "presstest10";
+    const tel = "41760009992";
+    forget(username);
+    await bindGreetAcknowledge(username, tel);
+
+    answerInThread.mockImplementationOnce(
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press10.trip", "plan a trip to japan"));
+    await handleInboundMessage(interactiveMessage(tel, "wamid.press10.trip-tap", "confirm:0:yes"));
+    const trip = getTrips(username)[0];
+
+    // A day already exists with coordinates but no costs — the press this
+    // test exercises is `set_day_words`, writing prose onto it.
+    const entryDir = path.join(dir, username, "trips", trip.id, "entries");
+    fs.mkdirSync(entryDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(entryDir, "2027-03-01-day.md"),
+      ["---", 'title: "Day"', 'date: "2027-03-01"', "lat: 35.0", "lng: 135.0", "status: draft", "---", "", "…"].join(
+        "\n",
+      ),
+    );
+
+    answerInThread.mockImplementationOnce(
+      turnCalling(
+        "set_day_words",
+        { trip: trip.id, slug: "day", title: "Day", content: "We walked all day." },
+        "Here's the card to keep it.",
+      ),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press10.words", "keep those words"));
+    await handleInboundMessage(interactiveMessage(tel, "wamid.press10.words-tap", "confirm:0:yes"));
+
+    const last = repliesTo(username).at(-1);
+    expect(last?.body).toContain("The words are saved.");
+    expect(last?.body).toMatch(/cost|spent/i);
+    expect(last?.body).not.toMatch(/weather/i);
+    forget(username);
+  });
+
+  test("a day with both already answered gets no question at all", async () => {
+    const username = "presstest11";
+    const tel = "41760009993";
+    forget(username);
+    await bindGreetAcknowledge(username, tel);
+
+    answerInThread.mockImplementationOnce(
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press11.trip", "plan a trip to japan"));
+    await handleInboundMessage(interactiveMessage(tel, "wamid.press11.trip-tap", "confirm:0:yes"));
+    const trip = getTrips(username)[0];
+
+    const entryDir = path.join(dir, username, "trips", trip.id, "entries");
+    fs.mkdirSync(entryDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(entryDir, "2027-03-01-day.md"),
+      [
+        "---",
+        'title: "Day"',
+        'date: "2027-03-01"',
+        "lat: 35.0",
+        "lng: 135.0",
+        "costs:",
+        "  - label: Lunch",
+        "    amount: 12",
+        "    currency: CHF",
+        "status: draft",
+        "---",
+        "",
+        "…",
+      ].join("\n"),
+    );
+
+    answerInThread.mockImplementationOnce(
+      turnCalling(
+        "set_day_words",
+        { trip: trip.id, slug: "day", title: "Day", content: "We walked all day." },
+        "Here's the card to keep it.",
+      ),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press11.words", "keep those words"));
+    await handleInboundMessage(interactiveMessage(tel, "wamid.press11.words-tap", "confirm:0:yes"));
+
+    const last = repliesTo(username).at(-1);
+    expect(last?.body).toBe("The words are saved.");
+    forget(username);
+  });
+});

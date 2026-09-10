@@ -598,12 +598,17 @@ describe("the tools", () => {
     expect(prompt).toContain("It never happens because of a sentence");
   });
 
-  /** B1244 — the enrichment follow-up, prompt-only. */
-  test("asks for what a day is still missing, once started, never a questionnaire", () => {
+  /**
+   * B1244's own prompt line ("ask one gap — place or cost, not weather") never
+   * fired in a live run (scenario-dayflow.md, step 5) — a model told to ask
+   * "sometimes, gently" mostly didn't. B1264 replaced it with mechanics: the
+   * fixed confirmation `lib/whatsapp/dispatch.ts` sends after a press reads
+   * the day back and appends the question itself, so there is nothing left
+   * for the prompt to say and no tokens to spend saying it.
+   */
+  test("no longer asks the model to enrich a day in its own prose — that's mechanical now (B1264)", () => {
     const prompt = threadSystemPrompt("2026-09-07");
-    expect(prompt).toMatch(/one gap/i);
-    expect(prompt.toLowerCase()).toContain("place or cost");
-    expect(prompt.toLowerCase()).toContain("not weather");
+    expect(prompt).not.toMatch(/ask one gap/i);
   });
 
   /** B1245 — the topic-shift question, prompt-only. */

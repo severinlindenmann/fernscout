@@ -2,7 +2,7 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { reversePlace } from "../addressLookup";
-import { createDraft, editEntry, factsOfInput, type DraftInput } from "../api/entries";
+import { createDraft, editEntry, factsOfEntry, factsOfInput, type DraftInput } from "../api/entries";
 import { fillDayWeatherQuietly } from "../api/weather";
 import { isEmail } from "../auth";
 import { isEnabled } from "../capabilities";
@@ -13,6 +13,7 @@ import { getUser } from "../users";
 import { AS_AUTHOR, getAllEntries } from "../entries";
 import { currentHelperProvider, hasHelperConsent, recordHelperConsent } from "../helper/consent";
 import { NO_PROSE } from "../helper/draft";
+import type { Proposal } from "../helper/blocks";
 import type { Say } from "../helper/intents";
 import { answerInThread, WRITE_DAY_CREDITS } from "../helper/model";
 import { recordTurn } from "../helper/sessions";
@@ -796,6 +797,58 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
  */
 const CREDIT_COST_BY_TOOL: Record<string, number> = { draft_words: WRITE_DAY_CREDITS };
 
+/**
+ * The two tools a press of which really puts words on a day — B1264.
+ *
+ * `draft_words` writes nothing (see the module doc in
+ * `app/api/helper/[user]/day/write-day/route.ts`): it only returns prose for
+ * `set_day_words` to keep on a later press, so a nudge on *its* press would
+ * be reading a day that has not changed yet. The date/slug a nudge needs to
+ * find the day is what each of these two proposals' own `arguments` already
+ * carries — `start_day`'s `date` (always concrete: `resolveTrip`/
+ * `firstUnwritten` filled it in before the card was ever shown) and
+ * `set_day_words`'s `slug`.
+ */
+const DAY_WRITE_TOOLS: Record<string, "date" | "slug"> = { start_day: "date", set_day_words: "slug" };
+
+/**
+ * One short question, appended to the fixed confirmation, when the day this
+ * press just touched verifiably still lacks something — B1264.
+ *
+ * Mechanical rather than prompted: B1244's own prompt line asking the model
+ * to do this "sometimes, gently" never fired in a live run
+ * (scenario-dayflow.md step 5). This reads the day straight back off disk
+ * after the write, the same way every honesty guard in `lib/helper/model.ts`
+ * checks a claim against the turn rather than trusting it — so the question
+ * only ever follows a day that is really missing the thing it asks about,
+ * and a day that explicitly declined one (`without:`) is never re-asked.
+ *
+ * At most one question, in this order: no coordinates first (the more useful
+ * of the two to have early — costs can be added long after), then costs.
+ * Weather is never asked for — it is the server's own lookup, never a
+ * question to the person (AGENTS.md).
+ */
+function enrichmentNudge(username: string, locale: string, pending: Proposal): string | null {
+  const key = DAY_WRITE_TOOLS[pending.tool];
+  if (!key) return null;
+  const tripId = pending.arguments.trip;
+  const wanted = pending.arguments[key];
+  if (!tripId || !wanted) return null;
+
+  const ref = tripRef(username, tripId);
+  const entry = getAllEntries(ref, AS_AUTHOR).find((one) => (key === "date" ? one.date === wanted : one.slug === wanted));
+  if (!entry) return null;
+
+  const facts = factsOfEntry(entry);
+  if (!facts.coordinates && !facts.without.includes("coordinates")) {
+    return translateIn(locale, "wa.enrichLocation");
+  }
+  if (!facts.costs && !facts.without.includes("costs")) {
+    return translateIn(locale, "wa.enrichCosts");
+  }
+  return null;
+}
+
 async function handleProposalReply(username: string, locale: string, to: string, accepted: boolean): Promise<void> {
   const pending = takePendingProposal(username, to);
   if (!pending) {
@@ -809,7 +862,9 @@ async function handleProposalReply(username: string, locale: string, to: string,
 
   const result = await pressProposal(username, pending);
   if (result.ok) {
-    await sendOutboundReply(to, { kind: "text", body: pending.done }, username);
+    const nudge = enrichmentNudge(username, locale, pending);
+    const body = nudge ? `${pending.done}\n\n${nudge}` : pending.done;
+    await sendOutboundReply(to, { kind: "text", body }, username);
     console.log(`[whatsapp:inbound] ${maskNumber(to)} (${username}) pressed ${pending.tool} from WhatsApp`);
     return;
   }
