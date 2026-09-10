@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (163)
+## backlog (164)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (31)
+### issue (32)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -72,6 +72,7 @@ Do not edit them by hand; run the script.
 | [B1358](backlog/issue/B1358-the-guthaben-sheet-shows-no-numbers.md) | The Guthaben sheet shows no numbers in the installed PWA | ISSUE | high | low |
 | [B1369](backlog/issue/B1369-whatsapp-confirm-step-still-shows-the.md) | WhatsApp confirm step still shows the intro text above it | ISSUE | high | low |
 | [B1385](backlog/issue/B1385-the-conversation-storage-consent-block-is.md) | The conversation-storage consent block is shown to signed-out visitors | ISSUE | high | low |
+| [B1387](backlog/issue/B1387-deleting-one-trip-offers-an-export.md) | Deleting one trip offers an export of the whole journal, and the zip carries machine state | ISSUE | high | medium |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1129](backlog/issue/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
