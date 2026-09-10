@@ -338,17 +338,11 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (5)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1349](in-development/B1349-the-files-tab-s-upload-block.md) | The files tab's upload block stacks two lonely buttons around a paragraph | ISSUE | high | low | `b9809a36` |
-| [B1350](in-development/B1350-the-storage-bar-does-not-move.md) | The storage bar does not move when an upload lands | ISSUE | high | low | `b9809a36` |
-| [B1351](in-development/B1351-the-phone-tab-bar-is-clipped.md) | The phone tab bar is clipped by the iPhone's rounded corners in the PWA | ISSUE | high | low | `b9809a36` |
-| [B1352](in-development/B1352-recording-squeezes-four-labels-into-the.md) | Recording squeezes four labels into the composer row | ISSUE | high | low | `b9809a36` |
-| [B1353](in-development/B1353-the-sheets-open-top-anchored-on.md) | The sheets open top-anchored on a phone and the credits entry still says Speicher | ISSUE | high | low | `b9809a36` |
+_Nothing here._
 
-## testing (130)
+## testing (135)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -439,6 +433,11 @@ Do not edit them by hand; run the script.
 | [B1345](testing/B1345-the-printer-can-tell-us-an.md) | The printer can tell us an order failed, and nothing is listening | FEATURE | high | medium | — |
 | [B1347](testing/B1347-the-money-dashboard-under-counts-print.md) | The money dashboard under-counts: print costs are a confident zero, WhatsApp sends are uncounted and unpriced, SMS appear nowhere | FEATURE | high | medium | — |
 | [B1348](testing/B1348-two-settlers-of-one-refused-print.md) | Two settlers of one refused print both refund it | SECURITY | high | low | — |
+| [B1349](testing/B1349-the-files-tab-s-upload-block.md) | The files tab's upload block stacks two lonely buttons around a paragraph | ISSUE | high | low | — |
+| [B1350](testing/B1350-the-storage-bar-does-not-move.md) | The storage bar does not move when an upload lands | ISSUE | high | low | — |
+| [B1351](testing/B1351-the-phone-tab-bar-is-clipped.md) | The phone tab bar is clipped by the iPhone's rounded corners in the PWA | ISSUE | high | low | — |
+| [B1352](testing/B1352-recording-squeezes-four-labels-into-the.md) | Recording squeezes four labels into the composer row | ISSUE | high | low | — |
+| [B1353](testing/B1353-the-sheets-open-top-anchored-on.md) | The sheets open top-anchored on a phone and the credits entry still says Speicher | ISSUE | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |

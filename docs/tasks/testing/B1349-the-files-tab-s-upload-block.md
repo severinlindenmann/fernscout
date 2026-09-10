@@ -7,8 +7,7 @@ complexity: low
 area: helper
 found: "2026-09-10T17:35:31Z"
 started: "2026-09-10T17:35:40Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-10T17:35:40Z"
+merged: "2026-09-10T17:49:09Z"
 ---
 
 # B1349 — The files tab's upload block stacks two lonely buttons around a paragraph
