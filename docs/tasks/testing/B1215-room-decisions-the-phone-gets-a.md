@@ -6,6 +6,8 @@ priority: high
 complexity: high
 area: helper room
 found: "2026-09-10T04:39:38Z"
+started: "2026-09-10T06:03:02Z"
+merged: "2026-09-10T06:11:39Z"
 ---
 
 # B1215 — Room decisions: the phone gets a tab bar — Chat, Dateien, Vorschau (D39 D28)

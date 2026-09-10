@@ -8,7 +8,7 @@ import { AS_AUTHOR, getAllEntries, getAllMedia, getDays, getEntryBySlug } from "
 import { getTrips, tripRef } from "../trips";
 import type { Day, DaySummary } from "../types";
 import { findInboxFile, listInbox, type InboxEntry, type InboxKind } from "../inbox";
-import { resolveCookieCaller } from "./caller";
+import { resolveCookieCaller, trustedCaller } from "./caller";
 import { isWritten, type WizardDraft } from "./draft";
 
 /**
@@ -30,8 +30,18 @@ import { isWritten, type WizardDraft } from "./draft";
  * Since B1055 this is `./caller.ts`'s cookie proof, asked as a yes/no
  * question — the resolver is what a WhatsApp caller goes through instead,
  * and this route family keeps asking for a cookie exactly as before.
+ *
+ * **One exception, added by B1230 and never reachable over the network.**
+ * `./caller.ts`'s `trustedCaller()` answers first, and only a same-process
+ * call wrapped in `runAsCaller()` ever has one set — a WhatsApp accept tap
+ * executing the very route a browser's own button would post to, for a
+ * caller `lib/whatsapp/dispatch.ts` has already matched by phone number. No
+ * request arriving over HTTP can ever populate it, so an ordinary browser or
+ * bearer caller reaches exactly the cookie check below, unchanged.
  */
 export async function isHelperOwner(username: string): Promise<boolean> {
+  const trusted = trustedCaller();
+  if (trusted) return trusted.username === username;
   return (await resolveCookieCaller(username)) !== null;
 }
 

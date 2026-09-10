@@ -49,21 +49,23 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (141)
+## backlog (136)
 
-### security (1)
+### security (2)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
+| [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (18)
+### issue (20)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1125](backlog/issue/B1125-every-photobook-print-quote-is-refused.md) | Every photobook print quote is refused, so the print panel can never appear | ISSUE | high | low |
 | [B1147](backlog/issue/B1147-gelato-rejects-fernscout-ch-s-credential.md) | Gelato rejects fernscout.ch's credential, so no photobook in a real journal can be priced | ISSUE | high | low |
 | [B1223](backlog/issue/B1223-three-failed-photobooks-for-one-journal.md) | Three failed photobooks for one journal share one attention-band id, so acknowledging one silently hides the other two and React sees duplicate keys | ISSUE | high | low |
+| [B1235](backlog/issue/B1235-attach-files-and-write-day-are.md) | attach_files and write_day are refused as web-only on WhatsApp, and they are the channel's core flows | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1129](backlog/issue/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
@@ -71,6 +73,8 @@ Do not edit them by hand; run the script.
 | [B1165](backlog/issue/B1165-a-printer-refusal-says-nothing-about.md) | A printer refusal says nothing about why, to anybody who could act on it | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
+| [B1236](backlog/issue/B1236-a-proposal-turn-on-whatsapp-repeats.md) | A proposal turn on WhatsApp repeats itself and dumps raw lists into one message | ISSUE | medium | low |
+| [B1237](backlog/issue/B1237-the-model-claims-a-screen-on.md) | The model claims a screen on a channel that has none, and links the bare /agent | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
@@ -78,14 +82,11 @@ Do not edit them by hand; run the script.
 | [B1106](backlog/issue/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low |
 | [B1149](backlog/issue/B1149-the-pdf-x-report-tells-you.md) | The PDF/X report tells you to run gs-pdfx.sh, which is only written when the run already had an ICC | ISSUE | low | low |
 | [B1191](backlog/issue/B1191-persona-automation-cannot-hit-the-sr.md) | Persona automation cannot hit the sr-only file inputs; confirm real hit areas are whole-tile | ISSUE | low | low |
-| [B1202](backlog/issue/B1202-one-reply-can-carry-the-same.md) | One reply can carry the same proposal card twice, verbatim | ISSUE | low | low |
 
-### big-feature (16)
+### big-feature (14)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1213](backlog/big-feature/B1213-room-decisions-honest-streaming-status-lines.md) | Room decisions: honest streaming status lines while the model works (D19) | FEATURE | high | high |
-| [B1215](backlog/big-feature/B1215-room-decisions-the-phone-gets-a.md) | Room decisions: the phone gets a tab bar — Chat, Dateien, Vorschau (D39 D28) | FEATURE | high | high |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B1049](backlog/big-feature/B1049-a-model-choosing-among-forty-three.md) | A model choosing among forty-three tools chooses worse than one choosing among seventeen | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
@@ -101,19 +102,12 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (23)
+### small-feature (16)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1153](backlog/small-feature/B1153-handing-your-journal-to-your-own.md) | Handing your journal to your own agent means leaving the conversation to fetch the key | FEATURE | high | low |
 | [B1154](backlog/small-feature/B1154-a-key-that-can-write-to.md) | A key that can write to this journal for seven days is visible nowhere in the room | FEATURE | high | medium |
-| [B1211](backlog/small-feature/B1211-room-decisions-the-composer-rebuilt-textarea.md) | Room decisions: the composer rebuilt — textarea, send, voice, drafts, camera (D13 D14 D15 D16 D33) | FEATURE | high | medium |
-| [B1212](backlog/small-feature/B1212-room-decisions-conversation-rendering-bubbles-lists.md) | Room decisions: conversation rendering — bubbles, lists, time marks, retry, chips, dedupe (D02 D21 D22 D20 D18 D23) | FEATURE | high | medium |
-| [B1214](backlog/small-feature/B1214-room-decisions-the-preview-grows-a.md) | Room decisions: the preview grows a header, memory, publish and highlights (D24 D25 D26 D27) | FEATURE | high | medium |
-| [B1216](backlog/small-feature/B1216-room-decisions-files-drop-paste-progress.md) | Room decisions: files — drop, paste, progress rings, nudge, tile menu (D29 D30 D31 D32 D34) | FEATURE | high | medium |
-| [B1217](backlog/small-feature/B1217-room-decisions-history-clean-titles-search.md) | Room decisions: history — clean titles, search, a Tage tab (D35 D36 D44) | FEATURE | high | medium |
-| [B1218](backlog/small-feature/B1218-room-decisions-opening-and-follow-through.md) | Room decisions: opening and follow-through — progress, undo, weather, costs, share (D45 D47 D48 D49 D51) | FEATURE | high | medium |
-| [B1220](backlog/small-feature/B1220-room-decisions-platform-polish-pwa-hint.md) | Room decisions: platform polish — PWA hint, haptics, shortcuts, wizard retirement (D40 D41 D42 D52) | FEATURE | high | medium |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
 | [B1069](backlog/small-feature/B1069-there-is-no-tool-surface-for.md) | There is no tool surface for an agent that would rather be guided than read a spec | FEATURE | medium | medium |
 | [B1155](backlog/small-feature/B1155-a-turn-spends-a-credit-and.md) | A turn spends a credit and nothing on screen says so | FEATURE | medium | medium |
@@ -138,12 +132,13 @@ Do not edit them by hand; run the script.
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
 | [B1180](backlog/chore/B1180-the-subscribed-apps-post-is-a.md) | The subscribed_apps POST is a documented curl, not a one-shot script | CHORE | low | low |
 
-### ops (10)
+### ops (11)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1067](backlog/ops/B1067-it-is-not-written-down-where.md) | It is not written down where this instance's telephone number comes from, or what one message costs | OPS | high | low |
 | [B1077](backlog/ops/B1077-meta-bans-general-purpose-ai-chatbots.md) | Meta bans general-purpose AI chatbots on WhatsApp, and nothing establishes which side of that line the helper is on | OPS | high | low |
+| [B1232](backlog/ops/B1232-authentication-templates-are-gated-on-a.md) | Authentication templates are gated on a business verification this account has not passed | OPS | high | low |
 | [B403](backlog/ops/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium |
 | [B911](backlog/ops/B911-the-print-flow-has-never-run.md) | The print flow has never run against the live site | OPS | high | low |
 | [B107](backlog/ops/B107-postcards-have-only-ever-run-from.md) | Postcards have only ever run from a laptop CLI, never as a capability of the deployed site | OPS | medium | medium |
@@ -289,12 +284,12 @@ Do not edit them by hand; run the script.
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1213](in-development/B1213-room-decisions-honest-streaming-status-lines.md) | Room decisions: honest streaming status lines while the model works (D19) | FEATURE | high | high | `b9809a36` |
+| [B1218](in-development/B1218-room-decisions-opening-and-follow-through.md) | Room decisions: opening and follow-through — progress, undo, weather, costs, share (D45 D47 D48 D49 D51) | FEATURE | high | medium | `b9809a36` |
 | [B1219](in-development/B1219-room-decisions-an-evening-reminder-during.md) | Room decisions: an evening reminder during a trip (D46) | FEATURE | high | high | `b9809a36` |
-| [B1221](in-development/B1221-room-decisions-a-30-second-demo.md) | Room decisions: a 30-second demo conversation at the door (D50) | FEATURE | high | medium | `b9809a36` |
-| [B1222](in-development/B1222-the-phone-passcode-has-no-live.md) | The phone passcode has no live transport - the decided Twilio backend is on hold | FEATURE | high | medium | `445f2c45` |
-| [B1228](in-development/B1228-only-one-of-the-six-size.md) | Only one of the six size-and-cover combinations has ever reached a printer | CHORE | high | medium | `ce87fdc2` |
+| [B1220](in-development/B1220-room-decisions-platform-polish-pwa-hint.md) | Room decisions: platform polish — PWA hint, haptics, shortcuts, wizard retirement (D40 D41 D42 D52) | FEATURE | high | medium | `b9809a36` |
 
-## testing (95)
+## testing (109)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -351,9 +346,21 @@ Do not edit them by hand; run the script.
 | [B1208](testing/B1208-room-decisions-header-identity-credits-and.md) | Room decisions: header identity, credits and the overflow menu (D53 D06 D07 D08 D10 D17 D43) | FEATURE | high | medium | — |
 | [B1209](testing/B1209-room-decisions-the-account-sheet-with.md) | Room decisions: the account sheet with display settings (D09 D03 D04) | FEATURE | high | medium | — |
 | [B1210](testing/B1210-room-decisions-the-bring-your-own.md) | Room decisions: the bring-your-own-agent bottom sheet (D11 D12) | FEATURE | high | medium | — |
+| [B1211](testing/B1211-room-decisions-the-composer-rebuilt-textarea.md) | Room decisions: the composer rebuilt — textarea, send, voice, drafts, camera (D13 D14 D15 D16 D33) | FEATURE | high | medium | — |
+| [B1212](testing/B1212-room-decisions-conversation-rendering-bubbles-lists.md) | Room decisions: conversation rendering — bubbles, lists, time marks, retry, chips, dedupe (D02 D21 D22 D20 D18 D23) | FEATURE | high | medium | — |
+| [B1214](testing/B1214-room-decisions-the-preview-grows-a.md) | Room decisions: the preview grows a header, memory, publish and highlights (D24 D25 D26 D27) | FEATURE | high | medium | — |
+| [B1215](testing/B1215-room-decisions-the-phone-gets-a.md) | Room decisions: the phone gets a tab bar — Chat, Dateien, Vorschau (D39 D28) | FEATURE | high | high | — |
+| [B1216](testing/B1216-room-decisions-files-drop-paste-progress.md) | Room decisions: files — drop, paste, progress rings, nudge, tile menu (D29 D30 D31 D32 D34) | FEATURE | high | medium | — |
+| [B1217](testing/B1217-room-decisions-history-clean-titles-search.md) | Room decisions: history — clean titles, search, a Tage tab (D35 D36 D44) | FEATURE | high | medium | — |
+| [B1221](testing/B1221-room-decisions-a-30-second-demo.md) | Room decisions: a 30-second demo conversation at the door (D50) | FEATURE | high | medium | — |
+| [B1222](testing/B1222-the-phone-passcode-has-no-live.md) | The phone passcode has no live transport - the decided Twilio backend is on hold | FEATURE | high | medium | — |
 | [B1224](testing/B1224-a-two-letter-message-makes-the.md) | A two-letter message makes the model guess its language, and it guessed Japanese | ISSUE | high | low | — |
 | [B1225](testing/B1225-get-token-sh-interpolated-its-journal.md) | get-token.sh interpolated its journal argument into an ssh command line running as root on the live instance | SECURITY | high | low | — |
 | [B1227](testing/B1227-the-receipt-names-two-files-and.md) | The receipt names two files and a missing print account, and neither the format nor the cover | ISSUE | high | low | — |
+| [B1228](testing/B1228-only-one-of-the-six-size.md) | Only one of the six size-and-cover combinations has ever reached a printer | CHORE | high | medium | — |
+| [B1229](testing/B1229-the-combined-pdf-is-written-but.md) | The combined PDF is written but cannot be downloaded | ISSUE | high | low | — |
+| [B1230](testing/B1230-a-proposal-on-whatsapp-points-at.md) | A proposal on WhatsApp points at a screen instead of offering its own button | FEATURE | high | medium | — |
+| [B1234](testing/B1234-proving-a-number-needs-a-template.md) | Proving a number needs a template Meta will not grant - the inbound message already proves it | FEATURE | high | medium | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |
@@ -387,12 +394,14 @@ Do not edit them by hand; run the script.
 | [B1203](testing/B1203-every-entry-in-the-operator-s.md) | Every entry in the operator's attention band is unanswerable: it can be read but not acknowledged, so a thing you have decided to live with is on the list for ever | FEATURE | medium | medium | — |
 | [B1204](testing/B1204-the-first-reply-does-not-say.md) | The first reply does not say the conversation continues on the web | FEATURE | medium | low | — |
 | [B1206](testing/B1206-getting-a-credential-into-a-session.md) | Getting a credential into a session is rediscovered every time: the four kinds are described in three skills, none of them says how to make a test journal, and the admin cookie is in none | DOCS | medium | low | — |
+| [B1231](testing/B1231-the-book-ends-on-two-blank.md) | The book ends on two blank pages instead of the colophon | ISSUE | medium | low | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
 | [B1096](testing/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low | — |
 | [B1127](testing/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low | — |
 | [B1128](testing/B1128-the-invites-and-inbox-tools-also.md) | The invites and inbox tools also say their own block back in prose | ISSUE | low | low | — |
 | [B1179](testing/B1179-a-reopened-conversation-reads-as-one.md) | A reopened conversation reads as one undifferentiated wall with no date | ISSUE | low | low | — |
 | [B1199](testing/B1199-the-day-context-offer-still-offers.md) | The day-context offer still offers taking a draft off the site | ISSUE | low | low | — |
+| [B1202](testing/B1202-one-reply-can-carry-the-same.md) | One reply can carry the same proposal card twice, verbatim | ISSUE | low | low | — |
 
 ## completed (903)
 

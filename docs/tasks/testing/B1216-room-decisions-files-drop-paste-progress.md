@@ -6,6 +6,8 @@ priority: high
 complexity: medium
 area: helper room
 found: "2026-09-10T04:39:39Z"
+started: "2026-09-10T06:12:32Z"
+merged: "2026-09-10T06:23:01Z"
 ---
 
 # B1216 — Room decisions: files — drop, paste, progress rings, nudge, tile menu (D29 D30 D31 D32 D34)

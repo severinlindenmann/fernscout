@@ -1,4 +1,5 @@
 import "server-only";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { isAdminEmail } from "../admin";
 import { resolveAccess } from "../auth/handshake";
 import { getUser } from "../users";
@@ -49,4 +50,36 @@ export async function resolveCookieCaller(username: string): Promise<Caller | nu
  */
 export function whatsappCaller(username: string): Caller {
   return { username, how: "whatsapp" };
+}
+
+/**
+ * The one door a WhatsApp tap uses to reach a write route — B1230.
+ *
+ * Every helper write route still authenticates by asking `isHelperOwner`,
+ * which is cookie-only by construction (see `./server.ts`). Rather than
+ * teach each of those routes a second way to be asked — a header, a token, a
+ * second parameter threaded through fifteen files — this holds one already-
+ * proven `Caller` for the async call tree of a single in-process invocation.
+ * Nothing sets it but `lib/whatsapp/proposalExecution.ts`, and only after
+ * `journalForNumber` has already matched the sender's E.164 to this journal;
+ * nothing outside this file can read or forge it, because it is never a
+ * header, a cookie or anything that crosses a socket — nothing external can
+ * make a real HTTP request carry it. `wrote()` and `proposed()` in
+ * `./thread.ts` read the same store to attribute the note they write to
+ * "whatsapp" rather than defaulting to "web" (B1193's fix, applied here
+ * without a channel argument at every call site).
+ *
+ * A `cookie` caller is never put here — only `runAsCaller` calls this, and
+ * only with a `whatsappCaller()`.
+ */
+const trusted = new AsyncLocalStorage<Caller>();
+
+/** Run one call as an already-proven caller. See the note above `trusted`. */
+export function runAsCaller<T>(caller: Caller, fn: () => Promise<T>): Promise<T> {
+  return trusted.run(caller, fn);
+}
+
+/** The trusted caller for the call in progress, or `null` outside one. */
+export function trustedCaller(): Caller | null {
+  return trusted.getStore() ?? null;
 }

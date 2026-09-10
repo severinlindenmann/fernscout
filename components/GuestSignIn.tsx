@@ -28,6 +28,7 @@ export default function GuestSignIn({
   username,
   codeMinutes,
   destination,
+  whatsappSignIn,
 }: {
   username: string;
   /** How long the code lasts, from `CODE_TTL_MINUTES`. Passed rather than
@@ -45,9 +46,17 @@ export default function GuestSignIn({
    * second attacker-controlled one for no reader at all.
    */
   destination?: string;
+  /** Offer the WhatsApp button — true only when this journal can actually
+   * deliver one (`whatsappSignInOffered`, lib/whatsapp/settings). */
+  whatsappSignIn?: boolean;
 }) {
   const { t } = useI18n();
   const [step, setStep] = useState<"email" | "code">("email");
+  /** How the code was asked to travel — B1222. Email is the default; the
+   * second submit button asks for WhatsApp instead, which delivers only for
+   * the owner's own address and proven number (the server says nothing
+   * either way, by design). */
+  const [channel, setChannel] = useState<"email" | "whatsapp">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -58,12 +67,25 @@ export default function GuestSignIn({
     // Read what the field actually holds rather than trusting `email` to
     // have followed autofill — see IdentitySignIn's own `requestCode` (B787).
     const value = String(new FormData(event.currentTarget).get("email") ?? "");
+    // Which button submitted decides the channel — the native submitter,
+    // because React state set in an onClick can lag the submit it races.
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const via =
+      submitter instanceof HTMLButtonElement && submitter.name === "whatsapp"
+        ? "whatsapp"
+        : "email";
+    setChannel(via);
     setEmail(value);
     setBusy(true);
     await fetch("/api/auth/request", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ user: username, email: value, destination }),
+      body: JSON.stringify({
+        user: username,
+        email: value,
+        destination,
+        ...(via === "whatsapp" ? { channel: via } : {}),
+      }),
     }).catch(() => {});
     setBusy(false);
     // Always forward, whatever came back. Stopping here for an address we do
@@ -144,6 +166,18 @@ export default function GuestSignIn({
           >
             {t("me.signInSend")}
           </BusyButton>
+          {/* B1222 — the same code, delivered over WhatsApp instead. It only
+              ever arrives for the owner's own address with a number proven
+              at signup; for anybody else the server answers exactly as it
+              does by mail, which is to say nothing. */}
+          {whatsappSignIn && <button
+            type="submit"
+            name="whatsapp"
+            disabled={busy}
+            className="mt-3 min-h-12 w-full rounded-xl border border-navy-300 bg-white px-4 py-3 text-lg font-medium text-navy-900 disabled:opacity-50"
+          >
+            {t("me.signInWhatsapp")}
+          </button>}
         </form>
       ) : (
         <form onSubmit={submitCode}>
@@ -151,7 +185,9 @@ export default function GuestSignIn({
               CODE_TTL_MINUTES. This is a client component, so it is passed in
               rather than imported. */}
           <p className="mt-2 text-base leading-7 text-navy-700">
-            {t("me.signInSent", { minutes: codeMinutes })}
+            {channel === "whatsapp"
+              ? t("me.signInSentWhatsapp", { minutes: codeMinutes })
+              : t("me.signInSent", { minutes: codeMinutes })}
           </p>
           <label
             htmlFor="signin-code"

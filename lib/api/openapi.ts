@@ -746,6 +746,18 @@ export function openApiDocument() {
                         "appears in the mailed URL, and anything that is not a path inside " +
                         "`/{user}/` is ignored, landing the reader on the journal instead.",
                     },
+                    channel: {
+                      type: "string",
+                      enum: ["email", "whatsapp"],
+                      default: "email",
+                      description:
+                        "How the code travels. `whatsapp` sends it as a WhatsApp message " +
+                        "to the number the journal's owner proved at signup — so it only " +
+                        "ever delivers for the owner's own address; anything else answers " +
+                        "the same 202 with nothing sent, exactly like an unknown address " +
+                        "by mail. A server without WhatsApp answers 503 " +
+                        "`whatsapp_disabled`.",
+                    },
                   },
                 },
               },
@@ -769,7 +781,8 @@ export function openApiDocument() {
                 "`mail_disabled` — this server cannot send mail at all, so nothing was " +
                 "issued and any code you already hold is still live. Or `mail_failed` — " +
                 "the send was attempted and broke, so no code is live for this address " +
-                "and retrying is the remedy.",
+                "and retrying is the remedy. `whatsapp_disabled` and `whatsapp_failed` " +
+                "are the same two answers for `channel: \"whatsapp\"`.",
             },
           },
         },
@@ -1603,26 +1616,31 @@ export function openApiDocument() {
       },
       "/api/auth/signup/phone/request": {
         post: {
-          summary: "Prove a telephone number, step one — B1065",
+          summary: "Prove a telephone number, step one — B1065/B1234",
           description:
             "The second half of proving who is signing up, after the address. Takes the " +
-            "signup token from /api/auth/signup/verify. A code is sent by SMS (or, on a " +
-            "server with no SMS provider configured, written where a dry-run mail already " +
-            "goes) to `tel`, which must carry its own country code — this server is not " +
-            "standing in any country, so a national number is refused rather than guessed. " +
-            "Rate-limited per number, per address and for the whole server, since every " +
-            "attempt may cost the operator a real SMS.",
+            "signup token from /api/auth/signup/verify. The `phone_required` refusal on " +
+            "POST /api/v1/journals carries a `mode` saying which shape this server runs. " +
+            'In `"code"` mode a passcode is sent to `tel`, which must carry its own ' +
+            "country code — this server is not standing in any country, so a national " +
+            "number is refused rather than guessed; rate-limited per number, per address " +
+            "and for the whole server, since every attempt may cost the operator money. " +
+            'In `"whatsapp-inbound"` mode (B1234) send **no body**: the answer carries a ' +
+            "wa.me `link` whose prefilled `text` holds a one-time token — the person " +
+            "opens it and sends the message, and the number it arrives from is thereby " +
+            "proven. No code exists in that mode; poll the verify endpoint instead.",
           requestBody: {
             required: true,
             content: {
               "application/json": {
                 schema: {
                   type: "object",
-                  required: ["tel"],
                   properties: {
                     tel: {
                       type: "string",
-                      description: 'A telephone number with its country code, e.g. "+41 76 000 00 00".',
+                      description:
+                        'Code mode only: a telephone number with its country code, e.g. ' +
+                        '"+41 76 000 00 00". Ignored in whatsapp-inbound mode.',
                     },
                   },
                 },
@@ -1632,8 +1650,11 @@ export function openApiDocument() {
           responses: {
             "202": {
               description:
-                "Accepted — `id` names this verification attempt; pass it back to " +
-                "/api/auth/signup/phone/verify with the code.",
+                "Accepted — `id` names this verification attempt. Code mode: a passcode " +
+                "is on its way; pass `id` and the code to /api/auth/signup/phone/verify. " +
+                'Whatsapp-inbound mode: `mode` is "whatsapp-inbound" and `link`/`text` ' +
+                "carry the wa.me link and its prefilled message; poll the verify endpoint " +
+                "with `id` and no code.",
             },
             "400": { description: "tel is missing, or not a number with a country code" },
             "401": { description: "Missing or invalid signup token" },
@@ -1649,28 +1670,39 @@ export function openApiDocument() {
       },
       "/api/auth/signup/phone/verify": {
         post: {
-          summary: "Prove a telephone number, step two — B1065",
+          summary: "Prove a telephone number, step two — B1065/B1234",
           description:
-            "Takes the signup token, the `id` from the request step, and the code. On " +
-            "success the proven number is attached to the signup token itself — nothing " +
-            "further to send; POST /api/v1/journals reads it automatically.",
+            "Takes the signup token, the `id` from the request step, and — in code mode — " +
+            "the code. On success the proven number is attached to the signup token " +
+            "itself — nothing further to send; POST /api/v1/journals reads it " +
+            "automatically. **Leaving `code` out is the poll** for whatsapp-inbound mode " +
+            '(B1234): the answer is `{"status": "pending"}` until the person\'s message ' +
+            'arrives, then the same success shape; `{"status": "expired"}` means ask the ' +
+            "request step for a fresh link.",
           requestBody: {
             required: true,
             content: {
               "application/json": {
                 schema: {
                   type: "object",
-                  required: ["id", "code"],
+                  required: ["id"],
                   properties: {
                     id: { type: "string", description: "From the request step's response." },
-                    code: { type: "string" },
+                    code: {
+                      type: "string",
+                      description: "Code mode only. Absent = poll the whatsapp-inbound proof.",
+                    },
                   },
                 },
               },
             },
           },
           responses: {
-            "200": { description: "Proven — `tel` echoes the number this token now carries." },
+            "200": {
+              description:
+                "Proven — `tel` echoes the number this token now carries. Or, polling " +
+                'without a code: `{"status": "pending"}` / `{"status": "expired"}`.',
+            },
             "401": { description: "The code is wrong, expired or already used, or the token is invalid" },
             "404": { description: "Signing up is not enabled on this server" },
             "429": { description: "Too many attempts" },

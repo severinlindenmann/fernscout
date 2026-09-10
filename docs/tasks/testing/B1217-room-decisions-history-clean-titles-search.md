@@ -6,6 +6,8 @@ priority: high
 complexity: medium
 area: helper room
 found: "2026-09-10T04:39:40Z"
+started: "2026-09-10T06:12:32Z"
+merged: "2026-09-10T06:23:01Z"
 ---
 
 # B1217 — Room decisions: history — clean titles, search, a Tage tab (D35 D36 D44)

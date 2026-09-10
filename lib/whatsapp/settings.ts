@@ -1,4 +1,6 @@
 import { loadServerConfig } from "../config";
+import { isEnabled } from "../capabilities";
+import { getUser } from "../users";
 
 /**
  * The country code a national telephone number is assumed to belong to.
@@ -117,4 +119,47 @@ export function reminderTemplate(): { name: string; language: string } | null {
   if (typeof name !== "string" || name.trim() === "") return null;
   if (typeof language !== "string" || language.trim() === "") return null;
   return { name: name.trim(), language: language.trim() };
+}
+
+/**
+ * Which approved **authentication** template carries a one-time code —
+ * B1222. Meta requires the authentication category for OTPs (a utility
+ * template with a code in it is rejected at review), and an authentication
+ * template's shape is fixed by Meta: the code as `{{1}}` in the body, and a
+ * copy-code button whose parameter is the code again.
+ *
+ * `features.whatsapp.authTemplates` maps a locale to a name, the same shape
+ * and the same reasoning as `templates` above — the name is configuration
+ * because changing the wording means a new template under a new name.
+ * Unconfigured locales fall back to `en`, then to the default name below;
+ * a name Meta has not approved fails loudly at send time, which is the
+ * failure we want, and the dry-run transport does not care.
+ */
+const DEFAULT_AUTH_TEMPLATE = "fernscout_auth_code";
+
+export function authTemplateFor(locale: string): { name: string; language: string } {
+  const configured = loadServerConfig().features.whatsapp.authTemplates;
+  if (typeof configured === "object" && configured !== null) {
+    const table = configured as Record<string, unknown>;
+    const exact = entryFor(table[locale]);
+    if (exact) return { name: exact.name, language: locale };
+    const english = entryFor(table.en);
+    if (english) return { name: english.name, language: "en" };
+  }
+  return { name: DEFAULT_AUTH_TEMPLATE, language: locale };
+}
+
+/**
+ * Whether this journal's sign-in form should offer the WhatsApp button at
+ * all — B1222. The code only ever delivers to the owner's number proven at
+ * signup, so a journal where no such number exists (or a server that cannot
+ * send) would be offering a button that silently does nothing to everybody
+ * who presses it. What this reveals — that the journal's owner has a proven
+ * number — is a fact about the journal, not about any visitor.
+ */
+export function whatsappSignInOffered(username: string): boolean {
+  if (!isEnabled("whatsapp")) return false;
+  const user = getUser(username);
+  return Boolean(user?.owner?.tel && user.owner.telProvenAt);
+
 }

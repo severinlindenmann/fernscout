@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: helper room
 found: "2026-09-10T04:39:41Z"
+started: "2026-09-10T06:24:05Z"
+session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
+claimed: "2026-09-10T06:24:05Z"
 ---
 
 # B1220 — Room decisions: platform polish — PWA hint, haptics, shortcuts, wizard retirement (D40 D41 D42 D52)

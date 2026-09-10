@@ -6,6 +6,8 @@ priority: high
 complexity: medium
 area: helper room
 found: "2026-09-10T04:39:37Z"
+started: "2026-09-10T05:24:23Z"
+merged: "2026-09-10T05:40:49Z"
 ---
 
 # B1212 — Room decisions: conversation rendering — bubbles, lists, time marks, retry, chips, dedupe (D02 D21 D22 D20 D18 D23)

@@ -157,6 +157,13 @@ const WHATSAPP_BACKEND_ENV: Record<string, readonly string[]> = {
 const PHONE_VERIFY_BACKEND_ENV: Record<string, readonly string[]> = {
   "dry-run": [],
   twilio: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_VERIFY_SERVICE_SID"],
+  // B1222. Needs no env of its own: the send rides `features.whatsapp`,
+  // whose own backend names what it needs — the cross-capability check is in
+  // the signup branch below.
+  whatsapp: [],
+  // B1234. The person messages us, so this needs the whole inbound half —
+  // checked in the signup branch below, like `whatsapp` above.
+  "whatsapp-inbound": [],
 };
 
 /**
@@ -314,6 +321,35 @@ function configuredEnv(name: FeatureName, feature: Record<string, unknown>): {
         env: [],
         problem: `features.signup.phoneBackend "${backend}" is unknown (expected one of: ${Object.keys(PHONE_VERIFY_BACKEND_ENV).join(", ")})`,
       };
+    }
+    // The whatsapp backend delivers through `features.whatsapp`, so a signup
+    // pointed at it while that capability is off would take a person's phone
+    // number and then have no way to send the code — B1222. Absent rather
+    // than broken: say so here, where /api/health explains it.
+    if (backend === "whatsapp" && loadServerConfig().features.whatsapp.enabled !== true) {
+      return {
+        env,
+        problem: 'features.signup.phoneBackend is "whatsapp" but features.whatsapp is not enabled',
+      };
+    }
+    // B1234: inbound proof needs the webhook receiving (whatsappInbound) and
+    // the reply sending (whatsapp) both on, and a number for the wa.me link.
+    if (backend === "whatsapp-inbound") {
+      const features = loadServerConfig().features;
+      if (features.whatsapp.enabled !== true || features.whatsappInbound.enabled !== true) {
+        return {
+          env,
+          problem:
+            'features.signup.phoneBackend is "whatsapp-inbound" but features.whatsapp and ' +
+            "features.whatsappInbound must both be enabled",
+        };
+      }
+      if (typeof features.whatsapp.number !== "string" || features.whatsapp.number.trim() === "") {
+        return {
+          env,
+          problem: 'features.signup.phoneBackend is "whatsapp-inbound" but features.whatsapp.number is not set',
+        };
+      }
     }
     return { env };
   }

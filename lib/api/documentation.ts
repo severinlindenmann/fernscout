@@ -758,7 +758,46 @@ Content-Type: application/json
 \`\`\`
 
 That returns a token which creates **exactly one journal** and is spent by doing
-so. Unused, it expires in twenty minutes. A refused creation does not spend it,
+so. Unused, it expires in twenty minutes.
+
+**Most servers also ask you to prove the person's phone number** before the
+create below succeeds — a \`403 phone_required\` on it says so, and does not
+spend the token. Ask the person for their number *with its country code*, then:
+
+\`\`\`http
+POST ${site.url}/api/auth/signup/phone/request
+Authorization: Bearer fs_signup_…
+Content-Type: application/json
+
+{"tel": "+41 76 000 00 00"}
+\`\`\`
+
+\`\`\`http
+POST ${site.url}/api/auth/signup/phone/verify
+Authorization: Bearer fs_signup_…
+Content-Type: application/json
+
+{"id": "<from the request step>", "code": "123456"}
+\`\`\`
+
+The passcode arrives **as a WhatsApp message**, so tell the person to look at
+WhatsApp rather than their inbox. Somebody without WhatsApp cannot finish this
+step on their own — say so plainly and point them at whoever runs this server
+rather than guessing a number or inventing a workaround. Once the number is
+proven, retry the create; the proof is attached to the token you already hold.
+
+**Some servers run the proof the other way around** — the \`phone_required\`
+refusal carries \`"mode": "whatsapp-inbound"\` (B1234). Then send **no
+number**: POST the request step with an empty body, and the answer carries a
+wa.me \`link\` whose prefilled \`text\` holds a one-time token. Hand the link
+to the person; they tap it and send the prepared message, and the number it
+comes *from* is thereby proven — no code exists at all. Poll the verify step
+with only the \`id\` until the answer stops being
+\`{"status": "pending"}\`; \`{"status": "expired"}\` means ask for a fresh
+link. Never invent a token or type one on the person's behalf — the whole
+proof is that *their* phone sent it.
+
+A refused creation does not spend the token either,
 so a taken username is worth correcting rather than starting over:
 
 \`\`\`http
@@ -988,6 +1027,13 @@ A \`503 mail_failed\` means this server could not send it at all, and **no code
 is live**: nothing was consumed and nothing is waiting in their inbox. Retry.
 That is different from \`429\`, which means wait, and from \`404\`, which means
 this server does not do tokens.
+
+**The code can travel by WhatsApp instead of mail** — add \`"channel":
+"whatsapp"\` to the request. It only ever delivers for the journal owner's own
+address, to the number they proved at signup; for anybody else the \`202\` is
+answered and nothing arrives, exactly as mail behaves for an address this
+journal does not know. If no message turns up, ask again without \`channel\`.
+A \`503 whatsapp_disabled\` means this server cannot send WhatsApp at all.
 
 **If the person is not the journal's owner but came on one of its trips**, name
 the trip when you ask for the code:

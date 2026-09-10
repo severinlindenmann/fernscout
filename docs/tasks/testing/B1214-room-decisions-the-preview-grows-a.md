@@ -6,6 +6,8 @@ priority: high
 complexity: medium
 area: helper room
 found: "2026-09-10T04:39:38Z"
+started: "2026-09-10T06:03:02Z"
+merged: "2026-09-10T06:11:39Z"
 ---
 
 # B1214 — Room decisions: the preview grows a header, memory, publish and highlights (D24 D25 D26 D27)

@@ -6,6 +6,8 @@ priority: high
 complexity: medium
 area: helper room
 found: "2026-09-10T04:39:36Z"
+started: "2026-09-10T05:24:21Z"
+merged: "2026-09-10T05:40:49Z"
 ---
 
 # B1211 — Room decisions: the composer rebuilt — textarea, send, voice, drafts, camera (D13 D14 D15 D16 D33)
