@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AgentBlock } from "@/components/LandingSections";
+import { AgentBlock, OrDivider, WhatsAppButton } from "@/components/LandingSections";
 import BackLink from "@/components/BackLink";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import IdentitySignIn from "@/components/IdentitySignIn";
@@ -70,7 +70,9 @@ export default function AgentDoor({
    * `whatsappDisplayNumber()`, B1310. A stranger at this door has no proven
    * number of their own to gate on, unlike `RoomOpening`'s prop of the same
    * name, so the only check is whether the instance has one configured at
-   * all.
+   * all. B1314 moved where it is drawn: a third action inside the "do you
+   * already have a journal?" card, after the owner rejected the loose line
+   * B1310 shipped.
    */
   whatsappNumber?: string;
 }) {
@@ -132,26 +134,6 @@ export default function AgentDoor({
             person who wants it can have all of it. */}
         <Why>{t("agent.introWhy")}</Why>
 
-        {/* B1310 — a short line, not a hero, and drawn regardless of
-            signed-in state: this door has no journal of its own to ask
-            "is this the owner's own proven number" the way `RoomOpening`
-            can, so the only gate is whether the instance has a number
-            configured at all. */}
-        {whatsappNumber && (
-          <p className="mt-3 text-base leading-7 text-navy-700">
-            <a
-              href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(t("agent.open.whatsappGreeting"))}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex min-h-11 items-center font-semibold text-navy-900 underline
-                         decoration-navy-300 underline-offset-4 transition-colors hover:decoration-navy-900
-                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-            >
-              {t("agent.doorWhatsapp")}
-            </a>
-          </p>
-        )}
-
         {/* B1221 — a stranger sees what talking to the room is like before
             deciding anything. Signed-out only: somebody already in has
             already seen it. A quiet underlined control, the same shape as
@@ -199,6 +181,16 @@ export default function AgentDoor({
                   >
                     {t("agent.haveJournalNo")}
                   </button>
+                  {/* B1314 — the third answer to the same question, inside
+                      the one decision surface the door has, rather than a
+                      loose line above it (B1310's shape, which the owner
+                      rejected in review). */}
+                  {whatsappNumber && (
+                    <>
+                      <OrDivider />
+                      <WhatsAppButton number={whatsappNumber} label={t("agent.doorWhatsapp")} className="w-full" />
+                    </>
+                  )}
                 </div>
               </section>
             ) : has ? (
