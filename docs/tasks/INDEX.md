@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (30)
+### issue (29)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -70,7 +70,6 @@ Do not edit them by hand; run the script.
 | [B1323](backlog/issue/B1323-the-helper-said-a-postcard-was.md) | The helper said a postcard was on the postcards page when the proposal had failed | ISSUE | high | low |
 | [B1324](backlog/issue/B1324-a-failed-card-press-disables-the.md) | A failed card press disables the composer for good, and the only way out wipes the conversation | ISSUE | high | low |
 | [B1358](backlog/issue/B1358-the-guthaben-sheet-shows-no-numbers.md) | The Guthaben sheet shows no numbers in the installed PWA | ISSUE | high | low |
-| [B1362](backlog/issue/B1362-helper-threads-writes-are-unordered-so.md) | helper_threads writes are unordered, so forget() can lose to an in-flight persist() | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1129](backlog/issue/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
@@ -135,7 +134,7 @@ Do not edit them by hand; run the script.
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (9)
+### chore (10)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -148,6 +147,7 @@ Do not edit them by hand; run the script.
 | [B1365](backlog/chore/B1365-photobook-order-success-redirects-through-the.md) | Photobook order success redirects through the trip page instead of straight to the order page | CHORE | low | low |
 | [B1366](backlog/chore/B1366-order-page-shows-book-interior-pdf.md) | Order page shows book-interior.pdf and book-cover.pdf links nobody needs | CHORE | low | low |
 | [B1367](backlog/chore/B1367-photobook-order-page-reads-as-unstyled.md) | Photobook order page reads as unstyled text, not a Fernscout page | CHORE | low | low |
+| [B1368](backlog/chore/B1368-photobook-flow-doesn-t-say-the.md) | Photobook flow doesn't say the print is experimental | CHORE | low | low |
 
 ### ops (14)
 
@@ -351,7 +351,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- | --- |
 | [B1363](in-development/B1363-a-stranger-who-takes-the-landing.md) | A stranger who takes the landing page's WhatsApp door is told to go away | FEATURE | high | high | `d59a99c0` |
 
-## testing (139)
+## testing (140)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -450,6 +450,7 @@ Do not edit them by hand; run the script.
 | [B1359](testing/B1359-small-sheets-open-as-a-mostly.md) | Small sheets open as a mostly white full-height page | FEATURE | high | low | — |
 | [B1360](testing/B1360-the-phone-tab-bar-is-three.md) | The phone tab bar is three bare words with a dash of yellow | FEATURE | high | low | — |
 | [B1361](testing/B1361-the-installed-pwa-keeps-running-an.md) | The installed PWA keeps running an old build with nothing saying so | FEATURE | high | low | — |
+| [B1362](testing/B1362-helper-threads-writes-are-unordered-so.md) | helper_threads writes are unordered, so forget() can lose to an in-flight persist() | ISSUE | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |

@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: lib/helper/thread.ts
 found: "2026-09-10T18:25:23Z"
+merged: "2026-09-10T18:35:30Z"
 ---
 
 # B1362 — helper_threads writes are unordered, so forget() can lose to an in-flight persist()
