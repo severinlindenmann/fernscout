@@ -255,7 +255,7 @@ function TurnLoader({ shape }: { shape: "assembling" | "waymark" }) {
     return (
       <div
         aria-hidden
-        className="mb-2 space-y-2 rounded-xl border border-navy-200 bg-cream-50 p-3"
+        className="mb-2 space-y-2 rounded-xl border border-navy-200 bg-white p-4"
       >
         <div className="fs-assemble-in h-3 w-24 rounded bg-navy-200" style={{ animationDelay: "0ms" }} />
         <div
@@ -298,6 +298,7 @@ export default function HelperAsk({
   dayPhoto,
   onPreview,
   filesStrip,
+  notice,
   onOpenFiles,
   aboutOffer = false,
   aboutDraft = null,
@@ -367,6 +368,10 @@ export default function HelperAsk({
    * field" can mean, and only this component draws that footer.
    */
   filesStrip?: React.ReactNode;
+  /** One quiet line above the composer, when the room has something the
+   *  person should hear before the next sentence — the low-credit warning
+   *  is the first tenant. B1208 (D08). */
+  notice?: React.ReactNode;
   /**
    * Open the files pane — B1182. On a phone the pane used to be reachable
    * only through the thumbnail strip, which renders only once a file
@@ -746,30 +751,6 @@ export default function HelperAsk({
     }
   }
 
-  /** Start over — the `forget()` that has existed since B889 and that nothing
-   *  called, so somebody who confused the thread waited half an hour. */
-  async function startOver() {
-    setBusy(true);
-    setError("");
-    try {
-      await send(
-        `/api/helper/${encodeURIComponent(username)}/ask`,
-        undefined,
-        "DELETE",
-      );
-      setTurns([
-        {
-          said: "",
-          blocks: [{ shape: "say", text: t("agent.chat.startedOver") }],
-        },
-      ]);
-    } catch (thrown) {
-      failed(thrown);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   /**
    * The one door onto `ask()` — B1020.
    *
@@ -873,7 +854,7 @@ export default function HelperAsk({
                         className={`min-h-11 rounded-full px-4 text-sm transition-colors ${
                           n === 0
                             ? "border border-yellow-600 bg-yellow-400 font-semibold text-yellow-950 hover:bg-yellow-300"
-                            : "border border-navy-300 bg-white text-navy-800 hover:bg-cream-100"
+                            : "border border-navy-300 bg-white text-navy-800 hover:bg-navy-50"
                         }`}
                       >
                         {t(`agent.about.${what}`)}
@@ -972,13 +953,14 @@ export default function HelperAsk({
       {/* The files strip, above the composer rather than beside the
           conversation — B1016. The room draws it; this is only where "above
           the field" is, since the field's own footer is built here. */}
+      {notice}
       {filesStrip}
 
       {/* `relative`, because the microphone pins itself to this box's top
           right corner — see `RecordButton`'s `compact`. `sticky` so the field
           stays under the thread as it grows rather than being scrolled off
           the end of it. */}
-      <div className="sticky bottom-0 rounded-2xl border border-navy-200 bg-white p-2">
+      <div className="sticky bottom-0 rounded-xl border border-navy-200 bg-white p-2 shadow-sm">
         <input
           ref={box}
           id={`ask-${username}`}
@@ -1046,21 +1028,14 @@ export default function HelperAsk({
               type="button"
               onClick={onOpenFiles}
               aria-label={t("agent.room.files")}
-              className="mr-auto flex min-h-11 min-w-11 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-cream-100 hover:text-navy-900 lg:hidden"
+              className="mr-auto flex min-h-11 min-w-11 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-navy-50 hover:text-navy-900 lg:hidden"
             >
               <Paperclip className="h-5 w-5" aria-hidden />
             </button>
           )}
-          {turns.length > 0 && (
-            <button
-              type="button"
-              onClick={() => void startOver()}
-              disabled={busy}
-              className="min-h-11 px-2 text-sm text-navy-600 underline underline-offset-4 transition-colors hover:text-navy-900 disabled:opacity-50"
-            >
-              {t("agent.chat.startOver")}
-            </button>
-          )}
+          {/* "Start over" is gone, function and button both — B1208 (D17):
+              the + in the header starts fresh, and two adjacent reset
+              controls confused more than they helped. */}
           <BusyButton
             busy={busy}
             type="button"
@@ -1069,7 +1044,7 @@ export default function HelperAsk({
             // argument for a chip's own words, and a bare `onClick={go}`
             // would have handed it the click's `MouseEvent` instead.
             onClick={() => go()}
-            className="min-h-11 rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-800 transition-colors hover:bg-cream-100 disabled:opacity-50"
+            className="min-h-11 rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-800 transition-colors hover:bg-navy-50 disabled:opacity-50"
             busyLabel={t("agent.askWorking")}
           >
             {t("agent.askGo")}
@@ -1094,7 +1069,7 @@ export default function HelperAsk({
       {lapsed && (
         <p
           role="status"
-          className="mt-3 rounded-xl bg-cream-100 p-3 text-base leading-6 text-navy-800"
+          className="mt-3 rounded-xl bg-navy-50 p-3 text-base leading-6 text-navy-800"
         >
           {t("agent.askLapsed")}{" "}
           <a
@@ -1144,7 +1119,7 @@ function DayChip({
     <button
       type="button"
       onClick={onPress}
-      className="flex min-h-11 items-center gap-2 rounded-full border border-navy-300 bg-white py-1 pl-1 pr-3 text-sm text-navy-800 transition-colors hover:bg-cream-100"
+      className="flex min-h-11 items-center gap-2 rounded-full border border-navy-300 bg-white py-1 pl-1 pr-3 text-sm text-navy-800 transition-colors hover:bg-navy-50"
     >
       <span className="relative block h-8 w-8 shrink-0 overflow-hidden rounded-full bg-cream-200" aria-hidden>
         {photoSrc ? (
@@ -1199,7 +1174,7 @@ function ChooseBlock({
   const [expanded, setExpanded] = useState(false);
   const shown = expanded ? options : options.slice(0, CHOOSE_ROWS_SHOWN);
   const rowClass =
-    "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-navy-300 bg-white px-4 py-2 text-left text-base text-navy-800 transition-colors hover:bg-cream-100";
+    "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-navy-300 bg-white px-4 py-2 text-left text-base text-navy-800 transition-colors hover:bg-navy-50";
 
   return (
     <div>
@@ -1339,7 +1314,7 @@ function BlockView({
       // A proposal the server did not attach one to cannot be pressed, and
       // saying so is better than a button that does nothing.
       return (
-        <div className="rounded-xl border border-navy-200 bg-cream-50 p-3">
+        <div className="rounded-xl border border-navy-200 bg-white p-4">
           <p className="text-base leading-6 text-navy-900">{block.text}</p>
           <p className="mt-2 text-sm leading-6 text-navy-600">
             {t("agent.chat.nothingWritten")}
@@ -1468,7 +1443,7 @@ function ProposalView({
 
   if (settled !== "") {
     return (
-      <div className="rounded-xl border border-navy-200 bg-cream-50 p-3">
+      <div className="rounded-xl border border-navy-200 bg-white p-4">
         <p className="text-base leading-6 text-navy-900">{proposal.sentence}</p>
         <p className="mt-2 text-sm leading-6 text-navy-600">
           {settled === "accepted" ? proposal.done : t("agent.chat.leftIt")}
@@ -1511,13 +1486,16 @@ function ProposalView({
     <div
       ref={focusRef}
       tabIndex={-1}
-      className={`rounded-xl border bg-cream-50 p-3 focus:outline-none ${
+      /* White card, roomier padding — B1207 (D01 B): the proposal is the
+         most important control on the screen and reads as one card now,
+         its header ruled off from the sentence below. */
+      className={`rounded-xl border bg-white p-4 shadow-sm focus:outline-none ${
         kind === "edit" ? "border-navy-200" : "border-navy-200 border-t-4 border-t-coral-400"
       }`}
     >
       {/* An icon and a short title naming the kind of decision, above the
           sentence — B1122. The colour is the warning; this is the words. */}
-      <p className="flex items-center gap-2 text-sm font-semibold text-navy-700">
+      <p className="-mx-4 flex items-center gap-2 border-b border-navy-100 px-4 pb-2 text-sm font-semibold text-navy-700">
         <span aria-hidden>{DECISION_ICON[kind]}</span>
         {t(`agent.card.${kind}`)}
       </p>
@@ -1535,12 +1513,14 @@ function ProposalView({
               if (!fieldsBox.current?.contains(document.activeElement)) setFieldFocused(false);
             }, 0);
           }}
-          className="mt-3 space-y-3"
+          /* Two columns from `sm` — B1207 (D05 B): a date and a title side
+             by side instead of a tower; anything long spans the row. */
+          className="mt-3 grid gap-3 sm:grid-cols-2"
         >
           {editable.map((field, index) => {
             const last = index === editable.length - 1;
             return (
-              <div key={field.name}>
+              <div key={field.name} className={field.long ? "sm:col-span-2" : undefined}>
                 <label
                   htmlFor={`${id}-${field.name}`}
                   className="block text-sm font-semibold text-navy-800"
@@ -1620,7 +1600,7 @@ function ProposalView({
       </div>
       {pinBottom !== null && (
         <div
-          className="fixed inset-x-0 z-40 border-t border-navy-200 bg-cream-50 p-3 shadow-[0_-4px_12px_rgba(0,0,0,0.12)]"
+          className="fixed inset-x-0 z-40 border-t border-navy-200 bg-white p-3 shadow-[0_-4px_12px_rgba(0,0,0,0.12)]"
           style={{ bottom: pinBottom }}
         >
           {actions}

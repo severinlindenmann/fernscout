@@ -56,7 +56,7 @@ export default function RoomOpening({
   const { t, tn, formatLongDate } = useI18n();
 
   const chip =
-    "min-h-11 rounded-full border border-navy-300 bg-white px-4 text-sm text-navy-800 transition-colors hover:bg-cream-100";
+    "min-h-11 rounded-full border border-navy-300 bg-white px-4 text-sm text-navy-800 transition-colors hover:bg-navy-50";
   const bright =
     "min-h-11 rounded-full border border-yellow-600 bg-yellow-400 px-4 text-sm font-semibold text-yellow-950 transition-colors hover:bg-yellow-300";
 
@@ -79,7 +79,7 @@ export default function RoomOpening({
      */
     const when = formatLongDate(day.date);
     return (
-      <div className="rounded-2xl border border-navy-200 bg-white p-4">
+      <div className="rounded-xl border border-navy-200 bg-white p-4 shadow-sm">
         <p className="font-display text-base font-semibold text-navy-900">{when}</p>
         <p className="mt-0.5 text-sm text-navy-500">{missing}</p>
         <button
@@ -98,7 +98,7 @@ export default function RoomOpening({
 
   return (
     <div className="space-y-3">
-      <p className="rounded-2xl border border-navy-200 bg-white px-4 py-3 text-base leading-6 text-navy-800">
+      <p className="rounded-xl border border-navy-200 bg-white px-4 py-3 shadow-sm text-base leading-6 text-navy-800">
         {opening.state === "days" &&
           (opening.days.length + opening.more === 1
             ? t("agent.open.oneDay")

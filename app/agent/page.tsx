@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { resolveIdentity } from "@/lib/auth/handshake";
 import { isEnabled } from "@/lib/capabilities";
+import { balanceOf } from "@/lib/credits";
 import AgentDoor from "@/components/AgentDoor";
 import HelperRoom from "@/components/HelperRoom";
 import LocaleProvider from "@/components/LocaleProvider";
@@ -175,6 +176,9 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
           speech={isEnabled("transcription", user)}
           consentedSpeech={hasHelperConsent(user, "speech")}
           speechProvider={speechProvider()}
+          // The chip in the header — B1208 (D06). `null` when this instance
+          // charges for nothing, and then no chip is drawn.
+          credits={await balanceOf(user)}
           // B1127 — both gating facts checked here, server-side: a proven
           // number and this journal's own opt-in. Absent either, or with no
           // number configured for the instance at all, and the prop is

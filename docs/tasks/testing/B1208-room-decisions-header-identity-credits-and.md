@@ -7,8 +7,7 @@ complexity: medium
 area: helper room
 found: "2026-09-10T04:39:35Z"
 started: "2026-09-10T04:41:15Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-10T04:41:15Z"
+merged: "2026-09-10T05:07:08Z"
 ---
 
 # B1208 — Room decisions: header identity, credits and the overflow menu (D53 D06 D07 D08 D10 D17 D43)
