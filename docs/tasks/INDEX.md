@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (174)
+## backlog (161)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (44)
+### issue (30)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -71,13 +71,6 @@ Do not edit them by hand; run the script.
 | [B1324](backlog/issue/B1324-a-failed-card-press-disables-the.md) | A failed card press disables the composer for good, and the only way out wipes the conversation | ISSUE | high | low |
 | [B1358](backlog/issue/B1358-the-guthaben-sheet-shows-no-numbers.md) | The Guthaben sheet shows no numbers in the installed PWA | ISSUE | high | low |
 | [B1369](backlog/issue/B1369-whatsapp-confirm-step-still-shows-the.md) | WhatsApp confirm step still shows the intro text above it | ISSUE | high | low |
-| [B1370](backlog/issue/B1370-whatsapp-confirm-step-still-shows-the.md) | WhatsApp confirm step still shows the intro text above it | ISSUE | high | low |
-| [B1374](backlog/issue/B1374-opening-warum-pins-the-footer-tab.md) | Opening warum pins the footer tab bar mid-page and the consent text cannot scroll | ISSUE | high | medium |
-| [B1375](backlog/issue/B1375-agent-handover-sheet-cannot-be-scrolled.md) | Agent handover sheet cannot be scrolled or closed on mobile | ISSUE | high | medium |
-| [B1378](backlog/issue/B1378-composer-in-voice-mode-is-cramped.md) | Composer in voice mode is cramped and the speech level animation never shows | ISSUE | high | medium |
-| [B1379](backlog/issue/B1379-chat-layout-breaks-while-scrolling-with.md) | Chat layout breaks while scrolling with the warning banner pinned | ISSUE | high | medium |
-| [B1382](backlog/issue/B1382-whatsapp-channel-dead-on-live-and.md) | WhatsApp channel dead on live and switching agent to whatsapp breaks the session | ISSUE | high | high |
-| [B1383](backlog/issue/B1383-microphone-stays-held-after-leaving-the.md) | Microphone stays held after leaving the page | ISSUE | high | medium |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1129](backlog/issue/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
@@ -89,12 +82,6 @@ Do not edit them by hand; run the script.
 | [B1276](backlog/issue/B1276-a-day-written-through-the-helper.md) | A day written through the helper gets the date as its slug, so its address is fernscout.ch slash day slash 2026-09-05 | ISSUE | medium | low |
 | [B1307](backlog/issue/B1307-the-model-misstates-a-date-its.md) | The model misstates a date its own tool returned, and the error compounds into the next press | ISSUE | medium | low |
 | [B1308](backlog/issue/B1308-a-retry-s-blocks-accumulate-onto.md) | A retry's blocks accumulate onto the first, wrong attempt's own blocks | ISSUE | medium | medium |
-| [B1371](backlog/issue/B1371-low-credit-warning-fires-at-10.md) | Low-credit warning fires at 10 days left and cannot be dismissed | ISSUE | medium | low |
-| [B1373](backlog/issue/B1373-homescreen-guide-does-not-say-it.md) | Homescreen guide does not say it needs Safari on iOS or how Android works | ISSUE | medium | low |
-| [B1376](backlog/issue/B1376-chat-says-vorschlag-auf-deinem-bildschirm.md) | Chat says Vorschlag auf deinem Bildschirm but no button is visible | ISSUE | medium | low |
-| [B1377](backlog/issue/B1377-deepgram-voice-consent-renders-unusably-narrow.md) | Deepgram voice consent renders unusably narrow on a phone | ISSUE | medium | low |
-| [B1380](backlog/issue/B1380-uploaded-videos-get-no-thumbnail-in.md) | Uploaded videos get no thumbnail in the Dateien tab | ISSUE | medium | low |
-| [B1381](backlog/issue/B1381-speicher-meter-stays-at-0-00.md) | Speicher meter stays at 0.00 GB after uploads | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
@@ -105,7 +92,6 @@ Do not edit them by hand; run the script.
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1266](backlog/issue/B1266-asking-for-the-last-day-only.md) | Asking for the last day only searches unfinished drafts | ISSUE | low | low |
 | [B1271](backlog/issue/B1271-a-failed-voice-note-download-also.md) | A failed voice-note download also says nothing | ISSUE | low | low |
-| [B1372](backlog/issue/B1372-quick-action-says-fotos-nachtragen-where.md) | Quick action says Fotos nachtragen where Fotos erfassen is meant | ISSUE | low | low |
 
 ### big-feature (14)
 
@@ -183,11 +169,12 @@ Do not edit them by hand; run the script.
 | [B546](backlog/ops/B546-the-open-meteo-free-tier-is.md) | The Open-Meteo free tier is non-commercial and this instance takes money | OPS | medium | low |
 | [B1036](backlog/ops/B1036-content-example-s-new-trips-can.md) | content/example's new trips can flicker as malformed during ship.sh's demo sync | OPS | low | low |
 
-### docs-and-skills (1)
+### docs-and-skills (2)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1144](backlog/docs-and-skills/B1144-a-dispatched-worktree-agent-cannot-run.md) | A dispatched worktree agent cannot run claude-security, so the one skill work-on-a-task requires on an auth change is the one it cannot reach | DOCS | high | low |
+| [B1384](backlog/docs-and-skills/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high |
 
 ### superseded (68)
 
@@ -360,9 +347,24 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (0)
+## in-development (14)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B1370](in-development/B1370-whatsapp-confirm-step-still-shows-the.md) | WhatsApp confirm step still shows the intro text above it | ISSUE | high | low | `fb660571` |
+| [B1374](in-development/B1374-opening-warum-pins-the-footer-tab.md) | Opening warum pins the footer tab bar mid-page and the consent text cannot scroll | ISSUE | high | medium | `fb660571` |
+| [B1375](in-development/B1375-agent-handover-sheet-cannot-be-scrolled.md) | Agent handover sheet cannot be scrolled or closed on mobile | ISSUE | high | medium | `fb660571` |
+| [B1378](in-development/B1378-composer-in-voice-mode-is-cramped.md) | Composer in voice mode is cramped and the speech level animation never shows | ISSUE | high | medium | `fb660571` |
+| [B1379](in-development/B1379-chat-layout-breaks-while-scrolling-with.md) | Chat layout breaks while scrolling with the warning banner pinned | ISSUE | high | medium | `fb660571` |
+| [B1382](in-development/B1382-whatsapp-channel-dead-on-live-and.md) | WhatsApp channel dead on live and switching agent to whatsapp breaks the session | ISSUE | high | high | `fb660571` |
+| [B1383](in-development/B1383-microphone-stays-held-after-leaving-the.md) | Microphone stays held after leaving the page | ISSUE | high | medium | `fb660571` |
+| [B1371](in-development/B1371-low-credit-warning-fires-at-10.md) | Low-credit warning fires at 10 days left and cannot be dismissed | ISSUE | medium | low | `fb660571` |
+| [B1373](in-development/B1373-homescreen-guide-does-not-say-it.md) | Homescreen guide does not say it needs Safari on iOS or how Android works | ISSUE | medium | low | `fb660571` |
+| [B1376](in-development/B1376-chat-says-vorschlag-auf-deinem-bildschirm.md) | Chat says Vorschlag auf deinem Bildschirm but no button is visible | ISSUE | medium | low | `fb660571` |
+| [B1377](in-development/B1377-deepgram-voice-consent-renders-unusably-narrow.md) | Deepgram voice consent renders unusably narrow on a phone | ISSUE | medium | low | `fb660571` |
+| [B1380](in-development/B1380-uploaded-videos-get-no-thumbnail-in.md) | Uploaded videos get no thumbnail in the Dateien tab | ISSUE | medium | low | `fb660571` |
+| [B1381](in-development/B1381-speicher-meter-stays-at-0-00.md) | Speicher meter stays at 0.00 GB after uploads | ISSUE | medium | low | `fb660571` |
+| [B1372](in-development/B1372-quick-action-says-fotos-nachtragen-where.md) | Quick action says Fotos nachtragen where Fotos erfassen is meant | ISSUE | low | low | `fb660571` |
 
 ## testing (141)
 
