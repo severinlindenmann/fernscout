@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AckButton, UnhideButton } from "./Acks";
 import AdminGrant from "./AdminGrant";
 import AdminRefund from "./AdminRefund";
 import Console from "./Console";
 import Journals from "./Journals";
 import SpendChart from "./SpendChart";
 import { BarChart, Breakdown, CountBars, Meter, type Week } from "./Charts";
+import { applyAcks, listAcks, sweepAcks, type Ack } from "@/lib/adminAcks";
 import { isInstanceAdmin } from "@/lib/adminGate";
 import { creditsEnabled } from "@/lib/credits";
 import { formatCredits } from "@/lib/credits/format";
@@ -33,7 +35,6 @@ import {
   spendByReasonAll,
   takingsBreakdown,
   troubles,
-  STILL_WRITING_DAYS,
   type Activity,
   type Attend,
   type FunnelStep,
@@ -165,7 +166,7 @@ export default async function AdminPage() {
     CHART_DAYS,
   );
 
-  const needs = attention({
+  const raised = attention({
     awaiting: data.awaiting,
     health: healthNow,
     troubles: troubleRows,
@@ -173,7 +174,19 @@ export default async function AdminPage() {
     ceiling,
     balances: data.journals,
   });
-  const alerts = healthNow.wrong.length + troubleRows.length;
+
+  // What the operator has already answered — B1203. The sweep runs against the
+  // band *before* anything is hidden, so an entry that is merely suppressed is
+  // never mistaken for one that was fixed, and it runs before the read so the
+  // history shows this load's closures rather than the previous one's.
+  await sweepAcks(raised, await listAcks());
+  const acks = await listAcks();
+  const { shown: needs, hidden } = applyAcks(raised, acks);
+  // The Instance tab's badge counts what is wrong with the instance, so it is
+  // the faults and the backups and not the whole band — and it counts the ones
+  // still standing, since a fault the operator has answered is not a thing to
+  // put a red dot on a tab for.
+  const alerts = needs.filter((one) => one.kind === "fault" || one.kind === "backup").length;
 
   return (
     <main className="mx-auto max-w-4xl px-4 pb-24 pt-10 sm:pb-16 sm:pt-16">
@@ -193,7 +206,7 @@ export default async function AdminPage() {
           B774 put the purchase queue here; B1181 put the other four kinds of
           waiting beside it, since a queue whose length you cannot see is the
           thing this position exists to fix. */}
-      <NeedsYou items={needs} health={healthNow} />
+      <NeedsYou items={needs} hidden={hidden} acks={acks} health={healthNow} />
 
       <Console
         tabs={[
@@ -376,12 +389,32 @@ const KIND_LABEL: Record<Attend["kind"], string> = {
  * `HealthCard` still lists a fault on the Instance tab, deliberately, because
  * that card is the standing state of the instance and this is a list of jobs.
  */
-function NeedsYou({ items, health }: { items: Attend[]; health: Health }) {
-  if (items.length === 0) {
-    return (
+function NeedsYou({
+  items,
+  hidden,
+  acks,
+  health,
+}: {
+  items: Attend[];
+  /** Raised, and answered — so the empty state can say how many. */
+  hidden: Attend[];
+  acks: Ack[];
+  health: Health;
+}) {
+  const body =
+    items.length === 0 ? (
       <section className="mt-5 rounded-2xl border border-green-700 bg-green-100 p-4">
-        <h2 className="font-display text-lg font-semibold text-green-700">Nothing needs you.</h2>
+        <h2 className="font-display text-lg font-semibold text-green-700">
+          {hidden.length === 0 ? "Nothing needs you." : "Nothing new needs you."}
+        </h2>
         <p className="mt-1 text-sm text-navy-700">
+          {/* An empty band with three things acknowledged behind it is exactly
+              the ambiguity B1203 is about, and the one B1085 left behind when
+              the nightly success mail stopped: silence and a broken alarm
+              sound alike. So the count is on the quiet line, always. */}
+          {hidden.length > 0
+            ? `${hidden.length} acknowledged and still true. `
+            : ""}
           Commit {health.commit ?? "unknown"} · up {Math.round(health.uptimeSeconds / 3600)}h
           {health.backupAgeHours !== null
             ? ` · backed up ${Math.round(health.backupAgeHours)}h ago`
@@ -389,34 +422,92 @@ function NeedsYou({ items, health }: { items: Attend[]; health: Health }) {
           .
         </p>
       </section>
+    ) : (
+      <section className="mt-5 overflow-hidden rounded-2xl border border-coral-600 bg-white">
+        <header className="flex items-center gap-2.5 border-b border-coral-100 bg-coral-50 px-4 py-3">
+          <h2 className="font-display text-lg font-semibold text-coral-600">Needs you</h2>
+          <span className="rounded-full bg-coral-600 px-2 py-0.5 font-mono text-xs font-semibold text-white">
+            {items.length}
+          </span>
+        </header>
+        <ul>
+          {items.map((item) => (
+            <li
+              key={item.id}
+              className="flex flex-wrap items-start gap-x-3.5 gap-y-2 border-t border-navy-100 px-4 py-3 first:border-t-0"
+            >
+              <span className="mt-0.5 min-w-[5.5rem] rounded-md border border-navy-200 bg-navy-50 px-1.5 py-0.5 text-center font-mono text-[0.6875rem] font-semibold uppercase tracking-wide text-navy-600">
+                {KIND_LABEL[item.kind]}
+              </span>
+              <span className="min-w-0 flex-1 basis-56">
+                <strong className="break-words font-semibold text-navy-900">{item.title}</strong>
+                <span className="mt-0.5 block text-sm text-navy-700">{item.detail}</span>
+              </span>
+              <span className="flex shrink-0 items-center gap-3">
+                <span className="font-mono text-xs text-navy-500">{item.age}</span>
+                {/* It hides and it fixes nothing, which is why the word is
+                    "acknowledge" and not "dismiss" or "done". */}
+                <AckButton id={item.id} label="Acknowledge" />
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
     );
-  }
+
   return (
-    <section className="mt-5 overflow-hidden rounded-2xl border border-coral-600 bg-white">
-      <header className="flex items-center gap-2.5 border-b border-coral-100 bg-coral-50 px-4 py-3">
-        <h2 className="font-display text-lg font-semibold text-coral-600">Needs you</h2>
-        <span className="rounded-full bg-coral-600 px-2 py-0.5 font-mono text-xs font-semibold text-white">
-          {items.length}
-        </span>
-      </header>
-      <ul>
-        {items.map((item) => (
-          <li
-            key={`${item.kind}-${item.title}`}
-            className="flex flex-wrap items-start gap-x-3.5 gap-y-1 border-t border-navy-100 px-4 py-3 first:border-t-0"
-          >
-            <span className="mt-0.5 min-w-[5.5rem] rounded-md border border-navy-200 bg-navy-50 px-1.5 py-0.5 text-center font-mono text-[0.6875rem] font-semibold uppercase tracking-wide text-navy-600">
-              {KIND_LABEL[item.kind]}
+    <>
+      {body}
+      <AckHistory acks={acks} />
+    </>
+  );
+}
+
+/** The words for why an acknowledgement stopped holding. */
+const ENDED_WHY: Record<string, string> = {
+  fixed: "no longer raised",
+  unhidden: "brought back",
+  superseded: "acknowledged again",
+};
+
+/**
+ * What has been acknowledged, under the band — B1203.
+ *
+ * Closed by default and counted on its own summary, so the ordinary page is
+ * the band and nothing else, and the answer to *what did I silence* is one
+ * press away rather than a thing to remember.
+ *
+ * **Every row says whether it is still holding**, because those are the two
+ * different facts a person comes here for: what am I currently not being told,
+ * and what did I answer that has since gone away. An entry still holding
+ * carries an Unhide, which is the whole undo — there is no confirmation on
+ * acknowledging precisely because this is directly beneath it.
+ */
+function AckHistory({ acks }: { acks: Ack[] }) {
+  if (acks.length === 0) return null;
+  const holding = acks.filter((one) => one.endedAt === null).length;
+  return (
+    <details className="mt-2 rounded-2xl border border-navy-200 bg-white px-4">
+      <summary className="cursor-pointer list-none py-3 text-sm font-semibold text-navy-700">
+        Show history · {holding} still hidden of {acks.length} acknowledged
+      </summary>
+      <ul className="divide-y divide-navy-100 border-t border-navy-100 pb-2">
+        {acks.map((one) => (
+          <li key={one.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2.5">
+            <span className="min-w-0 flex-1 basis-48">
+              <span className="break-words font-mono text-sm text-navy-900">{one.entryId}</span>
+              <span className="mt-0.5 block text-xs text-navy-500">
+                acknowledged {one.ackedAt.slice(0, 16).replace("T", " ")} UTC
+                {one.endedAt
+                  ? ` · ended ${one.endedAt.slice(0, 10)}, ${ENDED_WHY[one.endedWhy] ?? one.endedWhy}`
+                  : " · still hidden"}
+              </span>
             </span>
-            <span className="min-w-0 flex-1 basis-56">
-              <strong className="break-words font-semibold text-navy-900">{item.title}</strong>
-              <span className="mt-0.5 block text-sm text-navy-700">{item.detail}</span>
-            </span>
-            <span className="shrink-0 font-mono text-xs text-navy-500">{item.age}</span>
+            {one.endedAt === null ? <UnhideButton id={one.entryId} /> : null}
           </li>
         ))}
       </ul>
-    </section>
+    </details>
   );
 }
 

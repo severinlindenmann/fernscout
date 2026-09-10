@@ -28,6 +28,7 @@ import * as helperSessions from "./026-helper-sessions";
 import * as creditsHundredths from "./027-credits-hundredths";
 import * as signupPhone from "./028-signup-phone";
 import * as helperThreads from "./029-helper-threads";
+import * as adminAcks from "./030-admin-acks";
 
 /**
  * Every migration, listed by hand.
@@ -71,6 +72,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "027-credits-hundredths": creditsHundredths,
   "028-signup-phone": signupPhone,
   "029-helper-threads": helperThreads,
+  "030-admin-acks": adminAcks,
 };
 
 export const migrationProvider: MigrationProvider = {

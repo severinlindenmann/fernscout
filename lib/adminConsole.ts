@@ -421,6 +421,16 @@ export function allTombstones(): Tombstone[] {
  * ------------------------------------------------------------------ */
 
 type Wrong = {
+  /**
+   * A stable name for this fault, carrying no number — B1203.
+   *
+   * The titles here say how many hours, and an acknowledgement keyed on a
+   * title that changes hourly is one that never holds. Set by whoever raised
+   * the fault, for the same reason `backup` below is: the producer says what
+   * it produced, and a consumer matching text is a list that is always missing
+   * its next entry.
+   */
+  id: string;
   title: string;
   detail: string;
   /** True on the ones `backupWrongs` raised — B1181.
@@ -491,18 +501,21 @@ export function backupWrongs(backup: BackupStatus): Wrong[] {
   if (backup.state === "failing") {
     wrong.push({
       backup: true,
+      id: "backup:primary",
       title: "The backup is failing",
       detail: `Last success ${backup.lastSuccessAt?.slice(0, 16).replace("T", " ") ?? "never"}. ${backup.lastFailure ?? ""}`.trim(),
     });
   } else if (backup.state === "stale") {
     wrong.push({
       backup: true,
+      id: "backup:primary",
       title: `The backup has not run in ${Math.round(backup.ageHours ?? 0)} hours`,
       detail: `Anything past ${backup.maxAgeHours} hours is stale. The timer may still look enabled.`,
     });
   } else if (backup.state === "unknown") {
     wrong.push({
       backup: true,
+      id: "backup:primary",
       title: "No backup has ever been recorded",
       detail: backup.reason ?? "Nothing has written a backup status file on this server.",
     });
@@ -511,6 +524,7 @@ export function backupWrongs(backup: BackupStatus): Wrong[] {
   if (backup.secondary.state === "stale") {
     wrong.push({
       backup: true,
+      id: "backup:secondary",
       title: `The off-site copy has not arrived in ${Math.round(backup.secondary.ageHours ?? 0)} hours`,
       detail:
         `Anything past ${backup.secondary.maxAgeHours} hours is stale. The nightly run keeps ` +
@@ -549,10 +563,10 @@ export async function health(): Promise<Health> {
   wrong.push(...backupWrongs(backup));
 
   const content = contentRootProblem();
-  if (content) wrong.push({ title: "The journal directory cannot be read", detail: content });
+  if (content) wrong.push({ id: "content-root", title: "The journal directory cannot be read", detail: content });
 
   const basemap = basemapProblem();
-  if (basemap) wrong.push({ title: "The map data cannot be read", detail: basemap });
+  if (basemap) wrong.push({ id: "basemap", title: "The map data cannot be read", detail: basemap });
 
   for (const state of Object.values(resolveCapabilities())) {
     if (state.enabled) continue;
@@ -561,6 +575,7 @@ export async function health(): Promise<Health> {
       continue;
     }
     wrong.push({
+      id: `capability:${state.name}`,
       title: `${state.name} was asked for and is off`,
       detail: state.reason,
     });
@@ -814,12 +829,33 @@ export function funnel(
 
 /** One thing that will not resolve itself — B1181. */
 export type Attend = {
+  /**
+   * This entry's stable identity — B1203, and the reason it is not the title.
+   *
+   * The titles carry numbers that move: *"The off-site copy has not arrived in
+   * 226 hours"* is a different string every hour, and an acknowledgement keyed
+   * on it would last exactly until the next one. An id names the *thing*
+   * (`backup:secondary`, `disk:eva`) and never its size.
+   */
+  id: string;
   /** The kind, which is also the order these are shown in. */
   kind: "approve" | "fault" | "backup" | "disk" | "credits";
   title: string;
   detail: string;
   /** The right-hand stamp: how long it has been like this. */
   age: string;
+  /**
+   * How bad this is, in whatever unit this entry counts in — days stale,
+   * percent full, journals under the floor, the newest purchase's timestamp.
+   * Comparable **within one id and never across ids**.
+   *
+   * It exists so an acknowledgement can lapse when the thing gets worse
+   * (`lib/adminAcks.ts`), which is the difference between answering an alarm
+   * and muzzling it. An entry with nothing to measure carries 0 and is
+   * therefore hidden for as long as it is continuously present — which is
+   * right for a fault, whose only two sizes are happening and not.
+   */
+  level: number;
 };
 
 /** Where a journal's disk use stops being headroom and starts being a refused
@@ -871,9 +907,16 @@ export function attention(input: {
   const found: Attend[] = [];
 
   if (input.awaiting.length > 0) {
-    const oldest = input.awaiting.map((one) => one.requestedAt ?? one.createdAt).sort()[0];
+    const asked = input.awaiting.map((one) => one.requestedAt ?? one.createdAt).sort();
+    const oldest = asked[0];
     const days = daysSince(oldest, now);
     found.push({
+      id: "approve",
+      // The *newest* request, as a number. Acknowledging the queue says "I
+      // have seen these"; a purchase filed after that moment is a higher
+      // level and shows through, which is the only reading of this entry that
+      // does not lose somebody's money in a suppression.
+      level: Date.parse(asked[asked.length - 1] ?? "") || 0,
       kind: "approve",
       title: `${input.awaiting.length} ${input.awaiting.length === 1 ? "purchase is" : "purchases are"} waiting`,
       detail:
@@ -889,6 +932,13 @@ export function attention(input: {
   for (const wrong of input.health.wrong) {
     const days = daysSince(input.health.backup.lastSuccessAt, now);
     found.push({
+      id: wrong.id,
+      // Whole days stale for a backup, so an acknowledgement holds for a day
+      // and lapses on the next one — a copy that is still not arriving a week
+      // later is a different fact from the one that was answered.
+      // A fault has no size: it is happening or it is not, and `sweepAcks`
+      // is what makes it news again when it recurs.
+      level: wrong.backup ? (days ?? 0) : 0,
       kind: wrong.backup ? "backup" : "fault",
       title: wrong.title,
       detail: wrong.detail,
@@ -898,6 +948,11 @@ export function attention(input: {
 
   for (const trouble of input.troubles) {
     found.push({
+      // The person and the thing, never the date: `troubles` is a window over
+      // recent rows, so an id carrying `when` would be a new id every day and
+      // an acknowledgement that never held.
+      id: `trouble:${trouble.owner ?? "-"}:${trouble.what}`,
+      level: 0,
       kind: "fault",
       title: trouble.what,
       detail: `${trouble.owner ? `${trouble.owner} · ` : ""}${trouble.detail}`,
@@ -910,6 +965,11 @@ export function attention(input: {
       const full = journal.bytes / input.ceiling;
       if (full < DISK_FULL) continue;
       found.push({
+        id: `disk:${journal.username}`,
+        // Whole percent. Acknowledging at 96% holds until 97%, which on a
+        // ceiling somebody is filling a photograph at a time is the right
+        // amount of nagging: often enough to matter, rarely enough to answer.
+        level: Math.round(full * 100),
         kind: "disk",
         title: `${journal.username} is at ${Math.round(full * 100)}% of their storage`,
         detail:
@@ -930,6 +990,11 @@ export function attention(input: {
   if (empty.length > 0) {
     const named = empty.slice(0, 4).map((row) => row.username).join(", ");
     found.push({
+      id: "credits",
+      // How many are under the floor. One more journal running out is a new
+      // person who cannot send, and shows through an acknowledgement of the
+      // ones before them.
+      level: empty.length,
       kind: "credits",
       title: `${empty.length} ${empty.length === 1 ? "journal has" : "journals have"} less than one purchase's worth left`,
       detail: `${named}${empty.length > 4 ? ` and ${empty.length - 4} more` : ""} · under ${MIN_CREDITS} credits, which is the smallest amount anybody can buy.`,

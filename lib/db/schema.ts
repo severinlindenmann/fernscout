@@ -608,6 +608,36 @@ type HelperThreadsTable = {
   touched_at: string;
 };
 
+/**
+ * What the operator has said they already know about — B1203.
+ *
+ * One row per *press* on `/admin`'s attention band, not one per entry: the
+ * same backup acknowledged in June and again in August is two rows, and
+ * keeping only the second would leave the history with no history in it. A row
+ * with no `ended_at` is holding, and at most one per `entry_id` is.
+ *
+ * `level` is how bad it was when it was acknowledged, in that entry's own
+ * unit, and the suppression lapses the moment the entry is worse than that —
+ * which is what keeps an acknowledgement from becoming a muzzle over a live
+ * measurement. See `lib/db/migrations/030-admin-acks.ts`.
+ */
+type AdminAcksTable = {
+  /** The press. */
+  id: string;
+  /** Always `NO_JOURNAL` (`"*"`). Instance state, not a journal's — see the
+   *  migration for why the column exists and the value is fixed. */
+  owner_id: string;
+  /** What was pressed: the band entry's own stable id. */
+  entry_id: string;
+  level: Generated<number>;
+  acked_at: string;
+  acked_by: Generated<string>;
+  ended_at: string | null;
+  /** "fixed" when the entry stopped appearing, "unhidden" when the operator
+   *  brought it back. Empty while the row is still holding. */
+  ended_why: Generated<string>;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -631,6 +661,7 @@ export type Database = {
   helper_sessions: HelperSessionsTable;
   idempotency: IdempotencyTable;
   helper_threads: HelperThreadsTable;
+  admin_acks: AdminAcksTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -658,4 +689,5 @@ export const TABLE_NAMES = [
   "helper_sessions",
   "idempotency",
   "helper_threads",
+  "admin_acks",
 ] as const satisfies readonly (keyof Database)[];
