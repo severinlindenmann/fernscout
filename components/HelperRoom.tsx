@@ -686,7 +686,7 @@ export default function HelperRoom({
         if (subject) setNudgeCount(added.length);
       }}
     />
-    <StorageLine username={username} />
+    <StorageLine username={username} refresh={inbox.length} />
     </>
   );
 
@@ -1359,7 +1359,7 @@ function Sheet({
       ref={dialog}
       aria-label={label}
       onClose={onClose}
-      className="m-0 flex w-full max-w-none flex-col border-0 bg-white p-0 backdrop:bg-navy-900/40 fixed inset-x-0 bottom-0 top-[8dvh] max-h-none rounded-t-2xl lg:mx-auto lg:top-auto lg:max-h-[80dvh] lg:max-w-xl"
+      className="m-0 flex w-full max-w-none flex-col border-0 bg-white p-0 backdrop:bg-navy-900/40 fixed inset-x-0 bottom-0 top-[8dvh] h-[92dvh] max-h-none rounded-t-2xl lg:mx-auto lg:top-auto lg:h-auto lg:max-h-[80dvh] lg:max-w-xl"
     >
       <div className="flex items-center gap-3 border-b border-navy-200 px-4 py-2">
         {/* The handle, and it is the button: a bar somebody can only drag is a
@@ -1926,7 +1926,7 @@ const GB = (n: number) => (n / (1024 * 1024 * 1024)).toFixed(n >= 1024 * 1024 * 
  * journal is belongs with the files that fill it, not with the credits. The
  * whole line links to the owner's account page, where buying more lives.
  */
-function StorageLine({ username }: { username: string }) {
+function StorageLine({ username, refresh }: { username: string; refresh: number }) {
   const { t } = useI18n();
   const [storage, setStorage] = useState<AccountFacts["storage"] | null>(null);
   useEffect(() => {
@@ -1940,7 +1940,9 @@ function StorageLine({ username }: { username: string }) {
     return () => {
       live = false;
     };
-  }, [username]);
+    // `refresh` is the inbox count — B1350: an upload landed, so the bytes
+    // on disk moved and the bar re-reads rather than showing the old fill.
+  }, [username, refresh]);
   if (storage === null) return null;
   const ceiling = storage.ceilingBytes;
   return (
@@ -2362,39 +2364,43 @@ function UploadPanel({
         {t("agent.uploadTitle")}
       </h2>
 
-      <PhotoPicker
-        id={pickerId}
-        chosen={chosen}
-        disabled={busy}
-        onPick={(list) => {
-          const files = Array.from(list ?? []);
-          setChosen(files);
-          if (files.length > 0) void upload(files);
-        }}
-      />
-      {/* Straight to the camera, phone widths — B1216 (D33). `capture`
-          is what opens the camera rather than the roll; the file lands in
-          the same inbox as every other upload. */}
-      <div className="mt-2 lg:hidden">
-        <input
-          id={`${pickerId}-camera`}
-          type="file"
-          accept="image/*"
-          capture="environment"
+      {/* The two ways in, side by side — B1349: two lonely buttons around a
+          paragraph read as clutter on a phone. The camera stays phone-only
+          (B1216, D33); the hint moves below both. */}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <PhotoPicker
+          id={pickerId}
+          chosen={chosen}
           disabled={busy}
-          onChange={(event) => {
-            const files = Array.from(event.target.files ?? []);
+          bare
+          onPick={(list) => {
+            const files = Array.from(list ?? []);
+            setChosen(files);
             if (files.length > 0) void upload(files);
           }}
-          className="peer sr-only"
         />
-        <label
-          htmlFor={`${pickerId}-camera`}
-          className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-navy-300 bg-white px-5 text-base font-semibold text-navy-800 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-500 peer-disabled:opacity-50"
-        >
-          {t("agent.room.camera")}
-        </label>
+        <div className="lg:hidden">
+          <input
+            id={`${pickerId}-camera`}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            disabled={busy}
+            onChange={(event) => {
+              const files = Array.from(event.target.files ?? []);
+              if (files.length > 0) void upload(files);
+            }}
+            className="peer sr-only"
+          />
+          <label
+            htmlFor={`${pickerId}-camera`}
+            className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-navy-300 bg-white px-5 text-base font-semibold text-navy-800 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-500 peer-disabled:opacity-50"
+          >
+            {t("agent.room.camera")}
+          </label>
+        </div>
       </div>
+      <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.pickAnyFile")}</p>
 
       {/* Mounted from the first render, empty until there is something to
        *  say — B949 again, in the pane that taught this file the rule the

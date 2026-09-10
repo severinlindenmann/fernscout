@@ -15,12 +15,16 @@ claimed: "2026-09-10T17:35:41Z"
 
 ## Why
 
-TODO — the problem, not the fix.
+`StorageLine` fetched the account once on mount, so an upload that landed
+did not move the bar (owner's screenshot: 0.38 GB unchanged after
+uploading).
 
 ## Work
 
-TODO
+The fetch effect depends on the inbox count as well as the username: an
+upload that lands in the pane re-reads the storage numbers.
 
 ## Acceptance
 
-TODO
+Upload a photo in the files pane; the storage line under it re-fetches
+and the fill moves without a reload.

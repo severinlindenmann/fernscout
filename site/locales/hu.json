@@ -1733,7 +1733,7 @@
   "agent.room.tabChat": "Csevegés",
   "agent.room.tabs": "Területek",
   "agent.room.openOnSite": "Megnyitás az oldalon",
-  "agent.room.account": "Egyenleg és tárhely",
+  "agent.room.account": "Kreditek",
   "agent.room.closeAccount": "Bezárás",
   "agent.room.accountBalance": "Egyenleg",
   "agent.room.accountMonth": "{count} elköltve ebben a hónapban",

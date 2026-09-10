@@ -15,12 +15,18 @@ claimed: "2026-09-10T17:35:42Z"
 
 ## Why
 
-TODO — the problem, not the fix.
+Holding the microphone in the composer exploded the row: "Hört zu… 5s",
+the "Die Sprache, die du sprichst" label and a full-width select all
+rendered as row items beside the textarea (owner's screenshot).
 
 ## Work
 
-TODO
+The compact branch of `RecordButton` now renders a two-digit stopwatch
+("5s"), a screen-reader-only language label with a small inline select, the
+sr-only status and errors — no sentences in the row. The full-size form is
+unchanged.
 
 ## Acceptance
 
-TODO
+At 390px, recording shows the coral mic, "5s" and a small language select
+in one line; nothing wraps vertically.

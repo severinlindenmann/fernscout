@@ -15,12 +15,21 @@ claimed: "2026-09-10T17:35:42Z"
 
 ## Why
 
-TODO — the problem, not the fix.
+Two faults from the owner's phone: the menu entry still said "Guthaben &
+Speicher" after the storage moved to the files pane (E07), and every Sheet
+opened as a short top-anchored stub — Chrome gives `<dialog>` a UA
+`height: fit-content`, so `top-[8dvh] bottom-0` never stretched it; a sheet
+with little content (Darstellung) sat under the header and looked like
+nothing had opened.
 
 ## Work
 
-TODO
+The menu entry and sheet title read "Guthaben"/"Credits"/"Kreditek". The
+Sheet carries an explicit `h-[92dvh]` on phones (`lg:h-auto` keeps the
+desktop bottom-sheet sizing).
 
 ## Acceptance
 
-TODO
+At 390px the Darstellung sheet spans from 8dvh to the viewport bottom
+(measured 68→844 in Playwright); the ⋯ menu reads Sprache · Darstellung ·
+Guthaben · Eigenen Agenten anbinden.
