@@ -7,8 +7,7 @@ complexity: high
 area: helper room
 found: "2026-09-10T04:39:37Z"
 started: "2026-09-10T06:24:04Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-10T06:24:04Z"
+merged: "2026-09-10T06:50:38Z"
 ---
 
 # B1213 — Room decisions: honest streaming status lines while the model works (D19)
