@@ -37,7 +37,7 @@ import "server-only";
  *   the three-journals-per-address cap counts the journals this address
  *   actually created.
  */
-function adminEmail(): string | null {
+export function adminEmail(): string | null {
   const raw = process.env.FERNSCOUT_ADMIN_EMAIL?.trim().toLowerCase();
   return raw ? raw : null;
 }

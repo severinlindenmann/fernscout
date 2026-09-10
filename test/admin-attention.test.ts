@@ -116,7 +116,12 @@ describe("what wants a person", () => {
       ...QUIET,
       health: health({
         wrong: [
-          { title: "The off-site copy is 226 hours old", detail: "Remote refused.", backup: true },
+          {
+            id: "backup:secondary",
+            title: "The off-site copy is 226 hours old",
+            detail: "Remote refused.",
+            backup: true,
+          },
         ],
         backup: {
           ...health().backup,
@@ -177,7 +182,7 @@ describe("what wants a person", () => {
       ...QUIET,
       awaiting: [payment()],
       journals: [journal({ bytes: ceiling })],
-      health: health({ wrong: [{ title: "The database is unreachable", detail: "…" }] }),
+      health: health({ wrong: [{ id: "db", title: "The database is unreachable", detail: "…" }] }),
     });
     expect(out.map((one) => one.kind)).toEqual(["approve", "fault", "disk"]);
   });
