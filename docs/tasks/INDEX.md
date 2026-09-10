@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (173)
+## backlog (174)
 
 ### security (2)
 
@@ -169,7 +169,7 @@ Do not edit them by hand; run the script.
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
 | [B1180](backlog/chore/B1180-the-subscribed-apps-post-is-a.md) | The subscribed_apps POST is a documented curl, not a one-shot script | CHORE | low | low |
 
-### ops (11)
+### ops (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -181,6 +181,7 @@ Do not edit them by hand; run the script.
 | [B107](backlog/ops/B107-postcards-have-only-ever-run-from.md) | Postcards have only ever run from a laptop CLI, never as a capability of the deployed site | OPS | medium | medium |
 | [B1137](backlog/ops/B1137-there-is-no-place-to-try.md) | There is no place to try a change against real data before it reaches fernscout.ch | OPS | medium | medium |
 | [B1183](backlog/ops/B1183-whether-an-eu-art-27-representative.md) | Whether an EU Art. 27 representative is owed is a lawyer's question nobody has asked | OPS | medium | low |
+| [B1288](backlog/ops/B1288-nothing-on-the-live-instance-ever.md) | Nothing on the live instance ever fills in a day that asked for weather | OPS | medium | low |
 | [B437](backlog/ops/B437-no-postcard-has-ever-been-posted.md) | No postcard has ever been posted through a real provider account | OPS | medium | medium |
 | [B546](backlog/ops/B546-the-open-meteo-free-tier-is.md) | The Open-Meteo free tier is non-commercial and this instance takes money | OPS | medium | low |
 | [B1036](backlog/ops/B1036-content-example-s-new-trips-can.md) | content/example's new trips can flicker as malformed during ship.sh's demo sync | OPS | low | low |
