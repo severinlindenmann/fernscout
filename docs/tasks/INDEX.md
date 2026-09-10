@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (181)
+## backlog (182)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (63)
+### issue (64)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -125,6 +125,7 @@ Do not edit them by hand; run the script.
 | [B1291](backlog/issue/B1291-a-journal-with-no-usable-cover.md) | A journal with no usable cover renders half a card of flat colour on the landing page | ISSUE | low | low |
 | [B1293](backlog/issue/B1293-two-of-the-four-signup-hints.md) | Two of the four signup hints sit above their field and two below, so the address rule reads as the title rule | ISSUE | low | low |
 | [B1294](backlog/issue/B1294-the-photobook-route-answers-that-the.md) | The photobook route answers that the trip was taken down or renamed when the trip is still there | ISSUE | low | low |
+| [B1296](backlog/issue/B1296-the-room-names-trips-by-their.md) | The room names trips by their id and dates in ISO, in a conversation that otherwise speaks plainly | ISSUE | low | low |
 
 ### big-feature (14)
 
