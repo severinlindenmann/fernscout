@@ -24,10 +24,10 @@ import { sendPhotobookRefused } from "./receipt";
  * and any word Gelato adds next year are not failures: an order still being
  * decided must be left exactly where it is and asked again next time.
  *
- * Idempotent by construction. `markPrintFailed` moves the row out of
- * `print_submitted`, so a settled order is not in the next sweep's list and
- * cannot be refunded twice — the same rows-affected reasoning
- * `claimForPrint` uses.
+ * Settled exactly once, by a claim rather than by a check — B1348.
+ * `markPrintFailed` is a conditional update on rows-affected, so of two
+ * callers racing for one order only the winner refunds. Reading the status
+ * first and trusting it is what this used to do, and both callers passed.
  */
 
 /** What is never coming back. */
@@ -46,11 +46,10 @@ export function isTerminalFailure(status: string): boolean {
  * have its own idea of what settling is: money back, order marked failed,
  * owner told by mail with no download links.
  *
- * **Idempotent, and that is load-bearing.** The webhook and the sweep can
+ * **Settled once, and that is load-bearing.** The webhook and the sweep can
  * arrive at the same order seconds apart, and Gelato retries a webhook it
- * thinks failed. The status is re-read here and the order is only settled out
- * of `print_submitted`, which `markPrintFailed` then leaves — so the second
- * caller finds nothing to do and refunds nothing. Returns whether it settled.
+ * thinks failed. The claim below is what makes only one of them refund — not
+ * the read above it, which both would pass. Returns whether it settled.
  */
 export async function settleRefusedPrint(
   owner: string,
@@ -61,8 +60,30 @@ export async function settleRefusedPrint(
   if (!current || current.status !== "print_submitted") return false;
 
   const credits = current.payload.credits;
+
+  /**
+   * **Claim before refunding, never after** — B1348.
+   *
+   * The read above is not the guard it looks like. Two callers reach the same
+   * order at the same moment — Gelato's webhook and the five-minute sweep, or
+   * a webhook Gelato retries — and both see `print_submitted` before either
+   * has changed anything. `refund()` is unconditional and does not
+   * deduplicate by ref, so both would credit the owner and the second is money
+   * given away.
+   *
+   * `markPrintFailed` is now a conditional update on rows-affected, so exactly
+   * one caller wins it. The loser returns having done nothing, which is what
+   * the callers already treat as "somebody else settled this".
+   *
+   * **This order, and not the other way round**, which is `printOrder`'s own
+   * reasoning one step earlier: claiming first means a crash between the two
+   * leaves an order marked failed and not yet refunded — visible, and a
+   * person can put it right. Refunding first would mean a crash leaves it
+   * refundable again, and the failure nobody sees is the one that pays twice.
+   */
+  if (!(await markPrintFailed(owner, id, current.payload, status))) return false;
+
   await refund(owner, credits, id);
-  await markPrintFailed(owner, id, current.payload, status);
   await sendPhotobookRefused({
     owner,
     orderId: id,
