@@ -5,29 +5,14 @@ type: ISSUE
 priority: medium
 complexity: low
 area: photobook, print
-<<<<<<< HEAD
-found: "2026-09-10T15:04:02Z"
-=======
 found: "2026-09-10T06:00:00Z"
->>>>>>> b1232-spine
-merged: "2026-09-10T15:09:37Z"
+merged: "2026-09-10T06:20:00Z"
 ---
 
 # B1309 — A softcover gets no spine text even where the spine is wide enough for one
 
 ## Why
 
-<<<<<<< HEAD
-TODO — the problem, not the fix.
-
-## Work
-
-TODO
-
-## Acceptance
-
-TODO
-=======
 `renderCover` drew the spine title only `if (spineW >= 6)`. A 42-page
 200 × 200 softcover has a **3.81 mm** spine, so every soft book came out with a
 bare spine while the hardcovers were lettered — which is exactly what the owner
@@ -74,4 +59,3 @@ The order panel claims a spine title for books that will not get one — a
 28-page softcover still reads "Auf dem Buchrücken steht …". The panel would
 need the spine width, which it does not have before the build. Captured
 separately rather than half-plumbed.
->>>>>>> b1232-spine
