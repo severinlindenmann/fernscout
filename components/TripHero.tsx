@@ -183,8 +183,9 @@ export default function TripHero({
             )}
             {stats.firstDate && stats.lastDate && (
               <p className="mt-0.5 text-xs text-navy-600">
-                {formatShortDate(stats.firstDate)} –{" "}
-                {formatShortDate(stats.lastDate)}
+                {formatShortDate(stats.firstDate)}
+                {stats.firstDate !== stats.lastDate &&
+                  ` – ${formatShortDate(stats.lastDate)}`}
               </p>
             )}
             {travellerNames && (

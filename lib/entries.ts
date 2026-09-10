@@ -6,7 +6,7 @@ import { countryCodeFor } from "./flags";
 import { parseCostItems } from "./costFormat";
 import { loadUserConfig } from "./config";
 import { normalizeCurrency } from "./currency";
-import { mediaWithOwner, parseTripRef, tripDir } from "./trips";
+import { getTrip, mediaWithOwner, parseTripRef, tripDir } from "./trips";
 import { hasHappened } from "./tripTime";
 import { firstSentence } from "./narratedCut";
 import type {
@@ -578,6 +578,7 @@ export function getTripStats(ref: string, options?: ReadOptions) {
   const entries = getAllEntries(ref, options);
   const days = getDays(ref, options);
   const places = getPlaces(ref, options);
+  const trip = getTrip(ref);
 
   const tripDays =
     days.length > 1
@@ -594,7 +595,10 @@ export function getTripStats(ref: string, options?: ReadOptions) {
     places: places.length,
     countries: new Set(places.map((p) => p.country)).size,
     totalMedia: entries.reduce((n, e) => n + e.gallery.length, 0),
-    firstDate: days[0]?.date,
-    lastDate: days.at(-1)?.date,
+    // The trip's own declared dates — not the span of days actually written.
+    // A trip in progress, or one told through a single day, otherwise
+    // advertised a shorter span than it has, or "5 Sep – 5 Sep". B1259.
+    firstDate: trip?.start,
+    lastDate: trip?.end,
   };
 }
