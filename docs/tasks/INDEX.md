@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (144)
+## backlog (145)
 
 ### security (1)
 
@@ -57,13 +57,14 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 
-### issue (18)
+### issue (19)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1125](backlog/issue/B1125-every-photobook-print-quote-is-refused.md) | Every photobook print quote is refused, so the print panel can never appear | ISSUE | high | low |
 | [B1147](backlog/issue/B1147-gelato-rejects-fernscout-ch-s-credential.md) | Gelato rejects fernscout.ch's credential, so no photobook in a real journal can be priced | ISSUE | high | low |
 | [B1223](backlog/issue/B1223-three-failed-photobooks-for-one-journal.md) | Three failed photobooks for one journal share one attention-band id, so acknowledging one silently hides the other two and React sees duplicate keys | ISSUE | high | low |
+| [B1224](backlog/issue/B1224-a-two-letter-message-makes-the.md) | A two-letter message makes the model guess its language, and it guessed Japanese | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1129](backlog/issue/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
