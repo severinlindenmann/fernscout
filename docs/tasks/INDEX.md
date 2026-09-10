@@ -274,9 +274,11 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (0)
+## in-development (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B1206](in-development/B1206-getting-a-credential-into-a-session.md) | Getting a credential into a session is rediscovered every time: the four kinds are described in three skills, none of them says how to make a test journal, and the admin cookie is in none | DOCS | medium | low | `52950bf1` |
 
 ## testing (87)
 
