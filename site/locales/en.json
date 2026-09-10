@@ -497,6 +497,7 @@
   "wa.phoneLinkExpired": "This confirmation has expired. Go back to your browser and ask for a new link.",
   "wa.firstReply": "Hi! Send me your photos and notes and I'll write your days into your journal at {journalUrl}. I'm an AI, and your messages pass through WhatsApp and the model that writes them. Messaging here is free; writing a day up or transcribing a voice note still spends your journal's credits, same as on the web. Reply 'yes' to continue. You can also continue this conversation on the web: {agentUrl}",
   "wa.yes": "yes,y",
+  "wa.declineButton": "No",
   "wa.acknowledged": "Thanks — go ahead, tell me about your day.",
   "wa.heldAnswer": "Answering what you asked {when}:",
   "wa.balanceRefusal": "That would have cost {cost} credits and the balance is {balance} — top up at {url}",

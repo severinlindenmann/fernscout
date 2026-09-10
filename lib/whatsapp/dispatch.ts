@@ -654,7 +654,8 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
   // exact conversation; a bare `/agent` opens the room to a stranger who has
   // to start over, which is worse than a link doing nothing at all.
   const journalUrl = `${serverSite().url}/agent?c=${await sessionId(username, "whatsapp")}`;
-  let outbound = renderForWhatsapp(blocks, journalUrl);
+  const declineLabel = translateIn(locale, "wa.declineButton");
+  let outbound = renderForWhatsapp(blocks, journalUrl, declineLabel);
 
   // At most one write proposal reaches a WhatsApp screen at a time in
   // practice — the model calls one write tool a turn — so the first is the
@@ -671,7 +672,7 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
       // A `form`-shaped proposal (B1230's own case: `create_trip` is exactly
       // this) had no WhatsApp shape before this ticket. It gets one now,
       // built over whatever text `renderForWhatsapp` already produced.
-      outbound = confirmButtonsFor(outbound.body, proposal.accept);
+      outbound = confirmButtonsFor(outbound.body, proposal.accept, declineLabel);
       holdProposal(username, to, proposal);
     }
     // A `form`-shaped proposal for a tool this channel will never press

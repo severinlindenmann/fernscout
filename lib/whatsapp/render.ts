@@ -85,13 +85,13 @@ export const CONFIRM_NO_ID = optionId("confirm", 1, "no");
  * fallback (B1230) build it, so the ids and the 20-character ceiling can
  * never drift between the two.
  */
-export function confirmButtonsFor(body: string, acceptLabel: string): WhatsappOutbound {
+export function confirmButtonsFor(body: string, acceptLabel: string, declineLabel: string): WhatsappOutbound {
   return {
     kind: "buttons",
     body,
     buttons: [
       { id: CONFIRM_YES_ID, title: truncate(acceptLabel, BUTTON_TITLE_MAX) },
-      { id: CONFIRM_NO_ID, title: "No" },
+      { id: CONFIRM_NO_ID, title: truncate(declineLabel, BUTTON_TITLE_MAX) },
     ],
   };
 }
@@ -113,7 +113,7 @@ export function confirmButtonsFor(body: string, acceptLabel: string): WhatsappOu
  * always, and `test/helper-whatsapp-render.test.ts` is what would catch two
  * interactive blocks arriving together).
  */
-export function renderForWhatsapp(blocks: Block[], journalUrl: string): WhatsappOutbound {
+export function renderForWhatsapp(blocks: Block[], journalUrl: string, declineLabel: string): WhatsappOutbound {
   // Shape kept alongside each line — B1236 — so a `confirm` at the end can
   // tell the raw dump that backs it (its own `preview`/`files` block) from
   // the model's own prose, which stays.
@@ -207,7 +207,7 @@ export function renderForWhatsapp(blocks: Block[], journalUrl: string): Whatsapp
       }
 
       case "confirm":
-        return confirmButtonsFor(confirmBody(block.text), block.proposal?.accept ?? block.text);
+        return confirmButtonsFor(confirmBody(block.text), block.proposal?.accept ?? block.text, declineLabel);
 
       case "form":
         // No WhatsApp shape — the escape hatch the owner chose for this

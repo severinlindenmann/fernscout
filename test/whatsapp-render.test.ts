@@ -13,6 +13,7 @@ import { renderForWhatsapp } from "@/lib/whatsapp/render";
  */
 
 const URL = "https://t.test/alex";
+const DECLINE = "No";
 
 const PROPOSAL: Proposal = {
   tool: "create_trip",
@@ -27,7 +28,7 @@ const PROPOSAL: Proposal = {
 
 describe("say", () => {
   test("becomes text", () => {
-    const out = renderForWhatsapp([{ shape: "say", text: "Hello there." }], URL);
+    const out = renderForWhatsapp([{ shape: "say", text: "Hello there." }], URL, DECLINE);
     expect(out).toEqual({ kind: "text", body: "Hello there." });
   });
 });
@@ -37,6 +38,7 @@ describe("link", () => {
     const out = renderForWhatsapp(
       [{ shape: "link", text: "Here is the room.", href: "https://t.test/agent", label: "Open it" }],
       URL,
+      DECLINE,
     );
     expect(out.kind).toBe("text");
     expect((out as { body: string }).body).toContain("https://t.test/agent");
@@ -46,7 +48,7 @@ describe("link", () => {
 describe("preview", () => {
   test("is truncated at 300 characters, matching the day-announcement template", () => {
     const long = Array.from({ length: 50 }, (_, i) => `sentence ${i}`);
-    const out = renderForWhatsapp([{ shape: "preview", text: "The 2nd of May:", lines: long }], URL);
+    const out = renderForWhatsapp([{ shape: "preview", text: "The 2nd of May:", lines: long }], URL, DECLINE);
     expect(out.kind).toBe("text");
     const body = (out as { body: string }).body;
     expect(body.length).toBeLessThan(340);
@@ -59,6 +61,7 @@ describe("files", () => {
     const out = renderForWhatsapp(
       [{ shape: "files", text: "Two files waiting:", files: [{ id: "a", name: "statement.csv" }, { id: "b", name: "gpx.gpx" }] }],
       URL,
+      DECLINE,
     );
     expect(out.kind).toBe("text");
     const body = (out as { body: string }).body;
@@ -77,7 +80,7 @@ describe("choose", () => {
         { value: "b", label: "The second of May" },
       ],
     };
-    const out = renderForWhatsapp([block], URL);
+    const out = renderForWhatsapp([block], URL, DECLINE);
     expect(out.kind).toBe("buttons");
     if (out.kind !== "buttons") throw new Error("unreachable");
     expect(out.buttons).toHaveLength(2);
@@ -90,7 +93,7 @@ describe("choose", () => {
       text: "Pick one:",
       options: Array.from({ length: 7 }, (_, i) => ({ value: `v${i}`, label: `Option ${i}` })),
     };
-    const out = renderForWhatsapp([block], URL);
+    const out = renderForWhatsapp([block], URL, DECLINE);
     expect(out.kind).toBe("list");
     if (out.kind !== "list") throw new Error("unreachable");
     expect(out.rows).toHaveLength(7);
@@ -103,7 +106,7 @@ describe("choose", () => {
       text: "Pick one:",
       options: Array.from({ length: 12 }, (_, i) => ({ value: `v${i}`, label: `Option ${i}` })),
     };
-    const out = renderForWhatsapp([block], URL);
+    const out = renderForWhatsapp([block], URL, DECLINE);
     expect(out.kind).toBe("text");
     expect((out as { body: string }).body).toContain(URL);
   });
@@ -114,7 +117,7 @@ describe("choose", () => {
       text: "Your past conversations:",
       options: [{ value: "c1", label: "Yesterday", href: "https://t.test/agent?c=c1" }],
     };
-    const out = renderForWhatsapp([block], URL);
+    const out = renderForWhatsapp([block], URL, DECLINE);
     expect(out.kind).toBe("text");
     expect((out as { body: string }).body).toContain("https://t.test/agent?c=c1");
   });
@@ -123,7 +126,7 @@ describe("choose", () => {
 describe("confirm", () => {
   test("becomes two reply buttons: the accept sentence and No", () => {
     const block: Block = { shape: "confirm", text: "Make the trip?", proposal: PROPOSAL };
-    const out = renderForWhatsapp([block], URL);
+    const out = renderForWhatsapp([block], URL, DECLINE);
     expect(out.kind).toBe("buttons");
     if (out.kind !== "buttons") throw new Error("unreachable");
     expect(out.buttons).toHaveLength(2);
@@ -133,7 +136,7 @@ describe("confirm", () => {
 
   test("with no proposal, falls back to its own text as the accept button", () => {
     const block: Block = { shape: "confirm", text: "Take the 4th off the site?" };
-    const out = renderForWhatsapp([block], URL);
+    const out = renderForWhatsapp([block], URL, DECLINE);
     expect(out.kind).toBe("buttons");
     if (out.kind !== "buttons") throw new Error("unreachable");
     expect(out.buttons[0].title.length).toBeLessThanOrEqual(20);
@@ -151,7 +154,7 @@ describe("confirm", () => {
       { shape: "preview", text: sentence, lines: ["2026-09-10 — 2026-09-10", "whatsapp-photo.jpg"] },
       { shape: "confirm", text: sentence, proposal: PROPOSAL },
     ];
-    const out = renderForWhatsapp(blocks, URL);
+    const out = renderForWhatsapp(blocks, URL, DECLINE);
     expect(out.kind).toBe("buttons");
     if (out.kind !== "buttons") throw new Error("unreachable");
     const occurrences = out.body.split(sentence).length - 1;
@@ -166,7 +169,7 @@ describe("confirm", () => {
       { shape: "say", text: "Sure, here it is." },
       { shape: "confirm", text: sentence, proposal: PROPOSAL },
     ];
-    const out = renderForWhatsapp(blocks, URL);
+    const out = renderForWhatsapp(blocks, URL, DECLINE);
     expect(out.kind).toBe("buttons");
     if (out.kind !== "buttons") throw new Error("unreachable");
     expect(out.body).toBe("Sure, here it is.\n\nPutting 1 photograph onto the 10th of September.");
@@ -180,7 +183,7 @@ describe("form", () => {
       text: "A few things I need:",
       fields: [{ name: "title", value: "" }],
     };
-    const out = renderForWhatsapp([block], URL);
+    const out = renderForWhatsapp([block], URL, DECLINE);
     expect(out.kind).toBe("text");
     expect((out as { body: string }).body).toContain(URL);
   });
@@ -194,6 +197,7 @@ describe("a say followed by an interactive block", () => {
         { shape: "choose", text: "Which trip?", options: [{ value: "a", label: "Japan" }] },
       ],
       URL,
+      DECLINE,
     );
     expect(out.kind).toBe("buttons");
     if (out.kind !== "buttons") throw new Error("unreachable");

@@ -497,6 +497,7 @@
   "wa.phoneLinkExpired": "Diese Bestätigung ist abgelaufen. Geh zurück in deinen Browser und hol dir einen neuen Link.",
   "wa.firstReply": "Hallo! Schick mir deine Fotos und Notizen, und ich schreibe deine Tage in dein Journal unter {journalUrl}. Ich bin eine KI, und deine Nachrichten laufen über WhatsApp und das Modell, das sie schreibt. Schreiben ist hier kostenlos; einen Tag ausformulieren oder eine Sprachnachricht transkribieren kostet weiterhin die Credits deines Journals, genau wie im Web. Antworte mit 'ja', um fortzufahren. Du kannst dieses Gespräch auch im Web weiterführen: {agentUrl}",
   "wa.yes": "ja",
+  "wa.declineButton": "Nein",
   "wa.acknowledged": "Danke — leg los, erzähl mir von deinem Tag.",
   "wa.heldAnswer": "Antwort auf das, was du {when} gefragt hast:",
   "wa.balanceRefusal": "Das hätte {cost} Credits gekostet, und der Kontostand ist {balance} — aufladen unter {url}",

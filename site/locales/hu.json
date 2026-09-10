@@ -497,6 +497,7 @@
   "wa.phoneLinkExpired": "Ez a megerősítés lejárt. Térj vissza a böngészőbe, és kérj új linket.",
   "wa.firstReply": "Szia! Küldd el a fényképeidet és jegyzeteidet, és megírom belőlük a napjaidat a naplódba itt: {journalUrl}. Mesterséges intelligencia vagyok, és az üzeneteid a WhatsApp-on és az azokat megíró modellen keresztül haladnak. Az üzenetváltás itt ingyenes; egy nap megírása vagy egy hangüzenet átirata továbbra is a naplód krediteket használja, ugyanúgy, mint a weben. Válaszolj 'igen'-nel a folytatáshoz. Ezt a beszélgetést a weben is folytathatod: {agentUrl}",
   "wa.yes": "igen",
+  "wa.declineButton": "Nem",
   "wa.acknowledged": "Köszönöm — mesélj a napodról, amikor készen állsz.",
   "wa.heldAnswer": "Válasz arra, amit {when} kérdeztél:",
   "wa.balanceRefusal": "Ez {cost} kreditbe került volna, az egyenleg pedig {balance} — töltsd fel itt: {url}",

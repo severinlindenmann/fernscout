@@ -2156,6 +2156,7 @@ export type TranslationKey =
   | "wa.balanceRefusal"
   | "wa.contactInviteMade"
   | "wa.contactNeedsEmail"
+  | "wa.declineButton"
   | "wa.firstReply"
   | "wa.heldAnswer"
   | "wa.locationIncomplete"
