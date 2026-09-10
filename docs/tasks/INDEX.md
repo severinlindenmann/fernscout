@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (156)
+## backlog (159)
 
 ### security (2)
 
@@ -135,7 +135,7 @@ Do not edit them by hand; run the script.
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (6)
+### chore (9)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -145,6 +145,9 @@ Do not edit them by hand; run the script.
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
 | [B1180](backlog/chore/B1180-the-subscribed-apps-post-is-a.md) | The subscribed_apps POST is a documented curl, not a one-shot script | CHORE | low | low |
 | [B1364](backlog/chore/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
+| [B1365](backlog/chore/B1365-photobook-order-success-redirects-through-the.md) | Photobook order success redirects through the trip page instead of straight to the order page | CHORE | low | low |
+| [B1366](backlog/chore/B1366-order-page-shows-book-interior-pdf.md) | Order page shows book-interior.pdf and book-cover.pdf links nobody needs | CHORE | low | low |
+| [B1367](backlog/chore/B1367-photobook-order-page-reads-as-unstyled.md) | Photobook order page reads as unstyled text, not a Fernscout page | CHORE | low | low |
 
 ### ops (14)
 
@@ -342,16 +345,13 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (4)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1359](in-development/B1359-small-sheets-open-as-a-mostly.md) | Small sheets open as a mostly white full-height page | FEATURE | high | low | `b9809a36` |
-| [B1360](in-development/B1360-the-phone-tab-bar-is-three.md) | The phone tab bar is three bare words with a dash of yellow | FEATURE | high | low | `b9809a36` |
-| [B1361](in-development/B1361-the-installed-pwa-keeps-running-an.md) | The installed PWA keeps running an old build with nothing saying so | FEATURE | high | low | `b9809a36` |
 | [B1363](in-development/B1363-a-stranger-who-takes-the-landing.md) | A stranger who takes the landing page's WhatsApp door is told to go away | FEATURE | high | high | `d59a99c0` |
 
-## testing (136)
+## testing (139)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -447,6 +447,9 @@ Do not edit them by hand; run the script.
 | [B1351](testing/B1351-the-phone-tab-bar-is-clipped.md) | The phone tab bar is clipped by the iPhone's rounded corners in the PWA | ISSUE | high | low | — |
 | [B1352](testing/B1352-recording-squeezes-four-labels-into-the.md) | Recording squeezes four labels into the composer row | ISSUE | high | low | — |
 | [B1353](testing/B1353-the-sheets-open-top-anchored-on.md) | The sheets open top-anchored on a phone and the credits entry still says Speicher | ISSUE | high | low | — |
+| [B1359](testing/B1359-small-sheets-open-as-a-mostly.md) | Small sheets open as a mostly white full-height page | FEATURE | high | low | — |
+| [B1360](testing/B1360-the-phone-tab-bar-is-three.md) | The phone tab bar is three bare words with a dash of yellow | FEATURE | high | low | — |
+| [B1361](testing/B1361-the-installed-pwa-keeps-running-an.md) | The installed PWA keeps running an old build with nothing saying so | FEATURE | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |
