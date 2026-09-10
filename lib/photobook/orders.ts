@@ -270,6 +270,35 @@ export async function listSubmittedPrints(): Promise<
   });
 }
 
+/**
+ * One in-flight print, found by the id the printer knows it as — B1345.
+ *
+ * Gelato's webhook names the order by `orderReferenceId`, which is our own
+ * order id (`bookOrderFor` sends it as `reference`), and says nothing about
+ * whose journal it is. Everything else here is keyed by owner *and* id
+ * because a caller who already knows the owner must not be able to reach
+ * another journal's row by guessing an id — that does not apply to a lookup
+ * whose whole job is to answer "whose is this?".
+ *
+ * Scoped to `print_submitted` deliberately: an order in any other status has
+ * either not gone to the printer or has already been settled, and a webhook
+ * about one is nothing to act on.
+ */
+export async function findSubmittedPrint(
+  id: string,
+): Promise<{ owner: string; id: string } | null> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return null;
+  const row = await handle.db
+    .selectFrom("print_orders")
+    .select(["id", "owner_id"])
+    .where("id", "=", id)
+    .where("kind", "=", "photobook")
+    .where("status", "=", "print_submitted")
+    .executeTakeFirst();
+  return row ? { owner: row.owner_id, id: row.id } : null;
+}
+
 export async function listPrintedOrderIds(owner: string): Promise<string[]> {
   const handle = await getDatabaseOrNull();
   if (!handle) return [];

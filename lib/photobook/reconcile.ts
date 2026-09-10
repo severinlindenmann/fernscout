@@ -33,6 +33,48 @@ import { sendPhotobookRefused } from "./receipt";
 /** What is never coming back. */
 const TERMINAL_FAILURES = new Set(["failed", "canceled", "cancelled"]);
 
+/** Whether this is a status the order will never recover from. */
+export function isTerminalFailure(status: string): boolean {
+  return TERMINAL_FAILURES.has(status.trim().toLowerCase());
+}
+
+/**
+ * Settle one order the printer has finally refused — the whole of what that
+ * means, in one place, because two things now do it.
+ *
+ * The sweep finds these by asking; the webhook is told (B1345). Neither may
+ * have its own idea of what settling is: money back, order marked failed,
+ * owner told by mail with no download links.
+ *
+ * **Idempotent, and that is load-bearing.** The webhook and the sweep can
+ * arrive at the same order seconds apart, and Gelato retries a webhook it
+ * thinks failed. The status is re-read here and the order is only settled out
+ * of `print_submitted`, which `markPrintFailed` then leaves — so the second
+ * caller finds nothing to do and refunds nothing. Returns whether it settled.
+ */
+export async function settleRefusedPrint(
+  owner: string,
+  id: string,
+  status: string,
+): Promise<boolean> {
+  const current = await getPhotobookOrder(owner, id);
+  if (!current || current.status !== "print_submitted") return false;
+
+  const credits = current.payload.credits;
+  await refund(owner, credits, id);
+  await markPrintFailed(owner, id, current.payload, status);
+  await sendPhotobookRefused({
+    owner,
+    orderId: id,
+    tripTitle: getTrip(current.payload.trip)?.title ?? current.payload.trip,
+    creditsRefunded: credits,
+  });
+  console.warn(
+    `[photobook] ${id} settled as ${status} — ${credits} credits returned to ${owner}`,
+  );
+  return true;
+}
+
 export type ReconcileResult = {
   checked: number;
   settled: number;
@@ -53,26 +95,12 @@ export async function reconcileSubmittedPrints(): Promise<ReconcileResult> {
       unreachable += 1;
       continue;
     }
-    if (!TERMINAL_FAILURES.has(status.toLowerCase())) continue;
+    if (!isTerminalFailure(status)) continue;
 
-    // Re-read rather than trusting the listing: this loop can take a while,
-    // and the twenty-second check inside `submitBuiltBook` may have settled
-    // the same order in between.
-    const current = await getPhotobookOrder(order.owner, order.id);
-    if (!current || current.status !== "print_submitted") continue;
-
-    await refund(order.owner, order.credits, order.id);
-    await markPrintFailed(order.owner, order.id, current.payload, status);
-    await sendPhotobookRefused({
-      owner: order.owner,
-      orderId: order.id,
-      tripTitle: getTrip(order.trip)?.title ?? order.trip,
-      creditsRefunded: order.credits,
-    });
-    settled += 1;
-    console.warn(
-      `[photobook] ${order.id} settled as ${status} — ${order.credits} credits returned to ${order.owner}`,
-    );
+    // `settleRefusedPrint` re-reads the row rather than trusting this listing:
+    // the loop takes a while, and the webhook or `submitBuiltBook`'s own check
+    // may have settled the same order in between.
+    if (await settleRefusedPrint(order.owner, order.id, status)) settled += 1;
   }
 
   return { checked: inFlight.length, settled, unreachable };
