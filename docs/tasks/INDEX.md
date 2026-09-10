@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (153)
+## backlog (152)
 
 ### security (2)
 
@@ -112,14 +112,13 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (19)
+### small-feature (18)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1153](backlog/small-feature/B1153-handing-your-journal-to-your-own.md) | Handing your journal to your own agent means leaving the conversation to fetch the key | FEATURE | high | low |
 | [B1154](backlog/small-feature/B1154-a-key-that-can-write-to.md) | A key that can write to this journal for seven days is visible nowhere in the room | FEATURE | high | medium |
 | [B1315](backlog/small-feature/B1315-twilio-sms-inbound-inbox-in-admin.md) | Twilio SMS - inbound inbox in admin, outbound sending, SMS signup fallback | FEATURE | high | medium |
-| [B1329](backlog/small-feature/B1329-the-agent-door-tells-nobody-what.md) | The agent door tells nobody what the product is | FEATURE | high | medium |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
 | [B1069](backlog/small-feature/B1069-there-is-no-tool-surface-for.md) | There is no tool surface for an agent that would rather be guided than read a spec | FEATURE | medium | medium |
 | [B1155](backlog/small-feature/B1155-a-turn-spends-a-credit-and.md) | A turn spends a credit and nothing on screen says so | FEATURE | medium | medium |
@@ -347,7 +346,7 @@ Do not edit them by hand; run the script.
 | [B1332](in-development/B1332-the-pricing-table-prices-in-credits.md) | The pricing table prices in credits a visitor cannot judge | FEATURE | high | medium | `82456949` |
 | [B1334](in-development/B1334-the-install-hint-is-off-centre.md) | The install hint is off-centre and explains nothing about how | ISSUE | medium | low | `b9809a36` |
 
-## testing (110)
+## testing (111)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -422,6 +421,7 @@ Do not edit them by hand; run the script.
 | [B1321](testing/B1321-deleting-a-trip-requires-a-mailbox.md) | Deleting a trip requires a mailbox round-trip even for the owner standing on its page | FEATURE | high | medium | — |
 | [B1326](testing/B1326-the-room-s-light-mode-is.md) | The room's light mode is white-grey while the rest of the site is cream-navy | ISSUE | high | low | — |
 | [B1327](testing/B1327-bring-your-own-agent-is-in.md) | Bring-your-own-agent is in the footer twice, and the menu entry opens nothing on desktop | ISSUE | high | low | — |
+| [B1329](testing/B1329-the-agent-door-tells-nobody-what.md) | The agent door tells nobody what the product is | FEATURE | high | medium | — |
 | [B1330](testing/B1330-a-refused-print-tells-the-buyer.md) | A refused print tells the buyer their book is being printed | ISSUE | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |

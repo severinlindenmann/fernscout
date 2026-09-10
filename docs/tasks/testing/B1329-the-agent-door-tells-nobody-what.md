@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: agent, onboarding, design
 found: "2026-09-10T16:03:25Z"
+merged: "2026-09-10T16:29:21Z"
 ---
 
 # B1329 — The agent door tells nobody what the product is
