@@ -7,8 +7,7 @@ complexity: medium
 area: app/admin, lib/adminConsole.ts, lib/db
 found: "2026-09-10T04:06:11Z"
 started: "2026-09-10T04:06:39Z"
-session: 52950bf1-4b29-4015-80bc-50b30e0366c9
-claimed: "2026-09-10T04:06:39Z"
+merged: "2026-09-10T04:34:50Z"
 ---
 
 # B1203 — Every entry in the operator's attention band is unanswerable: it can be read but not acknowledged, so a thing you have decided to live with is on the list for ever
