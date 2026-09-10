@@ -102,8 +102,17 @@ async function sendAndRead(input: {
   creditsSpent: number;
   balance: number | null;
   files: string[];
+  size?: string;
+  cover?: string;
 }): Promise<string> {
-  await sendPhotobookReceipt(input);
+  // B1227. The mail names what was bought; these fixtures are about what it
+  // says regarding files and printing, so the two facts get a default rather
+  // than being spelled out in every case.
+  await sendPhotobookReceipt({
+    size: "Square 200 x 200 mm",
+    cover: "Softcover",
+    ...input,
+  });
   return readOnlyEml();
 }
 

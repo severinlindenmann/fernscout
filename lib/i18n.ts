@@ -1537,6 +1537,8 @@ export type TranslationKey =
   | "photobook.composer.bookSettingsHint"
   | "photobook.composer.keyHint"
   | "photobook.composer.tapHint"
+  | "photobook.cover.hard.name"
+  | "photobook.cover.soft.name"
   | "photobook.day.adjustCrop"
   | "photobook.day.adjustCropShort"
   | "photobook.day.applyToAll"
