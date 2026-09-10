@@ -210,3 +210,35 @@ describe("a claim about a screen or a page, on WhatsApp", () => {
     expect(JSON.stringify(last)).toContain("Drücke den Button");
   });
 });
+
+/**
+ * B1262 — the recorded `guard` names the check that authored what actually
+ * shipped, not the check that only fired on a discarded first draft.
+ *
+ * Scripted so the two passes are caught for genuinely different reasons: the
+ * first draft claims a screen (caught, retried); the retry's own draft drops
+ * the screen claim but goes on to claim a write with nothing pressed and
+ * nothing written (a different check, "claim"). The fallback sentence sent
+ * to the person is `PLAINLY.claim`, so the durable row has to say "claim",
+ * not "screen".
+ */
+describe("a turn whose retry trades one false claim for another", () => {
+  test("the recorded guard names the check behind the delivered sentence", async () => {
+    await bindGreetAcknowledge("guardtest", "41760009999");
+    create
+      .mockResolvedValueOnce(says("Schau auf deinem Bildschirm, dort steht alles."))
+      .mockResolvedValueOnce(says("Der Tag ist gespeichert."));
+    await handleInboundMessage(textMessage("41760009999", "wamid.guard-1", "was ist mit meinem tag"));
+
+    const { db } = (await getDatabase())!;
+    const rows = await db
+      .selectFrom("helper_sessions")
+      .selectAll()
+      .where("owner_id", "=", "guardtest")
+      .where("kind", "=", "turn")
+      .execute();
+    const row = rows.find((r) => r.said === "was ist mit meinem tag");
+    expect(row?.guard).toBe("claim");
+    expect(row?.recovered).toBeFalsy();
+  });
+});

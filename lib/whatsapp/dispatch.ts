@@ -2,7 +2,7 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { reversePlace } from "../addressLookup";
-import { createDraft, factsOfInput, type DraftInput } from "../api/entries";
+import { createDraft, editEntry, factsOfEntry, factsOfInput, type DraftInput } from "../api/entries";
 import { fillDayWeatherQuietly } from "../api/weather";
 import { isEmail } from "../auth";
 import { isEnabled } from "../capabilities";
@@ -10,8 +10,10 @@ import { contentRoot } from "../contentRoot";
 import { createInvite, inviteLinkUrl } from "../contacts/invites";
 import { balanceOf } from "../credits";
 import { getUser } from "../users";
+import { AS_AUTHOR, getAllEntries } from "../entries";
 import { currentHelperProvider, hasHelperConsent, recordHelperConsent } from "../helper/consent";
 import { NO_PROSE } from "../helper/draft";
+import type { Proposal } from "../helper/blocks";
 import type { Say } from "../helper/intents";
 import { answerInThread, WRITE_DAY_CREDITS } from "../helper/model";
 import { recordTurn } from "../helper/sessions";
@@ -433,6 +435,10 @@ async function handleMedia(username: string, locale: string, message: MediaMessa
     downloaded = await downloadMedia(cloudCredentials(), message.mediaId);
   } catch (err) {
     console.error(`[whatsapp:inbound] could not download ${message.kind} for ${username}:`, err);
+    // B1263 — a sender who just sent a photo and gets nothing back cannot
+    // tell a real failure from "still typing…". One honest sentence, rather
+    // than the silence this used to leave.
+    await sendServiceReply(message.from, translateIn(locale, "wa.mediaDownloadFailed"), username);
     return;
   }
 
@@ -526,6 +532,35 @@ async function handleLocationPin(
     ? await reversePlace(message.latitude, message.longitude, locale)
     : null;
 
+  /**
+   * A day already on this date gets the coordinates attached, rather than
+   * refusing because `createDraft`'s slug (`slugify(date)`) collides with it
+   * — B1263. This is exactly what `handleInboundMessage`'s own turn resolves
+   * a date against elsewhere (`resolveDay` in `lib/helper/tools/resolve.ts`),
+   * read directly here rather than through a tool.
+   */
+  const existing = getAllEntries(ref, AS_AUTHOR).find((entry) => entry.date === date);
+  if (existing) {
+    const edited = editEntry(ref, existing.slug, {
+      lat: message.latitude,
+      lng: message.longitude,
+      ...(place ? { location: place.location, country: place.country } : {}),
+      ...(place?.countryCode ? { countryCode: place.countryCode } : {}),
+    });
+    if (edited.ok) {
+      wrote(username, "edit_entry", { trip: trip.id, slug: existing.slug, date }, "whatsapp");
+      await sendServiceReply(
+        message.from,
+        translateIn(locale, "wa.locationAttached", { date, title: trip.title }),
+        username,
+      );
+    } else {
+      console.error(`[whatsapp:inbound] could not attach a location pin to ${ref}/${existing.slug}: ${edited.error}`);
+      await sendServiceReply(message.from, translateIn(locale, "wa.locationIncomplete", { title: trip.title }), username);
+    }
+    return;
+  }
+
   const input: DraftInput = {
     title: date,
     date,
@@ -551,6 +586,11 @@ async function handleLocationPin(
 
   const written = createDraft(ref, input);
   if (!written.ok) {
+    // The `day_exists` collision this used to hit here is handled above now
+    // — whatever reaches this refusal is a genuine reason nothing could be
+    // written, worth the real reason in the log even though the sentence to
+    // the sender stays the same honest "needs more first".
+    console.error(`[whatsapp:inbound] could not create a day for a location pin in ${ref}: ${written.error}`);
     await sendServiceReply(message.from, translateIn(locale, "wa.locationIncomplete", { title: trip.title }), username);
     return;
   }
@@ -658,23 +698,8 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
   }
   if (thread.answer === "" && thread.blocks.length === 0) return;
 
-  remember(username, said, thread.answer, "whatsapp");
-  void recordTurn({
-    owner: username,
-    session: await sessionId(username, "whatsapp"),
-    locale,
-    tools: thread.looked,
-    proposed: thread.proposals.map((proposal) => proposal.tool),
-    guard: thread.guard,
-    recovered: thread.recovered,
-    threadTurns: (await history(username)).length,
-    said,
-    answered: thread.answer,
-    origin: "whatsapp",
-  });
   for (const proposal of thread.proposals) proposed(username, proposal.tool, proposal.arguments, "whatsapp");
 
-  const blocks = [...thread.blocks, ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }])];
   // At most one write proposal reaches a WhatsApp screen at a time in
   // practice — the model calls one write tool a turn — so the first is the
   // one a tap can be about; see the module doc above `holdProposal`.
@@ -702,20 +727,57 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
   // to start over, which is worse than a link doing nothing at all.
   const journalUrl = `${serverSite().url}/agent?c=${await sessionId(username, "whatsapp")}${about}`;
   const declineLabel = translateIn(locale, "wa.declineButton");
-  let outbound = renderForWhatsapp(blocks, journalUrl, declineLabel);
+
+  /**
+   * A turn that proposes more than once — B1261, scenario-guards.md finding
+   * 2. The pending-proposal store holds exactly one waiting write per
+   * number, so only `proposal` (the first) can ever be pressed from here.
+   * Every other write's `confirm`/`form` block is turned into plain prose
+   * with its own honest next-step, *before* rendering — rather than drawing
+   * buttons a tap could never find (`pendingProposal.ts`'s take-once read
+   * only ever has room for one).
+   */
+  const blocks = [
+    ...thread.blocks.map((block) => {
+      if ((block.shape !== "confirm" && block.shape !== "form") || !block.proposal || block.proposal === proposal) {
+        return block;
+      }
+      return {
+        shape: "say" as const,
+        text: `${block.text} ${translateIn(locale, "wa.secondProposalNote", { url: journalUrl })}`,
+      };
+    }),
+    ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }]),
+  ];
+
+  const moreText = translateIn(locale, "wa.moreInThread");
+  const messages = renderForWhatsapp(blocks, journalUrl, declineLabel, moreText);
 
   if (proposal) {
-    if (outbound.kind === "buttons") {
+    const tagged = messages.findIndex((message) => message.proposal === proposal);
+    if (tagged !== -1) {
       // A `confirm` block already drew these buttons (B1056) — hold the
       // proposal so a tap on them can find it. Whether the tap goes on to
       // execute or is told this lives on the web is `handleProposalReply`'s
       // question, not this one's.
       holdProposal(username, to, proposal);
     } else if (isWhatsappExecutable(proposal.tool)) {
-      // A `form`-shaped proposal (B1230's own case: `create_trip` is exactly
-      // this) had no WhatsApp shape before this ticket. It gets one now,
-      // built over whatever text `renderForWhatsapp` already produced.
-      outbound = confirmButtonsFor(outbound.body, proposal.accept, declineLabel);
+      /**
+       * A `form`-shaped proposal (B1230's own case: `create_trip` is exactly
+       * this) had no WhatsApp shape before B1230, and draws no message of
+       * its own from `renderForWhatsapp` (see the module doc: `form` only
+       * ever folds into the running prose). Given how `blocks` is built
+       * above — every read tool's own block, then this turn's own write
+       * proposal, then the model's own trailing sentence — that prose always
+       * ends up in the *last* message `renderForWhatsapp` returns. Upgrade
+       * that one to real buttons, built over whatever text it already
+       * carries.
+       */
+      const last = messages[messages.length - 1];
+      messages[messages.length - 1] = {
+        ...confirmButtonsFor(last.kind === "text" ? last.body : "", proposal.accept, declineLabel),
+        proposal,
+      };
       holdProposal(username, to, proposal);
     }
     // A `form`-shaped proposal for a tool this channel will never press
@@ -723,7 +785,27 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
     // no button is offered for a press that could not do anything.
   }
 
-  await sendOutboundReply(to, outbound, username);
+  // B1261 — what the person actually saw, not the model's own undropped
+  // prose, is what the conversation and the diagnostic log both remember
+  // from here on: every message this turn actually sent, joined the same
+  // way a person reads several bubbles in a row.
+  const delivered = messages.map((message) => message.body).join("\n\n");
+  remember(username, said, delivered, "whatsapp");
+  void recordTurn({
+    owner: username,
+    session: await sessionId(username, "whatsapp"),
+    locale,
+    tools: thread.looked,
+    proposed: thread.proposals.map((one) => one.tool),
+    guard: thread.guard,
+    recovered: thread.recovered,
+    threadTurns: (await history(username)).length,
+    said,
+    answered: delivered,
+    origin: "whatsapp",
+  });
+
+  for (const message of messages) await sendOutboundReply(to, message, username);
 }
 
 /**
@@ -757,6 +839,58 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
  */
 const CREDIT_COST_BY_TOOL: Record<string, number> = { draft_words: WRITE_DAY_CREDITS };
 
+/**
+ * The two tools a press of which really puts words on a day — B1264.
+ *
+ * `draft_words` writes nothing (see the module doc in
+ * `app/api/helper/[user]/day/write-day/route.ts`): it only returns prose for
+ * `set_day_words` to keep on a later press, so a nudge on *its* press would
+ * be reading a day that has not changed yet. The date/slug a nudge needs to
+ * find the day is what each of these two proposals' own `arguments` already
+ * carries — `start_day`'s `date` (always concrete: `resolveTrip`/
+ * `firstUnwritten` filled it in before the card was ever shown) and
+ * `set_day_words`'s `slug`.
+ */
+const DAY_WRITE_TOOLS: Record<string, "date" | "slug"> = { start_day: "date", set_day_words: "slug" };
+
+/**
+ * One short question, appended to the fixed confirmation, when the day this
+ * press just touched verifiably still lacks something — B1264.
+ *
+ * Mechanical rather than prompted: B1244's own prompt line asking the model
+ * to do this "sometimes, gently" never fired in a live run
+ * (scenario-dayflow.md step 5). This reads the day straight back off disk
+ * after the write, the same way every honesty guard in `lib/helper/model.ts`
+ * checks a claim against the turn rather than trusting it — so the question
+ * only ever follows a day that is really missing the thing it asks about,
+ * and a day that explicitly declined one (`without:`) is never re-asked.
+ *
+ * At most one question, in this order: no coordinates first (the more useful
+ * of the two to have early — costs can be added long after), then costs.
+ * Weather is never asked for — it is the server's own lookup, never a
+ * question to the person (AGENTS.md).
+ */
+function enrichmentNudge(username: string, locale: string, pending: Proposal): string | null {
+  const key = DAY_WRITE_TOOLS[pending.tool];
+  if (!key) return null;
+  const tripId = pending.arguments.trip;
+  const wanted = pending.arguments[key];
+  if (!tripId || !wanted) return null;
+
+  const ref = tripRef(username, tripId);
+  const entry = getAllEntries(ref, AS_AUTHOR).find((one) => (key === "date" ? one.date === wanted : one.slug === wanted));
+  if (!entry) return null;
+
+  const facts = factsOfEntry(entry);
+  if (!facts.coordinates && !facts.without.includes("coordinates")) {
+    return translateIn(locale, "wa.enrichLocation");
+  }
+  if (!facts.costs && !facts.without.includes("costs")) {
+    return translateIn(locale, "wa.enrichCosts");
+  }
+  return null;
+}
+
 async function handleProposalReply(username: string, locale: string, to: string, accepted: boolean): Promise<void> {
   const pending = takePendingProposal(username, to);
   if (!pending) {
@@ -770,7 +904,9 @@ async function handleProposalReply(username: string, locale: string, to: string,
 
   const result = await pressProposal(username, pending);
   if (result.ok) {
-    await sendOutboundReply(to, { kind: "text", body: pending.done }, username);
+    const nudge = enrichmentNudge(username, locale, pending);
+    const body = nudge ? `${pending.done}\n\n${nudge}` : pending.done;
+    await sendOutboundReply(to, { kind: "text", body }, username);
     console.log(`[whatsapp:inbound] ${maskNumber(to)} (${username}) pressed ${pending.tool} from WhatsApp`);
     return;
   }

@@ -141,6 +141,31 @@ describe("a location pin", () => {
     expect(last).toContain("2023-11-14");
   });
 
+  test("on a date that already has a day attaches the coordinates instead of refusing — B1263", async () => {
+    await bindGreetAcknowledge("locontest", "41760070707");
+    writeTrip("locontest", "reise", "2023-11-01", "2023-11-20");
+    const entryPath = path.join(dir, "locontest", "trips", "reise", "entries", "2023-11-14-hike.md");
+    fs.writeFileSync(
+      entryPath,
+      ["---", 'title: "Hike"', 'date: "2023-11-14"', "status: draft", "---", "", "We hiked."].join("\n"),
+    );
+
+    await handleInboundMessage(locationMessage("41760070707", "wamid.loc-existing", "1699963200"));
+
+    const days = getDays(tripRef("locontest", "reise"), AS_AUTHOR);
+    const matching = days.filter((d) => d.date === "2023-11-14");
+    // Exactly one day for the date — nothing new was created alongside it.
+    expect(matching.length).toBe(1);
+    expect(matching[0].lead.lat).toBeCloseTo(46.5);
+    expect(matching[0].lead.lng).toBeCloseTo(7.9);
+    // The original prose survives — this was an edit, not a fresh write.
+    expect(fs.readFileSync(entryPath, "utf8")).toContain("We hiked.");
+
+    const files = repliesTo("locontest");
+    const last = String(files[files.length - 1].body);
+    expect(last).toContain("2023-11-14");
+  });
+
   test("with two trips covering the date, the most recently created wins", async () => {
     await bindGreetAcknowledge("locontest", "41760040404");
     writeTrip("locontest", "older", "2023-11-01", "2023-11-20", "Older trip");

@@ -277,3 +277,23 @@ describe("video", () => {
     expect(findInboxFile("mediatest", "media-video-1")).toBeNull();
   });
 });
+
+/**
+ * B1263 — a failed download used to say nothing at all. A sender who just
+ * sent a photo has no way to tell a real failure from "still typing…".
+ */
+describe("a media download that fails", () => {
+  test("gets one honest sentence back, in the journal's locale", async () => {
+    await bindGreetAcknowledge("mediatest", "41760012012");
+    downloadMedia.mockRejectedValueOnce(new Error("graph.facebook.com is unreachable"));
+
+    await handleInboundMessage(imageMessage("41760012012", "wamid.img-fail"));
+
+    const listed = listInbox("mediatest");
+    expect(listed.media).toHaveLength(0);
+    const files = repliesTo("mediatest");
+    const last = String(files[files.length - 1].body);
+    expect(last.length).toBeGreaterThan(0);
+    expect(last).not.toMatch(/graph\.facebook\.com/);
+  });
+});

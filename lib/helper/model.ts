@@ -521,8 +521,6 @@ If they tell you a proposal is wrong — "no, the 14th", "make it private", "tha
 
 Publishing is the same shape with one difference: publish_day shows them the day as their readers will see it and then the button. It never happens because of a sentence, yours or theirs.
 
-Day started: ask one gap — place or cost, not weather
-
 WHAT YOU STILL CANNOT DO, AND WHAT TO SAY INSTEAD
 
 - Deleting a day, a trip or the whole journal: not from here at all, and there is no tool for it. Deleting a journal or a trip finishes in their email — the server sends a single-use link to a page with a button, and only that button deletes. Taking a day off the site is not deleting: that is unpublish_day, and nothing is lost by it.
@@ -568,13 +566,24 @@ export type ThreadAnswer = {
   /** Proposals a write tool made. Nothing was written; B900 is the press. */
   proposals: Proposal[];
   /**
-   * Which honesty check caught this turn, if one did, and whether asking again
-   * produced something true — B976.
+   * Which honesty check authored what actually shipped, and whether asking
+   * again produced something true — B976, corrected by B1262.
    *
    * Counted since B920 as three process-global integers, which answer "is the
    * rate rising" and nothing else: not which guard, not on what kind of turn,
    * and not across a restart. Every fault fixed on 2026-09-08 was found by
    * paying somebody to drive the live site, because this was not recorded.
+   *
+   * **Not always the first check's verdict.** A retry can trade one false
+   * claim for a different one — told "you claimed a screen", the model's
+   * second draft can go on to claim a write instead. When the retry also
+   * fails, the sentence the person receives is `PLAINLY[again]` — the
+   * *second* `amiss()` call's verdict — so that is what is recorded here,
+   * because a log meant for diagnosing exactly this class of bug has to name
+   * the rule that authored the delivered sentence, not the rule that only
+   * shaped a discarded first draft. When the retry recovers, there is no
+   * second violation to name, so the first check that fired (and was fixed)
+   * is what is recorded, same as before.
    */
   guard: string;
   recovered: boolean;
@@ -1629,6 +1638,14 @@ export async function answerInThread(
 
       messages.push({ role: "assistant", content: response.content });
       const results: Anthropic.ToolResultBlockParam[] = [];
+      // B1261, ctxloss finding 1 — `trips`' own `choose` (every trip, a
+      // picker) is honest only when nothing else this round already
+      // resolved which one to use. Held back rather than pushed straight
+      // in, and only added once the whole round is known to be free of a
+      // write proposal — a round that both lists trips and proposes a write
+      // has, by definition, already decided which trip the write is for.
+      let roundHasProposal = false;
+      const deferredTripsBlocks: Block[] = [];
       for (const call of calls) {
         looked.push(call.name);
         const tool = TOOLS.find((one) => one.name === call.name);
@@ -1641,6 +1658,7 @@ export async function answerInThread(
           today,
           selected,
         );
+        if (proposal) roundHasProposal = true;
         /**
          * The same proposal twice in one turn draws once — B1202/B1212
          * (D23). A model calling one write tool twice with identical
@@ -1657,7 +1675,11 @@ export async function answerInThread(
               one.tool === proposal.tool &&
               JSON.stringify(one.arguments) === JSON.stringify(proposal.arguments),
           );
-        if (!twin) blocks.push(...drawn);
+        if (!twin && call.name === "trips") {
+          deferredTripsBlocks.push(...drawn);
+        } else if (!twin) {
+          blocks.push(...drawn);
+        }
         if (proposal && !twin) proposals.push(proposal);
         if (call.name === "trip_costs") {
           const said = result as { notInTheTotal?: { currency?: unknown }[] } | null;
@@ -1675,6 +1697,7 @@ export async function answerInThread(
           content: JSON.stringify(result).slice(0, 20000),
         });
       }
+      if (!roundHasProposal) blocks.push(...deferredTripsBlocks);
       messages.push({ role: "user", content: results });
     }
 
@@ -1954,9 +1977,10 @@ export async function answerInThread(
   } as const;
 
   const wrong = amiss();
-  // What was caught and whether the second answer was honest — kept so the row
-  // this turn writes can say so (B976), rather than only the counter.
+  // What was caught on the first pass — kept as the recorded guard unless a
+  // retry's own second violation replaces it below (B1262).
   const caught = wrong;
+  let shipped = caught;
   let recovered = false;
   if (wrong !== "") {
     honesty.claimed += 1;
@@ -1967,12 +1991,15 @@ export async function answerInThread(
     if (again !== "") {
       honesty.unrecovered += 1;
       answer = say(PLAINLY[again]);
+      // The fallback sentence is keyed by `again`, not by `caught` — record
+      // the check that actually authored what shipped (B1262's finding 1).
+      shipped = again;
     } else {
       recovered = true;
     }
   }
 
-  return { answer, looked, blocks, proposals, guard: caught, recovered };
+  return { answer, looked, blocks, proposals, guard: shipped, recovered };
 }
 
 /* -------------------------------------------------------------------------

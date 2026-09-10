@@ -95,12 +95,25 @@ async function sendCloud(to: string, outbound: WhatsappOutbound): Promise<void> 
   }
 }
 
+/**
+ * Breaks ties within one millisecond — B1261. A single turn can now send
+ * several messages in a row (`lib/whatsapp/dispatch.ts` loops over
+ * `renderForWhatsapp`'s own array), and `Date.now()` has no more resolution
+ * than a millisecond: two sequential synchronous writes reliably land in the
+ * same one, and the second used to silently overwrite the first on disk —
+ * a dry-run-only bug, since the real Cloud API path never touches this file
+ * at all, but real enough to lose a reply in every local run and every test
+ * that reads this folder back.
+ */
+let dryRunSeq = 0;
+
 function sendDryRun(to: string, outbound: WhatsappOutbound, username: string | null): void {
   const dir = outputDir(username);
   fs.mkdirSync(dir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const seq = String(dryRunSeq++).padStart(6, "0");
   fs.writeFileSync(
-    path.join(dir, `${stamp}-${maskNumber(to)}.json`),
+    path.join(dir, `${stamp}-${seq}-${maskNumber(to)}.json`),
     JSON.stringify({ to, ...outbound }, null, 2) + "\n",
     "utf8",
   );
