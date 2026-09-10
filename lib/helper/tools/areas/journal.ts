@@ -43,7 +43,7 @@ export const JOURNAL_TOOLS: readonly Tool[] = [
     kind: "read",
     renders: "say",
     describe:
-      "This journal's own account: credits left, and disk space used out of what it may. Credits pay for the model, captions, transcription and printing, not a trip's money (trip_costs). A null balance means this server charges for nothing. Bytes only — never where anything is.",
+      "This journal's own account: credits left and disk space used. Credits pay for model, captions, transcription and printing, not a trip's money (trip_costs). A null balance means nothing is charged. Bytes only — never where anything is.",
     properties: {},
     run: async (username) => {
       const usage = await storageFor(username);
@@ -68,7 +68,10 @@ export const JOURNAL_TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "form",
     describe:
-      "Change the journal's own title or tagline. Never a capability switch — those live on a page, not in a chat.",
+      // The one-journal sentence is B1341 (E03 A): asked for a "new journal",
+      // the model proposed this rename form and the owner read it as a second
+      // journal appearing. Saying the rule to the model is what stops that.
+      "Change the journal's own title or tagline. Never a capability switch — those live on a page, not in a chat. One account has one journal: asked for a new journal, say so and offer a new trip or a rename instead; never propose this unasked.",
     properties: {
       title: { type: "string", description: "The journal's own title." },
       tagline: { type: "string", description: "One line under the title. Empty clears it." },

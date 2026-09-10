@@ -1912,6 +1912,7 @@
   "agent.tool.coverSoft": "soft",
   "agent.chat.nothingWritten": "Nothing has been written.",
   "agent.chat.leftIt": "Left as it was. Nothing was written and nothing was charged.",
+  "agent.chat.viaWhatsapp": "arrived via WhatsApp",
   "agent.chat.writing": "Writing…",
   "agent.chat.leaveIt": "Leave it",
   "agent.chat.orSayWhatIsWrong": "Or say what is wrong — “no, the 14th” — and it comes back changed.",

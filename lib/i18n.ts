@@ -181,6 +181,7 @@ export type TranslationKey =
   | "agent.chat.statusReading"
   | "agent.chat.statusWriting"
   | "agent.chat.title"
+  | "agent.chat.viaWhatsapp"
   | "agent.chat.working"
   | "agent.chat.writing"
   | "agent.chat.you"

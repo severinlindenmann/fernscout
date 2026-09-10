@@ -125,7 +125,7 @@ export const DAYS_TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "form",
     describe:
-      "Propose starting a day of a trip — an empty day with a date, ready for words and photographs. Nothing is created until they press. Leave the date out and it fills in the first day of the trip nobody has written yet.",
+      "Propose starting a day of a trip — an empty day with a date, ready for words and photographs. Nothing is created until they press. Without a date it fills in the trip's first unwritten day.",
     properties: {
       ...TRIP_ARG,
       date: { type: "string", description: "The day, as YYYY-MM-DD. Omit to use the first unwritten day." },
@@ -262,7 +262,7 @@ export const DAYS_TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "form",
     describe:
-      "Propose the title and the words of a day that already exists. Use their own words, never yours. Nothing is saved until they press, and a day already on the site stays on the site. Also how a wrong word on a day is corrected.",
+      "Propose the title and words of a day that already exists. Use their own words, never yours. Nothing is saved until they press; a published day stays on the site. Also how a wrong word is corrected.",
     properties: {
       ...DAY_ARGS,
       title: { type: "string", description: "The day's title, short, from what they said." },
