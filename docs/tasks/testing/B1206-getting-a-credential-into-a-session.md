@@ -7,8 +7,7 @@ complexity: low
 area: .claude/skills
 found: "2026-09-10T04:35:53Z"
 started: "2026-09-10T04:35:59Z"
-session: 52950bf1-4b29-4015-80bc-50b30e0366c9
-claimed: "2026-09-10T04:35:59Z"
+merged: "2026-09-10T04:51:05Z"
 ---
 
 # B1206 — Getting a credential into a session is rediscovered every time: the four kinds are described in three skills, none of them says how to make a test journal, and the admin cookie is in none

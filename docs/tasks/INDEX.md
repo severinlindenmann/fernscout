@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (143)
+## backlog (144)
 
 ### security (1)
 
@@ -57,12 +57,13 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 
-### issue (17)
+### issue (18)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1125](backlog/issue/B1125-every-photobook-print-quote-is-refused.md) | Every photobook print quote is refused, so the print panel can never appear | ISSUE | high | low |
 | [B1147](backlog/issue/B1147-gelato-rejects-fernscout-ch-s-credential.md) | Gelato rejects fernscout.ch's credential, so no photobook in a real journal can be priced | ISSUE | high | low |
+| [B1223](backlog/issue/B1223-three-failed-photobooks-for-one-journal.md) | Three failed photobooks for one journal share one attention-band id, so acknowledging one silently hides the other two and React sees duplicate keys | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1129](backlog/issue/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
@@ -288,15 +289,14 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (3)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1207](in-development/B1207-room-decisions-the-clean-app-restyle.md) | Room decisions: the Clean App restyle and open two-column proposal cards (D01 D05) | FEATURE | high | high | `b9809a36` |
 | [B1208](in-development/B1208-room-decisions-header-identity-credits-and.md) | Room decisions: header identity, credits and the overflow menu (D53 D06 D07 D08 D10 D17 D43) | FEATURE | high | medium | `b9809a36` |
-| [B1206](in-development/B1206-getting-a-credential-into-a-session.md) | Getting a credential into a session is rediscovered every time: the four kinds are described in three skills, none of them says how to make a test journal, and the admin cookie is in none | DOCS | medium | low | `52950bf1` |
 
-## testing (87)
+## testing (88)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -381,6 +381,7 @@ Do not edit them by hand; run the script.
 | [B1201](testing/B1201-a-new-conversation-is-invisible-in.md) | A new conversation is invisible in the history panel, so nothing says where you are | ISSUE | medium | low | — |
 | [B1203](testing/B1203-every-entry-in-the-operator-s.md) | Every entry in the operator's attention band is unanswerable: it can be read but not acknowledged, so a thing you have decided to live with is on the list for ever | FEATURE | medium | medium | — |
 | [B1204](testing/B1204-the-first-reply-does-not-say.md) | The first reply does not say the conversation continues on the web | FEATURE | medium | low | — |
+| [B1206](testing/B1206-getting-a-credential-into-a-session.md) | Getting a credential into a session is rediscovered every time: the four kinds are described in three skills, none of them says how to make a test journal, and the admin cookie is in none | DOCS | medium | low | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
 | [B1096](testing/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low | — |
 | [B1127](testing/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low | — |
