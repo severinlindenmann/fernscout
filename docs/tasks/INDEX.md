@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (141)
+## backlog (139)
 
 ### security (2)
 
@@ -103,14 +103,12 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (20)
+### small-feature (18)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1153](backlog/small-feature/B1153-handing-your-journal-to-your-own.md) | Handing your journal to your own agent means leaving the conversation to fetch the key | FEATURE | high | low |
 | [B1154](backlog/small-feature/B1154-a-key-that-can-write-to.md) | A key that can write to this journal for seven days is visible nowhere in the room | FEATURE | high | medium |
-| [B1216](backlog/small-feature/B1216-room-decisions-files-drop-paste-progress.md) | Room decisions: files — drop, paste, progress rings, nudge, tile menu (D29 D30 D31 D32 D34) | FEATURE | high | medium |
-| [B1217](backlog/small-feature/B1217-room-decisions-history-clean-titles-search.md) | Room decisions: history — clean titles, search, a Tage tab (D35 D36 D44) | FEATURE | high | medium |
 | [B1218](backlog/small-feature/B1218-room-decisions-opening-and-follow-through.md) | Room decisions: opening and follow-through — progress, undo, weather, costs, share (D45 D47 D48 D49 D51) | FEATURE | high | medium |
 | [B1220](backlog/small-feature/B1220-room-decisions-platform-polish-pwa-hint.md) | Room decisions: platform polish — PWA hint, haptics, shortcuts, wizard retirement (D40 D41 D42 D52) | FEATURE | high | medium |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
@@ -285,10 +283,12 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (1)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1216](in-development/B1216-room-decisions-files-drop-paste-progress.md) | Room decisions: files — drop, paste, progress rings, nudge, tile menu (D29 D30 D31 D32 D34) | FEATURE | high | medium | `b9809a36` |
+| [B1217](in-development/B1217-room-decisions-history-clean-titles-search.md) | Room decisions: history — clean titles, search, a Tage tab (D35 D36 D44) | FEATURE | high | medium | `b9809a36` |
 | [B1219](in-development/B1219-room-decisions-an-evening-reminder-during.md) | Room decisions: an evening reminder during a trip (D46) | FEATURE | high | high | `b9809a36` |
 
 ## testing (107)
