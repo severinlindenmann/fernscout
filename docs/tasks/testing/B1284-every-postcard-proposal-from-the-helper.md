@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: helper, postcards
 found: "2026-09-10T10:50:47Z"
+merged: "2026-09-10T15:35:06Z"
 ---
 
 # B1284 — Every postcard proposal from the helper is refused, because it sends a name slug where a contact id is required
