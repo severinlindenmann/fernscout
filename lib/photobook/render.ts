@@ -972,7 +972,7 @@ function addEndLeaves(builder: PdfBuilder, spec: BookSpec): void {
       height: mm(media.height),
     });
     /**
-     * Endpapers, not blanks — B1314.
+     * Endpapers, not blanks — B1318.
      *
      * These two exist because Gelato counts `pageCount + 2` interior pages
      * and refuses anything else; they are not pages of the book and nobody
