@@ -743,8 +743,14 @@ export async function signupDates(): Promise<Record<string, string> | null> {
 
 /** How long after its last day a journal stops counting as still being
  *  written. A fortnight: a week is a holiday, and a month is long enough that
- *  a journal nobody has touched since the spring still reads as alive. */
-export const STILL_WRITING_DAYS = 14;
+ *  a journal nobody has touched since the spring still reads as alive.
+ *
+ *  Not exported: `funnel` writes it into the step's own label, so nothing
+ *  outside this file needs the number. `app/admin/Journals.tsx` keeps its own
+ *  `QUIET_DAYS` at the same fortnight and deliberately does not import this —
+ *  a client component importing from here pulls the database into the browser
+ *  bundle, which the build says at length. */
+const STILL_WRITING_DAYS = 14;
 
 export type FunnelStep = {
   /** What this step is, in the operator's words. */

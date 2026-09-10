@@ -78,6 +78,18 @@ debug a change that never loaded.
 
 ## 3. Sign in as the owner
 
+**One command does the whole of this section**, on either instance, and knows
+the traps below:
+
+```bash
+.claude/skills/get-a-credential/get-token.sh http://localhost:3011 example cookie
+# → /tmp/fernscout-example-cookies.txt
+```
+
+`get-a-credential` is also where to look for an agent token, the operator's
+`/admin`, a handover credential, or a throwaway test journal. The rest of this
+section is what that script is doing, for when it does not work.
+
 An owner-only page (the photobook composer, contacts, credits) needs a real
 session row. There is no shortcut: `FERNSCOUT_ADMIN_EMAIL` alone does nothing
 without a session.
