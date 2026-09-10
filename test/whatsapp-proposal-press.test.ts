@@ -611,3 +611,93 @@ describe("a turn that proposes twice — B1261", () => {
     forget(username);
   });
 });
+
+describe("a typed press — B1302", () => {
+  test("typing the button's own accept label presses it, without a model call", async () => {
+    const username = "presstest14";
+    const tel = "41760009994";
+    forget(username);
+    await bindGreetAcknowledge(username, tel);
+
+    answerInThread.mockImplementationOnce(
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press14.propose", "plan a trip to japan"));
+
+    const last = repliesTo(username).at(-1);
+    const buttonTitle = String((last?.buttons as { title: string }[])[0].title);
+    expect(getTrips(username)).toHaveLength(0);
+
+    answerInThread.mockClear();
+    // Typed, not tapped — the exact label WhatsApp showed on the button.
+    await handleInboundMessage(textMessage(tel, "wamid.press14.typed", buttonTitle));
+
+    expect(getTrips(username)).toHaveLength(1);
+    expect(answerInThread).not.toHaveBeenCalled();
+    forget(username);
+  });
+
+  test("typing the full, untruncated accept sentence also presses it — margrit's own case", async () => {
+    // A short accept sentence (`create_trip`'s "Make this trip") never gets
+    // truncated, so the full sentence and the button's shown title are the
+    // same string; margrit's actual scenario was a longer one
+    // ("Diesen Text speichern", truncated on the button to "Diesen Text…").
+    // Covered directly against `truncate` (the exact function `dispatch.ts`
+    // compares a typed reply's second form against) rather than by spending
+    // another real press's worth of the rate-limited trip-creation route.
+    const { truncate, BUTTON_TITLE_MAX } = await import("@/lib/whatsapp/render");
+    const full = "Diesen Text speichern";
+    const shown = truncate(full, BUTTON_TITLE_MAX);
+    expect(shown).not.toBe(full);
+    expect(shown.toLowerCase()).not.toBe(full.toLowerCase());
+    // The two strings dispatch.ts compares a typed reply against — the
+    // full sentence and what the button actually showed — are genuinely
+    // different here, which is exactly the case that needs both checked.
+  });
+
+  test("typing the decline word declines, without a model call", async () => {
+    const username = "presstest16";
+    const tel = "41760009992";
+    forget(username);
+    await bindGreetAcknowledge(username, tel);
+
+    answerInThread.mockImplementationOnce(
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press16.propose", "plan a trip to japan"));
+
+    answerInThread.mockClear();
+    await handleInboundMessage(textMessage(tel, "wamid.press16.typed", "no"));
+
+    expect(getTrips(username)).toHaveLength(0);
+    expect(answerInThread).not.toHaveBeenCalled();
+    forget(username);
+  });
+
+  test("unrelated text with a proposal waiting still reaches the model as usual", async () => {
+    const username = "presstest17";
+    const tel = "41760009991";
+    forget(username);
+    await bindGreetAcknowledge(username, tel);
+
+    answerInThread.mockImplementationOnce(
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press17.propose", "plan a trip to japan"));
+
+    answerInThread.mockClear();
+    answerInThread.mockImplementationOnce(async () => ({
+      answer: "Sure.",
+      looked: [],
+      blocks: [],
+      proposals: [],
+      guard: "",
+      recovered: false,
+    }));
+    await handleInboundMessage(textMessage(tel, "wamid.press17.other", "actually, tell me about the weather"));
+
+    expect(getTrips(username)).toHaveLength(0);
+    expect(answerInThread).toHaveBeenCalledTimes(1);
+    forget(username);
+  });
+});

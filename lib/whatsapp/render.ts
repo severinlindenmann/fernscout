@@ -57,7 +57,10 @@ import type { Block, Proposal } from "../helper/blocks";
 
 /** Meta's own ceilings — B1056. */
 const MAX_BUTTONS = 3;
-const BUTTON_TITLE_MAX = 20;
+/** Exported so a typed reply can be compared against what the button
+ *  actually shows — B1302: the accept button's own truncated title, not
+ *  only the full `proposal.accept` sentence, is a valid typed "press". */
+export const BUTTON_TITLE_MAX = 20;
 const MAX_LIST_ROWS = 10;
 const LIST_ROW_TITLE_MAX = 24;
 
@@ -84,7 +87,7 @@ export type WhatsappOutbound =
  *  ever does), so most messages carry `proposal: undefined`. */
 export type WhatsappMessage = WhatsappOutbound & { proposal?: Proposal };
 
-function truncate(text: string, max: number): string {
+export function truncate(text: string, max: number): string {
   const flat = text.replace(/\s+/g, " ").trim();
   if (flat.length <= max) return flat;
   /**

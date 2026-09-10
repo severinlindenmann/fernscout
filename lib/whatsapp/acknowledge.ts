@@ -19,7 +19,25 @@ import { translateIn } from "../locales";
  * Hungarian is looking at when it is reviewed.
  */
 export function isAcknowledgement(text: string, locale: string): boolean {
-  return matchesPhrase(text, locale, "wa.yes");
+  if (matchesPhrase(text, locale, "wa.yes")) return true;
+  /**
+   * A narrow widening, not a loosened match — B1302, scenario-margrit.md
+   * finding 4. "jaa gerne" ("yes, gladly") is not the exact phrase and got
+   * total silence; the fix is not fuzzy-matching a "yes" out of an ordinary
+   * sentence (the exact list above is still the whole grant), only reading
+   * an emphatic spelling of the *first word* as the word it obviously is —
+   * "jaa" collapses to "ja", "yesss" collapses to "yes". A first word with no
+   * repeated letters is compared as written, so "jamais" never collapses
+   * into "ja" and stays a miss.
+   */
+  const firstWord = text.trim().toLowerCase().split(/\s+/)[0]?.replace(/[.,!?]+$/, "") ?? "";
+  if (firstWord === "") return false;
+  const collapsed = firstWord.replace(/(.)\1+/g, "$1");
+  const phrases = translateIn(locale, "wa.yes")
+    .split(",")
+    .map((word) => word.trim().toLowerCase())
+    .filter((word) => word !== "");
+  return phrases.includes(collapsed);
 }
 
 /** The shared matcher: trimmed, case-folded, exact, against a comma-separated

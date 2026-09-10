@@ -47,3 +47,19 @@ export function takePendingProposal(username: string, tel: string): Proposal | n
     return null;
   }
 }
+
+/** Read whatever proposal is waiting, without clearing it — B1302. A typed
+ *  reply is compared against this *before* deciding whether it is the press
+ *  at all; only a real match goes on to call `takePendingProposal`, so a
+ *  message that turns out not to match never loses the proposal it did not
+ *  press. */
+export function peekPendingProposal(username: string, tel: string): Proposal | null {
+  const file = pendingPath(username, tel);
+  try {
+    const raw = JSON.parse(fs.readFileSync(file, "utf8")) as Proposal;
+    if (typeof raw.tool !== "string" || typeof raw.endpoint !== "string") return null;
+    return raw;
+  } catch {
+    return null;
+  }
+}

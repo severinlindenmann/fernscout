@@ -501,6 +501,7 @@
   "wa.secondProposalNote": "Das muss warten, bis das Erste erledigt ist — frag danach noch einmal, oder mach im Web weiter: {url}",
   "wa.moreInThread": "Hier ist mehr, als in diese Nachrichten passt — den Rest findest du unter",
   "wa.acknowledged": "Danke — leg los, erzähl mir von deinem Tag.",
+  "wa.consentReminder": "Antworte einfach mit 'ja', um fortzufahren.",
   "wa.heldAnswer": "Antwort auf das, was du {when} gefragt hast:",
   "wa.balanceRefusal": "Das hätte {cost} Credits gekostet, und der Kontostand ist {balance} — aufladen unter {url}",
   "mail.identityIgnore": "Wenn du das nicht angefordert hast, ignoriere diese E-Mail — es wurde nichts geöffnet.",

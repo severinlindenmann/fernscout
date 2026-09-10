@@ -35,9 +35,9 @@ import { downloadMedia } from "./cloud";
 import { announceHeldAnswer, takeHeldAnswer } from "./held";
 import { cloudCredentials, maskNumber } from "./index";
 import { flushMediaBatch, noteMedia } from "./mediaBatch";
-import { holdProposal, takePendingProposal } from "./pendingProposal";
+import { holdProposal, peekPendingProposal, takePendingProposal } from "./pendingProposal";
 import { isWhatsappExecutable, pressProposal } from "./proposalExecution";
-import { CONFIRM_NO_ID, CONFIRM_YES_ID, confirmButtonsFor, renderForWhatsapp } from "./render";
+import { BUTTON_TITLE_MAX, CONFIRM_NO_ID, CONFIRM_YES_ID, confirmButtonsFor, renderForWhatsapp, truncate } from "./render";
 import { balanceRefusal } from "./refusal";
 import { sendOutboundReply, sendServiceReply } from "./reply";
 import { clearPendingSpeechAsk, hasPendingSpeechAsk, markPendingSpeechAsk } from "./speechConsent";
@@ -223,6 +223,19 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
       console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) acknowledged`);
       return;
     }
+    /**
+     * A miss used to be total silence — B1302, scenario-margrit.md finding 4.
+     * A 71-year-old told "reply with 'ja' to continue" who typed a warm,
+     * natural "jaa gerne" instead had no way to tell "the AI is thinking"
+     * from "the AI never got this". One short reminder, said once per
+     * number (not on every miss — a person still finding the right words
+     * for "yes" should not be nagged on each try), rather than loosening the
+     * exact match itself.
+     */
+    if (!hasBeenTold(username, message.from, "consentReminder")) {
+      await sendServiceReply(message.from, translateIn(locale, "wa.consentReminder"), username);
+      markTold(username, message.from, "consentReminder");
+    }
     console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) not yet acknowledged — no model call`);
     return;
   }
@@ -304,6 +317,31 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
   if (message.kind === "interactive" && (message.replyId === CONFIRM_YES_ID || message.replyId === CONFIRM_NO_ID)) {
     await handleProposalReply(username, locale, message.from, message.replyId === CONFIRM_YES_ID);
     return;
+  }
+
+  /**
+   * A typed press — B1302, scenario-margrit.md's headline finding. Nothing
+   * mechanical ever recognised somebody typing a proposal's own button label
+   * back instead of tapping it, so the turn reached the model with the write
+   * already "described" as done and nothing left to do — the exact
+   * "Der Text ist gespeichert" shape AGENTS.md names. Compared here, before
+   * any model call, against the three strings a typed reply could honestly
+   * mean: the button's own (truncated) title, the full accept sentence
+   * underneath it, and the decline word — anything else falls through to the
+   * model exactly as before.
+   */
+  if (message.kind === "text") {
+    const pending = peekPendingProposal(username, message.from);
+    if (pending) {
+      const typed = message.body.trim().toLowerCase();
+      const declineWord = translateIn(locale, "wa.declineButton").trim().toLowerCase();
+      const acceptFull = pending.accept.trim().toLowerCase();
+      const acceptShown = truncate(pending.accept, BUTTON_TITLE_MAX).trim().toLowerCase();
+      if (typed !== "" && (typed === declineWord || typed === acceptFull || typed === acceptShown)) {
+        await handleProposalReply(username, locale, message.from, typed !== declineWord);
+        return;
+      }
+    }
   }
 
   const said =

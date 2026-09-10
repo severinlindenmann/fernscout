@@ -501,6 +501,7 @@
   "wa.secondProposalNote": "This one has to wait until the first is done — ask again once it is, or continue on the web: {url}",
   "wa.moreInThread": "There's more than fits in these messages — see the rest at",
   "wa.acknowledged": "Thanks — go ahead, tell me about your day.",
+  "wa.consentReminder": "Just reply 'yes' to continue.",
   "wa.heldAnswer": "Answering what you asked {when}:",
   "wa.balanceRefusal": "That would have cost {cost} credits and the balance is {balance} — top up at {url}",
   "mail.identityIgnore": "If you did not ask for this, ignore it — nothing has been opened.",
