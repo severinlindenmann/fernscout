@@ -926,7 +926,7 @@ const END_LEAVES = 2;
 
 /**
  * Every page of the book, with the two leaves **before the last one** —
- * B1206.
+ * B1231.
  *
  * They used to go at the very end, and Gelato's preview showed what that
  * means: page 43 the colophon, then two sheets of white. A book that ends on
