@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (142)
+## backlog (143)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (25)
+### issue (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -79,6 +79,7 @@ Do not edit them by hand; run the script.
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
 | [B1248](backlog/issue/B1248-the-health-endpoint-reports-content-ok.md) | The health endpoint reports content ok without ever checking the content root is writable | ISSUE | medium | low |
 | [B1252](backlog/issue/B1252-the-helper-composer-gives-the-text.md) | The helper composer gives the text under half the screen width on a phone | ISSUE | medium | low |
+| [B1253](backlog/issue/B1253-a-proposal-card-taller-than-the.md) | A proposal card taller than the phone opens scrolled past its own explanation, mid-sentence | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
