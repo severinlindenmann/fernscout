@@ -18,7 +18,7 @@ import { recordTurn } from "../helper/sessions";
 import { MAX_AUDIO_BYTES, MAX_SPEECH_SECONDS, speechLanguageFor } from "../helper/speech";
 import { history, proposed, remember, sessionId, wrote } from "../helper/thread";
 import { spendAndTranscribe } from "../helper/transcribeSpend";
-import { kindForExtension, listInbox, storeInboxFile } from "../inbox";
+import { kindForExtension, storeInboxFile } from "../inbox";
 import { translateIn } from "../locales";
 import { claimPhoneLink } from "../phoneVerify/inboundLink";
 import { journalForNumber } from "../registry";
@@ -32,6 +32,7 @@ import { hasAcknowledged, hasBeenGreeted, markAcknowledged, markGreeted } from "
 import { downloadMedia } from "./cloud";
 import { announceHeldAnswer, takeHeldAnswer } from "./held";
 import { cloudCredentials, maskNumber } from "./index";
+import { flushMediaBatch, noteMedia } from "./mediaBatch";
 import { holdProposal, takePendingProposal } from "./pendingProposal";
 import { isWhatsappExecutable, pressProposal } from "./proposalExecution";
 import { CONFIRM_NO_ID, CONFIRM_YES_ID, confirmButtonsFor, renderForWhatsapp } from "./render";
@@ -162,6 +163,18 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
 
   const user = getUser(username);
   const locale = user?.defaultLocale ?? "en";
+
+  /**
+   * The fallback half of B1240: a batch that never gets a quiet moment
+   * answers the instant the sender moves on to something else, rather than
+   * staying silent because the window keeps resetting. Every kind but a
+   * photo or a document reaching here counts as "moved on" — including a
+   * held answer or the greeting a few lines down, both of which are
+   * themselves things this number just said in a sense.
+   */
+  if (message.kind !== "image" && message.kind !== "document") {
+    await flushMediaBatch(username, message.from);
+  }
 
   /**
    * Whatever was ready before this number wrote again — B1061. "Never
@@ -431,15 +444,10 @@ async function handleMedia(username: string, locale: string, message: MediaMessa
   });
 
   const topic = message.kind === "document" ? "document" : "photo";
-  const alreadyToldEitherWay = hasBeenTold(username, message.from, "photo") || hasBeenTold(username, message.from, "document");
-  const total = Object.values(listInbox(username))
-    .flat()
-    .filter((entry) => entry.kind === "media" || entry.kind === "files").length;
-  const landed = translateIn(locale, "wa.mediaLanded", { count: String(total) });
-  const body = alreadyToldEitherWay ? landed : `${landed}${translateIn(locale, "wa.mediaTip")}`;
-  if (!alreadyToldEitherWay) markTold(username, message.from, topic);
-
-  await sendServiceReply(message.from, body, username);
+  // One reply for the whole batch, not one per item — B1240. Resets a short
+  // window rather than answering instantly; `flushMediaBatch` (called on the
+  // next non-media message) is the fallback if the sender never pauses.
+  noteMedia(username, message.from, locale, topic);
   console.log(
     `[whatsapp:inbound] ${maskNumber(message.from)} (${username}) — ${message.kind} landed in the inbox as ${stored.entry.id}`,
   );
