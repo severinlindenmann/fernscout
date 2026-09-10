@@ -152,6 +152,41 @@ function sweep(now: number) {
 }
 
 /**
+ * One journal's durable reads and writes, in the order they were issued —
+ * B1362.
+ *
+ * Fire-and-forget is right (see `persist`) and *unordered* is not. Every
+ * function below opens its own promise chain, so on an asynchronous driver
+ * they land in whatever order the pool feels like: a `forget()` whose `DELETE`
+ * overtakes the `UPSERT` fired a moment before it leaves the row behind, and
+ * the next cold read resurrects a conversation the person ended. On
+ * `better-sqlite3` — synchronous, one statement at a time — that could not
+ * happen, which is why it was CI's Postgres leg and not a laptop that found
+ * it: `forget ends the adopted conversation like any other` and the WhatsApp
+ * "new chat" command both failed there and nowhere else.
+ *
+ * Serialising per journal is enough, because a journal is the row: two
+ * journals have nothing to order against each other, and holding one queue
+ * for the whole instance would put every conversation behind the slowest
+ * write. Reads go through it too — a read is what a stale write corrupts, and
+ * `loadFromDb` after a `drop` must see the drop.
+ *
+ * The tail is dropped once nothing is queued behind it, so this map does not
+ * grow with the number of journals ever seen.
+ */
+const inFlight = new Map<string, Promise<unknown>>();
+
+function serial<T>(username: string, run: () => Promise<T>): Promise<T> {
+  const next = (inFlight.get(username) ?? Promise.resolve()).then(run, run);
+  const settled = next.catch(() => undefined);
+  inFlight.set(username, settled);
+  void settled.then(() => {
+    if (inFlight.get(username) === settled) inFlight.delete(username);
+  });
+  return next;
+}
+
+/**
  * Fire-and-forget durability for one journal's thread — B1054.
  *
  * One row per journal (`onConflict` on `owner_id`), so a journal never holds
@@ -160,7 +195,7 @@ function sweep(now: number) {
  * person's turn is never waiting on a database write to feel instant.
  */
 function persist(username: string, state: ThreadState): void {
-  void (async () => {
+  void serial(username, async () => {
     try {
       const handle = await getDatabaseOrNull();
       if (!handle) return;
@@ -179,11 +214,11 @@ function persist(username: string, state: ThreadState): void {
       // Best-effort — see the module doc. The in-memory cache still holds
       // the correct state for this process.
     }
-  })();
+  });
 }
 
 function drop(username: string): void {
-  void (async () => {
+  void serial(username, async () => {
     try {
       const handle = await getDatabaseOrNull();
       if (!handle) return;
@@ -191,10 +226,14 @@ function drop(username: string): void {
     } catch {
       // As above.
     }
-  })();
+  });
 }
 
-async function loadFromDb(username: string): Promise<ThreadState | null> {
+function loadFromDb(username: string): Promise<ThreadState | null> {
+  return serial(username, () => readFromDb(username));
+}
+
+async function readFromDb(username: string): Promise<ThreadState | null> {
   try {
     const handle = await getDatabaseOrNull();
     if (!handle) return null;
