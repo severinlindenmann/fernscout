@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (172)
+## backlog (181)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (36)
+### issue (42)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -74,6 +74,10 @@ Do not edit them by hand; run the script.
 | [B1385](backlog/issue/B1385-the-conversation-storage-consent-block-is.md) | The conversation-storage consent block is shown to signed-out visitors | ISSUE | high | low |
 | [B1387](backlog/issue/B1387-deleting-one-trip-offers-an-export.md) | Deleting one trip offers an export of the whole journal, and the zip carries machine state | ISSUE | high | medium |
 | [B1391](backlog/issue/B1391-the-helper-refuses-a-bare-yes.md) | The helper refuses a bare yes to its own delete question, and an inbox cannot be emptied at all | ISSUE | high | medium |
+| [B1399](backlog/issue/B1399-the-helper-tells-an-owner-who.md) | The helper tells an owner who has just saved their own contact to go and save a contact | ISSUE | high | medium |
+| [B1400](backlog/issue/B1400-publish-mjs-reports-every-requested-feature.md) | publish.mjs reports every requested feature key as applied without reading the response back | ISSUE | high | low |
+| [B1401](backlog/issue/B1401-the-helper-client-s-yaml-parser.md) | The helper client's YAML parser stops at the first unsupported line and silently drops every key after it | ISSUE | high | medium |
+| [B1404](backlog/issue/B1404-a-matched-number-with-the-channel.md) | A matched number with the channel off gets silence instead of a fresh opt-in ask | ISSUE | high | medium |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1129](backlog/issue/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
@@ -88,6 +92,7 @@ Do not edit them by hand; run the script.
 | [B1389](backlog/issue/B1389-teaser-is-missing-from-content-model.md) | `teaser` is missing from /content-model.json, so the helper's validator calls it not a field | ISSUE | medium | low |
 | [B1390](backlog/issue/B1390-one-subject-two-sections-what-the.md) | One subject, two sections: what the helper does with your words is drawn twice on /me | ISSUE | medium | low |
 | [B1395](backlog/issue/B1395-a-buddy-listed-on-a-trip.md) | A buddy listed on a trip has no way to give or correct their address on /me | ISSUE | medium | low |
+| [B1397](backlog/issue/B1397-a-busy-button-draws-two-loaders.md) | A busy button draws two loaders at once when the caller gives its own busy label | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
@@ -98,6 +103,7 @@ Do not edit them by hand; run the script.
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1266](backlog/issue/B1266-asking-for-the-last-day-only.md) | Asking for the last day only searches unfinished drafts | ISSUE | low | low |
 | [B1271](backlog/issue/B1271-a-failed-voice-note-download-also.md) | A failed voice-note download also says nothing | ISSUE | low | low |
+| [B1402](backlog/issue/B1402-a-content-path-one-level-too.md) | A content path one level too shallow is reported accurately and without naming the likely cause | ISSUE | low | low |
 
 ### big-feature (14)
 
@@ -118,7 +124,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (23)
+### small-feature (24)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -135,6 +141,7 @@ Do not edit them by hand; run the script.
 | [B1386](backlog/small-feature/B1386-a-signed-out-visitor-has-no.md) | A signed-out visitor has no way to get a journal of their own | FEATURE | medium | low |
 | [B1388](backlog/small-feature/B1388-whatsappinbound-has-no-owner-facing-switch.md) | whatsappInbound has no owner-facing switch | FEATURE | medium | medium |
 | [B1394](backlog/small-feature/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium |
+| [B1398](backlog/small-feature/B1398-choosing-the-postcard-picture-means-picking.md) | Choosing the postcard picture means picking a day from a list of titles, never seeing a photograph | FEATURE | medium | medium |
 | [B592](backlog/small-feature/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
 | [B991](backlog/small-feature/B991-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium |
@@ -180,12 +187,14 @@ Do not edit them by hand; run the script.
 | [B546](backlog/ops/B546-the-open-meteo-free-tier-is.md) | The Open-Meteo free tier is non-commercial and this instance takes money | OPS | medium | low |
 | [B1036](backlog/ops/B1036-content-example-s-new-trips-can.md) | content/example's new trips can flicker as malformed during ship.sh's demo sync | OPS | low | low |
 
-### docs-and-skills (2)
+### docs-and-skills (4)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1144](backlog/docs-and-skills/B1144-a-dispatched-worktree-agent-cannot-run.md) | A dispatched worktree agent cannot run claude-security, so the one skill work-on-a-task requires on an auth change is the one it cannot reach | DOCS | high | low |
 | [B1384](backlog/docs-and-skills/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high |
+| [B1403](backlog/docs-and-skills/B1403-nothing-an-outside-agent-reads-says.md) | Nothing an outside agent reads says weatherData is written by the server, so a filled block reads as fabricated | DOCS | medium | low |
+| [B1396](backlog/docs-and-skills/B1396-the-whatsapp-checkbox-carries-a-second.md) | The WhatsApp checkbox carries a second sentence about Meta that the form does not need | DOCS | low | low |
 
 ### superseded (68)
 
