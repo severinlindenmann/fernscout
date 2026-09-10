@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: trip page
 found: "2026-09-10T10:01:50Z"
+merged: "2026-09-10T15:37:47Z"
 ---
 
 # B1259 — A trip prints the span of the days written rather than its own dates, and a single day reads as 5 Sep to 5 Sep
