@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (140)
+## backlog (138)
 
 ### security (2)
 
@@ -80,12 +80,11 @@ Do not edit them by hand; run the script.
 | [B1149](backlog/issue/B1149-the-pdf-x-report-tells-you.md) | The PDF/X report tells you to run gs-pdfx.sh, which is only written when the run already had an ICC | ISSUE | low | low |
 | [B1191](backlog/issue/B1191-persona-automation-cannot-hit-the-sr.md) | Persona automation cannot hit the sr-only file inputs; confirm real hit areas are whole-tile | ISSUE | low | low |
 
-### big-feature (16)
+### big-feature (15)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1213](backlog/big-feature/B1213-room-decisions-honest-streaming-status-lines.md) | Room decisions: honest streaming status lines while the model works (D19) | FEATURE | high | high |
-| [B1215](backlog/big-feature/B1215-room-decisions-the-phone-gets-a.md) | Room decisions: the phone gets a tab bar — Chat, Dateien, Vorschau (D39 D28) | FEATURE | high | high |
 | [B311](backlog/big-feature/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B1049](backlog/big-feature/B1049-a-model-choosing-among-forty-three.md) | A model choosing among forty-three tools chooses worse than one choosing among seventeen | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
@@ -101,13 +100,12 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (21)
+### small-feature (20)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1153](backlog/small-feature/B1153-handing-your-journal-to-your-own.md) | Handing your journal to your own agent means leaving the conversation to fetch the key | FEATURE | high | low |
 | [B1154](backlog/small-feature/B1154-a-key-that-can-write-to.md) | A key that can write to this journal for seven days is visible nowhere in the room | FEATURE | high | medium |
-| [B1214](backlog/small-feature/B1214-room-decisions-the-preview-grows-a.md) | Room decisions: the preview grows a header, memory, publish and highlights (D24 D25 D26 D27) | FEATURE | high | medium |
 | [B1216](backlog/small-feature/B1216-room-decisions-files-drop-paste-progress.md) | Room decisions: files — drop, paste, progress rings, nudge, tile menu (D29 D30 D31 D32 D34) | FEATURE | high | medium |
 | [B1217](backlog/small-feature/B1217-room-decisions-history-clean-titles-search.md) | Room decisions: history — clean titles, search, a Tage tab (D35 D36 D44) | FEATURE | high | medium |
 | [B1218](backlog/small-feature/B1218-room-decisions-opening-and-follow-through.md) | Room decisions: opening and follow-through — progress, undo, weather, costs, share (D45 D47 D48 D49 D51) | FEATURE | high | medium |
@@ -284,10 +282,12 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (2)
+## in-development (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1214](in-development/B1214-room-decisions-the-preview-grows-a.md) | Room decisions: the preview grows a header, memory, publish and highlights (D24 D25 D26 D27) | FEATURE | high | medium | `b9809a36` |
+| [B1215](in-development/B1215-room-decisions-the-phone-gets-a.md) | Room decisions: the phone gets a tab bar — Chat, Dateien, Vorschau (D39 D28) | FEATURE | high | high | `b9809a36` |
 | [B1219](in-development/B1219-room-decisions-an-evening-reminder-during.md) | Room decisions: an evening reminder during a trip (D46) | FEATURE | high | high | `b9809a36` |
 | [B1234](in-development/B1234-proving-a-number-needs-a-template.md) | Proving a number needs a template Meta will not grant - the inbound message already proves it | FEATURE | high | medium | `445f2c45` |
 
