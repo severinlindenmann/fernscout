@@ -486,10 +486,16 @@ export default function HelperAsk({
    */
   const [coarse, setCoarse] = useState(false);
   useEffect(() => {
-    if (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCoarse(true);
-    }
+    if (typeof window.matchMedia !== "function") return;
+    // Subscribed, not read once — B1338: a room mounted under DevTools'
+    // device emulation (or a tablet docked to a keyboard) otherwise keeps
+    // the wrong Enter behaviour until a full reload.
+    const query = window.matchMedia("(pointer: coarse)");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    const update = () => setCoarse(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
   }, []);
   /** The sentence a failed turn was carrying, so its error row can offer
    *  one-press retry — B1212 (D20). */
@@ -1734,8 +1740,13 @@ function ProposalView({
       setPinBottom(null);
       return;
     }
-    const update = () =>
-      setPinBottom(Math.max(0, window.innerHeight - (viewport.height + viewport.offsetTop)));
+    const update = () => {
+      const gap = Math.max(0, window.innerHeight - (viewport.height + viewport.offsetTop));
+      // No keyboard, no pin — B1337: on a desktop the visual viewport fills
+      // the window (gap ≈ 0), and pinning there tore the buttons off the
+      // card onto the page foot. 80px is safely below any real keyboard.
+      setPinBottom(gap > 80 ? gap : null);
+    };
     update();
     viewport.addEventListener("resize", update);
     viewport.addEventListener("scroll", update);
