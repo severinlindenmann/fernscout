@@ -263,9 +263,14 @@ export function ReaderInvite({ onSignIn }: { onSignIn: () => void }) {
       aria-labelledby="reader-invite"
       className="mt-6 overflow-hidden rounded-2xl border border-navy-200 border-l-8 border-l-yellow-400 bg-cream-50 p-5 sm:p-6"
     >
+      {/* Who this card is for — B1339. The two blocks at the top of the page
+          serve two different people, and at phone width nothing said which
+          was whose: a first-time visitor read this card as the pitch. The
+          label is the mono kicker voice (B733), not a second yellow edge. */}
+      <Kicker>{t("home.inviteKicker")}</Kicker>
       <h2
         id="reader-invite"
-        className="font-display text-xl font-semibold leading-tight text-navy-900 sm:text-2xl"
+        className="mt-2 font-display text-xl font-semibold leading-tight text-navy-900 sm:text-2xl"
       >
         {t("home.inviteTitle")}
       </h2>
@@ -330,7 +335,14 @@ export function LandingHero({
   const { t } = useI18n();
   return (
     <>
-      <h1 className="mt-4 font-display text-[clamp(1.75rem,6vw,2.75rem)] font-semibold leading-[1.12] text-navy-900">
+      {/* The other half of B1339's labelling: the guest card directly above
+          carries "for guests", so this block names its own audience too, and
+          the wider gap (mt-12, was mt-4 on the h1) is what makes the two
+          read as separate doors rather than one column of text. */}
+      <div className="mt-12">
+        <Kicker>{t("landing.heroKicker")}</Kicker>
+      </div>
+      <h1 className="mt-3 font-display text-[clamp(1.75rem,6vw,2.75rem)] font-semibold leading-[1.12] text-navy-900">
         {t("landing.hero")}
       </h1>
       <p className="mt-4 text-lg leading-7 text-navy-700">
