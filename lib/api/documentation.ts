@@ -780,11 +780,12 @@ Content-Type: application/json
 {"id": "<from the request step>", "code": "123456"}
 \`\`\`
 
-The passcode arrives **as a WhatsApp message**, so tell the person to look at
-WhatsApp rather than their inbox. Somebody without WhatsApp cannot finish this
-step on their own — say so plainly and point them at whoever runs this server
-rather than guessing a number or inventing a workaround. Once the number is
-proven, retry the create; the proof is attached to the token you already hold.
+The passcode arrives by WhatsApp or SMS, whichever this server runs — say
+which, so the person looks at the right app, not their mail inbox.
+Somebody that channel cannot reach cannot finish this step on their own —
+say so plainly and point them at whoever runs this server rather than
+guessing a number or inventing a workaround. Once the number is proven,
+retry the create; the proof is attached to the token you already hold.
 
 **Some servers run the proof the other way around** — the \`phone_required\`
 refusal carries \`"mode": "whatsapp-inbound"\` (B1234). Then send **no
@@ -796,6 +797,12 @@ with only the \`id\` until the answer stops being
 \`{"status": "pending"}\`; \`{"status": "expired"}\` means ask for a fresh
 link. Never invent a token or type one on the person's behalf — the whole
 proof is that *their* phone sent it.
+
+Where those answers say \`"smsFallback": true\` (B1316), a person with no
+WhatsApp can repeat the request step with \`{"channel": "sms", "tel": …}\`;
+the passcode arrives by SMS, verified with \`id\` and \`code\` as above.
+\`sms_unreachable\` means the server's number cannot reach that country —
+nothing was spent; use WhatsApp.
 
 A refused creation does not spend the token either,
 so a taken username is worth correcting rather than starting over:

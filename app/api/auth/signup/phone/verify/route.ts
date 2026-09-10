@@ -54,7 +54,7 @@ export async function POST(request: Request) {
   if (!code) {
     const poll = await pollPhoneLink(id, session.id);
     if (poll.status !== "ok") return Response.json({ status: poll.status });
-    await markPhoneProven(session.id, poll.phone);
+    await markPhoneProven(session.id, poll.phone, "whatsapp-inbound");
     return Response.json({
       ok: true,
       tel: poll.phone,
@@ -70,7 +70,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid_code" }, { status: 401 });
   }
 
-  await markPhoneProven(session.id, result.phone);
+  // "sms" is the word for every code backend (see owner.telProvenMethod in
+  // lib/config.ts) — including the SMS fallback inside inbound mode, where
+  // the code genuinely did arrive by SMS.
+  await markPhoneProven(session.id, result.phone, "sms");
 
   return Response.json({
     ok: true,

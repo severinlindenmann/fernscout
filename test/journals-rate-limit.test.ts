@@ -53,7 +53,7 @@ async function signupToken(email: string): Promise<string> {
 
   const session = await resolveSession(result.token, "signup");
   if (!session) throw new Error("no session for the token just minted");
-  await markPhoneProven(session.id, proof.phone);
+  await markPhoneProven(session.id, proof.phone, "sms");
 
   return result.token;
 }

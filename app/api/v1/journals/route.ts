@@ -10,7 +10,7 @@ import { createJournal, sendWelcome } from "@/lib/journals";
 import { clientIp, rateLimitFor, rateLimitStatus } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
-import { phoneProofMode } from "@/lib/phoneVerify";
+import { phoneProofMode, smsFallbackOffered } from "@/lib/phoneVerify";
 
 export const dynamic = "force-dynamic";
 
@@ -391,6 +391,10 @@ export async function POST(request: Request) {
       {
         error: "phone_required",
         mode: phoneProofMode(),
+        // Whether the request step also takes {"channel": "sms"} — B1316's
+        // way out for a caller with no WhatsApp. Only ever true in inbound
+        // mode; every code mode already delivers a code.
+        smsFallback: smsFallbackOffered(),
         message:
           "A journal needs a proven telephone number as well as a proven address. " +
           'POST /api/auth/signup/phone/request with {"tel": "…"} using this same token, ' +
@@ -420,10 +424,17 @@ export async function POST(request: Request) {
       ? {
           ownerTel: session.phone,
           ownerTelProvenAt: session.phoneProvenAt ?? undefined,
-          // How it was proven is which mode the server ran when the proof
-          // was made — B1234. "sms" stays the word for every code backend.
+          // The session records which path actually proved it — B1316, now
+          // that inbound mode carries an SMS fallback and the configured
+          // mode alone would be a guess. Pre-B1316 sessions have no record,
+          // and the mode is the only honest answer left for them. "sms"
+          // stays the word for every code backend.
           ownerTelProvenMethod:
-            phoneProofMode() === "whatsapp-inbound" ? ("whatsapp-inbound" as const) : ("sms" as const),
+            session.phoneProvenMethod === "whatsapp-inbound" || session.phoneProvenMethod === "sms"
+              ? session.phoneProvenMethod
+              : phoneProofMode() === "whatsapp-inbound"
+                ? ("whatsapp-inbound" as const)
+                : ("sms" as const),
         }
       : {}),
   });

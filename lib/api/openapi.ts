@@ -1628,7 +1628,12 @@ export function openApiDocument() {
             'In `"whatsapp-inbound"` mode (B1234) send **no body**: the answer carries a ' +
             "wa.me `link` whose prefilled `text` holds a one-time token — the person " +
             "opens it and sends the message, and the number it arrives from is thereby " +
-            "proven. No code exists in that mode; poll the verify endpoint instead.",
+            "proven. No code exists in that mode; poll the verify endpoint instead. " +
+            "Where that answer (and the `phone_required` refusal) says `smsFallback: true`, " +
+            'a caller with no WhatsApp may instead send `{"channel": "sms", "tel": …}` — ' +
+            "B1316 — and a passcode arrives by SMS, verified the code-mode way. The " +
+            "server's number may only reach some countries (`sms_unreachable` names the " +
+            "restriction); the WhatsApp path has no such limit.",
           requestBody: {
             required: true,
             content: {
@@ -1640,7 +1645,18 @@ export function openApiDocument() {
                       type: "string",
                       description:
                         'Code mode only: a telephone number with its country code, e.g. ' +
-                        '"+41 76 000 00 00". Ignored in whatsapp-inbound mode.',
+                        '"+41 76 000 00 00". Ignored in whatsapp-inbound mode unless ' +
+                        '`channel` is "sms".',
+                    },
+                    channel: {
+                      type: "string",
+                      enum: ["sms"],
+                      description:
+                        "B1316: in whatsapp-inbound mode, ask for the passcode by SMS " +
+                        "instead of confirming through WhatsApp. Only honoured where the " +
+                        "refusal that sent you here said `smsFallback: true`; ignored in " +
+                        "every code mode, where the server's configured backend decides " +
+                        "the delivery.",
                     },
                   },
                 },
@@ -1654,11 +1670,21 @@ export function openApiDocument() {
                 "is on its way; pass `id` and the code to /api/auth/signup/phone/verify. " +
                 'Whatsapp-inbound mode: `mode` is "whatsapp-inbound" and `link`/`text` ' +
                 "carry the wa.me link and its prefilled message; poll the verify endpoint " +
-                "with `id` and no code.",
+                "with `id` and no code. `smsFallback` says whether `channel: \"sms\"` is " +
+                "also on offer.",
             },
-            "400": { description: "tel is missing, or not a number with a country code" },
+            "400": {
+              description:
+                "tel is missing or not a number with a country code, or `sms_unreachable`: " +
+                "the server's SMS number cannot reach this number's country — use the " +
+                "WhatsApp confirmation instead",
+            },
             "401": { description: "Missing or invalid signup token" },
-            "404": { description: "Signing up is not enabled on this server" },
+            "404": {
+              description:
+                "Signing up is not enabled on this server, or `sms_disabled`: " +
+                '`channel: "sms"` was asked for and this server cannot send SMS',
+            },
             "429": {
               description:
                 "Too many attempts for this number (3/day), this address (5/day), or this " +

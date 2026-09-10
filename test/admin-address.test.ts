@@ -251,6 +251,7 @@ describe("with no FERNSCOUT_ADMIN_EMAIL, the address is a stranger", () => {
       publicId: null,
       phone: null,
       phoneProvenAt: null,
+      phoneProvenMethod: null,
     };
     expect(ownsUser(session, OWNER)).toBe(false);
   });

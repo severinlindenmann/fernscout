@@ -44,6 +44,14 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   // developable with `dry-run`'s discipline — a fixture posted locally,
   // no Meta account, no database.
   whatsappInbound: { env: ["WHATSAPP_APP_SECRET", "WHATSAPP_VERIFY_TOKEN"], db: false },
+  // B1316. Backend-specific, like whatsapp above: `dry-run` needs nothing,
+  // which is what keeps this developable with no Twilio account. See
+  // SMS_BACKEND_ENV in configuredEnv().
+  sms: { env: [], db: false },
+  // B1316. Reading the webhook needs the auth token (Twilio signs each
+  // delivery with it — X-Twilio-Signature) and a database for the rows the
+  // /admin inbox reads; a webhook that stores nothing reads nothing.
+  smsInbound: { env: ["TWILIO_AUTH_TOKEN"], db: true },
   auth: { env: ["SESSION_SECRET"], db: true },
   // Self-service journal creation. Needs somewhere to keep the codes it
   // issues, and — checked in the route rather than here — mail to send them
@@ -150,6 +158,16 @@ const WHATSAPP_BACKEND_ENV: Record<string, readonly string[]> = {
 };
 
 /**
+ * What each SMS backend needs — B1316. `twilio` here is the plain Messages
+ * API and its own From number, not the Verify service the signup backend of
+ * the same name uses.
+ */
+const SMS_BACKEND_ENV: Record<string, readonly string[]> = {
+  "dry-run": [],
+  twilio: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER"],
+};
+
+/**
  * What each phone-verification backend needs — B1065. `dry-run` needs
  * nothing, which is what keeps the whole signup flow, phone step included,
  * developable with no provider account. See `lib/phoneVerify/`.
@@ -164,6 +182,9 @@ const PHONE_VERIFY_BACKEND_ENV: Record<string, readonly string[]> = {
   // B1234. The person messages us, so this needs the whole inbound half —
   // checked in the signup branch below, like `whatsapp` above.
   "whatsapp-inbound": [],
+  // B1316. The code rides `features.sms`, whose own backend names what it
+  // needs — the cross-capability check is in the signup branch below.
+  sms: [],
 };
 
 /**
@@ -313,6 +334,17 @@ function configuredEnv(name: FeatureName, feature: Record<string, unknown>): {
     }
     return { env };
   }
+  if (name === "sms") {
+    const backend = optionOf(feature, "backend") ?? "dry-run";
+    const env = SMS_BACKEND_ENV[backend];
+    if (!env) {
+      return {
+        env: [],
+        problem: `features.sms.backend "${backend}" is unknown (expected one of: ${Object.keys(SMS_BACKEND_ENV).join(", ")})`,
+      };
+    }
+    return { env };
+  }
   if (name === "signup") {
     const backend = optionOf(feature, "phoneBackend") ?? "dry-run";
     const env = PHONE_VERIFY_BACKEND_ENV[backend];
@@ -326,6 +358,14 @@ function configuredEnv(name: FeatureName, feature: Record<string, unknown>): {
     // pointed at it while that capability is off would take a person's phone
     // number and then have no way to send the code — B1222. Absent rather
     // than broken: say so here, where /api/health explains it.
+    // B1316: the sms backend delivers through `features.sms`, the same shape
+    // as the whatsapp line below.
+    if (backend === "sms" && loadServerConfig().features.sms.enabled !== true) {
+      return {
+        env,
+        problem: 'features.signup.phoneBackend is "sms" but features.sms is not enabled',
+      };
+    }
     if (backend === "whatsapp" && loadServerConfig().features.whatsapp.enabled !== true) {
       return {
         env,

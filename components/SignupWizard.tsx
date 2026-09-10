@@ -145,6 +145,13 @@ export default function SignupWizard({
    * with a one-time token, and a poll that waits for the webhook. */
   const [waLink, setWaLink] = useState("");
   const [waExpired, setWaExpired] = useState(false);
+  /** B1316 — whether this server offers "get the code by SMS" beside the
+   * WhatsApp confirmation, and whether the person took it. `smsChannel`
+   * decides the wording on the phone steps: telling somebody a code is
+   * arriving "using WhatsApp" while it arrives by SMS would be the exact
+   * kind of untrue sentence the helper's net exists for. */
+  const [smsFallback, setSmsFallback] = useState(false);
+  const [smsChannel, setSmsChannel] = useState(false);
 
   const [agentToken, setAgentToken] = useState("");
   const [signInUrl, setSignInUrl] = useState("");
@@ -245,6 +252,7 @@ export default function SignupWizard({
     // (B1064/B1065). The wizard finds out here rather than asking up
     // front, so an exempt instance never shows the step at all.
     if (result.error === "phone_required") {
+      setSmsFallback(result.smsFallback === true);
       if (result.mode === "whatsapp-inbound") await requestWaLink();
       else setStep("phone");
       return;
@@ -269,6 +277,7 @@ export default function SignupWizard({
     if (!result) return;
     setPhoneId(result.id as string);
     setWaLink(typeof result.link === "string" ? result.link : "");
+    if (result.smsFallback === true) setSmsFallback(true);
     setStep("phone-wa");
   }
 
@@ -314,7 +323,9 @@ export default function SignupWizard({
     setError(null);
     const result = await post(
       "/api/auth/signup/phone/request",
-      { tel: `+${telCc} ${telNational}` },
+      // `channel: "sms"` only when the person chose the fallback — in every
+      // code mode the server's configured backend decides the delivery.
+      smsChannel ? { tel: `+${telCc} ${telNational}`, channel: "sms" } : { tel: `+${telCc} ${telNational}` },
       signupToken,
     );
     setBusy(false);
@@ -507,7 +518,7 @@ export default function SignupWizard({
             />
           </div>
           <p className="mt-3 text-base leading-7 text-navy-700">
-            {t("agent.phoneWhatsapp")}
+            {smsChannel ? t("agent.phoneSmsIntro") : t("agent.phoneWhatsapp")}
           </p>
           <p className="mt-2 text-sm leading-6 text-navy-600">
             {t("agent.phoneNoWhatsapp")}
@@ -526,7 +537,7 @@ export default function SignupWizard({
       {step === "phone-code" && (
         <form onSubmit={verifyPhoneCode}>
           <p className="mt-2 text-base leading-7 text-navy-700">
-            {t("agent.phoneCodeSent")}
+            {smsChannel ? t("agent.phoneSmsCodeSent") : t("agent.phoneCodeSent")}
           </p>
           <div className={field}>
             <label className={label} htmlFor="signup-phone-code">
@@ -590,6 +601,21 @@ export default function SignupWizard({
               className="mt-2 min-h-11 text-base text-navy-600 underline underline-offset-4"
             >
               {t("agent.phoneWaRetry")}
+            </button>
+          )}
+          {/* B1316 — the way out for somebody without WhatsApp, where this
+              server can actually deliver an SMS. The contact line stays for
+              whoever the SMS cannot reach either. */}
+          {smsFallback && (
+            <button
+              type="button"
+              onClick={() => {
+                setSmsChannel(true);
+                setStep("phone");
+              }}
+              className="mt-3 block min-h-11 text-base text-navy-600 underline underline-offset-4"
+            >
+              {t("agent.phoneSmsOffer")}
             </button>
           )}
           <p className="mt-3 text-sm leading-6 text-navy-600">

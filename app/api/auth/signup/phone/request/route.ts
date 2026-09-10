@@ -1,9 +1,12 @@
 import { NO_JOURNAL, resolveSession } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
+import { loadServerConfig } from "@/lib/config";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
-import { phoneProofMode, startVerification } from "@/lib/phoneVerify";
+import { phoneProofMode, smsFallbackOffered, startVerification } from "@/lib/phoneVerify";
 import { createPhoneLink } from "@/lib/phoneVerify/inboundLink";
+import { smsPhoneVerify } from "@/lib/phoneVerify/sms";
 import { rateLimitFor } from "@/lib/rateLimit";
+import { smsUnreachable } from "@/lib/sms";
 import { toE164 } from "@/lib/whatsapp/phone";
 
 export const dynamic = "force-dynamic";
@@ -55,13 +58,32 @@ export async function POST(request: Request) {
     );
   }
 
+  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  /**
+   * `channel: "sms"` is the fallback beside inbound mode — B1316: the person
+   * with no WhatsApp asks for a code by SMS instead. Only meaningful there;
+   * in every code mode the configured backend already decides the delivery,
+   * so the field is ignored rather than letting a caller pick a transport
+   * the server never offered.
+   */
+  const smsChannel = body.channel === "sms" && phoneProofMode() === "whatsapp-inbound";
+  if (smsChannel && !smsFallbackOffered()) {
+    return Response.json(
+      {
+        error: "sms_disabled",
+        message: "This server cannot send SMS — use the WhatsApp confirmation instead.",
+      },
+      { status: 404 },
+    );
+  }
+
   /**
    * Inbound mode — B1234 — takes no number at all: the person's own message
    * will carry it. Only the address and instance ceilings apply (there is
    * no number to key on, and nothing paid goes out); the row itself is the
    * only cost.
    */
-  if (phoneProofMode() === "whatsapp-inbound") {
+  if (phoneProofMode() === "whatsapp-inbound" && !smsChannel) {
     const perAddress = rateLimitFor("phone-verify-address", session.email, PER_ADDRESS);
     if (!perAddress.ok) return tooMany("address", perAddress.retryAfter);
     const perInstance = rateLimitFor("phone-verify-instance", "*", PER_INSTANCE);
@@ -83,6 +105,9 @@ export async function POST(request: Request) {
       {
         status: "accepted",
         mode: "whatsapp-inbound",
+        // Whether {"channel": "sms"} on this same route is a way out for a
+        // caller with no WhatsApp — B1316.
+        smsFallback: smsFallbackOffered(),
         id: link.id,
         link: link.link,
         text: link.text,
@@ -95,7 +120,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const rawTel = typeof body.tel === "string" ? body.tel : "";
   const tel = toE164(rawTel);
   if (!tel) {
@@ -111,6 +135,29 @@ export async function POST(request: Request) {
     );
   }
 
+  /**
+   * Refused here with the reason, not at Twilio without one — B1316/B1317:
+   * the instance's number may only reach some countries (the live one is
+   * Swiss and domestic-only), and a person typing +49 must be told to use
+   * WhatsApp rather than wait for a code that never comes. Checked before
+   * the ceilings so an unreachable number costs nothing.
+   */
+  const viaSms = smsChannel || loadServerConfig().features.signup.phoneBackend === "sms";
+  if (viaSms) {
+    const unreachable = smsUnreachable(tel);
+    if (unreachable) {
+      return Response.json(
+        {
+          error: "sms_unreachable",
+          message:
+            `A code cannot be sent to this number: ${unreachable}.` +
+            (smsChannel ? " Use the WhatsApp confirmation instead." : ""),
+        },
+        { status: 400 },
+      );
+    }
+  }
+
   const perNumber = rateLimitFor("phone-verify-number", tel, PER_NUMBER);
   if (!perNumber.ok) return tooMany("number", perNumber.retryAfter);
   const perAddress = rateLimitFor("phone-verify-address", session.email, PER_ADDRESS);
@@ -123,7 +170,11 @@ export async function POST(request: Request) {
   const locale = pickLocale(fromAcceptLanguage(request.headers.get("accept-language")));
 
   try {
-    const { id } = await startVerification(tel, locale);
+    // The fallback names its backend directly: startVerification dispatches
+    // on the configured mode, which in inbound mode has no start() to reach.
+    const { id } = smsChannel
+      ? await smsPhoneVerify.start(tel, locale)
+      : await startVerification(tel, locale);
     return Response.json(
       {
         status: "accepted",
