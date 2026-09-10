@@ -1798,6 +1798,7 @@
   "agent.tool.publishNoDay": "Dazu gibt es hier keinen Tag. Sag, welchen du meinst — ein Datum oder wie er heisst.",
   "agent.tool.unpublishDay": "{date} — „{title}“ kommt von der Seite und wird wieder ein Entwurf. Gelöscht wird nichts: Text und alle Fotos bleiben, und du kannst ihn jederzeit wieder hinaufstellen.",
   "agent.tool.alreadyDraft": "Dieser Tag ist schon ein Entwurf — er steht nicht auf der Seite, also gibt es nichts herunterzunehmen.",
+  "agent.tool.alreadyPublished": "Dieser Tag steht schon auf der Seite — es gibt nichts noch einmal zu veröffentlichen.",
   "agent.tool.unpublishDayAccept": "Von der Seite nehmen",
   "agent.tool.unpublishDayDone": "Er ist von der Seite und wieder ein Entwurf. Gelöscht wurde nichts.",
   "agent.tool.noTrip": "Ich kann nicht erkennen, welche Reise du meinst — es gibt also noch nichts zu drücken und es wurde nichts gespeichert. Nenn die Reise beim Namen, oder leg sie zuerst an.",

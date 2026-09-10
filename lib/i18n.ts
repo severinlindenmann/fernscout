@@ -598,6 +598,7 @@ export type TranslationKey =
   | "agent.tool.addPhotosLabel"
   | "agent.tool.addPhotosPane"
   | "agent.tool.alreadyDraft"
+  | "agent.tool.alreadyPublished"
   | "agent.tool.attachFiles"
   | "agent.tool.attachFilesAccept"
   | "agent.tool.attachFilesDone"

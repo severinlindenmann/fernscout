@@ -259,13 +259,16 @@ describe("no write tool posts into a question it cannot answer", () => {
 });
 
 /**
- * A day that was never up does not come down — B951.
+ * A day that was never up does not come down, and one already up does not go
+ * up twice — B951 and B1305, the two directions of the same symmetry.
  *
- * `publish_day` has always refused a day already published. Its mirror had no
- * such check, so asking to take down a draft produced a confirmation card
- * reading *"comes off the site and goes back to being a draft"* — about a day
- * that had never been on the site. The press would have answered
- * `already_draft`; what she read before pressing said her day was live.
+ * `unpublish_day` refuses a draft with `agent.tool.alreadyDraft` rather than
+ * offering a confirmation card reading *"comes off the site and goes back to
+ * being a draft"* about a day that had never been on the site. `publish_day`
+ * used to have no such check for its own mirror case — asking to publish an
+ * already-published day drew a full "read this the way your readers will"
+ * card and a wasted press, even though the route's own `already_published`
+ * 409 kept the write itself safe.
  */
 describe("taking down a day that was never up", () => {
   test("is refused with its own sentence, and no button", async () => {
@@ -284,6 +287,26 @@ describe("taking down a day that was never up", () => {
     expect((await post(publishDay, "/publish", pressed(publishing.proposal))).status).toBe(200);
 
     const ran = await runTool("alex", "unpublish_day", { trip: "reise" }, say, "2026-09-07");
+    expect(ran.proposal).toBeDefined();
+  });
+});
+
+describe("publishing a day that is already up — B1305", () => {
+  test("is refused with its own sentence, and no button", async () => {
+    const started = await propose("start_day");
+    await post(writeDay, "", pressed(started.proposal));
+    const publishing = await propose("publish_day");
+    expect((await post(publishDay, "/publish", pressed(publishing.proposal))).status).toBe(200);
+
+    const ran = await runTool("alex", "publish_day", { trip: "reise" }, say, "2026-09-07");
+    expect(ran.proposal).toBeUndefined();
+    expect(JSON.stringify(ran.blocks)).toContain("agent.tool.alreadyPublished");
+  });
+
+  test("and a day still a draft still proposes", async () => {
+    await propose("start_day").then(({ proposal }) => post(writeDay, "", pressed(proposal)));
+
+    const ran = await runTool("alex", "publish_day", { trip: "reise" }, say, "2026-09-07");
     expect(ran.proposal).toBeDefined();
   });
 });

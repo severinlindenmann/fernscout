@@ -1798,6 +1798,7 @@
   "agent.tool.publishNoDay": "Ehhez nincs itt nap. Mondd meg, melyikre gondolsz — dátum vagy cím.",
   "agent.tool.unpublishDay": "{date} — „{title}” lekerül az oldalról és újra piszkozat lesz. Semmi nem törlődik: a szöveg és minden fénykép megmarad, és bármikor visszateheted.",
   "agent.tool.alreadyDraft": "Ez a nap már piszkozat — nincs fenn az oldalon, úgyhogy nincs mit levenni.",
+  "agent.tool.alreadyPublished": "Ez a nap már fent van az oldalon — nincs mit újra közzétenni.",
   "agent.tool.unpublishDayAccept": "Levétel az oldalról",
   "agent.tool.unpublishDayDone": "Lekerült az oldalról, újra piszkozat. Semmi nem törlődött.",
   "agent.tool.noTrip": "Nem tudom, melyik utazásra gondolsz, így most nincs mit megnyomni, és semmi nem lett elmentve. Mondd meg az utazás nevét, vagy hozd létre előbb.",

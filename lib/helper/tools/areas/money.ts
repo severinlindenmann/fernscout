@@ -21,7 +21,7 @@ export const MONEY_TOOLS: readonly Tool[] = [
     kind: "read",
     renders: "say",
     describe:
-      "What a trip has cost so far, not the journal's own credits (account): the total, what was spent preparing, the daily average, and the largest categories. Every figure is in the journal's own currency. `notInTheTotal` is money it could not convert and left out: if it is not empty, say so and how much.",
+      "What a trip has cost so far, not the journal's own credits (account): the total, what was spent preparing, the daily average, and the largest categories. Every figure is in the journal's own currency. `notInTheTotal` is money it could not convert and left out: if it is not empty, say so and how much. `budget` is absent when nobody has set one — say so rather than inventing a figure; when present it carries `total`/`days`/`perDay`/`remaining`, and, once the trip has begun, a `pace` with `expectedToDate`/`deltaToDate`/`projectedTotal`.",
     properties: TRIP_ARG,
     run: async (username, args) => {
       const trip = resolveTrip(username, args.trip);
@@ -53,6 +53,16 @@ export const MONEY_TOOLS: readonly Tool[] = [
         preparation: costs.preparation,
         onTheRoad: costs.onTheRoad,
         perDay: costs.perDay,
+        /**
+         * B1305, scenario-costs.md defect C — `getCostSummary` has always
+         * computed a full `budget` (total, days, perDay, remaining, and,
+         * once the trip has begun, `pace`); this tool silently dropped it,
+         * so "wie steht es ums budget?" got the truthful-sounding but false
+         * "I see no budget" for a trip whose `costs.md` had one all along.
+         * Absent (`undefined`) is still the honest answer for a trip with no
+         * budget set — nothing here invents one.
+         */
+        budget: costs.budget,
         // B560 — a day nobody wrote costs down for reads as a zero, so the
         // total is a floor rather than a figure and the model must be able
         // to say so.
