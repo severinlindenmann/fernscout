@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: photobook, print, credits
 found: "2026-09-10T17:10:00Z"
+merged: "2026-09-10T16:32:18Z"
 ---
 
 # B1333 — A print the printer accepts and then refuses is never noticed, so the money stays spent
