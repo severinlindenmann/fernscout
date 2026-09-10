@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (146)
+## backlog (148)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (29)
+### issue (31)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -83,6 +83,8 @@ Do not edit them by hand; run the script.
 | [B1253](backlog/issue/B1253-a-proposal-card-taller-than-the.md) | A proposal card taller than the phone opens scrolled past its own explanation, mid-sentence | ISSUE | medium | low |
 | [B1255](backlog/issue/B1255-the-credit-balance-in-the-helper.md) | The credit balance in the helper header does not change when a credit is spent | ISSUE | medium | low |
 | [B1256](backlog/issue/B1256-every-card-outcome-is-announced-twice.md) | Every card outcome is announced twice, once by the card and once by the model | ISSUE | medium | low |
+| [B1257](backlog/issue/B1257-the-helper-preview-tells-the-owner.md) | The helper preview tells the owner that publishing is somebody else's to ask for, beside a button that does it | ISSUE | medium | low |
+| [B1258](backlog/issue/B1258-the-publish-card-says-to-read.md) | The publish card says to read the day as readers will see it and does not show the day | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
