@@ -9,6 +9,7 @@ import IdentitySignIn from "@/components/IdentitySignIn";
 import SignupWizard from "@/components/SignupWizard";
 import { useI18n } from "@/components/LocaleProvider";
 import Why from "@/components/Why";
+import DoorDemo from "@/components/DoorDemo";
 import { JOURNAL_COOKIE } from "@/lib/requestKeys";
 
 /**
@@ -121,6 +122,13 @@ export default function AgentDoor({
             is a promise rather than a direction is behind "why?", where the
             person who wants it can have all of it. */}
         <Why>{t("agent.introWhy")}</Why>
+
+        {/* B1221 — a stranger sees what talking to the room is like before
+            deciding anything. Signed-out only: somebody already in has
+            already seen it. A quiet underlined control, the same shape as
+            "why?" above, so it never competes with the one bright thing on
+            this page. */}
+        {!signedIn && <DoorDemo />}
 
         {/* B786 — one question, then one email field.
             Signed out, this screen used to draw `IdentitySignIn` and
