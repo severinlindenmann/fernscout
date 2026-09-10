@@ -649,18 +649,35 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
   for (const proposal of thread.proposals) proposed(username, proposal.tool, proposal.arguments, "whatsapp");
 
   const blocks = [...thread.blocks, ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }])];
-  // The session link, not the bare room — B1237. `/agent?c=<id>` (built the
-  // same way the greeting's own `agentUrl` above already is) adopts this
-  // exact conversation; a bare `/agent` opens the room to a stranger who has
-  // to start over, which is worse than a link doing nothing at all.
-  const journalUrl = `${serverSite().url}/agent?c=${await sessionId(username, "whatsapp")}`;
-  const declineLabel = translateIn(locale, "wa.declineButton");
-  let outbound = renderForWhatsapp(blocks, journalUrl, declineLabel);
-
   // At most one write proposal reaches a WhatsApp screen at a time in
   // practice — the model calls one write tool a turn — so the first is the
   // one a tap can be about; see the module doc above `holdProposal`.
   const proposal = thread.proposals[0];
+  /**
+   * What the link actually opens on — B1242.
+   *
+   * `?c=<id>` alone lands somebody in the conversation with nothing summoned
+   * (`components/HelperRoom.tsx`'s preview rail only draws once a `subject`
+   * is set, and nothing on arrival sets one from `?c=` by itself). The room
+   * already honours `?about=<trip>/<slug>` for exactly this — B994's link
+   * from a day — so the fix is naming the day this turn was about, not a new
+   * mechanism: a proposal whose arguments already carry a resolved `trip`
+   * and `slug` (attach a photo, write a day up, add a cost — everything past
+   * `start_day`, which has no slug yet to name) is the day the preview
+   * should open on.
+   */
+  const about =
+    proposal && proposal.arguments.trip && proposal.arguments.slug
+      ? `&about=${encodeURIComponent(proposal.arguments.trip)}/${encodeURIComponent(proposal.arguments.slug)}`
+      : "";
+  // The session link, not the bare room — B1237. `/agent?c=<id>` (built the
+  // same way the greeting's own `agentUrl` above already is) adopts this
+  // exact conversation; a bare `/agent` opens the room to a stranger who has
+  // to start over, which is worse than a link doing nothing at all.
+  const journalUrl = `${serverSite().url}/agent?c=${await sessionId(username, "whatsapp")}${about}`;
+  const declineLabel = translateIn(locale, "wa.declineButton");
+  let outbound = renderForWhatsapp(blocks, journalUrl, declineLabel);
+
   if (proposal) {
     if (outbound.kind === "buttons") {
       // A `confirm` block already drew these buttons (B1056) — hold the

@@ -21,6 +21,28 @@ import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
 import { whatsappDisplayNumber } from "@/lib/whatsapp/settings";
 
+/**
+ * What `?c=` and `?about=` together decide — pulled out of the page so it is
+ * checkable without rendering one, B1242.
+ *
+ * `about` alone (B994, a link from a day) starts fresh: `forget` and a note.
+ * `c` alone (B1168, reopening from history or a WhatsApp turn's own link)
+ * adopts that session as it stands. **Both together** — the shape the
+ * WhatsApp preview link carries since B1242, naming the conversation a
+ * press already happened in *and* the day that press was about — adopts the
+ * session and still opens the preview on that day; forgetting it to show
+ * the preview would be losing the very conversation the link is for.
+ */
+export function arrivalFor(asked: {
+  c?: string;
+  about?: string;
+}): { opening: { trip: string; slug: string } | null; named: string; shouldForget: boolean } {
+  const [aboutTrip, aboutSlug] = (asked.about ?? "").split("/");
+  const opening = aboutTrip && aboutSlug ? { trip: aboutTrip, slug: aboutSlug } : null;
+  const named = asked.c ?? "";
+  return { opening, named, shouldForget: opening !== null && named === "" };
+}
+
 // Reads the identity cookie on every request; there is nothing here to
 // prerender, the same reasoning as `/[user]/me`.
 export const dynamic = "force-dynamic";
@@ -104,20 +126,31 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
        * person had done anything, on every arrival; the conversation's own
        * opening already says what is waiting, in words, with a button. B1170.
        */
-      const about = typeof asked.about === "string" ? asked.about : "";
-      const [aboutTrip, aboutSlug] = about.split("/");
-      const opening = aboutTrip && aboutSlug ? { trip: aboutTrip, slug: aboutSlug } : null;
+      /**
+       * Which day the preview opens on, and which conversation this page
+       * is — `?about=` (B994) and `?c=` (B1168), together decided by
+       * `arrivalFor` above so B1242's "both at once" case is one rule
+       * rather than two special-cased inline. `?c=new` is the + button: a
+       * genuinely blank room, whatever is stored.
+       */
+      const { opening, named, shouldForget } = arrivalFor({
+        c: typeof asked.c === "string" ? asked.c : undefined,
+        about: typeof asked.about === "string" ? asked.about : undefined,
+      });
 
       /**
        * A link from a day starts a fresh conversation that already knows
-       * what it was opened from — B994. The note is B924's mechanism: a
-       * line the model reads and the person never sees, so their first
-       * sentence — "rewrite it", "this day" — is answerable without their
-       * having to describe the day the preview is already showing. The
-       * room strips `about` from the address once mounted, so a reload
-       * resumes this conversation rather than wiping it for another.
+       * what it was opened from — B994's `forget` + note. The note is
+       * B924's mechanism: a line the model reads and the person never sees,
+       * so their first sentence — "rewrite it", "this day" — is answerable
+       * without their having to describe the day the preview is already
+       * showing. The room strips `about` from the address once mounted, so
+       * a reload resumes this conversation rather than wiping it for
+       * another. Skipped when `?c=` also names a live conversation to
+       * reopen instead — B1242 — because forgetting it to show the preview
+       * would be losing the very conversation the link is for.
        */
-      if (opening) {
+      if (shouldForget && opening) {
         forget(user);
         note(
           user,
@@ -126,20 +159,17 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
       }
 
       /**
-       * Which conversation this page is — B1168, revising B1109's resume.
-       *
-       * `?c=new` is the + button: a genuinely blank room, whatever is stored.
-       * `?c=<id>` is a conversation reopened from the history panel — and it
-       * is **adopted**, not merely drawn: the live thread takes that id and
-       * those turns, so the next sentence really continues what is on the
-       * screen and is recorded under it. A bare visit resumes only a
-       * conversation that is actually live (within the thread's own TTL);
-       * resuming a dead one drew last week's turns as though typing would
-       * extend them, while the next sentence silently opened a new session.
+       * `?c=<id>` is a conversation reopened from the history panel, or a
+       * WhatsApp turn's own link — and it is **adopted**, not merely drawn:
+       * the live thread takes that id and those turns, so the next sentence
+       * really continues what is on the screen and is recorded under it. A
+       * bare visit resumes only a conversation that is actually live
+       * (within the thread's own TTL); resuming a dead one drew last week's
+       * turns as though typing would extend them, while the next sentence
+       * silently opened a new session.
        */
-      const named = typeof asked.c === "string" ? asked.c : "";
       const session =
-        opening || named === "new" ? "" : named !== "" ? named : ((await liveSession(user)) ?? "");
+        shouldForget || named === "new" ? "" : named !== "" ? named : ((await liveSession(user)) ?? "");
       const history = session ? await turnsIn(user, session) : [];
       if (named !== "" && named !== "new" && history.length > 0) await adopt(user, session, history);
       /**
