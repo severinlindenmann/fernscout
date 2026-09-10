@@ -50,6 +50,19 @@ Per the approved plan (session 2026-09-10):
 Not doing: SMS login channel; Twilio Verify; inbox delete/reply;
 auto-replies; anything toward B1232. Ceiling capture: B1317.
 
+## Deployed — 2026-09-10
+
+Live on fernscout.ch: `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`/
+`TWILIO_FROM_NUMBER` in the env (credentials verified against Twilio's own
+API from the VPS — account `active`), `features.sms`
+(`twilio`, `allowedPrefixes: ["+41"]`) and `features.smsInbound` on,
+`--full` redeploy healthy, unsigned webhook POST refused 403. Remaining for
+the owner: point the number's "a message comes in" webhook at
+`https://fernscout.ch/api/webhooks/twilio` (POST) in the Twilio console,
+then the three-part live loop — text the number and see it in /admin, send
+from /admin and receive it, prove a signup number by SMS code. The WhatsApp
+tap in the same flow is B1234's acceptance.
+
 ## Acceptance
 
 Locally with dry-run backends: vitest covers webhook signature/dedupe and
