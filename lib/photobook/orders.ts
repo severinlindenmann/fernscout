@@ -516,10 +516,10 @@ export async function markPrintFailed(
   id: string,
   payload: PhotobookPayload,
   failure: string,
-): Promise<void> {
+): Promise<boolean> {
   const handle = await getDatabaseOrNull();
-  if (!handle) return;
-  await handle.db
+  if (!handle) return false;
+  const result = await handle.db
     .updateTable("print_orders")
     .set({
       status: "printed",
@@ -542,5 +542,19 @@ export async function markPrintFailed(
     .where("id", "=", id)
     .where("owner_id", "=", owner)
     .where("kind", "=", "photobook")
-    .execute();
+    // **The claim** — B1348. Gated on `print_submitted`, on rows-affected,
+    // exactly like `claimForPrint` and for the same reason one step later:
+    // this is the only thing that makes settling a refused order happen once.
+    //
+    // Two callers can reach the same order at the same moment — Gelato's
+    // webhook and the five-minute sweep, or a webhook Gelato retries — and a
+    // `SELECT` then `if (status === "print_submitted")` lets both through.
+    // `refund()` is unconditional and does not deduplicate by ref, so both
+    // would credit the owner and the second one is money given away.
+    //
+    // The caller refunds only when this returns true.
+    .where("status", "=", "print_submitted")
+    .executeTakeFirst();
+  // bigint on both dialects; Number() for the same reason `claimForSend` uses it.
+  return Number(result.numUpdatedRows ?? 0) === 1;
 }

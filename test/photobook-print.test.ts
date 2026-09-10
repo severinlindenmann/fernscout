@@ -11,6 +11,12 @@ import { claimOrder, getPhotobookOrder, markPrinted, type PhotobookPayload } fro
 import { approveContact, confirmContact, requestContact } from "@/lib/contacts";
 import { issueCode } from "@/lib/auth";
 
+// The refusal mail is not what these assert, and it would try to send.
+vi.mock("@/lib/photobook/receipt", () => ({
+  sendPhotobookReceipt: vi.fn(),
+  sendPhotobookRefused: vi.fn(),
+}));
+
 vi.mock("@/lib/photobook/gelato", async () => {
   const actual = await vi.importActual<typeof import("@/lib/photobook/gelato")>("@/lib/photobook/gelato");
   return {
@@ -260,6 +266,42 @@ describe("submitBuiltBook", () => {
     // A second quote here would be a second price for a purchase already made,
     // and `stale_quote` on it would strand a paid-for book.
     expect(quoteBook).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * B1348. Settling a refused print gives money back, and two things can reach
+ * the same order at the same moment: Gelato's webhook and the five-minute
+ * sweep, or a webhook Gelato retries. `refund()` is unconditional and does
+ * not deduplicate by ref, so without a claim both would credit the owner.
+ */
+describe("settling a refused print, twice at once", () => {
+  test("refunds once, however many callers arrive together", async () => {
+    const { settleRefusedPrint } = await import("@/lib/photobook/reconcile");
+    const { claimForPrint } = await import("@/lib/photobook/orders");
+    // The order has to be in flight for there to be anything to settle.
+    expect(await claimForPrint(OWNER, ID)).toBe(true);
+    const before = (await balanceOf(OWNER)) ?? 0;
+
+    const [a, b] = await Promise.all([
+      settleRefusedPrint(OWNER, ID, "canceled"),
+      settleRefusedPrint(OWNER, ID, "canceled"),
+    ]);
+
+    // Exactly one wins the claim, and the balance moves exactly once.
+    expect([a, b].filter(Boolean)).toHaveLength(1);
+    expect((await balanceOf(OWNER)) ?? 0).toBe(before + PAYLOAD.credits);
+  });
+
+  test("a later attempt settles nothing", async () => {
+    const { settleRefusedPrint } = await import("@/lib/photobook/reconcile");
+    const { claimForPrint } = await import("@/lib/photobook/orders");
+    expect(await claimForPrint(OWNER, ID)).toBe(true);
+    await settleRefusedPrint(OWNER, ID, "canceled");
+    const after = (await balanceOf(OWNER)) ?? 0;
+
+    expect(await settleRefusedPrint(OWNER, ID, "canceled")).toBe(false);
+    expect((await balanceOf(OWNER)) ?? 0).toBe(after);
   });
 });
 
