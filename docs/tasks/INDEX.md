@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (151)
+## backlog (153)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (28)
+### issue (30)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -69,6 +69,8 @@ Do not edit them by hand; run the script.
 | [B1322](backlog/issue/B1322-postcard-proposals-are-still-refused-after.md) | Postcard proposals are still refused after B1284, now because the helper sends an empty signature | ISSUE | high | low |
 | [B1323](backlog/issue/B1323-the-helper-said-a-postcard-was.md) | The helper said a postcard was on the postcards page when the proposal had failed | ISSUE | high | low |
 | [B1324](backlog/issue/B1324-a-failed-card-press-disables-the.md) | A failed card press disables the composer for good, and the only way out wipes the conversation | ISSUE | high | low |
+| [B1337](backlog/issue/B1337-a-proposal-s-save-and-leave.md) | A proposal's Save and Leave buttons render detached at the page foot on desktop | ISSUE | high | medium |
+| [B1338](backlog/issue/B1338-enter-does-not-send-from-the.md) | Enter does not send from the desktop composer | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1129](backlog/issue/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
