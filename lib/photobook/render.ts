@@ -965,12 +965,27 @@ function addEndLeaves(builder: PdfBuilder, spec: BookSpec): void {
   for (let i = 0; i < END_LEAVES; i++) {
     // Same media and the same whole-page TrimBox as every other interior page
     // — a leaf of a different size is a leaf the binder has to guess about.
-    builder.addPage(mm(media.width), mm(media.height), {
+    const page = builder.addPage(mm(media.width), mm(media.height), {
       x: 0,
       y: 0,
       width: mm(media.width),
       height: mm(media.height),
     });
+    /**
+     * Endpapers, not blanks — B1314.
+     *
+     * These two exist because Gelato counts `pageCount + 2` interior pages
+     * and refuses anything else; they are not pages of the book and nobody
+     * chose them. Left white, prepress calls them out — *"At least one page
+     * is empty (2), pages affected: 43 44"* — and the owner quite reasonably
+     * asked to delete them, which the page count does not allow.
+     *
+     * So they get the wash the charts already use behind a row: warm, quiet,
+     * unmistakably deliberate. A tinted leaf at the back of a book is an
+     * endpaper; a white one is a mistake. Full bleed, because a tint that
+     * stops at the trim shows a white edge wherever the guillotine lands.
+     */
+    PdfBuilder.drawRect(page, 0, 0, mm(media.width), mm(media.height), PALETTE.faint);
   }
 }
 
