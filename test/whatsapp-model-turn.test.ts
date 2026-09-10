@@ -192,10 +192,17 @@ describe("a claim about a screen or a page, on WhatsApp", () => {
       .mockResolvedValueOnce(says("Hier ist der Vorschlag — drück, um zu bestätigen."));
     await handleInboundMessage(textMessage("41760007777", "wamid.screen-1", "plan a trip to japan"));
 
-    const last = repliesTo("screentest").at(-1);
-    expect(last?.kind).toBe("buttons");
-    expect(JSON.stringify(last)).not.toContain("Bildschirm");
-    expect(JSON.stringify(last)).toContain("drück, um zu bestätigen");
+    // B1304 — a `form` proposal now flushes onto its own message (named
+    // only for itself, exactly as `confirm` already does), so the model's
+    // corrected trailing sentence lands in its own message afterwards
+    // rather than folded onto the buttons.
+    const replies = repliesTo("screentest");
+    const buttons = replies.find((r) => r.kind === "buttons");
+    expect(buttons).toBeDefined();
+    expect(JSON.stringify(buttons)).not.toContain("Bildschirm");
+    const trailing = replies.at(-1);
+    expect(trailing?.kind).toBe("text");
+    expect(JSON.stringify(trailing)).toContain("drück, um zu bestätigen");
   });
 
   test("an honest 'press the button' is left alone when this message really carries buttons", async () => {
@@ -205,9 +212,10 @@ describe("a claim about a screen or a page, on WhatsApp", () => {
       .mockResolvedValueOnce(says("Drücke den Button, um die Reise anzulegen."));
     await handleInboundMessage(textMessage("41760008888", "wamid.button-1", "plan a trip to japan"));
 
-    const last = repliesTo("buttontest").at(-1);
-    expect(last?.kind).toBe("buttons");
-    expect(JSON.stringify(last)).toContain("Drücke den Button");
+    // Its own honest "press the button" trails the proposal's own message —
+    // never blocked by the honesty guard, since a real proposal is waiting.
+    const trailing = repliesTo("buttontest").at(-1);
+    expect(JSON.stringify(trailing)).toContain("Drücke den Button");
   });
 });
 

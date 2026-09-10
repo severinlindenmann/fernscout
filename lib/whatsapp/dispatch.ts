@@ -824,28 +824,27 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
   const messages = renderForWhatsapp(blocks, journalUrl, declineLabel, moreText);
 
   if (proposal) {
-    const tagged = messages.findIndex((message) => message.proposal === proposal);
-    if (tagged !== -1) {
+    const taggedIndex = messages.findIndex((message) => message.proposal === proposal);
+    const tagged = taggedIndex === -1 ? undefined : messages[taggedIndex];
+    if (tagged?.kind === "buttons") {
       // A `confirm` block already drew these buttons (B1056) — hold the
       // proposal so a tap on them can find it. Whether the tap goes on to
       // execute or is told this lives on the web is `handleProposalReply`'s
       // question, not this one's.
       holdProposal(username, to, proposal);
-    } else if (isWhatsappExecutable(proposal.tool)) {
+    } else if (tagged && isWhatsappExecutable(proposal.tool)) {
       /**
        * A `form`-shaped proposal (B1230's own case: `create_trip` is exactly
-       * this) had no WhatsApp shape before B1230, and draws no message of
-       * its own from `renderForWhatsapp` (see the module doc: `form` only
-       * ever folds into the running prose). Given how `blocks` is built
-       * above — every read tool's own block, then this turn's own write
-       * proposal, then the model's own trailing sentence — that prose always
-       * ends up in the *last* message `renderForWhatsapp` returns. Upgrade
-       * that one to real buttons, built over whatever text it already
-       * carries.
+       * this) had no WhatsApp shape before B1230. Since B1304,
+       * `renderForWhatsapp` flushes it onto its own tagged message rather
+       * than folding it into whatever else the turn drew — found by tag
+       * here, not by position ("the last message"), which is what used to
+       * merge a second proposal's own prose onto the first's buttons. Upgrade
+       * that one message to real buttons, over whatever text it already
+       * carries, and nothing else in the turn.
        */
-      const last = messages[messages.length - 1];
-      messages[messages.length - 1] = {
-        ...confirmButtonsFor(last.kind === "text" ? last.body : "", proposal.accept, declineLabel),
+      messages[taggedIndex] = {
+        ...confirmButtonsFor(tagged.kind === "text" ? tagged.body : "", proposal.accept, declineLabel),
         proposal,
       };
       holdProposal(username, to, proposal);
