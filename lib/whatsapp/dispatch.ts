@@ -151,7 +151,11 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
 
   if (!hasBeenGreeted(username, message.from)) {
     const journalUrl = `${serverSite().url}/${username}`;
-    const reply = translateIn(locale, "wa.firstReply", { journalUrl });
+    // The room at /agent?c=<id> adopts this same conversation (B1168/B1054),
+    // so the greeting can honestly promise the web as a second door — the
+    // session row this creates is the one every later turn lands in.
+    const agentUrl = `${serverSite().url}/agent?c=${await sessionId(username, "whatsapp")}`;
+    const reply = translateIn(locale, "wa.firstReply", { journalUrl, agentUrl });
     await sendServiceReply(message.from, reply, username);
     markGreeted(username, message.from);
     console.log(`[whatsapp:inbound] greeted a newly bound number for ${username}`);
