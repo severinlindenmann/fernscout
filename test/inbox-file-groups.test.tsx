@@ -63,6 +63,20 @@ describe("grouped by kind", () => {
   });
 });
 
+describe("a video tile", () => {
+  // B1380: a video's `src` points at the thumbnail route, which 404s for a
+  // video (sharp cannot resize one) — pointing an `<img>` at it drew the
+  // browser's broken-image icon. The tile must fall back to the typed icon
+  // instead, exactly as it already does for a document with no picture.
+  test("never renders an <img>, even though it carries a src", () => {
+    const el = render([
+      { id: "inbox:a", name: "clip.mp4", kind: "video", src: "/x/thumb.webp", at: NEW },
+    ]);
+    expect(el.querySelectorAll("img").length).toBe(0);
+    expect(el.textContent).toContain("clip.mp4");
+  });
+});
+
 describe("newest first", () => {
   test("within a kind, the newer file comes first", () => {
     const el = render([

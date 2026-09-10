@@ -496,11 +496,30 @@ export default function HelperRoom({
     };
   }, [menuOpen]);
   /**
-   * Low enough to warn — B1208 (D08). A plain conversation turn is free;
-   * the writes that charge cost about a credit each (WRITE_DAY_CREDITS),
-   * so ten credits is roughly ten more days of writing.
+   * Low enough to warn — B1208 (D08), narrowed to 5 by B1371: at 10 the
+   * banner fired a whole account's length before the balance was actually
+   * a problem. A plain conversation turn is free; the writes that charge
+   * cost about a credit each (WRITE_DAY_CREDITS), so five credits is
+   * roughly five more days of writing.
+   *
+   * Dismissable per session, per journal — B1371. `sessionStorage` rather
+   * than component state alone: a re-render (a new turn, a tab switch)
+   * must not bring the banner back, but a fresh visit should, since the
+   * balance may have dropped further since. Starts `false` and is read in
+   * an effect, same as `installHint`'s own `localStorage` check below —
+   * reading it during render would answer differently on the server (no
+   * `sessionStorage` at all) than on the client's first paint and throw a
+   * hydration mismatch.
    */
-  const lowCredits = credits !== null && credits <= 10;
+  const dismissKey = `fs.agent.lowCreditsDismissed.${username}`;
+  const [creditsDismissed, setCreditsDismissed] = useState(false);
+  useEffect(() => {
+    if (window.sessionStorage.getItem(dismissKey) === "1") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCreditsDismissed(true);
+    }
+  }, [dismissKey]);
+  const lowCredits = credits !== null && credits <= 5 && !creditsDismissed;
 
   /**
    * Phone only: the files dialog, and the preview's own sheet — both plain
@@ -1018,9 +1037,22 @@ export default function HelperRoom({
             the reading measure — B1177: at 1440px the column is ~1000px and
             a line of conversation spanned all of it, three times the width
             a paragraph stays readable at. The column keeps its flex width;
-            only the content is held to ~65-75 characters. */}
+            only the content is held to ~65-75 characters.
+
+            `overflow-y-auto` here (B1374/B1379) is a safety net around
+            `HelperAsk`'s own scrolling log: the consent "warum?" disclosure
+            and the low-credit notice both render as flex siblings of the
+            log rather than inside it, so expanding either can ask for more
+            height than this column has. Before this, nothing between here
+            and `<body>` clipped or scrolled that overflow, so the page
+            itself started scrolling and the composer's `sticky bottom-0`
+            stuck to the *viewport* instead of to this column — the footer
+            tab bar (a fixed sibling below, in HelperRoom's own flex
+            column) then read as pinned mid-page over half-clipped content.
+            Giving this column a real scrolling box is what a `sticky`
+            child needs to stick to it instead of the document. */}
         <main
-          className={`min-h-0 flex-1 flex-col px-4 py-3 ${tab === "chat" ? "flex" : "hidden"} lg:flex`}
+          className={`min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 py-3 ${tab === "chat" ? "flex" : "hidden"} lg:flex`}
         >
           <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
           <HelperAsk
@@ -1100,14 +1132,27 @@ export default function HelperRoom({
                   </button>
                 </div>
               ) : lowCredits ? (
-                <p className="mb-2 shrink-0 rounded-xl border border-coral-400 bg-coral-50 px-3 py-2 text-sm leading-5 text-coral-600">
-                  {t("agent.room.lowCredits")}{" "}
-                  <a
-                    href={`/${encodeURIComponent(username)}/account#buy`}
-                    className="font-semibold underline underline-offset-2"
+                <p className="mb-2 flex shrink-0 items-start gap-2 rounded-xl border border-coral-400 bg-coral-50 px-3 py-2 text-sm leading-5 text-coral-600">
+                  <span className="min-w-0 flex-1">
+                    {t("agent.room.lowCredits")}{" "}
+                    <a
+                      href={`/${encodeURIComponent(username)}/account#buy`}
+                      className="font-semibold underline underline-offset-2"
+                    >
+                      {t("agent.room.accountBuy")}
+                    </a>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.sessionStorage.setItem(dismissKey, "1");
+                      setCreditsDismissed(true);
+                    }}
+                    aria-label={t("agent.room.closeAccount")}
+                    className="shrink-0 rounded-full px-1.5 text-coral-600 hover:bg-coral-100"
                   >
-                    {t("agent.room.accountBuy")}
-                  </a>
+                    ✕
+                  </button>
                 </p>
               ) : undefined
             }
@@ -1974,7 +2019,15 @@ function AccountSheet({
   );
 }
 
-const GB = (n: number) => (n / (1024 * 1024 * 1024)).toFixed(n >= 1024 * 1024 * 1024 ? 1 : 2);
+/** Mirrors `formatBytes` in `lib/storageQuota.ts`, which is server-only and
+ *  cannot be imported here. GB-only rendering was B1381: five fresh photos
+ *  are megabytes, and `(n / 2**30).toFixed(2)` showed them as "0.00 GB" —
+ *  read as "the meter never moves" by the person who just uploaded them. */
+const bytesHuman = (n: number) => {
+  if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(1)} GB`;
+  if (n >= 1024 ** 2) return `${(n / 1024 ** 2).toFixed(0)} MB`;
+  return `${(n / 1024).toFixed(0)} KB`;
+};
 
 /**
  * The storage bar, at the foot of the files pane — B1340 (E07): how full the
@@ -2018,8 +2071,8 @@ function StorageLine({ username, refresh }: { username: string; refresh: number 
       </div>
       <p className="mt-1 text-xs text-navy-600">
         {ceiling === null
-          ? `${GB(storage.usedBytes)} GB`
-          : t("agent.room.accountStorageOf", { used: GB(storage.usedBytes), ceiling: GB(ceiling) })}
+          ? bytesHuman(storage.usedBytes)
+          : t("agent.room.accountStorageOf", { used: bytesHuman(storage.usedBytes), ceiling: bytesHuman(ceiling) })}
       </p>
     </a>
   );

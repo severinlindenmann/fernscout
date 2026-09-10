@@ -6,7 +6,7 @@ import { normalizeJournalVisibility } from "@/lib/config";
 import { normalizeCurrency } from "@/lib/currency";
 import { creditsEnabled, grant, SIGNUP_CREDIT_GRANT } from "@/lib/credits";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
-import { createJournal, sendWelcome } from "@/lib/journals";
+import { createJournal, sendWelcome, setJournalFeatures } from "@/lib/journals";
 import { clientIp, rateLimitFor, rateLimitStatus } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
@@ -406,6 +406,14 @@ export async function POST(request: Request) {
     );
   }
 
+  const telProvenMethod = session.phone
+    ? session.phoneProvenMethod === "whatsapp-inbound" || session.phoneProvenMethod === "sms"
+      ? session.phoneProvenMethod
+      : phoneProofMode() === "whatsapp-inbound"
+        ? ("whatsapp-inbound" as const)
+        : ("sms" as const)
+    : null;
+
   const created = createJournal({
     visibility,
     username,
@@ -429,12 +437,7 @@ export async function POST(request: Request) {
           // mode alone would be a guess. Pre-B1316 sessions have no record,
           // and the mode is the only honest answer left for them. "sms"
           // stays the word for every code backend.
-          ownerTelProvenMethod:
-            session.phoneProvenMethod === "whatsapp-inbound" || session.phoneProvenMethod === "sms"
-              ? session.phoneProvenMethod
-              : phoneProofMode() === "whatsapp-inbound"
-                ? ("whatsapp-inbound" as const)
-                : ("sms" as const),
+          ownerTelProvenMethod: telProvenMethod ?? undefined,
         }
       : {}),
   });
@@ -467,6 +470,22 @@ export async function POST(request: Request) {
    */
   rateLimitFor("journals-create", ip, CREATED);
   rateLimitFor("journals-create-daily", ip, CREATED_DAILY);
+
+  /**
+   * The number was proven by messaging this server's WhatsApp, so the channel
+   * it proves is switched on — the same consent reading
+   * `lib/whatsapp/onboarding.ts` makes for a journal created inside that
+   * conversation. Without this the owner's next WhatsApp message was dropped
+   * with "has not opted into the channel" in a log nobody reads (B1382).
+   * **Only this one capability**: `whatsapp` — day announcements, which spend
+   * credits — keeps its own default.
+   */
+  if (telProvenMethod === "whatsapp-inbound") {
+    const opted = setJournalFeatures(created.username, { whatsappInbound: true });
+    if (!opted.ok) {
+      console.error(`[journals] could not switch the WhatsApp channel on for ${created.username}: ${opted.error}`);
+    }
+  }
 
   /**
    * The signup token is spent, now that it has been used.

@@ -182,10 +182,26 @@ export default function RecordButton({
   // What a screen reader is told, and the only thing about this button that is
   // spoken while it runs — B794.
   const [announced, setAnnounced] = useState("");
+  // How loud the last frame of audio was, 0 to 1 — B1378. Driven by
+  // `meter()` below and read only to scale the icon; nothing downstream of
+  // this component ever sees it.
+  const [level, setLevel] = useState(0);
 
   const recorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
   const started = useRef(0);
+  // The open microphone itself, held here rather than only as a `start()`
+  // local — B1383. `onstop` already stops every track it knows about, but a
+  // route away from the page does not run `onstop`; this is what the
+  // unmount and pagehide paths reach for instead.
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioCtx = useRef<AudioContext | null>(null);
+  const analyserNode = useRef<AnalyserNode | null>(null);
+  const meterFrame = useRef<number | null>(null);
+  // Set once, on the way out — B1383. `start()` awaits `getUserMedia` before
+  // it has anything to release; a route away during that wait must not open
+  // the microphone at all once it resolves.
+  const unmounted = useRef(false);
   // When a pointer last pressed this button, so the click that follows a
   // press-and-hold is not read as a second, toggling press. See `toggle`.
   const pressedAt = useRef(0);
@@ -230,6 +246,63 @@ export default function RecordButton({
     }, 200);
     return () => window.clearInterval(timer);
   }, [recording, maxSeconds]);
+
+  // Stops the level meter's own loop and its `AudioContext` — B1378/B1383.
+  // Neither the analyser nor the raw stream is read past this; it is
+  // deliberately called from every place the microphone itself is released,
+  // not only from the happy path.
+  const stopMeter = useCallback(() => {
+    if (meterFrame.current !== null) {
+      cancelAnimationFrame(meterFrame.current);
+      meterFrame.current = null;
+    }
+    analyserNode.current = null;
+    if (audioCtx.current) {
+      void audioCtx.current.close().catch(() => {});
+      audioCtx.current = null;
+    }
+    setLevel(0);
+  }, []);
+
+  // The hard stop — B1383. Used wherever the microphone must go dark
+  // regardless of what the recording was doing: unmount, the tab going to
+  // the background, and the page being left entirely. It does not go
+  // through `onstop`'s usual send-what-was-heard path, because a person
+  // leaving is not an answer worth transcribing — it stops every track
+  // directly and says nothing to the server.
+  const releaseStream = useCallback(() => {
+    if (!recorder.current && !streamRef.current) return;
+    wantStop.current = true;
+    if (recorder.current && recorder.current.state !== "inactive") {
+      recorder.current.onstop = null;
+      recorder.current.stop();
+    }
+    recorder.current = null;
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    stopMeter();
+    setRecording(false);
+  }, [stopMeter]);
+
+  // Leaving the page, in either sense a browser offers one — B1383.
+  // `visibilitychange`→`hidden` covers a tab switch or the phone's screen
+  // locking, where this component stays mounted and would otherwise keep
+  // recording into a background tab forever; `pagehide` covers an actual
+  // navigation away, which on some mobile browsers fires with no unmount
+  // ever reaching React at all.
+  useEffect(() => {
+    const onHidden = () => {
+      if (document.visibilityState === "hidden") releaseStream();
+    };
+    document.addEventListener("visibilitychange", onHidden);
+    window.addEventListener("pagehide", releaseStream);
+    return () => {
+      document.removeEventListener("visibilitychange", onHidden);
+      window.removeEventListener("pagehide", releaseStream);
+      unmounted.current = true;
+      releaseStream();
+    };
+  }, [releaseStream]);
 
   const send = useCallback(
     async (blob: Blob, held: number) => {
@@ -292,6 +365,14 @@ export default function RecordButton({
       setError(t("agent.speechDenied"));
       return;
     }
+    // A route away during the wait above — B1383. Nobody is left to stop
+    // this recording, so it must never start; the microphone this call just
+    // opened is the only thing left to release.
+    if (unmounted.current) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
+    streamRef.current = stream;
     const media = new MediaRecorder(stream);
     chunks.current = [];
     media.ondataavailable = (event) => {
@@ -301,6 +382,8 @@ export default function RecordButton({
       // The microphone is released the moment the hold ends, not when the
       // answer comes back.
       stream.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      stopMeter();
       setRecording(false);
       setAnnounced(t("agent.speechStopped"));
       const held = (Date.now() - started.current) / 1000;
@@ -322,13 +405,49 @@ export default function RecordButton({
     setRecording(true);
     setAnnounced(t("agent.speechStarted"));
     media.start();
+    // The pulse on the icon — B1378. An `AnalyserNode` on the same stream,
+    // sampled once a frame while recording; a browser with no `AudioContext`
+    // (or one that refuses a second consumer of the stream) simply leaves
+    // the icon still, which costs nothing and breaks nothing else here.
+    try {
+      const Ctor =
+        window.AudioContext ??
+        (window as unknown as { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (Ctor) {
+        const ctx = new Ctor();
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        ctx.createMediaStreamSource(stream).connect(analyser);
+        audioCtx.current = ctx;
+        analyserNode.current = analyser;
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        const tick = () => {
+          if (!analyserNode.current) return;
+          analyserNode.current.getByteTimeDomainData(data);
+          let sumSquares = 0;
+          for (let i = 0; i < data.length; i++) {
+            const centred = (data[i] - 128) / 128;
+            sumSquares += centred * centred;
+          }
+          // ponytail: RMS of the time-domain buffer, no smoothing — cheap
+          // and jittery is the right trade for a decorative pulse; an
+          // exponential average if it ever needs to look calmer.
+          setLevel(Math.min(1, Math.sqrt(sumSquares / data.length) * 4));
+          meterFrame.current = requestAnimationFrame(tick);
+        };
+        meterFrame.current = requestAnimationFrame(tick);
+      }
+    } catch {
+      // No pulse; the recording itself does not depend on it.
+    }
     // Somebody let go while the browser was still granting the microphone.
     // Honour it now rather than leaving it open — B995.
     if (wantStop.current) {
       wantStop.current = false;
       media.stop();
     }
-  }, [busy, recording, send, t]);
+  }, [busy, recording, send, stopMeter, t]);
 
   function stop() {
     if (recorder.current?.state === "recording") {
@@ -362,7 +481,7 @@ export default function RecordButton({
   }
 
   if (consenting) {
-    return (
+    const panel = (
       <ConfirmPanel
         label={t("agent.speechConsentLabel")}
         // B781 — one line here, the whole of it behind "why?". The provider is
@@ -388,6 +507,22 @@ export default function RecordButton({
         onConfirm={() => void agree()}
         onCancel={() => setConsenting(false)}
       />
+    );
+    // B1377 — `compact` mounts this as one item in the host's own flex row
+    // (the composer's field, mic and send button), which used to leave the
+    // panel squeezed into whatever the mic's own slot had left: a column a
+    // few characters wide, wrapping one word per line. `absolute` pulls it
+    // out of that row's flow entirely and `inset-x-0` gives it the full
+    // width of the nearest positioned ancestor instead — the same host the
+    // compact icon itself already requires (see `compactClassName`).
+    // `bottom-full` floats it just above the composer rather than over the
+    // field somebody was just typing in.
+    return compact ? (
+      <div className="absolute inset-x-0 bottom-full z-20 mb-2 w-full">
+        {panel}
+      </div>
+    ) : (
+      panel
     );
   }
 
@@ -563,6 +698,17 @@ export default function RecordButton({
           disabled={disabled || busy}
           aria-label={howName}
           {...hold}
+          // The pulse — B1378. Scale rather than anything that touches
+          // layout, so it costs nothing beyond a repaint; `transition`
+          // covers the gap between animation frames so it reads as a level
+          // rather than a stutter. Off entirely once `recording` ends,
+          // including on a browser with no meter, where `level` never
+          // leaves zero and this is simply inert.
+          style={
+            recording
+              ? { transform: `scale(${1 + level * 0.3})`, transition: "transform 80ms linear" }
+              : undefined
+          }
           className={`${
             compactClassName ?? "absolute right-2 top-2 h-11 w-11 border"
           } flex items-center justify-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-navy-500 focus-visible:outline-none disabled:opacity-50 ${
@@ -597,6 +743,14 @@ export default function RecordButton({
             <label htmlFor={`speech-language-${username}`} className="sr-only">
               {t("agent.speechLanguage")}
             </label>
+            {/* B1378 — `max-w-[6rem]` and `shrink-0` kept this in the same
+                row as the field, the mic and send, and it was the fixed
+                width that broke the row: the field, the one item allowed to
+                shrink, gave up all of it and was left a word wide.
+                `basis-full` asks the flex-wrap row (see HelperAsk's
+                composer) for a whole line to itself — there is never room
+                for it beside anything else, so it always gets one — and it
+                is now full width on that line rather than boxed to 6rem. */}
             <select
               id={`speech-language-${username}`}
               value={chosen}
@@ -608,7 +762,7 @@ export default function RecordButton({
                   // A browser with no storage still records; it just forgets.
                 }
               }}
-              className="h-9 max-w-[6rem] shrink-0 self-center rounded-lg border border-navy-300 bg-white px-1 text-xs text-navy-800"
+              className="order-last mt-1.5 h-10 w-full basis-full rounded-lg border border-navy-300 bg-white px-2 text-sm text-navy-800"
             >
               <option value="">{t("agent.speechLanguageDefault")}</option>
               {SPEECH_LANGUAGES.map((code) => (

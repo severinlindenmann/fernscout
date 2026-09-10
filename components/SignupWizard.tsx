@@ -417,9 +417,15 @@ export default function SignupWizard({
       <h2 className="font-display text-xl font-semibold text-navy-900">
         {t("agent.startTitle")}
       </h2>
-      <p className="mt-2 text-base leading-7 text-navy-700">
-        {t("agent.startIntro")}
-      </p>
+      {/* B1370 — the phone-wa step ("Noch ein Schritt: Bestätige deine
+          Telefonnummer per WhatsApp") is a confirmation, not a fresh pitch;
+          the intro above belongs to the steps that still need to sell the
+          idea, not to the one that is only waiting on a tap in WhatsApp. */}
+      {step !== "phone-wa" && (
+        <p className="mt-2 text-base leading-7 text-navy-700">
+          {t("agent.startIntro")}
+        </p>
+      )}
 
       {error && (
         <p role="alert" className="mt-4 text-base leading-7 text-coral-600">
@@ -618,9 +624,6 @@ export default function SignupWizard({
               {t("agent.phoneSmsOffer")}
             </button>
           )}
-          <p className="mt-3 text-sm leading-6 text-navy-600">
-            {t("agent.phoneNoWhatsapp")}
-          </p>
         </div>
       )}
 
