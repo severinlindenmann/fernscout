@@ -1,4 +1,8 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+
+const ROOT = path.resolve(import.meta.dirname, "..");
 
 vi.mock("@/lib/contacts/session", () => ({ isOwner: vi.fn().mockResolvedValue(true) }));
 vi.mock("@/lib/capabilities", () => ({ isEnabled: vi.fn().mockReturnValue(true) }));
@@ -300,10 +304,40 @@ describe("the download route", () => {
     expect(response.status).toBe(404);
   });
 
-  test("only the two shapes of file this feature writes are served", async () => {
+  test("only the shapes of file this feature writes are served", async () => {
     const response = await GET(new Request("https://example.test/x"), {
       params: Promise.resolve({ user: "alex", id: "abc12345", file: "notes.txt" }),
     });
     expect(response.status).toBe(404);
+  });
+
+  test("the combined book is one of them — B1229", async () => {
+    // Not 404 for the *name*: the build writes `book.pdf` (B1205) and the
+    // receipt links to it, and this route used to refuse the only file a
+    // person actually uploads to a printer. It still 404s here because no
+    // such order exists on disk — what is being asserted is that the refusal
+    // is about the missing file and not about the filename.
+    const named = await GET(new Request("https://example.test/x"), {
+      params: Promise.resolve({ user: "alex", id: "abc12345", file: "book.pdf" }),
+    });
+    const rejected = await GET(new Request("https://example.test/x"), {
+      params: Promise.resolve({ user: "alex", id: "abc12345", file: "book.txt" }),
+    });
+    expect(named.status).toBe(404);
+    expect(rejected.status).toBe(404);
+    // Both 404, so prove the pattern itself rather than the response.
+    const source = fs.readFileSync(
+      path.join(ROOT, "app", "[user]", "photobooks", "[id]", "[file]", "route.ts"),
+      "utf8",
+    );
+    const pattern = source.match(/const FILE_RE = (\/.*\/);/)?.[1];
+    expect(pattern).toBeTruthy();
+    const re = new RegExp(pattern!.slice(1, -1));
+    expect(re.test("book.pdf")).toBe(true);
+    expect(re.test("v2.pdf")).toBe(true);
+    expect(re.test("book-interior.pdf")).toBe(true);
+    expect(re.test("book-cover.pdf")).toBe(true);
+    expect(re.test("book.txt")).toBe(false);
+    expect(re.test("../book.pdf")).toBe(false);
   });
 });

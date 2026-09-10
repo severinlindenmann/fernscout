@@ -9,7 +9,20 @@ export const dynamic = "force-dynamic";
 
 /** Only what this feature writes. An allowlist rather than a sanitiser: there
  * are two shapes of file in that directory and no reason to serve a third. */
-const FILE_RE = /^(book|v\d{1,2})-(interior|cover)\.pdf$/;
+/**
+ * The three files one volume writes, and nothing else — B1229.
+ *
+ * `book.pdf` is the whole book in one document, cover as page 1 (B1205), and
+ * it was missing from here: the build wrote it, the receipt linked to it, and
+ * this route answered 404 for the only file a person actually uploads to a
+ * printer. The interior and the cover stay downloadable beside it — they are
+ * what the API submits and what somebody takes to a different printer.
+ *
+ * Still a closed pattern rather than a directory listing: `id` and `file` both
+ * arrive from a URL and are joined into a path, so this is the boundary where
+ * they get checked once for everyone downstream.
+ */
+const FILE_RE = /^(book|v\d{1,2})(-(interior|cover))?\.pdf$/;
 
 /**
  * The book, to the person who paid for it.
