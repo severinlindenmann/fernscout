@@ -254,8 +254,16 @@ export function ReaderInvite({ onSignIn }: { onSignIn: () => void }) {
  */
 export function LandingHero({
   helperEnabled = false,
+  whatsappNumber,
 }: {
   helperEnabled?: boolean;
+  /**
+   * The instance's own `wa.me` number, resolved server-side — B1310. Nothing
+   * here checks anybody's own state, unlike `RoomOpening`'s prop of the same
+   * name: a stranger has none yet, so the only gate is whether this instance
+   * has a number configured at all (`whatsappDisplayNumber()`).
+   */
+  whatsappNumber?: string;
 }) {
   const { t } = useI18n();
   return (
@@ -273,6 +281,24 @@ export function LandingHero({
         >
           {t("landing.helperCta")}
         </Link>
+      )}
+      {/* A second door beside the first — B1310. Secondary by design: a
+          quiet underlined link, the same shape as `AgentDisclosure`'s
+          trigger, rather than a second bright button competing with
+          "Start writing". Independent of `helperEnabled`: the WhatsApp
+          channel is answered by whatever agent the owner has put behind
+          it, not by this instance's own `/agent` wizard. */}
+      {whatsappNumber && (
+        <a
+          href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(t("agent.open.whatsappGreeting"))}`}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-4 inline-flex min-h-11 items-center text-base font-semibold text-navy-700 underline
+                     decoration-navy-300 underline-offset-4 transition-colors hover:decoration-navy-700
+                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+        >
+          {t("landing.whatsappCta")}
+        </a>
       )}
     </>
   );

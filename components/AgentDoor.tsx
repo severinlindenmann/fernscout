@@ -46,6 +46,7 @@ export default function AgentDoor({
   identityEmail,
   signupEnabled,
   siteName,
+  whatsappNumber,
 }: {
   docUrl: string;
   agentUrl: string;
@@ -64,6 +65,14 @@ export default function AgentDoor({
    *  draw this above every page under `/agent`; it draws nothing now, so the
    *  door carries its own. */
   siteName: string;
+  /**
+   * This instance's own `wa.me` number, resolved server-side —
+   * `whatsappDisplayNumber()`, B1310. A stranger at this door has no proven
+   * number of their own to gate on, unlike `RoomOpening`'s prop of the same
+   * name, so the only check is whether the instance has one configured at
+   * all.
+   */
+  whatsappNumber?: string;
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -122,6 +131,26 @@ export default function AgentDoor({
             is a promise rather than a direction is behind "why?", where the
             person who wants it can have all of it. */}
         <Why>{t("agent.introWhy")}</Why>
+
+        {/* B1310 — a short line, not a hero, and drawn regardless of
+            signed-in state: this door has no journal of its own to ask
+            "is this the owner's own proven number" the way `RoomOpening`
+            can, so the only gate is whether the instance has a number
+            configured at all. */}
+        {whatsappNumber && (
+          <p className="mt-3 text-base leading-7 text-navy-700">
+            <a
+              href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(t("agent.open.whatsappGreeting"))}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-11 items-center font-semibold text-navy-900 underline
+                         decoration-navy-300 underline-offset-4 transition-colors hover:decoration-navy-900
+                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+            >
+              {t("agent.doorWhatsapp")}
+            </a>
+          </p>
+        )}
 
         {/* B1221 — a stranger sees what talking to the room is like before
             deciding anything. Signed-out only: somebody already in has

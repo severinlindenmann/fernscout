@@ -244,6 +244,10 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
       identityEmail={identity?.email ?? null}
       signupEnabled={isEnabled("signup")}
       siteName={site.name}
+      // This instance's own wa.me number, or absent — B1310. Same server-
+      // side gate `/` uses; a stranger at this door has no journal to ask
+      // a proven-number question about, unlike the room's own chip.
+      whatsappNumber={whatsappDisplayNumber()}
     />
   );
 }

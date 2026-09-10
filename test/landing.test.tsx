@@ -102,7 +102,7 @@ afterEach(() => {
 });
 
 /** Mirrors app/page.tsx, which is a thin wrapper around this component. */
-function renderLanding(locale = "en", helperEnabled = false) {
+function renderLanding(locale = "en", helperEnabled = false, whatsappNumber?: string) {
   const journals = getUsernames().flatMap((username) => {
     const user = getUser(username);
     if (!user) return [];
@@ -120,6 +120,7 @@ function renderLanding(locale = "en", helperEnabled = false) {
       journals={journals}
         locales={installedLocales()}
         helperEnabled={helperEnabled}
+        whatsappNumber={whatsappNumber}
       />
     </LocaleProvider>,
   );
@@ -172,6 +173,23 @@ describe("the landing page", () => {
     // it always was.
     const html = renderLanding();
     expect(html).not.toContain('href="/agent"');
+  });
+
+  /**
+   * B1310 — a secondary WhatsApp door beside "Start writing", gated on
+   * nothing but this instance having a number configured at all. On or off,
+   * regardless of `helperEnabled`: the channel is answered by whatever
+   * agent the owner put behind it, not by this instance's own `/agent`.
+   */
+  test("offers a WhatsApp link when this instance has a number configured", () => {
+    const html = renderLanding("en", false, "41780000000");
+    expect(html).toContain("https://wa.me/41780000000");
+    expect(html).toContain("Or start using WhatsApp");
+  });
+
+  test("has no WhatsApp link when this instance has no number configured", () => {
+    const html = renderLanding();
+    expect(html).not.toContain("wa.me");
   });
 
   test("leads with /agent when the helper is on, bring-your-own still reachable", () => {
