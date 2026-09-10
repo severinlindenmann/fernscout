@@ -242,3 +242,47 @@ describe("a turn whose retry trades one false claim for another", () => {
     expect(row?.recovered).toBeFalsy();
   });
 });
+
+/**
+ * B1303, scenario-edges.md finding 6 — a turn has no sense of time
+ * otherwise. `Turn` carries no timestamp, so nothing behind the system
+ * prompt's "long gap, new subject: ask" line could ever fire from real
+ * elapsed time; `lib/whatsapp/dispatch.ts` now folds an honest one-line note
+ * in when the thread's last touch was 4+ hours ago.
+ */
+describe("a gap since the last message", () => {
+  test("a long gap folds a note the model can read", async () => {
+    await bindGreetAcknowledge("gaptest1", "41760001234");
+    create.mockResolvedValueOnce(says("Noted."));
+    await handleInboundMessage(textMessage("41760001234", "wamid.gap1.first", "day one at the lake"));
+
+    // Push the thread's own last-touch back 7 hours — the same technique
+    // scenario-edges.md's own rig used against `helper_threads.touched_at`,
+    // done here against the live in-memory cache `lib/helper/thread.ts`
+    // reads first (the same `globalThis` singleton the module itself uses).
+    const cache = (globalThis as { __fsHelperThreads?: Map<string, { touched: number }> }).__fsHelperThreads;
+    const state = cache?.get("gaptest1");
+    expect(state).toBeDefined();
+    if (state) state.touched -= 7 * 60 * 60 * 1000;
+
+    create.mockResolvedValueOnce(says("Postcards work like this."));
+    await handleInboundMessage(textMessage("41760001234", "wamid.gap1.second", "what about postcards"));
+
+    const lastCall = sent.at(-1) as { messages: { role: string; content: string }[] };
+    const lastMessage = lastCall.messages.at(-1);
+    expect(lastMessage?.content).toMatch(/\[gap: about 7 hours since the last message\]/);
+  });
+
+  test("a short gap adds no note", async () => {
+    await bindGreetAcknowledge("gaptest2", "41760001235");
+    create.mockResolvedValueOnce(says("Noted."));
+    await handleInboundMessage(textMessage("41760001235", "wamid.gap2.first", "day one at the lake"));
+
+    create.mockResolvedValueOnce(says("Postcards work like this."));
+    await handleInboundMessage(textMessage("41760001235", "wamid.gap2.second", "what about postcards"));
+
+    const lastCall = sent.at(-1) as { messages: { role: string; content: string }[] };
+    const lastMessage = lastCall.messages.at(-1);
+    expect(lastMessage?.content).not.toMatch(/\[gap:/);
+  });
+});

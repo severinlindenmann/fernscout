@@ -33,6 +33,14 @@ export function holdProposal(username: string, tel: string, proposal: Proposal):
   fs.writeFileSync(file, `${JSON.stringify(proposal, null, 2)}\n`, "utf8");
 }
 
+/** Drop whatever proposal is waiting, without pressing it — B1303. "neues
+ *  gespräch" ends the conversation that made an offer; a stale button from
+ *  it must not still be live, and silently writing into the fresh thread, on
+ *  the other side of that reset. Safe to call with nothing waiting. */
+export function clearPendingProposal(username: string, tel: string): void {
+  fs.rmSync(pendingPath(username, tel), { force: true });
+}
+
 /** Read and clear whatever proposal is waiting for this number, or `null` if
  *  none is — a take, not a peek, so the same proposal can never be pressed
  *  twice from two taps that both found the file still there. */

@@ -6,7 +6,9 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { createJournal, setJournalFeatures } from "@/lib/journals";
 import { forget, history, liveSession, remember } from "@/lib/helper/thread";
+import { holdProposal } from "@/lib/whatsapp/pendingProposal";
 import type { InboundMessage } from "@/lib/whatsapp/inbound";
+import type { Proposal } from "@/lib/helper/blocks";
 
 /**
  * B1245 — a command that starts a fresh conversation, matched exactly and
@@ -143,6 +145,39 @@ describe("the 'new chat' command", () => {
     // deletes `helper_sessions` — `forget()` (lib/helper/thread.ts) only
     // drops `helper_threads`, the live-conversation cache.
     expect(await liveSession(username)).not.toBe(before);
+    forget(username);
+  });
+
+  /**
+   * B1303, scenario-multimsg.md defect 2 — a proposal made before the reset
+   * is not a proposal this fresh thread ever made. Reproduced directly
+   * against the pending-proposal store rather than through a scripted model
+   * turn: seed a waiting proposal, reset, then tap the old button.
+   */
+  test("a proposal held before the reset cannot still be pressed after it", async () => {
+    const username = "newchat4";
+    const tel = "41760077004";
+    forget(username);
+    await bindGreetAcknowledge(username, tel);
+
+    const proposal: Proposal = {
+      tool: "start_day",
+      arguments: { trip: "trip-four", date: "2026-09-11" },
+      sentence: "A day for the 11th.",
+      fields: [],
+      endpoint: "/api/helper/newchat4/day",
+      method: "POST",
+      accept: "Make this day",
+      done: "Done.",
+    };
+    holdProposal(username, tel, proposal);
+
+    await handleInboundMessage(textMessage(tel, "wamid.newchat4.cmd", "new chat"));
+
+    await handleInboundMessage({ kind: "interactive", id: "wamid.newchat4.tap", from: tel, timestamp: "1", replyId: "confirm:0:yes", title: "" });
+
+    const last = repliesTo(username).at(-1);
+    expect(String(last?.body)).toContain("nothing waiting to be pressed");
     forget(username);
   });
 });

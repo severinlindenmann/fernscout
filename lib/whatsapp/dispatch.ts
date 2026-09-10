@@ -18,7 +18,7 @@ import type { Say } from "../helper/intents";
 import { answerInThread, WRITE_DAY_CREDITS } from "../helper/model";
 import { recordTurn } from "../helper/sessions";
 import { MAX_AUDIO_BYTES, MAX_SPEECH_SECONDS, speechLanguageFor } from "../helper/speech";
-import { forget, history, proposed, remember, sessionId, wrote } from "../helper/thread";
+import { forget, history, lastTouched, proposed, remember, sessionId, wrote } from "../helper/thread";
 import { spendAndTranscribe } from "../helper/transcribeSpend";
 import { kindForExtension, storeInboxFile } from "../inbox";
 import { translateIn } from "../locales";
@@ -35,7 +35,7 @@ import { downloadMedia } from "./cloud";
 import { announceHeldAnswer, takeHeldAnswer } from "./held";
 import { cloudCredentials, maskNumber } from "./index";
 import { flushMediaBatch, noteMedia } from "./mediaBatch";
-import { holdProposal, peekPendingProposal, takePendingProposal } from "./pendingProposal";
+import { clearPendingProposal, holdProposal, peekPendingProposal, takePendingProposal } from "./pendingProposal";
 import { isWhatsappExecutable, pressProposal } from "./proposalExecution";
 import { BUTTON_TITLE_MAX, CONFIRM_NO_ID, CONFIRM_YES_ID, confirmButtonsFor, renderForWhatsapp, truncate } from "./render";
 import { balanceRefusal } from "./refusal";
@@ -57,6 +57,12 @@ const MIME_EXTENSION: Record<string, string> = {
   "image/png": ".png",
   "image/webp": ".webp",
 };
+
+/** How long a gap gets a note folded in for the model to read — B1303. Well
+ *  under the WhatsApp thread's own 24h TTL (`lib/helper/thread.ts`'s
+ *  `TTL_MS.whatsapp`), so the system prompt's "long gap, new subject: ask"
+ *  line has something to fire on long before the thread itself expires. */
+const GAP_NOTE_HOURS = 4;
 
 /**
  * What happens to a normalised inbound message, once it has been verified,
@@ -300,6 +306,11 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
    */
   if (message.kind === "text" && isNewChatCommand(message.body, locale)) {
     forget(username);
+    // B1303, scenario-multimsg.md defect 2 — a proposal made before the
+    // reset is not a proposal this fresh thread ever made. Without this, a
+    // stale `confirm:0:yes` tap after "neues gespräch" silently wrote into
+    // the new, nominally-empty conversation.
+    clearPendingProposal(username, message.from);
     const url = `${serverSite().url}/agent`;
     await sendServiceReply(message.from, translateIn(locale, "wa.newChatStarted", { url }), username);
     console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) started a fresh conversation`);
@@ -727,9 +738,30 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
   const say: Say = (key, vars) => translateIn(locale, key as Parameters<typeof translateIn>[1], vars);
   const today = new Date().toISOString().slice(0, 10);
 
+  /**
+   * A turn has no sense of time otherwise — B1303, scenario-edges.md
+   * finding 6. The system prompt has always promised "long gap, new
+   * subject: ask — continue, or fresh" with nothing behind it: `Turn`
+   * carries no timestamp, so this is what actually gives the model
+   * something to read. Folded in the same way any other note is — riding on
+   * this turn's own message — rather than persisted, since it is a fact
+   * about *when this turn is happening*, true once and never again.
+   */
+  const touched = await lastTouched(username);
+  // Copied rather than mutated in place — `history()` hands back the live
+  // thread's own array, and this note is true of this turn only, never
+  // meant to persist into the next one.
+  const turns = [...(await history(username))];
+  if (touched !== null) {
+    const hours = Math.round((Date.now() - touched) / (60 * 60 * 1000));
+    if (hours >= GAP_NOTE_HOURS) {
+      turns.push({ role: "note", text: `[gap: about ${hours} hours since the last message]` });
+    }
+  }
+
   let thread;
   try {
-    thread = await answerInThread(username, said, await history(username), today, say, [], locale, "whatsapp");
+    thread = await answerInThread(username, said, turns, today, say, [], locale, "whatsapp");
   } catch (err) {
     console.error(`[whatsapp:inbound] model turn failed for ${username}:`, err);
     return;
