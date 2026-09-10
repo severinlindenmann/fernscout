@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (150)
+## backlog (156)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (33)
+### issue (39)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -71,6 +71,9 @@ Do not edit them by hand; run the script.
 | [B1250](backlog/issue/B1250-the-wizard-shows-an-api-refusal.md) | The wizard shows an API refusal naming HTTP endpoints to somebody who has no agent | ISSUE | high | low |
 | [B1251](backlog/issue/B1251-a-brand-new-journal-opens-on.md) | A brand new journal opens on a red nearly-out-of-credits alarm, because the grant equals the threshold | ISSUE | high | low |
 | [B1254](backlog/issue/B1254-reloading-the-helper-loses-every-interactive.md) | Reloading the helper loses every interactive card, leaving prose that points at one | ISSUE | high | medium |
+| [B1261](backlog/issue/B1261-the-renderer-drops-every-block-after.md) | The renderer drops every block after the first interactive one, and the thread remembers what was never sent | ISSUE | high | medium |
+| [B1262](backlog/issue/B1262-the-guard-log-names-the-first.md) | The guard log names the first verdict while the person received the second pass's fallback | ISSUE | high | low |
+| [B1263](backlog/issue/B1263-a-failed-media-download-says-nothing.md) | A failed media download says nothing, and a pin onto an existing day refuses instead of attaching | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1072](backlog/issue/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1129](backlog/issue/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
@@ -87,6 +90,8 @@ Do not edit them by hand; run the script.
 | [B1258](backlog/issue/B1258-the-publish-card-says-to-read.md) | The publish card says to read the day as readers will see it and does not show the day | ISSUE | medium | low |
 | [B1259](backlog/issue/B1259-a-trip-prints-the-span-of.md) | A trip prints the span of the days written rather than its own dates, and a single day reads as 5 Sep to 5 Sep | ISSUE | medium | low |
 | [B1260](backlog/issue/B1260-a-trip-with-nothing-recorded-yet.md) | A trip with nothing recorded yet fills two phone screens with an empty sky, the whole world map and six zeros | ISSUE | medium | medium |
+| [B1264](backlog/issue/B1264-the-enrichment-question-never-fires-because.md) | The enrichment question never fires because a prompt line cannot see what a day lacks | ISSUE | medium | low |
+| [B1265](backlog/issue/B1265-the-model-asserted-a-false-trip.md) | The model asserted a false trip date window and no check caught the arithmetic | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
@@ -95,6 +100,7 @@ Do not edit them by hand; run the script.
 | [B1149](backlog/issue/B1149-the-pdf-x-report-tells-you.md) | The PDF/X report tells you to run gs-pdfx.sh, which is only written when the run already had an ICC | ISSUE | low | low |
 | [B1191](backlog/issue/B1191-persona-automation-cannot-hit-the-sr.md) | Persona automation cannot hit the sr-only file inputs; confirm real hit areas are whole-tile | ISSUE | low | low |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
+| [B1266](backlog/issue/B1266-asking-for-the-last-day-only.md) | Asking for the last day only searches unfinished drafts | ISSUE | low | low |
 
 ### big-feature (14)
 
