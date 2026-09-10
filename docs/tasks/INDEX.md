@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (153)
+## backlog (154)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (30)
+### issue (31)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -82,6 +82,7 @@ Do not edit them by hand; run the script.
 | [B1307](backlog/issue/B1307-the-model-misstates-a-date-its.md) | The model misstates a date its own tool returned, and the error compounds into the next press | ISSUE | medium | low |
 | [B1308](backlog/issue/B1308-a-retry-s-blocks-accumulate-onto.md) | A retry's blocks accumulate onto the first, wrong attempt's own blocks | ISSUE | medium | medium |
 | [B1325](backlog/issue/B1325-the-hero-buttons-stack-on-desktop.md) | The hero buttons stack on desktop and the agent page changes colour below the fold | ISSUE | medium | low |
+| [B1331](backlog/issue/B1331-the-pricing-table-sells-a-pdf.md) | The pricing table sells a PDF-only photobook the owner says is not offered | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1038](backlog/issue/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
