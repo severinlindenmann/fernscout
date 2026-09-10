@@ -10,6 +10,7 @@ import SignupWizard from "@/components/SignupWizard";
 import { useI18n } from "@/components/LocaleProvider";
 import Why from "@/components/Why";
 import DoorDemo from "@/components/DoorDemo";
+import ChatVignette from "@/components/ChatVignette";
 import { JOURNAL_COOKIE } from "@/lib/requestKeys";
 
 /**
@@ -130,23 +131,17 @@ export default function AgentDoor({
         <LocaleSwitcher subtle />
       </div>
       <main className="mx-auto max-w-2xl px-6 pb-12 pt-4 sm:pb-16">
+        {/* B1329 — the door used to be a title and a card, with nothing to
+            show what the product actually is. The chat vignette is that:
+            a static, once-only conversation naming a real day and three real
+            photographs, arriving bubble by bubble on first paint. */}
         <h1 className="font-display text-[clamp(1.5rem,5vw,2.25rem)] font-semibold leading-tight text-navy-900">
-          {t("agent.title")}
+          {t("agent.chatHeroTitle")}
         </h1>
-        <p className="mt-3 text-lg leading-7 text-navy-700">
-          {t("agent.intro")}
+        <p className="mt-2 max-w-md text-lg leading-7 text-navy-700">
+          {t("agent.chatHeroLede")}
         </p>
-        {/* B781 — the door's intro was 31 words above a button. The half that
-            is a promise rather than a direction is behind "why?", where the
-            person who wants it can have all of it. */}
-        <Why>{t("agent.introWhy")}</Why>
-
-        {/* B1221 — a stranger sees what talking to the room is like before
-            deciding anything. Signed-out only: somebody already in has
-            already seen it. A quiet underlined control, the same shape as
-            "why?" above, so it never competes with the one bright thing on
-            this page. */}
-        {!signedIn && <DoorDemo />}
+        <ChatVignette />
 
         {/* B786 — one question, then one email field.
             Signed out, this screen used to draw `IdentitySignIn` and
@@ -239,24 +234,29 @@ export default function AgentDoor({
           ))}
 
 
-        {/* B751: kept here, and only here on this page — the sole bring-your-
-            own-agent offer since B984 removed the per-journal card that used
-            to draw its own `AgentHandover` above. */}
-        {/* B804 — the panel is right and stays; what was wrong is that it sat
-            here unexplained, so a 71-year-old who has never heard the word
-            "Agent" in this sense read a block of English as her next
-            instruction. One line in front of it, ending in permission to
-            ignore it, and the block itself behind the same `<details>` the
-            intro uses for "why?" — present, findable, and no longer the thing
-            below the form that looks like the next step. */}
-        {(
-          <details className="mt-2">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center text-base leading-7 text-navy-700 underline underline-offset-4">
+        {/* B1329 — the door used to scatter "why?", the demo trigger and the
+            bring-your-own-agent line above and below the card, three
+            differently-styled underlined links a reader met at three
+            different moments. They fold into one quiet line under the card
+            instead: still three separate disclosures (B781's "why?",
+            B1221's demo, B751/B804's own-agent guide — none of that
+            changed), just read as one row rather than a scatter. */}
+        <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-navy-600">
+          <Why>{t("agent.introWhy")}</Why>
+          {!signedIn && (
+            <>
+              <span aria-hidden className="text-navy-300">·</span>
+              <DoorDemo />
+            </>
+          )}
+          <span aria-hidden className="text-navy-300">·</span>
+          <details>
+            <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm text-navy-600 underline underline-offset-4">
               {t("agent.ownAgentOptional")}
             </summary>
             <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />
           </details>
-        )}
+        </div>
       </main>
     </div>
   );
