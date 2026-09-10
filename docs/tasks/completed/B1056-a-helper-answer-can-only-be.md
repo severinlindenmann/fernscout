@@ -1,0 +1,102 @@
+---
+id: B1056
+title: A helper answer can only be drawn in the web room, because Block has exactly one renderer
+type: FEATURE
+priority: high
+complexity: high
+area: helper, blocks, channels, whatsapp
+found: "2026-09-09T07:11:41Z"
+started: "2026-09-09T20:27:30Z"
+merged: "2026-09-09T22:06:51Z"
+completed: "2026-09-10T15:12:25Z"
+---
+
+# B1056 — A helper answer can only be drawn in the web room, because Block has exactly one renderer
+
+## Why
+
+`lib/helper/blocks.ts:23` names seven shapes — `say`, `choose`, `form`,
+`preview`, `files`, `confirm`, `link` — and `BlockView` in
+`components/HelperAsk.tsx:966` is the only thing that has ever drawn one. The
+vocabulary was designed against native HTML controls on purpose: a
+`ProposalField` becomes `<input type="date">`, a `<textarea>` or a `<select>`
+and nothing bespoke.
+
+WhatsApp's vocabulary is a different and much smaller thing: a body of text,
+**at most three reply buttons of twenty characters each**, or **one list of at
+most ten rows**, plus a location request and a Flow (a multi-screen form
+opened inside WhatsApp, which needs its own JSON definition and Meta review).
+There is no editable free-text field attached to a message, and no way to show
+a form and a photograph and three buttons at once.
+
+So the mapping is not one-to-one and pretending otherwise is how a channel
+ships that can say *"press the button below"* into a medium with no button —
+which is precisely the sentence `claimsAButton` in `lib/helper/model.ts:795`
+exists to catch. **The honesty guards are written against a screen the model
+cannot see, and a second channel makes them wrong in a new way.** That is the
+part of this ticket that is not cosmetic.
+
+The shapes, honestly assessed:
+
+| shape | WhatsApp |
+| --- | --- |
+| `say` | text. Fine. |
+| `link` | text with a URL. Fine, and it is the escape hatch for everything below. |
+| `choose` | ≤3 options → reply buttons; 4–10 → a list; more → text with a link to `/agent` |
+| `confirm` | reply buttons: the accept sentence and a "no". Fine, and the closed-question fields are more buttons or more turns. |
+| `preview` | text, truncated, plus a link. A day's words are longer than a message should be. |
+| `files` | a list, or text. |
+| `form` | **has no WhatsApp shape.** Several fields, editable, some of them dates. Either a Flow, or a series of turns, or a link to the web room. |
+
+## Work
+
+- Move rendering behind a seam: `Block[]` in, a channel's own payload out. The
+  web room's renderer becomes one implementation and does not change.
+- Decide `form`'s fate, and say why in the file. The three candidates are a
+  WhatsApp Flow (best experience, Meta review, a second definition of every
+  form), a turn-per-field conversation (no review, slow, and the model already
+  knows how to ask), or a link into `/agent` (free, and admits the channel is
+  not complete). A person picks; see the question book.
+- **Revisit the guards in `lib/helper/model.ts` for a channel with no screen.**
+  `ON_SCREEN`/`RELOAD` in `claimsAButton`, and the fallback sentences in
+  `PLAINLY`, both assume a page. A guard that fires on an honest turn is a bug
+  (AGENTS.md), and so is one that misses.
+- Keep the seam boring. One function per channel, chosen by the caller. Not a
+  registry, not a plugin interface — `importers/` is the precedent for adding
+  a second one later by dropping in a file.
+
+## Acceptance
+
+The same `Block[]` renders in the web room unchanged and as a WhatsApp payload
+that respects three buttons, ten rows and the twenty-character button cap —
+proved by a test over the whole shape vocabulary, not a sample.
+
+## Decided — 2026-09-09
+
+Answered by the owner:
+
+- **A `form` becomes one turn per field**, with a link into `/agent` for
+  anything long. No WhatsApp Flows in the first release — a Flow is a second
+  definition of every form and it can drift from the first.
+- **The renderer decides** between three reply buttons and a ten-row list; the
+  model is told nothing about it. The prompt is the scarcer resource and four
+  separate fixes have already hit its ceiling.
+- **The honesty guards are revised inside this ticket**, not after it.
+  `claimsAButton`'s `ON_SCREEN` and `RELOAD` patterns, and the `PLAINLY`
+  fallback sentences, all assume a page. Shipping the renderer first would
+  mean the earliest WhatsApp turns are replaced by fallback sentences for no
+  reason — a guard firing on an honest turn, which AGENTS.md rates as serious
+  as one that misses.
+
+## Revised — 2026-09-10
+
+B1230 overrides this ticket's own boundary. `lib/whatsapp/render.ts`'s module
+doc, written here, said a `confirm`'s accept button on WhatsApp "never itself
+writes anything on this channel" — true when this ticket shipped, and wrong
+the moment an owner hit it live: the model proposed a trip, the reply pointed
+at a button that did not exist, and the routes it would have posted to are
+cookie-gated regardless. B1230 gives an ordinary journal write (a trip, a day,
+and the like) a real accept button that presses the same route the web
+panel's own button does, authenticated by the number binding rather than a
+cookie. Money and irreversible flows — a postcard, a photobook, buying
+credits — are unchanged and stay behind the web. See B1230 for the mechanism.

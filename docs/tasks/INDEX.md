@@ -337,22 +337,15 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## testing (132)
+## testing (95)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B101](testing/B101-nobody-has-attacked-a-running-instance.md) | Nobody has attacked a running instance from the outside with the source in hand | OPS | high | high | — |
 | [B102](testing/B102-mail-is-switched-on-at-fernscout.md) | Mail is switched on at fernscout.ch and nothing records that a message has ever arrived | OPS | high | medium | — |
 | [B103](testing/B103-sign-in-is-switched-on-at.md) | Sign-in is switched on at fernscout.ch and no one has been through the code flow there end to end | OPS | high | medium | — |
-| [B1054](testing/B1054-the-helper-s-live-conversation-lives.md) | The helper's live conversation lives in one process's memory, so no second door can ever join it | FEATURE | high | high | — |
-| [B1055](testing/B1055-every-helper-route-proves-the-caller.md) | Every helper route proves the caller with a browser cookie, so nothing but a browser can speak to the helper | FEATURE | high | medium | — |
-| [B1056](testing/B1056-a-helper-answer-can-only-be.md) | A helper answer can only be drawn in the web room, because Block has exactly one renderer | FEATURE | high | high | — |
 | [B1057](testing/B1057-nothing-reads-an-inbound-whatsapp-message.md) | Nothing reads an inbound WhatsApp message, so the number can be written to and never answers | FEATURE | high | high | — |
 | [B1058](testing/B1058-an-inbound-message-carries-a-telephone.md) | An inbound message carries a telephone number and nothing that says whose journal it is | FEATURE | high | high | — |
-| [B1059](testing/B1059-a-photograph-sent-over-whatsapp-has.md) | A photograph sent over WhatsApp has nowhere to land, and arrives compressed when it does | FEATURE | high | medium | — |
-| [B1061](testing/B1061-a-conversation-that-goes-quiet-for.md) | A conversation that goes quiet for a day cannot be answered, and nothing in the code knows it | FEATURE | high | medium | — |
-| [B1062](testing/B1062-there-is-still-no-way-out.md) | There is still no way out of the WhatsApp channel from inside WhatsApp | FEATURE | high | medium | — |
-| [B1063](testing/B1063-the-imprint-does-not-say-that.md) | The imprint does not say that a message sent to the WhatsApp number is read, stored and sent to Meta | DOCS | high | low | — |
 | [B1064](testing/B1064-a-journal-s-owner-is-proven.md) | A journal's owner is proven by an email alone, and an address costs nothing to make another of | FEATURE | high | high | — |
 | [B1065](testing/B1065-there-is-no-way-to-prove.md) | There is no way to prove that somebody holds the telephone number they typed | FEATURE | high | medium | — |
 | [B1075](testing/B1075-the-off-site-backup-has-never.md) | The off-site backup has never once succeeded, and the nightly run failed two days ago | OPS | high | low | — |
@@ -384,7 +377,6 @@ _Nothing here._
 | [B1184](testing/B1184-the-agent-room-and-door-offer.md) | The agent room and door offer no way to change their language | ISSUE | high | low | — |
 | [B1188](testing/B1188-a-trip-with-no-days-yet.md) | A trip with no days yet greets its owner with 'the last of it undefined, NaN undefined' | ISSUE | high | low | — |
 | [B1189](testing/B1189-the-helper-lists-inbox-files-by.md) | The helper lists inbox files by name and in the same breath says it cannot find them | ISSUE | high | medium | — |
-| [B1194](testing/B1194-the-stop-reply-claims-an-unsubscribe.md) | The STOP reply claims an unsubscribe that has not happened | ISSUE | high | low | — |
 | [B1195](testing/B1195-a-refused-exchange-vanishes-from-the.md) | A refused exchange vanishes from the stored conversation the person saw | ISSUE | high | low | — |
 | [B1196](testing/B1196-one-ambiguous-date-correction-proposes-shifting.md) | One ambiguous date correction proposes shifting the whole trip's dates | ISSUE | high | low | — |
 | [B1197](testing/B1197-the-preview-column-s-width-is.md) | The preview column's width is stored and never read back after a reload | ISSUE | high | low | — |
@@ -406,44 +398,25 @@ _Nothing here._
 | [B1220](testing/B1220-room-decisions-platform-polish-pwa-hint.md) | Room decisions: platform polish — PWA hint, haptics, shortcuts, wizard retirement (D40 D41 D42 D52) | FEATURE | high | medium | — |
 | [B1221](testing/B1221-room-decisions-a-30-second-demo.md) | Room decisions: a 30-second demo conversation at the door (D50) | FEATURE | high | medium | — |
 | [B1222](testing/B1222-the-phone-passcode-has-no-live.md) | The phone passcode has no live transport - the decided Twilio backend is on hold | FEATURE | high | medium | — |
-| [B1224](testing/B1224-a-two-letter-message-makes-the.md) | A two-letter message makes the model guess its language, and it guessed Japanese | ISSUE | high | low | — |
 | [B1225](testing/B1225-get-token-sh-interpolated-its-journal.md) | get-token.sh interpolated its journal argument into an ssh command line running as root on the live instance | SECURITY | high | low | — |
 | [B1227](testing/B1227-the-receipt-names-two-files-and.md) | The receipt names two files and a missing print account, and neither the format nor the cover | ISSUE | high | low | — |
 | [B1228](testing/B1228-only-one-of-the-six-size.md) | Only one of the six size-and-cover combinations has ever reached a printer | CHORE | high | medium | — |
 | [B1229](testing/B1229-the-combined-pdf-is-written-but.md) | The combined PDF is written but cannot be downloaded | ISSUE | high | low | — |
-| [B1230](testing/B1230-a-proposal-on-whatsapp-points-at.md) | A proposal on WhatsApp points at a screen instead of offering its own button | FEATURE | high | medium | — |
 | [B1234](testing/B1234-proving-a-number-needs-a-template.md) | Proving a number needs a template Meta will not grant - the inbound message already proves it | FEATURE | high | medium | — |
-| [B1235](testing/B1235-attach-files-and-write-day-are.md) | attach_files and write_day are refused as web-only on WhatsApp, and they are the channel's core flows | ISSUE | high | low | — |
-| [B1241](testing/B1241-the-decline-button-is-a-hardcoded.md) | The decline button is a hardcoded English No | ISSUE | high | medium | — |
-| [B1242](testing/B1242-the-preview-link-from-whatsapp-opens.md) | The preview link from WhatsApp opens the room but shows no preview | ISSUE | high | medium | — |
-| [B1243](testing/B1243-a-pressed-write-is-not-known.md) | A pressed write is not known to the model, which asks for it again | ISSUE | high | medium | — |
-| [B1245](testing/B1245-there-is-no-way-to-start.md) | There is no way to start a fresh conversation from WhatsApp, and no topic-shift question | FEATURE | high | medium | — |
-| [B1261](testing/B1261-the-renderer-drops-every-block-after.md) | The renderer drops every block after the first interactive one, and the thread remembers what was never sent | ISSUE | high | medium | — |
-| [B1262](testing/B1262-the-guard-log-names-the-first.md) | The guard log names the first verdict while the person received the second pass's fallback | ISSUE | high | low | — |
-| [B1263](testing/B1263-a-failed-media-download-says-nothing.md) | A failed media download says nothing, and a pin onto an existing day refuses instead of attaching | ISSUE | high | low | — |
-| [B1302](testing/B1302-a-typed-button-label-is-not.md) | A typed button label is not a press, and a false saved-claim slips a session-wide guard | ISSUE | high | low | — |
-| [B1303](testing/B1303-a-new-chat-keeps-the-old.md) | A new chat keeps the old pending button, and the thread has no sense of time | ISSUE | high | low | — |
-| [B1304](testing/B1304-two-form-proposals-merge-into-one.md) | Two form proposals merge into one message with one button set | ISSUE | high | low | — |
-| [B1305](testing/B1305-trip-costs-hides-the-budget-and.md) | trip_costs hides the budget and publish_day offers a double publish | ISSUE | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |
 | [B1035](testing/B1035-navy-800-is-used-across-dozens.md) | navy-800 is used across dozens of components but no navy-800 token exists | ISSUE | medium | low | — |
 | [B1039](testing/B1039-the-ask-box-silently-truncates-a.md) | The ask box silently truncates a long message to 500 characters | ISSUE | medium | low | — |
-| [B1060](testing/B1060-a-voice-note-sent-over-whatsapp.md) | A voice note sent over WhatsApp has no route to the transcriber that already exists | FEATURE | medium | low | — |
-| [B1068](testing/B1068-an-agent-that-brings-its-own.md) | An agent that brings its own model cannot write a day from notes, caption a photograph, or hear a voice note | DOCS | medium | high | — |
-| [B1074](testing/B1074-a-location-pin-and-a-shared.md) | A location pin and a shared contact card arrive as text and become nothing | FEATURE | medium | medium | — |
 | [B108](testing/B108-the-photobook-has-never-been-generated.md) | The photobook has never been generated by the deployed instance | OPS | medium | medium | — |
 | [B1107](testing/B1107-every-trip-card-leads-with-an.md) | Every trip card leads with an editable box holding a raw trip id the person has never seen | ISSUE | medium | low | — |
 | [B1108](testing/B1108-past-conversations-are-listed-twice-once.md) | Past conversations are listed twice, once as chips and again as prose with unrendered asterisks | ISSUE | medium | low | — |
 | [B1109](testing/B1109-every-message-starts-its-own-conversation.md) | Every message starts its own conversation, so the past-conversations list is a list of single turns | ISSUE | medium | medium | — |
 | [B1110](testing/B1110-the-testing-lane-is-filed-into.md) | The testing lane is filed into nine category folders nobody reads, now that the run report is what a person reviews from | CHORE | medium | low | — |
 | [B1136](testing/B1136-fernscout-ch-carries-test-journals-beside.md) | fernscout.ch carries test journals beside the two real ones, and nothing says which is which | OPS | medium | low | — |
-| [B1138](testing/B1138-the-whatsapp-channel-discloses-ai-consent.md) | The WhatsApp channel discloses AI/consent once but never gates on an acknowledgement | ISSUE | medium | medium | — |
 | [B1152](testing/B1152-the-acceptance-gate-s-buttons-give.md) | The acceptance gate's buttons give no feedback and its second label says nothing, so a person cannot tell what they chose or where a ticket is | DOCS | medium | low | — |
 | [B1159](testing/B1159-the-off-site-bucket-is-opaque.md) | The off-site bucket is opaque blobs with no note in it, and keeps thirty nights | FEATURE | medium | low | — |
 | [B1162](testing/B1162-a-quoted-day-shows-its-blockquote.md) | A quoted day shows its blockquote marker, in the one block where quoting happens | ISSUE | medium | low | — |
-| [B1163](testing/B1163-meta-s-ui-verifies-the-webhook.md) | Meta's UI verifies the webhook and subscribes the messages field but never subscribes the WABA to the app, so real inbound is silently dropped | DOCS | medium | low | — |
 | [B1169](testing/B1169-the-room-re-renders-and-shifts.md) | The room re-renders and shifts: RoomOpening hydration mismatch and uncontained scrolling | ISSUE | medium | low | — |
 | [B1177](testing/B1177-the-conversation-has-no-reading-measure.md) | The conversation has no reading measure on a wide screen | ISSUE | medium | low | — |
 | [B1178](testing/B1178-c-new-sticks-in-the-address.md) | ?c=new sticks in the address bar and blanks a live conversation on reload | ISSUE | medium | low | — |
@@ -451,30 +424,20 @@ _Nothing here._
 | [B1185](testing/B1185-choosing-a-language-at-signup-does.md) | Choosing a language at signup does not set the person's own reading language | ISSUE | medium | low | — |
 | [B1186](testing/B1186-a-transient-upstream-failure-reads-as.md) | A transient upstream failure reads as 'That did not work: 502' with no words | ISSUE | medium | low | — |
 | [B1190](testing/B1190-the-model-says-press-to-save.md) | The model says 'press to save' on a turn that drew no button | ISSUE | medium | medium | — |
-| [B1192](testing/B1192-a-held-whatsapp-answer-is-delivered.md) | A held WhatsApp answer is delivered with no sign it was delayed | ISSUE | medium | low | — |
-| [B1193](testing/B1193-whatsapp-triggered-thread-notes-are-recorded.md) | WhatsApp-triggered thread notes are recorded with origin web, not whatsapp | ISSUE | medium | low | — |
 | [B1198](testing/B1198-six-exchanges-of-memory-runs-out.md) | Six exchanges of memory runs out mid-sitting and reads as malfunction | ISSUE | medium | medium | — |
 | [B1201](testing/B1201-a-new-conversation-is-invisible-in.md) | A new conversation is invisible in the history panel, so nothing says where you are | ISSUE | medium | low | — |
 | [B1203](testing/B1203-every-entry-in-the-operator-s.md) | Every entry in the operator's attention band is unanswerable: it can be read but not acknowledged, so a thing you have decided to live with is on the list for ever | FEATURE | medium | medium | — |
-| [B1204](testing/B1204-the-first-reply-does-not-say.md) | The first reply does not say the conversation continues on the web | FEATURE | medium | low | — |
 | [B1206](testing/B1206-getting-a-credential-into-a-session.md) | Getting a credential into a session is rediscovered every time: the four kinds are described in three skills, none of them says how to make a test journal, and the admin cookie is in none | DOCS | medium | low | — |
 | [B1231](testing/B1231-the-book-ends-on-two-blank.md) | The book ends on two blank pages instead of the colophon | ISSUE | medium | low | — |
-| [B1236](testing/B1236-a-proposal-turn-on-whatsapp-repeats.md) | A proposal turn on WhatsApp repeats itself and dumps raw lists into one message | ISSUE | medium | low | — |
-| [B1237](testing/B1237-the-model-claims-a-screen-on.md) | The model claims a screen on a channel that has none, and links the bare /agent | ISSUE | medium | low | — |
-| [B1240](testing/B1240-every-photo-is-answered-instantly-and.md) | Every photo is answered instantly and separately instead of waiting for the batch | FEATURE | medium | medium | — |
-| [B1244](testing/B1244-the-helper-never-asks-for-what.md) | The helper never asks for what a day is missing — time, place, costs | FEATURE | medium | medium | — |
-| [B1264](testing/B1264-the-enrichment-question-never-fires-because.md) | The enrichment question never fires because a prompt line cannot see what a day lacks | ISSUE | medium | low | — |
-| [B1306](testing/B1306-three-model-habits-dropping-the-rest.md) | Three model habits: dropping the rest of a request, asserting absent capabilities, inventing tool prices | ISSUE | medium | low | — |
 | [B1309](testing/B1309-a-softcover-gets-no-spine-text.md) | A softcover gets no spine text even where the spine is wide enough for one | ISSUE | medium | low | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
 | [B1096](testing/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low | — |
-| [B1127](testing/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low | — |
 | [B1128](testing/B1128-the-invites-and-inbox-tools-also.md) | The invites and inbox tools also say their own block back in prose | ISSUE | low | low | — |
 | [B1179](testing/B1179-a-reopened-conversation-reads-as-one.md) | A reopened conversation reads as one undifferentiated wall with no date | ISSUE | low | low | — |
 | [B1199](testing/B1199-the-day-context-offer-still-offers.md) | The day-context offer still offers taking a draft off the site | ISSUE | low | low | — |
 | [B1202](testing/B1202-one-reply-can-carry-the-same.md) | One reply can carry the same proposal card twice, verbatim | ISSUE | low | low | — |
 
-## completed (903)
+## completed (940)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -490,12 +453,34 @@ _Nothing here._
 | [B1021](completed/B1021-the-one-bright-thing-rule-cites.md) | The one-bright-thing rule cites a test that was never written, and is false where it matters | ISSUE | high | low |
 | [B1041](completed/B1041-the-agent-asks-in-prose-for.md) | The agent asks in prose for what its own card would have asked in controls | ISSUE | high | low |
 | [B1042](completed/B1042-the-service-worker-caches-owner-only.md) | The service worker caches owner-only responses forever and ignores no-store | ISSUE | high | low |
+| [B1054](completed/B1054-the-helper-s-live-conversation-lives.md) | The helper's live conversation lives in one process's memory, so no second door can ever join it | FEATURE | high | high |
+| [B1055](completed/B1055-every-helper-route-proves-the-caller.md) | Every helper route proves the caller with a browser cookie, so nothing but a browser can speak to the helper | FEATURE | high | medium |
+| [B1056](completed/B1056-a-helper-answer-can-only-be.md) | A helper answer can only be drawn in the web room, because Block has exactly one renderer | FEATURE | high | high |
+| [B1059](completed/B1059-a-photograph-sent-over-whatsapp-has.md) | A photograph sent over WhatsApp has nowhere to land, and arrives compressed when it does | FEATURE | high | medium |
+| [B1061](completed/B1061-a-conversation-that-goes-quiet-for.md) | A conversation that goes quiet for a day cannot be answered, and nothing in the code knows it | FEATURE | high | medium |
+| [B1062](completed/B1062-there-is-still-no-way-out.md) | There is still no way out of the WhatsApp channel from inside WhatsApp | FEATURE | high | medium |
+| [B1063](completed/B1063-the-imprint-does-not-say-that.md) | The imprint does not say that a message sent to the WhatsApp number is read, stored and sent to Meta | DOCS | high | low |
 | [B1086](completed/B1086-anonymous-export-zip-hands-out-the.md) | Anonymous export.zip hands out the owner's name, email and home town | SECURITY | high | low |
 | [B1090](completed/B1090-a-day-s-zone-must-be.md) | A day's zone must be worked out from where it happened, or B42 helps almost no day that exists | ISSUE | high | medium |
 | [B1097](completed/B1097-an-agent-judges-a-page-from.md) | An agent judges a page from its own reading of the code, because there is no instrument that shows it the page | CHORE | high | medium |
 | [B1099](completed/B1099-every-decision-a-run-needs-is.md) | Every decision a run needs is asked mid-run, so a batch cannot be started and left alone | DOCS | high | high |
 | [B1100](completed/B1100-nothing-carries-a-batch-of-approved.md) | Nothing carries a batch of approved tickets through build, merge, deploy and live check without a person driving each step | DOCS | high | high |
 | [B1104](completed/B1104-a-patch-press-sends-no-body.md) | A PATCH press sends no body, so every card that edits a trip or a day's words fails | ISSUE | high | low |
+| [B1194](completed/B1194-the-stop-reply-claims-an-unsubscribe.md) | The STOP reply claims an unsubscribe that has not happened | ISSUE | high | low |
+| [B1224](completed/B1224-a-two-letter-message-makes-the.md) | A two-letter message makes the model guess its language, and it guessed Japanese | ISSUE | high | low |
+| [B1230](completed/B1230-a-proposal-on-whatsapp-points-at.md) | A proposal on WhatsApp points at a screen instead of offering its own button | FEATURE | high | medium |
+| [B1235](completed/B1235-attach-files-and-write-day-are.md) | attach_files and write_day are refused as web-only on WhatsApp, and they are the channel's core flows | ISSUE | high | low |
+| [B1241](completed/B1241-the-decline-button-is-a-hardcoded.md) | The decline button is a hardcoded English No | ISSUE | high | medium |
+| [B1242](completed/B1242-the-preview-link-from-whatsapp-opens.md) | The preview link from WhatsApp opens the room but shows no preview | ISSUE | high | medium |
+| [B1243](completed/B1243-a-pressed-write-is-not-known.md) | A pressed write is not known to the model, which asks for it again | ISSUE | high | medium |
+| [B1245](completed/B1245-there-is-no-way-to-start.md) | There is no way to start a fresh conversation from WhatsApp, and no topic-shift question | FEATURE | high | medium |
+| [B1261](completed/B1261-the-renderer-drops-every-block-after.md) | The renderer drops every block after the first interactive one, and the thread remembers what was never sent | ISSUE | high | medium |
+| [B1262](completed/B1262-the-guard-log-names-the-first.md) | The guard log names the first verdict while the person received the second pass's fallback | ISSUE | high | low |
+| [B1263](completed/B1263-a-failed-media-download-says-nothing.md) | A failed media download says nothing, and a pin onto an existing day refuses instead of attaching | ISSUE | high | low |
+| [B1302](completed/B1302-a-typed-button-label-is-not.md) | A typed button label is not a press, and a false saved-claim slips a session-wide guard | ISSUE | high | low |
+| [B1303](completed/B1303-a-new-chat-keeps-the-old.md) | A new chat keeps the old pending button, and the thread has no sense of time | ISSUE | high | low |
+| [B1304](completed/B1304-two-form-proposals-merge-into-one.md) | Two form proposals merge into one message with one button set | ISSUE | high | low |
+| [B1305](completed/B1305-trip-costs-hides-the-budget-and.md) | trip_costs hides the budget and publish_day offers a double publish | ISSUE | high | low |
 | [B138](completed/B138-a-deploy-never-installs-changed-systemd.md) | A deploy never installs changed systemd units, so unit changes stay in git and nobody notices | ISSUE | high | low |
 | [B142](completed/B142-a-mail-scanner-follows-the-welcome.md) | A mail scanner follows the welcome link, spending the owner's one-tap sign-in and minting a year-long session | SECURITY | high | medium |
 | [B153](completed/B153-a-journal-created-through-the-api.md) | A journal created through the API can never invite anybody, because contacts is off and nothing can turn it on | ISSUE | high | low |
@@ -774,6 +759,9 @@ _Nothing here._
 | [B1024](completed/B1024-the-send-dialog-quotes-a-price.md) | The send dialog quotes a price and never says who gets the day | FEATURE | medium | medium |
 | [B104](completed/B104-signup-is-on-at-the-server.md) | Signup is on at the server and off in every journal, so no account has ever been created on the live site | OPS | medium | medium |
 | [B105](completed/B105-contacts-is-on-at-the-server.md) | Contacts is on at the server and off in every journal, so no invitation has ever been carried through on the live site | OPS | medium | medium |
+| [B1060](completed/B1060-a-voice-note-sent-over-whatsapp.md) | A voice note sent over WhatsApp has no route to the transcriber that already exists | FEATURE | medium | low |
+| [B1068](completed/B1068-an-agent-that-brings-its-own.md) | An agent that brings its own model cannot write a day from notes, caption a photograph, or hear a voice note | DOCS | medium | high |
+| [B1074](completed/B1074-a-location-pin-and-a-shared.md) | A location pin and a shared contact card arrive as text and become nothing | FEATURE | medium | medium |
 | [B1078](completed/B1078-a-trip-s-title-dates-visibility.md) | A trip's title, dates, visibility, people and tracks cannot be changed from the conversation | FEATURE | medium | medium |
 | [B1079](completed/B1079-a-trip-s-exchange-rates-and.md) | A trip's exchange rates and planned budget cannot be set from the conversation | FEATURE | medium | medium |
 | [B1080](completed/B1080-invites-telling-readers-about-a-day.md) | Invites, telling readers about a day, and the send channels are unreachable from the conversation | FEATURE | medium | medium |
@@ -786,11 +774,22 @@ _Nothing here._
 | [B1103](completed/B1103-nothing-can-tell-an-agent-which.md) | Nothing can tell an agent which photographs on a trip are the same picture twice | FEATURE | medium | low |
 | [B111](completed/B111-signup-codes-are-written-outside-the.md) | Signup codes are written outside the content directory, where nobody is looking for them | ISSUE | medium | low |
 | [B113](completed/B113-the-live-demo-journal-is-missing.md) | The live demo journal is missing its upcoming trip, so every planned-trip feature has no showcase | ISSUE | medium | low |
+| [B1138](completed/B1138-the-whatsapp-channel-discloses-ai-consent.md) | The WhatsApp channel discloses AI/consent once but never gates on an acknowledgement | ISSUE | medium | medium |
 | [B114](completed/B114-one-unreadable-file-under-data-dir.md) | One unreadable file under DATA_DIR aborts the whole backup | ISSUE | medium | low |
 | [B116](completed/B116-a-test-day-inside-a-real.md) | A test day inside a real trip is unmarked in the day list and in MCP's readable summary | ISSUE | medium | low |
+| [B1163](completed/B1163-meta-s-ui-verifies-the-webhook.md) | Meta's UI verifies the webhook and subscribes the messages field but never subscribes the WABA to the app, so real inbound is silently dropped | DOCS | medium | low |
 | [B119](completed/B119-two-days-in-one-trip-can.md) | Two days in one trip can take the same slug, and the second becomes unreachable | ISSUE | medium | low |
+| [B1192](completed/B1192-a-held-whatsapp-answer-is-delivered.md) | A held WhatsApp answer is delivered with no sign it was delayed | ISSUE | medium | low |
+| [B1193](completed/B1193-whatsapp-triggered-thread-notes-are-recorded.md) | WhatsApp-triggered thread notes are recorded with origin web, not whatsapp | ISSUE | medium | low |
 | [B12](completed/B12-a-finished-trip-still-offers-a.md) | A finished trip still offers a Today button | ISSUE | medium | low |
+| [B1204](completed/B1204-the-first-reply-does-not-say.md) | The first reply does not say the conversation continues on the web | FEATURE | medium | low |
+| [B1236](completed/B1236-a-proposal-turn-on-whatsapp-repeats.md) | A proposal turn on WhatsApp repeats itself and dumps raw lists into one message | ISSUE | medium | low |
+| [B1237](completed/B1237-the-model-claims-a-screen-on.md) | The model claims a screen on a channel that has none, and links the bare /agent | ISSUE | medium | low |
+| [B1240](completed/B1240-every-photo-is-answered-instantly-and.md) | Every photo is answered instantly and separately instead of waiting for the batch | FEATURE | medium | medium |
+| [B1244](completed/B1244-the-helper-never-asks-for-what.md) | The helper never asks for what a day is missing — time, place, costs | FEATURE | medium | medium |
+| [B1264](completed/B1264-the-enrichment-question-never-fires-because.md) | The enrichment question never fires because a prompt line cannot see what a day lacks | ISSUE | medium | low |
 | [B13](completed/B13-the-photobook-prints-from-the-web.md) | The photobook prints from the web derivatives, not the originals | ISSUE | medium | medium |
+| [B1306](completed/B1306-three-model-habits-dropping-the-rest.md) | Three model habits: dropping the rest of a request, asserting absent capabilities, inventing tool prices | ISSUE | medium | low |
 | [B134](completed/B134-the-review-queue-cannot-tell.md) | The review queue cannot tell a person which drafts nobody lived | ISSUE | medium | low |
 | [B135](completed/B135-kept-mail-has-no-expiry-so.md) | Kept mail has no expiry, so a one-time code stays readable on disk long after it stopped working | ISSUE | medium | low |
 | [B136](completed/B136-the-size-cap-is-enforced-only.md) | The size cap is enforced only after the whole body is read, so one URL can hold a connection for a minute | ISSUE | medium | low |
@@ -1185,6 +1184,7 @@ _Nothing here._
 | [B1088](completed/B1088-trace-returns-http-500-instead-of.md) | TRACE returns HTTP 500 instead of 405 on pages and API | ISSUE | low | low |
 | [B1089](completed/B1089-x-powered-by-header-advertises-next.md) | x-powered-by header advertises Next.js to anonymous callers | ISSUE | low | low |
 | [B11](completed/B11-the-travellers-are-always-the-same.md) | The travellers are always the same two people | FEATURE | low | medium |
+| [B1127](completed/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low |
 | [B115](completed/B115-an-unreachable-restic-repository-burns-the.md) | An unreachable restic repository burns the unit's whole 30-minute timeout | ISSUE | low | low |
 | [B117](completed/B117-a-private-trip-s-title-is.md) | A private trip's title is shown to anyone who guesses its id | SECURITY | low | low |
 | [B118](completed/B118-the-journal-map-page-disagrees-with.md) | The journal map page disagrees with itself about tense between its heading and its tab title | ISSUE | low | low |
