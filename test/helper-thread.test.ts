@@ -617,6 +617,21 @@ describe("the tools", () => {
     expect(prompt.toLowerCase()).toContain("new subject");
     expect(prompt.toLowerCase()).toContain("continue, or fresh");
   });
+
+  /**
+   * B1306 — two model habits, fixed with the least the ceiling test allows.
+   * scenario-costs.md defect A: a confirmed press was treated as the whole
+   * of the message, so "and the 45 franks for dinner" — asked in the same
+   * breath as "make me today's day" — was silently dropped once the day's
+   * own proposal was pressed. scenario-edges.md finding 5 and margrit's own
+   * invented "this costs a credit": a capability or a price stated from the
+   * model's own belief rather than checked.
+   */
+  test("tells the model to finish the rest of a message after a press, and never assert a price or capability unchecked", () => {
+    const prompt = threadSystemPrompt("2026-09-07");
+    expect(prompt).toContain("answer the rest of what they asked");
+    expect(prompt.toLowerCase()).toContain("never state a price or capability from memory");
+  });
 });
 
 /* ------------------------------------------------------------ the price --- */

@@ -21,7 +21,7 @@ export const MONEY_TOOLS: readonly Tool[] = [
     kind: "read",
     renders: "say",
     describe:
-      "What a trip has cost so far, not the journal's own credits (account): the total, what was spent preparing, the daily average, and the largest categories. Every figure is in the journal's own currency. `notInTheTotal` is money it could not convert and left out: if it is not empty, say so and how much. `budget` is absent when nobody has set one — say so rather than inventing a figure; when present it carries `total`/`days`/`perDay`/`remaining`, and, once the trip has begun, a `pace` with `expectedToDate`/`deltaToDate`/`projectedTotal`.",
+      "What a trip has cost so far, not the journal's own credits (account): the total, what was spent preparing, the daily average, the largest categories, and its budget (may be absent — say so). `notInTheTotal` is money it could not convert: if not empty, say so and how much.",
     properties: TRIP_ARG,
     run: async (username, args) => {
       const trip = resolveTrip(username, args.trip);
