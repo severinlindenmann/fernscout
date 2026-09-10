@@ -340,15 +340,11 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (3)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1319](in-development/B1319-guthaben-kaufen-points-at-me-instead.md) | Guthaben kaufen points at /me instead of the account page, whose design is unloved | ISSUE | high | medium | `b9809a36` |
-| [B1320](in-development/B1320-the-desktop-preview-column-is-open.md) | The desktop preview column is open while empty; it should close until something arrives | ISSUE | high | low | `b9809a36` |
-| [B1321](in-development/B1321-deleting-a-trip-requires-a-mailbox.md) | Deleting a trip requires a mailbox round-trip even for the owner standing on its page | FEATURE | high | medium | `b9809a36` |
+_Nothing here._
 
-## testing (104)
+## testing (109)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -418,6 +414,11 @@ Do not edit them by hand; run the script.
 | [B1310](testing/B1310-the-whatsapp-door-is-invisible-to.md) | The WhatsApp door is invisible to anyone not already in their room | FEATURE | high | low | — |
 | [B1314](testing/B1314-the-whatsapp-doors-shipped-as-bare.md) | The WhatsApp doors shipped as bare text links instead of the chosen design | ISSUE | high | low | — |
 | [B1316](testing/B1316-twilio-sms-inbound-inbox-in-admin.md) | Twilio SMS - inbound inbox in admin, outbound sending, SMS signup fallback | FEATURE | high | medium | — |
+| [B1319](testing/B1319-guthaben-kaufen-points-at-me-instead.md) | Guthaben kaufen points at /me instead of the account page, whose design is unloved | ISSUE | high | medium | — |
+| [B1320](testing/B1320-the-desktop-preview-column-is-open.md) | The desktop preview column is open while empty; it should close until something arrives | ISSUE | high | low | — |
+| [B1321](testing/B1321-deleting-a-trip-requires-a-mailbox.md) | Deleting a trip requires a mailbox round-trip even for the owner standing on its page | FEATURE | high | medium | — |
+| [B1326](testing/B1326-the-room-s-light-mode-is.md) | The room's light mode is white-grey while the rest of the site is cream-navy | ISSUE | high | low | — |
+| [B1327](testing/B1327-bring-your-own-agent-is-in.md) | Bring-your-own-agent is in the footer twice, and the menu entry opens nothing on desktop | ISSUE | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |

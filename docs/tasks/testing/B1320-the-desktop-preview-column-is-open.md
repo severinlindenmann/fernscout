@@ -7,8 +7,7 @@ complexity: low
 area: helper room
 found: "2026-09-10T15:42:57Z"
 started: "2026-09-10T15:43:10Z"
-session: b9809a36-bbcb-4095-a4b1-58adf1c351c6
-claimed: "2026-09-10T15:43:10Z"
+merged: "2026-09-10T16:11:56Z"
 ---
 
 # B1320 — The desktop preview column is open while empty; it should close until something arrives
