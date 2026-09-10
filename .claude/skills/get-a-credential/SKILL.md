@@ -27,6 +27,15 @@ therefore an owner of every journal (B480).
 Everything below is what to do when that is not enough, and why each piece is
 shaped the way it is.
 
+**The journal argument is checked against `USERNAME_RE` before anything uses
+it, and that check is load-bearing.** The name reaches an `ssh` command line
+that runs **as root on the live box**, two JSON bodies built by string
+concatenation, and a `/tmp` path — so `example; rm -rf /var/lib/fernscout`
+would have run there. One check at the top covers all four rather than four
+quotings that each have to stay right forever. If you extend this script, do
+not relax it, and do not add a fifth interpolation on the assumption that the
+argument is clean for some other reason.
+
 ## Which credential you actually need
 
 | You want to | Hold | Get it |

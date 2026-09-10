@@ -31,9 +31,28 @@ if [[ -z "$WHERE" || -z "$JOURNAL" ]]; then
   exit 64
 fi
 
+# The journal name reaches four places that cannot defend themselves: an `ssh`
+# command line **as root on the live box**, two JSON bodies built by string
+# concatenation, and a /tmp path. `foo; rm -rf /var/lib/fernscout` in the
+# second argument would have run on the server.
+#
+# `lib/users.ts`'s own `USERNAME_RE`, which is the set of names that can
+# actually exist — so nothing legitimate is refused, and one check covers all
+# four sites rather than four different quotings that have to stay right
+# forever. A name is also a directory name and therefore a security boundary,
+# which is the same reason `lib/trips.ts` insists on `tripRef()`.
+if [[ ! "$JOURNAL" =~ ^[a-z0-9][a-z0-9-]{1,30}$ ]]; then
+  echo "not a journal name: '$JOURNAL' (a-z, 0-9 and dashes, 2–31 characters)" >&2
+  exit 64
+fi
+
 case "$WHERE" in
   live) BASE=https://fernscout.ch; REMOTE=1 ;;
-  *)    BASE="$WHERE";             REMOTE=0 ;;
+  http://*|https://*) BASE="$WHERE"; REMOTE=0 ;;
+  # Anything else would be handed to curl as a URL and to nothing else, but a
+  # base that is not a URL is a mistake worth naming rather than a request
+  # worth making.
+  *) echo "not a base URL: '$WHERE' (use 'live', or http://localhost:PORT)" >&2; exit 64 ;;
 esac
 
 # The mail this instance kept. Live is the server's own outbox under DATA_DIR;
@@ -41,6 +60,8 @@ esac
 # DATA_DIR or <cwd>/.data, and mail has not been under content/ since B636.
 newest_mail() {
   if [[ "$REMOTE" == 1 ]]; then
+    # Interpolated into a command line that runs as root on the live box. Safe
+    # only because of the check above — do not relax that without quoting this.
     ssh "$VPS_IP" "ls -t /var/lib/fernscout/mail/$JOURNAL/*.eml 2>/dev/null | head -1 | xargs -r cat"
   else
     local f
