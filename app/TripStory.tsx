@@ -555,7 +555,7 @@ export default function TripStory({
               twice on one screen. No `day` here, so the two day-specific tiles
               are simply not in the grid. */}
           {onOverview && trip?.canPublish && (
-            <OwnerTools username={trip.trip.username} />
+            <OwnerTools username={trip.trip.username} tripId={trip.trip.id} />
           )}
 
           {/* Desktop keeps its own nav; on mobile it lives in the bottom bar. */}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import AgentRow from "./AgentRow";
 import DayNotify from "./DayNotify";
+import DeleteTrip from "./DeleteTrip";
 import InviteToRead from "./InviteToRead";
 import { useI18n } from "./LocaleProvider";
 import { OWNER_TOOL } from "./ownerToolClass";
@@ -52,11 +53,16 @@ import { OWNER_TOOL } from "./ownerToolClass";
 export default function OwnerTools({
   username,
   day,
+  tripId,
   onCorrect,
 }: {
   username: string;
   /** Omitted on the trip overview, where the day-specific controls have no day. */
   day?: { tripId: string; slug: string; date: string; published: boolean };
+  /** The trip overview's own id — what makes the delete control possible
+   *  there, and only there (B1321). A day card never shows it: deleting the
+   *  whole trip from inside one day is not a question anybody asked. */
+  tripId?: string;
   /**
    * What the correction tile does where the day itself can be edited — B980.
    *
@@ -180,6 +186,11 @@ export default function OwnerTools({
           />
         </div>
       )}
+
+      {/* The one destructive act, last and quiet — B1321. A text link, not a
+          tile: it must be findable without ever being the thing a thumb lands
+          on. The confirmation names what goes with it. */}
+      {!day && tripId && <DeleteTrip username={username} tripId={tripId} />}
     </section>
   );
 }

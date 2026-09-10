@@ -357,41 +357,16 @@ function StorageBar({ rows }: { rows: StoragePanel["rows"] }) {
  * The price shown is `priceRappen`, the same function the route charges from,
  * so what somebody reads on the slider is what the transaction is filed for.
  */
-function BuyCreditsDialog({ username }: { username: string }) {
+function BuyCreditsPanel({ username }: { username: string }) {
   const { t, tn } = useI18n();
   const router = useRouter();
-  const [open, setOpen] = useState(false);
   const [credits, setCredits] = useState(50);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<"failed" | null>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-
-  // Escape and click-outside close it — the two things a modal `<dialog>` gave
-  // for free and a popover has to wire up. Only while open, so the listeners
-  // are not attached for every owner who never presses the button.
-  useEffect(() => {
-    if (!open) return;
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-        buttonRef.current?.focus();
-      }
-    }
-    function onPointer(event: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(event.target as Node))
-        setOpen(false);
-    }
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("mousedown", onPointer);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("mousedown", onPointer);
-    };
-  }, [open]);
 
   async function buy() {
     setBusy(true);
+    setResult(null);
     const response = await fetch(`/api/v1/${username}/credits/purchase`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -406,7 +381,6 @@ function BuyCreditsDialog({ username }: { username: string }) {
       const body = (await response.json().catch(() => null)) as {
         paymentUrl?: string;
       } | null;
-      setOpen(false);
       if (body?.paymentUrl) {
         router.push(body.paymentUrl);
         return;
@@ -418,97 +392,65 @@ function BuyCreditsDialog({ username }: { username: string }) {
   }
 
   return (
-    <div ref={wrapRef} className="relative">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <button
-          ref={buttonRef}
-          type="button"
-          aria-haspopup="menu"
-          aria-expanded={open}
-          onClick={() => {
-            setResult(null);
-            setOpen((o) => !o);
-          }}
-          className="inline-flex min-h-11 items-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
-        >
-          {t("me.paymentBuyTitle")}
-        </button>
-      </div>
+    /**
+     * Inline, always visible, anchored — B1319. This was a popover behind a
+     * "Buy credits" press: the one thing the page exists for, hidden until
+     * a second decision. The room's own "Guthaben kaufen" links straight to
+     * `#buy`, and the slider, the price and the button are simply there.
+     */
+    <div id="buy" className="mt-4 scroll-mt-24 rounded-xl border border-navy-200 bg-cream-50 px-4 py-3 sm:px-5 sm:py-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+        {t("me.buyDialogTitle")}
+      </p>
+      <p className="mt-2 flex items-baseline justify-between gap-3">
+        <span className="font-display text-2xl font-semibold tabular-nums text-navy-900">
+          {credits} {tn("me.paymentUnit", credits)}
+        </span>
+        <span className="font-display text-2xl font-semibold tabular-nums text-navy-900">
+          {formatChf(priceRappen(credits))}
+        </span>
+      </p>
+      <label className="mt-1 block">
+        <span className="sr-only">{t("me.buyDialogAmount")}</span>
+        <input
+          type="range"
+          min={MIN_CREDITS}
+          max={MAX_CREDITS}
+          step={CREDIT_STEP}
+          value={credits}
+          onChange={(event) => setCredits(Number(event.target.value))}
+          // What the platform cannot work out: a screen reader would
+          // otherwise announce "120" with no unit and no price.
+          aria-valuetext={`${credits} ${tn("me.paymentUnit", credits)}, ${formatChf(
+            priceRappen(credits),
+          )}`}
+          className="h-11 w-full accent-yellow-400"
+        />
+      </label>
+      <p className="text-sm text-navy-600">
+        {discountFor(credits) > 0
+          ? t("me.buyDialogDiscount", { discount: discountLabel(credits) })
+          : t("me.buyDialogNoDiscount", {
+              from: String(MIN_CREDITS),
+              to: String(MAX_CREDITS),
+            })}
+      </p>
+      <BusyButton
+        type="button"
+        busy={busy}
+        onClick={() => buy()}
+        className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-yellow-400 px-4 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-6"
+        busyLabel={t("me.buyDialogBusy")}
+      >
+        {t("me.buyDialogBuyAmount", {
+          price: formatChf(priceRappen(credits)),
+        })}
+      </BusyButton>
       {result && (
         <span role="status" className="mt-1 block text-sm text-coral-600">
           {t("me.paymentBuyFailed")}
         </span>
       )}
-
-      {/*
-        The panel stays in the DOM so it can animate both ways; `open` toggles
-        opacity + a short downward slide, and turns off pointer events and tab
-        focus while hidden. `motion-reduce` drops the slide for readers who ask
-        for less motion.
-      */}
-      <div
-        role="menu"
-        aria-label={t("me.buyDialogTitle")}
-        aria-hidden={!open}
-        className={`absolute left-0 top-full z-20 mt-2 w-[min(22rem,100%)] origin-top rounded-2xl border border-navy-200 bg-white p-4 shadow-xl transition duration-150 ease-out motion-reduce:transition-none ${
-          open
-            ? "pointer-events-auto translate-y-0 opacity-100"
-            : "pointer-events-none -translate-y-1 opacity-0"
-        }`}
-      >
-        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-navy-600">
-          {t("me.buyDialogTitle")}
-        </p>
-        <div className="mt-3 rounded-xl border border-navy-200 bg-cream-50 px-4 py-3">
-          <p className="flex items-baseline justify-between gap-3">
-            <span className="font-display text-2xl font-semibold tabular-nums text-navy-900">
-              {credits} {tn("me.paymentUnit", credits)}
-            </span>
-            <span className="font-display text-2xl font-semibold tabular-nums text-navy-900">
-              {formatChf(priceRappen(credits))}
-            </span>
-          </p>
-          <label className="mt-2 block">
-            <span className="sr-only">{t("me.buyDialogAmount")}</span>
-            <input
-              type="range"
-              min={MIN_CREDITS}
-              max={MAX_CREDITS}
-              step={CREDIT_STEP}
-              value={credits}
-              tabIndex={open ? 0 : -1}
-              onChange={(event) => setCredits(Number(event.target.value))}
-              // What the platform cannot work out: a screen reader would
-              // otherwise announce "120" with no unit and no price.
-              aria-valuetext={`${credits} ${tn("me.paymentUnit", credits)}, ${formatChf(
-                priceRappen(credits),
-              )}`}
-              className="h-11 w-full accent-yellow-400"
-            />
-          </label>
-          <p className="text-sm text-navy-600">
-            {discountFor(credits) > 0
-              ? t("me.buyDialogDiscount", { discount: discountLabel(credits) })
-              : t("me.buyDialogNoDiscount", {
-                  from: String(MIN_CREDITS),
-                  to: String(MAX_CREDITS),
-                })}
-          </p>
-          <BusyButton
-            type="button"
-            role="menuitem"
-            tabIndex={open ? 0 : -1}
-            busy={busy}
-            onClick={() => buy()}
-            className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-yellow-400 px-4 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
-            busyLabel={t("me.buyDialogBusy")}
-          >
-            {t("me.buyDialogBuyAmount", {
-              price: formatChf(priceRappen(credits)),
-            })}
-          </BusyButton>
-        </div>
-      </div>
     </div>
   );
 }
@@ -612,52 +554,6 @@ export default function AccountPageContent({
         </h1>
 
         <div className="mt-6 space-y-4">
-          {storage && (
-            <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
-              <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-300/50 text-navy-900">
-                  <HardDrive className="h-[18px] w-[18px]" aria-hidden="true" />
-                </span>
-                <h3 className="font-display text-lg font-semibold text-navy-900">
-                  {t("me.storageTitle")}
-                </h3>
-              </div>
-
-              <p className="mt-4 text-base text-navy-900">
-                {t("me.storageUsed", {
-                  used: storage.used,
-                  limit: storage.limit ?? "",
-                })}
-              </p>
-              {storage.percent !== null && storage.percent >= 90 && (
-                <p className="mt-1 text-sm leading-6 text-coral-600">
-                  {t("me.storageNearlyFull")}
-                </p>
-              )}
-
-              <StorageBar rows={storage.rows} />
-
-              {(storage.reclaimable.files > 0 || storage.canBuy) && (
-                <div className="mt-5 border-t border-navy-200 pt-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    {storage.reclaimable.files > 0 && (
-                      <CleanupButton
-                        username={username}
-                        reclaimable={storage.reclaimable}
-                      />
-                    )}
-                    {storage.canBuy && <BuyStorageButton username={username} />}
-                  </div>
-                  {storage.reclaimable.files > 0 && (
-                    <p className="mt-2 text-sm leading-6 text-navy-600">
-                      {t("me.storageCleanupBody")}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
           {payment && (
             <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
               <div className="flex items-center gap-3">
@@ -672,7 +568,7 @@ export default function AccountPageContent({
               <div className="mt-4 sm:flex sm:items-stretch sm:gap-4">
                 <div className="flex flex-col justify-center rounded-xl border border-navy-200 bg-cream-50 px-5 py-4 sm:w-44 sm:shrink-0">
                   <span className="font-display text-4xl font-semibold tabular-nums tracking-tight text-navy-900">
-                    {payment.balance}
+                    {payment.balance.toLocaleString("de-CH")}
                   </span>
                   <span className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-navy-600">
                     {tn("me.paymentUnit", payment.balance)}
@@ -684,6 +580,7 @@ export default function AccountPageContent({
                   )}
                 </div>
 
+                {CHANNELS.some(({ recipients }) => recipients > 0) ? (
                 <div className="mt-4 sm:mt-0 sm:flex-1">
                   <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
                     {t("me.paymentEstimateTitle")}
@@ -759,11 +656,14 @@ export default function AccountPageContent({
                     )}
                   </p>
                 </div>
+                ) : (
+                  <p className="mt-4 text-sm leading-6 text-navy-600 sm:mt-0 sm:flex-1 sm:self-center">
+                    {t("me.paymentPrices")}
+                  </p>
+                )}
               </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-navy-200 pt-4">
-                <BuyCreditsDialog username={username} />
-              </div>
+              <BuyCreditsPanel username={username} />
 
               {payment.spent.length > 0 && (
                 <div className="mt-5 border-t border-navy-200 pt-4">
@@ -841,6 +741,52 @@ export default function AccountPageContent({
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {storage && (
+            <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-300/50 text-navy-900">
+                  <HardDrive className="h-[18px] w-[18px]" aria-hidden="true" />
+                </span>
+                <h3 className="font-display text-lg font-semibold text-navy-900">
+                  {t("me.storageTitle")}
+                </h3>
+              </div>
+
+              <p className="mt-4 text-base text-navy-900">
+                {t("me.storageUsed", {
+                  used: storage.used,
+                  limit: storage.limit ?? "",
+                })}
+              </p>
+              {storage.percent !== null && storage.percent >= 90 && (
+                <p className="mt-1 text-sm leading-6 text-coral-600">
+                  {t("me.storageNearlyFull")}
+                </p>
+              )}
+
+              <StorageBar rows={storage.rows} />
+
+              {(storage.reclaimable.files > 0 || storage.canBuy) && (
+                <div className="mt-5 border-t border-navy-200 pt-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    {storage.reclaimable.files > 0 && (
+                      <CleanupButton
+                        username={username}
+                        reclaimable={storage.reclaimable}
+                      />
+                    )}
+                    {storage.canBuy && <BuyStorageButton username={username} />}
+                  </div>
+                  {storage.reclaimable.files > 0 && (
+                    <p className="mt-2 text-sm leading-6 text-navy-600">
+                      {t("me.storageCleanupBody")}
+                    </p>
+                  )}
                 </div>
               )}
             </div>

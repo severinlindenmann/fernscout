@@ -144,11 +144,18 @@ test("B814 — the room has a heading to land on, with one journal or with sever
   expect(heading!.className).toContain("sr-only");
 });
 
-test("the three panes are three named regions, with the conversation between them", () => {
+test("the three panes are named regions, the preview closed until it has content — B1320", () => {
   render();
   const named = regions();
   expect(named).toContain("Files");
-  expect(named).toContain("How it looks");
+  // The preview starts as a collapsed rail (a button, not a region): an
+  // open column holding an empty-state sentence was dead space — B1320.
+  expect(named).not.toContain("How it looks");
+  expect(
+    [...document.querySelectorAll("button")].some(
+      (one) => one.getAttribute("aria-label") === "Show preview",
+    ),
+  ).toBe(true);
   // The conversation is `HelperAsk`'s own region and is open from the first
   // render in the room — there is no line to press first.
   expect(named).toContain("Conversation");
@@ -157,11 +164,11 @@ test("the three panes are three named regions, with the conversation between the
 
 test("at 390px neither side pane is drawn", () => {
   render();
-  for (const label of ["Files", "How it looks"]) {
-    const pane = document.querySelector(`section[aria-label="${label}"]`)!;
-    expect(pane.className).toContain("hidden");
-    expect(pane.className).toContain("lg:");
-  }
+  // The preview rail starts collapsed (B1320), so only the files pane is a
+  // section here; both shapes carry the same hidden-until-lg classes.
+  const pane = document.querySelector('section[aria-label="Files"]')!;
+  expect(pane.className).toContain("hidden");
+  expect(pane.className).toContain("lg:");
   // And the two things that do come up on a phone are not up until asked for.
   expect(document.querySelector("dialog")).toBeNull();
 });
@@ -221,9 +228,11 @@ test("nothing selected sends nothing, so the conversation is unchanged", async (
   expect(sent.body).not.toHaveProperty("selected");
 });
 
-test("the preview is empty until the conversation is about a day, and says so", () => {
+test("the preview stays a closed rail until the conversation is about a day — B1320", () => {
   render();
-  expect(container!.textContent).toContain("Whatever you are talking about appears here");
+  // Closed, and nothing fetched: an empty column with a sentence in it was
+  // what this replaced.
+  expect(document.querySelector('section[aria-label="How it looks"]')).toBeNull();
   expect(calls.filter((call) => call.url.includes("/day?"))).toHaveLength(0);
 });
 

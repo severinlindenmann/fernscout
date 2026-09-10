@@ -1042,3 +1042,11 @@ code is deliberately not single-use and it goes *to the agent*, so an agent
 could satisfy its own confirmation. Here the second step happens in a mailbox.
 An agent that reports a `202` as "deleted" has said something false; say a mail
 is waiting, and stop. `lib/deletions.ts`, and B38 for the reasoning.
+
+Since B1321 the owner has a shorter road for a *trip* — a Delete link on the
+trip's own page, behind their browser cookie only
+(`app/[user]/trips/[trip]/delete/route.ts`, the same door-shape as the
+postcard send), with the inventory named before the second press. That changes
+nothing for you: the route refuses any `Authorization` header outright, so an
+agent's path is still the mail, and a whole journal still ends in the mailbox
+for everybody.
