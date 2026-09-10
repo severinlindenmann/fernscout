@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (143)
+## backlog (145)
 
 ### security (2)
 
@@ -139,18 +139,20 @@ Do not edit them by hand; run the script.
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
 | [B1180](backlog/chore/B1180-the-subscribed-apps-post-is-a.md) | The subscribed_apps POST is a documented curl, not a one-shot script | CHORE | low | low |
 
-### ops (11)
+### ops (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1067](backlog/ops/B1067-it-is-not-written-down-where.md) | It is not written down where this instance's telephone number comes from, or what one message costs | OPS | high | low |
 | [B1077](backlog/ops/B1077-meta-bans-general-purpose-ai-chatbots.md) | Meta bans general-purpose AI chatbots on WhatsApp, and nothing establishes which side of that line the helper is on | OPS | high | low |
 | [B1232](backlog/ops/B1232-authentication-templates-are-gated-on-a.md) | Authentication templates are gated on a business verification this account has not passed | OPS | high | low |
+| [B1311](backlog/ops/B1311-a-config-json-written-as-root.md) | A config.json written as root takes the whole site down at the next build | OPS | high | low |
 | [B403](backlog/ops/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium |
 | [B911](backlog/ops/B911-the-print-flow-has-never-run.md) | The print flow has never run against the live site | OPS | high | low |
 | [B107](backlog/ops/B107-postcards-have-only-ever-run-from.md) | Postcards have only ever run from a laptop CLI, never as a capability of the deployed site | OPS | medium | medium |
 | [B1137](backlog/ops/B1137-there-is-no-place-to-try.md) | There is no place to try a change against real data before it reaches fernscout.ch | OPS | medium | medium |
 | [B1183](backlog/ops/B1183-whether-an-eu-art-27-representative.md) | Whether an EU Art. 27 representative is owed is a lawyer's question nobody has asked | OPS | medium | low |
+| [B1312](backlog/ops/B1312-a-restart-with-no-rebuild-strands.md) | A restart with no rebuild strands the service, and a corrupted Turbopack cache fails the build until cleared | OPS | medium | low |
 | [B437](backlog/ops/B437-no-postcard-has-ever-been-posted.md) | No postcard has ever been posted through a real provider account | OPS | medium | medium |
 | [B546](backlog/ops/B546-the-open-meteo-free-tier-is.md) | The Open-Meteo free tier is non-commercial and this instance takes money | OPS | medium | low |
 | [B1036](backlog/ops/B1036-content-example-s-new-trips-can.md) | content/example's new trips can flicker as malformed during ship.sh's demo sync | OPS | low | low |
