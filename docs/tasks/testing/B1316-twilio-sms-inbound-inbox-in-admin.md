@@ -7,8 +7,7 @@ complexity: medium
 area: sms, twilio, admin, signup
 found: "2026-09-10T15:35:17Z"
 started: "2026-09-10T15:36:07Z"
-session: 35cb457b-b9ed-4f9a-a4c6-0e5f0e8ab503
-claimed: "2026-09-10T15:36:07Z"
+merged: "2026-09-10T16:06:31Z"
 ---
 
 # B1316 — Twilio SMS - inbound inbox in admin, outbound sending, SMS signup fallback
