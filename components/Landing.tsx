@@ -85,6 +85,7 @@ export default function Landing({
   legal,
   codeMinutes,
   helperEnabled = false,
+  whatsappNumber,
   pricing,
 }: {
   siteName: string;
@@ -113,6 +114,12 @@ export default function Landing({
    * bring-your-own instruction box, further down either way. Defaults to
    * off, which is every instance's answer today. */
   helperEnabled?: boolean;
+  /**
+   * This instance's own `wa.me` number, resolved server-side —
+   * `whatsappDisplayNumber()`, B1310. Absent means the whole instance has
+   * none configured, and `LandingHero` renders nothing for it.
+   */
+  whatsappNumber?: string;
   /** The pricing table, rendered by the page and handed over — B840. A server
    * component (`components/Pricing.tsx`) because every price it prints is
    * read from the `server-only` module that charges it, which is why it
@@ -285,7 +292,7 @@ export default function Landing({
           </div>
         ) : (
           <>
-            <LandingHero helperEnabled={helperEnabled} />
+            <LandingHero helperEnabled={helperEnabled} whatsappNumber={whatsappNumber} />
             {/* Only when the helper is on — with it off there is no other
                 door, so this material stays where it is, open, on the first
                 screen (B732). */}

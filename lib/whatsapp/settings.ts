@@ -1,6 +1,7 @@
 import { loadServerConfig } from "../config";
 import { isEnabled } from "../capabilities";
 import { getUser } from "../users";
+import { toE164 } from "./phone";
 
 /**
  * The country code a national telephone number is assumed to belong to.
@@ -23,16 +24,24 @@ export function whatsappCountryCode(): string | undefined {
 /**
  * This instance's own number, for a `wa.me` link — B1127.
  *
- * `features.whatsapp.number` in `site/config.json`, E.164 digits, no `+` —
- * the same shape `toE164` produces and `wa.me/<number>` wants. Absent means
- * the link simply is not rendered anywhere, which is the outcome the owner
- * chose over a broken chip: nothing here guesses a number from the Cloud API
- * credentials, because the phone number id `WHATSAPP_PHONE_NUMBER_ID` names
- * is not the dialable number itself.
+ * `features.whatsapp.number` in `site/config.json`, typed by an operator and
+ * so in whatever shape a human writes a phone number — `+41 76 000 00 00`
+ * with spaces, say, rather than bare digits, which is how the live
+ * instance's own value was actually stored. Run through `toE164` (no
+ * `defaultCountryCode`: an operator typing this field types it with a `+`,
+ * and a national-format guess here would be guessing at the *operator's*
+ * country rather than a contact's) so every `wa.me/<number>` link built
+ * from this actually resolves. Absent, or not a
+ * number `toE164` can make sense of, means the link simply is not rendered
+ * anywhere, which is the outcome the owner chose over a broken chip: nothing
+ * here guesses a number from the Cloud API credentials, because the phone
+ * number id `WHATSAPP_PHONE_NUMBER_ID` names is not the dialable number
+ * itself.
  */
 export function whatsappDisplayNumber(): string | undefined {
   const configured = loadServerConfig().features.whatsapp.number;
-  return typeof configured === "string" && configured.trim() !== "" ? configured.trim() : undefined;
+  if (typeof configured !== "string" || configured.trim() === "") return undefined;
+  return toE164(configured) ?? undefined;
 }
 
 /**
