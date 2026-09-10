@@ -17,10 +17,11 @@ vi.mock("@/lib/photobook/gelato", async () => {
     ...actual,
     quoteBook: vi.fn(),
     submitBookPrint: vi.fn(),
+    fetchOrderStatus: vi.fn(),
   };
 });
 
-import { quoteBook, submitBookPrint } from "@/lib/photobook/gelato";
+import { fetchOrderStatus, quoteBook, submitBookPrint } from "@/lib/photobook/gelato";
 import { printOrder } from "@/lib/photobook/print";
 
 /**
@@ -145,6 +146,8 @@ beforeEach(async () => {
 
   vi.mocked(quoteBook).mockResolvedValue(QUOTE_RESULT);
   vi.mocked(submitBookPrint).mockResolvedValue({ providerRef: "gel-1" });
+  // B1333: still deciding, which is the ordinary case and not a failure.
+  vi.mocked(fetchOrderStatus).mockResolvedValue("created");
 });
 
 afterEach(async () => {
@@ -222,6 +225,33 @@ describe("submitBuiltBook", () => {
     expect(result).toEqual({ ok: false, reason: "already_paid" });
     expect((await balanceOf(OWNER)) ?? 0).toBe(before);
     expect(submitBookPrint).not.toHaveBeenCalled();
+  });
+
+  test("gives everything back when the printer accepts and then refuses", async () => {
+    const { submitBuiltBook } = await import("@/lib/photobook/print");
+    // B1333. Gelato answers the create with a reference and decides seconds
+    // later. An order with no payment method behind it came back `failed`
+    // while the owner was still reading "your book is being printed".
+    vi.mocked(fetchOrderStatus).mockResolvedValue("failed");
+    const before = (await balanceOf(OWNER)) ?? 0;
+
+    const result = await submitBuiltBook(OWNER, ID);
+
+    expect(result).toEqual({ ok: false, reason: "refused" });
+    expect((await balanceOf(OWNER)) ?? 0).toBe(before + PAYLOAD.credits);
+  });
+
+  test("a status that is not a terminal failure is left alone", async () => {
+    const { submitBuiltBook } = await import("@/lib/photobook/print");
+    // Everything that is not "never going to print" must not trigger a
+    // refund — including a word Gelato adds tomorrow.
+    vi.mocked(fetchOrderStatus).mockResolvedValue("in_production");
+    const before = (await balanceOf(OWNER)) ?? 0;
+
+    const result = await submitBuiltBook(OWNER, ID);
+
+    expect(result).toMatchObject({ ok: true, providerRef: "gel-1" });
+    expect((await balanceOf(OWNER)) ?? 0).toBe(before);
   });
 
   test("does not quote — the price was agreed before the book was built", async () => {

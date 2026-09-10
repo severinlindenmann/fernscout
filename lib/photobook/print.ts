@@ -5,7 +5,7 @@ import { getUser } from "../users";
 import { serverSite } from "../site";
 import { isoCountry } from "./country";
 import { signFileLink } from "./fileLink";
-import { quoteBook, submitBookPrint } from "./gelato";
+import { fetchOrderStatus, quoteBook, submitBookPrint } from "./gelato";
 import {
   claimForPrint,
   getPhotobookOrder,
@@ -164,7 +164,63 @@ export async function submitBuiltBook(owner: string, id: string): Promise<PrintO
 
   const payload: PhotobookPayload = { ...order.payload, print: { ...print, providerRef: result.providerRef } };
   await recordPrint(owner, id, payload, result.providerRef);
+
+  /**
+   * Accepting an order is not the same as taking it — B1333.
+   *
+   * `submitBookPrint` answers with a provider reference the moment Gelato
+   * accepts the *create*. Whether the order is actually going to be printed is
+   * decided seconds later and separately, and nothing here used to look again:
+   * an order with no payment method behind it came back with a reference, was
+   * recorded as printing, charged 203 credits, mailed a receipt with the PDFs
+   * — and was `fulfilmentStatus: failed, financialStatus: refused` at Gelato
+   * before the owner had finished reading it.
+   *
+   * So the settlement is waited for, briefly. A terminal failure inside the
+   * window is treated exactly like a refusal at the door: everything back, the
+   * order marked failed, and the caller told. Anything still pending is left
+   * alone and reported as success, which is the ordinary case — a real order
+   * sits in `created` or `passed` for far longer than anyone can be kept
+   * waiting on a button.
+   *
+   * This closes the case that is reproducible today and **not** the general
+   * one: an order that fails an hour later is still nobody's news. That needs
+   * Gelato's webhook or a sweep, and is the rest of B1333.
+   */
+  const settled = await settlementFailure(result.providerRef);
+  if (settled) {
+    await refund(owner, order.payload.credits, id);
+    await markPrintFailed(owner, id, order.payload, settled);
+    return { ok: false, reason: "refused" };
+  }
+
   return { ok: true, providerRef: result.providerRef, charged: order.payload.credits };
+}
+
+/** How long to wait for the printer to make up its mind, and how often to ask. */
+const SETTLE_WINDOW_MS = 20_000;
+const SETTLE_POLL_MS = 4_000;
+
+/**
+ * The statuses that mean this order is never going to be printed. Anything
+ * else — `created`, `passed`, `in_production`, `printed`, or a word Gelato
+ * adds tomorrow — is not a failure and must not trigger a refund.
+ */
+const TERMINAL_FAILURES = new Set(["failed", "canceled", "cancelled"]);
+
+/**
+ * Whether the printer refused this order within the settlement window, and
+ * what it called it. `null` means it did not — either it is still deciding, or
+ * it accepted.
+ */
+async function settlementFailure(providerRef: string): Promise<string | null> {
+  const deadline = Date.now() + SETTLE_WINDOW_MS;
+  for (;;) {
+    const status = await fetchOrderStatus(providerRef);
+    if (status && TERMINAL_FAILURES.has(status.toLowerCase())) return status;
+    if (Date.now() + SETTLE_POLL_MS >= deadline) return null;
+    await new Promise((resolve) => setTimeout(resolve, SETTLE_POLL_MS));
+  }
 }
 
 /**
