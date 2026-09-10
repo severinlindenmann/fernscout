@@ -274,9 +274,11 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (0)
+## in-development (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B1203](in-development/B1203-every-entry-in-the-operator-s.md) | Every entry in the operator's attention band is unanswerable: it can be read but not acknowledged, so a thing you have decided to live with is on the list for ever | FEATURE | medium | medium | `52950bf1` |
 
 ## testing (84)
 
