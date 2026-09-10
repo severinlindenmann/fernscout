@@ -285,16 +285,15 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (4)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1214](in-development/B1214-room-decisions-the-preview-grows-a.md) | Room decisions: the preview grows a header, memory, publish and highlights (D24 D25 D26 D27) | FEATURE | high | medium | `b9809a36` |
 | [B1215](in-development/B1215-room-decisions-the-phone-gets-a.md) | Room decisions: the phone gets a tab bar — Chat, Dateien, Vorschau (D39 D28) | FEATURE | high | high | `b9809a36` |
 | [B1219](in-development/B1219-room-decisions-an-evening-reminder-during.md) | Room decisions: an evening reminder during a trip (D46) | FEATURE | high | high | `b9809a36` |
-| [B1234](in-development/B1234-proving-a-number-needs-a-template.md) | Proving a number needs a template Meta will not grant - the inbound message already proves it | FEATURE | high | medium | `445f2c45` |
 
-## testing (104)
+## testing (105)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -361,6 +360,7 @@ Do not edit them by hand; run the script.
 | [B1228](testing/B1228-only-one-of-the-six-size.md) | Only one of the six size-and-cover combinations has ever reached a printer | CHORE | high | medium | — |
 | [B1229](testing/B1229-the-combined-pdf-is-written-but.md) | The combined PDF is written but cannot be downloaded | ISSUE | high | low | — |
 | [B1230](testing/B1230-a-proposal-on-whatsapp-points-at.md) | A proposal on WhatsApp points at a screen instead of offering its own button | FEATURE | high | medium | — |
+| [B1234](testing/B1234-proving-a-number-needs-a-template.md) | Proving a number needs a template Meta will not grant - the inbound message already proves it | FEATURE | high | medium | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |

@@ -7,8 +7,7 @@ complexity: medium
 area: signup, whatsapp, auth
 found: "2026-09-10T05:50:37Z"
 started: "2026-09-10T05:51:01Z"
-session: 445f2c45-9999-43e6-8154-3b9b49a0d13f
-claimed: "2026-09-10T05:51:01Z"
+merged: "2026-09-10T06:08:57Z"
 ---
 
 # B1234 — Proving a number needs a template Meta will not grant - the inbound message already proves it
