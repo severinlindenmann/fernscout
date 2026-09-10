@@ -275,6 +275,12 @@ body {
   .fs-waymark-bounce {
     animation: none;
   }
+  /* Not merely `animation: none` — with nothing else setting its opacity,
+     that would leave a row of static dots that never becomes the reply
+     it stands in for. Reduced motion shows the bubble outright instead. */
+  .fs-chat-dots {
+    display: none;
+  }
 }
 
 /*
@@ -315,6 +321,32 @@ body {
 }
 .fs-waymark-bounce {
   animation: fs-waymark-bounce 1s ease-in-out infinite;
+}
+
+/*
+ * The typing-dots placeholder ahead of an agent reply in the `/agent` door's
+ * chat vignette — B1329. A window rather than a fade: invisible before its
+ * own delay, visible for the run, gone again exactly when the delay on the
+ * real bubble underneath (`fs-assemble-in`, same element position via CSS
+ * grid stacking) reaches zero and the bubble starts to show. `both` holds
+ * the 0% state before the delay and the 100% state — also opacity 0 — after,
+ * so no inline style is needed to hide it once its window has passed.
+ * `prefers-reduced-motion` below removes it outright rather than leaving it
+ * at some resting opacity, since a static row of dots that never resolves
+ * into an answer would be worse than nothing.
+ */
+@keyframes fs-chat-dots {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+}
+.fs-chat-dots {
+  animation: fs-chat-dots 0.5s ease-in-out both;
 }
 
 /* Scrollable, but without the bar — used where the container is obviously
