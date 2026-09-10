@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: whatsapp, landing, agent
 found: "2026-09-10T15:12:51Z"
+merged: "2026-09-10T15:33:52Z"
 ---
 
 # B1310 — The WhatsApp door is invisible to anyone not already in their room
