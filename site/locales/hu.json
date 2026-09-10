@@ -1765,6 +1765,7 @@
   "agent.tool.noDay": "Erre a napra még nincs nap a naplódban, így semmi nem lett elmentve, és nincs mit megnyomni. Hozd létre előbb a napot, utána kerülhet rá ez.",
   "agent.tool.noFiles": "Nem találom ezeket a fényképeket a bejövők között, így semmi nem került át, és nincs mit megnyomni. Jelöld ki őket a fájlok panelen, és mondd meg újra, melyik napra.",
   "agent.nothingHappened": "Semmi nem lett elmentve, és a naplódban semmi nem változott — nincs mit megerősíteni. Mondd el újra, vagy mondd meg, melyik utazásra és melyik napra gondolsz, és odateszek valamit megerősítésre.",
+  "agent.noScreenHere": "Ez egy csevegés, nem egy oldal — nincs mire mutatnom ezen az üzeneten kívül. Ha vár valami, a gombjai pont itt vannak; ha linket küldtem, az megnyitja a szobát, nem az van már megnyitva.",
   "agent.notUntilYouPress": "Az megerősítésre vár, és még semmi nincs elmentve — a megerősítés teszi valóra. Olvasd el, és erősítsd meg, ha jó.",
   "agent.noWordsProposed": "Azon még nincs szöveg — ami vár, az egy üres nap a dátumával. Nyomd meg, aztán mesélj a napról, és megírom.",
   "agent.noAccessYet": "Nem mondhatom, hogy valaki el tudja olvasni ezt. Egy utazás, ami nem nyilvános, azoknak van nyitva, akik ott voltak, és a vendégeknek, akiket jóváhagytál — attól, hogy megnevezel valakit, még nem jut be. Mondd meg, kinek kellene olvasnia, és odateszek egy linket, amit elküldhetsz.",

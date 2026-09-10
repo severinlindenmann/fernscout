@@ -169,3 +169,44 @@ describe("an ordinary message, once acknowledged", () => {
     );
   });
 });
+
+function calls(name: string, input: Record<string, string> = {}) {
+  return {
+    content: [{ type: "tool_use", id: `t-${name}`, name, input }],
+    usage: { input_tokens: 100, output_tokens: 10 },
+  };
+}
+
+/**
+ * B1237 — a claim about a screen or a page is checked on WhatsApp even when
+ * a real proposal (and its real buttons) is waiting, which is exactly the
+ * turn the web-side guard leaves alone on purpose (see `ON_SCREEN`'s own doc
+ * comment in `lib/helper/model.ts`).
+ */
+describe("a claim about a screen or a page, on WhatsApp", () => {
+  test("is retried even though a real proposal is waiting, and the corrected answer goes out", async () => {
+    await bindGreetAcknowledge("screentest", "41760007777");
+    create
+      .mockResolvedValueOnce(calls("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }))
+      .mockResolvedValueOnce(says("Ein Vorschlag liegt auf deinem Bildschirm. Drück ihn, um die Reise zu erstellen."))
+      .mockResolvedValueOnce(says("Hier ist der Vorschlag — drück, um zu bestätigen."));
+    await handleInboundMessage(textMessage("41760007777", "wamid.screen-1", "plan a trip to japan"));
+
+    const last = repliesTo("screentest").at(-1);
+    expect(last?.kind).toBe("buttons");
+    expect(JSON.stringify(last)).not.toContain("Bildschirm");
+    expect(JSON.stringify(last)).toContain("drück, um zu bestätigen");
+  });
+
+  test("an honest 'press the button' is left alone when this message really carries buttons", async () => {
+    await bindGreetAcknowledge("buttontest", "41760008888");
+    create
+      .mockResolvedValueOnce(calls("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }))
+      .mockResolvedValueOnce(says("Drücke den Button, um die Reise anzulegen."));
+    await handleInboundMessage(textMessage("41760008888", "wamid.button-1", "plan a trip to japan"));
+
+    const last = repliesTo("buttontest").at(-1);
+    expect(last?.kind).toBe("buttons");
+    expect(JSON.stringify(last)).toContain("Drücke den Button");
+  });
+});

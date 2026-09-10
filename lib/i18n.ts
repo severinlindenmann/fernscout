@@ -327,6 +327,7 @@ export type TranslationKey =
   | "agent.noJournal"
   | "agent.noPhotosYet"
   | "agent.noRoom"
+  | "agent.noScreenHere"
   | "agent.noTrips"
   | "agent.noWordsProposed"
   | "agent.noWordsYet"
