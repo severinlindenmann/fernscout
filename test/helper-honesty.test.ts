@@ -21,6 +21,7 @@ import {
   claimsAWrite,
   droppedAQuestion,
   honestyCounts,
+  threadSystemPrompt,
 } from "@/lib/helper/model";
 
 /**
@@ -1374,5 +1375,16 @@ describe("asking for what a card would have asked", () => {
     // Ugly, but the card is there — and this guard is about the missing card,
     // not about policing prose beside one.
     expect(create).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("threadSystemPrompt language anchor (B1224)", () => {
+  test("names the journal's language as the tiebreaker for ambiguous messages", () => {
+    const p = threadSystemPrompt("2026-09-10", "de");
+    expect(p).toMatch(/"de"/);
+    expect(p).toMatch(/too short or ambiguous/);
+  });
+  test("says nothing about it when no locale is handed over", () => {
+    expect(threadSystemPrompt("2026-09-10")).not.toMatch(/too short or ambiguous/);
   });
 });

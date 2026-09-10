@@ -574,7 +574,7 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
 
   let thread;
   try {
-    thread = await answerInThread(username, said, await history(username), today, say, []);
+    thread = await answerInThread(username, said, await history(username), today, say, [], locale);
   } catch (err) {
     console.error(`[whatsapp:inbound] model turn failed for ${username}:`, err);
     return;

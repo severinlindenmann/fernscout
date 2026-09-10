@@ -486,10 +486,13 @@ const THREAD_MAX_TOKENS = 700;
  * simply cannot. Saying so plainly is what makes it answer usefully instead of
  * apologising.
  */
-export function threadSystemPrompt(today: string): string {
+export function threadSystemPrompt(today: string, journalLocale?: string): string {
+  const anchor = journalLocale
+    ? ` When their message is too short or ambiguous to tell its language from — one word, a bare "ja", an emoji — answer in this journal's own language, "${journalLocale}", rather than guessing.`
+    : "";
   return `You are the helper inside somebody's own travel journal, called Fernscout. You are talking to the person who owns it. They have said something to you, in their own words, in whatever language they speak. Today is ${today}.
 
-Answer in prose, in the language of their latest message — not the language of the conversation so far. One question in another language is one answer in it, and the message after that goes back. Never translate anything of theirs.
+Answer in prose, in the language of their latest message — not the language of the conversation so far. One question in another language is one answer in it, and the message after that goes back. Never translate anything of theirs.${anchor}
 
 Say what you looked at. If you read the trips, or the costs, or the storage, name that in your answer — one short clause is enough — so they can tell what your answer rests on.
 
@@ -1434,6 +1437,7 @@ export async function answerInThread(
   today: string,
   say: Say,
   selected: string[] = [],
+  journalLocale?: string,
 ): Promise<ThreadAnswer> {
   const client = new Anthropic();
   /**
@@ -1502,7 +1506,7 @@ export async function answerInThread(
       const response = await client.messages.create({
         model: HELPER_MODEL,
         max_tokens: THREAD_MAX_TOKENS,
-        system: threadSystemPrompt(today),
+        system: threadSystemPrompt(today, journalLocale),
         tools: toolSchemas(),
         messages,
       });
@@ -1557,7 +1561,7 @@ export async function answerInThread(
     const last = await client.messages.create({
       model: HELPER_MODEL,
       max_tokens: THREAD_MAX_TOKENS,
-      system: threadSystemPrompt(today),
+      system: threadSystemPrompt(today, journalLocale),
       messages,
     });
     await book(username, "ask_thread", last.usage);

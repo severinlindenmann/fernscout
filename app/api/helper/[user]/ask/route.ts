@@ -265,6 +265,9 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
       // What is ticked, resolved by the tool that needs it — B925. Nobody is
       // asked to read an id off a screen that shows none.
       selected,
+      // The ambiguity anchor — B1224: a message too short to carry a language
+      // ("ja") is answered in the person's own UI language, never a guess.
+      locale,
     );
   } catch {
     return Response.json({ error: "model_failed" }, { status: 502 });
