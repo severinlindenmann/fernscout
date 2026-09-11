@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (202)
+## backlog (204)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (47)
+### issue (49)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -95,6 +95,7 @@ Do not edit them by hand; run the script.
 | [B1476](backlog/issue/B1476-a-trip-marked-upcoming-says-where.md) | A trip marked upcoming says Where we have been, because one day names a place | ISSUE | medium | low |
 | [B1484](backlog/issue/B1484-stannp-has-no-inbound-webhook-route.md) | Stannp has no inbound webhook route, unlike every other print/message provider | ISSUE | medium | medium |
 | [B1493](backlog/issue/B1493-the-landing-page-lists-no-journals.md) | The landing page lists no journals for a reader holding only a journal cookie | ISSUE | medium | low |
+| [B1503](backlog/issue/B1503-a-media-file-belonging-to-no.md) | A media file belonging to no day cannot be written through any door | ISSUE | medium | low |
 | [B1508](backlog/issue/B1508-a-scratch-journal-named-test-something.md) | A scratch journal named test-something poisons the depersonalised guard with common words | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
@@ -111,6 +112,7 @@ Do not edit them by hand; run the script.
 | [B1436](backlog/issue/B1436-deleting-the-wizard-s-tests-dropped.md) | deleting the wizard's tests dropped the only coverage for PhotoPicker's localized label and sr-only clip | ISSUE | low | low |
 | [B1445](backlog/issue/B1445-a-spent-trip-choice-card-stays.md) | A spent trip-choice card stays a pressable button that does nothing | ISSUE | low | low |
 | [B1475](backlog/issue/B1475-the-map-s-aria-label-derives.md) | The map's aria-label derives its own tense and never learns the trip is over | ISSUE | low | low |
+| [B1504](backlog/issue/B1504-an-up-leg-reports-success-on.md) | An up leg reports success on config fields that can never reach the site | ISSUE | low | low |
 
 ### big-feature (11)
 
@@ -302,15 +304,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (3)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1500](in-development/B1500-tapping-a-photograph-opens-a-form.md) | Tapping a photograph opens a form asking what the flow is about to ask again | FEATURE | high | medium | `3f748903` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
-| [B1495](in-development/B1495-a-journal-can-be-synced-down.md) | A journal can be synced down to a folder and back up, incrementally | FEATURE | medium | high | `a46b89fa` |
 
-## testing (67)
+## testing (68)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -360,6 +361,7 @@ _Nothing here._
 | [B1468](testing/B1468-legacy-left-behind-once-both-order.md) | Legacy left behind once both order surfaces share one element | CHORE | medium | low | — |
 | [B1469](testing/B1469-a-photobook-order-has-no-picture.md) | A photobook order has no picture of the book it is an order for | FEATURE | medium | medium | — |
 | [B1485](testing/B1485-the-composer-s-two-columns-are.md) | The composer's two columns are mirrored from the drawing they were built to | ISSUE | medium | low | — |
+| [B1495](testing/B1495-a-journal-can-be-synced-down.md) | A journal can be synced down to a folder and back up, incrementally | FEATURE | medium | high | — |
 | [B1045](testing/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low | — |
 | [B1046](testing/B1046-two-sessions-running-verify-in-the.md) | Two sessions running verify in the shared checkout collide on the next build lock | DOCS | low | low | — |
 | [B1052](testing/B1052-code-and-commits-cite-task-ids.md) | Code and commits cite task ids that have no file, so the allocator hands them out again | CHORE | low | low | — |

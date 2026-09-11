@@ -7,8 +7,7 @@ complexity: high
 area: API, helper, content
 found: "2026-09-11T17:22:53Z"
 started: "2026-09-11T18:25:09Z"
-session: a46b89fa-8d46-44a3-b5fc-84f7c4ed55fb
-claimed: "2026-09-11T18:25:09Z"
+merged: "2026-09-11T19:06:06Z"
 ---
 
 # B1495 — A journal can be synced down to a folder and back up, incrementally
