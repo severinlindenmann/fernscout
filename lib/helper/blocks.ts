@@ -142,3 +142,29 @@ export type Proposal = {
    */
   next?: { tool: string; from: Record<string, string> };
 };
+
+/**
+ * What kind of decision a proposal is — B1122, moved here from
+ * `HelperAsk.tsx` by B1254 so a server module (`lib/helper/thread.ts`,
+ * reconstructing a reopened conversation) can classify a tool by the same
+ * rule the card's own colour uses, without importing a `"use client"` file.
+ *
+ * Read from the tool's own name rather than a table this file would have to
+ * keep in step with the registry: a second list beside `lib/helper/tools/`
+ * would disagree with it within a month, the same reasoning `AGENTS.md`
+ * gives for every enum in the API contract. A tool is named for the verb it
+ * performs, and the verb already says which of these it is — `revoke_key`,
+ * `discard_file` and `unpublish_day` take something away without anybody
+ * asking this file to know their names; a tool named the same way tomorrow
+ * classifies itself the same way.
+ *
+ * `edit` is everything else: writing a day's words, adding a cost, changing
+ * a title. Those stay the ordinary, cream card — the colour is the warning,
+ * never the wording.
+ */
+export function decisionKind(tool: string): "grant" | "spend" | "destroy" | "edit" {
+  if (/^(revoke|discard|remove|unpublish|delete)_|^cleanup$/.test(tool)) return "destroy";
+  if (/invite|people|visibility/.test(tool)) return "grant";
+  if (/^buy_/.test(tool)) return "spend";
+  return "edit";
+}

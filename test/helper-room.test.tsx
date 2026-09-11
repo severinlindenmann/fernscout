@@ -657,7 +657,8 @@ test("pressing the preview's publish button twice quickly fires one proposal", a
 
   const previewSection = box.querySelector('section[aria-label="Preview"]')!;
   const publish = [...previewSection.querySelectorAll("button")].find(
-    (button) => button.textContent === "Put this day on the site",
+    // B1275 relabelled this button — it opens a card, it does not publish.
+    (button) => button.textContent === dictionary["agent.room.reviewToPublish"],
   ) as HTMLButtonElement;
   expect(publish).toBeDefined();
 
@@ -672,6 +673,257 @@ test("pressing the preview's publish button twice quickly fires one proposal", a
   // And the guard is visible, not just internal: a second click found the
   // button disabled.
   expect(publish.disabled).toBe(true);
+});
+
+/**
+ * B1275 — the preview header's button never published: `proposeToThread`
+ * only ever POSTs to `/proposal` and injects the card that names the real
+ * route, exactly like every other proposal in this conversation. Two things
+ * worth locking down: the label says what pressing it actually does, and
+ * the card it opens is the one the person actually sees — scrolled to, not
+ * merely present in a hidden tab.
+ */
+test("the header's publish button opens the real confirmation card, scrolled into view", async () => {
+  const proposal = {
+    tool: "publish_day",
+    arguments: { trip: "a-trip", slug: "tuesday" },
+    sentence: "Put this day on the site as your readers will see it.",
+    fields: [],
+    endpoint: "/api/helper/alex/day/publish",
+    method: "POST" as const,
+    accept: "Put it on the site",
+    done: "It is on the site.",
+  };
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url.includes("/day?trip=")) {
+        return {
+          ok: true,
+          json: async () => ({
+            preview: {
+              day: {
+                date: "2026-08-01",
+                lead: {
+                  slug: "tuesday",
+                  title: "Ankunft",
+                  date: "2026-08-01",
+                  location: "Bellinzona",
+                  country: "Switzerland",
+                  content: "<p>Words.</p>",
+                  gallery: [],
+                  costs: [],
+                  draft: true,
+                },
+                entries: [],
+              },
+              summary: {},
+              dayIndex: 0,
+            },
+          }),
+        } as Response;
+      }
+      if (url.endsWith("/proposal")) {
+        return {
+          ok: true,
+          json: async () => ({
+            blocks: [{ shape: "confirm", text: proposal.sentence, fields: [], proposal }],
+          }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({ ok: true, blocks: [] }) } as Response;
+    }),
+  );
+
+  const box = render({ trip: "a-trip", slug: "tuesday" });
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  // The label says what the button does — a card to review, not a write —
+  // and is not the chip suggestion's own wording (`agent.about.publish`),
+  // since that string is arguably correct for the chip and would be false
+  // here.
+  const previewSection = box.querySelector('section[aria-label="Preview"]')!;
+  const header = [...previewSection.querySelectorAll("button")].find(
+    (button) => button.textContent === dictionary["agent.room.reviewToPublish"],
+  ) as HTMLButtonElement;
+  expect(header).toBeDefined();
+  expect(header.textContent).not.toBe(dictionary["agent.about.publish"]);
+
+  const scrollIntoView = vi.fn();
+  HTMLElement.prototype.scrollIntoView = scrollIntoView;
+
+  await act(async () => {
+    header.click();
+  });
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  expect(scrollIntoView).toHaveBeenCalled();
+  const chat = box.querySelector(`section[aria-label="${dictionary["agent.chat.title"]}"]`)!;
+  expect(chat.textContent).toContain(proposal.sentence);
+});
+
+/**
+ * B1275's other half — pressing that card's own button publishes, and the
+ * preview shows it without a reload. `accept()` in `HelperAsk.tsx` already
+ * calls `onSubject` with the proposal's own trip and slug on every
+ * successful write (B901), and `onSubject` here bumps `subject.at`, which
+ * is what the day-fetch effect keys on — the same mechanism the day chips
+ * use, reused rather than duplicated for this one tool.
+ */
+test("pressing the card publishes, and the preview updates with no reload", async () => {
+  const proposal = {
+    tool: "publish_day",
+    arguments: { trip: "a-trip", slug: "tuesday" },
+    sentence: "Put this day on the site as your readers will see it.",
+    fields: [],
+    endpoint: "/api/helper/alex/day/publish",
+    method: "POST" as const,
+    accept: "Put it on the site",
+    done: "It is on the site.",
+  };
+  let dayReads = 0;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url.includes("/day?trip=")) {
+        dayReads += 1;
+        return {
+          ok: true,
+          json: async () => ({
+            preview: {
+              day: {
+                date: "2026-08-01",
+                lead: {
+                  slug: "tuesday",
+                  title: "Ankunft",
+                  date: "2026-08-01",
+                  location: "Bellinzona",
+                  country: "Switzerland",
+                  content: "<p>Words.</p>",
+                  gallery: [],
+                  costs: [],
+                  // The second read (after the press) answers published.
+                  draft: dayReads === 1,
+                },
+                entries: [],
+              },
+              summary: {},
+              dayIndex: 0,
+            },
+          }),
+        } as Response;
+      }
+      if (url.endsWith("/proposal")) {
+        return {
+          ok: true,
+          json: async () => ({
+            blocks: [{ shape: "confirm", text: proposal.sentence, fields: [], proposal }],
+          }),
+        } as Response;
+      }
+      if (url.endsWith("/day/publish")) {
+        return { ok: true, json: async () => ({ ok: true, slug: "tuesday" }) } as Response;
+      }
+      return { ok: true, json: async () => ({ ok: true, blocks: [] }) } as Response;
+    }),
+  );
+
+  const box = render({ trip: "a-trip", slug: "tuesday" });
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  const previewSection = box.querySelector('section[aria-label="Preview"]')!;
+  const header = [...previewSection.querySelectorAll("button")].find(
+    (button) => button.textContent === dictionary["agent.room.reviewToPublish"],
+  ) as HTMLButtonElement;
+  await act(async () => {
+    header.click();
+  });
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  const chat = box.querySelector(`section[aria-label="${dictionary["agent.chat.title"]}"]`)!;
+  const press = [...chat.querySelectorAll("button")].find(
+    (button) => button.textContent === proposal.accept,
+  ) as HTMLButtonElement;
+  expect(press).toBeDefined();
+  await act(async () => {
+    press.click();
+  });
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  expect(dayReads).toBeGreaterThanOrEqual(2);
+  // The header's own control flips from "review to publish" to "see it on
+  // the site" — the preview read itself, not a page reload.
+  expect(previewSection.textContent).toContain(dictionary["agent.room.openOnSite"]);
+});
+
+/**
+ * B1257 — the preview pane renders `DayCard` with no `TripProvider` in
+ * scope, so `DraftNotice`'s own `useTrip()` read used to fall back to
+ * `canPublish: false` and told the owner previewing their own draft that
+ * publishing was somebody else's to ask for. The room is owner-only by
+ * construction, so the owner's own copy ("Draft — only you can see this")
+ * is what belongs here, never the shared reader's ("Draft — not on the site
+ * yet").
+ */
+test("the preview's draft banner speaks to the owner, not a shared reader — B1257", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url.includes("/day?trip=")) {
+        return {
+          ok: true,
+          json: async () => ({
+            preview: {
+              day: {
+                date: "2026-08-01",
+                lead: {
+                  slug: "tuesday",
+                  title: "Ankunft",
+                  date: "2026-08-01",
+                  location: "Bellinzona",
+                  country: "Switzerland",
+                  content: "<p>Words.</p>",
+                  gallery: [],
+                  costs: [],
+                  draft: true,
+                },
+                entries: [],
+              },
+              summary: {},
+              dayIndex: 0,
+            },
+          }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({ ok: true, blocks: [] }) } as Response;
+    }),
+  );
+
+  const box = render({ trip: "a-trip", slug: "tuesday" });
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  const previewSection = box.querySelector('section[aria-label="Preview"]')!;
+  expect(previewSection.textContent).toContain(dictionary["draft.title"]);
+  expect(previewSection.textContent).not.toContain(dictionary["draft.titleShared"]);
 });
 
 /**

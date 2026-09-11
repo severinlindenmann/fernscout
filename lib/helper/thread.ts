@@ -1,7 +1,9 @@
 import "server-only";
 import { getDatabaseOrNull } from "../db";
 import { newId } from "../db/owner";
+import { decisionKind } from "./blocks";
 import { trustedCaller } from "./caller";
+import type { Say } from "./intents";
 import { recordPress } from "./sessions";
 
 /**
@@ -315,6 +317,94 @@ export async function sessionId(username: string, channel: Channel = "web"): Pro
 export async function history(username: string): Promise<Turn[]> {
   const thread = await live(username);
   return thread?.turns ?? [];
+}
+
+/**
+ * `history()`, flattened for a reopened page — B1254.
+ *
+ * `HelperAsk.tsx` used to force-cast every reopened turn to a plain `say`
+ * block: the card that was on screen vanished with no trace, and the
+ * chips a successful write offers (`suggestions` in that file) are pure
+ * client state and vanished with no trace either — read together, somebody
+ * who wrote a day, saw "Put this day on the site", and left without
+ * pressing it came back to a conversation that read as though nothing had
+ * happened, and the only honest way it could go from there was asking
+ * again. For a tool that spends credits, asking again spends them again.
+ *
+ * **This never rebuilds anything pressable — it only knows two facts about
+ * a proposal, and says one sentence about it.** `proposed()` and `wrote()`
+ * already leave a note in this exact turns array — `[proposed, not
+ * written, waiting to be pressed: TOOL {...}]` and `[written: TOOL
+ * {...}]` — for the honesty net in `model.ts` to read; this is the only
+ * other reader of them. A proposal note with no later `written` note for
+ * the same tool reads as **pending**: say it again if it is still wanted,
+ * and nothing has happened. A proposal note that is later matched by a
+ * `written` note — anywhere later in the window, not only immediately
+ * after, since a press can come after a further sentence — reads as
+ * **done**. There is no third state and no field that could hold a live
+ * proposal: a turn is either plain text, or plain text with one of these
+ * two sentences appended, and either way `HelperAsk.tsx` draws it exactly
+ * as it already draws any other turn with no blocks.
+ *
+ * `decisionKind()` — reused, not reinvented — only picks which of the
+ * existing `agent.card.*` words names the kind of thing that was waiting,
+ * so "a change" and "spends credits" read differently in the same sentence
+ * shape.
+ */
+export function reopenedTurns(
+  turns: Turn[],
+  say: Say,
+): { said: string; answered: string; origin?: Channel }[] {
+  type Draft = {
+    said: string;
+    answered: string;
+    origin?: Channel;
+    outcome: "" | "pending" | "done";
+    kind?: ReturnType<typeof decisionKind>;
+  };
+  const drafts: Draft[] = [];
+  let open: Draft | null = null;
+  // The last still-open proposal per tool, so a `written` note anywhere
+  // later in the window resolves it — not only one immediately following.
+  const pendingByTool = new Map<string, Draft>();
+
+  for (const turn of turns) {
+    if (turn.role === "user") {
+      open = { said: turn.text, answered: "", origin: turn.origin, outcome: "" };
+      drafts.push(open);
+    } else if (turn.role === "assistant") {
+      if (!open) {
+        open = { said: "", answered: "", origin: turn.origin, outcome: "" };
+        drafts.push(open);
+      }
+      open.answered = turn.text;
+    } else if (turn.role === "note") {
+      const proposal = turn.text.match(/^\[proposed, not written, waiting to be pressed: (\S+) /);
+      const written = turn.text.match(/^\[written: (\S+) /);
+      if (proposal && open) {
+        open.outcome = "pending";
+        open.kind = decisionKind(proposal[1]);
+        pendingByTool.set(proposal[1], open);
+      } else if (written) {
+        const draft = pendingByTool.get(written[1]);
+        if (draft) {
+          draft.outcome = "done";
+          pendingByTool.delete(written[1]);
+        }
+      }
+    }
+  }
+
+  return drafts.map((draft) => ({
+    said: draft.said,
+    answered:
+      draft.outcome === "pending"
+        ? `${draft.answered}\n\n${say("agent.chat.reopenedPending", { kind: say(`agent.card.${draft.kind}`) })}`
+        : draft.outcome === "done"
+          ? `${draft.answered}\n\n${say("agent.chat.reopenedDone")}`
+          : draft.answered,
+    origin: draft.origin,
+  }));
 }
 
 /**

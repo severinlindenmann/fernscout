@@ -11,7 +11,14 @@ import { hasHelperConsent } from "@/lib/helper/consent";
 import { filesForRoom, isHelperOwner } from "@/lib/helper/server";
 import { openingFor } from "@/lib/helper/opening";
 import { turnsIn } from "@/lib/helper/sessions";
-import { adopt, forget, liveSession, note } from "@/lib/helper/thread";
+import {
+  adopt,
+  forget,
+  history as liveThreadTurns,
+  liveSession,
+  note,
+  reopenedTurns,
+} from "@/lib/helper/thread";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { journalsFor } from "@/lib/home";
 import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
@@ -170,8 +177,6 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
        */
       const session =
         shouldForget || named === "new" ? "" : named !== "" ? named : ((await liveSession(user)) ?? "");
-      const history = session ? await turnsIn(user, session) : [];
-      if (named !== "" && named !== "new" && history.length > 0) await adopt(user, session, history);
       /**
        * A provider of its own, for one prop the root's cannot carry —
        * B1200. The room previews a real `DayCard`, and a day's fallback
@@ -179,8 +184,37 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
        * `defaultLocale` (`writtenLocale`); under the root provider that
        * defaulted to English, and a German day previewed with "Auf
        * Englisch geschrieben" over plainly German words.
+       *
+       * Hoisted above `history` below — B1254 needs it to translate what a
+       * lost proposal card said.
        */
       const roomLocale = await requestLocale();
+      /**
+       * A bare reload resumes the live thread itself (`helper_threads`),
+       * not the flattened log `turnsIn` reads — B1254. The live thread
+       * carries the notes `proposed()`/`wrote()` leave for the model's own
+       * honesty net, and `reopenedTurns` is the only other reader of them:
+       * the one sentence a lost card is replaced by, never the card
+       * itself. A named, explicit reopen (the history panel, a WhatsApp
+       * link) still reads the log exactly as before — a thread that has
+       * since expired carries nothing for `reopenedTurns` to read either
+       * way, so there is nothing this path could add for it.
+       */
+      const resumingLive = session !== "" && named === "" && !shouldForget;
+      const say = (key: string, vars?: Record<string, string>) =>
+        translateIn(roomLocale, key as Parameters<typeof translateIn>[1], vars);
+      // `Turn` carries no timestamp of its own (`lastTouched`'s own
+      // comment explains why) — "now" is close enough for a thread that is
+      // live by definition, and the only uses of `created_at` downstream
+      // are ordering and a cosmetic date header, neither worth a second
+      // read of the thread's own `touched_at` for.
+      const now = new Date().toISOString();
+      const history = session
+        ? resumingLive
+          ? reopenedTurns(await liveThreadTurns(user), say).map((turn) => ({ ...turn, created_at: now }))
+          : await turnsIn(user, session)
+        : [];
+      if (named !== "" && named !== "new" && history.length > 0) await adopt(user, session, history);
       return (
         <LocaleProvider
           locale={roomLocale}

@@ -806,7 +806,14 @@ export default function HelperRoom({
               disabled={proposing}
               className="shrink-0 rounded-full border border-navy-300 bg-white px-3 py-1.5 text-xs font-semibold text-navy-800 transition-colors hover:bg-navy-50 disabled:opacity-50"
             >
-              {t("agent.about.publish")}
+              {/* Its own key, not `agent.about.publish` — B1275. This
+                  button never publishes; it opens the real confirmation
+                  card in the conversation, and only that card's own press
+                  does. `agent.about.publish` is also a chip suggestion
+                  elsewhere in this file, where the wording is arguably
+                  correct — relabelling it there would have made that
+                  reading wrong instead of this one. */}
+              {t("agent.room.reviewToPublish")}
             </button>
           ) : (
             <a
@@ -2797,7 +2804,14 @@ function PreviewPane({
   return (
     <div aria-busy={reading}>
       <CurrencyProvider options={currency}>
-        <DayCard day={preview.day} summary={preview.summary} dayIndex={preview.dayIndex} />
+        {/* `canPublish` — B1257. This pane renders with no `TripProvider`,
+            so `DraftNotice`'s own context read falls back to `false` and
+            told an owner previewing their own draft that publishing was
+            somebody else's to ask for. The room is owner-only by
+            construction (`app/agent/page.tsx` gates on `role === "owner"`
+            and `isHelperOwner`), so `true` here is simply correct rather
+            than a real trip this route would have to thread through. */}
+        <DayCard day={preview.day} summary={preview.summary} dayIndex={preview.dayIndex} canPublish />
       </CurrencyProvider>
     </div>
   );

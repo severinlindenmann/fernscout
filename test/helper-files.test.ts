@@ -272,6 +272,54 @@ describe("discard_file — throwing away a staged file", () => {
     expect(ran.blocks).toEqual([{ shape: "say", text: "agent.tool.discardFileNone" }]);
   });
 
+  /**
+   * B1391 — "lösche alle Dateien in meiner Inbox" named files nothing this
+   * tool could do anything with: it took one id, and so did its route.
+   */
+  describe("several at once", () => {
+    test("comma-separated ids in one press", async () => {
+      const one = await storeInboxFile("alex", "media", "a.jpg", await paintJpeg(400, 300, 6), {});
+      const two = await storeInboxFile("alex", "media", "b.jpg", await paintJpeg(400, 300, 7), {});
+      const ran = await runTool("alex", "discard_file", { file: `${one.entry.id},${two.entry.id}` }, say, "2026-05-05");
+      expect(ran.proposal?.fields).toEqual([
+        { name: "file", value: `${one.entry.id},${two.entry.id}`, fixed: true },
+      ]);
+
+      const response = await post(discardFile, "/api/helper/alex/inbox/discard", ran.proposal!.arguments);
+      expect(response.status).toBe(200);
+      expect(listInbox("alex").media).toHaveLength(0);
+    });
+
+    test("\"all\" resolves to every file waiting, with nothing ticked or named", async () => {
+      await storeInboxFile("alex", "media", "a.jpg", await paintJpeg(400, 300, 8), {});
+      await storeInboxFile("alex", "media", "b.jpg", await paintJpeg(400, 300, 9), {});
+      const ran = await runTool("alex", "discard_file", { all: "true" }, say, "2026-05-05");
+      expect(ran.proposal?.arguments.file?.split(",")).toHaveLength(2);
+
+      const response = await post(discardFile, "/api/helper/alex/inbox/discard", ran.proposal!.arguments);
+      expect(response.status).toBe(200);
+      expect(listInbox("alex").media).toHaveLength(0);
+    });
+
+    test("a tick beats \"all\" — the browser's own selection is the answer, same as attach_files", async () => {
+      const ticked = await storeInboxFile("alex", "media", "ticked.jpg", await paintJpeg(400, 300, 10), {});
+      await storeInboxFile("alex", "media", "other.jpg", await paintJpeg(400, 300, 11), {});
+      const ran = await runTool("alex", "discard_file", { all: "true" }, say, "2026-05-05", [
+        `inbox:${ticked.entry.id}`,
+      ]);
+      expect(ran.proposal?.fields).toEqual([{ name: "file", value: ticked.entry.id, fixed: true }]);
+    });
+
+    test("one id in the list resolving to nothing does not sink the request", async () => {
+      const staged = await storeInboxFile("alex", "media", "real.jpg", await paintJpeg(400, 300, 12), {});
+      const response = await post(discardFile, "/api/helper/alex/inbox/discard", {
+        file: `${staged.entry.id},not-a-real-id.jpg`,
+      });
+      expect(response.status).toBe(200);
+      expect(listInbox("alex").media).toHaveLength(0);
+    });
+  });
+
   test("somebody who is not the owner is refused", async () => {
     const staged = await storeInboxFile("alex", "media", "harbour.jpg", await paintJpeg(400, 300, 5), {});
     resolveAccess.mockResolvedValue({ email: "stranger@example.test" });

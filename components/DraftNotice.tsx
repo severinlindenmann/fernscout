@@ -23,7 +23,22 @@ import { useTrip } from "./TripProvider";
  * colour. See docs/branding/BRAND.md.
  */
 
-export default function DraftNotice() {
+export default function DraftNotice({
+  canPublish: override,
+}: {
+  /**
+   * Beats context when given — B1257. `DayCard`'s one other caller besides
+   * public pages is the helper room's preview pane, which renders it with
+   * no `TripProvider` in scope at all: `useTrip()` reads `null` there, and
+   * the fallback below is the *safe* default for a stranger reading a real
+   * page, not a correct answer for a room the owner is, by construction,
+   * the only person who ever opens (`app/agent/page.tsx` gates on
+   * `role === "owner"` and `isHelperOwner`). Every public caller still goes
+   * through context — this prop exists so the one caller with no context to
+   * read can say what it already knows instead.
+   */
+  canPublish?: boolean;
+} = {}) {
   const { t } = useI18n();
   /**
    * Two readers now, and the old copy was false to the second in both halves
@@ -41,7 +56,8 @@ export default function DraftNotice() {
    * the narrower copy, which is the safe direction: it never tells anybody
    * that a day is theirs to publish.
    */
-  const canPublish = useTrip()?.canPublish ?? false;
+  const fromContext = useTrip()?.canPublish ?? false;
+  const canPublish = override ?? fromContext;
   return (
     <div
       role="note"

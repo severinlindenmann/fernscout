@@ -17,6 +17,13 @@ export const dynamic = "force-dynamic";
  * No confirmation code and no preview: nothing here has ever been on the
  * site and nobody has read it, which is the same reasoning the v1 route's own
  * comment gives for asking nothing further than the press itself.
+ *
+ * **`file` is one id, or several separated by commas — B1391.** The tool's
+ * own proposal already resolved and named every one of them on the card, so
+ * this route re-resolves each rather than trusting the count: an id that no
+ * longer exists (a second tab, a second press) is skipped rather than
+ * failing the whole request, and what actually went is what the response
+ * names.
  */
 export async function POST(
   request: Request,
@@ -30,14 +37,25 @@ export async function POST(
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return Response.json({ error: "invalid_json" }, { status: 400 });
 
-  const id = String(body.file ?? "").trim();
-  const found = id ? findInboxFile(user, id) : null;
-  if (!found) {
+  const ids = String(body.file ?? "")
+    .split(",")
+    .map((one) => one.trim())
+    .filter((one) => one !== "");
+  const removed: { id: string; filename: string }[] = [];
+  for (const id of ids) {
+    const found = findInboxFile(user, id);
+    if (!found) continue;
+    removeInboxFile(user, id);
+    removed.push({ id: found.entry.id, filename: found.entry.filename });
+  }
+
+  if (removed.length === 0) {
     refused(user, "discard_file", "unknown_inbox_file");
     return Response.json({ error: "unknown_inbox_file" }, { status: 404 });
   }
 
-  removeInboxFile(user, id);
-  wrote(user, "discard_file", { id: found.entry.id, filename: found.entry.filename });
-  return Response.json({ ok: true, id: found.entry.id, filename: found.entry.filename });
+  wrote(user, "discard_file", { ids: removed.map((one) => one.id), filenames: removed.map((one) => one.filename) });
+  return removed.length === 1
+    ? Response.json({ ok: true, id: removed[0].id, filename: removed[0].filename })
+    : Response.json({ ok: true, removed });
 }

@@ -12,6 +12,7 @@ import { mediaLoader } from "@/components/mediaLoader";
 import RoomOpening from "@/components/RoomOpening";
 import AnswerText from "@/components/AnswerText";
 import type { Opening } from "@/lib/helper/opening";
+import { decisionKind } from "@/lib/helper/blocks";
 import type { Block, Option, Proposal, ProposalField } from "@/lib/helper/blocks";
 import type { TranslationKey } from "@/lib/i18n";
 
@@ -225,29 +226,6 @@ function dateOf(blocks: Block[]): string | null {
     if (typeof date === "string" && date !== "") return date;
   }
   return null;
-}
-
-/**
- * What kind of decision a proposal is — B1122.
- *
- * Read from the tool's own name rather than a table this file would have to
- * keep in step with the registry: a second list beside `lib/helper/tools/`
- * would disagree with it within a month, the same reasoning `AGENTS.md`
- * gives for every enum in the API contract. A tool is named for the verb it
- * performs, and the verb already says which of these it is — `revoke_key`,
- * `discard_file` and `unpublish_day` take something away without anybody
- * asking this file to know their names; a tool named the same way tomorrow
- * classifies itself the same way.
- *
- * `edit` is everything else: writing a day's words, adding a cost, changing
- * a title. Those stay the ordinary, cream card — the colour is the warning,
- * never the wording.
- */
-export function decisionKind(tool: string): "grant" | "spend" | "destroy" | "edit" {
-  if (/^(revoke|discard|remove|unpublish|delete)_|^cleanup$/.test(tool)) return "destroy";
-  if (/invite|people|visibility/.test(tool)) return "grant";
-  if (/^buy_/.test(tool)) return "spend";
-  return "edit";
 }
 
 /**
@@ -642,32 +620,29 @@ export default function HelperAsk({
     }
   }, [open]);
 
-  // Where focus goes when a turn arrives: to a proposal if the turn ended in
-  // one, because a proposal nobody is looking at is a proposal nobody presses;
-  // to the field otherwise, because saying something else is the usual next
-  // thing. An effect rather than a callback, so it runs after React has put
-  // the block in the document and there is something to focus.
+  // Where the screen goes when a turn arrives — one decision, not two
+  // effects quietly disagreeing about it (B1253: a bottom-scroll effect ran
+  // after this one on every render and undid it). A turn ending in a
+  // proposal gets its top scrolled into view, because a proposal nobody is
+  // looking at is a proposal nobody presses, and its buttons matter more
+  // than whatever came before it; anything else scrolls the thread to the
+  // newest line instead, the one a conversation on a phone must not move
+  // the field away from.
   useEffect(() => {
     const last = turns[turns.length - 1];
-    if (!last) return;
-    if (last.blocks.some(isProposal)) {
+    if (last && last.blocks.some(isProposal)) {
       proposal.current?.focus();
-      // B1343 (E05 A): focus alone scrolls the minimum, which on a tall
-      // card can leave its buttons below the fold. "nearest" shows as much
-      // of the card as fits, buttons included where the card fits at all.
-      proposal.current?.scrollIntoView?.({ block: "nearest" });
+      // `start`, not `nearest` (B1253): the card can be taller than the
+      // viewport, and the sentence explaining it sits above the buttons —
+      // `scroll-mt-24` on the card matches the sticky page header so the
+      // top lands below it rather than under it.
+      proposal.current?.scrollIntoView?.({ block: "start" });
     } else {
       silentFocus.current = true;
       box.current?.focus();
+      if (log.current) log.current.scrollTop = log.current.scrollHeight;
     }
   }, [turns]);
-
-  // Newest last, and the newest is what somebody wants to see. Scrolling the
-  // thread rather than the page keeps the field where it was — the one thing
-  // a conversation on a phone must not move.
-  useEffect(() => {
-    if (log.current) log.current.scrollTop = log.current.scrollHeight;
-  }, [turns, busy]);
 
   /** An injected turn joins the thread once per stamp — B1214 (D26). */
   const injectedAt = useRef(0);
@@ -956,27 +931,38 @@ export default function HelperAsk({
             today: new Date().toISOString().slice(0, 10),
           },
         );
-        setTurns((was) => [
-          ...was,
-          {
-            said: "",
-            blocks: [
-              { shape: "say", text: proposal.done },
-              ...((next.blocks ?? []) as Block[]),
-            ],
-          },
-        ]);
+        // `proposal.done` used to open this turn as well as ProposalView's
+        // own card, so every chained accept read the same outcome twice —
+        // B1256. The next proposal's own sentence is what belongs here; say
+        // nothing before it. And when there is neither that nor a next
+        // proposal, push no turn at all rather than one with nothing in it.
+        const chainedBlocks = (next.blocks ?? []) as Block[];
+        if (chainedBlocks.length > 0) {
+          setTurns((was) => [...was, { said: "", blocks: chainedBlocks }]);
+        } else {
+          // Nothing new arrived to put focus on — back to the field, same as
+          // an ordinary accept with nothing to preview.
+          silentFocus.current = true;
+          box.current?.focus();
+        }
         return;
       }
 
-      setTurns((was) => [
-        ...was,
-        {
-          said: "",
-          blocks: [...previewOf(answer, t), { shape: "say", text: proposal.done }],
-          at: Date.now(),
-        },
-      ]);
+      // Same duplicate, same fix — B1256: `proposal.done` is the card's own
+      // closing line (ProposalView renders it already) and does not belong
+      // in the turn a second time. No turn at all when there is nothing
+      // else to show — and the field gets focus directly rather than
+      // through the turns effect, since there is no turn here to trigger it.
+      const previewBlocks = previewOf(answer, t);
+      if (previewBlocks.length > 0) {
+        setTurns((was) => [
+          ...was,
+          { said: "", blocks: previewBlocks, at: Date.now() },
+        ]);
+      } else {
+        silentFocus.current = true;
+        box.current?.focus();
+      }
 
       /**
        * The next-step chips — B1212 (D18). Keyed on what was just written,
@@ -1303,29 +1289,13 @@ export default function HelperAsk({
           the end of it. */}
       <div className="sticky bottom-0 rounded-xl border border-navy-200 bg-white p-2 shadow-sm">
         {/**
-         * One row: the way into files, a field that grows, the microphone,
-         * and one filled send button — B1211 (D13/D14/D15). "Ask" as a
-         * word is gone; the arrow is the room's one bright pressable once
-         * a conversation has started.
+         * The field on its own row, full width, so it is legible to read
+         * from and to type into on a phone — B1252. Files, the microphone
+         * and send sit together on a row beneath it, grouped rather than
+         * split to either edge, so the field is never squeezed for
+         * corner space (B1211 D13/D14/D15 for what each control is).
          */}
-        {/* `flex-wrap` — B1378. Voice mode adds a language select to this
-            row (see `RecordButton`'s compact form); at 6rem and shrink-0
-            beside the paperclip, mic and send, it left the field — the one
-            item allowed to shrink — squeezed to a sliver. The select now
-            asks for a whole line to itself (`basis-full`) and wraps below
-            rather than fighting the field for space on the one it started
-            on. */}
-        <div className="flex flex-wrap items-end gap-1.5">
-          {onOpenFiles && (
-            <button
-              type="button"
-              onClick={onOpenFiles}
-              aria-label={t("agent.room.files")}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-navy-50 hover:text-navy-900 lg:hidden"
-            >
-              <Paperclip className="h-5 w-5" aria-hidden />
-            </button>
-          )}
+        <div className="flex flex-col gap-1.5">
           <textarea
             ref={box}
             id={`ask-${username}`}
@@ -1350,8 +1320,9 @@ export default function HelperAsk({
               }
             }}
             placeholder={t("agent.askPlaceholder")}
-            className="min-w-[8rem] max-h-[152px] min-h-11 flex-1 resize-none rounded-2xl bg-transparent px-3 py-2.5 text-base leading-6 text-navy-900 placeholder:text-navy-500 focus:outline-none"
+            className="max-h-[152px] min-h-11 w-full resize-none rounded-2xl bg-transparent px-3 py-2.5 text-base leading-6 text-navy-900 placeholder:text-navy-500 focus:outline-none"
           />
+<<<<<<< HEAD
           {speech && (
             <RecordButton
               username={username}
@@ -1387,6 +1358,59 @@ export default function HelperAsk({
           >
             <ArrowUp className="h-5 w-5" aria-hidden />
           </BusyButton>
+=======
+          {/* `flex-wrap` — B1378. Voice mode adds a language select to this
+              row (see `RecordButton`'s compact form); at 6rem and shrink-0
+              beside the paperclip, mic and send, it left them squeezed. The
+              select now asks for a whole line to itself (`basis-full`) and
+              wraps below rather than fighting them for space. */}
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            {onOpenFiles && (
+              <button
+                type="button"
+                onClick={onOpenFiles}
+                aria-label={t("agent.room.files")}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-navy-50 hover:text-navy-900 lg:hidden"
+              >
+                <Paperclip className="h-5 w-5" aria-hidden />
+              </button>
+            )}
+            {speech && (
+              <RecordButton
+                username={username}
+                consented={consentedSpeech}
+                provider={speechProvider}
+                disabled={busy}
+                compact
+                // Static in the row rather than pinned to a corner — B1211
+                // (D15): the microphone is a full-size control beside send.
+                compactClassName="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-navy-300 bg-white"
+                onText={(spoken) => {
+                  // Added to what is already there rather than replacing it —
+                  // B893. A turn is often spoken in two goes, or typed and then
+                  // finished out loud, and a transcript that overwrote the field
+                  // threw the first half away without saying so.
+                  setSaid((was) =>
+                    was.trim() === "" ? spoken : `${was.trim()} ${spoken}`,
+                  );
+                  setHeard(spoken);
+                  box.current?.focus();
+                }}
+              />
+            )}
+            <BusyButton
+              busy={busy}
+              type="button"
+              disabled={said.trim() === ""}
+              onClick={() => go()}
+              aria-label={t("agent.askGo")}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-yellow-400 text-navy-900 transition-colors hover:bg-yellow-300 disabled:opacity-40"
+              busyLabel={null}
+            >
+              <ArrowUp className="h-5 w-5" aria-hidden />
+            </BusyButton>
+          </div>
+>>>>>>> run-room
         </div>
 
         {/* Where the transcript landed, said once — B893. A transcription is
@@ -1483,7 +1507,13 @@ function DayChip({
     >
       <span className="relative block h-8 w-8 shrink-0 overflow-hidden rounded-full bg-cream-200" aria-hidden>
         {photoSrc ? (
-          <Image src={photoSrc} loader={mediaLoader} alt="" fill sizes="32px" className="object-cover" />
+          // `width`/`height`, not `fill` — B1298. `fill` plus a fixed
+          // `sizes` string left next/image's 1x/2x/3x candidates uncapped,
+          // and `mediaLoader` served whatever width was asked for a 32px
+          // avatar (measured: 117KB at the 2000px candidate for a 38px
+          // thumbnail). A fixed size's candidates all floor to
+          // MEDIA_WIDTHS' own 320px minimum instead.
+          <Image src={photoSrc} loader={mediaLoader} alt="" width={32} height={32} className="h-full w-full object-cover" />
         ) : (
           <span className="flex h-full w-full items-center justify-center text-sm">📍</span>
         )}
@@ -1758,6 +1788,26 @@ function ProposalView({
     if (failure !== "") alarm.current?.focus();
   }, [failure]);
   const id = `${proposal.tool}-${useId()}`;
+  /**
+   * A second press for what cannot be undone — B1391.
+   *
+   * A typed reply confirming the helper's own question ("löschen", "delete
+   * them", "igen, töröld") used to be refused before it ever reached a
+   * model, because a bare destruction word with nothing named alongside it
+   * cannot be told apart from "delete my whole journal" — the very sentence
+   * that guard exists to catch (`refusalFor` in `lib/helper/intents.ts`).
+   * Rather than teach that guard to read the conversation for context, the
+   * confirmation moves off free text entirely: the first press swaps the
+   * accept row for a real `ConfirmPanel`, in place on this same card, and
+   * only the second press writes. Nobody needs to type a confirmation at
+   * all any more.
+   *
+   * `unpublish_day` is `destroy`-shaped by name (`decisionKind`) but stays
+   * at one press: it changes `status:` and the day stays on disk as a
+   * draft, so it is reversible in the one sense that matters here — nothing
+   * this button does is unrecoverable.
+   */
+  const [confirming, setConfirming] = useState(false);
 
   // B1107 — a field the server already resolved (a trip id, a day slug, an
   // invite id) is not drawn at all: it still travels with the press inside
@@ -1831,12 +1881,25 @@ function ProposalView({
       .catch((thrown: unknown) => setFailure(failureSentence(t, (thrown as Error).message)))
       .finally(() => setPressing(false));
   };
-  const actions = (
+  // B1391: `unpublish_day` alone stays reversible-and-one-press — see the
+  // comment beside `confirming` above.
+  const needsSecondPress = kind === "destroy" && proposal.tool !== "unpublish_day";
+  const actions = confirming ? (
+    <ConfirmPanel
+      label={proposal.accept}
+      question={t("agent.card.confirmDestroy")}
+      confirmLabel={proposal.accept}
+      busy={busy || pressing}
+      busyLabel={t("agent.chat.writing")}
+      onConfirm={press}
+      onCancel={() => setConfirming(false)}
+    />
+  ) : (
     <div className="flex flex-wrap items-center gap-2">
       <BusyButton
         busy={busy || pressing}
         type="button"
-        onClick={press}
+        onClick={needsSecondPress ? () => setConfirming(true) : press}
         className="min-h-11 rounded-full bg-navy-800 px-5 text-base font-semibold text-cream-50 transition-colors hover:bg-navy-900 disabled:opacity-50"
         busyLabel={t("agent.chat.writing")}
       >
@@ -1858,8 +1921,10 @@ function ProposalView({
       tabIndex={-1}
       /* White card, roomier padding — B1207 (D01 B): the proposal is the
          most important control on the screen and reads as one card now,
-         its header ruled off from the sentence below. */
-      className={`rounded-xl border bg-white p-4 shadow-sm focus:outline-none ${
+         its header ruled off from the sentence below. `scroll-mt-24` —
+         B1253 — matches the sticky page header's height so scrolling this
+         card's top into view lands it below the header, not under it. */
+      className={`scroll-mt-24 rounded-xl border bg-white p-4 shadow-sm focus:outline-none ${
         kind === "edit" ? "border-navy-200" : "border-navy-200 border-t-4 border-t-coral-400"
       }`}
     >

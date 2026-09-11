@@ -276,39 +276,88 @@ export const FILES_TOOLS: readonly Tool[] = [
   },
   {
     /**
-     * Throwing away a file nobody put on a day — the inbox's own take-back,
-     * with this family's credential. `DELETE /api/v1/<user>/inbox/<id>` has
-     * done this since B663; a browser here holds a cookie and no bearer
-     * token, so that door was never reachable from the room.
+     * Throwing away one or several files nobody put on a day — the inbox's
+     * own take-back, with this family's credential. `DELETE
+     * /api/v1/<user>/inbox/<id>` has done this since B663; a browser here
+     * holds a cookie and no bearer token, so that door was never reachable
+     * from the room.
      *
      * No preview and no picture: an inbox file is not yet on the site, not
      * yet read by anyone, and `removeInboxFile` is the same one-step take-back
      * the v1 route already offers without a confirmation code. `confirm` here
      * is only the ordinary "nothing happens until they press" rule every
-     * write in this registry follows.
+     * write in this registry follows — and, since B1391, a genuine second
+     * press before anything is thrown away (`ProposalView`'s own
+     * `needsSecondPress`, in `HelperAsk.tsx`).
+     *
+     * **Several at once, since B1391** — "lösche alle Dateien in meiner
+     * Inbox" named files explicitly and had nowhere to land: this tool took
+     * one id, and so did its route. `file` is now a comma-separated list,
+     * the same convention `attach_files` above already uses, and `all` is
+     * the one further step past that: "empty my inbox" names nothing at all,
+     * so the model says `all: "true"` instead of trying to invent ids it
+     * was never shown. Whatever `findInboxFile` can address — every kind
+     * under `content/<user>/inbox/`, B663's whole bucket — is in scope; a
+     * day, a trip or the journal itself is not reachable through this tool
+     * at all, which is what keeps "empty my inbox" from ever meaning
+     * "empty my journal".
      */
     name: "discard_file",
     kind: "write",
     renders: "confirm",
-    describe:
-      "Propose throwing away one file waiting in the inbox — not yet on any day. Never for a photograph already on a day; remove_photo is that.",
+    describe: "Propose discarding inbox files. Never a photograph on a day — remove_photo is that.",
     properties: {
       // Named `file` rather than `id`: `revoke_key` also asks for an `id`, and
       // a slot's label is looked up by the field's own name — one `agent.slot.id`
       // cannot read correctly for both a key and a photograph waiting in an inbox.
-      file: { type: "string", description: "Omit it: the ticked file is used." },
+      file: {
+        type: "string",
+        description: "Ticked files if omitted. Ids, comma-separated.",
+      },
+      all: {
+        type: "string",
+        description: "\"true\" for every waiting file, if none ticked or named.",
+      },
     },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/inbox/discard`,
     propose: async (username, args, say, _today, selected) => {
       const asked = (args.file ?? "").trim();
-      const ticked = selected.find((id) => id.startsWith("inbox:"))?.slice("inbox:".length);
-      const found = findInboxFile(username, asked !== "" ? asked : (ticked ?? ""));
+      const wantsAll = (args.all ?? "").trim().toLowerCase() === "true";
+      const ticked = selected
+        .filter((id) => id.startsWith("inbox:"))
+        .map((id) => id.slice("inbox:".length));
+
+      const ids: string[] = [];
+      const take = (id: string) => {
+        if (id !== "" && !ids.includes(id)) ids.push(id);
+      };
+      if (asked !== "") {
+        for (const token of asked.split(",")) take(token.trim());
+      } else if (ticked.length > 0) {
+        for (const id of ticked) take(id);
+      } else if (wantsAll) {
+        for (const entry of Object.values(listInbox(username)).flat()) take(entry.id);
+      }
+
+      const found = ids
+        .map((id) => findInboxFile(username, id))
+        .filter((one): one is NonNullable<typeof one> => one !== null);
+      const bytes = found.reduce((total, one) => total + one.entry.bytes, 0);
+
       return {
-        ...(found ? {} : { refuse: "agent.tool.discardFileNone" }),
-        sentence: found ? say("agent.tool.discardFile", { filename: found.entry.filename }) : "",
+        ...(found.length === 0 ? { refuse: "agent.tool.discardFileNone" } : {}),
+        sentence:
+          found.length === 0
+            ? ""
+            : found.length === 1
+              ? say("agent.tool.discardFile", { filename: found[0].entry.filename })
+              : say("agent.tool.discardFileMany", {
+                  count: String(found.length),
+                  size: formatBytes(bytes),
+                }),
         accept: say("agent.tool.discardFileAccept"),
-        done: say("agent.tool.discardFileDone"),
-        fields: [{ name: "file", value: found?.entry.id ?? "", fixed: true }],
+        done: say(found.length > 1 ? "agent.tool.discardFileManyDone" : "agent.tool.discardFileDone"),
+        fields: [{ name: "file", value: found.map((one) => one.entry.id).join(","), fixed: true }],
       };
     },
   },
