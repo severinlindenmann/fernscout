@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
-import { ORDER_ID_RE, findSubmittedPrint } from "@/lib/photobook/orders";
+import { ORDER_ID_RE, findSubmittedPrint, recordTracking } from "@/lib/photobook/orders";
 import { isTerminalFailure, settleRefusedPrint } from "@/lib/photobook/reconcile";
+import { sendPhotobookShipped } from "@/lib/photobook/receipt";
+import { getTrip } from "@/lib/trips";
 
 export const dynamic = "force-dynamic";
 
@@ -34,17 +36,26 @@ export const dynamic = "force-dynamic";
  *
  * ## What it will and will not do
  *
- * It settles **terminal failures only** — an order that is never going to be
- * printed. Every other status Gelato sends, now or in a year, is an
- * acknowledged no-op: `created`, `passed`, `in_production`, `printed`,
- * `shipped`. A webhook is not a licence to act on a word we have not thought
- * about, and refunding on one would be giving money back for a book that is
- * in the post.
+ * It settles **terminal failures**, exactly as before — an order that is
+ * never going to be printed, money back and the owner told. Since B1440 it
+ * also acts on **`shipped`** and on the dedicated tracking-code event: it
+ * stores every parcel Gelato reports (an item can ship in more than one) and
+ * sends the owner one mail, the first time an order is ever marked shipped.
+ * Every other status Gelato sends, now or in a year — `created`, `passed`,
+ * `in_production`, `printed` among them — is still an acknowledged no-op: the
+ * order page already asks Gelato directly for its current status on every
+ * render, so there is nothing here for those words to move. A webhook is not
+ * a licence to act on a word we have not thought about, and refunding on one
+ * would be giving money back for a book that is in the post.
  *
  * It is safe to receive twice. Gelato retries what it thinks failed, and the
  * sweep may reach the same order first; `settleRefusedPrint` re-reads the row
  * and only settles one out of `print_submitted`, so the second delivery
- * refunds nothing.
+ * refunds nothing. `recordTracking` does the same for a shipped order — it
+ * merges tracking by a compare-and-swap on the stored payload rather than a
+ * status transition (`status` deliberately stays `print_submitted` — see
+ * B1440), so a retried `shipped` event finds the mail already sent and sends
+ * no second one.
  *
  * **Always 200, once the caller is authentic.** A webhook that answers 500
  * gets retried for hours, and none of the reasons we might not act — an order
@@ -64,11 +75,40 @@ function authentic(request: Request, secret: string): boolean {
   return crypto.timingSafeEqual(a, b);
 }
 
+type Fulfillment = {
+  trackingCode?: unknown;
+  trackingUrl?: unknown;
+  shipmentMethodName?: unknown;
+};
+
+type Item = { fulfillments?: Fulfillment[] };
+
 type Body = {
   event?: unknown;
   orderReferenceId?: unknown;
   fulfillmentStatus?: unknown;
+  /** `order_status_updated` only — one item, but the real payload carries an
+   *  array, and B1440's example has two fulfillments on it. */
+  items?: Item[];
+  /** `order_item_tracking_code_updated` only — the same three fields, but at
+   *  the top level rather than nested under `items[].fulfillments[]`. */
+  trackingCode?: unknown;
+  trackingUrl?: unknown;
+  shipmentMethodName?: unknown;
 };
+
+/** A `Fulfillment`, or the top-level tracking fields of a tracking-code
+ *  event, turned into the shape `recordTracking` stores — B1440. Skips an
+ *  entry with no code: nothing to store and nothing to link to. */
+function trackingFrom(entries: Fulfillment[]): { code: string; url?: string; carrier?: string }[] {
+  return entries.flatMap((f) => {
+    const code = typeof f.trackingCode === "string" ? f.trackingCode : "";
+    if (!code) return [];
+    const url = typeof f.trackingUrl === "string" ? f.trackingUrl : undefined;
+    const carrier = typeof f.shipmentMethodName === "string" ? f.shipmentMethodName : undefined;
+    return [{ code, ...(url ? { url } : {}), ...(carrier ? { carrier } : {}) }];
+  });
+}
 
 export async function POST(request: Request) {
   const secret = process.env.GELATO_WEBHOOK_SECRET?.trim();
@@ -128,29 +168,69 @@ export async function POST(request: Request) {
     `[gelato] webhook accepted: event=${String(body.event)} status=${String(body.fulfillmentStatus ?? "-")}`,
   );
 
-  // Only the order-level event carries the status this acts on. The
-  // item-level one (`order_item_status_updated`) describes a line rather than
-  // the order, and a one-item photobook order would otherwise be settled
-  // twice for the same news.
-  if (body.event !== "order_status_updated") {
+  // The two events this acts on both carry `orderReferenceId`, our own order
+  // id. `order_item_status_updated` — the item-level preflight/production
+  // step — adds nothing a one-item photobook order does not already say
+  // through `order_status_updated`, so it is deliberately never subscribed to
+  // rather than merely ignored here (B1440).
+  if (body.event !== "order_status_updated" && body.event !== "order_item_tracking_code_updated") {
     return Response.json({ ok: true, ignored: "event" });
   }
 
   const reference = typeof body.orderReferenceId === "string" ? body.orderReferenceId : "";
-  const status = typeof body.fulfillmentStatus === "string" ? body.fulfillmentStatus : "";
   // `ORDER_ID_RE` before the id reaches a query, the same boundary check every
   // other route that takes one applies.
-  if (!ORDER_ID_RE.test(reference) || !status) {
+  if (!ORDER_ID_RE.test(reference)) {
     return Response.json({ ok: true, ignored: "reference" });
   }
-  if (!isTerminalFailure(status)) {
+
+  if (body.event === "order_item_tracking_code_updated") {
+    // The dedicated tracking event — B1440. Stored, never mailed on its own:
+    // the one mail this route sends is tied to `shipped`, below, and a retry
+    // of this event must not send it twice either, so `shipped` is always
+    // `false` here regardless of what `recordTracking` finds already stored.
+    const tracking = trackingFrom([
+      { trackingCode: body.trackingCode, trackingUrl: body.trackingUrl, shipmentMethodName: body.shipmentMethodName },
+    ]);
+    if (tracking.length === 0) return Response.json({ ok: true, ignored: "no_tracking" });
+    const found = await findSubmittedPrint(reference);
+    if (!found) return Response.json({ ok: true, ignored: "unknown_order" });
+    const result = await recordTracking(found.owner, found.id, tracking, false);
+    return Response.json({ ok: true, stored: result !== null });
+  }
+
+  const status = typeof body.fulfillmentStatus === "string" ? body.fulfillmentStatus : "";
+  if (!status) return Response.json({ ok: true, ignored: "reference" });
+
+  if (isTerminalFailure(status)) {
+    const found = await findSubmittedPrint(reference);
+    // Not ours, already settled, or a postcard: nothing to do and nothing wrong.
+    if (!found) return Response.json({ ok: true, ignored: "unknown_order" });
+    const settled = await settleRefusedPrint(found.owner, found.id, status);
+    return Response.json({ ok: true, settled });
+  }
+
+  if (status !== "shipped") {
+    // `created`, `passed`, `in_production`, `printed`: the order page already
+    // asks Gelato directly on every render, so there is nothing to store.
     return Response.json({ ok: true, ignored: "status", status });
   }
 
+  // `shipped` — B1440. Every fulfillment across every item, because a book
+  // can ship in more than one parcel (the observed payload has two).
+  const tracking = trackingFrom((body.items ?? []).flatMap((item) => item.fulfillments ?? []));
   const found = await findSubmittedPrint(reference);
-  // Not ours, already settled, or a postcard: nothing to do and nothing wrong.
   if (!found) return Response.json({ ok: true, ignored: "unknown_order" });
 
-  const settled = await settleRefusedPrint(found.owner, found.id, status);
-  return Response.json({ ok: true, settled });
+  const result = await recordTracking(found.owner, found.id, tracking, true);
+  if (result?.sendMail) {
+    const tripTitle = getTrip(result.payload.trip)?.title ?? result.payload.trip;
+    await sendPhotobookShipped({
+      owner: found.owner,
+      orderId: found.id,
+      tripTitle,
+      tracking: result.payload.print?.tracking ?? tracking,
+    });
+  }
+  return Response.json({ ok: true, shipped: result !== null, mailed: Boolean(result?.sendMail) });
 }

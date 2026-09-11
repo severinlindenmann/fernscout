@@ -16,12 +16,16 @@ import { visibleBookFiles } from "./visibleFiles";
  * at 300 DPI is hundreds of megabytes and no mailbox takes it. The postcard
  * receipt attaches its card because a card is one sheet.
  *
- * **It must not say the book was printed or posted** — this is sent only
- * after a successful submission to Gelato (the refusal branch in
- * `order/route.ts` returns early, B1330), so "on the way" is the strongest
- * honest claim: accepted is not printed, and a later webhook can still report
- * a refusal, which is exactly what happened to all six books in the B911 run.
- * `test/photobook-receipt.test.ts` checks the words. Transactional, free, and
+ * **It must not say the book was printed or posted, with one exception.**
+ * This mail is sent only after a successful submission to Gelato (the
+ * refusal branch in `order/route.ts` returns early, B1330), so "on the way"
+ * is the strongest honest claim here: accepted is not printed, and a later
+ * webhook can still report a refusal, which is exactly what happened to all
+ * six books in the B911 run. `test/photobook-receipt.test.ts` checks the
+ * words. **The one exception is `sendPhotobookShipped`, below** — it fires
+ * only from a `shipped` webhook, by which point the book genuinely has been
+ * printed and posted, and saying so is the first honest use of that word
+ * anywhere in this file. Transactional, free, and
  * best effort — the files exist by the time this runs, so a dead SMTP host
  * must not turn a finished book into a reported failure.
  *
@@ -122,6 +126,66 @@ export async function sendPhotobookRefused(input: {
     );
   } catch (error) {
     console.error(`[photobook] refusal notice for ${input.orderId} could not be sent:`, error);
+  }
+}
+
+/**
+ * The book is in the post — B1440.
+ *
+ * The one mail the owner's word asked for (2026-09-11): not one per Gelato
+ * status, one when it ships, carrying the tracking. Same shape as its two
+ * siblings above: best-effort, never throws, links to the order page. The
+ * caller (`app/api/webhooks/gelato/route.ts`) sends this at most once per
+ * order — `recordTracking` in `lib/photobook/orders.ts` is what makes that
+ * true, not this function.
+ */
+export async function sendPhotobookShipped(input: {
+  owner: string;
+  orderId: string;
+  tripTitle: string;
+  tracking: { code: string; url?: string; carrier?: string }[];
+}): Promise<void> {
+  const user = getUser(input.owner);
+  const to = user?.owner.email;
+  if (!to) return;
+
+  const locale: Locale = pickLocale(user.defaultLocale);
+  const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) =>
+    translateIn(locale, key, vars);
+  const vars = { trip: input.tripTitle };
+  const base = `${serverSite().url}/${input.owner}/photobooks/${input.orderId}`;
+
+  try {
+    await sendTransactional(
+      renderMail(
+        to,
+        t("photobook.shipped.subject", vars),
+        {
+          preheader: t("photobook.shipped.preheader", vars),
+          title: t("photobook.shipped.title"),
+          blocks: [
+            { kind: "paragraph" as const, text: t("photobook.shipped.body", vars) },
+            ...input.tracking.map((code) => {
+              const title = code.carrier
+                ? t("photobook.shipped.trackingWithCarrier", { code: code.code, carrier: code.carrier })
+                : t("photobook.shipped.tracking", { code: code.code });
+              // Not every carrier gives Gelato a tracking URL — the code
+              // itself is still worth having, just as a line rather than a
+              // dead link.
+              return code.url
+                ? { kind: "item" as const, title, href: code.url }
+                : { kind: "paragraph" as const, text: title };
+            }),
+            { kind: "item" as const, title: t("photobook.shipped.viewOrder"), href: base },
+          ],
+          footer: t("photobook.receipt.footer"),
+        },
+        input.owner,
+      ),
+      `photobook shipped notice for ${input.orderId}`,
+    );
+  } catch (error) {
+    console.error(`[photobook] shipped notice for ${input.orderId} could not be sent:`, error);
   }
 }
 

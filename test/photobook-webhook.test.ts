@@ -2,16 +2,25 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("@/lib/photobook/orders", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/photobook/orders")>();
-  return { ...actual, findSubmittedPrint: vi.fn() };
+  return { ...actual, findSubmittedPrint: vi.fn(), recordTracking: vi.fn() };
 });
 vi.mock("@/lib/photobook/reconcile", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/photobook/reconcile")>();
   return { ...actual, settleRefusedPrint: vi.fn() };
 });
+vi.mock("@/lib/photobook/receipt", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/photobook/receipt")>();
+  return { ...actual, sendPhotobookShipped: vi.fn() };
+});
+vi.mock("@/lib/trips", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/trips")>();
+  return { ...actual, getTrip: vi.fn(() => ({ title: "Alps 2024" })) };
+});
 
 import { POST } from "@/app/api/webhooks/gelato/route";
-import { findSubmittedPrint } from "@/lib/photobook/orders";
+import { findSubmittedPrint, recordTracking } from "@/lib/photobook/orders";
 import { settleRefusedPrint } from "@/lib/photobook/reconcile";
+import { sendPhotobookShipped } from "@/lib/photobook/receipt";
 
 const SECRET = "a-long-shared-secret-value";
 const ORDER = "3f7c1d2e-9b0a-4c5d-8e6f-1a2b3c4d5e6f";
@@ -33,11 +42,49 @@ const REFUSED = {
   fulfillmentStatus: "canceled",
 };
 
+// The real payload from the ticket: two fulfillments on one item.
+const SHIPPED_TWO_PARCELS = {
+  event: "order_status_updated",
+  orderReferenceId: ORDER,
+  fulfillmentStatus: "shipped",
+  items: [
+    {
+      itemReferenceId: "item-1",
+      fulfillmentStatus: "shipped",
+      fulfillments: [
+        {
+          trackingCode: "code123",
+          trackingUrl: "http://example.com/tracking?code=code123",
+          shipmentMethodName: "DHL Express Domestic BR",
+        },
+        {
+          trackingCode: "code234",
+          trackingUrl: "http://example.com/tracking?code=code234",
+          shipmentMethodName: "DHL Express Domestic BR",
+        },
+      ],
+    },
+  ],
+};
+
+const TRACKING_CODE_EVENT = {
+  event: "order_item_tracking_code_updated",
+  orderId: "a6a1f9ce-…",
+  orderReferenceId: ORDER,
+  trackingCode: "code123",
+  trackingUrl: "http://example.com/tracking?code=code123",
+  shipmentMethodName: "DHL Express Domestic BR",
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.GELATO_WEBHOOK_SECRET = SECRET;
   vi.mocked(findSubmittedPrint).mockResolvedValue({ owner: "severin", id: ORDER });
   vi.mocked(settleRefusedPrint).mockResolvedValue(true);
+  vi.mocked(recordTracking).mockResolvedValue({
+    payload: { trip: "severin/alps", options: {} as never, pages: 0, volumes: 1, credits: 0 },
+    sendMail: true,
+  });
 });
 
 afterEach(() => {
@@ -81,14 +128,15 @@ describe("what the gelato webhook acts on", () => {
     expect(settleRefusedPrint).toHaveBeenCalledWith("severin", ORDER, "canceled");
   });
 
-  test("ignores every status that is not a terminal failure", async () => {
+  test("ignores every status that is not a terminal failure or shipped, and stores nothing", async () => {
     // Refunding on one of these would be giving money back for a book that is
-    // in the post.
-    for (const status of ["created", "passed", "in_production", "printed", "shipped"]) {
+    // in the post; the order page already asks Gelato directly for these.
+    for (const status of ["created", "passed", "in_production", "printed"]) {
       const response = await POST(hook({ ...REFUSED, fulfillmentStatus: status }));
       expect(response.status).toBe(200);
     }
     expect(settleRefusedPrint).not.toHaveBeenCalled();
+    expect(recordTracking).not.toHaveBeenCalled();
   });
 
   test("ignores the item-level event, so one book is not settled twice", async () => {
@@ -108,5 +156,52 @@ describe("what the gelato webhook acts on", () => {
     const response = await POST(hook({ ...REFUSED, orderReferenceId: "../../etc/passwd" }));
     expect(response.status).toBe(200);
     expect(findSubmittedPrint).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * B1440. Two fulfillments on one item, a duplicate delivery, and the
+ * dedicated tracking-code event that arrives independently.
+ */
+describe("shipped", () => {
+  test("stores every fulfillment across every item and sends one mail", async () => {
+    const response = await POST(hook(SHIPPED_TWO_PARCELS));
+    expect(response.status).toBe(200);
+    expect(recordTracking).toHaveBeenCalledWith(
+      "severin",
+      ORDER,
+      [
+        { code: "code123", url: "http://example.com/tracking?code=code123", carrier: "DHL Express Domestic BR" },
+        { code: "code234", url: "http://example.com/tracking?code=code234", carrier: "DHL Express Domestic BR" },
+      ],
+      true,
+    );
+    expect(sendPhotobookShipped).toHaveBeenCalledTimes(1);
+  });
+
+  test("delivered twice sends one mail, because the second delivery finds it already sent", async () => {
+    await POST(hook(SHIPPED_TWO_PARCELS));
+    // The second delivery: `recordTracking` reports the mail was already
+    // sent, exactly as the real implementation would after its own
+    // compare-and-swap finds `shippedAt` already set.
+    vi.mocked(recordTracking).mockResolvedValueOnce({
+      payload: { trip: "severin/alps", options: {} as never, pages: 0, volumes: 1, credits: 0 },
+      sendMail: false,
+    });
+    const response = await POST(hook(SHIPPED_TWO_PARCELS));
+    expect(response.status).toBe(200);
+    expect(sendPhotobookShipped).toHaveBeenCalledTimes(1);
+  });
+
+  test("the dedicated tracking-code event stores tracking and never mails", async () => {
+    const response = await POST(hook(TRACKING_CODE_EVENT));
+    expect(response.status).toBe(200);
+    expect(recordTracking).toHaveBeenCalledWith(
+      "severin",
+      ORDER,
+      [{ code: "code123", url: "http://example.com/tracking?code=code123", carrier: "DHL Express Domestic BR" }],
+      false,
+    );
+    expect(sendPhotobookShipped).not.toHaveBeenCalled();
   });
 });

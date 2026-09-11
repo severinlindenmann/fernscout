@@ -124,6 +124,83 @@ been through Gelato at all; only the 200 × 200 softcover has.
 
 ---
 
+## The webhook, and the payloads it actually receives (B1440)
+
+`app/api/webhooks/gelato/route.ts` acts on two of Gelato's events. Both
+payloads below are real deliveries, supplied by the owner, not written from
+Gelato's published documentation — the field-name mismatch that caused B1125
+is exactly what a guessed shape produces.
+
+**`order_status_updated`**, `fulfillmentStatus: "shipped"` — carries every
+fulfillment, nested two levels down, and the observed payload has **two**
+fulfillments on one item: a book can ship in more than one parcel.
+
+```json
+{ "id": "os_5e5680ce494f6", "event": "order_status_updated",
+  "orderId": "a6a1f9ce-…", "storeId": null, "orderReferenceId": "…",
+  "fulfillmentStatus": "shipped",
+  "items": [ { "itemReferenceId": "…", "fulfillmentStatus": "shipped",
+    "fulfillments": [
+      { "trackingCode": "code123", "trackingUrl": "…",
+        "shipmentMethodName": "DHL Express Domestic BR",
+        "shipmentMethodUid": "dhl_express_domestic_br",
+        "fulfillmentCountry": "BR", "fulfillmentStateProvince": "SP",
+        "fulfillmentFacilityId": "940fec84-…" },
+      { "trackingCode": "code234", "…": "…" } ] } ] }
+```
+
+**`order_item_tracking_code_updated`** — the dedicated tracking event, flat
+rather than nested, and it can arrive independently of the status event
+above (Gelato's ordering across event types is not guaranteed):
+
+```json
+{ "id": "tc_5b6403bd3cf2e", "event": "order_item_tracking_code_updated",
+  "orderId": "a6a1f9ce-…", "storeId": "84086be9-…",
+  "itemReferenceId": "…", "orderReferenceId": "…",
+  "trackingCode": "code123",
+  "trackingUrl": "http://example.com/tracking?code=code123",
+  "shipmentMethodName": "DHL Express Domestic BR",
+  "shipmentMethodUid": "dhl_express_domestic_br",
+  "productionCountry": "BR", "productionStateProvince": "SP",
+  "productionFacilityId": "940fec84-…", "created": "2018-08-03T12:11:30+00:00" }
+```
+
+**The join key on both is `orderReferenceId`** — our own order id, matched
+against `print_orders.id`. `orderId` is Gelato's own id and is stored as
+`payload.print.providerRef`, never used to look an order up.
+
+**`order_item_status_updated`** (per item — `passed`, `failed`, …) is
+deliberately not subscribed to. A photobook order is one item, so it adds
+nothing `order_status_updated` does not already say for the order as a whole:
+
+```json
+{ "id": "is_5b6403bd3cf1f", "event": "order_item_status_updated",
+  "itemReferenceId": "…", "orderReferenceId": "…",
+  "orderId": "e82885f8-…", "storeId": null,
+  "fulfillmentCountry": "US", "fulfillmentStateProvince": "NY",
+  "fulfillmentFacilityId": "21315db8-…",
+  "status": "passed", "comment": null, "created": "2018-08-03T07:26:52+00:00" }
+```
+
+**What each event does.** `order_status_updated` with a terminal failure
+status (`failed`, `canceled`) settles the refund, exactly as before B1440.
+With `fulfillmentStatus: "shipped"` it stores every fulfillment above into
+`payload.print.tracking` (de-duplicated on `trackingCode`, appended rather
+than replaced) and sends the owner one mail — the first time this order is
+ever marked shipped, never on a retried delivery of the same event.
+`order_item_tracking_code_updated` stores its one tracking entry the same
+way and never mails on its own. Every other status —
+`created`/`passed`/`in_production`/`printed` — stays an acknowledged no-op:
+the order page already asks Gelato for the live status on every render, so
+there is nothing for those words to move.
+
+**`status` on the row never changes for any of this.** It stays
+`print_submitted` for the whole of a successful print, exactly as it did
+before B1440 — the printer's journey lives in `payload.print`, not in the
+column `troubles()` and `submitBuiltBook`'s retry check both read.
+
+---
+
 ## What works today, with no account
 
 ```bash

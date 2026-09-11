@@ -80,6 +80,14 @@ export type PhotobookPayload = {
      * on.
      */
     providerMessage?: string;
+    /** B1440. Every parcel Gelato reports for this order. An item can ship in
+     *  more than one — the observed payload carries two — so this is a list and
+     *  the page shows all of them. */
+    tracking?: { code: string; url?: string; carrier?: string }[];
+    /** B1440. Set once, the first time Gelato reports `shipped` for this
+     *  order — what makes a retried delivery of the same event send no
+     *  second mail. */
+    shippedAt?: string;
   };
 };
 
@@ -546,4 +554,78 @@ export async function markPrintFailed(
     .executeTakeFirst();
   // bigint on both dialects; Number() for the same reason `claimForSend` uses it.
   return Number(result.numUpdatedRows ?? 0) === 1;
+}
+
+/**
+ * Merge tracking into `payload.print.tracking`, and say whether this is the
+ * first time this order has ever been marked shipped — B1440.
+ *
+ * `status` deliberately stays `print_submitted` for the whole of a
+ * successful print (see the ticket), so there is no status transition to gate
+ * on the way `markPrintFailed` gates on `print_submitted -> built`. Instead
+ * this reads the row, merges the tracking codes (de-duplicated on `code`) and
+ * the `shippedAt` stamp into the payload, and writes it back only if nobody
+ * else changed the row underneath it — a compare-and-swap on the JSON text
+ * rather than on a column, since the text is all there is here.
+ *
+ * Gelato's retries arrive one after another, not concurrently, so the
+ * ordinary case is simply: the second delivery of the same event finds the
+ * tracking already merged and `shippedAt` already set, and reports
+ * `sendMail: false` without writing anything.
+ */
+export async function recordTracking(
+  owner: string,
+  id: string,
+  tracking: { code: string; url?: string; carrier?: string }[],
+  shipped: boolean,
+): Promise<{ payload: PhotobookPayload; sendMail: boolean } | null> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return null;
+  const row = await handle.db
+    .selectFrom("print_orders")
+    .select(["payload"])
+    .where("id", "=", id)
+    .where("owner_id", "=", owner)
+    .where("kind", "=", "photobook")
+    .executeTakeFirst();
+  if (!row) return null;
+
+  const current = JSON.parse(row.payload) as PhotobookPayload;
+  // Every order this is ever called for has already gone to the printer
+  // (`findSubmittedPrint` only finds `print_submitted` rows, which `recordPrint`
+  // never sets without a `print` block), so this is a type guard rather than
+  // a real branch — but the field is optional in `PhotobookPayload`, and a
+  // tracking event about an order with no print block is nothing to act on.
+  if (!current.print) return { payload: current, sendMail: false };
+  const merged = [...(current.print.tracking ?? [])];
+  for (const t of tracking) {
+    if (t.code && !merged.some((m) => m.code === t.code)) merged.push(t);
+  }
+  const alreadyShipped = Boolean(current.print.shippedAt);
+  const sendMail = shipped && !alreadyShipped;
+
+  const payload: PhotobookPayload = {
+    ...current,
+    print: {
+      ...current.print,
+      tracking: merged,
+      ...(sendMail ? { shippedAt: nowIso() } : {}),
+    },
+  };
+
+  const result = await handle.db
+    .updateTable("print_orders")
+    .set({ payload: JSON.stringify(payload), updated_at: nowIso() })
+    .where("id", "=", id)
+    .where("owner_id", "=", owner)
+    .where("kind", "=", "photobook")
+    .where("payload", "=", row.payload)
+    .executeTakeFirst();
+  if (Number(result.numUpdatedRows ?? 0) !== 1) {
+    // Lost the race — somebody else's write landed between the read above and
+    // this one. Nothing was stored by this call, so nothing should be mailed
+    // by it either.
+    return { payload: current, sendMail: false };
+  }
+  return { payload, sendMail };
 }
