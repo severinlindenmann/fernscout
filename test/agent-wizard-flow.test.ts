@@ -148,21 +148,27 @@ describe("writing a day from the wizard", () => {
     expect(written.status).toBe(200);
     expect(written.body.draft).toMatchObject({ written: true, title: "The pass was shut" });
 
+    // B1276 — the real title just given it renamed the day off its date-only
+    // slug, the same way the browser would read the new address back and use
+    // it from here on.
+    const renamed = String((written.body.draft as Record<string, unknown>).slug);
+    expect(renamed).toBe("the-pass-was-shut");
+
     // Photographs are only ever asked for here, because a day cannot carry one
     // at the moment it is written.
-    const held = await read(await publishRoute(json("POST", { trip: "a-trip", slug }), params));
+    const held = await read(await publishRoute(json("POST", { trip: "a-trip", slug: renamed }), params));
     expect(held.status).toBe(422);
     expect(held.body.missing).toEqual(["photos"]);
 
-    await PATCH(json("PATCH", { trip: "a-trip", slug, answers: { photos: "unknown" } }), params);
+    await PATCH(json("PATCH", { trip: "a-trip", slug: renamed, answers: { photos: "unknown" } }), params);
 
-    const live = await read(await publishRoute(json("POST", { trip: "a-trip", slug }), params));
+    const live = await read(await publishRoute(json("POST", { trip: "a-trip", slug: renamed }), params));
     expect(live.status).toBe(200);
-    expect(live.body.url).toBe(`https://t.test/alex/trips/a-trip/day/${slug}`);
+    expect(live.body.url).toBe(`https://t.test/alex/trips/a-trip/day/${renamed}`);
 
     // Published once and only once — an agent, or a double tap, that gets a
     // cheerful second 200 would report a thing that happened last week.
-    const again = await read(await publishRoute(json("POST", { trip: "a-trip", slug }), params));
+    const again = await read(await publishRoute(json("POST", { trip: "a-trip", slug: renamed }), params));
     expect(again.status).toBe(409);
   });
 

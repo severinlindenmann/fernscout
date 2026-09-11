@@ -772,6 +772,65 @@ export function deleteMediaFiles(ref: string, item: GalleryItem): void {
 }
 
 /**
+ * Move a day's media, originals and fingerprint cache to a new slug —
+ * B1276, the media half of a rename fired when a draft's real title finally
+ * gives it a real address.
+ *
+ * Each of the three lives at `<something>/<slug>`, and each is moved only if
+ * it exists — a fresh day with no photographs yet has none of them, and that
+ * is not a failure. A destination that already exists refuses outright,
+ * before anything moves, rather than have one day's files land inside
+ * another's directory.
+ *
+ * Renames rather than four independent ones: every completed move is tracked,
+ * and a failure partway through puts back everything already moved, in
+ * reverse order, before answering. `lib/api/entries.ts`'s `renameEntrySlug` is
+ * the only caller and is what moves the entry file and rewrites its gallery
+ * `src`/`poster` fields to match — call that, not this, to rename a day.
+ */
+export function renameDayMedia(
+  ref: string,
+  oldSlug: string,
+  newSlug: string,
+): { ok: true } | { ok: false; error: string } {
+  const candidates: [string, string][] = [
+    [path.join(tripMediaDir(ref), oldSlug), path.join(tripMediaDir(ref), newSlug)],
+    [path.join(tripOriginalsDir(ref), oldSlug), path.join(tripOriginalsDir(ref), newSlug)],
+    [fingerprintCachePath(ref, oldSlug), fingerprintCachePath(ref, newSlug)],
+  ];
+  const moves = candidates.filter(([from]) => fs.existsSync(from));
+
+  for (const [, to] of moves) {
+    if (fs.existsSync(to)) {
+      return {
+        ok: false,
+        error: `"${newSlug}" already has files on disk at ${to} — refusing to overwrite them`,
+      };
+    }
+  }
+
+  const done: [string, string][] = [];
+  try {
+    for (const [from, to] of moves) {
+      fs.mkdirSync(path.dirname(to), { recursive: true });
+      fs.renameSync(from, to);
+      done.push([from, to]);
+    }
+  } catch (err) {
+    for (const [from, to] of done.reverse()) {
+      try {
+        fs.renameSync(to, from);
+      } catch {
+        // Best effort — the caller's own error already names what went wrong.
+      }
+    }
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+
+  return { ok: true };
+}
+
+/**
  * Put the untouched original beside a photograph that is already on a day —
  * B683.
  *
