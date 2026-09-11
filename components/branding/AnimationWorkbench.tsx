@@ -13,6 +13,7 @@ import TravelScene, { SKIES, type SkyName } from "@/components/TravelScene";
 import Vehicle from "@/components/travel/Vehicle";
 import Ground, { GROUND_HEIGHT, surfaceFor, type Surface } from "@/components/travel/Ground";
 import { STARTING_POINTS } from "@/lib/travellers/presets";
+import { TRANSPORT_MODES } from "@/lib/validate/entry";
 import type { DaySummary, TransportMode, TravelSceneVariant } from "@/lib/types";
 import type { Figure } from "@/lib/travellers/vocabulary";
 
@@ -37,17 +38,12 @@ import type { Figure } from "@/lib/travellers/vocabulary";
  * story page, one of them is wrong and it is worth knowing which.
  */
 
-const MODES: TransportMode[] = [
-  "flight",
-  "train",
-  "bus",
-  "car",
-  "taxi",
-  "motorbike",
-  "bicycle",
-  "boat",
-  "walk",
-];
+// B1545 — this used to be a hand-typed literal that predated B1519's
+// `metro`/`tram`/`ferry`, so the three new modes were invisible on the one
+// page built to hold a drawing still and look at it. TRANSPORT_MODES is the
+// same list `lib/validate/entry.ts` refuses an unknown mode against, so this
+// bench can no longer fall behind the enum again.
+const MODES: TransportMode[] = [...TRANSPORT_MODES];
 const SURFACES: Surface[] = ["rail", "road", "water", "path", "sky"];
 const VARIANTS: TravelSceneVariant[] = ["default", "quick", "skip"];
 const SKY_NAMES = Object.keys(SKIES) as SkyName[];

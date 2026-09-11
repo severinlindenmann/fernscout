@@ -32,6 +32,8 @@ import { partyFor } from "@/lib/travellers/parse";
 import Cityscape from "./Cityscape";
 import Vehicle from "./travel/Vehicle";
 import Ground, { GROUND_HEIGHT, surfaceFor } from "./travel/Ground";
+import Skyline from "./travel/Skyline";
+import TunnelWall, { TUNNEL_WALL_HEIGHT } from "./travel/TunnelWall";
 
 /**
  * The glyphs, kept for the `quick` variant only.
@@ -111,10 +113,10 @@ const VEHICLE_WIDTH: Record<TransportMode, number> = {
   taxi: 115,
   motorbike: 95,
   bicycle: 84,
-  // Reuses `train`'s carriages (see lib/travel/vehicleShapes.ts) but at a
-  // fraction of the width, which is what actually reads as "a short, urban
-  // hop" rather than an intercity trip — B1519.
-  metro: 110,
+  // B1545 — its own shell now (see lib/travel/vehicleShapes.ts). Drawn
+  // twice `train`'s own width: a metro leg now stands under a full skyline
+  // (`Skyline`), and anything train-sized or smaller read as a toy beside it.
+  metro: 420,
   tram: 100,
   walk: 0,
 };
@@ -342,6 +344,14 @@ export default function TravelScene({
   const quick = variant === "quick";
   const surface = surfaceFor(mode);
   const groundH = GROUND_HEIGHT[surface];
+  // B1545 — `metro` is the one rail mode that actually runs underground.
+  // `tram` stays street-level and keeps the plain rail band.
+  const underground = mode === "metro";
+  // Where a named city's own skyline stands — the tunnel's roof when one
+  // exists, or the ground otherwise. Shared with `Skyline` so all three
+  // skylines (departure, arrival, the generic one between them) stand on the
+  // same line.
+  const cityBottom = underground ? groundH + TUNNEL_WALL_HEIGHT - 6 : groundH - 6;
 
   /*
    * One camera, and everything else hangs off it.
@@ -555,13 +565,24 @@ export default function TravelScene({
             </motion.div>
           )}
 
+          {/* The city a metro leg runs under — full width, generic (there is
+              no third place name to draw it from), standing on the tunnel's
+              own roof rather than on the actual ground, so the towers start
+              clear of the wall instead of being half-buried in it. B1545. */}
+          {underground && (
+            <Skyline seed={leg.location} scroll={travel} bottom={groundH + TUNNEL_WALL_HEIGHT} />
+          )}
+
           {/* Middle distance: where they left, and where they are going. Both
               ends are in the day index already, so drawing both costs nothing
-              and waits on nothing. */}
+              and waits on nothing. Underground, these stand on the tunnel's
+              roof beside `Skyline` rather than at ground level — otherwise
+              the wall buries most of each one, leaving only a sliver of a
+              named city peeking out from behind it. */}
           <div className="pointer-events-none absolute inset-0">
             {from && (
               <motion.div
-                style={{ x: originX, opacity: originOpacity, bottom: groundH - 6 }}
+                style={{ x: originX, opacity: originOpacity, bottom: cityBottom }}
                 className="absolute left-2"
               >
                 <Cityscape
@@ -576,7 +597,7 @@ export default function TravelScene({
             )}
 
             <motion.div
-              style={{ x: destX, opacity: destOpacity, bottom: groundH - 6 }}
+              style={{ x: destX, opacity: destOpacity, bottom: cityBottom }}
               className="absolute right-2"
             >
               <Cityscape
@@ -590,10 +611,15 @@ export default function TravelScene({
             </motion.div>
           </div>
 
+          {/* A metro leg spends its crossing below ground — the wall sits in
+              front of the lower half of the cityscape above (so the skyline
+              still shows above it) and just above Ground's own rail band. */}
+          {underground && <TunnelWall scroll={travel} bottom={groundH} />}
+
           {/* Nearest layer, and therefore the fastest. Driven by the same pan
               as everything else, so the road is not already moving under a
               party who have not left yet. */}
-          <Ground surface={surface} scroll={travel} />
+          <Ground surface={surface} scroll={travel} dark={underground} />
 
           {/* `inset-x-0` so the percentages above are of the frame. At
               `left-8` they were percentages of the party's own width, which is

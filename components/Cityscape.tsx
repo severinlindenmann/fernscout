@@ -17,7 +17,9 @@
  *   coded into every skyline, so Reykjavík and Ulaanbaatar had them too.
  */
 
-function hashString(s: string) {
+/** Exported for `components/travel/Skyline.tsx`, the other caller that needs
+ * a name to draw the same consistent shape from. */
+export function hashString(s: string) {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
@@ -26,7 +28,7 @@ function hashString(s: string) {
   return Math.abs(h);
 }
 
-function mulberry32(seed: number) {
+export function mulberry32(seed: number) {
   let a = seed >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;
@@ -36,8 +38,12 @@ function mulberry32(seed: number) {
   };
 }
 
-const WALLS = ["#f4a259", "#5fb08a", "#e8746c", "#6ea8dc", "#f0c05a", "#b98adc"];
-const ROOFS = ["#c9743a", "#3f8a68", "#c2544c", "#4a80ad", "#c99a35", "#8f66ad"];
+// Exported for `components/travel/Skyline.tsx` — the dense, full-width
+// backdrop a `metro` leg draws above its tunnel wall (B1545) picks from the
+// same palette every named city does, rather than a second list that could
+// drift from it.
+export const WALLS = ["#f4a259", "#5fb08a", "#e8746c", "#6ea8dc", "#f0c05a", "#b98adc"];
+export const ROOFS = ["#c9743a", "#3f8a68", "#c2544c", "#4a80ad", "#c99a35", "#8f66ad"];
 
 /** Every shape a skyline can put up. The bench at `/docs/branding/animation`
  * draws one of each, which is the only place any of them is seen alone. */
