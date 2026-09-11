@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (201)
+## backlog (202)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (46)
+### issue (47)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -95,6 +95,7 @@ Do not edit them by hand; run the script.
 | [B1476](backlog/issue/B1476-a-trip-marked-upcoming-says-where.md) | A trip marked upcoming says Where we have been, because one day names a place | ISSUE | medium | low |
 | [B1484](backlog/issue/B1484-stannp-has-no-inbound-webhook-route.md) | Stannp has no inbound webhook route, unlike every other print/message provider | ISSUE | medium | medium |
 | [B1493](backlog/issue/B1493-the-landing-page-lists-no-journals.md) | The landing page lists no journals for a reader holding only a journal cookie | ISSUE | medium | low |
+| [B1508](backlog/issue/B1508-a-scratch-journal-named-test-something.md) | A scratch journal named test-something poisons the depersonalised guard with common words | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
