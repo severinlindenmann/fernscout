@@ -773,6 +773,41 @@ export function renderPreview(
      layout accident rather than as the recto it is. */
   body.bare[data-view="spreads"] .spread.solo { justify-content:center; }
   body.bare[data-view="spreads"] .spread.solo figure { flex:0 0 50%; }
+  /**
+   * Wide enough for the whole book at once — B1486.
+   *
+   * The composer's frame is as wide as its column — about 745px inside a 1280
+   * screen — so the query is about the *frame* rather than the screen: below
+   * it the strip is right (one spread at a time, swiped, snapping), and above
+   * it a person can see the shape of the book instead of twenty-three swipes.
+   * B1482 argued for keeping the strip everywhere and was overruled by the
+   * drawing this was built to, which is the correct order of those two.
+   *
+   * The min-height and the snap go with the row direction: a wrapped grid
+   * that still claims a viewport of height leaves a screen of cream under
+   * three rows of book.
+   */
+  @media (min-width:620px) {
+    body.bare[data-view="spreads"] .spreads {
+      flex-wrap:wrap; align-items:flex-start; align-content:flex-start;
+      justify-content:flex-start;
+      min-height:0; gap:1rem; padding:.75rem;
+      overflow-x:hidden; overflow-y:auto; scroll-snap-type:none;
+    }
+    body.bare[data-view="spreads"] .spread { flex:0 0 calc(50% - .5rem); scroll-snap-align:none; }
+    /* Page one alone still takes half a row rather than a whole one: in a
+       grid there is no snap step for it to own. */
+    body.bare[data-view="spreads"] .spread.solo { flex:0 0 calc(25% - .5rem); }
+    /* The date under each day's page, which is what the drawing labels the
+       grid with. Read off the same attribute extractSpreads matches on, so
+       nothing new has to be stamped; front matter has no date and gets no
+       label rather than an invented one. */
+    body.bare[data-view="spreads"] figure[data-date]::after {
+      content:attr(data-date);
+      display:block; text-align:center; padding-top:.35rem;
+      font:500 11px/1.2 ui-monospace,SFMono-Regular,monospace; color:#5a6a80;
+    }
+  }
   body.bare figcaption { display:none; }
   /* The dashed trim rectangle is a pre-press guide, and the sentence that
      explained it went with the header. Left on, it is a red dashed box
