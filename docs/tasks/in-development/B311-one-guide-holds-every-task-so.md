@@ -6,6 +6,9 @@ priority: high
 complexity: high
 area: agent docs, routes
 found: "2026-09-04T16:12:40Z"
+started: "2026-09-11T11:45:21Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T11:45:21Z"
 ---
 
 # B311 — One guide holds every task, so an agent reads fifty kilobytes to write one day
