@@ -89,3 +89,32 @@ use) and document the answer.
 - A locale the journal does not declare is handled the same way create handles
   it, with a test pinning that the two agree.
 - `npm run verify` green; the field is in the PATCH schema in `/openapi.json`.
+
+## Evidence, 2026-09-11
+
+`npm run verify` green (534 files, 6986 tests, knip clean). Eight new tests in
+`test/trip-details.test.ts`, including the one the last acceptance line asks
+for: it asserts the PATCH and the `createTrip` refusals are equal *sentences*,
+not merely both 400.
+
+Driven against a running instance on content that existed before the branch —
+`content/example/trips/alps-2024`, whose `trip.md` has carried a German and a
+Hungarian title since long before this ticket. Run captured at
+`/private/tmp/…/scratchpad/B1496-acceptance.txt`:
+
+- `GET` reads the block; `PATCH` writes the typo `Alpn` onto disk (the state
+  the ticket says was permanent), and a second `PATCH` corrects it back to
+  `Alpen`, read back through the same route's `GET`.
+- `fr` is refused on `PATCH` and on `POST .../trips` with the **same
+  sentence**, printed side by side in the capture.
+- `{"translations": "de"}` is refused `invalid_translations`.
+- `git diff --stat` on that `trip.md` afterwards is empty: three writes, and
+  the prose, the key order, `rates:`, `travellers:` and everything else came
+  back byte for byte.
+
+Seen, not only asserted: with the German title set to "Vier Tage rund um die
+Alpen (korrigiert)", `/example/trips` under an `fs.locale=de` cookie renders
+the corrected title on the trip card —
+`/private/tmp/…/scratchpad/b1496/example-trips-1280.png` and its `.json`
+(status 200, 0 console errors, 0 failed requests). The content file was
+restored afterwards.
