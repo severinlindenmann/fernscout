@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: fernscout-helper, validate skill
 found: "2026-09-10T21:24:00Z"
+merged: "2026-09-11T10:06:27Z"
 ---
 
 # B1402 — A content path one level too shallow is reported accurately and without naming the likely cause

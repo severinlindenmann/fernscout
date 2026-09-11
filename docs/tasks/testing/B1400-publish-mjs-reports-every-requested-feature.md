@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: fernscout-helper, publish skill
 found: "2026-09-10T21:20:00Z"
+merged: "2026-09-11T10:06:26Z"
 ---
 
 # B1400 — publish.mjs reports every requested feature key as applied without reading the response back

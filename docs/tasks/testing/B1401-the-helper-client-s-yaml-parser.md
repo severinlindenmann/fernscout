@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: fernscout-helper, frontmatter parser
 found: "2026-09-10T21:22:00Z"
+merged: "2026-09-11T10:06:26Z"
 ---
 
 # B1401 — The helper client's YAML parser stops at the first unsupported line and silently drops every key after it
