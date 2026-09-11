@@ -48,3 +48,20 @@ Not doing: any change to the max height, the entry list, or the desktop nav.
 At 390px, on a journal with enough sections that the panel overflows, the open
 menu shows the affordance at its bottom edge; scrolling to the end removes it;
 a short menu that fits never shows it at all.
+
+**Evidence.** `components/PageHeader.tsx` tracks whether the panel has more
+content below (`panelOverflowsBelow`, recomputed on scroll and on resize) and
+renders a small `aria-hidden` gradient fade as the panel's last child when
+true. Checked at 390px against the real demo journal
+(`/example/trips/alps-2024`, unmodified) over CDP, at a viewport short enough
+that the panel's `70vh` genuinely clips the nav list:
+
+- Panel open, not scrolled: `scrollHeight(401) > clientHeight(348)`, fade
+  present.
+- Scrolled to the true end: fade gone, "Your access" (the last entry) fully
+  visible with nothing cut off.
+- Same page at a tall viewport where the panel fits without scrolling
+  (`scrollHeight === clientHeight === 401`): fade never rendered.
+
+`npm run verify` — build, tsc, eslint, vitest (519 files, 6795 passed), knip —
+all green.
