@@ -1,6 +1,7 @@
 {
   "id": "evt_test_checkout_completed",
   "object": "event",
+  "livemode": false,
   "type": "checkout.session.completed",
   "data": {
     "object": {
