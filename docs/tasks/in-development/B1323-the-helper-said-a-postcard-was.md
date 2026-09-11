@@ -54,6 +54,30 @@ artefact: the person's next move is to go looking for a card to send.
   turn may assert an artefact exists unless the turn created it. The second is
   the one AGENTS.md argues for.
 
+**Built differently from the literal instruction to widen the pending check
+at `model.ts:1910` toward `claimsWhatIsNotThere`.** Tried it first, exactly as
+asked, and it fails the honest case it was supposed to be proven against: the
+existing test *"a turn that really did propose may point at the button"*
+(`test/helper-honesty.test.ts`) has the model say *"Der Knopf dafür steht
+bereit."* with a genuine pending `start_day` proposal — `claimsAButton` is
+true (`Knopf`) and the proposal is unwritten, so widening the pending check's
+condition from `claimsAWrite` to `claimsWhatIsNotThere` flags that honest
+sentence too. `ON_SCREEN`/`claimsAButton` is deliberately true whenever a
+button really is on the screen, proposal or not — it is not itself a lie, so
+OR-ing it into the pending check is wrong.
+
+What was actually missing, per the ticket's own observation ("CLAIM has no
+pattern for 'is on your X page'"), is in `CLAIM`, not in the branching logic:
+the reported sentence's falsehood is the *existence* claim ("is on your
+postcards page now"), which is a write-shaped lie in every way that matters —
+it asserts the artefact is already filed somewhere a person could go find it.
+Added en/de/hu patterns to `CLAIM` for that shape. `claimsAWrite` now returns
+`true` for the reported sentence (and its German/Hungarian equivalents), so
+the existing, unchanged `claimsAWrite(answer) && proposals.some(unwritten)`
+branch at `model.ts:1910` already catches it — no widening needed, and the
+honest button-pointer sentence is unaffected (`claimsAWrite` stays `false` for
+it because it names no page).
+
 ## Acceptance
 
 - A turn that draws a postcard proposal and writes nothing says so, and does not

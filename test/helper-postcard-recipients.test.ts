@@ -149,3 +149,67 @@ describe("propose_postcards only ever forwards a contactId", () => {
     });
   });
 });
+
+// B1322 — the route refuses an empty `from` outright; the tool must ask for
+// it in the room instead of drawing a button that the route will then refuse.
+describe("propose_postcards asks for a signature before proposing", () => {
+  test("an empty from is refused in the room, with no proposal drawn", async () => {
+    await withContent(async () => {
+      const ran = await runTool(
+        "bea",
+        "propose_postcards",
+        {
+          trip: "bern-weekend-2026",
+          slug: "2026-09-05-day",
+          message: "Grüsse aus Bern!",
+          recipients: "8a185cbe-2fdf-4a10-91a6-7fd3adf51050",
+        },
+        say,
+        "2026-09-07",
+      );
+      expect(ran.proposal).toBeUndefined();
+      expect(ran.blocks).toEqual([{ shape: "say", text: "agent.tool.postcardsNoSignature" }]);
+      expect(ran.result).toMatchObject({ proposed: false, wrote: false });
+    });
+  });
+
+  test("a from that is only whitespace is refused the same way", async () => {
+    await withContent(async () => {
+      const ran = await runTool(
+        "bea",
+        "propose_postcards",
+        {
+          trip: "bern-weekend-2026",
+          slug: "2026-09-05-day",
+          message: "Grüsse aus Bern!",
+          from: "   ",
+          recipients: "8a185cbe-2fdf-4a10-91a6-7fd3adf51050",
+        },
+        say,
+        "2026-09-07",
+      );
+      expect(ran.proposal).toBeUndefined();
+      expect(ran.blocks).toEqual([{ shape: "say", text: "agent.tool.postcardsNoSignature" }]);
+    });
+  });
+
+  test("a real from lets the proposal through as before", async () => {
+    await withContent(async () => {
+      const ran = await runTool(
+        "bea",
+        "propose_postcards",
+        {
+          trip: "bern-weekend-2026",
+          slug: "2026-09-05-day",
+          message: "Grüsse aus Bern!",
+          from: "Mo",
+          recipients: "8a185cbe-2fdf-4a10-91a6-7fd3adf51050",
+        },
+        say,
+        "2026-09-07",
+      );
+      expect(ran.ok).toBe(true);
+      expect(ran.proposal).toBeDefined();
+    });
+  });
+});

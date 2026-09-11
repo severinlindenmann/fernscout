@@ -24,7 +24,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { contentRoot } from "../lib/contentRoot.ts";
+import { assertContentRootWritable, contentRoot, ContentRootNotWritableError } from "../lib/contentRoot.ts";
 import { displayPath } from "../lib/displayPath.ts";
 import { ID_PATTERN } from "../lib/ingest/paths.ts";
 import { hasContactsKey } from "../lib/contacts/crypto.ts";
@@ -133,6 +133,12 @@ if (backend !== "dry-run") {
 }
 
 async function main() {
+  try {
+    assertContentRootWritable();
+  } catch (err) {
+    fail((err as ContentRootNotWritableError).message);
+  }
+
   const photo = new Uint8Array(fs.readFileSync(photoPath as string));
   const recipients = fromContacts
     ? await postcardRecipientsFromContacts(owner)

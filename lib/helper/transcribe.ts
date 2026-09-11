@@ -14,6 +14,12 @@ import type { SpeechLanguage } from "./speech";
  * a copy nobody remembers agreeing to. `test/helper-transcribe.test.ts`
  * asserts the disk is untouched.
  *
+ * That is the whole of what this server guarantees. What happens at the
+ * provider is a separate, weaker claim: the request carries
+ * `mip_opt_out=true`, which *asks* Deepgram not to retain the audio for model
+ * improvement. It is a request honoured by their policy, not a mechanism this
+ * code can verify — B1076.
+ *
  * Two backends, chosen in `site/config.json`:
  *
  * - **`dry-run`** returns a canned transcript and talks to nobody. It is what
@@ -79,6 +85,8 @@ export async function transcribeAudio(
   // the four this feature exists for are not among them.
   url.searchParams.set("language", language);
   url.searchParams.set("smart_format", "true");
+  // Ask the provider not to retain this audio for model training — B1076.
+  url.searchParams.set("mip_opt_out", "true");
 
   const response = await fetch(url, {
     method: "POST",

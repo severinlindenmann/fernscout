@@ -35,6 +35,7 @@ const ROUTES = [
   "day/costs",
   "day/write-day",
   "invite",
+  "postcard",
 ];
 
 /** Every `error: "…"` a helper write route can answer with. */

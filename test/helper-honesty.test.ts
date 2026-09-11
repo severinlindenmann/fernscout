@@ -441,6 +441,11 @@ describe("a turn that claims a write it did not make", () => {
     expect(String(answered.body.answer)).toBe("Der Knopf dafür steht bereit.");
     expect((answered.body.proposals as unknown[]).length).toBe(1);
   });
+
+  // B1323's own tests live in test/helper-honesty-postcard-page.test.ts, in
+  // its own file for the same reason B1302's do (see that file's comment):
+  // this file's ask() calls already sit exactly at LIMIT.max for
+  // "helper-ask", so one more real call here starves whatever runs after it.
 });
 
 /* ------------------------------------------------ who can read it --- */

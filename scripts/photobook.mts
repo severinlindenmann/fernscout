@@ -23,7 +23,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 
-import { contentRoot } from "../lib/contentRoot.ts";
+import { assertContentRootWritable, contentRoot, ContentRootNotWritableError } from "../lib/contentRoot.ts";
 import { displayPath } from "../lib/displayPath.ts";
 import { parseTripRef } from "../lib/trips.ts";
 import { buildBookSource, resolvePrintFile } from "../lib/photobook/source.ts";
@@ -151,6 +151,12 @@ const spec = defaultSpec(size, coverType);
 // `--out` is unchanged and still means what it says: a path the person typed,
 // resolved against where they are standing, anywhere they like. Only the
 // default moved.
+try {
+  assertContentRootWritable();
+} catch (err) {
+  fail((err as ContentRootNotWritableError).message);
+}
+
 const bookOwner = parsedTripRef.username;
 const outDir = path.resolve(str("out") ?? path.join(contentRoot(), bookOwner, "photobooks"));
 fs.mkdirSync(outDir, { recursive: true });

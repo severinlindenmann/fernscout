@@ -356,6 +356,42 @@ describe("the dry-run backend", () => {
   });
 });
 
+describe("what the deepgram backend asks for", () => {
+  // B1076 — the request must ask Deepgram not to retain the audio for model
+  // training. Stubs global fetch; no real network call.
+  test("the request carries mip_opt_out=true", async () => {
+    vi.doUnmock("@/lib/helper/transcribe");
+    vi.resetModules();
+    const real = await vi.importActual<typeof import("@/lib/helper/transcribe")>(
+      "@/lib/helper/transcribe",
+    );
+    process.env.DEEPGRAM_API_KEY = "dummy-key";
+    writeServerConfig({
+      auth: { enabled: true },
+      credits: { enabled: true },
+      transcription: { enabled: true, backend: "deepgram" },
+    });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          metadata: { duration: 3 },
+          results: { channels: [{ alternatives: [{ transcript: "hi" }] }] },
+        }),
+        { status: 200 },
+      ),
+    );
+    try {
+      expect(real.speechBackend()).toBe("deepgram");
+      await real.transcribeAudio(Buffer.from("bytes"), "audio/webm", "en");
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      const calledUrl = fetchSpy.mock.calls[0][0] as URL;
+      expect(new URL(calledUrl.toString()).searchParams.get("mip_opt_out")).toBe("true");
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+});
+
 describe("with the capability off", () => {
   test("the route answers 404 rather than failing", async () => {
     writeServerConfig({ auth: { enabled: true }, credits: { enabled: true } });
