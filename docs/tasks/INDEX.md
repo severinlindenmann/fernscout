@@ -271,7 +271,7 @@ Do not edit them by hand; run the script.
 | [B1364](backlog/wont-do/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (53)
+## open (54)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -303,6 +303,7 @@ Do not edit them by hand; run the script.
 | [B1295](open/B1295-the-landing-page-promises-you-can.md) | The landing page promises you can export everything, and somebody without an agent has no way to | ISSUE | medium | medium |
 | [B1297](open/B1297-agents-md-says-there-is-no.md) | AGENTS.md says there is no form that maps fields onto frontmatter, and Correct this day is one | DOCS | medium | low |
 | [B1300](open/B1300-with-one-day-of-costs-the.md) | With one day of costs the bar chart is a full-width block and the running total draws nothing | ISSUE | medium | low |
+| [B1452](open/B1452-an-owner-cannot-see-the-status.md) | An owner cannot see the status of their photobook and postcard orders in one place | FEATURE | medium | medium |
 | [B673](open/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium |
 | [B1045](open/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low |
 | [B1046](open/B1046-two-sessions-running-verify-in-the.md) | Two sessions running verify in the shared checkout collide on the next build lock | DOCS | low | low |
