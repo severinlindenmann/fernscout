@@ -1168,8 +1168,6 @@
   "postcard.page.alreadySent": "Ezek a lapok már el lettek küldve.",
   "postcard.page.back": "A hátlap, nyomtatási méretben",
   "postcard.page.backFirstOf": "A hátlap, nyomtatási méretben — a(z) {count} közül az elsőnek címezve",
-  "postcard.page.backNotToScale": "A hátlap, nem méretarányosan",
-  "postcard.page.backFirstOfNotToScale": "A hátlap, nem méretarányosan — a(z) {count} közül az elsőnek címezve",
   "postcard.page.balance": "Neked {balance} van.",
   "postcard.page.buy": "Kredit vásárlása",
   "postcard.page.cropHint": "Húzd a fényképet a mozgatáshoz, a csúszkát a közelítéshez.",

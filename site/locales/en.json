@@ -1168,8 +1168,6 @@
   "postcard.page.alreadySent": "These cards have already been sent.",
   "postcard.page.back": "The back, at print size",
   "postcard.page.backFirstOf": "The back, at print size — addressed to the first of {count}",
-  "postcard.page.backNotToScale": "The back, not to scale",
-  "postcard.page.backFirstOfNotToScale": "The back, not to scale — addressed to the first of {count}",
   "postcard.page.balance": "You have {balance}.",
   "postcard.page.buy": "Buy credits",
   "postcard.page.cropHint": "Drag the photograph to move it, and the slider to come closer.",

@@ -2051,8 +2051,6 @@ export type TranslationKey =
   | "postcard.page.alreadySent"
   | "postcard.page.back"
   | "postcard.page.backFirstOf"
-  | "postcard.page.backFirstOfNotToScale"
-  | "postcard.page.backNotToScale"
   | "postcard.page.balance"
   | "postcard.page.buy"
   | "postcard.page.cropHint"
