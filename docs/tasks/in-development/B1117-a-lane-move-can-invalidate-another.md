@@ -48,6 +48,23 @@ never write a lane into prose. That is a rule nobody can enforce and this
 codebase has already learned twice (B633 → B668) that an unenforceable rule
 comes back within a fortnight.
 
+## Built, 2026-09-11
+
+`move()` in `scripts/tasks.mjs` calls a new `noteMentions(item)` after the
+rename, once the move is on disk. It rereads every other task file's raw text
+(frontmatter and body together — the claim can sit in either) and prints one
+line per file that matches `\bID\b` and `\b(backlog|open|in-development|
+testing|completed)\b`, both case-insensitive:
+
+```
+  note: B29 is mentioned by B103 (completed/B103-….md) — check whether that still holds.
+```
+
+Exactly what the ticket asked for: a hint on stdout, nothing parsed, nothing
+refused, no file but the one that moved is touched. A ticket that mentions
+neither the id nor a lane word prints nothing, so an ordinary move (the
+overwhelming majority) is silent.
+
 ## Acceptance
 
 - Moving a ticket that another ticket's prose mentions prints one line naming
