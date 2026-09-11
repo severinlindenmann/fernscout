@@ -7,8 +7,7 @@ complexity: low
 area: components/PageHeader.tsx
 found: "2026-09-11T07:26:44Z"
 started: "2026-09-11T07:37:31Z"
-session: ceb70967-b4b6-4f4d-ab22-ace3a9e5ee0d
-claimed: "2026-09-11T07:37:31Z"
+merged: "2026-09-11T07:46:33Z"
 ---
 
 # B1418 — The open mobile menu gives no sign that it scrolls
