@@ -7,8 +7,7 @@ complexity: low
 area: ui, branding
 found: "2026-09-11T21:45:30Z"
 started: "2026-09-11T21:45:55Z"
-session: bfe90fb0-0095-4532-8af8-601ad489b14c
-claimed: "2026-09-11T21:45:55Z"
+merged: "2026-09-11T22:21:50Z"
 ---
 
 # B1545 — The animation bench's own vehicle list predates metro/tram/ferry, so B1519's new modes are invisible there
