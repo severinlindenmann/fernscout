@@ -7,8 +7,7 @@ complexity: medium
 area: photobook
 found: "2026-09-11T16:50:26Z"
 started: "2026-09-11T17:12:13Z"
-session: 3f748903-2dc3-47a2-a958-98b83d641dc0
-claimed: "2026-09-11T17:12:13Z"
+merged: "2026-09-11T17:30:17Z"
 ---
 
 # B1487 — The book settings are native selects and a nine-item checkbox list where the drawing has a card of rows
