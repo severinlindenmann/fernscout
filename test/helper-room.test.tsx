@@ -655,7 +655,7 @@ test("pressing the preview's publish button twice quickly fires one proposal", a
     await Promise.resolve();
   });
 
-  const previewSection = box.querySelector('section[aria-label="How it looks"]')!;
+  const previewSection = box.querySelector('section[aria-label="Preview"]')!;
   const publish = [...previewSection.querySelectorAll("button")].find(
     (button) => button.textContent === "Put this day on the site",
   ) as HTMLButtonElement;
