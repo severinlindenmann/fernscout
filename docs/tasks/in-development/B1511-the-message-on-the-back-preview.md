@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: postcards
 found: "2026-09-11T19:19:16Z"
+started: "2026-09-11T19:25:10Z"
+session: 3f748903-2dc3-47a2-a958-98b83d641dc0
+claimed: "2026-09-11T19:25:10Z"
 ---
 
 # B1511 — The message on the back preview is far larger than the message that prints
