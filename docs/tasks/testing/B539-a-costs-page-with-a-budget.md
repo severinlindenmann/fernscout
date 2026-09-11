@@ -7,8 +7,7 @@ complexity: low
 area: costs page
 found: "2026-09-06T10:25:00Z"
 started: "2026-09-11T13:25:07Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T13:25:07Z"
+merged: "2026-09-11T13:48:25Z"
 ---
 
 # B539 — A costs page with a budget and no day-level spending just looks thin

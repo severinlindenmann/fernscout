@@ -7,8 +7,7 @@ complexity: low
 area: components/ContactsAdmin.tsx
 found: "2026-09-09T16:20:00Z"
 started: "2026-09-11T13:21:53Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T13:21:53Z"
+merged: "2026-09-11T13:48:23Z"
 ---
 
 # B1094 — Editing a contact opens a form off-screen above the button, so the button looks broken
@@ -59,6 +58,28 @@ belongs at the top, where the button that opens it is.
 
 Not doing: a scroll-into-view call alone. It moves the page under somebody's
 thumb without saying why, and the reader loses the row they were working on.
+
+## Built
+
+`GuestForm` now renders inline in the `ContactRow` being edited
+(`components/ContactsAdmin.tsx`): `ContactsAdmin` computes `editingId` from
+`formTarget` and hands a bundled `GuestFormEnv` down through `ContactGroup` to
+`ContactRow`, which renders `<GuestForm>` at the end of its own `<li>` when
+`contact.id === editingId`. "Add a guest" is unchanged — it still renders the
+same shared form above the pending group, at its own button, only when
+`formTarget === "new"`.
+
+`GuestForm` now focuses its own name field (`nameFieldRef`, a `useEffect` on
+mount) whichever button opened it, satisfying "focus lands somewhere inside
+the form" without a `scrollIntoView` call — rendering the form in the row
+already puts it on screen; the browser's own focus-scroll handles the rest
+for a row further down than the viewport.
+
+Verified with `npm run verify` (build, tsc, eslint, 6884 tests, knip — all
+green). Not driven in a real browser this session — the acceptance line about
+the longest group at 390px is unverified visually; the fix is structural
+(the form is now a child of the row rather than a sibling above every group)
+so there is no distance left to measure, but somebody should still look.
 
 ## Acceptance
 

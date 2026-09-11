@@ -7,8 +7,7 @@ complexity: low
 area: contacts
 found: "2026-09-10T10:38:00Z"
 started: "2026-09-11T13:21:53Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T13:21:53Z"
+merged: "2026-09-11T13:48:23Z"
 ---
 
 # B1281 — Add a guest reuses the guest's own form, so the owner is asked for Your name and Write to me in
@@ -48,6 +47,26 @@ for the rest.
   own form, so this is new keys in all three locales plus `npm run i18n:keys`,
   not an edit in place — real German and Hungarian, per AGENTS.md.
 - Check the guest's own form still reads correctly afterwards.
+
+## Built
+
+Three new owner-only keys — `contact.adminGuestName` ("Their name"),
+`contact.adminGuestEmail` ("Their email address"),
+`contact.adminGuestLanguage` ("Which language to write to them in") — added
+to `site/locales/{en,de,hu}.json` and `npm run i18n:keys` re-run.
+`components/ContactsAdmin.tsx`'s `GuestForm` now reads these three instead of
+`contact.name`/`contact.email`/`contact.language`. Checked
+`components/InviteRedeem.tsx`, `components/ContactForm.tsx` and
+`components/ContactManage.tsx` still read the original second-person keys —
+none of them were touched.
+
+Real German and Hungarian, not machine-plausible copies: German avoids "Ihr"
+(which reads as the formal "your" — the exact ambiguity this ticket is about)
+and uses "Name der Person" / "E-Mail-Adresse der Person" instead; Hungarian's
+third-person possessive suffix ("A neve", "Az e-mail-címe") is unambiguous
+without a pronoun at all.
+
+`npm run verify` passed after the change (build, tsc, eslint, tests, knip).
 
 ## Acceptance
 

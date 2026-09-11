@@ -7,8 +7,7 @@ complexity: low
 area: contacts, mobile
 found: "2026-09-10T10:46:32Z"
 started: "2026-09-11T13:21:54Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T13:21:54Z"
+merged: "2026-09-11T13:48:24Z"
 ---
 
 # B1283 — The phone country field is too narrow for its own default value, so the dialling code is cut off
@@ -38,6 +37,30 @@ Switzerland is the instance's own default.
   bearing part; the full country name is what the list is for.
 - Check the row at 320px too — the narrowest phone still in use — and in German,
   where "Schweiz (+41)" is shorter but "Vereinigte Staaten (+1)" is not.
+
+## Built
+
+`components/TelField.tsx`'s closed-control `displayValue` (line ~225) now
+renders flag + dialling code only (`🇨🇭 +41`) instead of flag + full name +
+code (`🇨🇭 Switzerland (+41)`). The open dropdown list is untouched and still
+shows the full name, which is where choosing a country actually needs it.
+The box itself (`w-36 shrink-0 sm:w-64`) is unchanged — showing less made
+widening unnecessary. One shared component, so `ContactForm`,
+`ContactsAdmin`'s `GuestForm`, `InviteRedeem` and `ContactManage` all get the
+fix.
+
+Not measured in a real browser this session. What to measure, and where:
+open `/‹user›/contacts` (owner) or a guest confirmation page, resize to
+390px and then 320px, switch the journal/browser to German, and open the
+phone field closed (don't click it) for Switzerland, Germany and the United
+States — read `input#‹id›-cc`'s `scrollWidth` vs `clientWidth`
+(`scrollWidth <= clientWidth` is the acceptance line) or just read the
+rendered text isn't clipped. Expected values are short regardless of locale
+now (flag + up to 3 digits), so it should pass comfortably, but nobody has
+looked.
+
+`npm run verify` passed (build, tsc, eslint, tests, knip); no test in the
+suite asserts the closed-control's display string.
 
 ## Acceptance
 

@@ -7,8 +7,7 @@ complexity: low
 area: mail, contacts, i18n
 found: "2026-09-09T18:00:00Z"
 started: "2026-09-11T13:21:55Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T13:21:55Z"
+merged: "2026-09-11T13:48:22Z"
 ---
 
 # B1132 — The address-confirmation mail says nothing opens yet, but a pre-approved invite admits the reader on confirming
