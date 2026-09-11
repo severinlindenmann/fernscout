@@ -346,7 +346,7 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (14)
+## in-development (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -358,14 +358,13 @@ Do not edit them by hand; run the script.
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1389](in-development/B1389-teaser-is-missing-from-content-model.md) | `teaser` is missing from /content-model.json, so the helper's validator calls it not a field | ISSUE | medium | low | `13f12910` |
 | [B1403](in-development/B1403-nothing-an-outside-agent-reads-says.md) | Nothing an outside agent reads says weatherData is written by the server, so a filled block reads as fabricated | DOCS | medium | low | `13f12910` |
-| [B1405](in-development/B1405-the-first-book-flow-quotes-a.md) | The first-book flow quotes a price before the recipient is known, so the figure can change before the press | ISSUE | medium | low | `96a5b964` |
 | [B1134](in-development/B1134-accept-language-is-the-only-way.md) | Accept-Language is the only way to set the language of the two pre-journal mails and no agent-facing document says so | FEATURE | low | low | `13f12910` |
 | [B1149](in-development/B1149-the-pdf-x-report-tells-you.md) | The PDF/X report tells you to run gs-pdfx.sh, which is only written when the run already had an ICC | ISSUE | low | low | `96a5b964` |
 | [B1294](in-development/B1294-the-photobook-route-answers-that-the.md) | The photobook route answers that the trip was taken down or renamed when the trip is still there | ISSUE | low | low | `96a5b964` |
 | [B1296](in-development/B1296-the-room-names-trips-by-their.md) | The room names trips by their id and dates in ISO, in a conversation that otherwise speaks plainly | ISSUE | low | low | `13f12910` |
 | [B1368](in-development/B1368-photobook-flow-doesn-t-say-the.md) | Photobook flow doesn't say the print is experimental | CHORE | low | low | `96a5b964` |
 
-## testing (170)
+## testing (171)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -528,6 +527,7 @@ Do not edit them by hand; run the script.
 | [B1377](testing/B1377-deepgram-voice-consent-renders-unusably-narrow.md) | Deepgram voice consent renders unusably narrow on a phone | ISSUE | medium | low | — |
 | [B1380](testing/B1380-uploaded-videos-get-no-thumbnail-in.md) | Uploaded videos get no thumbnail in the Dateien tab | ISSUE | medium | low | — |
 | [B1381](testing/B1381-speicher-meter-stays-at-0-00.md) | Speicher meter stays at 0.00 GB after uploads | ISSUE | medium | low | — |
+| [B1405](testing/B1405-the-first-book-flow-quotes-a.md) | The first-book flow quotes a price before the recipient is known, so the figure can change before the press | ISSUE | medium | low | — |
 | [B1407](testing/B1407-a-photograph-too-small-to-fill.md) | A photograph too small to fill its slot sits at the foot of the page instead of in the space it has | ISSUE | medium | medium | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
 | [B1096](testing/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low | — |
