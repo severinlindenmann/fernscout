@@ -284,12 +284,11 @@ Do not edit them by hand; run the script.
 | [B1364](backlog/wont-do/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (18)
+## open (17)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1479](open/B1479-a-sent-postcard-order-still-shows.md) | A sent postcard order still shows the editing stepper instead of the order it has become | FEATURE | high | low |
-| [B1482](open/B1482-the-composer-is-one-tall-column.md) | The composer is one tall column on desktop, with the settings shut behind a disclosure | FEATURE | high | medium |
 | [B106](open/B106-push-has-never-been-switched-on.md) | Push has never been switched on anywhere, so nothing has proved a notification reaches a phone | OPS | medium | medium |
 | [B112](open/B112-local-scripts-write-straight-to-content.md) | Local scripts still write straight to content, and the one guarantee they skip is the draft rule | FEATURE | medium | medium |
 | [B1176](open/B1176-every-file-under-content-registry-was.md) | every file under content/.registry was root-owned, so the service account could not release a lock | OPS | medium | low |
@@ -307,10 +306,11 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (7)
+## in-development (8)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1482](in-development/B1482-the-composer-is-one-tall-column.md) | The composer is one tall column on desktop, with the settings shut behind a disclosure | FEATURE | high | medium | `3f748903` |
 | [B1258](in-development/B1258-the-publish-card-says-to-read.md) | The publish card says to read the day as readers will see it and does not show the day | ISSUE | medium | low | `13f12910` |
 | [B1260](in-development/B1260-a-trip-with-nothing-recorded-yet.md) | A trip with nothing recorded yet fills two phone screens with an empty sky, the whole world map and six zeros | ISSUE | medium | medium | `13f12910` |
 | [B1272](in-development/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low | `13f12910` |
