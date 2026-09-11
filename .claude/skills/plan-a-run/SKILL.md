@@ -89,6 +89,15 @@ Answer, in order:
    - "superseded by <id>": name the ticket that overtook it.
    - "premise is wrong": say why, in one sentence a person can act on.
    A ticket that is not "valid" is DROPPED — do not do steps 2-5 for it.
+   A ticket that **is** "valid" but whose own Work section names a
+   prerequisite that does not exist yet and sits unpromoted in `backlog/` —
+   a route nothing has built, a store nothing has created — is BLOCKED, not
+   dropped and not listed: dropping it says the ticket is wrong, and listing
+   it hands a group subagent a ticket it cannot build, which either invents
+   an ad-hoc version of the missing prerequisite or burns its three verify
+   cycles and parks (B1115's Why is the recorded case, B1058 against B1057
+   and B1064). Name the blocking id(s) and say, for each, whether promoting
+   it into this same run is realistic.
 
 2. CONFLICT CHECK — is this ticket held by another session
    (`npm run tasks` shows the holder), is it actually sitting in the lane
@@ -172,6 +181,13 @@ A **dropped-tickets** section up top, separate from the per-ticket list,
 naming every ticket that step 2 marked not-valid and why — these do not get
 options or questions.
 
+A **blocked-tickets** section beside it, one row per ticket step 2 marked
+blocked, naming its blocker(s) by id and whether each is promotable. Each row
+carries exactly one question — *promote the blockers into this run, or park
+this ticket* — because that changes the size of the run and is a person's
+call, not a default to silently accept. These do not get options either;
+there is nothing to build yet.
+
 The sticky decision bar at the bottom: a running count of options chosen and
 questions answered, and one control, **build the brief**, enabled once every
 still-live ticket has an option selected and every question has an answer.
@@ -204,6 +220,16 @@ decided.
       "verdict": "already fixed",
       "reason": "lib/entries.ts:88 already filters status:draft on every reader; the bug this ticket describes cannot reproduce.",
       "evidence": "lib/entries.ts:88"
+    }
+  ],
+  "blocked": [
+    {
+      "id": "B1058",
+      "reason": "no app/api/webhooks/whatsapp route exists and no binding store exists; owner.tel is an unproven send-destination",
+      "blockedBy": [
+        { "id": "B1057", "title": "the webhook", "promotable": true },
+        { "id": "B1064", "title": "the proven-number registry", "promotable": true }
+      ]
     }
   ],
   "groups": [
@@ -271,22 +297,70 @@ decided.
       "optionsNote": "Only one defensible shape — the address fields photobook.md already documents for a trip; nothing else in the schema suggests an alternative.",
       "chosen": null,
       "questions": []
+    },
+    {
+      "id": "B103",
+      "title": "Auth request rate-limit budget is untested against a real client",
+      "type": "OPS",
+      "group": null,
+      "validity": {
+        "verdict": "valid",
+        "evidence": "app/api/auth/request/route.ts:22 shares one per-IP bucket with everything else touching POST /api/auth/request"
+      },
+      "shape": {
+        "kind": "engagement",
+        "target": "live",
+        "concurrencySafe": false,
+        "needs": [
+          "a provisioned test journal",
+          "the remaining POST /api/auth/request rate-limit allowance for this IP"
+        ],
+        "mustNot": [
+          "run at the same time as any other ticket touching auth/request or auth/verify"
+        ]
+      },
+      "chosen": null,
+      "questions": []
     }
   ]
 }
 ```
 
-`chosen` is `null` only for a ticket with no options (there was nothing to
-choose between); `run-a-batch` builds straight from the ticket's Work section
-in that case. A ticket with options and no `chosen` is a brief that was never
-finished — do not hand one of those to `run-a-batch`.
+`chosen` is `null` for a ticket with no options (there was nothing to choose
+between, or the ticket is an engagement with nothing to choose either) —
+`run-a-batch` builds straight from the ticket's Work section in that case. A
+ticket with options and no `chosen` is a brief that was never finished — do
+not hand one of those to `run-a-batch`.
+
+**`shape` is present only on a `type: OPS` ticket**, and is the block
+`run-a-batch` reads instead of re-deriving concurrency and resources for
+itself — both real planners in the first run of this pipeline (B103, B101)
+returned exactly this without being asked twice, which is why it belongs in
+the schema rather than in a second prompt. `target` is `"live"` or `"local"`:
+`run-a-batch`'s rule is that an engagement may run alongside a build group
+only when its target is a different instance from whatever the builds are
+merging into. `needs` names the shared resource the orchestrator, not the
+group subagent, must hand out — a provisioned test journal, an address whose
+mail is readable, SSH read access, a rate-limit allowance — because the whole
+point of a per-IP limit is that concurrent agents cannot each assume the
+whole of it. `mustNot` is what the engagement must never do, stated as
+plainly as `needs`.
+
+An engagement can also come back with nothing left to build at all — B1147
+is the recorded case: the fault it was chasing had stopped reproducing, and
+the actual remaining step turned out to be a login to Gelato's own account
+portal, which is nobody's code to write. Where a planner finds this, say so
+under `validity` as `"superseded by <what was found>"` the same as any other
+non-buildable ticket, and note in the reasoning that the remaining step is a
+person's, and what it is — that sentence is what lets the person decide
+whether to go do it themselves, rather than the ticket silently vanishing.
 
 ## Step 5 — hand it over
 
 Give the artifact URL. Say the count: how many tickets, how many dropped, how
-many groups. Do not build anything, do not move a task file, and do not
-promote anything into `open/` — this skill ends at the person's answer, and
-`run-a-batch` is what consumes `brief.json`.
+many blocked, how many groups. Do not build anything, do not move a task
+file, and do not promote anything into `open/` — this skill ends at the
+person's answer, and `run-a-batch` is what consumes `brief.json`.
 
 ## Red flags — stop
 
@@ -303,3 +377,7 @@ promote anything into `open/` — this skill ends at the person's answer, and
   from the brief.
 - Promoting a ticket into `open/`, or moving any task file — this skill never
   touches a task's lane.
+- Listing a ticket in `tickets[]` whose own Work section names an unbuilt,
+  unpromoted prerequisite — that is `blocked[]`, not a group of one.
+- An `OPS` ticket with no `shape` block — `run-a-batch` has nothing to read
+  and will refuse to schedule it.

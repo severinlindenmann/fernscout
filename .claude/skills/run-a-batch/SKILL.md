@@ -66,6 +66,14 @@ alone the same brief.
 and `plan-a-run` said why. Nothing about them belongs in this run; mention
 them in the final report as "planned but not built" and move on.
 
+`blocked[]` tickets are never built — refuse outright rather than attempting
+one, even inside a group of one. A dropped ticket was decided wrong or
+already handled; a blocked one was never started at all, because its own Work
+section names a prerequisite that does not exist yet (B1115's Why: B1058
+against B1057 and B1064). The two are different facts and `report-a-run`
+counts them separately — folding a blocked ticket into "parked" would say a
+build was attempted and failed, when none was ever attempted.
+
 ## Step 2 — one worktree, one branch, per group — dispatch hierarchically
 
 For each group, once (not per ticket in the group):
