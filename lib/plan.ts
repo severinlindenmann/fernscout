@@ -54,8 +54,7 @@ type RawStop = Partial<Record<keyof PlannedStop, unknown>>;
  * from them.
  */
 export function getPlan(tripId: string, options: ReadOptions = {}): PlanProgress {
-  const file = path.join(tripDir(tripId), "plan.md");
-  const written = fs.existsSync(file) ? readPlanFile(file, tripId) : [];
+  const written = readPlanFile(tripId);
   const stops = options.includeDrafts
     ? mergeDraftStops(tripId, written)
     : written;
@@ -64,16 +63,28 @@ export function getPlan(tripId: string, options: ReadOptions = {}): PlanProgress
   return { stops, reachedCount, next: stops.find((s) => !s.reached) };
 }
 
-/** The hand-written route from plan.md, each stop marked reached or not. */
-function readPlanFile(file: string, tripId: string): PlannedStop[] {
+/** Where `plan.md` lives for a trip — exported since B909 so the API door
+ * that reads and writes it does not carry a second copy of this path. */
+export function planFilePath(tripId: string): string {
+  return path.join(tripDir(tripId), "plan.md");
+}
+
+/**
+ * `plan.md`, parsed — `null` when absent or malformed. Exported since B909
+ * so the plan API's `GET` reads back exactly this, the same parse
+ * `readPlanFile` below already does, rather than a second one — mirrors
+ * `readCostsFile` (lib/costs.ts, B295).
+ */
+export function readPlanFileRaw(tripId: string): ReturnType<typeof matter> | null {
+  const file = planFilePath(tripId);
+  if (!fs.existsSync(file)) return null;
   // A plan.md whose frontmatter will not parse must not take the trip page,
   // the map, or the photobook down with it — the plan is a nice-to-have
   // layer over them, per getPlan's own doc comment above. Skipped and
   // logged rather than thrown, same shape as readAllEntries (lib/entries.ts,
   // B236).
-  let parsed: ReturnType<typeof matter>;
   try {
-    parsed = matter(fs.readFileSync(file, "utf8"));
+    return matter(fs.readFileSync(file, "utf8"));
   } catch (err) {
     // See `clearMatterCache`'s doc comment (lib/matterCache.ts) for why this
     // call is not optional here: matter() caches a parse by raw content
@@ -82,8 +93,15 @@ function readPlanFile(file: string, tripId: string): PlannedStop[] {
     clearMatterCache();
     const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
     console.warn(`[plan] ${file}: its frontmatter could not be parsed: ${why}`);
-    return [];
+    return null;
   }
+}
+
+/** The hand-written route from plan.md, each stop marked reached or not. */
+function readPlanFile(tripId: string): PlannedStop[] {
+  const file = planFilePath(tripId);
+  const parsed = readPlanFileRaw(tripId);
+  if (!parsed) return [];
   const { data } = parsed;
   const raw = Array.isArray(data.route) ? (data.route as RawStop[]) : [];
 

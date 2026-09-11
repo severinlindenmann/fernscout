@@ -701,6 +701,34 @@ export function openApiDocument() {
             body: { type: "string", description: "The trip's own prose about the money." },
           },
         },
+        RouteStop: {
+          type: "object",
+          required: ["location", "lat", "lng"],
+          description: "One stop on a trip's intended route.",
+          properties: {
+            location: { type: "string", description: "The name of the stop, as a person would write it." },
+            country: { type: "string" },
+            countryCode: { type: "string", description: "ISO 3166-1 alpha-2, e.g. CH." },
+            lat: { type: "number", description: "-90 to 90." },
+            lng: { type: "number", description: "-180 to 180." },
+            note: { type: "string", description: "A line about why this stop is on the route." },
+          },
+        },
+        Plan: {
+          type: "object",
+          description:
+            "The body of PUT /api/v1/{user}/trips/{trip}/plan — a trip's intended route and " +
+            "the owner's own prose about it. Replaces the whole file when sent; an absent or " +
+            "empty `route` writes a plan with no stops yet.",
+          properties: {
+            route: {
+              type: "array",
+              items: { $ref: "#/components/schemas/RouteStop" },
+              description: "The stops, in the order they are meant to happen.",
+            },
+            body: { type: "string", description: "The trip's own prose about the route." },
+          },
+        },
       },
     },
     paths: {
@@ -2494,6 +2522,73 @@ export function openApiDocument() {
             "401": { description: "Missing or invalid token" },
             "403": { description: "The token belongs to a different journal" },
             "404": { description: "No such trip, or this trip has no costs.md" },
+          },
+        },
+      },
+      "/api/v1/{user}/trips/{trip}/plan": {
+        get: {
+          summary: "A trip's intended route, as stored",
+          description:
+            "The whole of `plan.md` — the stops the map can plot, each marked `reached` once " +
+            "a real day exists near it, and the trip's own prose about the route. `exists: " +
+            "false` means there is no `plan.md` yet, which is not an error: it is the same " +
+            "answer an empty drafts list gives.\n\n" +
+            "**Authority is reader-shaped**: this is the same document a guest-approved " +
+            "reader's browser already sees on the trip page and the map (not the costs " +
+            "route's rule, which is writer-only). In practice the only credential this door " +
+            "takes is a bearer token, and every one this server issues is already scoped to " +
+            "write this trip or the whole journal — so whoever can authenticate here already " +
+            "could write it too.\n\n" +
+            "**`draftsIncluded` narrows further, on purpose.** A trip's future-dated drafts " +
+            "are folded into the route as extra stops for the owner only, never for a " +
+            "trip-scoped token — a reader must not learn where somebody is going next from a " +
+            "day nobody has published. `draftsIncluded: false` on a non-owner's call is not a " +
+            "bug; it is why `stops` may be shorter than what the owner's own browser shows.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "The trip's plan.md, parsed, with each stop marked reached or not." },
+            "401": { description: "Missing or invalid token" },
+            "403": { description: "The token belongs to a different journal" },
+            "404": { description: "No such trip" },
+          },
+        },
+        put: {
+          summary: "Write the whole plan.md",
+          description:
+            "Creates or wholly replaces a trip's intended route and its own prose about it, " +
+            "in one call — the write half of B909: before it, a plan could only be written by " +
+            "hand, over SSH or with the `add-a-trip` skill on a local checkout.\n\n" +
+            "Each stop needs a `location` and a real `lat`/`lng` — a `problems` entry names " +
+            "any that do not. No tool in the helper's own registry calls this route: a " +
+            "planner that turns a spoken destination into a route is anticipated but not yet " +
+            "built (see the route's own module comment), so what is written here is a " +
+            "person's own words about places they named, sent by whichever agent they are " +
+            "using — never a model's invention of an itinerary nobody asked for.\n\n" +
+            "Same authority as GET: whoever holds a bearer token for this trip or journal may " +
+            "write its route.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": { schema: { $ref: "#/components/schemas/Plan" } },
+            },
+          },
+          responses: {
+            "200": { description: "Written. GET this same URL to read it back." },
+            "400": {
+              description:
+                "Invalid route (a `problems` list — field, what arrived, what was expected), " +
+                "invalid JSON, or a field this endpoint does not write.",
+            },
+            "401": { description: "Missing or invalid token" },
+            "403": { description: "The token belongs to a different journal" },
+            "404": { description: "No such trip" },
           },
         },
       },

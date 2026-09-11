@@ -49,6 +49,7 @@ const MARKERS = [
   "### Deleting, and anything that costs money",
   "### Deleting a trip, or the whole journal",
   "### The trip's budget",
+  "### The trip's planned route",
   "### What the trip actually cost, from a bank statement",
   "### The trip's exchange rates",
   "### What the trip is called, when it ran, and its cover",
@@ -128,6 +129,7 @@ export function skillDoc(slug: SkillDocSlug): string {
         c["### What the trip is called, when it ran, and its cover"],
         c["### Who may read the trip"],
         c["### Who was on the trip, and how they are drawn"],
+        c["### The trip's planned route"],
         c["### Deleting a trip, or the whole journal"],
       ]);
     case "add-a-day":

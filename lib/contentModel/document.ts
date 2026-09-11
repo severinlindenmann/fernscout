@@ -431,7 +431,7 @@ export function contentModel(): ContentModelDocument {
       },
       "plan.md": {
         what: "the planned route, for a trip that has not happened yet. Optional",
-        api: "not over the API today — write the file",
+        api: "GET/PUT /api/v1/{user}/trips/{trip}/plan",
         optional: true,
       },
     },

@@ -58,6 +58,7 @@ export const ERROR_CODES: Record<string, string> = {
   invalid_entry: "One or more fields of the day are wrong. `problems` lists every one at once — field, what arrived, what was expected — so fix them all and send once, rather than a round trip each.",
   invalid_trip: "One or more fields of the trip are wrong; `problems` lists them. A field name that is not a field is refused here rather than dropped, and the hint names the field you probably meant.",
   invalid_costs: "The budget or a cost line is not usable; `problems` lists each one.",
+  invalid_plan: "A stop on the route is not usable; `problems` lists each one.",
   invalid_media: "The upload is not usable — a file this server does not take, one too large, or a `day` that is not a day of this trip. /api/health carries the formats and the limits.",
   invalid_email: "That is not an address this server can send to.",
   invalid_user: "`user` is missing from the body. It is the journal's own address segment — the one in its URLs.",
