@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { decisionKind } from "@/components/HelperAsk";
+import { decisionKind } from "@/lib/helper/blocks";
 import { TOOLS } from "@/lib/helper/tools";
 
 /**

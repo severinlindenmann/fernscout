@@ -176,6 +176,8 @@ export type TranslationKey =
   | "agent.chat.noTitle"
   | "agent.chat.nothingWritten"
   | "agent.chat.orSayWhatIsWrong"
+  | "agent.chat.reopenedDone"
+  | "agent.chat.reopenedPending"
   | "agent.chat.retry"
   | "agent.chat.showMore"
   | "agent.chat.startOver"

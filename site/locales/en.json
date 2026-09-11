@@ -1990,6 +1990,8 @@
   "agent.chat.noTitle": "Untitled",
   "agent.chat.retry": "Try again",
   "agent.chat.showMore": "Show more",
+  "agent.chat.reopenedPending": "The card for this is gone now — {kind} — never pressed. Say it again if you still want it.",
+  "agent.chat.reopenedDone": "The card for this is gone now. It was pressed, and it went through.",
   "agent.card.grant": "Grants access",
   "agent.card.spend": "Spends credits",
   "agent.card.destroy": "Removes something",

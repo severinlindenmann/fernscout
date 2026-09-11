@@ -12,6 +12,7 @@ import { mediaLoader } from "@/components/mediaLoader";
 import RoomOpening from "@/components/RoomOpening";
 import AnswerText from "@/components/AnswerText";
 import type { Opening } from "@/lib/helper/opening";
+import { decisionKind } from "@/lib/helper/blocks";
 import type { Block, Option, Proposal, ProposalField } from "@/lib/helper/blocks";
 import type { TranslationKey } from "@/lib/i18n";
 
@@ -225,29 +226,6 @@ function dateOf(blocks: Block[]): string | null {
     if (typeof date === "string" && date !== "") return date;
   }
   return null;
-}
-
-/**
- * What kind of decision a proposal is — B1122.
- *
- * Read from the tool's own name rather than a table this file would have to
- * keep in step with the registry: a second list beside `lib/helper/tools/`
- * would disagree with it within a month, the same reasoning `AGENTS.md`
- * gives for every enum in the API contract. A tool is named for the verb it
- * performs, and the verb already says which of these it is — `revoke_key`,
- * `discard_file` and `unpublish_day` take something away without anybody
- * asking this file to know their names; a tool named the same way tomorrow
- * classifies itself the same way.
- *
- * `edit` is everything else: writing a day's words, adding a cost, changing
- * a title. Those stay the ordinary, cream card — the colour is the warning,
- * never the wording.
- */
-export function decisionKind(tool: string): "grant" | "spend" | "destroy" | "edit" {
-  if (/^(revoke|discard|remove|unpublish|delete)_|^cleanup$/.test(tool)) return "destroy";
-  if (/invite|people|visibility/.test(tool)) return "grant";
-  if (/^buy_/.test(tool)) return "spend";
-  return "edit";
 }
 
 /**

@@ -1990,6 +1990,8 @@
   "agent.chat.noTitle": "Ohne Titel",
   "agent.chat.retry": "Nochmal versuchen",
   "agent.chat.showMore": "Mehr anzeigen",
+  "agent.chat.reopenedPending": "Die Karte dazu ist jetzt weg — {kind} — nie gedrückt. Sag es noch einmal, wenn du es noch willst.",
+  "agent.chat.reopenedDone": "Die Karte dazu ist jetzt weg. Sie wurde gedrückt, und es hat geklappt.",
   "agent.card.grant": "Gewährt Zugang",
   "agent.card.spend": "Gibt Guthaben aus",
   "agent.card.destroy": "Entfernt etwas",

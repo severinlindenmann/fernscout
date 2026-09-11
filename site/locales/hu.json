@@ -1990,6 +1990,8 @@
   "agent.chat.noTitle": "Cím nélkül",
   "agent.chat.retry": "Próbáld újra",
   "agent.chat.showMore": "Több megjelenítése",
+  "agent.chat.reopenedPending": "Az ehhez tartozó kártya már nincs itt — {kind} — soha nem nyomtad meg. Mondd el újra, ha még szeretnéd.",
+  "agent.chat.reopenedDone": "Az ehhez tartozó kártya már nincs itt. Megnyomtad, és sikerült.",
   "agent.card.grant": "Hozzáférést ad",
   "agent.card.spend": "Kreditet költ",
   "agent.card.destroy": "Eltávolít valamit",
