@@ -556,14 +556,19 @@ export default function FirstBookFlow({
               </button>
             )}
             {/* Out at any point, without answering the rest. Somebody who knows
-                what they want must not have to tap through every screen. */}
-            <button
-              type="button"
-              onClick={onDone}
-              className="min-h-11 text-sm font-semibold text-navy-600 underline"
-            >
-              {t("photobook.first.skip")}
-            </button>
+                what they want must not have to tap through every screen —
+                except on the last one, where there is no rest to skip and
+                "let the book decide the rest" sits beside a button that opens
+                the book they have just decided (B1524). */}
+            {at !== "summary" && (
+              <button
+                type="button"
+                onClick={onDone}
+                className="min-h-11 text-sm font-semibold text-navy-600 underline"
+              >
+                {t("photobook.first.skip")}
+              </button>
+            )}
           </div>
         </div>
       )}

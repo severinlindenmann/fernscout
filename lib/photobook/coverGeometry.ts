@@ -63,6 +63,16 @@ export type CoverGeometry = {
   source: "gelato" | "computed";
 };
 
+/**
+ * How deep the knocked-out band across the top of the front panel is, in
+ * millimetres — the paper the cover's title is set on.
+ *
+ * Here rather than in `render.ts` because the web preview draws the same band
+ * (`coverHtml`), and a cover whose title sits on paper in the PDF and on a
+ * photograph on screen is a preview that is not evidence about paper.
+ */
+export const COVER_BAND_MM = 46;
+
 // ---------------------------------------------------------------------------
 // Measured constants — see B885 and docs/providers/photobook.md.
 // ---------------------------------------------------------------------------
