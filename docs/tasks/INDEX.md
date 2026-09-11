@@ -324,23 +324,23 @@ Do not edit them by hand; run the script.
 | [B1534](open/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
 | [B1544](open/B1544-the-spine-appends-the-year-to.md) | The spine appends the year to a title that already carries one, and the owner cannot say otherwise | FEATURE | medium | low |
 
-## in-development (6)
+## in-development (5)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1521](in-development/B1521-the-budget-panel-projects-a-finished.md) | The budget panel projects a finished trip forward and fills unrecorded days with an average | ISSUE | high | medium | `bfe90fb0` |
 | [B1517](in-development/B1517-draw-the-travellers-from-a-photograph.md) | Draw the travellers from a photograph the owner already has | FEATURE | medium | medium | `bfe90fb0` |
 | [B1519](in-development/B1519-transportmode-has-no-metro-or-underground.md) | transportMode has no metro or underground, so a city day is recorded as a train | FEATURE | medium | low | `bfe90fb0` |
 | [B1526](in-development/B1526-the-journals-own-walking-figures-cannot.md) | The journal's own walking figures cannot be set at all over the API | ISSUE | medium | low | `bfe90fb0` |
 | [B1533](in-development/B1533-send-the-largest-file-you-have.md) | \"Send the largest file you have\" is true, load-bearing, and buried where no uploader reads it | DOCS | medium | low | `bfe90fb0` |
 | [B1542](in-development/B1542-the-title-page-s-reverse-is.md) | The title page's reverse is printed on, so the title leaf reads as a page rather than a title | ISSUE | medium | low | `57d87f37` |
 
-## testing (11)
+## testing (12)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1505](testing/B1505-a-buddy-s-trip-scoped-agent.md) | A buddy's trip-scoped agent token cannot drive /agent at all | ISSUE | high | low | — |
 | [B1511](testing/B1511-the-message-on-the-back-preview.md) | The message on the back preview is far larger than the message that prints | ISSUE | high | medium | — |
+| [B1521](testing/B1521-the-budget-panel-projects-a-finished.md) | The budget panel projects a finished trip forward and fills unrecorded days with an average | ISSUE | high | medium | — |
 | [B1524](testing/B1524-the-photobook-composer-s-switches-do.md) | The photobook composer's switches do not match what they remove, and the cover is never shown | ISSUE | high | medium | — |
 | [B1484](testing/B1484-stannp-has-no-inbound-webhook-route.md) | Stannp has no inbound webhook route, unlike every other print/message provider | ISSUE | medium | medium | — |
 | [B1506](testing/B1506-test-a-feature-has-no-isolated.md) | test-a-feature has no isolated CONTENT_DIR, so a local run writes into the tracked demo journal | CHORE | medium | medium | — |

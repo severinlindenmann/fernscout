@@ -7,8 +7,7 @@ complexity: medium
 area: ui, costs
 found: "2026-09-11T20:05:00Z"
 started: "2026-09-11T20:56:30Z"
-session: bfe90fb0-0095-4532-8af8-601ad489b14c
-claimed: "2026-09-11T20:56:30Z"
+merged: "2026-09-11T21:23:45Z"
 ---
 
 # B1521 — The budget panel projects a finished trip forward and fills unrecorded days with an average
