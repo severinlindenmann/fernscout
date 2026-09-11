@@ -299,16 +299,17 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (4)
+## in-development (5)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1489](in-development/B1489-the-postcard-steps-on-a-phone.md) | The postcard steps on a phone are nothing like the drawing they were approved from | FEATURE | high | high | `3f748903` |
 | [B1272](in-development/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low | `13f12910` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
 | [B1496](in-development/B1496-a-trip-s-translations-can-be.md) | A trip's translations can be set once and never corrected | ISSUE | low | low | `a46b89fa` |
 
-## testing (61)
+## testing (60)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -326,7 +327,6 @@ _Nothing here._
 | [B1486](testing/B1486-the-spreads-are-a-one-at.md) | The spreads are a one-at-a-time strip where the drawing has a grid of the whole book | FEATURE | high | medium | — |
 | [B1487](testing/B1487-the-book-settings-are-native-selects.md) | The book settings are native selects and a nine-item checkbox list where the drawing has a card of rows | FEATURE | high | medium | — |
 | [B1488](testing/B1488-the-buy-panel-has-no-object.md) | The buy panel has no object plate and no read-or-order pair where the drawing has both | FEATURE | high | low | — |
-| [B1489](testing/B1489-the-postcard-steps-on-a-phone.md) | The postcard steps on a phone are nothing like the drawing they were approved from | FEATURE | high | high | — |
 | [B1490](testing/B1490-a-proposal-opens-straight-into-the.md) | A proposal opens straight into the cropper with no card that says four cards are waiting | FEATURE | high | low | — |
 | [B1492](testing/B1492-an-owner-signed-in-on-their.md) | An owner signed in on their journal is asked to sign in again at /agent | ISSUE | high | low | — |
 | [B1094](testing/B1094-editing-a-contact-opens-a-form.md) | Editing a contact opens a form off-screen above the button, so the button looks broken | ISSUE | medium | low | — |
