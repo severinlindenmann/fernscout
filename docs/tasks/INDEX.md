@@ -306,20 +306,16 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (8)
+## in-development (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1482](in-development/B1482-the-composer-is-one-tall-column.md) | The composer is one tall column on desktop, with the settings shut behind a disclosure | FEATURE | high | medium | `3f748903` |
-| [B1258](in-development/B1258-the-publish-card-says-to-read.md) | The publish card says to read the day as readers will see it and does not show the day | ISSUE | medium | low | `13f12910` |
-| [B1260](in-development/B1260-a-trip-with-nothing-recorded-yet.md) | A trip with nothing recorded yet fills two phone screens with an empty sky, the whole world map and six zeros | ISSUE | medium | medium | `13f12910` |
 | [B1272](in-development/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low | `13f12910` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
-| [B1270](in-development/B1270-the-account-page-quotes-send-prices.md) | The account page quotes send prices for nought people and offers to sell 5 GB to a journal using one kilobyte | ISSUE | low | low | `13f12910` |
-| [B1293](in-development/B1293-two-of-the-four-signup-hints.md) | Two of the four signup hints sit above their field and two below, so the address rule reads as the title rule | ISSUE | low | low | `13f12910` |
 
-## testing (39)
+## testing (43)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -341,6 +337,8 @@ Do not edit them by hand; run the script.
 | [B1139](testing/B1139-a-hold-in-in-development-survives.md) | A hold in in-development survives the session that took it, and nothing says the work already merged | ISSUE | medium | medium | — |
 | [B1141](testing/B1141-a-worktree-s-cloned-node-modules.md) | A worktree's cloned node_modules goes stale when main adds a dependency, and the build fails as if the change were wrong | DOCS | medium | low | — |
 | [B1248](testing/B1248-the-health-endpoint-reports-content-ok.md) | The health endpoint reports content ok without ever checking the content root is writable | ISSUE | medium | low | — |
+| [B1258](testing/B1258-the-publish-card-says-to-read.md) | The publish card says to read the day as readers will see it and does not show the day | ISSUE | medium | low | — |
+| [B1260](testing/B1260-a-trip-with-nothing-recorded-yet.md) | A trip with nothing recorded yet fills two phone screens with an empty sky, the whole world map and six zeros | ISSUE | medium | medium | — |
 | [B1268](testing/B1268-the-budget-bar-is-red-at.md) | The budget bar is red at half the budget spent, because its colour and its length measure different things | ISSUE | medium | low | — |
 | [B1281](testing/B1281-add-a-guest-reuses-the-guest.md) | Add a guest reuses the guest's own form, so the owner is asked for Your name and Write to me in | ISSUE | medium | low | — |
 | [B1286](testing/B1286-the-postcard-back-is-labelled-at.md) | The postcard back is labelled at print size and renders its message at eight pixels on a phone | ISSUE | medium | low | — |
@@ -357,8 +355,10 @@ Do not edit them by hand; run the script.
 | [B1133](testing/B1133-the-owner-s-own-copy-of.md) | The owner's own copy of a day letter says they asked to be kept posted and offers no way to stop it | ISSUE | low | low | — |
 | [B1142](testing/B1142-the-share-control-gate-test-asserts.md) | The share-control gate test asserts proximity with a character window that is widened every time the file grows | ISSUE | low | low | — |
 | [B1151](testing/B1151-macos-appledouble-files-are-synced-into.md) | macOS AppleDouble files are synced into the demo journal's originals on the server | CHORE | low | low | — |
+| [B1270](testing/B1270-the-account-page-quotes-send-prices.md) | The account page quotes send prices for nought people and offers to sell 5 GB to a journal using one kilobyte | ISSUE | low | low | — |
 | [B1283](testing/B1283-the-phone-country-field-is-too.md) | The phone country field is too narrow for its own default value, so the dialling code is cut off | ISSUE | low | low | — |
 | [B1291](testing/B1291-a-journal-with-no-usable-cover.md) | A journal with no usable cover renders half a card of flat colour on the landing page | ISSUE | low | low | — |
+| [B1293](testing/B1293-two-of-the-four-signup-hints.md) | Two of the four signup hints sit above their field and two below, so the address rule reads as the title rule | ISSUE | low | low | — |
 | [B1434](testing/B1434-the-photograph-reaches-meta-first-disclosure.md) | The photograph-reaches-Meta-first disclosure has no owner-facing home after B1396 | DOCS | low | low | — |
 | [B1459](testing/B1459-journal-creation-sends-a-next-pointer.md) | Journal creation sends a next pointer the contract never mentions | ISSUE | low | low | — |
 | [B539](testing/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low | — |

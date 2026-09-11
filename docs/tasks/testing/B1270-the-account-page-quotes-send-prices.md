@@ -7,8 +7,7 @@ complexity: low
 area: account page
 found: "2026-09-10T10:11:45Z"
 started: "2026-09-11T15:47:58Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T15:47:58Z"
+merged: "2026-09-11T16:11:50Z"
 ---
 
 # B1270 — The account page quotes send prices for nought people and offers to sell 5 GB to a journal using one kilobyte

@@ -7,8 +7,7 @@ complexity: medium
 area: trip page, mobile
 found: "2026-09-10T10:03:43Z"
 started: "2026-09-11T15:47:57Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T15:47:57Z"
+merged: "2026-09-11T16:11:47Z"
 ---
 
 # B1260 — A trip with nothing recorded yet fills two phone screens with an empty sky, the whole world map and six zeros

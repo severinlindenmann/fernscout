@@ -7,8 +7,7 @@ complexity: low
 area: helper
 found: "2026-09-10T09:59:55Z"
 started: "2026-09-11T15:47:56Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T15:47:56Z"
+merged: "2026-09-11T16:11:49Z"
 ---
 
 # B1258 — The publish card says to read the day as readers will see it and does not show the day
