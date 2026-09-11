@@ -937,8 +937,10 @@ export default function HelperRoom({
         */}
         <div className="flex shrink-0 items-center gap-1">
           {/* The balance, whenever this instance charges at all — B1208
-              (D06/D08). Coral once it is low enough to matter; the tap opens
-              the account sheet, which is where the buy link lives. */}
+              (D06/D08). Yellow once it is low enough to matter, not coral —
+              being low on credit is not an error (B1155's 2026-09-09
+              decision record). `text-navy-900` rather than white: white on
+              `yellow-600` is 2.5:1, well under AA. */}
           {credits !== null && (
             <button
               type="button"
@@ -946,7 +948,7 @@ export default function HelperRoom({
               aria-label={t("agent.room.account")}
               className={`flex min-h-8 shrink-0 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold transition-colors ${
                 lowCredits
-                  ? "border-coral-600 bg-coral-600 text-white hover:bg-coral-400"
+                  ? "border-yellow-600 bg-yellow-600 text-navy-900 hover:bg-yellow-400"
                   : "border-navy-300 bg-white text-navy-800 hover:bg-navy-50"
               }`}
             >
@@ -1153,7 +1155,16 @@ export default function HelperRoom({
                   </button>
                 </div>
               ) : lowCredits ? (
-                <p className="mb-2 flex shrink-0 items-start gap-2 rounded-xl border border-coral-400 bg-coral-50 px-3 py-2 text-sm leading-5 text-coral-600">
+                // Yellow, not coral — B1155. Every other coral in this app is
+                // an error state, and running low on credit is not one.
+                // `text-yellow-900`/`bg-yellow-50` rather than `yellow-600`
+                // on white: `yellow-600` reads at roughly 2.4:1 against both
+                // white and near-white, well under AA either way round —
+                // the same reason the pill beside this banner uses
+                // `text-navy-900` rather than white. `border-yellow-600` is
+                // the one place the named token carries: the accent, not
+                // the body text.
+                <p className="mb-2 flex shrink-0 items-start gap-2 rounded-xl border border-yellow-600 bg-yellow-50 px-3 py-2 text-sm leading-5 text-yellow-900">
                   <span className="min-w-0 flex-1">
                     {t("agent.room.lowCredits")}{" "}
                     <a
@@ -1170,7 +1181,7 @@ export default function HelperRoom({
                       setCreditsDismissed(true);
                     }}
                     aria-label={t("agent.room.closeAccount")}
-                    className="shrink-0 rounded-full px-1.5 text-coral-600 hover:bg-coral-100"
+                    className="shrink-0 rounded-full px-1.5 text-yellow-900 hover:bg-yellow-100"
                   >
                     ✕
                   </button>
