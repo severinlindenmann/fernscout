@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { buildStannpRequest, type PostcardOrder } from "@/lib/postcard/providers";
-import { sendPostcard } from "@/lib/postcard/stannp";
+import { fetchStannpStatus, sendPostcard } from "@/lib/postcard/stannp";
 
 const ORDER: PostcardOrder = {
   to: {
@@ -129,5 +129,66 @@ describe("sending to Stannp", () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("ECONNREFUSED"); }));
     const result = await sendPostcard(input);
     expect(result.ok).toBe(false);
+  });
+});
+
+/**
+ * `fetchStannpStatus` — B1548. Confirmed live against mailpiece 215161865:
+ * the id goes in the path (`/get/<id>`), not `?id=` (which answers "Missing
+ * resource ID"), and the response shape below is exactly what Stannp
+ * returned.
+ */
+describe("fetching a card's status from Stannp", () => {
+  beforeEach(() => {
+    process.env.STANNP_API_KEY = "key-under-test";
+  });
+
+  afterEach(() => {
+    delete process.env.STANNP_API_KEY;
+    vi.unstubAllGlobals();
+  });
+
+  function stub(response: unknown, ok = true) {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(response), { status: ok ? 200 : 402 }));
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  test("asks by id in the path, not a query parameter", async () => {
+    const fetchMock = stub({ success: true, data: { id: 215161865, status: "received" } });
+    expect(await fetchStannpStatus("stannp:215161865")).toBe("received");
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://api-eu1.stannp.com/v1/postcards/get/215161865");
+    expect((init.headers as Record<string, string>).Authorization).toBe(
+      `Basic ${Buffer.from("key-under-test:").toString("base64")}`,
+    );
+  });
+
+  test("reads a test-mode ref the same way", async () => {
+    stub({ success: true, data: { id: 4321, status: "printing" } });
+    expect(await fetchStannpStatus("stannp-test:4321")).toBe("printing");
+  });
+
+  // The boundary the whole feature exists to keep: this system has decided
+  // it will never claim to know a card was delivered.
+  test("never reports delivered, local_delivery or returned", async () => {
+    for (const word of ["delivered", "local_delivery", "returned"]) {
+      stub({ success: true, data: { id: 1, status: word } });
+      expect(await fetchStannpStatus("stannp:1")).toBeNull();
+    }
+  });
+
+  test("null with no key, a bad ref, a refusal or a network failure", async () => {
+    delete process.env.STANNP_API_KEY;
+    expect(await fetchStannpStatus("stannp:1")).toBeNull();
+
+    process.env.STANNP_API_KEY = "key-under-test";
+    expect(await fetchStannpStatus("dry-run:1")).toBeNull();
+
+    stub({ success: false, error: "not found" }, false);
+    expect(await fetchStannpStatus("stannp:1")).toBeNull();
+
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("ECONNREFUSED"); }));
+    expect(await fetchStannpStatus("stannp:1")).toBeNull();
   });
 });
