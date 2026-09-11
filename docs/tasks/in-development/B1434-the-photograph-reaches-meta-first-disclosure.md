@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: capabilities, whatsapp
 found: "2026-09-11T09:44:20Z"
+started: "2026-09-11T14:10:09Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T14:10:09Z"
 ---
 
 # B1434 — The photograph-reaches-Meta-first disclosure has no owner-facing home after B1396

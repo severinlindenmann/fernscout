@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: agent docs, routes
 found: "2026-09-11T12:46:38Z"
+started: "2026-09-11T14:10:10Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T14:10:10Z"
 ---
 
 # B1459 — Journal creation sends a next pointer the contract never mentions
