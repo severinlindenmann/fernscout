@@ -45,3 +45,12 @@ as well).
 
 - Asking for a photobook of a trip that exists never says the trip was taken down
   or renamed.
+
+## Notes
+
+Fixed by adding a `photobook` kind to `JournalNotFoundNotice` (checked before
+`trip`, since a photobook route sits under `/trips/<trip>/`) with new locale
+keys `err.photobookUnavailableTitle`, `err.photobookUnavailableBody` and
+`err.backToTrip`. English and German are real text. **Hungarian ships the
+English placeholder for these three keys — needs a native read before this
+leaves `testing/`.**

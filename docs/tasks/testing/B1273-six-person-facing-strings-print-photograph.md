@@ -7,8 +7,7 @@ complexity: low
 area: i18n, helper
 found: "2026-09-10T10:17:47Z"
 started: "2026-09-11T04:33:18Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T04:33:18Z"
+merged: "2026-09-11T05:27:41Z"
 ---
 
 # B1273 — Six person-facing strings print photograph(s) and Credit(s) instead of using the plural mechanism
