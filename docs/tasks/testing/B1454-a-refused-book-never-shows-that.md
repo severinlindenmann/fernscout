@@ -7,8 +7,7 @@ complexity: low
 area: photobook, design, i18n
 found: "2026-09-11T12:15:24Z"
 started: "2026-09-11T12:15:55Z"
-session: 96a5b964-fad1-4616-9124-a01eabbd8a46
-claimed: "2026-09-11T12:15:55Z"
+merged: "2026-09-11T12:29:33Z"
 ---
 
 # B1454 — A refused book never shows that the credits came back, because the sentence is in an unreachable branch
