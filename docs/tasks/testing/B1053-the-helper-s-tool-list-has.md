@@ -7,8 +7,7 @@ complexity: medium
 area: agent, helper
 found: "2026-09-09T07:11:30Z"
 started: "2026-09-11T12:08:54Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T12:08:54Z"
+merged: "2026-09-11T12:26:39Z"
 ---
 
 # B1053 — The helper's tool list has outgrown the budget its own test set, and the fix is grouping
