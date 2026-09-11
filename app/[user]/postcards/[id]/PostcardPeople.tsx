@@ -130,6 +130,21 @@ export default function PostcardPeople({
               return (
                 <li key={candidate.contactId}>
                   <div className="flex min-h-11 items-center gap-3">
+                    {/* Initials, as the drawing has them — B1489. A list of
+                        four names with a checkbox each reads as a form; the
+                        same four with a face-sized circle in front read as
+                        people, which is what a person is checking here. */}
+                    <span
+                      aria-hidden
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-navy-100 text-[0.6rem] font-bold text-navy-700"
+                    >
+                      {candidate.name
+                        .split(/\s+/)
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map((w) => w[0]?.toUpperCase() ?? "")
+                        .join("")}
+                    </span>
                     <input
                       type="checkbox"
                       id={`to-${candidate.contactId}`}
@@ -150,8 +165,13 @@ export default function PostcardPeople({
                       htmlFor={`to-${candidate.contactId}`}
                       className="min-w-0 flex-1 cursor-pointer"
                     >
-                      {candidate.name} — {candidate.city}
-                      {candidate.country ? `, ${candidate.country}` : ""}
+                      <span className="block text-sm font-semibold text-navy-900">
+                        {candidate.name}
+                      </span>
+                      <span className="block text-xs text-navy-600">
+                        {candidate.city}
+                        {candidate.country ? `, ${candidate.country}` : ""}
+                      </span>
                       {candidate.readsNote ? (
                         <span className="opacity-60">
                           {" · "}
@@ -161,7 +181,7 @@ export default function PostcardPeople({
                     </label>
                   </div>
                   {candidate.address && on ? (
-                    <details className="pl-7">
+                    <details className="pl-[4.25rem]">
                       <summary className="cursor-pointer text-xs text-navy-600">
                         {candidate.address.postcode} {candidate.address.city}
                       </summary>

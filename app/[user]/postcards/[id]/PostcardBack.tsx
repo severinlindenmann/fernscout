@@ -349,8 +349,14 @@ export default function PostcardBack({
           }
           className="rounded-lg border border-navy-200 bg-white px-3 py-3"
         >
-          <label className="block text-sm font-semibold text-navy-800">
-            {strings.messageLabel}
+          {/* The words as a field with its name on it — B1489, the drawing's
+              own treatment. It was a bold label over a plain box; the legend
+              sits on the border so the card reads as the card and the writing
+              reads as the writing. */}
+          <label className="relative block">
+            <span className="absolute -top-2 left-3 bg-white px-1.5 font-mono text-[0.62rem] font-semibold uppercase tracking-wider text-navy-500">
+              {strings.messageLabel}
+            </span>
             {/* Eight rows, not four — B1005. A card takes 600 characters and
                 the box showed about a fifth of them, so the thing a person
                 came here to write was the smallest control on the screen and
@@ -363,7 +369,7 @@ export default function PostcardBack({
               maxLength={600}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="mt-1 min-h-44 w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm font-normal text-navy-900 [field-sizing:content]"
+              className="min-h-44 w-full rounded-xl border border-navy-200 bg-white px-3 pb-2 pt-3 text-sm font-normal text-navy-900 focus-visible:border-yellow-600 focus-visible:outline-2 focus-visible:outline-yellow-600 [field-sizing:content]"
             />
           </label>
           {/* Two columns from `sm`, stacked below it — B1018.
@@ -374,49 +380,65 @@ export default function PostcardBack({
               left it — onto a line of its own, under the word, once the labels
               were German. A grid gives both fields a width that does not
               depend on what is in them. */}
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label className="min-w-0 text-sm font-semibold text-navy-800">
-              {strings.signed}
-              <input
-                name="from"
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-                className="mt-1 block min-h-11 w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm font-normal text-navy-900"
-              />
-            </label>
-            {locales.length > 1 ? (
-              <label className="min-w-0 text-sm font-semibold text-navy-800">
-                {strings.writtenIn}
-                <select
-                  name="locale"
-                  value={locale}
-                  onChange={(e) => setLocale(e.target.value)}
-                  className="mt-1 block min-h-11 w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm font-normal text-navy-900"
-                >
-                  {locales.map((code) => (
-                    <option key={code} value={code}>
-                      {localeLabel[code] ?? code}
-                    </option>
-                  ))}
-                </select>
+          {/* One card of rows for the three facts about the card that are
+              not the words — B1489, the same grammar the book's settings
+              took. Label on the left, the value or the switch on the right.
+              It was two boxed fields in a grid and a checkbox on a line of
+              its own, which is three different shapes for three settings. */}
+          <div className="mt-3 overflow-hidden rounded-xl border border-navy-200 bg-white">
+            <div className="divide-y divide-navy-100">
+              <label className="flex items-center justify-between gap-3 px-3 py-2">
+                <span className="shrink-0 text-sm text-navy-800">{strings.signed}</span>
+                <input
+                  name="from"
+                  value={from}
+                  onChange={(e) => setFrom(e.target.value)}
+                  className="min-h-11 min-w-0 flex-1 rounded-lg bg-transparent px-2 py-1 text-right text-sm font-normal text-navy-900 hover:bg-navy-50 focus-visible:outline-2 focus-visible:outline-yellow-600"
+                />
               </label>
-            ) : (
-              <input type="hidden" name="locale" value={locale} />
-            )}
+              {locales.length > 1 ? (
+                <label className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span className="shrink-0 text-sm text-navy-800">{strings.writtenIn}</span>
+                  <span className="relative inline-flex items-center">
+                    <select
+                      name="locale"
+                      value={locale}
+                      onChange={(e) => setLocale(e.target.value)}
+                      className="min-h-11 cursor-pointer appearance-none rounded-lg bg-transparent py-1 pl-2 pr-6 text-right font-mono text-sm font-normal text-navy-900 hover:bg-navy-50 focus-visible:outline-2 focus-visible:outline-yellow-600"
+                    >
+                      {locales.map((code) => (
+                        <option key={code} value={code}>
+                          {localeLabel[code] ?? code}
+                        </option>
+                      ))}
+                    </select>
+                    <span aria-hidden className="pointer-events-none absolute right-1 text-navy-500">
+                      ▾
+                    </span>
+                  </span>
+                </label>
+              ) : (
+                <input type="hidden" name="locale" value={locale} />
+              )}
+              {figuresSvg ? (
+                <label className="flex cursor-pointer items-center justify-between gap-3 px-3 py-2">
+                  <span className="text-sm text-navy-800">{strings.figuresLabel}</span>
+                  <input type="hidden" name="figures_asked" value="1" />
+                  <input
+                    type="checkbox"
+                    name="figures"
+                    checked={figures}
+                    onChange={(e) => setFigures(e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <span
+                    aria-hidden
+                    className="relative h-6 w-10 shrink-0 rounded-full bg-navy-200 transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:bg-yellow-600 peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-focus-visible:ring-yellow-600 peer-focus-visible:ring-offset-2"
+                  />
+                </label>
+              ) : null}
+            </div>
           </div>
-          {figuresSvg ? (
-            <label className="mt-3 flex min-h-11 items-center gap-2 text-sm font-semibold text-navy-800">
-              <input type="hidden" name="figures_asked" value="1" />
-              <input
-                type="checkbox"
-                name="figures"
-                checked={figures}
-                onChange={(e) => setFigures(e.target.checked)}
-                className="h-4 w-4"
-              />
-              {strings.figuresLabel}
-            </label>
-          ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-3">
             {/* `busy` is given now that the press is a `fetch` and there is a
                 state to report — B892. It used to self-watch, which was right
