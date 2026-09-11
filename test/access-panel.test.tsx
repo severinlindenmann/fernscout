@@ -68,6 +68,8 @@ function render(
     /** `undefined` means the journal names nobody — see the B20 block below. */
     ownerName?: string;
     manage?: ManagePanel;
+    signupEnabled?: boolean;
+    sessionsShared?: boolean | null;
   } = {},
 ) {
   return renderToStaticMarkup(
@@ -87,6 +89,8 @@ function render(
           contactsEnabled={over.contactsEnabled ?? false}
           ownerName={"ownerName" in over ? over.ownerName : "Robin"}
           manage={over.manage}
+          signupEnabled={over.signupEnabled ?? true}
+          sessionsShared={"sessionsShared" in over ? (over.sessionsShared ?? null) : null}
         />
           </TripListProvider>
         </CurrencyProvider>
@@ -593,5 +597,89 @@ describe("the account page is not advertised on /me — B876", () => {
     const html = render({ viewer: owner });
     expect(html).not.toContain(dictionaryFor("en")["me.paymentTitle"]);
     expect(html).not.toContain(dictionaryFor("en")["me.storageTitle"]);
+  });
+});
+
+/**
+ * B1385 — the conversation-storage consent block used to render on
+ * `sessionsShared !== null` alone, with no check on who was reading, so a
+ * signed-out stranger fetching a public journal's /me was shown a control
+ * about conversations they never had. The four-case matrix the ticket asks
+ * for: signed out and guest both get nothing; a buddy (through "traveller")
+ * and the owner both get the block.
+ */
+describe("the sessions-consent block — B1385", () => {
+  const sessionsTitle = () => dictionaryFor("en")["me.sessionsTitle"];
+
+  const buddy: Viewer = {
+    email: "kevin@example.test",
+    owner: false,
+    guest: true,
+    trips: [
+      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "traveller" },
+    ],
+  };
+
+  const guestOnly: Viewer = {
+    email: "gran@example.test",
+    owner: false,
+    guest: true,
+    trips: [
+      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "guest" },
+    ],
+  };
+
+  test("absent for a signed-out stranger", () => {
+    const html = render({ viewer: stranger, canSignIn: true, sessionsShared: true });
+    expect(html).not.toContain(sessionsTitle());
+  });
+
+  test("absent for a guest with no write access", () => {
+    const html = render({ viewer: guestOnly, sessionsShared: true });
+    expect(html).not.toContain(sessionsTitle());
+  });
+
+  test("present for a buddy on a trip's people:", () => {
+    const html = render({ viewer: buddy, sessionsShared: true });
+    expect(html).toContain(sessionsTitle());
+  });
+
+  test("present for the owner", () => {
+    const html = render({ viewer: owner, sessionsShared: true });
+    expect(html).toContain(sessionsTitle());
+  });
+
+  test("absent for everybody when the journal has no helper at all", () => {
+    const html = render({ viewer: owner, sessionsShared: null });
+    expect(html).not.toContain(sessionsTitle());
+  });
+});
+
+/**
+ * B1386 — a signed-out stranger with no journal of their own used to be
+ * offered one door: the plain guide link, which explains a journal they have
+ * no way to reach. When signup is open, the foot of the page points at
+ * `/agent` instead; the owner and a buddy keep the plain guide link either
+ * way, and so does a stranger when signup is off.
+ */
+describe("the foot-of-page link for somebody with no journal — B1386", () => {
+  test("points at /agent when signup is open", () => {
+    const html = render({ viewer: stranger, canSignIn: true, signupEnabled: true });
+    expect(html).toContain('href="/agent"');
+    expect(html).not.toContain('href="/docs/guide/guest"');
+  });
+
+  test("falls back to the guide link when signup is off", () => {
+    const html = render({ viewer: stranger, canSignIn: true, signupEnabled: false });
+    expect(html).toContain('href="/docs/guide/guest"');
+    expect(html).not.toContain('href="/agent"');
+  });
+
+  test("the owner always keeps the guide link, signup on or off", () => {
+    for (const signupEnabled of [true, false]) {
+      const html = render({ viewer: owner, signupEnabled });
+      expect(html).toContain('href="/docs/guide/creator"');
+      expect(html).not.toContain('href="/agent"');
+    }
   });
 });

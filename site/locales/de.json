@@ -686,6 +686,7 @@
   "me.keysUntil": "gilt bis {date}",
   "me.keysUnused": "noch nicht benutzt",
   "me.keysUsed": "zuletzt benutzt {date}",
+  "me.newHereCta": "Neu hier? Starte dein eigenes Reisetagebuch, das dein Agent für dich schreibt.",
   "me.nothing": "Noch nichts. Bitte die Person, die dich hergeschickt hat, dich einzuladen.",
   "me.notifyLede": "Lass dich auf diesem Gerät benachrichtigen, wenn hier ein neuer Tag veröffentlicht wird. Du kannst das jederzeit wieder ausschalten.",
   "me.notifyTitle": "Benachrichtigungen",

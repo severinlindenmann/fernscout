@@ -82,6 +82,7 @@ function render(viewer: Viewer, locale = "en") {
                  owner's guest-list link is only drawn when the journal runs
                  contacts. Off, so nothing here depends on that link. */
               contactsEnabled={false}
+              signupEnabled={true}
             />
           </TripListProvider>
         </CurrencyProvider>
@@ -163,6 +164,7 @@ describe("an approved reader who can see nothing — B395", () => {
                 canSignIn={true}
                 codeMinutes={CODE_TTL_MINUTES}
                 contactsEnabled={false}
+                signupEnabled={true}
               />
             </TripListProvider>
           </CurrencyProvider>

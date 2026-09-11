@@ -686,6 +686,7 @@
   "me.keysUntil": "érvényes: {date}",
   "me.keysUnused": "még nem használták",
   "me.keysUsed": "utoljára használva: {date}",
+  "me.newHereCta": "Új vagy itt? Indíts saját útinaplót, amit az ügynököd ír helyetted.",
   "me.nothing": "Még semmi. Kérd meg azt, aki ideküldött, hogy hívjon meg.",
   "me.notifyLede": "Kapj értesítést ezen az eszközön, amikor új nap jelenik meg itt. Bármikor kikapcsolhatod.",
   "me.notifyTitle": "Értesítések",

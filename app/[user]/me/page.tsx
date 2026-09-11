@@ -233,6 +233,10 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       // reasoning as the page itself); everybody else sees the door only
       // once it is published.
       hasAbout={getAbout(user, { includeDrafts: viewer.owner }) !== null}
+      // B1386 — instance-wide, no username argument, same as
+      // app/agent/page.tsx: whether a stranger with no journal here can get
+      // one through the wizard at all.
+      signupEnabled={isEnabled("signup")}
     />
   );
 }

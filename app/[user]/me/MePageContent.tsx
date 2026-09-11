@@ -478,6 +478,7 @@ export default function MePageContent({
   ownerName,
   signinNotice,
   hasAbout = false,
+  signupEnabled,
 }: {
   viewer: Viewer;
   username: string;
@@ -545,6 +546,15 @@ export default function MePageContent({
   /** Whether `/<user>/about` exists for this reader — B10. Absent rather
    * than a link to a 404, same rule as `analyticsEnabled` above. */
   hasAbout?: boolean;
+  /**
+   * Whether this instance takes new signups at all — B1386. Resolved
+   * server-side with `isEnabled("signup")`, no username argument, the same
+   * way `app/agent/page.tsx` reads it: a signup wizard is instance-wide, not
+   * a per-journal opt-in. Only changes what a *stranger with no journal of
+   * their own* is offered at the foot of the page; every other reader keeps
+   * the plain guide link regardless.
+   */
+  signupEnabled: boolean;
 }) {
   const { t } = useI18n();
   const site = useSite();
@@ -1086,16 +1096,38 @@ export default function MePageContent({
           everybody else the reader's. A menu of three would make a confused
           person choose before they know which one they are.
         */}
-        <p className="mt-8">
-          <Link
-            href={`/docs/guide/${viewer.owner ? "creator" : writableTrips.length > 0 ? "buddy" : "guest"}`}
-            className="text-base text-navy-700 underline decoration-navy-300 underline-offset-4
-                       transition-colors hover:decoration-navy-700
-                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-          >
-            {t("guides.readMore")}
-          </Link>
-        </p>
+        {/*
+          A stranger with no journal of their own gets a different door here
+          — B1386. This page's only offer used to be the guide link below,
+          which explains a journal that reader has no way to reach; when
+          signup is open, `/agent` is one. Owner and buddy keep the plain
+          guide link unconditionally — they already have a journal — and so
+          does a signed-out reader when signup is off, since a CTA pointing
+          at a door that does not open is worse than the link it replaced.
+        */}
+        {viewer.owner || writableTrips.length > 0 || !signupEnabled ? (
+          <p className="mt-8">
+            <Link
+              href={`/docs/guide/${viewer.owner ? "creator" : writableTrips.length > 0 ? "buddy" : "guest"}`}
+              className="text-base text-navy-700 underline decoration-navy-300 underline-offset-4
+                         transition-colors hover:decoration-navy-700
+                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+            >
+              {t("guides.readMore")}
+            </Link>
+          </p>
+        ) : (
+          <p className="mt-8">
+            <Link
+              href="/agent"
+              className="text-base text-navy-700 underline decoration-navy-300 underline-offset-4
+                         transition-colors hover:decoration-navy-700
+                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+            >
+              {t("me.newHereCta")}
+            </Link>
+          </p>
+        )}
 
         {/*
           Where notifications are switched on, for a reader who is not standing
@@ -1135,7 +1167,16 @@ export default function MePageContent({
           this page are now the two that are about you rather than about your
           journal, and neither is in the way of the other.
         */}
-        {sessionsShared !== null && (
+        {/*
+          Owner or buddy only — B1385. `sessionsShared` used to be the whole
+          gate, computed from the capability alone with no viewer check, so a
+          signed-out stranger reading a public journal was shown a block
+          about conversations they never had. `viewer.owner ||
+          writableTrips.length > 0` is the same expression the guide link
+          below already uses to tell a journal's own people apart from
+          everyone else.
+        */}
+        {sessionsShared !== null && (viewer.owner || writableTrips.length > 0) && (
           <SessionsConsent username={username} shared={sessionsShared} />
         )}
 

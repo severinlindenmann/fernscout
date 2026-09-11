@@ -1459,6 +1459,7 @@ export type TranslationKey =
   | "me.keysUntil"
   | "me.keysUnused"
   | "me.keysUsed"
+  | "me.newHereCta"
   | "me.nothing"
   | "me.notifyLede"
   | "me.notifyTitle"

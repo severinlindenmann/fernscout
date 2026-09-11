@@ -686,6 +686,7 @@
   "me.keysUntil": "works until {date}",
   "me.keysUnused": "not used yet",
   "me.keysUsed": "last used {date}",
+  "me.newHereCta": "New here? Start your own travel journal that your agent writes for you.",
   "me.nothing": "Nothing yet. Ask whoever sent you here to invite you.",
   "me.notifyLede": "Get a notification on this device when a new day is published here. You can turn it off again at any time.",
   "me.notifyTitle": "Notifications",
