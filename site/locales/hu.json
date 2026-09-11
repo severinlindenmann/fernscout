@@ -891,7 +891,6 @@
   "photobook.first.summary": "A könyved",
   "photobook.first.planning": "Számolás, milyen hosszú lesz …",
   "photobook.first.bindingPerfect": "{pages} oldal, tehát ragasztott gerinc — elég vastag a polcra, a címmel az élén.",
-  "photobook.first.price": "Körülbelül {money} ({credits} kredit).",
   "photobook.first.changeable": "Itt minden továbbra is módosítható, a „Változtasd meg, hogyan készül a könyv” alatt.",
   "photobook.first.again": "Kezdjük újra a kérdésekkel",
   "photobook.start": "Fotókönyv készítése",
