@@ -6,8 +6,32 @@ import BusyButton from "@/components/BusyButton";
 import { PRIMARY_BUTTON } from "@/components/LandingSections";
 import { useI18n } from "@/components/LocaleProvider";
 import TelField from "@/components/TelField";
-import { LOCALE_LABEL, MAINTAINED_LOCALES } from "@/lib/i18n";
+import { LOCALE_LABEL, MAINTAINED_LOCALES, type TranslationKey } from "@/lib/i18n";
 import { LOCALE_COOKIE } from "@/lib/requestKeys";
+
+/**
+ * Every refusal `post()` can actually get back from the signup routes, and
+ * the sentence it gets — B1247/B1250, the same shape as `HelperAsk.tsx`'s
+ * `NAMED_FAILURES`. The eight are every `createJournal()` refusal
+ * (`lib/journals.ts`) a person's own input can trigger; `invalid_token` and
+ * `missing_token` are the two ways `/api/v1/journals` and the phone-request
+ * route refuse a signup token that has expired or was already spent —
+ * neither of which reads as a sentence when shown raw, since both name an
+ * HTTP endpoint. `phone_required` is not here: `createJournal()` branches on
+ * it before `post()`'s fallback is ever reached, and it must stay there.
+ */
+const SIGNUP_FAILURES = [
+  "invalid_username",
+  "deleted_username",
+  "reserved_username",
+  "username_taken",
+  "invalid_title",
+  "invalid_owner",
+  "too_many_journals",
+  "tel_taken",
+  "invalid_token",
+  "missing_token",
+] as const;
 
 /** The same cookie `LocaleSwitcher` writes, at module level for the same
  *  reason it is there: the linter is right that a component body should not
@@ -156,6 +180,12 @@ export default function SignupWizard({
   const [agentToken, setAgentToken] = useState("");
   const [signInUrl, setSignInUrl] = useState("");
   const [journalUsername, setJournalUsername] = useState("");
+  /** The journal's own canonical address, from the create response's `url`
+   * (B1292) — computed server-side from `serverSite().url`, which can differ
+   * from this browser's own origin behind a proxy, so it is used as-is and
+   * never rebuilt here. Shown at the trip step, in place of the "New here?"
+   * pitch that used to survive a successful create. */
+  const [journalUrl, setJournalUrl] = useState("");
 
   const [tripTitle, setTripTitle] = useState("");
   const [tripStart, setTripStart] = useState("");
@@ -185,11 +215,16 @@ export default function SignupWizard({
       if (typeof json?.error === "string" && passthrough?.includes(json.error)) {
         return json;
       }
-      const message =
-        typeof json?.message === "string"
-          ? json.message
-          : response?.statusText || "unknown";
-      setError(t("agent.failed", { error: message }));
+      // A known cause gets its own sentence, in the reader's own language —
+      // never the API's own machine-facing message, which is written for an
+      // agent and names endpoints and tokens (B1250). Anything else falls to
+      // one honest, generic sentence: nothing typed so far was lost, and
+      // nothing here says what actually happened, because we do not know.
+      if (typeof json?.error === "string" && (SIGNUP_FAILURES as readonly string[]).includes(json.error)) {
+        setError(t(`agent.error.${json.error}` as TranslationKey));
+        return null;
+      }
+      setError(t("agent.signupFailed"));
       return null;
     }
     return json;
@@ -260,6 +295,7 @@ export default function SignupWizard({
     setAgentToken(result.token as string);
     setJournalUsername(result.user as string);
     setSignInUrl(typeof result.signIn === "string" ? result.signIn : "");
+    setJournalUrl(typeof result.url === "string" ? result.url : "");
     setStep("trip");
   }
 
@@ -415,13 +451,22 @@ export default function SignupWizard({
   return (
     <section className="rounded-2xl border border-navy-200 bg-cream-50 p-5 sm:p-6">
       <h2 className="font-display text-xl font-semibold text-navy-900">
-        {t("agent.startTitle")}
+        {step === "trip" ? t("agent.journalCreated") : t("agent.startTitle")}
       </h2>
+      {/* B1292 — the journal already exists by the time this step shows; the
+          "New here?" pitch above used to survive a successful create and say
+          nothing of it. `result.url` is the server's own canonical address
+          (behind a proxy it can differ from this browser's origin) — shown
+          plain, not as a link, since a tap away from here loses the rest of
+          the wizard's state and the journal has no content yet to visit. */}
+      {step === "trip" && (
+        <p className="mt-2 break-all font-mono text-sm text-navy-900">{journalUrl}</p>
+      )}
       {/* B1370 — the phone-wa step ("Noch ein Schritt: Bestätige deine
           Telefonnummer per WhatsApp") is a confirmation, not a fresh pitch;
           the intro above belongs to the steps that still need to sell the
           idea, not to the one that is only waiting on a tap in WhatsApp. */}
-      {step !== "phone-wa" && (
+      {step !== "phone-wa" && step !== "trip" && (
         <p className="mt-2 text-base leading-7 text-navy-700">
           {t("agent.startIntro")}
         </p>
