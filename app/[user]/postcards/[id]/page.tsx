@@ -415,7 +415,6 @@ export default async function PostcardOrderPage({
                   signed: t("postcard.page.signed"),
                   writtenIn: t("postcard.page.writtenIn"),
                   figuresLabel: t("postcard.page.figuresLabel"),
-                  save: t("postcard.page.save"),
                   saving: t("postcard.page.saving"),
                   saved: t("postcard.page.savedNow"),
                   failed: t("postcard.page.saveFailed"),
@@ -592,7 +591,6 @@ export default async function PostcardOrderPage({
                             count: String(live.length),
                             total: String(cost),
                           }),
-                    warning: t("postcard.page.sendWarning"),
                   }}
                 />
               </div>

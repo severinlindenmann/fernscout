@@ -92,7 +92,6 @@ export default function PostcardSend({
     sending: string;
     back: string;
     send: string;
-    warning: string;
   };
 }) {
   const router = useRouter();
@@ -265,15 +264,12 @@ export default function PostcardSend({
         </div>
       ) : (
         <div className="mt-3 flex flex-col gap-3">
-          {/* The warning above the press, in coral, and not below it — B1489.
-              It was a grey line under the button, which is where a person
-              reads it only after deciding. This is the sentence that says
-              real cards and real money, and the drawing puts it in front of
-              the press for that reason. Coral, because on this palette that
-              is what a thing you cannot undo looks like. */}
-          <p className="rounded-r-lg border-l-4 border-coral-600 bg-coral-50 px-3 py-2 text-sm text-coral-600">
-            {strings.warning}
-          </p>
+          {/* No warning here — B1515. The price card directly above names
+              the credits and the francs, the button names them again, and the
+              confirm step this press leads to says the undoable part in its
+              own words. Three times before anything happens is not a
+              safeguard, it is noise; the one that counts is on the screen
+              where the money actually moves. */}
           {/* A link, not a submit: the first press only *asks*. */}
           <Link
             href={sendable ? `/${username}/postcards/${id}?confirm=1#send` : ""}
