@@ -285,6 +285,7 @@
   "del.expiredTitle": "Ez a link már nem működik",
   "del.expiry": "A fenti két link {minutes} percig működik, és a törlés pontosan egyszer erősíthető meg.",
   "del.export": "Ez az egész naplót odaadja neked ZIP-fájlban — a privát utakat, a közzé nem tett piszkozatokat és a fényképeket is, nem csak azt, amit idegenek látnak. Bármikor elvihetnéd, de ez az utolsó kényelmes pillanat rá.",
+  "del.tripExport": "Ez odaadja neked ezt az utat ZIP-fájlban — minden napot, minden közzé nem tett piszkozatot és minden fényképet, ami hozzá tartozik, nem csak azt, amit idegenek látnak. A naplód saját beállításai (pénznem, nyelv) és a fiókod adatai nincsenek benne, csak ennek az útnak a saját fájljai. Bármikor elvihetnéd, de ez az utolsó kényelmes pillanat rá.",
   "del.exportButton": "Másolat letöltése",
   "del.exportHeading": "Előbb vigyél magaddal egy másolatot",
   "del.failed": "Ez nem sikerült, és semmi sem törlődött. Lehet, hogy a linket már használták, vagy lejárt — kérj egy újat.",

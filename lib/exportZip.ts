@@ -7,7 +7,6 @@ import { ZipArchive } from "archiver";
 import { isDraft } from "./entries";
 import { isOpenToLink } from "./access";
 import { userConfigPath } from "./config";
-import { consentFile } from "./helper/consent";
 import { getTrips } from "./trips";
 import { userDir } from "./users";
 import type { Trip } from "./types";
@@ -31,6 +30,12 @@ import type { Trip } from "./types";
  *   true handed the whole journal to any token belonging to it, trip-scoped
  *   ones included (B231). **Anything reaching for this scope has to establish
  *   that it is the owner, not merely that it is inside the journal.**
+ *
+ *   A **trip** deletion mail's export button is this same scope, narrowed by
+ *   `tripId` to the trip being deleted (B1387) — the mail's own prose says
+ *   "this trip", so the archive it links has to actually be that. The route
+ *   reads both `scope` and `tripId` off the one already-resolved deletion
+ *   token; neither is ever accepted as a URL or query parameter.
  * - `"open-to-link"` — only trips an anonymous visitor could already reach
  *   (`isOpenToLink`: public + unlisted): a convenience packaging of content
  *   already reachable, never a new way to reach content that wasn't. `guest`
@@ -43,9 +48,10 @@ import type { Trip } from "./types";
  */
 export type ExportScope = "all" | "open-to-link";
 
-function tripsForScope(username: string, scope: ExportScope): Trip[] {
+function tripsForScope(username: string, scope: ExportScope, tripId?: string): Trip[] {
   const trips = getTrips(username);
-  return scope === "all" ? trips : trips.filter(isOpenToLink);
+  const scoped = scope === "all" ? trips : trips.filter(isOpenToLink);
+  return tripId === undefined ? scoped : scoped.filter((trip) => trip.id === tripId);
 }
 
 function walkFiles(dir: string): string[] {
@@ -86,42 +92,69 @@ function isDraftEntry(file: string): boolean {
 }
 
 /**
+ * Any path segment beginning with a dot — `.DS_Store` wherever the Finder
+ * left one, `.fingerprints/`, `.ingest.json` at a trip's root. Internal
+ * bookkeeping nobody asked to export, in every scope and every export — a
+ * real zip pulled from a scratch journal turned up `.DS_Store` at the trip
+ * root *and* under `media/`, so this checks every segment rather than only
+ * the first the way the `originals/` check below does (B1387).
+ */
+function isDotfilePath(relativeToTripRoot: string): boolean {
+  return relativeToTripRoot.split(path.sep).some((segment) => segment.startsWith("."));
+}
+
+/**
  * Queues one user's content onto a zip archive. Doesn't finalize it — the
  * caller decides how to consume the resulting stream (buffered for a test or
  * a CLI write, or piped straight into an HTTP response body).
+ *
+ * `tripId`, when given, narrows to one trip — B1387. `scope` still answers
+ * *who may see this*; `tripId` answers *how much*, and the two compose: a
+ * trip-scoped export of the `"open-to-link"` scope (nothing currently asks
+ * for that combination, but nothing here assumes otherwise) still drops a
+ * `private` trip's own files, and a trip-scoped `"all"` export — the shape a
+ * trip deletion mails — narrows to that one trip's own directory and nothing
+ * else in the journal.
+ *
+ * A trip-scoped export never carries `config.json`: that file holds the
+ * whole owner block (name, email, phone), and a mail whose prose says "this
+ * trip" must not also hand over the rest of the journal's identity. Only the
+ * whole-journal export (`tripId` absent) carries it.
  */
 function appendUserContent(
   archive: ZipArchive,
   username: string,
   scope: ExportScope,
+  tripId?: string,
 ): void {
   const root = userDir(username);
 
-  const configPath = userConfigPath(username);
-  if (fs.existsSync(configPath)) {
-    archive.file(configPath, { name: "config.json" });
-  }
-
-  // B684 stores the model-consent record as a file beside the journal so it
-  // travels in the journal's own backup and export. That is only true of the
-  // owner's own "all" export: it names nothing about a reader, but it is a
-  // record of what the *owner* agreed to, and has no business in the
-  // anonymous "open-to-link" copy of the archive.
-  if (scope === "all") {
-    const consentPath = consentFile(username);
-    if (fs.existsSync(consentPath)) {
-      archive.file(consentPath, { name: "helper-consent.json" });
+  if (tripId === undefined) {
+    const configPath = userConfigPath(username);
+    if (fs.existsSync(configPath)) {
+      archive.file(configPath, { name: "config.json" });
     }
   }
 
-  for (const trip of tripsForScope(username, scope)) {
+  // The model-consent record (B684) used to travel in the owner's own "all"
+  // export — a record of what the *owner* agreed to, so it seemed to belong
+  // beside the rest of the backup. It is internal bookkeeping exactly the way
+  // a dotfile is, though, and a real export pulled from a scratch journal
+  // showed it sitting at the content root alongside `.DS_Store` and
+  // `.ingest.json` rather than anywhere a restore reads from — so it is now
+  // excluded the same way those are (`consentFile()`, deliberately not
+  // called here — B1387), in every scope, not only the anonymous one.
+
+  for (const trip of tripsForScope(username, scope, tripId)) {
     const tripRoot = path.join(root, "trips", trip.id);
     for (const file of walkFiles(tripRoot)) {
+      const relative = path.relative(tripRoot, file);
       // Never the originals, in either scope. They are what the photobook
       // prints from, an order of magnitude larger than what the site serves,
       // and an export people actually download has to stay downloadable —
       // back them up with the filesystem, not through a browser.
-      if (path.relative(tripRoot, file).split(path.sep)[0] === "originals") continue;
+      if (relative.split(path.sep)[0] === "originals") continue;
+      if (isDotfilePath(relative)) continue;
       if (scope === "open-to-link" && isDraftEntry(file)) continue;
       const name = path.relative(root, file).split(path.sep).join("/");
       archive.file(file, { name });
@@ -130,10 +163,15 @@ function appendUserContent(
 }
 
 /** A fresh, unfinalized archive with one user's content already queued onto
- * it — `finalize()` and consume the stream (or use one of the helpers below). */
-export function createUserExportArchive(username: string, scope: ExportScope): ZipArchive {
+ * it — `finalize()` and consume the stream (or use one of the helpers below).
+ * `tripId` narrows to one trip; see `appendUserContent`. */
+export function createUserExportArchive(
+  username: string,
+  scope: ExportScope,
+  tripId?: string,
+): ZipArchive {
   const archive = new ZipArchive({ zlib: { level: 9 } });
-  appendUserContent(archive, username, scope);
+  appendUserContent(archive, username, scope, tripId);
   return archive;
 }
 
@@ -142,8 +180,9 @@ export function createUserExportArchive(username: string, scope: ExportScope): Z
 export async function buildUserExportZipBuffer(
   username: string,
   scope: ExportScope,
+  tripId?: string,
 ): Promise<Buffer> {
-  const archive = createUserExportArchive(username, scope);
+  const archive = createUserExportArchive(username, scope, tripId);
   const bufferPromise = streamToBuffer(archive);
   await archive.finalize();
   return bufferPromise;

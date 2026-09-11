@@ -94,10 +94,11 @@ export type HelperConsent = {
   declined?: HelperScope[];
 };
 
-/** Exported so a journal's own export (`lib/exportZip.ts`) can carry the
- *  record alongside it — B722. Owner-only: the file is only ever queued into
- *  the `"all"` export scope, never `"open-to-link"`. */
-export function consentFile(username: string): string {
+/** Used only within this file since B1387 — `lib/exportZip.ts` used to queue
+ *  this record into the owner's own `"all"` export (B722), but it is internal
+ *  bookkeeping the same way a dotfile is and is excluded from every export
+ *  now, so nothing outside this module needs the path any more. */
+function consentFile(username: string): string {
   // Belt and braces: every caller has already resolved the journal, but this
   // joins a name onto a path and a name is a security boundary.
   if (!isValidUsername(username)) throw new Error(`helper: bad username "${username}"`);

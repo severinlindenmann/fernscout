@@ -1130,6 +1130,7 @@ export type TranslationKey =
   | "del.notYou"
   | "del.pageLead"
   | "del.tripButton"
+  | "del.tripExport"
   | "del.tripFailed"
   | "del.tripIntro"
   | "del.tripQuestion"
