@@ -1,11 +1,38 @@
 import "server-only";
+import fs from "node:fs";
 import type { Tool } from "../types";
 import { DAY_ARGS } from "../args";
+import { isEnabled } from "../../../capabilities";
+import { listContacts, normaliseEmail } from "../../../contacts";
+import { readContactsFile } from "../../../contacts/readImport";
 import { AS_AUTHOR, getEntryBySlug } from "../../../entries";
 import { findInboxFile, listInbox } from "../../../inbox";
 import { formatBytes } from "../../../storageQuota";
 import { getTrips } from "../../../trips";
 import { resolveDay, tripIdFor } from "../resolve";
+
+/** The one staged vCard `import_contacts` is about, or why there is none —
+ *  B1394. Ticked wins over the single waiting card, the same rule
+ *  `attach_files` above already applies to a photograph. */
+function findCard(
+  username: string,
+  selected: string[],
+): { id: string; filename: string } | "none" | "ambiguous" {
+  const waiting = listInbox(username).files.filter((entry) => /\.vcf$/i.test(entry.filename));
+  const ticked = selected
+    .filter((id) => id.startsWith("inbox:"))
+    .map((id) => id.slice("inbox:".length));
+  const tickedCard = waiting.find((entry) => ticked.includes(entry.id));
+  if (tickedCard) return { id: tickedCard.id, filename: tickedCard.filename };
+  if (waiting.length === 1) return { id: waiting[0].id, filename: waiting[0].filename };
+  if (waiting.length === 0) return "none";
+  return "ambiguous";
+}
+
+/** `import_contacts`'s own ceiling — the write route's own `MAX_ROWS`
+ *  (`app/api/v1/[user]/contacts/import/route.ts`), matched here so a card
+ *  never offers more ticks than a single press can file. */
+const MAX_VCARD_ROWS = 50;
 
 /** What kind of thing an inbox entry is, in the words a person reads rather
  *  than the folder name — `INBOX_KINDS` from `lib/inbox.ts`. */
@@ -358,6 +385,117 @@ export const FILES_TOOLS: readonly Tool[] = [
         accept: say("agent.tool.discardFileAccept"),
         done: say(found.length > 1 ? "agent.tool.discardFileManyDone" : "agent.tool.discardFileDone"),
         fields: [{ name: "file", value: found.map((one) => one.entry.id).join(","), fixed: true }],
+      };
+    },
+  },
+  {
+    /**
+     * A phone's own address book, read and reported into the conversation —
+     * B1394, the second half.
+     *
+     * The read (`POST /api/v1/<user>/import`, kind `contacts`) and the write
+     * (`POST /api/v1/<user>/contacts/import`) were both built and both stay
+     * correctly separated: the write takes only the rows it is given, and
+     * nothing here or anywhere else lets a model pick which of somebody's
+     * contacts are actually contacts of this journal. What was missing is
+     * the surface that gives the write its rows at all — this tool, and the
+     * card it draws.
+     *
+     * **A card, not a page.** The alternative — `/agent/<user>/inbox`, the
+     * way a bank statement or a location export are read today — was
+     * rejected: a vCard is somebody's whole address book, and taking a
+     * person out of the conversation to tick names on a separate screen is
+     * a worse answer than a card right where they are already talking.
+     * `HelperAsk`'s own proposal engine already draws a sentence and a
+     * button; this only adds one shape of field to it (`checkbox`,
+     * `lib/helper/blocks.ts`) rather than a screen of its own.
+     *
+     * **Nothing here writes.** `propose` reads the staged file and reports
+     * what is on it; the press posts to `/api/helper/<user>/contacts/import`,
+     * which calls the same `importContactRows` the documented v1 route does
+     * — every agreed row lands `pending`, with its own confirmation mail,
+     * exactly as `approveContact` requires.
+     */
+    name: "import_contacts",
+    kind: "write",
+    renders: "form",
+    describe: "Propose vCard contacts.",
+    properties: {},
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/contacts/import`,
+    propose: async (username, _args, say, _today, selected) => {
+      const unavailable = !isEnabled("contacts", username);
+      const card = unavailable ? "none" : findCard(username, selected);
+
+      if (unavailable || card === "none" || card === "ambiguous") {
+        return {
+          sentence: "",
+          accept: "",
+          done: "",
+          fields: [],
+          refuse: unavailable
+            ? "agent.tool.contactsUnavailable"
+            : card === "ambiguous"
+              ? "agent.tool.contactsImportAmbiguous"
+              : "agent.tool.contactsImportNone",
+        };
+      }
+
+      const found = findInboxFile(username, card.id);
+      const text = found ? fs.readFileSync(found.file, "utf8") : "";
+      const read = readContactsFile(text, card.filename);
+      if ("refusal" in read) {
+        return {
+          sentence: "",
+          accept: "",
+          done: "",
+          fields: [],
+          refuse: "agent.tool.contactsImportUnreadable",
+        };
+      }
+
+      const selectable = read.people.filter((person) => person.email).slice(0, MAX_VCARD_ROWS);
+      const skipped = read.people.length - selectable.length;
+      if (selectable.length === 0) {
+        return {
+          sentence: "",
+          accept: "",
+          done: "",
+          fields: [],
+          refuse: "agent.tool.contactsImportNoEmail",
+        };
+      }
+
+      const known = new Set((await listContacts(username)).map((contact) => normaliseEmail(contact.email)));
+
+      return {
+        sentence: say(
+          skipped > 0 ? "agent.tool.contactsImportFoundSome" : "agent.tool.contactsImportFound",
+          { count: String(selectable.length), skipped: String(skipped) },
+        ),
+        accept: say("agent.tool.contactsImportAccept"),
+        done: say("agent.tool.contactsImportDone"),
+        fields: [
+          // The rows themselves, resolved here and never retyped by a model
+          // — B1107's rule applied to a whole list rather than one id. Every
+          // `sel_<n>` checkbox below is index-aligned to this array, which
+          // is what the write route reconstructs against.
+          {
+            name: "vcard_rows",
+            value: JSON.stringify(
+              selectable.map((person) => ({ name: person.name, email: person.email, tel: person.tel ?? "" })),
+            ),
+            fixed: true,
+          },
+          ...selectable.map((person, index) => ({
+            name: `sel_${index}`,
+            value: "1",
+            checkbox: true as const,
+            label: person.name,
+            detail: known.has(normaliseEmail(person.email as string))
+              ? say("agent.tool.contactsImportKnown")
+              : undefined,
+          })),
+        ],
       };
     },
   },
