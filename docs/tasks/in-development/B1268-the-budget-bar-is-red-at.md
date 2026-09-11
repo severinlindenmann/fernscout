@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: costs
 found: "2026-09-10T10:08:12Z"
+started: "2026-09-11T13:25:04Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T13:25:04Z"
 ---
 
 # B1268 — The budget bar is red at half the budget spent, because its colour and its length measure different things

@@ -275,7 +275,7 @@ Do not edit them by hand; run the script.
 | [B1364](backlog/wont-do/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (42)
+## open (39)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -291,12 +291,10 @@ Do not edit them by hand; run the script.
 | [B1248](open/B1248-the-health-endpoint-reports-content-ok.md) | The health endpoint reports content ok without ever checking the content root is writable | ISSUE | medium | low |
 | [B1258](open/B1258-the-publish-card-says-to-read.md) | The publish card says to read the day as readers will see it and does not show the day | ISSUE | medium | low |
 | [B1260](open/B1260-a-trip-with-nothing-recorded-yet.md) | A trip with nothing recorded yet fills two phone screens with an empty sky, the whole world map and six zeros | ISSUE | medium | medium |
-| [B1268](open/B1268-the-budget-bar-is-red-at.md) | The budget bar is red at half the budget spent, because its colour and its length measure different things | ISSUE | medium | low |
 | [B1286](open/B1286-the-postcard-back-is-labelled-at.md) | The postcard back is labelled at print size and renders its message at eight pixels on a phone | ISSUE | medium | low |
 | [B1289](open/B1289-the-map-of-a-finished-trip.md) | The map of a finished trip is titled Where we're going and says no days are written when one is | ISSUE | medium | low |
 | [B1295](open/B1295-the-landing-page-promises-you-can.md) | The landing page promises you can export everything, and somebody without an agent has no way to | ISSUE | medium | medium |
 | [B1297](open/B1297-agents-md-says-there-is-no.md) | AGENTS.md says there is no form that maps fields onto frontmatter, and Correct this day is one | DOCS | medium | low |
-| [B1300](open/B1300-with-one-day-of-costs-the.md) | With one day of costs the bar chart is a full-width block and the running total draws nothing | ISSUE | medium | low |
 | [B673](open/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium |
 | [B1045](open/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low |
 | [B1046](open/B1046-two-sessions-running-verify-in-the.md) | Two sessions running verify in the shared checkout collide on the next build lock | DOCS | low | low |
@@ -317,24 +315,26 @@ Do not edit them by hand; run the script.
 | [B1432](open/B1432-german-phrasing-for-where-s-my.md) | German phrasing for “where's my stuff” still routes to the bytes-only account tool | ISSUE | low | low |
 | [B1434](open/B1434-the-photograph-reaches-meta-first-disclosure.md) | The photograph-reaches-Meta-first disclosure has no owner-facing home after B1396 | DOCS | low | low |
 | [B442](open/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
-| [B539](open/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low |
 | [B666](open/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (9)
+## in-development (12)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1094](in-development/B1094-editing-a-contact-opens-a-form.md) | Editing a contact opens a form off-screen above the button, so the button looks broken | ISSUE | medium | low | `13f12910` |
 | [B1131](in-development/B1131-removing-somebody-from-a-trip-tells.md) | Removing somebody from a trip tells the owner their token keeps working, and it does not | ISSUE | medium | low | `13f12910` |
 | [B1132](in-development/B1132-the-address-confirmation-mail-says-nothing.md) | The address-confirmation mail says nothing opens yet, but a pre-approved invite admits the reader on confirming | ISSUE | medium | low | `13f12910` |
+| [B1268](in-development/B1268-the-budget-bar-is-red-at.md) | The budget bar is red at half the budget spent, because its colour and its length measure different things | ISSUE | medium | low | `13f12910` |
 | [B1272](in-development/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low | `13f12910` |
 | [B1281](in-development/B1281-add-a-guest-reuses-the-guest.md) | Add a guest reuses the guest's own form, so the owner is asked for Your name and Write to me in | ISSUE | medium | low | `13f12910` |
+| [B1300](in-development/B1300-with-one-day-of-costs-the.md) | With one day of costs the bar chart is a full-width block and the running total draws nothing | ISSUE | medium | low | `13f12910` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
 | [B1461](in-development/B1461-the-photobook-receipt-page-never-says.md) | The photobook receipt page never says what the book cost | FEATURE | medium | low | `3f748903` |
 | [B1283](in-development/B1283-the-phone-country-field-is-too.md) | The phone country field is too narrow for its own default value, so the dialling code is cut off | ISSUE | low | low | `13f12910` |
+| [B539](in-development/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low | `13f12910` |
 
 ## testing (0)
 

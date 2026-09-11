@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: costs, dataviz
 found: "2026-09-10T11:14:27Z"
+started: "2026-09-11T13:25:06Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T13:25:06Z"
 ---
 
 # B1300 — With one day of costs the bar chart is a full-width block and the running total draws nothing
