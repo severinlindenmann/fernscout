@@ -1,6 +1,6 @@
 import "server-only";
+import { adminEmail } from "../admin";
 import { refund } from "../credits";
-import { getUser } from "../users";
 import { serverSite } from "../site";
 import { isoCountry } from "./country";
 import { signFileLink } from "./fileLink";
@@ -204,7 +204,14 @@ function bookOrderFor(
   shipmentMethodUid: string,
   country: string,
 ) {
-  const email = getUser(owner)?.owner.email ?? "";
+  // Never the journal owner's address (B1439). Buying a book here is not a
+  // decision to enter a relationship with the printer, and every word about
+  // an order should come from Fernscout, not from Gelato mailing the owner
+  // directly. `site/config.json` has no site-wide contact address to fall
+  // back to, so an instance with no admin address set posts none at all —
+  // a configuration gap an operator can read and fix, rather than silently
+  // reinstating the leak.
+  const email = adminEmail() ?? "";
   const base = serverSite().url;
   const files = payload.files ?? [];
   const interior = files.find((f) => f.endsWith("-interior.pdf")) ?? "book-interior.pdf";
