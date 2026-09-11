@@ -942,6 +942,21 @@ export async function revokeContact(owner: string, id: string): Promise<ContactR
  * whoever holds the new address has to confirm and be approved again, same
  * as anyone else.
  */
+/**
+ * Thrown by `updateContactByOwner` on a self-authored row — B1395.
+ *
+ * A row created through `/api/contacts/self` (`created_via` starting
+ * `self:`) is a person's own statement about themselves, given by the
+ * address it names. Option A of B1395 decided that once such a row exists,
+ * it wins: the owner may still see it, revoke it (`revokeContact`) or delete
+ * it (`deleteContact`) — neither of those goes through here — but cannot
+ * silently rewrite what the person wrote. A postcard proposal stores only a
+ * `contactId` and re-reads the address live at send (`lib/postcard/orders.ts`),
+ * so an owner overwrite would otherwise change what an already-reviewed card
+ * prints with nothing on the review page saying the address moved.
+ */
+export class SelfAuthoredContactError extends Error {}
+
 export async function updateContactByOwner(
   owner: string,
   id: string,
@@ -963,6 +978,16 @@ export async function updateContactByOwner(
     .where("id", "=", id)
     .executeTakeFirst();
   if (!existing) return null;
+
+  // Every field this function can write is a field the person themselves
+  // authored on a self-authored row — see `SelfAuthoredContactError`. There
+  // is nothing left for the owner to change here once any field is given;
+  // `revokeContact` and `deleteContact` are the doors that still work.
+  if ((existing.created_via ?? "").startsWith("self:") && Object.keys(fields).length > 0) {
+    throw new SelfAuthoredContactError(
+      `contact ${id} was written by its own address and cannot be edited by the owner`,
+    );
+  }
 
   const patch: Record<string, unknown> = { updated_at: nowIso() };
   let emailChanged = false;

@@ -79,7 +79,13 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
     const contact = (await listContacts(user)).find(
       (c) => c.email === normaliseEmail(viewer.email!),
     );
-    if (contact) {
+    // A person named in a trip's own `people:` block has write access and,
+    // unlike somebody who redeemed a buddy link, no contacts row to have
+    // earned it — `isPersonOnWith` is satisfied by the file alone. B1395:
+    // without this they had nowhere on the page to give or correct an
+    // address at all. See `app/api/contacts/self/route.ts`.
+    const isTraveller = viewer.trips.some((trip) => trip.through === "traveller");
+    if (contact || isTraveller) {
       // The reader's own UI language, not the one on the contact record —
       // the record's `locale` is a separate question ("write to me in"),
       // still asked inside the form's own dropdown. Rendering the form's
@@ -87,19 +93,34 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       // header in whatever language this reader is actually reading in.
       const uiLocale = await requestLocale();
       manage = {
-        token: manageTokenFor(user, contact.id),
+        // No manage token exists until the row does — `manageTokenFor` names
+        // an id, and there is none yet. `ContactManage` reads an empty token
+        // as "post through `/api/contacts/self` instead", never as a real
+        // credential for `/api/contacts/manage`.
+        token: contact ? manageTokenFor(user, contact.id) : "",
         locales: localesFor(user),
         dictionary: dictionaryFor(uiLocale),
-        contact: {
-          name: contact.name ?? "",
-          email: contact.email,
-          locale: pickLocale(contact.locale, journal.defaultLocale),
-          status: contact.status,
-          wantsEmailDigest: contact.wantsEmailDigest,
-          wantsPostcard: contact.wantsPostcard,
-          wantsWhatsapp: contact.wantsWhatsapp,
-          address: contact.postalAddress ?? EMPTY_ADDRESS,
-        },
+        contact: contact
+          ? {
+              name: contact.name ?? "",
+              email: contact.email,
+              locale: pickLocale(contact.locale, journal.defaultLocale),
+              status: contact.status,
+              wantsEmailDigest: contact.wantsEmailDigest,
+              wantsPostcard: contact.wantsPostcard,
+              wantsWhatsapp: contact.wantsWhatsapp,
+              address: contact.postalAddress ?? EMPTY_ADDRESS,
+            }
+          : {
+              name: "",
+              email: viewer.email,
+              locale: pickLocale(null, journal.defaultLocale),
+              status: "pending",
+              wantsEmailDigest: false,
+              wantsPostcard: false,
+              wantsWhatsapp: false,
+              address: EMPTY_ADDRESS,
+            },
         // B385: same fallback `toE164` reads at send time.
         defaultCountryCode: whatsappCountryCode(),
         // B399: same server-ceiling-and-journal-opt-in check as everywhere

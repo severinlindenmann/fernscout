@@ -985,6 +985,26 @@ describe("the owner adding a guest", () => {
   });
 
   /**
+   * B1395 — once a row carries `createdVia: "self:…"` (written by the person
+   * it names, through `/api/contacts/self`), the owner cannot silently
+   * rewrite what they wrote. `revokeContact` and `deleteContact` are
+   * untouched — the owner can still see the row, block it or remove it —
+   * this is only about `update`.
+   */
+  test("update refuses a self-authored row", async () => {
+    const { contactId } = await requestContact("u", {
+      name: "Kevin", email: "kevin@example.com", locale: "en",
+      address: { line1: "1 Road", city: "Bern", country: "CH" },
+      wantsEmailDigest: false, wantsPostcard: false, createdVia: "self:traveller",
+    });
+    await expect(
+      updateContactByOwner("u", contactId!, { name: "Corrected by owner" }),
+    ).rejects.toThrow();
+    const after = await getContact("u", contactId!);
+    expect(after?.name).toBe("Kevin");
+  });
+
+  /**
    * The fix in this round: `updateContactByOwner` cannot *set* `status`, but
    * changing the email on an already-active row used to leave `status:
    * "active"`, `confirmed_at` set and the `access_grants` row untouched — an
