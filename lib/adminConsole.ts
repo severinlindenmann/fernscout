@@ -284,6 +284,43 @@ export async function troubles(since: string): Promise<Trouble[]> {
       });
     }
 
+    // B1165. A photobook refusal returns the row to `printed` — B1348's
+    // conditional claim needs it retryable, not stuck — so the `WHERE status
+    // = 'failed'` above never sees it. `markPrintFailed` records what
+    // happened in `payload.print`, so a second pass over recent `printed`
+    // rows, filtered in application code (this column is JSON-as-text, not
+    // something either dialect can query into portably), is what surfaces
+    // one to the operator at all.
+    const printedRecently = await handle.db
+      .selectFrom("print_orders")
+      .select(["owner_id", "kind", "provider", "created_at", "id", "payload"])
+      .where("status", "=", "printed")
+      .where("kind", "=", "photobook")
+      .where("created_at", ">=", since)
+      .orderBy("created_at", "desc")
+      .limit(20)
+      .execute();
+    for (const row of printedRecently) {
+      let print: { failure?: string; providerMessage?: string } | undefined;
+      try {
+        print = (JSON.parse(row.payload) as { print?: typeof print }).print;
+      } catch {
+        continue;
+      }
+      if (!print?.failure) continue;
+      found.push({
+        what: "A photobook never printed",
+        owner: row.owner_id,
+        when: row.created_at.slice(0, 10),
+        // The provider's own words, for the operator only — an owner's order
+        // page never reads this field.
+        detail: `${row.provider} refused it (${print.failure})${
+          print.providerMessage ? ` — "${print.providerMessage}"` : ""
+        } · order ${row.id}`,
+        ref: row.id,
+      });
+    }
+
     // Filed, mailed, and still sitting there. `requested_at` rather than
     // `created_at`: a row is created when somebody opens the purchase page and
     // may never be filed at all, and an abandoned checkout is not a person

@@ -64,7 +64,11 @@ function toMinor(price: number): number {
   return Math.round(price * 100);
 }
 
-async function post<T>(url: string, key: string, body: unknown): Promise<T | { error: GelatoFailure }> {
+async function post<T>(
+  url: string,
+  key: string,
+  body: unknown,
+): Promise<T | { error: GelatoFailure; message?: string }> {
   let response: Response;
   try {
     response = await fetch(url, {
@@ -79,9 +83,11 @@ async function post<T>(url: string, key: string, body: unknown): Promise<T | { e
   const raw = await response.text();
   if (!response.ok) {
     // Their own words, never the key. Logged for whoever reads server logs;
-    // the caller only ever sees "refused".
+    // most callers still only ever look at `error` — B1165 is what reads
+    // `message` too, to keep it beside the order rather than only in
+    // `journalctl`.
     console.error("gelato refused:", raw.slice(0, 500));
-    return { error: "refused" };
+    return { error: "refused", message: providerMessageFrom(raw) };
   }
 
   try {
@@ -89,6 +95,19 @@ async function post<T>(url: string, key: string, body: unknown): Promise<T | { e
   } catch {
     console.error("gelato: unparseable response:", raw.slice(0, 500));
     return { error: "refused" };
+  }
+}
+
+/**
+ * Gelato's own `{code, message, details}` shape, or nothing readable — B1165.
+ * Never the key, and never anything this server did not receive back.
+ */
+function providerMessageFrom(raw: string): string | undefined {
+  try {
+    const parsed = JSON.parse(raw) as { message?: unknown };
+    return typeof parsed.message === "string" ? parsed.message : undefined;
+  } catch {
+    return undefined;
   }
 }
 
@@ -140,7 +159,9 @@ export async function quoteBook(input: QuoteInput): Promise<QuoteResult | { erro
   };
 }
 
-export async function submitBookPrint(order: BookOrder): Promise<{ providerRef: string } | { error: GelatoFailure }> {
+export async function submitBookPrint(
+  order: BookOrder,
+): Promise<{ providerRef: string } | { error: GelatoFailure; message?: string }> {
   const key = process.env.GELATO_API_KEY;
   if (!key) return { error: "no_key" };
 

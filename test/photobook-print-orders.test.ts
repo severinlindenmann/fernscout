@@ -5,6 +5,7 @@ import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
+import { troubles } from "@/lib/adminConsole";
 import { DEFAULT_OPTIONS } from "@/lib/photobook/options";
 import {
   claimForPrint,
@@ -101,5 +102,53 @@ describe("print state on the order row", () => {
     const row = await getPhotobookOrder(OWNER, id);
     expect(row?.status).toBe("printed");
     expect(row?.payload.print?.failure).toBe("refused");
+  });
+
+  // B1165. The live case this closes: two paid orders came back "refused"
+  // with no account of why beyond `journalctl`.
+  test("keeps the provider's own message beside the failure code", async () => {
+    const id = "print-five-1234";
+    await claimOrder(OWNER, id, PAYLOAD);
+    await markPrinted(OWNER, id, PAYLOAD);
+    await claimForPrint(OWNER, id);
+    await markPrintFailed(
+      OWNER,
+      id,
+      PAYLOAD,
+      "refused",
+      "To be able to place an order please complete the company information in the portal.",
+    );
+    const row = await getPhotobookOrder(OWNER, id);
+    expect(row?.payload.print?.providerMessage).toBe(
+      "To be able to place an order please complete the company information in the portal.",
+    );
+  });
+
+  test("a refused, retryable order still reaches the operator's attention band", async () => {
+    // The row stays `printed` (B1348's conditional claim needs it retryable),
+    // so `troubles()`'s original `WHERE status = 'failed'` alone never saw
+    // it — this asserts the second pass over `printed` rows does.
+    const id = "print-six-1234";
+    await claimOrder(OWNER, id, PAYLOAD);
+    await markPrinted(OWNER, id, PAYLOAD);
+    await claimForPrint(OWNER, id);
+    await markPrintFailed(OWNER, id, PAYLOAD, "refused", "complete the company information");
+
+    const found = await troubles("2020-01-01");
+    const mine = found.find((t) => t.ref === id);
+    expect(mine).toBeDefined();
+    expect(mine?.owner).toBe(OWNER);
+    // The provider's own words, for the operator — never shown to the owner.
+    expect(mine?.detail).toContain("complete the company information");
+  });
+
+  test("a book still on its way to the printer is not a trouble", async () => {
+    const id = "print-seven-1234";
+    await claimOrder(OWNER, id, PAYLOAD);
+    await markPrinted(OWNER, id, PAYLOAD);
+    // No `markPrintFailed` — this order has no `print.failure` at all, so the
+    // second pass over `printed` rows must not invent one.
+    const found = await troubles("2020-01-01");
+    expect(found.find((t) => t.ref === id)).toBeUndefined();
   });
 });

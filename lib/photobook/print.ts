@@ -171,7 +171,7 @@ export async function submitBuiltBook(owner: string, id: string): Promise<PrintO
     // failure is the real GelatoFailure, not a fixed word, so /admin (B1165)
     // can eventually show what actually happened.
     await refund(owner, order.payload.credits, id);
-    await markPrintFailed(owner, id, order.payload, result.error);
+    await markPrintFailed(owner, id, order.payload, result.error, result.message);
     return { ok: false, reason: isOperatorFault(result.error) ? "refused" : "provider_unavailable" };
   }
 
@@ -353,7 +353,7 @@ export async function printOrder(owner: string, id: string, quotedCredits: numbe
 
   if ("error" in result) {
     await refund(owner, quotedCredits, id);
-    await markPrintFailed(owner, id, order.payload, result.error);
+    await markPrintFailed(owner, id, order.payload, result.error, result.message);
     return { ok: false, reason: isOperatorFault(result.error) ? "refused" : "provider_unavailable" };
   }
 
