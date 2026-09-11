@@ -971,6 +971,50 @@ export function claimsAccess(text: string): boolean {
 }
 
 /**
+ * A promise to add a postcard recipient by name and town — B1280.
+ *
+ * *"Yes please. Add Anna Muster, Bern, Switzerland."* was answered with **"I
+ * can't add recipients from here — that's done on your journal's own
+ * settings page."** — a page that does not exist, reached after an offer no
+ * tool here could ever honour, and one turn away from an address typed
+ * straight into a stored transcript. AGENTS.md is explicit that an address
+ * must never reach an agent: `postcard_recipients` only reads who has
+ * already asked, and `propose_postcards` addresses somebody only by a
+ * `contactId` that tool already offered — nothing here can write a new row
+ * from a name and a place.
+ *
+ * Kept narrow on purpose, the same way `CAN_READ` is: an add/save/record verb
+ * next to "recipient" or "contact", not every sentence that offers a
+ * postcard or proposes one to somebody already on the list. "Would you like
+ * to send a card?" and "I can propose one for your existing recipients" do
+ * not match either half.
+ */
+const ADDS_RECIPIENT = new RegExp(
+  [
+    // en — "I'll add them as a recipient", "save Anna as a contact",
+    // "recipient has been added"
+    "\\b(?:add|save|record|register|note down|enter)\\w*\\s+(?:\\S+\\s+){0,6}?(?:as\\s+(?:a|the)\\s+)?(?:recipient|contact)s?\\b",
+    "\\b(?:recipient|contact)s?\\s+(?:\\S+\\s+){0,3}?(?:added|saved|recorded|registered|entered)\\b",
+    // de — "füge sie als Empfänger hinzu", "Empfänger gespeichert"
+    "\\b(?:f\u00fcge|speichere|trage|lege|nehme)\\w*\\s+(?:\\S+\\s+){0,6}?(?:empf\u00e4nger|kontakt)\\w*\\b",
+    "\\b(?:empf\u00e4nger|kontakt)\\w*\\s+(?:\\S+\\s+){0,4}?(?:hinzuf\u00fcg\\w*|gespeichert|eingetragen|angelegt)\\b",
+    // hu — "hozzáadom címzettként", "felveszem kontaktnak", "címzett hozzáadva"
+    "\\b(?:hozz\u00e1ad\\w*|felvesz\\w*|r\u00f6gz\u00edt\\w*|ment\\w*)\\w*\\s+(?:\\S+\\s+){0,6}?(?:c\u00edmzett\\w*|kontakt\\w*)\\b",
+    "\\b(?:c\u00edmzett\\w*|kontakt\\w*)\\s+(?:\\S+\\s+){0,4}?(?:hozz\u00e1ad\\w*|felvett\\w*|r\u00f6gz\u00edtve|elmentve)\\b",
+  ].join("|"),
+  "i",
+);
+
+/** True when this text promises a postcard recipient has been or will be
+ *  added, saved or recorded — never true, since nothing in this registry can
+ *  do that from a name and a town. */
+function claimsAddsRecipient(text: string): boolean {
+  return withoutMarkers(text)
+    .split(/(?<=[.!?\n])\s+/)
+    .some((sentence) => ADDS_RECIPIENT.test(sentence) && !DENIED.test(sentence));
+}
+
+/**
  * What a day says, asserted from memory — B932.
  *
  * She said the saved text was missing *"es war schön"* and was told **"Der
@@ -1238,6 +1282,19 @@ const READ_TOOL_NAMES = new Set(TOOLS.filter((tool) => tool.kind === "read").map
 const WRITE_TOOL_NAMES = new Set(TOOLS.filter((tool) => tool.kind === "write").map((tool) => tool.name));
 
 /**
+ * Tools that could actually record a new postcard recipient from a name and
+ * a place — B1280. Empty today: `postcard_recipients` only reads who has
+ * already asked and `propose_postcards` addresses somebody already on that
+ * list, by `contactId`. Read from the registry, not written as a fixed
+ * `false`, so this stops matching by itself the day a tool like `add_contact`
+ * is registered and actually proposed on the turn — nothing here needs
+ * updating when that lands.
+ */
+const RECIPIENT_WRITE_TOOL_NAMES = new Set(
+  TOOLS.filter((tool) => tool.kind === "write" && tool.name === "add_contact").map((tool) => tool.name),
+);
+
+/**
  * A closed, small class of words that ask for a **fact** — as opposed to a
  * polite way of asking for an *action*, which is a bare `?` and nothing more.
  *
@@ -1471,6 +1528,15 @@ Call the tool now, with whatever you already know filled in and the rest left em
 const ACCESS_RETRY = `Stop. Your last answer said a person can read something, and nothing on this turn makes that true. Naming somebody does not let them in: a trip that is not public is open to the people who were on it and to the guests the owner has already approved, and nobody else. Saying otherwise is the worst thing you can get wrong here — this journal exists so that somebody's family can read it, and they will believe you.
 
 Answer again. If they want that person to read it, call invite_guest: it proposes a link for them to send. Say what the link is — the person opens it, proves their own address, and then asks; they can read nothing until the owner approves them. Otherwise say plainly, in their language, that the person has not been invited yet and cannot read it.`;
+
+/**
+ * What the model is told when it promised to add a postcard recipient —
+ * B1280. There is no tool that can write a recipient from a name and a
+ * place, so this claim is never true, whatever the turn did.
+ */
+const RECIPIENT_RETRY = `Stop. Your last answer said a postcard recipient would be, or has been, added, saved or recorded by name and place. There is no tool here that can do that: postcard_recipients only reads who has already asked, and propose_postcards addresses somebody already on that list, by id. Nothing you write adds anyone, and no address may ever be typed into this conversation.
+
+Answer again. Say plainly that nobody has asked this journal for post yet, and that a reader opts in themselves. If they want that person invited, call invite_guest — it proposes a link for the person to open; say only what that link does (they may then ask to read the journal), never that it makes them a postcard recipient. You may also say they can invite readers themselves, from their own access page. Ask for no name, no town and no country.`;
 
 /**
  * What the model is told when it has said what a day says — B932.
@@ -1818,6 +1884,7 @@ export async function answerInThread(
     | "pending"
     | "words"
     | "access"
+    | "recipient"
     | "day"
     | "up"
     | "total"
@@ -1860,6 +1927,16 @@ export async function answerInThread(
     if (saysTheListAgain(answer, blocks)) return "list";
     if (claimsAccess(answer) && !proposals.some((one) => one.tool === "invite_guest")) {
       return "access";
+    }
+    // B1280 — a promise no tool in this registry can keep. Checked against
+    // RECIPIENT_WRITE_TOOL_NAMES rather than a fixed "no such tool", so this
+    // stops firing on its own once a tool that can actually do it is
+    // registered and this turn proposed it.
+    if (
+      claimsAddsRecipient(answer) &&
+      !proposals.some((one) => RECIPIENT_WRITE_TOOL_NAMES.has(one.tool))
+    ) {
+      return "recipient";
     }
     if (claimsWhatADaySays(answer) && !looked.includes("read_day")) return "day";
     /**
@@ -1994,6 +2071,7 @@ export async function answerInThread(
     pending: PENDING_RETRY,
     words: WORDS_RETRY,
     access: ACCESS_RETRY,
+    recipient: RECIPIENT_RETRY,
     day: READ_IT_RETRY,
     up: IS_IT_UP_RETRY,
     total: COUNT_IT_RETRY,
@@ -2018,6 +2096,7 @@ export async function answerInThread(
     pending: "agent.notUntilYouPress",
     words: "agent.noWordsProposed",
     access: "agent.noAccessYet",
+    recipient: "agent.noRecipientAddTool",
     day: "agent.notRead",
     up: "agent.notRead",
     total: "agent.notCounted",

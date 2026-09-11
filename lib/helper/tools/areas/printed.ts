@@ -67,7 +67,21 @@ export const PRINTED_TOOLS: readonly Tool[] = [
         available: boolean;
         recipients: { contactId: string; name: string; city: string; country: string | null }[];
       };
-      if (!result.available || result.recipients.length === 0) return null;
+      if (!result.available) return null;
+      // B1280 — the truth, drawn rather than left to the model's own prose:
+      // nobody has asked yet, and the real page is named by its real name.
+      // `postcard.noRecipients` already says the first half correctly in
+      // all three locales; this only adds where that page actually is.
+      if (result.recipients.length === 0) {
+        return {
+          shape: "say",
+          text: say("agent.block.postcardNoRecipients", {
+            base: say("postcard.noRecipients"),
+            page: say("contact.adminTitle"),
+            nav: say("me.title"),
+          }),
+        };
+      }
       return {
         shape: "choose",
         text: say("agent.block.postcardRecipients"),
