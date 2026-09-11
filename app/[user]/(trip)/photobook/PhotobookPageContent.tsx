@@ -6,9 +6,11 @@ import { useI18n } from "@/components/LocaleProvider";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import type { TranslationKey } from "@/lib/i18n";
 import type { PanelRecipient } from "@/lib/photobook/recipients";
+import { BOOK_SIZES } from "@/lib/photobook/spec";
 import {
   DEFAULT_OPTIONS,
   initialBookOptions,
+  parseOptions,
   type BookOptions,
   type DayLayout,
   type DayPlan,
@@ -173,11 +175,24 @@ export default function PhotobookPageContent({
     ),
     (saved, current) => {
       const parsed = JSON.parse(saved) as Partial<BookOptions>;
-      return {
+      const merged = {
         ...current,
         ...parsed,
         days: typeof parsed.days === "object" && parsed.days !== null ? parsed.days : {},
       };
+      /**
+       * The same check the preview route makes, made here — B1524.
+       *
+       * This comment has always said a stored arrangement from an older
+       * version is ignored rather than merged, and the code merged it. A
+       * `size` of `square-210`, a format this catalogue stopped offering, was
+       * restored, posted, refused by `parseOptions` on the server as a
+       * request nobody wrote — and the composer sat with an empty frame for
+       * ever, saying nothing, because a 404 from the preview is silent.
+       * Refusing it here is the same answer one step earlier, where the page
+       * can fall back to a book that plans.
+       */
+      return parseOptions(merged, Object.keys(BOOK_SIZES)) ?? current;
     },
   );
   const [preview, setPreview] = useState<PreviewState>(null);

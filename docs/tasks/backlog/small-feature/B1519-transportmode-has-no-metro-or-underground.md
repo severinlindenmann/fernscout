@@ -1,5 +1,5 @@
 ---
-id: B1511
+id: B1519
 title: transportMode has no metro or underground, so a city day is recorded as a train
 type: FEATURE
 priority: medium
@@ -8,7 +8,7 @@ area: api, content
 found: "2026-09-11T19:45:00Z"
 ---
 
-# B1511 — transportMode has no metro or underground, so a city day is recorded as a train
+# B1519 — transportMode has no metro or underground, so a city day is recorded as a train
 
 ## Why
 

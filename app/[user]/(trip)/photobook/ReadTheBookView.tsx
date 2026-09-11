@@ -59,6 +59,19 @@ export function useSpreadKeys(
       if (!forward && !back) return;
       const doc = frame.current?.contentDocument;
       const strip = doc?.querySelector<HTMLElement>(".spreads");
+      /**
+       * Which way this strip actually runs, and what is carrying the scroll
+       * — B1524.
+       *
+       * `axis` says what the *view* is for, and the composer's is a sideways
+       * strip only below 620px of frame: above it B1486 wraps the spreads
+       * into a grid that flows down the page, so the keys were pushing an
+       * element with nothing to scroll in either direction. Both questions
+       * are asked of the document rather than of a media query, so the CSS
+       * and the keys cannot disagree about which view is on screen.
+       */
+      const horizontal = !!strip && strip.scrollWidth > strip.clientWidth + 1;
+      const along: "x" | "y" = axis === "x" && !horizontal ? "y" : axis;
       // The step is one stop, and on a phone a stop is one page (B1421) —
       // where the spread is `display:contents` and has no box at all, so
       // measuring it would step the book 24px. A page is exactly as tall as
@@ -66,11 +79,17 @@ export function useSpreadKeys(
       // was measuring before and nothing changes on a wide screen. The strip
       // keeps the spread, which is what it snaps to.
       const stop = doc?.querySelector<HTMLElement>(axis === "y" ? ".page" : ".spread");
-      if (!strip || !stop) return;
+      if (!strip || !stop || !doc) return;
+      // The wrapped grid is as tall as its content, so it is the document
+      // that scrolls there and not the strip.
+      const scroller =
+        horizontal || strip.scrollHeight > strip.clientHeight + 1
+          ? strip
+          : (doc.scrollingElement as HTMLElement | null) ?? strip;
       e.preventDefault();
       const box = stop.getBoundingClientRect();
-      const step = (forward ? 1 : -1) * ((axis === "x" ? box.width : box.height) + 24);
-      strip.scrollBy({ [axis === "x" ? "left" : "top"]: step, behavior: "smooth" });
+      const step = (forward ? 1 : -1) * ((along === "x" ? box.width : box.height) + 24);
+      scroller.scrollBy({ [along === "x" ? "left" : "top"]: step, behavior: "smooth" });
     }
 
     // Listened for in *both* documents. A keydown inside an iframe does not

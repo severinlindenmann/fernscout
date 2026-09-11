@@ -1,5 +1,5 @@
 ---
-id: B1512
+id: B1520
 title: Two days with the same title collide at publish with 409, and nothing catches it first
 type: ISSUE
 priority: medium
@@ -8,7 +8,7 @@ area: helper, api
 found: "2026-09-11T19:20:00Z"
 ---
 
-# B1512 — Two days with the same title collide at publish with 409, and nothing catches it first
+# B1520 — Two days with the same title collide at publish with 409, and nothing catches it first
 
 ## Why
 

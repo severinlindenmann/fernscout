@@ -42,6 +42,7 @@ import {
   type PhotoPlacement,
   type RouteView,
 } from "./plan.ts";
+import { COVER_BAND_MM } from "./coverGeometry.ts";
 import { measure, toWinAnsi, wrap } from "./text.ts";
 import { drawTravellers } from "./travellers.ts";
 import { drawVehicle } from "./vehicles.ts";
@@ -1142,9 +1143,9 @@ function drawCoverPage(
     // copies.
     const band = {
       x: frontX,
-      y: panelH - 46,
+      y: panelH - COVER_BAND_MM,
       width: panelW + inset,
-      height: 46 + inset,
+      height: COVER_BAND_MM + inset,
     };
     const b = rect(frame, band);
     PdfBuilder.drawRect(page, b.x, b.y, b.width, b.height, PAPER);

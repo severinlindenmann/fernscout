@@ -27,6 +27,22 @@ report the gap — do not invent a check that was not asked for.
 
 ## 2. Set up the environment the flow's own Setup section names
 
+**Give the run its own content and database first, never the checkout's
+own.** `content/example/` is tracked by git — a flow that writes to it (a
+cost line, a reaction, a published day) leaves the shared checkout dirty,
+and the next `git status` has to clean up after a test run (B1506).
+
+```bash
+eval "$(npx tsx --conditions=react-server scripts/setup-test-content.ts)"
+npm run dev
+```
+
+That exports `CONTENT_DIR` (a scratch copy of `content/example`, copied once
+and reused) and `DATABASE_URL` (a fresh sqlite file, migrated once) into the
+shell that starts the dev server. Pass `--fresh` to throw both away and
+start clean. `FERNSCOUT_TEST_DIR` overrides where the scratch copy lives
+(default `/tmp/fernscout-test-content`).
+
 Every flow's Setup section names which capabilities must be on and which
 credentials it needs. None of them need a real provider account:
 `lib/capabilities.ts` already documents which backend needs nothing

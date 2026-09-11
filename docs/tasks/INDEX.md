@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (210)
+## backlog (214)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (52)
+### issue (53)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -76,6 +76,7 @@ Do not edit them by hand; run the script.
 | [B1448](backlog/issue/B1448-an-honest-answer-that-promises-a.md) | An honest answer that promises a button next turn is caught as a claim about this one | ISSUE | high | medium |
 | [B1472](backlog/issue/B1472-the-dangling-reference-guard-matches-two.md) | The dangling-reference guard matches two and three digit ids, and every id since B1000 has four | ISSUE | high | low |
 | [B1498](backlog/issue/B1498-a-guest-or-buddy-who-signs.md) | A guest or buddy who signs up for their own journal is unverified territory | ISSUE | high | medium |
+| [B1521](backlog/issue/B1521-the-budget-panel-projects-a-finished.md) | The budget panel projects a finished trip forward and fills unrecorded days with an average | ISSUE | high | medium |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -96,9 +97,9 @@ Do not edit them by hand; run the script.
 | [B1493](backlog/issue/B1493-the-landing-page-lists-no-journals.md) | The landing page lists no journals for a reader holding only a journal cookie | ISSUE | medium | low |
 | [B1503](backlog/issue/B1503-a-media-file-belonging-to-no.md) | A media file belonging to no day cannot be written through any door | ISSUE | medium | low |
 | [B1508](backlog/issue/B1508-a-scratch-journal-named-test-something.md) | A scratch journal named test-something poisons the depersonalised guard with common words | ISSUE | medium | low |
-| [B1510](backlog/issue/B1510-publish-drops-teaser-in-silence.md) | fernscout-helper's publish drops teaser in silence, so a closed trip never appears on /trips | ISSUE | medium | low |
-| [B1512](backlog/issue/B1512-two-days-with-the-same-title-collide.md) | Two days with the same title collide at publish with 409, and nothing catches it first | ISSUE | medium | low |
 | [B1513](backlog/issue/B1513-costs-cannot-be-imported-before-a-trip-exists.md) | Statement costs cannot be imported before a trip exists, and publish will not run until they are | ISSUE | medium | medium |
+| [B1518](backlog/issue/B1518-publish-drops-teaser-in-silence.md) | fernscout-helper's publish drops teaser in silence, so a closed trip never appears on /trips | ISSUE | medium | low |
+| [B1520](backlog/issue/B1520-two-days-with-the-same-title-collide.md) | Two days with the same title collide at publish with 409, and nothing catches it first | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
@@ -133,7 +134,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (20)
+### small-feature (22)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -146,7 +147,9 @@ Do not edit them by hand; run the script.
 | [B1388](backlog/small-feature/B1388-whatsappinbound-has-no-owner-facing-switch.md) | whatsappInbound has no owner-facing switch | FEATURE | medium | medium |
 | [B1398](backlog/small-feature/B1398-choosing-the-postcard-picture-means-picking.md) | Choosing the postcard picture means picking a day from a list of titles, never seeing a photograph | FEATURE | medium | medium |
 | [B1509](backlog/small-feature/B1509-revolut-s-other-csv-the-account.md) | Revolut's other CSV — the account statement — is refused as unknown_format | FEATURE | medium | low |
-| [B1511](backlog/small-feature/B1511-transportmode-has-no-metro-or-underground.md) | transportMode has no metro or underground, so a city day is recorded as a train | FEATURE | medium | low |
+| [B1517](backlog/small-feature/B1517-draw-the-travellers-from-a-photograph.md) | Draw the travellers from a photograph the owner already has | FEATURE | medium | medium |
+| [B1519](backlog/small-feature/B1519-transportmode-has-no-metro-or-underground.md) | transportMode has no metro or underground, so a city day is recorded as a train | FEATURE | medium | low |
+| [B1522](backlog/small-feature/B1522-a-day-that-plainly-moved-and.md) | A day that plainly moved and carries no transportMode draws no leg, and only a tip says so | FEATURE | medium | low |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
 | [B991](backlog/small-feature/B991-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium |
 | [B1025](backlog/small-feature/B1025-push-exists-as-a-capability-and.md) | Push exists as a capability and is not a channel this day can be sent on | FEATURE | low | medium |
@@ -202,7 +205,7 @@ Do not edit them by hand; run the script.
 | [B1483](backlog/docs-and-skills/B1483-a-dispatched-agent-works-in-a.md) | A dispatched agent works in a worktree but its working directory is the shared checkout, so anything reading the current diff reads the wrong one | DOCS | medium | low |
 | [B1415](backlog/docs-and-skills/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low |
 
-### superseded (83)
+### superseded (84)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -219,6 +222,7 @@ Do not edit them by hand; run the script.
 | [B1249](backlog/superseded/B1249-a-signup-token-is-spent-by.md) | A signup token is spent by a creation that failed, so the person cannot retry at all | ISSUE | high | low |
 | [B1251](backlog/superseded/B1251-a-brand-new-journal-opens-on.md) | A brand new journal opens on a red nearly-out-of-credits alarm, because the grant equals the threshold | ISSUE | high | low |
 | [B1324](backlog/superseded/B1324-a-failed-card-press-disables-the.md) | A failed card press disables the composer for good, and the only way out wipes the conversation | ISSUE | high | low |
+| [B1523](backlog/superseded/B1523-the-photobook-composer-s-switches-do.md) | The photobook composer's switches do not match what they remove, and the cover is never shown | ISSUE | high | medium |
 | [B373](backlog/superseded/B373-the-backup-success-marker-vanished-from.md) | The backup success marker vanished from DATA_DIR between two deploys minutes apart | OPS | high | low |
 | [B377](backlog/superseded/B377-the-deploy-reported-a-healthy-backup.md) | The deploy reported a healthy backup this afternoon and none at all this evening | OPS | high | low |
 | [B65](backlog/superseded/B65-the-deployed-server-has-no-backup.md) | Every backup of the deployed server sits on the same machine it is backing up | OPS | high | medium |
@@ -319,12 +323,13 @@ Do not edit them by hand; run the script.
 | [B1506](in-development/B1506-test-a-feature-has-no-isolated.md) | test-a-feature has no isolated CONTENT_DIR, so a local run writes into the tracked demo journal | CHORE | medium | medium | `01ffdab4` |
 | [B1515](in-development/B1515-the-back-has-a-save-button.md) | The back has a save button for something that saves itself, and a warning the price already gives | ISSUE | medium | low | `3f748903` |
 
-## testing (3)
+## testing (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1505](testing/B1505-a-buddy-s-trip-scoped-agent.md) | A buddy's trip-scoped agent token cannot drive /agent at all | ISSUE | high | low | — |
 | [B1511](testing/B1511-the-message-on-the-back-preview.md) | The message on the back preview is far larger than the message that prints | ISSUE | high | medium | — |
+| [B1524](testing/B1524-the-photobook-composer-s-switches-do.md) | The photobook composer's switches do not match what they remove, and the cover is never shown | ISSUE | high | medium | — |
 | [B1510](testing/B1510-the-step-screens-say-three-things.md) | The step screens say three things the screen already says | ISSUE | medium | low | — |
 
 ## completed (1261)

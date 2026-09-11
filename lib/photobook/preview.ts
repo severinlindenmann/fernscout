@@ -30,6 +30,7 @@ import {
   type Photobook,
   type RouteView,
 } from "./plan.ts";
+import { COVER_BAND_MM } from "./coverGeometry.ts";
 import { landPaths } from "./worldland.ts";
 import { graticuleStep } from "./graticule.ts";
 import { cssTone, type ChartShape } from "./charts.ts";
@@ -540,6 +541,65 @@ function pageHtml(
   );
 }
 
+/**
+ * The front cover, as the first thing in the strip — B1524.
+ *
+ * The book's own face was the one page of it the composer never showed: the
+ * strip opened on the title page, so somebody who had just chosen a cover
+ * photograph had no way to see it on the cover. Drawn here from `CoverPlan`,
+ * the same object `renderCover` lays the sheet out from, and in the same
+ * order: the photograph filling the front panel, the knocked-out band across
+ * its top, then the title, the subtitle and the dates inside that band.
+ *
+ * The front panel only. The back and the spine are on the same printed sheet
+ * and are not what anybody is looking for here — a cover in a strip of pages
+ * reads as the front of the book, and a flattened sheet with a spine down the
+ * middle of it reads as a pre-press proof.
+ */
+function coverHtml(
+  spec: BookSpec,
+  volume: BookVolume,
+  outDir: string,
+  resolveFile: (file: string) => string,
+  srcFor: SrcFor | undefined,
+): string {
+  const cover = volume.cover;
+  const type = typeScale(spec);
+  const scale = 100 / (spec.size.trimHeightMm + spec.bleedMm * 2);
+  const pt = (size: number) => `font-size:${(size * scale * 0.352778).toFixed(3)}cqh`;
+  const panelH = cover.geometry.front.heightMm;
+  const panelW = cover.geometry.front.widthMm;
+  const pctH = (v: number) => `${((v / panelH) * 100).toFixed(3)}%`;
+  const pctW = (v: number) => `${((v / panelW) * 100).toFixed(3)}%`;
+
+  const parts: string[] = [];
+  if (cover.frontPhoto) {
+    const src = imageSrc(cover.frontPhoto, outDir, resolveFile, srcFor);
+    parts.push(
+      `<div class="slot" style="inset:0">` +
+        `<img src="${escape(src)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">` +
+        `</div>`,
+      // The same solid band `drawCoverPage` knocks out, so the title is read
+      // against paper here exactly as it is on the printed cover.
+      `<div style="position:absolute;left:0;right:0;top:0;height:${pctH(COVER_BAND_MM)};background:var(--paper)"></div>`,
+    );
+  }
+  parts.push(
+    `<div class="copy" style="left:${pctW(spec.gutterMm)};right:${pctW(spec.safeMm)};top:${pctH(10)}">` +
+      `<h1 style="${pt(type.heading)}">${escape(cover.title)}</h1>` +
+      (cover.subtitle ? `<p class="muted" style="${pt(type.caption)}">${escape(cover.subtitle)}</p>` : "") +
+      `<p class="accent eyebrow" style="${pt(type.caption)}">${escape(cover.dates)}</p>` +
+      `</div>`,
+  );
+
+  return (
+    `<div class="spread solo cover"><figure class="page right" data-kind="cover">` +
+    `<div class="sheet"><div class="zoom">${parts.join("")}</div></div>` +
+    `<figcaption>${escape(cover.spineText)}</figcaption>` +
+    `</figure></div>`
+  );
+}
+
 function imgStyle(clip: RectMm, draw: RectMm): string {
   const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(3)}%`;
   return [
@@ -589,7 +649,10 @@ export function renderPreview(
   const captionFor = opts.captionFor;
   const spec = book.spec;
   const ratio = (spec.size.trimWidthMm + spec.bleedMm * 2) / (spec.size.trimHeightMm + spec.bleedMm * 2);
+  // The cover first, then the pages — B1524. It is the face of the thing
+  // being bought and was the one part of it the composer never drew.
   const spreadsFor = (volume: BookVolume) =>
+    coverHtml(spec, volume, outDir, resolveFile, srcFor) +
     spreadsOf(volume.pages)
       .map((group) => {
         const cls = group.length === 1 ? "spread solo" : "spread";

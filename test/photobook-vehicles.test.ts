@@ -72,7 +72,7 @@ describe("every way of travelling has a drawing", () => {
   });
 });
 
-describe("a vehicle reaches the transport page only when asked for", () => {
+describe("the transport page, and the vehicles on it, only when asked for", () => {
   const day = (i: number, mode: string): BookDay => ({
     date: new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10),
     title: `Day ${i + 1}`,
@@ -101,7 +101,9 @@ describe("a vehicle reaches the transport page only when asked for", () => {
     return page && page.kind === "transport" ? page.shapes : [];
   };
 
-  it("off by default, and nothing on the page changes", () => {
+  it("off by default, and then there is no transport page at all — B1524", () => {
+    const book = planBook(source, defaultSpec(), DEFAULT_OPTIONS);
+    expect(book.volumes[0].pages.some((p) => p.kind === "transport")).toBe(false);
     expect(shapesOf(false).some((s) => s.kind === "vehicle")).toBe(false);
   });
 

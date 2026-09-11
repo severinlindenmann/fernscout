@@ -1316,14 +1316,26 @@ function draftsForBack(source: BookSource, options: BookOptions): Draft[] {
   if (source.followers && source.followers.length > 0) {
     drafts.push({ kind: "followers", align: "recto" });
   }
-  if (source.days.some((d) => d.transport)) drafts.push({ kind: "transport", align: "recto" });
+  // The whole page, not only the drawings on it — B1524. `includeVehicles`
+  // used to add a bus beside the word "bus" on a page that printed either
+  // way, so the owner who turned it off still got "8 days at the wheel" and
+  // reported the switch as dead. A switch named for a thing in the book has
+  // to be able to take that thing out of the book.
+  if (options.includeVehicles && source.days.some((d) => d.transport)) {
+    drafts.push({ kind: "transport", align: "recto" });
+  }
   if (source.costs && options.includeCosts) drafts.push({ kind: "costs", align: "recto" });
   // The chart spread, and only the halves the trip has something to show for.
   // A trip with no costs and no readings gets no pages at all rather than a
   // page apologising for being empty — off is a legitimate answer here and so
   // is having nothing to say.
   if (options.includeCharts) {
-    const spend = source.costs && source.costs.byDay.length > 0;
+    // The money chart follows the money switch too — B1524. "Include the cost
+    // summary" took the costs page out and left the spend-against-budget
+    // chart standing, which reads as a switch that half works. Both switches
+    // can now remove it and neither adds a page on its own: `includeCharts`
+    // is still the only one here that brings pages with it.
+    const spend = options.includeCosts && source.costs && source.costs.byDay.length > 0;
     const weather = source.weather && source.weather.measured > 0;
     // A pair faces each other across the fold when there are two of them; a
     // single chart page is a recto like every other back-matter page.

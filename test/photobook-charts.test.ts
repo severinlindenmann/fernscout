@@ -87,7 +87,9 @@ const SOURCE: BookSource = {
 };
 
 const SPEC = defaultSpec();
-const WITH_CHARTS = { ...DEFAULT_OPTIONS, includeCharts: true };
+// `includeVehicles` too, since B1524: the transport page is the vehicles
+// switch's page and not a page that prints whichever way the switch is set.
+const WITH_CHARTS = { ...DEFAULT_OPTIONS, includeCharts: true, includeVehicles: true };
 
 function pagesOf(book: ReturnType<typeof planBook>): BookPage[] {
   return book.volumes.flatMap((v) => v.pages);
@@ -115,6 +117,16 @@ describe("the chart pages", () => {
     ]);
     // Every one of them names the switch that put it there — B562.
     expect(pages.every((p) => p.from === "includeCharts")).toBe(true);
+  });
+
+  test("the cost switch takes the spend chart with it — B1524", () => {
+    const pages = pagesOf(
+      planBook(SOURCE, SPEC, { ...WITH_CHARTS, includeCosts: false }),
+    );
+    expect(pages.some((p) => p.kind === "costs")).toBe(false);
+    expect(
+      pages.filter((p) => p.kind === "analytics").map((p) => (p.kind === "analytics" ? p.topic : "")),
+    ).toEqual(["weather"]);
   });
 
   test("a trip with neither costs nor weather gets no chart pages, not empty ones", () => {
