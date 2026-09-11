@@ -1,5 +1,5 @@
 ---
-id: B1510
+id: B1518
 title: fernscout-helper's publish drops teaser in silence, so a closed trip never appears on /trips
 type: ISSUE
 priority: medium
@@ -8,7 +8,7 @@ area: helper, publish
 found: "2026-09-11T19:40:00Z"
 ---
 
-# B1510 — fernscout-helper's publish drops teaser in silence, so a closed trip never appears on /trips
+# B1518 — fernscout-helper's publish drops teaser in silence, so a closed trip never appears on /trips
 
 ## Why
 
