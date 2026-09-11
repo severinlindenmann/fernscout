@@ -1453,6 +1453,8 @@
   "photobook.caption.costs": "Mert a költségösszesítő benne van",
   "photobook.caption.charts": "Mert a diagramok szerepelnek",
   "photobook.caption.title": "A címoldal",
+  "photobook.caption.coverFront": "Első borító",
+  "photobook.caption.coverBack": "Hátsó borító",
   "photobook.caption.intro": "Az út bevezetője",
   "photobook.caption.names": "Kik voltak ott",
   "photobook.caption.transport": "Hogyan utaztatok",

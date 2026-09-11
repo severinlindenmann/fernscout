@@ -1771,6 +1771,8 @@ export type TranslationKey =
   | "photobook.caption.charts"
   | "photobook.caption.colophon"
   | "photobook.caption.costs"
+  | "photobook.caption.coverBack"
+  | "photobook.caption.coverFront"
   | "photobook.caption.day"
   | "photobook.caption.dayOnly"
   | "photobook.caption.intro"

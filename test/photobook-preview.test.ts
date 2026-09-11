@@ -90,10 +90,11 @@ describe("spreadsOf", () => {
 describe("the preview's spread view", () => {
   test("every page still appears, none dropped by grouping", () => {
     const html = renderPreview(BOOK, "/tmp/out", (file) => `/tmp/out/${file}`);
-    // Every planned page, plus each volume's front cover — B1524 puts the
-    // book's own face at the head of its strip, and it is a figure like any
-    // other page rather than a picture bolted on beside them.
-    const total = BOOK.volumes.reduce((n, v) => n + v.pages.length, 0) + BOOK.volumes.length;
+    // Every planned page, plus each volume's cover sheet — B1524 puts the
+    // book's own face at the head of its strip, as the two panels the sheet
+    // actually carries (back and front, spine between), each a figure like
+    // any other page rather than a picture bolted on beside them.
+    const total = BOOK.volumes.reduce((n, v) => n + v.pages.length, 0) + BOOK.volumes.length * 2;
     expect((html.match(/<figure class="page/g) ?? []).length).toBe(total);
     // The last page's own figcaption must be present — the acceptance case an
     // off-by-one in the chunking would silently drop.
@@ -102,14 +103,26 @@ describe("the preview's spread view", () => {
     expect(html).toContain(`>${lastPage.number} ·`);
   });
 
-  test("the front cover comes first, with its title on it", () => {
-    const html = renderPreview(BOOK, "/tmp/out", (file) => `/tmp/out/${file}`);
-    const cover = html.indexOf('data-kind="cover"');
-    expect(cover).toBeGreaterThan(-1);
+  test("the cover sheet comes first, both panels, each saying which it is", () => {
+    const html = renderPreview(BOOK, "/tmp/out", (file) => `/tmp/out/${file}`, undefined, {
+      coverLabels: { front: "Front cover", back: "Back cover" },
+    });
+    const back = html.indexOf('data-kind="cover-back"');
+    const front = html.indexOf('data-kind="cover"');
+    expect(back).toBeGreaterThan(-1);
+    expect(front).toBeGreaterThan(-1);
+    // The sheet's own order: the back panel is to the left of the spine and
+    // the front to its right, which is how it comes off the press.
+    expect(back).toBeLessThan(front);
     // Before the title page, which is the first thing the strip used to open
     // on — the whole complaint B1524 answers.
-    expect(cover).toBeLessThan(html.indexOf('data-kind="title"'));
-    expect(html.slice(cover)).toContain(BOOK.volumes[0].cover.title);
+    expect(front).toBeLessThan(html.indexOf('data-kind="title"'));
+    expect(html.slice(front)).toContain(BOOK.volumes[0].cover.title);
+    // Named, because "which one is the back?" is the question that produced
+    // this. Both the label attribute the strip draws and the caption the
+    // CLI's copy prints.
+    expect(html).toContain('data-label="Back cover"');
+    expect(html).toContain('data-label="Front cover"');
   });
 
   test("page one is wrapped in its own solo spread, not paired", () => {

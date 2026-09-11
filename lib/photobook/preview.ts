@@ -331,6 +331,16 @@ export type SrcFor = (photo: BookPhoto) => string;
 export type CaptionFor = (page: BookPage) => string;
 
 /**
+ * What to call the two halves of the cover sheet — B1524.
+ *
+ * A callback's worth of the same reasoning as `CaptionFor`, as a pair of
+ * strings because there are exactly two of them and they are not derived from
+ * anything. English is the fallback, which is what the CLI's own copy gets:
+ * that reader is standing in a folder of print files, not reading a book.
+ */
+export type CoverLabels = { front: string; back: string };
+
+/**
  * Groups a volume's pages into spreads: page one alone (it is a recto, and
  * there is no page zero to face it), then the rest in facing pairs — 2-3,
  * 4-5, and so on, exactly as `sideOf()` already has them.
@@ -562,6 +572,7 @@ function coverHtml(
   outDir: string,
   resolveFile: (file: string) => string,
   srcFor: SrcFor | undefined,
+  labels: CoverLabels | undefined,
 ): string {
   const cover = volume.cover;
   const type = typeScale(spec);
@@ -572,10 +583,10 @@ function coverHtml(
   const pctH = (v: number) => `${((v / panelH) * 100).toFixed(3)}%`;
   const pctW = (v: number) => `${((v / panelW) * 100).toFixed(3)}%`;
 
-  const parts: string[] = [];
+  const front: string[] = [];
   if (cover.frontPhoto) {
     const src = imageSrc(cover.frontPhoto, outDir, resolveFile, srcFor);
-    parts.push(
+    front.push(
       `<div class="slot" style="inset:0">` +
         `<img src="${escape(src)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">` +
         `</div>`,
@@ -584,7 +595,7 @@ function coverHtml(
       `<div style="position:absolute;left:0;right:0;top:0;height:${pctH(COVER_BAND_MM)};background:var(--paper)"></div>`,
     );
   }
-  parts.push(
+  front.push(
     `<div class="copy" style="left:${pctW(spec.gutterMm)};right:${pctW(spec.safeMm)};top:${pctH(10)}">` +
       `<h1 style="${pt(type.heading)}">${escape(cover.title)}</h1>` +
       (cover.subtitle ? `<p class="muted" style="${pt(type.caption)}">${escape(cover.subtitle)}</p>` : "") +
@@ -592,11 +603,43 @@ function coverHtml(
       `</div>`,
   );
 
-  return (
-    `<div class="spread solo cover"><figure class="page right" data-kind="cover">` +
+  /**
+   * The back panel, which is the half nobody could identify — B1524.
+   *
+   * It was not drawn at all, so the strip opened on one unlabelled sheet and
+   * the owner's question was the honest one: *which of these is the back?*
+   * Both panels now, in the order the printed sheet carries them (back, then
+   * the spine, then front), each with its name under it.
+   *
+   * The same three things `drawCoverPage` puts there and nothing invented:
+   * the opening paragraph of the trip's introduction, wrapped by the planner,
+   * and the dates at the foot. A book whose trip has no introduction has a
+   * back of plain paper, and the preview shows exactly that rather than
+   * filling it.
+   */
+  const back: string[] = [
+    `<div class="copy" style="left:${pctW(spec.safeMm)};right:${pctW(spec.safeMm + spec.gutterMm)};top:${pctH(16)}">` +
+      cover.backLines.map((l) => `<p style="${pt(type.body)}">${escape(l) || "&nbsp;"}</p>`).join("") +
+      `</div>` +
+      `<div class="copy" style="left:${pctW(spec.safeMm)};right:${pctW(spec.safeMm)};bottom:${pctH(spec.safeMm)}">` +
+      `<p class="muted eyebrow" style="${pt(type.caption)}">${escape(cover.dates)}</p>` +
+      `</div>`,
+  ];
+
+  const panel = (side: "left" | "right", kind: string, label: string, parts: string[]) =>
+    `<figure class="page ${side}" data-kind="${escape(kind)}" data-label="${escape(label)}">` +
     `<div class="sheet"><div class="zoom">${parts.join("")}</div></div>` +
-    `<figcaption>${escape(cover.spineText)}</figcaption>` +
-    `</figure></div>`
+    `<figcaption>${escape(label)}</figcaption>` +
+    `</figure>`;
+
+  // One spread, because that is one sheet: the two panels are printed side by
+  // side with the spine between them, and the fold band the spread already
+  // draws down its middle *is* that spine.
+  return (
+    `<div class="spread cover">` +
+    panel("left", "cover-back", labels?.back ?? "Back cover", back) +
+    panel("right", "cover", labels?.front ?? "Front cover", front) +
+    `</div>`
   );
 }
 
@@ -643,7 +686,7 @@ export function renderPreview(
    * The CLI's own copy — `scripts/photobook.ts`, written next to the PDFs —
    * is unchanged and keeps all of it: that reader *is* a technician.
    */
-  opts: { bare?: boolean; captionFor?: CaptionFor } = {},
+  opts: { bare?: boolean; captionFor?: CaptionFor; coverLabels?: CoverLabels } = {},
 ): string {
   const bare = opts.bare === true;
   const captionFor = opts.captionFor;
@@ -652,7 +695,7 @@ export function renderPreview(
   // The cover first, then the pages — B1524. It is the face of the thing
   // being bought and was the one part of it the composer never drew.
   const spreadsFor = (volume: BookVolume) =>
-    coverHtml(spec, volume, outDir, resolveFile, srcFor) +
+    coverHtml(spec, volume, outDir, resolveFile, srcFor, opts.coverLabels) +
     spreadsOf(volume.pages)
       .map((group) => {
         const cls = group.length === 1 ? "spread solo" : "spread";
@@ -882,6 +925,18 @@ export function renderPreview(
     }
   }
   body.bare figcaption { display:none; }
+  /* The one caption that survives bare mode — B1524. Every other figcaption
+     here is a print technician's readout and is hidden, but "front cover" and
+     "back cover" are the answer to a question the owner actually asked, and
+     the strip has nowhere else to say it. Drawn as ::after so it is there in
+     the composer, in the reading view and in the CLI's copy alike. */
+  figure[data-label]::after {
+    content:attr(data-label);
+    display:block; text-align:center; padding-top:.35rem;
+    font:600 11px/1.2 ui-sans-serif,system-ui,sans-serif; color:#5a6a80;
+    letter-spacing:.06em; text-transform:uppercase;
+  }
+  body:not(.bare) figure[data-label]::after { display:none; }
   /* The dashed trim rectangle is a pre-press guide, and the sentence that
      explained it went with the header. Left on, it is a red dashed box
      around every page of somebody's holiday. The CLI's copy keeps both. */
