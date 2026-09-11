@@ -293,8 +293,19 @@ export function ghostscriptCommand(input: {
   ];
 }
 
-/** The readiness report as lines for a terminal or a text file. */
-export function readinessReport(readiness: PdfxReadiness): string[] {
+/**
+ * The readiness report as lines for a terminal or a text file.
+ *
+ * `scriptWritten` says whether this run actually wrote `gs-pdfx.sh` — the
+ * script only exists when an `--icc` profile was supplied
+ * (`scripts/photobook.mts`), so pointing at it when one was not is circular
+ * advice that names a file the run never produced (B1149). Without it, the
+ * remedy is the flag itself.
+ */
+export function readinessReport(
+  readiness: PdfxReadiness,
+  { scriptWritten }: { scriptWritten: boolean },
+): string[] {
   const lines = [`PDF/X readiness — target ${readiness.target}`, ""];
   for (const r of readiness.requirements) {
     lines.push(`  [${r.met ? "x" : " "}] ${r.requirement}`);
@@ -304,8 +315,11 @@ export function readinessReport(readiness: PdfxReadiness): string[] {
   lines.push(
     readiness.claimable
       ? `This file declares ${readiness.version}.`
-      : "This file declares no PDF/X version, because it does not meet one. " +
-          "Run the Ghostscript command in gs-pdfx.sh to produce one that does.",
+      : scriptWritten
+        ? "This file declares no PDF/X version, because it does not meet one. " +
+          "Run the Ghostscript command in gs-pdfx.sh to produce one that does."
+        : "This file declares no PDF/X version, because it does not meet one. " +
+          "Re-run with --icc <profile.icc> to get a Ghostscript command that produces one.",
   );
   return lines;
 }

@@ -249,15 +249,22 @@ function dryRunNote(name: FeatureName, feature: Record<string, unknown>): string
       `but nothing is actually printed or posted (see B492)`
     );
   }
-  // B435. The same shape as the Stripe note above and for the same reason: a
-  // provider that is wired, funded and configured still posts nothing until
-  // `live` is true, and "is this instance actually putting cards in the post"
-  // must be a question /api/health answers rather than one somebody guesses
-  // at from a deploy log.
-  if (name !== "postcards") return undefined;
+  // B435, and B1113 one supplier along: a provider that is wired, funded and
+  // configured still does nothing real until `live` is true, and "is this
+  // instance actually printing and posting" must be a question /api/health
+  // answers rather than one somebody guesses at from a deploy log.
+  if (name === "postcards") {
+    return feature.live === true
+      ? `features.postcards.live is true — ${provider} PRINTS AND POSTS real cards, and real money moves`
+      : `features.postcards.live is not set — ${provider} renders a free sample of every card and dispatches none of them`;
+  }
+  // Gelato's own word for the not-live state is a draft order
+  // (orderType: "draft" — lib/photobook/gelato.ts): validated and never
+  // charged. Ships as part of the one order with no separate postal step, so
+  // unlike postcards there is no "AND POSTS" to say.
   return feature.live === true
-    ? `features.postcards.live is true — ${provider} PRINTS AND POSTS real cards, and real money moves`
-    : `features.postcards.live is not set — ${provider} renders a free sample of every card and dispatches none of them`;
+    ? `features.photobook.live is true — ${provider} PRINTS real books, and real money moves`
+    : `features.photobook.live is not set — ${provider} validates the order as a draft and prints nothing`;
 }
 
 /**

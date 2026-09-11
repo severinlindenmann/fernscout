@@ -315,7 +315,10 @@ write(
   `${bookSlug}-plan.json`,
   JSON.stringify({ spec: book.spec, warnings: book.warnings, volumes: book.volumes }, null, 2) + "\n",
 );
-write(`${bookSlug}-pdfx.txt`, readinessReport(readiness).join("\n") + "\n");
+write(
+  `${bookSlug}-pdfx.txt`,
+  readinessReport(readiness, { scriptWritten: Boolean(iccPath) }).join("\n") + "\n",
+);
 
 // ---- provider requests, built and not sent ---------------------------------
 
@@ -398,7 +401,7 @@ if (book.warnings.length > 0) {
 }
 
 console.log("\nColour:");
-for (const line of readinessReport(readiness)) console.log(`  ${line}`);
+for (const line of readinessReport(readiness, { scriptWritten: Boolean(iccPath) })) console.log(`  ${line}`);
 if (!iccPath) {
   console.log(
     "\n  Supply --icc <profile.icc> to embed an output intent. On macOS there is one at\n" +
