@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (192)
+## backlog (197)
 
 ### security (2)
 
@@ -106,10 +106,11 @@ Do not edit them by hand; run the script.
 | [B1445](backlog/issue/B1445-a-spent-trip-choice-card-stays.md) | A spent trip-choice card stays a pressable button that does nothing | ISSUE | low | low |
 | [B1475](backlog/issue/B1475-the-map-s-aria-label-derives.md) | The map's aria-label derives its own tense and never learns the trip is over | ISSUE | low | low |
 
-### big-feature (11)
+### big-feature (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B1489](backlog/big-feature/B1489-the-postcard-steps-on-a-phone.md) | The postcard steps on a phone are nothing like the drawing they were approved from | FEATURE | high | high |
 | [B1049](backlog/big-feature/B1049-a-model-choosing-among-forty-three.md) | A model choosing among forty-three tools chooses worse than one choosing among seventeen | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
@@ -122,12 +123,16 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (17)
+### small-feature (21)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1315](backlog/small-feature/B1315-twilio-sms-inbound-inbox-in-admin.md) | Twilio SMS - inbound inbox in admin, outbound sending, SMS signup fallback | FEATURE | high | medium |
 | [B1392](backlog/small-feature/B1392-staged-files-are-counted-in-the.md) | Staged files are counted in the storage card and on /agent, and neither offers a way to clear them | FEATURE | high | low |
+| [B1486](backlog/small-feature/B1486-the-spreads-are-a-one-at.md) | The spreads are a one-at-a-time strip where the drawing has a grid of the whole book | FEATURE | high | medium |
+| [B1487](backlog/small-feature/B1487-the-book-settings-are-native-selects.md) | The book settings are native selects and a nine-item checkbox list where the drawing has a card of rows | FEATURE | high | medium |
+| [B1488](backlog/small-feature/B1488-the-buy-panel-has-no-object.md) | The buy panel has no object plate and no read-or-order pair where the drawing has both | FEATURE | high | low |
+| [B1490](backlog/small-feature/B1490-a-proposal-opens-straight-into-the.md) | A proposal opens straight into the cropper with no card that says four cards are waiting | FEATURE | high | low |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
 | [B1069](backlog/small-feature/B1069-there-is-no-tool-surface-for.md) | There is no tool surface for an agent that would rather be guided than read a spec | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
