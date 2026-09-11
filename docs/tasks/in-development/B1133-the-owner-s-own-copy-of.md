@@ -50,13 +50,26 @@ because "we told them they asked for it" is the sentence a reader remembers.
 
 ## Work
 
-Give the owner's recipient its own footer string — a line saying this is the
-copy that goes to them because they published the day, and that `send_mail` is
-what asked for it. Leave the contact footer exactly as it is.
+Done. `lib/digest/dayLetter.ts`'s `renderDayLetter` now picks the footer by
+whether the recipient carries a `manageToken`: a contact still gets
+`digest.footer` ("You are getting this because you asked {site} to keep you
+posted."), unchanged; the owner (`manageToken: null`) gets a new
+`dayMail.ownerFooter` — "Sent to you because you published this day on {site}
+with mail switched on." The `manage`/`unsubscribe` links and the
+`List-Unsubscribe` header were already correctly absent for the owner (both
+are derived from the same `manageToken`, which is `null` for them) — checked,
+and that half was not wrong.
 
-Do not manufacture a manage token for the owner: there is nothing behind it.
+New key `dayMail.ownerFooter` in `site/locales/{en,de,hu}.json` (real German
+and Hungarian, not machine-shaped), `npm run i18n:keys` re-run.
 
-Three locales, `npm run i18n:keys`.
+`test/day-mail.test.ts` gained a describe block, "the owner's own copy of the
+letter" — publishes a day to an owner and one opted-in contact, reads both
+raw `.eml` files out of the file-transport mailbox, and asserts: the owner's
+body does not contain "you asked" or either link, and carries no
+`List-Unsubscribe` header; the contact's is unchanged (still says "you asked",
+still carries the header). Ran `npx vitest run test/day-mail.test.ts` —
+32 passed.
 
 ## Acceptance
 

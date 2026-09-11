@@ -356,6 +356,14 @@ async function renderDayLetter(
     ? unsubscribeUrlFor(base, trip.username, recipient.manageToken)
     : undefined;
 
+  // The owner has no manage token — there is no preference to change and
+  // nothing to unsubscribe from one's own journal — and their copy is a
+  // receipt, not a subscription they asked for. B1133: the contact footer
+  // ("you asked to be kept posted") is false for them, so they get their own.
+  const footer = recipient.manageToken
+    ? translateIn(locale, "digest.footer", { site: user.title })
+    : translateIn(locale, "dayMail.ownerFooter", { site: user.title });
+
   return renderMail(
     recipient.email,
     translateIn(locale, "dayMail.subject", { title: user.title, day: title }),
@@ -363,7 +371,7 @@ async function renderDayLetter(
       preheader: title,
       title,
       blocks,
-      footer: translateIn(locale, "digest.footer", { site: user.title }),
+      footer,
       ...(manage
         ? { manageLink: { text: translateIn(locale, "digest.preferences"), href: manage } }
         : {}),

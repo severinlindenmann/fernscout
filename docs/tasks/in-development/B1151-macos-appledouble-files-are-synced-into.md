@@ -34,12 +34,65 @@ the fix is one rsync flag rather than a decision.
 
 ## Work
 
-Delete the existing ones on the host, and stop making new ones: rsync's
-`--exclude='._*'` (and `--exclude='.DS_Store'` while there) in `ship.sh`.
+**`ship.sh` was readable this session** (main checkout, `.claude/skills/vps/
+ship.sh` — gitignored but not unreadable), and I read it rather than editing
+it: this session's instructions forbid any write to the shared checkout,
+gitignored file or not, so the rsync flag below is described rather than
+applied.
 
-`ship.sh` is gitignored — it knows this instance's host and domain — so this is
-an edit to the local file, not a commit. Say so in the ticket when it is done,
-since the change will be invisible to anybody reading the repository.
+**Half of the "one rsync flag" was already there, from B828, not B1151.**
+Line 75 already reads:
+
+```
+--exclude 'originals/' --exclude '.ingest.json' --exclude '._*' \
+```
+
+`--exclude '._*'` landed as part of B828's atomicity fix (an unrelated rsync
+change that happened to add it), before this ticket was even filed. Still
+missing: `--exclude '.DS_Store'`, which the ticket also asked for. The
+deploy-side fix for whoever holds `ship.sh` is one flag on that line:
+
+```diff
+- --exclude 'originals/' --exclude '.ingest.json' --exclude '._*' \
++ --exclude 'originals/' --exclude '.ingest.json' --exclude '._*' --exclude '.DS_Store' \
+```
+
+**That line cannot be where the reported files came from, though.** It
+`--exclude`s `originals/` outright — the whole directory is never touched by
+this sync, in either direction, `._*` or not. So the `._arches-at-dusk` /
+`._back-to-denver` files the ticket found under
+`content/example/trips/parks-2025/originals/` did not arrive via `ship.sh` at
+all; nothing in this repository's regular deploy path writes to `originals/`
+on the live host. `git ls-files` confirms `content/example/trips/*/originals/`
+holds no tracked files despite the `!content/example/` gitignore exception
+(checked directly), so they were not committed and pulled either. The
+likeliest remaining explanation is a one-off manual copy (`scp`/`rsync`
+straight into that directory) made to seed the demo trip's originals for the
+photobook, run from a Mac where the source folder already carried its
+resource forks — an operational step with no corresponding script in this
+repository to fix.
+
+**Checked the ingest and export sides named as the fallback, and both are
+already clean — nothing to fix there:**
+- `lib/ingest/index.ts:151` skips any `readdirSync` entry whose name starts
+  with `.` while scanning a source folder for media, so `npm run ingest`
+  cannot pick up an AppleDouble file as a photograph in the first place.
+- `lib/exportZip.ts`'s `isDotfilePath` (added for B1387) already drops any
+  path segment starting with `.` — `.DS_Store`, `._*`, `.ingest.json` — at
+  every level of a trip's tree, in every export scope.
+
+So the only actionable code change this ticket still names (the `.DS_Store`
+flag on `ship.sh`) is one line in a file this session cannot write, and is
+above verbatim for whoever holds it. Everything else here is either already
+fixed (the `._*` flag, via B828) or not a code problem (the live `originals/`
+files).
+
+**Live cleanup, for the person with root:** `find
+/var/lib/fernscout/content/example/trips/parks-2025/originals/ -name '._*'`
+is the reported path. Since these arrived by hand rather than through any
+repeatable sync, it is worth widening that check to
+`find /var/lib/fernscout/content -name '._*' -o -name '.DS_Store'` once, in
+case the same one-off copy touched more than this one trip.
 
 ## Acceptance
 

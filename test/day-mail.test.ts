@@ -375,6 +375,39 @@ describe("who receives it", () => {
   });
 });
 
+/**
+ * B1133 — the owner's own copy said they had asked to be kept posted, which
+ * is false: they published the day, and the letter is a receipt. The
+ * contact's copy is unchanged — it is genuinely true for them.
+ */
+describe("the owner's own copy of the letter", () => {
+  test("does not claim the owner asked to be kept posted, and offers no link that is not there", async () => {
+    writeTrip("owner-footer", { visibility: "public" });
+    const { slug } = writeEntry("owner-footer", { date: "2026-09-10", slug: "owner-footer-day" });
+    await addReader("reader@example.test", "en");
+
+    const outcome = await sendDayLetter(OWNER, "alex/owner-footer", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.sent.map((s) => s.email)).toEqual(
+      expect.arrayContaining([OWNER_EMAIL, "reader@example.test"]),
+    );
+
+    const ownerBody = textPartOf(emlFor("alex-example-test"));
+    expect(ownerBody).not.toContain("you asked");
+    expect(ownerBody).not.toContain("Change your language or stop these emails");
+    expect(ownerBody).not.toContain("Stop all emails");
+    const ownerRaw = emlFor("alex-example-test");
+    expect(ownerRaw).not.toContain("List-Unsubscribe");
+
+    // The contact's copy is untouched: still true, still carries the links.
+    const readerBody = textPartOf(emlFor("reader-example-test"));
+    expect(readerBody).toContain("you asked");
+    const readerRaw = emlFor("reader-example-test");
+    expect(readerRaw).toContain("List-Unsubscribe:");
+  });
+});
+
 describe("costs are asked per recipient", () => {
   test("a guest with a live grant sees the cost, one without does not", async () => {
     writeTrip("costed", { visibility: "public", costsVisibility: "guests" });

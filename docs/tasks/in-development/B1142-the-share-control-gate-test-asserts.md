@@ -41,17 +41,36 @@ unrelated edits, in a file whose subject is who may see a closed trip.
 
 ## Work
 
-Assert the property instead of the distance. Options, cheapest first:
+Took the first, cheaper option: render, don't measure.
 
-- Render the component with a non-owner reader and assert `OwnerTools` is
-  absent — the actual claim, and the suite already renders `EditDay` elsewhere
-  (`test/edit-day-initial-drop.test.tsx`), so the machinery exists.
-- If it stays a source check, parse rather than measure: find the `canPublish`
-  block and assert `OwnerTools` is within *it*, so the assertion is about
-  nesting and cannot be loosened by unrelated growth.
+`test/invite-to-read.test.ts` (now `.tsx`, since it renders) dropped the
+`day`/`trip` proximity assertion's day half — `expect(day).toMatch(/trip\?\.
+canPublish[\s\S]{0,2000}<OwnerTools/)` — and replaced it with a new describe
+block, "the day card's owner-only block": it renders `StoryPager`'s exported
+`DayCard` inside `LocaleProvider` + `CurrencyProvider` + `TripProvider`, once
+with `canPublish={true}` and once with `canPublish={false}` (mocking
+`next/link` the same way `test/trip-switcher.test.tsx` does), and asserts
+`OwnerTools`' own marker — the translated `owner.onlyYou` text
+("Only you can see this") — is present for the owner and absent otherwise.
+That is the actual claim ("nothing between the gate and the block reopens it
+for a non-owner"), and it is now a fact about what renders rather than about
+how many characters sit between two strings: unrelated growth to `EditDay`'s
+props does not move it, and a second gate or an early return inserted before
+`<OwnerTools>` that would hide it from a real owner makes the "renders for the
+owner" case fail.
 
-Keep the trip half as it is; `{0,80}` is tight enough to still mean something,
-and changing a passing assertion that works buys nothing.
+**The trip half is untouched** — `app/TripStory.tsx`'s own `trip?.canPublish
+{0,80}<OwnerTools` proximity check stays exactly as it was per the ticket's
+own instruction, since the gate and the block sit right beside each other
+there in one short function and `{0,80}` still means something.
+
+**What else covers this gate**, checked before touching the file: nothing else
+does. `test/edit-day-initial-drop.test.tsx` renders `EditDay` directly but
+never touches `StoryPager`/`DayCard` or `OwnerTools`'s reachability; no other
+test file renders `DayCard` with a `TripProvider` at all. The character-window
+assertion in the day branch was the sole guard on this gate, which is exactly
+why replacing rather than deleting it mattered — the new render-based test is
+the guard now, not merely a rewording of the same check.
 
 ## Acceptance
 

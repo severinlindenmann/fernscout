@@ -1117,6 +1117,7 @@ export type TranslationKey =
   | "day.updates"
   | "dayMail.button"
   | "dayMail.map"
+  | "dayMail.ownerFooter"
   | "dayMail.subject"
   | "dayMail.timezone"
   | "del.backups"
