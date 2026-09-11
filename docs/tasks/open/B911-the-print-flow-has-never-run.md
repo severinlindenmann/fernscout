@@ -5,7 +5,6 @@ type: OPS
 priority: high
 complexity: low
 area: photobook, print
-superseded: B1428
 found: "2026-09-08T05:23:20Z"
 ---
 
@@ -54,6 +53,13 @@ Then a hardcover, which has been through no Gelato endpoint at all — only the
 ---
 
 ## The Work above is stale — rewritten 2026-09-11
+
+**Not superseded, and briefly filed as though it were.** B1428 deleted the
+route this ticket was written against, which is a fact about the method and
+not about the goal. No photobook has ever been printed by this instance;
+that is still true, still wanted, and B1428 does not achieve it. A reader
+sent to B1428 would find a deletion and no printed book. So this stays open
+with its Work section corrected below.
 
 **The premise still holds.** No photobook has ever been printed by this
 instance through its own flow. That is still worth proving and this ticket
