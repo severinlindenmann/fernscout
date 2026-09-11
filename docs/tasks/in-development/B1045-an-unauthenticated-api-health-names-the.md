@@ -15,18 +15,6 @@ claimed: "2026-09-11T15:47:55Z"
 
 ## Why
 
-TODO — the problem, not the fix.
-
-## Work
-
-TODO
-
-## Acceptance
-
-TODO
-
-## Why
-
 Found by driving the live site from outside with no credentials, as a stranger
 would. `curl -s https://fernscout.ch/api/health` answers 200 to anybody and its
 `backup` block reads:
@@ -62,26 +50,41 @@ the one block on the page with no audience among strangers.
 
 ## Work
 
-Split the health payload by audience rather than removing the block. The
-capability list, the media limits and a plain overall state are what a caller
-needs and should stay public. The `backup` block — or at least
-`lastFailure`, the unit name, and `secondary.reason` — should answer only to
-the operator, which on this instance means the admin identity cookie and
-`FERNSCOUT_ADMIN_EMAIL`, the same gate `/admin` already uses.
+Split `backup` by audience rather than removing it. `publicBackupStatus()` in
+`app/api/health/route.ts` is what an unentitled caller now gets in its place:
+`state`, `maxAgeHours`, and the same two fields on `secondary`. Those three are
+the ones a monitor actually asserts on (the module comment on
+`readBackupStatus` already said so) and `maxAgeHours` is a policy number, not a
+fact about the machine. Everything else — `lastSuccessAt`, `ageHours`,
+`lastFailureAt`, the verbatim `lastFailure` text a systemd unit wrote,
+`reason`, and `secondary`'s own timestamps and `reason` (which names
+`RESTIC_REPOSITORY_SECONDARY`) — is now behind `HEALTH_TOKEN`.
 
-Decide what an unauthenticated caller still sees for backup: probably a bare
-`ok`/`stale` with no timestamps, no unit name and no reason string, so a
-monitoring check keeps working without the detail. Do not simply truncate the
-strings — a reworded leak is still a leak.
+**Not the admin identity cookie.** The ticket's own draft suggested gating
+`backup` behind the identity cookie `/admin` uses; built it behind
+`HEALTH_TOKEN` instead, the bearer token this same route already uses to gate
+`config.error`, `content.error`, `basemap.error` and the whole `journals`
+block (B473). Two reasons: an uptime monitor is not a browser and cannot hold
+a cookie, so a cookie-gated `backup` would be unreachable from the tool that
+actually reads it; and a second auth mechanism on one route is a second thing
+to keep in sync with the first. Reusing the existing gate keeps the "public
+state, detail behind one shared secret" shape consistent across every
+redacted field on this page.
 
-Check the same question for the rest of the payload while you are there: grep
-the health route for anything else naming a host path, a unit, an environment
-variable or a provider account.
+Audited the rest of the payload for the same class of leak (host paths, unit
+names, env var names, provider accounts): `capabilities` reasons already name
+only env vars and config keys, never a value (AGENTS.md's own promise);
+`commit` is a git SHA, already listed as deliberately public; `media` and
+`photobook` are limits, not host facts. Nothing else needed narrowing.
 
 ## Acceptance
 
 - `curl -s https://fernscout.ch/api/health` as a stranger contains no systemd
-  unit name, no `RESTIC_*` variable name, and no verbatim failure text.
-- The same request with the operator's identity cookie still shows the full
-  backup block.
-- A test asserts the unauthenticated shape, so the detail cannot creep back in.
+  unit name, no `RESTIC_*` variable name, and no verbatim failure text — met:
+  `backup` is `{ state, maxAgeHours, secondary: { state, maxAgeHours } }` only.
+- The same request with `Authorization: Bearer <HEALTH_TOKEN>` still shows the
+  full backup block, including `lastFailure` and `secondary.reason` — met.
+- A test asserts the unauthenticated shape, so the detail cannot creep back
+  in — `test/health-disclosure.test.ts` ("backup is trimmed to state and
+  maxAgeHours — B1045", "HEALTH_TOKEN brings back the full backup block —
+  B1045") and the updated assertion in `test/backup-status.test.ts`.

@@ -1,13 +1,13 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
-import { readBackupStatus } from "@/lib/backupStatus";
+import { readBackupStatus, type BackupStatus } from "@/lib/backupStatus";
 import { basemapProblem } from "@/lib/basemap";
 import { resolveCapabilities } from "@/lib/capabilities";
 import { loadServerConfig } from "@/lib/config";
 import { FEATURE_NAMES, OPERATOR_ONLY_FEATURES } from "@/lib/config";
 import { DEFAULT_MEDIA_LIMITS } from "@/lib/mediaLimits";
 import { TRANSACTIONAL_MAIL_NOTE } from "@/lib/mail/types";
-import { contentRootProblem, getUsernames } from "@/lib/users";
+import { contentRootProblem, contentRootWriteProblem, getUsernames } from "@/lib/users";
 import pkg from "@/package.json";
 import { videoToolsKnown } from "@/lib/ingest/video";
 import {
@@ -61,6 +61,16 @@ export const dynamic = "force-dynamic";
  * only thing that can tell them it means "cannot tell" rather than "nothing to
  * report".
  *
+ * **Readable is not the same claim as writable — B1248.** `contentRootProblem()`
+ * only ever asked `readdirSync`, so a root that a signup, a publish or an
+ * upload could not write into read as `content: { ok: true }` throughout a
+ * five-hour outage: every page still rendered from disk, so nothing else here
+ * noticed either. `contentRootWriteProblem()` writes and removes one throwaway
+ * file per call — cheap, since this route is polled — and its fault takes the
+ * same `content` field and the same `status` down that an unreadable root
+ * already did, because an instance that cannot write a single new day is not
+ * `ok` merely because its existing ones still read.
+ *
  * **A basemap that will not read is `basemap: { ok: false }` and a 200.**
  * `bundle()` in lib/basemap.ts returns null both for a bundle nobody built —
  * a supported state — and for one it could not read, and before B179 those
@@ -83,13 +93,13 @@ export const dynamic = "force-dynamic";
  *
  * This page is unauthenticated and stays that way — an uptime monitor cannot
  * hold a credential, and every field below that a monitor asserts on is
- * reachable without one. But two of its fields had drifted past "on or off"
- * into things this instance does not otherwise hand out, and both appear
+ * reachable without one. But some of its fields had drifted past "on or off"
+ * into things this instance does not otherwise hand out, and they appear
  * precisely when the instance is already unhealthy, which is when somebody
  * probing is most likely to be reading.
  *
  * **Public, to anybody:** `status`, `time`, `uptimeSeconds`, `version`,
- * `commit`, `backup`, `responseTimeMs`, every block's `ok` boolean and its
+ * `commit`, `responseTimeMs`, every block's `ok` boolean and its
  * machine-readable `code`, and the whole `capabilities` block including each
  * reason. Reasons are named env vars and config keys — never a value, never a
  * path, never a person — and AGENTS.md requires that a capability which is off
@@ -97,13 +107,22 @@ export const dynamic = "force-dynamic";
  * also carry a `note` when they are on but the configured provider is
  * `dry-run`: `enabled: true` there means an order can be composed and a
  * button can be pressed, not that anything will reach a printer (B492).
+ * `backup` is public too, but trimmed to `state`, `maxAgeHours` and the same
+ * two fields on `secondary` — see `publicBackupStatus()` below for why the
+ * rest waits for the token.
  *
  * **Behind `HEALTH_TOKEN`:** the free-text `error` on `config`, `content` and
- * `basemap`, which carries the absolute content-root path and errno text; and
- * the whole `journals` block. Present it as `Authorization: Bearer <token>`.
- * Unset means nobody is entitled, never everybody — a fresh install is safe
- * before it is configured, and an instance that never sets it simply has no
- * roster on this page.
+ * `basemap`, which carries the absolute content-root path and errno text; the
+ * whole `journals` block; and the rest of `backup` — `lastSuccessAt`,
+ * `ageHours`, `lastFailureAt`, the verbatim `lastFailure` text a systemd unit
+ * wrote, `reason`, and `secondary`'s own timestamps and `reason` (which names
+ * `RESTIC_REPOSITORY_SECONDARY`). B1045: none of that is a fact a caller who
+ * cannot already act on it has a use for, and the off-site posture in
+ * particular tells a stranger how much of this instance is recoverable before
+ * they would need to know. Present the token as `Authorization: Bearer
+ * <token>`. Unset means nobody is entitled, never everybody — a fresh install
+ * is safe before it is configured, and an instance that never sets it simply
+ * has no roster, and no backup detail, on this page.
  *
  * **The diagnostic that B197 added survives the redaction**, which is the
  * point of drawing the line here rather than dropping the field. B197's
@@ -159,6 +178,28 @@ function fault(code: string, message: string, detailed: boolean) {
   return { ok: false as const, code, ...(detailed ? { error: message } : {}) };
 }
 
+/**
+ * `backup`, trimmed to what a stranger has a use for — B1045.
+ *
+ * `state` is the one thing a monitor asserts on (the module comment on
+ * `readBackupStatus` says so), and it stays public along with `maxAgeHours`,
+ * which is a policy number rather than a fact about this machine. Everything
+ * else here was reconnaissance rather than health: `lastFailure` is the
+ * systemd unit's own text, passed through verbatim and unbounded in what it
+ * might say next; `secondary.reason` names the `RESTIC_REPOSITORY_SECONDARY`
+ * environment variable; and the timestamps say how much of this instance is
+ * recoverable right now, which is exactly what is worth knowing before
+ * attacking it. `HEALTH_TOKEN` — the same gate `config.error`, `content.error`
+ * and `journals` already use — is what brings the rest back.
+ */
+function publicBackupStatus(full: BackupStatus) {
+  return {
+    state: full.state,
+    maxAgeHours: full.maxAgeHours,
+    secondary: { state: full.secondary.state, maxAgeHours: full.secondary.maxAgeHours },
+  };
+}
+
 export async function GET(request: Request) {
   const detailed = mayReadDetail(request);
   const startedAt = Date.now();
@@ -206,9 +247,23 @@ export async function GET(request: Request) {
   // Read after `getUsernames()`, never before it: the fault is recorded by the
   // read, so asking first answers about whatever happened last time.
   let contentProblem: string | null = null;
+  // "unreadable" for a directory listing that failed, "unwritable" for one
+  // that listed fine but refused the write probe — B1248. Two different
+  // faults, so an operator reading `content.code` knows which one it is
+  // rather than always seeing the older name.
+  let contentCode: "unreadable" | "unwritable" = "unreadable";
   if (configOk) {
     const usernames = getUsernames();
+    // Read first, then write. A root that cannot be listed is already
+    // unusable and the write probe would only repeat the same fault; one
+    // that lists fine but refuses a write is the state that took this
+    // instance down for five hours while every read kept answering
+    // politely, so the probe runs whenever the read did not already fail.
     contentProblem = contentRootProblem();
+    if (!contentProblem) {
+      contentProblem = contentRootWriteProblem();
+      contentCode = "unwritable";
+    }
     for (const username of usernames) {
       const resolved = resolveCapabilities(username);
       const narrowed: Record<
@@ -265,7 +320,7 @@ export async function GET(request: Request) {
     // `ok: true` says the list below is the whole truth; `ok: false` says this
     // process cannot see any journal at all, whatever `journals` looks like.
     // That distinction is B197's, and it is public; the path is not.
-    content: contentProblem ? fault("unreadable", contentProblem, detailed) : { ok: true },
+    content: contentProblem ? fault(contentCode, contentProblem, detailed) : { ok: true },
     // The map data under every trip map, separately again: it is read from
     // lib/, not from content/, and a journal directory that is fine says
     // nothing about a bundle that is not. See the note above on why this does
@@ -353,7 +408,7 @@ export async function GET(request: Request) {
         : DEFAULT_MEDIA_LIMITS.photobookOrdersPerUser,
     },
     ...(detailed ? { journals } : {}),
-    backup: readBackupStatus(),
+    backup: detailed ? readBackupStatus() : publicBackupStatus(readBackupStatus()),
     responseTimeMs: Date.now() - startedAt,
   };
 
