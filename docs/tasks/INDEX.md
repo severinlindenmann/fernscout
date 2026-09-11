@@ -346,16 +346,12 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (23)
+## in-development (19)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1076](in-development/B1076-voice-recordings-are-sent-to-deepgram.md) | Voice recordings are sent to Deepgram without opting out of its model-training programme | SECURITY | high | low | `13f12910` |
 | [B1223](in-development/B1223-three-failed-photobooks-for-one-journal.md) | Three failed photobooks for one journal share one attention-band id, so acknowledging one silently hides the other two and React sees duplicate keys | ISSUE | high | low | `96a5b964` |
-| [B1246](in-development/B1246-a-root-owned-content-registry-silently.md) | A root-owned content/.registry silently breaks every signup on the instance | ISSUE | high | low | `13f12910` |
 | [B1274](in-development/B1274-one-press-of-the-preview-publish.md) | One press of the preview publish button fires three requests and stacks three identical publish cards | ISSUE | high | low | `13f12910` |
-| [B1322](in-development/B1322-postcard-proposals-are-still-refused-after.md) | Postcard proposals are still refused after B1284, now because the helper sends an empty signature | ISSUE | high | low | `13f12910` |
-| [B1323](in-development/B1323-the-helper-said-a-postcard-was.md) | The helper said a postcard was on the postcards page when the proposal had failed | ISSUE | high | low | `13f12910` |
 | [B1406](in-development/B1406-a-book-with-no-recipient-is.md) | A book with no recipient is refused with the message for a book with no photographs | ISSUE | high | low | `96a5b964` |
 | [B1113](in-development/B1113-api-health-cannot-say-whether-this.md) | /api/health cannot say whether this instance actually prints photobooks | ISSUE | medium | low | `96a5b964` |
 | [B1130](in-development/B1130-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low | `13f12910` |
@@ -374,7 +370,7 @@ Do not edit them by hand; run the script.
 | [B1296](in-development/B1296-the-room-names-trips-by-their.md) | The room names trips by their id and dates in ISO, in a conversation that otherwise speaks plainly | ISSUE | low | low | `13f12910` |
 | [B1368](in-development/B1368-photobook-flow-doesn-t-say-the.md) | Photobook flow doesn't say the print is experimental | CHORE | low | low | `96a5b964` |
 
-## testing (161)
+## testing (165)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -386,6 +382,7 @@ Do not edit them by hand; run the script.
 | [B1064](testing/B1064-a-journal-s-owner-is-proven.md) | A journal's owner is proven by an email alone, and an address costs nothing to make another of | FEATURE | high | high | — |
 | [B1065](testing/B1065-there-is-no-way-to-prove.md) | There is no way to prove that somebody holds the telephone number they typed | FEATURE | high | medium | — |
 | [B1075](testing/B1075-the-off-site-backup-has-never.md) | The off-site backup has never once succeeded, and the nightly run failed two days ago | OPS | high | low | — |
+| [B1076](testing/B1076-voice-recordings-are-sent-to-deepgram.md) | Voice recordings are sent to Deepgram without opting out of its model-training programme | SECURITY | high | low | — |
 | [B1093](testing/B1093-a-person-cannot-choose-who-a.md) | A person cannot choose who a photobook is posted to | FEATURE | high | medium | — |
 | [B1098](testing/B1098-work-on-a-task-revalidates-a.md) | work-on-a-task revalidates a ticket in one sentence of prose, and asks for a visual check it leaves no evidence of | DOCS | high | low | — |
 | [B1102](testing/B1102-signing-in-at-agent-lands-in.md) | Signing in at /agent lands in the six-step wizard, not the room B984 made the whole of it | ISSUE | high | low | — |
@@ -440,6 +437,7 @@ Do not edit them by hand; run the script.
 | [B1228](testing/B1228-only-one-of-the-six-size.md) | Only one of the six size-and-cover combinations has ever reached a printer | CHORE | high | medium | — |
 | [B1229](testing/B1229-the-combined-pdf-is-written-but.md) | The combined PDF is written but cannot be downloaded | ISSUE | high | low | — |
 | [B1234](testing/B1234-proving-a-number-needs-a-template.md) | Proving a number needs a template Meta will not grant - the inbound message already proves it | FEATURE | high | medium | — |
+| [B1246](testing/B1246-a-root-owned-content-registry-silently.md) | A root-owned content/.registry silently breaks every signup on the instance | ISSUE | high | low | — |
 | [B1279](testing/B1279-a-photobook-of-a-trip-with.md) | A photobook of a trip with three photographs contains none and cannot be ordered | ISSUE | high | medium | — |
 | [B1284](testing/B1284-every-postcard-proposal-from-the-helper.md) | Every postcard proposal from the helper is refused, because it sends a name slug where a contact id is required | ISSUE | high | low | — |
 | [B1310](testing/B1310-the-whatsapp-door-is-invisible-to.md) | The WhatsApp door is invisible to anyone not already in their room | FEATURE | high | low | — |
@@ -448,6 +446,8 @@ Do not edit them by hand; run the script.
 | [B1319](testing/B1319-guthaben-kaufen-points-at-me-instead.md) | Guthaben kaufen points at /me instead of the account page, whose design is unloved | ISSUE | high | medium | — |
 | [B1320](testing/B1320-the-desktop-preview-column-is-open.md) | The desktop preview column is open while empty; it should close until something arrives | ISSUE | high | low | — |
 | [B1321](testing/B1321-deleting-a-trip-requires-a-mailbox.md) | Deleting a trip requires a mailbox round-trip even for the owner standing on its page | FEATURE | high | medium | — |
+| [B1322](testing/B1322-postcard-proposals-are-still-refused-after.md) | Postcard proposals are still refused after B1284, now because the helper sends an empty signature | ISSUE | high | low | — |
+| [B1323](testing/B1323-the-helper-said-a-postcard-was.md) | The helper said a postcard was on the postcards page when the proposal had failed | ISSUE | high | low | — |
 | [B1326](testing/B1326-the-room-s-light-mode-is.md) | The room's light mode is white-grey while the rest of the site is cream-navy | ISSUE | high | low | — |
 | [B1327](testing/B1327-bring-your-own-agent-is-in.md) | Bring-your-own-agent is in the footer twice, and the menu entry opens nothing on desktop | ISSUE | high | low | — |
 | [B1329](testing/B1329-the-agent-door-tells-nobody-what.md) | The agent door tells nobody what the product is | FEATURE | high | medium | — |

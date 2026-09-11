@@ -7,8 +7,7 @@ complexity: low
 area: helper, honesty
 found: "2026-09-10T15:51:15Z"
 started: "2026-09-11T04:33:22Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T04:33:22Z"
+merged: "2026-09-11T05:11:57Z"
 ---
 
 # B1323 — The helper said a postcard was on the postcards page when the proposal had failed

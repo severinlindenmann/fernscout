@@ -7,8 +7,7 @@ complexity: low
 area: helper, postcards
 found: "2026-09-10T15:51:14Z"
 started: "2026-09-11T04:33:21Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T04:33:21Z"
+merged: "2026-09-11T05:11:56Z"
 ---
 
 # B1322 — Postcard proposals are still refused after B1284, now because the helper sends an empty signature
