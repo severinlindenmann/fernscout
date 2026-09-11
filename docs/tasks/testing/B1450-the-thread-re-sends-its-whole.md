@@ -7,8 +7,7 @@ complexity: low
 area: helper cost
 found: "2026-09-11T11:47:00Z"
 started: "2026-09-11T11:52:04Z"
-session: a9c71f66-3393-4d42-b186-17ef4579501a
-claimed: "2026-09-11T11:52:04Z"
+merged: "2026-09-11T11:57:00Z"
 ---
 
 # B1450 — The thread re-sends its whole 10,800-token prefix on every round
