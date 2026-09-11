@@ -90,3 +90,9 @@ the flow.
 - A printer that cannot be reached says that.
 - With no quote, no line on the panel claims a total that includes postage.
 - `npm run verify` clean.
+
+## Note
+
+`photobook.pricePrintOnly` (en/de) ships with a placeholder — the English
+string — for `hu`, per the batch's Hungarian decision. Needs a native read
+before this leaves `testing/`.

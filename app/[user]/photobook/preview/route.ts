@@ -138,5 +138,24 @@ export async function POST(
     // answered here rather than counted client-side: the page disables the
     // button on this one flag.
     buyable: book.photoCount > 0 && quote !== null && !("error" in quote),
+    // B1406. `buyable` alone told the page THAT it must refuse, never WHY —
+    // three different causes collapsed onto one boolean, so the panel always
+    // rendered the "no photographs" sentence even when the book had 47 of
+    // them. Sent explicitly rather than re-derived client-side, so the panel
+    // cannot drift from what actually blocked the button.
+    unbuyableReason:
+      book.photoCount <= 0
+        ? "no-photos"
+        : quote === null
+          ? "no-recipient"
+          : "error" in quote
+            ? quote.error === "provider_unavailable"
+              ? "printer-unavailable"
+              // `unknown_contact` / `unknown_country` / `unknown_product` — the
+              // chosen contact cannot be posted to (removed, in a country or
+              // for a size Gelato has no product for), which reads to the
+              // owner exactly like having nobody to send it to.
+              : "no-recipient"
+            : null,
   });
 }

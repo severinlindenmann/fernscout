@@ -16,6 +16,7 @@ import {
 import type { PhotobookOutcome, PhotobookOutcomeState } from "@/lib/photobook/orders";
 import type { MediaTile, PhotobookEntry } from "@/lib/types";
 import BookLevelView, { type PreviewState } from "./BookLevelView";
+import ExperimentalPrintNotice from "./ExperimentalPrintNotice";
 import FirstBookFlow from "./FirstBookFlow";
 import DayLevelView, { type Drill } from "./DayLevelView";
 import { extractSpreads } from "./previewSlice";
@@ -587,6 +588,12 @@ export default function PhotobookPageContent({
         <h1 className="font-display text-2xl font-semibold tracking-tight text-navy-900 sm:text-3xl">
           {tripTitle}
         </h1>
+
+        {/* Said before setup begins — B1368. Only one size/cover has ever
+            been checked against a real, printed copy. */}
+        <div className="mt-4">
+          <ExperimentalPrintNotice />
+        </div>
 
         {/* The outcome of the last press, above everything else: a page that
             looked identical whether Pay had just failed or never been
