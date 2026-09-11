@@ -52,6 +52,50 @@ post office anyway, as the page says.
 - Whatever is chosen, the caption has to match what the reader is looking at at
   the width they are looking at it.
 
+**Built.** Legible over true-to-scale, as the ticket itself suggested.
+
+- `lib/postcard/spec.ts`: new `MESSAGE_FLOOR_PX = 14` — the message never
+  renders under 14px, matching the editable field's own `text-sm` two hundred
+  pixels below the card. The number is a judgement call (no smaller precedent
+  existed on this page), chosen to match text already on the page rather than
+  invented from nothing.
+- `lib/postcard/preview.ts`: `font.message` is now `max(Xcqw, 14px)` instead of
+  the bare percentage — CSS's own `max()`, no JS recompute needed for the
+  visual floor. Also added `font.messageTrueAbovePx` (~611px for A6 landscape):
+  the card width above which the floor is doing no work and the message really
+  is at print size — computed as `MESSAGE_FLOOR_PX / fontFraction(MESSAGE_PT)`.
+- `app/[user]/postcards/[id]/PostcardBack.tsx`: a `ResizeObserver` on the card
+  element compares its measured width against `messageTrueAbovePx` and picks
+  `strings.caption` ("at print size") or the new `strings.captionNotToScale`
+  ("not to scale"). Defaults to the *not-to-scale* caption on first render, on
+  both server and client, to avoid a hydration mismatch — a phone is the
+  common case, and claiming less by default is the safe direction.
+- `app/[user]/postcards/[id]/page.tsx`: passes both caption strings, from two
+  new locale keys (`postcard.page.backNotToScale`,
+  `postcard.page.backFirstOfNotToScale`), added to en/de/hu and regenerated
+  into `lib/i18n.ts` via `npm run i18n:keys`.
+- `test/postcard.test.ts`: the three `backLayout().font.message` tests updated
+  for the `max()` wrapper (a small `cqwOf()` helper pulls the percentage back
+  out); still assert the same 2.291% derivation.
+
+**Measured, not on the live site — on the CSS mechanism itself**, via
+`chrome-devtools` on a minimal page reproducing the exact structure
+(`container-type: inline-size` + `font-size: max(2.291cqw, 14px)`) at the
+ticket's own reported card width:
+
+| card width | old (bare cqw) | new (floored) |
+| --- | --- | --- |
+| 358px (the ticket's 390px-viewport measurement) | 8.16px | **14px** |
+| 900px (well past the ~611px true-scale threshold) | 20.6px | 20.6px (unchanged — floor does nothing here) |
+
+I did not exercise the real `/<user>/postcards/<id>` page end to end (no
+postcard order exists in the local demo content, and creating one needs an
+approved contact and a print-eligible photograph — more setup than this
+change needed to prove out). The CSS is the load-bearing part and is verified
+directly above; the `ResizeObserver`/caption-switch logic is plain and was
+read carefully rather than screenshotted. If you want the real page checked,
+open `/<user>/postcards/<id>` at 390px on a journal with a pending order.
+
 ## Acceptance
 
 - At 390px the message on the card preview renders at a legible size.

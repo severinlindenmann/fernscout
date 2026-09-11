@@ -6,6 +6,7 @@ import {
   DIVIDER_X_MM,
   FIGURES_AREA,
   LEADING,
+  MESSAGE_FLOOR_PX,
   MESSAGE_PT,
   PRINT_FLOOR_DPI,
   SIGNATURE_PT,
@@ -105,12 +106,26 @@ export function backLayout(spec: PostcardSpec = A6_LANDSCAPE) {
      * The container is the card element; these are meaningless anywhere else.
      */
     font: {
-      message: `${(fontFraction(MESSAGE_PT, spec) * 100).toFixed(3)}cqw`,
+      /**
+       * `max()`, not the bare percentage — B1286. Below a card width of
+       * `messageTrueAbovePx` the percentage alone renders under
+       * `MESSAGE_FLOOR_PX` and the floor wins instead, which is what makes the
+       * message readable on a phone at the cost of no longer being to scale.
+       */
+      message: `max(${(fontFraction(MESSAGE_PT, spec) * 100).toFixed(3)}cqw, ${MESSAGE_FLOOR_PX}px)`,
       signature: `${(fontFraction(SIGNATURE_PT, spec) * 100).toFixed(3)}cqw`,
       address: `${(fontFraction(ADDRESS_PT, spec) * 100).toFixed(3)}cqw`,
       /** Unitless, so it multiplies whatever font size it lands on. */
       leading: LEADING,
       addressLeading: ADDRESS_LEADING_PT / ADDRESS_PT,
+      /**
+       * The card width, in CSS px, above which the message's own `cqw`
+       * already clears `MESSAGE_FLOOR_PX` on its own — the point the floor
+       * above stops doing any work. The client measures its own rendered
+       * width against this to decide whether the caption may still say the
+       * message is at print size (`PostcardBack.tsx`).
+       */
+      messageTrueAbovePx: MESSAGE_FLOOR_PX / fontFraction(MESSAGE_PT, spec),
     },
   };
 }

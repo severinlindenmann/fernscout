@@ -365,6 +365,12 @@ export default async function PostcardOrderPage({
                           count: String(live.length),
                         })
                       : t("postcard.page.back"),
+                  captionNotToScale:
+                    live.length > 1
+                      ? t("postcard.page.backFirstOfNotToScale", {
+                          count: String(live.length),
+                        })
+                      : t("postcard.page.backNotToScale"),
                 }}
               />
 
