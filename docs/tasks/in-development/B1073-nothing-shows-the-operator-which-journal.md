@@ -67,3 +67,38 @@ Note the two shapes while building: `.deleted/<user>.json` is a whole journal,
 live instance currently holds one of the second kind and none of the first,
 which is the case most likely to be got wrong — I misread that listing myself
 today.
+
+## Built, 2026-09-11
+
+Most of the journal half already existed: B1354 (merged the same day) put
+`allTombstones()`, a Roster section and a Release button on `/admin` — but
+`allTombstones()` only ever read `.deleted/*.json`, one level deep, so a whole
+journal's tombstone was the only shape it could see. A trip's tombstone, one
+level further down at `.deleted/<user>/<trip>.json`, was invisible to the page
+entirely — the exact gap this ticket is about.
+
+- `lib/adminConsole.ts`'s `allTombstones()` now also walks each username
+  subdirectory of `.deleted/` and reads the trip tombstones inside it, so
+  both shapes come back in one list, distinguished by `kind`.
+- `Roster` in `app/admin/page.tsx` now renders two separate sections rather
+  than one: "Whole journals deleted — the name is held" (unchanged from
+  B1354, with Release) and "One trip deleted — the journal is still here"
+  (new, read-only). Each section's own paragraph says what it does and does
+  not do — a held name blocks signup and a 410; a trip's tombstone only keeps
+  that trip's old links answering "gone" and holds no name back at all.
+- Freeing a trip's tombstone is left undone, as the ticket allowed: there is
+  no route for it, and the section says the manual `rm` in words rather than
+  offering a button that does not exist.
+- No new UI strings needed translating: `/admin` has no `t()` calls anywhere
+  and is English-only throughout (confirmed by grep before writing anything).
+- Reading cost: one `readdirSync` of `.deleted/` (as before) plus one more per
+  username subdirectory found in it — the same shape and the same cheap read
+  B996 already relied on for the journal-only count, on a directory that holds
+  a handful of entries even on a busy instance. No caching was added because
+  none existed before.
+- New test: `test/admin-tombstones.test.ts`, asserting `allTombstones()`
+  returns both a journal and a trip tombstone with the right `kind` and
+  `tripId`, from two files at the two real paths.
+
+`npm run verify`: 527 files / 6916 passed | 4 skipped (baseline 525/6906), plus
+`npm run unused` clean. Committed on `b1073-admin-names`, not merged.

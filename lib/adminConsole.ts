@@ -439,28 +439,49 @@ export async function sendsByWeek(weeks: number): Promise<Week[]> {
 }
 
 /**
- * Every journal that used to be here — B996 (X4).
+ * Every journal and every trip that used to be here — B996 (X4), extended by
+ * B1073.
  *
  * `lib/tombstones.ts` reads one by name, because that is what a 410 needs.
- * This is the other question: what have I lost, and is a name still held. One
- * `readdir` of a directory that holds a handful of files on a busy instance.
+ * This is the other question: what have I lost, and is a name still held. Two
+ * `readdir`s of directories that hold a handful of entries on a busy instance
+ * — `.deleted/` itself for a whole journal's record (`<user>.json`), and one
+ * level down, per username, for a single trip of a journal that still exists
+ * (`.deleted/<user>/<trip>.json`). The two shapes read alike from disk and
+ * mean opposite things — B1073's whole reason for existing is that they were
+ * once told apart wrongly from an `ls`, so `kind` on the parsed record is what
+ * every caller here switches on rather than which directory it came from.
  */
 export function allTombstones(): Tombstone[] {
   const dir = path.join(contentRoot(), ".deleted");
-  let names: string[];
+  let entries: fs.Dirent[];
   try {
-    names = fs.readdirSync(dir).filter((name) => name.endsWith(".json"));
+    entries = fs.readdirSync(dir, { withFileTypes: true });
   } catch {
     return [];
   }
   const found: Tombstone[] = [];
-  for (const name of names) {
+  const read = (file: string) => {
     try {
-      const parsed = JSON.parse(fs.readFileSync(path.join(dir, name), "utf8")) as Tombstone;
+      const parsed = JSON.parse(fs.readFileSync(file, "utf8")) as Tombstone;
       if (typeof parsed?.kind === "string") found.push(parsed);
     } catch {
       // A tombstone nobody can parse is a line lost from a list, not a page
       // that fails to render.
+    }
+  };
+  for (const entry of entries) {
+    if (entry.isFile() && entry.name.endsWith(".json")) {
+      read(path.join(dir, entry.name));
+    } else if (entry.isDirectory()) {
+      // A username's own subdirectory holds that journal's deleted trips.
+      let tripFiles: string[];
+      try {
+        tripFiles = fs.readdirSync(path.join(dir, entry.name)).filter((n) => n.endsWith(".json"));
+      } catch {
+        continue;
+      }
+      for (const file of tripFiles) read(path.join(dir, entry.name, file));
     }
   }
   return found.sort((a, b) => b.deletedAt.localeCompare(a.deletedAt));
