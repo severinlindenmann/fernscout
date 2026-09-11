@@ -9,6 +9,7 @@ found: "2026-09-07T08:56:14Z"
 started: "2026-09-11T17:27:02Z"
 session: 13f12910-ff28-4566-894a-9e2b3d055281
 claimed: "2026-09-11T17:27:02Z"
+superseded: B1219
 ---
 
 # B673 — Nobody is reminded to write while the trip is happening
@@ -94,3 +95,50 @@ hour to be told to write up today.
 
 The owner-marker work is a follow-up ticket, captured separately so push can
 arrive later without holding up a reminder that already works.
+
+## Already built — B1219 supersedes this, 2026-09-11
+
+**Do not build the mail-only/N-days scheme above.** It already shipped, a day
+before this decision section was written, as B1219 (`docs/tasks/completed/
+B1219-room-decisions-an-evening-reminder-during.md`, merged
+2026-09-10T06:27:07Z). Its own body says outright: *"Supersedes B673 — note
+it there."* That note never got made, and this ticket kept living in
+`in-development/` with a decision section written the next day that did not
+find it.
+
+What is actually on `main` right now:
+
+- `lib/digest/reminder.ts` — `sweepReminders()`. Its own top comment: *"B1219,
+  D46, and B673's open question answered."* Per-trip opt-in
+  (`trip.reminder.channel`, set conversationally in the helper room via
+  `set_reminder` — see `lib/api/tripReminder.ts`), checked against `isRunning`
+  and `hasWrittenToday` (draft counts). Idempotent by
+  `content/<user>/.reminder-sent.json` (`markerFile`/`alreadySentToday`/
+  `markSentToday`) — a marker file beside the journal, the same shape choice
+  this ticket's own decision section made independently.
+- `scripts/reminders.mts` — the CLI door, `--dry-run` prints who would be
+  told exactly like `notify.mts` does; its own header again: *"B1219, D46,
+  and B673 with a decision finally made."*
+- Wired into `scripts/backup.sh` step 0b, nightly, off the same timer this
+  ticket's decision section argued against reusing (`fernscout-backup.timer`,
+  03:20) — a real design choice made with both tickets in view, not an
+  oversight: the reminder is an evening nudge and the backup already runs
+  nightly infrastructure nothing else does.
+- Channel is mail **or** WhatsApp, not push — `sendReminder()` in the same
+  file. Mail path uses `sendMail`/`renderMail`, gated by the journal's own
+  `features.mail`, same as this ticket asked for as its fallback.
+- `test/reminders.test.ts` covers the dry-run/idempotency/no-entry-vs-entry
+  cases this ticket's own Acceptance section describes.
+
+The one real difference from this ticket's original Work: B1219 is
+**per-trip opt-in with a daily "wrote nothing today" check**, not a
+**per-journal "N quiet days" threshold**. That was a decision (D46), not an
+oversight — see `docs/plans/2026-09-10-room-decisions.md`. If the N-day
+version is still wanted on top of the daily one, that is a new, narrower
+ticket against `lib/digest/reminder.ts`'s existing machinery, not a second
+delivery path built from scratch beside it.
+
+No code changed on this branch. Filing `superseded: B1219` in this file's own
+frontmatter rather than moving it, since a builder was told not to move this
+ticket's lane; a person can run `npm run tasks -- tidy` to re-file it into
+`superseded/`.
