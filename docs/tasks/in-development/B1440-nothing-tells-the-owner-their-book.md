@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: photobook, gelato, webhooks
 found: "2026-09-11T10:31:23Z"
+started: "2026-09-11T11:02:10Z"
+session: 96a5b964-fad1-4616-9124-a01eabbd8a46
+claimed: "2026-09-11T11:02:10Z"
 ---
 
 # B1440 — Nothing tells the owner their book was printed or posted, or gives them the tracking code
@@ -170,3 +173,72 @@ sender becomes one that gets filtered. If a mail for "it has been printed" is
 wanted, say so and it is a small addition.
 
 `passed` stays an acknowledged no-op, as does anything unrecognised.
+
+---
+
+## Decided 2026-09-11 — one mail, on shipped
+
+The owner's word: **one mail when shipped.** So:
+
+- `shipped` → store the tracking, move the order's own record forward, and
+  send **one** mail carrying the tracking code and its link.
+- `printed`, `in_production`, `passed`, `created` → update what the order page
+  can show, send nothing.
+- Anything unrecognised → acknowledged no-op, exactly as today.
+
+### Where the data goes, given how the page already works
+
+`app/[user]/photobooks/[id]/page.tsx` calls `fetchOrderStatus(providerRef)`
+**live on every render** — that is where "The printer's own status: created"
+comes from. So the printer's *status* needs no storing.
+
+Tracking is different and must be stored: it arrives by webhook, the mail has
+to quote it, and a live status fetch is not guaranteed to carry it. Add to the
+`print` block in `PhotobookPayload` (`lib/photobook/orders.ts:59`):
+
+```ts
+/** B1440. Every parcel Gelato reports for this order. An item can ship in
+ *  more than one — the observed payload carries two — so this is a list and
+ *  the page shows all of them. */
+tracking?: { code: string; url?: string; carrier?: string }[];
+shippedAt?: string;
+```
+
+Append rather than replace when a second tracking event arrives, and
+de-duplicate on `code` so a retried delivery does not double the list.
+
+### Do not move the row's `status`
+
+B1437 freed the word `printed`, but leave the column alone here. `built` is
+what makes a refused order retryable (`submitBuiltBook` checks
+`order.status !== "built"`) and it is what `troubles()` scans for B1165. A
+book's journey at the printer belongs in `payload.print`, which is already
+where `providerRef` and `failure` live. Introducing a terminal row status is a
+separate decision with a blast radius across retry and /admin, and nothing
+here needs it.
+
+### The mail
+
+One new sender beside `sendPhotobookReceipt` and `sendPhotobookRefused` in
+`lib/photobook/receipt.ts`, following their shape exactly: best-effort, never
+throws, links to the order page (B1438 just added that to both others).
+
+It may say the book has been **posted**, because by then it has — that is the
+first moment any mail from this system is allowed to say so, and
+`receipt.ts`'s standing rule about not claiming a book was printed or posted
+needs its comment updated to name this one exception rather than being
+quietly contradicted.
+
+Real English and German; `hu` may carry English with a note here, as B1438 did.
+
+## Acceptance, revised
+
+- A `shipped` event stores every tracking code it carries, shows them on the
+  order page with their links, and sends exactly one mail.
+- Two tracking codes in one event produce two entries, not one.
+- The same event delivered twice sends one mail and stores one copy.
+- `printed` and `in_production` change the page and send nothing.
+- An unrecognised status is still an acknowledged no-op, and nothing new
+  refunds anything.
+- The observed payload shapes are written into `docs/providers/photobook.md`.
+- `npm run verify` clean.
