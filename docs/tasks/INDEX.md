@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (214)
+## backlog (216)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (53)
+### issue (54)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -99,6 +99,7 @@ Do not edit them by hand; run the script.
 | [B1513](backlog/issue/B1513-costs-cannot-be-imported-before-a-trip-exists.md) | Statement costs cannot be imported before a trip exists, and publish will not run until they are | ISSUE | medium | medium |
 | [B1535](backlog/issue/B1535-an-agent-code-for-the-instance.md) | An agent code for the instance admin is refused on every journal they do not own | ISSUE | medium | low |
 | [B1538](backlog/issue/B1538-validate-content-truncated-its-own-json.md) | validate-content truncated its own JSON report, and selftest blamed the fixture | ISSUE | medium | low |
+| [B1540](backlog/issue/B1540-the-country-is-in-every-exported.md) | The country is in every exported photo and the helper throws it away, so the photobook says "elsewhere" on every day | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
@@ -118,12 +119,13 @@ Do not edit them by hand; run the script.
 | [B1514](backlog/issue/B1514-publish-stops-a-whole-run-on-a-transient-502.md) | publish stops a whole run on a transient 502 from a media upload | ISSUE | low | low |
 | [B1532](backlog/issue/B1532-a-card-stannp-cancels-after-acceptance.md) | A card Stannp cancels after acceptance is never refunded | ISSUE | low | medium |
 
-### big-feature (12)
+### big-feature (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1049](backlog/big-feature/B1049-a-model-choosing-among-forty-three.md) | A model choosing among forty-three tools chooses worse than one choosing among seventeen | FEATURE | medium | high |
 | [B1537](backlog/big-feature/B1537-a-journal-can-only-have-one.md) | A journal can only have one owner - couples and families can't share ownership | FEATURE | medium | high |
+| [B1541](backlog/big-feature/B1541-there-is-no-dark-mode-the.md) | There is no dark mode; the whole app is cream and yellow at 2am | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | A journal folder can be exported and never pushed back, so writing locally is a one-way trip | FEATURE | medium | high |
