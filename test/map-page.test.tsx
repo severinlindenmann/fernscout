@@ -76,6 +76,8 @@ function render(props: {
   plan?: PlannedStop[];
   stats?: typeof travelled;
   reachedCount?: number;
+  over?: boolean;
+  hasDays?: boolean;
 }) {
   return renderToStaticMarkup(
     <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
@@ -87,6 +89,8 @@ function render(props: {
               plan={props.plan ?? []}
               stats={props.stats ?? nothing}
               reachedCount={props.reachedCount ?? 0}
+              over={props.over ?? false}
+              hasDays={props.hasDays ?? false}
             />
           </TripListProvider>
         </CurrencyProvider>
@@ -237,5 +241,26 @@ describe("a trip with neither days nor a plan", () => {
     expect(html).toContain(dictionaryFor("en")["map.empty"]);
     // The old message was true and was not the reason the map was missing.
     expect(html).not.toContain(dictionaryFor("en")["story.empty"]);
+  });
+});
+
+/**
+ * B1289 — "no days written" told an owner their published day was missing,
+ * when what was actually missing was the day's coordinates. `hasDays` is
+ * what tells the two apart; `places` alone cannot, since a day with no
+ * coordinates never appears in it (B381).
+ */
+describe("a trip with a day that has no coordinates, and no plan", () => {
+  test("says a day has no place, not that no days were written", () => {
+    const html = render({ hasDays: true });
+    expect(mapViewBox(html)).toBeNull();
+    expect(html).toContain(dictionaryFor("en")["map.emptyNoPlace"]);
+    expect(html).not.toContain(dictionaryFor("en")["map.empty"]);
+  });
+
+  test("looks back when the trip is over, even with nothing to draw", () => {
+    const html = text(render({ hasDays: true, over: true }));
+    expect(html).toContain(dictionaryFor("en")["map.title"]);
+    expect(html).not.toContain(dictionaryFor("en")["map.titlePlanned"]);
   });
 });

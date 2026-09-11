@@ -6,11 +6,12 @@ import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
 import { recordTripView } from "@/lib/analytics/record";
 import MapPageContent from "./MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
-import { getPlaces, getTripStats } from "@/lib/entries";
+import { getDays, getPlaces, getTripStats } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
 import { readTrack } from "@/lib/gps/track";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { currentTripRef, getTrip } from "@/lib/trips";
+import { isOver } from "@/lib/tripTime";
 import TripProvider from "@/components/TripProvider";
 import type { TranslationKey } from "@/lib/i18n";
 
@@ -31,10 +32,16 @@ import type { TranslationKey } from "@/lib/i18n";
  * whose newest trip has no entries served `<h1>Where we're going</h1>` under
  * `<title>Where we've been</title>` — one page, two tenses, about one trip.
  *
- * Asked here the same way `MapPageContent` asks it — on whether `getPlaces`
- * returns anything, not on `trip.status` — so the two cannot drift apart again.
- * `getPlaces` is cached per directory (lib/entries.ts), so the page below does
- * not read the trip a second time.
+ * Asked here the same way the page below asks it — whether `getPlaces` returns
+ * anything, **or** `isOver` says the trip itself is finished (B1289) — so the
+ * two cannot drift apart again. A finished trip whose only day has no
+ * coordinates (`unrecorded: [coordinates]`, ordinary for anybody writing
+ * without GPS) used to fall through to the planned-tense copy on the reasoning
+ * that nothing had been drawn yet; the trip being over is a fact the calendar
+ * already knows regardless of what got drawn, and the trip's own hero
+ * (`isOver` in `lib/tripTime.ts`) already says so three lines into the page.
+ * `getPlaces` and `getDays` are both cached per directory (lib/entries.ts), so
+ * the page below does not read the trip a second time.
  *
  * And, since B336, the same *audience* the page asks it for. `getPlaces` used
  * to be called here with no options — always published-only — so an owner
@@ -57,7 +64,17 @@ export async function generateMetadata({
   const ref = currentTripRef(user);
   const trip = ref ? getTrip(ref) : undefined;
   const drafts = trip ? await draftsVisibleTo(trip) : { visible: false, canPublish: false };
-  const visited = ref !== undefined && getPlaces(ref, { includeDrafts: drafts.visible }).length > 0;
+  const read = { includeDrafts: drafts.visible };
+  // `days.length > 0` guards `isOver` here — B118 is still the rule for a
+  // trip with nothing written at all: "has been nowhere and is going
+  // nowhere" stays true of a zero-day trip even once its dates are past, and
+  // `map-tense.test.tsx` is that policy asserted. `isOver` only gets to move
+  // the tense once there is at least one day for it to be true *about*.
+  const days = ref ? getDays(ref, read) : [];
+  const visited =
+    ref !== undefined &&
+    (getPlaces(ref, read).length > 0 ||
+      (trip !== undefined && days.length > 0 && isOver(trip, days)));
   // The subtitle switches with it. It is the `<meta name="description">` and
   // the sharing card's blurb, and "Tap any stop to see how long we stayed" is
   // the same false claim as the heading, one line further down.
@@ -102,6 +119,15 @@ export default async function MapPage({ params }: PageProps<"/[user]/map">) {
   const read = { includeDrafts: drafts.visible };
   const stats = getTripStats(tripId, read);
   const places = getPlaces(tripId, read);
+  // Whether there is a day written at all, as distinct from whether any of
+  // them carries coordinates — B1289. `places` answers neither question on
+  // its own: a published day with no `location:` never appears in it, so
+  // "no places" used to read as "no days written" even when one was there.
+  const days = getDays(tripId, read);
+  // The trip hero's own tense (`isOver`, lib/tripTime.ts) — B1289. A finished
+  // trip whose only day has no coordinates used to stay in the planned tense
+  // forever, because `places` was empty and nothing else was asked.
+  const over = isOver(trip, days);
   // Clipped here so the reader gets their own trip's worth of map rather than
   // the whole bundle — see the same two lines in the trip-scoped route.
   const basemap = basemapForRoute(places.length > 0 ? places : plan.stops);
@@ -118,6 +144,8 @@ export default async function MapPage({ params }: PageProps<"/[user]/map">) {
         track={track}
         reachedCount={plan.reachedCount}
         basemap={basemap}
+        over={over}
+        hasDays={days.length > 0}
         stats={{
           tripDays: stats.tripDays,
           places: stats.places,
