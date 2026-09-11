@@ -8,11 +8,19 @@
  * `owner.tel`, or any time the lock and the disk might have drifted — the
  * directory is disposable by design; see `lib/registry.ts`.
  */
+import { assertContentRootWritable, ContentRootNotWritableError } from "../lib/contentRoot.ts";
 import { reconcile } from "../lib/registry.ts";
 
 const [command] = process.argv.slice(2);
 if (command !== "reconcile") {
   console.error("Usage:\n  npm run registry -- reconcile");
+  process.exit(1);
+}
+
+try {
+  assertContentRootWritable();
+} catch (err) {
+  console.error((err as ContentRootNotWritableError).message);
   process.exit(1);
 }
 

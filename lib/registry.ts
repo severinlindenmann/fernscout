@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { contentRoot } from "./contentRoot";
+import { contentRoot, ContentRootNotWritableError } from "./contentRoot";
 import { getUsernames } from "./users";
 
 /**
@@ -95,13 +95,25 @@ export type ReserveResult = { ok: true } | { ok: false; conflict: "email" | "tel
  * which is what lets `reconcile` re-run idempotently — `false` on a genuine
  * conflict with somebody else's username. */
 function tryLock(file: string, username: string, value: string): boolean {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  const row: LockRow = { username, value, createdAt: new Date().toISOString() };
   try {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    const row: LockRow = { username, value, createdAt: new Date().toISOString() };
     fs.writeFileSync(file, JSON.stringify(row, null, 2) + "\n", { encoding: "utf8", flag: "wx" });
     return true;
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === "EACCES" || code === "EPERM") {
+      // B1246 — a registry directory this process cannot write into used to
+      // surface as an uncaught EACCES partway through a signup. Turn it into
+      // the same named refusal `assertContentRootWritable()` raises, rather
+      // than letting node's bare error reach whoever called `reserve()`.
+      throw new ContentRootNotWritableError(
+        `${path.dirname(file)} is not writable` +
+          `${process.getuid ? ` by uid ${process.getuid()}` : ""}. ` +
+          `Run: sudo chown -R fernscout:fernscout ${contentRoot()}`,
+      );
+    }
+    if (code !== "EEXIST") throw err;
     return ownedByUs(file, username);
   }
 }

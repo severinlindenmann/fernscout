@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
+import { ContentRootNotWritableError } from "@/lib/contentRoot";
 import { createJournal } from "@/lib/journals";
 import { reconcile, release, reserve } from "@/lib/registry";
 
@@ -135,5 +136,25 @@ describe("the address and number lock", () => {
       ok: false,
       conflict: "email",
     });
+  });
+
+  // B1246 — a registry directory this process cannot write into used to
+  // surface as a raw, uncaught EACCES partway through `reserve()`.
+  test("a registry directory nobody can write into is a named refusal, not a raw EACCES", () => {
+    const registryDir = path.join(dir, ".registry");
+    fs.mkdirSync(registryDir, { recursive: true });
+    fs.chmodSync(registryDir, 0o000);
+    try {
+      let thrown: unknown;
+      try {
+        reserve("alex", "alex@example.test", null);
+      } catch (err) {
+        thrown = err;
+      }
+      expect(thrown).toBeInstanceOf(ContentRootNotWritableError);
+      expect((thrown as Error).message).toContain("chown");
+    } finally {
+      fs.chmodSync(registryDir, 0o755);
+    }
   });
 });

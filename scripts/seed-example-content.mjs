@@ -18,9 +18,10 @@
 // seed from it.
 import fs from "node:fs";
 import path from "node:path";
+import { assertContentRootWritable, contentRoot } from "../lib/contentRoot.ts";
 
 const ROOT = path.join(import.meta.dirname, "..");
-const CONTENT = process.env.CONTENT_DIR ?? path.join(ROOT, "content");
+const CONTENT = contentRoot();
 const SRC = fs.existsSync(path.join(CONTENT, "example"))
   ? path.join(CONTENT, "example")
   : path.join(ROOT, "content", "example");
@@ -45,6 +46,13 @@ if (fs.existsSync(DEST) && !force) {
     `${DEST} already exists. This would overwrite real content.\n` +
       "Re-run with --force if that is genuinely what you want.",
   );
+  process.exit(1);
+}
+
+try {
+  assertContentRootWritable();
+} catch (err) {
+  console.error(err.message);
   process.exit(1);
 }
 
