@@ -215,14 +215,20 @@ describe("resolveCapabilities", () => {
     expect(live.enabled === true && live.note).toMatch(/PRINTS AND POSTS/);
   });
 
-  test("photobook has no live switch, so a configured provider carries no note", () => {
+  // B1113: a photobook provider carries the same live/draft distinction a
+  // postcard provider does, in Gelato's own word for the not-live state.
+  test("a configured photobook provider says whether it is really printing", () => {
     process.env.DATABASE_URL = "sqlite:./x.db";
-    process.env.LULU_CLIENT_KEY = "k";
-    process.env.LULU_CLIENT_SECRET = "s";
-    writeConfig({ photobook: { enabled: true, provider: "lulu" } });
+    process.env.GELATO_API_KEY = "k";
+    writeConfig({ photobook: { enabled: true, provider: "gelato" } });
     const state = resolveCapabilities().photobook;
     expect(state.enabled).toBe(true);
-    expect(state.enabled === true && state.note).toBeUndefined();
+    expect(state.enabled === true && state.note).toMatch(/draft/);
+
+    writeConfig({ photobook: { enabled: true, provider: "gelato", live: true } });
+    const live = resolveCapabilities().photobook;
+    expect(live.enabled === true && live.note).toMatch(/live/);
+    expect(live.enabled === true && live.note).not.toMatch(/draft/);
   });
 
   test("a capability with no dry-run concept never carries a note", () => {

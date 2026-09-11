@@ -20,11 +20,15 @@ import { useSite } from "./SiteProvider";
 export default function JournalNotFoundNotice() {
   const site = useSite();
   const pathname = usePathname();
-  const kind = pathname.includes("/day/")
-    ? "day"
-    : pathname.includes("/trips/")
-      ? "trip"
-      : "page";
+  // Checked before "/trips/", because a photobook route sits under a trip's
+  // own path and would otherwise read as the trip itself being gone — B1294.
+  const kind = pathname.endsWith("/photobook")
+    ? "photobook"
+    : pathname.includes("/day/")
+      ? "day"
+      : pathname.includes("/trips/")
+        ? "trip"
+        : "page";
 
   return (
     <ReaderNotice
@@ -33,14 +37,18 @@ export default function JournalNotFoundNotice() {
           ? "err.dayGoneTitle"
           : kind === "trip"
             ? "err.tripGoneTitle"
-            : "err.pageGoneTitle"
+            : kind === "photobook"
+              ? "err.photobookUnavailableTitle"
+              : "err.pageGoneTitle"
       }
       bodyKey={
         kind === "day"
           ? "err.dayGoneBody"
           : kind === "trip"
             ? "err.tripGoneBody"
-            : "err.pageGoneBody"
+            : kind === "photobook"
+              ? "err.photobookUnavailableBody"
+              : "err.pageGoneBody"
       }
       actions={
         kind === "trip"
@@ -48,11 +56,22 @@ export default function JournalNotFoundNotice() {
               { href: `${site.base}/trips`, labelKey: "err.allTrips" },
               { href: site.base, labelKey: "err.goToJournal", vars: { title: site.title } },
             ]
-          : [
-              { href: site.base, labelKey: "err.goToJournal", vars: { title: site.title } },
-              { href: `${site.base}/search`, labelKey: "err.searchJournal" },
-              { href: `${site.base}/trips`, labelKey: "err.allTrips" },
-            ]
+          : kind === "photobook"
+            ? [
+                // Back to the trip itself — the photobook segment stripped off
+                // its own path — rather than only the trip list, since the trip
+                // is exactly what did not go anywhere.
+                {
+                  href: pathname.slice(0, -"/photobook".length) || site.base,
+                  labelKey: "err.backToTrip",
+                },
+                { href: `${site.base}/trips`, labelKey: "err.allTrips" },
+              ]
+            : [
+                { href: site.base, labelKey: "err.goToJournal", vars: { title: site.title } },
+                { href: `${site.base}/search`, labelKey: "err.searchJournal" },
+                { href: `${site.base}/trips`, labelKey: "err.allTrips" },
+              ]
       }
     />
   );

@@ -940,9 +940,22 @@ describe("PDF/X readiness", () => {
   });
 
   test("the report says plainly that the file makes no claim", () => {
-    expect(readinessReport(pdfxReadiness(base)).join("\n")).toContain(
+    expect(readinessReport(pdfxReadiness(base), { scriptWritten: false }).join("\n")).toContain(
       "declares no PDF/X version",
     );
+  });
+
+  // B1149: gs-pdfx.sh only exists when the run had an --icc profile, so the
+  // remedy must not name it when it does not.
+  test("points at --icc, not at gs-pdfx.sh, when the script was not written", () => {
+    const report = readinessReport(pdfxReadiness(base), { scriptWritten: false }).join("\n");
+    expect(report).not.toContain("gs-pdfx.sh");
+    expect(report).toContain("--icc");
+  });
+
+  test("points at gs-pdfx.sh when the script was written", () => {
+    const report = readinessReport(pdfxReadiness(base), { scriptWritten: true }).join("\n");
+    expect(report).toContain("gs-pdfx.sh");
   });
 });
 
