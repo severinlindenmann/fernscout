@@ -7,25 +7,48 @@ complexity: low
 area: helper, publish
 found: "2026-09-11T19:40:00Z"
 started: "2026-09-11T21:35:13Z"
-session: bfe90fb0-0095-4532-8af8-601ad489b14c
-claimed: "2026-09-11T21:35:13Z"
+merged: "2026-09-11T21:41:52Z"
 ---
 
 # B1518 — fernscout-helper's publish drops teaser in silence, so a closed trip never appears on /trips
 
 
-## Status — fixed in fernscout-helper, cause not addressed
+## Status — done, in fernscout-helper (merged to main there, commit ad5cac6)
 
-The immediate bug is **fixed and committed** in `fernscout-helper`
-(`publish.mjs`): `teaser` now rides the create call and the visibility PATCH.
-Verified against a live trip — `set visibility {"visibility":"guest","teaser":true}`,
-and the trip appears on `/severin/trips`.
+The immediate bug was fixed first: `teaser` now rides the create call and the
+visibility PATCH. Verified against a live trip — `set visibility
+{"visibility":"guest","teaser":true}`, and the trip appears on
+`/severin/trips`.
 
-**Do not close this ticket on that.** The "Work" section below is about the
-*cause*: three hardcoded key lists in `publish.mjs` that fall behind
-`content-model.json`. Since this ticket was written, the same class of bug
-turned up again in B1525 (`cover`). That part is untouched and is the reason
-this is still open.
+**The cause is now fixed too.** Took the "failing that" option from Work
+below, since the "drive the create body from content-model.json" option would
+have meant a much larger rewrite of `publish.mjs`'s create path for a ticket
+whose actual damage was always at *update* time.
+
+`shared/tripFields.mjs` (new) exports `TRIP_UPDATE_DOORS` — one list of every
+`trip.md` key that has a door once a trip already exists — and
+`TRIP_NO_UPDATE_DOOR`, the three keys (`id`, `status`, `test`) that
+deliberately have none. `publish.mjs` imports it instead of defining its own
+list (its general PATCH loop is `TRIP_UPDATE_DOORS` minus the keys with their
+own dedicated door). It could not import `publish.mjs` itself for this list —
+that file runs its whole publish flow at the top level, so importing it would
+execute a real publish as a side effect — a shared module was the only place
+both files could read the same list from.
+
+`validate-content` diffs `content-model.json`'s own known-key list for
+`trip.md` against `TRIP_UPDATE_DOORS`/`TRIP_NO_UPDATE_DOOR` and warns on
+whatever is left over. Confirmed the check actually fires: removed `cover`
+from the list, re-ran validate, got `cover has no update door in
+publish.mjs`, put it back.
+
+Also caught and fixed while running the regression suite: `content-model.
+snapshot.json` had drifted from B1526/B1533's deploy earlier the same
+session (a new route, changed descriptions) — unrelated to this ticket but
+the same `node shared/selftest.mjs` run that verifies this fix also verifies
+that snapshot, so it would have failed either way. Refreshed with
+`node shared/snapshot.mjs`.
+
+`node shared/selftest.mjs --offline`: 70/70 green.
 
 ## Why
 

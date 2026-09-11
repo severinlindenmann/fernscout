@@ -322,14 +322,13 @@ Do not edit them by hand; run the script.
 | [B1525](open/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low |
 | [B1534](open/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1518](in-development/B1518-publish-drops-teaser-in-silence.md) | fernscout-helper's publish drops teaser in silence, so a closed trip never appears on /trips | ISSUE | medium | low | `bfe90fb0` |
 | [B1544](in-development/B1544-the-spine-appends-the-year-to.md) | The spine appends the year to a title that already carries one, and the owner cannot say otherwise | FEATURE | medium | low | `57d87f37` |
 
-## testing (17)
+## testing (18)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -345,6 +344,7 @@ Do not edit them by hand; run the script.
 | [B1515](testing/B1515-the-back-has-a-save-button.md) | The back has a save button for something that saves itself, and a warning the price already gives | ISSUE | medium | low | — |
 | [B1516](testing/B1516-the-message-floor-makes-the-preview.md) | The message floor makes the preview bigger than the card it is previewing | ISSUE | medium | low | — |
 | [B1517](testing/B1517-draw-the-travellers-from-a-photograph.md) | Draw the travellers from a photograph the owner already has | FEATURE | medium | medium | — |
+| [B1518](testing/B1518-publish-drops-teaser-in-silence.md) | fernscout-helper's publish drops teaser in silence, so a closed trip never appears on /trips | ISSUE | medium | low | — |
 | [B1519](testing/B1519-transportmode-has-no-metro-or-underground.md) | transportMode has no metro or underground, so a city day is recorded as a train | FEATURE | medium | low | — |
 | [B1526](testing/B1526-the-journals-own-walking-figures-cannot.md) | The journal's own walking figures cannot be set at all over the API | ISSUE | medium | low | — |
 | [B1533](testing/B1533-send-the-largest-file-you-have.md) | \"Send the largest file you have\" is true, load-bearing, and buried where no uploader reads it | DOCS | medium | low | — |
