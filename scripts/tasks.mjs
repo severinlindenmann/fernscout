@@ -935,7 +935,33 @@ function move(argv) {
       `  note: ${lane}/ is a human gate — an agent moves a task here only when asked to, in that turn.`,
     );
   }
+  noteMentions(item);
   writeIndex({ force: argv.includes("--index") });
+}
+
+/**
+ * Say when another task's prose mentions the ticket that just moved, and a
+ * lane's name — B1117.
+ *
+ * A ticket's Acceptance can turn on another one's lane ("those five are in
+ * `testing/` and this is the evidence they are waiting for"), and nothing
+ * re-reads that sentence when the lane changes under it. This does not know
+ * whether the sentence still holds — only a person or an agent reading it
+ * does — so it prints a hint and nothing more: not a failure, not a block,
+ * and it never touches the mentioning file. Teaching agents to never write a
+ * lane into prose was tried and did not hold (B633 → B668); a hint that costs
+ * nothing to ignore is the cheaper fix.
+ */
+function noteMentions(item) {
+  const mentionsId = new RegExp(`\\b${item.id}\\b`, "i");
+  const mentionsLane = new RegExp(`\\b(${LANES.join("|")})\\b`, "i");
+  for (const other of allItems()) {
+    if (other.file === item.file) continue;
+    const text = fs.readFileSync(other.file, "utf8");
+    if (mentionsId.test(text) && mentionsLane.test(text)) {
+      console.log(`  note: ${item.id} is mentioned by ${other.id} (${other.href}) — check whether that still holds.`);
+    }
+  }
 }
 
 /**
