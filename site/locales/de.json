@@ -2381,9 +2381,6 @@
   "order.object.front": "Vorderseite",
   "order.meta.proposed": "Vorgeschlagen am {date} · Referenz {id}",
   "order.meta.sent": "Gesendet am {date} · Referenz {id}",
-  "postcard.page.waitingTitle": "{count} Karten warten auf dich",
-  "postcard.page.waitingTitle.one": "Eine Karte wartet auf dich",
-  "postcard.page.openCards": "Karten öffnen",
   "postcard.status.withPrinter": "In der Druckerei",
   "postcard.status.withPrinterNote": "Die Druckerei hat den Auftrag angenommen. Die Karten gehen in den nächsten Tagen raus — wann sie ankommen, erfährt dieses Journal nicht, und darum behauptet es hier auch nichts."
 }
