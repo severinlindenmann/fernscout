@@ -100,6 +100,15 @@ export const OPERATOR_ONLY_FEATURES = [
   // switch on.
   "fulfilmentRelay",
   "fulfilmentAccept",
+  // B1092. The opposite reason from the rest of this list, and worth reading
+  // carefully because of it: `costs` spends nothing, reaches no supplier and
+  // reveals nothing to anybody a trip does not already admit, so there is no
+  // operator money to protect and no journal-level question to ask either.
+  // It ended up per-journal anyway, which meant a journal that had never
+  // written the word rendered no budget and said nothing about why — exactly
+  // the B611 failure mode, for a capability that had no vote to cast in the
+  // first place.
+  "costs",
 ] as const satisfies readonly FeatureName[];
 
 /**

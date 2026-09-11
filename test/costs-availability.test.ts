@@ -116,6 +116,10 @@ beforeEach(() => {
   writeTrip("unbudgeted", "trip-a", false);
   writeUser("off");
   writeTrip("off", "trip-a", true);
+  // B1092: `costs` joined `OPERATOR_ONLY_FEATURES`, so a journal's own
+  // `features.costs` no longer decides anything — "off"'s per-journal
+  // `false` below is written only to prove that; the actual off state this
+  // file exercises comes from a dedicated server-level config further down.
   // B328: a trip with a day's spend logged and no `costs.md` at all.
   writeUser("daycosts");
   writeTrip("daycosts", "trip-a", false);
@@ -158,6 +162,18 @@ describe("costsAvailable", () => {
   });
 
   test("false when the capability itself is off, costs.md or not", () => {
+    // B1092: `costs` is operator-only, so the "off" journal's own
+    // `features.costs.enabled: false` (written above) no longer does
+    // anything — only the server's own switch does. Flip that instead.
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "Fernscout", url: "https://example.test", defaultUser: "budgeted" },
+        users: { reserved: [] },
+        features: { costs: { enabled: false } },
+      }),
+    );
+    clearConfigCache();
     expect(costsAvailable("off")).toBe(false);
   });
 });

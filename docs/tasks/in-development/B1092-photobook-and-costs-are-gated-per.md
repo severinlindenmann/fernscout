@@ -42,18 +42,46 @@ the per-journal table.
 
 ## Work
 
-- Add `costs` to `OPERATOR_ONLY_FEATURES`. That is the whole mechanism: the
-  server's `features.costs.enabled` stays the ceiling, and the journal loses a
-  vote it had no reason to cast. `setJournalFeatures` (lib/journals.ts:675)
-  already refuses to write anything on that list, so the settings UI drops it
-  without a change there.
-- Leave any `features.costs` already written in a journal's `config.json`
-  alone. It stops being read; nothing rewrites somebody's file.
-- Check `/api/health`: `app/api/health/route.ts:229` skips operator-only
-  features in the per-journal section, so `costs` moves from the per-journal
-  block to the instance block on its own.
-- Not doing: touching `photobook`, which is already correct, or the four other
-  names on the list.
+- Added `costs` to `OPERATOR_ONLY_FEATURES` (lib/config.ts). That is the whole
+  mechanism: `resolveOne`'s skip (lib/capabilities.ts:405, now further down
+  after the addition), `journalFeatures()` and `setJournalFeatures()`
+  (lib/journals.ts) and `/api/health`'s per-journal narrowing
+  (app/api/health/route.ts:229) all key off this one constant, so nothing else
+  needed a code change. `photobook` was already on the list before this
+  ticket, from B611 — confirmed by reading it rather than trusting the
+  read-only pass, and left untouched.
+- Left `features.costs` already written in a journal's `config.json` alone
+  (including the one `createJournal` in lib/journals.ts:389 still writes into
+  every new journal — it is now dead, same as `photobook`/`postcards` were
+  never written there in the first place; noted for a separate ticket rather
+  than touched here, since neither the Work nor the Acceptance below called
+  for it).
+- Checked every read of `costs` as a capability
+  (`grep -rn '"costs"' lib app components`, plus a read of every line
+  `OPERATOR_ONLY_FEATURES` appears on) and found no second path — every
+  gate (`lib/tripGate.ts`, `lib/costs.ts`, `lib/analytics.ts`,
+  `lib/api/tripRates.ts`, `lib/digest/dayLetter.ts`, `lib/photobook/source.ts`,
+  the costs pages under `app/[user]/…`) calls `isEnabled("costs", …)`, which
+  is the one function `resolveOne` sits behind.
+- Updated the tests that assumed a journal's own `features.costs: false`
+  narrowed anything: `test/costs-off.test.ts` ("one journal's no is not
+  another journal's" now asserts the opposite — a journal's `false` no longer
+  narrows, and both trips show costs), `test/costs-availability.test.ts` (the
+  "off" journal's off-ness now comes from the server config, not its own
+  file), and `test/rates-fill.test.ts` ("the capability is off" now flips the
+  server's switch). Extended `test/server-only-capabilities.test.ts` — the
+  B611 test file already shaped exactly for this — to run its three
+  `describe` blocks over `costs` alongside `photobook`/`postcards`/`whatsapp`,
+  which is the test that fails if `costs` is ever removed from the array
+  again.
+- `/api/health` needed no change: the server-level `capabilities` block
+  already read `resolveCapabilities()` for every `FEATURE_NAME` including
+  `costs`, and the per-journal `journals[username]` block already skips
+  everything in `OPERATOR_ONLY_FEATURES` — so `costs` moved from the
+  per-journal section to the instance section with no line touched there.
+- Not doing: touching `photobook`, `postcards`, `logging`, `credits`,
+  `helper`, `transcription`, `sms`, `smsInbound`, `fulfilmentRelay` or
+  `fulfilmentAccept` — all already correct.
 
 ## Acceptance
 

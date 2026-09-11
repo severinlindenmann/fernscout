@@ -116,14 +116,18 @@ describe("a public trip whose money nothing hides", () => {
   });
 
   /**
-   * A journal may narrow what the instance allows. Before this, that narrowing
-   * did nothing at all.
+   * B1092: `costs` joined `OPERATOR_ONLY_FEATURES`, so a journal's own
+   * `false` is no longer read at all — a budget spends nothing and reaches
+   * no supplier, so there was never a journal-level question to ask. Before
+   * B1092 this narrowed one journal and not the other; now it changes
+   * nothing, and both trips show their costs because the server default is
+   * on.
    */
-  test("one journal's no is not another journal's", async () => {
+  test("a journal's own false no longer narrows anything", async () => {
     writeConfigs(undefined, false);
     writeTrip("ana", "asia-2023");
     writeTrip("bo", "alps-2024");
-    expect(await mayViewCostsOf("ana", "asia-2023")).toBe(false);
+    expect(await mayViewCostsOf("ana", "asia-2023")).toBe(true);
     expect(await mayViewCostsOf("bo", "alps-2024")).toBe(true);
   });
 

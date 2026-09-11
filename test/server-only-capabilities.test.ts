@@ -12,16 +12,18 @@ import { clearUserCache } from "@/lib/users";
  * `OPERATOR_ONLY_FEATURES` in lib/config.ts is the list; this is what being on
  * it means at the reading end.
  *
- * Three capabilities used to be ordinary per-journal opt-ins and were the
- * wrong shape for what they are. `photobook` and `postcards` spend the
+ * Capabilities used to be ordinary per-journal opt-ins and were the wrong
+ * shape for what they are. `photobook` and `postcards` spend the
  * *operator's* money at a printer, so the operator decides them for the whole
- * instance and a journal has no vote at all. `whatsapp` is a channel with a
- * mute the owner can reach (`/<user>/me`), so absence means no opinion and
- * only a written `false` is a no — the same three states mail has had since
- * B60.
+ * instance and a journal has no vote at all. `costs` joins them in B1092 for
+ * the opposite reason — it spends nothing and reaches no supplier, so there
+ * was never a journal-level question to ask either. `whatsapp` is a channel
+ * with a mute the owner can reach (`/<user>/me`), so absence means no opinion
+ * and only a written `false` is a no — the same three states mail has had
+ * since B60.
  *
  * The state under test is the one every real journal was in: a config that
- * has never named any of them, on a server that has all three on.
+ * has never named any of them, on a server that has all four on.
  */
 
 let dir: string;
@@ -61,6 +63,7 @@ beforeEach(() => {
       photobook: { enabled: true, provider: "dry-run" },
       postcards: { enabled: true, provider: "dry-run" },
       whatsapp: { enabled: true, backend: "dry-run" },
+      costs: { enabled: true },
     },
   });
   writeJournal({});
@@ -74,14 +77,14 @@ afterEach(() => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("a journal that has never named any of the three", () => {
-  test.each(["photobook", "postcards", "whatsapp"] as const)("has %s", (name) => {
+describe("a journal that has never named any of the four", () => {
+  test.each(["photobook", "postcards", "whatsapp", "costs"] as const)("has %s", (name) => {
     expect(isEnabled(name, "robin")).toBe(true);
   });
 });
 
 describe("what a written false does", () => {
-  test.each(["photobook", "postcards"] as const)("nothing, for %s", (name) => {
+  test.each(["photobook", "postcards", "costs"] as const)("nothing, for %s", (name) => {
     writeJournal({ [name]: { enabled: false } });
     expect(isEnabled(name, "robin")).toBe(true);
   });
@@ -92,8 +95,8 @@ describe("what a written false does", () => {
   });
 });
 
-describe("the server is still the ceiling above all three", () => {
-  test.each(["photobook", "postcards", "whatsapp"] as const)("%s", (name) => {
+describe("the server is still the ceiling above all four", () => {
+  test.each(["photobook", "postcards", "whatsapp", "costs"] as const)("%s", (name) => {
     write(path.join(dir, "config.json"), {
       site: { name: "F", url: "https://example.test" },
       users: {},
