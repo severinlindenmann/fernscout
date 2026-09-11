@@ -7,8 +7,7 @@ complexity: low
 area: orders
 found: "2026-09-11T15:51:06Z"
 started: "2026-09-11T16:16:48Z"
-session: 3f748903-2dc3-47a2-a958-98b83d641dc0
-claimed: "2026-09-11T16:16:48Z"
+merged: "2026-09-11T16:22:00Z"
 ---
 
 # B1479 — A sent postcard order still shows the editing stepper instead of the order it has become
