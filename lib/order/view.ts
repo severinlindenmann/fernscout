@@ -46,7 +46,7 @@ import { A6_LANDSCAPE } from "../postcard/spec";
 /** The four tones the palette reserves for state. Coral is a real failure and
  *  nothing else; an unrecognised state is navy, never a colour it has not
  *  earned. */
-type OrderTone = "navy" | "yellow" | "green" | "coral";
+export type OrderTone = "navy" | "yellow" | "green" | "coral";
 
 type OrderStatus = {
   tone: OrderTone;
@@ -55,10 +55,17 @@ type OrderStatus = {
   note?: string;
 };
 
-/** One charge, or one refund. `credits` is always positive; `refund` is what
- *  makes it read as money coming back, so a caller cannot accidentally show a
- *  charge of minus two hundred. */
-type OrderLedgerLine = { label: string; credits: number; refund?: true };
+/** One charge, or one refund. `credits` is always positive and `refund` is
+ *  what makes it read as money coming back, so a caller cannot accidentally
+ *  show a charge of minus two hundred; `amount` is that decision already
+ *  made, because a component that formats money is a component that can
+ *  format it differently from the total above it. */
+type OrderLedgerLine = {
+  label: string;
+  credits: number;
+  refund?: true;
+  amount: string;
+};
 
 type OrderLedger = {
   lines: OrderLedgerLine[];
@@ -113,10 +120,15 @@ export function addressLines(to: PostalAddress): string[] {
     .filter((line) => line !== "");
 }
 
-function ledgerOf(t: Translate, lines: OrderLedgerLine[]): OrderLedger {
+function ledgerOf(t: Translate, lines: Omit<OrderLedgerLine, "amount">[]): OrderLedger {
   const total = lines.reduce((sum, l) => sum + (l.refund ? -l.credits : l.credits), 0);
   return {
-    lines,
+    lines: lines.map((line) => ({
+      ...line,
+      amount: t(line.refund ? "photobook.receipt.creditsNegative" : "photobook.receipt.credits", {
+        credits: formatCredits(line.credits),
+      }),
+    })),
     totalCredits: total,
     totalLabel: t("photobook.receipt.credits", { credits: formatCredits(total) }),
     totalMoney: t("photobook.receipt.about", { money: formatChf(creditsInRappen(total)) }),
@@ -224,7 +236,7 @@ export function photobookOrderView(input: PhotobookViewInput): OrderView {
     status = { tone: "navy", label: t("photobook.print.status.unknown"), note: t("photobook.print.legacyNoPrintDoor") };
   }
 
-  const lines: OrderLedgerLine[] = [
+  const lines: Omit<OrderLedgerLine, "amount">[] = [
     { label: t("photobook.receipt.line"), credits: order.payload.credits },
   ];
   if (refunded) {
@@ -315,7 +327,7 @@ export function postcardOrderView(input: PostcardViewInput): OrderView {
         ? "postcard.page.introFromFile"
         : "postcard.page.introFromFileSent";
 
-  const lines: OrderLedgerLine[] = [
+  const lines: Omit<OrderLedgerLine, "amount">[] = [
     {
       label: t("order.postcards.line", {
         each: formatCredits(order.payload.creditsEach),
