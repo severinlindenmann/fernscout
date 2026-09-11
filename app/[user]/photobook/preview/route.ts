@@ -97,7 +97,16 @@ export async function POST(
     (photo) => photo.webSrc ?? "",
     // The composer's frame, not the technician's page — B548 — and page
     // captions that say where each page came from — B562.
-    { bare: true, captionFor: captionsFor(book, t) },
+    {
+      bare: true,
+      captionFor: captionsFor(book, t),
+      // Which half of the cover sheet is which — B1524. In the reader's own
+      // language, like every other word the composer shows them.
+      coverLabels: {
+        front: t("photobook.caption.coverFront"),
+        back: t("photobook.caption.coverBack"),
+      },
+    },
   );
 
   const page = book.spec;

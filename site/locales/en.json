@@ -1453,6 +1453,8 @@
   "photobook.caption.costs": "Because the cost summary is included",
   "photobook.caption.charts": "Because the charts are included",
   "photobook.caption.title": "The title page",
+  "photobook.caption.coverFront": "Front cover",
+  "photobook.caption.coverBack": "Back cover",
   "photobook.caption.intro": "The trip's introduction",
   "photobook.caption.names": "Who came along",
   "photobook.caption.transport": "How you travelled",

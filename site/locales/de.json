@@ -1453,6 +1453,8 @@
   "photobook.caption.costs": "Weil die Kostenübersicht enthalten ist",
   "photobook.caption.charts": "Weil die Diagramme aufgenommen sind",
   "photobook.caption.title": "Die Titelseite",
+  "photobook.caption.coverFront": "Vorderseite",
+  "photobook.caption.coverBack": "Rückseite",
   "photobook.caption.intro": "Die Einleitung zur Reise",
   "photobook.caption.names": "Wer dabei war",
   "photobook.caption.transport": "Wie ihr unterwegs wart",
