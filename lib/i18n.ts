@@ -1841,6 +1841,7 @@ export type TranslationKey =
   | "photobook.print.chooseSubmit"
   | "photobook.print.elsewhere"
   | "photobook.print.heading"
+  | "photobook.print.legacyNoPrintDoor"
   | "photobook.print.noFiles"
   | "photobook.print.noLongerEligible"
   | "photobook.print.noRecipients"

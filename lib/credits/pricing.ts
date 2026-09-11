@@ -129,19 +129,34 @@ export const POSTCARD_CREDITS = 20;
  * is far below the CHF 100,000 Swiss registration threshold, so it neither
  * charges VAT to a customer nor reclaims it from one — the tax is money that
  * leaves with the printer's invoice and never comes back, exactly like the
- * paper and the postage it is charged on. `PHOTOBOOK_PRINT_VAT_RATE` (2.6%,
- * printed matter) and `PHOTOBOOK_SHIPPING_VAT_RATE` (8.1%, the standard rate
- * carriage is taxed at) fold it into the landed cost before the margin, so
- * the margin is a margin on what this actually costs rather than on a number
- * that understates it.
+ * paper and the postage it is charged on. `PHOTOBOOK_VAT_RATE` folds it into
+ * the landed cost before the margin, so the margin is a margin on what this
+ * actually costs rather than on a number that understates it.
+ *
+ * **One rate, not two — measured off a real invoice, not assumed.** A live
+ * Gelato invoice (30-page 200×200 softcover, Swiss Post Economy, 2026-09-11)
+ * billed print and shipping *together* at a single rate: `Subtotal 10.86,
+ * Shipping 8.52, Discounts -5.43, Tax 1.13`. `1.13 / (10.86 + 8.52 - 5.43) =
+ * 8.10%` — not the 2.6% reduced rate a book alone would suggest, and not two
+ * different rates on the two components either. Gelato does not appear to
+ * treat this as reduced-rate printed matter at all; it taxes the whole
+ * shipment at the standard rate. `PHOTOBOOK_VAT_RATE` mirrors that invoice
+ * because it is what is actually paid, and it stays a single constant rather
+ * than the printed-matter/carriage split this file used to carry, which was
+ * never billed that way. The 50% introductory discount on that invoice is
+ * not reflected here — a cost basis built on a promotional rate that can end
+ * at any time is a margin built on sand, so the pricing below is off the
+ * pre-discount figures. The invoice also reconciles the stored cost formula
+ * against real money: `6.04 + 0.161 × 30 = 10.87` predicted, `10.86` billed —
+ * one rappen out.
  *
  * **The margin is 2.0x, targeting 50% gross at list.** It used to be 1.5x on
  * the print alone while a separate flat charge carried the render — the two
  * never met, VAT was in neither, and the measured gross was 43.9%, falling
  * to 29.9% for a buyer on the full credit discount. Priced as one object at
  * 2.0x its VAT-inclusive landed cost, the 46-page book a person actually had
- * on screen is 231 credits — CHF 46.20 — against OptimalPrint's CHF 46.90
- * and ifolor's ~CHF 54.70 delivered — at market rather than under it.
+ * on screen is 238 credits — CHF 47.60 — near OptimalPrint's CHF 46.90 and
+ * well under ifolor's ~CHF 54.70 delivered.
  *
  * **The volume discount erodes this, deliberately.** `priceRappen` above
  * takes up to 20% off the credits somebody buys, and that discount is applied
@@ -171,16 +186,14 @@ export const POSTCARD_CREDITS = 20;
  */
 export const PHOTOBOOK_PRICING_VERIFIED = true;
 
-/** Swiss VAT on printed matter — a book is taxed at the reduced rate.
- *  Charged by the printer, never reclaimed (this instance is below the
- *  CHF 100,000 registration threshold), so it is a cost folded into what
- *  printing lands at rather than a rate this journal charges anybody. */
-export const PHOTOBOOK_PRINT_VAT_RATE = 0.026;
-
-/** Swiss VAT at the standard rate, which is what carriage (postage) is taxed
- *  at rather than the reduced book rate above. Same reasoning: a cost this
- *  instance pays and cannot claim back, not a rate it charges. */
-export const PHOTOBOOK_SHIPPING_VAT_RATE = 0.081;
+/** Swiss VAT, at the standard rate — measured off a real Gelato invoice
+ *  rather than assumed from the printed-matter rate a book alone would
+ *  suggest (see the doc block above). Applied to print and shipping
+ *  together, because that is how Gelato bills it. Charged by the printer,
+ *  never reclaimed (this instance is below the CHF 100,000 registration
+ *  threshold), so it is a cost folded into what printing lands at rather
+ *  than a rate this journal charges anybody. */
+export const PHOTOBOOK_VAT_RATE = 0.081;
 
 /**
  * The margin on the whole book — B1425, up from the 1.5x this used to be,
@@ -205,8 +218,8 @@ export const PHOTOBOOK_MARGIN = 2.0;
  * undercut this one regardless of how thin the book is.
  *
  * This is what the public price table shows, as a "from" figure, and it is
- * the floor of a wide range: the same catalogue runs from this CHF 35.20 book
- * up to a 200-page 280×280 hardcover at CHF 196.20 — the size and the page
+ * the floor of a wide range: the same catalogue runs from this CHF 36.20 book
+ * up to a 200-page 280×280 hardcover at CHF 205.60 — the size and the page
  * count are most of what moves it, which is why the panel quotes the real
  * book before anybody orders rather than trusting this constant for more
  * than the headline figure.
@@ -218,13 +231,13 @@ export const PHOTOBOOK_QUOTE_MINIMUM = { pages: 28, printMinor: 815, shipMinor: 
  * Gelato quote alone.
  *
  * `printMinor` and `shipMinor` are Gelato's own ex-VAT figures, in minor
- * units (rappen). VAT is added per component — printed matter at
- * `PHOTOBOOK_PRINT_VAT_RATE`, carriage at `PHOTOBOOK_SHIPPING_VAT_RATE` —
- * before the margin, and the whole thing is rounded up to a whole credit
- * once, at the end: rounding either component first would round the price
- * itself before the margin even applies, and would make the last-rappen
- * comparison a test asserts (`test/photobook-pricing.test.ts`) fail on its
- * own arithmetic rather than on the code's.
+ * units (rappen). VAT at `PHOTOBOOK_VAT_RATE` is added to the two together —
+ * not per component, because Gelato does not bill it per component — before
+ * the margin, and the whole thing is rounded up to a whole credit once, at
+ * the end: rounding either component first would round the price itself
+ * before the margin even applies, and would make the last-rappen comparison
+ * a test asserts (`test/photobook-pricing.test.ts`) fail on its own
+ * arithmetic rather than on the code's.
  *
  * Computed here rather than at either call site so the panel that shows a
  * price and the code that charges it cannot drift apart — `order/route.ts`'s
@@ -232,9 +245,7 @@ export const PHOTOBOOK_QUOTE_MINIMUM = { pages: 28, printMinor: 815, shipMinor: 
  * would make it compare a number against itself computed differently.
  */
 export function photobookPriceCredits(printMinor: number, shipMinor: number): number {
-  const printInclVat = printMinor * (1 + PHOTOBOOK_PRINT_VAT_RATE);
-  const shipInclVat = shipMinor * (1 + PHOTOBOOK_SHIPPING_VAT_RATE);
-  const landedInclVat = printInclVat + shipInclVat;
+  const landedInclVat = (printMinor + shipMinor) * (1 + PHOTOBOOK_VAT_RATE);
   return Math.ceil((landedInclVat * PHOTOBOOK_MARGIN) / BASE_RAPPEN_PER_CREDIT);
 }
 

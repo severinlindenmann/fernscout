@@ -75,9 +75,9 @@ export async function settleRefusedPrint(
    * one caller wins it. The loser returns having done nothing, which is what
    * the callers already treat as "somebody else settled this".
    *
-   * **This order, and not the other way round**, which is `printOrder`'s own
-   * reasoning one step earlier: claiming first means a crash between the two
-   * leaves an order marked failed and not yet refunded — visible, and a
+   * **This order, and not the other way round**, which is `submitBuiltBook`'s
+   * own reasoning one step earlier: claiming first means a crash between the
+   * two leaves an order marked failed and not yet refunded — visible, and a
    * person can put it right. Refunding first would mean a crash leaves it
    * refundable again, and the failure nobody sees is the one that pays twice.
    */

@@ -3,8 +3,7 @@ import {
   BASE_RAPPEN_PER_CREDIT,
   PHOTOBOOK_MARGIN,
   PHOTOBOOK_PRICING_VERIFIED,
-  PHOTOBOOK_PRINT_VAT_RATE,
-  PHOTOBOOK_SHIPPING_VAT_RATE,
+  PHOTOBOOK_VAT_RATE,
   photobookPriceCredits,
 } from "@/lib/credits/pricing";
 
@@ -12,13 +11,15 @@ import {
  * The measured basis, Zurich, CHF, ex-VAT, quoted 2026-09-07 for a 52-page
  * 200 × 200 softcover: print 14.40, Swiss Post Economy 8.52. Every number
  * below is checked against those two rather than against itself.
+ *
+ * `PHOTOBOOK_VAT_RATE` itself is measured off a real Gelato invoice — one
+ * rate on print and shipping together, not the reduced printed-matter rate a
+ * book alone would suggest — see the doc block on `photobookPriceCredits`.
  */
 const PRINT_MINOR = 1440;
 const SHIP_MINOR = 852;
 const LANDED_EXCL_VAT_CHF = (PRINT_MINOR + SHIP_MINOR) / 100; // 22.92
-const LANDED_INCL_VAT_CHF =
-  (PRINT_MINOR * (1 + PHOTOBOOK_PRINT_VAT_RATE) + SHIP_MINOR * (1 + PHOTOBOOK_SHIPPING_VAT_RATE)) /
-  100; // 23.98…
+const LANDED_INCL_VAT_CHF = ((PRINT_MINOR + SHIP_MINOR) * (1 + PHOTOBOOK_VAT_RATE)) / 100; // 24.77…
 
 describe("what a photobook is priced at — one product, one price (B1425)", () => {
   test("is measured, not estimated", () => {
@@ -35,18 +36,18 @@ describe("what a photobook is priced at — one product, one price (B1425)", () 
     expect(chargedChf).toBeCloseTo(LANDED_INCL_VAT_CHF * PHOTOBOOK_MARGIN, 1);
   });
 
-  test("is 240 credits for the 52-page book we actually quoted", () => {
+  test("is 248 credits for the 52-page book we actually quoted", () => {
     // Pinned rather than derived: this is the number a person sees on the
     // panel, and a refactor that quietly changes it should fail here.
-    expect(photobookPriceCredits(PRINT_MINOR, SHIP_MINOR)).toBe(240);
+    expect(photobookPriceCredits(PRINT_MINOR, SHIP_MINOR)).toBe(248);
   });
 
-  test("is 231 credits for the 46-page book a person actually had on screen", () => {
-    expect(photobookPriceCredits(1345, 852)).toBe(231);
+  test("is 238 credits for the 46-page book a person actually had on screen", () => {
+    expect(photobookPriceCredits(1345, 852)).toBe(238);
   });
 
-  test("is 176 credits for the smallest book Gelato will print", () => {
-    expect(photobookPriceCredits(815, 852)).toBe(176);
+  test("is 181 credits for the smallest book Gelato will print", () => {
+    expect(photobookPriceCredits(815, 852)).toBe(181);
   });
 
   test("rises with postage, so an overseas book is not sold at a Swiss price", () => {

@@ -42,9 +42,6 @@ export const ERROR_CODES: Record<string, string> = {
   unknown_invite: "No invite of that id, or it has been revoked.",
   unknown_key: "No credential of that id. GET the keys list for the ids this journal has.",
   unknown_order: "No order of that id — a postcard order or a photobook order, whichever this route deals in.",
-  not_built: "This photobook has not finished being built yet, or is already at the printer. Wait for the build to finish, or ask about a different order.",
-  unknown_contact: "That is not a contact this journal can post something to: not an approved contact with an address on file. There is no way to address it to anybody else — that is deliberate.",
-  unknown_country: "The recipient's country is not one this server's printer can quote postage to. Ask the owner to correct the contact's address.",
   unknown_payment: "No payment of that id.",
   invalid_amount:
     "Not a number of credits this server sells — out of range, not a whole number, or off the " +

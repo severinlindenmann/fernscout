@@ -9,12 +9,13 @@ export const dynamic = "force-dynamic";
  * `GET /api/v1/<user>/photobooks/<id>` — where one photobook order stands —
  * the photobook counterpart of `GET /api/v1/<user>/postcards/<id>`.
  *
- * A field `POST …/print` accepted has to be readable back here, or an agent
- * cannot check its own proposal actually landed — AGENTS.md's rule for every
- * route in this API. **`print.contactId` and never an address**: the same
- * discipline `bookRecipients` already holds, so this answers with who the
- * book is going to as a contact id and nothing that could be posted to
- * directly.
+ * A book is bought and addressed in one motion on the owner's own trip page
+ * (B1157) — there is no agent-facing proposal call for this to read back any
+ * more (B1428 deleted the pre-B1157 one, which quoted and charged a separate
+ * "print portion" for a book bought for its build alone). **`print.contactId`
+ * and never an address**: the same discipline `bookRecipients` already holds,
+ * so this answers with who the book went to as a contact id and nothing that
+ * could be posted to directly.
  */
 export async function GET(
   request: Request,

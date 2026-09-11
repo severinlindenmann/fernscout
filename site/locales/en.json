@@ -1053,6 +1053,7 @@
   "photobook.print.orderIntro.one": "{trip} — {pages} pages across 1 book, {size}.",
   "photobook.print.noFiles": "This book has not finished building yet, so there is nothing to download.",
   "photobook.print.heading": "Printing",
+  "photobook.print.legacyNoPrintDoor": "This book was made before this journal could buy a printed copy in one step. There is no way to order a printed copy of it from here — download the files below.",
   "photobook.print.noLongerEligible": "The person this was proposed to can no longer be posted to — ask for a fresh proposal.",
   "photobook.print.refusedRefunded": "The printer would not take this order. All {credits} credits are back on your account, and the files below are yours. Order the book again from the trip's photobook page when you want to try once more.",
   "photobook.print.result.alreadyPaid": "This book was already bought printed and posted — there is nothing more to pay.",

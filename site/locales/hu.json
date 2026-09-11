@@ -1053,6 +1053,7 @@
   "photobook.print.orderIntro.one": "{trip} — {pages} oldal, 1 kötetben, {size}.",
   "photobook.print.noFiles": "Ez a könyv még nem készült el, így nincs mit letölteni.",
   "photobook.print.heading": "Nyomtatás",
+  "photobook.print.legacyNoPrintDoor": "Ez a könyv azelőtt készült, hogy ez a napló egy lépésben tudott volna nyomtatott példányt vásárolni. Innen nem rendelhető belőle nyomtatott példány — töltse le a fájlokat lentebb.",
   "photobook.print.noLongerEligible": "Akinek ezt javasolták, annak már nem lehet postázni — kérj új javaslatot.",
   "photobook.print.refusedRefunded": "The printer would not take this order. All {credits} credits are back on your account, and the files below are yours. Order the book again from the trip's photobook page when you want to try once more.",
   "photobook.print.result.alreadyPaid": "This book was already bought printed and posted — there is nothing more to pay.",
