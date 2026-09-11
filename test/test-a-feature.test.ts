@@ -9,7 +9,7 @@ describe("resolveFlows", () => {
   });
 
   test("returns no flows and a note for a todo capability", () => {
-    const result = resolveFlows("credits");
+    const result = resolveFlows("postcards");
     expect(result.flows).toEqual([]);
     expect(result.note).toMatch(/no flow yet/i);
   });

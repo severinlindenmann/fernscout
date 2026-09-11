@@ -3,8 +3,8 @@ import type { FeatureName } from "@/lib/config";
 /**
  * Which door a flow drives through — see AGENTS.md's own table of "You are /
  * Use". `admin` is the operator's own page, kept separate from `ui` because
- * it authenticates differently (identity cookie vs. owner cookie) and no
- * persona in docs/testing/personas/ plays the operator.
+ * it authenticates differently (identity cookie vs. owner cookie) —
+ * docs/testing/personas/operator.md is the one persona that plays it.
  */
 type Interface = "agent" | "whatsapp" | "api" | "ui" | "admin";
 
@@ -50,20 +50,62 @@ export const COVERAGE: Record<FeatureName, CoverageEntry> = {
     flows: ["guest-invited-signup-see-update", "buddy-established-add-day-agent"],
     interfaces: ["ui", "agent"],
   },
-  reactions: { todo: "no flow yet — B: add when a persona flow needs a reader reaction" },
-  costs: { todo: "no flow yet — B: add when a persona flow needs a cost line" },
-  push: { todo: "no flow yet — B: add when a persona flow needs a push notification" },
+  reactions: {
+    flows: ["guest-established-react-to-day"],
+    interfaces: ["ui"],
+  },
+  costs: {
+    flows: ["owner-established-add-cost-line"],
+    interfaces: ["agent"],
+  },
+  push: {
+    flows: ["guest-established-push-notification"],
+    interfaces: ["ui"],
+  },
   mail: { todo: "no flow yet — exercised incidentally by every flow that signs in, no dedicated flow" },
-  sms: { todo: "no flow yet — B: add when a persona flow signs up by SMS" },
-  smsInbound: { todo: "no flow yet — B: add alongside sms above" },
+  sms: {
+    flows: ["owner-new-signup-by-sms"],
+    interfaces: ["ui"],
+  },
+  smsInbound: {
+    flows: ["owner-new-signup-by-sms"],
+    interfaces: ["ui"],
+  },
   postcards: { todo: "no flow yet — Stannp has no inbound webhook in production yet, see B1484" },
-  photobook: { todo: "no flow yet — B: add a flow once a dry-run photobook order round-trips a fixture" },
-  logging: { todo: "operator-only capability, no persona plays the operator yet" },
-  credits: { todo: "no flow yet — B: add once a flow needs to spend a credit and check the ledger" },
-  addressLookup: { todo: "no flow yet — B: add alongside a postcard-address flow" },
-  weather: { todo: "no flow yet — B: add alongside a day-with-weather flow" },
-  analytics: { todo: "operator-only capability, no persona plays the operator yet" },
-  transcription: { todo: "no flow yet — B: add a voice-note flow once WhatsApp/agent voice input is exercised" },
-  fulfilmentRelay: { todo: "operator-only capability, no persona plays the operator yet" },
-  fulfilmentAccept: { todo: "operator-only capability, no persona plays the operator yet" },
+  photobook: {
+    flows: ["owner-established-order-photobook"],
+    interfaces: ["ui", "agent"],
+  },
+  logging: {
+    flows: ["operator-check-admin-dashboard"],
+    interfaces: ["admin"],
+  },
+  credits: {
+    flows: ["owner-established-spend-credits"],
+    interfaces: ["ui", "agent"],
+  },
+  addressLookup: {
+    flows: ["owner-established-address-lookup"],
+    interfaces: ["ui"],
+  },
+  weather: {
+    flows: ["owner-established-weather-lookup"],
+    interfaces: ["agent"],
+  },
+  analytics: {
+    flows: ["operator-check-admin-dashboard"],
+    interfaces: ["admin"],
+  },
+  transcription: {
+    flows: ["buddy-established-voice-note-transcription"],
+    interfaces: ["agent"],
+  },
+  fulfilmentRelay: {
+    flows: ["operator-fulfilment-webhook-relay"],
+    interfaces: ["admin"],
+  },
+  fulfilmentAccept: {
+    flows: ["operator-fulfilment-webhook-relay"],
+    interfaces: ["admin"],
+  },
 };
