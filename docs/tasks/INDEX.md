@@ -329,17 +329,16 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (5)
+## in-development (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1439](in-development/B1439-gelato-is-handed-the-owner-s.md) | Gelato is handed the owner's email address and can write to them directly | SECURITY | high | low | `96a5b964` |
 | [B1272](in-development/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low | `13f12910` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
 | [B1440](in-development/B1440-nothing-tells-the-owner-their-book.md) | Nothing tells the owner their book was printed or posted, or gives them the tracking code | FEATURE | medium | medium | `96a5b964` |
 
-## testing (228)
+## testing (229)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -474,6 +473,7 @@ Do not edit them by hand; run the script.
 | [B1408](testing/B1408-an-en-dash-in-a-day.md) | An en dash in a day's words comes out as a blank gap in the book | ISSUE | high | low | — |
 | [B1425](testing/B1425-a-photobook-is-sold-as-one.md) | A photobook is sold as one thing at one price, costed with VAT and a 50 percent margin | FEATURE | high | medium | — |
 | [B1429](testing/B1429-an-incremental-deploy-can-leave-a.md) | An incremental deploy can leave a stale client reference manifest and 500 a page | OPS | high | medium | — |
+| [B1439](testing/B1439-gelato-is-handed-the-owner-s.md) | Gelato is handed the owner's email address and can write to them directly | SECURITY | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |

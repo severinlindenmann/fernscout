@@ -7,8 +7,7 @@ complexity: low
 area: photobook, gelato, privacy
 found: "2026-09-11T10:31:22Z"
 started: "2026-09-11T11:09:24Z"
-session: 96a5b964-fad1-4616-9124-a01eabbd8a46
-claimed: "2026-09-11T11:09:24Z"
+merged: "2026-09-11T11:19:39Z"
 ---
 
 # B1439 — Gelato is handed the owner's email address and can write to them directly
