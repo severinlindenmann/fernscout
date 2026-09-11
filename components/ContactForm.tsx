@@ -473,12 +473,7 @@ export default function ContactForm({
                   checked={wantsWhatsapp}
                   onChange={(e) => setWantsWhatsapp(e.target.checked)}
                 />
-                <span>
-                  {t("contact.wantsWhatsapp")}
-                  <span className="mt-1 block text-sm text-navy-500">
-                    {t("contact.wantsWhatsappHint")}
-                  </span>
-                </span>
+                <span>{t("contact.wantsWhatsapp")}</span>
               </label>
             )}
           </div>

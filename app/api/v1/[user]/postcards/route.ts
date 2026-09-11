@@ -5,6 +5,7 @@ import { balanceOf, creditsEnabled } from "@/lib/credits";
 import { POSTCARD_CREDITS } from "@/lib/credits/pricing";
 import { isOwner } from "@/lib/contacts/session";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
+import { findInboxFile } from "@/lib/inbox";
 import { resolveMediaFile } from "@/lib/media";
 import { postcardCandidates } from "@/lib/postcard/contacts";
 import { createOrder } from "@/lib/postcard/orders";
@@ -127,32 +128,49 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
   const from = str(body.from);
   const wanted = Array.isArray(body.recipients) ? body.recipients.map(str).filter(Boolean) : [];
 
-  if (!tripId || !day || !photo || !message || !from) {
+  if (!photo || !message || !from) {
     return bad(
-      "trip, day, photo, message and from are all required. The message and the signature " +
+      "photo, message and from are all required. The message and the signature " +
         "are what a person will read on the card; write them in the author's own words, " +
         "from what they actually told you.",
     );
+  }
+  if (!!tripId !== !!day) {
+    return bad("trip and day are given together, or not at all — see the photo field's own note.");
   }
   if (message.length > MAX_MESSAGE) {
     return bad(`The message is ${message.length} characters; a postcard holds ${MAX_MESSAGE}.`);
   }
 
-  const ref = tripRef(user, tripId);
-  const trip = getTrip(ref);
-  if (!trip) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  // B1393 — a day is where a photograph is *found*, not something the
+  // printer needs. Neither trip nor day given means `photo` names a file
+  // staged in the inbox instead of a path in a trip's own media.
+  let ref: string | null = null;
+  if (tripId) {
+    ref = tripRef(user, tripId);
+    const trip = getTrip(ref);
+    if (!trip) return Response.json({ error: "unknown_trip" }, { status: 404 });
 
-  const entry = getEntryBySlug(ref, day, AS_AUTHOR);
-  if (!entry) return Response.json({ error: "unknown_day" }, { status: 404 });
-  if (isTestContent(trip, entry)) {
-    return bad(`"${day}" is marked test: true — content nobody lived — so it orders no cards.`);
-  }
+    const entry = getEntryBySlug(ref, day, AS_AUTHOR);
+    if (!entry) return Response.json({ error: "unknown_day" }, { status: 404 });
+    if (isTestContent(trip, entry)) {
+      return bad(`"${day}" is marked test: true — content nobody lived — so it orders no cards.`);
+    }
 
-  if (!resolveMediaFile(user, [tripId, ...photo.split("/").filter(Boolean)])) {
-    return bad(
-      `"${photo}" is not a file in this trip's media. Give a path relative to the trip's ` +
-        "media directory, as it appears on the day.",
-    );
+    if (!resolveMediaFile(user, [tripId, ...photo.split("/").filter(Boolean)])) {
+      return bad(
+        `"${photo}" is not a file in this trip's media. Give a path relative to the trip's ` +
+          "media directory, as it appears on the day.",
+      );
+    }
+  } else {
+    const staged = findInboxFile(user, photo);
+    if (!staged || staged.entry.kind !== "media") {
+      return bad(
+        `"${photo}" is not a photograph staged in this journal's inbox. Give an id GET ` +
+          "…/inbox answered with, or a trip and a day instead.",
+      );
+    }
   }
 
   if (wanted.length === 0) {
@@ -191,7 +209,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
   const provider = typeof configured === "string" ? configured : "dry-run";
   const order = await createOrder(user, {
     trip: ref,
-    day,
+    day: ref ? day : null,
     photo,
     message,
     from,

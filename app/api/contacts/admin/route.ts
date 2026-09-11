@@ -2,8 +2,8 @@ import { isEmail } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { rateLimitFor } from "@/lib/rateLimit";
 import {
+  addSelfContact,
   approveContact,
-  confirmContactFromSession,
   deleteContact,
   getContact,
   listContacts,
@@ -247,45 +247,11 @@ export async function POST(request: Request) {
      * its own `contact_exists` refusal.
      */
     case "self": {
-      const user = getUser(username)!;
-      const email = user.owner.email;
-      if (!email) {
-        // A journal that declares no owner address cannot be written to by
-        // anybody (lib/config.ts), so there is no session that could have
-        // got here — but the type is optional and a 409 says why rather
-        // than throwing.
-        return Response.json({ error: "no_owner_email" }, { status: 409 });
-      }
-
-      const normalised = normaliseEmail(email);
-      const existing = (await listContacts(username)).find((c) => c.email === normalised);
-      if (existing) return Response.json({ ok: true, contact: ownerView(existing) });
-
-      const result = await requestContact(username, {
-        name: user.owner.nickname || user.owner.name,
-        email,
-        locale: pickLocale(null, user.defaultLocale),
-        // Not `null`: that is "not asked", and this row is being made empty
-        // on purpose for the owner to fill in on their own page.
-        address: EMPTY_ADDRESS,
-        // Every consent starts off. The row exists so there is somewhere to
-        // put an address and a number; what it is then used for is the
-        // owner's to tick, on the same form everybody else gets.
-        wantsEmailDigest: false,
-        wantsPostcard: false,
-        wantsWhatsapp: false,
-        createdVia: "owner-self",
-      });
-      if (result.outcome === "ignored" || !result.contactId) {
-        return Response.json({ error: "blocked_contact" }, { status: 409 });
-      }
-
-      const confirmed = await confirmContactFromSession(username, email);
-      if (!confirmed.ok) return Response.json({ error: "not_confirmed" }, { status: 409 });
-      const approved = await approveContact(username, confirmed.contact.id);
-      if (!approved) return Response.json({ error: "not_confirmed" }, { status: 409 });
-
-      return Response.json({ ok: true, contact: ownerView(approved.contact) });
+      // B1393 — the same three steps, now shared with the helper's own
+      // `add_contact` tool rather than typed out twice.
+      const result = await addSelfContact(username);
+      if (!result.ok) return Response.json({ error: result.error }, { status: 409 });
+      return Response.json({ ok: true, contact: ownerView(result.contact) });
     }
     case "create": {
       const name = typeof body.name === "string" ? body.name.trim() : "";

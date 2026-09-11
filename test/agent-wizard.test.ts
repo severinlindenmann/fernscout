@@ -142,8 +142,11 @@ describe("the helper routes", () => {
   // Forty-two: `day/undo` (B1218), the swap behind the "Rückgängig" chip, and
   // `day/weather`, the one route the "look the weather up" chip may reach —
   // same cookie, same owner check as the forty before them.
-  test("there are forty-two of them, and each is guarded", () => {
-    expect(sources).toHaveLength(42);
+  // Forty-three: `contacts/add-me` (B1393), the press behind `add_contact` —
+  // the owner adding themself as a contact, from the name already on this
+  // journal. Same cookie, same owner check.
+  test("there are forty-three of them, and each is guarded", () => {
+    expect(sources).toHaveLength(43);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

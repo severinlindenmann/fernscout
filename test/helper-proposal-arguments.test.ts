@@ -104,6 +104,7 @@ const ROUTES: Record<string, () => Promise<Record<string, unknown>>> = {
   "/photobook": () => import("@/app/api/helper/[user]/photobook/route"),
   "/day/undo": () => import("@/app/api/helper/[user]/day/undo/route"),
   "/day/weather": () => import("@/app/api/helper/[user]/day/weather/route"),
+  "/contacts/add-me": () => import("@/app/api/helper/[user]/contacts/add-me/route"),
 };
 
 /** The gallery item `remove_photo`'s own row below removes — `DRAFT`'s own
@@ -115,6 +116,7 @@ const DRAFT_PHOTO = `/alex/media/${TRIP}/${DRAFT}/01.jpg`;
 /** What somebody says to reach each write tool. `files` is filled in per run,
  *  because an inbox id is a hash of the bytes staged in that test. */
 const SAID: Record<string, Record<string, string>> = {
+  add_contact: {},
   create_trip: { title: "Japan", start: "2026-03-01", end: "2026-03-14" },
   edit_trip: { trip: AS_SAID, title: "Die neue Reise", start: "2026-05-02", end: "2026-05-12" },
   set_visibility: { trip: AS_SAID, visibility: "guest" },

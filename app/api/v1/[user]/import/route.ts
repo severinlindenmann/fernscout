@@ -8,6 +8,7 @@ import {
   type ImportKind,
 } from "@/lib/gps/api";
 import { readStatement } from "@/lib/statements/read";
+import { readContactsFile } from "@/lib/contacts/readImport";
 import { storageRefusal } from "@/lib/storageQuota";
 import { getUser } from "@/lib/users";
 import { REQUEST_MAX_BYTES } from "@/lib/validate/media";
@@ -19,16 +20,20 @@ export const dynamic = "force-dynamic";
  * Importing somebody's own data — B671.
  *
  * One door, keyed by **kind** and **format**. `kind` is what the data *is* —
- * `gps` for a location history, `costs` for a bank statement — and `format` is
- * who wrote it (`google-timeline`, `gpx`, `revolut`, …). The second kind
- * arrived in B677 and needed no second route, which is what the shape was for.
+ * `gps` for a location history, `costs` for a bank statement, `contacts` for
+ * a phone's own address book — and `format` is who wrote it
+ * (`google-timeline`, `gpx`, `revolut`, `vcard`, …). Each kind that arrived
+ * after the first needed no second route, which is what the shape was for.
  *
- * **The two kinds end differently, and that is deliberate.** Positions are
- * written into the journal's store as they are read: a coordinate is a
- * measurement, and there is nothing about it to decide. A statement is read
- * and *reported* — it covers the trip and the fortnight either side of it, and
- * what each line was for is an editorial decision. Nothing reaches a trip
- * until a person sends rows back to `POST …/trips/<trip>/costs/import`.
+ * **`gps` ends differently from the other two, and that is deliberate.**
+ * Positions are written into the journal's store as they are read: a
+ * coordinate is a measurement, and there is nothing about it to decide. A
+ * statement or a vCard is read and *reported* — a statement covers the trip
+ * and the fortnight either side of it, a vCard is somebody's whole address
+ * book, and in both cases what a row is *for* is an editorial decision
+ * nobody but a person makes. Nothing reaches a trip until a person sends
+ * agreed rows to `POST …/trips/<trip>/costs/import`; nothing becomes a
+ * contact until they send agreed rows to `POST …/contacts/import`.
  *
  * There was a CLI for this and it is gone. The owner of a hosted journal has
  * no shell on the machine, and an agent never has one, so a capability whose
@@ -83,7 +88,10 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
       `A \`gps\` import is stored as it is read, and \`POST /api/v1/${user}/trips/<trip>/track\` ` +
       "then draws one trip's line from it. A `costs` import writes nothing at all: it " +
       "reports the payments, you agree the categories with the person, and " +
-      `\`POST /api/v1/${user}/trips/<trip>/costs/import\` puts the agreed rows on the days.`,
+      `\`POST /api/v1/${user}/trips/<trip>/costs/import\` puts the agreed rows on the days. A ` +
+      "`contacts` import (a vCard) writes nothing either: it reports who was on the card, " +
+      `and \`POST /api/v1/${user}/contacts/import\` files the rows a person agreed are ` +
+      "actually contacts of this journal, each pending its own confirmation mail.",
   });
 }
 
@@ -300,6 +308,36 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
           ? ` The rates above are what the money actually cost; PUT them to ` +
             `/api/v1/${user}/trips/<trip>/rates if the trip has none.`
           : ""),
+    });
+  }
+
+  if (chosenKind === "contacts") {
+    // A vCard is read and reported, never written by itself — see
+    // lib/contacts/readImport.ts. `dryRun` changes nothing here for the same
+    // reason it changes nothing for `costs`, and is answered the same way.
+    const address = readContactsFile(text, filename, { format });
+    if ("refusal" in address) {
+      return Response.json(
+        { error: address.refusal, message: address.message, problems: address.problems },
+        { status: 400 },
+      );
+    }
+    return Response.json({
+      ...address,
+      ...(dryRun
+        ? {
+            dryRun: false,
+            note:
+              "`dryRun` was sent and changes nothing here: a contacts import never writes. " +
+              "This is the whole read — the people below are what the card holds.",
+          }
+        : {}),
+      next:
+        "Nothing has been written and nobody has been mailed. Agree which of these are " +
+        "actually contacts of this journal — never choose for somebody else — then send " +
+        `the agreed rows to POST /api/v1/${user}/contacts/import. Each becomes a pending ` +
+        "row with its own confirmation mail, exactly like the request form everybody else " +
+        "uses; none of them is postcard-addressable until it confirms.",
     });
   }
 
