@@ -628,8 +628,14 @@ export function ratesBlock(raw: unknown): BlockResult {
  * would not ship: it lands, it reads back, and no reader ever sees it. Since
  * B220 the journal's `locales` are themselves reachable, so the refusal names
  * the call that fixes it instead of ending the conversation.
+ *
+ * Exported since B1496 so `patchTripDetails` corrects the block with the same
+ * serialiser that wrote it, rather than a second one that would drift: the
+ * whole point of that ticket is that a typo in a German title was permanent,
+ * and a correction written by different code from the create is the next
+ * version of the same bug.
  */
-function translationsBlock(raw: unknown, locales: string[]): BlockResult {
+export function translationsBlock(raw: unknown, locales: string[]): BlockResult {
   if (raw === undefined || raw === null) return NO_LINES;
   if (typeof raw !== "object" || Array.isArray(raw)) {
     return {

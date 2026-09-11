@@ -923,11 +923,12 @@ export function openApiDocument() {
           },
         },
         patch: {
-          summary: "Rename a trip, move its dates, correct its intro, or set its cover",
+          summary: "Rename a trip, move its dates, correct its intro, its cover or its translations",
           description:
-            "Eight fields of a trip nothing could write until B622 (four), B245 (`cover`) and " +
-            "B907 (`accent`, `costsVisibility`, `intro`): `title`, `tagline`, `start`, `end`, " +
-            "`cover`, `accent`, `costsVisibility` and `intro`. Send only what is changing. A " +
+            "Nine fields of a trip nothing could write until B622 (four), B245 (`cover`), " +
+            "B907 (`accent`, `costsVisibility`, `intro`) and B1496 (`translations`): `title`, " +
+            "`tagline`, `start`, `end`, `cover`, `accent`, `costsVisibility`, `intro` and " +
+            "`translations`. Send only what is changing. A " +
             "title cannot be cleared — a trip.md without one does not load — while an emptied " +
             "`tagline`, `cover`, or `accent` sent as `null`/`\"\"` removes the key rather than " +
             "storing an empty one, and an emptied `costsVisibility` clears back to the " +
@@ -937,7 +938,11 @@ export function openApiDocument() {
             "`GET .../trips/{trip}/media` for the list — since a value naming a photo the trip " +
             "does not have would render as a broken image on the trips index and the OG " +
             "card. `intro` is the trip's own prose, not a frontmatter line, and any text is " +
-            "accepted including empty.\n\n" +
+            "accepted including empty. `translations` replaces the whole block rather than " +
+            "merging into it — send the trip's title and tagline in every language it should " +
+            "keep, and a locale you leave out is dropped; `null` or `{}` clears it " +
+            "altogether. A locale this journal does not declare is refused in the same words " +
+            "`POST .../trips` refuses it in, because it is the same check.\n\n" +
             "**`visibility`, `listed`, `teaser`, `status` and `test` are not here.** The " +
             "first three have their own door, `PATCH .../trips/{trip}/visibility`, which " +
             "enforces rules this call must not carry a second, driftable copy of — an " +
@@ -1001,6 +1006,22 @@ export function openApiDocument() {
                         "The trip's own prose, not a frontmatter line. Any text is accepted, " +
                         "including empty.",
                     },
+                    translations: {
+                      type: "object",
+                      description:
+                        "The trip's title and tagline in the journal's other languages, keyed " +
+                        'by locale: `{"de": {"title": "…", "tagline": "…"}}`. Replaces the ' +
+                        "whole block — the same shape, and the same check, as on creation — " +
+                        "so a locale left out is dropped. `null` or `{}` clears it. A locale " +
+                        "this journal does not declare is refused, and an entry saying " +
+                        "neither a title nor a tagline is refused rather than written, since " +
+                        "the reader drops an empty one and the write would only look like it " +
+                        "took.",
+                      additionalProperties: {
+                        type: "object",
+                        properties: { title: { type: "string" }, tagline: { type: "string" } },
+                      },
+                    },
                   },
                 },
               },
@@ -1010,12 +1031,14 @@ export function openApiDocument() {
             "200": { description: "The fields named, as they now stand on disk" },
             "400": {
               description:
-                "A body naming none of the eight (`nothing_to_change`), a cleared or " +
+                "A body naming none of the nine (`nothing_to_change`), a cleared or " +
                 "multi-line title (`invalid_title`), a date that is not one — an `end` " +
                 "before the `start` is the same `invalid_date` — a `cover` naming a photo " +
                 "not in this trip's gallery (`invalid_cover`), an `accent` not in the enum " +
-                "(`invalid_accent`), or a `costsVisibility` not in the enum " +
-                "(`invalid_costs_visibility`) — and nothing is written in any of those cases",
+                "(`invalid_accent`), a `costsVisibility` not in the enum " +
+                "(`invalid_costs_visibility`), or a `translations` block that is not an " +
+                "object keyed by declared locales (`invalid_translations`) — and nothing is " +
+                "written in any of those cases",
             },
             "401": { description: "Missing or invalid token" },
             "403": {

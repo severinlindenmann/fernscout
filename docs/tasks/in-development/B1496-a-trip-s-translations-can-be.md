@@ -31,6 +31,43 @@ the English one to know it is wrong.
 It also blocks B1495's up leg from being a faithful mirror: a `translations:`
 block edited in a local `trip.md` cannot reach the site.
 
+## Validity, 2026-09-11
+
+**Valid.** Read before taking it, and the ticket is exact.
+`translationsBlock` (`lib/tripWrite.ts:632`) is called only from the blocks
+list inside `createTrip` (`lib/tripWrite.ts:943`) and is not exported;
+`app/api/v1/[user]/trips/[trip]/route.ts:54` reads the block back;
+`patchTripDetails` (`lib/api/tripDetails.ts`) handles eight fields and
+`translations` is not among them, and the route's own `FIELDS` list (line 239)
+did not name it either, so the call answered `nothing_to_change` before it ever
+reached the writer.
+
+## Decided while building
+
+- **`null` and `{}` both clear the block**, the `null`/`""` convention
+  `tagline`, `cover` and `accent` follow one field-shape up. It needed no code:
+  `translationsBlock` already answers both with no lines, and an emptied key is
+  removed rather than written as a `translations:` holding nothing.
+- **It replaces rather than merges.** Sending `{"de": …}` leaves a trip with
+  German and nothing else. That is what `PATCH .../days/<slug>` already does
+  with a day's `translations`, and it is the "send what it should be" rule
+  every other field on this route follows.
+- **Validation is `translationsBlock` imported, not re-checked.** The ticket
+  said reuse the serialiser; reusing the *validator* is the same argument and
+  is what makes the acceptance line about create and patch agreeing provable
+  rather than merely tested. The test pins the two messages equal, not merely
+  both-400.
+- **`spliceBlock` rather than a fourth private copy.** `lib/frontmatterScalar.ts`
+  now exports both shapes over one implementation — `spliceScalar` is a
+  two-line wrapper — because `tripDetails.ts` already imports that module for
+  its scalars. `lib/api/tripRates.ts` and `lib/api/costs.ts` keep their own
+  copies, untouched: their comments make the call that a dozen lines beside the
+  file they edit beats an import, and that is not this ticket's argument to
+  reopen.
+- **`app/api/trip/route.ts` is deliberately left alone.** That is the browser
+  form's own door and carries the original four fields only; the ticket is
+  about the API.
+
 ## Work
 
 Add `translations` to `patchTripDetails` — the same door, not a new route,

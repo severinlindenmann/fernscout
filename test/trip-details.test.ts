@@ -47,6 +47,7 @@ type Body = {
   message?: string;
   title?: string;
   tagline?: string;
+  translations?: Record<string, { title?: string; tagline?: string }>;
   visibility?: string;
   accent?: string;
   costsVisibility?: string;
@@ -153,7 +154,7 @@ beforeAll(async () => {
       owner: { name: "Ana B", nickname: "Ana", email: OWNER_EMAIL },
       startLocation: "X",
       defaultLocale: "en",
-      locales: ["en"],
+      locales: ["en", "de"],
       baseCurrency: "CHF",
       displayCurrencies: ["CHF"],
       units: "metric",
@@ -592,6 +593,185 @@ describe("B907's three fields: accent, costsVisibility, intro", () => {
     if (!result.ok) throw new Error(`no trip token: ${result.reason}`);
 
     const refused = await v1({ intro: "Not yours to correct" }, result.token);
+    expect(refused.status).toBe(403);
+    expect(refused.body.error).toBe("out_of_scope");
+  });
+});
+
+/**
+ * B1496 — the eleventh field, `translations`.
+ *
+ * The last field `POST .../trips` accepts that had no way back: writable at
+ * create, readable on the route's own `GET`, correctable nowhere. A typo in a
+ * trip's German title was therefore permanent over the API — and it matters
+ * more than most, because whoever reads that title is reading it *instead of*
+ * the English one and cannot tell it is wrong.
+ *
+ * What these pin is that the correction and the create agree. They are the
+ * same `translationsBlock`, so the refusals must be the same refusals word for
+ * word; a test asserting only that both answer 400 would let a second
+ * serialiser into the codebase, which is the same bug one level down.
+ */
+describe("the eleventh field, translations", () => {
+  async function v1(
+    body: Record<string, unknown>,
+    token?: string,
+  ): Promise<{ status: number; body: Body }> {
+    const { PATCH } = await import("@/app/api/v1/[user]/trips/[trip]/route");
+    const response = await PATCH(
+      new Request(`https://example.test/api/v1/${OWNER}/trips/${TRIP}`, {
+        method: "PATCH",
+        headers: headers(token ? { authorization: `Bearer ${token}` } : {}),
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ user: OWNER, trip: TRIP }) },
+    );
+    return { status: response.status, body: (await response.json()) as Body };
+  }
+
+  async function read(): Promise<Body> {
+    await clearCaches();
+    const { GET } = await import("@/app/api/v1/[user]/trips/[trip]/route");
+    const response = await GET(
+      new Request(`https://example.test/api/v1/${OWNER}/trips/${TRIP}`, {
+        headers: headers({ authorization: `Bearer ${await tokenFor(OWNER_EMAIL)}` }),
+      }),
+      { params: Promise.resolve({ user: OWNER, trip: TRIP }) },
+    );
+    return (await response.json()) as Body;
+  }
+
+  /** The trip as it was created, with the typo that is the whole ticket. */
+  const TYPOED = [
+    "---",
+    'id: "alps-2024"',
+    'title: "Four days round the Alps"',
+    'start: "2024-09-10"',
+    'end: "2024-09-14"',
+    'visibility: "private"',
+    "translations:",
+    "  de:",
+    '    title: "Vier Tage um die Alpn"',
+    '    tagline: "eine langsame Runde"',
+    "---",
+    "",
+    "Four days, three passes and a great deal of rain.",
+    "",
+  ].join("\n");
+
+  test("a typoed German title is corrected and reads back", async () => {
+    fs.writeFileSync(tripFile(), TYPOED);
+    await clearCaches();
+
+    const saved = await v1(
+      { translations: { de: { title: "Vier Tage um die Alpen", tagline: "eine langsame Runde" } } },
+      await tokenFor(OWNER_EMAIL),
+    );
+    expect(saved.status).toBe(200);
+    expect(saved.body.translations).toEqual({
+      de: { title: "Vier Tage um die Alpen", tagline: "eine langsame Runde" },
+    });
+    expect(fs.readFileSync(tripFile(), "utf8")).not.toContain("Alpn");
+
+    expect((await read()).translations).toEqual({
+      de: { title: "Vier Tage um die Alpen", tagline: "eine langsame Runde" },
+    });
+  });
+
+  test("a block added to a trip that had none lands in the frontmatter, prose untouched", async () => {
+    const saved = await v1(
+      { translations: { de: { title: "Vier Tage um die Alpen" } } },
+      await tokenFor(OWNER_EMAIL),
+    );
+    expect(saved.status).toBe(200);
+
+    const after = fs.readFileSync(tripFile(), "utf8");
+    expect(after).toContain("translations:");
+    expect(after).toContain("The second paragraph, which must survive every edit.");
+    // Every other key byte for byte — the splice's whole job.
+    expect(after).toContain('title: "Four days round the Alps"');
+    expect(after).toContain('  - name: "Ana"');
+    expect((await read()).translations).toEqual({ de: { title: "Vier Tage um die Alpen" } });
+  });
+
+  test("an empty object clears the block and leaves no orphaned children", async () => {
+    fs.writeFileSync(tripFile(), TYPOED);
+    await clearCaches();
+
+    const saved = await v1({ translations: {} }, await tokenFor(OWNER_EMAIL));
+    expect(saved.status).toBe(200);
+    expect(saved.body.translations).toBeUndefined();
+
+    const after = fs.readFileSync(tripFile(), "utf8");
+    expect(after).not.toContain("translations:");
+    expect(after).not.toContain("Alpn");
+    expect(after).not.toContain("langsame");
+    expect((await read()).translations).toBeUndefined();
+  });
+
+  test("null clears it too, the convention tagline and cover already follow", async () => {
+    fs.writeFileSync(tripFile(), TYPOED);
+    await clearCaches();
+
+    const saved = await v1({ translations: null }, await tokenFor(OWNER_EMAIL));
+    expect(saved.status).toBe(200);
+    expect(fs.readFileSync(tripFile(), "utf8")).not.toContain("translations:");
+  });
+
+  test("the block replaces rather than merges, so a locale left out is gone", async () => {
+    fs.writeFileSync(tripFile(), TYPOED);
+    await clearCaches();
+    await v1(
+      { translations: { de: { title: "A" }, en: { title: "B" } } },
+      await tokenFor(OWNER_EMAIL),
+    );
+
+    await clearCaches();
+    const saved = await v1({ translations: { en: { title: "B" } } }, await tokenFor(OWNER_EMAIL));
+    expect(saved.status).toBe(200);
+    expect(saved.body.translations).toEqual({ en: { title: "B" } });
+  });
+
+  test("an invalid block is refused with invalid_translations and writes nothing", async () => {
+    const refused = await v1({ translations: "de" }, await tokenFor(OWNER_EMAIL));
+    expect(refused.status).toBe(400);
+    expect(refused.body.error).toBe("invalid_translations");
+    expect(fs.readFileSync(tripFile(), "utf8")).toBe(TRIP_MD);
+  });
+
+  /**
+   * The pin the ticket asks for. Not "both refuse" — *the same refusal*: if
+   * these two sentences ever differ, a second serialiser has been written and
+   * the correction has stopped agreeing with the create.
+   */
+  test("a locale the journal does not declare is refused exactly as create refuses it", async () => {
+    const block = { fr: { title: "Quatre jours" } };
+
+    const patched = await v1({ translations: block }, await tokenFor(OWNER_EMAIL));
+    expect(patched.status).toBe(400);
+
+    const { createTrip } = await import("@/lib/tripWrite");
+    const created = createTrip(OWNER, {
+      id: "pyrenees-2025",
+      title: "Four days round the Pyrenees",
+      start: "2025-09-10",
+      end: "2025-09-14",
+      translations: block,
+    });
+    expect(created.ok).toBe(false);
+
+    expect(patched.body.error).toBe(created.ok ? undefined : created.error);
+    expect(patched.body.message).toBe(created.ok ? undefined : created.message);
+    expect(patched.body.error).toBe("invalid_translations");
+  });
+
+  test("a trip-scoped token cannot correct a translation", async () => {
+    const { issueCode, verifyCode, tripWriteScope } = await import("@/lib/auth");
+    const { code } = await issueCode(OWNER, OWNER_EMAIL, "agent", { trip: TRIP });
+    const result = await verifyCode(OWNER, OWNER_EMAIL, code, "agent", tripWriteScope(TRIP));
+    if (!result.ok) throw new Error(`no trip token: ${result.reason}`);
+
+    const refused = await v1({ translations: { de: { title: "Nicht deins" } } }, result.token);
     expect(refused.status).toBe(403);
     expect(refused.body.error).toBe("out_of_scope");
   });
