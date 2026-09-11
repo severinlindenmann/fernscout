@@ -54,3 +54,30 @@ model, showing the tool called (or the clarifying question asked) for each —
 closing this either confirms B900's rewrite already fixed B829's two cases in
 practice, or turns up a fresh, code-guardable bug against the current
 architecture.
+
+## Transcript (2026-09-11)
+
+Run against the live instance, `https://fernscout.ch/agent`, as the owner of
+the `example` journal (an owner cookie via `get-a-credential`'s
+`get-token.sh live example cookie`) — real journal state: seven photographs
+and one CSV waiting in the inbox, two draft days with no photographs yet,
+426 MB of 15 GB used, real function-calling against the live model. Each
+sentence below was sent in its own fresh conversation (`New conversation`).
+
+| Sentence | Language | Tool called | Result |
+| --- | --- | --- | --- |
+| "wheres my stuff" | en | inbox list | Named all 8 waiting files by name and kind ("image.jpg — photograph, 2 MB", …), then named the 2 unfinished draft days. **B829's English case is fixed.** |
+| "put my photos up" | en | inbox list | Listed inbox contents, then: "You have seven photos in the inbox. You have two unfinished days waiting for photos — press one to put them there." A clarifying question, not a fall-through to `unknown`. **B829's English case is fixed.** |
+| "Hol vannak már a cuccaim?" (idiomatic hu for "wheres my stuff") | hu | inbox list | Listed all 8 files in Hungarian, asked "Melyik napra szeretnéd ezeket felrakni?" (which day). Correct. |
+| "Töltsd fel a képeimet" (idiomatic hu for "upload my photos") | hu | trip list | Listed the journal's trips, named the one still running, asked which day's photos to upload or whether a different trip was meant. A reasonable clarifying path, not a fall-through. |
+| "Wo ist eigentlich mein ganzer Kram?" (idiomatic de for "wheres my stuff") | de | **`account`** | Answered in bytes only, the exact B829 failure mode: *"Du nutzt etwa 426 MB von deinen 15 GB. Das ist vor allem deine Fotos und die fertig gestalteten Fotobücher und Postkartenseiten. …"* Never mentioned the seven waiting photographs or two draft days. |
+| "Lad hoch meine Fotos" (idiomatic de for "put my photos up") | de | inbox list | Listed inbox contents, asked which day the photos should go on or whether to start a new day. Correct. |
+
+**Conclusion: B900's rewrite fixed both of B829's original English cases in
+practice**, confirmed against the live model rather than assumed from the
+tool descriptions alone. The Hungarian equivalents of both sentences also
+behaved correctly. One German phrasing of "wheres my stuff" reproduced
+B829's exact failure — bytes-only, no mention of what was actually
+waiting — on a single run; captured as B1432 rather than fixed here, per
+this ticket's own instruction that a misbehaving sentence is a fresh
+ticket and this one stays a measurement.
