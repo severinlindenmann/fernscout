@@ -6,7 +6,9 @@ import { isOwner } from "@/lib/contacts/session";
 import { formatCredits } from "@/lib/credits/format";
 import { fetchOrderStatus } from "@/lib/photobook/gelato";
 import { getPhotobookOrder } from "@/lib/photobook/orders";
+import { bookAddressFor } from "@/lib/photobook/recipients";
 import { visibleBookFiles } from "@/lib/photobook/visibleFiles";
+import { addressLines } from "@/components/PhotobookPrintPanel";
 import { BOOK_SIZES } from "@/lib/photobook/spec";
 import { translateIn, requestLocale } from "@/lib/locales";
 import type { TranslationKey } from "@/lib/i18n";
@@ -185,6 +187,11 @@ export default async function PhotobookOrderPage({
   const isFailure = pill?.tone === "coral";
   const bookSizeLabel = size?.name ?? order.payload.options.size;
 
+  // Who it is going to — B1458. A contact removed or un-approved since the
+  // order was placed simply resolves to `null`, same as `bookAddressFor`
+  // returns for any id it cannot find; the envelope is dropped, not thrown.
+  const recipientAddress = print?.contactId ? await bookAddressFor(username, print.contactId) : null;
+
   return (
     <div className="min-h-screen">
       <PageHeader />
@@ -240,6 +247,24 @@ export default async function PhotobookOrderPage({
           </div>
 
           {statusText ? <p className="mt-2 text-sm text-navy-700">{statusText}</p> : null}
+
+          {/* Who it is going to — B1458. Same envelope shape as the ordering
+              panel (B1145): the name centred over the whole address. */}
+          {recipientAddress ? (
+            <address className="mt-3 rounded-lg border border-dashed border-navy-300 bg-cream-50 px-3 py-3 text-center not-italic">
+              <span className="block text-[0.7rem] font-semibold uppercase tracking-wider text-navy-600">
+                {t("photobook.print.toLabel")}
+              </span>
+              <span className="mt-1 block text-base font-semibold text-navy-900">
+                {recipientAddress.name}
+              </span>
+              {addressLines(recipientAddress).map((line) => (
+                <span key={line} className="block text-sm text-navy-700">
+                  {line}
+                </span>
+              ))}
+            </address>
+          ) : null}
 
           {/* B1440. Every parcel Gelato has reported, beside the printer's
               own status — a book can ship in more than one, and each one
