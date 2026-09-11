@@ -25,10 +25,10 @@ export async function register() {
   /**
    * Ask once, here, whether this machine can convert a clip — B695.
    *
-   * The check spawns, and the two documents that report it — `/api/health` and
-   * `/agent.md` — are public and unauthenticated, so neither may spawn per
-   * request. Asked at boot the answer is cached for the life of the process
-   * and both of them read it for free.
+   * The check spawns, and the documents that report it — `/api/health` and
+   * the guide at `/skill/ingest-photos.md` — are public and unauthenticated,
+   * so none of them may spawn per request. Asked at boot the answer is
+   * cached for the life of the process and each of them reads it for free.
    *
    * Not fatal and not awaited for its result: no video is a supported way to
    * run, and this is only about *when* the question gets asked.

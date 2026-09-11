@@ -36,7 +36,7 @@ serves any trip at the explicit one. Both render the same components.
 | `/<user>/feed.xml` · `/search-index.json` · `/story.json` · `/export.zip` | generated |
 | `/<user>/media/<path>` | media, resized on demand and cached |
 | `/<user>/postcards/<id>` | a proposed printed postcard, for the owner to look at and send |
-| `/agent` | a guided web helper — a face on an agent, not a second way in: it writes through the same `/api/v1/…` calls `/agent.md` describes, for somebody with no agent of their own (B681/B682) |
+| `/agent` | a guided web helper — a face on an agent, not a second way in: it writes through the same `/api/v1/…` calls the `/skill/*.md` guides describe, for somebody with no agent of their own (B681/B682) |
 | `/admin` | what the instance costs to run. Owner-of-the-instance only, gated on `FERNSCOUT_ADMIN_EMAIL`, cookie session only — see "Three credentials", below |
 
 ## Server-side modules

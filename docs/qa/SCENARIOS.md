@@ -142,11 +142,12 @@ The section where a mistake is unrecoverable.
 | --- | --- | --- |
 | G1 | `/documentation.txt` | Names the instance and its journals; `X-Robots-Tag: noindex` |
 | G2 | `/<user>/documentation.txt` | That journal's own summary |
-| G3 | `/agent.md` | Authenticate, read, write — with runnable examples |
+| G3 | `/skill/<task>.md` (B311) — `new-account`, `add-journal`, `add-a-trip`, `add-a-day`, `ingest-photos`, `invite-someone`, `costs`, `send-postcards`, `make-a-photobook` | Authenticate, read, write — with runnable examples, one task per document |
 | G4 | `/openapi.json` | Valid JSON, describes the v1 routes |
 | G5 | `/<user>/day/<slug>.md` | Markdown **source**, not rendered HTML |
 | G6 | `robots.txt` | Coherent with the noindex headers |
-| G7 | Follow `/agent.md` literally, as a stranger would | Every documented call works as written |
+| G7 | Follow `/skill/add-a-day.md` literally, as a stranger would | Every documented call works as written |
+| G8 | `/agent.md` | 301 to `/documentation.txt`, not a 404 (retired — B311) |
 
 ## H — Authentication
 

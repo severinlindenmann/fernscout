@@ -169,14 +169,14 @@ and in `site/config.json` set `features.auth.enabled` and
 | # | Do this | ✅ Expect |
 | --- | --- | --- |
 | **G1** | Open `/documentation.txt` | A readable document naming the journal and how to write to it |
-| **G2** | Open `/agent.md` | The full guide: authenticate, read, write, with examples |
+| **G2** | Open `/skill/add-a-day.md` | One task's own guide: fields, a worked example, editing, publishing (B311) |
 | **G3** | Open `/openapi.json` | A machine-readable API description, not a 404 |
 | **G4** | Open `/example/day/denver-and-a-truck.md` | The **markdown source** of that day, not the rendered page |
 | **G5** | `curl -X POST localhost:3000/api/auth/request -H 'content-type: application/json' -d '{"user":"example","email":"agent@fernscout.ch","kind":"agent"}'` | `202`, and an `.eml` file appears in `<DATA_DIR>/mail/example/` |
 | **G6** | `curl -X POST localhost:3000/api/auth/verify -H 'content-type: application/json' -d '{"user":"example","email":"agent@fernscout.ch","code":"123456","kind":"agent"}'` | A token starting `fs_agent_` |
 | **G7** | Same request with a **different** email | `202` but **no** mail written — only the owner can get a write token |
 | **G8** | `curl localhost:3000/api/v1/example/trips -H "authorization: Bearer <token>"` | All four trips as JSON |
-| **G9** | POST a new day (the exact call is in `/agent.md`) | `201`, and it says **draft** |
+| **G9** | POST a new day (the exact call is in `/skill/add-a-day.md`) | `201`, and it says **draft** |
 | **G10** | Look for that day on the site | **Not there.** Drafts are invisible until published |
 | **G11** | `curl localhost:3000/api/v1/example/drafts -H "authorization: Bearer <token>"` | Your draft, waiting |
 | **G12** | `curl -X POST localhost:3000/api/v1/example/trips/<trip>/days/<slug>/publish -H "authorization: Bearer <token>" -H 'content-type: application/json' -d '{}'` | `200` with the day's public URL, **in one call** — no confirmation round trip (B224) |

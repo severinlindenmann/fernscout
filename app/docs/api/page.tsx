@@ -49,8 +49,11 @@ export default async function ApiDocsPage() {
           The two agent-facing documents stay, because they are what somebody
           reading an API reference actually wants next. */}
       <p className="text-sm font-semibold text-navy-500">
-        <a href="/agent.md" className="underline decoration-navy-200 hover:decoration-navy-500">
-          /agent.md
+        <a
+          href="/documentation.txt"
+          className="underline decoration-navy-200 hover:decoration-navy-500"
+        >
+          /documentation.txt
         </a>{" "}
         · <a href="/openapi.json" className="underline decoration-navy-200 hover:decoration-navy-500">
           /openapi.json

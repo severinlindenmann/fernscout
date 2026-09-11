@@ -32,6 +32,7 @@ import { COVER_TYPES, sizesFor } from "../photobook/spec";
 import { isIndexable } from "../access";
 import { CODE_TTL_MINUTES } from "../auth";
 import { openApiDocument } from "./openapi";
+import { SKILL_DOC_SLUGS, SKILL_DOC_SUMMARY, SKILL_DOC_TITLE } from "./skillDocMeta";
 // The sentences these documents share with /openapi.json, kept in one place so
 // they cannot come to disagree. See the note at the top of that file.
 import {
@@ -115,9 +116,8 @@ const HELPER_REPO = "https://github.com/severinlindenmann/fernscout-helper";
  */
 const ownerPromptDe = (url: string) =>
   "Führe mich durch das Anlegen meines eigenen Reisetagebuchs, nach der " +
-  `Übersicht unter ${url}/documentation.txt und der vollständigen Anleitung ` +
-  `unter ${url}/agent.md. Du brauchst dafür eine E-Mail-Adresse, die mir ` +
-  "gehört.";
+  `Übersicht unter ${url}/documentation.txt. Du brauchst dafür eine ` +
+  "E-Mail-Adresse, die mir gehört.";
 
 export function instanceDocumentation(): string {
   const site = serverSite();
@@ -370,9 +370,10 @@ export function instanceDocumentation(): string {
     ),
     "",
     ...wrap(
-      `Read ${base()}/agent.md for everything past this — deleting, photographs, ` +
-        "letting other people in, and the fields left out above — with a worked " +
-        "example for each. If your tools cannot fetch it — the same limit as " +
+      "Past this: deleting, photographs, letting other people in, a trip's " +
+        `budget, and the fields left out above, each its own document at ${base()}` +
+        `/skill/<task>.md — ${base()}/skill/add-a-day.md for the rest of a day's ` +
+        "fields, for instance. If your tools cannot fetch one — the same limit as " +
         "above, when they follow only a pasted link — ask the person to paste it " +
         "here instead; working that out cost one earlier run several turns it " +
         "should not have needed.",
@@ -400,7 +401,7 @@ export function instanceDocumentation(): string {
         `POST ${base()}/api/v1/their-name/invites with {"kind": "guest"} for a link that ` +
         'reads the journal\'s guest trips, or {"kind": "buddy", "trip": "<trip-id>"} for ' +
         "one that leads to writing to a trip. Neither grants anything by itself — whoever " +
-        "opens one still has to be approved. Read /agent.md's \"Letting other people in\" " +
+        `opens one still has to be approved. Read ${base()}/skill/invite-someone.md ` +
         "for what each does and the worked example.",
       78,
     ),
@@ -427,7 +428,9 @@ export function instanceDocumentation(): string {
     "",
     "## Machine-readable",
     "",
-    `- [Agent guide](${base()}/agent.md): how to authenticate and write, with worked examples`,
+    ...SKILL_DOC_SLUGS.map(
+      (slug) => `- [${SKILL_DOC_TITLE[slug]}](${base()}/skill/${slug}.md): ${SKILL_DOC_SUMMARY[slug]}`,
+    ),
     `- [OpenAPI](${base()}/openapi.json): the same API as a machine contract`,
     "",
     // Where the content comes from, for an agent handed an account and no
@@ -559,7 +562,9 @@ export function userDocumentation(username: string): string | null {
     "",
     "## The guide",
     "",
-    `- [Agent guide](${base()}/agent.md): the full instructions, with examples`,
+    ...SKILL_DOC_SLUGS.map(
+      (slug) => `- [${SKILL_DOC_TITLE[slug]}](${base()}/skill/${slug}.md): ${SKILL_DOC_SUMMARY[slug]}`,
+    ),
     "",
   );
 
@@ -604,9 +609,26 @@ function dayFieldRows(): string {
 }
 
 /**
+ * The same schema as `dayFieldRows()`, as names rather than a table — for
+ * `/skill/add-a-day.md`, whose whole reason to exist (B311) is staying under
+ * 10KB. A description per field is `/openapi.json`'s job; this is only the
+ * list of what exists, so an agent knows what to ask `openapi.json` about.
+ */
+export function dayFieldNames(): string {
+  const doc = openApiDocument() as unknown as {
+    components: { schemas: { Draft: { required?: string[]; properties?: Record<string, unknown> } } };
+  };
+  const draft = doc.components.schemas.Draft;
+  const required = new Set(draft.required ?? []);
+  return Object.keys(draft.properties ?? {})
+    .map((name) => (required.has(name) ? `\`${name}\` (required)` : `\`${name}\``))
+    .join(", ");
+}
+
+/**
  * The video row of the limits table, which depends on the machine — B692.
  *
- * `/agent.md` is rendered per request and per instance, so it can say what is
+ * The guide is rendered per request and per instance, so it can say what is
  * true here rather than what the constants describe. An agent told to send mp4
  * by a server that will refuse every one of them has been sent to do work that
  * cannot land, and it only finds out after the upload.

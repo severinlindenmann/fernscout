@@ -27,7 +27,7 @@ Two ways in, and they are the same content behind two doors:
 | You are | Use |
 | --- | --- |
 | Working **in this repository**, with the files on disk | the skills in `.claude/skills/`, and this file |
-| Working **against a running site**, over the network | `/agent.md` (the guide) and `/api/v1/…` (REST) |
+| Working **against a running site**, over the network | `/documentation.txt`, the `/skill/<task>.md` guides (B311), and `/api/v1/…` (REST) |
 
 ## The one rule
 
@@ -278,8 +278,8 @@ boundary.
 ### The shape of an entry and a trip
 
 Not repeated here. Writing content is the network door's job, so the field
-lists live where the writer is actually reading them: `/agent.md` for an entry,
-`trip.md`, `costs.md` and `plan.md`, and the request schemas in
+lists live where the writer is actually reading them: `/skill/add-a-day.md` for
+an entry, `trip.md`, `costs.md` and `plan.md`, and the request schemas in
 `lib/api/openapi.ts` for what each route will accept. A reference kept in two
 files is a reference that disagrees with itself within a month, and this one
 already had: the visibility vocabulary changed in W27 and only one copy
@@ -476,8 +476,8 @@ day, one level down.
 
 ### Changing a route means changing the contract
 
-**`/openapi.json` and `/agent.md` are the product, for everybody who is not
-standing in this checkout.** There is no CMS (decision 24), so an agent
+**`/openapi.json` and the `/skill/*.md` guides are the product, for everybody
+who is not standing in this checkout.** There is no CMS (decision 24), so an agent
 over the network — whether it is somebody's own, or the model behind the web
 helper at `/agent` — has the document and nothing else — no source to read,
 no colleague to ask. A field the code accepts and the document does not
@@ -768,8 +768,8 @@ that carry all of this in full.
 `.claude/skills/` holds the tasks of *building* this software. Each is a
 `SKILL.md` you can follow start to finish. Writing content — a day, a trip,
 photographs, a photobook, postcards, a traveller's likeness — is not here and
-is not a checkout's job: it happens over the network, and `/agent.md` is the
-guide for it.
+is not a checkout's job: it happens over the network, and `/documentation.txt`
+and the `/skill/<task>.md` guides it indexes are the guide for it.
 
 | Skill | For |
 | --- | --- |
@@ -778,7 +778,7 @@ guide for it.
 | `deploy` | Ship it to the VPS, and know it is healthy |
 | `github` | Read a CI run's logs and work out why it is red; issues and pull requests. Needs `gh`, and a person to have run `gh auth login` |
 | `get-a-credential` | Get signed in — an agent token, an owner's cookie, the operator's `/admin`, a throwaway test journal — locally or live |
-| `keep-the-contract` | Check that `/openapi.json` and `/agent.md` still tell the truth after a change to a route |
+| `keep-the-contract` | Check that `/openapi.json` and the `/skill/*.md` guides still tell the truth after a change to a route |
 | `manage-tasks` | Capture something, and move it between lanes |
 | `triage-a-backlog` | Read a whole lane of `docs/tasks/` and hand back one page a person decides from |
 | `plan-a-run` | Ask every decision a batch of approved tickets needs — is it still valid, which of two stances, what is still open — before any of it is built |
@@ -889,7 +889,8 @@ the record and never corrected, so do not update one to match what shipped.
 | --- | --- |
 | `GET /documentation.txt` | what this instance is, and who is on it |
 | `GET /<user>/documentation.txt` | one journal's own summary |
-| `GET /agent.md` | the full guide: authenticate, read, write |
+| `GET /skill/<task>.md` | one task's own guide — `new-account`, `add-journal`, `add-a-trip`, `add-a-day`, `ingest-photos`, `invite-someone`, `costs`, `send-postcards`, `make-a-photobook` (B311) |
+| `GET /agent.md` | retired (B311): a 301 to `/documentation.txt`, kept so an old link or a pasted prompt still lands somewhere true |
 | `GET /<user>/day/<slug>.md` | a day's markdown source |
 | `GET /api/v1/<user>/travellers/presets` | the vocabulary the walking figures are described in, and twelve starting points |
 | `GET /api/v1/<user>/travellers/preview` | that description as a picture, so a person can see themselves before it is written |
