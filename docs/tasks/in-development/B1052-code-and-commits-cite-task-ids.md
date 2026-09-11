@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: tasks, ids
 found: "2026-09-09T07:11:24Z"
+started: "2026-09-11T14:52:01Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T14:52:01Z"
 ---
 
 # B1052 — Code and commits cite task ids that have no file, so the allocator hands them out again

@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: tasks
 found: "2026-09-09T17:13:57Z"
+started: "2026-09-11T14:52:00Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T14:52:00Z"
 ---
 
 # B1117 — A lane move can invalidate another ticket's acceptance section and nothing notices
