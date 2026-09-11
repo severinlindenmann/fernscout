@@ -87,3 +87,41 @@ be read before typing. It stays above too, and gets the same banded treatment.
 when this journal was created… Ask for a new journal if it was wrong from the
 start."* — so this was a decision made against evidence that was already to
 hand.)
+
+## Work
+
+Built in `components/SignupWizard.tsx`, on branch `b1258-ui-remainder`.
+
+- **The username hint** is now wrapped, together with its field, in a banded
+  group: `<div className="mt-6 rounded-xl border border-navy-200 bg-cream-50
+  p-4">` around the hint paragraph and the `signup-username` field, with
+  `mt-2` between them inside the band. It stays above the field exactly as
+  B809 put it — not moved — with the border and background now doing the
+  work of tying it to its own field rather than to the title field above,
+  which is what the ticket's Decision section asked for.
+- **This ticket's own Decision section was wrong about the currency field,
+  and I did not follow it as written.** It says "currency is freely
+  correctable later, so it can move below to match name and nickname." The
+  code says the opposite: `lib/journals.ts`'s `JOURNAL_FIELD_REFUSALS`
+  documents `baseCurrency` as "not writable after a journal exists... it is
+  safe exactly once, when the journal is created, and that is where it
+  stays" — the same one-shot permanence as the address, not the freely
+  corrected shape of name or nickname. Moving its hint below the field would
+  have reintroduced exactly the "read before you type" fault B809 fixed for
+  the address, on a field just as unrecoverable. So the currency hint was
+  **not moved below** — it got the same banded-group treatment as the
+  username, staying above the field with a border tying it to its own input,
+  and its own code comment now says why (`setJournalProfile` refuses it
+  forever, cited by line).
+- Verified with `test/signup-wizard.test.tsx` (7 tests, all pass).
+- Driven in a real local browser (Playwright, 390×844) through the actual
+  `/agent` → "No, I am starting one" → email code → journal-creation step,
+  with `features.signup` and `features.mail` switched on locally for the
+  test. An accessibility snapshot with bounding boxes confirms the banded
+  group renders as a real, padded, bordered box distinct from the title
+  field above it (children inset ~16px from the group's own edges, matching
+  the `p-4` padding), for both the address and currency fields. A pixel
+  screenshot could not be captured — the browser tool's screenshot call
+  timed out waiting on web fonts on this run, repeatedly, unrelated to this
+  change — so the visual confirmation here is the bounding-box structure
+  rather than an image.

@@ -600,6 +600,18 @@ export default function HelperAsk({
   }
   useEffect(autosize, [said]);
   const proposal = useRef<HTMLDivElement>(null);
+  /**
+   * What gets scrolled into view when a turn ends in a proposal — B1258.
+   *
+   * It used to be `proposal` itself: scrolling the confirm card's own top to
+   * the viewport's top pushes everything the turn rendered *before* the card
+   * off-screen above it, which on a day-publish turn is the preview block
+   * `run.ts` pushes ahead of the confirm card — the very thing "read it as
+   * your readers will see it" is asking the person to look at. This ref sits
+   * on the whole turn instead, so its top (the preview, if there is one) is
+   * what lands below the sticky header, with the card readable underneath.
+   */
+  const turnTop = useRef<HTMLDivElement>(null);
   const log = useRef<HTMLDivElement>(null);
   /**
    * The strip's own collapse reads the field's `focus` event — B1016 — and
@@ -634,9 +646,11 @@ export default function HelperAsk({
       proposal.current?.focus();
       // `start`, not `nearest` (B1253): the card can be taller than the
       // viewport, and the sentence explaining it sits above the buttons —
-      // `scroll-mt-24` on the card matches the sticky page header so the
-      // top lands below it rather than under it.
-      proposal.current?.scrollIntoView?.({ block: "start" });
+      // `scroll-mt-24` on the turn's own top matches the sticky page header
+      // so that top lands below it rather than under it. Scrolling the whole
+      // turn rather than only the card (B1258) is what keeps a preview block
+      // rendered ahead of the card on screen instead of scrolled past.
+      turnTop.current?.scrollIntoView?.({ block: "start" });
     } else {
       silentFocus.current = true;
       box.current?.focus();
@@ -1165,7 +1179,15 @@ export default function HelperAsk({
               turns[index - 1].at !== undefined &&
               turn.at - (turns[index - 1].at as number) >= 10 * 60 * 1000;
             return (
-              <div key={index} className="space-y-2">
+              <div
+                key={index}
+                ref={index === turns.length - 1 ? turnTop : undefined}
+                className={
+                  index === turns.length - 1
+                    ? "scroll-mt-24 space-y-2"
+                    : "space-y-2"
+                }
+              >
                 {gapBefore && (
                   <p aria-hidden className="text-center text-xs text-navy-400">
                     {new Date(turn.at as number).toLocaleTimeString(undefined, {
