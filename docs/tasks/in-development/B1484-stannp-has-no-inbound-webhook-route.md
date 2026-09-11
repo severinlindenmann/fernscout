@@ -51,7 +51,7 @@ one status that isn't delivery tracking: it's "this card will never reach
 anyone," which the existing decision has nothing to say about.
 
 Not doing, on purpose: refunding the credit a cancelled card cost, or
-mailing the owner — filed separately as **B1529**, since it needs its own
+mailing the owner — filed separately as **B1532**, since it needs its own
 design decision (where the refund logic lives) rather than riding along
 here. Not doing either: a fixture-driven `docs/testing/coverage.ts` flow —
 its `postcards` entry now says the webhook exists and still needs a flow.

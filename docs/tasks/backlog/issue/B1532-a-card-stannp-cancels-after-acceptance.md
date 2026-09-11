@@ -1,5 +1,5 @@
 ---
-id: B1529
+id: B1532
 title: A card Stannp cancels after acceptance is never refunded
 type: ISSUE
 priority: low
@@ -8,7 +8,7 @@ area: postcards
 found: "2026-09-11T20:22:23Z"
 ---
 
-# B1529 — A card Stannp cancels after acceptance is never refunded
+# B1532 — A card Stannp cancels after acceptance is never refunded
 
 ## Why
 
