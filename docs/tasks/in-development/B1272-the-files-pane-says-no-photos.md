@@ -78,3 +78,41 @@ The mechanism for the remaining line was built and is unwired — `PhotoPicker`'
 `noteKey` prop is never passed, because `HelperRoom.tsx:2699` renders
 `t("agent.pickAnyFile")` directly. **B1443** carries the evidence in full; fix
 it there or here, not in both.
+
+## Fixed here, 2026-09-11 (B1443)
+
+`HelperRoom.tsx`'s files pane now renders its own note,
+`t("agent.room.pickAnyFile")`, instead of the standalone inbox page's
+`t("agent.pickAnyFile")`. That key already existed in all three locales
+(`en`/`de`/`hu`) from the original build — it was written, translated, and
+never wired in, which is exactly the shape of the fault: the fix existed and
+nothing called it.
+
+`PhotoPicker`'s `noteKey` prop is gone rather than wired. It could not have
+been the fix either way: every current caller either renders `bare` (the
+room's own `PhotoPicker`) or narrows `accept` away from `PICKER_ACCEPT`
+(`EditDay`), and both of those guard the paragraph the prop only ever
+customised — so a value passed through it would never have rendered. Deleting
+it is the honest version of "delete the prop if nothing will ever pass it":
+nothing *could*, not just nothing did.
+
+The standalone `/agent/<user>/inbox` page (`AgentInbox.tsx`) does not use
+`PhotoPicker` at all — its `agent.inboxTitle` heading is its own `<h1>`,
+quoted nowhere else, and needed no change.
+
+Added `test/helper-room.test.tsx`'s "every quoted label in the files pane's
+note appears on the pane — B1443": it reads `dictionary["agent.room.pickAnyFile"]`
+straight from the running locale, asserts the pane actually renders that
+sentence (catching a room that still says something else), then extracts
+every quoted “…” label from it and asserts each is the text of an `h2`/`h3`
+in the same rendered subtree. Confirmed it fails on the unfixed code — with
+`t("agent.pickAnyFile")` restored it reported the exact live bug: the note
+contained “What is waiting”, absent from the pane's real headings
+(Photographs, Documents). The shared `FILES` fixture carries no `kind` on its
+inbox items, so every item fell into the "Documents" group and the
+"Photographs" heading never rendered at all; the new test builds its own
+fixture with one `kind: "media"` and one `kind: "files"` entry so both
+headings — and both quoted labels — are real.
+
+`npm run verify` (build → tsc → eslint → vitest → knip): all green, 534 test
+files / 6979 tests passing, 4 skipped.

@@ -1,7 +1,6 @@
 "use client";
 
 import { useI18n } from "@/components/LocaleProvider";
-import type { TranslationKey } from "@/lib/i18n";
 
 /**
  * What the picker will let somebody choose — B791.
@@ -76,7 +75,6 @@ export function PhotoPicker({
   bare,
   onPick,
   showChosen = true,
-  noteKey = "agent.pickAnyFile",
 }: {
   id: string;
   /** What is chosen right now — empty says so in words. Files rather than a
@@ -105,15 +103,6 @@ export function PhotoPicker({
    * nothing true left to add there.
    */
   showChosen?: boolean;
-  /**
-   * Overrides the "Everything you choose waits under…" note below — B1272.
-   * The default names "What is waiting", which is only ever the heading on
-   * the standalone `/agent/<user>/inbox` page; `HelperRoom`'s files pane
-   * groups the same wait under "Photographs" and "Documents" instead, and
-   * quoting a label that is not on the screen is the thing this ticket is
-   * about.
-   */
-  noteKey?: TranslationKey;
 }) {
   const { t, tn } = useI18n();
   const kinds = countKinds(chosen);
@@ -166,7 +155,7 @@ export function PhotoPicker({
           is welcome. Only where anything else *is* welcome, though (B1012):
           it names the inbox, and a narrowed picker has no inbox behind it. */}
       {!bare && accept === PICKER_ACCEPT && (
-        <p className="mt-1 text-sm leading-6 text-navy-600">{t(noteKey)}</p>
+        <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.pickAnyFile")}</p>
       )}
     </div>
   );

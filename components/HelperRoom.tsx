@@ -2696,7 +2696,12 @@ function UploadPanel({
           </label>
         </div>
       </div>
-      <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.pickAnyFile")}</p>
+      {/* The room's own note, naming the room's own headings — B1443. The
+       *  generic `agent.pickAnyFile` (still `PhotoPicker`'s default, for the
+       *  standalone inbox page) quotes "What is waiting", which is only ever
+       *  a heading there; this room groups the same wait under "Photographs"
+       *  and "Documents" (`InboxFileGroups`) instead. */}
+      <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.room.pickAnyFile")}</p>
 
       {/* Mounted from the first render, empty until there is something to
        *  say — B949 again, in the pane that taught this file the rule the

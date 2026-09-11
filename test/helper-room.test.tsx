@@ -943,3 +943,47 @@ describe("the files strip", () => {
     expect(empty.length).toBeGreaterThanOrEqual(2);
   });
 });
+
+/**
+ * B1272's third acceptance line, re-checked after B1443 — a live owner
+ * session found the pane's own note quoting “What is waiting”, a heading
+ * that belongs to the standalone `/agent/<user>/inbox` page and not to this
+ * room, whose files pane groups the same wait under "Photographs" and
+ * "Documents" (`InboxFileGroups`). The note used `t("agent.pickAnyFile")`
+ * directly rather than through `PhotoPicker`'s (then-unwired) `noteKey`.
+ *
+ * This reads straight from the dictionary rather than hard-coding the
+ * expected sentence, so it fails the same way the live check did whenever
+ * the note quotes a label the pane does not carry — the bug this ticket
+ * exists to close, not merely the sentence this fix happens to write.
+ */
+test("every quoted label in the files pane's note appears on the pane — B1443", () => {
+  // The shared FILES fixture's inbox items carry no `kind`, so they all fall
+  // into `InboxFileGroups`' "document" group and the "Photographs" heading
+  // never renders at all — a fixture gap that would have hidden this bug
+  // rather than catching it. This one carries a photograph and a document,
+  // which is what makes both headings — and both quoted labels — real.
+  const files: RoomFiles = {
+    inbox: [
+      { id: "inbox:aaa111-harbour.jpg", name: "harbour.jpg", kind: "media" },
+      { id: "inbox:bbb222-statement.csv", name: "statement.csv", kind: "files" },
+    ],
+    trip: [],
+    tripTitle: "A Trip",
+  };
+  const box = render(null, files);
+  const pane = box.querySelector('section[aria-label="Files"]')!;
+  const note = dictionary["agent.room.pickAnyFile"];
+  // Not just "this string exists somewhere" — this is the sentence the room
+  // is actually supposed to render, so a room that still says something else
+  // (the standalone page's `agent.pickAnyFile`, say) fails right here.
+  expect(pane.textContent).toContain(note);
+  const quoted = [...note.matchAll(/[“"]([^”"]+)[”"]/g)].map((match) => match[1]);
+  // The note is supposed to be quoting something; an empty match here would
+  // make the rest of this test vacuously true.
+  expect(quoted.length).toBeGreaterThan(0);
+  const labels = [...pane.querySelectorAll("h2, h3")].map((heading) => heading.textContent?.trim());
+  for (const label of quoted) {
+    expect(labels).toContain(label);
+  }
+});
