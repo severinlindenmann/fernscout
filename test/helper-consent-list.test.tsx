@@ -43,7 +43,12 @@ const site = {
 
 const owner: Viewer = { email: "owner@example.test", owner: true, guest: false, trips: [] };
 
-function render() {
+function render(
+  over: {
+    consentAgreedAt?: string;
+    consentRows?: { scope: "words" | "photos" | "speech" | "statement"; granted: boolean; provider?: string }[];
+  } = {},
+) {
   return renderToStaticMarkup(
     <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
       <SiteProvider value={site}>
@@ -57,8 +62,12 @@ function render() {
               codeMinutes={CODE_TTL_MINUTES}
               contactsEnabled={false}
               ownerName="Robin"
-              consentAgreedAt="2026-08-01T00:00:00.000Z"
-              consentRows={[{ scope: "words", provider: "Anthropic" }]}
+              consentAgreedAt={"consentAgreedAt" in over ? over.consentAgreedAt : "2026-08-01T00:00:00.000Z"}
+              consentRows={
+                over.consentRows ?? [{ scope: "words", granted: true, provider: "Anthropic" }]
+              }
+              sessionsShared={true}
+              signupEnabled={true}
             />
           </TripListProvider>
         </CurrencyProvider>
@@ -81,5 +90,31 @@ describe("the consent list on /<user>/me", () => {
     // bare locale formatter is back.
     expect(html).toContain("1 August");
     expect(html).not.toMatch(/\d+\/\d+\/\d+/);
+  });
+
+  /** B1390: a journal that has never opened the wizard used to show nothing
+   *  here at all — the section only rendered on a non-empty list of grants.
+   *  Now the four scopes are always rows, and an ungranted one says so. */
+  test("says what is not granted, on a journal that has never used the helper", () => {
+    const html = render({
+      consentAgreedAt: undefined,
+      consentRows: [
+        { scope: "words", granted: false },
+        { scope: "photos", granted: false },
+        { scope: "speech", granted: false },
+        { scope: "statement", granted: false },
+      ],
+    });
+    expect(html).toContain(dictionaryFor("en")["me.dataTitle"]);
+    expect(html).toContain("Send my words to the model");
+    expect(html).toContain(dictionaryFor("en")["me.consentNotGranted"]);
+    expect(html).not.toContain("Withdraw this permission");
+  });
+
+  /** The one row this page can both grant and withdraw — B1390's whole
+   *  reason for keeping the asymmetry, checked on the merged list. */
+  test("the sessions row alone still carries a real switch", () => {
+    const html = render({ consentAgreedAt: undefined, consentRows: [] });
+    expect(html).toContain('type="checkbox"');
   });
 });

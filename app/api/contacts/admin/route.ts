@@ -10,6 +10,7 @@ import {
   normaliseEmail,
   requestContact,
   revokeContact,
+  SelfAuthoredContactError,
   updateContactByOwner,
   type ContactRecord,
 } from "@/lib/contacts";
@@ -489,32 +490,43 @@ export async function POST(request: Request) {
         return Response.json({ error: "invalid_address" }, { status: 400 });
       }
 
-      const contact = await updateContactByOwner(username, id, {
-        ...(typeof body.name === "string" ? { name: body.name } : {}),
-        ...(typeof body.email === "string" ? { email: body.email } : {}),
-        ...(typeof body.locale === "string"
-          ? { locale: pickLocale(body.locale, null, getUser(username)!.defaultLocale) }
-          : {}),
-        // Forwarded only when it actually changed, not merely because the
-        // form always includes it. `updateContactByOwner` re-encrypts
-        // whatever `address` it is given and — deliberately, for a genuine
-        // change — zeroes `wants_postcard` itself when that address isn't
-        // postable. Forwarding an unchanged address on every save would run
-        // that same zeroing against a merely-resent legacy state, silently
-        // unsubscribing an owner who only meant to fix a name: the exact
-        // "silently zero the tick" failure mode `update` was already fixed
-        // not to do, reappearing one layer down.
-        ...(addressChanged ? { address: body.address as Partial<PostalAddress> | null } : {}),
-        ...(typeof body.wantsEmailDigest === "boolean"
-          ? { wantsEmailDigest: body.wantsEmailDigest }
-          : {}),
-        ...(typeof body.wantsWhatsapp === "boolean"
-          ? { wantsWhatsapp: body.wantsWhatsapp }
-          : {}),
-        ...(typeof body.wantsPostcard === "boolean" && body.wantsPostcard !== current.wantsPostcard
-          ? { wantsPostcard: body.wantsPostcard }
-          : {}),
-      });
+      let contact: ContactRecord | null;
+      try {
+        contact = await updateContactByOwner(username, id, {
+          ...(typeof body.name === "string" ? { name: body.name } : {}),
+          ...(typeof body.email === "string" ? { email: body.email } : {}),
+          ...(typeof body.locale === "string"
+            ? { locale: pickLocale(body.locale, null, getUser(username)!.defaultLocale) }
+            : {}),
+          // Forwarded only when it actually changed, not merely because the
+          // form always includes it. `updateContactByOwner` re-encrypts
+          // whatever `address` it is given and — deliberately, for a genuine
+          // change — zeroes `wants_postcard` itself when that address isn't
+          // postable. Forwarding an unchanged address on every save would run
+          // that same zeroing against a merely-resent legacy state, silently
+          // unsubscribing an owner who only meant to fix a name: the exact
+          // "silently zero the tick" failure mode `update` was already fixed
+          // not to do, reappearing one layer down.
+          ...(addressChanged ? { address: body.address as Partial<PostalAddress> | null } : {}),
+          ...(typeof body.wantsEmailDigest === "boolean"
+            ? { wantsEmailDigest: body.wantsEmailDigest }
+            : {}),
+          ...(typeof body.wantsWhatsapp === "boolean"
+            ? { wantsWhatsapp: body.wantsWhatsapp }
+            : {}),
+          ...(typeof body.wantsPostcard === "boolean" && body.wantsPostcard !== current.wantsPostcard
+            ? { wantsPostcard: body.wantsPostcard }
+            : {}),
+        });
+      } catch (error) {
+        // B1395 — a row the person themselves wrote through
+        // `/api/contacts/self`. The owner still sees it, revokes it or
+        // deletes it; this is the one thing they cannot do to it.
+        if (error instanceof SelfAuthoredContactError) {
+          return Response.json({ error: "self_authored" }, { status: 409 });
+        }
+        throw error;
+      }
       if (!contact) return Response.json({ error: "unknown_contact" }, { status: 404 });
       return Response.json({ ok: true, contact: ownerView(contact) });
     }

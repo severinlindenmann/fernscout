@@ -13,6 +13,7 @@ import { pickLocale } from "@/lib/contacts/locale";
 import { isEnabled } from "@/lib/capabilities";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { helperConsent } from "@/lib/helper/consent";
+import { journalProfile } from "@/lib/journals";
 import { operatorMayRead } from "@/lib/helper/sessions";
 import { postcardSuggestion } from "@/lib/postcard/suggest";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
@@ -79,7 +80,13 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
     const contact = (await listContacts(user)).find(
       (c) => c.email === normaliseEmail(viewer.email!),
     );
-    if (contact) {
+    // A person named in a trip's own `people:` block has write access and,
+    // unlike somebody who redeemed a buddy link, no contacts row to have
+    // earned it — `isPersonOnWith` is satisfied by the file alone. B1395:
+    // without this they had nowhere on the page to give or correct an
+    // address at all. See `app/api/contacts/self/route.ts`.
+    const isTraveller = viewer.trips.some((trip) => trip.through === "traveller");
+    if (contact || isTraveller) {
       // The reader's own UI language, not the one on the contact record —
       // the record's `locale` is a separate question ("write to me in"),
       // still asked inside the form's own dropdown. Rendering the form's
@@ -87,19 +94,34 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       // header in whatever language this reader is actually reading in.
       const uiLocale = await requestLocale();
       manage = {
-        token: manageTokenFor(user, contact.id),
+        // No manage token exists until the row does — `manageTokenFor` names
+        // an id, and there is none yet. `ContactManage` reads an empty token
+        // as "post through `/api/contacts/self` instead", never as a real
+        // credential for `/api/contacts/manage`.
+        token: contact ? manageTokenFor(user, contact.id) : "",
         locales: localesFor(user),
         dictionary: dictionaryFor(uiLocale),
-        contact: {
-          name: contact.name ?? "",
-          email: contact.email,
-          locale: pickLocale(contact.locale, journal.defaultLocale),
-          status: contact.status,
-          wantsEmailDigest: contact.wantsEmailDigest,
-          wantsPostcard: contact.wantsPostcard,
-          wantsWhatsapp: contact.wantsWhatsapp,
-          address: contact.postalAddress ?? EMPTY_ADDRESS,
-        },
+        contact: contact
+          ? {
+              name: contact.name ?? "",
+              email: contact.email,
+              locale: pickLocale(contact.locale, journal.defaultLocale),
+              status: contact.status,
+              wantsEmailDigest: contact.wantsEmailDigest,
+              wantsPostcard: contact.wantsPostcard,
+              wantsWhatsapp: contact.wantsWhatsapp,
+              address: contact.postalAddress ?? EMPTY_ADDRESS,
+            }
+          : {
+              name: "",
+              email: viewer.email,
+              locale: pickLocale(null, journal.defaultLocale),
+              status: "pending",
+              wantsEmailDigest: false,
+              wantsPostcard: false,
+              wantsWhatsapp: false,
+              address: EMPTY_ADDRESS,
+            },
         // B385: same fallback `toE164` reads at send time.
         defaultCountryCode: whatsappCountryCode(),
         // B399: same server-ceiling-and-journal-opt-in check as everywhere
@@ -109,33 +131,41 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
     }
   }
 
-  // B619. Owner only, like everything else resolved here: the address is on
-  // it, and `config.json` is not something a reader's page should be able to
-  // ask about. `tagline` defaults to `""` in lib/config.ts, which is also what
-  // clearing the box means, so the two ends already agree.
+  // B619, widened by B852. Owner only, like everything else resolved here:
+  // the address is on it, and `config.json` is not something a reader's page
+  // should be able to ask about. `journalProfile()` is the same function `GET
+  // /api/v1/{user}/config` reads, so this panel and that response can never
+  // disagree about what the journal's own fields currently are.
   const journalPanel: JournalPanel | undefined = viewer.owner
     ? {
-        title: journal.title,
-        tagline: journal.tagline,
+        ...journalProfile(journal),
         email: journal.owner.email ?? "",
       }
     : undefined;
 
   /**
-   * Every model-facing consent this journal has granted, and who each named —
-   * B723. Owner only, same as the withdraw route itself (`isHelperOwner`):
-   * this is a record of what was agreed to and who it went to, not something
-   * a guest reading the journal should learn.
+   * The four one-way, model-facing grants — B723. Owner only, same as the
+   * withdraw route itself (`isHelperOwner`): this is a record of what was
+   * agreed to and who it went to, not something a guest reading the journal
+   * should learn.
    *
-   * `sessions` is left out — it has its own control just below
-   * (`sessionsShared`), asked and worded differently since it starts on
-   * rather than off (B976).
+   * Always all four, granted or not — B1390. It used to be filtered down to
+   * `consent.scopes`, so an owner who had never opened the wizard had an
+   * empty list and, since the section only rendered on a non-empty list,
+   * nothing at all saying these permissions existed. Now every scope is a
+   * row and `granted` says which.
+   *
+   * `sessions` is left out — it has its own row inside the same section now
+   * (`sessionsShared`, passed separately), asked and worded differently
+   * since it starts on rather than off (B976).
    */
   const consent = viewer.owner ? helperConsent(user) : null;
-  const consentRows = consent
-    ? consent.scopes
-        .filter((scope): scope is "words" | "photos" | "speech" | "statement" => scope !== "sessions")
-        .map((scope) => ({ scope, provider: consent.providers[scope] ?? "" }))
+  const consentRows = viewer.owner
+    ? (["words", "photos", "speech", "statement"] as const).map((scope) => ({
+        scope,
+        granted: consent?.scopes.includes(scope) ?? false,
+        provider: consent?.providers[scope],
+      }))
     : [];
 
   /**
@@ -233,6 +263,10 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       // reasoning as the page itself); everybody else sees the door only
       // once it is published.
       hasAbout={getAbout(user, { includeDrafts: viewer.owner }) !== null}
+      // B1386 — instance-wide, no username argument, same as
+      // app/agent/page.tsx: whether a stranger with no journal here can get
+      // one through the wizard at all.
+      signupEnabled={isEnabled("signup")}
     />
   );
 }

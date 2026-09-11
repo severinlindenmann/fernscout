@@ -1,6 +1,6 @@
 import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
-import { setJournalProfile } from "@/lib/journals";
+import { JOURNAL_PROFILE_FIELDS, setJournalProfile } from "@/lib/journals";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -26,17 +26,28 @@ export const dynamic = "force-dynamic";
  *
  * ## What it does not do
  *
- * Everything else in `JOURNAL_PROFILE_FIELDS`. `title` and `tagline` are the
- * two an owner reads on their own page and can see are wrong; `locales`,
- * `displayCurrencies` and `manualRates` are an agent's job, where there is
- * room to explain what a bad answer costs. Narrow on purpose: this route
- * hands a browser session a pen, and the smallest surface that answers the
- * ticket is the right one.
+ * Until B852 this took only `title` and `tagline`, on the theory that the
+ * rest of `JOURNAL_PROFILE_FIELDS` was an agent's job — but nothing on this
+ * instance ever gave that agent, or the owner, a way to ask for it, so
+ * `locales`, `units`, `displayCurrencies`, `startLocation` and `ownerTel`
+ * had no web surface anywhere. This route now forwards every field
+ * `setJournalProfile` names, present or absent in the body exactly as the
+ * caller sent it — the function owns every rule about each one, so
+ * restating them here would be a second copy to disagree with the first.
+ *
+ * `manualRates` is technically reachable through here too — nothing narrows
+ * it out — but no page on this instance offers a form for it (B852's own
+ * mockup never drew one: a per-currency rate table is a different shape of
+ * control than one field per line). It stays API-only in practice.
  *
  * `owner.email` is not here and is not anywhere. It is the address that
  * decides who can obtain a write token for this journal, so a stolen
  * year-long cookie must not be able to move the journal to another mailbox.
  * The page shows it and says who changes it.
+ *
+ * `baseCurrency` is refused by `setJournalProfile` itself, with its own
+ * message in `JOURNAL_FIELD_REFUSALS` — nothing here needs to know that
+ * separately.
  */
 export async function PATCH(request: Request) {
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
@@ -56,27 +67,21 @@ export async function PATCH(request: Request) {
   }
 
   const changes: Record<string, unknown> = {};
-  for (const field of ["title", "tagline"] as const) {
+  for (const field of JOURNAL_PROFILE_FIELDS) {
     if (body[field] !== undefined) changes[field] = body[field];
   }
   if (Object.keys(changes).length === 0) {
     return Response.json({ error: "nothing_to_change" }, { status: 400 });
   }
 
-  // `setJournalProfile` owns every rule about these two — a title cannot be
-  // cleared, an empty tagline removes the key rather than writing "", and a
-  // control character is refused because the value lands in a `<title>`, an
-  // OG tag and a mail subject. Restating any of that here would be a second
-  // copy to disagree with the first.
+  // `setJournalProfile` owns every rule about every one of these — a title
+  // cannot be cleared, a language must be one this instance maintains, a
+  // currency list must include the base currency, and so on. Restating any
+  // of that here would be a second copy to disagree with the first.
   const result = setJournalProfile(username, changes);
   if (!result.ok) {
     const status = result.error === "write_failed" ? 500 : 400;
     return Response.json({ error: result.error, message: result.message }, { status });
   }
-  return Response.json({
-    ok: true,
-    title: result.journal.title,
-    tagline: result.journal.tagline,
-    changed: result.changed,
-  });
+  return Response.json({ ok: true, journal: result.journal, changed: result.changed });
 }

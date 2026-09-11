@@ -16,10 +16,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AgentHandover from "@/components/AgentHandover";
 import AgentKeys from "@/components/AgentKeys";
-import SessionsConsent from "@/components/SessionsConsent";
 import HelperConsentList, { type ConsentRow } from "@/components/HelperConsentList";
 import BuddyHandover from "@/components/BuddyHandover";
 import ContactManage, { type ManageContact } from "@/components/ContactManage";
+import ConfirmPanel from "@/components/ConfirmPanel";
 import GuestSignIn from "@/components/GuestSignIn";
 import PushOptIn from "@/components/PushOptIn";
 import DeleteAccount from "@/components/DeleteAccount";
@@ -27,14 +27,20 @@ import SignOut from "@/components/SignOut";
 import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
-import type { TranslationKey } from "@/lib/i18n";
+import { LOCALE_LABEL, MAINTAINED_LOCALES, type TranslationKey } from "@/lib/i18n";
 import type { Viewer } from "@/lib/viewer";
 
 /** What the "Your details" panel needs to render `ContactManage` inline —
  * everything `/c/<token>` builds server-side, handed down instead of a link
  * to that page. */
+const FIELD_LABEL = "text-sm font-semibold text-navy-900";
+const FIELD_INPUT =
+  "mt-1 block w-full rounded-xl border border-navy-500 bg-white px-3 py-2.5 text-base text-navy-900";
+
 /**
- * The journal's own name and subtitle, and the address that owns it — B619.
+ * The journal's own name and subtitle, the rest of the profile
+ * `setJournalProfile` already accepts, and the address that owns it — B619,
+ * widened by B852.
  *
  * `PATCH /api/journal` rather than `/api/v1/{user}/config`: that one takes a
  * bearer token and this is a cookie session, which are deliberately not
@@ -44,6 +50,24 @@ import type { Viewer } from "@/lib/viewer";
  * can obtain a write token for this journal, so a stolen year-long cookie
  * must not be able to move the journal to another mailbox — the one field
  * here that is a credential rather than a label.
+ *
+ * **`baseCurrency` is not here, and never will be** — it is the one field of
+ * `JOURNAL_PROFILE_FIELDS` `setJournalProfile` refuses outright
+ * (`lib/journals.ts`). Shown below, read-only, with the reason: a cost
+ * written with no currency *is* a cost in the base currency, so changing it
+ * would not reconvert anything already recorded — it would silently
+ * redefine what every bare amount already written means.
+ *
+ * **`manualRates` is not here either**, and that is scope rather than
+ * policy: the mockup this ticket built from (`option-a.html`) never drew a
+ * per-currency rate table, and a form for an object keyed by arbitrary
+ * currency codes is a different piece of work than the one field per line
+ * every other row here is. It stays API-only.
+ *
+ * **Visibility saves separately, behind its own `ConfirmPanel`** — B852
+ * decided this the same way the account page's storage buttons do: a
+ * consequential, one-way-feeling change earns its own confirmation rather
+ * than riding along with an ordinary field save. See `VisibilitySetting`.
  */
 function JournalSettings({
   username,
@@ -84,27 +108,23 @@ function JournalSettings({
   return (
     <div className="mt-4 space-y-4">
       <label className="block">
-        <span className="text-sm font-semibold text-navy-900">
-          {t("me.journalName")}
-        </span>
+        <span className={FIELD_LABEL}>{t("me.journalName")}</span>
         <input
           type="text"
           value={title}
           maxLength={120}
           onChange={(event) => setTitle(event.target.value)}
-          className="mt-1 block w-full rounded-xl border border-navy-500 bg-white px-3 py-2.5 text-base text-navy-900"
+          className={FIELD_INPUT}
         />
       </label>
       <label className="block">
-        <span className="text-sm font-semibold text-navy-900">
-          {t("me.journalTagline")}
-        </span>
+        <span className={FIELD_LABEL}>{t("me.journalTagline")}</span>
         <input
           type="text"
           value={tagline}
           maxLength={200}
           onChange={(event) => setTagline(event.target.value)}
-          className="mt-1 block w-full rounded-xl border border-navy-500 bg-white px-3 py-2.5 text-base text-navy-900"
+          className={FIELD_INPUT}
         />
       </label>
 
@@ -132,9 +152,7 @@ function JournalSettings({
       </div>
 
       <div className="border-t border-navy-200 pt-4">
-        <p className="text-sm font-semibold text-navy-900">
-          {t("me.journalEmail")}
-        </p>
+        <p className={FIELD_LABEL}>{t("me.journalEmail")}</p>
         <p className="mt-0.5 break-words text-base text-navy-900">
           {journal.email}
         </p>
@@ -142,6 +160,327 @@ function JournalSettings({
           {t("me.journalEmailNote")}
         </p>
       </div>
+
+      <div className="border-t border-navy-200 pt-4">
+        <JournalProfileFields username={username} journal={journal} />
+      </div>
+
+      <div className="border-t border-navy-200 pt-4">
+        <VisibilitySetting username={username} journal={journal} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Everything `setJournalProfile` accepts besides title, tagline and
+ * visibility — B852. One save, one round trip: `setJournalProfile` writes
+ * `config.json` once whole or not at all, so there is nothing to gain from
+ * five separate buttons here, unlike visibility just below.
+ */
+function JournalProfileFields({
+  username,
+  journal,
+}: {
+  username: string;
+  journal: JournalPanel;
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [startLocation, setStartLocation] = useState(journal.startLocation);
+  const [units, setUnits] = useState(journal.units);
+  const [defaultLocale, setDefaultLocale] = useState(journal.defaultLocale);
+  // Every maintained locale but the default — `defaultLocale` is never one
+  // of its own extras, the same split `SignupWizard` draws.
+  const [extraLocales, setExtraLocales] = useState<string[]>(() =>
+    journal.locales.filter((code) => code !== journal.defaultLocale),
+  );
+  const [currencies, setCurrencies] = useState(journal.displayCurrencies.join(", "));
+  const [ownerTel, setOwnerTel] = useState(journal.ownerTel);
+  const [busy, setBusy] = useState(false);
+  const [state, setState] = useState<"idle" | "saved" | "failed">("idle");
+  const [error, setError] = useState<string | undefined>();
+
+  const sameLocales =
+    extraLocales.length === journal.locales.length - 1 &&
+    extraLocales.every((code) => journal.locales.includes(code));
+  const dirty =
+    startLocation.trim() !== journal.startLocation ||
+    units !== journal.units ||
+    defaultLocale !== journal.defaultLocale ||
+    !sameLocales ||
+    currencies.trim() !== journal.displayCurrencies.join(", ") ||
+    ownerTel.trim() !== journal.ownerTel;
+
+  // The same swap `SignupWizard` makes (B838): choosing a new default drops
+  // it from the extras, since it cannot be both.
+  function chooseDefaultLocale(code: string) {
+    setDefaultLocale(code);
+    setExtraLocales((prev) => prev.filter((c) => c !== code));
+  }
+
+  async function save() {
+    setBusy(true);
+    setState("idle");
+    setError(undefined);
+    const response = await fetch("/api/journal", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        user: username,
+        startLocation,
+        units,
+        locales: [defaultLocale, ...extraLocales],
+        defaultLocale,
+        displayCurrencies: currencies
+          .split(",")
+          .map((code) => code.trim())
+          .filter((code) => code !== ""),
+        ownerTel,
+      }),
+    }).catch(() => null);
+    setBusy(false);
+    if (!response?.ok) {
+      const said = (await response?.json().catch(() => null)) as { message?: string } | null;
+      setError(said?.message);
+      setState("failed");
+      return;
+    }
+    setState("saved");
+    router.refresh();
+  }
+
+  return (
+    <div className="space-y-4">
+      <label className="block">
+        <span className={FIELD_LABEL}>{t("me.journalStartLocation")}</span>
+        <input
+          type="text"
+          value={startLocation}
+          maxLength={120}
+          onChange={(event) => setStartLocation(event.target.value)}
+          className={FIELD_INPUT}
+        />
+      </label>
+
+      <label className="block">
+        <span className={FIELD_LABEL}>{t("me.journalUnits")}</span>
+        <select
+          value={units}
+          onChange={(event) => setUnits(event.target.value as "metric" | "imperial")}
+          className={FIELD_INPUT}
+        >
+          <option value="metric">{t("me.journalUnitsMetric")}</option>
+          <option value="imperial">{t("me.journalUnitsImperial")}</option>
+        </select>
+      </label>
+
+      {/* Same two questions `SignupWizard` asks at signup (B838): which
+          language the owner writes in, and which others a reader may switch
+          into. Same hint text, verbatim — a second copy of that warning is a
+          second copy to disagree with the first. */}
+      <div>
+        <p className={FIELD_LABEL}>{t("agent.localeLabel")}</p>
+        <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.localeHint")}</p>
+        <div className="mt-2 space-y-2">
+          {MAINTAINED_LOCALES.map((code) => (
+            <label
+              key={code}
+              className="flex min-h-11 items-center gap-3 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 text-sm text-navy-800"
+            >
+              <input
+                type="radio"
+                name={`${username}-journal-locale`}
+                checked={defaultLocale === code}
+                onChange={() => chooseDefaultLocale(code)}
+              />
+              {LOCALE_LABEL[code] ?? code}
+            </label>
+          ))}
+        </div>
+
+        <p className={`${FIELD_LABEL} mt-4`}>{t("agent.readerLocalesLabel")}</p>
+        <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.readerLocalesHint")}</p>
+        <div className="mt-2 space-y-2">
+          {MAINTAINED_LOCALES.filter((code) => code !== defaultLocale).map((code) => (
+            <label
+              key={code}
+              className="flex min-h-11 items-center gap-3 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 text-sm text-navy-800"
+            >
+              <input
+                type="checkbox"
+                checked={extraLocales.includes(code)}
+                onChange={(event) =>
+                  setExtraLocales((prev) =>
+                    event.target.checked
+                      ? [...prev, code]
+                      : prev.filter((c) => c !== code),
+                  )
+                }
+              />
+              {LOCALE_LABEL[code] ?? code}
+            </label>
+          ))}
+        </div>
+        {/* B852 — the one thing an owner considering removing a language
+            needs to hear before they do it. */}
+        <p className="mt-2 text-xs leading-5 text-navy-500">
+          {t("me.journalLocalesRemoveNote")}
+        </p>
+      </div>
+
+      <label className="block">
+        <span className={FIELD_LABEL}>{t("me.journalCurrencies")}</span>
+        <input
+          type="text"
+          value={currencies}
+          onChange={(event) => setCurrencies(event.target.value)}
+          placeholder="CHF, EUR, USD"
+          className={FIELD_INPUT}
+        />
+        <span className="mt-1 block text-xs leading-5 text-navy-500">
+          {t("me.journalCurrenciesHint")}
+        </span>
+      </label>
+
+      <label className="block">
+        <span className={FIELD_LABEL}>{t("me.journalOwnerTel")}</span>
+        <input
+          type="tel"
+          value={ownerTel}
+          onChange={(event) => setOwnerTel(event.target.value)}
+          placeholder="+41 76 000 00 00"
+          className={FIELD_INPUT}
+        />
+        <span className="mt-1 block text-xs leading-5 text-navy-500">
+          {t("me.journalOwnerTelHint")}
+        </span>
+      </label>
+
+      {/* Refused, always — see the module comment on `JournalSettings`. */}
+      <div className="rounded-xl border border-navy-200 bg-cream-50 p-3.5">
+        <p className={FIELD_LABEL}>
+          {t("me.journalBaseCurrency", { code: journal.baseCurrency })}
+        </p>
+        <p className="mt-1 text-sm leading-6 text-navy-600">
+          {t("me.journalBaseCurrencyNote")}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <BusyButton
+          type="button"
+          busy={busy}
+          disabled={!dirty}
+          onClick={save}
+          className="inline-flex min-h-11 w-fit items-center rounded-full bg-navy-900 px-5 text-base font-semibold text-cream-50 transition-colors hover:bg-navy-700 disabled:opacity-50"
+        >
+          {t("me.journalSave")}
+        </BusyButton>
+        {state === "saved" && !dirty && (
+          <span className="text-sm text-navy-600">{t("me.journalSaved")}</span>
+        )}
+        {state === "failed" && (
+          <span className="text-sm text-coral-600">{error ?? t("me.journalFailed")}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Whether this server advertises the journal at all — B852, and the one
+ * field of the profile with real consequences. Its own `ConfirmPanel`
+ * rather than the plain Save above, the same way the account page's storage
+ * buy and cleanup buttons each get their own: a change that puts the
+ * journal on the landing page, in the sitemap and in `/documentation.txt`
+ * (or takes it back off) is not a typo fix, and deserves the second press
+ * with the consequences named in it.
+ *
+ * **The wording is the trap this ticket exists to avoid.** `AGENTS.md`
+ * records that this level's old value was named `private`, and that was
+ * exactly wrong: trip-level `private` means *narrower* than `guest` — only
+ * the people who were there — while a journal that is not advertised is
+ * still wide open to anyone holding the link. The question below says so
+ * directly, in the same words `lib/journals.ts`'s own refusal for an invalid
+ * value uses, so this screen and that error message cannot drift apart.
+ */
+function VisibilitySetting({
+  username,
+  journal,
+}: {
+  username: string;
+  journal: JournalPanel;
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [visibility, setVisibility] = useState(journal.visibility);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | undefined>();
+
+  // The checkbox moves the moment it is clicked, same as `TripEditor`'s own
+  // visibility control — what confirms is the *save*, not the tick, so the
+  // panel below is free to say exactly what is about to change.
+  const asking = visibility !== journal.visibility;
+
+  async function commit() {
+    setBusy(true);
+    setError(undefined);
+    const response = await fetch("/api/journal", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ user: username, visibility }),
+    }).catch(() => null);
+    setBusy(false);
+    if (!response?.ok) {
+      const said = (await response?.json().catch(() => null)) as { message?: string } | null;
+      setError(said?.message ?? t("me.journalFailed"));
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <label className="flex min-h-11 cursor-pointer items-center gap-3">
+        <input
+          type="checkbox"
+          checked={visibility === "public"}
+          disabled={busy}
+          onChange={(event) => {
+            setError(undefined);
+            setVisibility(event.target.checked ? "public" : "guest");
+          }}
+          className="h-5 w-5 shrink-0 rounded border-navy-300 text-navy-900"
+        />
+        <span className="text-sm leading-6 text-navy-800">{t("me.journalVisibility")}</span>
+      </label>
+      <p className="mt-1 text-xs leading-5 text-navy-500">{t("me.journalVisibilityHint")}</p>
+
+      {asking && (
+        <div className="mt-3">
+          <ConfirmPanel
+            label={t("me.journalVisibility")}
+            question={
+              visibility === "public"
+                ? t("me.journalVisibilityConfirmPublic")
+                : t("me.journalVisibilityConfirmGuest")
+            }
+            confirmLabel={
+              visibility === "public"
+                ? t("me.journalVisibilityGoPublic")
+                : t("me.journalVisibilityGoGuest")
+            }
+            busy={busy}
+            error={error}
+            onConfirm={commit}
+            onCancel={() => {
+              setVisibility(journal.visibility);
+              setError(undefined);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -427,6 +766,24 @@ export type JournalPanel = {
   tagline: string;
   /** Shown, never edited. See `JournalSettings`. */
   email: string;
+  /** The rest of `JOURNAL_PROFILE_FIELDS` (`lib/journals.ts`), minus
+   *  `manualRates` (out of scope, no form in the B852 mockup this follows)
+   *  and `baseCurrency` (never writable — see `JournalSettings`). Built
+   *  server-side from `journalProfile()`, the same function `GET
+   *  /api/v1/{user}/config` reads, so this panel can never show a field
+   *  that call would disagree about — B852. */
+  visibility: "public" | "guest";
+  startLocation: string;
+  units: "metric" | "imperial";
+  locales: string[];
+  defaultLocale: string;
+  displayCurrencies: string[];
+  /** `""` when none is set; clearing the box turns the owner's own WhatsApp
+   *  copy of a published day off again. */
+  ownerTel: string;
+  /** Read-only — shown so the refusal on the screen names the value rather
+   *  than only the rule. */
+  baseCurrency: string;
 };
 
 export type ManagePanel = {
@@ -478,6 +835,7 @@ export default function MePageContent({
   ownerName,
   signinNotice,
   hasAbout = false,
+  signupEnabled,
 }: {
   viewer: Viewer;
   username: string;
@@ -497,10 +855,15 @@ export default function MePageContent({
   /** Whether the operator may read this journal's conversations, or `null`
    *  where there is no helper on it to have any — B976. */
   sessionsShared?: boolean | null;
-  /** When this journal's model-facing consent was last written, and each
-   *  scope it currently covers — B723. Owner only; absent (and `consentRows`
-   *  empty) for everybody else and for an owner who has agreed to nothing. */
+  /** When this journal's model-facing consent was last written — B723.
+   *  Absent for everybody but the owner, and for an owner who has agreed to
+   *  nothing yet. */
   consentAgreedAt?: string;
+  /** The four one-way grants, always present and owner only — B1390. Never
+   *  filtered to what was granted: an ungranted scope is still a row, shown
+   *  as not granted, which is what tells an owner who has never opened the
+   *  wizard that the other four permissions exist at all. Empty for
+   *  everybody else. */
   consentRows?: ConsentRow[];
   /** The one postcard-shaped moment worth surfacing, if there is one right
    *  now — B436. Computed by the same function `journalStatus` reads its
@@ -545,6 +908,15 @@ export default function MePageContent({
   /** Whether `/<user>/about` exists for this reader — B10. Absent rather
    * than a link to a 404, same rule as `analyticsEnabled` above. */
   hasAbout?: boolean;
+  /**
+   * Whether this instance takes new signups at all — B1386. Resolved
+   * server-side with `isEnabled("signup")`, no username argument, the same
+   * way `app/agent/page.tsx` reads it: a signup wizard is instance-wide, not
+   * a per-journal opt-in. Only changes what a *stranger with no journal of
+   * their own* is offered at the foot of the page; every other reader keeps
+   * the plain guide link regardless.
+   */
+  signupEnabled: boolean;
 }) {
   const { t } = useI18n();
   const site = useSite();
@@ -1086,16 +1458,38 @@ export default function MePageContent({
           everybody else the reader's. A menu of three would make a confused
           person choose before they know which one they are.
         */}
-        <p className="mt-8">
-          <Link
-            href={`/docs/guide/${viewer.owner ? "creator" : writableTrips.length > 0 ? "buddy" : "guest"}`}
-            className="text-base text-navy-700 underline decoration-navy-300 underline-offset-4
-                       transition-colors hover:decoration-navy-700
-                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-          >
-            {t("guides.readMore")}
-          </Link>
-        </p>
+        {/*
+          A stranger with no journal of their own gets a different door here
+          — B1386. This page's only offer used to be the guide link below,
+          which explains a journal that reader has no way to reach; when
+          signup is open, `/agent` is one. Owner and buddy keep the plain
+          guide link unconditionally — they already have a journal — and so
+          does a signed-out reader when signup is off, since a CTA pointing
+          at a door that does not open is worse than the link it replaced.
+        */}
+        {viewer.owner || writableTrips.length > 0 || !signupEnabled ? (
+          <p className="mt-8">
+            <Link
+              href={`/docs/guide/${viewer.owner ? "creator" : writableTrips.length > 0 ? "buddy" : "guest"}`}
+              className="text-base text-navy-700 underline decoration-navy-300 underline-offset-4
+                         transition-colors hover:decoration-navy-700
+                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+            >
+              {t("guides.readMore")}
+            </Link>
+          </p>
+        ) : (
+          <p className="mt-8">
+            <Link
+              href="/agent"
+              className="text-base text-navy-700 underline decoration-navy-300 underline-offset-4
+                         transition-colors hover:decoration-navy-700
+                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+            >
+              {t("me.newHereCta")}
+            </Link>
+          </p>
+        )}
 
         {/*
           Where notifications are switched on, for a reader who is not standing
@@ -1123,30 +1517,33 @@ export default function MePageContent({
         />
 
         {/*
-          Who may read the conversations — B976, and it belongs down here.
+          What this journal sends a model or the operator, and what to do
+          about it here — B976 and B723, merged into one section by B1390.
 
-          It sat in the owner block beside the agent card, on the grounds that
-          both are about what the helper does with what you tell it. That put
-          a settled default in the middle of the things somebody came to the
-          page to *do* — issue a key, see who can read, rename the journal —
-          and it is not one of those. It is a switch you touch once, or never.
+          Used to be two: "your conversations" and, underneath it, "what
+          you've let the helper send" — same chrome, same subject, and each
+          hid independently, so an owner who had never opened the wizard saw
+          the first alone with nothing saying the other four permissions
+          existed. One heading now, one component, which is why there is only
+          one gate to read here.
 
-          So: last but one, beside signing out. The two things at the foot of
-          this page are now the two that are about you rather than about your
-          journal, and neither is in the way of the other.
+          Owner or buddy only — B1385. `sessionsShared` used to be the whole
+          gate, computed from the capability alone with no viewer check, so a
+          signed-out stranger reading a public journal was shown this section
+          about conversations they never had. `viewer.owner ||
+          writableTrips.length > 0` is the same expression the guide link
+          below already uses to tell a journal's own people apart from
+          everyone else. `consentRows` is always the four grants, owner only
+          (B1390) — a buddy still gets the section, with only the
+          `sessions` row in it.
         */}
-        {sessionsShared !== null && (
-          <SessionsConsent username={username} shared={sessionsShared} />
-        )}
-
-        {/*
-          What else this journal has agreed to send a model, and a button to
-          take each back — B723, the plan's own version of the withdraw
-          button that B684 put inside the wizard instead. Absent with nothing
-          granted, same as the components either side of it.
-        */}
-        {consentAgreedAt && consentRows.length > 0 && (
-          <HelperConsentList username={username} agreedAt={consentAgreedAt} rows={consentRows} />
+        {sessionsShared !== null && (viewer.owner || writableTrips.length > 0) && (
+          <HelperConsentList
+            username={username}
+            agreedAt={consentAgreedAt}
+            rows={consentRows}
+            sessionsShared={sessionsShared}
+          />
         )}
 
         {/*

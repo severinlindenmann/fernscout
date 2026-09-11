@@ -59,7 +59,12 @@ async function admin(
   return { status: response.status, body: (await response.json()) as AdminBody };
 }
 
-type JournalBody = { ok?: boolean; error?: string; title?: string; tagline?: string; changed?: string[] };
+type JournalBody = {
+  ok?: boolean;
+  error?: string;
+  journal?: { title: string; tagline: string };
+  changed?: string[];
+};
 
 async function journal(
   body: Record<string, unknown>,
@@ -209,8 +214,8 @@ describe("the journal's own name", { shuffle: false }, () => {
 
     const saved = await journal({ title: "Zwei Rucksäcke", tagline: "" }, token);
     expect(saved.status).toBe(200);
-    expect(saved.body.title).toBe("Zwei Rucksäcke");
-    expect(saved.body.tagline).toBe("");
+    expect(saved.body.journal?.title).toBe("Zwei Rucksäcke");
+    expect(saved.body.journal?.tagline).toBe("");
     await clearCaches();
     const { getUser } = await import("@/lib/users");
     expect(getUser(OWNER)?.title).toBe("Zwei Rucksäcke");
@@ -251,5 +256,73 @@ describe("the journal's own name", { shuffle: false }, () => {
 
   test("nobody at all is refused", async () => {
     expect((await journal({ title: "Mine now" })).status).toBe(403);
+  });
+});
+
+/**
+ * B852 — the fields that had no web surface anywhere: `/api/journal` used
+ * to forward only `title` and `tagline`, even though `setJournalProfile`
+ * already validated the rest of `JOURNAL_PROFILE_FIELDS`.
+ */
+describe("the journal's other profile fields — B852", () => {
+  test("the owner can change languages, units, currencies and their own WhatsApp number", async () => {
+    const token = await tokenFor(OWNER_EMAIL);
+    const saved = await journal(
+      {
+        locales: ["de", "en"],
+        defaultLocale: "de",
+        units: "imperial",
+        displayCurrencies: ["CHF", "EUR"],
+        startLocation: "Bern, Switzerland",
+        ownerTel: "+41 76 000 00 00",
+      },
+      token,
+    );
+    expect(saved.status).toBe(200);
+    expect(saved.body.changed).toEqual(
+      expect.arrayContaining([
+        "locales",
+        "defaultLocale",
+        "units",
+        "displayCurrencies",
+        "startLocation",
+        "ownerTel",
+      ]),
+    );
+
+    await clearCaches();
+    const { getUser } = await import("@/lib/users");
+    const after = getUser(OWNER);
+    expect(after?.locales).toEqual(["de", "en"]);
+    expect(after?.defaultLocale).toBe("de");
+    expect(after?.units).toBe("imperial");
+    expect(after?.displayCurrencies).toEqual(["CHF", "EUR"]);
+    expect(after?.startLocation).toBe("Bern, Switzerland");
+    expect(after?.owner.tel).toBe("41760000000");
+  });
+
+  test("visibility can be changed, and is not tangled with the plain-field save", async () => {
+    const token = await tokenFor(OWNER_EMAIL);
+    // Absent in the fixture, which reads as "public" — see AGENTS.md.
+    const { getUser } = await import("@/lib/users");
+    expect(getUser(OWNER)?.visibility).toBe("public");
+
+    const saved = await journal({ visibility: "guest" }, token);
+    expect(saved.status).toBe(200);
+    expect(saved.body.changed).toEqual(["visibility"]);
+
+    await clearCaches();
+    expect(getUser(OWNER)?.visibility).toBe("guest");
+  });
+
+  test("baseCurrency is never forwarded — same as owner, above", async () => {
+    // Not in `JOURNAL_PROFILE_FIELDS`, so this route filters it out before
+    // `setJournalProfile` ever sees it, same as `owner` — the reason it
+    // cannot be changed is on the /me screen itself (`me.journalBaseCurrencyNote`),
+    // not a round trip to find out.
+    const token = await tokenFor(OWNER_EMAIL);
+    const refused = await journal({ baseCurrency: "USD" }, token);
+    expect(refused.status).toBe(400);
+    expect(refused.body.error).toBe("nothing_to_change");
   });
 });
