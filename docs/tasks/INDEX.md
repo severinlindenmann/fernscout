@@ -339,14 +339,13 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1425](in-development/B1425-a-photobook-is-sold-as-one.md) | A photobook is sold as one thing at one price, costed with VAT and a 50 percent margin | FEATURE | high | medium | `96a5b964` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 
-## testing (205)
+## testing (206)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -469,6 +468,7 @@ Do not edit them by hand; run the script.
 | [B1391](testing/B1391-the-helper-refuses-a-bare-yes.md) | The helper refuses a bare yes to its own delete question, and an inbox cannot be emptied at all | ISSUE | high | medium | — |
 | [B1406](testing/B1406-a-book-with-no-recipient-is.md) | A book with no recipient is refused with the message for a book with no photographs | ISSUE | high | low | — |
 | [B1408](testing/B1408-an-en-dash-in-a-day.md) | An en dash in a day's words comes out as a blank gap in the book | ISSUE | high | low | — |
+| [B1425](testing/B1425-a-photobook-is-sold-as-one.md) | A photobook is sold as one thing at one price, costed with VAT and a 50 percent margin | FEATURE | high | medium | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |

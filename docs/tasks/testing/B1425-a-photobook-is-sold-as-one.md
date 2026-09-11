@@ -7,8 +7,7 @@ complexity: medium
 area: photobook, credits, pricing
 found: "2026-09-11T07:39:10Z"
 started: "2026-09-11T07:39:52Z"
-session: 96a5b964-fad1-4616-9124-a01eabbd8a46
-claimed: "2026-09-11T07:39:52Z"
+merged: "2026-09-11T08:17:56Z"
 ---
 
 # B1425 — A photobook is sold as one thing at one price, costed with VAT and a 50 percent margin
