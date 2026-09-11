@@ -160,6 +160,33 @@ export default async function PhotobookOrderPage({
           </div>
 
           {statusText ? <p className="mt-2 text-sm text-navy-700">{statusText}</p> : null}
+
+          {/* B1440. Every parcel Gelato has reported, beside the printer's
+              own status — a book can ship in more than one, and each one
+              gets its own line and, where the carrier gave one, its own
+              tracking link. */}
+          {print?.tracking && print.tracking.length > 0 ? (
+            <ul className="mt-3 space-y-1 border-t border-navy-100 pt-3">
+              {print.tracking.map((code) => (
+                <li key={code.code} className="text-sm text-navy-700">
+                  {code.url ? (
+                    <a
+                      className="font-semibold text-navy-900 underline hover:no-underline"
+                      href={code.url}
+                    >
+                      {code.carrier
+                        ? t("photobook.print.trackingWithCarrier", { code: code.code, carrier: code.carrier })
+                        : t("photobook.print.tracking", { code: code.code })}
+                    </a>
+                  ) : code.carrier ? (
+                    t("photobook.print.trackingWithCarrier", { code: code.code, carrier: code.carrier })
+                  ) : (
+                    t("photobook.print.tracking", { code: code.code })
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </section>
 
         {/* Downloads — a labelled card, one row per file. B1366 has already

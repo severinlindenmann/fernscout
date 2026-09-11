@@ -231,6 +231,10 @@ quietly contradicted.
 
 Real English and German; `hu` may carry English with a note here, as B1438 did.
 
+**Note:** `hu` carries the same English text as `en` for the new
+`photobook.shipped.*` and `photobook.print.tracking*` keys — no Hungarian
+speaker available in this session.
+
 ## Acceptance, revised
 
 - A `shipped` event stores every tracking code it carries, shows them on the
