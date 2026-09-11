@@ -55,8 +55,7 @@ where the software was working correctly. Nothing would report it.
 - Whatever the shape, the twelve corpus answers must still be caught on the
   first pass: this is a change to what counts as *recovery*, not to what counts
   as a claim.
-- Not in scope: changing models. That was tested and rejected — see the run
-  notes on B1447.
+- Not in scope: changing models. That was tested and rejected — see B1450.
 
 ## Acceptance
 
