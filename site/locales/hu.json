@@ -1786,6 +1786,7 @@
   "agent.room.tabs": "Területek",
   "agent.room.updateReady": "Új verzió — újratöltés",
   "agent.room.openOnSite": "Megnyitás az oldalon",
+  "agent.room.reviewToPublish": "Ellenőrzés közzététel előtt",
   "agent.room.account": "Kreditek",
   "agent.room.closeAccount": "Bezárás",
   "agent.room.accountBalance": "Egyenleg",

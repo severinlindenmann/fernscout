@@ -1786,6 +1786,7 @@
   "agent.room.tabs": "Room sections",
   "agent.room.updateReady": "New version — reload",
   "agent.room.openOnSite": "Open on the site",
+  "agent.room.reviewToPublish": "Review to publish",
   "agent.room.account": "Credits",
   "agent.room.closeAccount": "Close",
   "agent.room.accountBalance": "Credits",

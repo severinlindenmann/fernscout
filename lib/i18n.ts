@@ -512,6 +512,7 @@ export type TranslationKey =
   | "agent.room.previewEmpty"
   | "agent.room.previewReading"
   | "agent.room.resizePreview"
+  | "agent.room.reviewToPublish"
   | "agent.room.roomLink"
   | "agent.room.roomLinkHint"
   | "agent.room.searchHistory"
