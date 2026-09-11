@@ -274,11 +274,10 @@ Do not edit them by hand; run the script.
 | [B1364](backlog/wont-do/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (44)
+## open (43)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1463](open/B1463-a-photobook-order-and-a-postcard.md) | A photobook order and a postcard order are two pages with no shared vocabulary | FEATURE | high | medium |
 | [B1464](open/B1464-there-is-nowhere-to-look-at.md) | There is nowhere to look at an order in the states a reader cannot reach | FEATURE | high | medium |
 | [B1465](open/B1465-the-photobook-receipt-page-carries-its.md) | The photobook receipt page carries its own pill table and envelope markup | FEATURE | high | low |
 | [B1466](open/B1466-the-photobook-buy-panel-duplicates-the.md) | The photobook buy panel duplicates the receipt's envelope, ledger and price lines | FEATURE | high | medium |
@@ -323,10 +322,11 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (3)
+## in-development (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1463](in-development/B1463-a-photobook-order-and-a-postcard.md) | A photobook order and a postcard order are two pages with no shared vocabulary | FEATURE | high | medium | `3f748903` |
 | [B1272](in-development/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low | `13f12910` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
