@@ -1,0 +1,16 @@
+{
+  "event": "order_status_updated",
+  "orderReferenceId": "REPLACE_WITH_REAL_ORDER_ID",
+  "fulfillmentStatus": "shipped",
+  "items": [
+    {
+      "fulfillments": [
+        {
+          "trackingCode": "TEST-TRACKING-CODE",
+          "trackingUrl": "https://example.test/track/TEST-TRACKING-CODE",
+          "shipmentMethodName": "Standard"
+        }
+      ]
+    }
+  ]
+}
