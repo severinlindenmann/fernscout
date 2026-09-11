@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: orders
 found: "2026-09-11T14:18:10Z"
+started: "2026-09-11T15:09:48Z"
+session: 3f748903-2dc3-47a2-a958-98b83d641dc0
+claimed: "2026-09-11T15:09:48Z"
 ---
 
 # B1467 — The postcard order page states its own heading, intro and price in its own words
