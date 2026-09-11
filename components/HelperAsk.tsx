@@ -1472,7 +1472,13 @@ function DayChip({
     >
       <span className="relative block h-8 w-8 shrink-0 overflow-hidden rounded-full bg-cream-200" aria-hidden>
         {photoSrc ? (
-          <Image src={photoSrc} loader={mediaLoader} alt="" fill sizes="32px" className="object-cover" />
+          // `width`/`height`, not `fill` — B1298. `fill` plus a fixed
+          // `sizes` string left next/image's 1x/2x/3x candidates uncapped,
+          // and `mediaLoader` served whatever width was asked for a 32px
+          // avatar (measured: 117KB at the 2000px candidate for a 38px
+          // thumbnail). A fixed size's candidates all floor to
+          // MEDIA_WIDTHS' own 320px minimum instead.
+          <Image src={photoSrc} loader={mediaLoader} alt="" width={32} height={32} className="h-full w-full object-cover" />
         ) : (
           <span className="flex h-full w-full items-center justify-center text-sm">📍</span>
         )}
