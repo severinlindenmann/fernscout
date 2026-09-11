@@ -258,12 +258,11 @@ export default async function PostcardOrderPage({
             **Only while it is pending** — the docket below carries its own
             head, and a settled order printed both: the same title, the same
             sentence and the same pill, twice, two hundred pixels apart. */}
-        {!settled && (
-          <>
-            <h1 className="font-display text-2xl font-semibold text-navy-900">{view.head.title}</h1>
-            <p className="mt-1 text-sm text-navy-600">{view.head.subtitle}</p>
-          </>
-        )}
+        {/* A pending order's head belongs to the stepper — B1490. It has two
+            titles (the opening card says how many are waiting, the steps say
+            what the order is), and a head rendered here as well printed one
+            of them twice. A settled order has no stepper and its head comes
+            from the docket below. */}
 
         {/* Once it is settled there is nothing left to compose — B1479.
             A sent order used to render the stepper read-only: a crop slider
@@ -316,7 +315,8 @@ export default async function PostcardOrderPage({
              than the whole photograph. */
           opening={{
             eyebrow: t("postcard.title"),
-            title: t(
+            title: view.head.title,
+            waitingTitle: t(
               live.length === 1
                 ? "postcard.page.waitingTitle.one"
                 : "postcard.page.waitingTitle",

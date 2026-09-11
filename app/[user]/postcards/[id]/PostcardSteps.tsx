@@ -108,8 +108,14 @@ export default function PostcardSteps({
   /** The card a proposal opens on, before the steps — B1490. Absent for an
    *  order that is not a fresh proposal. */
   opening?: {
+    /** The head this page shows while the order is pending. The stepper owns
+     *  it rather than the page — B1490. The opening card has a title of its
+     *  own ("One card is waiting"), and a server-rendered head above a
+     *  client-rendered one printed both: the same sentence twice, which is
+     *  the fault B1479 and B1480 were each opened for. One owner, one head. */
     eyebrow: string;
     title: string;
+    waitingTitle: string;
     body: string;
     note: string;
     label: string;
@@ -165,18 +171,22 @@ export default function PostcardSteps({
      confirming) has nothing to be introduced to. */
   const introducing = opening !== undefined && !opened && !settled && start === "look";
 
+  const head = opening ? (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">
+        {opening.eyebrow}
+      </p>
+      <h1 className="mt-1 font-display text-2xl font-semibold text-navy-900">
+        {introducing ? opening.waitingTitle : opening.title}
+      </h1>
+      <p className="mt-2 text-sm text-navy-600">{opening.body}</p>
+    </div>
+  ) : null;
+
   if (introducing) {
     return (
       <div className="mt-6 flex flex-col gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">
-            {opening.eyebrow}
-          </p>
-          <h2 className="mt-1 font-display text-2xl font-semibold text-navy-900">
-            {opening.title}
-          </h2>
-          <p className="mt-2 text-sm text-navy-600">{opening.body}</p>
-        </div>
+        {head}
         {opening.media}
         <div className="rounded-xl border border-navy-200 bg-white px-4 py-3">
           <p className="text-sm text-navy-700">{opening.note}</p>
@@ -196,6 +206,7 @@ export default function PostcardSteps({
 
   return (
     <div className="mt-6">
+      {head}
       {stepped ? (
         <nav
           aria-label={`${labels.look} · ${labels.write} · ${labels.send}`}
