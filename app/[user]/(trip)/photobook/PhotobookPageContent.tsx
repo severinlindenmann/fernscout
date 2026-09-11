@@ -26,13 +26,15 @@ import { usePersistedState } from "./usePersistedState";
  * than a sentence baked into this file — the same reasoning as the postcard
  * page's own `RESULTS` table.
  *
- * An exact `Record` over `PhotobookOutcomeState` minus `"done"` (handled
- * below as its own success panel, not a message from this table) rather than
+ * An exact `Record` over `PhotobookOutcomeState` rather than
  * `Record<string, TranslationKey>` — B484. Add a state in `order/route.ts`
  * without adding its entry here and `tsc` refuses the file, instead of the
  * owner seeing a blank page for a redirect nobody wrote a message for.
+ *
+ * `"done"` is not a state here at all — B1365. A finished order redirects
+ * straight to its own receipt page rather than back through this panel.
  */
-const OUTCOME_MESSAGE: Record<Exclude<PhotobookOutcomeState, "done">, TranslationKey> = {
+const OUTCOME_MESSAGE: Record<PhotobookOutcomeState, TranslationKey> = {
   duplicate: "photobook.duplicate",
   no_credits: "photobook.noCredits",
   no_photos: "photobook.noPhotos",
@@ -583,88 +585,32 @@ export default function PhotobookPageContent({
         </h1>
 
         {/* The outcome of the last press, above everything else: a page that
-            looked identical whether Pay had just succeeded, failed, or never
-            been pressed is what made a second press cost a second book. A
-            successful order replaces the form outright rather than sitting
-            above an armed Pay button, since the book it would build is the
-            one already sitting in the links below. */}
-        {outcome?.state === "done" ? (
-          <div className="mt-6 max-w-xl rounded-lg border-2 border-navy-900 bg-cream-100 px-4 py-4">
-            {/* B1157: what was bought is a printed book, so this says so —
-                and the files below are what comes with it rather than what
-                was paid for. Where the printer refused, the order page is
-                where that is said, along with the refund and the retry; this
-                panel does not know the outcome of the submit. */}
-            <p className="font-semibold text-navy-900">{t("photobook.done")}</p>
-            {outcome.orderId && outcome.files.length > 0 ? (
-              <ul className="mt-3 space-y-1 text-sm">
-                {outcome.files.map((file) => (
-                  <li key={file}>
-                    <a
-                      className="underline"
-                      href={`/${entry.username}/photobooks/${outcome.orderId}/${file}`}
-                    >
-                      {t("photobook.downloadFile")} — {file}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              // `markPrinted`'s payload carries `files` only when the row was
-              // still `submitted` when the build finished — B484. That guard
-              // is correct (B509's review confirmed it keeps a refunded order
-              // from reading as printed) but it means this panel can render
-              // with nothing to link to for an order the owner *did* pay for
-              // and the receipt mail — sent unconditionally, off the real
-              // build result rather than this row — still carries the links.
-              // Saying so beats a success panel that looks like it forgot
-              // them.
-              <p className="mt-3 text-sm text-navy-700">{t("photobook.done.filesInMail")}</p>
-            )}
-            {/* B1140, reworded by B1157. The way to the order page, whose URL
-                is a UUID and which nothing else links to. It used to say
-                "print and post this book" — which was the whole complaint
-                about the old flow, and is plainly false now: the book went to
-                the printer on the press that produced this panel. What is on
-                that page is the *order* — where it is going, what the printer
-                says about it, and a retry if the printer refused. */}
-            {outcome.orderId ? (
-              <p className="mt-4">
-                <a
-                  className="font-semibold underline"
-                  href={`/${entry.username}/photobooks/${outcome.orderId}`}
-                >
-                  {t("photobook.done.order")}
-                </a>
+            looked identical whether Pay had just failed or never been
+            pressed is what made a second press cost a second book. A
+            successful order never lands here at all — B1365 redirects it
+            straight to its own receipt page instead. */}
+        {outcome && (
+          <div
+            className="mt-6 max-w-xl rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900"
+            role="status"
+          >
+            <p>{t(OUTCOME_MESSAGE[outcome.state])}</p>
+            {/* B1330. The one outcome that has to be quotable. A refused
+                print has already taken the money and given it back, and
+                the owner cannot describe which book it was — every order
+                is "my photobook" — so the id goes on the page, selectable,
+                beside the address to send it to. */}
+            {outcome.state === "print_refused" && outcome.orderId && (
+              <p className="mt-2">
+                {t("photobook.printRefused.reference")}{" "}
+                <code className="select-all font-mono text-xs">{outcome.orderId}</code>
               </p>
-            ) : null}
-            <a href="?" className="mt-4 inline-block text-sm underline">
-              {t("photobook.anotherBook")}
-            </a>
-          </div>
-        ) : (
-          <>
-            {outcome && (
-              <div
-                className="mt-6 max-w-xl rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900"
-                role="status"
-              >
-                <p>{t(OUTCOME_MESSAGE[outcome.state])}</p>
-                {/* B1330. The one outcome that has to be quotable. A refused
-                    print has already taken the money and given it back, and
-                    the owner cannot describe which book it was — every order
-                    is "my photobook" — so the id goes on the page, selectable,
-                    beside the address to send it to. */}
-                {outcome.state === "print_refused" && outcome.orderId && (
-                  <p className="mt-2">
-                    {t("photobook.printRefused.reference")}{" "}
-                    <code className="select-all font-mono text-xs">{outcome.orderId}</code>
-                  </p>
-                )}
-              </div>
             )}
+          </div>
+        )}
 
-            {/* The question, where the outcome notice appears — B668. Both
+        <>
+          {/* The question, where the outcome notice appears — B668. Both
                 levels are in this fragment, so one panel serves both. */}
             {pending && (
               <div className="mt-6">
@@ -803,7 +749,6 @@ export default function PhotobookPageContent({
               </>
             )}
           </>
-        )}
       </main>
     </div>
   );

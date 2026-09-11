@@ -374,5 +374,12 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
     missing: built.missing,
   });
 
-  return back_("done", { order: orderId });
+  // A finished order goes straight to its own receipt page rather than back
+  // through the trip's photobook panel — B1365. Same relative-URL/303
+  // reasoning as `back()`: a caller on the app's own origin behind a reverse
+  // proxy, not the browser's.
+  return new Response(null, {
+    status: 303,
+    headers: { Location: `/${encodeURIComponent(user)}/photobooks/${orderId}` },
+  });
 }

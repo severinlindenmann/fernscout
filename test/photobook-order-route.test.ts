@@ -254,7 +254,7 @@ describe("the order route", () => {
 
       const response = await POST(orderRequest("order-printed"), { params });
 
-      expect(response.headers.get("location")).toContain("state=done");
+      expect(response.headers.get("location")).toBe("/alex/photobooks/order-printed");
       expect(sendPhotobookRefused).not.toHaveBeenCalled();
       expect(sendPhotobookReceipt).toHaveBeenCalledWith(
         expect.objectContaining({ files: ["book.pdf"] }),
@@ -320,7 +320,7 @@ describe("the order route", () => {
         const response = await POST(orderRequest("order-price-matches"), { params });
 
         expect(response.status).toBe(303);
-        expect(response.headers.get("location")).toContain("state=done");
+        expect(response.headers.get("location")).toBe("/alex/photobooks/order-price-matches");
         expect(spend).toHaveBeenCalledWith("alex", CREDITS, "photobook", "order-price-matches");
       });
     });
