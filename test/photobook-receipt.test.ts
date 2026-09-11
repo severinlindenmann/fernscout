@@ -5,7 +5,7 @@ import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { dictionaryFor } from "@/lib/locales";
-import { sendPhotobookReceipt } from "@/lib/photobook/receipt";
+import { sendPhotobookReceipt, sendPhotobookRefused } from "@/lib/photobook/receipt";
 
 /**
  * The mail harness here is copied from test/day-mail.test.ts (writeServerConfig,
@@ -117,7 +117,7 @@ async function sendAndRead(input: {
 }
 
 describe("the photobook receipt", () => {
-  test("links to both files and never claims anything was printed", async () => {
+  test("offers only the whole-book file, links to the order page, and never claims anything was printed", async () => {
     const eml = await sendAndRead({
       owner: "alex",
       orderId: "order-abc12345",
@@ -126,15 +126,46 @@ describe("the photobook receipt", () => {
       volumes: 1,
       creditsSpent: 194,
       balance: 306,
-      files: ["book-interior.pdf", "book-cover.pdf"],
+      files: ["book-interior.pdf", "book-cover.pdf", "book.pdf"],
     });
 
-    expect(eml).toContain("book-interior.pdf");
-    expect(eml).toContain("book-cover.pdf");
+    // B1438: the interior and cover halves are Gelato's inputs, not
+    // anybody's book — filtered out here exactly as `visibleBookFiles`
+    // filters them off the order page, so the two never disagree.
+    expect(eml).not.toContain("book-interior.pdf");
+    expect(eml).not.toContain("book-cover.pdf");
+    expect(eml).toContain("book.pdf");
     expect(eml).toContain("/alex/photobooks/order-abc12345/");
+    // The order page itself, not only a file under it — labelled for what it
+    // does, not "click here".
+    expect(eml).toContain("See this order");
     expect(eml).toContain("194");
+    // "Ready" is a claim about a finished, delivered object; this only ever
+    // follows a successful submission to Gelato, which can still be refused.
+    expect(eml).not.toContain("your photobook is ready");
+    expect(eml).toContain("on the way");
     // Links, never the file: a 300-DPI book does not fit in a mailbox.
     expect(eml).not.toContain("Content-Disposition: attachment");
+  });
+
+  test("offers one file per volume for a multi-volume book", async () => {
+    const eml = await sendAndRead({
+      owner: "alex",
+      orderId: "order-abc12345",
+      tripTitle: "Asia 2026",
+      pages: 104,
+      volumes: 2,
+      creditsSpent: 300,
+      balance: 100,
+      files: ["v1-interior.pdf", "v1-cover.pdf", "v1.pdf", "v2-interior.pdf", "v2-cover.pdf", "v2.pdf"],
+    });
+
+    expect(eml).not.toContain("v1-interior.pdf");
+    expect(eml).not.toContain("v1-cover.pdf");
+    expect(eml).not.toContain("v2-interior.pdf");
+    expect(eml).not.toContain("v2-cover.pdf");
+    expect(eml).toContain("v1.pdf");
+    expect(eml).toContain("v2.pdf");
   });
 
   // B479 — the claim worth protecting is "no provider was called", and the
@@ -164,4 +195,22 @@ describe("the photobook receipt", () => {
       expect(eml).toContain(dictionaryFor(locale)["photobook.receipt.notPrinted"]);
     },
   );
+});
+
+describe("the photobook refusal mail", () => {
+  test("keeps the quotable reference and links to the order page", async () => {
+    await sendPhotobookRefused({
+      owner: "alex",
+      orderId: "order-abc12345",
+      tripTitle: "Asia 2026",
+      creditsRefunded: 194,
+    });
+    const eml = readOnlyEml();
+
+    // A reference is what somebody reads out on the phone in a reply — the
+    // link does not replace it.
+    expect(eml).toContain("order-abc12345");
+    expect(eml).toContain("/alex/photobooks/order-abc12345");
+    expect(eml).toContain("See how the printing is going");
+  });
 });

@@ -7,6 +7,7 @@ import { sendTransactional } from "../mail";
 import { renderMail } from "../mail/template";
 import { serverSite } from "../site";
 import type { Locale } from "../types";
+import { visibleBookFiles } from "./visibleFiles";
 
 /**
  * What was made, what it cost, and where the files are.
@@ -15,10 +16,19 @@ import type { Locale } from "../types";
  * at 300 DPI is hundreds of megabytes and no mailbox takes it. The postcard
  * receipt attaches its card because a card is one sheet.
  *
- * **It must not say the book was printed or posted**, because nothing was.
+ * **It must not say the book was printed or posted** — this is sent only
+ * after a successful submission to Gelato (the refusal branch in
+ * `order/route.ts` returns early, B1330), so "on the way" is the strongest
+ * honest claim: accepted is not printed, and a later webhook can still report
+ * a refusal, which is exactly what happened to all six books in the B911 run.
  * `test/photobook-receipt.test.ts` checks the words. Transactional, free, and
  * best effort — the files exist by the time this runs, so a dead SMTP host
  * must not turn a finished book into a reported failure.
+ *
+ * `files` is filtered through `visibleBookFiles` (B1438), the same helper the
+ * order page reads, so the two never disagree about what is offered — the
+ * print-ready interior and cover halves stay on disk and reachable by direct
+ * URL, just not listed here.
  */
 
 export type PhotobookReceiptInput = {
@@ -88,6 +98,7 @@ export async function sendPhotobookRefused(input: {
   const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) =>
     translateIn(locale, key, vars);
   const vars = { trip: input.tripTitle, credits: String(input.creditsRefunded) };
+  const base = `${serverSite().url}/${input.owner}/photobooks/${input.orderId}`;
 
   try {
     await sendTransactional(
@@ -101,6 +112,7 @@ export async function sendPhotobookRefused(input: {
             { kind: "paragraph" as const, text: t("photobook.refused.body", vars) },
             { kind: "paragraph" as const, text: t("photobook.refused.reference", { id: input.orderId }) },
             { kind: "paragraph" as const, text: t("photobook.refused.next") },
+            { kind: "item" as const, title: t("photobook.refused.viewOrder"), href: base },
           ],
           footer: t("photobook.receipt.footer"),
         },
@@ -123,6 +135,7 @@ export async function sendPhotobookReceipt(input: PhotobookReceiptInput): Promis
     translateIn(locale, key, vars);
 
   const base = `${serverSite().url}/${input.owner}/photobooks/${input.orderId}`;
+  const files = visibleBookFiles(input.files);
   const numbers = {
     trip: input.tripTitle,
     pages: String(input.pages),
@@ -155,11 +168,12 @@ export async function sendPhotobookReceipt(input: PhotobookReceiptInput): Promis
                 balance: String(input.balance),
               }),
       },
-      ...input.files.map((file) => ({
+      ...files.map((file) => ({
         kind: "item" as const,
         title: `${t("photobook.receipt.download")} — ${file}`,
         href: `${base}/${file}`,
       })),
+      { kind: "item" as const, title: t("photobook.receipt.viewOrder"), href: base },
       ...(input.missing && input.missing.length > 0
         ? [
             {
