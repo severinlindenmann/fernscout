@@ -6,6 +6,7 @@ import { sendTransactional } from "../mail";
 import { renderMail } from "../mail/template";
 import { serverSite } from "../site";
 import type { Locale } from "../types";
+import { formatCredits } from "../credits/format";
 
 /**
  * What was posted, to whom, and what it looked like — B467.
@@ -91,10 +92,10 @@ export async function sendPostcardReceipt(input: ReceiptInput): Promise<void> {
         kind: "paragraph" as const,
         text:
           input.balance === null
-            ? t("postcard.receipt.cost", { total: String(input.creditsSpent) })
+            ? t("postcard.receipt.cost", { total: formatCredits(input.creditsSpent) })
             : t("postcard.receipt.costAndBalance", {
-                total: String(input.creditsSpent),
-                balance: String(input.balance),
+                total: formatCredits(input.creditsSpent),
+                balance: formatCredits(input.balance),
               }),
       },
       { kind: "paragraph" as const, text: t("postcard.receipt.attached") },
