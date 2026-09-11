@@ -40,6 +40,11 @@ export type Ran = {
   result: unknown;
   blocks: Block[];
   proposal?: Proposal;
+  /** This call's blocks are a tool declining itself — B1299. Set only by
+   *  a write tool's own `refuse` (see `proposalFor`), so the round loop
+   *  that runs tools knows which say blocks are held-back refusals rather
+   *  than ordinary content. */
+  refused?: boolean;
 };
 
 /** The declared arguments, trimmed, with anything the tool did not declare
@@ -70,7 +75,7 @@ export async function proposalFor(
   say: Say,
   today: string,
   selected: string[] = [],
-): Promise<{ proposal?: Proposal; blocks: Block[] }> {
+): Promise<{ proposal?: Proposal; blocks: Block[]; refused?: boolean }> {
   const made = await tool.propose(username, args, say, today, selected);
 
   /**
@@ -87,8 +92,17 @@ export async function proposalFor(
    */
   // The tool declining itself — B951, and it comes first: a day that is
   // already a draft is a better answer than "which day did you mean".
+  //
+  // `refused: true` travels with the block — B1299. `trip_people` can be
+  // called speculatively ("maybe my partner should go on the byline?") and
+  // recover on its own later in the same turn with a different tool; the
+  // round loop in `model.ts` holds a refusal back rather than showing it
+  // immediately, and drops it if anything after it succeeds.
   if (made.refuse) {
-    return { blocks: [{ shape: "say", text: say(made.refuse as Parameters<Say>[0]) }] };
+    return {
+      blocks: [{ shape: "say", text: say(made.refuse as Parameters<Say>[0]) }],
+      refused: true,
+    };
   }
 
   const empty = (name: string) => made.fields.some((field) => field.name === name && field.value.trim() === "");
@@ -198,7 +212,7 @@ export async function runTool(
     // Nothing is executed. `propose` may read this journal to fill a field in
     // or to draw the day; there is no `run` on a write tool to call, and the
     // press is what posts to `endpoint`.
-    const { proposal, blocks } = await proposalFor(username, tool, strings, say, today, selected);
+    const { proposal, blocks, refused } = await proposalFor(username, tool, strings, say, today, selected);
     if (!proposal) {
       // Nothing resolved, so there is nothing to press — and the model is told
       // so in the same words the person is, rather than being left to say a
@@ -215,6 +229,7 @@ export async function runTool(
           why: "nothing was proposed and there is no button on their screen: say so, and ask which trip or which day they mean",
         },
         blocks,
+        refused,
       };
     }
     return {

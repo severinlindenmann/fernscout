@@ -1632,6 +1632,14 @@ export async function answerInThread(
   const counted: number[] = [];
   const blocks: Block[] = [];
   const proposals: Proposal[] = [];
+  /** A tool declining itself, held back rather than shown at once — B1299.
+   *  A refusal with nothing after it is exactly when the person must answer
+   *  it, so it still renders; a later successful call in the same turn (any
+   *  round, including a retry of `rounds()` itself) means something else
+   *  went through instead, and the refusal is dropped rather than sitting
+   *  alone with no later text explaining it recovered. Flushed into `blocks`
+   *  once, after every round (and any retry) is done. */
+  const heldRefusals: Block[] = [];
 
   /** The rounds, over the messages built above. Returns what it said. */
   async function rounds(): Promise<string> {
@@ -1669,7 +1677,7 @@ export async function answerInThread(
         looked.push(call.name);
         const tool = TOOLS.find((one) => one.name === call.name);
         if (tool) onToolStart?.({ name: tool.name, kind: tool.kind });
-        const { ok, result, blocks: drawn, proposal } = await runTool(
+        const { ok, result, blocks: drawn, proposal, refused } = await runTool(
           username,
           call.name,
           call.input,
@@ -1694,7 +1702,14 @@ export async function answerInThread(
               one.tool === proposal.tool &&
               JSON.stringify(one.arguments) === JSON.stringify(proposal.arguments),
           );
-        if (!twin && call.name === "trips") {
+        // B1299 — a refusal is held rather than shown at once; anything
+        // else that goes through afterwards, in this call or a later one,
+        // is what recovers it, so the held ones are dropped the moment a
+        // non-refusal call succeeds.
+        if (!refused && ok) heldRefusals.length = 0;
+        if (!twin && refused) {
+          heldRefusals.push(...drawn);
+        } else if (!twin && call.name === "trips") {
           deferredTripsBlocks.push(...drawn);
         } else if (!twin) {
           blocks.push(...drawn);
@@ -2036,6 +2051,11 @@ export async function answerInThread(
       recovered = true;
     }
   }
+
+  // Nothing recovered it — B1299. This is the only place `heldRefusals` is
+  // read, and reading it once, here, after every round and every retry is
+  // done, is what makes "later" mean the whole turn rather than one round.
+  blocks.push(...heldRefusals);
 
   return { answer, looked, blocks, proposals, guard: shipped, recovered };
 }
