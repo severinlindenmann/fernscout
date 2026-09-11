@@ -7,8 +7,7 @@ complexity: low
 area: helper cost, usage
 found: "2026-09-11T12:49:16Z"
 started: "2026-09-11T14:10:11Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T14:10:11Z"
+merged: "2026-09-11T14:21:53Z"
 ---
 
 # B1460 — B1450's acceptance cannot be checked, because nothing keeps the two numbers it names
