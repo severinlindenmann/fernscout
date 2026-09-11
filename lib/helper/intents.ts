@@ -1,4 +1,7 @@
 import "server-only";
+import { formatDigestDate } from "../digest/content";
+import { translateIn } from "../locales";
+import type { Locale } from "../types";
 
 /**
  * The refusal table — B817, and what is left of the registry B900 retired.
@@ -26,6 +29,35 @@ import "server-only";
 /** Translating, passed in rather than imported, so an answer is in the
  *  reader's own language and this file holds no English. */
 export type Say = (key: string, vars?: Record<string, string>) => string;
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * One `Say`, bound to a reader's language — and the one place a bare
+ * "YYYY-MM-DD" var becomes the date a person actually reads, so no template
+ * call site has to remember to convert it itself.
+ *
+ * B1296: the room used to hand somebody `2026-09-05`, one line above the
+ * model writing the same day as "5 September" in its own free prose. A
+ * guard here — every ISO-shaped var, formatted before it reaches
+ * `translate()` — closes it for every existing and future `{date}`,
+ * `{start}` or `{end}` at once, the way AGENTS.md says a code guard does and
+ * a reworded prompt never has.
+ */
+export function sayIn(locale: string): Say {
+  return (key, vars) =>
+    translateIn(
+      locale,
+      key as Parameters<typeof translateIn>[1],
+      vars &&
+        Object.fromEntries(
+          Object.entries(vars).map(([name, value]) => [
+            name,
+            ISO_DATE.test(value) ? formatDigestDate(locale as Locale, value) : value,
+          ]),
+        ),
+    );
+}
 
 /* -------------------------------------------------------------------------
  * The territories with no row, and what is said instead — B817 and B783.

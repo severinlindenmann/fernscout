@@ -146,6 +146,7 @@ export type TranslationKey =
   | "agent.backToPhotos"
   | "agent.backToStart"
   | "agent.backToWords"
+  | "agent.block.dateSpan"
   | "agent.block.day"
   | "agent.block.days"
   | "agent.block.findDay"

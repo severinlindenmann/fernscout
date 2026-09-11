@@ -39,7 +39,12 @@ export const TRIPS_TOOLS: readonly Tool[] = [
         options: trips.map((trip) => ({
           value: trip.id,
           label: trip.title,
-          detail: `${trip.start} – ${trip.end}`,
+          // Not the raw "2026-09-05 – 2026-09-08" this used to draw —
+          // B1296: the room spoke these same two dates as "5–8 September" a
+          // line above, in its own free prose. `say` already converts an
+          // ISO-shaped var (`sayIn` in `../../intents`), so the existing
+          // `agent.block.dateSpan` key does this with no new plumbing.
+          detail: say("agent.block.dateSpan", { start: trip.start, end: trip.end }),
         })),
       };
     },

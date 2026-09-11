@@ -235,7 +235,11 @@ export const MONEY_TOOLS: readonly Tool[] = [
             (one) => one.currency === currency,
           )
         : undefined;
-      const named = trip?.title ?? tripId;
+      // Named by title, never by the raw id it falls back to above for
+      // lookups the person never sees — B1296: nowhere else in this
+      // registry's prose shows a trip's directory name, and this was the one
+      // place still falling back to it instead of to nothing.
+      const named = trip?.title ?? "";
       const rate = say("agent.tool.setRate", { currency, rate: args.rate ?? "", base, trip: named });
       const sentence = outside
         ? `${rate} ${say("agent.tool.setRateOutside", { amount: formatMoney(outside.amount, outside.currency) })}`

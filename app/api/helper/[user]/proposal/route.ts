@@ -1,9 +1,9 @@
 import { isEnabled } from "@/lib/capabilities";
-import type { Say } from "@/lib/helper/intents";
+import { sayIn } from "@/lib/helper/intents";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { proposed } from "@/lib/helper/thread";
 import { proposalFor, writeTool } from "@/lib/helper/tools";
-import { requestLocale, translateIn } from "@/lib/locales";
+import { requestLocale } from "@/lib/locales";
 
 export const dynamic = "force-dynamic";
 
@@ -70,8 +70,7 @@ export async function POST(
   }
 
   const locale = await requestLocale();
-  const say: Say = (key, vars) =>
-    translateIn(locale, key as Parameters<typeof translateIn>[1], vars);
+  const say = sayIn(locale);
 
   const today =
     typeof body.today === "string" && DATE_RE.test(body.today)
