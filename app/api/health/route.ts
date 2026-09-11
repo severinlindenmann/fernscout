@@ -340,6 +340,16 @@ export async function GET(request: Request) {
      * Public, like `capabilities`: it is a limit, not a secret, and a caller
      * that cannot read it before uploading is a caller that finds out by
      * failing.
+     *
+     * `imageMaxEdge` in particular is a ceiling and a target at once, and
+     * `/openapi.json` says so in its own words (B1533) because a bare
+     * integer here cannot: the uploaded file is kept as the print master a
+     * photobook prints from, a smaller web copy is derived automatically,
+     * and "send the largest file you have" is the right reading of this
+     * number, not "stay under it to be polite". `fernscout-helper` read the
+     * absence of that sentence as licence to default to something closer to
+     * the site's own 2000 px web copy, and every photobook it made printed
+     * from roughly 170 dpi originals as a result.
      */
     media: {
       imageFormats: [...IMAGE_FORMATS],

@@ -3340,11 +3340,25 @@ export function openApiDocument() {
             "for this server to fetch — https only, public hosts only, refused after a " +
             "redirect to a private address.\n\n" +
             "Two files are kept for each one sent: a resized copy for the browser and the " +
-            "original for print. Send the largest you have — for a URL upload the original " +
-            "is whatever the remote host served, so a 2000px source is what a photobook " +
-            "will be printed from, and there is no way to get the pixels back later. The " +
-            "served copy is always a JPEG, whatever was sent, which is why the reply names " +
-            "it `01.jpg`; the original is untouched and `kept` reports its bytes.\n\n" +
+            "original for print. **The file you send is kept, untouched, as the print " +
+            "master** — a photobook is made from it, never from the resized copy — so send " +
+            "the largest file you have, not the size the site happens to display. A full-page " +
+            "plate at 300 dpi wants roughly 2500×3500 px, " +
+            "well past the 2000px the served copy is capped to; `/api/health`'s `media." +
+            "imageMaxEdge` is the ceiling this server allows, and it is a target to approach, " +
+            "not a size to stay comfortably under. For a URL upload the original is whatever " +
+            "the remote host served, so a 2000px source is what a photobook will be printed " +
+            "from, and there is no way to get the pixels back later. The served copy is " +
+            "always a JPEG, whatever was sent, which is why the reply names it `01.jpg`; the " +
+            "original is untouched and `kept` reports its bytes.\n\n" +
+            "**There is no way to improve a photograph already on a day by re-sending a " +
+            "larger version of it.** This route's own duplicate check compares bytes, not " +
+            "names, so a bigger export of the same picture is not recognised as \"the same " +
+            "photograph, better\" — it is simply not a duplicate, and lands as a second, " +
+            "separate item beside the first rather than replacing it. To swap in a better " +
+            "file, remove the original with `DELETE .../media` first, then upload the " +
+            "replacement — there is no in-place upgrade. Cheaper to send the largest file " +
+            "from the start than to discover this after a trip is already published.\n\n" +
             "**Nothing is read out of the files.** No EXIF is opened, so a photograph " +
             "carrying GPS and a DateTimeOriginal adds no `lat`, `lng`, `location`, " +
             "`country` or `time` to the day. Send those on the day itself — POST or PATCH " +
@@ -3721,7 +3735,16 @@ export function openApiDocument() {
                             items: { type: "string", enum: [...VIDEO_FORMATS] },
                           },
                           imageMaxBytes: { type: "integer" },
-                          imageMaxEdge: { type: "integer" },
+                          imageMaxEdge: {
+                            type: "integer",
+                            description:
+                              "A ceiling, not a target — the uploaded file is kept as the " +
+                              "print master a photobook prints from, and a smaller web copy " +
+                              "is derived from it automatically. Larger is better up to this " +
+                              "edge, not merely tolerated: a full-page 300 dpi plate wants " +
+                              "roughly 2500×3500 px, well past the 2000 px the site itself " +
+                              "ever shows. Send the largest file you have.",
+                          },
                           videoMaxBytes: { type: "integer" },
                           videoMaxSeconds: { type: "integer" },
                           itemsPerDay: { type: "integer" },
