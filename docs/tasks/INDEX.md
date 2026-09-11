@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (185)
+## backlog (187)
 
 ### security (2)
 
@@ -174,16 +174,17 @@ Do not edit them by hand; run the script.
 | [B546](backlog/ops/B546-the-open-meteo-free-tier-is.md) | The Open-Meteo free tier is non-commercial and this instance takes money | OPS | medium | low |
 | [B1036](backlog/ops/B1036-content-example-s-new-trips-can.md) | content/example's new trips can flicker as malformed during ship.sh's demo sync | OPS | low | low |
 
-### docs-and-skills (4)
+### docs-and-skills (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1144](backlog/docs-and-skills/B1144-a-dispatched-worktree-agent-cannot-run.md) | A dispatched worktree agent cannot run claude-security, so the one skill work-on-a-task requires on an auth change is the one it cannot reach | DOCS | high | low |
 | [B1414](backlog/docs-and-skills/B1414-docs-testing-md-s-privacy-section.md) | docs/TESTING.md's privacy section never mentions buddy links or per-photo visibility | DOCS | high | low |
 | [B1462](backlog/docs-and-skills/B1462-a-dispatched-agent-reaches-for-a.md) | A dispatched agent reaches for a background verify and strands itself, and no building skill warns it | DOCS | high | low |
+| [B1478](backlog/docs-and-skills/B1478-the-print-bench-shows-one-postcard.md) | The print bench shows one postcard and one book; it should show every format and what Gelato actually requires | DOCS | medium | medium |
 | [B1415](backlog/docs-and-skills/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low |
 
-### superseded (79)
+### superseded (80)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -223,6 +224,7 @@ Do not edit them by hand; run the script.
 | [B14](backlog/superseded/B14-postcards-cannot-address-themselves-from-the.md) | Postcards cannot address themselves from the contacts that hold the addresses | FEATURE | medium | medium |
 | [B1419](backlog/superseded/B1419-the-open-mobile-menu-gives-no.md) | The open mobile menu gives no sign that it scrolls | ISSUE | medium | low |
 | [B1420](backlog/superseded/B1420-x.md) | x | ISSUE | medium | medium |
+| [B1477](backlog/superseded/B1477-the-print-bench-shows-one-postcard.md) | The print bench shows one postcard and one book; it should show every format and what Gelato actually requires | DOCS | medium | medium |
 | [B260](backlog/superseded/B260-the-mcp-resource-advertises-no-authorization.md) | The MCP resource advertises no authorization server, so a connector cannot get a token by itself | FEATURE | medium | high |
 | [B275](backlog/superseded/B275-a-day-cannot-be-held-back.md) | A day cannot be held back from a public trip, so one private afternoon makes the whole trip guests-only | FEATURE | medium | high |
 | [B341](backlog/superseded/B341-a-malformed-plan-md-throws-uncaught.md) | A malformed plan.md throws uncaught out of getPlan, crashing the trip and map pages | ISSUE | medium | low |
