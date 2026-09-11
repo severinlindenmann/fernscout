@@ -7,8 +7,7 @@ complexity: low
 area: helper, slugs
 found: "2026-09-10T10:24:26Z"
 started: "2026-09-11T08:42:18Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T08:42:18Z"
+merged: "2026-09-11T10:01:17Z"
 ---
 
 # B1276 — A day written through the helper gets the date as its slug, so its address is fernscout.ch slash day slash 2026-09-05

@@ -7,8 +7,7 @@ complexity: low
 area: agent
 found: "2026-09-08T21:44:20Z"
 started: "2026-09-11T08:42:25Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T08:42:25Z"
+merged: "2026-09-11T10:01:17Z"
 ---
 
 # B1038 — Retest storage/photo phrasing against the live helper under the new tool-calling router

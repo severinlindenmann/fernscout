@@ -7,8 +7,7 @@ complexity: medium
 area: helper
 found: "2026-09-10T06:31:38Z"
 started: "2026-09-11T08:42:21Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T08:42:21Z"
+merged: "2026-09-11T10:01:18Z"
 ---
 
 # B1239 — The retired wizard's code still ships: AgentWizard, its queue and its suites await deletion

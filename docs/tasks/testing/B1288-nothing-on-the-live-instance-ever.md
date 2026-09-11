@@ -7,8 +7,7 @@ complexity: low
 area: weather, ops
 found: "2026-09-10T10:55:42Z"
 started: "2026-09-11T08:42:22Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T08:42:22Z"
+merged: "2026-09-11T10:01:16Z"
 ---
 
 # B1288 — Nothing on the live instance ever fills in a day that asked for weather
