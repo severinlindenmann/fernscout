@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import type { TranslationKey } from "@/lib/i18n";
 import type { BookOptions } from "@/lib/photobook/options";
@@ -212,6 +212,28 @@ export default function BookLevelView({
 }) {
   /** The deliberate step between arranging and ordering — B561. */
   const [reading, setReading] = useState(false);
+  /**
+   * Whether there is room to show the settings beside the book — B1482.
+   *
+   * B548 put the nine settings behind one entry, and that is right on a phone
+   * where the alternative is a wall of switches in front of the book. At
+   * 1280 there is room for both, and a composer whose controls are shut is a
+   * preview with a hidden form. Read after mounting, like `useHasKeyboard`
+   * and for the same reason: the server has no `matchMedia`.
+   */
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setWide(mq.matches);
+    const on = (e: MediaQueryListEvent) => setWide(e.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  /** A cover photograph deleted since it was chosen — B1481. The order page
+   *  asks the disk (B1469); a client component cannot, so it asks the
+   *  browser and drops the plate if the image will not load. */
+  const [coverGone, setCoverGone] = useState(false);
   const strip = useRef<HTMLIFrameElement>(null);
   const hasKeyboard = useHasKeyboard();
   useSpreadKeys(strip, "x", !hidden && !reading);
@@ -260,6 +282,12 @@ export default function BookLevelView({
 
   return (
     <div hidden={hidden} className="mt-4">
+      {/* Two columns from `lg` — B1482. The book on the left at the width it
+          actually needs, the settings open beside it rather than shut behind
+          a disclosure nobody clicks. Below `lg` this collapses to exactly
+          what shipped before: the book, then the details, in one column. */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
+        <div>
       {/* The book, first and full width. `aspect-ratio` from the plan rather
           than a viewport fraction: the frame is exactly one spread tall, so
           there is nothing to scroll inside it and nothing letterboxed. While
@@ -304,6 +332,9 @@ export default function BookLevelView({
         {t("photobook.read.openHint")}
       </p>
 
+        </div>
+
+        <div className="mt-5 lg:mt-0">
       {/* Nothing at all when there is nothing wrong — B549. */}
       {lines.length > 0 && (
         <div className="mt-5 rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-yellow-900">
@@ -339,7 +370,7 @@ export default function BookLevelView({
 
       {/* The nine settings, behind one entry — B548. Still every one of them,
           and one tap away rather than in front of the book. */}
-      <details className="mt-5 rounded-lg border border-navy-200 bg-white px-3 py-3">
+      <details open={wide} className="mt-5 rounded-lg border border-navy-200 bg-white px-3 py-3 lg:mt-0">
         <summary className="min-h-11 cursor-pointer content-center text-sm font-semibold text-navy-800">
           {t("photobook.composer.bookSettings")}
         </summary>
@@ -359,6 +390,8 @@ export default function BookLevelView({
           />
         </div>
       </details>
+        </div>
+      </div>
 
       {/* What is being bought, what it costs in something a person
           understands, and what happens after the button — B551. */}
@@ -375,6 +408,38 @@ export default function BookLevelView({
         <p className="mt-1 text-sm text-navy-600">
           {t("photobook.spine", { spine: spineText })}
         </p>
+
+        {/* Two columns from `md`, the same shape the receipt takes — B1481.
+            The object and the envelope on the left, the money and the press
+            on the right, so the last thing before a 238-credit press is the
+            book rather than a paragraph. One column at 390, in the order
+            object → envelope → price → press. */}
+        <div className="mt-4 grid gap-4 md:grid-cols-[15rem_minmax(0,1fr)] md:items-start">
+          <div className="flex flex-col gap-4">
+            {/* The cover, when the owner chose one — `options.cover` is unset
+                where the planner picked it, and then there is no plate at
+                all rather than an empty rectangle (B1469's rule, and the
+                layout was drawn to hold without it). `onError` hides a
+                photograph deleted since it was chosen: this is a client
+                component and cannot ask the disk the way the order page
+                does. */}
+            {options.cover && !coverGone && (
+              <div className="overflow-hidden rounded-xl border border-navy-200 bg-white">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={options.cover}
+                  alt={t("order.object.cover")}
+                  onError={() => setCoverGone(true)}
+                  className="block w-full bg-navy-50"
+                />
+                <p className="px-3 py-2 text-xs text-navy-600">
+                  <span className="block font-semibold uppercase tracking-wider text-navy-500">
+                    {t("order.object.cover")}
+                  </span>
+                  {summary}
+                </p>
+              </div>
+            )}
         {/* Where the book is going, before the money and not after it —
             B1157. What is for sale is the printed object, so the envelope
             belongs on the same panel as the price and the button. B1145: the
@@ -430,10 +495,14 @@ export default function BookLevelView({
           <p className="mt-3 text-sm text-navy-700">{t("photobook.print.noRecipients")}</p>
         )}
 
+          </div>
+
+          <div className="flex flex-col gap-4">
         {/* The price after the envelope, because it depends on it: postage to
             Zurich and postage to Sydney are different numbers, and a total
             shown above the address it was quoted for reads as though the two
-            were unrelated. */}
+            were unrelated. At `md` the envelope is beside this rather than
+            above it, which keeps that true — it is read first, on the left. */}
         {credits !== null && (
           <div className="mt-3">
             {/* The same ledger card the receipt shows, built by the same
@@ -535,6 +604,8 @@ export default function BookLevelView({
             </p>
           )}
         </form>
+          </div>
+        </div>
       </div>
 
       {/* Reading it, and then ordering it: the button below the book hands

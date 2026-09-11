@@ -688,21 +688,27 @@ export default function SignupWizard({
           </div>
           {/* B809 — above the field, not below it. A tester chose an address
               and only then read that it was going to be a web address, which
-              is the one thing here that cannot be corrected afterwards. */}
-          <p className="mt-4 text-sm leading-6 text-navy-600">
-            {t("agent.usernameHint")}
-          </p>
-          <div className={`${field} mt-2`}>
-            <label className={label} htmlFor="signup-username">
-              {t("agent.usernameLabel")}
-            </label>
-            <input
-              id="signup-username"
-              required
-              value={username}
-              onChange={(e) => setUsername(e.target.value.toLowerCase())}
-              className={input}
-            />
+              is the one thing here that cannot be corrected afterwards.
+              B1293: the hint still reads as the *title* field's, sitting
+              just under it with nothing marking where it stops belonging —
+              so this is a banded group now, set apart from the field above
+              rather than merely below it. */}
+          <div className="mt-6 rounded-xl border border-navy-200 bg-cream-50 p-4">
+            <p className="text-sm leading-6 text-navy-600">
+              {t("agent.usernameHint")}
+            </p>
+            <div className={`${field} mt-2`}>
+              <label className={label} htmlFor="signup-username">
+                {t("agent.usernameLabel")}
+              </label>
+              <input
+                id="signup-username"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                className={input}
+              />
+            </div>
           </div>
           {/* B809 — two name fields a tester could not tell apart, so he put
               "Kevin" in both. They are genuinely two things: `owner.name` is
@@ -808,33 +814,45 @@ export default function SignupWizard({
           {/* B839 — the one permanent field, asked at the one moment it can
               still be answered. `setJournalProfile` refuses it for ever
               after, on purpose: every cost in the journal is denominated
-              against it. */}
-          <p className="mt-5 text-sm leading-6 text-navy-600">
-            {t("agent.currencyHint")}
-          </p>
-          <div className={`${field} mt-2`}>
-            <label className={label} htmlFor="signup-currency">
-              {t("agent.currencyLabel")}
-            </label>
-            <input
-              id="signup-currency"
-              required
-              maxLength={3}
-              // Native, so a phone offers the right keyboard and the browser
-              // says why the button will not go — the server checks it too.
-              pattern="[A-Za-z]{3}"
-              autoComplete="off"
-              list="signup-currency-codes"
-              value={baseCurrency}
-              onChange={(e) => setBaseCurrency(e.target.value.toUpperCase())}
-              className={input}
-            />
+              against it — `JOURNAL_FIELD_REFUSALS.baseCurrency` in
+              lib/journals.ts says changing it later would silently re-read
+              rather than re-price every bare amount ever written, with no
+              way back short of editing every entry.
+              B1293's own ticket text called this one "freely correctable
+              later" and proposed moving the hint below the field to match
+              name and nickname; the code above says the opposite — this is
+              exactly as permanent as the address, so it gets the address's
+              treatment (B809: read before you type) rather than the
+              nickname's. Grouped in its own band instead, for the same
+              reason the username one is now — not moved. */}
+          <div className="mt-6 rounded-xl border border-navy-200 bg-cream-50 p-4">
+            <p className="text-sm leading-6 text-navy-600">
+              {t("agent.currencyHint")}
+            </p>
+            <div className={`${field} mt-2`}>
+              <label className={label} htmlFor="signup-currency">
+                {t("agent.currencyLabel")}
+              </label>
+              <input
+                id="signup-currency"
+                required
+                maxLength={3}
+                // Native, so a phone offers the right keyboard and the browser
+                // says why the button will not go — the server checks it too.
+                pattern="[A-Za-z]{3}"
+                autoComplete="off"
+                list="signup-currency-codes"
+                value={baseCurrency}
+                onChange={(e) => setBaseCurrency(e.target.value.toUpperCase())}
+                className={input}
+              />
+            </div>
+            <datalist id="signup-currency-codes">
+              {["EUR", "CHF", "HUF", "GBP", "USD"].map((code) => (
+                <option key={code} value={code} />
+              ))}
+            </datalist>
           </div>
-          <datalist id="signup-currency-codes">
-            {["EUR", "CHF", "HUF", "GBP", "USD"].map((code) => (
-              <option key={code} value={code} />
-            ))}
-          </datalist>
 
           <p className={`${label} mt-5`}>{t("agent.visibilityLabel")}</p>
           <div className="mt-2 space-y-2">

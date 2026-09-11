@@ -145,6 +145,33 @@ export function contentRootProblem(): string | null {
 }
 
 /**
+ * Whether `contentRoot()` can be **written** to, not merely read — B1248.
+ *
+ * A read failure surfaces the moment a page tries to render a journal;
+ * throughout the outage this ticket names, every read succeeded and every
+ * write silently failed for five hours before anybody noticed, because
+ * `contentRootProblem()` only ever asked `readdirSync`. This asks the
+ * question a signup, a publish or an upload actually depends on: write a
+ * throwaway file and remove it again. Named by pid so two processes sharing
+ * a content root during a rolling deploy never race each other's probe.
+ *
+ * Called by `/api/health` on every request — cheap on purpose, one write and
+ * one unlink, and it never throws: a probe that took the health check down
+ * with it would be the same failure mode this exists to catch.
+ */
+export function contentRootWriteProblem(): string | null {
+  const root = contentRoot();
+  const probe = path.join(root, `.health-write-probe-${process.pid}`);
+  try {
+    fs.writeFileSync(probe, "");
+    fs.unlinkSync(probe);
+    return null;
+  } catch (error) {
+    return `${root} could not be written to: ${(error as Error).message}`;
+  }
+}
+
+/**
  * Every user on this instance, in directory order.
  *
  * A directory that is not a usable username is skipped with a warning rather

@@ -6,6 +6,8 @@ priority: high
 complexity: low
 area: orders
 found: "2026-09-11T15:51:06Z"
+started: "2026-09-11T16:23:29Z"
+merged: "2026-09-11T16:32:06Z"
 ---
 
 # B1479 — A sent postcard order still shows the editing stepper instead of the order it has become
@@ -48,6 +50,21 @@ for the stepper come out with it; check what else `settled` still guards.
 Not doing: the postcard front is a rendered preview rather than a stored
 image, so how the plate gets its picture is the one thing to work out —
 `PostcardCropper` renders it client-side today.
+
+## What the first attempt got wrong
+
+Merged, deployed, and the live check failed its own acceptance: the settled
+page printed the head **twice** — the page's own title, intro and pill, then
+the docket's — two hundred pixels apart. Exactly the fault B1480 had just been
+opened for on the photobook side, committed again on the postcard side within
+the hour, which is what happens when a component grows a head and the page
+that renders it keeps its own.
+
+The envelope was also labelled "Going to 1 person", a count used as a label,
+where the receipt says "Going to".
+
+Both fixed on this ticket rather than filed: they are this branch's own
+breakage.
 
 ## Acceptance
 

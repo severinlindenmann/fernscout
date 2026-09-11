@@ -48,6 +48,7 @@ import {
 } from "@/lib/adminConsole";
 import { paymentsPaidSince, takings, type Payment } from "@/lib/payments";
 import { serverSite } from "@/lib/site";
+import type { Tombstone } from "@/lib/tombstones";
 import { sessionStats, type SessionStats } from "@/lib/helper/sessions";
 import { formatBytes } from "@/lib/storageQuota";
 import { loadServerConfig } from "@/lib/config";
@@ -162,9 +163,6 @@ export default async function AdminPage() {
   const smsMessages = smsOn || smsInboundOn ? await listSms() : [];
   const money = takingsBreakdown(data.paid, data.awaiting);
   const stones = allTombstones();
-  // A trip's tombstone holds no name back — only a journal's does, and only a
-  // journal's is what the Release button acts on.
-  const journalStones = stones.filter((stone) => stone.kind === "journal");
   const byName = new Map(report.journals.map((row) => [row.username, row]));
   const ceiling = loadServerConfig().media.perUserBytes;
 
@@ -407,7 +405,7 @@ export default async function AdminPage() {
               <>
                 <HealthCard health={healthNow} troubles={troubleRows} />
                 <WhatItDid days={days} sends={sends} print={data.print} />
-                <Roster report={report} stones={journalStones} />
+                <Roster report={report} stones={stones} />
               </>
             ),
           },
@@ -1482,15 +1480,23 @@ function WhatItDid({
  * anything held" and the operator's actual question is "is *that* name held,
  * and may I have it back": freeing one was `rm` on the server, which is a
  * shell nobody but the operator has and nobody should need for this.
+ *
+ * **Two shapes, and they must not read alike** — B1073. `.deleted/<user>.json`
+ * is a whole journal, gone, its name held so nobody else can take it.
+ * `.deleted/<user>/<trip>.json` is one trip of a journal that is still here —
+ * the journal itself was never touched, and no name is held at all; the file
+ * only makes the trip's old URLs answer 410 instead of quietly becoming
+ * somebody else's pages. Reading a directory listing of both shapes side by
+ * side is exactly how this got misread once already (see B1073): so the two
+ * are in separate lists here, under separate headings, each saying in words
+ * what freeing it would and would not do. Trip tombstones have no Release
+ * button — `clearTombstone` only ever touches a journal's file, and building
+ * one for a trip is deliberately left for later.
  */
-function Roster({
-  report,
-  stones,
-}: {
-  report: { journals: StatusRow[] };
-  stones: { username: string; title: string; deletedAt: string }[];
-}) {
+function Roster({ report, stones }: { report: { journals: StatusRow[] }; stones: Tombstone[] }) {
   const empty = report.journals.filter((row) => row.days === 0).length;
+  const journalStones = stones.filter((stone) => stone.kind === "journal");
+  const tripStones = stones.filter((stone) => stone.kind === "trip");
   return (
     <section className="mt-8">
       <h2 className="font-display text-lg font-semibold text-navy-900">Roster</h2>
@@ -1504,27 +1510,72 @@ function Roster({
           <span className="font-mono text-sm text-navy-900">{empty}</span>
         </li>
         <li className="flex items-baseline justify-between gap-3 py-2">
-          <span className="text-sm text-navy-700">Deleted, name still held</span>
-          <span className="font-mono text-sm text-navy-900">{stones.length}</span>
+          <span className="text-sm text-navy-700">Deleted journals, name still held</span>
+          <span className="font-mono text-sm text-navy-900">{journalStones.length}</span>
+        </li>
+        <li className="flex items-baseline justify-between gap-3 py-2">
+          <span className="text-sm text-navy-700">Deleted trips, of journals still here</span>
+          <span className="font-mono text-sm text-navy-900">{tripStones.length}</span>
         </li>
       </ul>
-      {stones.length > 0 && (
-        <ul className="mt-4 space-y-2">
-          {stones.map((stone) => (
-            <li
-              key={stone.username}
-              className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-xl border border-navy-200 bg-cream-50 p-3"
-            >
-              <div>
-                <p className="font-mono text-sm text-navy-900">/{stone.username}</p>
+      {journalStones.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+            Whole journals deleted — the name is held
+          </h3>
+          <p className="mt-1 text-xs text-navy-700">
+            Nobody may sign up as this name until it is released. Releasing does not restore
+            anything; it only lets the next person to type the name take it, and its old URLs stop
+            answering &ldquo;gone&rdquo; and start answering &ldquo;not found&rdquo;.
+          </p>
+          <ul className="mt-2 space-y-2">
+            {journalStones.map((stone) => (
+              <li
+                key={stone.username}
+                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-xl border border-navy-200 bg-cream-50 p-3"
+              >
+                <div>
+                  <p className="font-mono text-sm text-navy-900">/{stone.username}</p>
+                  <p className="text-xs text-navy-700">
+                    “{stone.title}” · deleted {stone.deletedAt.slice(0, 10)}
+                  </p>
+                </div>
+                <ReleaseName username={stone.username} title={stone.title} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {tripStones.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+            One trip deleted — the journal is still here
+          </h3>
+          <p className="mt-1 text-xs text-navy-700">
+            The journal itself was never touched and holds no name back. The record only keeps the
+            trip&rsquo;s own old links answering &ldquo;gone&rdquo; rather than becoming a new trip
+            of the same id; freeing it is{" "}
+            <span className="font-mono">
+              rm content/.deleted/&lt;user&gt;/&lt;trip&gt;.json
+            </span>{" "}
+            on the server, which nothing here does yet.
+          </p>
+          <ul className="mt-2 space-y-2">
+            {tripStones.map((stone) => (
+              <li
+                key={`${stone.username}/${stone.tripId}`}
+                className="rounded-xl border border-navy-200 bg-cream-50 p-3"
+              >
+                <p className="font-mono text-sm text-navy-900">
+                  {stone.username}/{stone.tripId}
+                </p>
                 <p className="text-xs text-navy-700">
                   “{stone.title}” · deleted {stone.deletedAt.slice(0, 10)}
                 </p>
-              </div>
-              <ReleaseName username={stone.username} title={stone.title} />
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </section>
   );

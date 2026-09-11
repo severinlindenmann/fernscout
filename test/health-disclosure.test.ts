@@ -111,6 +111,33 @@ describe("what a stranger is told", () => {
     expect(body.content).toEqual({ ok: true });
   });
 
+  test("backup is trimmed to state and maxAgeHours — B1045", async () => {
+    const backupDir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-health-backup-"));
+    process.env.DATA_DIR = backupDir;
+    fs.writeFileSync(
+      path.join(backupDir, ".backup-last-failure"),
+      `${new Date().toISOString()}\nfernscout-backup.service failed (result=exit-code) (exit 1)\n`,
+    );
+    try {
+      const body = await (await health(anonymous())).json();
+      expect(body.backup).toEqual({
+        state: "failing",
+        maxAgeHours: expect.any(Number),
+        secondary: { state: "unknown", maxAgeHours: expect.any(Number) },
+      });
+      const raw = JSON.stringify(body);
+      expect(raw).not.toContain("fernscout-backup.service");
+      expect(raw).not.toContain("RESTIC_REPOSITORY_SECONDARY");
+      expect(body.backup.lastFailure).toBeUndefined();
+      expect(body.backup.lastFailureAt).toBeUndefined();
+      expect(body.backup.reason).toBeUndefined();
+      expect(body.backup.secondary.reason).toBeUndefined();
+    } finally {
+      delete process.env.DATA_DIR;
+      fs.rmSync(backupDir, { recursive: true, force: true });
+    }
+  });
+
   test("an unreadable content root is reported without its path", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(fs, "readdirSync").mockImplementation(() => {
@@ -247,6 +274,24 @@ describe("what the operator is told", () => {
     expect(body.content.ok).toBe(false);
     expect(body.content.error).toMatch(/EACCES/);
     expect(body.content.error).toContain(dir);
+  });
+
+  test("HEALTH_TOKEN brings back the full backup block — B1045", async () => {
+    process.env.HEALTH_TOKEN = TOKEN;
+    const backupDir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-health-backup-op-"));
+    process.env.DATA_DIR = backupDir;
+    fs.writeFileSync(
+      path.join(backupDir, ".backup-last-failure"),
+      `${new Date().toISOString()}\nfernscout-backup.service failed (result=exit-code) (exit 1)\n`,
+    );
+    try {
+      const body = await (await health(operator())).json();
+      expect(body.backup.lastFailure).toContain("fernscout-backup.service");
+      expect(body.backup.secondary.reason).toContain("RESTIC_REPOSITORY_SECONDARY");
+    } finally {
+      delete process.env.DATA_DIR;
+      fs.rmSync(backupDir, { recursive: true, force: true });
+    }
   });
 
   test("HEALTH_TOKEN brings back every journal, advertised or not", async () => {

@@ -6,6 +6,8 @@ priority: high
 complexity: medium
 area: photobook
 found: "2026-09-11T15:56:56Z"
+started: "2026-09-11T16:10:05Z"
+merged: "2026-09-11T16:16:13Z"
 ---
 
 # B1482 — The composer is one tall column on desktop, with the settings shut behind a disclosure
@@ -29,8 +31,19 @@ not hold at 1280, where there is room for both.
 
 ## Work
 
-At `lg` and above: settings card left, spreads right as a grid of thumbnails
-rather than a one-at-a-time carousel. Below `lg`: exactly what ships today —
+At `lg` and above: the book left, the settings card open on the right.
+
+**The spread grid is deliberately not built, and the reason is the layout
+itself.** The strip is `body.bare[data-view="spreads"] .spreads` in
+`lib/photobook/preview.ts` — a snap-scrolling flex row inside an iframe, whose
+viewport is the element's own width. Once the settings take 20rem of a 1280px
+screen the book has roughly 600px left, which is *narrower* than the strip has
+today: a wrapping grid there would show two cramped spreads where the strip
+shows one readable one. The grid would also strand `useSpreadKeys` — the arrow
+keys step a snap strip and mean nothing in a grid — and that CSS is shared
+with the reading view and the print preview.
+
+So: one spread at a time, beside its settings. Below `lg`: exactly what ships today —
 the carousel and the `<details>`, unchanged, because B548 is right about the
 phone.
 
@@ -42,6 +55,6 @@ bars, choice cards, one question per step — and needs nothing.
 
 ## Acceptance
 
-At 1280 the settings are visible without a click and the spreads read as a
-grid; at 390 the page is byte-identical in structure to today. No console
+At 1280 the settings are visible without a click, beside the book; at 390 the
+page is structurally what shipped before — book, then the closed disclosure. No console
 error, no horizontal scroll at either width.

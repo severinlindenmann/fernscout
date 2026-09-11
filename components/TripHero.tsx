@@ -6,6 +6,7 @@ import { motion } from "motion/react";
 import { ArrowDown, BookOpen, PlayCircle, Sparkles } from "lucide-react";
 import LatestDayButton from "./LatestDayButton";
 import MiniMap from "./MiniMap";
+import { isPlottable } from "@/lib/mapFrame";
 import type { Basemap } from "@/lib/basemap";
 import PushInstallOnboarding from "./PushInstallOnboarding";
 import PushOptIn from "./PushOptIn";
@@ -124,6 +125,15 @@ export default function TripHero({
   // day itself does not carry, so the badge is simply not drawn rather than
   // drawn empty.
   const hasLocation = current.location !== "";
+  // Nothing plottable anywhere on the trip — no day has a coordinate — is the
+  // "nothing recorded" case B1260 is about, and the map has nothing to draw
+  // but the whole world. A real trip that spent its one day somewhere has a
+  // point; a fresh journal with no coordinates yet does not.
+  const hasRoute = route.some(isPlottable) || isPlottable(current);
+  // Same shape of question for the two location-derived tiles: `places` is 0
+  // only when no day carries a coordinate at all, never as a real count that
+  // happens to be zero (a trip cannot visit zero of its own stops).
+  const hasPlaces = stats.places > 0;
 
   // **The masthead is always the trip**, on the bare journal URL as much as on
   // a trip's own address.
@@ -171,7 +181,11 @@ export default function TripHero({
     <div className="flex flex-col gap-4">
       {/* Masthead */}
       <section className="overflow-hidden rounded-2xl border border-navy-200 bg-cream-100 shadow-sm">
-        <div className="grid gap-0 md:grid-cols-[1.1fr_1fr]">
+        <div
+          className={
+            coverSrc ? "grid gap-0 md:grid-cols-[1.1fr_1fr]" : "grid gap-0"
+          }
+        >
           <div className="p-6 sm:p-8">
             <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight text-navy-900 sm:text-4xl">
               {heading}
@@ -311,8 +325,14 @@ export default function TripHero({
             <PushInstallOnboarding />
           </div>
 
-          <div className="relative min-h-[200px] border-t border-navy-200 md:border-l md:border-t-0">
-            {coverSrc ? (
+          {/* No photograph yet is not a scene with nothing in it — B1260. A
+              flat sky under a walking figure read as a broken image on a
+              journal that has published nothing but words so far, so the
+              whole panel is absent instead until a cover exists. Judgement
+              call, flagged for a person's eye rather than settled — see
+              B1260's Work section. */}
+          {coverSrc && (
+            <div className="relative min-h-[200px] border-t border-navy-200 md:border-l md:border-t-0">
               <Image
                 src={coverSrc}
                 loader={mediaLoader}
@@ -322,42 +342,43 @@ export default function TripHero({
                 className="object-cover"
                 priority
               />
-            ) : (
-              <div className="absolute inset-0 bg-sky-300" />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-navy-900/40 to-transparent" />
-            <div className="pointer-events-none absolute bottom-2 right-3">
-              {/* Who was actually on this trip — its own `travellers:` block,
-                  or the journal's default, or one neutral figure. Never the
-                  two that used to be compiled in. */}
-              <Travelers
-                figures={partyFor(
-                  active.trip.travellers,
-                  site.travellerFigures,
-                )}
-                size={54}
-                available={220}
-              />
+              <div className="absolute inset-0 bg-gradient-to-t from-navy-900/40 to-transparent" />
+              <div className="pointer-events-none absolute bottom-2 right-3">
+                {/* Who was actually on this trip — its own `travellers:` block,
+                    or the journal's default, or one neutral figure. Never the
+                    two that used to be compiled in. */}
+                <Travelers
+                  figures={partyFor(
+                    active.trip.travellers,
+                    site.travellerFigures,
+                  )}
+                  size={54}
+                  available={220}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
-      {/* Where we are — the map gets proper room now. */}
-      <section className="overflow-hidden rounded-2xl border border-navy-200 bg-sky-300 shadow-sm">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <MiniMap
-            route={route}
-            current={current}
-            basemap={basemap}
-            className="block h-auto w-full"
-          />
-        </motion.div>
-      </section>
+      {/* Where we are — absent, not a map of the whole world with no marker
+          on it, until some day has a coordinate. B1260. */}
+      {hasRoute && (
+        <section className="overflow-hidden rounded-2xl border border-navy-200 bg-sky-300 shadow-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <MiniMap
+              route={route}
+              current={current}
+              basemap={basemap}
+              className="block h-auto w-full"
+            />
+          </motion.div>
+        </section>
+      )}
 
       {/* Numbers. A <dl> because Stat renders dt/dd — as a plain <section>
           those were orphaned, and each label/value pair was announced as two
@@ -368,16 +389,24 @@ export default function TripHero({
           value={String(stats.tripDays)}
           big
         />
-        <Stat
-          label={tn("map.countries", stats.countries)}
-          value={String(stats.countries)}
-          big
-        />
-        <Stat
-          label={tn("map.stops", stats.places)}
-          value={String(stats.places)}
-          big
-        />
+        {/* Zero here means no day has ever carried a coordinate, not that
+            the trip visited zero countries — a trip cannot visit zero of
+            its own stops. That absence is not a measurement, so the tile
+            disappears with it rather than reporting it. B1260. */}
+        {hasPlaces && (
+          <Stat
+            label={tn("map.countries", stats.countries)}
+            value={String(stats.countries)}
+            big
+          />
+        )}
+        {hasPlaces && (
+          <Stat
+            label={tn("map.stops", stats.places)}
+            value={String(stats.places)}
+            big
+          />
+        )}
         <Stat label={t("map.media")} value={String(stats.totalMedia)} big />
         {/* A dash, never a confident number, when some spend had no rate to
             convert with — CHF 0 for a trip that spent EUR 80 is a wrong

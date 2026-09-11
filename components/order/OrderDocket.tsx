@@ -47,7 +47,7 @@ const TONE_DOT: Record<OrderTone, string> = {
   coral: "bg-coral-600",
 };
 
-export function OrderPill({ tone, label }: { tone: OrderTone; label: string }) {
+function OrderPill({ tone, label }: { tone: OrderTone; label: string }) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-semibold ${TONE_CHIP[tone]}`}
@@ -150,13 +150,27 @@ export type OrderDocketProps = {
   };
   /** The one press, when this order is still asking for one. */
   action?: ReactNode;
+  /**
+   * The picture of the thing, when drawing it is the page's business rather
+   * than the view model's — B1479. A postcard front is the trip's photograph
+   * under the crop *this order* carries, which is CSS the page already knows
+   * how to write and the view model has no business holding. A photobook
+   * passes nothing and `view.object.image` draws it.
+   */
+  objectMedia?: ReactNode;
   /** Anything the page needs under the status — tracking rows, a warning.
    *  Kept as a slot rather than a field because what belongs here is markup
    *  with links in it, not a fact about the order. */
   statusExtra?: ReactNode;
 };
 
-export default function OrderDocket({ view, labels, action, statusExtra }: OrderDocketProps) {
+export default function OrderDocket({
+  view,
+  labels,
+  action,
+  statusExtra,
+  objectMedia,
+}: OrderDocketProps) {
   const failed = view.status?.tone === "coral";
 
   return (
@@ -199,13 +213,14 @@ export default function OrderDocket({ view, labels, action, statusExtra }: Order
                   rectangle where a cover should be reads as a picture that
                   failed to load, and a book with no thumbnail is not a
                   broken book — B1469 is what fills this in. */}
-              {view.object.image && (
-                <img
-                  src={view.object.image}
-                  alt={view.object.label}
-                  className="block w-full bg-navy-50"
-                />
-              )}
+              {objectMedia ??
+                (view.object.image && (
+                  <img
+                    src={view.object.image}
+                    alt={view.object.label}
+                    className="block w-full bg-navy-50"
+                  />
+                ))}
               <p className="px-3 py-2 text-xs text-navy-600">
                 <span className="block font-semibold uppercase tracking-wider text-navy-500">
                   {view.object.label}

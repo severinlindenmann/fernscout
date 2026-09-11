@@ -1,6 +1,7 @@
 ---
 id: B666
 title: A phone cannot send its position to a journal while the trip is happening
+wontDo: "The owner's call: deleted rather than built. It had no Work and no Acceptance, and it touches gps/, which is the one folder in this repository that must not be built against a TODO."
 type: FEATURE
 priority: low
 complexity: medium
@@ -63,3 +64,23 @@ notification.
 - A trip-scoped token is refused; an unauthenticated call is refused.
 - There is no route that reads the store back, asserted by a test.
 - `npm run verify` passes and the route is in `/openapi.json`.
+
+## Closed, 2026-09-11 — deleted rather than built
+
+This ticket had a Why and nothing else: `## Work TODO`, `## Acceptance TODO`.
+
+That matters more here than it would elsewhere. A phone sending its position to
+a journal during a trip reaches `gps/` — which AGENTS.md calls the most
+sensitive folder in this repository, *"a person's whole location history — every
+address they sleep at, every place they work, everywhere they have been ill"* —
+and which is deliberately reachable from no route, with a test asserting the
+import graph.
+
+A ticket that proposes a live position feed and specifies neither its shape nor
+its acceptance is not a small gap in a document. Building it from the Why alone
+would mean an agent inventing the boundaries of the one thing this codebase has
+gone furthest to fence off.
+
+Closed rather than left open, so nobody picks it up looking for something useful
+to do. If the capability is wanted, it starts as a written decision about what
+may be sent, by whom, how often, and what reads it — not as this file.
