@@ -61,16 +61,35 @@ was not.
 
 ## Work
 
-- The confirmation should not null what it was not given. An empty address field
-  on a form that never showed the stored address is not the person asking for it
-  to be deleted.
-- Decide what the guest sees. Showing them the address on file — it is theirs —
-  and letting them correct it is the honest version; hiding it and preserving it
-  is the minimum.
-- The same question applies to the consents: `wantsPostcard` went from true to
-  false by the same route.
-- Whatever is chosen, `test/` should carry the round trip: owner writes an
-  address, guest confirms, address survives.
+Built, after the identity judgement in "What was built" below:
+
+- `app/api/contacts/redeem/route.ts`: `known` (already looked up by email a
+  few lines above, for the name) is now also consulted before deciding
+  `addressProvided`. A wholly blank `address` object is treated as "not
+  answered" — same as the confirm step already treats a signed-in reader —
+  whenever that email already has a stored address, so it can never again be
+  read as "delete this". Typing even one field is still always honoured, so
+  correcting or deliberately clearing what is on file still works. This half
+  applies unconditionally, including to a hand-built request: it never
+  returns an address to anybody, so there is nothing to disclose by fixing
+  it everywhere.
+- `app/[user]/invite/redeemPage.tsx`: looks up the existing contact by email
+  **only** when `invite.email` is set — a link the owner asked the server to
+  mail to a named address, the same condition B338 already gates the email
+  prefill on — and passes its address and `wantsPostcard` to `InviteRedeem`
+  as `initialAddress` / `initialWantsPostcard`. A hand-copied link gets no
+  lookup and no prefill, unchanged from before.
+- `components/InviteRedeem.tsx`: the two new optional props seed the
+  existing `address` and `wantsPostcard` state instead of always starting
+  blank.
+- `test/invite-links.test.ts`: a round trip — owner writes an address via
+  `requestContact`, guest redeems with a wholly blank form, address and
+  consent survive — plus a no-regression case (brand-new email, blank
+  submission, still stores nothing) and a correction case (typing a new
+  address over a stored one still updates it).
+- `test/invite-redeem-address.test.tsx`: the UI half — given
+  `initialAddress`/`initialWantsPostcard` the fields and the postcard box
+  render prefilled; given neither, they render exactly as blank as before.
 
 ## Acceptance
 
@@ -102,3 +121,60 @@ address is wiped.
 So the server fix is to know about the existing row **without** a session —
 look up by email before deciding `addressProvided` — and the UI fix is the
 prefill. Both halves, not one.
+
+## What was built
+
+**Judgement call, made with the code in front of me:** holding the link alone
+does **not** prove the opener is the address's owner — the guest link is
+never bound to one address, and even a mailed one only carries what the
+recipient already read once in their own inbox. So the two halves are not
+symmetric in what they may disclose:
+
+- **The server-side "do not wipe" fix applies unconditionally**, because it
+  never puts the address on a wire anywhere — it only decides what
+  `requestContact` writes. `app/api/contacts/redeem/route.ts` (`formStep`,
+  `submittedRaw`, `addressProvided`, just before the existing "digest tick"
+  comment) now looks up the existing contact by email (reusing `known`,
+  already fetched a few lines above for the name) and treats a wholly blank
+  `address` object as "not answered" — same as the confirm step already
+  treats a signed-in reader — whenever that email already has a stored
+  address. A submission with so much as one field in it is still always
+  honoured, so correcting or deliberately clearing what is shown still works.
+  A brand-new address is unaffected: nothing on file, so nothing to
+  preserve, exactly as before.
+- **The UI prefill is the narrower design, gated on the same "already read it
+  once" reasoning B338 already uses for the email field** —
+  `app/[user]/invite/redeemPage.tsx` looks up the contact **only** when
+  `invite.email` is set, i.e. only for a link the owner asked the server to
+  *mail* to a named address, and passes its `postalAddress` /
+  `wantsPostcard` to `InviteRedeem` as `initialAddress` /
+  `initialWantsPostcard`. A hand-copied guest link (`invite.email` null)
+  gets no lookup and no prefill — precisely because holding it proves
+  nothing about whose address is on file, and printing somebody else's
+  street back to whoever opens a forwarded link would be a new disclosure
+  the rest of this codebase does not license. `components/InviteRedeem.tsx`
+  wires the two new optional props into the existing `address` /
+  `wantsPostcard` state.
+
+So this is not the fully general "show her the stored address" for every
+opener the ticket's decision reads as — it is that design **restricted to
+the case the codebase already treats as safe to disclose to**, plus the
+narrower "never silently wipe" protection everywhere else, including a
+hand-copied link and a hand-built request.
+
+**Test:** `test/invite-links.test.ts`, new describe block "B1282 — a first
+redemption must not wipe an address already on file" — writes an address via
+`requestContact` directly (the owner's side), then redeems a fresh guest
+link with a wholly blank `address` and `wantsPostcard: false` for that same
+email, and asserts the address and the consent survive; a sibling case checks
+a genuinely brand-new email's blank submission is unaffected (still stores
+nothing), and another checks that typing even one field still corrects the
+stored address. Confirmed the first case fails on the unfixed route (`git
+stash` on `route.ts` alone, no other changes) with `expected undefined to be
+'Teststrasse 2'`, then restored the fix and re-ran green.
+`test/invite-redeem-address.test.tsx` adds the UI-only half: given
+`initialAddress` / `initialWantsPostcard`, the fields and the postcard box
+render prefilled; given neither, they render exactly as blank as before.
+
+`npm run verify` passed in full (build, tsc, eslint, 522 files / 6869 tests,
+knip) on this branch.

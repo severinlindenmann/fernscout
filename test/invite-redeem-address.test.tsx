@@ -130,6 +130,77 @@ describe("the postal block, on a server with postcards switched off", () => {
 });
 
 /**
+ * B1282 — a guest confirming an invitation used to see a blank address form
+ * however much the owner had already entered for her, and submitting it wiped
+ * what was on file. The fix's UI half is this: show it, prefilled, so
+ * leaving it alone keeps it and clearing it is a deliberate act instead of an
+ * accident. `redeemPage.tsx` is what looks the address up (only from a
+ * mailed invite's own address — see its doc comment); this only checks the
+ * component renders what it is handed.
+ */
+describe("the postal address prefills from what is already on file (B1282)", () => {
+  const dictionaries = { en: dictionaryFor("en") };
+  const ADDRESS = {
+    name: "Bea Muster",
+    line1: "Teststrasse 2",
+    line2: "",
+    postcode: "3000",
+    city: "Bern",
+    country: "Switzerland",
+    tel: "",
+  };
+
+  test("a stored address and postcard consent are shown, not left blank", () => {
+    const html = renderToStaticMarkup(
+      <InviteRedeem
+        username="ana"
+        journalTitle="Ana's journal"
+        kind="guest"
+        tripTitle={null}
+        token="tok"
+        initialLocale="en"
+        locales={["en"]}
+        dictionaries={dictionaries}
+        knownEmail={null}
+        initialName="Bea Muster"
+        invitedEmail="bea@example.test"
+        initialAddress={ADDRESS}
+        initialWantsPostcard={true}
+        alreadyIn={false}
+      />,
+    );
+    expect(html).toContain('value="Teststrasse 2"');
+    expect(html).toContain('value="Bern"');
+    const boxes = [...html.matchAll(/<input type="checkbox"[^>]*>/g)].map((m) => m[0]);
+    // digest, postcard, whatsapp — the postcard box (index 1) starts ticked.
+    expect(boxes[1]).toContain("checked");
+  });
+
+  test("with nothing on file, the fields stay blank exactly as before", () => {
+    const html = renderToStaticMarkup(
+      <InviteRedeem
+        username="ana"
+        journalTitle="Ana's journal"
+        kind="guest"
+        tripTitle={null}
+        token="tok"
+        initialLocale="en"
+        locales={["en"]}
+        dictionaries={dictionaries}
+        knownEmail={null}
+        initialName=""
+        invitedEmail={null}
+        alreadyIn={false}
+      />,
+    );
+    const field = /<input id="invite-addr-line1"[^>]*>/.exec(html)?.[0] ?? "";
+    expect(field).toContain('value=""');
+    const boxes = [...html.matchAll(/<input type="checkbox"[^>]*>/g)].map((m) => m[0]);
+    expect(boxes[1]).not.toContain("checked");
+  });
+});
+
+/**
  * B338 — a mailed invite prefills the address it was sent to; a link the
  * owner copied by hand prefills nothing, exactly as before this ticket. The
  * explanation of what changing the address costs is shown in the one case

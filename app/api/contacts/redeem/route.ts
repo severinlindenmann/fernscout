@@ -8,7 +8,7 @@ import {
   markOwnerNotified,
   requestContact,
 } from "@/lib/contacts";
-import { EMPTY_ADDRESS, isPostable, normaliseAddress } from "@/lib/contacts/crypto";
+import { EMPTY_ADDRESS, hasAnyDetail, isPostable, normaliseAddress } from "@/lib/contacts/crypto";
 import { preapprovedEmailFor, resolveInvite } from "@/lib/contacts/invites";
 import { pickLocale } from "@/lib/contacts/locale";
 import { notifyOwnerOfRequest, sendApprovedMail, sendCodeMail, sendConfirmedMail } from "@/lib/contacts/mail";
@@ -254,8 +254,30 @@ export async function POST(request: Request) {
    * with nothing in it is still a real answer (see `hasAnyDetail`), the same
    * way `null` from `/api/contacts/request` is.
    */
-  const addressProvided =
+  const formStep =
     !sessionEmail && typeof body.address === "object" && body.address !== null;
+  /**
+   * B1282 — a wholly blank submission is not the same claim for an address
+   * this journal already holds one for. The "form" step used to prefill
+   * nothing — see `redeemPage.tsx` — so an empty object here was silence,
+   * not "delete this", and `requestContact` below was reading it as the
+   * latter and NULLing a postal address the owner had entered before ever
+   * inviting her. The client is prefilled now (`redeemPage.tsx` /
+   * `InviteRedeem`), but the client is not the boundary any more than the
+   * comment above says it is for the confirm step: a hand-built request with
+   * a blank `address` for a `known` email must not be able to do what a
+   * blank form used to do by accident.
+   * So a submission with nothing at all in it (`hasAnyDetail` false) is
+   * honoured as "provided" only when there was nothing on file to begin
+   * with — a genuinely brand-new address, where blank means blank and
+   * stores nothing, exactly as before. Typing so much as one field is still
+   * always honoured, which is what lets her correct or deliberately clear
+   * what is shown.
+   */
+  const submittedRaw = normaliseAddress(
+    formStep ? (body.address as Record<string, unknown>) : null,
+  );
+  const addressProvided = formStep && (hasAnyDetail(submittedRaw) || !known?.hasPostalAddress);
   const wantsPostcard = body.wantsPostcard === true;
   /**
    * The digest tick, on the same terms — B315.

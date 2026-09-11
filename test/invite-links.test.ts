@@ -789,6 +789,138 @@ describe("redeeming a guest link, with a postal address", { shuffle: false }, ()
   });
 });
 
+/**
+ * B1282 — a guest confirming an invitation silently deleted the postal
+ * address (and postcard consent) the owner had already entered for her. The
+ * "form" step never showed her what was on file, so a blank submission read
+ * as "delete this" rather than "I was not asked" — see the ticket's
+ * "Decision, 2026-09-11" for why the fix is the route knowing about the
+ * existing row by email, not only by session.
+ */
+describe("B1282 — a first redemption must not wipe an address already on file", { shuffle: false }, () => {
+  test("owner writes an address; guest's blank confirmation preserves it", async () => {
+    as(null);
+    const { requestContact } = await import("@/lib/contacts");
+    const email = "bea@example.test";
+    await requestContact(OWNER, {
+      name: "Bea Muster",
+      email,
+      locale: "en",
+      address: {
+        name: "Bea Muster",
+        line1: "Teststrasse 2",
+        line2: "",
+        postcode: "3000",
+        city: "Bern",
+        country: "Switzerland",
+        tel: "",
+      },
+      wantsEmailDigest: true,
+      wantsPostcard: true,
+      wantsWhatsapp: false,
+      createdVia: "owner",
+    });
+    expect((await contactFor(email))?.postalAddress?.line1).toBe("Teststrasse 2");
+
+    const token = await ownerToken();
+    const created = await createLink(token, { kind: "guest" });
+    const url = created.body.invite!.url!;
+    const link = url.slice(url.lastIndexOf("/") + 1);
+
+    // The invitation form, submitted exactly as it was before this ticket's
+    // UI prefill: a blank address and an unticked postcard box — the shape a
+    // form that was never shown the stored address sends.
+    const result = await redeem({
+      token: link,
+      kind: "guest",
+      name: "Bea Muster",
+      email,
+      address: { name: "", line1: "", line2: "", postcode: "", city: "", country: "", tel: "" },
+      wantsPostcard: false,
+    });
+    expect(result.status).toBe(202);
+
+    const contact = await contactFor(email);
+    expect(contact?.postalAddress?.line1).toBe("Teststrasse 2");
+    expect(contact?.postalAddress?.city).toBe("Bern");
+    expect(contact?.wantsPostcard).toBe(true);
+  });
+
+  test("a genuinely brand-new reader's blank submission still stores nothing — no regression", async () => {
+    as(null);
+    const token = await ownerToken();
+    const created = await createLink(token, { kind: "guest" });
+    const url = created.body.invite!.url!;
+    const link = url.slice(url.lastIndexOf("/") + 1);
+    const email = "brand-new-1282@example.test";
+
+    const result = await redeem({
+      token: link,
+      kind: "guest",
+      name: "Reader",
+      email,
+      address: { name: "", line1: "", line2: "", postcode: "", city: "", country: "", tel: "" },
+      wantsPostcard: false,
+    });
+    expect(result.status).toBe(202);
+
+    const contact = await contactFor(email);
+    expect(contact?.postalAddress).toBeNull();
+    expect(contact?.wantsPostcard).toBe(false);
+  });
+
+  test("typing even one field over a stored address still corrects it — she is not locked out of fixing it here", async () => {
+    as(null);
+    const { requestContact } = await import("@/lib/contacts");
+    const email = "corrects-1282@example.test";
+    await requestContact(OWNER, {
+      name: "Reader",
+      email,
+      locale: "en",
+      address: {
+        name: "Reader",
+        line1: "Old Street 1",
+        line2: "",
+        postcode: "1000",
+        city: "Oldtown",
+        country: "Switzerland",
+        tel: "",
+      },
+      wantsEmailDigest: true,
+      wantsPostcard: true,
+      wantsWhatsapp: false,
+      createdVia: "owner",
+    });
+
+    const token = await ownerToken();
+    const created = await createLink(token, { kind: "guest" });
+    const url = created.body.invite!.url!;
+    const link = url.slice(url.lastIndexOf("/") + 1);
+
+    const result = await redeem({
+      token: link,
+      kind: "guest",
+      name: "Reader",
+      email,
+      address: {
+        name: "Reader",
+        line1: "New Street 2",
+        line2: "",
+        postcode: "2000",
+        city: "Newtown",
+        country: "Switzerland",
+        tel: "",
+      },
+      wantsPostcard: true,
+    });
+    expect(result.status).toBe(202);
+
+    const contact = await contactFor(email);
+    expect(contact?.postalAddress?.line1).toBe("New Street 2");
+    expect(contact?.postalAddress?.city).toBe("Newtown");
+  });
+});
+
 describe("somebody who already owns a journal on this instance", { shuffle: false }, () => {
   let guestLink = "";
   let buddyLink = "";
