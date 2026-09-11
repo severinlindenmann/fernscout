@@ -59,15 +59,22 @@ export async function POST(request: Request) {
   if (!isEmail(email)) return accepted;
 
   /**
-   * The language the request asked for — B857.
+   * The language the request asked for — B857, and B1134 for the override.
    *
-   * There is no journal yet and no contact record, so `accept-language` is the
-   * only thing that says anything about the reader, and English is what is
-   * left when it says nothing this instance speaks. It is the first mail this
-   * software ever sends anybody: a Hungarian speaker who cannot read it never
-   * reaches the journal the rest of the product is good at.
+   * There is no journal yet and no contact record, so `accept-language` used
+   * to be the only thing that said anything about the reader — but it is a
+   * browser's own setting, not necessarily the person's, so a caller that
+   * knows better (the helper, asking on somebody's behalf) may now send
+   * `locale` and have it win outright, no reconciliation between the two and
+   * no warning either way. English is what is left when neither names
+   * anything this instance speaks. It is the first mail this software ever
+   * sends anybody: a Hungarian speaker who cannot read it never reaches the
+   * journal the rest of the product is good at.
    */
-  const locale = pickLocale(fromAcceptLanguage(request.headers.get("accept-language")));
+  const locale = pickLocale(
+    typeof body.locale === "string" ? body.locale : null,
+    fromAcceptLanguage(request.headers.get("accept-language")),
+  );
 
   /**
    * Issued and sent by `lib/signupCode.ts` — including the invariant that

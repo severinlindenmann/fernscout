@@ -750,6 +750,16 @@ Content-Type: application/json
 {"email": "them@example.com"}
 \`\`\`
 
+**There is no journal yet, so there is nowhere to read a language from** —
+this mail, the first thing the software ever says to this address, otherwise
+falls back to the request's own \`Accept-Language\` header, which is a
+browser's setting and not necessarily the person's. If you already know which
+language they speak — because you are the one talking to them, not their
+browser — send \`{"email": "…", "locale": "hu"}\` and it wins outright, no
+header involved. The same \`locale\` field works the same way on
+\`POST /api/auth/identity/request\`, the other code an address can be asked
+for before any journal exists.
+
 \`\`\`http
 POST ${site.url}/api/auth/signup/verify
 Content-Type: application/json

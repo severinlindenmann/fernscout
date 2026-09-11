@@ -1571,6 +1571,12 @@ export function openApiDocument() {
       "/api/auth/signup/request": {
         post: {
           summary: "Ask for a code to create a journal (no journal needed yet)",
+          description:
+            "There is no journal yet, so there is no `user.locales` to read and no contact " +
+            "record carrying a language — the mail this sends is the first thing the software " +
+            "ever says to this address. Absent `locale`, it reads the request's own " +
+            "`Accept-Language` header, honouring quality values, and falls back to English " +
+            "when that names nothing this instance maintains.",
           requestBody: {
             required: true,
             content: {
@@ -1578,7 +1584,16 @@ export function openApiDocument() {
                 schema: {
                   type: "object",
                   required: ["email"],
-                  properties: { email: { type: "string", format: "email" } },
+                  properties: {
+                    email: { type: "string", format: "email" },
+                    locale: {
+                      type: "string",
+                      enum: [...MAINTAINED_LOCALES],
+                      description:
+                        `One of ${LOCALE_LIST}. Overrides \`Accept-Language\` outright — sent, ` +
+                        "it wins with no reconciliation between the two and no warning either way.",
+                    },
+                  },
                 },
               },
             },
@@ -1618,6 +1633,56 @@ export function openApiDocument() {
                 "corrected without another emailed code.",
             },
             "401": { description: "The code is wrong, expired or already used" },
+          },
+        },
+      },
+      // B1134: this route's siblings under /api/auth/identity (verify,
+      // upgrade, link) stay out of this document on purpose — they set and
+      // read the browser cookie an agent's bearer token can never use, per
+      // OUT_OF_SCOPE_PREFIXES in test/openapi-contract.test.ts. This one is
+      // different: it is a plain "ask for a code" step, the same shape as
+      // /api/auth/signup/request, and had simply never gained an entry here
+      // at all — not a deliberate exclusion, a gap.
+      "/api/auth/identity/request": {
+        post: {
+          summary: "Ask for a code that proves an address to the whole instance — B410",
+          security: [],
+          description:
+            "Names no journal: this proves an address, not a right to read or write one. " +
+            "Always answers 202, for the same reason every code endpoint here does — an " +
+            "answer that distinguished \"no such address\" from \"sent\" is a way to ask who " +
+            "reads this server.\n\n" +
+            "Absent `locale`, the mail is sent in whatever the reader's browser session " +
+            "already carries — the language cookie the site's own switcher sets, or its own " +
+            "`Accept-Language` fallback when there is no session at all (B430) — because an " +
+            "identity belongs to no journal, so there is no `user.locales` and no contact " +
+            "record to read a language from either.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["email"],
+                  properties: {
+                    email: { type: "string", format: "email" },
+                    locale: {
+                      type: "string",
+                      enum: [...MAINTAINED_LOCALES],
+                      description:
+                        `One of ${LOCALE_LIST}. Overrides the browser session outright — sent, ` +
+                        "it wins with no reconciliation and no warning either way.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "202": { description: "Accepted — a code is mailed if the address is usable" },
+            "404": { description: "Authentication is off on this server" },
+            "429": { description: "Too many attempts" },
+            "503": { description: "This server cannot send mail, so signing in cannot finish" },
           },
         },
       },
