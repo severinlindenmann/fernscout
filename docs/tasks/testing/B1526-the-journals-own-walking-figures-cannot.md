@@ -7,8 +7,7 @@ complexity: low
 area: api, travellers
 found: "2026-09-11T20:30:00Z"
 started: "2026-09-11T20:56:33Z"
-session: bfe90fb0-0095-4532-8af8-601ad489b14c
-claimed: "2026-09-11T20:56:33Z"
+merged: "2026-09-11T21:26:35Z"
 ---
 
 # B1526 — The journal's own walking figures cannot be set at all over the API

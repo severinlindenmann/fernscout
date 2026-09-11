@@ -324,17 +324,14 @@ Do not edit them by hand; run the script.
 | [B1534](open/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
 | [B1544](open/B1544-the-spine-appends-the-year-to.md) | The spine appends the year to a title that already carries one, and the owner cannot say otherwise | FEATURE | medium | low |
 
-## in-development (5)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1517](in-development/B1517-draw-the-travellers-from-a-photograph.md) | Draw the travellers from a photograph the owner already has | FEATURE | medium | medium | `bfe90fb0` |
-| [B1519](in-development/B1519-transportmode-has-no-metro-or-underground.md) | transportMode has no metro or underground, so a city day is recorded as a train | FEATURE | medium | low | `bfe90fb0` |
-| [B1526](in-development/B1526-the-journals-own-walking-figures-cannot.md) | The journal's own walking figures cannot be set at all over the API | ISSUE | medium | low | `bfe90fb0` |
-| [B1533](in-development/B1533-send-the-largest-file-you-have.md) | \"Send the largest file you have\" is true, load-bearing, and buried where no uploader reads it | DOCS | medium | low | `bfe90fb0` |
 | [B1542](in-development/B1542-the-title-page-s-reverse-is.md) | The title page's reverse is printed on, so the title leaf reads as a page rather than a title | ISSUE | medium | low | `57d87f37` |
 
-## testing (12)
+## testing (15)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -349,6 +346,9 @@ Do not edit them by hand; run the script.
 | [B1510](testing/B1510-the-step-screens-say-three-things.md) | The step screens say three things the screen already says | ISSUE | medium | low | — |
 | [B1515](testing/B1515-the-back-has-a-save-button.md) | The back has a save button for something that saves itself, and a warning the price already gives | ISSUE | medium | low | — |
 | [B1516](testing/B1516-the-message-floor-makes-the-preview.md) | The message floor makes the preview bigger than the card it is previewing | ISSUE | medium | low | — |
+| [B1519](testing/B1519-transportmode-has-no-metro-or-underground.md) | transportMode has no metro or underground, so a city day is recorded as a train | FEATURE | medium | low | — |
+| [B1526](testing/B1526-the-journals-own-walking-figures-cannot.md) | The journal's own walking figures cannot be set at all over the API | ISSUE | medium | low | — |
+| [B1533](testing/B1533-send-the-largest-file-you-have.md) | \"Send the largest file you have\" is true, load-bearing, and buried where no uploader reads it | DOCS | medium | low | — |
 | [B1527](testing/B1527-a-figure-whose-shirt-matches-its.md) | A figure whose shirt matches its skin tone renders as nude, and nothing warns | ISSUE | low | low | — |
 
 ## completed (1261)
