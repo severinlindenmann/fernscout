@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: postcards
 found: "2026-09-11T18:30:46Z"
+started: "2026-09-11T18:47:26Z"
+session: 3f748903-2dc3-47a2-a958-98b83d641dc0
+claimed: "2026-09-11T18:47:26Z"
 ---
 
 # B1501 — The postcard order opens on a card that stands between the owner and the first step

@@ -294,18 +294,18 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (3)
+## open (2)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1500](open/B1500-tapping-a-photograph-opens-a-form.md) | Tapping a photograph opens a form asking what the flow is about to ask again | FEATURE | high | medium |
-| [B1501](open/B1501-the-postcard-order-opens-on-a.md) | The postcard order opens on a card that stands between the owner and the first step | ISSUE | high | low |
 | [B1502](open/B1502-the-two-gallery-actions-stack-one.md) | The two gallery actions stack one per line on a small phone, and the step bar wraps mid-row | ISSUE | high | low |
 
-## in-development (2)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1501](in-development/B1501-the-postcard-order-opens-on-a.md) | The postcard order opens on a card that stands between the owner and the first step | ISSUE | high | low | `3f748903` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1495](in-development/B1495-a-journal-can-be-synced-down.md) | A journal can be synced down to a folder and back up, incrementally | FEATURE | medium | high | `a46b89fa` |
 
