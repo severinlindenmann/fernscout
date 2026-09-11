@@ -283,10 +283,13 @@ export default function PageHeader({
               </div>
             </div>
             {panelOverflowsBelow && (
+              // A hairline inset shadow reads as a shelf edge rather than a
+              // wash of the panel's own background over the last row, which
+              // is what a plain gradient did to a highlighted or dark row.
               <div
                 aria-hidden
-                className="pointer-events-none sticky bottom-0 -mx-3 -mb-3 -mt-8 h-8
-                           rounded-b-2xl bg-gradient-to-t from-cream-50 to-transparent"
+                className="pointer-events-none sticky bottom-0 -mx-3 -mb-3 -mt-2.5 h-2.5
+                           shadow-[inset_0_-9px_8px_-8px_rgba(28,43,63,0.35)]"
               />
             )}
           </div>
