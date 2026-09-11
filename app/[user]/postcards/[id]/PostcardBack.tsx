@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import BusyButton from "@/components/BusyButton";
 
 /**
  * The back of the card, and the form that writes it — B773.
@@ -53,7 +52,6 @@ export type BackStrings = {
   signed: string;
   writtenIn: string;
   figuresLabel: string;
-  save: string;
   saving: string;
   saved: string;
   failed: string;
@@ -125,7 +123,6 @@ export default function PostcardBack({
    * flickering under the reader's own hands, which is the jumpiness this
    * ticket is about rather than a cure for it.
    */
-  const [inFlight, setInFlight] = useState(false);
 
   /**
    * The debounce, and the guard against an older save landing last.
@@ -180,7 +177,6 @@ export default function PostcardBack({
   const save = useCallback(() => {
     const mine = ++request.current;
     setState("saving");
-    setInFlight(true);
     const body = new FormData();
     body.set("message", message);
     body.set("from", from);
@@ -205,9 +201,6 @@ export default function PostcardBack({
       })
       .catch(() => {
         if (mine === request.current) setState("failed");
-      })
-      .finally(() => {
-        if (mine === request.current) setInFlight(false);
       });
   }, [username, id, message, from, locale, figures, figuresSvg]);
 
@@ -451,29 +444,24 @@ export default function PostcardBack({
               ) : null}
             </div>
           </div>
+          {/* No save button — B1515. The back saves itself on a 700ms
+              debounce and says so directly below; a button beside a
+              saved-state indicator asks somebody to do the thing that has
+              already happened, and leaves them wondering what it did that
+              the indicator did not.
+
+              The form element stays, and so does its `onSubmit`: with
+              JavaScript off there is no debounce and no indicator either, and
+              the enter key on a field is then the whole save. */}
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            {/* `busy` is given now that the press is a `fetch` and there is a
-                state to report — B892. It used to self-watch, which was right
-                while the press was a document post and useless in practice:
-                the navigation threw the page away before a spinner could
-                turn. */}
-            <BusyButton
-              type="submit"
-              busy={inFlight}
-              busyLabel={strings.saving}
-              className="min-h-11 w-full rounded-full border-2 border-navy-900 px-5 text-sm font-semibold text-navy-900 transition-colors hover:bg-navy-900 hover:text-white disabled:opacity-70 sm:w-auto"
-            >
-              {strings.save}
-            </BusyButton>
             {/* Never silent, and never claiming more than it knows. */}
             <span
               role="status"
               className={`text-xs ${state === "failed" ? "font-semibold text-coral-600" : "text-navy-600"}`}
             >
-              {/* Not while the button is already saying it — B892. The two
-                  sat one above the other reading "Saving…" twice. `saved` and
-                  `failed` stay here, because the button never says those. */}
-              {state === "saving" && !inFlight
+              {/* It says "saving" on its own now that the button it used to
+                  defer to is gone — B1515, undoing half of B892. */}
+              {state === "saving"
                 ? strings.saving
                 : state === "saved"
                   ? strings.saved
