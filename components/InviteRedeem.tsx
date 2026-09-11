@@ -83,6 +83,8 @@ export default function InviteRedeem({
   knownEmail,
   initialName,
   invitedEmail,
+  initialAddress,
+  initialWantsPostcard = false,
   alreadyIn,
   postcardsEnabled = true,
   whatsappEnabled = true,
@@ -112,6 +114,26 @@ export default function InviteRedeem({
    * has no email field to prefill).
    */
   invitedEmail: string | null;
+  /**
+   * The postal address this journal already holds for her, if this invite
+   * names an address to look one up by — B1282. Null for a hand-copied link
+   * (no named address to look up), for a genuinely brand-new address, or
+   * where a stored address has nothing in it. Prefill, same as `initialName`
+   * above: shown so a real address is never overwritten by a blank the form
+   * never asked about, and still hers to correct or clear on this same
+   * screen.
+   */
+  initialAddress?: {
+    name: string;
+    line1: string;
+    line2: string;
+    postcode: string;
+    city: string;
+    country: string;
+    tel: string;
+  } | null;
+  /** Whether the address above came with a standing postcard request. */
+  initialWantsPostcard?: boolean;
   /** They already hold everything this link leads to. */
   alreadyIn: boolean;
   /** B360: whether this server can act on a postcard request at all —
@@ -155,22 +177,25 @@ export default function InviteRedeem({
   // confirmed by code and then approved by the owner before a single digest
   // goes out, and every digest carries a one-click unsubscribe.
   const [wantsDigest, setWantsDigest] = useState(true);
-  const [wantsPostcard, setWantsPostcard] = useState(false);
+  // B1282: a stored consent she already gave the owner is not overwritten by
+  // a form that never showed it — see `initialAddress` above.
+  const [wantsPostcard, setWantsPostcard] = useState(initialWantsPostcard);
   const [wantsWhatsapp, setWantsWhatsapp] = useState(false);
   const [address, setAddress] = useState({
-    name: "",
-    line1: "",
-    line2: "",
-    postcode: "",
-    city: "",
-    country: "",
-    tel: "",
+    name: initialAddress?.name ?? "",
+    line1: initialAddress?.line1 ?? "",
+    line2: initialAddress?.line2 ?? "",
+    postcode: initialAddress?.postcode ?? "",
+    city: initialAddress?.city ?? "",
+    country: initialAddress?.country ?? "",
+    tel: initialAddress?.tel ?? "",
   });
   // The dialling code — see `ContactForm`'s own note on the same pattern
-  // (B385). This screen only ever asks a brand-new reader, so there is no
-  // existing number to read back; the only question is what to default the
-  // select to.
-  const [cc, setCc] = useState(defaultCountryCode ?? "");
+  // (B385). Read back from a prefilled number if there is one (B1282),
+  // otherwise the operator's own configured fallback.
+  const [cc, setCc] = useState(
+    initialAddress?.tel ? splitTel(initialAddress.tel).cc : (defaultCountryCode ?? ""),
+  );
 
   const t = (key: TranslationKey, vars?: Record<string, string>) =>
     translate(dictionaries[locale] ?? dictionaries.en ?? {}, key, vars);

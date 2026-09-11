@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import InviteRedeem from "@/components/InviteRedeem";
 import NoticeShell from "@/components/NoticeShell";
 import { isEnabled } from "@/lib/capabilities";
+import { getContactByEmail } from "@/lib/contacts";
 import { resolveInvite } from "@/lib/contacts/invites";
 import { whatsappCountryCode } from "@/lib/whatsapp/settings";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
@@ -87,6 +88,20 @@ export default async function RedeemPage({
       ? await isPersonOn(trip, reader.email)
       : await isJournalGuest(username);
 
+  // B1282 — a stored postal address a session cannot yet prove is still
+  // hers to see and correct, not a blank form pretending nothing is on
+  // file (see the "Decision, 2026-09-11" note on the ticket). Looked up
+  // only when the invite itself names the address (`invite.email`, set
+  // only for a link the owner asked to have *mailed* to somebody named):
+  // that is the same "already read this once, in their own inbox"
+  // reasoning B338 already rests the email prefill on, and it is what makes
+  // showing it back safe against a forwarded link. A hand-copied link
+  // carries no named address to look one up by, and there is no session
+  // either, so nothing is looked up and the form stays exactly as blank as
+  // before this ticket.
+  const known =
+    !reader.email && invite.email ? await getContactByEmail(username, invite.email) : null;
+
   return (
     <InviteRedeem
       username={username}
@@ -120,6 +135,10 @@ export default async function RedeemPage({
       // nothing, exactly as before this ticket. The field stays visible and
       // editable either way; nothing here is hidden.
       invitedEmail={invite.email}
+      // B1282: prefill, never a fresh decision made for her — she can still
+      // clear or correct every field on the "form" step below.
+      initialAddress={known?.postalAddress ?? null}
+      initialWantsPostcard={known?.wantsPostcard ?? false}
       alreadyIn={alreadyIn}
       // B360: a server with no postcard provider cannot act on a postal
       // address, so the form stops asking for one — the same check every
