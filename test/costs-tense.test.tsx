@@ -134,6 +134,7 @@ const site = {
 const EMPTY: CostSummary = {
   baseCurrency: "CHF",
   hasBegun: true,
+  isOver: false,
   total: 0,
   onTheRoad: 0,
   preparation: 0,

@@ -2,8 +2,8 @@
 id: thai-2026
 title: "Thailand 2026"
 start: "2026-03-01"
-end: "2026-03-02"
-status: past
+end: "2026-03-05"
+status: current
 accent: sky
 rates:
   THB: 0.0245

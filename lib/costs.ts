@@ -5,7 +5,7 @@ import matter from "gray-matter";
 import { isEnabled } from "./capabilities";
 import { clearMatterCache, getAllEntries, getDays, type ReadOptions } from "./entries";
 import { getTrip, getTripIds, tripDir, tripRef } from "./trips";
-import { hasBegun } from "./tripTime";
+import { hasBegun, isOver } from "./tripTime";
 import { loadUserConfig } from "./config";
 import { normalizeCurrency, toBase, type RateTable } from "./currency";
 import {
@@ -297,6 +297,16 @@ export function getCostSummary(
 
   const daysWithSpend = byDay.filter((d) => d.amount > 0).length;
   const unrecordedDays = byDay.filter((d) => d.unrecorded).length;
+  /**
+   * Days that have an actual answer — everything logged *except* a day marked
+   * `unrecorded: [costs]` (B1521). `without: [costs]` (genuinely nothing to
+   * spend) and a day nobody flagged at all both count here as a real zero;
+   * only `unrecorded` says "we don't know", and only that is excluded. This is
+   * the denominator for every per-day average on this page, replacing
+   * `daysWithSpend` (which quietly excluded every zero-spend day, recorded or
+   * not, and had nothing to say about `unrecorded` at all).
+   */
+  const recordedDays = byDay.length - unrecordedDays;
 
   // Has this trip started? Asked once, of the trip's own dates rather than of
   // `byDay.length`, and answered where the rest of the journal's tense lives.
@@ -304,6 +314,11 @@ export function getCostSummary(
   // reading of a zero does not arise.
   const trip = getTrip(tripId);
   const begun = trip ? hasBegun(trip, byDay, now) : true;
+  // Whether there is nothing more coming — the same reconciliation `isOver`
+  // gives the map and the story feed. An unknown trip has nothing left to
+  // project either way, so it reads as not over rather than forcing a pace
+  // question that cannot arise (no dates, no days, no budget block below).
+  const over = trip ? isOver(trip, byDay, now) : false;
 
   // Budget. Preparation is treated as spent up front rather than spread across
   // the trip, because that's when it actually leaves the account — so the
@@ -317,27 +332,42 @@ export function getCostSummary(
   const plannedTotal = getBudgetInBase(tripId)?.total;
 
   // Pace — everything measured against the days elapsed — is attached only
-  // once the trip has begun. Before that `elapsed` is 0 and every one of
-  // those figures collapses to a statement about an empty set: the trip is
-  // "exactly on plan", the projected total is the preparation spend, and the
-  // daily rate is zero. See `BudgetPace`, and B19.
+  // once the trip has begun, and only while there is still something to
+  // project: a trip that is over (`isOver`, lib/tripTime.ts) has no "so far"
+  // left to be ahead or behind on, and forecasting a total for a trip that
+  // has already ended is not a forecast — it is B1521's bug, an average of
+  // the days that were costed charged straight to the days that were not.
+  // Before departure `elapsed` is 0 and every one of these figures collapses
+  // to a statement about an empty set: the trip is "exactly on plan", the
+  // projected total is the preparation spend, and the daily rate is zero. See
+  // `BudgetPace`, and B19.
   let budget: BudgetStatus | undefined;
   if (planned && plannedTotal !== undefined) {
     const perDay = Math.max(0, (plannedTotal - preparation) / planned.days);
     const elapsed = byDay.length;
     const expectedToDate = preparation + perDay * elapsed;
-    const actualPerDay = daysWithSpend > 0 ? onTheRoad / daysWithSpend : 0;
+    // The rate a projection is built from, over recorded days only — never a
+    // day marked `unrecorded`, so it never charges a guessed average to a day
+    // the journal explicitly declines to state (B1521).
+    const actualPerDay = recordedDays > 0 ? onTheRoad / recordedDays : 0;
+    // If most of what has elapsed is unrecorded, the average itself is mostly
+    // a guess, and a franc figure built on it says more about the gaps than
+    // about the trip — so it is not shown at all rather than shown misleadingly.
+    const enoughToProject = elapsed === 0 || recordedDays * 2 >= elapsed;
     budget = {
       total: plannedTotal,
       days: planned.days,
       perDay,
       remaining: plannedTotal - total,
-      ...(begun
+      ...(begun && !over
         ? {
             pace: {
               expectedToDate,
               deltaToDate: total - expectedToDate,
-              projectedTotal: preparation + actualPerDay * planned.days,
+              ...(enoughToProject
+                ? { projectedTotal: preparation + actualPerDay * planned.days }
+                : {}),
+              projectedFromDays: recordedDays,
               curve: byDay.map((_, i) => preparation + perDay * (i + 1)),
             },
           }
@@ -355,11 +385,12 @@ export function getCostSummary(
   return {
     baseCurrency: base,
     hasBegun: begun,
+    isOver: over,
     budget,
     total,
     onTheRoad,
     preparation,
-    perDay: daysWithSpend > 0 ? onTheRoad / daysWithSpend : 0,
+    perDay: recordedDays > 0 ? onTheRoad / recordedDays : 0,
     daysWithSpend,
     unrecordedDays,
     byCategory,

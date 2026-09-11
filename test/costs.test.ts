@@ -91,29 +91,38 @@ describe("a trip that has not begun", () => {
   test("the pace comes back the day the trip starts", () => {
     const summary = getCostSummary("u/gamma-2027", afterDeparture);
     expect(summary.hasBegun).toBe(true);
+    expect(summary.isOver).toBe(false);
     expect(summary.budget?.pace).toEqual({
       expectedToDate: 100,
       deltaToDate: 0,
       projectedTotal: 100,
+      projectedFromDays: 0,
       curve: [],
     });
   });
 
-  test("a trip under way and a finished trip are untouched", () => {
-    // Every figure the panel draws for alpha-2023, spelled out: 240 of
-    // preparation, two logged days of 60 and 12, a 1200 budget over 10 days.
-    expect(getCostSummary("u/alpha-2023").budget).toEqual({
+  /**
+   * B1521 — alpha-2023 is `status: past`, and a finished trip has nothing
+   * left to project. This test used to assert the opposite (a `pace` block,
+   * "untouched" by the trip having ended) — that was the bug: an average of
+   * the two logged days charged forward across all ten planned ones. Fixed,
+   * the budget itself is still exactly what the author wrote down; only the
+   * forecast is gone.
+   */
+  test("a finished trip keeps its plain numbers and drops the forecast", () => {
+    const summary = getCostSummary("u/alpha-2023");
+    expect(summary.isOver).toBe(true);
+    // Every figure the panel still draws: 240 of preparation, two logged
+    // days of 60 and 12, a 1200 budget over 10 days.
+    expect(summary.budget).toEqual({
       total: 1200,
       days: 10,
       perDay: 96,
       remaining: 888,
-      pace: {
-        expectedToDate: 432,
-        deltaToDate: -120,
-        projectedTotal: 600,
-        curve: [336, 432],
-      },
     });
+  });
+
+  test("a trip under way with no declared budget is untouched", () => {
     const beta = getCostSummary("u/beta-2026");
     expect(beta.budget).toBeUndefined(); // declares none
     expect(beta.byDay).toEqual([{ date: "2026-08-15", amount: 20, cumulative: 20, unrecorded: false }]);

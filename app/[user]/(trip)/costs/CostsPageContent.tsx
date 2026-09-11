@@ -85,10 +85,14 @@ export default function CostsPageContent({
           </dl>
         )}
 
-        {/* The budget: how it is going, or — before there is a "going" — what
-            it is. `pace` is present exactly when the trip has begun. */}
+        {/* The budget: how it is going, or — before there is a "going", or
+            after there is no more "going" left — what it is. `isOver` decides
+            between the two static readings; `pace` is present exactly when
+            the trip has begun and is not yet over (B1521). */}
         {summary.budget &&
-          (summary.budget.pace ? (
+          (summary.isOver ? (
+            <PastBudgetPanel budget={summary.budget} spent={summary.total} />
+          ) : summary.budget.pace ? (
             <BudgetPanel budget={summary.budget} pace={summary.budget.pace} spent={summary.total} />
           ) : (
             <PlannedBudgetPanel budget={summary.budget} spent={summary.total} />
@@ -372,6 +376,54 @@ function PlannedBudgetPanel({ budget, spent }: { budget: BudgetStatus; spent: nu
   );
 }
 
+/**
+ * The budget for a trip that is over — B1521.
+ *
+ * No pace bar, no "für heute" tick, no projection: there is no "so far" left
+ * to be ahead or behind on, and nothing left to forecast. Three numbers, all
+ * of them already final — what the trip cost, what it was meant to cost, and
+ * the difference — which is the whole of what AGENTS.md calls the honest
+ * panel for a finished trip.
+ */
+function PastBudgetPanel({ budget, spent }: { budget: BudgetStatus; spent: number }) {
+  const { t } = useI18n();
+  const { money } = useMoney();
+  const delta = spent - budget.total;
+  const over = delta > 0;
+  const used = budget.total > 0 ? Math.min(1, spent / budget.total) : 0;
+
+  return (
+    <section className="mt-8 rounded-2xl border border-navy-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 className="font-display text-lg font-semibold text-navy-900">{t("cost.budget")}</h2>
+        <p className={`font-display text-sm font-semibold ${over ? "text-coral-600" : "text-green-700"}`}>
+          {money(Math.abs(delta))} {over ? t("cost.overBudgetFinal") : t("cost.underBudgetFinal")}
+        </p>
+      </div>
+
+      <div className="mt-4">
+        <div className="h-3 w-full overflow-hidden rounded-full bg-navy-200/50">
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${used * 100}%`, background: over ? CATEGORY_STYLE.other.color : "#5a6a80" }}
+          />
+        </div>
+        <p className="mt-1.5 text-[11px] text-navy-600">
+          {Math.round(used * 100)}% {t("cost.ofBudget")} · {money(spent)} / {money(budget.total)}
+        </p>
+      </div>
+
+      <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <Stat label={t("cost.budgetTotal")} value={money(budget.total)} />
+        <Stat label={t("cost.budgetPerDay")} value={money(budget.perDay)} />
+        <Stat label={t("cost.remaining")} value={money(budget.remaining)} />
+      </dl>
+
+      <p className="mt-3 text-[11px] leading-relaxed text-navy-600">{t("cost.budgetNoteFinal")}</p>
+    </section>
+  );
+}
+
 function BudgetPanel({
   budget,
   pace,
@@ -453,7 +505,20 @@ function BudgetPanel({
       <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label={t("cost.budgetTotal")} value={money(budget.total)} />
         <Stat label={t("cost.budgetPerDay")} value={money(budget.perDay)} />
-        <Stat label={t("cost.projected")} value={money(pace.projectedTotal)} />
+        {/*
+         * The projection, only when there is enough recorded to build one
+         * (absent when most elapsed days are `unrecorded: [costs]`, B1521),
+         * and labelled with the denominator it stands on rather than shown
+         * as a bare franc figure — "hochgerechnet" beside "Tagesbudget"
+         * otherwise invites exactly the wrong reading: one is per costed day,
+         * the other per calendar day.
+         */}
+        {pace.projectedTotal !== undefined && (
+          <Stat
+            label={t("cost.projectedFrom", { days: String(pace.projectedFromDays) })}
+            value={money(pace.projectedTotal)}
+          />
+        )}
         <Stat label={t("cost.remaining")} value={money(budget.remaining)} />
       </dl>
 

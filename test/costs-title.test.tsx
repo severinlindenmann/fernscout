@@ -126,6 +126,7 @@ function journal(opts: { locales: string[]; defaultLocale: string }): void {
 const summary: CostSummary = {
   baseCurrency: "CHF",
   hasBegun: true,
+  isOver: false,
   total: 100,
   onTheRoad: 60,
   preparation: 40,
