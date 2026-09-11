@@ -346,7 +346,7 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (29)
+## in-development (26)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -375,12 +375,9 @@ Do not edit them by hand; run the script.
 | [B1149](in-development/B1149-the-pdf-x-report-tells-you.md) | The PDF/X report tells you to run gs-pdfx.sh, which is only written when the run already had an ICC | ISSUE | low | low | `96a5b964` |
 | [B1294](in-development/B1294-the-photobook-route-answers-that-the.md) | The photobook route answers that the trip was taken down or renamed when the trip is still there | ISSUE | low | low | `96a5b964` |
 | [B1296](in-development/B1296-the-room-names-trips-by-their.md) | The room names trips by their id and dates in ISO, in a conversation that otherwise speaks plainly | ISSUE | low | low | `13f12910` |
-| [B1365](in-development/B1365-photobook-order-success-redirects-through-the.md) | Photobook order success redirects through the trip page instead of straight to the order page | CHORE | low | low | `96a5b964` |
-| [B1366](in-development/B1366-order-page-shows-book-interior-pdf.md) | Order page shows book-interior.pdf and book-cover.pdf links nobody needs | CHORE | low | low | `96a5b964` |
-| [B1367](in-development/B1367-photobook-order-page-reads-as-unstyled.md) | Photobook order page reads as unstyled text, not a Fernscout page | CHORE | low | low | `96a5b964` |
 | [B1368](in-development/B1368-photobook-flow-doesn-t-say-the.md) | Photobook flow doesn't say the print is experimental | CHORE | low | low | `96a5b964` |
 
-## testing (155)
+## testing (158)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -538,6 +535,9 @@ Do not edit them by hand; run the script.
 | [B1179](testing/B1179-a-reopened-conversation-reads-as-one.md) | A reopened conversation reads as one undifferentiated wall with no date | ISSUE | low | low | — |
 | [B1199](testing/B1199-the-day-context-offer-still-offers.md) | The day-context offer still offers taking a draft off the site | ISSUE | low | low | — |
 | [B1202](testing/B1202-one-reply-can-carry-the-same.md) | One reply can carry the same proposal card twice, verbatim | ISSUE | low | low | — |
+| [B1365](testing/B1365-photobook-order-success-redirects-through-the.md) | Photobook order success redirects through the trip page instead of straight to the order page | CHORE | low | low | — |
+| [B1366](testing/B1366-order-page-shows-book-interior-pdf.md) | Order page shows book-interior.pdf and book-cover.pdf links nobody needs | CHORE | low | low | — |
+| [B1367](testing/B1367-photobook-order-page-reads-as-unstyled.md) | Photobook order page reads as unstyled text, not a Fernscout page | CHORE | low | low | — |
 | [B1372](testing/B1372-quick-action-says-fotos-nachtragen-where.md) | Quick action says Fotos nachtragen where Fotos erfassen is meant | ISSUE | low | low | — |
 
 ## completed (940)

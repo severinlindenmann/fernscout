@@ -7,8 +7,7 @@ complexity: low
 area: photobook
 found: "2026-09-10T18:28:01Z"
 started: "2026-09-11T04:23:05Z"
-session: 96a5b964-fad1-4616-9124-a01eabbd8a46
-claimed: "2026-09-11T04:23:05Z"
+merged: "2026-09-11T04:43:16Z"
 ---
 
 # B1366 — Order page shows book-interior.pdf and book-cover.pdf links nobody needs
