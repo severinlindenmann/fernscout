@@ -398,9 +398,10 @@ function real(p) {
  * one — answers with the empty string, which is why callers compare against
  * `undefined` and not for truthiness.
  */
-function git(args) {
+function git(args, { cwd } = {}) {
   try {
     return execFileSync("git", args, {
+      cwd,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     }).trim();
@@ -1004,6 +1005,108 @@ function hold(argv, take) {
   writeIndex({ force: argv.includes("--index") });
 }
 
+/**
+ * The most recent commit on trunk that reads as this ticket's own code
+ * landing — B1139.
+ *
+ * Deliberately narrower than "any commit naming the id": nearly every task
+ * file edit (a capture, a wave take, a park) also names the id, on trunk,
+ * because task files are committed straight there. Matching any of those
+ * would flag a ticket the moment it is captured. What actually marks code
+ * having landed is the phrase this repository's own sessions already write
+ * when `move` takes a ticket to `testing/` — "<id[, …]>: merged, awaiting
+ * review" — so that is what is matched, not the id alone.
+ */
+function latestMergeEvidence(id) {
+  const base = trunk();
+  if (!base) return undefined;
+  const log = git(["log", "--format=%H\x1f%aI\x1f%s", base]);
+  if (!log) return undefined;
+  const mentionsId = new RegExp(`\\b${id}\\b`, "i");
+  for (const line of log.split("\n")) {
+    const [hash, at, subject] = line.split("\x1f");
+    if (subject && mentionsId.test(subject) && /merged, awaiting review/i.test(subject)) {
+      return { hash, at: Date.parse(at), subject };
+    }
+  }
+  return undefined;
+}
+
+/**
+ * A local branch named for this ticket (the `work-on-a-task` convention,
+ * `b<number>-<slug>`) that has commits main does not, with a clean worktree —
+ * B1139's third case, "ready to merge".
+ *
+ * A branch whose tip *is* the merge-base with trunk has no work on it yet —
+ * freshly created and nothing built — and that is not a signal, so it is
+ * skipped rather than reported as anything.
+ */
+function branchWork(id) {
+  const base = trunk();
+  if (!base) return undefined;
+  const number = id.replace(/^[A-Za-z]+/, "");
+  const names = (git(["branch", "--format=%(refname:short)"]) ?? "")
+    .split("\n")
+    .filter((name) => new RegExp(`^b${number}-`, "i").test(name));
+  for (const name of names) {
+    const tip = git(["rev-parse", name]);
+    const mergeBase = git(["merge-base", name, base]);
+    if (!tip || !mergeBase || tip === mergeBase) continue;
+    const merged = git(["merge-base", "--is-ancestor", tip, base]) !== undefined;
+    const worktree = checkouts().find((c) => c.branch === name);
+    const clean = worktree ? git(["status", "--porcelain"], { cwd: worktree.path }) === "" : undefined;
+    const ahead = Number(git(["rev-list", "--count", `${mergeBase}..${tip}`]) ?? "");
+    const behind = Number(git(["rev-list", "--count", `${mergeBase}..${base}`]) ?? "");
+    return { name, tip, merged, clean, ahead, behind };
+  }
+  return undefined;
+}
+
+/**
+ * What is worth saying about a hold in `in-development/` beyond its age —
+ * B1139.
+ *
+ * Four checks, none of which moves anything: `completed/` and `open/` stay a
+ * person's lanes. The second is the one worth reading twice — it is a
+ * report, not an alarm, and it is silent on exactly the case that would make
+ * it one: `claimed` is the timestamp `move` writes every time a ticket
+ * *arrives* in `in-development/`, including a deliberate park back into it
+ * after a live check found it was not actually done (see B1272, B1394). So a
+ * ticket taken back in *after* its code merged carries a `claimed` newer
+ * than the merge, and says nothing here — the frontmatter already is the
+ * marker a person wrote and can correct, with no new field to keep in sync.
+ * Only a hold that has sat untouched since *before* its code landed — the
+ * "merged and never moved" case this ticket was written for — is reported.
+ */
+function holdNotes(item) {
+  if (item.lane !== "in-development") return [];
+  const notes = [];
+
+  if (item.superseded) notes.push(`carries superseded: ${item.superseded} but sits in in-development/`);
+  if (item.wontDo) notes.push(`carries wontDo: ${item.wontDo} but sits in in-development/`);
+
+  const merge = latestMergeEvidence(item.id);
+  if (merge && (!item.claimed || Date.parse(item.claimed) < merge.at)) {
+    notes.push(`merged into main ${heldFor(new Date(merge.at).toISOString())} ago ("${merge.subject}") — this hold predates it`);
+  }
+
+  const branch = branchWork(item.id);
+  if (branch && !branch.merged && branch.clean) {
+    notes.push(
+      `branch ${branch.name} has ${branch.ahead} commit${branch.ahead === 1 ? "" : "s"} main does not` +
+        (branch.behind ? `, ${branch.behind} behind main` : "") +
+        ` — ready to merge`,
+    );
+  }
+
+  if (!merge && !branch && item.claimed) {
+    const hours = (Date.now() - Date.parse(item.claimed)) / 3_600_000;
+    if (hours >= 24) notes.push(`claimed ${heldFor(item.claimed)} ago, with no branch or merge found for it`);
+  }
+
+  return notes;
+}
+
 function list() {
   for (const lane of LANES) {
     const items = itemsIn(lane);
@@ -1011,6 +1114,7 @@ function list() {
     const line = (i) => {
       const holder = i.session ? `  ← ${shortSession(i.session)}, ${heldFor(i.claimed)}` : "";
       console.log(`    ${i.id.padEnd(5)} ${i.priority.padEnd(6)} ${i.title}${holder}`);
+      for (const note of holdNotes(i)) console.log(`      note: ${note}`);
     };
     if (!CATEGORISED.has(lane)) {
       for (const i of items) line(i);
