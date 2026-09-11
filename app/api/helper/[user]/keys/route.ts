@@ -2,6 +2,7 @@ import { listSessions, revokeSession } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { refused, wrote } from "@/lib/helper/thread";
+import { getTrip, tripRef } from "@/lib/trips";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,14 @@ function live(row: { kind: string; revokedAt: string | null; expiresAt: string }
   return new Date(row.expiresAt).getTime() > Date.now();
 }
 
+/** `write:trip:<id>` back to the id alone, or nothing for a whole-journal
+ *  key — the one string `tripWriteScope` builds, read the other way. A row
+ *  with no scope at all is the whole-journal default (`SESSION_SCOPE.agent`
+ *  applies when a row carries none), so it is never trip-scoped either. */
+function scopedTripId(scope: string | null): string | null {
+  return scope?.startsWith("write:trip:") ? scope.slice("write:trip:".length) : null;
+}
+
 /**
  * What each key is, never what it holds — B1154.
  *
@@ -36,6 +45,13 @@ function live(row: { kind: string; revokedAt: string | null; expiresAt: string }
  * `listSessions`. **Never a token** — `listSessions` does not return one, so
  * there is nothing here to leak; `test/helper-journal.test.ts`-style
  * coverage pins that the rendered room never carries one either.
+ *
+ * **One field on top of that shape: `tripTitle`.** A trip-scoped key's own
+ * `scope` names an id (`write:trip:alps-2024`), and the room has no other
+ * trip list loaded to turn that back into words a person recognises — the
+ * panel is meant to say "writes to Alps 2024", not repeat an id already
+ * chosen for a URL. `null` for a whole-journal key, and for a trip since
+ * deleted.
  */
 export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/keys">) {
   const { user } = await params;
@@ -46,14 +62,19 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
     return Response.json({ error: "auth_disabled" }, { status: 409 });
   }
 
-  const keys = (await listSessions(user)).filter(live).map((row) => ({
-    id: row.id,
-    kind: row.kind,
-    createdAt: row.createdAt,
-    expiresAt: row.expiresAt,
-    lastSeenAt: row.lastSeenAt,
-    scope: row.scope,
-  }));
+  const keys = (await listSessions(user)).filter(live).map((row) => {
+    const tripId = scopedTripId(row.scope);
+    const trip = tripId ? getTrip(tripRef(user, tripId)) : undefined;
+    return {
+      id: row.id,
+      kind: row.kind,
+      createdAt: row.createdAt,
+      expiresAt: row.expiresAt,
+      lastSeenAt: row.lastSeenAt,
+      scope: row.scope,
+      tripTitle: trip?.title ?? null,
+    };
+  });
   return Response.json({ keys });
 }
 export async function POST(
