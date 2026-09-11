@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { OrderLedger } from "@/lib/order/ledger";
 import type { OrderTone, OrderView } from "@/lib/order/view";
 
 /**
@@ -59,7 +60,7 @@ function OrderPill({ tone, label }: { tone: OrderTone; label: string }) {
 
 /** The name centred over the whole address — how an address is read, and what
  *  somebody checks a parcel against (B1145). */
-function OrderEnvelope({
+export function OrderEnvelope({
   toLabel,
   name,
   lines,
@@ -80,6 +81,58 @@ function OrderEnvelope({
         </span>
       ))}
     </address>
+  );
+}
+
+/**
+ * The money, as a card — the same one before the press and after it.
+ *
+ * Exported because the photobook buy panel renders it too (B1466): a price
+ * somebody agreed to and the price on the receipt afterwards must not be
+ * phrased differently, and they were.
+ */
+export function OrderLedgerCard({
+  ledger,
+  heading,
+  totalLabel,
+  meta,
+}: {
+  ledger: OrderLedger;
+  heading: string;
+  totalLabel: string;
+  meta?: string;
+}) {
+  return (
+    <section className="rounded-xl border border-navy-200 bg-white">
+      <h2 className="border-b border-navy-200 px-4 py-3 font-display text-base font-semibold text-navy-900">
+        {heading}
+      </h2>
+      <dl>
+        {ledger.lines.map((line) => (
+          <div
+            key={line.label}
+            className="flex items-baseline justify-between gap-4 border-b border-navy-100 px-4 py-3 last:border-b-0"
+          >
+            <dt className="text-sm text-navy-700">{line.label}</dt>
+            <dd className="shrink-0 font-mono text-sm text-navy-900">{line.amount}</dd>
+          </div>
+        ))}
+        <div className="flex items-baseline justify-between gap-4 border-t-2 border-yellow-400 bg-cream-100 px-4 py-3">
+          <dt className="text-sm font-semibold text-navy-900">{totalLabel}</dt>
+          <dd className="shrink-0 text-right">
+            <span className="block font-mono text-base font-semibold text-navy-900">
+              {ledger.totalLabel}
+            </span>
+            <span className="block text-xs text-navy-600">{ledger.totalMoney}</span>
+          </dd>
+        </div>
+      </dl>
+      {/* The date as it is stored, not as a locale renders it: a receipt is
+          read back months later, sometimes beside a bank statement. */}
+      {meta && (
+        <p className="border-t border-navy-100 px-4 py-3 font-mono text-xs text-navy-600">{meta}</p>
+      )}
+    </section>
   );
 }
 
@@ -191,36 +244,12 @@ export default function OrderDocket({ view, labels, action, statusExtra }: Order
         </div>
 
         <div className="flex flex-col gap-5">
-          <section className="rounded-xl border border-navy-200 bg-white">
-            <h2 className="border-b border-navy-200 px-4 py-3 font-display text-base font-semibold text-navy-900">
-              {labels.price}
-            </h2>
-            <dl>
-              {view.ledger.lines.map((line) => (
-                <div
-                  key={line.label}
-                  className="flex items-baseline justify-between gap-4 border-b border-navy-100 px-4 py-3 last:border-b-0"
-                >
-                  <dt className="text-sm text-navy-700">{line.label}</dt>
-                  <dd className="shrink-0 font-mono text-sm text-navy-900">{line.amount}</dd>
-                </div>
-              ))}
-              <div className="flex items-baseline justify-between gap-4 border-t-2 border-yellow-400 bg-cream-100 px-4 py-3">
-                <dt className="text-sm font-semibold text-navy-900">{labels.total}</dt>
-                <dd className="shrink-0 text-right">
-                  <span className="block font-mono text-base font-semibold text-navy-900">
-                    {view.ledger.totalLabel}
-                  </span>
-                  <span className="block text-xs text-navy-600">{view.ledger.totalMoney}</span>
-                </dd>
-              </div>
-            </dl>
-            {/* The date as it is stored, not as a locale renders it: a receipt
-                is read back months later, sometimes beside a bank statement. */}
-            <p className="border-t border-navy-100 px-4 py-3 font-mono text-xs text-navy-600">
-              {view.meta}
-            </p>
-          </section>
+          <OrderLedgerCard
+            ledger={view.ledger}
+            heading={labels.price}
+            totalLabel={labels.total}
+            meta={view.meta}
+          />
 
           {view.kind === "photobook" && (
             <section className="rounded-xl border border-navy-200 bg-white">

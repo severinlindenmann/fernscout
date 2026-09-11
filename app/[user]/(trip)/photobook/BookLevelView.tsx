@@ -2,11 +2,12 @@
 
 import { useRef, useState } from "react";
 import BusyButton from "@/components/BusyButton";
-import { creditsInRappen, formatChf } from "@/lib/credits/pricing";
 import type { TranslationKey } from "@/lib/i18n";
 import type { BookOptions } from "@/lib/photobook/options";
 import type { MediaTile } from "@/lib/types";
 import { addressLines, type PanelRecipient } from "@/components/PhotobookPrintPanel";
+import { OrderEnvelope, OrderLedgerCard } from "@/components/order/OrderDocket";
+import { photobookLedger } from "@/lib/order/ledger";
 import BookSettingsPanel, { SIZE_LABEL } from "./BookSettingsPanel";
 import ExperimentalPrintNotice from "./ExperimentalPrintNotice";
 import { readingHtml } from "./previewSlice";
@@ -380,19 +381,14 @@ export default function BookLevelView({
             address is read and what somebody checks a parcel against. */}
         {recipient ? (
           <div className="mt-3">
-            <address className="rounded-lg border border-dashed border-navy-300 bg-cream-50 px-3 py-3 text-center not-italic">
-              <span className="block text-[0.7rem] font-semibold uppercase tracking-wider text-navy-600">
-                {t("photobook.print.toLabel")}
-              </span>
-              <span className="mt-1 block text-base font-semibold text-navy-900">
-                {recipient.name}
-              </span>
-              {addressLines(recipient.address).map((line) => (
-                <span key={line} className="block text-sm text-navy-700">
-                  {line}
-                </span>
-              ))}
-            </address>
+            {/* The same envelope the receipt draws, from the same component —
+                B1466. It was written out twice, and two copies of an envelope
+                is how the two come to differ. */}
+            <OrderEnvelope
+              toLabel={t("photobook.print.toLabel")}
+              name={recipient.name}
+              lines={addressLines(recipient.address)}
+            />
             {recipients.length > 1 && (
               <details className="mt-2" open={!recipient.self}>
                 <summary className="min-h-11 cursor-pointer content-center text-sm text-navy-600">
@@ -438,17 +434,22 @@ export default function BookLevelView({
             shown above the address it was quoted for reads as though the two
             were unrelated. */}
         {credits !== null && (
-          <p className="mt-3 text-base font-semibold text-navy-900">
-            {t("photobook.price", {
-              credits: String(credits),
-              money: formatChf(creditsInRappen(credits)),
-            })}
-          </p>
-        )}
-        {balance !== null && (
-          <p className="text-sm text-navy-600">
-            {t("photobook.balance", { balance: String(balance) })}
-          </p>
+          <div className="mt-3">
+            {/* The same ledger card the receipt shows, built by the same
+                call — B1466. A price agreed to before the press and a price
+                read back afterwards must not be phrased differently, and
+                they were: a sentence here, a table there. */}
+            <OrderLedgerCard
+              ledger={photobookLedger(t, credits)}
+              heading={t("photobook.receipt.priceHeading")}
+              totalLabel={t("photobook.receipt.total")}
+              meta={
+                balance === null
+                  ? undefined
+                  : t("photobook.balance", { balance: String(balance) })
+              }
+            />
+          </div>
         )}
 
         <p className="mt-3 text-sm text-navy-700">{t("photobook.orderNext")}</p>

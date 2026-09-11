@@ -21,6 +21,29 @@ the receipt page writes differently. A price shown before the press and a price
 shown after it disagreeing in wording is how somebody concludes they were
 charged something else.
 
+## Validity, and a deviation from the plan
+
+Valid — the envelope and the price sentence were written out here and,
+differently, on the receipt.
+
+**The plan said this panel would render `OrderDocket` with an action slot. It
+does not, and the reason is what the code turned out to be.** The buy panel is
+not an order: it is a checkout carrying the spine warning, the six unbuyable
+reasons, the too-poor link with its route to buying credits, the stale-price
+hidden field and the building notice. None of those has a slot on an order,
+and giving the docket four more slots to hold them would make it a wrapper
+with a hole for everything rather than a shared element.
+
+What actually drifted was the **envelope** and the **price**, and those are now
+one component and one function used by both sides of the press:
+`OrderEnvelope` and `OrderLedgerCard` from `components/order/OrderDocket.tsx`,
+fed by `photobookLedger` in the new `lib/order/ledger.ts`. The panel keeps its
+own structure.
+
+`lib/order/ledger.ts` exists because `lib/order/view.ts` reaches
+`lib/postcard/orders.ts`, which is `server-only`, and this panel is a client
+component — so the money words had to live somewhere a browser can import.
+
 ## Work
 
 The order block inside `BookLevelView` renders `OrderDocket` with an `action`
