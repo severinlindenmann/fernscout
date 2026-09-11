@@ -117,12 +117,27 @@ into `lib/helper/tools/areas/`.
 
 The cost, stated: one extra round trip per turn.
 
-**Held until a sibling worktree commits.** `.claude/worktrees/helper-cost-probe`
-has an *uncommitted* prompt-caching change to `lib/helper/model.ts` — adding
-`cachedSystem`, still calling `toolSchemas()` inside `rounds()`, which is the
-same function this ticket changes. Building against that is the exact shape
-AGENTS.md warns about: a clean branch silently built on another session's
-half-finished work, discovered at merge.
+**Hold released the same day.** The sibling work was **B1450** — one
+`cache_control` breakpoint on the system prompt in `rounds()`, plus cache tokens
+folded into what `book()` records — and it merged to `main` at `a8465245`. So
+this ticket builds on top of it rather than against it, and two things about
+B1450 change how the grouping must be written:
+
+- **Render order is tools → system → messages, and B1450's single cache marker
+  sits on the system prompt to cover both halves.** A two-pass design that
+  varies the tool list *per turn* invalidates that prefix on every turn, which
+  would undo an 84% saving to fix a choosing problem. Whatever the grouping
+  does, the cached prefix has to stay stable — most likely by keeping the area
+  *selection* pass cheap and unparameterised, or by moving the breakpoint.
+  Measure it; do not assume.
+- **Haiku 4.5 will not cache a prefix under 4,096 tokens and says nothing when
+  it declines.** The tool schemas are two thirds of B1450's measured ~10,800
+  token prefix. A grouping that cuts the per-turn schema size hard could drop
+  the prefix below 4,096 and silently turn caching off — the saving would vanish
+  with no error anywhere. B1450's acceptance line exists for exactly this.
+
+That is not an argument against grouping. It is the constraint the grouping has
+to be designed inside, and it was invisible until B1450 measured it.
 
 Verified before deciding: B1042's split is source-file only.
 `toolSchemas()` (`lib/helper/tools/run.ts:23-34`) still flattens the whole
