@@ -41,16 +41,61 @@ same argument applies to a module with no data.
 
 ## Work
 
-- Decide, per module, what "nothing to show" should render. Absent is the
-  cheapest answer and probably the right one for the map and for the zero tiles.
-- The travel scene needs a person's eye rather than a rule — `/docs/branding/animation`
-  is the bench for it. The question to answer there is whether a leg with no
-  transport should draw a scene at all, and if it should, whether a figure
-  standing in an empty sky is the drawing intended.
-- A tile whose value is zero because nothing was recorded is different from one
-  that is zero because the answer is zero. Only the first should disappear.
-- Check the same page with one photograph, one cost and one coordinate — the
-  point is the thin case, not the empty one.
+Built in `components/TripHero.tsx` and `lib/tripView.ts`, on branch
+`b1258-ui-remainder`.
+
+- **Correction to this ticket's own wording**: what it calls "the travel
+  scene" (`components/TripHero.tsx:326`, then) is not `TravelScene.tsx` — that
+  component is the animated leg-by-leg scene on `/docs/branding/animation` and
+  is never rendered on the trip hero at all. What's here is a flat
+  `bg-sky-300` placeholder standing in for a missing cover photograph, nothing
+  to do with transport or a leg. There is no bench for it and B1260's "check
+  it at `/docs/branding/animation`" instruction does not apply.
+- **Per-tile rule applied**: a value is absent to the DOM, not a zero, exactly
+  when zero means "nothing was ever recorded" rather than "the answer is
+  nought":
+  - **Cover/photo panel** — absent whenever `coverSrc` is empty. The whole
+    grid column (image + gradient + `Travelers` figure) is gone rather than
+    a flat sky under a walking figure; the grid collapses to one column. The
+    traveller figures live only here — there is no fallback rendering of them
+    elsewhere when the cover is absent, since the masthead's own
+    `travellerNames` text line already says who was on the trip in words.
+  - **Map** — absent whenever no day and no `current` position is plottable
+    (`isPlottable` from `lib/mapFrame.ts`, reused rather than a new coordinate
+    check). Present as soon as one coordinate exists anywhere on the trip.
+  - **Countries / Stops tiles** — absent whenever `stats.places === 0`, which
+    only happens when no day carries a coordinate at all (a trip cannot
+    genuinely visit zero of its own stops, so a real zero never occurs here).
+  - **Photos & videos tile** — left alone, unconditionally rendered. A trip
+    that genuinely has no photographs yet showing "0" is real information,
+    per this ticket's own Why section, and stays.
+  - **Total so far / Average per day tiles** — `lib/tripView.ts` now only
+    populates `stats.totalSpend`/`stats.spendPerDay` when
+    `costs.items.length > 0` (covers preparation and on-the-road costs both).
+    `TripHero` already hid these two tiles on `undefined` for B353's dash
+    case, so the same `undefined` gate now also covers "nothing recorded" —
+    no second condition invented.
+  - **Day on the road tile** — left alone; `tripDays` is never a real zero
+    (minimum 1) so there was nothing to hide.
+- **The cover-band judgement call, flagged for a person's eye rather than
+  settled**: chose to make the whole photo panel absent (not a smaller or
+  differently-styled placeholder) when there is no cover photograph, rather
+  than keep some placeholder drawing. Reasoning: a flat colour band under a
+  walking figure reads as a broken image regardless of size or colour, and
+  the traveller identity it also carried is already said in words one line
+  above (`hero.travellers`). This is a defensible choice, not a proven one —
+  say if a placeholder illustration (rather than nothing) is wanted instead.
+- Verified against `test/trip-summary-unconverted.test.tsx` (a real cost item
+  in an unrated currency — `stats.totalSpend` must still render as `0`/dash,
+  never disappear) and `test/push-optin.test.tsx`,
+  `test/story-jump-label.test.tsx`, `test/story-day-permalink.test.tsx`,
+  `test/world-map.test.tsx` — all 38 pass unchanged, so the thin-and-real
+  cases (one photo, one cost, one coordinate) are unaffected.
+- Not verified in a real browser against a genuinely empty trip — no such
+  trip exists in the local `content/example` demo data, and building one
+  would itself be new fixture content beyond this ticket's scope. The
+  reasoning above rests on reading the component and the existing test
+  suite, not on a screenshot of the empty state itself.
 
 ## Acceptance
 

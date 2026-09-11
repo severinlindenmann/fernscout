@@ -218,8 +218,15 @@ export function buildStoryProps(tripId: string, viewer: ViewerOptions = {}): Sto
       ...getTripStats(tripId, read),
       ...(showCosts
         ? {
-            totalSpend: costs.total,
-            spendPerDay: costs.perDay,
+            // Absent, not zero, when nothing has ever been costed on this
+            // trip — `costs.items` covers preparation and on-the-road spend
+            // both, so an empty list is "nothing recorded" rather than a
+            // real total that happens to be nought. TripHero already treats
+            // `undefined` here as "no tile" (B353's dash is the other case,
+            // where something was spent and could not be converted). B1260.
+            ...(costs.items.length > 0
+              ? { totalSpend: costs.total, spendPerDay: costs.perDay }
+              : {}),
             byCategory: costs.byCategory.map((c) => ({
               category: c.category,
               amount: c.amount,
