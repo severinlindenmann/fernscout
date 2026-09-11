@@ -7,8 +7,7 @@ complexity: low
 area: content model, API contract
 found: "2026-09-10T19:25:24Z"
 started: "2026-09-11T04:33:23Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T04:33:23Z"
+merged: "2026-09-11T05:53:08Z"
 ---
 
 # B1389 — `teaser` is missing from /content-model.json, so the helper's validator calls it not a field

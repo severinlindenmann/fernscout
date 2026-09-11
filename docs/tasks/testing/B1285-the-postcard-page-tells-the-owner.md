@@ -7,8 +7,7 @@ complexity: low
 area: postcards, i18n
 found: "2026-09-10T10:51:58Z"
 started: "2026-09-11T04:33:25Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T04:33:25Z"
+merged: "2026-09-11T05:53:09Z"
 ---
 
 # B1285 — The postcard page tells the owner to answer an API endpoint and write a YAML block

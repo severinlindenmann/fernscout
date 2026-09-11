@@ -7,8 +7,7 @@ complexity: low
 area: api, docs, auth
 found: "2026-09-09T17:59:42Z"
 started: "2026-09-11T04:33:23Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T04:33:23Z"
+merged: "2026-09-11T05:53:07Z"
 ---
 
 # B1130 — openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty
