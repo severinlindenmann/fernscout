@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Plane,
   TrainFront,
+  TrainFrontTunnel,
+  TramFront,
   Bus,
   Bike,
   Motorbike,
@@ -22,12 +24,15 @@ import type { DaySummary, TransportMode } from "@/lib/types";
 const ICON = {
   flight: Plane,
   train: TrainFront,
+  metro: TrainFrontTunnel,
+  tram: TramFront,
   bus: Bus,
   motorbike: Motorbike,
   bicycle: Bike,
   car: Car,
   taxi: CarTaxiFront,
   boat: Ship,
+  ferry: Ship,
   walk: Footprints,
 } as const;
 

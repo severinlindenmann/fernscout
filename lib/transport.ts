@@ -47,7 +47,15 @@ export const TRANSPORT_STYLE: Record<
 > = {
   flight: { label: "Flight", color: "#3b82f6", dash: [14, 9], bow: 0.24 },
   boat: { label: "Boat", color: "#06b6d4", dash: [2, 7], bow: 0.14 },
+  // A ferry is a boat on a fixed crossing — same colour, a shade less bow
+  // than the open-ended `boat`, so the two are still told apart by shape
+  // alone — B1519.
+  ferry: { label: "Ferry", color: "#06b6d4", dash: [2, 7], bow: 0.1 },
   train: { label: "Train", color: "#8b5cf6", bow: 0.05 },
+  // Metro and tram are rail modes too, kept visually close to train (same
+  // hue, a shorter dash) rather than sharing a road colour — B1519.
+  metro: { label: "Metro", color: "#8b5cf6", dash: [5, 3], bow: 0.03 },
+  tram: { label: "Tram", color: "#a78bfa", dash: [5, 3], bow: 0.02 },
   bus: { label: "Bus", color: "#f59e0b", dash: [11, 6], bow: 0.03 },
   car: { label: "Car", color: "#14b8a6", dash: [7, 5], bow: 0.03 },
   taxi: { label: "Taxi", color: "#f97316", dash: [9, 4], bow: 0.03 },
