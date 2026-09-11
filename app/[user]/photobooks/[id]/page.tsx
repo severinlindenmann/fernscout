@@ -17,6 +17,49 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
+type StatusTone = "navy" | "yellow" | "green" | "coral";
+
+/**
+ * The Gelato words this page has a meaning and a colour for — B1451. Keyed
+ * lower-case: `TERMINAL_FAILURES` in `lib/photobook/print.ts` already
+ * lower-cases before comparing, because Gelato's sandbox has been seen
+ * returning `Cancelled` capitalised.
+ *
+ * `printed` here is Gelato's word for "the printer has printed it" — not our
+ * own order-status column, which B1437 renamed to `built` for exactly this
+ * reason.
+ */
+const KNOWN_STATUSES: Record<string, { key: TranslationKey; tone: StatusTone }> = {
+  created: { key: "photobook.print.status.accepted", tone: "navy" },
+  passed: { key: "photobook.print.status.accepted", tone: "navy" },
+  in_production: { key: "photobook.print.status.inProduction", tone: "yellow" },
+  printed: { key: "photobook.print.status.inProduction", tone: "yellow" },
+  shipped: { key: "photobook.print.status.shipped", tone: "green" },
+  failed: { key: "photobook.print.status.refused", tone: "coral" },
+  canceled: { key: "photobook.print.status.refused", tone: "coral" },
+  cancelled: { key: "photobook.print.status.refused", tone: "coral" },
+};
+
+/**
+ * Pill colours, read from `app/globals.css` and nowhere else — `apply-the-brand`.
+ * The dot uses each tone's deep token as a fill (`yellow-600` included — a
+ * fill, never text, on this palette); the chip itself uses a lighter tint so
+ * the label stays legible without leaning on colour alone to carry meaning.
+ */
+const TONE_CLASSES: Record<StatusTone, string> = {
+  navy: "border-navy-300 bg-navy-100 text-navy-800",
+  yellow: "border-yellow-400 bg-yellow-300 text-yellow-950",
+  green: "border-green-500 bg-green-100 text-green-700",
+  coral: "border-coral-600 bg-coral-100 text-coral-600",
+};
+
+const DOT_CLASSES: Record<StatusTone, string> = {
+  navy: "bg-navy-600",
+  yellow: "bg-yellow-600",
+  green: "bg-green-700",
+  coral: "bg-coral-600",
+};
+
 /**
  * The owner's receipt page for a photobook order — B434's photobook
  * counterpart, and the page `app/[user]/photobook/order/route.ts` redirects
@@ -28,11 +71,16 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
  * normal shape.
  *
  * What it shows: what the book is, the download links for its built PDFs,
- * and the printer's own status once it has one. **Gelato's sandbox reports
- * `Cancelled` for every order it accepts.** That is not a failure and this
- * page does not treat it as one: it prints whatever Gelato says, unexplained,
- * because the honest state of an order this server does not run in
- * production is whatever the printer says it is.
+ * and the printer's own status once it has one, as a small colour-coded pill
+ * (B1451). The instance is live now, so a *recognised* Gelato word gets a
+ * translated label and a colour from `KNOWN_STATUSES` below. **A word this page
+ * has not mapped must never be given a meaning or a colour it has not
+ * earned** — Gelato can add a status tomorrow, and colouring an unknown one
+ * green or red would be inventing a fact about somebody's book. So an
+ * unrecognised status still prints the raw English word, untranslated, in
+ * the neutral navy tone — exactly what this page did for every status before
+ * this ticket, back when Gelato's sandbox reported `Cancelled` for every
+ * order it accepted and no word could be trusted at all.
  *
  * B1428 deleted the pre-B1157 door this page used to also serve: proposing
  * and then pressing a *separate* print charge for a book bought for its
@@ -60,23 +108,29 @@ export default async function PhotobookOrderPage({
   const files = visibleBookFiles(order.payload.files ?? []);
   const print = order.payload.print;
 
-  // What the print section shows: the printer's own status once it has one,
-  // or — for a book that was paid for and then refused — that the credits
-  // are back. Anything else is a book with no print door: bought before
-  // B1157 addressed a book at purchase, and never one this page can offer to
-  // print now.
+  // What the print section shows: a colour-coded pill for the printer's own
+  // status once it has one (B1451), plus — for a book that was paid for and
+  // then refused — the sentence that the credits are back. A book with no
+  // print door at all (bought before B1157 addressed a book at purchase) gets
+  // neither: just the legacy sentence below.
+  let pill: { tone: StatusTone; label: string } | null = null;
+  // Extra sentence under the pill — the refund notice, or the legacy-book
+  // notice. `null` when the pill already says everything there is to say.
   let statusText: string | null = null;
-  // B1367. The one status this page has to draw as an actual failure: the
-  // printer refused the order and the credits went back. Everything else
-  // (in progress, or no print door at all) reads as an ordinary, unremarkable
-  // status.
-  let statusIsFailure = false;
 
   if (print?.providerRef) {
     const gelatoStatus = await fetchOrderStatus(print.providerRef);
-    statusText = t("photobook.print.status", {
-      status: gelatoStatus ?? t("photobook.print.status.unknown"),
-    });
+    if (gelatoStatus) {
+      const known = KNOWN_STATUSES[gelatoStatus.toLowerCase()];
+      // The one rule that matters more than the styling: a word this page
+      // has not mapped gets no colour and no translation, ever — just the
+      // raw word Gelato sent, in the neutral tone. Gelato can add a status
+      // tomorrow, and colouring an unrecognised one green or red would be
+      // inventing a fact about somebody's book.
+      pill = known ? { tone: known.tone, label: t(known.key) } : { tone: "navy", label: gelatoStatus };
+    } else {
+      pill = { tone: "navy", label: t("photobook.print.status.unknown") };
+    }
   } else if (print?.failure) {
     /**
      * Bought printed, and the printer would not take it — B1157/B1330.
@@ -87,10 +141,10 @@ export default async function PhotobookOrderPage({
      * the printer refused — on a hosted instance that is the operator's
      * account, not this owner's business (B1165).
      */
+    pill = { tone: "coral", label: t("photobook.print.status.refused") };
     statusText = t("photobook.print.refusedRefunded", {
       credits: formatCredits(order.payload.credits),
     });
-    statusIsFailure = true;
   } else {
     // No print was ever completed for this order — a book from before this
     // instance addressed a book at the moment it was bought (pre-B1157),
@@ -105,7 +159,7 @@ export default async function PhotobookOrderPage({
   // printer has said, and a downloads card. No cover figure — nothing here
   // renders a thumbnail of the actual cover PDF, and that is deliberate;
   // building one is a server-side pipeline this ticket does not add.
-  const isFailure = statusIsFailure;
+  const isFailure = pill?.tone === "coral";
   const bookSizeLabel = size?.name ?? order.payload.options.size;
 
   return (
@@ -137,26 +191,29 @@ export default async function PhotobookOrderPage({
           </p>
         </div>
 
-        {/* Printing status — one colour-coded block: a dot, a title, and
-            whatever detail this state has to add. Coral is reserved for the
-            one state that is an actual failure; every other state (in
-            progress, or no print door at all) reads as ordinary navy. */}
+        {/* Printing status — a title, a colour-coded pill for the printer's
+            own state (B1451), and whatever detail this state has to add.
+            Coral is reserved for the one state that is an actual failure;
+            every other state (in progress, or no print door at all) reads as
+            ordinary navy. */}
         <section
           id="print"
           className={`mt-6 scroll-mt-4 rounded-lg border px-4 py-4 ${
             isFailure ? "border-coral-300 bg-coral-50" : "border-navy-200 bg-white"
           }`}
         >
-          <div className="flex items-center gap-2">
-            <span
-              aria-hidden
-              className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                isFailure ? "bg-coral-600" : "bg-navy-600"
-              }`}
-            />
+          <div className="flex flex-wrap items-center gap-2">
             <p className={`font-semibold ${isFailure ? "text-coral-600" : "text-navy-900"}`}>
               {t("photobook.print.heading")}
             </p>
+            {pill ? (
+              <span
+                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-semibold ${TONE_CLASSES[pill.tone]}`}
+              >
+                <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${DOT_CLASSES[pill.tone]}`} />
+                {pill.label}
+              </span>
+            ) : null}
           </div>
 
           {statusText ? <p className="mt-2 text-sm text-navy-700">{statusText}</p> : null}
