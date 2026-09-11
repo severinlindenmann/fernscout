@@ -2346,5 +2346,12 @@
   "agent.follow.undo": "Visszavonás",
   "agent.follow.weather": "Időjárás lekérdezése",
   "agent.follow.addCost": "+ Kiadás",
-  "agent.follow.share": "Megosztás"
+  "agent.follow.share": "Megosztás",
+  "order.status.waiting": "Rád vár",
+  "order.status.expired": "Lejárt",
+  "order.postcards.line": "{each} credit darabonként × {count}",
+  "order.object.cover": "Borító",
+  "order.object.front": "Előlap",
+  "order.meta.proposed": "Javasolva: {date} · Hivatkozás: {id}",
+  "order.meta.sent": "Elküldve: {date} · Hivatkozás: {id}"
 }

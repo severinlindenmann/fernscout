@@ -27,6 +27,31 @@ Every future change to an order is therefore two changes, and the two have
 already drifted: the photobook receipt says what a book cost, the postcard page
 never says what the cards cost after they are sent.
 
+## Validity
+
+Valid, and confirmed by reading it: the envelope block is written out at
+`BookLevelView.tsx:380`, `photobooks/[id]/page.tsx:321` and again in the
+postcard people list; `KNOWN_STATUSES` / `TONE_CLASSES` / `DOT_CLASSES` exist
+only on the receipt page; `postcards/[id]/page.tsx` has no ledger at all.
+
+## What changed while building
+
+**Five slots, not six.** The drafts count `action` among them, and it is not a
+fact about an order — it is a form that posts to the one route in this codebase
+that spends credits at a printer. Putting a label and a target for it in a data
+structure is the first half of a second way to spend. `OrderView` therefore
+carries the five *facts*, and `OrderDocket` (B1464) will take the action as a
+rendered slot from the page that owns the route.
+
+**The eight supporting types are not exported yet.** knip fails on an export
+nothing outside its own file uses, and nothing does until B1464's component
+imports them; AGENTS.md's own answer to that is to drop the keyword rather than
+invent a caller. B1464 puts `export` back on the ones it needs.
+
+**`PostalAddress` already carries the name**, so the input takes the envelope
+whole rather than a name beside an address — one less shape that can disagree
+with `bookAddressFor`.
+
 ## Work
 
 A product-agnostic view model, and nothing rendered yet — this ticket must be
