@@ -6,8 +6,9 @@ priority: high
 complexity: low
 area: postcards
 found: "2026-09-11T16:50:28Z"
-started: "2026-09-11T17:49:04Z"
-merged: "2026-09-11T17:55:44Z"
+started: "2026-09-11T17:57:50Z"
+session: 3f748903-2dc3-47a2-a958-98b83d641dc0
+claimed: "2026-09-11T17:57:50Z"
 ---
 
 # B1490 — A proposal opens straight into the cropper with no card that says four cards are waiting
