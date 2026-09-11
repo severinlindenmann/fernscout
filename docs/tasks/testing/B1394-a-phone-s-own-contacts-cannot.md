@@ -7,8 +7,7 @@ complexity: medium
 area: the web helper, contacts
 found: "2026-09-10T20:30:00Z"
 started: "2026-09-11T08:26:08Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T08:26:08Z"
+merged: "2026-09-11T09:55:08Z"
 ---
 
 # B1394 — A phone's own contacts cannot be handed to the upload field

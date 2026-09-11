@@ -7,8 +7,7 @@ complexity: low
 area: helper, postcards
 found: "2026-09-10T10:36:49Z"
 started: "2026-09-11T08:26:07Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T08:26:07Z"
+merged: "2026-09-11T09:55:07Z"
 ---
 
 # B1280 — The helper offers to add a postcard recipient, then refuses and names a settings page that does not exist

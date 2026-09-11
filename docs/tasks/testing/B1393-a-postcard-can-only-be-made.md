@@ -7,8 +7,7 @@ complexity: medium
 area: the web helper, postcards
 found: "2026-09-10T20:20:00Z"
 started: "2026-09-11T08:26:08Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T08:26:08Z"
+merged: "2026-09-11T09:55:07Z"
 ---
 
 # B1393 — A postcard can only be made from a photograph already on a day, and the helper cannot add the recipient it just asked for
