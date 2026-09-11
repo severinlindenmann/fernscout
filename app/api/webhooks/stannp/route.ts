@@ -45,7 +45,7 @@ export const dynamic = "force-dynamic";
  * contradict that decision instead of extending it.
  *
  * **Not built here:** refunding the credit a cancelled card cost, or
- * telling the owner. See B1529.
+ * telling the owner. See B1532.
  *
  * **Always 200, once the caller is authentic.** A webhook that answers 500
  * gets retried for hours, and neither an order this instance does not know

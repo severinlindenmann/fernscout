@@ -88,7 +88,7 @@ export type RecipientResult = {
    * `app/api/v1/[user]/postcards/[id]/route.ts`'s own module comment already
    * decided this system will never know whether a card was delivered, and a
    * webhook recording delivery status would quietly contradict that.
-   * Refunding the credit this card cost is not built here — see B1529.
+   * Refunding the credit this card cost is not built here — see B1532.
    */
   providerStatus?: "cancelled";
 };
