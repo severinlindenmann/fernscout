@@ -207,15 +207,18 @@ export const config = {
     "/:user/search-index.json",
     "/:user/story.json",
     // Added for request logging (B257), not for the 410 or the language
-    // cookie. `/agent.md` and the instance's own `/documentation.txt` are the
-    // two agent-facing documents the extension exclusion above was written
-    // to skip translating — and an agent's failed fetch to one of them is
-    // exactly what this ticket exists to let an operator confirm or rule
-    // out. `/api/:path*` is the write side: every draft, publish and invite
-    // call, previously invisible to proxy entirely. `proxy()` above skips
-    // the tombstone and locale checks for it — see the comment there.
+    // cookie. `/agent.md` (now a redirect — B311) and the instance's own
+    // `/documentation.txt` are agent-facing documents the extension exclusion
+    // above was written to skip translating — and an agent's failed fetch to
+    // one of them is exactly what this ticket exists to let an operator
+    // confirm or rule out. `/skill/:name.md` are the nine task guides
+    // `/agent.md` used to be, one route each (B311). `/api/:path*` is the
+    // write side: every draft, publish and invite call, previously invisible
+    // to proxy entirely. `proxy()` above skips the tombstone and locale
+    // checks for it — see the comment there.
     "/documentation.txt",
     "/agent.md",
+    "/skill/:name.md",
     "/api/:path*",
     // The day markdown twins (B291) — the other agent-facing document, and
     // the one an agent actually reaches for: it is what checks a day's own

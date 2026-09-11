@@ -1,7 +1,8 @@
 import { openApiDocument } from "@/lib/api/openapi";
 
 /**
- * The machine contract for the same API `/agent.md` describes in prose, and
+ * The machine contract for the same API the `/skill/*.md` guides describe in
+ * prose, and
  * the same document `/docs/api` renders for a person — see the comment on
  * `openApiDocument` for why it lives there rather than here.
  *

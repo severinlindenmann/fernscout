@@ -1,8 +1,9 @@
 import "server-only";
 import { serverSite } from "@/lib/site";
 import { getDefaultUsername, listedUsernames } from "@/lib/users";
-// Shared with /agent.md and /documentation.txt. A machine contract that
-// disagrees with the prose about what `private` means is worse than either.
+// Shared with the /skill/*.md guides and /documentation.txt. A machine
+// contract that disagrees with the prose about what `private` means is worse
+// than either.
 import {
   LOCALE_LIST,
   PRIVATE_SHUTS_OUT_GUESTS,
@@ -57,7 +58,8 @@ import {
 } from "@/lib/validate/media";
 
 /**
- * The machine contract for the same API `/agent.md` describes in prose.
+ * The machine contract for the same API the `/skill/*.md` guides describe in
+ * prose.
  *
  * `/documentation.txt` has always linked here; until now the link was a 404,
  * which is the worst failure a discovery document can have — an agent follows
@@ -163,7 +165,7 @@ export function openApiDocument() {
         "channel, because a v1 door onto them would sell the operator's own " +
         "Anthropic/Deepgram key in credits you did not buy for that purpose; " +
         "bring your own model and hand this API the finished content. " +
-        `The prose guide is at ${site.url}/agent.md.`,
+        `The prose guides are at ${site.url}/skill/*.md, indexed from ${site.url}/documentation.txt.`,
       // No SPDX identifier exists for PolyForm Shield, so this is name+url
       // rather than `identifier` — B652.
       license: {
@@ -1511,7 +1513,12 @@ export function openApiDocument() {
             },
           },
           responses: {
-            "201": { description: "Created" },
+            "201": {
+              description:
+                "Created. `next` names the call that writes the first day and links the " +
+                "skill document for it (B311), so a caller that cannot follow a link found " +
+                "inside a fetched document still learns where it is.",
+            },
             "400": { description: "The id, title, dates, people, rates or translations are not usable" },
             "401": { description: "Missing or invalid token" },
             "403": { description: "Another journal's token, or one scoped to a single trip" },
@@ -1767,7 +1774,10 @@ export function openApiDocument() {
             "/api/auth/signup/phone/verify with the same token first, unless the address " +
             "is this instance's operator or the username starts with \"test-\", both " +
             "exempt. Answers with an agent token for the journal it just created, so the " +
-            "caller can go straight on to creating a trip.",
+            "caller can go straight on to creating a trip. The 201's `next` names that " +
+            "call and links the skill document for it (B311) — a response is not a " +
+            "fetched page, so this is a URL a caller that cannot follow a link found " +
+            "inside a document can still reach.",
           requestBody: {
             required: true,
             content: {
@@ -1818,8 +1828,8 @@ export function openApiDocument() {
                       // No `default`: silence used to be read as `public`, which is
                       // exactly the field that decides whether a stranger can come
                       // across somebody's journal (B263). Required — ask.
-                      // The same two sentences /agent.md and /documentation.txt
-                      // carry, from the one place they are written.
+                      // The same two sentences the /skill/*.md guides and
+                      // /documentation.txt carry, from the one place they are written.
                       description:
                         `Required — there is no default. Whether this server advertises the ` +
                         `journal: ${VISIBILITY_MEANING} ` +
@@ -1948,7 +1958,11 @@ export function openApiDocument() {
                 "nothing was written; the two cases both answer 200 and never collide with " +
                 "the 201 a real write gets.",
             },
-            "201": { description: "Created as a draft" },
+            "201": {
+              description:
+                "Created as a draft. `next` points at the photographs skill document " +
+                "(B311), for a caller that cannot follow a link found inside a document.",
+            },
             "400": {
               description:
                 "Invalid entry. The body carries a `problems` list — every problem at once, " +

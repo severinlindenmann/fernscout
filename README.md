@@ -184,8 +184,9 @@ and content nobody lived is marked `test: true` and says so on the page.
 
 Indexed at [docs/](docs/), which also says how far to trust it. A running
 instance serves an owner-facing guide at `/docs`, the API reference at
-`/docs/api`, and the full agent guide at `/agent.md` — generated from the same
-constants the endpoints enforce, so they cannot drift.
+`/docs/api`, and the agent guide split by task at `/documentation.txt` and
+the nine `/skill/<task>.md` documents it indexes (B311) — generated from the
+same constants the endpoints enforce, so they cannot drift.
 
 | | |
 | --- | --- |

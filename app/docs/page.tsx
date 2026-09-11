@@ -169,8 +169,11 @@ export default async function DocsPage() {
       </section>
 
       <p className="mt-12 border-t border-navy-200 pt-6 font-mono text-xs text-navy-600">
-        <a href="/agent.md" className="underline decoration-navy-200 hover:decoration-navy-500">
-          /agent.md
+        <a
+          href="/documentation.txt"
+          className="underline decoration-navy-200 hover:decoration-navy-500"
+        >
+          /documentation.txt
         </a>{" "}
         ·{" "}
         <a href="/openapi.json" className="underline decoration-navy-200 hover:decoration-navy-500">

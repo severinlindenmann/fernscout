@@ -1,16 +1,19 @@
 /**
  * The sentences more than one agent-facing document has to say.
  *
- * There are four doors onto the same API — `/documentation.txt`,
- * `/<user>/documentation.txt`, `/agent.md` and `/openapi.json` — and they are
- * deliberately different documents rather than one. The first two are
- * *indexes*, and the second of them is generated per journal, naming that
- * journal's own trips; the guide is the *manual* and is the same for everyone
- * on the instance; the OpenAPI file is the machine contract. Merging them
- * would mean either handing an agent that asked "whose journal is this" 26 KB
- * of manual, or giving up the per-journal specificity that makes the small
- * documents worth reading. The llms.txt convention they follow is explicitly
- * an index that links to fuller documents.
+ * There are eleven doors onto the same API — `/documentation.txt`,
+ * `/<user>/documentation.txt`, the nine task-sized guides at `/skill/*.md`
+ * (B311) and `/openapi.json` — and they are deliberately different documents
+ * rather than one. The first two are *indexes*, and the second of them is
+ * generated per journal, naming that journal's own trips; the skill guides
+ * are the *manual*, one per task, and the same for everyone on the instance;
+ * the OpenAPI file is the machine contract. Merging the indexes with the
+ * manual would mean either handing an agent that asked "whose journal is
+ * this" a manual's worth of prose, or giving up the per-journal specificity
+ * that makes the small documents worth reading. The llms.txt convention they
+ * follow is explicitly an index that links to fuller documents — path
+ * scoping is what turns "fuller documents" into "one per task" rather than
+ * one enormous one; see the note in `lib/api/documentation.ts`.
  *
  * What that split does **not** license is saying the same thing four times in
  * four hand-written copies. AGENTS.md puts it plainly: a reference kept in two

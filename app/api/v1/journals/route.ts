@@ -1,4 +1,5 @@
 import { LOCALE_LIST, SECOND_LANGUAGE_COMMITMENT, VISIBILITY_MEANING } from "@/lib/api/agentCopy";
+import { skillDocPath } from "@/lib/api/skillDocMeta";
 import { SESSION_SCOPE, NO_JOURNAL, issueRelayLink, openAgentSession, resolveSession, revokeSession, signInUrl } from "@/lib/auth";
 import { isAdminEmail } from "@/lib/admin";
 import { isEnabled } from "@/lib/capabilities";
@@ -621,7 +622,9 @@ export async function POST(request: Request) {
       note: welcomeMailed
         ? undefined
         : "The welcome mail could not be sent, so the owner does not have the URL. Give it to them.",
-      next: `POST /api/v1/${created.username}/trips to create your first trip.`,
+      next:
+        `POST /api/v1/${created.username}/trips to create your first trip — ` +
+        `${serverSite().url}${skillDocPath("add-a-trip")} is what it takes.`,
     },
     { status: 201 },
   );

@@ -1,13 +1,13 @@
 ---
 name: keep-the-contract
-description: Check that /openapi.json and /agent.md still tell the truth after a change to an API route — every field documented, every enum from its source, every accepted field readable back. Use after adding or changing anything under app/api/, when a field "does not seem to work" over the API, or when somebody asks whether the spec is up to date.
+description: Check that /openapi.json and the /skill/*.md guides still tell the truth after a change to an API route — every field documented, every enum from its source, every accepted field readable back. Use after adding or changing anything under app/api/, when a field "does not seem to work" over the API, or when somebody asks whether the spec is up to date.
 ---
 
 # Does the document still tell the truth?
 
 **Everybody outside this checkout has the document and nothing else.** There is
 no editing interface (ROADMAP decision 24), so an agent writing somebody's
-journal over the network reads `/openapi.json` and `/agent.md` and has no
+journal over the network reads `/openapi.json` and the `/skill/*.md` guides and has no
 source to fall back on. A field the code accepts and the document does not
 mention is a field nobody will ever use. A field the document promises and the
 code drops is worse: the caller is told it worked.
@@ -96,7 +96,8 @@ whole test, and it is the one that keeps finding things.
 ## 4. The strongest check, when the change is large
 
 Give a subagent the base URL and nothing else — no repository access at all —
-and ask it to build a journal from `/agent.md` and `/openapi.json` alone,
+and ask it to build a journal from `/documentation.txt`, the `/skill/*.md`
+guides and `/openapi.json` alone,
 recording every point where it had to guess and every field that did not
 survive the round trip. Its stumbles are the document's bugs.
 

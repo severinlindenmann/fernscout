@@ -963,7 +963,9 @@ describe("the entry document tells an agent whether it can write here", () => {
   });
 
   test("tells an agent that cannot fetch the guide to ask for it to be pasted", () => {
-    expect(instanceDocumentation()).toMatch(/ask the person to paste it/i);
+    // Whitespace-tolerant: the guide is wrapped prose, and a line break can
+    // land between any two words, including "person" and "to" here.
+    expect(instanceDocumentation()).toMatch(/ask\s+the\s+person\s+to\s+paste\s+it/i);
   });
 
   test("inlines a minimal trip, a minimal day, and the publish call", () => {
@@ -1008,6 +1010,7 @@ describe("the discovery document does not point at 404s", () => {
       p === "/agent.md" ||
       p === "/openapi.json" ||
       p === "/documentation.txt" ||
+      /^\/skill\/[a-z-]+\.md$/.test(p) ||
       // Rewritten in next.config.ts to /api/well-known/… — RFC 9728 requires
       // the well-known segment first, which Next cannot express as a directory.
       p.startsWith("/.well-known/") ||

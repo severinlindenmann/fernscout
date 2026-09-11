@@ -24,7 +24,7 @@ export const ERROR_CODES: Record<string, string> = {
   invalid_token: "The token is not one this server issued, or it has expired. Tokens last seven days — ask for a new one the same way.",
   out_of_scope: "The token is valid, and it belongs to a different journal or a different trip than the one in the URL. Do not retry: ask for a token for this journal.",
   forbidden: "This call is the journal owner's, and the credential is not theirs. A trip-scoped token cannot do it either.",
-  not_authorised: "This credential cannot do this. Read /agent.md on which credential each door takes.",
+  not_authorised: "This credential cannot do this. Read /documentation.txt on which credential each door takes.",
   not_signed_in: "This route takes a browser session cookie, not a bearer token. An agent cannot call it.",
   no_session: "No session cookie, and this route takes nothing else.",
   invalid_handover: "The 20-minute handover credential is spent, expired or not for this journal. The owner makes a new one from their own page.",

@@ -7,6 +7,7 @@ import {
   writableTrips,
 } from "@/lib/api/auth";
 import { tripSummary } from "@/lib/api/entries";
+import { skillDocPath } from "@/lib/api/skillDocMeta";
 import { getMalformedTrips, getTrips } from "@/lib/trips";
 import { createTrip } from "@/lib/tripWrite";
 import { checkAgainstContract } from "@/lib/api/contract";
@@ -207,7 +208,8 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
                 .map((key) => key)
                 .join(", ") || "nothing beyond a title, a date and its prose"
             : "the usual"
-        } — send them, or say in the call that the day has none.`,
+        } — send them, or say in the call that the day has none. ` +
+        `${serverSite().url}${skillDocPath("add-a-day")} is the whole of what a day takes.`,
     },
     { status: 201 },
   );

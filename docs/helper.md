@@ -160,7 +160,8 @@ content/<you>/trips/<trip>/
 
 Point this software's `CONTENT_DIR` at that `content/` folder and it is a site —
 see [running-locally.md](running-locally.md). Or hand the files to a hosted
-journal over the API, for which [`/agent.md`](/agent.md) is the guide.
+journal over the API, for which [`/documentation.txt`](/documentation.txt) and
+the `/skill/*.md` task guides are the guide.
 
 **Everything it writes is a draft.** `status: draft` on every entry, filtered out
 of every reading path by `lib/entries.ts`. Publishing is a person's decision

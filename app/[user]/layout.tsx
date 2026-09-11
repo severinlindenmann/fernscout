@@ -60,8 +60,8 @@ export async function generateMetadata({
        * The two machine readings of this journal — B879.
        *
        * `feed.xml` was served per journal and pointed at by nothing, so a feed
-       * reader looking at the page found none. `/agent.md` is the whole guide
-       * for an agent working over the network, and until this link an agent
+       * reader looking at the page found none. `/<user>/documentation.txt` is
+       * this journal's own machine reading, and until this link an agent
        * handed a journal URL had to already know the convention to find it.
        *
        * Deliberately not `/llms.txt`: `app/documentation.txt/route.ts` says
@@ -71,7 +71,7 @@ export async function generateMetadata({
        */
       types: {
         "application/rss+xml": `/${username}/feed.xml`,
-        "text/markdown": "/agent.md",
+        "text/markdown": `/${username}/documentation.txt`,
       },
     },
     ...(robots ? { robots } : {}),

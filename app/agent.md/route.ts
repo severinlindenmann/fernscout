@@ -1,24 +1,16 @@
-import { agentGuide } from "@/lib/api/documentation";
+import { serverSite } from "@/lib/site";
 
 /**
- * The full guide. Generated beside the routes it describes, so an endpoint
- * change and a stale document are the same diff rather than two.
+ * Retired — B311. The 56KB guide this route used to serve is now nine
+ * task-sized documents at `/skill/<name>.md`, generated from the same
+ * source (`lib/api/skillDocs.ts`, sliced from `lib/api/documentation.ts`'s
+ * `agentGuide()`), plus `/documentation.txt`, which stays self-sufficient on
+ * its own for signup through a published day (B259).
  *
- * **No `X-Robots-Tag` here, unlike `/documentation.txt` and `/openapi.json`'s
- * sibling below it once carried too — B256.** A well-behaved automated
- * fetcher can read `noindex` as "do not use this content", which is exactly
- * the wrong instruction on a document whose entire audience is automated
- * fetchers: an agent that obeyed it, or that treated the header as a reason
- * not to trust the fetch, was left with nothing but this file's own 3.7 KB
- * summary and no way to finish signing somebody up. `/documentation.txt`
- * keeps the header — it is the index, meant to stay out of search results,
- * and it demonstrably still fetches fine with it on.
+ * A 301 rather than a 404: every mail, every skill and every other instance's
+ * bookmark that still says `/agent.md` lands somewhere true rather than
+ * somewhere dead.
  */
 export function GET() {
-  return new Response(agentGuide(), {
-    headers: {
-      "Content-Type": "text/markdown; charset=utf-8",
-      "Cache-Control": "public, max-age=300",
-    },
-  });
+  return Response.redirect(`${serverSite().url}/documentation.txt`, 301);
 }

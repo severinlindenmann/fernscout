@@ -89,7 +89,7 @@ export async function notYourJournal(request: Request, username: string): Promis
           "cookie only. It never looks at an Authorization header, so a valid token " +
           "gets this same answer, and this is not a statement about who owns the " +
           "journal. Everything here an agent does through /api/v1/<user>/… with that " +
-          "token: see /agent.md and /openapi.json.",
+          "token: see /documentation.txt and /openapi.json.",
       },
       { status: 404 },
     );

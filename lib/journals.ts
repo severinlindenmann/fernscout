@@ -559,7 +559,7 @@ export async function sendWelcome(input: {
             {
               kind: "paragraph",
               text: t("welcome.token", {
-                guide: `${site.url}/agent.md`,
+                guide: `${site.url}/documentation.txt`,
                 email: input.email,
               }),
             },

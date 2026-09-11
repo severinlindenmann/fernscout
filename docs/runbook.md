@@ -609,8 +609,9 @@ different mechanism than this switch.
 on — build assets served dozens of times per page view, and a log that is
 mostly those lines is a log nobody reads. Everything else the matcher admits
 is logged, including `/api/**` (every draft, publish and invite call — the
-write side this whole ticket exists for) and the two agent-facing root
-documents, `/agent.md` and `/documentation.txt`.
+write side this whole ticket exists for) and the agent-facing root documents,
+`/documentation.txt` and the `/skill/*.md` task guides (`/agent.md` itself is
+now a redirect — B311).
 
 `scripts/deploy.sh` prints whether this is on, the same way it already prints
 backup and Caddy state.

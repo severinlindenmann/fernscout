@@ -62,29 +62,60 @@ and the skill files are an optimisation on top of it, not a replacement for it.
 
 ## Work
 
-Not designed yet. What has to be decided, roughly in order:
+Built, 2026-09-11:
 
-1. **What the split is.** Probably the flows that already have names in
-   `.claude/skills/`, plus signup. Resist inventing a taxonomy: if a document
-   does not correspond to something an owner asks for out loud, it does not
-   need to exist.
-2. **Where the line falls** between the entry document's floor and the skill
-   files' depth. The honest test: could an agent that fetched only
-   `/documentation.txt` still create a journal, a trip and a published day? It
-   must remain yes.
-3. **Generated from the same constants**, not written twice.
-   `lib/api/agentCopy.ts` already exists for exactly this reason and every
-   drift bug this project has had (B263, B277, B294) came from two places
-   holding one fact. Nine documents multiply that risk by nine, and the answer
-   is that all of them render from one structure.
-4. **How an agent learns the skill files exist** — and whether the landing
-   page's copied instruction should name more than two URLs, given B261. A
-   list of nine in a pasted prompt is not an instruction anybody will paste.
-   Consider instead that a *response* can name the next document: an API reply
-   is not a fetched page, and `next:` fields already point agents onward.
-5. **Whether `/agent.md` survives.** It may become the concatenation of the
-   skill files, so that an agent which prefers one big read still has one — at
-   no maintenance cost, since it is generated.
+1. **The split**, exactly the nine names the owner proposed, no more and no
+   fewer: `new-account`, `add-journal`, `add-a-trip`, `add-a-day`,
+   `ingest-photos`, `invite-someone`, `costs`, `send-postcards`,
+   `make-a-photobook`. Each is served at `GET /skill/<name>.md` from its own
+   `app/skill/<name>.md/route.ts`, all thin wrappers around one
+   `skillDocResponse()` in `lib/api/skillRoute.ts`.
+2. **One source, sliced rather than re-described.** `lib/api/skillDocs.ts`
+   does not write a second copy of any procedure. It cuts `agentGuide()`'s own
+   rendered markdown at a fixed list of headings already in it (`MARKERS` in
+   that file) and reassembles the pieces per document, so a sentence in a
+   skill document is byte-for-byte the same sentence in the guide —
+   `test/skill-docs.test.ts`'s "known slices reappear in the guide verbatim"
+   asserts this for all nine. `lib/api/skillDocMeta.ts` holds only the slugs,
+   titles and one-line summaries (kept apart from `skillDocs.ts` so
+   `documentation.ts` can list the nine documents without importing the
+   module that imports `agentGuide()` back from itself).
+3. **`/documentation.txt` keeps its floor**, unchanged in kind: it still
+   inlines a minimal trip, a minimal day and the publish call rather than
+   pointing at a skill document for any of the three — `test/agent-interface
+   .test.ts`'s "inlines a minimal trip, a minimal day, and the publish call"
+   is the same pre-existing test, still green. What changed is only that its
+   "Machine-readable" section now lists the nine `/skill/<name>.md` links
+   (titles and summaries from `skillDocMeta.ts`) instead of the one
+   `/agent.md` link, and the German pasted-prompt instruction
+   (`ownerPromptDe`, B261) was trimmed back to naming `/documentation.txt`
+   alone rather than growing to name nine.
+4. **`/agent.md` is retired**: `app/agent.md/route.ts` now answers `301` to
+   `/documentation.txt` rather than serving the 150KB guide. Every reference
+   to `/agent.md` across the repo (excluding `node_modules`, `.next` and
+   `docs/plans/`) was updated to point at `/documentation.txt` or the
+   relevant `/skill/<name>.md` instead: `AGENTS.md`, `README.md`,
+   `.claude/skills/keep-the-contract/SKILL.md`, `lib/api/openapi.ts`,
+   `lib/api/agentCopy.ts`, `lib/api/errorCodes.ts` (`not_authorised`),
+   `lib/helper/server.ts`, `lib/journals.ts` (the welcome mail), `proxy.ts`
+   (added `/skill/:name.md` to the same exclusion list `/agent.md` was on),
+   `instrumentation.ts`, `app/[user]/layout.tsx` (the `text/markdown`
+   alternate link, now per-journal `/<user>/documentation.txt`),
+   `app/docs/page.tsx` and `app/docs/api/page.tsx`.
+5. **The `agentGuide()` function itself was not deleted.** It stays as the
+   one place the prose is written and is no longer served directly — only
+   `skillDocs.ts` and the test suite read it now — so the nine documents and
+   the (retired) full guide can never disagree; `npm run unused` is clean
+   with it kept.
+
+Not built, and worth a separate look (captured as findings below, not fixed
+here): `agentGuide()`'s own rendered size has grown to ~146KB (it was 55.8KB
+when this ticket was found), well past the point where reading it directly
+is any use to anyone — worth a B308-style byte-count ceiling on it, or on
+retiring the concatenation itself once nothing depends on reading it whole.
+`add-a-day.md` renders at 10164 bytes, under the 10KB ceiling but by under
+100 bytes; a small addition to the day schema will need a corresponding trim
+elsewhere in that document to stay under it.
 
 Supersedes the open question in **B308**, which asked how to give the documents
 a shape and listed "separate the script from the reference" as its first

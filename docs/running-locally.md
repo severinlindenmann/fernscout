@@ -285,8 +285,9 @@ curl -X POST localhost:3700/api/auth/verify -H 'content-type: application/json' 
 ```
 
 From there, `Authorization: Bearer fs_agent_…` reaches `/api/v1/…`.
-`GET /agent.md` is the guide an agent reads, and it is generated from the same
-constants the endpoints enforce, so it cannot drift from them.
+`GET /documentation.txt` and the nine `GET /skill/<task>.md` guides (B311) are
+what an agent reads, and they are generated from the same constants the
+endpoints enforce, so they cannot drift from them.
 
 ---
 
