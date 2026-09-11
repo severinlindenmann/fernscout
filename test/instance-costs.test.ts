@@ -412,7 +412,7 @@ describe("print, WhatsApp and SMS on the dashboard", () => {
         kind: "postcard",
         provider: "stannp",
         provider_ref: null,
-        status: "printed",
+        status: "built",
         payload: "{}",
         cost_minor: 840, // GBP 8.40
         currency: "GBP",

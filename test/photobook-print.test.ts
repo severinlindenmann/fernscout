@@ -7,7 +7,7 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { balanceOf, grant } from "@/lib/credits";
 import { DEFAULT_OPTIONS } from "@/lib/photobook/options";
-import { claimOrder, getPhotobookOrder, markPrinted, type PhotobookPayload } from "@/lib/photobook/orders";
+import { claimOrder, getPhotobookOrder, markBuilt, type PhotobookPayload } from "@/lib/photobook/orders";
 import { approveContact, confirmContact, requestContact } from "@/lib/contacts";
 import { issueCode } from "@/lib/auth";
 
@@ -134,7 +134,7 @@ beforeEach(async () => {
   CONTACT = await activeContact(OWNER, "reader@example.test");
 
   await claimOrder(OWNER, ID, PAYLOAD);
-  await markPrinted(OWNER, ID, PAYLOAD);
+  await markBuilt(OWNER, ID, PAYLOAD);
   const withPrint: PhotobookPayload = {
     ...PAYLOAD,
     print: { contactId: CONTACT, quotedCredits: QUOTED, quotedAt: new Date().toISOString(), shipmentMethodUid: "swiss_post_economy" },

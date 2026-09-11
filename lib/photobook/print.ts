@@ -85,7 +85,7 @@ function isOperatorFault(kind: GelatoFailure): boolean {
 export async function submitBuiltBook(owner: string, id: string): Promise<PrintOutcome> {
   const order = await getPhotobookOrder(owner, id);
   if (!order) return { ok: false, reason: "unknown_order" };
-  if (order.status !== "printed") return { ok: false, reason: "not_built" };
+  if (order.status !== "built") return { ok: false, reason: "not_built" };
 
   const print = order.payload.print;
   if (!print?.contactId) return { ok: false, reason: "no_recipient" };

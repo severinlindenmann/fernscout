@@ -11,7 +11,7 @@ import {
   claimForPrint,
   claimOrder,
   getPhotobookOrder,
-  markPrinted,
+  markBuilt,
   markPrintFailed,
   type PhotobookPayload,
 } from "@/lib/photobook/orders";
@@ -75,7 +75,7 @@ describe("print state on the order row", () => {
   test("lets exactly one of two simultaneous presses claim the print", async () => {
     const id = "print-one-1234";
     await claimOrder(OWNER, id, PAYLOAD);
-    await markPrinted(OWNER, id, PAYLOAD);
+    await markBuilt(OWNER, id, PAYLOAD);
     const [a, b] = await Promise.all([claimForPrint(OWNER, id), claimForPrint(OWNER, id)]);
     expect([a, b].filter(Boolean)).toHaveLength(1);
   });
@@ -89,18 +89,18 @@ describe("print state on the order row", () => {
   test("refuses to claim another journal's order", async () => {
     const id = "print-three-123";
     await claimOrder(OWNER, id, PAYLOAD);
-    await markPrinted(OWNER, id, PAYLOAD);
+    await markBuilt(OWNER, id, PAYLOAD);
     expect(await claimForPrint("someone-else", id)).toBe(false);
   });
 
   test("returns a failed print to printed, so it can be tried again", async () => {
     const id = "print-four-1234";
     await claimOrder(OWNER, id, PAYLOAD);
-    await markPrinted(OWNER, id, PAYLOAD);
+    await markBuilt(OWNER, id, PAYLOAD);
     await claimForPrint(OWNER, id);
     await markPrintFailed(OWNER, id, PAYLOAD, "refused");
     const row = await getPhotobookOrder(OWNER, id);
-    expect(row?.status).toBe("printed");
+    expect(row?.status).toBe("built");
     expect(row?.payload.print?.failure).toBe("refused");
   });
 
@@ -109,7 +109,7 @@ describe("print state on the order row", () => {
   test("keeps the provider's own message beside the failure code", async () => {
     const id = "print-five-1234";
     await claimOrder(OWNER, id, PAYLOAD);
-    await markPrinted(OWNER, id, PAYLOAD);
+    await markBuilt(OWNER, id, PAYLOAD);
     await claimForPrint(OWNER, id);
     await markPrintFailed(
       OWNER,
@@ -130,7 +130,7 @@ describe("print state on the order row", () => {
     // it — this asserts the second pass over `printed` rows does.
     const id = "print-six-1234";
     await claimOrder(OWNER, id, PAYLOAD);
-    await markPrinted(OWNER, id, PAYLOAD);
+    await markBuilt(OWNER, id, PAYLOAD);
     await claimForPrint(OWNER, id);
     await markPrintFailed(OWNER, id, PAYLOAD, "refused", "complete the company information");
 
@@ -145,7 +145,7 @@ describe("print state on the order row", () => {
   test("a book still on its way to the printer is not a trouble", async () => {
     const id = "print-seven-1234";
     await claimOrder(OWNER, id, PAYLOAD);
-    await markPrinted(OWNER, id, PAYLOAD);
+    await markBuilt(OWNER, id, PAYLOAD);
     // No `markPrintFailed` — this order has no `print.failure` at all, so the
     // second pass over `printed` rows must not invent one.
     const found = await troubles("2020-01-01");

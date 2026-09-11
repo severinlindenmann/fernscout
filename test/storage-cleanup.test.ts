@@ -9,7 +9,7 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import {
   claimOrder,
   getPhotobookOrder,
-  markPrinted,
+  markBuilt,
   type PhotobookPayload,
 } from "@/lib/photobook/orders";
 import { storeInboxFile, listInbox } from "@/lib/inbox";
@@ -84,7 +84,7 @@ afterEach(async () => {
 describe("what a cleanup takes", () => {
   test("a printed book's PDFs go; its record stays, marked", async () => {
     await claimOrder("alex", "ord-00001", PAYLOAD);
-    await markPrinted("alex", "ord-00001", { ...PAYLOAD, files: ["book-interior.pdf"] });
+    await markBuilt("alex", "ord-00001", { ...PAYLOAD, files: ["book-interior.pdf"] });
     write(4_000, "photobooks", "ord-00001", "book-interior.pdf");
 
     const plan = await cleanupPlan("alex");
@@ -97,7 +97,7 @@ describe("what a cleanup takes", () => {
     // The row survives — the price, the date and the fact it was printed are
     // history — and is marked so nothing offers a download that would 404.
     const order = await getPhotobookOrder("alex", "ord-00001");
-    expect(order?.status).toBe("printed");
+    expect(order?.status).toBe("built");
     expect(order?.payload.pruned).toBe(true);
     expect(order?.payload.files).toEqual([]);
   });
