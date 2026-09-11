@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (206)
+## backlog (207)
 
 ### security (4)
 
@@ -169,7 +169,7 @@ Do not edit them by hand; run the script.
 | [B1453](backlog/chore/B1453-createjournal-still-writes-costs-enabled-into.md) | createJournal still writes costs: enabled into every new journal's config, where nothing reads it | CHORE | low | low |
 | [B1473](backlog/chore/B1473-twenty-three-photobook-print-strings-lost.md) | Twenty-three photobook print strings lost their reader in B1428 and are still shipped in three languages | CHORE | low | low |
 
-### ops (12)
+### ops (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -177,6 +177,7 @@ Do not edit them by hand; run the script.
 | [B1232](backlog/ops/B1232-authentication-templates-are-gated-on-a.md) | Authentication templates are gated on a business verification this account has not passed | OPS | high | low |
 | [B1311](backlog/ops/B1311-a-config-json-written-as-root.md) | A config.json written as root takes the whole site down at the next build | OPS | high | low |
 | [B1313](backlog/ops/B1313-two-deploys-can-run-at-once.md) | Two deploys can run at once and leave the site down with a corrupt build cache and a detached HEAD | OPS | high | low |
+| [B1512](backlog/ops/B1512-the-sync-doors-have-never-been.md) | The sync doors have never been driven against the live instance or a real journal | OPS | high | medium |
 | [B403](backlog/ops/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium |
 | [B107](backlog/ops/B107-postcards-have-only-ever-run-from.md) | Postcards have only ever run from a laptop CLI, never as a capability of the deployed site | OPS | medium | medium |
 | [B1137](backlog/ops/B1137-there-is-no-place-to-try.md) | There is no place to try a change against real data before it reaches fernscout.ch | OPS | medium | medium |
