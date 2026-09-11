@@ -269,6 +269,12 @@ if [ "$do_build" = 1 ]; then
   # reading out of that directory, and removing it would take the old build
   # down to fix a new one that has not been restarted onto yet. If a plain
   # rebuild is ever not enough, this fails and says so, which is the point.
+  #
+  # Logged as its own step, and that is not decoration. This whole ticket is
+  # about a gate nobody could see: an operator reading a deploy scans the
+  # `==>` lines, and a bare line of output after a page of build chatter is
+  # not one of them. A check you cannot tell ran is the state we started in.
+  log "checking the build"
   if ! as_service node scripts/check-build.mjs; then
     log "the build is incomplete — building again before going near the restart"
     as_service npm run build
