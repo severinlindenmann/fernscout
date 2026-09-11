@@ -45,10 +45,21 @@ vi.mock("@/lib/helper/server", async (importOriginal) => {
 
 vi.mock("@/lib/capabilities", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/capabilities")>();
-  return { ...actual, isEnabled: () => true };
+  // Every capability on except `credits` — B1091. This journal never
+  // configures a database, so a `credits` that read as on would make every
+  // `spend` refuse for want of somewhere to record it (`lib/credits.ts`'s
+  // own "nowhere to record them" refusal), taking the free path this file
+  // is not testing rather than ever reaching the mocked `findInJournal`.
+  return { ...actual, isEnabled: (name: string) => name !== "credits" };
 });
 
-vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => undefined }) }));
+// B1091 — the route now spends before its model call and needs a locale for
+// the zero-balance sentence, so it reads `next/headers` where it never did
+// before; both exports are mocked now, the same shape `ask`'s own test uses.
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined }),
+  headers: async () => new Headers(),
+}));
 
 const params = { params: Promise.resolve({ user: "alex" }) };
 let dir = "";

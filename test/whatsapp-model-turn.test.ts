@@ -6,6 +6,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
+import { grant } from "@/lib/credits";
 import { createJournal, setJournalFeatures } from "@/lib/journals";
 import { forget } from "@/lib/helper/thread";
 import { turnsIn } from "@/lib/helper/sessions";
@@ -77,6 +78,10 @@ async function bindGreetAcknowledge(username: string, tel: string): Promise<void
   });
   expect(created.ok).toBe(true);
   expect(setJournalFeatures(username, { whatsappInbound: true }).ok).toBe(true);
+  // B1091 — a model turn over WhatsApp now spends `HELPER_TURN_CREDITS`
+  // before it runs. This file never goes through the signup route's own
+  // grant, so the journal starts at zero without this.
+  await grant(username, 1);
   await handleInboundMessage(textMessage(tel, `wamid.${username}.greet`, "hi"));
   await handleInboundMessage(textMessage(tel, `wamid.${username}.yes`, "yes"));
 }

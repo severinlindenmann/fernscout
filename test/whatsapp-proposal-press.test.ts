@@ -6,6 +6,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
+import { grant } from "@/lib/credits";
 import { createJournal, setJournalFeatures } from "@/lib/journals";
 import { forget, history } from "@/lib/helper/thread";
 import { getTrips } from "@/lib/trips";
@@ -112,6 +113,15 @@ async function bindGreetAcknowledge(username: string, tel: string, defaultLocale
   });
   expect(created.ok).toBe(true);
   expect(setJournalFeatures(username, { whatsappInbound: true }).ok).toBe(true);
+  // B1091 — a model turn over WhatsApp now spends `HELPER_TURN_CREDITS`
+  // (0.02) before it runs, the same gate the web room's own `/ask` uses.
+  // This file never went through the signup route's own grant, so the
+  // journal starts at zero without this. One whole credit — `grant` takes
+  // no fraction — covers dozens of turns and still leaves the one
+  // `draft_words`-refuses-to-pay test below true: after its own three
+  // ask-turns (0.06 spent) the balance sits at 0.94, still short of the
+  // whole `WRITE_DAY_CREDITS` that press needs.
+  await grant(username, 1);
   await handleInboundMessage(textMessage(tel, `wamid.${username}.greet`, "hi"));
   const yes = defaultLocale === "de" ? "ja" : "yes";
   await handleInboundMessage(textMessage(tel, `wamid.${username}.yes`, yes));
