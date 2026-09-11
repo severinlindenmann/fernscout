@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: photobook composer
 found: "2026-09-11T19:54:57Z"
+merged: "2026-09-11T19:56:05Z"
 ---
 
 # B1524 — The photobook composer's switches do not match what they remove, and the cover is never shown
