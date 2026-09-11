@@ -1,6 +1,7 @@
 ---
 id: B1432
 title: German phrasing for “where's my stuff” still routes to the bytes-only account tool
+superseded: "B1053. The mis-routing was measured again on 2026-09-11 against the two-pass area router and did not reproduce -- no bytes-only answer in three German probes, and two of the three routed exactly right."
 type: ISSUE
 priority: low
 complexity: low
@@ -74,3 +75,36 @@ That also settles the practical half. B1393 left the tool registry at 7,979 of
 8,000 tokens, so "tighten `account`'s description" in the Work section above
 has no room to be tightened into — and B1053 is now going to regroup that
 registry anyway. Build the guard; leave the descriptions alone.
+
+## Re-measured, 2026-09-11 — the fault does not reproduce
+
+The owner asked for a fresh measurement before any guard was built, because
+B1053 replaced the 48-way tool pick with a seven-way area classifier hours after
+this ticket was filed. That was the right call: **the failure this ticket
+records is gone.**
+
+Three German probes against the live model, owner session, one turn each:
+
+| Asked | Went to | Answered |
+| --- | --- | --- |
+| *"Wo ist eigentlich mein ganzer Kram?"* | trips | *"Du hast fünf Trips in deinem Journal."* |
+| *"Wo sind meine hochgeladenen Fotos?"* | **inbox** | *"Du hast 7 Fotos im Inbox warten — sie sind noch nicht an einem Tag angehängt."* |
+| *"Was wartet noch bei mir?"* | **drafts** | both unpublished days, named, dated, with their trip |
+
+**Not one bytes-only answer.** The B829 shape — a confident reply in bytes to a
+question about where something is — did not occur in any of the three.
+
+So the Work section's target no longer exists in two senses: `lib/helper/tools.ts:548`
+was restructured into `lib/helper/tools/areas/`, and the behaviour it was going
+to guard is not there to guard. Building the code guard the owner chose would
+have meant guarding against a fault that B1053 had already removed — which is
+why re-measuring first was worth two credits.
+
+**One thing left, and it is not this ticket.** The first probe is answered
+plausibly rather than well: *"where is all my stuff"* gets the trips list, not
+the inbox. That is B1053's design showing through — `trips` is the always-present
+hub, so it is what an uncertain area pick falls back to. A fallback that answers
+something reasonable is the right failure mode, and it is a very different thing
+from answering in bytes. Not captured: there is no evidence anybody was misled,
+and a ticket for "the model chose a defensible answer over a better one" is how a
+backlog fills with taste.
