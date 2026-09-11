@@ -41,6 +41,88 @@ const LANGUAGE_NAME: Record<string, string> = {
  * from level 2" is the ticket's own rule, and this is the one form that makes
  * that true without a second copy of it.
  */
+
+/**
+ * The drawing's settings card — B1487.
+ *
+ * Every control this panel had is still here; what changed is that they are
+ * rows in one card rather than a stack of native widgets. A label on the
+ * left, the value or the switch on the right, a hairline between. The panel
+ * was two `<select>`s carrying their own operating-system chrome, a
+ * nine-line list of checkboxes and two underlined links, about four hundred
+ * pixels of form dropped into a cream page, and it read as a dialog from
+ * another application.
+ *
+ * The `<select>` is still a `<select>` — `appearance-none` and a chevron, so
+ * the keyboard, the screen reader and the phone's native picker all behave
+ * exactly as they did. Only the paint is different.
+ */
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 px-4 py-2.5">
+      <span className="min-w-0 text-sm text-navy-800">{label}</span>
+      <span className="shrink-0">{children}</span>
+    </div>
+  );
+}
+
+/** A value that opens a native picker, drawn as a value rather than a box. */
+function ValueSelect({
+  value,
+  onChange,
+  children,
+  label,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  children: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <span className="relative inline-flex items-center">
+      <select
+        aria-label={label}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="min-h-11 cursor-pointer appearance-none rounded-lg bg-transparent py-1 pl-2 pr-6 text-right font-mono text-sm text-navy-900 hover:bg-navy-50 focus-visible:outline-2 focus-visible:outline-yellow-600"
+      >
+        {children}
+      </select>
+      <span aria-hidden className="pointer-events-none absolute right-1 text-navy-500">
+        ▾
+      </span>
+    </span>
+  );
+}
+
+/** One boolean, as a switch. `peer` keeps the input the thing that is
+ *  checked, focused and read out; the span is only paint. */
+function Switch({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+}) {
+  return (
+    <label className="flex min-h-11 cursor-pointer items-center">
+      <span className="sr-only">{label}</span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="peer sr-only"
+      />
+      <span
+        aria-hidden
+        className="relative h-6 w-10 rounded-full bg-navy-200 transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:bg-yellow-600 peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-focus-visible:ring-yellow-600 peer-focus-visible:ring-offset-2"
+      />
+    </label>
+  );
+}
+
 export default function BookSettingsPanel({
   options,
   setOptions,
@@ -67,159 +149,135 @@ export default function BookSettingsPanel({
   const [coverOpen, setCoverOpen] = useState(false);
 
   return (
-    <div className="space-y-6">
-      {/*
-       * Soft or hard — B845. A `<select>` like the size and language pickers
-       * beside it, for the same reason those are selects: this is one choice
-       * out of two named options, not a photograph to look at. It comes first
-       * because it decides which sizes the one below may offer.
-       */}
-      <label className="block">
-        <span className="text-sm font-semibold text-navy-800">
-          {t("photobook.option.coverType")}
-        </span>
-        <select
-          value={options.coverType}
-          onChange={(e) => {
-            const coverType = e.target.value as (typeof COVER_TYPES)[number];
-            setOptions((o) => ({
-              ...o,
-              coverType,
-              size: sizesFor(coverType).some((s) => s.id === o.size)
-                ? o.size
-                : defaultSizeFor(coverType).id,
-            }));
-          }}
-          className="mt-1 block w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm"
-        >
-          {COVER_TYPES.map((c) => (
-            <option key={c} value={c}>
-              {t(`photobook.option.coverType.${c}`)}
-            </option>
-          ))}
-        </select>
-        <span className="mt-1 block text-xs text-navy-600">
-          {t("photobook.option.coverTypeHint")}
-        </span>
-      </label>
-
-      <label className="block">
-        <span className="text-sm font-semibold text-navy-800">
-          {t("photobook.option.size")}
-        </span>
-        <select
-          value={options.size}
-          onChange={(e) => setOptions((o) => ({ ...o, size: e.target.value }))}
-          className="mt-1 block w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm"
-        >
-          {sizesFor(options.coverType).map((size) => (
-            <option key={size.id} value={size.id}>
-              {SIZE_LABEL[size.id] ? t(SIZE_LABEL[size.id]) : size.name}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {/*
-       * The front cover — B512.
-       *
-       * A book-level control, deliberately not a seventh button under every
-       * thumbnail on every day: the page a stranger actually sees is one
-       * choice for the whole book, not a property of any single photograph's
-       * tile. Placed beside format and language, the other decisions that
-       * apply to the book as a whole rather than to one day of it.
-       *
-       * A radiogroup, not a select: there is no text label for a photograph
-       * worth putting in a dropdown, and — as with the day layout — exactly
-       * one of these is ever chosen.
-       */}
-      <div>
-        <button
-          type="button"
-          onClick={() => setCoverOpen((v) => !v)}
-          aria-expanded={coverOpen}
-          className="flex w-full items-center justify-between gap-2 text-left"
-        >
-          <span className="text-sm font-semibold text-navy-800">
-            {t("photobook.option.cover")}
-          </span>
-          <span aria-hidden className="text-navy-500">
-            {coverOpen ? "−" : "+"}
-          </span>
-        </button>
-        <p className="mt-1 text-xs text-navy-600">{t("photobook.option.coverHint")}</p>
-        {coverOpen && (
-          <div
-            role="radiogroup"
-            aria-label={t("photobook.option.coverLegend")}
-            className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4"
+    <div className="overflow-hidden rounded-xl border border-navy-200 bg-white">
+      <div className="divide-y divide-navy-100">
+        {/* Soft or hard — B845. It comes first because it decides which sizes
+            the row below may offer. */}
+        {/* No hint on the row — B1487. The card is 20rem wide beside the
+            book, and the sentence explaining what a cover costs to print
+            wraps to four lines and pushes every switch below it off the
+            screen. The wizard says it at the moment the choice is first
+            made, which is where it belongs. */}
+        <Row label={t("photobook.option.coverType")}>
+          <ValueSelect
+            label={t("photobook.option.coverType")}
+            value={options.coverType}
+            onChange={(v) => {
+              const coverType = v as (typeof COVER_TYPES)[number];
+              setOptions((o) => ({
+                ...o,
+                coverType,
+                size: sizesFor(coverType).some((s) => s.id === o.size)
+                  ? o.size
+                  : defaultSizeFor(coverType).id,
+              }));
+            }}
           >
-            <button
-              type="button"
-              role="radio"
-              aria-checked={!options.cover}
-              onClick={() => setOptions((o) => ({ ...o, cover: undefined }))}
-              className={`flex aspect-square items-center justify-center rounded-md border p-1 text-center text-[10px] font-semibold ${
-                !options.cover
-                  ? "border-yellow-600 bg-yellow-400 text-yellow-950"
-                  : "border-navy-200 text-navy-600"
-              }`}
-            >
-              {t("photobook.option.coverDefault")}
-            </button>
-            {media.map((tile) => (
-              <button
-                key={tile.src}
-                type="button"
-                role="radio"
-                aria-checked={options.cover === tile.src}
-                aria-label={tile.caption || tile.src}
-                onClick={() => setOptions((o) => ({ ...o, cover: tile.src }))}
-                className={`relative block aspect-square w-full overflow-hidden rounded-md border ${
-                  options.cover === tile.src ? "border-yellow-500" : "border-navy-200"
-                }`}
-              >
-                <Image
-                  src={tile.src}
-                  loader={mediaLoader}
-                  alt=""
-                  fill
-                  sizes="10vw"
-                  className="object-cover"
-                />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {locales.length > 1 && (
-        <label className="block">
-          <span className="text-sm font-semibold text-navy-800">
-            {t("photobook.option.language")}
-          </span>
-          {/* The book's own words only — headings, the colophon, how the
-              travelling is named. The days keep whatever language they were
-              written in. Shown at all only where the journal offers more than
-              one. */}
-          <select
-            value={options.locale}
-            onChange={(e) => setOptions((o) => ({ ...o, locale: e.target.value }))}
-            className="mt-1 block w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm"
-          >
-            {locales.map((code) => (
-              <option key={code} value={code}>
-                {LANGUAGE_NAME[code] ?? code}
+            {COVER_TYPES.map((c) => (
+              <option key={c} value={c}>
+                {t(`photobook.option.coverType.${c}`)}
               </option>
             ))}
-          </select>
-          <span className="mt-1 block text-xs text-navy-600">
-            {t("photobook.option.languageHint")}
-          </span>
-        </label>
-      )}
+          </ValueSelect>
+        </Row>
 
-      <fieldset className="space-y-1">
+        <Row label={t("photobook.option.size")}>
+          <ValueSelect
+            label={t("photobook.option.size")}
+            value={options.size}
+            onChange={(v) => setOptions((o) => ({ ...o, size: v }))}
+          >
+            {sizesFor(options.coverType).map((size) => (
+              <option key={size.id} value={size.id}>
+                {SIZE_LABEL[size.id] ? t(SIZE_LABEL[size.id]) : size.name}
+              </option>
+            ))}
+          </ValueSelect>
+        </Row>
+
+        {/*
+         * The front cover — B512. A book-level control, deliberately not a
+         * seventh button under every thumbnail on every day. A radiogroup
+         * rather than a select: there is no text label for a photograph worth
+         * putting in a dropdown, and exactly one of these is ever chosen.
+         */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setCoverOpen((v) => !v)}
+            aria-expanded={coverOpen}
+            className="flex min-h-11 w-full items-center justify-between gap-4 px-4 py-2.5 text-left"
+          >
+            <span className="text-sm text-navy-800">{t("photobook.option.cover")}</span>
+            <span aria-hidden className="text-navy-500">
+              {coverOpen ? "−" : "+"}
+            </span>
+          </button>
+          {coverOpen && (
+            <div
+              role="radiogroup"
+              aria-label={t("photobook.option.coverLegend")}
+              className="grid grid-cols-3 gap-2 px-4 pb-3 sm:grid-cols-4"
+            >
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!options.cover}
+                onClick={() => setOptions((o) => ({ ...o, cover: undefined }))}
+                className={`flex aspect-square items-center justify-center rounded-md border p-1 text-center text-[10px] font-semibold ${
+                  !options.cover
+                    ? "border-yellow-600 bg-yellow-400 text-yellow-950"
+                    : "border-navy-200 text-navy-600"
+                }`}
+              >
+                {t("photobook.option.coverDefault")}
+              </button>
+              {media.map((tile) => (
+                <button
+                  key={tile.src}
+                  type="button"
+                  role="radio"
+                  aria-checked={options.cover === tile.src}
+                  aria-label={tile.caption || tile.src}
+                  onClick={() => setOptions((o) => ({ ...o, cover: tile.src }))}
+                  className={`relative block aspect-square w-full overflow-hidden rounded-md border ${
+                    options.cover === tile.src ? "border-yellow-500" : "border-navy-200"
+                  }`}
+                >
+                  <Image
+                    src={tile.src}
+                    loader={mediaLoader}
+                    alt=""
+                    fill
+                    sizes="10vw"
+                    className="object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* The book's own words only — headings, the colophon, how the
+            travelling is named. The days keep whatever language they were
+            written in. Shown at all only where the journal offers more than
+            one. */}
+        {locales.length > 1 && (
+          <Row label={t("photobook.option.language")}>
+            <ValueSelect
+              label={t("photobook.option.language")}
+              value={options.locale}
+              onChange={(v) => setOptions((o) => ({ ...o, locale: v }))}
+            >
+              {locales.map((code) => (
+                <option key={code} value={code}>
+                  {LANGUAGE_NAME[code] ?? code}
+                </option>
+              ))}
+            </ValueSelect>
+          </Row>
+        )}
+
         {(
           [
             ["includeText", "photobook.option.text"],
@@ -232,36 +290,37 @@ export default function BookSettingsPanel({
             ["includeVehicles", "photobook.option.vehicles"],
           ] as const
         ).map(([key, label]) => (
-          <label key={key} className="flex items-center gap-2 text-sm text-navy-700">
-            <input
-              type="checkbox"
+          <Row key={key} label={t(label)}>
+            <Switch
+              label={t(label)}
               checked={options[key]}
-              onChange={(e) => setOptions((o) => ({ ...o, [key]: e.target.checked }))}
+              onChange={(v) => setOptions((o) => ({ ...o, [key]: v }))}
             />
-            {t(label)}
-          </label>
+          </Row>
         ))}
-      </fieldset>
+      </div>
 
-      {/* Disabled rather than hidden when there is nothing to lose: a control
-          that vanishes the moment it would do nothing is harder to find the
-          one time it matters. */}
-      <button
-        type="button"
-        onClick={startOver}
-        className="block text-xs font-semibold text-navy-600 underline"
-      >
-        {t("photobook.first.again")}
-      </button>
-
-      <button
-        type="button"
-        onClick={resetBook}
-        disabled={!canReset}
-        className="text-xs font-semibold text-navy-600 underline disabled:cursor-not-allowed disabled:text-navy-300 disabled:no-underline"
-      >
-        {t("photobook.resetAll")}
-      </button>
+      {/* The two ways back out, on the card's own footer. Disabled rather
+          than hidden when there is nothing to lose: a control that vanishes
+          the moment it would do nothing is harder to find the one time it
+          matters. */}
+      <div className="flex flex-wrap items-center gap-4 border-t border-navy-200 bg-navy-50 px-4 py-3">
+        <button
+          type="button"
+          onClick={startOver}
+          className="text-xs font-semibold text-navy-600 underline"
+        >
+          {t("photobook.first.again")}
+        </button>
+        <button
+          type="button"
+          onClick={resetBook}
+          disabled={!canReset}
+          className="text-xs font-semibold text-navy-600 underline disabled:cursor-not-allowed disabled:text-navy-300 disabled:no-underline"
+        >
+          {t("photobook.resetAll")}
+        </button>
+      </div>
     </div>
   );
 }
