@@ -577,7 +577,11 @@ export default function PhotobookPageContent({
   return (
     <div className="min-h-screen">
       <PageHeader />
-      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-3xl px-4 py-5 sm:px-6 lg:px-8">
+      {/* Wider from `lg` — B1486. The composer is two columns there, and a
+          48rem page gives the book a 20rem slot: the frame never reaches the
+          width its grid needs, so the drawing's layout cannot happen at all.
+          Below `lg` nothing changes. */}
+      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-3xl px-4 py-5 sm:px-6 lg:max-w-6xl lg:px-8">
         {/* Two short lines, because the book starts immediately below them
             and at 390px every one of them costs a slice of it — B548. What
             this page is goes in the eyebrow; the heading is the trip, which

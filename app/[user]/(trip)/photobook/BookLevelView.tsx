@@ -292,7 +292,7 @@ export default function BookLevelView({
             the book still comes first, which is the order B548 wants and the
             drawing's own phone frame shows. `order` does the swap rather than
             two copies of the markup. */}
-        <div className="order-2 lg:order-1 mt-5 lg:mt-0">
+        <div className="order-1 lg:order-2">
       {/* The book, first and full width. `aspect-ratio` from the plan rather
           than a viewport fraction: the frame is exactly one spread tall, so
           there is nothing to scroll inside it and nothing letterboxed. While
@@ -302,7 +302,11 @@ export default function BookLevelView({
         <iframe
           ref={strip}
           srcDoc={preview?.html ?? ""}
-          style={{ aspectRatio: String(preview?.ratio ?? 2) }}
+          /* One spread tall on a phone, where the strip shows one spread; a
+             tall frame with its own scroll where the grid shows the book
+             (B1486). The inline style is what the aspect ratio has always
+             been set with, so the switch belongs here rather than in a class. */
+          style={wide ? { height: "70vh" } : { aspectRatio: String(preview?.ratio ?? 2) }}
           className="w-full border-0 bg-cream-100 sm:rounded-xl"
           title={t("photobook.title")}
         />
@@ -339,7 +343,7 @@ export default function BookLevelView({
 
         </div>
 
-        <div className="order-1 lg:order-2">
+        <div className="order-2 lg:order-1 mt-5 lg:mt-0">
       {/* Nothing at all when there is nothing wrong — B549. */}
       {lines.length > 0 && (
         <div className="mt-5 rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-yellow-900">
