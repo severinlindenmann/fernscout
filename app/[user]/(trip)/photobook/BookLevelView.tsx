@@ -212,6 +212,10 @@ export default function BookLevelView({
 }) {
   /** The deliberate step between arranging and ordering — B561. */
   const [reading, setReading] = useState(false);
+  /** A cover photograph deleted since it was chosen — B1481. The order page
+   *  asks the disk (B1469); a client component cannot, so it asks the
+   *  browser and drops the plate if the image will not load. */
+  const [coverGone, setCoverGone] = useState(false);
   const strip = useRef<HTMLIFrameElement>(null);
   const hasKeyboard = useHasKeyboard();
   useSpreadKeys(strip, "x", !hidden && !reading);
@@ -375,6 +379,38 @@ export default function BookLevelView({
         <p className="mt-1 text-sm text-navy-600">
           {t("photobook.spine", { spine: spineText })}
         </p>
+
+        {/* Two columns from `md`, the same shape the receipt takes — B1481.
+            The object and the envelope on the left, the money and the press
+            on the right, so the last thing before a 238-credit press is the
+            book rather than a paragraph. One column at 390, in the order
+            object → envelope → price → press. */}
+        <div className="mt-4 grid gap-4 md:grid-cols-[15rem_minmax(0,1fr)] md:items-start">
+          <div className="flex flex-col gap-4">
+            {/* The cover, when the owner chose one — `options.cover` is unset
+                where the planner picked it, and then there is no plate at
+                all rather than an empty rectangle (B1469's rule, and the
+                layout was drawn to hold without it). `onError` hides a
+                photograph deleted since it was chosen: this is a client
+                component and cannot ask the disk the way the order page
+                does. */}
+            {options.cover && !coverGone && (
+              <div className="overflow-hidden rounded-xl border border-navy-200 bg-white">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={options.cover}
+                  alt={t("order.object.cover")}
+                  onError={() => setCoverGone(true)}
+                  className="block w-full bg-navy-50"
+                />
+                <p className="px-3 py-2 text-xs text-navy-600">
+                  <span className="block font-semibold uppercase tracking-wider text-navy-500">
+                    {t("order.object.cover")}
+                  </span>
+                  {summary}
+                </p>
+              </div>
+            )}
         {/* Where the book is going, before the money and not after it —
             B1157. What is for sale is the printed object, so the envelope
             belongs on the same panel as the price and the button. B1145: the
@@ -430,10 +466,14 @@ export default function BookLevelView({
           <p className="mt-3 text-sm text-navy-700">{t("photobook.print.noRecipients")}</p>
         )}
 
+          </div>
+
+          <div className="flex flex-col gap-4">
         {/* The price after the envelope, because it depends on it: postage to
             Zurich and postage to Sydney are different numbers, and a total
             shown above the address it was quoted for reads as though the two
-            were unrelated. */}
+            were unrelated. At `md` the envelope is beside this rather than
+            above it, which keeps that true — it is read first, on the left. */}
         {credits !== null && (
           <div className="mt-3">
             {/* The same ledger card the receipt shows, built by the same
@@ -535,6 +575,8 @@ export default function BookLevelView({
             </p>
           )}
         </form>
+          </div>
+        </div>
       </div>
 
       {/* Reading it, and then ordering it: the button below the book hands
