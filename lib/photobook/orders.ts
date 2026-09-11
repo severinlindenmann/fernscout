@@ -81,6 +81,16 @@ export type PhotobookPayload = {
     providerRef?: string;
     /** Set by `markPrintFailed`; the row returns to `printed` alongside it. */
     failure?: string;
+    /**
+     * The provider's own words for the refusal — B1165.
+     *
+     * Set by `markPrintFailed` alongside `failure`, from the same response
+     * Gelato sent. Shown on `/admin` and nowhere a journal owner reads: the
+     * message is about the *operator's* Gelato account ("complete the
+     * company information in the portal"), not something an owner can act
+     * on.
+     */
+    providerMessage?: string;
   };
 };
 
@@ -223,6 +233,11 @@ export const PHOTOBOOK_OUTCOME_STATES = [
   // honest total to charge. Nothing is claimed, built or spent; pressing again
   // when Gelato is reachable works.
   "printer_unavailable",
+  // B1148. The printer *answered* the quote request and refused this
+  // server's own account (a rejected or missing key) — distinct from
+  // "printer_unavailable"'s weather, because pressing again cannot fix an
+  // account the printer will not take.
+  "printer_refused",
 ] as const;
 export type PhotobookOutcomeState = (typeof PHOTOBOOK_OUTCOME_STATES)[number];
 
@@ -528,6 +543,8 @@ export async function markPrintFailed(
   id: string,
   payload: PhotobookPayload,
   failure: string,
+  /** The provider's own message, when there was one to keep — B1165. */
+  providerMessage?: string,
 ): Promise<boolean> {
   const handle = await getDatabaseOrNull();
   if (!handle) return false;
@@ -547,6 +564,7 @@ export async function markPrintFailed(
           shipmentMethodUid: "",
           ...payload.print,
           failure,
+          ...(providerMessage ? { providerMessage } : {}),
         },
       }),
       updated_at: nowIso(),

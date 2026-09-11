@@ -139,7 +139,7 @@ export const ERROR_CODES: Record<string, string> = {
   no_owner_address: "This journal's config.json has no owner address, and this call has to mail somebody. That is an edit to the file.",
   no_database: "This capability stores data and this server has no database configured.",
   provider_unavailable:
-    "The payment provider could not be reached, so there is no checkout page to send anybody to. Nothing was charged and the transaction is still waiting; try the same call again.",
+    "The provider could not be reached, or refused the request — Stripe for a payment, Gelato for a photobook print. Nothing was charged. Read this response's own `message`: it says whether the failure is transient (retrying is reasonable) or the provider refused this server's own account (retrying will not help; this needs the operator).",
   no_credits: "This journal has no credits left for that.",
   not_for_agents:
     "This spends the owner's money and is done by the owner, from their own page — a token is refused here whatever it is scoped to. Nothing was charged. Report what is needed and let them decide.",

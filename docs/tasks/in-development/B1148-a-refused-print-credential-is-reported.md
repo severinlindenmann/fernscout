@@ -74,3 +74,49 @@ right and is how B1147 was found.
 - With a deliberately wrong `GELATO_API_KEY` on a local instance, the proposal
   page does not tell the owner to try again shortly.
 - With the network blocked to `order.gelatoapis.com`, it does.
+
+## Build notes (2026-09-11)
+
+Built per `.claude/runs/2026-09-10-photobook-batch/brief.json`'s validity
+verdict and chosen option — the wire code `provider_unavailable` stays single;
+only the owner/agent-facing *message* forks on the underlying `GelatoFailure`
+kind (`no_key`/`refused` = operator fault, `unreachable` = weather).
+
+Threaded the kind through all four call sites the brief named
+(`propose.ts:82`, `print.ts` at both the quote-error and submit-error sites in
+`printOrder`, and `submitBuiltBook`'s submit-error site) plus, for internal
+consistency within the same function/consumer, the twin submit-error block in
+`printOrder` that the brief's four-site list did not separately name (it feeds
+the exact same owner page as the named site).
+
+New locale key for the operator-fault case, used at the pre-charge/quote
+step (order/route.ts's one-press flow → PhotobookPageContent.tsx):
+
+    photobook.printerRefused
+
+("The printer is not accepting this server's account. Nothing was charged —
+this needs whoever runs the instance." / DE per ticket wording.) **B1406
+should reuse this exact key** for the pre-press panel's operator-fault
+reason, per the run brief.
+
+The existing `photobook.print.result.refused` key (used on the owner's
+per-order page, `page.tsx`, for the button-press flow) was repurposed for the
+same operator-fault message rather than adding a second new key, since it was
+already a distinct state from `provider_unavailable` and its old text ("The
+printer refused this order.") was superseded by the more specific wording.
+
+**Hungarian**: could not write a genuine Hungarian translation. Per the
+batch's `hungarian` decision, the English text was shipped in `hu.json` for
+both `photobook.print.result.refused` and the new `photobook.printerRefused`
+key, so the build and `test/locales.test.ts` pass. **Both need a native
+Hungarian read before this ticket leaves `testing/`.**
+
+Not touched (documented in the run report, not silently absorbed): the
+one-press flow's post-build refusal (`order/route.ts` around
+`submitBuiltBook`, outcome `print_refused`) still shows one message
+regardless of `GelatoFailure` kind — its existing wording ("the printer would
+not accept the order… try again below, or write to agent@fernscout.ch") does
+not assert retrying will definitely work, so it does not carry the specific
+false claim this ticket is about, and forking it would have required a new
+outcome state for a flow already past a refund. Left as a possible follow-up
+capture rather than expanded scope.

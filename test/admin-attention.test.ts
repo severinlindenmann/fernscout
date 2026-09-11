@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { attention, funnel, type Activity, type Health } from "@/lib/adminConsole";
+import { attention, funnel, type Activity, type Health, type Trouble } from "@/lib/adminConsole";
 import type { Payment } from "@/lib/payments";
 import type { JournalRow } from "@/lib/statusReport";
 
@@ -51,6 +51,17 @@ function journal(over: Partial<JournalRow> = {}): JournalRow {
     guests: 0,
     credits: 100,
     bytes: 0,
+    ...over,
+  };
+}
+
+function trouble(over: Partial<Trouble> = {}): Trouble {
+  return {
+    what: "A photobook never printed",
+    owner: "example",
+    when: "2026-09-09",
+    detail: "gelato refused it · order p1",
+    ref: "p1",
     ...over,
   };
 }
@@ -185,6 +196,30 @@ describe("what wants a person", () => {
       health: health({ wrong: [{ id: "db", title: "The database is unreachable", detail: "…" }] }),
     });
     expect(out.map((one) => one.kind)).toEqual(["approve", "fault", "disk"]);
+  });
+
+  test("two troubles for the same journal and the same reason get different ids", () => {
+    // B1223. `troubles()` returns one row per failed order and `what` is a
+    // fixed phrase, so three failed photobooks for one journal used to share
+    // one id — acknowledging the first silently hid the other two.
+    const out = attention({
+      ...QUIET,
+      troubles: [
+        trouble({ ref: "order-1", detail: "gelato refused it · order order-1" }),
+        trouble({ ref: "order-2", detail: "gelato refused it · order order-2" }),
+        trouble({ ref: "order-3", detail: "gelato refused it · order order-3" }),
+      ],
+    });
+    expect(out).toHaveLength(3);
+    const ids = out.map((one) => one.id);
+    expect(new Set(ids).size).toBe(3);
+
+    // Acknowledging one — the same shape `applyAcks` uses, matching by id —
+    // leaves the other two in the band rather than muzzling all three.
+    const acknowledged = new Set([ids[0]]);
+    const stillShown = out.filter((one) => !acknowledged.has(one.id));
+    expect(stillShown).toHaveLength(2);
+    expect(stillShown.map((one) => one.id)).toEqual(ids.slice(1));
   });
 });
 

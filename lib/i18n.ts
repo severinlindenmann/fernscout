@@ -1820,6 +1820,7 @@ export type TranslationKey =
   | "photobook.print.unknownCountry"
   | "photobook.printRefused"
   | "photobook.printRefused.reference"
+  | "photobook.printerRefused"
   | "photobook.printerUnavailable"
   | "photobook.read.back"
   | "photobook.read.heading"

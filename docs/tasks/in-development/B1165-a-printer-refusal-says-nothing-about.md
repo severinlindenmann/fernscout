@@ -52,3 +52,38 @@ orders), so this is about a dead end nobody can get out of, not a loss.
 - A refused order carries the provider's own message in the database.
 - `/admin` shows it; the owner's order page does not.
 - `npm run verify`.
+
+## Build notes (2026-09-11)
+
+Built per the run brief's chosen option (payload storage, no migration),
+landing last in group-c against B1148 and B1223's already-changed code:
+
+- `gelato.ts`'s `post()` now returns `{ error, message? }` instead of
+  collapsing Gelato's own `{code, message, details}` to the bare string
+  `"refused"`. `submitBookPrint`'s declared return type widened to carry it;
+  `quoteBook` was left alone (its declared type still hides `message`) since
+  B1165's own repro — and every failing site in `troubles()` — is a refused
+  *order*, never a refused *quote*.
+- `PhotobookPayload.print.providerMessage?: string` sits beside `failure`.
+  `markPrintFailed` takes it as an optional 5th argument, written from both
+  `submitBookPrint` failure sites in `print.ts` (already touched by B1148 for
+  the failure-kind fork).
+- **Widened `troubles()`**, which was the scope explicitly approved beyond
+  the ticket's own line numbers: `markPrintFailed` leaves `status: 'printed'`
+  so the row stays retryable (B1348), so the original `WHERE status =
+  'failed'` never saw a photobook refusal at all — the ticket's stored
+  message would otherwise be invisible. Added a second pass over recent
+  `kind = 'photobook', status = 'printed'` rows, parsed in application code
+  (the payload column is JSON-as-text; there is no existing pattern in this
+  codebase for querying into it at the SQL level across both dialects), that
+  surfaces one Trouble per row whose `payload.print.failure` is set.
+- The provider's message appears only in that `Trouble.detail`, which only
+  `/admin` reads. No route under `app/` — the owner's order page, the agent
+  API, or anywhere else — was given `providerMessage`; grepped for the field
+  to confirm.
+- No mail to the operator, per the ticket's own "not doing" line.
+
+New tests in `test/photobook-print-orders.test.ts`: the message survives into
+`payload.print.providerMessage`; a refused-but-`printed` row reaches
+`troubles()` with the provider's words in `detail`; a normal `printed` order
+(no failure) is not mistaken for one.

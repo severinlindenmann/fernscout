@@ -2,7 +2,7 @@ import "server-only";
 import { photobookPrintCredits } from "../credits/pricing";
 import { nowIso } from "../db";
 import { isoCountry } from "./country";
-import { quoteBook } from "./gelato";
+import { quoteBook, type GelatoFailure } from "./gelato";
 import { getPhotobookOrder, proposePrint, type PhotobookPayload } from "./orders";
 import { bookAddressFor, bookRecipients } from "./recipients";
 import { BOOK_SIZES, productUidFor } from "./spec";
@@ -43,7 +43,12 @@ type ProposeFailure =
 
 export type ProposeResult =
   | { ok: true; quotedCredits: number }
-  | { ok: false; reason: ProposeFailure };
+  // `kind` is set only for `reason: "provider_unavailable"` — it is the
+  // GelatoFailure a caller needs to tell "the printer answered and refused
+  // this server's account" (`no_key` / `refused`) apart from "the printer
+  // could not be reached" (`unreachable`), without the wire `reason` itself
+  // growing a second code for the same failure — B1148.
+  | { ok: false; reason: ProposeFailure; kind?: GelatoFailure };
 
 const QUOTE_CURRENCY = "CHF";
 
@@ -79,7 +84,7 @@ export async function proposeBookPrint(
     country,
     currency: QUOTE_CURRENCY,
   });
-  if ("error" in quote) return { ok: false, reason: "provider_unavailable" };
+  if ("error" in quote) return { ok: false, reason: "provider_unavailable", kind: quote.error };
 
   const quotedCredits = photobookPrintCredits(quote.printMinor, quote.shipMinor);
   const payload: PhotobookPayload = {

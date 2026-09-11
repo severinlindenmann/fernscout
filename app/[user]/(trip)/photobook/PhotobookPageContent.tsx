@@ -46,6 +46,10 @@ const OUTCOME_MESSAGE: Record<PhotobookOutcomeState, TranslationKey> = {
   // B1157. Both refuse before anything is claimed, built or charged.
   no_recipient: "photobook.print.noRecipients",
   printer_unavailable: "photobook.printerUnavailable",
+  // B1148. The printer answered and refused this server's account — a
+  // different message from `printer_unavailable`'s weather, with no retry
+  // advice, because pressing again cannot fix a rejected account.
+  printer_refused: "photobook.printerRefused",
   // B1330. Built, paid for, refused by the printer, refunded in full.
   print_refused: "photobook.printRefused",
 };

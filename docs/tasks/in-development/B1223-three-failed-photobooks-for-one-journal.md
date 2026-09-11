@@ -70,3 +70,18 @@ question and probably a capture of its own.
   ids, and a test in `test/admin-attention.test.ts` says so.
 - Acknowledging one of them leaves the others in the band.
 - On the live `/admin`, the six print failures acknowledge one at a time.
+
+## Build notes (2026-09-11)
+
+Built exactly the scoped fix: `Trouble` gains `ref` (the row id `troubles()`
+already selected for `detail`, from `print_orders.id` or `payments.id`), and
+`attention()` composes `trouble:<ref>` instead of `trouble:<owner>:<what>`.
+No folding by count, and the failures themselves are untouched, per the
+ticket's own scoping.
+
+Added `test/admin-attention.test.ts`: three troubles with the same `what` and
+`owner` but distinct `ref`s produce three distinct ids, and filtering out one
+acknowledged id (the same shape `applyAcks` matches by) leaves the other two.
+Live verification of "the six print failures acknowledge one at a time" on
+`/admin` still needs a person or `test-the-live-site`, per this skill's own
+scope — an agent stops at `testing/`.
