@@ -32,9 +32,12 @@ serves any trip at the explicit one. Both render the same components.
 | `/<user>/trips` | every trip, with the lifetime map |
 | `/<user>/search` | across the whole journal, not one trip |
 | `/<user>/me` · `/contacts` | the reader's own access, and the owner's list of readers |
-| `/<user>/i/<token>` · `/c/<token>` · `/u/<token>` | invite, confirm, unsubscribe |
+| `/<user>/i/<token>` · `/invite/guest/<token>` · `/invite/buddy/<token>` · `/c/<token>` · `/u/<token>` | personal, guest and buddy invites; confirm; unsubscribe. A guest link leads to reading every `guest` trip in the journal once approved; a buddy link names one trip and leads to write access to it, plus the same read access a guest gets |
 | `/<user>/feed.xml` · `/search-index.json` · `/story.json` · `/export.zip` | generated |
 | `/<user>/media/<path>` | media, resized on demand and cached |
+| `/<user>/postcards/<id>` | a proposed printed postcard, for the owner to look at and send |
+| `/agent` | a guided web helper — a face on an agent, not a second way in: it writes through the same `/api/v1/…` calls `/agent.md` describes, for somebody with no agent of their own (B681/B682) |
+| `/admin` | what the instance costs to run. Owner-of-the-instance only, gated on `FERNSCOUT_ADMIN_EMAIL`, cookie session only — see "Three credentials", below |
 
 ## Server-side modules
 
@@ -50,13 +53,33 @@ serves any trip at the explicit one. Both render the same components.
 | `lib/media.ts` · `lib/mediaSizes.ts` · `lib/mediaLimits.ts` | derivatives, quotas and upload ceilings |
 | `lib/ingest/` | a folder of camera files → EXIF, clustering, resizing, entry markdown |
 | `lib/mail/` · `lib/digest/` · `lib/push.ts` | reaching readers: `.eml` files or SMTP, the nightly digest, web push |
-| `lib/contacts/` | one contact record behind invites, digests and postal addresses |
+| `lib/contacts/` | one contact record behind invites, digests and postal addresses — personal, guest and buddy links alike |
 | `lib/photobook/` · `lib/postcard/` | PDF generation, with a `dry-run` backend for every provider |
 | `lib/capabilities.ts` | which optional features are on, and why one is off — see `/api/health` |
+| `lib/helper/` | the model behind `/agent`: `model.ts` holds the net that checks what it *said* against what the turn actually *did* (AGENTS.md, "Part of that rule is now machinery"), `tools/` are the calls it may make, `consent.ts` and `undo.ts` guard publish and delete |
+| `lib/admin.ts` · `lib/credits.ts` · `lib/stripe.ts` | the one address that sees instance-wide cost and balance (`FERNSCOUT_ADMIN_EMAIL`), the ledger behind it, and the one caller (Stripe's webhook) allowed to raise a balance |
+| `lib/contentModel/` | `content-model.json`, the file shape a journal must have — published so `fernscout-helper` and anything else written against this instance stops copying it by hand |
+| `importers/` · `lib/gps/` · `lib/inbox.ts` | MIT-licensed parsers turning somebody's location/cost export into plain rows; the position-history store itself (reachable from nothing under `app/` — see `docs/gps.md`); and files waiting on a day to attach to |
 
 Money and locale each split into a **pure half a client component may import**
 and a **server-only half that reads files**: `lib/costFormat.ts` / `lib/costs.ts`,
 `lib/currency.ts` / `lib/rates.ts`, `lib/reactionSet.ts` / `lib/reactions.ts`.
+
+## Three credentials, not one
+
+An agent token (`Authorization: Bearer`) and a guest session (cookie) were
+never interchangeable — `resolveSession()` refuses a row whose `kind` does
+not match what the caller asked for, which is decision 24: reading the site
+on a phone must not put a credential that can rewrite it in your pocket. A
+third, the **identity cookie** (B410), proves an address to the whole
+instance and authorises nothing by itself — `resolveAccess()` in
+`lib/auth/handshake.ts` is the only place that turns "this address" into an
+answer about one particular journal, by asking the same `hasReadGrant` /
+`owner.email` / `people:` checks every other gate already asks. A fourth
+shape, the **handover** credential, crosses from a cookie session to an
+agent token in one direction only — twenty minutes, spent once, so an owner
+can paste a whole prompt into an agent instead of reading a code down a
+phone (B283).
 
 ## The reading components
 
