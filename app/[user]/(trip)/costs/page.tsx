@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import CostsPageContent from "./CostsPageContent";
 import CostsPrivate from "@/components/CostsPrivate";
 import { getCostSummary, hasCostsData } from "@/lib/costs";
+import { tripGaps } from "@/lib/api/tripGaps";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { getCurrentTrip } from "@/lib/trips";
 import { getDays } from "@/lib/entries";
@@ -146,12 +147,27 @@ export default async function CostsPage({ params }: PageProps<"/[user]/costs">) 
   if (!(await mayReadTrip(trip))) return null;
   const userConfig = getUser(user);
   if (!userConfig) notFound();
+  const summary = getCostSummary(tripId, undefined, read);
+  /**
+   * A budget with no day-level spending looks identical to a dropped import
+   * run, and only the owner has reason to tell the difference — a reader is
+   * not owed an account of what their journal is missing. B539.
+   *
+   * `tripGaps` already computes exactly this (lib/api/tripGaps.ts) for the
+   * API side; this is the render that never happened. `canPublish` — from
+   * `readFor` above, the one place AGENTS.md says a reader's level should be
+   * decided — is owner-only in the same sense `mayViewCosts` etc. are, so it
+   * is reused here rather than a second owner check.
+   */
+  const gaps = canPublish && summary.budget ? tripGaps(tripId, true) : null;
+  const noDaySpending = !!gaps && gaps.days > 0 && gaps.daysWithCosts === 0;
   return (
     <TripProvider trip={trip} isCurrent>
       {(await mayViewCosts(trip)) ? (
         <CostsPageContent
-          summary={getCostSummary(tripId, undefined, read)}
+          summary={summary}
           travellers={travellerNamesOf(userConfig, trip)}
+          noDaySpending={noDaySpending}
         />
       ) : (
         <CostsPrivate />

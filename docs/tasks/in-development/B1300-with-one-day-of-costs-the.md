@@ -53,3 +53,23 @@ they look worst in.
 - A trip with one day of costs shows no full-width single bar and no empty chart
   frame.
 - Every colour on the page appears in a legend or is explained.
+
+## Done
+
+`CostsPageContent.tsx` now gates "Day by day" and "Running total" on
+`summary.byDay.length >= 2` together, since both plot the same array: below
+two points there is no bar chart and no running total, only one line — the
+date and amount the single day already carries (`{formatShortDate(date)} ·
+{money(amount)}`), under the "Day by day" heading, following the same pattern
+`byCountry` above already uses (omit the section rather than draw empty axes).
+With zero days nothing renders at all, same as `byCountry` at zero.
+
+Both charts' `accent` changed from `CATEGORY_STYLE.accommodation.color`
+(green) and `CATEGORY_STYLE.flights.color` (orange) to the neutral `#5a6a80`
+already used for the budget bar's non-alarm state — neither chart is showing
+one category, both are a per-day or cumulative *total*, and the note added to
+"Day by day" (`cost.perDayChartNote`, "Each bar is that day's total, across
+every category.") says so in words.
+
+Visual check: see the run report below for whether this was driven in a real
+browser or left as measurements to take.
