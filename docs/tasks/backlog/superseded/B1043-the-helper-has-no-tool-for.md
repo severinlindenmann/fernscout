@@ -1,6 +1,7 @@
 ---
 id: B1043
 title: The helper has no tool for captioning a photograph or telling readers a day is up
+superseded: "B1238 — the caption half is the same work. The notify half's premise was half wrong: tell_readers already covers mail and WhatsApp."
 type: FEATURE
 priority: low
 complexity: low
@@ -64,3 +65,10 @@ about inventing a day applies to inventing what a photograph shows.
 - Whichever tool is added returns a proposal and writes nothing until accepted.
 - `npm run verify` passes, including the helper tool tests.
 - A test asserts the tool cannot reach an address the journal has not admitted.
+
+## Closed as superseded, 2026-09-11
+
+Found already fixed while planning the /agent run, and then left sitting in `open/`
+reading as work for a day. Closing it is the correction.
+
+B1238 — the caption half is the same work. The notify half's premise was half wrong: tell_readers already covers mail and WhatsApp.

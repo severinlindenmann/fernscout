@@ -1,6 +1,7 @@
 ---
 id: B1249
 title: A signup token is spent by a creation that failed, so the person cannot retry at all
+superseded: "B55 — app/api/v1/journals/route.ts:510 calls revokeSession only after created.ok, with a comment saying so. The real symptom was probably a 20-minute token expiring during the B1246 outage."
 type: ISSUE
 priority: high
 complexity: low
@@ -45,3 +46,10 @@ instead.
 - A create call that fails on the server leaves the token spendable: pressing
   the button again after the cause is fixed creates the journal.
 - A create call that succeeds still refuses a second use.
+
+## Closed as superseded, 2026-09-11
+
+Found already fixed while planning the /agent run, and then left sitting in `open/`
+reading as work for a day. Closing it is the correction.
+
+B55 — app/api/v1/journals/route.ts:510 calls revokeSession only after created.ok, with a comment saying so. The real symptom was probably a 20-minute token expiring during the B1246 outage.

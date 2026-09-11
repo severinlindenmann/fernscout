@@ -1,6 +1,7 @@
 ---
 id: B1251
 title: A brand new journal opens on a red nearly-out-of-credits alarm, because the grant equals the threshold
+superseded: "B1371 — components/HelperRoom.tsx:522 already reads credits <= 5, not 10, and the locale string no longer claims otherwise. Captured after its own fix had landed, because the live site was behind main."
 type: ISSUE
 priority: high
 complexity: low
@@ -65,3 +66,10 @@ half the grant spent before the alarm, and a new journal is not born in it.
   both appear.
 - The warning's own sentence does not claim a number of days the balance does
   not carry, in English, German or Hungarian.
+
+## Closed as superseded, 2026-09-11
+
+Found already fixed while planning the /agent run, and then left sitting in `open/`
+reading as work for a day. Closing it is the correction.
+
+B1371 — components/HelperRoom.tsx:522 already reads credits <= 5, not 10, and the locale string no longer claims otherwise. Captured after its own fix had landed, because the live site was behind main.

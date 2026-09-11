@@ -1,6 +1,7 @@
 ---
 id: B1072
 title: Two more components format a date in whatever locale the renderer happens to have
+superseded: "B1169 — RoomOpening.tsx:80,111 and HelperAsk.tsx's DayChip all use formatLongDate/formatShortDate now, so neither formats in the renderer's own locale."
 type: ISSUE
 priority: medium
 complexity: low
@@ -77,3 +78,9 @@ Not doing: a lint rule. It is worth considering if this recurs a third time
   console, checked with the server's locale deliberately set to something the
   browser is not.
 
+## Closed as superseded, 2026-09-11
+
+Found already fixed while planning the /agent run, and then left sitting in `open/`
+reading as work for a day. Closing it is the correction.
+
+B1169 — RoomOpening.tsx:80,111 and HelperAsk.tsx's DayChip all use formatLongDate/formatShortDate now, so neither formats in the renderer's own locale.

@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (163)
+## backlog (171)
 
 ### security (2)
 
@@ -145,7 +145,7 @@ Do not edit them by hand; run the script.
 | [B1413](backlog/chore/B1413-five-hand-typed-durations-in-openapi.md) | Five hand-typed durations in openapi.ts have no exported minutes constant to import | CHORE | low | low |
 | [B1424](backlog/chore/B1424-photobook-base-credits-argues-for-160.md) | PHOTOBOOK_BASE_CREDITS argues for 160 credits and 2 a page, a pricing model that no longer exists | CHORE | low | low |
 
-### ops (12)
+### ops (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -153,6 +153,7 @@ Do not edit them by hand; run the script.
 | [B1232](backlog/ops/B1232-authentication-templates-are-gated-on-a.md) | Authentication templates are gated on a business verification this account has not passed | OPS | high | low |
 | [B1311](backlog/ops/B1311-a-config-json-written-as-root.md) | A config.json written as root takes the whole site down at the next build | OPS | high | low |
 | [B1313](backlog/ops/B1313-two-deploys-can-run-at-once.md) | Two deploys can run at once and leave the site down with a corrupt build cache and a detached HEAD | OPS | high | low |
+| [B1446](backlog/ops/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | OPS | high | low |
 | [B403](backlog/ops/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium |
 | [B107](backlog/ops/B107-postcards-have-only-ever-run-from.md) | Postcards have only ever run from a laptop CLI, never as a capability of the deployed site | OPS | medium | medium |
 | [B1137](backlog/ops/B1137-there-is-no-place-to-try.md) | There is no place to try a change against real data before it reaches fernscout.ch | OPS | medium | medium |
@@ -170,7 +171,7 @@ Do not edit them by hand; run the script.
 | [B1414](backlog/docs-and-skills/B1414-docs-testing-md-s-privacy-section.md) | docs/TESTING.md's privacy section never mentions buddy links or per-photo visibility | DOCS | high | low |
 | [B1415](backlog/docs-and-skills/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low |
 
-### superseded (71)
+### superseded (78)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -181,7 +182,11 @@ Do not edit them by hand; run the script.
 | [B1050](backlog/superseded/B1050-main-does-not-build-a-merge.md) | main does not build: a merge left two features keys in one object literal in helper-proposal-arguments.test.ts | ISSUE | high | low |
 | [B1071](backlog/superseded/B1071-the-helper-prompt-is-7617-tokens.md) | The helper prompt is 7617 tokens against its 6500 ceiling, so main's test suite is red | ISSUE | high | medium |
 | [B1125](backlog/superseded/B1125-every-photobook-print-quote-is-refused.md) | Every photobook print quote is refused, so the print panel can never appear | ISSUE | high | low |
+| [B1153](backlog/superseded/B1153-handing-your-journal-to-your-own.md) | Handing your journal to your own agent means leaving the conversation to fetch the key | FEATURE | high | low |
 | [B1156](backlog/superseded/B1156-the-order-panel-tells-every-instance.md) | The order panel tells every instance that nothing will be printed | ISSUE | high | low |
+| [B1249](backlog/superseded/B1249-a-signup-token-is-spent-by.md) | A signup token is spent by a creation that failed, so the person cannot retry at all | ISSUE | high | low |
+| [B1251](backlog/superseded/B1251-a-brand-new-journal-opens-on.md) | A brand new journal opens on a red nearly-out-of-credits alarm, because the grant equals the threshold | ISSUE | high | low |
+| [B1324](backlog/superseded/B1324-a-failed-card-press-disables-the.md) | A failed card press disables the composer for good, and the only way out wipes the conversation | ISSUE | high | low |
 | [B373](backlog/superseded/B373-the-backup-success-marker-vanished-from.md) | The backup success marker vanished from DATA_DIR between two deploys minutes apart | OPS | high | low |
 | [B377](backlog/superseded/B377-the-deploy-reported-a-healthy-backup.md) | The deploy reported a healthy backup this afternoon and none at all this evening | OPS | high | low |
 | [B65](backlog/superseded/B65-the-deployed-server-has-no-backup.md) | Every backup of the deployed server sits on the same machine it is backing up | OPS | high | medium |
@@ -196,6 +201,8 @@ Do not edit them by hand; run the script.
 | [B950](backlog/superseded/B950-is-a-person-s-own-sentence.md) | Is a person's own sentence about the rain theirs to keep | DOCS | high | low |
 | [B06](backlog/superseded/B06-location-tracking-ingest-and-route-rendering.md) | Location tracking ingest and route rendering (W20) | FEATURE | medium | high |
 | [B1001](backlog/superseded/B1001-the-agent-guide-is-604-bytes.md) | The agent guide is 604 bytes over its own ceiling, so verify fails on main | ISSUE | medium | low |
+| [B1072](backlog/superseded/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
+| [B1129](backlog/superseded/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
 | [B1167](backlog/superseded/B1167-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1331](backlog/superseded/B1331-the-pricing-table-sells-a-pdf.md) | The pricing table sells a PDF-only photobook the owner says is not offered | ISSUE | medium | low |
 | [B1356](backlog/superseded/B1356-the-owner-cannot-select-themselves-as.md) | The owner cannot select themselves as a postcard recipient | ISSUE | medium | low |
@@ -229,6 +236,7 @@ Do not edit them by hand; run the script.
 | [B1009](backlog/superseded/B1009-the-ask-box-on-agent-is.md) | The ask box on /agent is now the only underlined way into the room, beside a row that is not | ISSUE | low | low |
 | [B1023](backlog/superseded/B1023-npm-run-verify-fails-on-task.md) | npm run verify fails on task-ids.test.ts: five backlog/wont-do tasks have no wontDo field and are misfiled | CHORE | low | low |
 | [B1034](backlog/superseded/B1034-agentdoor-tsx-still-imports-agentrow-helperask.md) | AgentDoor.tsx still imports AgentRow, HelperAsk, AgentHandover and LOW_CREDITS from the journal card B984 removed | CHORE | low | low |
+| [B1043](backlog/superseded/B1043-the-helper-has-no-tool-for.md) | The helper has no tool for captioning a photograph or telling readers a day is up | FEATURE | low | low |
 | [B1047](backlog/superseded/B1047-two-sessions-running-verify-in-the.md) | Two sessions running verify in the shared checkout collide on the next build lock | DOCS | low | low |
 | [B1226](backlog/superseded/B1226-the-resolution-floor-is-200-dpi.md) | The resolution floor is 200 dpi where the printer starts warning at 225 | FEATURE | low | low |
 | [B176](backlog/superseded/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
@@ -259,7 +267,7 @@ Do not edit them by hand; run the script.
 | [B1364](backlog/wont-do/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (65)
+## open (58)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -270,23 +278,17 @@ Do not edit them by hand; run the script.
 | [B1114](open/B1114-run-a-batch-has-no-shape.md) | run-a-batch has no shape for an engagement, so an OPS ticket cannot be in a batch at all | DOCS | high | medium |
 | [B1115](open/B1115-a-brief-can-say-a-ticket.md) | A brief can say a ticket is dropped or live, and B1058 is neither | DOCS | high | low |
 | [B1147](open/B1147-gelato-rejects-fernscout-ch-s-credential.md) | Gelato rejects fernscout.ch's credential, so no photobook in a real journal can be priced | ISSUE | high | low |
-| [B1153](open/B1153-handing-your-journal-to-your-own.md) | Handing your journal to your own agent means leaving the conversation to fetch the key | FEATURE | high | low |
 | [B1175](open/B1175-a-journal-deletion-that-fails-partway.md) | a journal deletion that fails partway leaves the journal gone, no tombstone, and a spent confirmation link | ISSUE | high | medium |
-| [B1249](open/B1249-a-signup-token-is-spent-by.md) | A signup token is spent by a creation that failed, so the person cannot retry at all | ISSUE | high | low |
-| [B1251](open/B1251-a-brand-new-journal-opens-on.md) | A brand new journal opens on a red nearly-out-of-credits alarm, because the grant equals the threshold | ISSUE | high | low |
 | [B1282](open/B1282-a-guest-confirming-their-invitation-silently.md) | A guest confirming their invitation silently deletes the postal address the owner entered for them | ISSUE | high | medium |
 | [B1301](open/B1301-an-approved-reader-who-opens-a.md) | An approved reader who opens a buddy link is given write access to the trip with no owner decision, and told there is nothing to do | SECURITY | high | medium |
-| [B1324](open/B1324-a-failed-card-press-disables-the.md) | A failed card press disables the composer for good, and the only way out wipes the conversation | ISSUE | high | low |
 | [B311](open/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B911](open/B911-the-print-flow-has-never-run.md) | The print flow has never run against the live site | OPS | high | low |
 | [B106](open/B106-push-has-never-been-switched-on.md) | Push has never been switched on anywhere, so nothing has proved a notification reaches a phone | OPS | medium | medium |
-| [B1072](open/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1094](open/B1094-editing-a-contact-opens-a-form.md) | Editing a contact opens a form off-screen above the button, so the button looks broken | ISSUE | medium | low |
 | [B1112](open/B1112-a-triage-decision-carries-no-reason.md) | A triage decision carries no reason, so the run brief starts from ids alone | DOCS | medium | low |
 | [B1116](open/B1116-plan-a-run-re-opens-questions.md) | plan-a-run re-opens questions a ticket has already decided unless the dispatch says not to | DOCS | medium | low |
 | [B1117](open/B1117-a-lane-move-can-invalidate-another.md) | A lane move can invalidate another ticket's acceptance section and nothing notices | ISSUE | medium | low |
 | [B112](open/B112-local-scripts-write-straight-to-content.md) | Local scripts still write straight to content, and the one guarantee they skip is the draft rule | FEATURE | medium | medium |
-| [B1129](open/B1129-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low |
 | [B1131](open/B1131-removing-somebody-from-a-trip-tells.md) | Removing somebody from a trip tells the owner their token keeps working, and it does not | ISSUE | medium | low |
 | [B1132](open/B1132-the-address-confirmation-mail-says-nothing.md) | The address-confirmation mail says nothing opens yet, but a pre-approved invite admits the reader on confirming | ISSUE | medium | low |
 | [B1139](open/B1139-a-hold-in-in-development-survives.md) | A hold in in-development survives the session that took it, and nothing says the work already merged | ISSUE | medium | medium |
@@ -303,7 +305,6 @@ Do not edit them by hand; run the script.
 | [B1297](open/B1297-agents-md-says-there-is-no.md) | AGENTS.md says there is no form that maps fields onto frontmatter, and Correct this day is one | DOCS | medium | low |
 | [B1300](open/B1300-with-one-day-of-costs-the.md) | With one day of costs the bar chart is a full-width block and the running total draws nothing | ISSUE | medium | low |
 | [B673](open/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium |
-| [B1043](open/B1043-the-helper-has-no-tool-for.md) | The helper has no tool for captioning a photograph or telling readers a day is up | FEATURE | low | low |
 | [B1045](open/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low |
 | [B1046](open/B1046-two-sessions-running-verify-in-the.md) | Two sessions running verify in the shared checkout collide on the next build lock | DOCS | low | low |
 | [B1048](open/B1048-two-merge-commits-on-main-label.md) | Two merge commits on main label themselves B1026 and B1027, which are different tickets | CHORE | low | low |

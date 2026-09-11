@@ -1,6 +1,7 @@
 ---
 id: B1324
 title: A failed card press disables the composer for good, and the only way out wipes the conversation
+superseded: "B1246's own fix — components/HelperAsk.tsx:999-1015, accept() has wrapped its body in try/catch/finally { setBusy(false) } since 7 September. The symptom was the raw 500 the outage produced, not a missing finally."
 type: ISSUE
 priority: high
 complexity: low
@@ -67,3 +68,10 @@ who does not know to reload, and an expensive one for anybody who does.
   without a reload.
 - The same holds for a network failure and a timeout, not only a 400.
 - No control in the room stays disabled after a failed call.
+
+## Closed as superseded, 2026-09-11
+
+Found already fixed while planning the /agent run, and then left sitting in `open/`
+reading as work for a day. Closing it is the correction.
+
+B1246's own fix — components/HelperAsk.tsx:999-1015, accept() has wrapped its body in try/catch/finally { setBusy(false) } since 7 September. The symptom was the raw 500 the outage produced, not a missing finally.

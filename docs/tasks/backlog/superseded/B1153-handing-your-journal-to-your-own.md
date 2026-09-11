@@ -1,6 +1,7 @@
 ---
 id: B1153
 title: Handing your journal to your own agent means leaving the conversation to fetch the key
+superseded: "B1210 — components/HelperRoom.tsx:1397-1416 already opens AgentHandover in a sheet in the room, and the mint-on-press and clock-time expiry shipped with it."
 type: FEATURE
 priority: high
 complexity: low
@@ -73,3 +74,10 @@ A person answered these on 2026-09-09; they are not open questions.
 - **Two sheets, not one or three.** The handover prompt is a task you finish
   and close, so it gets its own sheet. The key list and the balance are both
   "the state of my account" and share the other one — B1154 and B1155.
+
+## Closed as superseded, 2026-09-11
+
+Found already fixed while planning the /agent run, and then left sitting in `open/`
+reading as work for a day. Closing it is the correction.
+
+B1210 — components/HelperRoom.tsx:1397-1416 already opens AgentHandover in a sheet in the room, and the mint-on-press and clock-time expiry shipped with it.
