@@ -6,6 +6,9 @@ priority: low
 complexity: medium
 area: docs, tasks
 found: "2026-09-07T08:56:15Z"
+started: "2026-09-11T17:27:04Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T17:27:04Z"
 ---
 
 # B675 — The task list is invisible to anybody not standing in the checkout
@@ -53,3 +56,36 @@ this instance is; this is for a person.
 `SECURITY` task on it and no task body that names a file path in a way that
 teaches somebody where to push. It builds on an instance whose checkout has
 tasks and renders as empty rather than failing on one that does not.
+
+
+## Decisions, 2026-09-11
+
+**Metadata only.** Id, title, type, priority, lane — grouped by lane, which is
+`INDEX.md`'s own shape rendered as HTML. No bodies, no per-task page, no search.
+
+Bodies would need a person to read ~600 tickets first for anything that reads
+like an attack hint, including ISSUE tickets that describe an auth gap in prose
+without ever carrying `type: SECURITY`. Metadata is the only version buildable
+without that pass.
+
+**Filter on the frontmatter `type`, in every lane — not on the folder.** This is
+settled by evidence rather than taste, and it is the trap in this ticket.
+
+The ticket's own Work section says to exclude `docs/tasks/backlog/security/`.
+That is not sufficient: `scripts/tasks.mjs` files into category folders **only
+within `backlog/`**. AGENTS.md is explicit that the other lanes are flat —
+*"`testing/` used to as well, until B1110... The other lanes stay flat too."* So
+a ticket typed `SECURITY` that has moved to `open/`, `testing/` or `completed/`
+sits at the top level of that lane with **no `security` path segment at all**,
+and a path-only filter publishes it.
+
+Filter on `type: SECURITY` wherever it appears, and exclude the folder as well —
+belt and braces, since the two disagree only when something has gone wrong.
+
+**Reader**: a small `lib/` module using `gray-matter`, which is already a
+dependency (`lib/plan.ts` uses it). Do **not** import `scripts/tasks.mjs` — it
+is a CLI entry point that reads `process.argv`, shells out to `git` and calls
+`process.exit` at module scope.
+
+**Where**: a `/docs/roadmap` page, one new row in `DOCS_PAGES` (`lib/docs.ts:126`),
+following `docs.hosting` and `docs.api` — English only, same audience.
