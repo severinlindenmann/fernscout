@@ -346,17 +346,14 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (19)
+## in-development (16)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1223](in-development/B1223-three-failed-photobooks-for-one-journal.md) | Three failed photobooks for one journal share one attention-band id, so acknowledging one silently hides the other two and React sees duplicate keys | ISSUE | high | low | `96a5b964` |
 | [B1274](in-development/B1274-one-press-of-the-preview-publish.md) | One press of the preview publish button fires three requests and stacks three identical publish cards | ISSUE | high | low | `13f12910` |
 | [B1406](in-development/B1406-a-book-with-no-recipient-is.md) | A book with no recipient is refused with the message for a book with no photographs | ISSUE | high | low | `96a5b964` |
 | [B1113](in-development/B1113-api-health-cannot-say-whether-this.md) | /api/health cannot say whether this instance actually prints photobooks | ISSUE | medium | low | `96a5b964` |
 | [B1130](in-development/B1130-openapi-json-says-a-sign-in.md) | openapi.json says a sign-in code lasts ten minutes and agent.md says thirty; the code says thirty | ISSUE | medium | low | `13f12910` |
-| [B1148](in-development/B1148-a-refused-print-credential-is-reported.md) | A refused print credential is reported to the owner as the printer being unreachable, with advice to try again | ISSUE | medium | low | `96a5b964` |
-| [B1165](in-development/B1165-a-printer-refusal-says-nothing-about.md) | A printer refusal says nothing about why, to anybody who could act on it | ISSUE | medium | low | `96a5b964` |
 | [B1272](in-development/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low | `13f12910` |
 | [B1273](in-development/B1273-six-person-facing-strings-print-photograph.md) | Six person-facing strings print photograph(s) and Credit(s) instead of using the plural mechanism | ISSUE | medium | low | `13f12910` |
 | [B1285](in-development/B1285-the-postcard-page-tells-the-owner.md) | The postcard page tells the owner to answer an API endpoint and write a YAML block | ISSUE | medium | low | `13f12910` |
@@ -370,7 +367,7 @@ Do not edit them by hand; run the script.
 | [B1296](in-development/B1296-the-room-names-trips-by-their.md) | The room names trips by their id and dates in ISO, in a conversation that otherwise speaks plainly | ISSUE | low | low | `13f12910` |
 | [B1368](in-development/B1368-photobook-flow-doesn-t-say-the.md) | Photobook flow doesn't say the print is experimental | CHORE | low | low | `96a5b964` |
 
-## testing (165)
+## testing (168)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -432,6 +429,7 @@ Do not edit them by hand; run the script.
 | [B1220](testing/B1220-room-decisions-platform-polish-pwa-hint.md) | Room decisions: platform polish — PWA hint, haptics, shortcuts, wizard retirement (D40 D41 D42 D52) | FEATURE | high | medium | — |
 | [B1221](testing/B1221-room-decisions-a-30-second-demo.md) | Room decisions: a 30-second demo conversation at the door (D50) | FEATURE | high | medium | — |
 | [B1222](testing/B1222-the-phone-passcode-has-no-live.md) | The phone passcode has no live transport - the decided Twilio backend is on hold | FEATURE | high | medium | — |
+| [B1223](testing/B1223-three-failed-photobooks-for-one-journal.md) | Three failed photobooks for one journal share one attention-band id, so acknowledging one silently hides the other two and React sees duplicate keys | ISSUE | high | low | — |
 | [B1225](testing/B1225-get-token-sh-interpolated-its-journal.md) | get-token.sh interpolated its journal argument into an ssh command line running as root on the live instance | SECURITY | high | low | — |
 | [B1227](testing/B1227-the-receipt-names-two-files-and.md) | The receipt names two files and a missing print account, and neither the format nor the cover | ISSUE | high | low | — |
 | [B1228](testing/B1228-only-one-of-the-six-size.md) | Only one of the six size-and-cover combinations has ever reached a printer | CHORE | high | medium | — |
@@ -495,9 +493,11 @@ Do not edit them by hand; run the script.
 | [B1109](testing/B1109-every-message-starts-its-own-conversation.md) | Every message starts its own conversation, so the past-conversations list is a list of single turns | ISSUE | medium | medium | — |
 | [B1110](testing/B1110-the-testing-lane-is-filed-into.md) | The testing lane is filed into nine category folders nobody reads, now that the run report is what a person reviews from | CHORE | medium | low | — |
 | [B1136](testing/B1136-fernscout-ch-carries-test-journals-beside.md) | fernscout.ch carries test journals beside the two real ones, and nothing says which is which | OPS | medium | low | — |
+| [B1148](testing/B1148-a-refused-print-credential-is-reported.md) | A refused print credential is reported to the owner as the printer being unreachable, with advice to try again | ISSUE | medium | low | — |
 | [B1152](testing/B1152-the-acceptance-gate-s-buttons-give.md) | The acceptance gate's buttons give no feedback and its second label says nothing, so a person cannot tell what they chose or where a ticket is | DOCS | medium | low | — |
 | [B1159](testing/B1159-the-off-site-bucket-is-opaque.md) | The off-site bucket is opaque blobs with no note in it, and keeps thirty nights | FEATURE | medium | low | — |
 | [B1162](testing/B1162-a-quoted-day-shows-its-blockquote.md) | A quoted day shows its blockquote marker, in the one block where quoting happens | ISSUE | medium | low | — |
+| [B1165](testing/B1165-a-printer-refusal-says-nothing-about.md) | A printer refusal says nothing about why, to anybody who could act on it | ISSUE | medium | low | — |
 | [B1169](testing/B1169-the-room-re-renders-and-shifts.md) | The room re-renders and shifts: RoomOpening hydration mismatch and uncontained scrolling | ISSUE | medium | low | — |
 | [B1177](testing/B1177-the-conversation-has-no-reading-measure.md) | The conversation has no reading measure on a wide screen | ISSUE | medium | low | — |
 | [B1178](testing/B1178-c-new-sticks-in-the-address.md) | ?c=new sticks in the address bar and blanks a live conversation on reload | ISSUE | medium | low | — |

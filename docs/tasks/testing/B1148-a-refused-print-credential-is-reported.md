@@ -7,8 +7,7 @@ complexity: low
 area: photobook, api, i18n
 found: "2026-09-09T18:38:33Z"
 started: "2026-09-11T04:23:06Z"
-session: 96a5b964-fad1-4616-9124-a01eabbd8a46
-claimed: "2026-09-11T04:23:06Z"
+merged: "2026-09-11T05:13:51Z"
 ---
 
 # B1148 — A refused print credential is reported to the owner as the printer being unreachable, with advice to try again
