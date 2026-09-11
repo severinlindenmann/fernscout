@@ -111,7 +111,7 @@ export const JOURNAL_TOOLS: readonly Tool[] = [
       return {
         // Nothing to take is not a mistake to press through — B951's rule.
         ...(plan.bytes === 0 ? { refuse: "agent.tool.nothingToClean" } : {}),
-        sentence: say("agent.tool.cleanup", {
+        sentence: say(plan.files === 1 ? "agent.tool.cleanup.one" : "agent.tool.cleanup", {
           bytes: formatBytes(plan.bytes),
           files: String(plan.files),
         }),

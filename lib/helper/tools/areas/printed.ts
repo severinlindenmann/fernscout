@@ -224,22 +224,26 @@ export const PRINTED_TOOLS: readonly Tool[] = [
       const metered = creditsEnabled();
       const balance = metered ? await balanceOf(username) : null;
 
+      const count = Math.max(recipients.length, 1);
       const sentence = !entry
         ? say("agent.tool.publishNoDay")
         : metered
-          ? say("agent.tool.proposePostcards", {
-              count: String(Math.max(recipients.length, 1)),
+          ? say(count === 1 ? "agent.tool.proposePostcards.one" : "agent.tool.proposePostcards", {
+              count: String(count),
               date: entry.date,
               title: entry.title,
               each: String(each),
               total: String(total),
               balance: String(balance ?? 0),
             })
-          : say("agent.tool.proposePostcardsFree", {
-              count: String(Math.max(recipients.length, 1)),
-              date: entry.date,
-              title: entry.title,
-            });
+          : say(
+              count === 1 ? "agent.tool.proposePostcardsFree.one" : "agent.tool.proposePostcardsFree",
+              {
+                count: String(count),
+                date: entry.date,
+                title: entry.title,
+              },
+            );
 
       // The recipient's own language, when exactly one is known and nobody
       // said otherwise — the same idea `add_cost`'s currency guess is,

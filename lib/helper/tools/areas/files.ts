@@ -134,7 +134,7 @@ export const FILES_TOOLS: readonly Tool[] = [
       const onto = names.length > 0 ? found : null;
       return {
         sentence: onto
-          ? say("agent.tool.attachFiles", {
+          ? say(names.length === 1 ? "agent.tool.attachFiles.one" : "agent.tool.attachFiles", {
               count: String(names.length),
               date: onto.entry.date,
               title: onto.entry.title,
