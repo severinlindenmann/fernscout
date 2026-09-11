@@ -1,6 +1,6 @@
 import { authenticate, errorResponse, mayActAsOwner, outOfScope, ownsUser } from "@/lib/api/auth";
 import { isEnabled } from "@/lib/capabilities";
-import { importContactRows, type ImportRow } from "@/lib/contacts/importRows";
+import { importContactRows, type ImportRow, MAX_IMPORT_ROWS } from "@/lib/contacts/importRows";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,8 @@ export const dynamic = "force-dynamic";
  * contacts to a journal it cannot otherwise touch.
  */
 
-const MAX_ROWS = 50;
+// The bound lives in the writer now (MAX_IMPORT_ROWS) so both doors inherit
+// it -- this route had it and the helper's card route, added beside it, did not.
 
 export async function POST(request: Request, { params }: RouteContext<"/api/v1/[user]/contacts/import">) {
   const auth = await authenticate(request);
@@ -68,9 +69,9 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
       { status: 400 },
     );
   }
-  if (rows.length > MAX_ROWS) {
+  if (rows.length > MAX_IMPORT_ROWS) {
     return Response.json(
-      { error: "invalid_request", message: `${rows.length} rows; one call carries at most ${MAX_ROWS}.` },
+      { error: "invalid_request", message: `${rows.length} rows; one call carries at most ${MAX_IMPORT_ROWS}.` },
       { status: 400 },
     );
   }
