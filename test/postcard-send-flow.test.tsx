@@ -24,7 +24,8 @@ const refresh = vi.fn();
 const push = vi.fn();
 
 const STRINGS = {
-  cost: "2 credits each × 1 = 2 credits",
+  priceHeading: "Price",
+  priceTotal: "Total",
   balance: "You have 9.",
   short: null,
   buy: "Buy credits",
@@ -105,6 +106,12 @@ async function mount(
         short={false}
         results={RESULTS}
         initialResult={null}
+        ledger={{
+          lines: [{ label: "2 credits each × 1", credits: 2, amount: "2 credits" }],
+          totalCredits: 2,
+          totalLabel: "2 credits",
+          totalMoney: "about CHF 0.40",
+        }}
         strings={STRINGS}
       />,
     );

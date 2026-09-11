@@ -47,7 +47,7 @@ const TONE_DOT: Record<OrderTone, string> = {
   coral: "bg-coral-600",
 };
 
-function OrderPill({ tone, label }: { tone: OrderTone; label: string }) {
+export function OrderPill({ tone, label }: { tone: OrderTone; label: string }) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-semibold ${TONE_CHIP[tone]}`}
