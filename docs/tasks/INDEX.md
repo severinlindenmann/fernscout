@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (154)
+## backlog (155)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (25)
+### issue (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -78,6 +78,7 @@ Do not edit them by hand; run the script.
 | [B1409](backlog/issue/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low |
 | [B1416](backlog/issue/B1416-the-files-rail-chip-downloads-uncapped.md) | The files-rail chip downloads uncapped photographs for a 42px avatar | ISSUE | medium | low |
 | [B1417](backlog/issue/B1417-inbox-file-thumbnails-download-uncapped-photographs.md) | Inbox file thumbnails download uncapped photographs for a 96px tile | ISSUE | medium | low |
+| [B1428](backlog/issue/B1428-a-book-bought-before-the-one.md) | A book bought before the one-price change would be charged the whole price again to print it | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
