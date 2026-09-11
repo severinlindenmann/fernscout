@@ -319,7 +319,7 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (12)
+## in-development (11)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -332,13 +332,14 @@ Do not edit them by hand; run the script.
 | [B1300](in-development/B1300-with-one-day-of-costs-the.md) | With one day of costs the bar chart is a full-width block and the running total draws nothing | ISSUE | medium | low | `13f12910` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
-| [B1461](in-development/B1461-the-photobook-receipt-page-never-says.md) | The photobook receipt page never says what the book cost | FEATURE | medium | low | `3f748903` |
 | [B1283](in-development/B1283-the-phone-country-field-is-too.md) | The phone country field is too narrow for its own default value, so the dialling code is cut off | ISSUE | low | low | `13f12910` |
 | [B539](in-development/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low | `13f12910` |
 
-## testing (0)
+## testing (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B1461](testing/B1461-the-photobook-receipt-page-never-says.md) | The photobook receipt page never says what the book cost | FEATURE | medium | low | — |
 
 ## completed (1188)
 

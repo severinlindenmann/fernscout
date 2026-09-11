@@ -7,8 +7,7 @@ complexity: low
 area: photobook receipt
 found: "2026-09-11T13:21:06Z"
 started: "2026-09-11T13:21:24Z"
-session: 3f748903-2dc3-47a2-a958-98b83d641dc0
-claimed: "2026-09-11T13:21:24Z"
+merged: "2026-09-11T13:30:55Z"
 ---
 
 # B1461 — The photobook receipt page never says what the book cost
