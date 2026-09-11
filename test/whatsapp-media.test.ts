@@ -47,6 +47,10 @@ function imageMessage(from: string, id: string, caption?: string): InboundMessag
   };
 }
 
+function audioMessage(from: string, id: string): InboundMessage {
+  return { kind: "audio", id, from, timestamp: "1", mediaId: `media-${id}`, mimeType: "audio/ogg", voice: true };
+}
+
 function documentMessage(from: string, id: string, filename: string): InboundMessage {
   return {
     kind: "document",
@@ -291,6 +295,41 @@ describe("a media download that fails", () => {
 
     const listed = listInbox("mediatest");
     expect(listed.media).toHaveLength(0);
+    const files = repliesTo("mediatest");
+    const last = String(files[files.length - 1].body);
+    expect(last.length).toBeGreaterThan(0);
+    expect(last).not.toMatch(/graph\.facebook\.com/);
+  });
+});
+
+/**
+ * B1271 — `handleVoiceNote` had the identical shape: a rejected download was
+ * caught with `console.error` and nothing was ever sent back.
+ */
+describe("a voice-note download that fails", () => {
+  test("gets one honest sentence back, in the journal's locale", async () => {
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "Fernscout Test", url: "https://t.test" },
+        users: { reserved: [] },
+        features: {
+          whatsappInbound: { enabled: true },
+          whatsapp: { enabled: true, backend: "dry-run" },
+          helper: { enabled: true },
+          transcription: { enabled: true, backend: "dry-run" },
+        },
+      }),
+    );
+    clearConfigCache();
+
+    await bindGreetAcknowledge("mediatest", "41760012013");
+    const { recordHelperConsent, currentHelperProvider } = await import("@/lib/helper/consent");
+    recordHelperConsent("mediatest", currentHelperProvider("speech"), "speech");
+    downloadMedia.mockRejectedValueOnce(new Error("graph.facebook.com is unreachable"));
+
+    await handleInboundMessage(audioMessage("41760012013", "wamid.voice-fail"));
+
     const files = repliesTo("mediatest");
     const last = String(files[files.length - 1].body);
     expect(last.length).toBeGreaterThan(0);

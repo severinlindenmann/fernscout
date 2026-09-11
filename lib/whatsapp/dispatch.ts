@@ -448,6 +448,10 @@ async function handleVoiceNote(
     audio = await downloadMedia(cloudCredentials(), message.mediaId);
   } catch (err) {
     console.error(`[whatsapp:inbound] could not download voice note for ${username}:`, err);
+    // B1271 — the same silent drop B1263 fixed for handleMedia: a sender
+    // whose voice note failed to download got nothing back and could not
+    // tell a real failure from "still typing…".
+    await sendServiceReply(message.from, translateIn(locale, "wa.mediaDownloadFailed"), username);
     return;
   }
 
