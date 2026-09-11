@@ -110,7 +110,7 @@ export function readGuide(guide: Guide, locale: string): { markdown: string; loc
  * say, in the reader's own language, that only one of the halves is
  * translated.
  */
-export type DocsPageId = Guide | "hosting" | "contributing" | "api" | "helper";
+export type DocsPageId = Guide | "hosting" | "contributing" | "api" | "helper" | "roadmap";
 
 export type DocsPage = {
   id: DocsPageId;
@@ -136,6 +136,7 @@ export const DOCS_PAGES: readonly DocsPage[] = [
   },
   { id: "api", href: "/docs/api", labelKey: "docs.api.title", group: "technical" },
   { id: "helper", href: "/docs/helper", labelKey: "docs.helper.title", group: "technical" },
+  { id: "roadmap", href: "/docs/roadmap", labelKey: "docs.roadmap.title", group: "technical" },
 ];
 
 /**

@@ -12,10 +12,10 @@ import { dictionaryFor } from "@/lib/locales";
  * navigated and the other scrolled.
  */
 describe("the documentation pages", () => {
-  test("there are seven, in two groups", () => {
-    expect(DOCS_PAGES).toHaveLength(7);
+  test("there are eight, in two groups", () => {
+    expect(DOCS_PAGES).toHaveLength(8);
     expect(DOCS_PAGES.filter((p) => p.group === "guides")).toHaveLength(3);
-    expect(DOCS_PAGES.filter((p) => p.group === "technical")).toHaveLength(4);
+    expect(DOCS_PAGES.filter((p) => p.group === "technical")).toHaveLength(5);
   });
 
   test("every page has a real route and a label in every language", () => {

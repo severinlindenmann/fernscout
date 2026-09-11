@@ -1175,6 +1175,7 @@ export type TranslationKey =
   | "docs.hosting.title"
   | "docs.lede"
   | "docs.navLabel"
+  | "docs.roadmap.title"
   | "docs.technicalGroup"
   | "docs.technicalGroupNote"
   | "docs.title"

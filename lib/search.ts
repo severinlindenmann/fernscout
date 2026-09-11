@@ -173,16 +173,17 @@ function tripDoc(username: string, trip: Trip, tripBase: string): SearchDoc {
 /**
  * The documentation pages — B890.
  *
- * Public, and identical in both builders: `/docs` is the same seven pages for
+ * Public, and identical in both builders: `/docs` is the same eight pages for
  * a stranger and for the owner, so there is nothing here to gate. The three
  * guides carry their whole markdown as `body` (in every language this journal
  * offers, since a reader searching in German should find the German guide's
  * words), which is what makes "wie melde ich mich an" land on the guest
- * guide rather than nowhere. The four technical pages carry their label
- * only: their prose is `README.md` and `CONTRIBUTING.md` read at request
- * time, English, and about running the software rather than about this
- * journal — indexing all of it into every journal's payload would cost every
- * reader for a question almost none of them are asking.
+ * guide rather than nowhere. The five technical pages carry their label
+ * only: their prose is `README.md`, `CONTRIBUTING.md` and — since B675 —
+ * `docs/tasks/` read at request time, English, and about running the
+ * software rather than about this journal — indexing all of it into every
+ * journal's payload would cost every reader for a question almost none of
+ * them are asking.
  *
  * `body` is indexed and never stored (see lib/searchOptions.ts), so the cost
  * of a guide is its vocabulary, not its prose.

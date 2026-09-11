@@ -89,3 +89,63 @@ is a CLI entry point that reads `process.argv`, shells out to `git` and calls
 
 **Where**: a `/docs/roadmap` page, one new row in `DOCS_PAGES` (`lib/docs.ts:126`),
 following `docs.hosting` and `docs.api` — English only, same audience.
+
+## Built, 2026-09-11
+
+`lib/roadmap.ts` — `getRoadmap(root?)` walks `docs/tasks/<lane>/` (recursively,
+so `backlog/`'s category folders are covered) with `gray-matter`, drops
+`INDEX.md`, and returns `{ id, title, type, priority }` grouped by lane.
+Filters on **both** halves of the belt-and-braces rule: any file under
+`backlog/security/` is skipped by path, and any parsed file with
+`type: "SECURITY"` is skipped regardless of lane. A file whose frontmatter
+fails to parse is skipped and logged (`clearMatterCache()` per B312) rather
+than taking the page down — this is not hypothetical: 46 of the ~1,450 files
+in this checkout's real `docs/tasks/` fail to parse today (mostly an unquoted
+`:` in a title), and the fixture-based test reproduces this exact failure
+shape. `docs/roadmap/page.tsx` renders it as five tables; `lib/docs.ts` gained
+a `roadmap` entry in `DOCS_PAGES` and `DocsPageId`; `app/docs/page.tsx` gained
+a `Map` icon for it; `site/locales/{en,de,hu}.json` gained
+`docs.roadmap.title`. `test/roadmap.test.ts` is the fixture-based proof —
+against a fixture tree, not the live one, per the task's own note that the
+live tree changes hourly.
+
+**The count asked for**: `type: SECURITY` tickets sitting **outside**
+`backlog/security/`, checked against this checkout's real `docs/tasks/`, is
+**45** (out of 49 total `SECURITY` tickets) — all in `completed/`, one in
+`testing/`, one in `backlog/superseded/`. That is live proof the folder-only
+filter the ticket's own Work section proposed would have published all 45 of
+them; the type-based filter is not a hypothetical improvement.
+
+**Per-render cost**: walking the real tree (~1,450 files, `fs.readFileSync` +
+`gray-matter` parse each) measures **~450-500ms** uncached, single-threaded,
+on this machine. No caching added — consistent with how every other `/docs`
+page here already reads `README.md`/`CONTRIBUTING.md` fresh per request
+(`lib/docs.ts`'s `readRepoFile`), and `/docs/roadmap` is a low-traffic page, not
+one in a hot path. If this ever needs to be faster, the natural fix is
+`unstable_cache`/`revalidate` on the page (an editorial page like this one, not
+per-visitor), invalidated by nothing more than its own TTL — there is no write
+path to invalidate on, since this reads a checkout that only changes via
+`git pull` or a task-lane move.
+
+**Titles worth flagging, found while reading the rendered output**:
+`backlog/chore/B1446-...md` — *"Anthropic API key may be exposed and needs
+rotation"* — is typed `OPS`, not `SECURITY`, so it is **not** filtered by this
+page's guard and would render as-is on `/docs/roadmap`. Whether or not the key
+was actually exposed, publishing the sentence "this journal's Anthropic key may
+be exposed" to a stranger is itself a live hint, independent of the ticket's
+own type tag. This is exactly the "ISSUE/OPS ticket describing a security
+matter in prose" case the ticket's own Decisions section warned about, and it
+is not filtered — flagging it here rather than filtering it silently, per
+instruction. No other rendered title looked like it named a live weakness
+beyond the convention every ticket title already follows ("title is the
+problem, not the fix").
+
+**Fixed along the way**: `test/docs-pages.test.ts` (`DOCS_PAGES` length
+7→8, technical group 4→5) and `test/search.test.ts` (documentation row count
+in the search index, 9→10 doc rows, `documentCount` 14→15) both hard-coded the
+old page count and needed updating for the new `roadmap` entry; `app/docs/page.tsx`'s
+`ICONS` map is a `Record<DocsPageId, …>` and needed a `roadmap: Map` entry to
+typecheck.
+
+`npm run verify`: green. 532 test files, 6955 passed, 4 skipped (baseline on
+`main` was 527 files / ~6920 passing).

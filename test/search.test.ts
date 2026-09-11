@@ -57,12 +57,12 @@ describe("buildSearchIndex", () => {
     // The one public entry, plus its trip's own row — which is the Story
     // destination, so there is no separate row for that (B890) — plus
     // Gallery and Map (B823; no Analytics, no costs and no weather, since
-    // this fixture carries none), the nine documentation rows (seven pages,
-    // the hub and the imprint — B903), and `/trips`, the one journal-scoped
-    // destination this fixture offers a stranger: `auth` is off here, so
-    // there is no sign-in door to find. Nothing from the closed trips
-    // contributes any kind of document.
-    expect(index.documentCount).toBe(1 + 1 + 2 + 9 + 1);
+    // this fixture carries none), the ten documentation rows (eight pages —
+    // B675 added `/docs/roadmap` — the hub and the imprint — B903), and
+    // `/trips`, the one journal-scoped destination this fixture offers a
+    // stranger: `auth` is off here, so there is no sign-in door to find.
+    // Nothing from the closed trips contributes any kind of document.
+    expect(index.documentCount).toBe(1 + 1 + 2 + 10 + 1);
   });
 
   test("an unlisted trip's content is not indexed at all", () => {
