@@ -1294,7 +1294,13 @@ function draftsForChapter(
 }
 
 function draftsForFront(source: BookSource, options: BookOptions, spec: BookSpec): Draft[] {
-  const drafts: Draft[] = [{ kind: "title", align: "recto" }];
+  // The title leaf, and then its own back. `emit()` inserts a blank *before* a
+  // draft that cannot have the side it asked for, so it cannot express "leave
+  // the page after this one empty" — and without that, the first thing in the
+  // book prints on the reverse of the title page. Every chapter opener already
+  // gets a facing blank out of `align: "recto"`; the one page that most wants
+  // one was the only page not getting it. B1542.
+  const drafts: Draft[] = [{ kind: "title", align: "recto" }, { kind: "blank" }];
   if (source.trip.intro.trim() && options.includeText) drafts.push({ kind: "intro" });
   if (options.includeMap && source.route.length >= 2) {
     const pageAspect = spec.size.trimWidthMm / spec.size.trimHeightMm;

@@ -56,3 +56,35 @@ blank, after the title.
 - Seen in a real render — `/docs/branding/print` shows margins, not sequence,
   so this one needs an actual PDF of an existing trip, not a fixture built for
   the change.
+
+## What was found and done
+
+**Valid.** `draftsForFront()` (`lib/photobook/plan.ts:1297`) opened with the
+title alone, and `emit()` (`:1356`) only inserts a blank *before* a draft whose
+`align` cannot be satisfied — so the intro printed on page 2, the back of the
+title leaf. Confirmed on `example/alps-2024` before the change:
+`1 R title / 2 L intro`.
+
+The fix is the one line the Work section named: a `{ kind: "blank" }` pushed
+straight after the title draft, with the reasoning beside it. No new `align`
+value — `emit()` cannot express "leave the page after this one empty", and
+teaching it to would have been a second concept for one page.
+
+Nothing downstream needed adjusting. `splitIntoVolumes()` takes `frontLength`
+as an argument, so the extra page is accounted for by arithmetic that was
+already there, and the route spread's own `align: "verso"` now falls where it
+wants without a blank of its own — on `example/asia-2023` the spread sits on
+4–5 exactly as it did before.
+
+## Evidence
+
+- `test/photobook.test.ts` — "opens with the title on a recto" now also asserts
+  `pages[1].kind === "blank"`. Fails without the change
+  (`expected 'intro' to be 'blank'`), passes with it.
+- `npm run verify` — all 5 steps, 539 files, 7048 tests.
+- `npm run photobook -- --trip example/alps-2024 --outline`:
+  `1 R title / 2 L blank / 3 R intro / 5 R chapter 1/3`.
+- A real PDF, not a fixture: `alps-2024-interior.pdf` rendered from the
+  existing example trip, page 2 white and page 3 the intro.
+- No `blank-padding` warning appeared that was not there before; the trip's
+  own short-book warning is unchanged.
