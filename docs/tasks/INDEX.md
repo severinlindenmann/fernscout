@@ -327,17 +327,16 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (5)
+## in-development (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1175](in-development/B1175-a-journal-deletion-that-fails-partway.md) | a journal deletion that fails partway leaves the journal gone, no tombstone, and a spent confirmation link | ISSUE | high | medium | `13f12910` |
 | [B1272](in-development/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low | `13f12910` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
 | [B1452](in-development/B1452-an-owner-cannot-see-the-status.md) | An owner cannot see the status of their photobook and postcard orders in one place | FEATURE | medium | medium | `96bf5e0d` |
 
-## testing (244)
+## testing (245)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -382,6 +381,7 @@ Do not edit them by hand; run the script.
 | [B1172](testing/B1172-photographs-go-into-the-book-at.md) | Photographs go into the book at camera resolution, so the printer cannot render it | ISSUE | high | medium | — |
 | [B1173](testing/B1173-gelato-demands-a-page-count-two.md) | Gelato demands a page count two higher than the one it accepted a quote for | ISSUE | high | low | — |
 | [B1174](testing/B1174-an-off-site-copy-that-stops.md) | An off-site copy that stops arriving says nothing wrong on /admin | ISSUE | high | low | — |
+| [B1175](testing/B1175-a-journal-deletion-that-fails-partway.md) | a journal deletion that fails partway leaves the journal gone, no tombstone, and a spent confirmation link | ISSUE | high | medium | — |
 | [B1182](testing/B1182-a-phone-with-nothing-uploaded-yet.md) | A phone with nothing uploaded yet has no way to upload anything | ISSUE | high | low | — |
 | [B1184](testing/B1184-the-agent-room-and-door-offer.md) | The agent room and door offer no way to change their language | ISSUE | high | low | — |
 | [B1188](testing/B1188-a-trip-with-no-days-yet.md) | A trip with no days yet greets its owner with 'the last of it undefined, NaN undefined' | ISSUE | high | low | — |
