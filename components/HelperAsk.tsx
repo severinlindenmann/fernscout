@@ -938,27 +938,38 @@ export default function HelperAsk({
             today: new Date().toISOString().slice(0, 10),
           },
         );
-        setTurns((was) => [
-          ...was,
-          {
-            said: "",
-            blocks: [
-              { shape: "say", text: proposal.done },
-              ...((next.blocks ?? []) as Block[]),
-            ],
-          },
-        ]);
+        // `proposal.done` used to open this turn as well as ProposalView's
+        // own card, so every chained accept read the same outcome twice —
+        // B1256. The next proposal's own sentence is what belongs here; say
+        // nothing before it. And when there is neither that nor a next
+        // proposal, push no turn at all rather than one with nothing in it.
+        const chainedBlocks = (next.blocks ?? []) as Block[];
+        if (chainedBlocks.length > 0) {
+          setTurns((was) => [...was, { said: "", blocks: chainedBlocks }]);
+        } else {
+          // Nothing new arrived to put focus on — back to the field, same as
+          // an ordinary accept with nothing to preview.
+          silentFocus.current = true;
+          box.current?.focus();
+        }
         return;
       }
 
-      setTurns((was) => [
-        ...was,
-        {
-          said: "",
-          blocks: [...previewOf(answer, t), { shape: "say", text: proposal.done }],
-          at: Date.now(),
-        },
-      ]);
+      // Same duplicate, same fix — B1256: `proposal.done` is the card's own
+      // closing line (ProposalView renders it already) and does not belong
+      // in the turn a second time. No turn at all when there is nothing
+      // else to show — and the field gets focus directly rather than
+      // through the turns effect, since there is no turn here to trigger it.
+      const previewBlocks = previewOf(answer, t);
+      if (previewBlocks.length > 0) {
+        setTurns((was) => [
+          ...was,
+          { said: "", blocks: previewBlocks, at: Date.now() },
+        ]);
+      } else {
+        silentFocus.current = true;
+        box.current?.focus();
+      }
 
       /**
        * The next-step chips — B1212 (D18). Keyed on what was just written,
