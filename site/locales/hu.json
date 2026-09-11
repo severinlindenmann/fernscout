@@ -1211,7 +1211,6 @@
   "postcard.page.titleSent": "Képeslapok, elküldve",
   "postcard.page.titleFailed": "Képeslapok, nem lettek elküldve",
   "postcard.page.writtenIn": "Ezen a nyelven",
-  "postcard.page.photoFixed": "A fénykép rögzített — máshoz új lapot kell kérni.",
   "postcard.page.smallPhoto": "Ez a fénykép kicsi, ezért kissé lágyan nyomtat. Egy nagyobb élesebb lenne, ha van másik, ami tetszik.",
   "postcard.pickHint": "Koppints egy fényképre, hogy képeslapra kerüljön.",
   "postcard.pickPhoto": "Válassz egy fényképet",
@@ -2311,7 +2310,6 @@
   "postcard.step.look": "Megnézem",
   "postcard.step.nextLook": "Így jó",
   "postcard.step.nextWrite": "Mehet a küldés",
-  "postcard.step.of": "/",
   "postcard.step.send": "Elküldöm",
   "postcard.step.write": "Megírom",
   "postcard.writeNext": "A lapot a következő lépésben írod meg, ahol nyomtatási méretben látod.",
@@ -2382,5 +2380,5 @@
   "order.meta.proposed": "Javasolva: {date} · Hivatkozás: {id}",
   "order.meta.sent": "Elküldve: {date} · Hivatkozás: {id}",
   "postcard.status.withPrinter": "A nyomdában",
-  "postcard.status.withPrinterNote": "A nyomda átvette a megrendelést. A lapok a következő napokban indulnak útnak — hogy mikor érkeznek meg, azt ez a napló nem tudja, ezért nem is állít róla semmit."
+  "postcard.status.withPrinterNote": "A nyomda átvette a megrendelést. A lapok a következő napokban indulnak útnak."
 }

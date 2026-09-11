@@ -120,7 +120,7 @@ export default function PostcardSteps({
   writePanel: React.ReactNode;
   sendPanel: React.ReactNode;
   /** The three names, in the reader's language. */
-  labels: { look: string; write: string; send: string; of: string };
+  labels: { look: string; write: string; send: string };
   /** "Looks right" / "Ready to send" — the forward button per step. */
   next: { look: string; write: string };
   back: string;
@@ -205,9 +205,6 @@ export default function PostcardSteps({
               </button>
             );
           })}
-          </span>
-          <span className="font-mono text-xs text-navy-500">
-            {index + 1} {labels.of} 3
           </span>
         </nav>
       ) : null}

@@ -320,7 +320,6 @@ export default async function PostcardOrderPage({
             look: t("postcard.step.look"),
             write: t("postcard.step.write"),
             send: t("postcard.step.send"),
-            of: t("postcard.step.of"),
           }}
           next={{
             look: t("postcard.step.nextLook"),
@@ -341,6 +340,13 @@ export default async function PostcardOrderPage({
           lookPanel={
             <div key="look" className="max-w-2xl">
               <figure>
+                {/* The label above the picture — B1510. Under it, it named
+                    the photograph after it had been looked at; the Write
+                    step's own card names itself before its contents and this
+                    now reads the same way. */}
+                <figcaption className="mb-1 text-xs font-semibold uppercase tracking-wider text-navy-500">
+                  {t("postcard.page.front")}
+                </figcaption>
                 <PostcardCropper
                   username={username}
                   id={id}
@@ -353,9 +359,6 @@ export default async function PostcardOrderPage({
                   resetLabel={t("postcard.page.cropReset")}
                   zoomLabel={t("postcard.page.cropZoom")}
                 />
-                <figcaption className="mt-1 text-xs text-navy-600">
-                  {t("postcard.page.front")}
-                </figcaption>
               </figure>
               {/* Beside the photograph rather than four screens later — B1005.
                   It is advice about *this* picture, and it is only useful
@@ -370,11 +373,6 @@ export default async function PostcardOrderPage({
               {resolution && !resolution.ok && isPending(order) ? (
                 <p className="mt-3 text-sm text-navy-600">
                   {t("postcard.page.smallPhoto")}
-                </p>
-              ) : null}
-              {isPending(order) && !expired ? (
-                <p className="mt-2 text-xs text-navy-600">
-                  {t("postcard.page.photoFixed")}
                 </p>
               ) : null}
             </div>
