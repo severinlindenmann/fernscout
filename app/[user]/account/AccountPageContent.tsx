@@ -810,7 +810,7 @@ export default function AccountPageContent({
                 </p>
               )}
 
-              <StorageBar rows={storage.rows} />
+              {storage.rows.length > 0 && <StorageBar rows={storage.rows} />}
 
               {(storage.reclaimable.files > 0 || storage.canBuy) && (
                 <div className="mt-5 border-t border-navy-200 pt-4">

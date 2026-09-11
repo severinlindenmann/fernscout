@@ -53,25 +53,39 @@ export default async function AccountPage({ params }: PageProps<"/[user]/account
   if (usage.limitBytes !== null) {
     const limit = usage.limitBytes;
     const reclaimable = await cleanupPlan(user, true);
+    const percent = Math.round((usage.usedBytes / limit) * 100);
     storage = {
       used: formatBytes(usage.usedBytes),
       limit: formatBytes(limit),
-      percent: Math.round((usage.usedBytes / limit) * 100),
-      rows: storageBreakdown(user)
-        .filter((row) => row.bytes > 0)
-        .sort((a, b) => b.bytes - a.bytes)
-        .map((row) => ({
-          key: row.key,
-          label: row.label,
-          human: formatBytes(row.bytes),
-          share: Math.min(100, (row.bytes / limit) * 100),
-        })),
+      percent,
+      // A breakdown of a kilobyte is a bar with nothing visible in it and a
+      // legend of near-zero rows — B1270. `percent` is already the rounded
+      // share this page shows in words a line above; a journal that rounds
+      // to 0% has nothing worth drawing a segmented bar for, so the rows are
+      // withheld rather than reusing a second, invented floor.
+      rows:
+        percent > 0
+          ? storageBreakdown(user)
+              .filter((row) => row.bytes > 0)
+              .sort((a, b) => b.bytes - a.bytes)
+              .map((row) => ({
+                key: row.key,
+                label: row.label,
+                human: formatBytes(row.bytes),
+                share: Math.min(100, (row.bytes / limit) * 100),
+              }))
+          : [],
       reclaimable: {
         human: formatBytes(reclaimable.bytes),
         files: reclaimable.files,
         hasStagedFiles: reclaimable.stagedFiles > 0,
       },
-      canBuy: creditsEnabled(),
+      // Selling 5 GB to a journal using a kilobyte of what it already has is
+      // an offer nobody can act on sensibly — B1270. `>= 90` is the same
+      // number `me.storageNearlyFull` already draws the line at a few lines
+      // above; reusing it rather than picking a second threshold for the
+      // same question of "is storage actually tight".
+      canBuy: creditsEnabled() && percent >= 90,
       buyCredits: EXTRA_STORAGE_CREDITS,
     };
   }
