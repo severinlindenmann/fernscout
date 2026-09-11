@@ -50,17 +50,25 @@ a short menu that fits never shows it at all.
 
 **Evidence.** `components/PageHeader.tsx` tracks whether the panel has more
 content below (`panelOverflowsBelow`, recomputed on scroll and on resize) and
-renders a small `aria-hidden` gradient fade as the panel's last child when
-true. Checked at 390px against the real demo journal
-(`/example/trips/alps-2024`, unmodified) over CDP, at a viewport short enough
-that the panel's `70vh` genuinely clips the nav list:
+renders a small `aria-hidden` element as the panel's last child when true.
 
-- Panel open, not scrolled: `scrollHeight(401) > clientHeight(348)`, fade
+First cut used a `bg-gradient-to-t from-cream-50` wash; the person who
+requested this ticket saw it live and called it ugly. Replaced with a
+hairline inset shadow (`shadow-[inset_0_-9px_8px_-8px_rgba(28,43,63,0.35)]`
+on a 10px sticky strip) — same wiring, only the visual changed. Six other
+options (bobbing chevron, edge rail, counting pill, deliberate CSS-only peek)
+were mocked up and compared before picking this one.
+
+Checked at 390px against the real demo journal (`/example/trips/alps-2024`,
+unmodified) over CDP, at a viewport short enough that the panel's `70vh`
+genuinely clips the nav list, both before and after the swap:
+
+- Panel open, not scrolled: `scrollHeight(401) > clientHeight(348)`, shadow
   present.
-- Scrolled to the true end: fade gone, "Your access" (the last entry) fully
+- Scrolled to the true end: shadow gone, "Your access" (the last entry) fully
   visible with nothing cut off.
 - Same page at a tall viewport where the panel fits without scrolling
-  (`scrollHeight === clientHeight === 401`): fade never rendered.
+  (`scrollHeight === clientHeight === 401`): shadow never rendered.
 
-`npm run verify` — build, tsc, eslint, vitest (519 files, 6795 passed), knip —
-all green.
+`npm run verify` — build, tsc, eslint, vitest (522 files, 6822 passed), knip —
+all green, after both the gradient and the shadow revisions.
