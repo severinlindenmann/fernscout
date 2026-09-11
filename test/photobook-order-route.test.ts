@@ -31,7 +31,7 @@ vi.mock("@/lib/photobook/print", () => ({ submitBuiltBook: vi.fn() }));
 // price and render a book are replaced.
 vi.mock("@/lib/photobook/build", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/photobook/build")>();
-  return { ...actual, planFor: vi.fn(), priceOf: vi.fn(), buildPhotobook: vi.fn() };
+  return { ...actual, planFor: vi.fn(), buildPhotobook: vi.fn() };
 });
 vi.mock("@/lib/photobook/orders", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/photobook/orders")>();
@@ -41,7 +41,7 @@ vi.mock("@/lib/photobook/orders", async (importOriginal) => {
 import { POST } from "@/app/[user]/photobook/order/route";
 import { GET } from "@/app/[user]/photobooks/[id]/[file]/route";
 import { balanceOf, spend } from "@/lib/credits";
-import { planFor, priceOf, buildPhotobook } from "@/lib/photobook/build";
+import { planFor, buildPhotobook } from "@/lib/photobook/build";
 import { claimOrder, markFailed, markPrinted } from "@/lib/photobook/orders";
 import { quoteBookFor } from "@/lib/photobook/quote";
 import { submitBuiltBook } from "@/lib/photobook/print";
@@ -52,10 +52,9 @@ const params = Promise.resolve({ user: "alex" });
 /** A book just real enough for `pages`/`volumes` to sum without throwing —
  * the layout itself is `planFor`'s business, not this route's. */
 const BOOK = { volumes: [{ interiorPages: 40 }], warnings: [], photoCount: 12 };
-const BUILD_CREDITS = 40;
-const PRINT_CREDITS = 48;
-/** What the button says: building and printing are one purchase — B1157. */
-const CREDITS = BUILD_CREDITS + PRINT_CREDITS;
+/** What the button says — one product, one price, from the quote alone
+ *  (B1157, repriced as a single number by B1425). */
+const CREDITS = 88;
 
 function orderRequest(orderId: string, previewedCredits: string = String(CREDITS)) {
   return new Request("https://example.test/alex/photobook/order", {
@@ -101,11 +100,8 @@ describe("the order route", () => {
     beforeEach(() => {
       vi.clearAllMocks();
       vi.mocked(planFor).mockReturnValue(BOOK as never);
-      vi.mocked(priceOf).mockReturnValue(BUILD_CREDITS);
-      // Build plus print: what the button says, and what is charged.
+      // One number: what the button says, and what is charged.
       vi.mocked(quoteBookFor).mockResolvedValue({
-        buildCredits: BUILD_CREDITS,
-        printCredits: PRINT_CREDITS,
         totalCredits: CREDITS,
         shipmentMethodUid: "swiss_post_economy",
         country: "CH",
@@ -209,7 +205,7 @@ describe("the order route", () => {
     /**
      * B595. The preview and the press plan and price the same trip twice, and
      * between the two the trip on disk can change — a day published, a
-     * photograph added. Paying whatever the second `priceOf` says, with no
+     * photograph added. Paying whatever the second quote says, with no
      * check against what the first one told the owner, is how somebody is
      * charged a number their own screen never showed them. All three of the
      * ways this can fail answer the same `stale_preview`, and none of them
@@ -266,12 +262,8 @@ describe("the order route", () => {
       test("a price that grew between preview and press refuses rather than charging the new one", async () => {
         // The quote now totals more than the form's `previewedCredits` (still
         // `CREDITS`, from the default) — a trip that grew a day or a
-        // photograph in between, or postage that moved. Since B1157 the total
-        // is the quote's, not `priceOf`'s alone, so that is where the change
-        // has to be made for this to be the case it describes.
+        // photograph in between, or postage that moved.
         vi.mocked(quoteBookFor).mockResolvedValue({
-          buildCredits: BUILD_CREDITS + 12,
-          printCredits: PRINT_CREDITS,
           totalCredits: CREDITS + 12,
           shipmentMethodUid: "swiss_post_economy",
           country: "CH",

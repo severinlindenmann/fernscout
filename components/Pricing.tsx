@@ -8,9 +8,8 @@ import {
   POSTCARD_CREDITS,
   creditsInRappen,
   formatChf,
-  photobookCredits,
-  photobookPrintCredits,
-  PHOTOBOOK_QUOTE_EXAMPLE,
+  photobookPriceCredits,
+  PHOTOBOOK_QUOTE_MINIMUM,
   priceRappen,
 } from "@/lib/credits/pricing";
 import { serverMediaCeiling } from "@/lib/config";
@@ -79,18 +78,12 @@ export default function Pricing({ locale }: { locale: string }) {
     t("pricing.freeExport"),
   ];
 
-  /** The printed book is one price now: laying it out plus the measured
-   *  example print order (`PHOTOBOOK_QUOTE_EXAMPLE`, the book every measured
-   *  number in `lib/credits/pricing.ts` was taken from). There is no
-   *  PDF-only row — the owner does not sell one (B1331 holds the remaining
-   *  product decision) — so quoting print without the build charge would
-   *  understate what a first book costs. */
+  /** A floor, not a price — B1425. A book is one product at one price that
+   *  depends on its size, its page count and where it goes, so the table
+   *  shows what the smallest one costs (`PHOTOBOOK_QUOTE_MINIMUM`, the
+   *  smallest book Gelato prints, quoted live) and says "from". */
   const photobookRappen = creditsInRappen(
-    photobookCredits() +
-      photobookPrintCredits(
-        PHOTOBOOK_QUOTE_EXAMPLE.printMinor,
-        PHOTOBOOK_QUOTE_EXAMPLE.shipMinor,
-      ),
+    photobookPriceCredits(PHOTOBOOK_QUOTE_MINIMUM.printMinor, PHOTOBOOK_QUOTE_MINIMUM.shipMinor),
   );
 
   const rows: { label: string; detail: string; rappen: number; from?: boolean }[] = [

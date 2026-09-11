@@ -6,7 +6,7 @@ import { POST } from "@/app/api/v1/journals/route";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { balanceOf, ledgerFor, SIGNUP_CREDIT_GRANT } from "@/lib/credits";
-import { POSTCARD_CREDITS, photobookCredits } from "@/lib/credits/pricing";
+import { POSTCARD_CREDITS, PHOTOBOOK_QUOTE_MINIMUM, photobookPriceCredits } from "@/lib/credits/pricing";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { NO_JOURNAL, issueCode, markPhoneProven, resolveSession, verifyCode } from "@/lib/auth";
 import { checkVerification, startVerification } from "@/lib/phoneVerify";
@@ -160,7 +160,9 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
     });
 
     test("is strictly less than the smallest photobook", () => {
-      expect(SIGNUP_CREDIT_GRANT).toBeLessThan(photobookCredits());
+      expect(SIGNUP_CREDIT_GRANT).toBeLessThan(
+        photobookPriceCredits(PHOTOBOOK_QUOTE_MINIMUM.printMinor, PHOTOBOOK_QUOTE_MINIMUM.shipMinor),
+      );
     });
   });
 });

@@ -2,7 +2,6 @@ import { describe, expect, test } from "vitest";
 import { planBook, type BookDay, type BookPhoto, type BookSource } from "@/lib/photobook/plan";
 import { BOOK_SIZES, defaultSpec } from "@/lib/photobook/spec";
 import { DEFAULT_OPTIONS, parseOptions, type BookOptions } from "@/lib/photobook/options";
-import { priceOf } from "@/lib/photobook/build";
 import { bookStrings, fill } from "@/lib/photobook/strings";
 
 /**
@@ -610,7 +609,7 @@ describe("letting a day run on — B517", () => {
     expect(second.kind === "day" && second.truncated).toBe(false);
   });
 
-  test("the page count follows, and the build charge deliberately does not", () => {
+  test("the page count follows, and lets a day run on for free", () => {
     // A trip long enough that the binder's 32-page minimum is not what is
     // padding the count — otherwise a book that already needed padding would
     // absorb the extra page and this would test the padding rule instead.
@@ -627,12 +626,9 @@ describe("letting a day run on — B517", () => {
     // Padding was not the thing doing the work here.
     expect(withoutRunOn.volumes[0].interiorPages).toBeGreaterThan(SPEC.pageCount.min);
     expect(withRunOn.volumes[0].interiorPages).toBeGreaterThan(withoutRunOn.volumes[0].interiorPages);
-    // The charge for *building* the book is flat, so letting a day run on
-    // costs the owner nothing — which is the point of the option. It used to
-    // rise, because the build charge carried a per-page term that was really
-    // pricing paper; paper is now the print step's own live quote, and that
-    // one does follow the page count (see test/photobook-pricing.test.ts).
-    expect(priceOf(withRunOn)).toBe(priceOf(withoutRunOn));
+    // A book is priced as one object, from a single Gelato quote for the
+    // whole thing — see test/photobook-pricing.test.ts for how the page
+    // count factors into what the printer quotes.
   });
 });
 

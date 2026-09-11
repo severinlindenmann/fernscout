@@ -1,6 +1,5 @@
 import "server-only";
-import { photobookPrintCredits } from "../credits/pricing";
-import { priceOf } from "./build";
+import { photobookPriceCredits } from "../credits/pricing";
 import type { Photobook } from "./plan";
 import { isoCountry } from "./country";
 import { quoteBook, type GelatoFailure } from "./gelato";
@@ -9,12 +8,11 @@ import { productUidFor } from "./spec";
 import type { BookOptions } from "./options";
 
 /**
- * What one book, posted to one person, costs — B1157.
+ * What one book, posted to one person, costs — B1157, repriced by B1425.
  *
- * **One product, one price.** Building the PDF and printing the object are two
- * costs and one purchase: the owner sees a total, presses once, and the files
- * arrive with the book rather than instead of it. There is deliberately no
- * files-only price, because there is no files-only product.
+ * **One product, one price.** There is no build charge and no print charge:
+ * the owner sees a total, presses once, and the files arrive with the book
+ * rather than instead of it.
  *
  * It lives here, and not in either caller, because both of them need the same
  * number for different reasons and a disagreement between them is a wrong
@@ -31,11 +29,7 @@ import type { BookOptions } from "./options";
  * trip that changed in between is caught there rather than trusted here.
  */
 export type BookQuote = {
-  /** Rendering the PDF. */
-  buildCredits: number;
-  /** Print and postage, with the resale margin, as one number. */
-  printCredits: number;
-  /** What the button says. */
+  /** What the button says — the whole price, and the only one. */
   totalCredits: number;
   /** The postage the quote was taken for, echoed so the order submits it. */
   shipmentMethodUid: string;
@@ -87,12 +81,8 @@ export async function quoteBookFor(
   // not be reached" without the wire error itself growing a second code.
   if ("error" in quote) return { error: "provider_unavailable", kind: quote.error };
 
-  const buildCredits = priceOf(book);
-  const printCredits = photobookPrintCredits(quote.printMinor, quote.shipMinor);
   return {
-    buildCredits,
-    printCredits,
-    totalCredits: buildCredits + printCredits,
+    totalCredits: photobookPriceCredits(quote.printMinor, quote.shipMinor),
     shipmentMethodUid: quote.shipmentMethodUid,
     country,
     quotedMinor: quote.printMinor + quote.shipMinor,

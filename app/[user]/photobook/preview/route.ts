@@ -4,7 +4,7 @@ import type { TranslationKey } from "@/lib/i18n";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { parseOptions } from "@/lib/photobook/options";
 import { quoteBookFor } from "@/lib/photobook/quote";
-import { followerNames, planFor, priceOf } from "@/lib/photobook/build";
+import { followerNames, planFor } from "@/lib/photobook/build";
 import { captionsFor } from "@/lib/photobook/captions";
 import { renderPreview } from "@/lib/photobook/preview";
 import { BOOK_SIZES } from "@/lib/photobook/spec";
@@ -112,18 +112,16 @@ export async function POST(
       2,
     pages: book.volumes.reduce((n, v) => n + v.interiorPages, 0),
     volumes: book.volumes.length,
-    // What the button will say — B1157. Building and printing are two costs
-    // and one purchase, so this is the total, quoted for whoever the book is
-    // going to: postage to Zurich and postage to Sydney are not the same
-    // number, and the page must not show one and charge the other.
+    // What the button will say — B1157, repriced as one number by B1425.
+    // Quoted for whoever the book is going to: postage to Zurich and postage
+    // to Sydney are not the same number, and the page must not show one and
+    // charge the other.
     //
-    // `priceOf` alone is the fallback for the moment before a recipient has
-    // been resolved — a journal with no postable contact, or a printer that
-    // cannot be reached. The page shows the book's own facts either way and
-    // refuses to offer the button, rather than quoting a price that leaves
-    // postage out.
-    credits: quote && !("error" in quote) ? quote.totalCredits : priceOf(book),
-    printCredits: quote && !("error" in quote) ? quote.printCredits : null,
+    // `null` with no quote — B1425. There is no build-only fallback figure
+    // any more: a book is one product at one price, and with nobody to post
+    // it to there is no honest total to show. The page shows the book's own
+    // facts either way and refuses to offer the button.
+    credits: quote && !("error" in quote) ? quote.totalCredits : null,
     quoteError: quote && "error" in quote ? quote.error : null,
     warnings: book.warnings,
     // A book with no photographs still plans — `expandToMinimum` pads it to a

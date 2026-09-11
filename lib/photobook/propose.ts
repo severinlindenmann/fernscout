@@ -1,5 +1,5 @@
 import "server-only";
-import { photobookPrintCredits } from "../credits/pricing";
+import { photobookPriceCredits } from "../credits/pricing";
 import { nowIso } from "../db";
 import { isoCountry } from "./country";
 import { quoteBook, type GelatoFailure } from "./gelato";
@@ -86,7 +86,7 @@ export async function proposeBookPrint(
   });
   if ("error" in quote) return { ok: false, reason: "provider_unavailable", kind: quote.error };
 
-  const quotedCredits = photobookPrintCredits(quote.printMinor, quote.shipMinor);
+  const quotedCredits = photobookPriceCredits(quote.printMinor, quote.shipMinor);
   const payload: PhotobookPayload = {
     ...order.payload,
     print: {

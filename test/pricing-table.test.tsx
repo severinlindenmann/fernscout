@@ -7,11 +7,10 @@ import {
   POSTCARD_CREDITS,
   MAX_CREDITS,
   MIN_CREDITS,
-  PHOTOBOOK_QUOTE_EXAMPLE,
+  PHOTOBOOK_QUOTE_MINIMUM,
   creditsInRappen,
   formatChf,
-  photobookCredits,
-  photobookPrintCredits,
+  photobookPriceCredits,
   priceRappen,
 } from "@/lib/credits/pricing";
 import { dictionaryFor } from "@/lib/locales";
@@ -47,19 +46,16 @@ describe("the pricing table", () => {
     expect(html()).toContain(formatChf(creditsInRappen(EXTRA_STORAGE_CREDITS)));
   });
 
-  test("quotes the printed photobook as build plus the measured example print order", () => {
-    // No PDF-only row since B1332 (the owner does not sell one — B1331), so
-    // the printed price must carry the build charge too, or a first book
-    // costs more than the page said.
+  test("quotes the printed photobook as a floor, from the smallest book Gelato prints", () => {
+    // B1425: one product, one price, and it depends on the size, the page
+    // count and where it goes — so the table shows a "from" figure, priced
+    // off the smallest book Gelato will print rather than a mid-sized example.
     const rappen = creditsInRappen(
-      photobookCredits() +
-        photobookPrintCredits(
-          PHOTOBOOK_QUOTE_EXAMPLE.printMinor,
-          PHOTOBOOK_QUOTE_EXAMPLE.shipMinor,
-        ),
+      photobookPriceCredits(PHOTOBOOK_QUOTE_MINIMUM.printMinor, PHOTOBOOK_QUOTE_MINIMUM.shipMinor),
     );
     const rendered = html();
     expect(rendered).toContain(formatChf(rappen));
+    expect(rendered).toContain("from");
     // Printed near the recipient, not "in Switzerland" — Gelato prints in
     // the destination country, and the old wording was only true for Swiss
     // recipients.

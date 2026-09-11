@@ -282,7 +282,6 @@ describe("the first-book questions", () => {
         pages: 64,
         volumes: 1,
         credits: 218,
-        printCredits: 218,
         ratio: 2,
         warnings: [],
         buyable: true,

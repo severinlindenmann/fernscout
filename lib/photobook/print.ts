@@ -1,6 +1,6 @@
 import "server-only";
 import { refund, spend } from "../credits";
-import { photobookPrintCredits } from "../credits/pricing";
+import { photobookPriceCredits } from "../credits/pricing";
 import { getUser } from "../users";
 import { serverSite } from "../site";
 import { isoCountry } from "./country";
@@ -334,7 +334,7 @@ export async function printOrder(owner: string, id: string, quotedCredits: numbe
   if ("error" in quote) {
     return { ok: false, reason: isOperatorFault(quote.error) ? "refused" : "provider_unavailable" };
   }
-  if (photobookPrintCredits(quote.printMinor, quote.shipMinor) !== quotedCredits) {
+  if (photobookPriceCredits(quote.printMinor, quote.shipMinor) !== quotedCredits) {
     return { ok: false, reason: "stale_quote" };
   }
 
