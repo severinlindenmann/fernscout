@@ -12,6 +12,7 @@ import {
   VISIBILITY_NOT_A_LOCK,
 } from "@/lib/api/agentCopy";
 import { EDITABLE_DAY_FIELDS } from "@/lib/api/entries";
+import { CODE_TTL_MINUTES } from "@/lib/auth";
 
 /** Markdown emphasis is prose's, not a JSON `description`'s — the same trim
  * `VISIBILITY_NOT_A_LOCK` gets a few lines down, done once. */
@@ -807,7 +808,7 @@ export function openApiDocument() {
                   properties: {
                     user: { type: "string" },
                     email: { type: "string", format: "email" },
-                    code: { type: "string", description: "Six digits. Ten minutes, single use." },
+                    code: { type: "string", description: `Six digits. ${CODE_TTL_MINUTES} minutes, single use.` },
                     kind: { type: "string", enum: ["agent", "guest"], default: "guest" },
                     trip: {
                       type: "string",
