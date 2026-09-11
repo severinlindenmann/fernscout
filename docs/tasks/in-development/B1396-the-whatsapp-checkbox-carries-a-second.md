@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: contacts form, wording
 found: "2026-09-10T20:55:00Z"
+started: "2026-09-11T08:26:09Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T08:26:09Z"
 ---
 
 # B1396 — The WhatsApp checkbox carries a second sentence about Meta that the form does not need

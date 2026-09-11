@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: whatsapp, ops
 found: "2026-09-09T20:30:43Z"
+started: "2026-09-11T08:26:11Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T08:26:11Z"
 ---
 
 # B1180 — The subscribed_apps POST is a documented curl, not a one-shot script

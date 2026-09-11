@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: signup, helper
 found: "2026-09-10T09:44:55Z"
+started: "2026-09-11T08:26:06Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T08:26:06Z"
 ---
 
 # B1250 — The wizard shows an API refusal naming HTTP endpoints to somebody who has no agent

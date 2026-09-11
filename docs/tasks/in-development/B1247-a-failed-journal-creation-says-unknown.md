@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: signup, helper
 found: "2026-09-10T09:14:00Z"
+started: "2026-09-11T08:26:06Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T08:26:06Z"
 ---
 
 # B1247 — A failed journal creation says unknown and empties every field the person filled in

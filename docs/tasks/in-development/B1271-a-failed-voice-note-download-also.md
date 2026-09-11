@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: whatsapp
 found: "2026-09-10T10:11:52Z"
+started: "2026-09-11T08:26:10Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T08:26:10Z"
 ---
 
 # B1271 — A failed voice-note download also says nothing

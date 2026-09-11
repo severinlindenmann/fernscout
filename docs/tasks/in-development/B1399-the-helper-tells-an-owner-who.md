@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: the web helper, postcards, contacts
 found: "2026-09-10T21:15:00Z"
+started: "2026-09-11T08:26:08Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T08:26:08Z"
 ---
 
 # B1399 — The helper tells an owner who has just saved their own contact to go and save a contact
