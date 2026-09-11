@@ -335,23 +335,18 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (21)
+## in-development (16)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1091](in-development/B1091-the-two-model-calls-that-cost.md) | The two model calls that cost real money are free, so the ledger cannot account for what the instance spends | FEATURE | high | medium | `13f12910` |
-| [B1154](in-development/B1154-a-key-that-can-write-to.md) | A key that can write to this journal for seven days is visible nowhere in the room | FEATURE | high | medium | `13f12910` |
 | [B1254](in-development/B1254-reloading-the-helper-loses-every-interactive.md) | Reloading the helper loses every interactive card, leaving prose that points at one | ISSUE | high | medium | `13f12910` |
 | [B1275](in-development/B1275-the-preview-header-offers-put-this.md) | The preview header offers Put this day on the site, which does not put the day on the site | ISSUE | high | low | `13f12910` |
 | [B1385](in-development/B1385-the-conversation-storage-consent-block-is.md) | The conversation-storage consent block is shown to signed-out visitors | ISSUE | high | low | `13f12910` |
 | [B1391](in-development/B1391-the-helper-refuses-a-bare-yes.md) | The helper refuses a bare yes to its own delete question, and an inbox cannot be emptied at all | ISSUE | high | medium | `13f12910` |
-| [B1155](in-development/B1155-a-turn-spends-a-credit-and.md) | A turn spends a credit and nothing on screen says so | FEATURE | medium | medium | `13f12910` |
 | [B1252](in-development/B1252-the-helper-composer-gives-the-text.md) | The helper composer gives the text under half the screen width on a phone | ISSUE | medium | low | `13f12910` |
 | [B1253](in-development/B1253-a-proposal-card-taller-than-the.md) | A proposal card taller than the phone opens scrolled past its own explanation, mid-sentence | ISSUE | medium | low | `13f12910` |
-| [B1255](in-development/B1255-the-credit-balance-in-the-helper.md) | The credit balance in the helper header does not change when a credit is spent | ISSUE | medium | low | `13f12910` |
 | [B1256](in-development/B1256-every-card-outcome-is-announced-twice.md) | Every card outcome is announced twice, once by the card and once by the model | ISSUE | medium | low | `13f12910` |
 | [B1257](in-development/B1257-the-helper-preview-tells-the-owner.md) | The helper preview tells the owner that publishing is somebody else's to ask for, beside a button that does it | ISSUE | medium | low | `13f12910` |
-| [B1269](in-development/B1269-the-low-credit-warning-s-buy.md) | The low-credit warning's Buy credits link goes to a page with no credits and no way to buy | ISSUE | medium | low | `13f12910` |
 | [B1299](in-development/B1299-a-refusal-from-the-trip-people.md) | A refusal from the trip-people tool appears alone in the transcript during a conversation about costs | ISSUE | medium | low | `13f12910` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1386](in-development/B1386-a-signed-out-visitor-has-no.md) | A signed-out visitor has no way to get a journal of their own | FEATURE | medium | low | `13f12910` |
@@ -361,7 +356,7 @@ Do not edit them by hand; run the script.
 | [B852](in-development/B852-a-journal-s-languages-units-and.md) | A journal's languages, units and currencies cannot be changed anywhere | FEATURE | medium | medium | `13f12910` |
 | [B1298](in-development/B1298-the-day-chip-in-the-helper.md) | The day chip in the helper downloads three 2000px photographs to draw three 38px thumbnails | ISSUE | low | low | `13f12910` |
 
-## testing (183)
+## testing (188)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -374,6 +369,7 @@ Do not edit them by hand; run the script.
 | [B1065](testing/B1065-there-is-no-way-to-prove.md) | There is no way to prove that somebody holds the telephone number they typed | FEATURE | high | medium | — |
 | [B1075](testing/B1075-the-off-site-backup-has-never.md) | The off-site backup has never once succeeded, and the nightly run failed two days ago | OPS | high | low | — |
 | [B1076](testing/B1076-voice-recordings-are-sent-to-deepgram.md) | Voice recordings are sent to Deepgram without opting out of its model-training programme | SECURITY | high | low | — |
+| [B1091](testing/B1091-the-two-model-calls-that-cost.md) | The two model calls that cost real money are free, so the ledger cannot account for what the instance spends | FEATURE | high | medium | — |
 | [B1093](testing/B1093-a-person-cannot-choose-who-a.md) | A person cannot choose who a photobook is posted to | FEATURE | high | medium | — |
 | [B1098](testing/B1098-work-on-a-task-revalidates-a.md) | work-on-a-task revalidates a ticket in one sentence of prose, and asks for a visual check it leaves no evidence of | DOCS | high | low | — |
 | [B1102](testing/B1102-signing-in-at-agent-lands-in.md) | Signing in at /agent lands in the six-step wizard, not the room B984 made the whole of it | ISSUE | high | low | — |
@@ -388,6 +384,7 @@ Do not edit them by hand; run the script.
 | [B1126](testing/B1126-a-book-is-sent-to-gelato.md) | A book is sent to Gelato with a country name where it requires an ISO code | ISSUE | high | low | — |
 | [B1140](testing/B1140-a-built-book-offers-its-pdfs.md) | A built book offers its PDFs but no way through to the page that prints it | ISSUE | high | low | — |
 | [B1145](testing/B1145-the-print-panel-summarises-an-address.md) | The print panel summarises an address where it should show the envelope | FEATURE | high | low | — |
+| [B1154](testing/B1154-a-key-that-can-write-to.md) | A key that can write to this journal for seven days is visible nowhere in the room | FEATURE | high | medium | — |
 | [B1157](testing/B1157-buying-a-photobook-is-two-purchases.md) | Buying a photobook is two purchases with the decision after the money | FEATURE | high | high | — |
 | [B1160](testing/B1160-on-a-phone-the-preview-sheet.md) | On a phone the preview sheet covers the Ask button, so a typed message cannot be sent | ISSUE | high | low | — |
 | [B1161](testing/B1161-a-read-tool-s-list-is.md) | A read tool's list is still said back in prose, so the answer appears twice | ISSUE | high | low | — |
@@ -493,6 +490,7 @@ Do not edit them by hand; run the script.
 | [B1136](testing/B1136-fernscout-ch-carries-test-journals-beside.md) | fernscout.ch carries test journals beside the two real ones, and nothing says which is which | OPS | medium | low | — |
 | [B1148](testing/B1148-a-refused-print-credential-is-reported.md) | A refused print credential is reported to the owner as the printer being unreachable, with advice to try again | ISSUE | medium | low | — |
 | [B1152](testing/B1152-the-acceptance-gate-s-buttons-give.md) | The acceptance gate's buttons give no feedback and its second label says nothing, so a person cannot tell what they chose or where a ticket is | DOCS | medium | low | — |
+| [B1155](testing/B1155-a-turn-spends-a-credit-and.md) | A turn spends a credit and nothing on screen says so | FEATURE | medium | medium | — |
 | [B1159](testing/B1159-the-off-site-bucket-is-opaque.md) | The off-site bucket is opaque blobs with no note in it, and keeps thirty nights | FEATURE | medium | low | — |
 | [B1162](testing/B1162-a-quoted-day-shows-its-blockquote.md) | A quoted day shows its blockquote marker, in the one block where quoting happens | ISSUE | medium | low | — |
 | [B1165](testing/B1165-a-printer-refusal-says-nothing-about.md) | A printer refusal says nothing about why, to anybody who could act on it | ISSUE | medium | low | — |
@@ -508,7 +506,9 @@ Do not edit them by hand; run the script.
 | [B1203](testing/B1203-every-entry-in-the-operator-s.md) | Every entry in the operator's attention band is unanswerable: it can be read but not acknowledged, so a thing you have decided to live with is on the list for ever | FEATURE | medium | medium | — |
 | [B1206](testing/B1206-getting-a-credential-into-a-session.md) | Getting a credential into a session is rediscovered every time: the four kinds are described in three skills, none of them says how to make a test journal, and the admin cookie is in none | DOCS | medium | low | — |
 | [B1231](testing/B1231-the-book-ends-on-two-blank.md) | The book ends on two blank pages instead of the colophon | ISSUE | medium | low | — |
+| [B1255](testing/B1255-the-credit-balance-in-the-helper.md) | The credit balance in the helper header does not change when a credit is spent | ISSUE | medium | low | — |
 | [B1259](testing/B1259-a-trip-prints-the-span-of.md) | A trip prints the span of the days written rather than its own dates, and a single day reads as 5 Sep to 5 Sep | ISSUE | medium | low | — |
+| [B1269](testing/B1269-the-low-credit-warning-s-buy.md) | The low-credit warning's Buy credits link goes to a page with no credits and no way to buy | ISSUE | medium | low | — |
 | [B1272](testing/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low | — |
 | [B1273](testing/B1273-six-person-facing-strings-print-photograph.md) | Six person-facing strings print photograph(s) and Credit(s) instead of using the plural mechanism | ISSUE | medium | low | — |
 | [B1277](testing/B1277-the-helper-tells-the-owner-that.md) | The helper tells the owner that a preview is waiting on their postcards page, in the third person | ISSUE | medium | low | — |

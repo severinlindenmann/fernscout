@@ -7,8 +7,7 @@ complexity: medium
 area: components/HelperRoom.tsx, app/api/helper
 found: "2026-09-09T18:49:31Z"
 started: "2026-09-11T06:40:36Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T06:40:36Z"
+merged: "2026-09-11T07:31:12Z"
 ---
 
 # B1154 — A key that can write to this journal for seven days is visible nowhere in the room

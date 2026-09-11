@@ -7,8 +7,7 @@ complexity: low
 area: helper, credits
 found: "2026-09-10T10:11:02Z"
 started: "2026-09-11T06:40:38Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T06:40:38Z"
+merged: "2026-09-11T07:31:16Z"
 ---
 
 # B1269 — The low-credit warning's Buy credits link goes to a page with no credits and no way to buy
