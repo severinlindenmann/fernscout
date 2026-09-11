@@ -85,8 +85,21 @@ export type BudgetPace = {
   expectedToDate: number;
   /** Real spend so far minus that — negative means under budget. */
   deltaToDate: number;
-  /** Where the trip lands if the current daily rate holds. */
-  projectedTotal: number;
+  /**
+   * Where the trip lands if the current per-recorded-day rate holds.
+   *
+   * Absent when there is too little to go on — most of the days so far carry
+   * `unrecorded: [costs]` rather than a figure, and a number built mostly
+   * from a guess is not a projection, it is an invention (B1521).
+   */
+  projectedTotal?: number;
+  /**
+   * How many days `projectedTotal` (and the rate behind it) is built from —
+   * every elapsed day that is *not* `unrecorded`, never a bare count of days
+   * elapsed. The page has to say this out loud rather than presenting a
+   * franc figure that reads like a measurement (B1521).
+   */
+  projectedFromDays: number;
   /** Planned cumulative spend, one entry per logged day, for the chart. */
   curve: number[];
 };
@@ -118,6 +131,17 @@ export type CostSummary = {
    * that has happened yet.
    */
   hasBegun: boolean;
+  /**
+   * Whether there is nothing more coming — `isOver` in lib/tripTime.ts, asked
+   * once here rather than re-derived on the page.
+   *
+   * A trip past this point gets no pace bar and no projection: `pace` is
+   * never attached below when this is true, because what already happened is
+   * not a forecast, and averaging the days that were costed onto the days
+   * that were not is exactly the invented figure B1521 found (a `past` trip's
+   * "Hochgerechnet" reading 38% over the real total).
+   */
+  isOver: boolean;
   total: number;
   onTheRoad: number;
   preparation: number;

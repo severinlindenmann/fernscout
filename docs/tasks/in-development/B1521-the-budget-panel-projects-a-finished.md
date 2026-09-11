@@ -100,3 +100,100 @@ anyone has looked since `unrecorded` was added.
 - Any two per-day figures on the page use the same denominator, or each says
   which one it uses.
 - A trip whose every day is `unrecorded` shows no projection at all.
+
+## Done
+
+Confirmed the diagnosis against the code before touching anything:
+`lib/costs.ts`'s old `getCostSummary` attached `budget.pace` (and therefore
+the projection) whenever `hasBegun` was true, with no check for whether the
+trip was *over* — `lib/tripTime.ts`'s `isOver` already existed (used by
+`TripStory.tsx` and the map page) and was simply never asked here. The
+averaging bug was `actualPerDay = onTheRoad / daysWithSpend` (a filter of
+`amount > 0`, blind to `unrecorded`) multiplied straight through by
+`planned.days` — exactly the ticket's reversed arithmetic.
+
+**Changed:**
+
+- `lib/costFormat.ts` — `BudgetPace.projectedTotal` is now optional, and a new
+  `BudgetPace.projectedFromDays` names the denominator. `CostSummary` gained
+  `isOver: boolean`.
+- `lib/costs.ts` — added a `recordedDays = byDay.length - unrecordedDays`
+  denominator (everything but an `unrecorded` day; a `without` day or an
+  unflagged real zero both count, which `daysWithSpend` never did). `perDay`
+  and the projection's `actualPerDay` both use it now. `pace` is only
+  attached when `begun && !over` (`over` from `isOver(trip, byDay, now)`).
+  `projectedTotal` itself is only included when at least half the elapsed
+  days are recorded (`recordedDays * 2 >= elapsed`); otherwise the pace object
+  still carries `expectedToDate`/`deltaToDate`/`projectedFromDays` but no
+  franc figure.
+- `app/[user]/(trip)/costs/CostsPageContent.tsx` — added `PastBudgetPanel`
+  (total/budget/diff only, past-tense copy, no bar tick, no projection),
+  wired in ahead of the existing `BudgetPanel`/`PlannedBudgetPanel` branch by
+  `summary.isOver`. `BudgetPanel`'s "Hochgerechnet" stat is now conditional on
+  `pace.projectedTotal` being defined and labelled with `pace.projectedFromDays`
+  via a new `cost.projectedFrom` key, replacing the old bare `cost.projected`
+  (removed — no longer referenced anywhere).
+- `site/locales/{en,de,hu}.json` — added `cost.overBudgetFinal`,
+  `cost.underBudgetFinal`, `cost.budgetNoteFinal`, `cost.projectedFrom`;
+  removed `cost.projected`; reworded `cost.perDay` in all three languages to
+  name its denominator ("Average per recorded day" / "Durchschnitt pro
+  erfasstem Tag" / "Napi átlag a rögzített napokra"), since it sits on the
+  same page as the calendar-day "Tagesbudget"/"Napi keret" and the two used to
+  invite exactly the wrong reading. Ran `npm run i18n:keys` afterwards.
+- Tests: new `test/costs-projection.test.tsx` (5 cases: a finished trip drops
+  `pace` regardless of how its days were recorded, and the rendered panel
+  says so in past tense with neither "für heute" nor "Hochgerechnet"; a
+  running trip's projection uses only recorded days including a real
+  `without` zero, and names its denominator; a majority-unrecorded running
+  trip shows no `projectedTotal`; an all-unrecorded trip likewise). Updated
+  `test/costs.test.ts` (`alpha-2023`, a `status: past` fixture, no longer
+  expects a `pace` block — this was the exact bug pattern, "untouched" was
+  wrong), `test/currency.test.ts` (the mixed-currency pace test's fixture
+  trip had drifted into real-world history since it was written; changed it
+  to `status: current` with a later `end` and read it at an explicit
+  in-trip `now`, since a bare `getCostSummary("u/thai-2026")` today correctly
+  reads as over and would otherwise have no pace to assert against),
+  `test/trip-summary-unconverted.test.tsx` (updated the literal label text),
+  and the `CostSummary` object literals in `test/costs-tense.test.tsx` /
+  `test/costs-title.test.tsx` (added `isOver`).
+
+**Acceptance, checked:**
+
+1. *Past trip: no projection, no pace bar, no "für heute".* —
+   `test/costs-projection.test.tsx` → "a trip that is over" (both cases):
+   `getCostSummary` returns `budget.pace === undefined` for a `status: past`
+   trip regardless of how many days are recorded, and the rendered panel
+   contains neither "Hochgerechnet" nor the pace-mark text, and does contain
+   the past-tense `cost.overBudgetFinal`/`cost.budgetNoteFinal` strings.
+   `test/costs.test.ts` → "a finished trip keeps its plain numbers and drops
+   the forecast" (`alpha-2023`, a real fixture, not one built for this
+   ticket) confirms the same on existing content.
+2. *Running trip's projection ignores `unrecorded` and names its
+   denominator.* — `test/costs-projection.test.tsx` → "projects only from the
+   days that have an answer, and says how many": 2 recorded days (90 each)
+   + 1 real zero (`without`) + 2 `unrecorded` days average to 60/day over 3
+   recorded days (not 2, not 5), `projectedFromDays === 3`, and
+   `projectedTotal === 1200` (60 × 20 planned days) — the old formula would
+   have used `daysWithSpend` (2) and produced 900. The component only shows
+   `cost.projectedFrom` (interpolated with the count) when `projectedTotal`
+   is defined.
+3. *Shared or explicit denominators.* — `cost.perDay` (top headline stat) now
+   reads "Average per recorded day" / "Durchschnitt pro erfasstem Tag" /
+   "Napi átlag a rögzített napokra" in the three locales, and the projection
+   stat is labelled with its own day count — neither sits beside
+   "Tagesbudget"/"Daily allowance" any more without saying which days it
+   counts.
+4. *All-`unrecorded` trip shows no projection.* —
+   `test/costs-projection.test.tsx` → "every day unrecorded: no projection at
+   all" and "shows no projection at all once most of the elapsed days are
+   unrecorded" (majority case, one short of literally every day).
+
+**Verify:** `npm run verify` — build, tsc, eslint, all 540 test files / 7054
+tests (4 skipped, Postgres dialect, no local instance), and `npm run unused`
+all passed. No failures.
+
+Not touched, deliberately out of scope: `lib/helper/tools/areas/money.ts`'s
+`trip_costs` tool returns `costs.budget` unmodified, so it inherits this fix
+automatically (a past trip's tool answer will likewise carry no `pace`); its
+`describe` string was not touched since it makes no claim about pace or
+projection today.

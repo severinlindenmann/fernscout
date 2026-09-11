@@ -215,15 +215,22 @@ describe("two trips, the same currency, different rates", () => {
 
 describe("budget against actual, with mixed currencies", () => {
   test("the plan and the spend are compared in the same currency", () => {
-    const summary = getCostSummary("u/thai-2026");
+    // Read as of the second day: the fixture's own `status: current` and an
+    // `end` past both logged days keep this a trip still under way (B1521 —
+    // `isOver` drops `pace` once a trip is finished, which a bare
+    // `getCostSummary("u/thai-2026")` now would be, its dates being real
+    // history by the time this suite runs).
+    const now = new Date("2026-03-02T12:00:00Z");
+    const summary = getCostSummary("u/thai-2026", now);
     const budget = summary.budget!;
 
+    expect(summary.isOver).toBe(false);
     expect(budget.total).toBe(1000);
     expect(budget.days).toBe(10);
     // (1000 planned − 300 already spent on preparation) / 10 days
     expect(budget.perDay).toBeCloseTo(70, 9);
     expect(budget.remaining).toBeCloseTo(1000 - summary.total, 9);
-    // The trip has happened, so there is a pace to compare against. Two days
+    // The trip is under way, so there is a pace to compare against. Two days
     // logged, so 300 + 2 × 70 if we were exactly on plan.
     const pace = budget.pace!;
     expect(pace.expectedToDate).toBeCloseTo(440, 9);

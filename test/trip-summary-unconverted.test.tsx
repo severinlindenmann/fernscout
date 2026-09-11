@@ -146,7 +146,7 @@ describe("the trip hero, on a trip with an unrated currency", () => {
     // A dash where the figure used to be — never a confident number that
     // happens to be wrong.
     expect(html).toMatch(/Total so far<\/dt> <dd[^>]*>—<\/dd>/);
-    expect(html).toMatch(/Average per day<\/dt> <dd[^>]*>—<\/dd>/);
+    expect(html).toMatch(/Average per recorded day<\/dt> <dd[^>]*>—<\/dd>/);
   });
 
   test("says what was left out, in the costs page's own words", () => {
