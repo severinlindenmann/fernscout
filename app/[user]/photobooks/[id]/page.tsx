@@ -109,14 +109,16 @@ export default async function PhotobookOrderPage({
   const print = order.payload.print;
 
   // What the print section shows: a colour-coded pill for the printer's own
-  // status once it has one (B1451), plus — for a book that was paid for and
-  // then refused — the sentence that the credits are back. A book with no
-  // print door at all (bought before B1157 addressed a book at purchase) gets
-  // neither: just the legacy sentence below.
+  // status once it has one (B1451), plus one line of context under it. The
+  // two are computed separately (B1454) — a refused order almost always
+  // *still* carries a providerRef (Gelato accepts the order, hands back an
+  // id, and only then refuses it), so whether the credits are back can never
+  // be gated on which branch drew the pill. It is a fact about
+  // `print.failure`, read on its own.
   let pill: { tone: StatusTone; label: string } | null = null;
-  // Extra sentence under the pill — the refund notice, or the legacy-book
-  // notice. `null` when the pill already says everything there is to say.
-  let statusText: string | null = null;
+  // The known status this order's pill matched, if any — used only to pick
+  // the context line below, never to redraw the pill itself.
+  let matchedKey: TranslationKey | null = null;
 
   if (print?.providerRef) {
     const gelatoStatus = await fetchOrderStatus(print.providerRef);
@@ -128,12 +130,14 @@ export default async function PhotobookOrderPage({
       // tomorrow, and colouring an unrecognised one green or red would be
       // inventing a fact about somebody's book.
       pill = known ? { tone: known.tone, label: t(known.key) } : { tone: "navy", label: gelatoStatus };
+      matchedKey = known?.key ?? null;
     } else {
       pill = { tone: "navy", label: t("photobook.print.status.unknown") };
     }
   } else if (print?.failure) {
     /**
-     * Bought printed, and the printer would not take it — B1157/B1330.
+     * Bought printed, and the printer would not take it, with the failure
+     * caught before an order id ever came back — the rarer shape (B1157/B1330).
      *
      * This page is a **receipt** for such a book, never a second checkout:
      * ordering it again is the trip's photobook page's job, because there is
@@ -142,10 +146,29 @@ export default async function PhotobookOrderPage({
      * account, not this owner's business (B1165).
      */
     pill = { tone: "coral", label: t("photobook.print.status.refused") };
+  }
+
+  // Extra sentence under the pill — one line of context per mapped state,
+  // reusing the raw Gelato/order state rather than the pill's colour, and
+  // nothing at all for a state this page has not mapped (B1451's rule for
+  // colour applies to prose too: no invented explanation for a status we
+  // do not recognise).
+  let statusText: string | null = null;
+  if (print?.failure) {
+    // Whether the credits are already back is a fact about the order's own
+    // failure record — set once, alongside the refund, by
+    // `settleRefusedPrint` — and true regardless of which branch above drew
+    // the pill (B1454).
     statusText = t("photobook.print.refusedRefunded", {
       credits: formatCredits(order.payload.credits),
     });
-  } else {
+  } else if (matchedKey === "photobook.print.status.accepted") {
+    statusText = t("photobook.print.context.accepted");
+  } else if (matchedKey === "photobook.print.status.inProduction") {
+    statusText = t("photobook.print.context.inProduction");
+  } else if (matchedKey === "photobook.print.status.shipped") {
+    statusText = t("photobook.print.context.shipped");
+  } else if (!print?.providerRef && !print?.failure) {
     // No print was ever completed for this order — a book from before this
     // instance addressed a book at the moment it was bought (pre-B1157),
     // which is the shape B1428 removed the print door for. The files below
