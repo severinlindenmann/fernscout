@@ -1086,7 +1086,7 @@
   "postcard.page.dayWithTitle": "“{title}”, {date}",
   "postcard.page.expiredOn": "This order expired on {date}. Ask for a new one.",
   "postcard.page.figuresLabel": "Show the traveller figures beside the signature",
-  "postcard.page.figuresNone": "Nobody has been described for this trip, so there is nothing to draw. Answer /travellers/presets and write a travellers: block to change that.",
+  "postcard.page.figuresNone": "Nobody has been described for this trip, so there is nothing to draw. Describe who travelled the same way the rest of this journal gets written, and the figures will appear.",
   "postcard.page.front": "The front",
   "postcard.page.goingMany": "Going to {count} people",
   "postcard.page.goingOne": "Going to 1 person",
