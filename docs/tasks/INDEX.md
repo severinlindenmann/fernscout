@@ -276,7 +276,7 @@ Do not edit them by hand; run the script.
 | [B1364](backlog/wont-do/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (28)
+## open (27)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -288,7 +288,6 @@ Do not edit them by hand; run the script.
 | [B1258](open/B1258-the-publish-card-says-to-read.md) | The publish card says to read the day as readers will see it and does not show the day | ISSUE | medium | low |
 | [B1260](open/B1260-a-trip-with-nothing-recorded-yet.md) | A trip with nothing recorded yet fills two phone screens with an empty sky, the whole world map and six zeros | ISSUE | medium | medium |
 | [B1295](open/B1295-the-landing-page-promises-you-can.md) | The landing page promises you can export everything, and somebody without an agent has no way to | ISSUE | medium | medium |
-| [B1468](open/B1468-legacy-left-behind-once-both-order.md) | Legacy left behind once both order surfaces share one element | CHORE | medium | low |
 | [B1469](open/B1469-a-photobook-order-has-no-picture.md) | A photobook order has no picture of the book it is an order for | FEATURE | medium | medium |
 | [B673](open/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium |
 | [B1045](open/B1045-an-unauthenticated-api-health-names-the.md) | An unauthenticated /api/health names the host's systemd unit and its backup failures | SECURITY | low | low |
@@ -309,7 +308,7 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (9)
+## in-development (10)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -319,6 +318,7 @@ Do not edit them by hand; run the script.
 | [B1289](in-development/B1289-the-map-of-a-finished-trip.md) | The map of a finished trip is titled Where we're going and says no days are written when one is | ISSUE | medium | low | `13f12910` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
+| [B1468](in-development/B1468-legacy-left-behind-once-both-order.md) | Legacy left behind once both order surfaces share one element | CHORE | medium | low | `3f748903` |
 | [B1046](in-development/B1046-two-sessions-running-verify-in-the.md) | Two sessions running verify in the shared checkout collide on the next build lock | DOCS | low | low | `13f12910` |
 | [B1052](in-development/B1052-code-and-commits-cite-task-ids.md) | Code and commits cite task ids that have no file, so the allocator hands them out again | CHORE | low | low | `13f12910` |
 | [B1291](in-development/B1291-a-journal-with-no-usable-cover.md) | A journal with no usable cover renders half a card of flat colour on the landing page | ISSUE | low | low | `13f12910` |
