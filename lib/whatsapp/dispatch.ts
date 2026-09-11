@@ -14,7 +14,7 @@ import { AS_AUTHOR, getAllEntries } from "../entries";
 import { currentHelperProvider, hasHelperConsent, recordHelperConsent } from "../helper/consent";
 import { NO_PROSE } from "../helper/draft";
 import type { Proposal } from "../helper/blocks";
-import type { Say } from "../helper/intents";
+import { sayIn } from "../helper/intents";
 import { answerInThread, WRITE_DAY_CREDITS } from "../helper/model";
 import { recordTurn } from "../helper/sessions";
 import { MAX_AUDIO_BYTES, MAX_SPEECH_SECONDS, speechLanguageFor } from "../helper/speech";
@@ -765,7 +765,7 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
     return;
   }
 
-  const say: Say = (key, vars) => translateIn(locale, key as Parameters<typeof translateIn>[1], vars);
+  const say = sayIn(locale);
   const today = new Date().toISOString().slice(0, 10);
 
   /**

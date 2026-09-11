@@ -1,13 +1,13 @@
 import { isEnabled } from "@/lib/capabilities";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import type { Block } from "@/lib/helper/blocks";
-import { refusalFor, type Say } from "@/lib/helper/intents";
+import { refusalFor, sayIn } from "@/lib/helper/intents";
 import { answerInThread, statusKeyFor, type ToolKind } from "@/lib/helper/model";
 import { describeSelection, isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { recordTurn } from "@/lib/helper/sessions";
 import { forget, history, proposed, remember, sessionId } from "@/lib/helper/thread";
 import { speechProvider } from "@/lib/helper/transcribe";
-import { requestLocale, translateIn } from "@/lib/locales";
+import { requestLocale } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
@@ -157,8 +157,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   }
 
   const locale = await requestLocale();
-  const say: Say = (key, vars) =>
-    translateIn(locale, key as Parameters<typeof translateIn>[1], vars);
+  const say = sayIn(locale);
 
   /**
    * B817 — before the model, and before their words leave the machine.
