@@ -17,13 +17,15 @@ import { COVERAGE } from "@/docs/testing/coverage";
  * work once more than three flows exist to learn a pattern from.
  */
 
-export function resolveFlows(capability: FeatureName): { flows: string[]; note?: string } {
+export function resolveFlows(
+  capability: FeatureName,
+): { flows: string[]; interfaces?: string[]; note?: string } {
   if (!(FEATURE_NAMES as readonly string[]).includes(capability)) {
     throw new Error(`unknown capability "${capability}" (see lib/config.ts FEATURE_NAMES)`);
   }
   const entry = COVERAGE[capability];
   if ("todo" in entry) return { flows: [], note: entry.todo };
-  return { flows: [...entry.flows] };
+  return { flows: [...entry.flows], interfaces: [...entry.interfaces] };
 }
 
 function parseList(value: string | undefined): string[] | undefined {
@@ -42,7 +44,7 @@ function main() {
   const devices = parseList(deviceIndex >= 0 ? rest[deviceIndex + 1] : undefined) ?? ["desktop"];
   const locales = parseList(localeIndex >= 0 ? rest[localeIndex + 1] : undefined) ?? ["en"];
 
-  const { flows, note } = resolveFlows(capability as FeatureName);
+  const { flows, interfaces, note } = resolveFlows(capability as FeatureName);
   if (flows.length === 0) {
     console.log(`No flows cover "${capability}" yet.${note ? ` (${note})` : ""}`);
     return;
@@ -50,6 +52,7 @@ function main() {
   console.log(`Flows covering "${capability}":`);
   for (const flow of flows) {
     console.log(`  - docs/testing/flows/${flow}.md, across devices [${devices.join(", ")}] and locales [${locales.join(", ")}]`);
+    console.log(`    interfaces: ${(interfaces ?? []).join(", ")}`);
   }
   console.log("\nOpen each flow file and follow its Setup/Steps/Done-when sections.");
 }

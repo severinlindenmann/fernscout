@@ -6,7 +6,7 @@ import type { FeatureName } from "@/lib/config";
  * it authenticates differently (identity cookie vs. owner cookie) and no
  * persona in docs/testing/personas/ plays the operator.
  */
-export type Interface = "agent" | "whatsapp" | "api" | "ui" | "admin";
+type Interface = "agent" | "whatsapp" | "api" | "ui" | "admin";
 
 /**
  * One capability's coverage: either the flows that exercise it, or an
@@ -56,7 +56,7 @@ export const COVERAGE: Record<FeatureName, CoverageEntry> = {
   mail: { todo: "no flow yet — exercised incidentally by every flow that signs in, no dedicated flow" },
   sms: { todo: "no flow yet — B: add when a persona flow signs up by SMS" },
   smsInbound: { todo: "no flow yet — B: add alongside sms above" },
-  postcards: { todo: "no flow yet — Stannp has no inbound webhook in production yet, see the backlog ticket this plan filed" },
+  postcards: { todo: "no flow yet — Stannp has no inbound webhook in production yet, see B1484" },
   photobook: { todo: "no flow yet — B: add a flow once a dry-run photobook order round-trips a fixture" },
   logging: { todo: "operator-only capability, no persona plays the operator yet" },
   credits: { todo: "no flow yet — B: add once a flow needs to spend a credit and check the ledger" },

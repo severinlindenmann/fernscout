@@ -40,18 +40,19 @@ pages, a throwaway `test-*` journal for a fresh persona.
 ## 3. Drive the interface the flow names
 
 - **WhatsApp interface:** `npx tsx scripts/simulate-webhook.ts <provider> <fixture>`
-  against the running local server, per the flow's own Steps section. This
-  sends a bare, unsigned POST, so it only gets past a route's real
-  credential check on a dev server with **no** matching provider secret
-  configured — every real webhook route (`app/api/webhooks/whatsapp/route.ts`,
-  `.../gelato/route.ts`, `.../stripe/route.ts`) verifies a signature this
-  script does not produce. That is the whole reason it works for the
-  `whatsapp`/`whatsappInbound` flow today: a bare checkout with no WhatsApp
-  secret set 404s at the capability check before it ever reaches signature
-  verification. It is not a way to drive a signed/secret-configured
-  instance — do not reach for it there. Add a new fixture under
-  `scripts/fixtures/webhooks/<provider>/` if the flow needs a payload shape
-  that does not exist yet.
+  against the running local server, per the flow's own Steps section. It signs
+  best-effort, from its own environment, the same way each real route
+  verifies: an HMAC over the body for WhatsApp (`WHATSAPP_APP_SECRET`), the
+  shared header Gelato sends verbatim (`GELATO_WEBHOOK_SECRET`), and a
+  `stripe-signature` header Stripe's SDK will accept (`STRIPE_WEBHOOK_SECRET`).
+  **Set the matching secret in this process's own environment and the request
+  gets a real `200`** — that is what the `whatsapp`/`whatsappInbound` flow's
+  "Done when" actually needs. Leave the secret unset and it sends the same
+  bare, unsigned POST as always, which only gets past a route with the
+  matching capability *off* (a 404, not a 200 — do not mistake that for the
+  flow working) and never past a route requiring a credential. Add a new
+  fixture under `scripts/fixtures/webhooks/<provider>/` if the flow needs a
+  payload shape that does not exist yet.
 - **`/agent` interface:** open `http://localhost:3013/agent` (the *local*
   server, unlike `.claude/skills/test-with-personas/SKILL.md`, which points
   at the live site on purpose — this skill's whole point is never touching

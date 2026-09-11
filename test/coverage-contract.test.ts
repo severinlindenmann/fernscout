@@ -1,4 +1,6 @@
 import { describe, expect, test } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import { FEATURE_NAMES } from "@/lib/config";
 import { COVERAGE } from "@/docs/testing/coverage";
 
@@ -29,5 +31,18 @@ describe("coverage matrix", () => {
       (name) => !(FEATURE_NAMES as readonly string[]).includes(name),
     );
     expect(stale).toEqual([]);
+  });
+
+  test("every flow named in the matrix exists on disk", () => {
+    const missing: string[] = [];
+    for (const entry of Object.values(COVERAGE)) {
+      if (!("flows" in entry)) continue;
+      for (const flow of entry.flows) {
+        if (!fs.existsSync(path.join(process.cwd(), "docs/testing/flows", `${flow}.md`))) {
+          missing.push(flow);
+        }
+      }
+    }
+    expect(missing).toEqual([]);
   });
 });
