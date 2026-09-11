@@ -7,8 +7,7 @@ complexity: medium
 area: scripts/deploy.sh
 found: "2026-09-11T08:30:00Z"
 started: "2026-09-11T08:42:03Z"
-session: 975594e4-e8d1-4286-bab8-0faa7d0d368f
-claimed: "2026-09-11T08:42:03Z"
+merged: "2026-09-11T08:50:43Z"
 ---
 
 # B1429 — An incremental deploy can leave a stale client reference manifest and 500 a page
