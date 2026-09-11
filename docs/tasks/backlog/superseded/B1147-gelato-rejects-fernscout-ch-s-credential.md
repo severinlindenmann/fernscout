@@ -1,6 +1,7 @@
 ---
 id: B1147
 title: Gelato rejects fernscout.ch's credential, so no photobook in a real journal can be priced
+superseded: "What was found, not a ticket: the credential fault this describes stopped on 2026-09-09 at 20:23:58 and has not recurred. The live blocker since is a different Gelato refusal — BAD_REQUEST, company information incomplete in their portal — which is an account login only the owner can do, and not this codebase."
 type: ISSUE
 priority: high
 complexity: low
@@ -79,3 +80,26 @@ told the printer was unreachable and to try again shortly.
 - `journalctl -u fernscout | grep "gelato refused"` is empty for the period
   after the fix.
 - The state the credential was left in is written down here.
+
+## Closed, 2026-09-11
+
+`journalctl -u fernscout` on the live host carries exactly **one** `Unauthorized`
+refusal — 2026-09-09 20:23:58, the event this ticket is about — and none since.
+Gelato webhooks are arriving and verifying normally; `order_status_updated
+status=shipped` landed today at 13:27.
+
+Three refusals later that same evening are a **different** error:
+
+```
+{"code":"BAD_REQUEST","message":"To be able to place an order please complete
+the company information in the portal."}
+```
+
+At that point the credential is being *accepted*. Gelato is refusing for account
+onboarding, which is a login to their own portal and the owner's to do — there is
+nothing here for an agent to build, and nothing in this repository that changes it.
+
+Acceptance line 2 is therefore not literally true and will not become true:
+refusals still appear in the log, for that reason. Acceptance line 3 — write down
+the state the credential was left in — is satisfied by the retrospective added to
+`docs/providers/photobook.md`, which is where somebody will look for it.

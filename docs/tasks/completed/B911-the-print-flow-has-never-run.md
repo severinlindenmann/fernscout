@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: photobook, print
 found: "2026-09-08T05:23:20Z"
+completed: "2026-09-11T11:54:21Z"
 ---
 
 # B911 — The print flow has never run against the live site

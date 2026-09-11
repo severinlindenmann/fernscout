@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (174)
+## backlog (175)
 
 ### security (2)
 
@@ -174,7 +174,7 @@ Do not edit them by hand; run the script.
 | [B1414](backlog/docs-and-skills/B1414-docs-testing-md-s-privacy-section.md) | docs/TESTING.md's privacy section never mentions buddy links or per-photo visibility | DOCS | high | low |
 | [B1415](backlog/docs-and-skills/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low |
 
-### superseded (78)
+### superseded (79)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -185,6 +185,7 @@ Do not edit them by hand; run the script.
 | [B1050](backlog/superseded/B1050-main-does-not-build-a-merge.md) | main does not build: a merge left two features keys in one object literal in helper-proposal-arguments.test.ts | ISSUE | high | low |
 | [B1071](backlog/superseded/B1071-the-helper-prompt-is-7617-tokens.md) | The helper prompt is 7617 tokens against its 6500 ceiling, so main's test suite is red | ISSUE | high | medium |
 | [B1125](backlog/superseded/B1125-every-photobook-print-quote-is-refused.md) | Every photobook print quote is refused, so the print panel can never appear | ISSUE | high | low |
+| [B1147](backlog/superseded/B1147-gelato-rejects-fernscout-ch-s-credential.md) | Gelato rejects fernscout.ch's credential, so no photobook in a real journal can be priced | ISSUE | high | low |
 | [B1153](backlog/superseded/B1153-handing-your-journal-to-your-own.md) | Handing your journal to your own agent means leaving the conversation to fetch the key | FEATURE | high | low |
 | [B1156](backlog/superseded/B1156-the-order-panel-tells-every-instance.md) | The order panel tells every instance that nothing will be printed | ISSUE | high | low |
 | [B1249](backlog/superseded/B1249-a-signup-token-is-spent-by.md) | A signup token is spent by a creation that failed, so the person cannot retry at all | ISSUE | high | low |
@@ -270,7 +271,7 @@ Do not edit them by hand; run the script.
 | [B1364](backlog/wont-do/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (57)
+## open (55)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -280,11 +281,9 @@ Do not edit them by hand; run the script.
 | [B1095](open/B1095-personas-run-in-parallel-share-one.md) | Personas run in parallel share one browser tab and interleave, invalidating the round | CHORE | high | low |
 | [B1114](open/B1114-run-a-batch-has-no-shape.md) | run-a-batch has no shape for an engagement, so an OPS ticket cannot be in a batch at all | DOCS | high | medium |
 | [B1115](open/B1115-a-brief-can-say-a-ticket.md) | A brief can say a ticket is dropped or live, and B1058 is neither | DOCS | high | low |
-| [B1147](open/B1147-gelato-rejects-fernscout-ch-s-credential.md) | Gelato rejects fernscout.ch's credential, so no photobook in a real journal can be priced | ISSUE | high | low |
 | [B1175](open/B1175-a-journal-deletion-that-fails-partway.md) | a journal deletion that fails partway leaves the journal gone, no tombstone, and a spent confirmation link | ISSUE | high | medium |
 | [B1282](open/B1282-a-guest-confirming-their-invitation-silently.md) | A guest confirming their invitation silently deletes the postal address the owner entered for them | ISSUE | high | medium |
 | [B1301](open/B1301-an-approved-reader-who-opens-a.md) | An approved reader who opens a buddy link is given write access to the trip with no owner decision, and told there is nothing to do | SECURITY | high | medium |
-| [B911](open/B911-the-print-flow-has-never-run.md) | The print flow has never run against the live site | OPS | high | low |
 | [B106](open/B106-push-has-never-been-switched-on.md) | Push has never been switched on anywhere, so nothing has proved a notification reaches a phone | OPS | medium | medium |
 | [B1094](open/B1094-editing-a-contact-opens-a-form.md) | Editing a contact opens a form off-screen above the button, so the button looks broken | ISSUE | medium | low |
 | [B1112](open/B1112-a-triage-decision-carries-no-reason.md) | A triage decision carries no reason, so the run brief starts from ids alone | DOCS | medium | low |
@@ -577,7 +576,7 @@ Do not edit them by hand; run the script.
 | [B1402](testing/B1402-a-content-path-one-level-too.md) | A content path one level too shallow is reported accurately and without naming the likely cause | ISSUE | low | low | — |
 | [B1438](testing/B1438-the-receipt-mail-offers-three-pdfs.md) | The receipt mail offers three PDFs where the order page offers one | CHORE | low | low | — |
 
-## completed (941)
+## completed (942)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -841,6 +840,7 @@ Do not edit them by hand; run the script.
 | [B902](completed/B902-files-cannot-be-reached-or-referred.md) | Files cannot be reached or referred to from the conversation | FEATURE | high | medium |
 | [B905](completed/B905-an-agent-can-publish-a-day.md) | An agent can publish a day and cannot take it down again | ISSUE | high | low |
 | [B906](completed/B906-nothing-can-find-the-day-with.md) | Nothing can find the day with the photograph of Anna in it | FEATURE | high | medium |
+| [B911](completed/B911-the-print-flow-has-never-run.md) | The print flow has never run against the live site | OPS | high | low |
 | [B913](completed/B913-the-onboarding-cannot-choose-between-a.md) | The onboarding cannot choose between a soft and a hard cover | FEATURE | high | medium |
 | [B914](completed/B914-take-down-and-publish-sentences-now.md) | Take-down and publish sentences now reach a tool instead of being refused | SECURITY | high | low |
 | [B915](completed/B915-a-photograph-in-the-inbox-cannot.md) | A photograph in the inbox cannot be put on a day from a browser | FEATURE | high | medium |
