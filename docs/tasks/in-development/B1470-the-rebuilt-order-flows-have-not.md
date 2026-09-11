@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: orders
 found: "2026-09-11T14:18:14Z"
+started: "2026-09-11T15:25:53Z"
+session: 3f748903-2dc3-47a2-a958-98b83d641dc0
+claimed: "2026-09-11T15:25:53Z"
 ---
 
 # B1470 — The rebuilt order flows have not been driven end to end on the live instance

@@ -278,11 +278,10 @@ Do not edit them by hand; run the script.
 | [B1364](backlog/wont-do/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (27)
+## open (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1470](open/B1470-the-rebuilt-order-flows-have-not.md) | The rebuilt order flows have not been driven end to end on the live instance | OPS | high | medium |
 | [B106](open/B106-push-has-never-been-switched-on.md) | Push has never been switched on anywhere, so nothing has proved a notification reaches a phone | OPS | medium | medium |
 | [B112](open/B112-local-scripts-write-straight-to-content.md) | Local scripts still write straight to content, and the one guarantee they skip is the draft rule | FEATURE | medium | medium |
 | [B1176](open/B1176-every-file-under-content-registry-was.md) | every file under content/.registry was root-owned, so the service account could not release a lock | OPS | medium | low |
@@ -310,10 +309,11 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (6)
+## in-development (7)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1470](in-development/B1470-the-rebuilt-order-flows-have-not.md) | The rebuilt order flows have not been driven end to end on the live instance | OPS | high | medium | `3f748903` |
 | [B1272](in-development/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low | `13f12910` |
 | [B1286](in-development/B1286-the-postcard-back-is-labelled-at.md) | The postcard back is labelled at print size and renders its message at eight pixels on a phone | ISSUE | medium | low | `13f12910` |
 | [B1289](in-development/B1289-the-map-of-a-finished-trip.md) | The map of a finished trip is titled Where we're going and says no days are written when one is | ISSUE | medium | low | `13f12910` |
