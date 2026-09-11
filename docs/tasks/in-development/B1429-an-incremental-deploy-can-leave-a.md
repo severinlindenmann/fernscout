@@ -54,9 +54,63 @@ Two separable questions, and the first is the cheap one.
 
 Not doing: removing the fast path.
 
+## What was found
+
+**The cause was not reproduced, and the ticket is honest about that.** What is
+known: the same commit, built a second time, wrote the missing file and served
+the page. So it is a build that did not finish what it started rather than a
+fault in the code that was deployed, and `--full` was not the ingredient —
+building again was.
+
+**What was found instead is a way to see it, and it is exact.** Next writes a
+`page_client-reference-manifest.js` beside every `page.js` it builds. On a
+healthy build of this repository that holds for all 57 pages — checked on the
+live box and again locally. On the broken build it did not hold for
+`/[user]/contacts`, which is the route that 500'd.
+
+That is a better check than the smoke test this ticket first proposed, for a
+reason worth writing down: **the page that broke was owner-only.** A deploy
+has no credential, so no unauthenticated page fetch would ever have touched
+`/[user]/contacts`. Reading the artefacts needs no session, covers every route
+including the gated ones, keeps no route list in step with the app, and takes
+under a second.
+
+## What was built
+
+- **`scripts/check-build.mjs`** — walks `.next/server/app`, names every page
+  whose manifest is missing, exits 1. Exits 2 on a directory with no pages in
+  it, which is a different fault and must not read as a pass.
+- **`scripts/deploy.sh`** runs it immediately after the build and **before the
+  restart**, so a bad build never reaches the site. If it fails, the deploy
+  builds again — the remedy the incident itself proved — and checks again. If
+  the second build is also incomplete it exits non-zero with the routes named,
+  having restarted nothing, so the previous build keeps serving.
+- Deliberately **not** `rm -rf .next` before the retry: the running site is
+  still reading out of that directory, and clearing it would take the healthy
+  old build down to fix a new one nothing has restarted onto yet. The error
+  message suggests that by hand, for the case a rebuild is not enough.
+
+## Not done
+
+The prevention half. Nobody knows yet what leaves `.next` incomplete, and
+guessing at it would be a change nothing can show is needed. If this fires
+again, the deploy output will now say which routes and when — which is the
+evidence that question needs.
+
 ## Acceptance
 
-A deploy that produces a broken route fails, leaves the previous build
-serving, and names the route in its output. Reproduce first: find the input
-that recreates the stale manifest, or say honestly that it could not be
-reproduced and that the check is the whole deliverable.
+A deploy that produces a build missing a page manifest fails, restarts
+nothing, leaves the previous build serving, and names the route. Verified:
+
+- `npx vitest run test/check-build.test.ts` — four tests, including that the
+  deploy calls the check *before* the restart line rather than after it.
+- Against a real build in this worktree: 57 pages, all present. Removing
+  `.next/server/app/[user]/contacts/page_client-reference-manifest.js` — the
+  exact artefact that was missing on 2026-09-11 — makes it exit 1 with
+  `/[user]/contacts` named; putting it back makes it pass again.
+- `npm run verify` — all five steps.
+
+**Deploying this takes two deploys** (the vps skill's own warning): the
+running `scripts/deploy.sh` pulls its replacement partway through and bash
+reads a script incrementally, so the check first runs on the deploy *after*
+the one that ships it. Judge the second.
