@@ -3444,7 +3444,14 @@ export function openApiDocument() {
             "— so an agent can tell \"this server cannot send mail\" from \"this call was " +
             "wrong\". `media` says what an upload may be, which is the one limit worth " +
             "knowing before rather than after sending 60 MB of photographs. `status` is " +
-            "`error` and the code 503 when the config or the content root is unreadable.",
+            "`error` and the code 503 when the config is unusable or the content root " +
+            "cannot be read **or written** — a root that lists fine but refuses a write " +
+            "is unhealthy too (B1248), because an instance that cannot accept a single " +
+            "new day is not `ok` merely because its existing ones still read. `backup` " +
+            "reports `state` and `maxAgeHours` to anybody; the timestamps, the failure " +
+            "text and the off-site posture answer only to an operator holding " +
+            "`HEALTH_TOKEN` as `Authorization: Bearer <token>`, since none of that is a " +
+            "fact a caller who cannot already act on it has a use for (B1045).",
           responses: {
             "200": {
               description: "Healthy",
@@ -3455,6 +3462,29 @@ export function openApiDocument() {
                     properties: {
                       status: { type: "string", enum: ["ok", "error"] },
                       version: { type: "string" },
+                      backup: {
+                        type: "object",
+                        description:
+                          "Whether the nightly backup is current. `state` — `ok`, " +
+                          "`stale`, `failing` or `unknown` — and `maxAgeHours` are all " +
+                          "an unauthenticated caller gets; `lastSuccessAt`, `ageHours`, " +
+                          "`lastFailureAt`, `lastFailure` and `reason`, and the same on " +
+                          "`secondary`, need `HEALTH_TOKEN`.",
+                        properties: {
+                          state: {
+                            type: "string",
+                            enum: ["ok", "stale", "failing", "unknown"],
+                          },
+                          maxAgeHours: { type: "number" },
+                          secondary: {
+                            type: "object",
+                            properties: {
+                              state: { type: "string", enum: ["ok", "stale", "unknown"] },
+                              maxAgeHours: { type: "number" },
+                            },
+                          },
+                        },
+                      },
                       capabilities: {
                         type: "object",
                         description:

@@ -36,15 +36,33 @@ hours later and will look like a bug in the wizard.
 
 ## Work
 
-- Have the `content` check prove writability, not just presence — write and
-  remove a probe file under `contentRoot()`, and report the failure with the
-  path and errno when it fails.
-- Decide deliberately whether an unwritable content root degrades the top-level
-  `status`. It should: the instance cannot accept a single new day.
-- Keep it cheap; `/api/health` is polled.
+- `contentRootWriteProblem()` in `lib/users.ts` proves writability: it writes
+  and removes a probe file named `.health-write-probe-<pid>` under
+  `contentRoot()` (pid-named so two processes sharing a root during a rolling
+  deploy never race each other's probe), never throws, and returns the errno
+  text with the path on failure — the same shape `contentRootProblem()`
+  already used for a read fault.
+- `app/api/health/route.ts` runs it only when the read already succeeded — a
+  root that cannot be listed is already unusable, and running a write probe
+  against it would just repeat the same fault under a different name. The
+  fault carries a distinct `code`: `"unreadable"` for a listing failure,
+  `"unwritable"` for a write failure, so an operator reading `content.code`
+  knows which one happened rather than always seeing the read-era name.
+- The top-level `status` degrades on either fault, unchanged from before: an
+  instance that cannot write a single new day was never `ok` because its
+  existing days still render.
+- Cheap by construction — one `writeFileSync` and one `unlinkSync`, no new
+  process, run once per `/api/health` call.
+- `content.error` (the path and errno) stays behind `HEALTH_TOKEN`, the same
+  gate it already sat behind for a read fault — B1248 changes what is
+  checked, not who is entitled to the detail. See B1045 for that gate's own
+  reasoning.
 
 ## Acceptance
 
 - With the content root made read-only, `/api/health` says so — `content.ok`
-  false, with a reason naming the path — and the overall `status` is not `ok`.
-- With it writable, no probe file is left behind.
+  false, with `code: "unwritable"`, and the overall `status` is not `ok` — met
+  and asserted in `test/health-content-writable.test.ts`.
+- With it writable, no probe file is left behind — asserted in the same file.
+- The path and errno text are absent for an unauthenticated caller and present
+  with `HEALTH_TOKEN` — also asserted there.

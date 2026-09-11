@@ -175,7 +175,9 @@ describe("/api/health", () => {
     const { GET } = await import("@/app/api/health/route");
     stampSuccess(DEFAULT_MAX_AGE_HOURS + 10);
 
-    // An anonymous probe, which is what an uptime monitor is (B234).
+    // An anonymous probe, which is what an uptime monitor is (B234). `state`
+    // is what it asserts on and stays public; `reason` is operator detail
+    // since B1045 and needs `HEALTH_TOKEN` — see test/health-disclosure.test.ts.
     const res = await GET(new Request("https://example.test/api/health"));
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
@@ -184,10 +186,25 @@ describe("/api/health", () => {
     };
     expect(body.status).toBe("ok");
     expect(body.backup.state).toBe("stale");
-    expect(body.backup.reason).toBeTruthy();
+    expect(body.backup.reason).toBeUndefined();
     // No RESTIC_REPOSITORY_SECONDARY configured here — B659's degrade-cleanly
     // case — reported as its own `unknown`, and never as a reason the top-level
     // status or the primary's own state changes.
     expect(body.backup.secondary.state).toBe("unknown");
+
+    const withToken = process.env.HEALTH_TOKEN;
+    process.env.HEALTH_TOKEN = "op-token";
+    try {
+      const opRes = await GET(
+        new Request("https://example.test/api/health", {
+          headers: { authorization: "Bearer op-token" },
+        }),
+      );
+      const opBody = (await opRes.json()) as { backup: { reason?: string } };
+      expect(opBody.backup.reason).toBeTruthy();
+    } finally {
+      if (withToken === undefined) delete process.env.HEALTH_TOKEN;
+      else process.env.HEALTH_TOKEN = withToken;
+    }
   });
 });
