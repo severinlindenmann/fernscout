@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: helper, publish
 found: "2026-09-11T19:40:00Z"
+started: "2026-09-11T21:35:13Z"
+session: bfe90fb0-0095-4532-8af8-601ad489b14c
+claimed: "2026-09-11T21:35:13Z"
 ---
 
 # B1518 — fernscout-helper's publish drops teaser in silence, so a closed trip never appears on /trips

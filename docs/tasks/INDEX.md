@@ -312,21 +312,21 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (6)
+## open (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1529](open/B1529-the-helper-bakes-to-2000px-before.md) | The helper bakes to 2000px before uploading, so every photobook is printed from a web-sized file | ISSUE | high | low |
-| [B1518](open/B1518-publish-drops-teaser-in-silence.md) | fernscout-helper's publish drops teaser in silence, so a closed trip never appears on /trips | ISSUE | medium | low |
 | [B1520](open/B1520-two-days-with-the-same-title-collide.md) | Two days with the same title collide at publish with 409, and nothing catches it first | ISSUE | medium | low |
 | [B1522](open/B1522-a-day-that-plainly-moved-and.md) | A day that plainly moved and carries no transportMode draws no leg, and only a tip says so | FEATURE | medium | low |
 | [B1525](open/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low |
 | [B1534](open/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1518](in-development/B1518-publish-drops-teaser-in-silence.md) | fernscout-helper's publish drops teaser in silence, so a closed trip never appears on /trips | ISSUE | medium | low | `bfe90fb0` |
 | [B1544](in-development/B1544-the-spine-appends-the-year-to.md) | The spine appends the year to a title that already carries one, and the owner cannot say otherwise | FEATURE | medium | low | `57d87f37` |
 
 ## testing (17)
