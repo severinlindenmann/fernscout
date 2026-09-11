@@ -331,7 +331,7 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (5)
+## in-development (6)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -340,6 +340,7 @@ Do not edit them by hand; run the script.
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
 | [B1450](in-development/B1450-the-thread-re-sends-its-whole.md) | The thread re-sends its whole 10,800-token prefix on every round | CHORE | medium | low | `a9c71f66` |
+| [B1451](in-development/B1451-the-printer-s-status-is-shown.md) | The printer's status is shown as a raw English API word instead of a readable state | FEATURE | medium | low | `96a5b964` |
 
 ## testing (230)
 
