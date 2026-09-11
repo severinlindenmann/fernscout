@@ -77,6 +77,20 @@ export type RecipientResult = {
    * Absent when it named no figure (dry-run, or a refused card). */
   costMinor?: number;
   error?: string;
+  /**
+   * The one further word the provider's own webhook can add after send —
+   * B1484. Additive only: `ok`/`sent` still mean exactly what they always
+   * have, "the printer accepted it" — this route never rewrites that, so a
+   * card already counted as sent stays counted as sent. Only `"cancelled"`
+   * is ever written here (`app/api/webhooks/stannp/route.ts`); every other
+   * status Stannp reports (`printing`, `dispatched`, `local_delivery`,
+   * `delivered`, `returned`) is acknowledged and dropped, on purpose —
+   * `app/api/v1/[user]/postcards/[id]/route.ts`'s own module comment already
+   * decided this system will never know whether a card was delivered, and a
+   * webhook recording delivery status would quietly contradict that.
+   * Refunding the credit this card cost is not built here — see B1529.
+   */
+  providerStatus?: "cancelled";
 };
 
 /**
@@ -552,4 +566,76 @@ export async function recordResults(
     .where("id", "=", id)
     .where("owner_id", "=", owner)
     .execute();
+}
+
+/**
+ * Which order and recipient one provider-issued card belongs to — B1484.
+ *
+ * Unlike `findSubmittedPrint`'s photobook counterpart, the webhook's own
+ * reference is not our order id: Stannp's `mailpieces[].id` is *its* id for
+ * one card, and one order can hold several cards, each posted to Stannp
+ * separately and each carrying its own `ref` (`sendPostcard`'s own
+ * `stannp:<id>` / `stannp-test:<id>`, stored on that card's own
+ * `RecipientResult`). So the search runs the other way: by the stored `ref`
+ * string, scanning `payload` rather than a column, because nothing here
+ * indexes a value nested inside one order's JSON. `kind = 'postcard'` keeps
+ * a photobook row's own `payload` (an unrelated shape) out of the scan.
+ */
+export async function findOrderByProviderRef(
+  providerRef: string,
+): Promise<{ owner: string; id: string; contactId: string } | null> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return null;
+  const rows = await handle.db
+    .selectFrom("print_orders")
+    .select(["id", "owner_id", "payload"])
+    .where("kind", "=", "postcard")
+    .where("payload", "like", `%"ref":"${providerRef}"%`)
+    .execute();
+  for (const row of rows) {
+    let payload: OrderPayload;
+    try {
+      payload = JSON.parse(row.payload) as OrderPayload;
+    } catch {
+      continue;
+    }
+    const match = (payload.results ?? []).find((r) => r.ref === providerRef);
+    if (match) return { owner: row.owner_id, id: row.id, contactId: match.contactId };
+  }
+  return null;
+}
+
+/**
+ * Stannp says one card it already accepted will never be posted — B1484.
+ *
+ * Additive: `results[].ok` and the order's own `built`/`failed` status are
+ * untouched, because both still mean exactly what they have always meant,
+ * "the printer accepted it" — which happened, and stays true. Only the new
+ * `providerStatus` field changes. Safe to call twice: writing `"cancelled"`
+ * over an already-`"cancelled"` entry changes nothing, so a retried webhook
+ * delivery costs a write, not a second anything.
+ */
+export async function recordProviderCancellation(providerRef: string): Promise<boolean> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return false;
+  const found = await findOrderByProviderRef(providerRef);
+  if (!found) return false;
+  const row = await handle.db
+    .selectFrom("print_orders")
+    .select(["payload"])
+    .where("id", "=", found.id)
+    .where("owner_id", "=", found.owner)
+    .executeTakeFirst();
+  if (!row) return false;
+  const payload = JSON.parse(row.payload) as OrderPayload;
+  const results = (payload.results ?? []).map((r) =>
+    r.ref === providerRef ? { ...r, providerStatus: "cancelled" as const } : r,
+  );
+  await handle.db
+    .updateTable("print_orders")
+    .set({ payload: JSON.stringify({ ...payload, results }), updated_at: nowIso() })
+    .where("id", "=", found.id)
+    .where("owner_id", "=", found.owner)
+    .execute();
+  return true;
 }

@@ -71,7 +71,7 @@ export const COVERAGE: Record<FeatureName, CoverageEntry> = {
     flows: ["owner-new-signup-by-sms"],
     interfaces: ["ui"],
   },
-  postcards: { todo: "no flow yet — Stannp has no inbound webhook in production yet, see B1484" },
+  postcards: { todo: "no flow yet — B1484 added the inbound webhook; still needs a flow that drives an order end to end" },
   photobook: {
     flows: ["owner-established-order-photobook"],
     interfaces: ["ui", "api"],
