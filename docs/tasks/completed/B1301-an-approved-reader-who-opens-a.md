@@ -168,3 +168,14 @@ already-active contact.
 Not in scope, and captured separately if it matters: whether any contact on the
 live instance currently holds a trip grant that arrived this way. A fix stops it
 recurring and does not undo what has already happened.
+
+## The live row, 2026-09-11 — left in place
+
+The one `trip_people` row on the instance carries this fault's signature —
+requested at 11:15:11.026, granted at 11:15:11.042, sixteen milliseconds, which
+is same-request auto-approval rather than anybody pressing Approve.
+
+**The owner was asked whether to revoke it and chose to leave it.** It is on
+`test-mobile`, so it grants nothing that matters, and in place it is the only
+live specimen of the fault — worth more as evidence than as tidiness. Its full
+state is recorded in `.claude/runs/2026-09-11-open-queue/B1301/live.json`.

@@ -178,3 +178,17 @@ render prefilled; given neither, they render exactly as blank as before.
 
 `npm run verify` passed in full (build, tsc, eslint, 522 files / 6869 tests,
 knip) on this branch.
+
+## Accepted as shipped, 2026-09-11
+
+The owner was asked whether the narrower reading was what they wanted, with the
+wider one offered, and chose narrow.
+
+So this is the settled shape: the server-side no-wipe is **unconditional**, and
+the **prefill happens only when `invite.email` is set** — a link the owner had
+the server mail to a named address. A hand-copied or forwarded link gets no
+lookup and no prefill, because holding a guest link does not prove whose address
+it is, and `lib/contacts/invites.ts` says as much itself.
+
+Not a compromise reached for lack of a decision: the decision was taken with the
+trade in front of it.
