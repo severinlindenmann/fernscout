@@ -94,6 +94,20 @@ by an agent that will see only a JSON brief and never this conversation.
 Read the ticket in full (given below) and then the code it names. Do not
 write any code and do not move the task file.
 
+**Before any of the below: look for a decision section already in the
+ticket** — a heading such as `## Decided`, `## Decision`, `## Decided,
+<date>`, or any section dated after the ticket's own `found:` timestamp,
+recording an owner's answer with the reasoning behind it. The heading wording
+varies ticket to ticket; look for the shape — a section, later than the
+ticket's filing, that settles a fork rather than describing one — not one
+exact string. Treat what it settles as **settled**: do not draw an option set
+for a question it already answered, and do not raise it again under
+QUESTIONS. If you believe the recorded decision is wrong or no longer holds,
+say so as a QUESTION, with your reasoning — that is a cheap thing to ask and a
+re-opened option set is not. A decided question re-asked costs the person the
+same minute twice and invites a different answer from the one the code was
+already written toward.
+
 Answer, in order:
 
 1. VALIDITY — one of four, each grounded in a file:line you actually read:

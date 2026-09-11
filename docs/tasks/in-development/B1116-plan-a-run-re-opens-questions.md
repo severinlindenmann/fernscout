@@ -42,6 +42,16 @@ State the failure it prevents: a decided question re-asked is not neutral. It
 costs the person the same minute twice, and it invites a different answer from
 the one the code was already written toward.
 
+**Done.** `plan-a-run` step 2's dispatch block now opens with a standing
+instruction, before the numbered VALIDITY/CONFLICT/BEFORE-STATE/OPTIONS/
+QUESTIONS steps: look for a decision section already in the ticket — named as
+a shape (a section, later than the ticket's own filing, that settles a fork
+rather than describing one) rather than one exact heading string, since the
+recorded tickets use `## Decided`, `## Decision`, `## Decided, <date>` and
+others interchangeably. What it settles is treated as settled — no option set
+for it, no re-asking it as a QUESTION — and disagreement with a recorded
+decision becomes a QUESTION with reasoning, never a fresh option set.
+
 ## Acceptance
 
 - The dispatch block in `plan-a-run` carries the instruction.
