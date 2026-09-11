@@ -430,6 +430,177 @@ async function sendDeletionMail(input: {
   );
 }
 
+export type ExportRequested = { ok: true; email: string; expiresAt: string };
+
+/**
+ * Ask for a copy of the whole journal — B1295. The same table, and the same
+ * shape as a deletion request: a random token, hashed and stored, mailed to
+ * the address in the journal's own `config.json`, single-use and short-lived.
+ * It exists because the landing page has always promised "export everything,
+ * whenever you like" and `/<user>/export.zip` only answers a bearer token —
+ * so an owner with a browser and no agent of their own had no way to ask.
+ *
+ * Not a `DeletionTarget`: nothing here can ever delete anything, so it gets
+ * its own `kind: "export"` row (`trip_id` always null — a whole journal,
+ * never narrowed) rather than going through `requestDeletion`, which always
+ * summarises something about to be destroyed.
+ */
+export async function requestExport(username: string): Promise<ExportRequested | DeletionRefused> {
+  const user = getUser(username);
+  if (!user) {
+    return { ok: false, status: 404, error: "no_such_journal", message: `No journal called "${username}".` };
+  }
+
+  const email = user.owner.email?.trim().toLowerCase();
+  if (!email) {
+    return {
+      ok: false,
+      status: 409,
+      error: "no_owner_address",
+      message:
+        `"${username}" has no owner.email in its config.json, so there is nobody to send the export ` +
+        `link to.`,
+    };
+  }
+
+  // Mail is the door here too — see requestDeletion above for why this is
+  // absent rather than broken.
+  if (!isEnabled("mail")) {
+    return {
+      ok: false,
+      status: 404,
+      error: "export_unavailable",
+      message:
+        "This server cannot send mail, and the export link is a mail to the owner. There is no " +
+        "way to request one over the API here. /api/health says why mail is off.",
+    };
+  }
+
+  const token = crypto.randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + DELETION_TTL_MS).toISOString();
+  const { db } = await getDatabase();
+
+  // Any earlier live export link for this journal is retired first — the same
+  // reasoning `requestDeletion` uses: two valid links in one inbox is a way to
+  // open the wrong one.
+  await db
+    .updateTable("deletion_requests")
+    .set({ consumed_at: nowIso() })
+    .where("owner_id", "=", username)
+    .where("kind", "=", "export")
+    .where("consumed_at", "is", null)
+    .execute();
+
+  await db
+    .insertInto("deletion_requests")
+    .values({
+      id: crypto.randomUUID(),
+      owner_id: username,
+      kind: "export",
+      trip_id: null,
+      email,
+      token_hash: hashSecret(token),
+      created_at: nowIso(),
+      expires_at: expiresAt,
+      consumed_at: null,
+      requested_by: null,
+    })
+    .execute();
+
+  try {
+    await sendExportMail({ username, title: user.title, nickname: user.owner.nickname, email, token, locale: user.defaultLocale });
+  } catch (err) {
+    console.error(`[deletions] export mail for ${username} failed:`, err);
+    await db
+      .updateTable("deletion_requests")
+      .set({ consumed_at: nowIso() })
+      .where("token_hash", "=", hashSecret(token))
+      .execute();
+    return {
+      ok: false,
+      status: 503,
+      error: "mail_failed",
+      message: "The export link could not be sent, so nothing is pending. Try again in a minute.",
+    };
+  }
+
+  return { ok: true, email, expiresAt };
+}
+
+/** Where the token in an export mail lands — GET streams the archive
+ * straight back, since there is no separate confirmation step the way a
+ * deletion has one: downloading a copy changes nothing. */
+function exportLinkUrl(base: string, username: string, token: string): string {
+  return `${base.replace(/\/$/, "")}/${username}/export/${token}`;
+}
+
+async function sendExportMail(input: {
+  username: string;
+  title: string;
+  nickname: string;
+  email: string;
+  token: string;
+  locale?: string;
+}): Promise<void> {
+  const site = serverSite();
+  const locale = input.locale ?? "en";
+  const t = (key: TranslationKey, vars?: Record<string, string>) => translateIn(locale, key, vars);
+  const vars = {
+    title: input.title,
+    nickname: input.nickname,
+    site: site.name,
+    minutes: DELETION_TTL_MINUTES,
+  };
+
+  const blocks: MailBlock[] = [
+    { kind: "paragraph", text: t("exp.intro", vars) },
+    { kind: "paragraph", text: t("exp.body", vars) },
+    { kind: "button", text: t("exp.button"), href: exportLinkUrl(site.url, input.username, input.token) },
+    { kind: "paragraph", text: t("exp.expiry", vars) },
+    { kind: "paragraph", text: t("exp.notYou") },
+  ];
+
+  await sendTransactional(
+    renderMail(input.email, t("exp.subject", vars), { preheader: t("exp.intro", vars), title: t("exp.title"), blocks, footer: t("exp.footer", vars) }, input.username),
+    "an export link the owner has already asked for",
+  );
+}
+
+/**
+ * Spend an export token and hand back the address it was mailed to.
+ *
+ * Single-use, unlike the deletion flow's own export button: that one shares
+ * its token with the confirmation page still to come and must not spend it on
+ * a download, but an export request has no second step behind it — the link
+ * in the mail is the whole flow, so consuming it here is what "single use"
+ * means for this one.
+ */
+export async function consumeExportToken(
+  username: string,
+  token: string,
+): Promise<{ ok: true; email: string } | TokenRefusal> {
+  const { db } = await getDatabase();
+  const row = await db
+    .selectFrom("deletion_requests")
+    .selectAll()
+    .where("token_hash", "=", hashSecret(token.trim()))
+    .executeTakeFirst();
+
+  if (!row || row.owner_id !== username || row.kind !== "export") return { ok: false, reason: "unknown" };
+  if (row.consumed_at) return { ok: false, reason: "used" };
+  if (new Date(row.expires_at).getTime() < Date.now()) return { ok: false, reason: "expired" };
+
+  const spent = await db
+    .updateTable("deletion_requests")
+    .set({ consumed_at: nowIso() })
+    .where("id", "=", row.id)
+    .where("consumed_at", "is", null)
+    .executeTakeFirst();
+  if (Number(spent.numUpdatedRows ?? 0) === 0) return { ok: false, reason: "used" };
+
+  return { ok: true, email: row.email };
+}
+
 export type PendingDeletion = {
   id: string;
   kind: "journal" | "trip";

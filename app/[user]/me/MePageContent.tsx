@@ -23,6 +23,7 @@ import ConfirmPanel from "@/components/ConfirmPanel";
 import GuestSignIn from "@/components/GuestSignIn";
 import PushOptIn from "@/components/PushOptIn";
 import DeleteAccount from "@/components/DeleteAccount";
+import ExportAccount from "@/components/ExportAccount";
 import SignOut from "@/components/SignOut";
 import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
@@ -1555,6 +1556,17 @@ export default function MePageContent({
           sign out of and is not offered a control that would do nothing.
         */}
         {viewer.email && <SignOut />}
+
+        {/*
+          Taking everything with you, beside the way out — B1295. The landing
+          page has always promised "export everything, whenever you like", and
+          until now the only door was a bearer token nobody without an agent
+          holds. It sits directly above `DeleteAccount` on purpose: leaving and
+          taking your things with you are the same moment, and the page that
+          offers one should offer the other. Owner only, the same gate as the
+          delete section right below it.
+        */}
+        {viewer.owner && <ExportAccount username={username} />}
 
         {/*
           And the way out for good — B1346. Under signing out, because the two
