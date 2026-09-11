@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (178)
+## backlog (186)
 
 ### security (2)
 
@@ -116,18 +116,24 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (17)
+### small-feature (23)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1315](backlog/small-feature/B1315-twilio-sms-inbound-inbox-in-admin.md) | Twilio SMS - inbound inbox in admin, outbound sending, SMS signup fallback | FEATURE | high | medium |
 | [B1392](backlog/small-feature/B1392-staged-files-are-counted-in-the.md) | Staged files are counted in the storage card and on /agent, and neither offers a way to clear them | FEATURE | high | low |
+| [B1463](backlog/small-feature/B1463-a-photobook-order-and-a-postcard.md) | A photobook order and a postcard order are two pages with no shared vocabulary | FEATURE | high | medium |
+| [B1464](backlog/small-feature/B1464-there-is-nowhere-to-look-at.md) | There is nowhere to look at an order in the states a reader cannot reach | FEATURE | high | medium |
+| [B1465](backlog/small-feature/B1465-the-photobook-receipt-page-carries-its.md) | The photobook receipt page carries its own pill table and envelope markup | FEATURE | high | low |
+| [B1466](backlog/small-feature/B1466-the-photobook-buy-panel-duplicates-the.md) | The photobook buy panel duplicates the receipt's envelope, ledger and price lines | FEATURE | high | medium |
+| [B1467](backlog/small-feature/B1467-the-postcard-order-page-states-its.md) | The postcard order page states its own heading, intro and price in its own words | FEATURE | high | medium |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
 | [B1069](backlog/small-feature/B1069-there-is-no-tool-surface-for.md) | There is no tool surface for an agent that would rather be guided than read a spec | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
 | [B132](backlog/small-feature/B132-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to learn a new release exists, let alone install it | FEATURE | medium | medium |
 | [B1388](backlog/small-feature/B1388-whatsappinbound-has-no-owner-facing-switch.md) | whatsappInbound has no owner-facing switch | FEATURE | medium | medium |
 | [B1398](backlog/small-feature/B1398-choosing-the-postcard-picture-means-picking.md) | Choosing the postcard picture means picking a day from a list of titles, never seeing a photograph | FEATURE | medium | medium |
+| [B1469](backlog/small-feature/B1469-a-photobook-order-has-no-picture.md) | A photobook order has no picture of the book it is an order for | FEATURE | medium | medium |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
 | [B991](backlog/small-feature/B991-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium |
 | [B1025](backlog/small-feature/B1025-push-exists-as-a-capability-and.md) | Push exists as a capability and is not a channel this day can be sent on | FEATURE | low | medium |
@@ -138,19 +144,20 @@ Do not edit them by hand; run the script.
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
-### chore (7)
+### chore (8)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1146](backlog/chore/B1146-two-branches-in-flight-both-number.md) | Two branches in flight both number their migration 028, so the second to merge has two | CHORE | high | low |
 | [B1412](backlog/chore/B1412-the-delete-trip-link-sits-on.md) | the delete-trip link sits on the trip page, where a reader is reading, rather than with the trip's other owner controls | CHORE | medium | low |
 | [B1449](backlog/chore/B1449-the-thread-prompt-is-21-tokens.md) | The thread prompt is 21 tokens from its ceiling, and the ceiling measures a different string than the wire | CHORE | medium | low |
+| [B1468](backlog/chore/B1468-legacy-left-behind-once-both-order.md) | Legacy left behind once both order surfaces share one element | CHORE | medium | low |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
 | [B1413](backlog/chore/B1413-five-hand-typed-durations-in-openapi.md) | Five hand-typed durations in openapi.ts have no exported minutes constant to import | CHORE | low | low |
 | [B1424](backlog/chore/B1424-photobook-base-credits-argues-for-160.md) | PHOTOBOOK_BASE_CREDITS argues for 160 credits and 2 a page, a pricing model that no longer exists | CHORE | low | low |
 | [B1453](backlog/chore/B1453-createjournal-still-writes-costs-enabled-into.md) | createJournal still writes costs: enabled into every new journal's config, where nothing reads it | CHORE | low | low |
 
-### ops (13)
+### ops (14)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -159,6 +166,7 @@ Do not edit them by hand; run the script.
 | [B1311](backlog/ops/B1311-a-config-json-written-as-root.md) | A config.json written as root takes the whole site down at the next build | OPS | high | low |
 | [B1313](backlog/ops/B1313-two-deploys-can-run-at-once.md) | Two deploys can run at once and leave the site down with a corrupt build cache and a detached HEAD | OPS | high | low |
 | [B1446](backlog/ops/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | OPS | high | low |
+| [B1470](backlog/ops/B1470-the-rebuilt-order-flows-have-not.md) | The rebuilt order flows have not been driven end to end on the live instance | OPS | high | medium |
 | [B403](backlog/ops/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium |
 | [B107](backlog/ops/B107-postcards-have-only-ever-run-from.md) | Postcards have only ever run from a laptop CLI, never as a capability of the deployed site | OPS | medium | medium |
 | [B1137](backlog/ops/B1137-there-is-no-place-to-try.md) | There is no place to try a change against real data before it reaches fernscout.ch | OPS | medium | medium |
