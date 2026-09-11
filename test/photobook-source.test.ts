@@ -184,6 +184,45 @@ describe("which copy of a photograph gets printed", () => {
     expect(photo.width).toBe(3000);
   });
 
+  /**
+   * B1279. A photograph the derivative's own header cannot be read from — and
+   * with no width/height in frontmatter either — used to vanish with
+   * `if (!size) continue;` and no line anywhere saying so. It is reported now,
+   * the same way an unusable original is.
+   */
+  test("a photograph nothing can size is dropped with a warning, not silently", async () => {
+    write(
+      path.join(tripPath(), "entries", "2026-01-01-day-one.md"),
+      [
+        "---",
+        'title: "day-one"',
+        'date: "2026-01-01"',
+        'location: "Hoi An"',
+        'country: "Vietnam"',
+        'countryCode: "VN"',
+        "lat: 15.88",
+        "lng: 108.33",
+        "gallery:",
+        '  - src: "/media/asia-2026/day-one/01.jpg"',
+        '    type: "image"',
+        "---",
+        "",
+        "Words about the day.",
+        "",
+      ].join("\n"),
+    );
+    // Not a JPEG at all — readJpeg fails, frontmatter carries no width/height.
+    write(path.join(tripPath(), "media", "day-one", "01.jpg"), Buffer.from("not an image"));
+
+    const source = buildBookSource(REF, { madeOn: "2026-02-01" });
+    expect(source.days[0].photos).toEqual([]);
+    const dropped = source.notes?.filter((n) => n.code === "no-original");
+    expect(dropped).toHaveLength(1);
+    expect(dropped?.[0].detail).toContain("left out of the book");
+    expect(dropped?.[0].detail).toContain("dimensions could not be read");
+    expect(dropped?.[0].count).toBe(1);
+  });
+
   test("a trip with no originals behaves as before, plus a warning saying so", async () => {
     writeDay("day-one", "2026-01-01", [{ width: 2000, height: 1333 }]);
     write(path.join(tripPath(), "media", "day-one", "01.jpg"), await jpeg(2000, 1333));
@@ -204,6 +243,24 @@ describe("which copy of a photograph gets printed", () => {
     const soft = book.warnings.filter((w) => w.code === "low-resolution");
     expect(soft.length).toBeGreaterThan(0);
     expect(soft[0].detail).toContain("no original was kept for it");
+  });
+
+  /**
+   * B1279. Ingest renames by hash and a `gallery:` entry does not always
+   * agree with disk on case — and on a case-sensitive volume (most production
+   * Linux disks; a developer's own Mac is not one) a naive `path.join` refuses
+   * the file the media route would happily serve. Forces the mismatch
+   * directly, bypassing the OS, so this fails on every machine the fix has
+   * not reached rather than only on the ones with a case-sensitive filesystem.
+   */
+  test("a derivative whose case does not match the gallery src is still found", async () => {
+    writeDay("day-one", "2026-01-01", [{ width: 2000, height: 1333 }]);
+    // The gallery src says "01.jpg" (see writeDay); disk holds "01.JPG".
+    write(path.join(tripPath(), "media", "day-one", "01.JPG"), await jpeg(2000, 1333));
+
+    const source = buildBookSource(REF, { madeOn: "2026-02-01" });
+    expect(source.days[0].photos).toHaveLength(1);
+    expect(source.days[0].photos[0].width).toBe(2000);
   });
 
   test("printSourceFor leaves a src that escapes media/ alone", () => {

@@ -140,6 +140,22 @@ describe("BookOptions", () => {
     expect(kindsOf(withoutDay)).toContain("route");
   });
 
+  /**
+   * B1279. `photoCount` used to be summed from `source.days` before exclusion
+   * was applied, so an excluded day's photographs still counted toward it —
+   * the order button read "buyable" from a count that included photographs no
+   * page actually carried, which is exactly the disagreement the ticket
+   * reported between the refusal message and what the reader can see.
+   */
+  test("an excluded day's photographs do not count toward photoCount", () => {
+    const withDay = planBook(source(DAYS), SPEC, DEFAULT_OPTIONS);
+    const withoutDay = planBook(source(DAYS), SPEC, {
+      ...DEFAULT_OPTIONS,
+      days: { [DAYS[0].date]: { excluded: true } },
+    });
+    expect(withoutDay.photoCount).toBe(withDay.photoCount - DAYS[0].photos.length);
+  });
+
   test("excluding every day of a country prints no chapter divider for it", () => {
     const excludeThailand = Object.fromEntries(
       DAYS.filter((d) => d.country === "Thailand").map((d) => [d.date, { excluded: true }]),

@@ -82,13 +82,17 @@ const WIN_ANSI: Record<string, string> = Object.fromEntries(
 const EXTRA: Record<number, [regular: number, bold: number]> = {
   0x80: [556, 556],
   0x82: [222, 278],
+  0x83: [556, 556], // florin
   0x84: [333, 500],
   0x85: [1000, 1000],
   0x86: [556, 556],
   0x87: [556, 556],
+  0x88: [333, 333], // circumflex — an accent adds no advance in Helvetica
   0x89: [1000, 1000],
+  0x8a: [667, 667], // Scaron — same advance as S
   0x8b: [333, 333],
   0x8c: [1000, 1000],
+  0x8e: [611, 611], // Zcaron — same advance as Z
   0x91: [222, 278],
   0x92: [222, 278],
   0x93: [333, 500],
@@ -96,9 +100,13 @@ const EXTRA: Record<number, [regular: number, bold: number]> = {
   0x95: [350, 350],
   0x96: [556, 556],
   0x97: [1000, 1000],
+  0x98: [333, 333], // tilde — an accent adds no advance in Helvetica
   0x99: [1000, 1000],
+  0x9a: [500, 556], // scaron — same advance as s
   0x9b: [333, 333],
   0x9c: [944, 944],
+  0x9e: [500, 500], // zcaron — same advance as z
+  0x9f: [667, 667], // Ydieresis — same advance as Y
   0xa9: [737, 737], // copyright
   0xab: [556, 556], // guillemotleft
   0xb7: [278, 278], // periodcentered
@@ -198,8 +206,20 @@ export function toWinAnsi(text: string): string {
   return out.replace(/[^\u0020-\u007E\u0080-\u00FF]/g, " ");
 }
 
-/** Greedy line breaking. Words longer than the column are broken by character
- * rather than allowed to overhang. */
+/**
+ * Greedy line breaking. Words longer than the column are broken by character
+ * rather than allowed to overhang.
+ *
+ * **Splits the original text, not the WinAnsi-encoded form** (B1408).
+ * `measure()` below already runs everything it is given through `toWinAnsi`
+ * to look up widths, so encoding here first bought nothing — and cost the
+ * lines this returns their real characters. `plan.ts` stores exactly what
+ * this returns and the preview HTML-escapes it directly; pre-encoding meant a
+ * mark like the en dash left this function as the C1 control byte WinAnsi
+ * puts it at, which a browser renders as nothing at all. The PDF renderer
+ * survived only because its own `toWinAnsi` at draw time is idempotent on an
+ * already-encoded byte — an accident, not something to rely on twice.
+ */
 export function wrap(
   text: string,
   size: number,
@@ -207,7 +227,7 @@ export function wrap(
   weight: FontWeight = "regular",
 ): string[] {
   const lines: string[] = [];
-  for (const paragraph of toWinAnsi(text).split(/\n/)) {
+  for (const paragraph of text.split(/\n/)) {
     let line = "";
     for (const word of paragraph.split(/\s+/).filter(Boolean)) {
       const candidate = line ? `${line} ${word}` : word;

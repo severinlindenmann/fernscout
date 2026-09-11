@@ -722,6 +722,32 @@ function placement(
 }
 
 /**
+ * Moves a photograph that fell back to `containWithinResolution` up out of
+ * the running-foot band, without touching its size — B1407.
+ *
+ * The day page's own slot bleeds off the bottom edge on purpose (`:1531`
+ * below), so a full-resolution photograph can run edge to edge under the
+ * folio. Centring a *smaller* rectangle inside that same oversized box — the
+ * shared centring formula every `contain` fit uses — is what put a shrunk
+ * photograph in the same place: low enough that its own lower edge could
+ * land on or past the folio. Only the day page's photo slot is bleed-
+ * extended like this; every other layout's slot already ends at the safe
+ * margin, which is why this is a call-site fix rather than a change to
+ * `containWithinResolution` or `coverOrShrink` themselves.
+ *
+ * A photograph that filled the slot (`clip.height === slot.height`, the
+ * `coverOrShrink` "covered" branch) is untouched — B641's edge-to-edge cover
+ * is exactly what this slot exists for.
+ */
+function keepClearOfTheFoot(placed: PhotoPlacement, slot: RectMm, safeMm: number): PhotoPlacement {
+  if (placed.clip.height >= slot.height) return placed;
+  const boxTop = slot.y + slot.height; // unchanged: where the day's text ends
+  const y = safeMm + (boxTop - safeMm - placed.draw.height) / 2;
+  const draw = { ...placed.draw, y };
+  return { ...placed, draw, clip: draw };
+}
+
+/**
  * Slots for a layout, in trim-relative millimetres.
  *
  * Everything except `full-bleed` and `panorama` stays inside the content box,
@@ -1524,17 +1550,14 @@ function materialise(
        * caption above it, which is what this page is.
        */
       const budget = dayTextBudget(spec, type, Boolean(draft.photo), draft.captions.length);
+      const photoSlot = {
+        x: -spec.bleedMm,
+        y: -spec.bleedMm,
+        width: spec.size.trimWidthMm + spec.bleedMm * 2,
+        height: budget.photoHeightMm + spec.bleedMm,
+      };
       const photo = draft.photo
-        ? placement(
-            draft.photo,
-            {
-              x: -spec.bleedMm,
-              y: -spec.bleedMm,
-              width: spec.size.trimWidthMm + spec.bleedMm * 2,
-              height: budget.photoHeightMm + spec.bleedMm,
-            },
-            "cover",
-          )
+        ? keepClearOfTheFoot(placement(draft.photo, photoSlot, "cover"), photoSlot, spec.safeMm)
         : undefined;
       if (photo) checkResolution(photo, spec, warnings);
       const fit = fitDayText(day.paragraphs, type, budget.columnWidthMm, budget.availableHeightMm);
@@ -2260,13 +2283,6 @@ export function planBook(
   // is printed as its author wrote it.
   const s = bookStrings(options.locale);
   const warnings: BookWarning[] = [...(source.notes ?? [])];
-  const photoCount = source.days.reduce((n, d) => n + d.photos.length, 0);
-  if (photoCount === 0) {
-    warnings.push({
-      code: "no-photos",
-      detail: "This trip has no photographs, so the book is text only.",
-    });
-  }
 
   // A day the owner left out — B564 — never reaches `chaptersOf`, so its page,
   // its photographs and its place in the chapter are all gone; a chapter left
@@ -2275,6 +2291,19 @@ export function planBook(
   // and back matter) still reads the untouched `source.days` below: an
   // excluded day is a place the trip did not print, not a place it did not go.
   const printedDays = source.days.filter((d) => !options.days[d.date]?.excluded);
+
+  // Counted from what is actually going to be placed, not from `source.days`
+  // — B1279. A day excluded above still had photographs on it; counting them
+  // is how the order button and the "needs at least one photograph" refusal
+  // could disagree with what the reader actually sees on the page.
+  const photoCount = printedDays.reduce((n, d) => n + d.photos.length, 0);
+  if (photoCount === 0) {
+    warnings.push({
+      code: "no-photos",
+      detail: "This trip has no photographs, so the book is text only.",
+    });
+  }
+
   const chapters = chaptersOf(printedDays);
   const front = draftsForFront(source, options, spec);
   const back = draftsForBack(source, options);
