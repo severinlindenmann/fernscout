@@ -1093,7 +1093,7 @@
   "postcard.page.dayWithTitle": "„{title}“, {date}",
   "postcard.page.expiredOn": "Diese Bestellung ist am {date} abgelaufen. Lass eine neue erstellen.",
   "postcard.page.figuresLabel": "Die Reisefiguren neben der Unterschrift zeigen",
-  "postcard.page.figuresNone": "Für diese Reise wurde niemand beschrieben, es gibt also nichts zu zeichnen. Antworte /travellers/presets und schreibe einen travellers-Block, um das zu ändern.",
+  "postcard.page.figuresNone": "Für diese Reise wurde niemand beschrieben, es gibt also nichts zu zeichnen. Beschreibe, wer mitgereist ist, auf demselben Weg, wie der Rest dieses Reisetagebuchs entsteht, und die Figuren erscheinen.",
   "postcard.page.front": "Die Vorderseite",
   "postcard.page.goingMany": "Geht an {count} Personen",
   "postcard.page.goingOne": "Geht an 1 Person",

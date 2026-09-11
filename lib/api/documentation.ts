@@ -750,6 +750,16 @@ Content-Type: application/json
 {"email": "them@example.com"}
 \`\`\`
 
+**There is no journal yet, so there is nowhere to read a language from** —
+this mail, the first thing the software ever says to this address, otherwise
+falls back to the request's own \`Accept-Language\` header, which is a
+browser's setting and not necessarily the person's. If you already know which
+language they speak — because you are the one talking to them, not their
+browser — send \`{"email": "…", "locale": "hu"}\` and it wins outright, no
+header involved. The same \`locale\` field works the same way on
+\`POST /api/auth/identity/request\`, the other code an address can be asked
+for before any journal exists.
+
 \`\`\`http
 POST ${site.url}/api/auth/signup/verify
 Content-Type: application/json
@@ -1565,7 +1575,7 @@ one. The full schema, with the shape of each nested item, is in
 | \`transportMode\`, \`transportFrom\`, \`transportTo\` | How this day was reached, on the day it was reached — \`{"transportMode": "car", "transportFrom": "Susten Pass", "transportTo": "Grimsel Pass"}\`. \`transportMode\` is what makes the leg exist: without it there is no arrival scene between the day before and this one, and no icon on the map, whatever the other two say. One of ${TRANSPORT_MODES.join(", ")}, and only these — an unlisted mode is refused rather than shown. \`transportFrom\` and \`transportTo\` are free text and are printed exactly as sent (\`Susten Pass → Grimsel Pass\`), so write the places the way the person says them rather than as coordinates or airport codes; they are not geocoded, and \`lat\`/\`lng\` remain what puts the day on the map. Leave the whole group out on a day nobody travelled — a rest day with a mode on it draws a leg from a place to itself. |
 | \`travelScene\` | How the arrival scene between the previous day and this one plays: ${TRAVEL_SCENE_VARIANTS.join(", ")} — absent plays the default, timed to the distance covered. \`skip\` leaves the leg out of the story pager entirely, for a leg a reader has already seen many times over. Anything else is written as sent and read back as the default rather than refused. |
 | \`weather\` | \`true\` asks this server to look up what the weather actually was — from the Open-Meteo archive, at this day's \`lat\`/\`lng\` on its \`date\`. **It is the only way weather gets onto a day, and you must not write one from what you believe.** A day with no coordinates gets nothing rather than a guess, and a day the archive has no answer for yet is filled in later rather than left wrong. Needs the \`weather\` capability: with it off this call is refused — \`400 weather_disabled\` — and nothing is written, rather than answered \`200\` for a lookup that will never happen. \`/api/health\` says whether it is on. |
-| \`weatherData\` | A reading somebody actually took, for when you have one the archive does not. Accepted only with \`source\` (where it came from, in a few words) and \`recordedAt\` (an ISO instant), plus at least one of \`tempMin\`, \`tempMax\`, \`code\` (WMO), \`precipitation\` (mm), \`windMax\` (km/h). \`open-meteo\` is refused as a source — that name means this server measured it. The provenance is not bureaucracy: it is what lets a reader tell a measurement from something that was made up, which is the only reason weather is allowed here at all. |
+| \`weatherData\` | A reading somebody actually took, for when you have one the archive does not. Accepted only with \`source\` (where it came from, in a few words) and \`recordedAt\` (an ISO instant), plus at least one of \`tempMin\`, \`tempMax\`, \`code\` (WMO), \`precipitation\` (mm), \`windMax\` (km/h). \`open-meteo\` is refused as a source — that name means this server measured it. The provenance is not bureaucracy: it is what lets a reader tell a measurement from something that was made up, which is the only reason weather is allowed here at all. Once written, this block is the server's own record — it does belong in the file, and a filled one is not evidence that somebody invented it. \`PATCH … {"weatherData": null}\` deletes it; never send that because it looks fabricated to you rather than because you were actually told it was wrong. |
 | \`test\` | \`true\` when this day did not happen. See **The one rule**. |
 | \`idempotency_key\` | Names this one write — see below. |
 
@@ -1678,6 +1688,13 @@ formatting — is left exactly as it was; this is a textual splice, the same
 one \`publish\` uses to remove its one line, not a rewrite of the whole file.
 It takes the same fields as \`POST .../days\` — see the table above — plus
 \`content\`, which replaces the entry's whole body.
+
+**\`{"weatherData": null}\` deletes a reading, and it is a real delete.**
+Send it when you were told the reading was wrong or the day changed — never
+because a day you are checking over already carries a \`weatherData\` block
+and that alone strikes you as suspicious. A filled block is the server's own
+record of a lookup or a reading somebody handed over; it belongs in the file,
+and your own doubt about it is not grounds to remove it.
 
 **\`status\` is not among them, and cannot be.** This call moves nothing
 between draft and published, whatever is in the body — sending \`"status"\` is

@@ -215,6 +215,21 @@ describe("before a journal exists, the request's own language decides", () => {
     expect(sent[0].text).toMatch(/Your code is \d{6}\./);
   });
 
+  // B1134: the body field an agent sends on somebody's behalf wins outright
+  // over whatever the request's own browser-set header says — no
+  // reconciliation between the two, no warning either way.
+  test("a locale in the body wins outright over accept-language", async () => {
+    const { POST } = await import("@/app/api/auth/signup/request/route");
+    await POST(
+      post(
+        "https://example.test/api/auth/signup/request",
+        { email: "kettonyelvu@example.test", locale: "hu" },
+        "de",
+      ),
+    );
+    expect(sent[0].subject).toBe("A kódod, amellyel útinaplót indíthatsz itt: Testbed");
+  });
+
   test("no accept-language at all is English", async () => {
     const { POST } = await import("@/app/api/auth/signup/request/route");
     await POST(post("https://example.test/api/auth/signup/request", { email: "quiet@example.test" }));

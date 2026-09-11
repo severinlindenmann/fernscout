@@ -1093,7 +1093,7 @@
   "postcard.page.dayWithTitle": "„{title}”, {date}",
   "postcard.page.expiredOn": "Ez a rendelés {date} napon lejárt. Kérj egy újat.",
   "postcard.page.figuresLabel": "Az utazó alakok megjelenítése az aláírás mellett",
-  "postcard.page.figuresNone": "Ehhez az úthoz senkit sem írtak le, így nincs mit rajzolni. Válaszolj a /travellers/presets alapján, és írj egy travellers blokkot, hogy ez megváltozzon.",
+  "postcard.page.figuresNone": "Ehhez az úthoz még senkit sem írtak le, így nincs mit rajzolni. Írd le, ki utazott, ugyanúgy, ahogy ennek a naplónak a többi része is készül, és az alakok megjelennek.",
   "postcard.page.front": "Az előlap",
   "postcard.page.goingMany": "{count} főnek megy",
   "postcard.page.goingOne": "1 főnek megy",

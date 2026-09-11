@@ -12,6 +12,7 @@ import {
   VISIBILITY_NOT_A_LOCK,
 } from "@/lib/api/agentCopy";
 import { EDITABLE_DAY_FIELDS } from "@/lib/api/entries";
+import { CODE_TTL_MINUTES } from "@/lib/auth";
 
 /** Markdown emphasis is prose's, not a JSON `description`'s — the same trim
  * `VISIBILITY_NOT_A_LOCK` gets a few lines down, done once. */
@@ -440,7 +441,9 @@ export function openApiDocument() {
                 + "that name means this server retrieved a measurement and a reader takes it that "
                 + "way. At least one of tempMin, tempMax, code (a WMO code), precipitation (mm) or "
                 + "windMax (km/h). If what you want is the archive's answer, send `weather: true` "
-                + "instead.",
+                + "instead. Once this is written it is the server's own record of a measurement, "
+                + "not a claim of yours to take back on a second thought — see `weatherData` on "
+                + "`DraftPatch` before ever sending this field `null`.",
             },
             translations: {
               type: "object",
@@ -644,7 +647,11 @@ export function openApiDocument() {
               type: "object",
               description:
                 "Same rules as on creation — a `source` and a `recordedAt` are required and " +
-                "`open-meteo` is refused. `null` removes a reading.",
+                "`open-meteo` is refused. `null` removes a reading, for real — send it only " +
+                "when you were told the reading was wrong or the day changed, never because a " +
+                "block of weather on a day you did not write looks fabricated to you: it is not " +
+                "evidence that it was, and deleting a real measurement to comply with that guess " +
+                "is a worse mistake than leaving it alone.",
             },
             test: {
               type: "boolean",
@@ -801,7 +808,7 @@ export function openApiDocument() {
                   properties: {
                     user: { type: "string" },
                     email: { type: "string", format: "email" },
-                    code: { type: "string", description: "Six digits. Ten minutes, single use." },
+                    code: { type: "string", description: `Six digits. ${CODE_TTL_MINUTES} minutes, single use.` },
                     kind: { type: "string", enum: ["agent", "guest"], default: "guest" },
                     trip: {
                       type: "string",
@@ -1564,6 +1571,12 @@ export function openApiDocument() {
       "/api/auth/signup/request": {
         post: {
           summary: "Ask for a code to create a journal (no journal needed yet)",
+          description:
+            "There is no journal yet, so there is no `user.locales` to read and no contact " +
+            "record carrying a language — the mail this sends is the first thing the software " +
+            "ever says to this address. Absent `locale`, it reads the request's own " +
+            "`Accept-Language` header, honouring quality values, and falls back to English " +
+            "when that names nothing this instance maintains.",
           requestBody: {
             required: true,
             content: {
@@ -1571,7 +1584,16 @@ export function openApiDocument() {
                 schema: {
                   type: "object",
                   required: ["email"],
-                  properties: { email: { type: "string", format: "email" } },
+                  properties: {
+                    email: { type: "string", format: "email" },
+                    locale: {
+                      type: "string",
+                      enum: [...MAINTAINED_LOCALES],
+                      description:
+                        `One of ${LOCALE_LIST}. Overrides \`Accept-Language\` outright — sent, ` +
+                        "it wins with no reconciliation between the two and no warning either way.",
+                    },
+                  },
                 },
               },
             },
@@ -1611,6 +1633,56 @@ export function openApiDocument() {
                 "corrected without another emailed code.",
             },
             "401": { description: "The code is wrong, expired or already used" },
+          },
+        },
+      },
+      // B1134: this route's siblings under /api/auth/identity (verify,
+      // upgrade, link) stay out of this document on purpose — they set and
+      // read the browser cookie an agent's bearer token can never use, per
+      // OUT_OF_SCOPE_PREFIXES in test/openapi-contract.test.ts. This one is
+      // different: it is a plain "ask for a code" step, the same shape as
+      // /api/auth/signup/request, and had simply never gained an entry here
+      // at all — not a deliberate exclusion, a gap.
+      "/api/auth/identity/request": {
+        post: {
+          summary: "Ask for a code that proves an address to the whole instance — B410",
+          security: [],
+          description:
+            "Names no journal: this proves an address, not a right to read or write one. " +
+            "Always answers 202, for the same reason every code endpoint here does — an " +
+            "answer that distinguished \"no such address\" from \"sent\" is a way to ask who " +
+            "reads this server.\n\n" +
+            "Absent `locale`, the mail is sent in whatever the reader's browser session " +
+            "already carries — the language cookie the site's own switcher sets, or its own " +
+            "`Accept-Language` fallback when there is no session at all (B430) — because an " +
+            "identity belongs to no journal, so there is no `user.locales` and no contact " +
+            "record to read a language from either.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["email"],
+                  properties: {
+                    email: { type: "string", format: "email" },
+                    locale: {
+                      type: "string",
+                      enum: [...MAINTAINED_LOCALES],
+                      description:
+                        `One of ${LOCALE_LIST}. Overrides the browser session outright — sent, ` +
+                        "it wins with no reconciliation and no warning either way.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "202": { description: "Accepted — a code is mailed if the address is usable" },
+            "404": { description: "Authentication is off on this server" },
+            "429": { description: "Too many attempts" },
+            "503": { description: "This server cannot send mail, so signing in cannot finish" },
           },
         },
       },

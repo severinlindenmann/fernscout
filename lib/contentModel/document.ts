@@ -148,6 +148,15 @@ export function contentModel(): ContentModelDocument {
       // The prose under the frontmatter; the API calls it `intro`.
       intro: { apiOnly: true, because: "the prose under the frontmatter; the API calls it intro" },
       listed: { type: "boolean", because: "false keeps a public trip out of the sitemap, the feed and the switcher — it only ever narrows" },
+      // B1389: absent from this document entirely until now, though the API
+      // accepts, validates, documents and parses it. A closed trip named on
+      // the trips page without being opened — a locked card with its title
+      // and dates and nothing else — refused on a public trip, where
+      // `listed` is the key that decides instead.
+      teaser: {
+        type: "boolean",
+        because: "a closed trip saying it exists; refused on a public trip, where `listed` is the gate",
+      },
       people: { type: "array" },
       travellers: { type: "array" },
       rates: { type: "object" },
@@ -258,10 +267,27 @@ export function contentModel(): ContentModelDocument {
       },
       // The slug the instance assigned when publish.mjs first wrote this day.
       slug: { type: "string", fileOnly: true },
-      // Request-only: instructions to the server, not content. A file never
-      // carries any of these.
-      weather: { apiOnly: true, because: "asks the server to look up what the weather was" },
-      weatherData: { apiOnly: true, because: "a reading somebody actually took" },
+      // `coordinates`/`photos` are the two request-only keys here, genuinely
+      // never in a file: each is only ever sent `false`, and nothing on disk
+      // ever carries either name. `weather`/`weatherData` are a different
+      // shape, and used to be wrongly lumped in with these — B1403.
+      // `weather: true` is written onto a day's own frontmatter by
+      // lib/api/entries.ts's own writer, and a lookup's answer (or a reading
+      // a person handed over) is written there too, under `weatherData`
+      // itself: both are plain, shared keys, the same as `test` above, not
+      // apiOnly. A `never-in-file` rule on either was simply false, and is
+      // the likely reason a fresh validator read a filled `weatherData` block
+      // as invented — the published vocabulary said no file could carry one
+      // at all. `because` here is provenance, not permission: the API is the
+      // only door that may put a value in this key; this rule only says the
+      // key itself is real once it is through it.
+      weather: { type: "boolean", because: "the server's own lookup, once asked for — never an agent's belief" },
+      weatherData: {
+        type: "object",
+        because:
+          "a reading, from the server's lookup or handed over with its source — never invented, " +
+          "and never removed on the strength of a validator's own say-so that it looks invented",
+      },
       coordinates: { apiOnly: true, because: "only ever false — this day has no one place" },
       photos: { apiOnly: true, because: "only ever false — this day has no photographs" },
       idempotency_key: { apiOnly: true, because: "names one write, so a retry is safe" },

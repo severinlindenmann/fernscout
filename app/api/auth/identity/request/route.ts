@@ -7,6 +7,7 @@ import {
   revokeCodes,
 } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
+import { pickLocale } from "@/lib/contacts/locale";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { sendMail } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
@@ -76,16 +77,18 @@ export async function POST(request: Request) {
 
   /**
    * The language the reader chose on the site, not the server's default —
-   * B430.
+   * B430. B1134 adds the one thing that can override it: an explicit
+   * `locale` in the body, for a caller (the helper, asking on somebody's
+   * behalf) that knows better than the browser session it is driving.
    *
    * `requestLocale()` reads the cookie `proxy.ts` writes from `?lang=` and the
    * language switcher sets, so the mail arrives in the language the page was
-   * in when they asked for it. There is nowhere else to get it from: an
-   * identity belongs to no journal, so there is no `user.locales` to narrow
-   * against and no contact record carrying a `locale` — this address may be
-   * one this instance has never seen.
+   * in when they asked for it. There is nowhere else to get it from otherwise:
+   * an identity belongs to no journal, so there is no `user.locales` to
+   * narrow against and no contact record carrying a `locale` — this address
+   * may be one this instance has never seen.
    */
-  const locale = await requestLocale();
+  const locale = pickLocale(typeof body.locale === "string" ? body.locale : null, await requestLocale());
   const site = serverSite();
   const vars = { site: site.name, code, minutes: CODE_TTL_MINUTES };
 
