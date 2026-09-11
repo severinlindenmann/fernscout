@@ -8,6 +8,7 @@ area: contacts
 found: "2026-09-10T10:45:41Z"
 started: "2026-09-11T12:32:28Z"
 merged: "2026-09-11T12:50:57Z"
+completed: "2026-09-11T13:18:30Z"
 ---
 
 # B1282 — A guest confirming their invitation silently deletes the postal address the owner entered for them

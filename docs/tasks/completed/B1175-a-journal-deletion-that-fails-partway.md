@@ -8,6 +8,7 @@ area: deletions, registry, ops
 found: "2026-09-09T20:20:00Z"
 started: "2026-09-11T12:32:28Z"
 merged: "2026-09-11T12:59:01Z"
+completed: "2026-09-11T13:18:30Z"
 ---
 
 # B1175 — a journal deletion that fails partway leaves the journal gone, no tombstone, and a spent confirmation link

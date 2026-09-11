@@ -8,6 +8,7 @@ area: skills
 found: "2026-09-09T17:13:56Z"
 started: "2026-09-11T12:40:04Z"
 merged: "2026-09-11T12:51:37Z"
+completed: "2026-09-11T13:18:31Z"
 ---
 
 # B1115 — A brief can say a ticket is dropped or live, and B1058 is neither

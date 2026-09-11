@@ -8,6 +8,7 @@ area: capabilities, config
 found: "2026-09-09T15:59:11Z"
 started: "2026-09-11T11:57:58Z"
 merged: "2026-09-11T12:08:25Z"
+completed: "2026-09-11T13:18:31Z"
 ---
 
 # B1092 — Budget is gated per journal when it is the instance's decision

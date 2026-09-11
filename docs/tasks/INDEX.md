@@ -335,14 +335,13 @@ Do not edit them by hand; run the script.
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
 
-## testing (246)
+## testing (237)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B101](testing/B101-nobody-has-attacked-a-running-instance.md) | Nobody has attacked a running instance from the outside with the source in hand | OPS | high | high | — |
 | [B102](testing/B102-mail-is-switched-on-at-fernscout.md) | Mail is switched on at fernscout.ch and nothing records that a message has ever arrived | OPS | high | medium | — |
 | [B103](testing/B103-sign-in-is-switched-on-at.md) | Sign-in is switched on at fernscout.ch and no one has been through the code flow there end to end | OPS | high | medium | — |
-| [B1053](testing/B1053-the-helper-s-tool-list-has.md) | The helper's tool list has outgrown the budget its own test set, and the fix is grouping | ISSUE | high | medium | — |
 | [B1057](testing/B1057-nothing-reads-an-inbound-whatsapp-message.md) | Nothing reads an inbound WhatsApp message, so the number can be written to and never answers | FEATURE | high | high | — |
 | [B1058](testing/B1058-an-inbound-message-carries-a-telephone.md) | An inbound message carries a telephone number and nothing that says whose journal it is | FEATURE | high | high | — |
 | [B1064](testing/B1064-a-journal-s-owner-is-proven.md) | A journal's owner is proven by an email alone, and an address costs nothing to make another of | FEATURE | high | high | — |
@@ -351,15 +350,11 @@ Do not edit them by hand; run the script.
 | [B1076](testing/B1076-voice-recordings-are-sent-to-deepgram.md) | Voice recordings are sent to Deepgram without opting out of its model-training programme | SECURITY | high | low | — |
 | [B1077](testing/B1077-meta-bans-general-purpose-ai-chatbots.md) | Meta bans general-purpose AI chatbots on WhatsApp, and nothing establishes which side of that line the helper is on | OPS | high | low | — |
 | [B1091](testing/B1091-the-two-model-calls-that-cost.md) | The two model calls that cost real money are free, so the ledger cannot account for what the instance spends | FEATURE | high | medium | — |
-| [B1092](testing/B1092-photobook-and-costs-are-gated-per.md) | Budget is gated per journal when it is the instance's decision | FEATURE | high | medium | — |
 | [B1093](testing/B1093-a-person-cannot-choose-who-a.md) | A person cannot choose who a photobook is posted to | FEATURE | high | medium | — |
-| [B1095](testing/B1095-personas-run-in-parallel-share-one.md) | Personas run in parallel share one browser tab and interleave, invalidating the round | CHORE | high | low | — |
 | [B1098](testing/B1098-work-on-a-task-revalidates-a.md) | work-on-a-task revalidates a ticket in one sentence of prose, and asks for a visual check it leaves no evidence of | DOCS | high | low | — |
 | [B1102](testing/B1102-signing-in-at-agent-lands-in.md) | Signing in at /agent lands in the six-step wizard, not the room B984 made the whole of it | ISSUE | high | low | — |
 | [B1105](testing/B1105-the-operator-s-personal-mobile-number.md) | The operator's personal mobile number is the example in the source, the public API spec and the agent guide | SECURITY | high | low | — |
 | [B1111](testing/B1111-a-run-report-ends-with-no.md) | A run report ends with no way to say which tickets a person accepted | DOCS | high | low | — |
-| [B1114](testing/B1114-run-a-batch-has-no-shape.md) | run-a-batch has no shape for an engagement, so an OPS ticket cannot be in a batch at all | DOCS | high | medium | — |
-| [B1115](testing/B1115-a-brief-can-say-a-ticket.md) | A brief can say a ticket is dropped or live, and B1058 is neither | DOCS | high | low | — |
 | [B1118](testing/B1118-deleting-a-published-day-is-self.md) | Deleting a published day is self-serviced by the agent, unlike every other unrecoverable delete | SECURITY | high | low | — |
 | [B1120](testing/B1120-the-agent-writes-markdown-into-a.md) | The agent writes markdown into a plain-text answer, so people read literal asterisks | FEATURE | high | medium | — |
 | [B1121](testing/B1121-the-room-s-frame-spends-its.md) | The room's frame spends its top bar on two sentences and has no history, no new conversation and a cramped preview | FEATURE | high | high | — |
@@ -380,7 +375,6 @@ Do not edit them by hand; run the script.
 | [B1172](testing/B1172-photographs-go-into-the-book-at.md) | Photographs go into the book at camera resolution, so the printer cannot render it | ISSUE | high | medium | — |
 | [B1173](testing/B1173-gelato-demands-a-page-count-two.md) | Gelato demands a page count two higher than the one it accepted a quote for | ISSUE | high | low | — |
 | [B1174](testing/B1174-an-off-site-copy-that-stops.md) | An off-site copy that stops arriving says nothing wrong on /admin | ISSUE | high | low | — |
-| [B1175](testing/B1175-a-journal-deletion-that-fails-partway.md) | a journal deletion that fails partway leaves the journal gone, no tombstone, and a spent confirmation link | ISSUE | high | medium | — |
 | [B1182](testing/B1182-a-phone-with-nothing-uploaded-yet.md) | A phone with nothing uploaded yet has no way to upload anything | ISSUE | high | low | — |
 | [B1184](testing/B1184-the-agent-room-and-door-offer.md) | The agent room and door offer no way to change their language | ISSUE | high | low | — |
 | [B1188](testing/B1188-a-trip-with-no-days-yet.md) | A trip with no days yet greets its owner with 'the last of it undefined, NaN undefined' | ISSUE | high | low | — |
@@ -420,9 +414,7 @@ Do not edit them by hand; run the script.
 | [B1275](testing/B1275-the-preview-header-offers-put-this.md) | The preview header offers Put this day on the site, which does not put the day on the site | ISSUE | high | low | — |
 | [B1279](testing/B1279-a-photobook-of-a-trip-with.md) | A photobook of a trip with three photographs contains none and cannot be ordered | ISSUE | high | medium | — |
 | [B1280](testing/B1280-the-helper-offers-to-add-a.md) | The helper offers to add a postcard recipient, then refuses and names a settings page that does not exist | ISSUE | high | low | — |
-| [B1282](testing/B1282-a-guest-confirming-their-invitation-silently.md) | A guest confirming their invitation silently deletes the postal address the owner entered for them | ISSUE | high | medium | — |
 | [B1284](testing/B1284-every-postcard-proposal-from-the-helper.md) | Every postcard proposal from the helper is refused, because it sends a name slug where a contact id is required | ISSUE | high | low | — |
-| [B1301](testing/B1301-an-approved-reader-who-opens-a.md) | An approved reader who opens a buddy link is given write access to the trip with no owner decision, and told there is nothing to do | SECURITY | high | medium | — |
 | [B1310](testing/B1310-the-whatsapp-door-is-invisible-to.md) | The WhatsApp door is invisible to anyone not already in their room | FEATURE | high | low | — |
 | [B1314](testing/B1314-the-whatsapp-doors-shipped-as-bare.md) | The WhatsApp doors shipped as bare text links instead of the chosen design | ISSUE | high | low | — |
 | [B1316](testing/B1316-twilio-sms-inbound-inbox-in-admin.md) | Twilio SMS - inbound inbox in admin, outbound sending, SMS signup fallback | FEATURE | high | medium | — |
@@ -480,7 +472,6 @@ Do not edit them by hand; run the script.
 | [B1429](testing/B1429-an-incremental-deploy-can-leave-a.md) | An incremental deploy can leave a stale client reference manifest and 500 a page | OPS | high | medium | — |
 | [B1439](testing/B1439-gelato-is-handed-the-owner-s.md) | Gelato is handed the owner's email address and can write to them directly | SECURITY | high | low | — |
 | [B1454](testing/B1454-a-refused-book-never-shows-that.md) | A refused book never shows that the credits came back, because the sentence is in an unreachable branch | ISSUE | high | low | — |
-| [B311](testing/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
 | [B984](testing/B984-the-conversation-lives-at-three-urls.md) | The conversation lives at three URLs and should live at one | FEATURE | high | high | — |
 | [B994](testing/B994-the-link-from-a-day-opens.md) | The link from a day opens a room that does not know what it was opened from | FEATURE | high | medium | — |
@@ -586,7 +577,7 @@ Do not edit them by hand; run the script.
 | [B1438](testing/B1438-the-receipt-mail-offers-three-pdfs.md) | The receipt mail offers three PDFs where the order page offers one | CHORE | low | low | — |
 | [B1455](testing/B1455-the-same-credit-figure-prints-as.md) | The same credit figure prints as 220.00 on the page and 284 in the mail | CHORE | low | low | — |
 
-## completed (942)
+## completed (951)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -602,6 +593,7 @@ Do not edit them by hand; run the script.
 | [B1021](completed/B1021-the-one-bright-thing-rule-cites.md) | The one-bright-thing rule cites a test that was never written, and is false where it matters | ISSUE | high | low |
 | [B1041](completed/B1041-the-agent-asks-in-prose-for.md) | The agent asks in prose for what its own card would have asked in controls | ISSUE | high | low |
 | [B1042](completed/B1042-the-service-worker-caches-owner-only.md) | The service worker caches owner-only responses forever and ignores no-store | ISSUE | high | low |
+| [B1053](completed/B1053-the-helper-s-tool-list-has.md) | The helper's tool list has outgrown the budget its own test set, and the fix is grouping | ISSUE | high | medium |
 | [B1054](completed/B1054-the-helper-s-live-conversation-lives.md) | The helper's live conversation lives in one process's memory, so no second door can ever join it | FEATURE | high | high |
 | [B1055](completed/B1055-every-helper-route-proves-the-caller.md) | Every helper route proves the caller with a browser cookie, so nothing but a browser can speak to the helper | FEATURE | high | medium |
 | [B1056](completed/B1056-a-helper-answer-can-only-be.md) | A helper answer can only be drawn in the web room, because Block has exactly one renderer | FEATURE | high | high |
@@ -611,10 +603,15 @@ Do not edit them by hand; run the script.
 | [B1063](completed/B1063-the-imprint-does-not-say-that.md) | The imprint does not say that a message sent to the WhatsApp number is read, stored and sent to Meta | DOCS | high | low |
 | [B1086](completed/B1086-anonymous-export-zip-hands-out-the.md) | Anonymous export.zip hands out the owner's name, email and home town | SECURITY | high | low |
 | [B1090](completed/B1090-a-day-s-zone-must-be.md) | A day's zone must be worked out from where it happened, or B42 helps almost no day that exists | ISSUE | high | medium |
+| [B1092](completed/B1092-photobook-and-costs-are-gated-per.md) | Budget is gated per journal when it is the instance's decision | FEATURE | high | medium |
+| [B1095](completed/B1095-personas-run-in-parallel-share-one.md) | Personas run in parallel share one browser tab and interleave, invalidating the round | CHORE | high | low |
 | [B1097](completed/B1097-an-agent-judges-a-page-from.md) | An agent judges a page from its own reading of the code, because there is no instrument that shows it the page | CHORE | high | medium |
 | [B1099](completed/B1099-every-decision-a-run-needs-is.md) | Every decision a run needs is asked mid-run, so a batch cannot be started and left alone | DOCS | high | high |
 | [B1100](completed/B1100-nothing-carries-a-batch-of-approved.md) | Nothing carries a batch of approved tickets through build, merge, deploy and live check without a person driving each step | DOCS | high | high |
 | [B1104](completed/B1104-a-patch-press-sends-no-body.md) | A PATCH press sends no body, so every card that edits a trip or a day's words fails | ISSUE | high | low |
+| [B1114](completed/B1114-run-a-batch-has-no-shape.md) | run-a-batch has no shape for an engagement, so an OPS ticket cannot be in a batch at all | DOCS | high | medium |
+| [B1115](completed/B1115-a-brief-can-say-a-ticket.md) | A brief can say a ticket is dropped or live, and B1058 is neither | DOCS | high | low |
+| [B1175](completed/B1175-a-journal-deletion-that-fails-partway.md) | a journal deletion that fails partway leaves the journal gone, no tombstone, and a spent confirmation link | ISSUE | high | medium |
 | [B1194](completed/B1194-the-stop-reply-claims-an-unsubscribe.md) | The STOP reply claims an unsubscribe that has not happened | ISSUE | high | low |
 | [B1224](completed/B1224-a-two-letter-message-makes-the.md) | A two-letter message makes the model guess its language, and it guessed Japanese | ISSUE | high | low |
 | [B1230](completed/B1230-a-proposal-on-whatsapp-points-at.md) | A proposal on WhatsApp points at a screen instead of offering its own button | FEATURE | high | medium |
@@ -626,6 +623,8 @@ Do not edit them by hand; run the script.
 | [B1261](completed/B1261-the-renderer-drops-every-block-after.md) | The renderer drops every block after the first interactive one, and the thread remembers what was never sent | ISSUE | high | medium |
 | [B1262](completed/B1262-the-guard-log-names-the-first.md) | The guard log names the first verdict while the person received the second pass's fallback | ISSUE | high | low |
 | [B1263](completed/B1263-a-failed-media-download-says-nothing.md) | A failed media download says nothing, and a pin onto an existing day refuses instead of attaching | ISSUE | high | low |
+| [B1282](completed/B1282-a-guest-confirming-their-invitation-silently.md) | A guest confirming their invitation silently deletes the postal address the owner entered for them | ISSUE | high | medium |
+| [B1301](completed/B1301-an-approved-reader-who-opens-a.md) | An approved reader who opens a buddy link is given write access to the trip with no owner decision, and told there is nothing to do | SECURITY | high | medium |
 | [B1302](completed/B1302-a-typed-button-label-is-not.md) | A typed button label is not a press, and a false saved-claim slips a session-wide guard | ISSUE | high | low |
 | [B1303](completed/B1303-a-new-chat-keeps-the-old.md) | A new chat keeps the old pending button, and the thread has no sense of time | ISSUE | high | low |
 | [B1304](completed/B1304-two-form-proposals-merge-into-one.md) | Two form proposals merge into one message with one button set | ISSUE | high | low |
@@ -668,6 +667,7 @@ Do not edit them by hand; run the script.
 | [B302](completed/B302-the-guide-frames-a-new-trip.md) | The guide frames a new trip as private-or-public, so an agent never offers guest and its user ends up with an approved reader who cannot read | DOCS | high | low |
 | [B306](completed/B306-a-journal-s-visibility-borrows-the.md) | A journal's visibility borrows the trip's words for a different meaning, and everyone reads them as the trip's | ISSUE | high | medium |
 | [B307](completed/B307-onboarding-is-prose-so-an-agent.md) | Onboarding is prose, so an agent asks a different set of questions in a different order every time | ISSUE | high | medium |
+| [B311](completed/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high |
 | [B316](completed/B316-the-rule-against-translating-prose-reads.md) | The rule against translating prose reads as absolute, so an agent refuses an owner who asks for it | ISSUE | high | low |
 | [B318](completed/B318-a-draft-day-shows-three-of.md) | A draft day shows three of its nine photographs and all nine once published | ISSUE | high | medium |
 | [B319](completed/B319-letting-somebody-in-means-handing-them.md) | Letting somebody in means handing them a link by hand, and approving means being at a browser | FEATURE | high | high |

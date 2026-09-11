@@ -8,6 +8,7 @@ area: agent docs, routes
 found: "2026-09-04T16:12:40Z"
 started: "2026-09-11T11:45:21Z"
 merged: "2026-09-11T12:34:16Z"
+completed: "2026-09-11T13:18:28Z"
 ---
 
 # B311 — One guide holds every task, so an agent reads fifty kilobytes to write one day

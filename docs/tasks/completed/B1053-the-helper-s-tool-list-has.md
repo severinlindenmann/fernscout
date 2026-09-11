@@ -8,6 +8,7 @@ area: agent, helper
 found: "2026-09-09T07:11:30Z"
 started: "2026-09-11T12:08:54Z"
 merged: "2026-09-11T12:26:39Z"
+completed: "2026-09-11T13:18:29Z"
 ---
 
 # B1053 — The helper's tool list has outgrown the budget its own test set, and the fix is grouping
