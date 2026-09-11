@@ -7,6 +7,7 @@ complexity: low
 area: reactions, ops, capabilities
 found: "2026-09-03"
 related: B102, B103, B104, B105, B106, B107, B108, B110
+merged: "2026-09-11T18:01:24Z"
 ---
 
 # B109 — Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart
@@ -67,3 +68,52 @@ same shape: an engagement whose output is other tasks.
 - An answer on whether the count can be inflated by one reader, and whether the
   write is rate limited.
 - One backlog task per defect, referencing B109.
+
+
+## Engagement run, 2026-09-11
+Run 2026-09-11 against fernscout.ch. **Answered: yes, it survives.**
+
+## The check
+
+```
+17:06:30  POST /api/reactions  → {"counts":{"❤️":1},"mine":"❤️"}
+          row in Postgres: reactions, owner_id "owner",
+          trip_id "example/parks-2025", day_slug "monument-valley-after-dark"
+19:11:18  service restarted (ActiveEnterTimestamp, by an ordinary deploy)
+19:11:2x  GET  /api/reactions  → {"counts":{…:{"❤️":1}},"mine":{}}
+```
+
+The count is there after the restart. That is the whole of what this ticket
+asked.
+
+## What it corrected about the ticket's premise
+
+The ticket says reactions are stored in `DATA_DIR` through the file repository,
+citing `lib/capabilities.ts:32` — `reactions: { env: [], db: false }`. On this
+instance they are **in Postgres**: `find /var/lib/fernscout -name 'reactions*'`
+returns nothing and the row is in the `reactions` table.
+
+So `db: false` means *this capability does not require a database to be
+configured*, not *this capability does not use one*. `lib/reactions.ts` picks
+`reactionsDb.ts` or `reactionsFile.ts` from what the instance has, the way
+AGENTS.md describes for everything else — "local dev is SQLite, production is
+Postgres, and nothing outside `lib/db/` knows which".
+
+That is worth knowing before anybody reads `db: false` as "kept in a file" and
+goes looking for the wrong thing, which is what I did first.
+
+## Two things noticed in passing, neither filed
+
+- **The same emoji twice is a toggle.** My second POST, identical to the first,
+  removed the reaction and answered `{"counts":{},"mine":null}`. Correct
+  behaviour, and it is how the instance was returned to the state I found it in
+  — no probe rows remain.
+- **`counts` has two shapes.** `GET` answers keyed by `trip:day`
+  (`{"example/parks-2025:monument-valley-after-dark":{"❤️":1}}`) while `POST`
+  answers flat (`{"❤️":1}`). Both are consistent within themselves and a caller
+  reading the documented shape will not be surprised — but a caller who assumes
+  one from the other will be. Not filed, because it may well be deliberate;
+  worth a look by somebody who knows which was intended.
+
+
+Full record: `.claude/runs/2026-09-11-open-queue/B109/findings.md`
