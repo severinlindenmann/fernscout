@@ -970,6 +970,7 @@
   "photobook.option.coverHint": "The photograph on the front and back of the book. Left alone, the book chooses one for you.",
   "photobook.option.coverLegend": "Choose the front cover",
   "photobook.option.coverDefault": "Let the book decide",
+  "photobook.option.spineText": "Spine",
   "photobook.option.text": "Include the writing",
   "photobook.option.language": "Language of the book",
   "photobook.option.languageHint": "Headings and labels only. Your days are printed as you wrote them.",

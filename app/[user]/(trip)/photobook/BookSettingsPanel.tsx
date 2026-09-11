@@ -5,7 +5,7 @@ import Image from "next/image";
 import { mediaLoader } from "@/components/mediaLoader";
 import type { TranslationKey } from "@/lib/i18n";
 import { COVER_TYPES, defaultSizeFor, sizesFor } from "@/lib/photobook/spec";
-import type { BookOptions } from "@/lib/photobook/options";
+import { MAX_SPINE_TEXT, type BookOptions } from "@/lib/photobook/options";
 import type { MediaTile } from "@/lib/types";
 
 /**
@@ -62,6 +62,7 @@ function Row({
   children,
   indented,
   note,
+  stacked,
 }: {
   label: string;
   children: React.ReactNode;
@@ -69,7 +70,26 @@ function Row({
   indented?: boolean;
   /** Why it is doing nothing, when it is. */
   note?: string;
+  /**
+   * The control gets the next line to itself — B1544. A picker's value is
+   * three words and fits beside its label; a line of the owner's own words is
+   * up to sixty characters, and beside a label in a 24rem card that is a slot
+   * showing nineteen of them. What somebody typed has to be readable back in
+   * full or the field is lying about what will be printed.
+   */
+  stacked?: boolean;
 }) {
+  if (stacked) {
+    return (
+      <div className="flex flex-col gap-1 py-2.5 pl-4 pr-4">
+        <span className="text-sm text-navy-800">
+          {label}
+          {note && <span className="mt-0.5 block text-xs text-navy-500">{note}</span>}
+        </span>
+        {children}
+      </div>
+    );
+  }
   return (
     // The label gives way, never the value — B1524. The card was 20rem wide
     // beside the book, and "Quadratisch, 20 x 20 cm" is wider than the space
@@ -121,6 +141,41 @@ function ValueSelect({
         {children}
       </select>
     </span>
+  );
+}
+
+/**
+ * One line of the owner's own words — B1544. The same mono face the pickers
+ * set their values in, on its own line under the label (see `Row`'s
+ * `stacked`), because sixty characters do not fit beside one.
+ *
+ * Empty means the derived answer, which is what the placeholder shows: the
+ * field starts blank on every book, and blanking it again is how the owner
+ * gets back to the default without having to remember what it was.
+ */
+function ValueText({
+  value,
+  onChange,
+  placeholder,
+  label,
+  maxLength,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  label: string;
+  maxLength: number;
+}) {
+  return (
+    <input
+      type="text"
+      aria-label={label}
+      value={value}
+      placeholder={placeholder}
+      maxLength={maxLength}
+      onChange={(e) => onChange(e.target.value)}
+      className="min-h-11 w-full rounded-lg border border-navy-200 bg-white px-2 py-1 font-mono text-sm text-navy-900 placeholder:text-navy-400 focus-visible:outline-2 focus-visible:outline-yellow-600"
+    />
   );
 }
 
@@ -206,6 +261,7 @@ const SWITCH_LABEL: Record<string, TranslationKey> = Object.fromEntries(
 export default function BookSettingsPanel({
   options,
   setOptions,
+  spineDefault,
   media,
   locales,
   resetBook,
@@ -215,6 +271,9 @@ export default function BookSettingsPanel({
 }: {
   options: BookOptions;
   setOptions: (update: (o: BookOptions) => BookOptions) => void;
+  /** What the spine says when the owner has not written it themselves — the
+   * trip's title and, unless the title already carries it, its year. B1544. */
+  spineDefault: string;
   media: MediaTile[];
   locales: string[];
   resetBook: () => void;
@@ -337,6 +396,27 @@ export default function BookSettingsPanel({
             </div>
           )}
         </div>
+
+        {/* What the shelf sees — B1544. Beside the cover controls because it
+            is part of the same object, and above the language row because it
+            is the owner's own words rather than one of the book's own. */}
+        <Row label={t("photobook.option.spineText")} stacked>
+          <ValueText
+            label={t("photobook.option.spineText")}
+            value={options.spineText ?? ""}
+            placeholder={spineDefault}
+            maxLength={MAX_SPINE_TEXT}
+            onChange={(v) =>
+              setOptions((o) => {
+                // Blank means "derive it", and the way an arrangement says
+                // that is by not carrying the key at all — the same shape
+                // `cover` uses for "the planner picks".
+                const { spineText: _dropped, ...rest } = o;
+                return v.trim() ? { ...rest, spineText: v } : rest;
+              })
+            }
+          />
+        </Row>
 
         {/* The book's own words only — headings, the colophon, how the
             travelling is named. The days keep whatever language they were

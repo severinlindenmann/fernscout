@@ -408,6 +408,7 @@ export default function BookLevelView({
           <BookSettingsPanel
             options={options}
             setOptions={setOptions}
+            spineDefault={spineText}
             media={media}
             locales={locales}
             resetBook={resetBook}
@@ -433,7 +434,11 @@ export default function BookLevelView({
         {/* The one thing about the printed object nobody sees until it
             arrives — B642. */}
         <p className="mt-1 text-sm text-navy-600">
-          {t("photobook.spine", { spine: spineText })}
+          {/* The owner's own words when they have written any — the same
+              precedence `spineTextFor` applies on the cover itself, so the
+              sentence above the button says what will actually be printed.
+              B1544. */}
+          {t("photobook.spine", { spine: options.spineText?.trim() || spineText })}
         </p>
 
         {/* Two columns from `md`, the same shape the receipt takes — B1481.

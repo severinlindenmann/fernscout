@@ -970,6 +970,7 @@
   "photobook.option.coverHint": "Das Foto auf der Vorder- und Rückseite des Buchs. Unberührt wählt das Buch selbst eines aus.",
   "photobook.option.coverLegend": "Titelbild wählen",
   "photobook.option.coverDefault": "Das Buch entscheiden lassen",
+  "photobook.option.spineText": "Buchrücken",
   "photobook.option.text": "Texte mitdrucken",
   "photobook.option.language": "Sprache des Buchs",
   "photobook.option.languageHint": "Nur Überschriften und Beschriftungen. Deine Tage werden so gedruckt, wie du sie geschrieben hast.",

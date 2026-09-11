@@ -7,7 +7,13 @@ import {
   type BookSource,
 } from "@/lib/photobook/plan";
 import { BOOK_SIZES, defaultSpec, fitsRule } from "@/lib/photobook/spec";
-import { DEFAULT_OPTIONS, initialBookOptions, parseOptions, type BookOptions } from "@/lib/photobook/options";
+import {
+  DEFAULT_OPTIONS,
+  initialBookOptions,
+  MAX_SPINE_TEXT,
+  parseOptions,
+  type BookOptions,
+} from "@/lib/photobook/options";
 
 const SPEC = defaultSpec(BOOK_SIZES["square"]);
 
@@ -260,5 +266,56 @@ describe("choosing soft or hard — B900", () => {
     // cannot be ordered, so it resolves to the cover the size is made in.
     expect(defaultSpec(BOOK_SIZES["large-square"], "soft").cover).toBe("hard");
     expect(defaultSpec(BOOK_SIZES.pocket, "hard").cover).toBe("soft");
+  });
+});
+
+/**
+ * The spine — B1544. A trip called "Algarve 2026" was printing as
+ * "Algarve 2026 · 2026" down the edge of a book somebody had paid for, and
+ * the derived string was the only string on offer.
+ */
+describe("the spine", () => {
+  const SIZES = Object.keys(BOOK_SIZES);
+  const spineOf = (options: BookOptions, title = "A test trip") => {
+    const base = source(DAYS);
+    return planBook({ ...base, trip: { ...base.trip, title } }, SPEC, options).volumes[0].cover
+      .spineText;
+  };
+
+  test("appends the year to a title that does not carry one", () => {
+    expect(spineOf(DEFAULT_OPTIONS)).toBe("A test trip · 2026");
+  });
+
+  test("does not append a year the title already says", () => {
+    expect(spineOf(DEFAULT_OPTIONS, "Algarve 2026")).toBe("Algarve 2026");
+  });
+
+  test("still appends when the title names a different year than the dates", () => {
+    // The author contradicting their own dates is theirs to resolve; hiding
+    // one of the two numbers would be us deciding which of them is right.
+    expect(spineOf(DEFAULT_OPTIONS, "Algarve 2019")).toBe("Algarve 2019 · 2026");
+  });
+
+  test("the owner's own words win over both", () => {
+    expect(spineOf({ ...DEFAULT_OPTIONS, spineText: "Portugal, at last" })).toBe(
+      "Portugal, at last",
+    );
+  });
+
+  test("blank means derive it, and never reaches an arrangement", () => {
+    expect(spineOf({ ...DEFAULT_OPTIONS, spineText: "   " })).toBe("A test trip · 2026");
+    expect(parseOptions({ ...DEFAULT_OPTIONS, spineText: "  " }, SIZES)).not.toHaveProperty(
+      "spineText",
+    );
+  });
+
+  test("refuses a spine longer than the shortest book is tall", () => {
+    const longest = "x".repeat(MAX_SPINE_TEXT);
+    expect(parseOptions({ ...DEFAULT_OPTIONS, spineText: longest }, SIZES)?.spineText).toBe(longest);
+    expect(parseOptions({ ...DEFAULT_OPTIONS, spineText: longest + "x" }, SIZES)).toBeNull();
+  });
+
+  test("an arrangement stored before the field existed still parses", () => {
+    expect(parseOptions(DEFAULT_OPTIONS, SIZES)).not.toBeNull();
   });
 });

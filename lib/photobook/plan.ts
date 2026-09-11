@@ -104,9 +104,26 @@ export function labelOf(photo: BookPhoto): string {
 
 /** The trip's title and year, exactly as `coverFor` prints them down the
  * spine — B642. Exported so the order page can show the same string it is
- * about to pay to have printed, rather than a second copy of the format. */
-export function spineTextFor(title: string, start: string): string {
-  return `${title} · ${start.slice(0, 4)}`;
+ * about to pay to have printed, rather than a second copy of the format.
+ *
+ * The year is appended because most titles do not carry one and a shelf of
+ * books called "Portugal" is unreadable — but it is not appended to a title
+ * that already says it. "Algarve 2026" was printing as "Algarve 2026 · 2026"
+ * down the spine of a book somebody paid for. B1544.
+ *
+ * A title naming a *different* year than the trip started still gets the
+ * trip's year appended: that is the author contradicting their own dates, and
+ * hiding it would be us deciding which of the two is right.
+ *
+ * `override` is the owner's own spine text (`BookOptions.spineText`), which
+ * wins outright — including over the year. Blank or absent means derive it,
+ * which is the normal case and what every book printed before B1544 did.
+ */
+export function spineTextFor(title: string, start: string, override?: string): string {
+  const chosen = override?.trim();
+  if (chosen) return chosen;
+  const year = start.slice(0, 4);
+  return title.includes(year) ? title : `${title} · ${year}`;
 }
 
 export type BookDay = {
@@ -2213,6 +2230,8 @@ function coverFor(
   volume: { index: number; of: number },
   frontPhoto: BookPhoto | undefined,
   s: BookStrings,
+  /** The owner's own spine text, where they have set one — B1544. */
+  spineText: string | undefined,
 ): CoverPlan {
   const geometry = computeCoverGeometry(spec, interiorPages);
   return {
@@ -2224,7 +2243,7 @@ function coverFor(
     title: source.trip.title,
     subtitle: volume.of > 1 ? fill(s.volume, { index: String(volume.index), of: String(volume.of) }) : source.trip.tagline,
     dates: formatDateRange(source.trip.start, source.trip.end, s),
-    spineText: spineTextFor(source.trip.title, source.trip.start),
+    spineText: spineTextFor(source.trip.title, source.trip.start, spineText),
     // The back panel's hinge is on its right, so the measure loses the gutter
     // there and keeps the outer margin on the left — the mirror of the front
     // panel in `renderCover`, and the reason a blurb no longer runs into the
@@ -2418,7 +2437,7 @@ export function planBook(
       .flatMap((d) => (d.kind === "photos" ? d.photos : []))
       .at(0);
 
-    const cover = coverFor(source, spec, materialised.length, meta, chosenCover ?? firstPhoto, s);
+    const cover = coverFor(source, spec, materialised.length, meta, chosenCover ?? firstPhoto, s, options.spineText);
     return {
       index: meta.index,
       of: meta.of,

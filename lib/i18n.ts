@@ -1915,6 +1915,7 @@ export type TranslationKey =
   | "photobook.option.photoName"
   | "photobook.option.photos"
   | "photobook.option.size"
+  | "photobook.option.spineText"
   | "photobook.option.text"
   | "photobook.option.vehicles"
   | "photobook.orderHeading"

@@ -775,6 +775,7 @@ export default function PhotobookPageContent({
                 resetFocal={resetFocal}
                 options={options}
                 setOptions={setOptions}
+                spineDefault={spineText}
                 media={media}
                 locales={locales}
                 resetBook={resetBook}

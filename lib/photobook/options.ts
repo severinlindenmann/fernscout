@@ -119,6 +119,24 @@ export type BookOptions = {
    */
   cover?: string;
   /**
+   * What is printed down the spine, when the owner has said — B1544.
+   *
+   * Absent or blank means derive it, which is `spineTextFor()` in
+   * `lib/photobook/plan.ts`: the trip's title, and its start year appended
+   * unless the title already carries it. That default is right for most
+   * books and was wrong for the one that produced this field — a trip called
+   * "Algarve 2026" printed as "Algarve 2026 · 2026" — but the deeper problem
+   * was that the derived string was the only string available. The spine is
+   * the one part of the object that lives on a shelf being read edge-on for
+   * thirty years, and its owner is entitled to write it.
+   *
+   * Capped at {@link MAX_SPINE_TEXT} characters, which is not a style rule:
+   * the spine runs the height of the book, the smallest of which is 140 mm,
+   * and type that outruns it is clipped at both ends by the trim. See the
+   * constant.
+   */
+  spineText?: string;
+  /**
    * Where a photograph is cropped from, when it is cropped at all — B513.
    *
    * Keyed by `MediaTile.src`, the same key `excludePhotos` and `DayPlan.photos`
@@ -322,6 +340,21 @@ const MAX_PHOTOS_PER_DAY = 500;
 
 const MAX_EXCLUDED_PHOTOS = 20_000;
 const MAX_SRC_LENGTH = 300;
+/**
+ * How long a spine title may be — B1544.
+ *
+ * Not a taste limit. `renderCover` sets the spine title rotated and centred
+ * on the panel's full height and does not measure it against anything, so
+ * text longer than the book is tall runs off both ends and is trimmed away.
+ * The shortest book here is 140 mm tall, and the spine face is set at 7 pt or
+ * less, where an average character is about 1.4 mm — call it a hundred
+ * characters before the smallest book is in trouble. Sixty leaves room for
+ * the wide-letter cases and is well past any title anybody writes.
+ *
+ * The number is enforced twice on purpose: `maxLength` on the composer's own
+ * field, so it cannot be typed, and here, so it cannot be posted.
+ */
+export const MAX_SPINE_TEXT = 60;
 /** One entry per photograph anybody has actually tapped, which is a small
  * fraction of a journal's photographs. Sized like `MAX_EXCLUDED_PHOTOS`
  * rather than smaller: both are the same shape of dictionary keyed by `src`,
@@ -467,6 +500,16 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
     if (typeof raw.cover !== "string" || raw.cover.length > MAX_SRC_LENGTH) return null;
     cover = raw.cover;
   }
+  // Refused rather than truncated, for the same reason `cover` is refused
+  // rather than defaulted: a caller who sent sixty-one characters asked for
+  // something, and quietly printing the first sixty of it onto a book is a
+  // worse answer than saying no. Blank is kept out of the arrangement
+  // entirely so it reads back as "derive it" — B1544.
+  let spineText: string | undefined;
+  if (raw.spineText !== undefined) {
+    if (typeof raw.spineText !== "string" || raw.spineText.length > MAX_SPINE_TEXT) return null;
+    if (raw.spineText.trim()) spineText = raw.spineText.trim();
+  }
   const excludePhotos =
     Array.isArray(raw.excludePhotos) &&
     raw.excludePhotos.length <= MAX_EXCLUDED_PHOTOS &&
@@ -529,5 +572,6 @@ export function parseOptions(input: unknown, sizes: readonly string[]): BookOpti
     includeFigureMarks: figureMarks,
     includeVehicles: vehicles,
     ...(cover !== undefined ? { cover } : {}),
+    ...(spineText !== undefined ? { spineText } : {}),
   };
 }
