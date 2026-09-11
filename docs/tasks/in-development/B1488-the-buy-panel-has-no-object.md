@@ -32,6 +32,22 @@ picture the drawing shows.
 The buttons: the pair under the book, ordering in yellow, and the order panel
 below keeps the press it has.
 
+## What shipped, and what did not
+
+The **button pair** is done: `Read the whole book` beside a yellow
+`Order this book` under the grid, and the press in the order panel now wears
+the same yellow — on this palette that is the colour of the thing that costs
+money, and it was navy while an outline button beside it had more visual
+weight.
+
+The **plate on every book** is not, and the reason is concrete rather than a
+preference: `options.cover` only exists when the owner chose a cover, and the
+planner's own pick lives in `BookPhoto.file`, a path relative to whichever
+root holds the bytes and deliberately not a URL. Making it one is the preview
+route's job and is captured as B1497. Until then the plate appears on a book
+with a chosen cover and the size-and-binding block stands on the rest — the
+fallback the layout was drawn to hold.
+
 ## Acceptance
 
 Every book shows a plate, chosen cover or not. The two buttons sit together
