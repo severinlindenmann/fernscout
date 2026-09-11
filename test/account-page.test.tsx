@@ -56,7 +56,12 @@ function render(over: { storage?: StoragePanel; payment?: PaymentPanel } = {}) {
       <SiteProvider value={site}>
         <CurrencyProvider options={{ base: "CHF", currencies: ["CHF"], rates: { CHF: 1 } }}>
           <TripListProvider trips={[]}>
-            <AccountPageContent username="alex" storage={over.storage} payment={over.payment} />
+            <AccountPageContent
+              username="alex"
+              storage={over.storage}
+              payment={over.payment}
+              orders={{ recent: [], total: 0 }}
+            />
           </TripListProvider>
         </CurrencyProvider>
       </SiteProvider>

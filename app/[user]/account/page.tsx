@@ -11,6 +11,7 @@ import { EXTRA_STORAGE_CREDITS, formatChf, POSTCARD_CREDITS } from "@/lib/credit
 import { isEnabled } from "@/lib/capabilities";
 import { listPayments } from "@/lib/payments";
 import { requestLocale, translateIn } from "@/lib/locales";
+import { listAllOrders } from "@/lib/orders";
 import { cleanupPlan } from "@/lib/storageCleanup";
 import { formatBytes, storageBreakdown, storageFor } from "@/lib/storageQuota";
 import { getUser } from "@/lib/users";
@@ -100,5 +101,8 @@ export default async function AccountPage({ params }: PageProps<"/[user]/account
     };
   }
 
-  return <AccountPageContent username={user} storage={storage} payment={payment} />;
+  const allOrders = await listAllOrders(user);
+  const orders = { recent: allOrders.slice(0, 3), total: allOrders.length };
+
+  return <AccountPageContent username={user} storage={storage} payment={payment} orders={orders} />;
 }

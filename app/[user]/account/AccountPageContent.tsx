@@ -9,6 +9,7 @@ import ConfirmPanel from "@/components/ConfirmPanel";
 import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
+import { OrderListItem } from "../orders/OrdersPageContent";
 import {
   CREDIT_STEP,
   EXTRA_STORAGE_CREDITS,
@@ -20,6 +21,7 @@ import {
   priceRappen,
 } from "@/lib/credits/pricing";
 import type { TranslationKey } from "@/lib/i18n";
+import type { OrderRow } from "@/lib/orders";
 
 /**
  * Credits and storage, on their own page — B821.
@@ -501,12 +503,15 @@ export default function AccountPageContent({
   username,
   storage,
   payment,
+  orders,
 }: {
   username: string;
   /** Absent only where the instance sets no ceiling. */
   storage?: StoragePanel;
   /** Absent when credits are switched off. */
   payment?: PaymentPanel;
+  /** The 3 most recent orders and the total count — B1452. */
+  orders: { recent: OrderRow[]; total: number };
 }) {
   const { t, tn } = useI18n();
   const site = useSite();
@@ -554,6 +559,31 @@ export default function AccountPageContent({
         </h1>
 
         <div className="mt-6 space-y-4">
+          {orders.recent.length > 0 && (
+            // B1452. At the top — what an owner asks most right after a
+            // purchase is "did it go through", not their balance.
+            <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="font-display text-lg font-semibold text-navy-900">
+                  {t("orders.title")}
+                </h3>
+                {orders.total > orders.recent.length && (
+                  <Link
+                    href={`${site.base}/orders`}
+                    className="text-sm font-semibold text-navy-700 transition-colors hover:text-navy-900"
+                  >
+                    {t("orders.viewAll")}
+                  </Link>
+                )}
+              </div>
+              <ul className="mt-2 -mx-5 divide-y divide-navy-200 border-t border-navy-200 sm:-mx-6">
+                {orders.recent.map((order) => (
+                  <OrderListItem key={`${order.kind}-${order.id}`} order={order} />
+                ))}
+              </ul>
+            </div>
+          )}
+
           {payment && (
             <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
               <div className="flex items-center gap-3">
@@ -801,21 +831,6 @@ export default function AccountPageContent({
               {t("me.accountCardBody")}
             </p>
           )}
-
-          {/* B1452. Every photobook and postcard order in one place — the
-              other two cards on this page are about the balance, this one is
-              about what it was spent on. */}
-          <Link
-            href={`/${username}/orders`}
-            className="flex items-center justify-between gap-3 rounded-2xl border border-navy-200 bg-white p-5 transition-colors hover:border-navy-500 sm:p-6"
-          >
-            <span className="font-display text-lg font-semibold text-navy-900">
-              {t("account.ordersLink")}
-            </span>
-            <span className="shrink-0 text-navy-600" aria-hidden="true">
-              →
-            </span>
-          </Link>
         </div>
       </main>
     </div>

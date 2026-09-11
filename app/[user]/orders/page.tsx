@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import OrdersPageContent, { type OrderRow } from "./OrdersPageContent";
+import OrdersPageContent from "./OrdersPageContent";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
 import { requestLocale, translateIn } from "@/lib/locales";
-import { listOrders as listPostcardOrders, orderCost } from "@/lib/postcard/orders";
-import { listPhotobookOrders } from "@/lib/photobook/orders";
-import { creditsInRappen, formatChf } from "@/lib/credits/pricing";
+import { listAllOrders } from "@/lib/orders";
 
 /**
  * Every photobook and postcard order an owner has proposed, in one place —
@@ -37,27 +35,7 @@ export default async function OrdersPage({ params }: PageProps<"/[user]/orders">
   if (!journal) notFound();
   if (!(await isOwner(user))) notFound();
 
-  const [postcards, photobooks] = await Promise.all([
-    listPostcardOrders(user),
-    listPhotobookOrders(user),
-  ]);
+  const orders = await listAllOrders(user);
 
-  const rows: OrderRow[] = [
-    ...postcards.map((order) => ({
-      id: order.id,
-      kind: "postcard" as const,
-      status: order.status as string,
-      createdAt: order.createdAt,
-      chf: formatChf(creditsInRappen(orderCost(order))),
-    })),
-    ...photobooks.map((order) => ({
-      id: order.id,
-      kind: "photobook" as const,
-      status: order.status,
-      createdAt: order.createdAt,
-      chf: formatChf(creditsInRappen(order.payload.credits)),
-    })),
-  ].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-
-  return <OrdersPageContent orders={rows} />;
+  return <OrdersPageContent orders={orders} />;
 }
