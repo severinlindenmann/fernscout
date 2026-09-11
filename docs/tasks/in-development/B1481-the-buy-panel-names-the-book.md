@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: photobook
 found: "2026-09-11T15:56:55Z"
+started: "2026-09-11T16:04:06Z"
+session: 3f748903-2dc3-47a2-a958-98b83d641dc0
+claimed: "2026-09-11T16:04:06Z"
 ---
 
 # B1481 — The buy panel names the book but never shows it, and runs down one column on a 1280px screen
