@@ -312,12 +312,11 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (7)
+## open (6)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1529](open/B1529-the-helper-bakes-to-2000px-before.md) | The helper bakes to 2000px before uploading, so every photobook is printed from a web-sized file | ISSUE | high | low |
-| [B1509](open/B1509-revolut-s-other-csv-the-account.md) | Revolut's other CSV — the account statement — is refused as unknown_format | FEATURE | medium | low |
 | [B1518](open/B1518-publish-drops-teaser-in-silence.md) | fernscout-helper's publish drops teaser in silence, so a closed trip never appears on /trips | ISSUE | medium | low |
 | [B1520](open/B1520-two-days-with-the-same-title-collide.md) | Two days with the same title collide at publish with 409, and nothing catches it first | ISSUE | medium | low |
 | [B1522](open/B1522-a-day-that-plainly-moved-and.md) | A day that plainly moved and carries no transportMode draws no leg, and only a tip says so | FEATURE | medium | low |
@@ -334,7 +333,7 @@ Do not edit them by hand; run the script.
 | [B1526](in-development/B1526-the-journals-own-walking-figures-cannot.md) | The journal's own walking figures cannot be set at all over the API | ISSUE | medium | low | `bfe90fb0` |
 | [B1533](in-development/B1533-send-the-largest-file-you-have.md) | \"Send the largest file you have\" is true, load-bearing, and buried where no uploader reads it | DOCS | medium | low | `bfe90fb0` |
 
-## testing (10)
+## testing (11)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -344,6 +343,7 @@ Do not edit them by hand; run the script.
 | [B1484](testing/B1484-stannp-has-no-inbound-webhook-route.md) | Stannp has no inbound webhook route, unlike every other print/message provider | ISSUE | medium | medium | — |
 | [B1506](testing/B1506-test-a-feature-has-no-isolated.md) | test-a-feature has no isolated CONTENT_DIR, so a local run writes into the tracked demo journal | CHORE | medium | medium | — |
 | [B1507](testing/B1507-owner-new-onboard-whatsapp-assumes-a.md) | owner-new-onboard-whatsapp assumes a draft appears without completing WhatsApp onboarding | CHORE | medium | low | — |
+| [B1509](testing/B1509-revolut-s-other-csv-the-account.md) | Revolut's other CSV — the account statement — is refused as unknown_format | FEATURE | medium | low | — |
 | [B1510](testing/B1510-the-step-screens-say-three-things.md) | The step screens say three things the screen already says | ISSUE | medium | low | — |
 | [B1515](testing/B1515-the-back-has-a-save-button.md) | The back has a save button for something that saves itself, and a warning the price already gives | ISSUE | medium | low | — |
 | [B1516](testing/B1516-the-message-floor-makes-the-preview.md) | The message floor makes the preview bigger than the card it is previewing | ISSUE | medium | low | — |

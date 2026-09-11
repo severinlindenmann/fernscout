@@ -6,6 +6,8 @@ priority: medium
 complexity: low
 area: importers, costs
 found: "2026-09-11T18:50:00Z"
+started: "2026-09-11T21:16:08Z"
+merged: "2026-09-11T21:16:09Z"
 ---
 
 # B1509 — Revolut's other CSV — the account statement — is refused as unknown_format
