@@ -1068,6 +1068,7 @@ export type TranslationKey =
   | "cost.onPace"
   | "cost.onTheRoad"
   | "cost.overBudget"
+  | "cost.paceMark"
   | "cost.perDay"
   | "cost.perDayChart"
   | "cost.plannedSpend"

@@ -244,6 +244,7 @@
   "cost.onPace": "eddig pontosan terv szerint",
   "cost.onTheRoad": "Úton",
   "cost.overBudget": "eddig terv felett",
+  "cost.paceMark": "Tervezett állás mára: a keret {percent}%-a.",
   "cost.perDay": "Napi átlag",
   "cost.perDayChart": "Napról napra",
   "cost.plannedSpend": "tervezett",

@@ -244,6 +244,7 @@
   "cost.onPace": "bisher genau im Plan",
   "cost.onTheRoad": "Unterwegs",
   "cost.overBudget": "bisher über Plan",
+  "cost.paceMark": "Geplanter Stand für heute: {percent}% des Budgets.",
   "cost.perDay": "Durchschnitt pro Tag",
   "cost.perDayChart": "Tag für Tag",
   "cost.plannedSpend": "geplant",

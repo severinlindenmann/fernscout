@@ -358,13 +358,26 @@ function BudgetPanel({
   // Anything inside a single day's allowance is noise, not a trend worth colouring.
   const onPace = Math.abs(delta) < budget.perDay;
   const under = delta < 0;
+  // The bar reports exactly one thing — how much of the whole budget is
+  // gone — so its length and colour must measure the same quantity. Pace
+  // (ahead of or behind plan) is a different fact, said in words and in the
+  // tick below rather than by recolouring the fill. B1268.
   const used = budget.total > 0 ? Math.min(1, spent / budget.total) : 0;
+  const overBudget = budget.total > 0 && spent > budget.total;
 
-  const tone = onPace
-    ? { text: "text-navy-700", bar: "#5a6a80" }
-    : under
-      ? { text: "text-green-700", bar: CATEGORY_STYLE.accommodation.color }
-      : { text: "text-coral-600", bar: CATEGORY_STYLE.other.color };
+  const tone = {
+    text: onPace ? "text-navy-700" : under ? "text-green-700" : "text-coral-600",
+    // Neutral while there is budget left; the one colour this site uses for
+    // an alarm only once spending has actually passed the total, which is
+    // the one state the bar being full-and-red should mean.
+    bar: overBudget ? CATEGORY_STYLE.other.color : "#5a6a80",
+  };
+
+  // Where the plan says spending should stand today, as a tick on the same
+  // bar — the pace signal the colour used to carry, stated without
+  // recolouring the whole fill.
+  const expectedPct =
+    budget.total > 0 ? Math.min(1, Math.max(0, pace.expectedToDate / budget.total)) : null;
 
   return (
     <section className="mt-8 rounded-2xl border border-navy-200 bg-white p-5 shadow-sm sm:p-6">
@@ -384,14 +397,27 @@ function BudgetPanel({
       </div>
 
       <div className="mt-4">
-        <div className="h-3 w-full overflow-hidden rounded-full bg-navy-200/50">
+        <div className="relative h-3 w-full overflow-hidden rounded-full bg-navy-200/50">
           <div
             className="h-full rounded-full transition-[width] duration-700"
             style={{ width: `${used * 100}%`, background: tone.bar }}
           />
+          {expectedPct !== null && (
+            <div
+              className="absolute inset-y-0 w-px bg-navy-900/60"
+              style={{ left: `${expectedPct * 100}%` }}
+              aria-hidden
+            />
+          )}
         </div>
         <p className="mt-1.5 text-[11px] text-navy-600">
           {Math.round(used * 100)}% {t("cost.ofBudget")} · {money(spent)} / {money(budget.total)}
+          {expectedPct !== null && (
+            <span className="sr-only">
+              {" "}
+              {t("cost.paceMark", { percent: String(Math.round(expectedPct * 100)) })}
+            </span>
+          )}
         </p>
       </div>
 
