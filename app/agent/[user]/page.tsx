@@ -6,8 +6,9 @@ import { redirect } from "next/navigation";
  * through the conversation), so the address that used to hold it sends
  * people home rather than serving a second, older way of doing the same
  * things. The inbox page beneath this path stays: nothing in the room
- * replaces its full listing yet. Deleting the wizard's code is the
- * follow-up chore once nothing references it.
+ * replaces its full listing yet. `components/AgentWizard.tsx` and the rest
+ * of its wizard-only code were deleted once nothing referenced them —
+ * B1239.
  */
 export default function RetiredWizardPage() {
   redirect("/agent");

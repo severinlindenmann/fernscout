@@ -1,5 +1,13 @@
 import { reversePlace } from "@/lib/addressLookup";
-import { createDraft, editEntry, factsOfInput, type DraftInput, type EditInput } from "@/lib/api/entries";
+import {
+  createDraft,
+  editEntry,
+  factsOfInput,
+  renameEntrySlug,
+  slugAvailable,
+  type DraftInput,
+  type EditInput,
+} from "@/lib/api/entries";
 import { fillDayWeatherQuietly } from "@/lib/api/weather";
 import { isEnabled } from "@/lib/capabilities";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
@@ -8,6 +16,7 @@ import { dayForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/he
 import { stashWords } from "@/lib/helper/undo";
 import { requestLocale } from "@/lib/locales";
 import { parsePhotoVisibility } from "@/lib/photos";
+import { slugify } from "@/lib/slug.ts";
 import { declinesIn, missingFrom } from "@/lib/tracks";
 import { getTrip, tripRef } from "@/lib/trips";
 import { refused, wrote } from "@/lib/helper/thread";
@@ -178,6 +187,11 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
  * wizard owes the person is the sentence — saving a day that is on the site
  * changes what people can already read — and it says it on the screen before
  * the button.
+ *
+ * Since B1276 a real `title` also gives a still-drafting day its real slug,
+ * in place of the `<date>-<date>.md` it was created with — see the doc
+ * comment on `renameEntrySlug` for the whole of it. Forward only: a day
+ * already published never has its address changed here.
  */
 export async function PATCH(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
   const { user } = await params;
@@ -235,6 +249,14 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/hel
     return Response.json({ error: "nothing_to_change" }, { status: 400 });
   }
 
+  // Read once, for whichever of the two things below need it: the stash
+  // wants the day's *current* words before they are overwritten, and the
+  // rename check wants to know whether this day is still a draft.
+  const before =
+    input.content !== undefined || input.title !== undefined
+      ? getEntryBySlug(ref, slug, AS_AUTHOR)
+      : null;
+
   /**
    * Stashed before the overwrite, and only for a words write — B1218 (D47).
    *
@@ -244,9 +266,31 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/hel
    * here worth restoring, so the stash only fires when `content` is part of
    * this press.
    */
-  if (input.content !== undefined) {
-    const before = getEntryBySlug(ref, slug, AS_AUTHOR);
-    if (before) stashWords(ref, slug, { title: before.title, content: before.content });
+  if (input.content !== undefined && before) {
+    stashWords(ref, slug, { title: before.title, content: before.content });
+  }
+
+  /**
+   * A real title turns a still-drafting day's `<date>-<date>.md` into a real
+   * address — B1276. Computed and checked *before* `editEntry` runs, so a
+   * title that collides with another day's slug refuses outright, leaving
+   * this day exactly where it was rather than saving new words under a slug
+   * nothing will ever reach.
+   *
+   * `before.draft` is the forward-only guard: a day already published keeps
+   * its slug whatever title arrives, because that URL may already be in
+   * somebody's email.
+   */
+  let candidateSlug: string | undefined;
+  if (input.title !== undefined && before?.draft) {
+    const candidate = slugify(input.title);
+    if (candidate !== slug) {
+      if (!slugAvailable(ref, candidate)) {
+        refused(user, "set_day_words", "slug_taken");
+        return Response.json({ error: "slug_taken" }, { status: 400 });
+      }
+      candidateSlug = candidate;
+    }
   }
 
   const edited = editEntry(ref, slug, input);
@@ -254,6 +298,21 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/hel
     refused(user, "set_day_words", edited.error);
     return Response.json({ error: edited.error }, { status: edited.bug ? 500 : 400 });
   }
-  wrote(user, "set_day_words", { trip: tripId, slug, changed: Object.keys(input) });
-  return state(user, tripId, slug);
+
+  // The rename itself, now that the words are safely on disk under the old
+  // slug. `edited.status` is asked again rather than trusted from `before`,
+  // for the same forward-only reason: nothing between the two reads should
+  // be able to publish a day out from under a rename that assumed it was
+  // still a draft, however unlikely one process makes that.
+  let finalSlug = slug;
+  if (candidateSlug && edited.status === "draft") {
+    const renamed = renameEntrySlug(ref, slug, candidateSlug);
+    // A collision or a filesystem error here is a race against the check
+    // above, which already passed — leave the day on its old slug rather
+    // than fail a write that has already succeeded; the next PATCH retries.
+    if (renamed.ok) finalSlug = renamed.slug;
+  }
+
+  wrote(user, "set_day_words", { trip: tripId, slug: finalSlug, changed: Object.keys(input) });
+  return state(user, tripId, finalSlug);
 }

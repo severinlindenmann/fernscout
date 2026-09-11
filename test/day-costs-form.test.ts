@@ -59,9 +59,14 @@ async function day(date: string): Promise<string> {
       params,
     ),
   );
-  const slug = String(made.body.slug);
-  await PATCH(json({ trip: "a-trip", slug, title: `Day ${date}`, content: "What happened." }), params);
-  return slug;
+  const dateSlug = String(made.body.slug);
+  // B1276 — a real title renames the day off its date-only slug, so the
+  // address used from here on is the one the wizard would actually read
+  // back, not the one the day was created under.
+  const written = await read(
+    await PATCH(json({ trip: "a-trip", slug: dateSlug, title: `Day ${date}`, content: "What happened." }), params),
+  );
+  return String((written.body.draft as Record<string, unknown>).slug);
 }
 
 beforeEach(async () => {

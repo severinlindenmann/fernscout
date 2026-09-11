@@ -286,6 +286,7 @@
   "del.export": "This hands you the whole journal as a zip file — private journeys, unpublished drafts and photographs, not only the part strangers can see. You could take it at any time, and this is the last comfortable moment to do it.",
   "del.exportButton": "Download a copy",
   "del.exportHeading": "Take a copy first",
+  "del.tripExport": "This hands you this journey as a zip file — every day, every unpublished draft and every photograph in it, not only the part strangers can see. It does not carry your journal's own settings (currency, language) or your account details, only this journey's own files. You could take it at any time, and this is the last comfortable moment to do it.",
   "del.failed": "That did not work, and nothing has been deleted. The link may already have been used, or it may have expired — ask for a new one.",
   "del.footer": "Sent by {site} to the address that owns this journal.",
   "del.goneBody": "“{title}” was removed by the person who wrote it. The address will not be given to anybody else, so an old link will keep saying exactly this.",

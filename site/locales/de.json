@@ -284,6 +284,7 @@
   "del.expiredTitle": "Dieser Link funktioniert nicht mehr",
   "del.expiry": "Beide Links oben funktionieren {minutes} Minuten lang, und die Löschung lässt sich genau einmal bestätigen.",
   "del.export": "Das gibt dir das ganze Reisetagebuch als ZIP-Datei — private Reisen, unveröffentlichte Entwürfe und Fotos, nicht nur den Teil, den Fremde sehen. Du könntest sie jederzeit holen, aber das hier ist der letzte bequeme Moment dafür.",
+  "del.tripExport": "Das gibt dir diese Reise als ZIP-Datei — jeden Tag, jeden unveröffentlichten Entwurf und jedes Foto darin, nicht nur den Teil, den Fremde sehen. Die eigenen Einstellungen deines Reisetagebuchs (Währung, Sprache) und deine Kontodaten sind nicht dabei, nur die Dateien dieser Reise selbst. Du könntest sie jederzeit holen, aber das hier ist der letzte bequeme Moment dafür.",
   "del.exportButton": "Kopie herunterladen",
   "del.exportHeading": "Nimm dir zuerst eine Kopie",
   "del.failed": "Das hat nicht geklappt, und gelöscht wurde nichts. Der Link ist vielleicht schon benutzt oder abgelaufen — frag einen neuen an.",

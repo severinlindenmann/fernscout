@@ -103,6 +103,17 @@ function seedSource() {
     "not really a jpeg, just bytes to round-trip",
   );
 
+  // A real export pulled from a scratch journal turned these up — B1387.
+  // `.DS_Store` at the trip root *and* under `media/`, plus the internal
+  // bookkeeping ingest and the media pipeline keep beside a trip's files.
+  write(path.join(srcDir, "traveller", "trips", "open-2026", ".DS_Store"), "finder junk");
+  write(path.join(srcDir, "traveller", "trips", "open-2026", "media", ".DS_Store"), "finder junk");
+  write(path.join(srcDir, "traveller", "trips", "open-2026", ".ingest.json"), "{}");
+  write(
+    path.join(srcDir, "traveller", "trips", "open-2026", ".fingerprints", "alpha.json"),
+    "{}",
+  );
+
   write(
     path.join(srcDir, "traveller", "trips", "secret-2026", "trip.md"),
     [
@@ -179,14 +190,35 @@ describe("buildUserExportZipBuffer — scope 'all'", () => {
     ).toContain("2026-01-03-unpublished.md");
   });
 
-  /** B722 — the record is the journal's own, and the owner's own full backup
-   * is where it has to travel; revoking is deleting the file, which only
-   * matters if the file was ever actually there to delete. */
-  test("carries the helper-consent record", async () => {
+  /**
+   * B1387 — flipped from the B722 assertion this test used to make. The
+   * consent record is internal bookkeeping the same way a dotfile is, and a
+   * real export pulled from a scratch journal showed it sitting at the
+   * content root alongside `.DS_Store` rather than anywhere a restore reads
+   * from. Excluded now, in every scope, not only the trip-scoped one.
+   */
+  test("does not carry the helper-consent record", async () => {
     process.env.CONTENT_DIR = srcDir;
     const buffer = await buildUserExportZipBuffer("traveller", "all");
     const extracted = unzipInto(buffer, "all-consent");
-    expect(fs.existsSync(path.join(extracted, "helper-consent.json"))).toBe(true);
+    expect(fs.existsSync(path.join(extracted, "helper-consent.json"))).toBe(false);
+  });
+
+  /** The same blanket dotfile rule as the trip-scoped export below — a
+   * `.DS_Store` or `.ingest.json` never belonged in a backup somebody
+   * restores from, whole-journal or not. */
+  test("excludes dotfiles at any depth under a trip", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all");
+    const extracted = unzipInto(buffer, "all-dotfiles");
+    expect(fs.existsSync(path.join(extracted, "trips", "open-2026", ".DS_Store"))).toBe(false);
+    expect(
+      fs.existsSync(path.join(extracted, "trips", "open-2026", "media", ".DS_Store")),
+    ).toBe(false);
+    expect(fs.existsSync(path.join(extracted, "trips", "open-2026", ".ingest.json"))).toBe(false);
+    expect(
+      fs.existsSync(path.join(extracted, "trips", "open-2026", ".fingerprints", "alpha.json")),
+    ).toBe(false);
   });
 
   test("round-trips: unzip into content/<user>/, the app reads it back identically", async () => {
@@ -288,5 +320,54 @@ describe("buildUserExportZipBuffer — scope 'open-to-link'", () => {
 
     expect(getTrips("traveller").map((t) => t.id)).toEqual(["open-2026"]);
     expect(getAllEntries(tripRef("traveller", "open-2026"))[0].content).toContain("OPEN-MARKER");
+  });
+});
+
+/**
+ * B1387 — a trip deletion's export, narrowed by the optional `tripId`.
+ *
+ * Reproduces the actual bug: a trip-deletion mail's prose says "this trip",
+ * and the export it linked used to be the whole journal — every other trip,
+ * `config.json`'s owner block, and all.
+ */
+describe("buildUserExportZipBuffer — narrowed to one trip", () => {
+  test("carries only the named trip, not the rest of the journal", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all", "open-2026");
+    const extracted = unzipInto(buffer, "trip-only");
+
+    const listing = fs.readdirSync(path.join(extracted, "trips"));
+    expect(listing).toEqual(["open-2026"]);
+    expect(
+      fs.readdirSync(path.join(extracted, "trips", "open-2026", "entries")),
+    ).toContain("2026-01-03-unpublished.md");
+  });
+
+  test("does not carry config.json — the owner's name, email and phone", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all", "open-2026");
+    const extracted = unzipInto(buffer, "trip-only-config");
+    expect(fs.existsSync(path.join(extracted, "config.json"))).toBe(false);
+  });
+
+  test("excludes dotfiles and the consent record the same as every other export", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all", "open-2026");
+    const extracted = unzipInto(buffer, "trip-only-dotfiles");
+    expect(fs.existsSync(path.join(extracted, "helper-consent.json"))).toBe(false);
+    expect(fs.existsSync(path.join(extracted, "trips", "open-2026", ".DS_Store"))).toBe(false);
+    expect(
+      fs.existsSync(path.join(extracted, "trips", "open-2026", "media", ".DS_Store")),
+    ).toBe(false);
+  });
+
+  test("an unnamed trip carries every trip, unchanged", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all");
+    const extracted = unzipInto(buffer, "no-trip-id");
+    expect(fs.readdirSync(path.join(extracted, "trips")).sort()).toEqual([
+      "open-2026",
+      "secret-2026",
+    ]);
   });
 });

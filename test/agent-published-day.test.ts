@@ -58,11 +58,18 @@ async function publishedDay(date: string): Promise<string> {
       params,
     ),
   );
-  const slug = String(made.body.slug);
-  await PATCH(
-    json("PATCH", { trip: "a-trip", slug, title: "A title", content: "What happened." }),
-    params,
+  const dateSlug = String(made.body.slug);
+  // B1276 — the title given here renames the day off its date-only slug, so
+  // everything from here on uses the address the wizard would actually read
+  // back, not the one the day was created under. Titled by date, so two
+  // calls in the same trip never collide on the same slug.
+  const written = await read(
+    await PATCH(
+      json("PATCH", { trip: "a-trip", slug: dateSlug, title: `A title, ${date}`, content: "What happened." }),
+      params,
+    ),
   );
+  const slug = String((written.body.draft as Record<string, unknown>).slug);
   await PATCH(json("PATCH", { trip: "a-trip", slug, answers: { photos: "unknown" } }), params);
   const live = await read(await publishRoute(json("POST", { trip: "a-trip", slug }), params));
   expect(live.status).toBe(200);

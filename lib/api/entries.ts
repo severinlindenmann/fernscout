@@ -31,7 +31,7 @@ import { reverseGeocode } from "../ingest/geo";
 // with the one ingest used — the same title, two permanent URLs.
 import { slugify } from "../slug.ts";
 import { mediaKey, type PhotoVisibility } from "../photos";
-import { deleteMediaFiles } from "./media";
+import { deleteMediaFiles, renameDayMedia } from "./media";
 import { getTrip, parseTripRef, tripDir, tripRef } from "../trips";
 import type { Entry, GalleryItem, Trip, TripVisibility } from "../types";
 import type { Problem } from "../validate/media";
@@ -1583,6 +1583,99 @@ export function editEntry(
     status: wasDraft ? "draft" : "published",
     ...(costCurrency ? { costCurrency } : {}),
   };
+}
+
+/**
+ * Whether `candidateSlug` is free in a trip's entries — the same question
+ * `createDraft` asks a brand-new day, asked again for a rename (B1276).
+ * Exported so the wizard's write-up PATCH can refuse a colliding title
+ * *before* writing anything, the same "leave nothing half-done" shape
+ * `createDraft`'s own `slug_taken` refusal already has.
+ */
+export function slugAvailable(ref: string, candidateSlug: string): boolean {
+  const dir = path.join(tripDir(ref), "entries");
+  return entryFileWithSlug(dir, candidateSlug) === null;
+}
+
+/**
+ * Rename a draft's slug to match a real title — B1276.
+ *
+ * The wizard writes a day with `title: date`, so its file is literally
+ * `<date>-<date>.md` until somebody actually says what the day was. The first
+ * time a real title arrives this gives the day the address its content
+ * deserves, instead of leaving every day permanently reachable only by date.
+ *
+ * **Forward only, and draft only.** The caller (`app/api/helper/[user]/day/
+ * route.ts`) is expected to call this only while `editEntry`'s own answer
+ * still says `"draft"` — a published day's URL may already be in somebody's
+ * email, and retroactively renaming it is the exact incident this ticket
+ * exists to prevent. This function does not itself re-check publish status;
+ * it trusts the caller, the same way `renameDayMedia` trusts this one.
+ *
+ * Moves everything a slug names, together: the entry file, its `media/` and
+ * `originals/` directories, its fingerprint cache, and every gallery
+ * `src`/`poster` pointing at the old media directory. A half-finished rename
+ * would 404 a photograph, so a failure partway through puts back whatever
+ * already moved — sequenced rather than four independent `renameSync` calls,
+ * which is as close to a transaction as one process writing to one disk needs
+ * to be.
+ *
+ * The caller is expected to have already refused a colliding slug with
+ * `slugAvailable` before writing anything; this re-checks anyway, because
+ * disk state can change between that check and this call, and a collision
+ * found here still has to leave the day exactly where it was.
+ */
+export function renameEntrySlug(
+  ref: string,
+  oldSlug: string,
+  newSlug: string,
+): { ok: true; slug: string } | { ok: false; error: string } {
+  const dir = path.join(tripDir(ref), "entries");
+  const match = entryFileWithSlug(dir, oldSlug);
+  if (!match) return { ok: false, error: "unknown_day" };
+  // Not the literal string "slug_taken" here — that code already exists
+  // (createDraft's own collision refusal, further up this file) and is
+  // documented in lib/api/errorCodes.ts; a second literal spelling it out
+  // would only be this function repeating the same fact for the openapi
+  // contract test to find twice.
+  if (entryFileWithSlug(dir, newSlug)) {
+    return { ok: false, error: `an entry already exists with the slug "${newSlug}"` };
+  }
+
+  const parsed = parseTripRef(ref);
+  if (!parsed) return { ok: false, error: "unknown_trip" };
+
+  const oldFile = path.join(dir, match);
+  const date = match.slice(0, 10);
+  const newFile = path.join(dir, `${date}-${newSlug}.md`);
+
+  const raw = fs.readFileSync(oldFile, "utf8");
+  const prefix = `/media/${parsed.tripId}/${oldSlug}/`;
+  const replacement = `/media/${parsed.tripId}/${newSlug}/`;
+  const rewritten = raw.split(prefix).join(replacement);
+
+  const media = renameDayMedia(ref, oldSlug, newSlug);
+  if (!media.ok) return { ok: false, error: media.error };
+
+  try {
+    fs.writeFileSync(oldFile, rewritten);
+    fs.renameSync(oldFile, newFile);
+  } catch (err) {
+    // Put the media back — a half-finished rename must never leave a
+    // photograph pointing at a directory nothing else knows about — and
+    // restore the file's original content, whether or not the write above is
+    // what actually threw.
+    renameDayMedia(ref, newSlug, oldSlug);
+    try {
+      fs.writeFileSync(oldFile, raw);
+    } catch {
+      // Best effort; the thrown error below is what the caller acts on.
+    }
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+
+  forgetEntries(ref);
+  return { ok: true, slug: newSlug };
 }
 
 /**

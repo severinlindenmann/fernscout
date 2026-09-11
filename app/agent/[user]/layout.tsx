@@ -3,19 +3,20 @@ import { requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 
 /**
- * One thin frame over the wizard and its inbox — `/agent/<user>` and
- * `/agent/<user>/inbox` — B697, narrowed to just these two by B1121.
+ * One thin frame over `/agent/<user>` and `/agent/<user>/inbox` — B697,
+ * narrowed to just these two by B1121.
  *
  * It used to sit over `/agent` as well, at `app/agent/layout.tsx`. B1121 gave
  * the room (`HelperRoom`, drawn by `/agent` when somebody is signed in and
  * owns a journal) its own header — a chevron before the journal name, in one
  * row rather than two — so a second back bar above it would have been the
  * exact wasted vertical space that ticket was about. `/agent/<user>` still
- * needs one: `AgentWizard` and `AgentInbox` draw no header of their own, and
- * B1102 kept this route alive as the first-day wizard `SignupWizard` still
- * lands a brand-new owner on, so it is not going away with the frame moved.
+ * needs one: `AgentInbox` draws no header of its own, and the page above it
+ * is only a redirect to `/agent` now (B1220/B1239 retired the step-wizard
+ * this route used to serve) — but the inbox is still real, and this frame is
+ * its header.
  */
-export default async function AgentWizardLayout({
+export default async function AgentLayout({
   children,
 }: LayoutProps<"/agent/[user]">) {
   const locale = await requestLocale();

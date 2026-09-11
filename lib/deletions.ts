@@ -371,7 +371,9 @@ async function sendDeletionMail(input: {
     // Above the delete button, on purpose. Somebody about to remove five years
     // of writing should be handed a copy without having to think of it.
     { kind: "heading", text: t("del.exportHeading") },
-    { kind: "paragraph", text: t("del.export", counts) },
+    // B1387 — a trip deletion's export is narrowed to that trip and no
+    // longer carries config.json; `del.tripExport` is what says so.
+    { kind: "paragraph", text: t(isJournal ? "del.export" : "del.tripExport", counts) },
     {
       kind: "button",
       text: t("del.exportButton"),

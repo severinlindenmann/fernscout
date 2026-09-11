@@ -439,6 +439,27 @@ else
   log "WARNING: the reminder sweep failed — tonight's backup is unaffected"
 fi
 
+# --- 0c. Fill in weather for days that asked for it (B325, B1288) ----------
+# The same reasoning as the two steps above: this is the one thing on the box
+# that already runs every night, so it is where the weather lookup belongs
+# rather than a second timer nobody remembers to enable, or a fetch coupled to
+# a reader's own page load.
+#
+# `npm run weather:update` already sweeps every day in every trip with no date
+# filter, is idempotent, never overwrites a reading already on a day, and
+# leaves a day the archive cannot answer for the next run — so wiring it in
+# here IS the backfill; there is no separate script.
+#
+# Never fatal, for the same reason as the rates fetch: the lookup needs the
+# open internet, a backup does not, and a day that asked for weather simply
+# waits for tomorrow night.
+log "filling in weather for days that asked for it"
+if (cd "$APP_DIR" && npm run --silent weather:update); then
+  log "weather sweep done"
+else
+  log "WARNING: the weather sweep failed — tonight's backup is unaffected"
+fi
+
 # --- 1. Database dump, if this deployment has one -------------------------
 # The prototype tier (docs/ROADMAP.md §2.2) has no DATABASE_URL and Postgres is
 # not even installed — that's not a failure, there is simply nothing to dump.

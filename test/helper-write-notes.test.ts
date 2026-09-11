@@ -125,25 +125,31 @@ describe("a press with no client behind it", () => {
     expect(await notes()).toContain(`start_day`);
     expect(await notes()).toContain(started.slug);
 
-    const worded = await setWords(
+    const wordedResponse = await setWords(
       post({ trip: made.id, slug: started.slug, title: "Der erste Tag", content: "Enten." }, "PATCH"),
       params,
     );
-    expect(worded.status).toBe(200);
+    expect(wordedResponse.status).toBe(200);
     expect(await notes()).toContain("set_day_words");
 
+    // B1276 — that title just renamed the day off its date-only slug, so
+    // everything from here on uses the address the browser would actually
+    // read back.
+    const worded = await wordedResponse.json();
+    const slug = String(worded.draft.slug);
+
     const cost = await addCost(
-      post({ trip: made.id, slug: started.slug, label: "Kaffee", amount: "4.50", currency: "CHF", category: "food" }),
+      post({ trip: made.id, slug, label: "Kaffee", amount: "4.50", currency: "CHF", category: "food" }),
       params,
     );
     expect(cost.status).toBe(200);
     expect(await notes()).toContain("add_cost");
 
-    const up = await publishDay(post({ trip: made.id, slug: started.slug, photos: "none" }), params);
+    const up = await publishDay(post({ trip: made.id, slug, photos: "none" }), params);
     expect(up.status).toBe(200);
     expect(await notes()).toContain("publish_day");
 
-    const down = await unpublishDay(post({ trip: made.id, slug: started.slug }), params);
+    const down = await unpublishDay(post({ trip: made.id, slug }), params);
     expect(down.status).toBe(200);
     expect(await notes()).toContain("unpublish_day");
   });

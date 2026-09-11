@@ -9,20 +9,48 @@ import "./globals.css";
 
 const fredoka = Fredoka({
   variable: "--font-fredoka",
-  subsets: ["latin", "latin-ext"],
+  subsets: ["latin"],
+});
+
+// B1044 — latin-ext carries the glyphs Hungarian prose needs outside latin-1.
+// Every page paints Fredoka above the fold, but not every reader needs this
+// subset, so it stays declared (never cut — a silent fallback-glyph
+// regression is not cheaply reversible) and just isn't preloaded. Combined
+// with `fredoka` in the --font-display stack in globals.css: the browser
+// reaches for this family only when a character the first one lacks shows up.
+const fredokaExt = Fredoka({
+  variable: "--font-fredoka-ext",
+  subsets: ["latin-ext"],
+  preload: false,
 });
 
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
-  subsets: ["latin", "latin-ext"],
+  subsets: ["latin"],
 });
 
-// B733 — the mono voice for kickers, labels, pills, ids and counts. Only
-// the two weights the mockup actually uses.
+// Same reasoning as fredokaExt above.
+const jakartaExt = Plus_Jakarta_Sans({
+  variable: "--font-jakarta-ext",
+  subsets: ["latin-ext"],
+  preload: false,
+});
+
+// B733 — the mono voice for kickers, labels, pills, ids and counts.
 const plexMono = IBM_Plex_Mono({
   variable: "--font-plex-mono",
   subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: "400",
+});
+
+// B1044 — weight 500 is the rare one: nothing in the shipped UI currently
+// pairs font-mono with font-medium, so preloading it on every page bought
+// nothing. Kept declared rather than dropped, in case that changes.
+const plexMonoMedium = IBM_Plex_Mono({
+  variable: "--font-plex-mono-medium",
+  subsets: ["latin"],
+  weight: "500",
+  preload: false,
 });
 
 /**
@@ -90,7 +118,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang={locale}
-      className={`${fredoka.variable} ${jakarta.variable} ${plexMono.variable} h-full antialiased`}
+      className={`${fredoka.variable} ${fredokaExt.variable} ${jakarta.variable} ${jakartaExt.variable} ${plexMono.variable} ${plexMonoMedium.variable} h-full antialiased`}
     >
       {/*
         `min-w-0` is load-bearing, not tidying — B431.
