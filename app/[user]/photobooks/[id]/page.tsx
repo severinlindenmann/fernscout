@@ -4,6 +4,7 @@ import PageHeader from "@/components/PageHeader";
 import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
 import { formatCredits } from "@/lib/credits/format";
+import { creditsInRappen, formatChf } from "@/lib/credits/pricing";
 import { fetchOrderStatus } from "@/lib/photobook/gelato";
 import { getPhotobookOrder } from "@/lib/photobook/orders";
 import { bookAddressFor } from "@/lib/photobook/recipients";
@@ -178,6 +179,25 @@ export default async function PhotobookOrderPage({
     statusText = t("photobook.print.legacyNoPrintDoor");
   }
 
+  /**
+   * What it cost — B1461.
+   *
+   * `payload.credits` is the number that was actually charged, frozen at the
+   * press (`order/route.ts`), so this is a record rather than a fresh quote:
+   * the price table may have moved since, and a receipt that re-prices itself
+   * is not a receipt. The about-CHF figure beside it is `creditsInRappen`,
+   * the same ceiling valuation the till used (`photobook.price`) — never
+   * `priceRappen`, which answers a different question ("what would buying
+   * this many cost today").
+   *
+   * Gelato's own `quotedMinor`/`quotedCurrency` is deliberately not here.
+   * That is what the print cost *this instance*, which is the operator's
+   * business and not the owner's — the same line B1165 drew for the
+   * provider's refusal message.
+   */
+  const refunded = Boolean(print?.failure || order.payload.failure);
+  const totalCredits = refunded ? 0 : order.payload.credits;
+
   // B1367. This page reads as the receipt it structurally is, rather than
   // an unstyled h1 and a bare underlined list: a head block naming the trip
   // and the physical object, a colour-coded status block for what the
@@ -220,6 +240,53 @@ export default async function PhotobookOrderPage({
             )}
           </p>
         </div>
+
+        {/* Price — B1461. An invoice rather than a sentence: the line, the
+            refund if there was one, and a total. One line item because there
+            is one price (B1425) — the build/print split it could have been
+            broken down into stopped existing. */}
+        <section className="mt-6 rounded-lg border border-navy-200 bg-white">
+          <h2 className="border-b border-navy-200 px-4 py-3 font-display text-base font-semibold text-navy-900">
+            {t("photobook.receipt.priceHeading")}
+          </h2>
+          <dl className="divide-y divide-navy-100">
+            <div className="flex items-baseline justify-between gap-4 px-4 py-3">
+              <dt className="text-sm text-navy-700">{t("photobook.receipt.line")}</dt>
+              <dd className="shrink-0 font-mono text-sm text-navy-900">
+                {t("photobook.receipt.credits", { credits: formatCredits(order.payload.credits) })}
+              </dd>
+            </div>
+            {refunded ? (
+              <div className="flex items-baseline justify-between gap-4 px-4 py-3">
+                <dt className="text-sm text-navy-700">{t("photobook.receipt.refunded")}</dt>
+                <dd className="shrink-0 font-mono text-sm text-navy-900">
+                  {t("photobook.receipt.creditsNegative", {
+                    credits: formatCredits(order.payload.credits),
+                  })}
+                </dd>
+              </div>
+            ) : null}
+            <div className="flex items-baseline justify-between gap-4 bg-cream-50 px-4 py-3">
+              <dt className="text-sm font-semibold text-navy-900">{t("photobook.receipt.total")}</dt>
+              <dd className="shrink-0 text-right">
+                <span className="block font-mono text-base font-semibold text-navy-900">
+                  {t("photobook.receipt.credits", { credits: formatCredits(totalCredits) })}
+                </span>
+                <span className="block text-xs text-navy-600">
+                  {t("photobook.receipt.about", {
+                    money: formatChf(creditsInRappen(totalCredits)),
+                  })}
+                </span>
+              </dd>
+            </div>
+          </dl>
+          {/* The date as it is stored, not as a locale renders it: a receipt
+              is read back months later, sometimes beside a bank statement,
+              and an unambiguous date beats a pretty one. */}
+          <p className="border-t border-navy-100 px-4 py-3 text-xs text-navy-600">
+            {t("photobook.receipt.meta", { date: order.createdAt.slice(0, 10), id: order.id })}
+          </p>
+        </section>
 
         {/* Printing status — a title, a colour-coded pill for the printer's
             own state (B1451), and whatever detail this state has to add.
