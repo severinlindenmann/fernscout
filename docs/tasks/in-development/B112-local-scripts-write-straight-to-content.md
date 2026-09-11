@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: scripts, api, security
 found: "2026-09-03"
+started: "2026-09-11T16:26:45Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T16:26:45Z"
 ---
 
 # B112 — Local scripts still write straight to content, and the one guarantee they skip is the draft rule
