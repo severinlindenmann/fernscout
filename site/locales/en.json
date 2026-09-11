@@ -247,6 +247,7 @@
   "cost.paceMark": "Planned position for today: {percent}% of the budget.",
   "cost.perDay": "Average per day",
   "cost.perDayChart": "Day by day",
+  "cost.perDayChartNote": "Each bar is that day's total, across every category.",
   "cost.plannedSpend": "planned",
   "cost.prep": "Before leaving",
   "cost.private": "The numbers on this trip are shared with guests only.",

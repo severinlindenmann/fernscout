@@ -247,6 +247,7 @@
   "cost.paceMark": "Geplanter Stand für heute: {percent}% des Budgets.",
   "cost.perDay": "Durchschnitt pro Tag",
   "cost.perDayChart": "Tag für Tag",
+  "cost.perDayChartNote": "Jeder Balken ist die Tagessumme über alle Kategorien.",
   "cost.plannedSpend": "geplant",
   "cost.prep": "Vor der Abreise",
   "cost.private": "Die Zahlen dieser Reise sind nur für Gäste sichtbar.",

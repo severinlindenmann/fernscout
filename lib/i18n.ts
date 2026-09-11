@@ -1071,6 +1071,7 @@ export type TranslationKey =
   | "cost.paceMark"
   | "cost.perDay"
   | "cost.perDayChart"
+  | "cost.perDayChartNote"
   | "cost.plannedSpend"
   | "cost.prep"
   | "cost.private"

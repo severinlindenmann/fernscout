@@ -128,29 +128,51 @@ export default function CostsPageContent({
               </p>
             )}
 
-            <Section title={t("cost.perDayChart")}>
-              <DailyColumns
-                data={summary.byDay}
-                average={summary.perDay}
-                format={(n) => money(n)}
-                formatDate={formatShortDate}
-                accent={CATEGORY_STYLE.accommodation.color}
-              />
-            </Section>
+            {summary.byDay.length >= 2 ? (
+              <>
+                {/* Both charts plot `summary.byDay`, and both need more than
+                    one point to be a chart rather than a full-width block
+                    (DailyColumns) or an empty frame (CumulativeArea, whose
+                    path has no line segment with one point). Gated together,
+                    since one point below this threshold is one point below
+                    it for either. B1300. */}
+                <Section title={t("cost.perDayChart")} note={t("cost.perDayChartNote")}>
+                  <DailyColumns
+                    data={summary.byDay}
+                    average={summary.perDay}
+                    format={(n) => money(n)}
+                    formatDate={formatShortDate}
+                    // Neutral, not a category colour: this bar is each day's
+                    // total, not one category, and green (accommodation) and
+                    // orange (flights) below both appeared in no legend on
+                    // this page. B1300.
+                    accent="#5a6a80"
+                  />
+                </Section>
 
-            <Section title={t("cost.cumulative")} note={t("cost.cumulativeNote")}>
-              <CumulativeArea
-                data={summary.byDay}
-                format={(n) => money(n)}
-                formatDate={formatShortDate}
-                accent={CATEGORY_STYLE.flights.color}
-                reference={
-                  summary.budget?.pace
-                    ? { values: summary.budget.pace.curve, label: t("cost.plannedSpend") }
-                    : undefined
-                }
-              />
-            </Section>
+                <Section title={t("cost.cumulative")} note={t("cost.cumulativeNote")}>
+                  <CumulativeArea
+                    data={summary.byDay}
+                    format={(n) => money(n)}
+                    formatDate={formatShortDate}
+                    accent="#5a6a80"
+                    reference={
+                      summary.budget?.pace
+                        ? { values: summary.budget.pace.curve, label: t("cost.plannedSpend") }
+                        : undefined
+                    }
+                  />
+                </Section>
+              </>
+            ) : (
+              summary.byDay.length === 1 && (
+                <Section title={t("cost.perDayChart")}>
+                  <p className="text-sm text-navy-600">
+                    {formatShortDate(summary.byDay[0].date)} · {money(summary.byDay[0].amount)}
+                  </p>
+                </Section>
+              )
+            )}
           </>
         )}
 

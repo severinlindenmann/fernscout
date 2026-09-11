@@ -247,6 +247,7 @@
   "cost.paceMark": "Tervezett állás mára: a keret {percent}%-a.",
   "cost.perDay": "Napi átlag",
   "cost.perDayChart": "Napról napra",
+  "cost.perDayChartNote": "Minden oszlop az adott nap teljes összege, minden kategóriával együtt.",
   "cost.plannedSpend": "tervezett",
   "cost.prep": "Indulás előtt",
   "cost.private": "Ennek az útnak a számai csak vendégeknek láthatók.",
