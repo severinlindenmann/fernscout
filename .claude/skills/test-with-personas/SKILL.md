@@ -119,7 +119,21 @@ safe to delete without asking whose it was.
 
 ## Running a round
 
-Dispatch one subagent per persona. Each one gets, and only gets:
+**Run personas one at a time, not dispatched together.** Four dispatched at
+once on 2026-09-09 all drove the same Playwright MCP browser tab and
+interleaved mid-flow: the Hungarian persona filled in her own address, and
+the next snapshot showed a signup form pre-filled with `techperson@severin.io`,
+an address she never typed, and the mail spool showed sign-in codes issued
+for the wrong personas inside her own one-minute window. There is no
+per-subagent browser context available to this skill's tools that would
+isolate one persona's tab from another's — no mechanism was found, and a
+skill that claimed isolation it had not verified would be worse than one
+that says plainly to go slower. Finish one persona's round, including its
+report, before starting the next; do not launch a second persona's subagent
+while a browser-driving one is still active.
+
+Dispatch one subagent per persona, one after another. Each one gets, and only
+gets:
 
 - the URL (`/agent` on the live instance, or the local dev URL)
 - the persona description — age, device, language, ability, and the one task

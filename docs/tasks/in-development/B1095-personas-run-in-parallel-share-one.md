@@ -15,18 +15,6 @@ claimed: "2026-09-11T12:40:02Z"
 
 ## Why
 
-TODO — the problem, not the fix.
-
-## Work
-
-TODO
-
-## Acceptance
-
-TODO
-
-## Why
-
 `test-with-personas` says "dispatch one subagent per persona", and four
 dispatched at once on 2026-09-09 all drove **the same Playwright MCP browser
 tab**. They interleaved: the Hungarian persona filled in her own address, and
@@ -63,3 +51,13 @@ round is worth more than tooling nobody maintains.
 Two personas dispatched at once, each signing in with its own address, and
 neither one's screen ever showing the other's email. Or a skill that says not
 to, in which case the acceptance is that the sentence is there.
+
+## Built, 2026-09-11
+
+Took the second half of the "or": no concrete per-subagent browser-context
+isolation mechanism was found available to this skill's tools, and a skill
+claiming isolation it had not verified would be worse than one that says to
+go slower. `.claude/skills/test-with-personas/SKILL.md`'s "Running a round"
+now opens by naming the 2026-09-09 interleaving directly, states personas
+run one at a time rather than dispatched together, and says explicitly that
+this skill found no isolation mechanism to rely on instead.

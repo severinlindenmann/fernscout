@@ -61,6 +61,24 @@ Sort every ticket into exactly one of four, and keep the counts honest:
 The last one is not padding. A run that filed seventeen captures found
 seventeen things, and the person needs them counted somewhere.
 
+**Blocked is a fifth count, and it is never folded into parked.** A parked
+ticket was attempted and failed three verify cycles or a deploy; a blocked
+ticket, from `brief.json`'s `blocked[]`, was never attempted at all — its own
+Work section named a prerequisite `plan-a-run` found unbuilt and unpromoted.
+Reporting the two together flatters the run by making an untried ticket look
+like a fought-and-lost one. Read the blocked count straight from the brief;
+nothing in the run itself changes it.
+
+**An `OPS` ticket is a sixth row, its own shape, and never counted as merged
+or parked.** It produced no diff, so "merged with a real change" is the wrong
+bucket even when it did everything asked of it — its row reads **"engagement:
+N findings, M captures, report at `<path>`"**, with the report path a person
+can actually open. If the engagement's own conclusion was that nothing was
+left to build — B1147 is the recorded case — say that plainly on its row too:
+what the remaining step is, and that it is a person's, not this run's. B911
+is what a finished engagement's row looks like when it did produce
+something: real credits spent, real orders placed, four findings, no diff.
+
 ## Step 2 — find the visible half
 
 This is the question people actually ask, and it is answerable mechanically:
@@ -130,8 +148,8 @@ green for the new state, coral for the old.
 
 In this order:
 
-1. **The tally** — cleared, visible, real changes, already fixed, captured.
-   Five numbers, and the flattering one is not first.
+1. **The tally** — cleared, visible, real changes, already fixed, captured,
+   blocked, engagements. Seven numbers, and the flattering one is not first.
 2. **The visible changes**, grouped by *where a person meets them* — writing a
    day, money, signing in, the printed book — never by ticket type or
    priority. The grouping is the argument: it says what part of the product

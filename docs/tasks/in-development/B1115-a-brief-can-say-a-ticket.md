@@ -50,3 +50,19 @@ one was never started, and reporting them together flatters the run.
   is promotable.
 - `run-a-batch` refuses to build a ticket in `blocked[]` rather than trying.
 - The report shows blocked and parked as different numbers.
+
+## Built, 2026-09-11
+
+`.claude/skills/plan-a-run/SKILL.md`: a `blocked[]` state alongside
+`dropped[]`, defined in step 1's validity bullet, given its own artifact
+section in step 4 (one question per row — promote the blockers, or park this
+ticket), added to the brief JSON schema with a worked `B1058`/`B1057`/`B1064`
+example, mentioned in step 5's count, and two new red flags.
+
+`.claude/skills/run-a-batch/SKILL.md`: step 1 now refuses to build a
+`blocked[]` ticket outright and states the distinction from `dropped[]` and
+from a parked ticket in words.
+
+`.claude/skills/report-a-run/SKILL.md`: blocked is a sixth tally number, read
+straight from the brief and never folded into parked — a short paragraph in
+step 1's sort and a mention in step 4's tally line say why.

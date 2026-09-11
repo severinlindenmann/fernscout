@@ -42,6 +42,8 @@ a fourth — it needs a budget and a park, not more attempts.
   failure on the same ticket parks it — see "Kill criteria" below.
 - **Deploy is per wave, not once at the end.** A wave is "every group merged
   since the last deploy"; see "Waves" below.
+- **Engagements run in their own lane, never inside a group.** A `type: OPS`
+  ticket has no diff to merge; see "Engagements" below.
 
 ## Step 1 — read the brief, and only the brief
 
@@ -62,9 +64,22 @@ one file at once — B880, B881, B883 and B896 are four recorded instances of
 exactly that, from clean branches that never touched the same ticket, let
 alone the same brief.
 
+A ticket carrying `type: OPS` also carries a `shape` block — read it now,
+because it says how this ticket is scheduled, not what group it joins; it
+never appears in `groups[]` and Step 2 below is not its path. See
+"Engagements" below.
+
 `dropped[]` tickets are done — they were already fixed, superseded, or wrong,
 and `plan-a-run` said why. Nothing about them belongs in this run; mention
 them in the final report as "planned but not built" and move on.
+
+`blocked[]` tickets are never built — refuse outright rather than attempting
+one, even inside a group of one. A dropped ticket was decided wrong or
+already handled; a blocked one was never started at all, because its own Work
+section names a prerequisite that does not exist yet (B1115's Why: B1058
+against B1057 and B1064). The two are different facts and `report-a-run`
+counts them separately — folding a blocked ticket into "parked" would say a
+build was attempted and failed, when none was ever attempted.
 
 ## Step 2 — one worktree, one branch, per group — dispatch hierarchically
 
@@ -124,6 +139,68 @@ already gone live, the same way — not just the one that broke the build.
 A parked ticket is never silently dropped from the report; B1100's acceptance
 is explicit that it is named, with what failed, and does not stop the other
 tickets in the batch.
+
+## Engagements — OPS tickets run their own lane
+
+`work-on-a-task` turns a ticket into a diff; an **engagement** is the other
+shape AGENTS.md names — findings and other tasks against the **running**
+instance, not a diff — and this skill's group pipeline (worktree, branch,
+verify, merge) has nothing for it to do. An OPS ticket never joins a group,
+never gets a worktree, and never reaches Step 3. It has its own dispatch,
+its own concurrency rule, and its own completion condition, all read from the
+`shape` block `plan-a-run` already wrote onto it.
+
+**It runs on its own, serialised against every other engagement.** Two
+engagements dispatched together silently share whatever `shape.needs` names —
+most often a per-IP rate-limit budget on a live auth route — and each assumes
+it holds the whole of it. B103 and B101, the two OPS tickets in this
+pipeline's first real run, both reported exactly this: `concurrencySafe:
+false`, because `POST /api/auth/request` shares one bucket with anything else
+touching the live site. Dispatch one engagement at a time, in the order the
+brief lists them, and wait for it to report before starting the next.
+
+**It may run alongside a build group only when `shape.target` names a
+different instance from what the builds are merging into** — a `local`
+engagement against a dev server can overlap a wave of `live` builds, but a
+`live` engagement never overlaps another `live` thing, build or engagement,
+because they would share the same rate-limit bucket and the same real data.
+When in doubt, serialise; a slower run is cheap, a corrupted rate-limit
+budget or a doubled real order is not.
+
+**The orchestrator hands out `shape.needs` centrally, before dispatch, rather
+than letting the engagement's own subagent go find it.** A provisioned test
+journal, an address whose mail is readable, SSH read access, the remaining
+rate-limit allowance for this IP — these are shared resources, and the whole
+point of a per-IP limit is that concurrent agents cannot each assume the
+whole of it. Read `shape.needs` from the brief, get each one ready (or
+confirm it already is), and hand the ready resource to the engagement's
+subagent along with `shape.mustNot` stated in words.
+
+**Its completion condition is a report and its captures, not a merge.** The
+subagent runs the engagement to whatever conclusion its ticket's Work section
+describes, files every `backlog/` capture it finds the way `manage-tasks`
+always requires, and writes a report the way `test-the-live-site` or
+`test-with-personas` already would for the same kind of finding. When it is
+done, move the ticket to `testing/` with the report's path in the move
+commit message — not to `completed/`; a person still decides whether an
+engagement's findings are actually acted on, same gate as every other ticket
+here.
+
+**Sometimes the finding is that nothing is left to build, and the remaining
+step is a person's.** B1147 is the recorded case: the credential fault the
+ticket was chasing had stopped reproducing, and driving the flow further
+found a different refusal — Gelato's own portal demanding company
+information nobody but the account owner can enter. There was no code to
+write and no further engagement to run. Where this happens, say so exactly
+that plainly in the report — name what the remaining step is and whose it
+is — rather than parking the ticket as though a build had failed, or leaving
+it looking unfinished.
+
+**B911 is the shape of an engagement that did finish**, for contrast: it drove
+the live print flow for real, spent real credits, placed real physical
+orders, and produced four findings and a rewritten `docs/providers/photobook.md`
+rather than a diff. Nothing about it fits Step 2's pipeline — there was never
+a worktree to merge — and everything about it fits this section.
 
 ## Step 3 — merges, serialised, in the main checkout
 
@@ -249,13 +326,15 @@ One call per id, and check for the `→` line.
 
 ## Step 4 — end with the report
 
-When every group has either merged-and-deployed-and-verdicted or parked, hand
-the whole run directory to `report-a-run` — every merged ticket **with its
-`live.json` verdict and that verdict's evidence**, every parked one with its
-evidence, every dropped ticket from the brief, and the questions parked
-mid-run (there should be none if `plan-a-run` did its job; if there are any,
-that is worth a sentence of its own). Do not write the report yourself outside
-that skill — same palette, same machinery, reused rather than restated.
+When every group has either merged-and-deployed-and-verdicted or parked, and
+every engagement has either reported or parked, hand the whole run directory
+to `report-a-run` — every merged ticket **with its `live.json` verdict and
+that verdict's evidence**, every parked one with its evidence, every dropped
+ticket from the brief, every engagement with its findings and captures, and
+the questions parked mid-run (there should be none if `plan-a-run` did its
+job; if there are any, that is worth a sentence of its own). Do not write the
+report yourself outside that skill — same palette, same machinery, reused
+rather than restated.
 
 The report is what a person tests from, so the `shows` tickets have to reach
 it as **a live URL each, and the before-and-after pair** — a person verifying
@@ -276,6 +355,12 @@ a test alone.
 - **No new lane.** A parked ticket stays exactly where `work-on-a-task` would
   have left an unfinished one: `in-development/`, held, with the reason
   written down.
+- **No merge for an engagement.** A finished OPS ticket moves straight from
+  `in-development/` to `testing/` with its report's path — there was never a
+  worktree, so there is nothing to merge.
+- **Changing what an OPS ticket is, or how `test-the-live-site` runs one by
+  hand.** This skill only schedules an engagement `plan-a-run` already
+  described; it does not redefine the type.
 
 ## Red flags — stop
 
@@ -300,3 +385,11 @@ a test alone.
 - Handing the implementer a summary of the chosen option instead of the
   brief's actual mockup HTML, or verifying against the ticket alone without
   the brief's chosen option in hand.
+- Putting an `OPS` ticket in a build group, or giving it a worktree.
+- Two engagements dispatched at once, or a `live` engagement dispatched
+  alongside a `live` build wave.
+- Letting an engagement's own subagent go find `shape.needs` itself instead
+  of the orchestrator handing out the shared resource centrally.
+- Reporting an engagement that found no remaining code to write as parked,
+  instead of saying plainly that the remaining step is a person's and what
+  it is.

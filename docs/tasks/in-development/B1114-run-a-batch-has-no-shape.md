@@ -74,3 +74,42 @@ one by hand.
   it rather than deciding concurrency itself.
 - A finished engagement appears in the report as findings and captures, not as
   a parked ticket.
+
+## Built, 2026-09-11
+
+`.claude/skills/plan-a-run/SKILL.md`: the brief schema gained a `shape` block
+(`kind`, `target`, `concurrencySafe`, `needs`, `mustNot`), present only on a
+`type: OPS` ticket, with a worked B103-shaped example, and a paragraph on the
+"nothing left to build, the remaining step is a person's" case grounded in
+B1147.
+
+`.claude/skills/run-a-batch/SKILL.md`: a new "Engagements — OPS tickets run
+their own lane" section — never joins a group or gets a worktree, dispatched
+one at a time, may only overlap a build wave when `shape.target` names a
+different instance, the orchestrator hands out `shape.needs` centrally, and
+its completion is a move to `testing/` with a report path rather than a
+merge. Grounded in both real cases: B103/B101's `concurrencySafe: false`
+finding, B1147's "the remaining step is a portal login, not code", and B911's
+finished engagement with real spend and no diff. New "Not doing" and red-flag
+entries to match.
+
+`.claude/skills/report-a-run/SKILL.md`: an engagement is its own tally row and
+its own sixth/seventh count — "engagement: N findings, M captures, report at
+`<path>`" — never merged, never parked, with the person's-remaining-step case
+called out explicitly.
+
+**How B1147 and B911 would travel through this shape:** B1147's planner would
+report `validity: "superseded by <what was found>"` with the reasoning
+naming the Gelato portal login as the remaining step and whose it is — it
+never reaches `tickets[]` or `shape` at all, the same as any other
+non-buildable ticket, just with that one sentence added so the person can go
+do it themselves. B911, run as an OPS ticket through this shape, would carry
+`shape: {kind: "engagement", target: "live", concurrencySafe: false, needs:
+["a contact with a real postal address", "the demo journal's credit
+balance"], mustNot: ["press a real hardcover order twice without confirming
+one charge"]}`; `run-a-batch` would dispatch it alone, serialised against any
+other `live` work, and its finished row in the report would read something
+like "engagement: 4 findings (VAT pricing, refund-on-refusal, hardcover
+untested, Gelato portal onboarding blocks further orders), report at
+`docs/providers/photobook.md`" — not a parked ticket, because nothing about
+it was a failed build.
