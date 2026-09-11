@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: postcards
 found: "2026-09-11T19:19:16Z"
+started: "2026-09-11T19:19:42Z"
+session: 3f748903-2dc3-47a2-a958-98b83d641dc0
+claimed: "2026-09-11T19:19:42Z"
 ---
 
 # B1510 — The step screens say three things the screen already says
