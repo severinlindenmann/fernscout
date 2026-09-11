@@ -54,13 +54,18 @@ export function creditsFromUnits(units: number): number {
 }
 
 /**
- * Two decimals, and never a float's idea of them.
+ * Two decimals when there is a fraction, none when there is not — and never a
+ * float's idea of either.
  *
  * `9.97` prints as itself, but arithmetic on balances does not: a page showing
- * `balance - price` would otherwise be capable of "0.30000000000000004".
- * Trailing zeros are kept, because "1.50" and "1.5" being the same number is
- * obvious to a programmer and not to somebody reading a receipt.
+ * `balance - price` would otherwise be capable of "0.30000000000000004", so
+ * the value is always rounded to hundredths first. Trailing zeros are kept
+ * once there is any fraction at all — "8.50" rather than "8.5" — because
+ * "1.50" and "1.5" being the same number is obvious to a programmer and not
+ * to somebody reading a receipt. A whole number, though, gets no ".00": that
+ * reads like a database column rather than an answer to "how many credits".
  */
 export function formatCredits(credits: number): string {
-  return credits.toFixed(2);
+  const rounded = Math.round(credits * UNITS_PER_CREDIT) / UNITS_PER_CREDIT;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
 }

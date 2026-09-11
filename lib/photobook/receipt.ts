@@ -8,6 +8,7 @@ import { renderMail } from "../mail/template";
 import { serverSite } from "../site";
 import type { Locale } from "../types";
 import { visibleBookFiles } from "./visibleFiles";
+import { formatCredits } from "../credits/format";
 
 /**
  * What was made, what it cost, and where the files are.
@@ -101,7 +102,7 @@ export async function sendPhotobookRefused(input: {
   const locale: Locale = pickLocale(user.defaultLocale);
   const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) =>
     translateIn(locale, key, vars);
-  const vars = { trip: input.tripTitle, credits: String(input.creditsRefunded) };
+  const vars = { trip: input.tripTitle, credits: formatCredits(input.creditsRefunded) };
   const base = `${serverSite().url}/${input.owner}/photobooks/${input.orderId}`;
 
   try {
@@ -226,10 +227,10 @@ export async function sendPhotobookReceipt(input: PhotobookReceiptInput): Promis
         kind: "paragraph" as const,
         text:
           input.balance === null
-            ? t("photobook.receipt.cost", { total: String(input.creditsSpent) })
+            ? t("photobook.receipt.cost", { total: formatCredits(input.creditsSpent) })
             : t("photobook.receipt.costAndBalance", {
-                total: String(input.creditsSpent),
-                balance: String(input.balance),
+                total: formatCredits(input.creditsSpent),
+                balance: formatCredits(input.balance),
               }),
       },
       ...files.map((file) => ({
