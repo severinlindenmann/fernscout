@@ -1,0 +1,27 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "TEST_WABA_ID",
+      "changes": [
+        {
+          "value": {
+            "messaging_product": "whatsapp",
+            "metadata": { "display_phone_number": "41760000000", "phone_number_id": "TEST_PHONE_NUMBER_ID" },
+            "contacts": [{ "profile": { "name": "Test Persona" }, "wa_id": "41760000000" }],
+            "messages": [
+              {
+                "from": "41760000000",
+                "id": "wamid.TEST_ONB_TITLE",
+                "timestamp": "1700000000",
+                "type": "text",
+                "text": { "body": "My New Trip" }
+              }
+            ]
+          },
+          "field": "messages"
+        }
+      ]
+    }
+  ]
+}
