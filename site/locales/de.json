@@ -291,6 +291,7 @@
   "day.updates": "Einträge",
   "dayMail.button": "Den Tag lesen",
   "dayMail.map": "Auf einer Karte ansehen",
+  "dayMail.ownerFooter": "An dich gesendet, weil du diesen Tag auf {site} veröffentlicht und den Mailversand eingeschaltet hast.",
   "dayMail.subject": "{day} — ein neuer Tag auf {title}",
   "dayMail.timezone": "Zeitzone: {zone}",
   "del.backups": "Das entfernt die Inhalte von diesem Server. Kopien anderswo — Sicherungen der Person, die ihn betreibt, oder eine Versionsgeschichte des Inhaltsordners — erreicht es nicht.",

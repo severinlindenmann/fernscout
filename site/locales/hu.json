@@ -291,6 +291,7 @@
   "day.updates": "bejegyzés",
   "dayMail.button": "A nap elolvasása",
   "dayMail.map": "Megnézés térképen",
+  "dayMail.ownerFooter": "Azért kaptad ezt, mert közzétetted ezt a napot itt: {site}, bekapcsolt levélküldéssel.",
   "dayMail.subject": "{day} — új nap itt: {title}",
   "dayMail.timezone": "időzóna: {zone}",
   "del.backups": "Ez a tartalmat erről a kiszolgálóról távolítja el. A máshol őrzött másolatokat — az üzemeltető biztonsági mentéseit vagy a tartalommappa verziótörténetét — nem éri el.",
