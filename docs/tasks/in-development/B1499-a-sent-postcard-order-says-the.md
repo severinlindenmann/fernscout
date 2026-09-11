@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: postcards
 found: "2026-09-11T18:30:44Z"
+started: "2026-09-11T18:31:41Z"
+session: 3f748903-2dc3-47a2-a958-98b83d641dc0
+claimed: "2026-09-11T18:31:41Z"
 ---
 
 # B1499 — A sent postcard order says the cards are Shipped, and nothing has ever told us that
