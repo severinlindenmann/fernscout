@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: postcards
 found: "2026-09-11T18:30:45Z"
+started: "2026-09-11T19:01:39Z"
+session: 3f748903-2dc3-47a2-a958-98b83d641dc0
+claimed: "2026-09-11T19:01:39Z"
 ---
 
 # B1500 — Tapping a photograph opens a form asking what the flow is about to ask again
