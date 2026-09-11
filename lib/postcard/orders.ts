@@ -460,6 +460,20 @@ export async function getOrder(owner: string, id: string): Promise<PostcardOrder
   return row ? toOrder(row) : null;
 }
 
+/** Every postcard order this owner has, newest first — B1452. */
+export async function listOrders(owner: string): Promise<PostcardOrder[]> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return [];
+  const rows = await handle.db
+    .selectFrom("print_orders")
+    .select(["id", "owner_id", "status", "provider", "payload", "created_at", "updated_at"])
+    .where("owner_id", "=", owner)
+    .where("kind", "=", "postcard")
+    .orderBy("created_at", "desc")
+    .execute();
+  return rows.map(toOrder);
+}
+
 /**
  * Take this order for sending, or say somebody already has.
  *

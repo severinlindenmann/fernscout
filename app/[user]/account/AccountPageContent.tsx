@@ -801,6 +801,21 @@ export default function AccountPageContent({
               {t("me.accountCardBody")}
             </p>
           )}
+
+          {/* B1452. Every photobook and postcard order in one place — the
+              other two cards on this page are about the balance, this one is
+              about what it was spent on. */}
+          <Link
+            href={`/${username}/orders`}
+            className="flex items-center justify-between gap-3 rounded-2xl border border-navy-200 bg-white p-5 transition-colors hover:border-navy-500 sm:p-6"
+          >
+            <span className="font-display text-lg font-semibold text-navy-900">
+              {t("account.ordersLink")}
+            </span>
+            <span className="shrink-0 text-navy-600" aria-hidden="true">
+              →
+            </span>
+          </Link>
         </div>
       </main>
     </div>
