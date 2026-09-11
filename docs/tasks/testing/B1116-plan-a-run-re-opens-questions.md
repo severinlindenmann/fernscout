@@ -7,8 +7,7 @@ complexity: low
 area: skills
 found: "2026-09-09T17:13:56Z"
 started: "2026-09-11T14:52:00Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T14:52:00Z"
+merged: "2026-09-11T15:11:41Z"
 ---
 
 # B1116 — plan-a-run re-opens questions a ticket has already decided unless the dispatch says not to
