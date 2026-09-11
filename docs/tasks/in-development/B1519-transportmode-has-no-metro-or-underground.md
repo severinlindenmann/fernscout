@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: api, content
 found: "2026-09-11T19:45:00Z"
+started: "2026-09-11T20:56:32Z"
+session: bfe90fb0-0095-4532-8af8-601ad489b14c
+claimed: "2026-09-11T20:56:32Z"
 ---
 
 # B1519 — transportMode has no metro or underground, so a city day is recorded as a train

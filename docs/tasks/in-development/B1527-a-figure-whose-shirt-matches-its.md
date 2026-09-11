@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: ui, travellers
 found: "2026-09-11T20:35:00Z"
+started: "2026-09-11T20:56:32Z"
+session: bfe90fb0-0095-4532-8af8-601ad489b14c
+claimed: "2026-09-11T20:56:32Z"
 ---
 
 # B1527 — A figure whose shirt matches its skin tone renders as nude, and nothing warns

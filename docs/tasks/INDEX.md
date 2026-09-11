@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (225)
+## backlog (214)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (59)
+### issue (53)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -76,8 +76,7 @@ Do not edit them by hand; run the script.
 | [B1448](backlog/issue/B1448-an-honest-answer-that-promises-a.md) | An honest answer that promises a button next turn is caught as a claim about this one | ISSUE | high | medium |
 | [B1472](backlog/issue/B1472-the-dangling-reference-guard-matches-two.md) | The dangling-reference guard matches two and three digit ids, and every id since B1000 has four | ISSUE | high | low |
 | [B1498](backlog/issue/B1498-a-guest-or-buddy-who-signs.md) | A guest or buddy who signs up for their own journal is unverified territory | ISSUE | high | medium |
-| [B1521](backlog/issue/B1521-the-budget-panel-projects-a-finished.md) | The budget panel projects a finished trip forward and fills unrecorded days with an average | ISSUE | high | medium |
-| [B1529](backlog/issue/B1529-the-helper-bakes-to-2000px-before.md) | The helper bakes to 2000px before uploading, so every photobook is printed from a web-sized file | ISSUE | high | low |
+| [B1539](backlog/issue/B1539-ten-days-on-one-island-shared.md) | Ten days on one island shared one media folder and one slug, and two thirds of the photographs were lost | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -98,12 +97,8 @@ Do not edit them by hand; run the script.
 | [B1503](backlog/issue/B1503-a-media-file-belonging-to-no.md) | A media file belonging to no day cannot be written through any door | ISSUE | medium | low |
 | [B1508](backlog/issue/B1508-a-scratch-journal-named-test-something.md) | A scratch journal named test-something poisons the depersonalised guard with common words | ISSUE | medium | low |
 | [B1513](backlog/issue/B1513-costs-cannot-be-imported-before-a-trip-exists.md) | Statement costs cannot be imported before a trip exists, and publish will not run until they are | ISSUE | medium | medium |
-| [B1518](backlog/issue/B1518-publish-drops-teaser-in-silence.md) | fernscout-helper's publish drops teaser in silence, so a closed trip never appears on /trips | ISSUE | medium | low |
-| [B1520](backlog/issue/B1520-two-days-with-the-same-title-collide.md) | Two days with the same title collide at publish with 409, and nothing catches it first | ISSUE | medium | low |
-| [B1525](backlog/issue/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low |
-| [B1526](backlog/issue/B1526-the-journals-own-walking-figures-cannot.md) | The journal's own walking figures cannot be set at all over the API | ISSUE | medium | low |
-| [B1534](backlog/issue/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
 | [B1535](backlog/issue/B1535-an-agent-code-for-the-instance.md) | An agent code for the instance admin is refused on every journal they do not own | ISSUE | medium | low |
+| [B1538](backlog/issue/B1538-validate-content-truncated-its-own-json.md) | validate-content truncated its own JSON report, and selftest blamed the fixture | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
@@ -121,7 +116,6 @@ Do not edit them by hand; run the script.
 | [B1475](backlog/issue/B1475-the-map-s-aria-label-derives.md) | The map's aria-label derives its own tense and never learns the trip is over | ISSUE | low | low |
 | [B1504](backlog/issue/B1504-an-up-leg-reports-success-on.md) | An up leg reports success on config fields that can never reach the site | ISSUE | low | low |
 | [B1514](backlog/issue/B1514-publish-stops-a-whole-run-on-a-transient-502.md) | publish stops a whole run on a transient 502 from a media upload | ISSUE | low | low |
-| [B1527](backlog/issue/B1527-a-figure-whose-shirt-matches-its.md) | A figure whose shirt matches its skin tone renders as nude, and nothing warns | ISSUE | low | low |
 | [B1532](backlog/issue/B1532-a-card-stannp-cancels-after-acceptance.md) | A card Stannp cancels after acceptance is never refunded | ISSUE | low | medium |
 
 ### big-feature (12)
@@ -141,7 +135,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (25)
+### small-feature (21)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -153,10 +147,6 @@ Do not edit them by hand; run the script.
 | [B132](backlog/small-feature/B132-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to learn a new release exists, let alone install it | FEATURE | medium | medium |
 | [B1388](backlog/small-feature/B1388-whatsappinbound-has-no-owner-facing-switch.md) | whatsappInbound has no owner-facing switch | FEATURE | medium | medium |
 | [B1398](backlog/small-feature/B1398-choosing-the-postcard-picture-means-picking.md) | Choosing the postcard picture means picking a day from a list of titles, never seeing a photograph | FEATURE | medium | medium |
-| [B1509](backlog/small-feature/B1509-revolut-s-other-csv-the-account.md) | Revolut's other CSV — the account statement — is refused as unknown_format | FEATURE | medium | low |
-| [B1517](backlog/small-feature/B1517-draw-the-travellers-from-a-photograph.md) | Draw the travellers from a photograph the owner already has | FEATURE | medium | medium |
-| [B1519](backlog/small-feature/B1519-transportmode-has-no-metro-or-underground.md) | transportMode has no metro or underground, so a city day is recorded as a train | FEATURE | medium | low |
-| [B1522](backlog/small-feature/B1522-a-day-that-plainly-moved-and.md) | A day that plainly moved and carries no transportMode draws no leg, and only a tip says so | FEATURE | medium | low |
 | [B1528](backlog/small-feature/B1528-a-heic-photograph-prints-from-the.md) | A HEIC photograph prints from the web copy because nothing kept a JPEG the printer can embed | FEATURE | medium | medium |
 | [B1530](backlog/small-feature/B1530-a-book-warned-about-resolution-can.md) | A book warned about resolution can only be made smaller, never given the bigger photograph | FEATURE | medium | medium |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
@@ -203,7 +193,7 @@ Do not edit them by hand; run the script.
 | [B546](backlog/ops/B546-the-open-meteo-free-tier-is.md) | The Open-Meteo free tier is non-commercial and this instance takes money | OPS | medium | low |
 | [B1036](backlog/ops/B1036-content-example-s-new-trips-can.md) | content/example's new trips can flicker as malformed during ship.sh's demo sync | OPS | low | low |
 
-### docs-and-skills (8)
+### docs-and-skills (7)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -213,7 +203,6 @@ Do not edit them by hand; run the script.
 | [B1384](backlog/docs-and-skills/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high |
 | [B1478](backlog/docs-and-skills/B1478-the-print-bench-shows-one-postcard.md) | The print bench shows one postcard and one book; it should show every format and what Gelato actually requires | DOCS | medium | medium |
 | [B1483](backlog/docs-and-skills/B1483-a-dispatched-agent-works-in-a.md) | A dispatched agent works in a worktree but its working directory is the shared checkout, so anything reading the current diff reads the wrong one | DOCS | medium | low |
-| [B1533](backlog/docs-and-skills/B1533-send-the-largest-file-you-have.md) | \"Send the largest file you have\" is true, load-bearing, and buried where no uploader reads it | DOCS | medium | low |
 | [B1415](backlog/docs-and-skills/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low |
 
 ### superseded (84)
@@ -321,13 +310,28 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (0)
+## open (7)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity |
+| --- | --- | --- | --- | --- |
+| [B1529](open/B1529-the-helper-bakes-to-2000px-before.md) | The helper bakes to 2000px before uploading, so every photobook is printed from a web-sized file | ISSUE | high | low |
+| [B1509](open/B1509-revolut-s-other-csv-the-account.md) | Revolut's other CSV — the account statement — is refused as unknown_format | FEATURE | medium | low |
+| [B1518](open/B1518-publish-drops-teaser-in-silence.md) | fernscout-helper's publish drops teaser in silence, so a closed trip never appears on /trips | ISSUE | medium | low |
+| [B1520](open/B1520-two-days-with-the-same-title-collide.md) | Two days with the same title collide at publish with 409, and nothing catches it first | ISSUE | medium | low |
+| [B1522](open/B1522-a-day-that-plainly-moved-and.md) | A day that plainly moved and carries no transportMode draws no leg, and only a tip says so | FEATURE | medium | low |
+| [B1525](open/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low |
+| [B1534](open/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
 
-## in-development (0)
+## in-development (6)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B1521](in-development/B1521-the-budget-panel-projects-a-finished.md) | The budget panel projects a finished trip forward and fills unrecorded days with an average | ISSUE | high | medium | `bfe90fb0` |
+| [B1517](in-development/B1517-draw-the-travellers-from-a-photograph.md) | Draw the travellers from a photograph the owner already has | FEATURE | medium | medium | `bfe90fb0` |
+| [B1519](in-development/B1519-transportmode-has-no-metro-or-underground.md) | transportMode has no metro or underground, so a city day is recorded as a train | FEATURE | medium | low | `bfe90fb0` |
+| [B1526](in-development/B1526-the-journals-own-walking-figures-cannot.md) | The journal's own walking figures cannot be set at all over the API | ISSUE | medium | low | `bfe90fb0` |
+| [B1533](in-development/B1533-send-the-largest-file-you-have.md) | \"Send the largest file you have\" is true, load-bearing, and buried where no uploader reads it | DOCS | medium | low | `bfe90fb0` |
+| [B1527](in-development/B1527-a-figure-whose-shirt-matches-its.md) | A figure whose shirt matches its skin tone renders as nude, and nothing warns | ISSUE | low | low | `bfe90fb0` |
 
 ## testing (9)
 

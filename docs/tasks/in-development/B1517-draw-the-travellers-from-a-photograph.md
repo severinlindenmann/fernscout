@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: api, travellers, credits
 found: "2026-09-11T19:55:00Z"
+started: "2026-09-11T20:56:31Z"
+session: bfe90fb0-0095-4532-8af8-601ad489b14c
+claimed: "2026-09-11T20:56:31Z"
 ---
 
 # B1517 — Draw the travellers from a photograph the owner already has

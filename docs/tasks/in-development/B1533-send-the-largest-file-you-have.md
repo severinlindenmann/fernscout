@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: docs, media, photobook
 found: "2026-09-11T21:20:00Z"
+started: "2026-09-11T20:56:33Z"
+session: bfe90fb0-0095-4532-8af8-601ad489b14c
+claimed: "2026-09-11T20:56:33Z"
 ---
 
 # B1533 — "Send the largest file you have" is true, load-bearing, and buried where no uploader reads it
