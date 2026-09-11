@@ -1,7 +1,7 @@
 ---
 id: B1446
 title: Anthropic API key may be exposed and needs rotation
-type: OPS
+type: SECURITY
 priority: high
 complexity: low
 area: vps, secrets
@@ -34,3 +34,19 @@ account until it is revoked, so it needs replacing rather than just watching.
   key in place on the VPS.
 - `grep` for the old key's value across the VPS env files and this repo
   turns up nothing.
+
+## Retyped OPS → SECURITY, 2026-09-11
+
+Found by B675, which publishes a roadmap page filtered on `type: SECURITY`.
+This ticket was typed `OPS`, so **its title would have rendered to the public**:
+*"Anthropic API key may be exposed and needs rotation."*
+
+Publishing that sentence is itself a hint, whether or not the key was ever
+exposed. But the retype is right on the merits regardless of the page: a
+credential that may be in somebody else's hands is a security finding, not an
+operations chore. `OPS` in this repository means an engagement against the
+running instance whose deliverable is findings; this is a thing to fix.
+
+The filing follows the type, so it moves to `backlog/security/` and is now
+caught by both halves of the roadmap filter — the folder check and the
+frontmatter check.
