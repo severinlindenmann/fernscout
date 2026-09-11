@@ -1650,6 +1650,7 @@ export type TranslationKey =
   | "me.visitors"
   | "me.visitorsBody"
   | "me.visitorsTitle"
+  | "me.whatsappPhotoDisclosure"
   | "media.count"
   | "meta.sectionOfTrip"
   | "nav.account"

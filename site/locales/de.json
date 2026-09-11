@@ -752,6 +752,7 @@
   "me.paymentUnit.one": "Guthaben-Punkt",
   "me.paymentUpTo": "bis zu {count} Personen",
   "me.paymentUpTo.one": "bis zu 1 Person",
+  "me.whatsappPhotoDisclosure": "Das erste Foto eines Tages erreicht den WhatsApp-Betreiber, bevor es eine Leserin oder einen Leser erreicht — bei jeder Reise, auch privaten, weil die Nachrichtenvorlage ein Bild verlangt.",
   "me.peopleBody": "Links für andere Leute, und die Liste, wer gefragt hat. Keiner der Links lässt von allein jemanden herein — wer ihn öffnet, hinterlässt seinen Namen und wartet auf dich.",
   "me.peopleTitle": "Jemanden einladen, und wer mitliest",
   "me.postcardCardBody": "„{title}“ hat ein Foto, und jemand auf deiner Kontaktliste hat um eine Postkarte gebeten. Bitte deinen Agenten, eine zu verfassen.",

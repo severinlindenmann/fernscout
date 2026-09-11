@@ -622,49 +622,60 @@ export default function AccountPageContent({
                         if (on === null) return null;
                         return (
                           <li
-                            className="flex items-center justify-between gap-3 border-b border-navy-200 py-2.5"
+                            className="border-b border-navy-200 py-2.5"
                             key={key}
                           >
-                            <div className="min-w-0">
-                              <span className="flex items-center gap-2 text-base text-navy-900">
-                                <Icon
-                                  className="h-4 w-4 shrink-0 text-navy-600"
-                                  aria-hidden="true"
-                                />
-                                {t(labelKey)}
-                              </span>
-                              <span className="mt-0.5 block text-sm text-navy-500">
-                                {tn("me.paymentUpTo", recipients, {
-                                  count: String(recipients),
-                                })}
-                                {" · "}
-                                <span
-                                  className={
-                                    on
-                                      ? "font-semibold text-navy-900"
-                                      : undefined
-                                  }
-                                >
-                                  {costs ? (
-                                    <>
-                                      {on ? recipients : 0}{" "}
-                                      {tn(
-                                        "me.paymentUnit",
-                                        on ? recipients : 0,
-                                      )}
-                                    </>
-                                  ) : (
-                                    t("me.paymentFree")
-                                  )}
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <span className="flex items-center gap-2 text-base text-navy-900">
+                                  <Icon
+                                    className="h-4 w-4 shrink-0 text-navy-600"
+                                    aria-hidden="true"
+                                  />
+                                  {t(labelKey)}
                                 </span>
-                              </span>
+                                <span className="mt-0.5 block text-sm text-navy-500">
+                                  {tn("me.paymentUpTo", recipients, {
+                                    count: String(recipients),
+                                  })}
+                                  {" · "}
+                                  <span
+                                    className={
+                                      on
+                                        ? "font-semibold text-navy-900"
+                                        : undefined
+                                    }
+                                  >
+                                    {costs ? (
+                                      <>
+                                        {on ? recipients : 0}{" "}
+                                        {tn(
+                                          "me.paymentUnit",
+                                          on ? recipients : 0,
+                                        )}
+                                      </>
+                                    ) : (
+                                      t("me.paymentFree")
+                                    )}
+                                  </span>
+                                </span>
+                              </div>
+                              <ChannelSwitch
+                                username={username}
+                                channel={key}
+                                label={t(labelKey)}
+                                enabled={on}
+                              />
                             </div>
-                            <ChannelSwitch
-                              username={username}
-                              channel={key}
-                              label={t(labelKey)}
-                              enabled={on}
-                            />
+                            {/* B1434: the photograph-reaches-Meta-first fact B372 put on
+                                the reader's own tick box, before B1396 removed it from
+                                there — read once here, by the owner switching the
+                                channel on, rather than per reader. */}
+                            {key === "whatsapp" && on && (
+                              <p className="mt-2 text-sm leading-6 text-navy-600">
+                                {t("me.whatsappPhotoDisclosure")}
+                              </p>
+                            )}
                           </li>
                         );
                       },

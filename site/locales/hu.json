@@ -752,6 +752,7 @@
   "me.paymentUnit.one": "kredit",
   "me.paymentUpTo": "legfeljebb {count} embert",
   "me.paymentUpTo.one": "legfeljebb 1 embert",
+  "me.whatsappPhotoDisclosure": "A nap első fényképe a WhatsApp üzemeltetőjéhez ér el, mielőtt az olvasóhoz eljutna — ez minden útra igaz, a privátokra is, mert az üzenetsablonhoz kép szükséges.",
   "me.peopleBody": "Linkek másoknak, és a lista arról, ki kérte. Egyik link sem enged be senkit magától — aki megnyitja, megadja a nevét és rád vár.",
   "me.peopleTitle": "Meghívás, és ki olvas velünk",
   "me.postcardCardBody": "„{title}” naphoz van fotó, és valaki a kapcsolataid közül képeslapot kért. Kérd meg az ügynöködet, hogy állítson össze egyet.",
