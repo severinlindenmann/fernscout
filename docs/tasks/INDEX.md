@@ -296,12 +296,11 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (2)
+## open (1)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1119](open/B1119-fernscout-ch-s-caddy-block-is.md) | fernscout.ch's Caddy block is hand-merged, so proxy directives drift until applied by hand | OPS | low | low |
-| [B1150](open/B1150-ghostscript-is-not-installed-on-the.md) | Ghostscript is not installed on the VPS, so the instance cannot produce a conformant PDF/X-4 | OPS | low | low |
 
 ## in-development (3)
 
@@ -311,7 +310,7 @@ Do not edit them by hand; run the script.
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
 
-## testing (59)
+## testing (60)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -364,6 +363,7 @@ Do not edit them by hand; run the script.
 | [B110](testing/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low | — |
 | [B1133](testing/B1133-the-owner-s-own-copy-of.md) | The owner's own copy of a day letter says they asked to be kept posted and offers no way to stop it | ISSUE | low | low | — |
 | [B1142](testing/B1142-the-share-control-gate-test-asserts.md) | The share-control gate test asserts proximity with a character window that is widened every time the file grows | ISSUE | low | low | — |
+| [B1150](testing/B1150-ghostscript-is-not-installed-on-the.md) | Ghostscript is not installed on the VPS, so the instance cannot produce a conformant PDF/X-4 | OPS | low | low | — |
 | [B1151](testing/B1151-macos-appledouble-files-are-synced-into.md) | macOS AppleDouble files are synced into the demo journal's originals on the server | CHORE | low | low | — |
 | [B1270](testing/B1270-the-account-page-quotes-send-prices.md) | The account page quotes send prices for nought people and offers to sell 5 GB to a journal using one kilobyte | ISSUE | low | low | — |
 | [B1283](testing/B1283-the-phone-country-field-is-too.md) | The phone country field is too narrow for its own default value, so the dialling code is cut off | ISSUE | low | low | — |

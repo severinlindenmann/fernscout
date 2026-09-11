@@ -7,6 +7,7 @@ complexity: low
 area: ops, photobook, print
 found: "2026-09-09T18:38:34Z"
 wontDo: Server-side PDF/X conversion is not wanted; the readiness report's wording is B1149's job instead.
+merged: "2026-09-11T18:04:17Z"
 ---
 
 # B1150 — Ghostscript is not installed on the VPS, so the instance cannot produce a conformant PDF/X-4
@@ -52,3 +53,36 @@ a different ticket and a worse idea.
 
 - Either `gs --version` answers on the host and a converted PDF/X-4 interior
   exists, or this ticket carries the decision not to and says why.
+
+
+## Done, 2026-09-11
+
+```
+apt-get install -y ghostscript
+gs --version  →  10.05.1
+```
+
+Proved it runs rather than that the binary exists: a `pdfwrite` pass over a test
+PDF produced a real 2,426-byte output, exit 0. (The conformance warning it
+printed was about my deliberately minimal input file, not about Ghostscript.)
+Scratch files removed.
+
+`lib/photobook/pdfx.ts:34` names this as *"a deploy-time dependency
+(`apt install ghostscript`), not a runtime"* one, which is exactly what was
+missing.
+
+## One thing this does not by itself deliver
+
+A conformant PDF/X-4 also needs the **output intent's ICC profile** — the one
+the printer names, passed as `--icc /path/to/FOGRA39.icc`
+(`scripts/photobook.mts:167`). There is none on the box, and there should not
+be a default one: the profile belongs to whoever is printing, and guessing it
+would produce a file that claims a colour space nobody agreed to.
+
+So the blocker this ticket describes is gone, and the next person to make a real
+PDF/X supplies the profile with the order. Worth knowing before somebody reads
+"Ghostscript is installed" as "PDF/X now works unattended".
+
+Not filed as a follow-up: `docs/providers/photobook.md` already explains the
+profile question, and a ticket saying "a printer must name its own colour
+profile" would be restating the domain rather than a gap.
