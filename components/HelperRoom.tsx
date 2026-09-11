@@ -675,22 +675,41 @@ export default function HelperRoom({
    */
   const [injected, setInjected] = useState<{ blocks: unknown[]; at: number } | null>(null);
   /**
+   * One `/proposal` call at a time, room-wide — B1274. Reproduced live: one
+   * press of the preview header's publish button fired three identical
+   * `POST /proposal` calls and stacked three publish cards. `useState`
+   * cannot block a re-entrant call inside the same tick — a render has not
+   * happened yet to see it — so the gate is a ref, checked and set
+   * synchronously before anything async begins; `proposing` mirrors it only
+   * so the buttons below can disable themselves.
+   */
+  const proposingRef = useRef(false);
+  const [proposing, setProposing] = useState(false);
+  /**
    * Fetch one tool's proposal and put its card in the thread — the shared
    * mechanism behind the preview's publish shortcut (B1214), the attach
    * nudge and the tile menu (B1216). Every write still happens only on
    * the card's own press, in the conversation.
    */
   function proposeToThread(tool: string, args: Record<string, string>) {
+    if (proposingRef.current) return;
+    proposingRef.current = true;
+    setProposing(true);
     void (async () => {
-      const response = await fetch(`/api/helper/${encodeURIComponent(username)}/proposal`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ tool, arguments: args, today: new Date().toISOString().slice(0, 10) }),
-      }).catch(() => null);
-      const body = (await response?.json().catch(() => null)) as { blocks?: unknown[] } | null;
-      if (body?.blocks?.length) {
-        setInjected({ blocks: body.blocks, at: Date.now() });
-        setTab("chat");
+      try {
+        const response = await fetch(`/api/helper/${encodeURIComponent(username)}/proposal`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ tool, arguments: args, today: new Date().toISOString().slice(0, 10) }),
+        }).catch(() => null);
+        const body = (await response?.json().catch(() => null)) as { blocks?: unknown[] } | null;
+        if (body?.blocks?.length) {
+          setInjected({ blocks: body.blocks, at: Date.now() });
+          setTab("chat");
+        }
+      } finally {
+        proposingRef.current = false;
+        setProposing(false);
       }
     })();
   }
@@ -762,7 +781,8 @@ export default function HelperRoom({
             <button
               type="button"
               onClick={publishFromPreview}
-              className="shrink-0 rounded-full border border-navy-300 bg-white px-3 py-1.5 text-xs font-semibold text-navy-800 transition-colors hover:bg-navy-50"
+              disabled={proposing}
+              className="shrink-0 rounded-full border border-navy-300 bg-white px-3 py-1.5 text-xs font-semibold text-navy-800 transition-colors hover:bg-navy-50 disabled:opacity-50"
             >
               {t("agent.about.publish")}
             </button>
@@ -1126,7 +1146,8 @@ export default function HelperRoom({
                       // sentence safe.
                       askNudge();
                     }}
-                    className="min-h-9 rounded-full border border-navy-300 bg-white px-3.5 text-sm text-navy-800 transition-colors hover:bg-navy-50"
+                    disabled={proposing}
+                    className="min-h-9 rounded-full border border-navy-300 bg-white px-3.5 text-sm text-navy-800 transition-colors hover:bg-navy-50 disabled:opacity-50"
                   >
                     {tn("agent.room.attachNudge", nudgeCount, { count: String(nudgeCount) })}
                   </button>

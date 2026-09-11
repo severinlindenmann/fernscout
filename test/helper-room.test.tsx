@@ -60,7 +60,7 @@ const FILES: RoomFiles = {
   tripTitle: "A Trip",
 };
 
-const CURRENCY = { base: "CHF", currencies: ["CHF"] } as never;
+const CURRENCY = { base: "CHF", currencies: ["CHF"], rates: { CHF: 1 } } as never;
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -596,6 +596,82 @@ test("a turn that named a day carries a preview affordance", async () => {
   expect(previewTab()).toBe(false);
   act(() => chip!.click());
   expect(previewTab()).toBe(true);
+});
+
+/**
+ * One press, one card — B1274.
+ *
+ * Reproduced live at 390×844: pressing the preview header's "Put this day on
+ * the site" exactly once fired three identical `POST /proposal` calls and
+ * stacked three publish cards, each with its own live "Put it on the site"
+ * button. `proposeToThread` had no guard against a re-entrant call, so
+ * whatever produced the repeat — a double tap, a duplicate handler — reached
+ * the network every time.
+ */
+test("pressing the preview's publish button twice quickly fires one proposal", async () => {
+  const proposalCalls: string[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url.includes("/day?trip=")) {
+        return {
+          ok: true,
+          json: async () => ({
+            preview: {
+              day: {
+                date: "2026-08-01",
+                lead: {
+                  slug: "tuesday",
+                  title: "Ankunft",
+                  date: "2026-08-01",
+                  location: "Bellinzona",
+                  country: "Switzerland",
+                  content: "<p>Words.</p>",
+                  gallery: [],
+                  costs: [],
+                  draft: true,
+                },
+                entries: [],
+              },
+              summary: {},
+              dayIndex: 0,
+            },
+          }),
+        } as Response;
+      }
+      if (url.endsWith("/proposal")) {
+        proposalCalls.push(url);
+        return { ok: true, json: async () => ({ blocks: [] }) } as Response;
+      }
+      return { ok: true, json: async () => ({ ok: true, blocks: [] }) } as Response;
+    }),
+  );
+
+  const box = render({ trip: "a-trip", slug: "tuesday" });
+  // Let the day-preview `GET` (fired by the `opening` prop) land, so the
+  // draft's own publish button is on screen.
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  const previewSection = box.querySelector('section[aria-label="Preview"]')!;
+  const publish = [...previewSection.querySelectorAll("button")].find(
+    (button) => button.textContent === "Put this day on the site",
+  ) as HTMLButtonElement;
+  expect(publish).toBeDefined();
+
+  // Two rapid presses, the shape a double tap on a phone takes — both land
+  // inside the same tick, before the in-flight guard's own `finally` runs.
+  act(() => {
+    publish.click();
+    publish.click();
+  });
+
+  expect(proposalCalls).toHaveLength(1);
+  // And the guard is visible, not just internal: a second click found the
+  // button disabled.
+  expect(publish.disabled).toBe(true);
 });
 
 /**
