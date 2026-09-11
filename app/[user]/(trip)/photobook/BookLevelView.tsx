@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import type { TranslationKey } from "@/lib/i18n";
 import type { BookOptions } from "@/lib/photobook/options";
@@ -212,6 +212,24 @@ export default function BookLevelView({
 }) {
   /** The deliberate step between arranging and ordering — B561. */
   const [reading, setReading] = useState(false);
+  /**
+   * Whether there is room to show the settings beside the book — B1482.
+   *
+   * B548 put the nine settings behind one entry, and that is right on a phone
+   * where the alternative is a wall of switches in front of the book. At
+   * 1280 there is room for both, and a composer whose controls are shut is a
+   * preview with a hidden form. Read after mounting, like `useHasKeyboard`
+   * and for the same reason: the server has no `matchMedia`.
+   */
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setWide(mq.matches);
+    const on = (e: MediaQueryListEvent) => setWide(e.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
   /** A cover photograph deleted since it was chosen — B1481. The order page
    *  asks the disk (B1469); a client component cannot, so it asks the
    *  browser and drops the plate if the image will not load. */
@@ -264,6 +282,12 @@ export default function BookLevelView({
 
   return (
     <div hidden={hidden} className="mt-4">
+      {/* Two columns from `lg` — B1482. The book on the left at the width it
+          actually needs, the settings open beside it rather than shut behind
+          a disclosure nobody clicks. Below `lg` this collapses to exactly
+          what shipped before: the book, then the details, in one column. */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
+        <div>
       {/* The book, first and full width. `aspect-ratio` from the plan rather
           than a viewport fraction: the frame is exactly one spread tall, so
           there is nothing to scroll inside it and nothing letterboxed. While
@@ -308,6 +332,9 @@ export default function BookLevelView({
         {t("photobook.read.openHint")}
       </p>
 
+        </div>
+
+        <div className="mt-5 lg:mt-0">
       {/* Nothing at all when there is nothing wrong — B549. */}
       {lines.length > 0 && (
         <div className="mt-5 rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-yellow-900">
@@ -343,7 +370,7 @@ export default function BookLevelView({
 
       {/* The nine settings, behind one entry — B548. Still every one of them,
           and one tap away rather than in front of the book. */}
-      <details className="mt-5 rounded-lg border border-navy-200 bg-white px-3 py-3">
+      <details open={wide} className="mt-5 rounded-lg border border-navy-200 bg-white px-3 py-3 lg:mt-0">
         <summary className="min-h-11 cursor-pointer content-center text-sm font-semibold text-navy-800">
           {t("photobook.composer.bookSettings")}
         </summary>
@@ -363,6 +390,8 @@ export default function BookLevelView({
           />
         </div>
       </details>
+        </div>
+      </div>
 
       {/* What is being bought, what it costs in something a person
           understands, and what happens after the button — B551. */}
