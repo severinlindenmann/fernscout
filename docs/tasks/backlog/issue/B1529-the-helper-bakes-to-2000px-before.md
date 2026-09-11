@@ -10,6 +10,29 @@ found: "2026-09-11T21:00:00Z"
 
 # B1529 — The helper bakes to 2000px before uploading, so every photobook is printed from a web-sized file
 
+
+## Status — fixed in fernscout-helper; the docs half is B1533
+
+**Fixed and committed** in `fernscout-helper` on 2026-09-11:
+
+- `bake.mjs` — `DEFAULT_MAX_EDGE` 2000 → **4000**, with the reasoning in the
+  comment, plus `sips -s formatOptions high` on the derivative.
+- `build.mjs` — takes the constant instead of its own literal `2000`.
+- `icloud-export/SKILL.md` — says 4000, and says why.
+
+**One derivative, not two.** The first attempt split review (2000) from publish
+(4000) and `review.test.mjs` caught it: B646 requires the published photograph to
+be byte-for-byte what the review page baked. The split was reverted and the
+single constant raised instead. The review page is slower and uses more disk on
+its first run; that is the honest price.
+
+`severin/thailand-2025` was re-baked at 4000 and re-uploaded — 177 photographs
+deleted and re-sent, 513 MB — so that journal's print masters are correct now.
+
+**Still open here:** the `--replace-media` problem in the last section. Replacing
+already-published photographs took 177 hand-driven deletions because `publish`
+matches by basename. The documentation half is B1533.
+
 ## Why
 
 Found on 2026-09-11, when an owner asked whether a better resolution was

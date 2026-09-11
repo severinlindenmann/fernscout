@@ -10,6 +10,21 @@ found: "2026-09-11T20:40:00Z"
 
 # B1525 — publish never sends cover, and its SKILL.md still says eight trip fields have no door
 
+
+## Status — worked around by hand, NOT fixed
+
+The cover on `severin/thailand-2025` was set with a hand-written
+`PATCH /api/v1/severin/trips/thailand-2025 {"cover": …}` on 2026-09-11. That is
+the workaround, not the fix.
+
+**`publish.mjs` is unchanged** — it still sends none of the eight fields on an
+existing trip, and `publish/SKILL.md` still describes the old B245 limitation.
+Everything below is open work.
+
+Note for whoever picks it up: `cover` has an ordering constraint the other seven
+do not. Its value must be a `src` the trip's gallery already carries, so it can
+only go out **after** the media upload in the same run.
+
 ## Why
 
 Found on 2026-09-11 while setting a cover on a published trip.

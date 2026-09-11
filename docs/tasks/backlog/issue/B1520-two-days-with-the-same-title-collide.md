@@ -10,6 +10,18 @@ found: "2026-09-11T19:20:00Z"
 
 # B1520 — Two days with the same title collide at publish with 409, and nothing catches it first
 
+
+## Status — not started; do not confuse with the local-slug fix
+
+Untouched. `validate-content` still cannot see this collision.
+
+One thing to keep straight, because the two look alike: `build.mjs` in
+`fernscout-helper` was separately fixed on 2026-09-11 so that its **own**
+filenames and media folders are unique (ten Phuket days had all resolved to
+`media/phuket-island/` and overwritten each other). That is a different bug with
+a different cause. **This** ticket is about the slug the *instance* derives from
+a day's title, which distinct filenames actively hide.
+
 ## Why
 
 Hit live on 2026-09-11, on the last of 23 days, after 177 photographs had

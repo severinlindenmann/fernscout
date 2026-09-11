@@ -10,6 +10,20 @@ found: "2026-09-11T19:40:00Z"
 
 # B1518 — fernscout-helper's publish drops teaser in silence, so a closed trip never appears on /trips
 
+
+## Status — fixed in fernscout-helper, cause not addressed
+
+The immediate bug is **fixed and committed** in `fernscout-helper`
+(`publish.mjs`): `teaser` now rides the create call and the visibility PATCH.
+Verified against a live trip — `set visibility {"visibility":"guest","teaser":true}`,
+and the trip appears on `/severin/trips`.
+
+**Do not close this ticket on that.** The "Work" section below is about the
+*cause*: three hardcoded key lists in `publish.mjs` that fall behind
+`content-model.json`. Since this ticket was written, the same class of bug
+turned up again in B1525 (`cover`). That part is untouched and is the reason
+this is still open.
+
 ## Why
 
 Hit live on 2026-09-11, publishing a `guest` trip that the owner wanted listed

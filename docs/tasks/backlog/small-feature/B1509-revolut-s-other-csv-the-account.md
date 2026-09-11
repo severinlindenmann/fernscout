@@ -10,6 +10,22 @@ found: "2026-09-11T18:50:00Z"
 
 # B1509 — Revolut's other CSV — the account statement — is refused as unknown_format
 
+
+## Status — done, deployed, working
+
+Implemented, merged and **live on fernscout.ch** as of 2026-09-11.
+`importers/costs/revolut-account.ts`, registered ahead of `revolut` in
+`index.ts`, 9 tests in `test/costs-import-revolut-account.test.ts`.
+
+Verified end to end against a real 674-row statement: 58 rows inside a 23-day
+trip window, 28 of them outgoing non-transfer payments, `checkCostsImporter`
+clean, `/openapi.json` now lists `revolut-account`.
+
+**What is left for a reviewer** is the judgement in the three decisions below —
+`Started Date` over `Completed Date`, folding `Fee` into `amount`, dropping
+`REVERTED` — not the mechanics. Those change what a trip costs and deserve a
+second opinion.
+
 ## Why
 
 Hit live on 2026-09-11, importing three weeks of Thailand into a journal.
