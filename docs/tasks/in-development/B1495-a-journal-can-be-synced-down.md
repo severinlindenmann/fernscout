@@ -424,3 +424,54 @@ can never reach the site).
 - A trip-scoped token is refused by every new route, with a test.
 - `npm run verify` green; `/openapi.json` documents each new route with a
   refusal.
+
+## Evidence, 2026-09-11
+
+`npm run verify` green (535 files, 7008 tests, knip clean). New: 18 tests in
+`test/sync-manifest.test.ts`, 3 in `test/gps-store.test.ts`, and both routes in
+`/openapi.json` with refusals.
+
+Driven against a running instance on content that existed before the branch —
+`content/example`, five real trips, **153 files and 23 MB**. A throwaway
+down-leg client (`scratchpad/sync.mjs`, not shipped) reads the manifest, diffs
+against a base manifest on disk, prints its plan, and fetches only what
+differs. Captures: `B1495-acceptance.txt` and `B1495-acceptance-2.txt`.
+
+- **Fresh sync into an empty folder:** 153 files pulled; every file's bytes
+  re-hashed on arrival and checked against what the manifest said, so the
+  transfer is verified rather than assumed.
+- **A second run with nothing changed:** `pull 0 (0 bytes), unchanged 153`.
+- **One day changed on the site, then sync again:**
+  `pull 1 (1499 bytes), unchanged 152` — from the run's own printed plan, not
+  asserted. Both the English prose and the German and Hungarian came down with
+  it.
+- **Both sides changed the same file:** named the path, wrote nothing, exited
+  non-zero, and the local file's checksum was unchanged afterwards.
+- **A local-only edit is not a conflict** — it plans as `local-only 1` and the
+  laptop's own line survives the sync down, which is the guard-that-fires-on-an-
+  honest-run case.
+- **A draft day is in the manifest:** two of them, in `japan-2027`.
+- **`gps/`:** with a real `gps/2026-06.jsonl` on disk carrying a coordinate,
+  the manifest mentions neither `gps/` nor the coordinate, and the file door
+  answers **404**. So do `originals/` and a path climbing out of the journal.
+- **A trip-scoped token:** 404 from both routes. No token at all: 401.
+
+**Two harness bugs, found and fixed before anything was reported.** The first
+run's step 2 looked like it passed and had not: the day edit was refused,
+because this journal is read in three languages and a day must carry all of
+them, so nothing had changed and "only that file moved" was vacuously true.
+The same run called a local-only edit a conflict, because the rule compared
+local against base without asking whether the remote had moved at all. Both
+were in the throwaway client rather than in shipped code; the reruns above are
+the honest ones. Recorded because a green-looking step that exercised nothing
+is exactly what B1090 is about.
+
+The example content edited during the run was restored (`git checkout --
+content/`, clean afterwards).
+
+## Still to build
+
+This ticket is the **server half**. The `sync` skill in `fernscout-helper` —
+and `publish` becoming a wrapper over its up leg, with the stale B245 prose
+corrected — is the other half and is not in this branch. The decisions it needs
+are all written above.
