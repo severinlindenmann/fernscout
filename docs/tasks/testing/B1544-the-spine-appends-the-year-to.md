@@ -7,8 +7,7 @@ complexity: low
 area: photobook
 found: "2026-09-11T21:26:00Z"
 started: "2026-09-11T21:31:04Z"
-session: 57d87f37-ef96-4bb1-8533-8025978abf0c
-claimed: "2026-09-11T21:31:04Z"
+merged: "2026-09-11T21:58:03Z"
 ---
 
 # B1544 — The spine appends the year to a title that already carries one, and the owner cannot say otherwise
