@@ -326,17 +326,33 @@ export default function BookLevelView({
         </p>
       )}
 
-      {/* The way to read the book before paying for it — B561. Directly under
-          the book and above everything else, because it is the next thing to
-          do with what you have just arranged, not a setting. */}
-      <button
-        type="button"
-        onClick={() => setReading(true)}
-        disabled={!preview}
-        className="mt-4 min-h-11 w-full rounded-full border-2 border-navy-900 px-5 text-sm font-semibold text-navy-900 transition-colors hover:bg-navy-900 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-      >
-        {t("photobook.read.open")}
-      </button>
+      {/* The two things to do with the book you have just arranged, together
+          and directly under it — B1488, and the drawing's own pair. Read it
+          first (B561's deliberate step), or go to the press. The ordering one
+          carries the yellow: on this palette that is the colour of the thing
+          that costs money, and it is the same yellow the press below wears.
+
+          It scrolls rather than submits — there is one Pay button on this
+          page and it is the one in the order panel. */}
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <button
+          type="button"
+          onClick={() => setReading(true)}
+          disabled={!preview}
+          className="min-h-11 w-full rounded-full border-2 border-navy-900 px-5 text-sm font-semibold text-navy-900 transition-colors hover:bg-navy-900 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+        >
+          {t("photobook.read.open")}
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            document.getElementById("photobook-order")?.scrollIntoView({ behavior: "smooth" })
+          }
+          className="min-h-11 w-full rounded-full border-2 border-yellow-600 bg-yellow-400 px-5 text-sm font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 sm:w-auto"
+        >
+          {t("photobook.orderHeading")}
+        </button>
+      </div>
       <p className="mt-1 text-xs text-navy-600">
         {t("photobook.read.openHint")}
       </p>
@@ -569,7 +585,7 @@ export default function BookLevelView({
             // owner cannot see the shape of; this way they meet the price
             // rather than a grey rectangle — B606.
             disabled={unbuyable || !preview}
-            className="min-h-11 w-full rounded-full bg-navy-900 px-5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            className="min-h-11 w-full rounded-full border-2 border-yellow-600 bg-yellow-400 px-5 text-sm font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             {/* What it does and what it costs, on the control itself — the
                 same rule the print button follows. "Pay with credits" named
