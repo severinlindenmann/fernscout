@@ -329,12 +329,13 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (7)
+## in-development (8)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1053](in-development/B1053-the-helper-s-tool-list-has.md) | The helper's tool list has outgrown the budget its own test set, and the fix is grouping | ISSUE | high | medium | `13f12910` |
 | [B1301](in-development/B1301-an-approved-reader-who-opens-a.md) | An approved reader who opens a buddy link is given write access to the trip with no owner decision, and told there is nothing to do | SECURITY | high | medium | `13f12910` |
+| [B1454](in-development/B1454-a-refused-book-never-shows-that.md) | A refused book never shows that the credits came back, because the sentence is in an unreachable branch | ISSUE | high | low | `96a5b964` |
 | [B311](in-development/B311-one-guide-holds-every-task-so.md) | One guide holds every task, so an agent reads fifty kilobytes to write one day | FEATURE | high | high | `13f12910` |
 | [B1272](in-development/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low | `13f12910` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
