@@ -2130,6 +2130,8 @@ export type TranslationKey =
   | "postcard.start"
   | "postcard.startsFrom"
   | "postcard.startsFromNothing"
+  | "postcard.status.withPrinter"
+  | "postcard.status.withPrinterNote"
   | "postcard.step.back"
   | "postcard.step.look"
   | "postcard.step.nextLook"

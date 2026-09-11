@@ -2383,5 +2383,7 @@
   "order.meta.sent": "Sent {date} · Reference {id}",
   "postcard.page.waitingTitle": "{count} cards are waiting",
   "postcard.page.waitingTitle.one": "One card is waiting",
-  "postcard.page.openCards": "Open the cards"
+  "postcard.page.openCards": "Open the cards",
+  "postcard.status.withPrinter": "With the printer",
+  "postcard.status.withPrinterNote": "The printer has taken this order. Cards go out over the days that follow — nothing tells this journal when they land, so nothing here will claim to know."
 }

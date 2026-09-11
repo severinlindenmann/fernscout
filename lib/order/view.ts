@@ -270,7 +270,25 @@ export function postcardOrderView(input: PostcardViewInput): OrderView {
       note: t("postcard.result.providerFailed"),
     };
   } else if (!pending) {
-    status = { tone: "green", label: t("photobook.print.status.shipped"), note: t("postcard.result.sent") };
+    /**
+     * Not green, and not "shipped" — B1499.
+     *
+     * Stannp sends no webhooks: there is no delivery event, no tracking
+     * number, and nothing that says paper was ever printed. What this
+     * instance knows is that a provider accepted the request, which is a
+     * thing in progress rather than a thing finished, so it takes the tone
+     * this palette gives to something being made.
+     *
+     * Its own keys rather than the photobook's `status.shipped`, which is
+     * earned there: Gelato reports that word and B1440 stores the parcels it
+     * names. One string across two providers is how a claim gets borrowed by
+     * the one that cannot make it.
+     */
+    status = {
+      tone: "yellow",
+      label: t("postcard.status.withPrinter"),
+      note: t("postcard.status.withPrinterNote"),
+    };
   } else if (expired) {
     status = { tone: "navy", label: t("order.status.expired"), note: t("postcard.result.expired") };
   } else {

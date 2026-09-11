@@ -2383,5 +2383,7 @@
   "order.meta.sent": "Elküldve: {date} · Hivatkozás: {id}",
   "postcard.page.waitingTitle": "{count} képeslap vár rád",
   "postcard.page.waitingTitle.one": "Egy képeslap vár rád",
-  "postcard.page.openCards": "Képeslapok megnyitása"
+  "postcard.page.openCards": "Képeslapok megnyitása",
+  "postcard.status.withPrinter": "A nyomdában",
+  "postcard.status.withPrinterNote": "A nyomda átvette a megrendelést. A lapok a következő napokban indulnak útnak — hogy mikor érkeznek meg, azt ez a napló nem tudja, ezért nem is állít róla semmit."
 }

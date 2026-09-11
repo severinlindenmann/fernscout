@@ -188,9 +188,13 @@ describe("postcardOrderView", () => {
     expect(view.recipients[0].lines).toEqual(["Bern, CH"]);
   });
 
-  it("reads as sent once it is no longer pending", () => {
+  it("says it is with the printer, and never that it shipped", () => {
+    // B1499. Stannp reports nothing back — no delivery event, no tracking —
+    // so a sent set is a thing in progress, not a thing finished, and it must
+    // not borrow the photobook's `shipped`, which Gelato actually says.
     const view = postcardOrderView({ ...cardInput, order: cards({}, { status: "built" }) });
-    expect(view.status?.tone).toBe("green");
+    expect(view.status?.tone).toBe("yellow");
+    expect(view.status?.label).toBe("With the printer");
     expect(view.head.title).toBe("Postcards, sent");
     expect(view.head.subtitle).toContain("10 September");
     expect(view.meta).toContain("Sent");
