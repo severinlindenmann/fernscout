@@ -475,3 +475,57 @@ This ticket is the **server half**. The `sync` skill in `fernscout-helper` —
 and `publish` becoming a wrapper over its up leg, with the stale B245 prose
 corrected — is the other half and is not in this branch. The decisions it needs
 are all written above.
+
+## The security pass, and three things it changed
+
+Run before merging, as AGENTS.md asks for anything touching auth or an API
+route. Three defects in this branch's own code, all fixed here rather than
+captured — a problem this branch created is not a ticket for somebody else.
+
+**1. The exclusions were case-sensitive, on a case-insensitive filesystem.**
+Found by probing `inSync` directly rather than by reading it:
+`trips/<id>/ORIGINALS/01.jpg` and `TRACK.json` both returned `true`, and on
+APFS they resolve to the real files — so the folder would have been excluded
+from the listing and then served to anybody who asked in capitals. Every
+comparison now folds case, and `test/gps-store.test.ts` pins the shouted
+spellings beside the quiet ones.
+
+This is the shape a test written beside its own implementation cannot catch,
+because the fixture spells the path the way the code does. Worth remembering:
+`gps/` itself was never at risk, but only because the walk is an **allow-list**
+— `GPS/` is refused for not being `trips` or `inbox`, not for matching the
+exclusion. Default-deny is what made the near-miss a near-miss.
+
+**2. The symlink boundary was a tautology, and its comment said otherwise.**
+`resolveSyncPath` ended with `full.startsWith(root + sep)` under a comment
+claiming it stopped a symlink leaving the journal. It did not and could not:
+`inSync` has already refused every `..`, so `path.join` starts with `root` by
+construction, and `path.join` never touches the filesystem anyway. It is now
+`fs.realpathSync` on both sides, which resolves the whole chain — and there is
+a test that puts a real symlink inside a journal pointing out of it and checks
+both that the file door refuses it and that the listing never offered it.
+
+Not a live hole: nothing in this codebase creates a symlink under `content/`,
+and the manifest walk skips them anyway (`Dirent.isFile()` is false for a
+link). It is fixed because the next thing that *does* write one — an importer,
+an upload that preserves links — would have inherited a guard that was only
+ever decorative.
+
+**3. A doc comment described a branch the code does not have.** The manifest
+route claimed a wrong-journal token gets `outOfScope`; every refusal is in fact
+the same 404. The code is the stricter of the two and stays; the comment now
+says what it does and why.
+
+Two things the pass confirmed rather than changed: the gate order is
+`authenticate` → `ownsUser` → `mayActAsOwner` with no branch returning data
+early, matching `export.zip`; and the double-decode on the file door could not
+be turned into a traversal, since `inSync` runs after the decoding. The extra
+`decodeURIComponent` was removed regardless — Next has already decoded, and the
+sibling catch-all routes rely on that — because a second pass would mangle a
+filename legitimately holding a `%`.
+
+**Noted, not fixed:** `hashCache` is unbounded and process-lifetime. It is one
+short string per file of journals the instance already serves, it is not
+attacker-amplifiable, and an eviction policy would be more code than the thing
+it manages — the reasoning is written beside it. Revisit if an instance ever
+holds many journals for a long time.

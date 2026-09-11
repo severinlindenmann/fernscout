@@ -28,11 +28,13 @@ export const dynamic = "force-dynamic";
  * satisfies `ownsUser`, and `mayActAsOwner` is what stops it walking every
  * private trip and unpublished draft in a journal it came to one trip of.
  *
- * The refusal is a 404 rather than a 403 for the reason that route gives: it
- * is the same answer an unknown journal gets, so a prober learns nothing. But
- * an *unscoped* token that simply belongs to another journal gets `outOfScope`
- * instead, which names the journal it is for — that is a caller who built a
- * URL wrong rather than one testing a boundary.
+ * **Every** refusal is a 404, and deliberately the same one: an unknown
+ * journal, a token for a different journal, and a trip-scoped token are
+ * indistinguishable from outside, so a prober learns nothing from any of them.
+ * That is stricter than most routes here, which answer `outOfScope` with the
+ * journal named when a caller has plainly built a URL wrong. The trade is
+ * worth it in this one place, because what leaks otherwise is which journals
+ * exist on an instance whose landing page may advertise none of them.
  */
 export async function GET(request: Request, { params }: RouteContext<"/api/v1/[user]/sync/manifest">) {
   const auth = await authenticate(request);

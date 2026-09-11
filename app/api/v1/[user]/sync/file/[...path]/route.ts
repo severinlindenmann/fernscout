@@ -64,16 +64,13 @@ export async function GET(
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 
-  // Decoded per segment: Next hands them over still percent-encoded, and a
-  // filename with a space in it is ordinary in somebody's photo library.
-  let relative: string;
-  try {
-    relative = segments.map(decodeURIComponent).join("/");
-  } catch {
-    return Response.json({ error: "not_found" }, { status: 404 });
-  }
-
-  const file = resolveSyncPath(user, relative);
+  // Next has already percent-decoded each segment, the same way
+  // `app/[user]/media/[...path]/route.ts` and `app/api/md/[user]/[...path]/`
+  // both rely on. Decoding again here would be a second pass that turns a
+  // `%252e%252e` into `..` — `inSync` would still refuse it, since the check
+  // runs after, but a filename legitimately holding a `%` would be mangled on
+  // the way to a file that does exist. One decode, done by the framework.
+  const file = resolveSyncPath(user, segments.join("/"));
   if (!file) return Response.json({ error: "not_found" }, { status: 404 });
 
   let stat: fs.Stats;
@@ -84,7 +81,12 @@ export async function GET(
   }
   if (!stat.isFile()) return Response.json({ error: "not_found" }, { status: 404 });
 
-  return new Response(fs.readFileSync(file) as unknown as BodyInit, {
+  // Read whole rather than streamed, which is what `app/[user]/media/
+  // [...path]/route.ts:341` already does for the same files — and these are
+  // the derivatives the site serves, never the `originals/` a photobook
+  // prints from, so the ceiling is the upload limit rather than a camera's
+  // raw output.
+  return new Response(new Uint8Array(fs.readFileSync(file)), {
     headers: {
       "Content-Type": contentTypeFor(file),
       "Content-Length": String(stat.size),

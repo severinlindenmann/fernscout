@@ -306,6 +306,53 @@ describe("one file at a time", () => {
     }
   });
 
+  /**
+   * The boundary the old code only claimed to have. `inSync` refuses every
+   * `..` segment, which made the string comparison that stood here a
+   * tautology — so the comment beside it, about stopping a symlink, was
+   * simply untrue. `realpathSync` is what makes it true, and this is what
+   * would have caught it: a link inside the journal, pointing at the one
+   * folder no route may ever return.
+   */
+  test("a symlink pointing out of the journal is refused, not followed", async () => {
+    const outside = path.join(dir, "elsewhere.txt");
+    fs.writeFileSync(outside, "not this journal's");
+    const link = path.join(dir, OWNER, "trips", TRIP, "escape.md");
+    fs.symlinkSync(outside, link);
+
+    const refused = await fetchFile(`trips/${TRIP}/escape.md`, await tokenFor(OWNER_EMAIL));
+    expect(refused.status).toBe(404);
+    expect(refused.text).not.toContain("not this journal's");
+
+    // And it was never offered in the first place: the walk skips symlinks,
+    // so a caller could only ever have reached this by guessing the name.
+    const { clearSyncHashCache } = await import("@/lib/sync/manifest");
+    clearSyncHashCache();
+    const listed = await manifest(await tokenFor(OWNER_EMAIL));
+    expect(listed.body.files!.map((f) => f.path)).not.toContain(`trips/${TRIP}/escape.md`);
+
+    fs.rmSync(link);
+    fs.rmSync(outside);
+  });
+
+  test("a shouted path is refused the same as a quiet one", async () => {
+    // The filesystem under this is case-insensitive, so these resolve to real
+    // files; excluding them from the listing and then serving them to anybody
+    // who asked in capitals would be no exclusion at all.
+    fs.mkdirSync(path.join(dir, OWNER, "trips", TRIP, "originals"), { recursive: true });
+    fs.writeFileSync(path.join(dir, OWNER, "trips", TRIP, "originals", "01.jpg"), "the big one");
+    const token = await tokenFor(OWNER_EMAIL);
+    for (const shouted of [
+      `trips/${TRIP}/ORIGINALS/01.jpg`,
+      `trips/${TRIP}/Originals/01.jpg`,
+    ]) {
+      const refused = await fetchFile(shouted, token);
+      expect(refused.status).toBe(404);
+      expect(refused.text).not.toContain("the big one");
+    }
+    fs.rmSync(path.join(dir, OWNER, "trips", TRIP, "originals"), { recursive: true });
+  });
+
   test("a file that is not there is a 404, not a crash", async () => {
     expect((await fetchFile("trips/nope/trip.md", await tokenFor(OWNER_EMAIL))).status).toBe(404);
   });

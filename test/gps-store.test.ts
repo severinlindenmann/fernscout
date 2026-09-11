@@ -218,6 +218,15 @@ describe("the rules that keep it private", () => {
       "gps/exclude.json",
       "trips/algarve/originals/01.jpg",
       "trips/algarve/track.json",
+      // Shouted, because the filesystem under this is usually
+      // case-insensitive: on APFS these resolve to the real files, so a
+      // case-sensitive check would exclude them from the listing and then
+      // serve them to anybody who asked in capitals.
+      "GPS/2026-06.jsonl",
+      "Gps/2026-06.jsonl",
+      "trips/algarve/ORIGINALS/01.jpg",
+      "trips/algarve/Originals/01.jpg",
+      "trips/algarve/TRACK.json",
       "postcards/a.pdf",
       "photobooks/b.pdf",
       "trips/algarve/.ingest.json",

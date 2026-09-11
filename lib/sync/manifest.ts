@@ -188,30 +188,68 @@ export function inSync(relative: string): boolean {
   // is everything under it.
   if (segments.some((segment) => segment === "." || segment === "..")) return false;
   if (isDotfilePath(relative)) return false;
-  if (relative === BASE_MANIFEST_FILE) return false;
-  if (segments.length === 1) return relative === "config.json";
+  if (relative.toLowerCase() === BASE_MANIFEST_FILE) return false;
+  if (segments.length === 1) return relative.toLowerCase() === "config.json";
 
-  const [root] = segments;
+  // **Lowercased before every comparison**, because the filesystem under this
+  // is usually case-insensitive. On APFS a request for `ORIGINALS/01.jpg`
+  // resolves to the real `originals/01.jpg`, so a case-sensitive check here
+  // would exclude a folder from the listing and then serve it anyway to
+  // anybody who shouted. Found by the security pass on this branch's own
+  // code, which is exactly the shape a reviewer catches and a test written
+  // beside the implementation does not: the fixture spells it the way the
+  // implementation does.
+  //
+  // The top level needs no such care to be *safe* — it is an allow-list, so
+  // `GPS/` is refused for not being `trips`, `inbox` or `config.json` rather
+  // than for matching an exclusion — but it is folded anyway, so the
+  // exclusion says what it means rather than relying on the default.
+  const root = segments[0].toLowerCase();
   if (EXCLUDED_ROOTS.has(root)) return false;
   if (root === "inbox") return segments.length >= 3;
   if (root !== "trips") return false;
 
   // trips/<id>/...
   if (segments.length < 3) return false;
-  if (segments[2] === "originals") return false;
-  if (segments.length === 3 && DERIVED_FILES.has(segments[2])) return false;
+  if (segments[2].toLowerCase() === "originals") return false;
+  if (segments.length === 3 && DERIVED_FILES.has(segments[2].toLowerCase())) return false;
   return true;
 }
 
-/** The absolute path one manifest path names, or null if it names nothing. */
+/**
+ * The absolute path one manifest path names, or null if it names nothing.
+ *
+ * The last check is **`realpath`, not a string comparison**, and that
+ * distinction is the whole point. `inSync` has already refused every `..`
+ * segment, which makes `path.join(root, relative)` start with `root` by
+ * construction — so a `startsWith` here would be a tautology dressed as a
+ * boundary, and the comment beside it claiming to stop a symlink would simply
+ * be untrue. It was, until the security pass on this branch said so.
+ *
+ * `fs.realpathSync` resolves every link in the chain, so a symlink inside the
+ * journal pointing at `gps/`, at another journal, or at `/etc/passwd` lands
+ * outside `root` and is refused. Nothing in this codebase creates a symlink
+ * under `content/` today, so this is hardening rather than a live hole — but
+ * the listing's own walk skips symlinks (`Dirent.isFile()` is false for one),
+ * which means a link here could only ever be a file the manifest never
+ * offered, reached by a caller who guessed. That is exactly the case this
+ * function exists to answer.
+ *
+ * A path that does not exist throws rather than resolving, which is the same
+ * `null` — the route answers 404 either way.
+ */
 export function resolveSyncPath(username: string, relative: string): string | null {
   if (!inSync(relative)) return null;
   const root = userDir(username);
   const full = path.join(root, relative);
-  // Belt and braces over `inSync`'s own `..` check: a symlink inside the
-  // journal could still point out of it, and this is the boundary.
-  if (!full.startsWith(root + path.sep)) return null;
-  return full;
+  try {
+    const real = fs.realpathSync(full);
+    const realRoot = fs.realpathSync(root);
+    if (real !== realRoot && !real.startsWith(realRoot + path.sep)) return null;
+    return real;
+  } catch {
+    return null;
+  }
 }
 
 /** What was left on the server, so the client can say so out loud. */
