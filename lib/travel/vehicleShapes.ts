@@ -145,7 +145,12 @@ function nacelle(x: number, y: number, length: number, thickness: number, fill: 
 /** Where a wheel goes, per mode. Empty for the two that have none. */
 export function vehicleWheels(mode: PrintableMode): VehicleWheel[] {
   switch (mode) {
+    // B1545 — `metro` drew as `train`'s two carriages and a locomotive with a
+    // boiler and a chimney, which nobody has met at a station. Its own case
+    // now: six wheels along one continuous shell, evenly spaced the way the
+    // shell's own door seams are.
     case "metro":
+      return [17, 47, 78, 108, 141, 171].map((cx) => ({ cx, cy: 46, r: 7, look: "iron" }));
     case "tram":
     case "train":
       // Every wheel the same size: 9, 9 and 6 against the carriages' 7 read as
@@ -194,6 +199,7 @@ export function vehicleTitles(
 ): { x: number; y: number; size: number; fill: string }[] {
   switch (mode) {
     case "metro":
+      return [{ x: 78, y: 31, size: 6.5, fill: "#8a6a1f" }];
     case "tram":
     case "train":
       return [4, 64].map((x) => ({ x: x + 6, y: 37, size: 6.5, fill: "#dbeaf7" }));
@@ -220,10 +226,29 @@ export function vehicleTitles(
  */
 export function vehicleBody(mode: PrintableMode): Shape[] {
   switch (mode) {
-    // `metro` and `tram` draw the same carriages as `train` — B1519 leans on
+    // B1545 — one continuous shell rather than distinct carriages behind a
+    // locomotive: a metro set is welded cars, not an engine pulling coaches,
+    // and this is what a platform actually sees pull in. Door seams (the
+    // darker verticals) are the only break in the body; the front is a
+    // blunt rounded nose rather than a boiler and a chimney.
+    case "metro": {
+      const seam = (x: number): Shape => ({ kind: "rect", x, y: 12, w: 3, h: 26, fill: "#c99a35", opacity: 0.7 });
+      // Three windows, centred in a bay of width w.
+      const bay = (x: number, w: number): Shape[] => windows(x + (w - 47) / 2, 18, 3, 13, 12, 4);
+      return [
+        { kind: "rect", x: 4, y: 10, w: 182, h: 30, r: 8, fill: "#f0c05a" },
+        { kind: "rect", x: 4, y: 8, w: 178, h: 3, r: 1.5, fill: "#f7cf78" },
+        { kind: "rect", x: 4, y: 36, w: 178, h: 4, r: 2, fill: "#c99a35" },
+        ...bay(8, 60),
+        seam(60),
+        ...bay(65, 60),
+        seam(122),
+        ...bay(127, 55),
+      ];
+    }
+    // `tram` draws the same carriages as `train` — B1519 leans on
     // `VEHICLE_WIDTH` in the scene to make one read as a short urban hop
     // rather than an intercity trip, rather than drawing a second locomotive.
-    case "metro":
     case "tram":
     case "train": {
       const carriage = (x: number): Shape[] => [

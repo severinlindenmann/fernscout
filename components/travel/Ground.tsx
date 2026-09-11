@@ -80,10 +80,15 @@ const OVERHANG = 320;
 export default function Ground({
   surface,
   scroll,
+  dark = false,
 }: {
   surface: Surface;
   /** 0 → 1 across the leg. Drives the tile offset, and nothing else. */
   scroll: MotionValue<number>;
+  /** A metro's own rail bed — grey ballast and steel rather than the grass
+   * verge every other rail leg gets, since there is no grass underground.
+   * B1545. Only meaningful on `rail`. */
+  dark?: boolean;
 }) {
   // Before the early return below: `sky` draws nothing, and a hook that only
   // runs for the other four surfaces is a hook that changes count per render.
@@ -91,13 +96,17 @@ export default function Ground({
   if (surface === "sky") return null;
 
   const height = GROUND_HEIGHT[surface];
+  const underground = dark && surface === "rail";
 
   return (
     <div
       className="pointer-events-none absolute inset-x-0 bottom-0 overflow-hidden"
       style={{ height }}
     >
-      <div className="absolute inset-0" style={{ background: BACKDROP[surface] }} />
+      <div
+        className="absolute inset-0"
+        style={{ background: underground ? UNDERGROUND_BACKDROP : BACKDROP[surface] }}
+      />
       {/* The slack the tiles slide into, and it is in pixels because the
           slide is: `-left-[10%] w-[130%]` gave 20% of the *frame* on the
           right, which is 140px on the story's own width and 72px on a phone,
@@ -113,20 +122,27 @@ export default function Ground({
         <svg width="100%" height={height} preserveAspectRatio="none" aria-hidden>
           <defs>
             <pattern
-              id={`fs-ground-${surface}`}
+              id={`fs-ground-${surface}${underground ? "-under" : ""}`}
               width={TILE[surface]}
               height={height}
               patternUnits="userSpaceOnUse"
             >
-              <Tile surface={surface} height={height} />
+              <Tile surface={surface} height={height} dark={underground} />
             </pattern>
           </defs>
-          <rect width="100%" height={height} fill={`url(#fs-ground-${surface})`} />
+          <rect
+            width="100%"
+            height={height}
+            fill={`url(#fs-ground-${surface}${underground ? "-under" : ""})`}
+          />
         </svg>
       </motion.div>
       {/* The far edge of the surface, which does not scroll — it is the join
           with the world behind and would shimmer if it did. */}
-      <div className="absolute inset-x-0 top-0 h-1" style={{ background: EDGE[surface] }} />
+      <div
+        className="absolute inset-x-0 top-0 h-1"
+        style={{ background: underground ? UNDERGROUND_EDGE : EDGE[surface] }}
+      />
     </div>
   );
 }
@@ -138,6 +154,11 @@ const BACKDROP: Record<Surface, string> = {
   sky: "transparent",
   path: "#dff0d8",
 };
+
+/** A metro's own rail bed, in place of `BACKDROP.rail`/`EDGE.rail` — grey
+ * stone rather than a grass verge, since a tunnel floor has none. B1545. */
+const UNDERGROUND_BACKDROP = "#2c3038";
+const UNDERGROUND_EDGE = "#454b56";
 
 const EDGE: Record<Surface, string> = {
   rail: "#bcd9b4",
@@ -156,14 +177,16 @@ const TILE: Record<Surface, number> = {
   path: 20,
 };
 
-function Tile({ surface, height }: { surface: Surface; height: number }) {
+function Tile({ surface, height, dark = false }: { surface: Surface; height: number; dark?: boolean }) {
   if (surface === "rail") {
     // Ballast, a sleeper every tile, and two rails the vehicle's wheels land
-    // on. The rail heights match `Vehicle`'s wheel baseline.
+    // on. The rail heights match `Vehicle`'s wheel baseline. `dark` is a
+    // metro's own bed — grey stone rather than the grass verge every other
+    // rail leg gets, since there is nothing growing underground (B1545).
     return (
       <>
-        <rect y={height - 20} width={22} height={20} fill="#cfe3c6" />
-        <rect x={4} y={height - 17} width={14} height={5} rx={1.5} fill="#a5825b" />
+        <rect y={height - 20} width={22} height={20} fill={dark ? "#3a4048" : "#cfe3c6"} />
+        <rect x={4} y={height - 17} width={14} height={5} rx={1.5} fill={dark ? "#5a6a80" : "#a5825b"} />
         <rect y={height - 12} width={22} height={3} fill="#8f9aa8" />
         <rect y={height - 6} width={22} height={2.5} fill="#7c8794" />
       </>
