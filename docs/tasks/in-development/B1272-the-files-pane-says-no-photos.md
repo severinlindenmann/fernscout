@@ -6,8 +6,9 @@ priority: medium
 complexity: low
 area: helper, files
 found: "2026-09-10T10:16:18Z"
-started: "2026-09-11T04:33:18Z"
-merged: "2026-09-11T05:34:23Z"
+started: "2026-09-11T11:12:02Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T11:12:02Z"
 ---
 
 # B1272 — The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one
@@ -63,3 +64,17 @@ when the sentence was written, it is not called that now.
 - With files waiting, no text on the pane says nothing is chosen.
 - A waiting file can be removed from the pane in one tap.
 - Every quoted label in the pane's prose appears on the pane.
+
+## Parked back here, 2026-09-11
+
+A live owner-session check contradicted the third acceptance line, so this does
+not sit in `testing/` looking finished. The pane's note still quotes “What is
+waiting”, and nothing on the pane says it.
+
+The other two lines hold: with files waiting nothing claims nothing is chosen,
+and every waiting file has a one-tap `×`.
+
+The mechanism for the remaining line was built and is unwired — `PhotoPicker`'s
+`noteKey` prop is never passed, because `HelperRoom.tsx:2699` renders
+`t("agent.pickAnyFile")` directly. **B1443** carries the evidence in full; fix
+it there or here, not in both.
