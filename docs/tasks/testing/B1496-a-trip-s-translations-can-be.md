@@ -7,8 +7,7 @@ complexity: low
 area: trips, api
 found: "2026-09-11T17:40:00Z"
 started: "2026-09-11T18:09:27Z"
-session: a46b89fa-8d46-44a3-b5fc-84f7c4ed55fb
-claimed: "2026-09-11T18:09:27Z"
+merged: "2026-09-11T18:24:44Z"
 ---
 
 # B1496 — A trip's translations can be set once and never corrected
