@@ -19,9 +19,12 @@ export function toolList(): string {
 }
 
 /** The same registry, as the arguments schemas the SDK wants. Kept here
- *  rather than in `./model.ts` so there is one place a tool is described. */
-export function toolSchemas() {
-  return TOOLS.map((tool) => ({
+ *  rather than in `./model.ts` so there is one place a tool is described.
+ *  Takes a subset — the chosen area's tools, B1053 — and defaults to the
+ *  whole registry for callers that still want it (the honesty tests, the
+ *  ceiling test's own worst case). */
+export function toolSchemas(tools: readonly Tool[] = TOOLS) {
+  return tools.map((tool) => ({
     name: tool.name,
     description: tool.describe,
     input_schema: {

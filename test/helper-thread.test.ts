@@ -48,6 +48,21 @@ vi.mock("@anthropic-ai/sdk", () => ({
   default: class {
     messages = {
       create: async (params: Record<string, unknown>) => {
+        /**
+         * B1053's own extra round trip — the area pick ahead of `rounds()`.
+         * Answered here, structurally, before it reaches `sent` or the
+         * scripted `create` queue: it is not one of the "rounds" this file
+         * scripts turn by turn, and letting it through would shift every
+         * `sent[n]` index below by one, and consume the first
+         * `mockResolvedValueOnce` meant for round 1. What area it picks does
+         * not matter to any test here — the scripted model always names the
+         * tool it wants regardless of which schemas were offered.
+         */
+        const format = (params.output_config as { format?: { schema?: { properties?: Record<string, unknown> } } })
+          ?.format;
+        if (format?.schema?.properties?.area) {
+          return { content: [{ type: "text", text: '{"area":"days"}' }], usage: { input_tokens: 40, output_tokens: 5 } };
+        }
         sent.push(params);
         return create(params);
       },

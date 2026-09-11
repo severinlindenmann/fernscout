@@ -15,15 +15,71 @@ claimed: "2026-09-11T12:08:54Z"
 
 ## Why
 
-TODO — the problem, not the fix.
+See the "Why" and both "Decision" sections below — this is the ticket that
+found the problem, argued it out over two decisions, and this section records
+what was actually built once B1450 (the cache breakpoint) changed the ground
+under it.
 
 ## Work
 
-TODO
+**Built: two-pass by area, with `trips` as a fixed hub area alongside
+whichever one the pick round names.**
+
+- `lib/helper/tools/registry.ts` — the seven area arrays are now one `AREAS`
+  list (`{ key, describe, tools }`), each `describe` written for the model
+  doing the picking, not for a person. `TOOLS` is `AREAS.flatMap(...)`, so
+  every existing caller that wants the whole registry (the honesty tests,
+  `runTool`'s lookup by name, the generated menu in the system prompt) is
+  unchanged. `AreaKey` is the literal union of the seven keys.
+- `lib/helper/tools/run.ts` — `toolSchemas()` takes an optional tool list and
+  defaults to the whole registry, so it still serves callers that want
+  everything (the ceiling test, `test/helper-tools.test.ts`).
+- `lib/helper/model.ts` — before `rounds()` starts, one small, uncached call
+  (`pickArea`, structured JSON output like `findInJournal`) asks which one
+  area the conversation needs. `activeAreas` starts as `{trips, <picked>}` and
+  is decided **once per turn, not per round** — `rounds()`'s loop reads it
+  fresh each iteration but nothing in the ordinary path changes it mid-turn,
+  which is what keeps B1450's tools+system cache prefix stable round to
+  round. `trips` is always included because it is the one area nearly every
+  other tool resolves a trip id off, and because the picked area alone can be
+  small enough to push the whole prefix under Haiku's 4,096-token cache
+  minimum — see the comment above `HUB_AREA` for the measured numbers.
+- **Recovery**: every turn also carries one meta-tool, `switch_area` (not in
+  the registry, intercepted directly in `rounds()`'s call loop before the
+  ordinary `TOOLS.find` lookup). If the model decides the picked area was not
+  enough, it calls `switch_area({ area })`, which adds that area's tools to
+  `activeAreas` for the next round of the *same* turn — the one case allowed
+  to cost the round-to-round cache, because the alternative is a capability
+  the model cannot reach at all.
+- `test/helper-tool-areas.test.ts` — new, asserts the registry partitions
+  cleanly into the seven areas and that the worst case a turn can send
+  (hub + the single largest other area + `switch_area`) is well under half
+  the registry: 20 of 47 tools today.
+- Six test files that scripted `@anthropic-ai/sdk` responses turn by turn
+  (`helper-thread`, `helper-honesty`, `helper-honesty-per-turn`,
+  `helper-honesty-postcard-page`, `helper-refusal-recovers`,
+  `helper-trips-picker`, `whatsapp-model-turn`) needed one change each: their
+  mocked `create` now answers the area-pick call structurally (by the
+  `output_config` schema shape) before it reaches the scripted
+  `mockResolvedValueOnce` queue, so the extra round trip does not shift every
+  existing scripted round down by one. Which area it answers with does not
+  matter to any of those tests — the scripted model always names the tool it
+  wants outright, regardless of which schemas were technically on offer.
+
+**Not done:** moving B1450's cache breakpoint, and no relevance filtering.
+Both considered and rejected per the decisions below.
 
 ## Acceptance
 
-TODO
+- `npm run verify` passes — build, tsc, eslint, the full vitest suite (6,861
+  tests) and knip all green in this worktree.
+- `test/helper-tool-areas.test.ts` asserts the per-turn count materially
+  smaller than the registry's total, not just its byte size: 20 tools in the
+  worst ordinary case against 47 in the registry.
+- `test/helper-tools.test.ts` and the honesty counters are unchanged and
+  still pass — nothing lost reachability, because `runTool` still resolves
+  against the whole `TOOLS` registry regardless of which schemas were on
+  offer, and `switch_area` reaches any area that was not.
 
 ## Why
 

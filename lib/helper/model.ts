@@ -10,7 +10,7 @@ import { recordUsage, type Operation } from "../usage";
 import type { Block, Proposal } from "./blocks";
 import type { Say } from "./intents";
 import type { Turn } from "./thread";
-import { TOOLS, runTool, toolList, toolSchemas } from "./tools";
+import { AREAS, TOOLS, runTool, toolList, toolSchemas, type AreaKey } from "./tools";
 
 /**
  * The one place a model is spoken to — B684, and §5 of
@@ -491,6 +491,103 @@ const MAX_TOOL_ROUNDS = 4;
 
 /** The answer's ceiling. A paragraph or two: this is somebody's phone. */
 const THREAD_MAX_TOKENS = 700;
+
+/**
+ * Two-pass by area — B1053.
+ *
+ * Every tool on every round chose worse as the registry grew: the honesty
+ * counters are where a fifty-tool list showed up, not the ceiling test, which
+ * only measures bytes. So a turn no longer sends the whole registry. It sends
+ * `trips` — the one area nearly everything else hangs off, `tripIdFor` reads
+ * it constantly — plus whichever area a first, cheap round picks, plus one
+ * escape hatch (`switch_area`) that adds another area's tools mid-turn if the
+ * first pick was wrong.
+ *
+ * **Why `trips` always, rather than only the picked area:** the picked area's
+ * tools alone can be small enough that the system prompt plus that one area's
+ * schemas falls under Haiku's 4,096-token cache minimum — `readers` alone
+ * measured at ~3,990 combined, under the line, and caching would have gone
+ * silently off for exactly the areas B1053 shrank hardest. `trips` baseline
+ * plus any other single area measured at 5,199–6,015 tokens, comfortably
+ * above the minimum and still well under the ~9,491 the full registry costs.
+ * Measured with `test/helper-tool-areas.test.ts`'s own numbers, not assumed.
+ *
+ * **Why the tool list must not vary round to round, only turn to turn:**
+ * B1450 caches the tools+system prefix with one breakpoint, and that saving
+ * lives *inside* a turn — round two reads what round one wrote. A tool list
+ * that changed on every round of the same turn would invalidate that prefix
+ * every time and undo the saving to fix a choosing problem. So the active
+ * area set is decided once, before `rounds()` starts, and only grows — via
+ * `switch_area` — when the model itself says the first pick was not enough;
+ * that is the one case allowed to cost the round-to-round cache, because the
+ * alternative is a tool the model cannot reach at all.
+ */
+const HUB_AREA: AreaKey = "trips";
+
+const AREA_KEYS: readonly AreaKey[] = AREAS.map((area) => area.key);
+
+function areaTools(keys: ReadonlySet<AreaKey>) {
+  return AREAS.filter((area) => keys.has(area.key)).flatMap((area) => area.tools);
+}
+
+/** The one meta-tool that is not in the registry — it names no capability of
+ *  its own and never reaches `runTool`. `rounds()` intercepts it directly. */
+const SWITCH_AREA_TOOL = {
+  name: "switch_area",
+  description:
+    "Call this if what you need is not among the tools you were given. It adds one more area's tools for the rest of this conversation. Areas: " +
+    AREAS.map((area) => `${area.key} (${area.describe})`).join("; ") +
+    ".",
+  input_schema: {
+    type: "object" as const,
+    properties: { area: { type: "string" as const, enum: AREA_KEYS as unknown as string[] } },
+    required: ["area"],
+    additionalProperties: false,
+  },
+};
+
+const PICK_AREA_SCHEMA = {
+  type: "object",
+  properties: { area: { type: "string", enum: AREA_KEYS as unknown as string[] } },
+  required: ["area"],
+  additionalProperties: false,
+} as const;
+
+function pickAreaSystemPrompt(): string {
+  return `You are about to help somebody with their own travel journal, called Fernscout. Before you are given any tools, say which one area of the journal their message needs first. Areas:\n${AREAS.map((area) => `- ${area.key}: ${area.describe}`).join("\n")}\n\nIf more than one might apply, pick the one their latest message most directly needs — you can ask for another area's tools later if this one is not enough.`;
+}
+
+/**
+ * The extra round trip the design costs — one small, uncached call, forced
+ * into a single JSON answer the same way `findInJournal` and
+ * `mapStatementColumns` already are. A bad or missing answer falls back to
+ * the hub area alone rather than failing the turn.
+ */
+async function pickArea(
+  client: Anthropic,
+  messages: Anthropic.MessageParam[],
+  owner?: string,
+): Promise<AreaKey> {
+  const response = await client.messages.create({
+    model: HELPER_MODEL,
+    max_tokens: 20,
+    system: pickAreaSystemPrompt(),
+    messages,
+    output_config: { format: { type: "json_schema", schema: PICK_AREA_SCHEMA } },
+  });
+  await book(owner, "ask_thread", response.usage);
+  const text = response.content
+    .map((block) => (block.type === "text" ? block.text : ""))
+    .join("")
+    .trim();
+  try {
+    const parsed = JSON.parse(text) as { area?: unknown };
+    const area = AREA_KEYS.find((key) => key === parsed.area);
+    return area ?? HUB_AREA;
+  } catch {
+    return HUB_AREA;
+  }
+}
 
 /**
  * The thread's system prompt. **This is the product**, like the three above it.
@@ -1809,6 +1906,16 @@ export async function answerInThread(
     },
   ];
 
+  /**
+   * Which areas' tools this turn is offered — `trips` always, plus one
+   * area a cheap first round picks, plus whatever `switch_area` adds while
+   * `rounds()` runs. Decided once, here, rather than inside `rounds()`'s
+   * loop: the tool list stays the same prefix from round to round unless a
+   * `switch_area` call grows it, which is what keeps B1450's cache intact
+   * for the ordinary turn. See the comment above `HUB_AREA`.
+   */
+  const activeAreas = new Set<AreaKey>([HUB_AREA, await pickArea(client, messages, username)]);
+
   /** The rounds, over the messages built above. Returns what it said. */
   async function rounds(): Promise<string> {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
@@ -1816,7 +1923,7 @@ export async function answerInThread(
         model: HELPER_MODEL,
         max_tokens: THREAD_MAX_TOKENS,
         system: cachedSystem,
-        tools: toolSchemas(),
+        tools: [...toolSchemas(areaTools(activeAreas)), SWITCH_AREA_TOOL],
         messages,
       });
       await book(username, "ask_thread", response.usage);
@@ -1842,6 +1949,36 @@ export async function answerInThread(
       let roundHasProposal = false;
       const deferredTripsBlocks: Block[] = [];
       for (const call of calls) {
+        /**
+         * The escape hatch, not a tool in the registry — B1053. Handled
+         * before the lookup below, which would otherwise answer "there is no
+         * tool called switch_area" and teach the model the opposite of what
+         * is true. Growing `activeAreas` here is read back at the top of the
+         * next round's `tools:` line, so the newly added area's real tools
+         * are available from the very next call onward, in the same turn.
+         */
+        if (call.name === "switch_area") {
+          const wanted = (call.input as { area?: unknown } | null)?.area;
+          const key = AREA_KEYS.find((one) => one === wanted);
+          const had = key ? activeAreas.has(key) : false;
+          if (key) activeAreas.add(key);
+          results.push({
+            type: "tool_result",
+            tool_use_id: call.id,
+            is_error: !key,
+            content: JSON.stringify(
+              key
+                ? {
+                    switched: true,
+                    alreadyHad: had,
+                    area: key,
+                    tools: areaTools(new Set([key])).map((one) => one.name),
+                  }
+                : { error: `there is no area called ${String(wanted)}` },
+            ),
+          });
+          continue;
+        }
         looked.push(call.name);
         const tool = TOOLS.find((one) => one.name === call.name);
         if (tool) onToolStart?.({ name: tool.name, kind: tool.kind });

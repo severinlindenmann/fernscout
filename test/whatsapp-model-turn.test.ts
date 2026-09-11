@@ -31,6 +31,15 @@ vi.mock("@anthropic-ai/sdk", () => ({
   default: class {
     messages = {
       create: async (params: Record<string, unknown>) => {
+        // B1053 — the area-pick round ahead of `rounds()` is answered here,
+        // structurally, before it reaches `sent` or the scripted `create`
+        // queue: letting it through would shift every `sent[n]` index below
+        // by one. Which area it picks does not matter to anything here.
+        const format = (params.output_config as { format?: { schema?: { properties?: Record<string, unknown> } } })
+          ?.format;
+        if (format?.schema?.properties?.area) {
+          return { content: [{ type: "text", text: '{"area":"days"}' }], usage: { input_tokens: 40, output_tokens: 5 } };
+        }
         sent.push(params);
         return create(params);
       },
