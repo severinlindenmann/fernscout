@@ -7,8 +7,7 @@ complexity: medium
 area: invites, contacts
 found: "2026-09-10T11:19:51Z"
 started: "2026-09-11T11:57:57Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T11:57:57Z"
+merged: "2026-09-11T12:31:14Z"
 ---
 
 # B1301 — An approved reader who opens a buddy link is given write access to the trip with no owner decision, and told there is nothing to do
