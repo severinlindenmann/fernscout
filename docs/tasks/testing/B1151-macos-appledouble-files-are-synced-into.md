@@ -7,8 +7,7 @@ complexity: low
 area: ops, content, deploy
 found: "2026-09-09T18:38:35Z"
 started: "2026-09-11T15:48:00Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T15:48:00Z"
+merged: "2026-09-11T16:05:07Z"
 ---
 
 # B1151 — macOS AppleDouble files are synced into the demo journal's originals on the server
@@ -98,3 +97,35 @@ case the same one-off copy touched more than this one trip.
 
 - `find $CONTENT_DIR -name '._*' | wc -l` is 0 on the host.
 - A subsequent `ship.sh` run does not recreate them.
+
+
+## The sweep, 2026-09-11 — 126 files, one trip, still there
+
+Run with root on the live instance:
+
+```
+find /var/lib/fernscout/content \( -name '._*' -o -name '.DS_Store' \) | wc -l
+126
+```
+
+Every one is under `content/example/trips/parks-2025/originals/` — `._01.jpg`
+beside `01.jpg` in each day's folder, plus `._<dayname>` entries for the
+directories themselves. Nothing outside that one trip, and no `.DS_Store` at all.
+
+That confirms the diagnosis rather than the ticket's premise: `ship.sh`'s rsync
+excludes `originals/` wholesale and has carried `--exclude '._*'` since B828, so
+it cannot have put them there. A manual copy from a Mac into that one directory
+did.
+
+**They are still on the instance.** Removing them is a delete against the
+owner's own content folder, so it is not an agent's to do unasked — the files
+are junk metadata rather than anybody's photographs, but the folder is theirs.
+The command, for whoever decides:
+
+```
+ssh 95.216.112.173 "find /var/lib/fernscout/content -name '._*' -delete"
+```
+
+Nothing reads them: `lib/ingest/index.ts:151` skips dotfiles when scanning, and
+`lib/exportZip.ts`'s `isDotfilePath` strips them from an export. So they cost
+disk and an untidy `ls`, and nothing else.
