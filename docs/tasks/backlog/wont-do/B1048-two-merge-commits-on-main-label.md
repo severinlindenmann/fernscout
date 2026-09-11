@@ -1,6 +1,7 @@
 ---
 id: B1048
 title: Two merge commits on main label themselves B1026 and B1027, which are different tickets
+wontDo: "The owner's call: not worth carrying. Two -- in fact four -- merge commits cite the wrong ticket id, and nobody has been misled by them."
 type: CHORE
 priority: low
 complexity: low
@@ -70,3 +71,16 @@ titles will show any other subject line that does not match its id.
 - A check has been run for other mislabelled merge subjects on `main`, and
   whatever it found is recorded here.
 
+## Closed, 2026-09-11 — not worth carrying
+
+Validation found it is **four** merge commits, not the two the title claims:
+`ad1018a5` and `af076699` mislabel themselves B1027 and B1026, alongside the two
+genuine ones.
+
+It is real and it has misled nobody. Its own body left "is this worth doing at
+all" to a person, and the answer is no. The repair would have been two `git
+notes` against commits nobody reads, plus a notes convention this repository
+does not otherwise have.
+
+Recorded rather than deleted, because an id is forever here and a closed ticket
+is how the next person finds out this was considered.

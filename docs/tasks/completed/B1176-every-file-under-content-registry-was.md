@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: ops, registry
 found: "2026-09-09T20:20:00Z"
+completed: "2026-09-11T16:20:57Z"
 ---
 
 # B1176 — every file under content/.registry was root-owned, so the service account could not release a lock
@@ -59,3 +60,17 @@ same cause.
   step is what proves it.
 - Whatever ran as root either no longer does, or is followed by something that
   puts the ownership back.
+
+
+## Closed, 2026-09-11 — measured, then the owner's word
+
+```
+stat -c "%U:%G" /var/lib/fernscout/content/.registry   →  fernscout:fernscout
+find /var/lib/fernscout/content/.registry ! -user fernscout | wc -l   →  0
+```
+
+Not one file under the registry is owned by anybody but the service account. The
+43 root-owned lock files this ticket describes are gone, and with them the
+failure they caused — a journal deletion that could not release its lock,
+stopping partway with no tombstone, which is what B1175 hardened against today
+from the other side.

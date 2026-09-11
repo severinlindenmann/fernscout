@@ -1,6 +1,7 @@
 ---
 id: B442
 title: A postcard order closed in a tab cannot be found again
+superseded: "The orders page. /<user>/orders lists postcard and photobook orders behind the owner cookie, checked live on 2026-09-11; /<user>/account is the other half."
 type: FEATURE
 priority: low
 complexity: low
@@ -39,3 +40,14 @@ do not let a long history of sent cards push them off the screen.
 
 An order created and abandoned is findable again without its id, by the owner
 and by nobody else.
+
+## Closed, 2026-09-11 — solved elsewhere
+
+Checked live with an owner cookie: `https://fernscout.ch/example/orders` answers
+`200`, is titled **"Your orders"**, and lists both postcards and photobooks. It
+404s signed out, which is the owner-only pattern rather than the page being
+absent — that is what made it look missing from outside.
+
+So the gap this ticket describes — an order reachable only by the link an agent
+handed over, lost the moment the tab closes — is closed. `/<user>/account` is the
+other half the owner named.

@@ -7,6 +7,7 @@ complexity: medium
 area: push, ops, capabilities
 found: "2026-09-03"
 related: B102, B103, B104, B105, B107, B108, B109, B110
+completed: "2026-09-11T16:20:56Z"
 ---
 
 # B106 — Push has never been switched on anywhere, so nothing has proved a notification reaches a phone
@@ -123,3 +124,15 @@ same shape: an engagement whose output is other tasks.
 - Which platforms were tried, and which were not.
 - One backlog task per new defect, referencing B106, and a stated decision on
   whether push stays on afterwards.
+
+
+## Closed, 2026-09-11 — the owner's word
+
+Probed the live instance while briefing the queue: `VAPID` keys are set in
+`/etc/fernscout/env` and `/api/health` reports `push` as `{"enabled": true}`.
+The ticket's premise — that push has never been switched on anywhere, here or in
+development — is no longer true, and the ticket itself already flagged as
+"partly stale as of 2026-09-05".
+
+Whether a notification reaches a particular phone is a thing only somebody
+holding a phone can say, and the owner has said it.
