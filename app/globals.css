@@ -139,11 +139,14 @@
 
   --color-blue-500: var(--color-blue-500);
 
-  --font-display: var(--font-fredoka), ui-rounded, system-ui, sans-serif;
-  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  /* B1044 — each family's -ext variable carries the latin-ext subset, not
+     preloaded (see app/layout.tsx), listed second so the browser reaches for
+     it only when a character the first font lacks shows up. */
+  --font-display: var(--font-fredoka), var(--font-fredoka-ext), ui-rounded, system-ui, sans-serif;
+  --font-sans: var(--font-jakarta), var(--font-jakarta-ext), ui-sans-serif, system-ui, sans-serif;
   /* B733 — the mono voice for kickers, labels, pills, ids and counts. Loaded
      in app/layout.tsx the same way --font-fredoka and --font-jakarta are. */
-  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
+  --font-mono: var(--font-plex-mono), var(--font-plex-mono-medium), ui-monospace, "SFMono-Regular", monospace;
 }
 
 html {
