@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: photobook, credits, print
 found: "2026-09-11T08:12:26Z"
+started: "2026-09-11T08:33:28Z"
+session: 96a5b964-fad1-4616-9124-a01eabbd8a46
+claimed: "2026-09-11T08:33:28Z"
 ---
 
 # B1428 — A book bought before the one-price change would be charged the whole price again to print it
@@ -78,4 +81,63 @@ one-press flow. The new price is correct; only this legacy door is wrong.
   the full new price.
 - Whatever is decided is written where a reader of `print.ts` meets it, and
   the B1164 comment no longer describes a split that does not exist.
+- `npm run verify` clean.
+
+---
+
+## Decided 2026-09-11 — delete it, and flatten the VAT
+
+The owner's words: *"remove everything that is legacy, no legacy code, and
+mwst take 2.6%."* So of the three options above, the third: the path goes.
+
+**Nothing real is lost.** Every photobook order on the instance belongs to the
+demo journal — 58 rows carrying the old build-only charge and one bought
+through the current one-press flow. No other journal has ever ordered a book,
+so no person loses a door they were using.
+
+**The VAT becomes one rate.** Print and carriage both at 2.6%, not 2.6% on the
+book and 8.1% on the postage. A delivery charged as part of supplying goods
+follows the rate of the goods under Swiss VAT, so a single rate on a single
+supply is the more defensible reading, and it is what was asked for. The
+prices fall by CHF 0.80-1.20. If Gelato does in fact invoice 8.1% on carriage,
+the cost basis is understated by about CHF 0.47 a book and the realised margin
+is 48.9-49.7% rather than 50% — accepted, and one constant if it matters later.
+
+New floor: **CHF 34.40** (was 35.20).
+
+## Work, as decided
+
+Delete, do not deprecate:
+
+- `printOrder` and everything only it used, in `lib/photobook/print.ts` —
+  including the `already_paid`, `stale_quote` and `not_built` outcomes that
+  exist only for it. `submitBuiltBook` stays: the current one-press flow uses
+  it.
+- `app/[user]/photobooks/[id]/print/route.ts` — the owner's legacy press.
+- `lib/photobook/propose.ts` and `app/api/v1/[user]/photobooks/[id]/print/`
+  — proposing a print only ever led to that press. With the press gone the
+  proposal leads nowhere, so it goes too.
+- `proposePrint` in `lib/photobook/orders.ts`, and the `print.paid` flag now
+  that there is no second charge for it to guard against.
+- The operation for `/api/v1/{user}/photobooks/{id}/print` in
+  `lib/api/openapi.ts`, and any mention in `/agent.md`. **A route deleted from
+  the code and left in the contract is worse than either.**
+- Every comment describing the split — `orders.ts:77` still explains "165
+  credits against the 205 that had been paid".
+
+Then `PHOTOBOOK_SHIPPING_VAT_RATE` folds into one `PHOTOBOOK_VAT_RATE = 0.026`
+with a comment saying why one rate and what the exposure is if carriage is
+really 8.1%.
+
+Leave the 58 stored rows alone. They are built books whose PDFs still
+download; they simply have no print door any more, which is correct — the
+object they half-paid for is not one this instance sells.
+
+## Acceptance, as decided
+
+- `grep -rn "printOrder\|proposePrint\|already_paid\|stale_quote\|print\.paid\|PHOTOBOOK_SHIPPING_VAT_RATE" lib app test` is empty.
+- `/openapi.json` does not describe a route that no longer exists, and
+  `test/openapi-contract.test.ts` passes.
+- The floor on the public pricing table reads CHF 34.40.
+- A 46-page square softcover prices at 226 credits (CHF 45.20).
 - `npm run verify` clean.
