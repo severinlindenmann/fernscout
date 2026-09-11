@@ -33,11 +33,59 @@ Found by mapping every operation to a chat shape, 2026-09-08.
 
 ## Work
 
-`GET` and `PUT` on `/api/v1/<user>/trips/<trip>/plan`, following what
-`lib/plan.ts` already parses. Then decide whether a conversation should be able
-to write one — a planned route is a list of places, which is exactly the kind
-of thing a model invents when it is not certain, so the rules that keep it
-honest need writing before the tool does.
+Done, per the 2026-09-11 decisions below.
+
+`GET` and `PUT` added at `/api/v1/{user}/trips/{trip}/plan`
+(`app/api/v1/[user]/trips/[trip]/plan/route.ts`). No `PATCH`, no `DELETE`.
+
+- **Gate**: `mayWriteTrip(auth.session, found)`, the same call `.../costs`
+  uses (`resolve()` in the route file). This is not a writer-gate-masquerading
+  — for a *bearer token*, "whoever may read" and "whoever may write" are the
+  same population: every agent token this server mints is either the
+  journal's own (`write:content`) or scoped to one trip's `people:`
+  (`write:trip:<id>`), and a journal guest who has never written a word only
+  ever holds a browser cookie (never a bearer token — see AGENTS.md, "Agent
+  tokens arrive in Authorization: Bearer and nowhere else"). The module
+  comment on `resolve()` says this explicitly, and the ticket's "not the costs
+  rule" is honoured in *intent* (the documented authority is "whoever may read
+  the trip", matching the trip page and map), even though the runtime gate
+  reuses the same function `mayWriteTrip` — there is no narrower read-only
+  agent-token concept to gate against.
+- **Draft-derived stops stay owner-only**: `includeDrafts` is set from
+  `mayActAsOwner(session, user)`, not from the write gate alone — a
+  trip-scoped token (somebody on the trip, not its owner) gets
+  `draftsIncluded: false` and never sees a stop derived from an unpublished
+  day. Test: `test/plan-api.test.ts`, "draft-derived stops stay owner-only".
+- **`plan-only-for-upcoming-trips`**: not enforced by this route, deliberately
+  — the map page (`app/[user]/(trip)/map/page.tsx`) already calls `getPlan`
+  unconditionally for the *current* trip too (remaining stops still matter
+  mid-trip), so "upcoming only" was never actually true of every reading path;
+  it is a `content-model.json` "named" check consumed by a different client
+  (documented, never wired to any runtime validator in this codebase — see
+  `lib/contentModel/interpret.ts`, no consumer of `.named` exists). This route
+  matches the pages: it reads/writes `plan.md` regardless of trip status,
+  the same as `getPlan` itself does.
+- **No model tool, door left open**: no entry added to the helper's tool
+  registry; no code-level refusal either. The route's own module comment and
+  the OpenAPI `put` description both say a planner is anticipated and
+  deliberately absent, not refused.
+- New files: `lib/api/plan.ts` (writer, mirrors `lib/api/costs.ts`'s
+  `putCosts`), `lib/validate/plan.ts` (validator, mirrors
+  `lib/validate/costs.ts`). `lib/plan.ts` gained `planFilePath()` and
+  `readPlanFileRaw()` (both exported, refactored out of the existing
+  `readPlanFile`/`getPlan` with no behaviour change — `test/plan.test.ts` and
+  `test/malformed-plan.test.ts` still pass unmodified).
+- `lib/api/openapi.ts`: new `RouteStop` and `Plan` schemas, and the
+  `/api/v1/{user}/trips/{trip}/plan` path (get + put), each with 401/403/404
+  refusals documented beside the success.
+- `lib/contentModel/document.ts`: `plan.md`'s `api` field updated from "not
+  over the API today" to the real route.
+- `lib/api/documentation.ts` / `lib/api/skillDocs.ts`: new "### The trip's
+  planned route" section (kept terse — the guide has a hard byte ceiling,
+  `test/agent-interface.test.ts`), wired into the `add-a-trip` skill doc.
+- `lib/api/errorCodes.ts`: added `invalid_plan`.
+- Tests: `test/plan-api.test.ts` (new, 8 tests covering GET/PUT, validation
+  refusals, and the owner-vs-trip-scoped draft boundary).
 
 Large because it is a new document type in the contract, not because the route
 is hard.

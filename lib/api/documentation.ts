@@ -2189,6 +2189,19 @@ a budget is trip content, and the people on a trip are the people who spent
 the money. Per-day spending is a different field entirely: \`costs\` on
 \`POST .../days\`, above, which this door does not touch.
 
+### The trip's planned route
+
+An upcoming trip may carry a \`plan.md\`, the route it means to follow:
+\`PUT .../trips/<trip-id>/plan\` with \`{"route": [{"location", "lat", "lng",
+"country?", "countryCode?", "note?"}], "body"}\`, each stop needing a real
+\`lat\`/\`lng\`. \`PUT\` replaces the whole route; \`GET\` reads it back,
+marked \`reached\`. \`draftsIncluded\` says whether future-dated drafts were
+folded in — the owner only, never a trip-scoped token.
+
+Write what was actually said, the same as a day: no tool writes here on its
+own yet. Same authority as a day: whoever may \`POST\` one into this trip
+may read or write its route too, trip-scoped tokens included.
+
 ### What the trip actually cost, from a bank statement
 
 A statement is the other half of a budget: the budget is what somebody meant to
