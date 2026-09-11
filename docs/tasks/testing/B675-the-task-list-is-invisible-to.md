@@ -7,8 +7,7 @@ complexity: medium
 area: docs, tasks
 found: "2026-09-07T08:56:15Z"
 started: "2026-09-11T17:27:04Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T17:27:04Z"
+merged: "2026-09-11T17:59:16Z"
 ---
 
 # B675 — The task list is invisible to anybody not standing in the checkout
