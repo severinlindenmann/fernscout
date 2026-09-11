@@ -7,8 +7,7 @@ complexity: low
 area: photobook, credits, print
 found: "2026-09-11T08:12:26Z"
 started: "2026-09-11T08:33:28Z"
-session: 96a5b964-fad1-4616-9124-a01eabbd8a46
-claimed: "2026-09-11T08:33:28Z"
+merged: "2026-09-11T09:19:45Z"
 ---
 
 # B1428 — A book bought before the one-price change would be charged the whole price again to print it
