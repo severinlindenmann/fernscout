@@ -325,11 +325,12 @@ Do not edit them by hand; run the script.
 | [B1525](open/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low |
 | [B1534](open/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1548](in-development/B1548-poll-stannp-for-a-card-s.md) | Poll Stannp for a card's status when the order page is opened | FEATURE | medium | low | `34e11f5c` |
+| [B1549](in-development/B1549-the-order-receipt-says-the-photobook.md) | The order receipt says the photobook is on its way when it has only reached the printer's queue | ISSUE | medium | low | `57d87f37` |
 
 ## testing (19)
 
