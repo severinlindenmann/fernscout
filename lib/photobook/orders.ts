@@ -182,10 +182,14 @@ export async function getPhotobookOrder(owner: string, id: string): Promise<Phot
  * actually sends and nothing would say so: the page rendered nothing at all
  * for a redirect it did not recognise, which is exactly how a *future* state
  * would show the owner — who has often just paid — a blank page. Typed as a
- * union instead, `OUTCOME_MESSAGE` is declared as an exact `Record` over it
- * (minus `"done"`, which renders its own success panel rather than a message
- * from that table), so adding a state here without a matching entry there
- * fails the typecheck instead of failing silently in a browser.
+ * union instead, `OUTCOME_MESSAGE` is declared as an exact `Record` over it,
+ * so adding a state here without a matching entry there fails the typecheck
+ * instead of failing silently in a browser.
+ *
+ * `"done"` is deliberately not a member — B1365. A finished order redirects
+ * straight to its own receipt page (`/<user>/photobooks/<id>`) instead of
+ * back through this panel, so there is no success state for this page to
+ * render at all.
  *
  * `"refund_failed"` is deliberately not a member: B509 reordered the route to
  * build before spending, so a failed build is never charged and there is
@@ -195,7 +199,6 @@ export async function getPhotobookOrder(owner: string, id: string): Promise<Phot
  * reachable.
  */
 export const PHOTOBOOK_OUTCOME_STATES = [
-  "done",
   "duplicate",
   "no_credits",
   "no_photos",
@@ -357,10 +360,9 @@ export type PhotobookOutcome = { state: PhotobookOutcomeState; orderId: string |
  * an identical `?state=&order=` this way, since `back()` always lands on the
  * second one but both accept the query.
  *
- * Only a successful order has files to hand over, and the lookup only runs
- * for `state=done` with an id shaped like one this route would ever have
+ * The lookup only runs for an id shaped like one this route would ever have
  * produced — a stray query parameter must not turn into a lookup of somebody
- * else's order, and every other state needs no row at all.
+ * else's order.
  */
 export async function outcomeFrom(
   owner: string,

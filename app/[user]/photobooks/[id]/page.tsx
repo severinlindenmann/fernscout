@@ -10,6 +10,7 @@ import { formatCredits } from "@/lib/credits/format";
 import { isoCountry } from "@/lib/photobook/country";
 import { fetchOrderStatus, quoteBook } from "@/lib/photobook/gelato";
 import { getPhotobookOrder } from "@/lib/photobook/orders";
+import { visibleBookFiles } from "@/lib/photobook/visibleFiles";
 import {
   PHOTOBOOK_PRINT_OUTCOME_STATES,
   type PrintOutcomeState,
@@ -84,7 +85,7 @@ export default async function PhotobookOrderPage({
   const trip = getTrip(order.payload.trip);
   const size = BOOK_SIZES[order.payload.options.size];
   const productUid = size ? productUidFor(size.id, order.payload.options.coverType) : null;
-  const files = order.payload.files ?? [];
+  const files = visibleBookFiles(order.payload.files ?? []);
   const print = order.payload.print;
 
   const resultParam = query.print;
@@ -98,6 +99,11 @@ export default async function PhotobookOrderPage({
   // shown together: an order at the printer is not one you can re-address.
   let statusText: string | null = null;
   let panel: React.ReactNode = null;
+  // B1367. The one status this page has to draw as an actual failure: the
+  // printer refused the order and the credits went back. Everything else
+  // (in progress, not built yet, waiting on a recipient, the printer briefly
+  // unreachable) reads as an ordinary, unremarkable status.
+  let statusIsFailure = false;
 
   if (print?.providerRef) {
     const gelatoStatus = await fetchOrderStatus(print.providerRef);
@@ -123,6 +129,7 @@ export default async function PhotobookOrderPage({
     statusText = t("photobook.print.refusedRefunded", {
       credits: formatCredits(order.payload.credits),
     });
+    statusIsFailure = true;
   } else if (order.status === "printed") {
     // B1093. Who this is for is chosen here, not only by an agent beforehand.
     // The owner's own contact is the default — `self` — and `?to=` is how the
@@ -202,56 +209,109 @@ export default async function PhotobookOrderPage({
     statusText = t("photobook.print.notBuilt");
   }
 
+  // B1367. This page reads as the receipt it structurally is, rather than
+  // an unstyled h1 and a bare underlined list: a head block naming the trip
+  // and the physical object, a colour-coded status block for what the
+  // printer has said, and a downloads card. No cover figure — nothing here
+  // renders a thumbnail of the actual cover PDF, and that is deliberate;
+  // building one is a server-side pipeline this ticket does not add.
+  const isFailure = statusIsFailure || outcome === "refused";
+  const bookSizeLabel = size?.name ?? order.payload.options.size;
+
   return (
     <div className="min-h-screen">
       <PageHeader />
-      <main className="mx-auto w-full max-w-2xl px-4 py-8">
-        <h1 className="font-display text-2xl font-semibold text-navy-900">
+      <main className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6">
+        <div className="border-b border-navy-200 pb-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">
+            {t("photobook.title")}
+          </p>
           {/* B1164. "Print this book" is an offer, and for a book already
               bought printed this page is a receipt — it has nothing to sell.
               A book built before B1157 still has printing to buy here, and
               keeps the old heading. */}
-          {t(print?.paid ? "photobook.print.receiptTitle" : "photobook.print.orderTitle")}
-        </h1>
-        <p className="mt-1 text-sm text-navy-600">
-          {t("photobook.print.orderIntro", {
-            trip: trip?.title ?? order.payload.trip,
-            pages: String(order.payload.pages),
-            volumes: String(order.payload.volumes),
-            size: size?.name ?? order.payload.options.size,
-          })}
-        </p>
+          <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight text-navy-900 sm:text-3xl">
+            {t(print?.paid ? "photobook.print.receiptTitle" : "photobook.print.orderTitle")}
+          </h1>
+          <p className="mt-2 text-sm text-navy-600">
+            {t("photobook.print.orderIntro", {
+              trip: trip?.title ?? order.payload.trip,
+              pages: String(order.payload.pages),
+              volumes: String(order.payload.volumes),
+              size: bookSizeLabel,
+            })}
+          </p>
+        </div>
 
-        {files.length > 0 ? (
-          <ul className="mt-4 space-y-1 text-sm">
-            {files.map((file) => (
-              <li key={file}>
-                <a className="underline" href={`/${username}/photobooks/${id}/${file}`}>
-                  {file}
-                </a>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-4 text-sm text-navy-600">{t("photobook.print.noFiles")}</p>
-        )}
-
-        <section id="print" className="mt-8 scroll-mt-4">
-          <h2 className="font-display text-lg font-semibold text-navy-900">
-            {t("photobook.print.heading")}
-          </h2>
+        {/* Printing status — one colour-coded block: a dot, a title, and
+            whatever detail this state has to add. Coral is reserved for the
+            one state that is an actual failure; every other state (in
+            progress, not built yet, waiting on a recipient, the printer
+            briefly unreachable) reads as ordinary navy. The branching above
+            that decides `statusText`/`panel`/`statusIsFailure` is untouched —
+            this only changes how the answer is drawn. */}
+        <section
+          id="print"
+          className={`mt-6 scroll-mt-4 rounded-lg border px-4 py-4 ${
+            isFailure ? "border-coral-300 bg-coral-50" : "border-navy-200 bg-white"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                isFailure ? "bg-coral-600" : "bg-navy-600"
+              }`}
+            />
+            <p className={`font-semibold ${isFailure ? "text-coral-600" : "text-navy-900"}`}>
+              {t("photobook.print.heading")}
+            </p>
+          </div>
 
           {outcome ? (
-            <p
-              role="status"
-              className="mt-2 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900"
-            >
+            <p role="status" className="mt-2 text-sm text-navy-700">
               {t(RESULT[outcome])}
             </p>
           ) : null}
 
-          {statusText ? <p className="mt-2 text-sm">{statusText}</p> : null}
-          {panel}
+          {statusText ? <p className="mt-2 text-sm text-navy-700">{statusText}</p> : null}
+
+          {panel ? <div className="mt-3">{panel}</div> : null}
+        </section>
+
+        {/* Downloads — a labelled card, one row per file. B1366 has already
+            dropped the print-only interior/cover halves nobody reading this
+            page needs; a single-volume book is one row for book.pdf. */}
+        <section className="mt-6 rounded-lg border border-navy-200 bg-white">
+          <h2 className="border-b border-navy-200 px-4 py-3 font-display text-base font-semibold text-navy-900">
+            {t("photobook.downloadFile")}
+          </h2>
+          {files.length > 0 ? (
+            <ul className="divide-y divide-navy-100">
+              {files.map((file) => (
+                <li key={file} className="flex items-center gap-3 px-4 py-3">
+                  <span
+                    aria-hidden
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-navy-100 text-[10px] font-bold tracking-wide text-navy-700"
+                  >
+                    PDF
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-navy-900">{file}</p>
+                    <p className="truncate text-xs text-navy-600">{bookSizeLabel}</p>
+                  </div>
+                  <a
+                    className="shrink-0 rounded-full border border-navy-300 px-3 py-1.5 text-xs font-semibold text-navy-800 transition-colors hover:bg-navy-50"
+                    href={`/${username}/photobooks/${id}/${file}`}
+                  >
+                    {t("photobook.downloadFile")}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="px-4 py-3 text-sm text-navy-600">{t("photobook.print.noFiles")}</p>
+          )}
         </section>
       </main>
     </div>
