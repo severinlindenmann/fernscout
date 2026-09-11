@@ -7,8 +7,7 @@ complexity: medium
 area: photobook
 found: "2026-09-11T15:56:56Z"
 started: "2026-09-11T16:10:05Z"
-session: 3f748903-2dc3-47a2-a958-98b83d641dc0
-claimed: "2026-09-11T16:10:05Z"
+merged: "2026-09-11T16:16:13Z"
 ---
 
 # B1482 — The composer is one tall column on desktop, with the settings shut behind a disclosure
