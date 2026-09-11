@@ -13,6 +13,16 @@
  * Everything it needs is on the disk. There is no network call anywhere in
  * this path, including the reverse geocoding, because the evening you most
  * want to write up the day is the evening the wifi does not work.
+ *
+ * **B112 asked whether a local script could still write a day the API would
+ * refuse, and the answer for this one is no, on purpose.** It is offline by
+ * design — a hosted journal's owner has no folder to run this against in the
+ * first place — so it cannot be replaced by a network route the way B671
+ * replaced the location-history CLI. What it writes still goes through the
+ * same two guarantees the API does: `lib/validate/entry.ts` (imported by
+ * `lib/ingest/index.ts`) is the one shared validator, and `status: draft` is
+ * hardcoded in `lib/ingest/entry.ts` with no flag able to skip it.
+ * `test/scripts-entry-writers.test.ts` is the check that keeps this true.
  */
 import path from "node:path";
 import { IngestError, ingest } from "../lib/ingest/index.ts";
