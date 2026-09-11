@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: orders
 found: "2026-09-11T14:18:09Z"
+started: "2026-09-11T15:02:43Z"
+session: 3f748903-2dc3-47a2-a958-98b83d641dc0
+claimed: "2026-09-11T15:02:43Z"
 ---
 
 # B1466 — The photobook buy panel duplicates the receipt's envelope, ledger and price lines
