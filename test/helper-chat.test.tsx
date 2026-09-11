@@ -669,3 +669,55 @@ describe("a turn with two proposals", () => {
     );
   });
 });
+
+/**
+ * B1253 — the proposal focus and the thread's own bottom-scroll used to be
+ * two effects that ran every render and disagreed: the second always undid
+ * the first, so a tall card opened scrolled past the sentence explaining it.
+ * jsdom has no layout, so this asserts which DOM call fires for which kind
+ * of turn rather than any pixel — `scrollIntoView` for a card, the log's
+ * `scrollTop` setter for plain text.
+ */
+describe("where the screen goes when a turn lands — B1253", () => {
+  // The log only mounts once a turn exists (`inRoom || turns.length > 0`),
+  // so both spies go on the prototype rather than on a queried instance —
+  // there is nothing to query yet at the point a real page would already
+  // have decided where to scroll.
+  let scrollIntoView: ReturnType<typeof vi.fn<() => void>>;
+  let scrollTopSpy: ReturnType<typeof vi.fn<(value: number) => void>>;
+
+  beforeEach(() => {
+    scrollIntoView = vi.fn();
+    scrollTopSpy = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView as unknown as typeof HTMLElement.prototype.scrollIntoView;
+    Object.defineProperty(HTMLElement.prototype, "scrollTop", {
+      configurable: true,
+      get() {
+        return 0;
+      },
+      set(value) {
+        scrollTopSpy(value);
+      },
+    });
+  });
+
+  test("a proposal turn scrolls the card into view and leaves the log's own scrollTop alone", async () => {
+    answers(proposed());
+    render();
+
+    await ask("plan a trip");
+
+    expect(scrollIntoView).toHaveBeenCalled();
+    expect(scrollTopSpy).not.toHaveBeenCalled();
+  });
+
+  test("a plain-text turn scrolls the log to its newest line, not any card", async () => {
+    answers({ ok: true, kind: "read", blocks: saying("Two trips.") });
+    render();
+
+    await ask("how many trips");
+
+    expect(scrollTopSpy).toHaveBeenCalled();
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+});

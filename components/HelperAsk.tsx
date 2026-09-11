@@ -631,32 +631,29 @@ export default function HelperAsk({
     }
   }, [open]);
 
-  // Where focus goes when a turn arrives: to a proposal if the turn ended in
-  // one, because a proposal nobody is looking at is a proposal nobody presses;
-  // to the field otherwise, because saying something else is the usual next
-  // thing. An effect rather than a callback, so it runs after React has put
-  // the block in the document and there is something to focus.
+  // Where the screen goes when a turn arrives — one decision, not two
+  // effects quietly disagreeing about it (B1253: a bottom-scroll effect ran
+  // after this one on every render and undid it). A turn ending in a
+  // proposal gets its top scrolled into view, because a proposal nobody is
+  // looking at is a proposal nobody presses, and its buttons matter more
+  // than whatever came before it; anything else scrolls the thread to the
+  // newest line instead, the one a conversation on a phone must not move
+  // the field away from.
   useEffect(() => {
     const last = turns[turns.length - 1];
-    if (!last) return;
-    if (last.blocks.some(isProposal)) {
+    if (last && last.blocks.some(isProposal)) {
       proposal.current?.focus();
-      // B1343 (E05 A): focus alone scrolls the minimum, which on a tall
-      // card can leave its buttons below the fold. "nearest" shows as much
-      // of the card as fits, buttons included where the card fits at all.
-      proposal.current?.scrollIntoView?.({ block: "nearest" });
+      // `start`, not `nearest` (B1253): the card can be taller than the
+      // viewport, and the sentence explaining it sits above the buttons —
+      // `scroll-mt-24` on the card matches the sticky page header so the
+      // top lands below it rather than under it.
+      proposal.current?.scrollIntoView?.({ block: "start" });
     } else {
       silentFocus.current = true;
       box.current?.focus();
+      if (log.current) log.current.scrollTop = log.current.scrollHeight;
     }
   }, [turns]);
-
-  // Newest last, and the newest is what somebody wants to see. Scrolling the
-  // thread rather than the page keeps the field where it was — the one thing
-  // a conversation on a phone must not move.
-  useEffect(() => {
-    if (log.current) log.current.scrollTop = log.current.scrollHeight;
-  }, [turns, busy]);
 
   /** An injected turn joins the thread once per stamp — B1214 (D26). */
   const injectedAt = useRef(0);
@@ -1839,8 +1836,10 @@ function ProposalView({
       tabIndex={-1}
       /* White card, roomier padding — B1207 (D01 B): the proposal is the
          most important control on the screen and reads as one card now,
-         its header ruled off from the sentence below. */
-      className={`rounded-xl border bg-white p-4 shadow-sm focus:outline-none ${
+         its header ruled off from the sentence below. `scroll-mt-24` —
+         B1253 — matches the sticky page header's height so scrolling this
+         card's top into view lands it below the header, not under it. */
+      className={`scroll-mt-24 rounded-xl border bg-white p-4 shadow-sm focus:outline-none ${
         kind === "edit" ? "border-navy-200" : "border-navy-200 border-t-4 border-t-coral-400"
       }`}
     >
