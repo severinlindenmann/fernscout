@@ -146,6 +146,110 @@ describe("the rules that keep it private", () => {
     expect(hits).toEqual([]);
   });
 
+  /**
+   * B1495 — the same assertion for the sync manifest, which is the second
+   * thing that walks a journal's folder and could therefore be the first
+   * thing in this codebase able to hand back a coordinate.
+   *
+   * The ticket's first decision asked for this to be mechanism rather than a
+   * sentence somebody later disagrees with, and both halves are needed. The
+   * import graph is the *structural* half: `lib/sync/manifest.ts` reaching
+   * into `lib/gps/` would be a route away from a position, since the manifest
+   * is served over HTTP to whoever holds an owner token — and those sit in
+   * agent scrollbacks. The built manifest is the *behavioural* half: a walk
+   * that simply forgot to exclude the folder would pass the import check and
+   * still list every month of somebody's history by name.
+   */
+  test("the sync manifest module does not reach the gps store", () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), "lib", "sync", "manifest.ts"),
+      "utf8",
+    );
+    expect(source).not.toMatch(/from "\.\.?\/gps\//);
+    expect(source).not.toMatch(/from "@\/lib\/gps\//);
+  });
+
+  test("a manifest of a journal with a position history names neither the folder nor a fix", async () => {
+    const trip = path.join(dir, USER, "trips", "algarve");
+    fs.mkdirSync(path.join(trip, "entries"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, USER, "config.json"),
+      JSON.stringify({
+        title: "A", owner: { name: "A B", nickname: "A" }, defaultLocale: "en",
+        locales: ["en"], baseCurrency: "CHF", displayCurrencies: ["CHF"], units: "metric",
+      }),
+    );
+    fs.writeFileSync(
+      path.join(trip, "trip.md"),
+      ['---', 'id: algarve', 'title: "A"', 'start: "2026-06-22"', 'end: "2026-06-24"',
+        "status: past", "visibility: public", "---", ""].join("\n"),
+    );
+    // The derived line is what a laptop copy gets; the history it came from
+    // is what it must never get.
+    fs.writeFileSync(path.join(trip, "track.json"), JSON.stringify({ segments: [] }));
+    appendFixes(USER, [{ t: Date.parse("2026-06-22T09:00:00Z"), lat: 47.38564, lon: 8.21819 }]);
+
+    const { clearUserCache } = await import("@/lib/users");
+    clearUserCache();
+    const { buildManifest, clearSyncHashCache } = await import("@/lib/sync/manifest");
+    clearSyncHashCache();
+    const manifest = buildManifest(USER);
+    const serialised = JSON.stringify(manifest);
+
+    // It found the journal at all — otherwise the assertions below pass on an
+    // empty manifest and prove nothing.
+    expect(manifest.files.map((f) => f.path)).toContain("trips/algarve/trip.md");
+    expect(serialised).not.toContain("gps/");
+    expect(serialised).not.toContain("2026-06.jsonl");
+    // The coordinate itself, in case a path ever changes shape.
+    expect(serialised).not.toContain("47.38564");
+
+    // And `track.json` is out too — derived server-side from the history
+    // above, so syncing it up at the thing that derives it is a conflict with
+    // nothing on either side worth keeping (B1495 decision 3).
+    expect(manifest.files.map((f) => f.path)).not.toContain("trips/algarve/track.json");
+  });
+
+  test("no route reads a file the manifest refuses", async () => {
+    const { inSync, resolveSyncPath } = await import("@/lib/sync/manifest");
+    // The listing and the file door ask one predicate, so these cannot drift.
+    for (const refused of [
+      "gps/2026-06.jsonl",
+      "gps/exclude.json",
+      "trips/algarve/originals/01.jpg",
+      "trips/algarve/track.json",
+      // Shouted, because the filesystem under this is usually
+      // case-insensitive: on APFS these resolve to the real files, so a
+      // case-sensitive check would exclude them from the listing and then
+      // serve them to anybody who asked in capitals.
+      "GPS/2026-06.jsonl",
+      "Gps/2026-06.jsonl",
+      "trips/algarve/ORIGINALS/01.jpg",
+      "trips/algarve/Originals/01.jpg",
+      "trips/algarve/TRACK.json",
+      "postcards/a.pdf",
+      "photobooks/b.pdf",
+      "trips/algarve/.ingest.json",
+      ".fernscout-sync.json",
+      "../other/config.json",
+      "trips/../../etc/passwd",
+    ]) {
+      expect(inSync(refused)).toBe(false);
+      expect(resolveSyncPath(USER, refused)).toBeNull();
+    }
+    for (const allowed of [
+      "config.json",
+      "trips/algarve/trip.md",
+      "trips/algarve/entries/2026-06-22-a.md",
+      "trips/algarve/media/a-day/01.jpg",
+      "trips/algarve/costs.md",
+      "inbox/media/a3f1c2-sunset.jpg",
+      "inbox/media/a3f1c2-sunset.jpg.meta.json",
+    ]) {
+      expect(inSync(allowed)).toBe(true);
+    }
+  });
+
   test.each(["all", "open-to-link"] as const)(
     "a real %s export zip holds the trip's track and nothing from gps/",
     async (scope) => {

@@ -51,9 +51,23 @@ function routeFiles(dir: string, found: string[] = []): string[] {
   return found;
 }
 
-/** `app/api/v1/[user]/trips/route.ts` → `/api/v1/{user}/trips`. */
+/**
+ * `app/api/v1/[user]/trips/route.ts` → `/api/v1/{user}/trips`.
+ *
+ * A catch-all segment collapses to the same shape: `[...path]` → `{path}`,
+ * which is how OpenAPI spells a parameter that happens to contain slashes.
+ * B1495's `sync/file/[...path]` is the first one under `/api/v1`, and without
+ * this the document could only match it by naming the literal `[...path]` —
+ * a path no caller would ever read as a parameter.
+ */
 function openApiPath(file: string): string {
-  return "/" + file.slice("app/".length, -"/route.ts".length).replace(/\[(\w+)\]/g, "{$1}");
+  return (
+    "/" +
+    file
+      .slice("app/".length, -"/route.ts".length)
+      .replace(/\[\.\.\.(\w+)\]/g, "{$1}")
+      .replace(/\[(\w+)\]/g, "{$1}")
+  );
 }
 
 /**
