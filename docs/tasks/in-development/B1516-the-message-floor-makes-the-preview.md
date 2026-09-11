@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: postcards
 found: "2026-09-11T19:47:14Z"
+started: "2026-09-11T20:06:24Z"
+session: 3f748903-2dc3-47a2-a958-98b83d641dc0
+claimed: "2026-09-11T20:06:24Z"
 ---
 
 # B1516 — The message floor makes the preview bigger than the card it is previewing

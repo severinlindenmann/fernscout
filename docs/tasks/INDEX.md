@@ -309,17 +309,16 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (1)
+## open (0)
 
-| # | Finding | Type | Priority | Complexity |
-| --- | --- | --- | --- | --- |
-| [B1516](open/B1516-the-message-floor-makes-the-preview.md) | The message floor makes the preview bigger than the card it is previewing | ISSUE | medium | low |
+_Nothing here._
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1507](in-development/B1507-owner-new-onboard-whatsapp-assumes-a.md) | owner-new-onboard-whatsapp assumes a draft appears without completing WhatsApp onboarding | CHORE | medium | low | `01ffdab4` |
+| [B1516](in-development/B1516-the-message-floor-makes-the-preview.md) | The message floor makes the preview bigger than the card it is previewing | ISSUE | medium | low | `3f748903` |
 
 ## testing (6)
 
