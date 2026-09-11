@@ -211,6 +211,13 @@ export const BRANDING_BENCHES: readonly BrandingBench[] = [
     source: "components/StoryPager.tsx",
   },
   {
+    href: "/docs/branding/order",
+    title: "Orders",
+    blurb:
+      "A photobook order and a postcard order in one component, in the states a reader cannot reach: refused and refunded, a printer word nobody has mapped, a proposal that expired, a book whose files were pruned.",
+    source: "components/order/OrderDocket.tsx \u00b7 lib/order/view.ts",
+  },
+  {
     href: "/docs/branding/print",
     title: "Print geometry",
     blurb:
