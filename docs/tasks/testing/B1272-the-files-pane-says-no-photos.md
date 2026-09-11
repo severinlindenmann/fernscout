@@ -7,8 +7,7 @@ complexity: low
 area: helper, files
 found: "2026-09-10T10:16:18Z"
 started: "2026-09-11T04:33:18Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T04:33:18Z"
+merged: "2026-09-11T05:34:23Z"
 ---
 
 # B1272 — The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one
