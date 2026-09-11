@@ -3838,6 +3838,117 @@ export function openApiDocument() {
           },
         },
       },
+      "/api/v1/{user}/trips/{trip}/travellers/from-photo": {
+        post: {
+          summary: "Read a proposed party off a group photograph — B1517",
+          description:
+            "Forty questions about what a family of four looks like is worse than reading " +
+            "two of their own photographs. This sends **one photograph already in this " +
+            "journal** to a vision model and returns a proposed `travellers` party in the " +
+            "same shape `PATCH …/travellers` writes — **and writes nothing itself.** " +
+            "`figures` names, per figure, which fields the photograph actually answered and " +
+            "which it did not (`unanswerable`) — a field the picture cannot show comes back " +
+            "absent rather than guessed. `party` is the same figures alone, ready to send " +
+            "straight to `PATCH …/travellers` once a person has agreed it looks like them. " +
+            "`preview` is the SVG `GET …/travellers/preview` would draw for that party, so " +
+            "there is something to show before anything is written.\n\n" +
+            "Every value is one of the closed vocabulary `GET …/travellers/presets` " +
+            "publishes — this is classification into a fixed list, not open-ended " +
+            "generation — and there is **no `for`**: nothing here names a person or matches " +
+            "a face to an address in `people:`.\n\n" +
+            "The photograph has to already be this journal's own: `inbox` (an id from " +
+            "`GET …/inbox`), `gallery` (a `src` already on **this** trip, exactly as a " +
+            "day's gallery carries it), or multipart bytes under `photo`. There is no way " +
+            "to hand it a URL — unlike `POST …/media`, which stores what it fetches, this " +
+            "call does not store anything, so fetching an arbitrary address would be a way " +
+            "to spend this journal's credits classifying a stranger's photograph. Nothing " +
+            "sent here is kept: a fresh upload is resized in memory and never written to " +
+            "disk.\n\n" +
+            "Requires this journal's `helper` capability and its `photos` consent scope — " +
+            "the same one `POST /api/helper/{user}/day/describe-photos` asks for, since " +
+            "this is the same promise: a photograph of people is being sent to a model.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            { name: "trip", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    inbox: { type: "string", description: "An id from GET …/inbox." },
+                    gallery: {
+                      type: "string",
+                      description: "A src already on this trip, e.g. /media/{trip}/{day}/01.jpg.",
+                    },
+                    idempotency_key: { type: "string" },
+                  },
+                },
+              },
+              "multipart/form-data": {
+                schema: {
+                  type: "object",
+                  required: ["photo"],
+                  properties: {
+                    photo: { type: "string", format: "binary" },
+                    idempotency_key: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "A proposed party, and nothing written",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["ok", "figures", "party", "preview", "spent", "provider"],
+                    properties: {
+                      ok: { type: "boolean" },
+                      figures: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            position: {
+                              type: "integer",
+                              description: "Left to right in the photograph, 0-based.",
+                            },
+                            figure: { $ref: "#/components/schemas/Traveller" },
+                            unanswerable: {
+                              type: "array",
+                              items: { type: "string" },
+                              description: "Fields the photograph did not answer for this figure.",
+                            },
+                          },
+                        },
+                      },
+                      party: {
+                        type: "array",
+                        items: { $ref: "#/components/schemas/Traveller" },
+                        description: "The figures alone, in the shape PATCH …/travellers takes.",
+                      },
+                      preview: { type: "string", description: "The party, as SVG markup." },
+                      spent: { type: "number" },
+                      provider: { type: "string" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "No usable photograph named, or it could not be read" },
+            "402": { description: "Not enough credits" },
+            "403": { description: "No write access to this trip, or `photos` consent not given" },
+            "404": { description: "No such trip, or the helper capability is off" },
+            "429": { description: "Too many calls in the last 15 minutes" },
+            "502": { description: "The model call failed; the credit was refunded" },
+          },
+        },
+      },
       "/api/v1/{user}/travellers/presets": {
         get: {
           summary: "The vocabulary the walking figures are described in",

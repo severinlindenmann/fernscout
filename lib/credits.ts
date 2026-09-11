@@ -80,6 +80,7 @@ type LedgerReason =
   | "transcription"
   | "ask_thread"
   | "find_in_journal"
+  | "travellers_from_photo"
   | "refund"
   /** Credits taken back because the money that bought them was returned —
    * B878. A negative delta that is not a spend, which is why
@@ -138,7 +139,13 @@ export type SpendReason =
   /** One "find this for me" lookup — `POST …/search` — B1091. Its own value
    * for the same reason `ask_thread` is: a different door, a different line
    * on the ledger. Charged before the call, refunded when it throws. */
-  | "find_in_journal";
+  | "find_in_journal"
+  /** One group photograph turned into a proposed party —
+   * `POST …/travellers/from-photo` — B1517. Its own value for the same
+   * reason `ask_thread` is: a different door, a different line on the
+   * ledger. Charged before the call, refunded when it throws, and never for
+   * writing anything — this call writes nothing at all. */
+  | "travellers_from_photo";
 
 export type LedgerRow = {
   id: string;

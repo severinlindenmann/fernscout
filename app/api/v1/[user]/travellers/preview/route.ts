@@ -1,5 +1,4 @@
-import { arrangeParty } from "@/lib/travellers/layout";
-import { renderFigure } from "@/lib/travellers/render";
+import { renderPartySvg } from "@/lib/travellers/render";
 import { MAX_FIGURES, type Figure } from "@/lib/travellers/vocabulary";
 import { parseTravellers } from "@/lib/travellers/parse";
 import { getUser } from "@/lib/users";
@@ -95,26 +94,7 @@ export async function GET(
   }
 
   const size = Math.max(24, Math.min(240, Number(url.searchParams.get("size")) || 106));
-  const { placements, width, height } = arrangeParty(figures, size);
-
-  const body =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(width)}" ` +
-    `height="${height}" viewBox="0 0 ${Math.round(width)} ${height}" role="img" ` +
-    `aria-label="${figures.length === 1 ? "an illustrated traveller" : `${figures.length} illustrated travellers`}">` +
-    placements
-      .map((p) => {
-        // Feet on the baseline: the figure is drawn at its own height and then
-        // translated down by whatever the composition's height leaves over.
-        const top = height - p.bottom - Math.round(size * 1.42) * p.scale;
-        return (
-          `<g transform="translate(${p.x.toFixed(1)}, ${top.toFixed(1)}) ` +
-          `scale(${p.scale})">` +
-          renderFigure(p.figure, { width: size, decorative: true }) +
-          `</g>`
-        );
-      })
-      .join("") +
-    `</svg>`;
+  const body = renderPartySvg(figures, size);
 
   return new Response(body, {
     headers: {

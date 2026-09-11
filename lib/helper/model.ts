@@ -12,6 +12,19 @@ import type { Block, Proposal } from "./blocks";
 import type { Say } from "./intents";
 import type { Turn } from "./thread";
 import { AREAS, TOOLS, runTool, toolList, toolSchemas, type AreaKey } from "./tools";
+import {
+  ACCESSORIES,
+  AGES,
+  BUILDS,
+  CLOTH,
+  EYES,
+  HAIR,
+  HAIR_STYLES,
+  MAX_FIGURES,
+  OUTFITS,
+  SKIN,
+  type Figure,
+} from "../travellers/vocabulary";
 
 /**
  * The one place a model is spoken to — B684, and §5 of
@@ -40,6 +53,12 @@ export const WRITE_DAY_CREDITS = 1;
 
 /** Who the words are going to, said in the consent panel and in `/api/health`. */
 export const HELPER_PROVIDER = "Anthropic";
+
+/** What one call to `POST .../travellers/from-photo` costs — B1517. Priced
+ *  per call rather than per face, the same as `WRITE_DAY_CREDITS`: a group
+ *  photo of a whole family is the point, and charging by the figure would
+ *  tax exactly the case this exists for. */
+export const TRAVELLERS_FROM_PHOTO_CREDITS = 2;
 
 /**
  * The system prompt. **This is the product.**
@@ -262,6 +281,177 @@ export async function describePhotos(
   // wrong number of captions is padded rather than trusted to have meant one
   // photograph for the next — an empty caption is always the safe answer.
   return images.map((_, i) => captions[i]?.trim() ?? "");
+}
+
+/**
+ * Classifying a group photograph into a party — B1517.
+ *
+ * The nine-question interview (`GET .../travellers/presets`) is what an
+ * agent falls back to when there is nothing else to go on; when a photograph
+ * of the party already exists, reading it is faster and no less honest than
+ * asking, because every field this returns is still a plain classification
+ * into the same closed vocabulary a person would have picked from.
+ *
+ * **Every field is a closed enum, never free text** — the schema below
+ * enumerates every value `lib/travellers/vocabulary.ts` allows, plus `""`
+ * for "the photograph does not answer this". That is what makes the output
+ * checkable at all: there is no sentence here to fact-check, only a token to
+ * confirm is one of a dozen or so this software already knows how to draw.
+ *
+ * **A child's face is classified exactly the same way as an adult's, and no
+ * more precisely.** `age` is one of the same four broad buckets
+ * (`AGES`) for everybody in the frame — never a number, never a guess at
+ * who a child is, is related to, or belongs with. The identity rule below is
+ * the same one `photoSystemPrompt` already carries for captions, restated
+ * because a model that can see a face is one guess away from naming it
+ * regardless of whose face it is.
+ *
+ * **No `for`, and this function could not honour one if it wanted to** — the
+ * schema has no such field, so there is nothing here that could tie a figure
+ * to an address in `people:`. Matching a face to a name is a decision this
+ * route does not make.
+ *
+ * Throws on anything that goes wrong, the same contract as `describePhotos`:
+ * the caller has already spent the credit and refunds on a throw.
+ */
+function travellersPhotoSystemPrompt(): string {
+  return `You are looking at one photograph from somebody's own travel journal, and turning each person visible in it into a walking figure for the journal's own illustration — nothing about anybody's identity, only what a figure looks like.
+
+DESCRIBE ONLY WHAT IS VISIBLE, one figure per distinct person in the frame, ordered left to right as they stand in the photograph. Never identify anyone: no name, no relationship, no guess at who somebody is or how they know each other. This applies exactly as much to a child in the frame as to an adult — classify a child's visible skin tone, hair, build and rough age bracket exactly the way you would an adult's, and never anything more specific: no estimated age in years, no guess at who a child belongs to.
+
+Every field is a closed choice from a fixed list, never a description in your own words. Leave a field as an empty string when the photograph genuinely does not answer it — eyes closed or averted, a coat hiding the legs, sunglasses over the eyes, someone half out of frame. An absent answer is the correct answer for anything you cannot actually see; do not round an uncertain guess up into a confident one. accessories is a list and may be empty.
+
+Return at most ${MAX_FIGURES} figures, one per person actually in the photograph — never invent a figure nobody is in it, and never merge two people into one.`;
+}
+
+const TRAVELLER_PHOTO_SCHEMA = {
+  type: "object",
+  properties: {
+    figures: {
+      type: "array",
+      maxItems: MAX_FIGURES,
+      items: {
+        type: "object",
+        properties: {
+          skin: { type: "string", enum: [...Object.keys(SKIN), ""] },
+          hair: { type: "string", enum: [...Object.keys(HAIR), ""] },
+          hairStyle: { type: "string", enum: [...HAIR_STYLES, ""] },
+          eyes: { type: "string", enum: [...Object.keys(EYES), ""] },
+          shirt: { type: "string", enum: [...Object.keys(CLOTH), ""] },
+          pants: { type: "string", enum: [...Object.keys(CLOTH), ""] },
+          outfit: { type: "string", enum: [...OUTFITS, ""] },
+          build: { type: "string", enum: [...BUILDS, ""] },
+          age: { type: "string", enum: [...AGES, ""] },
+          accessories: { type: "array", items: { type: "string", enum: [...ACCESSORIES] } },
+        },
+        required: ["skin", "hair", "hairStyle", "eyes", "shirt", "pants", "outfit", "build", "age", "accessories"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["figures"],
+  additionalProperties: false,
+} as const;
+
+/** One field of a `Figure` this route ever fills in, in the fixed order the
+ *  response reports `unanswerable` — never `for`, which the schema above has
+ *  no room for at all. */
+const TRAVELLER_PHOTO_FIELDS = [
+  "skin",
+  "hair",
+  "hairStyle",
+  "eyes",
+  "shirt",
+  "pants",
+  "outfit",
+  "build",
+  "age",
+  "accessories",
+] as const;
+
+/**
+ * What each enum field of `TRAVELLER_PHOTO_FIELDS` may hold — everything but
+ * `accessories`, which is checked separately below.
+ *
+ * A second check on top of `TRAVELLER_PHOTO_SCHEMA`'s own `enum` rather than
+ * trust in it alone: the schema constrains what the API is *asked* to return,
+ * this is what actually lands on a figure, and AGENTS.md's whole point about
+ * checking a claim against the turn is that the two are not the same
+ * guarantee. A value outside the vocabulary reads as unanswered, the same as
+ * an empty string — never written, and never a reason to fail the call.
+ */
+const TRAVELLER_FIELD_VALUES: Partial<Record<(typeof TRAVELLER_PHOTO_FIELDS)[number], ReadonlySet<string>>> = {
+  skin: new Set(Object.keys(SKIN)),
+  hair: new Set(Object.keys(HAIR)),
+  hairStyle: new Set(HAIR_STYLES),
+  eyes: new Set(Object.keys(EYES)),
+  shirt: new Set(Object.keys(CLOTH)),
+  pants: new Set(Object.keys(CLOTH)),
+  outfit: new Set(OUTFITS),
+  build: new Set(BUILDS),
+  age: new Set(AGES),
+};
+
+/** One figure read off a photograph. `figure` carries only the fields the
+ *  photograph actually answered; `unanswerable` names the rest — computed
+ *  from what came back empty, never taken on the model's own say-so, the
+ *  same reasoning AGENTS.md gives for checking a claim against the turn
+ *  rather than against the phrasing. */
+export type PhotoFigure = { figure: Figure; unanswerable: string[] };
+
+/**
+ * One photograph in, a proposed party out — ordered left to right as the
+ * model was told to read the frame, which is also each figure's index in
+ * the returned array. Nothing here writes anything; see the route for that.
+ */
+export async function classifyTravellers(image: PhotoImage, owner?: string): Promise<PhotoFigure[]> {
+  const client = new Anthropic();
+  const response = await client.messages.create({
+    model: HELPER_MODEL,
+    max_tokens: 120 * MAX_FIGURES + 200,
+    system: travellersPhotoSystemPrompt(),
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "image" as const, source: { type: "base64" as const, media_type: image.mediaType, data: image.base64 } },
+          { type: "text" as const, text: "One photograph. Read off a figure for each person actually in it." },
+        ],
+      },
+    ],
+    output_config: { format: { type: "json_schema", schema: TRAVELLER_PHOTO_SCHEMA } },
+  });
+  await book(owner, "travellers_from_photo", response.usage);
+
+  const text = response.content
+    .map((block) => (block.type === "text" ? block.text : ""))
+    .join("")
+    .trim();
+  const parsed = JSON.parse(text) as { figures?: unknown };
+  const raw = Array.isArray(parsed.figures) ? parsed.figures : [];
+
+  return raw.slice(0, MAX_FIGURES).map((entry) => {
+    const item = (entry ?? {}) as Record<string, unknown>;
+    const figure: Figure = {};
+    const unanswerable: string[] = [];
+    for (const field of TRAVELLER_PHOTO_FIELDS) {
+      if (field === "accessories") {
+        const list = Array.isArray(item.accessories)
+          ? item.accessories.filter((a): a is string => typeof a === "string" && (ACCESSORIES as readonly string[]).includes(a))
+          : [];
+        if (list.length > 0) figure.accessories = list as Figure["accessories"];
+        else unanswerable.push(field);
+        continue;
+      }
+      const value = typeof item[field] === "string" ? (item[field] as string) : "";
+      if (value !== "" && TRAVELLER_FIELD_VALUES[field]?.has(value)) {
+        (figure as Record<string, unknown>)[field] = value;
+      } else {
+        unanswerable.push(field);
+      }
+    }
+    return { figure, unanswerable };
+  });
 }
 
 /**
