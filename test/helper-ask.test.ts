@@ -23,8 +23,9 @@ import { getTrips } from "@/lib/trips";
  *
  * What is asserted is the discipline: a write proposes and the journal is
  * untouched, the press is a second call to a route that already existed, the
- * proposal is remembered so "no, the 14th" has something to correct, the whole
- * door is free, and a bearer token gets nowhere near it.
+ * proposal is remembered so "no, the 14th" has something to correct, the door
+ * charges a flat credit a turn and nothing more (B1091), and a bearer token
+ * gets nowhere near it.
  */
 
 const OWNER_EMAIL = "alex@example.test";
@@ -274,24 +275,29 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
   });
 
   describe("what it costs", () => {
-    test("nothing: no credit moves and no ledger row is written", async () => {
+    // B1091: a flat `HELPER_TURN_CREDITS` (0.02) a turn, under its own
+    // `ask_thread` ledger reason — the door is no longer free, and this file's
+    // own module doc above is corrected to say so.
+    test("a flat credit a turn, and nothing more for whatever the turn does", async () => {
       answerInThread.mockImplementation(turnCalling("account", {}, "Ten credits."));
       await ask("how much storage do I have");
       await ask("and again");
-      expect(await balanceOf("alex")).toBe(10);
+      expect(await balanceOf("alex")).toBeCloseTo(9.96, 5);
       const rows = await ledgerFor("alex");
-      expect(rows.filter((row) => row.reason === "helper")).toHaveLength(0);
-      expect(rows).toHaveLength(1); // the grant, and nothing since
+      expect(rows.filter((row) => row.reason === "ask_thread")).toHaveLength(2);
+      expect(rows).toHaveLength(3); // the grant, and two turns
     });
 
-    test("proposing a write costs nothing either, however many times", async () => {
+    test("proposing a write costs the same flat turn credit, however many times", async () => {
       answerInThread.mockImplementation(
         turnCalling("draft_words", { notes: "we walked to the harbour" }),
       );
       await ask("write up yesterday");
       await ask("no, the day before");
       await ask("actually leave it");
-      expect(await balanceOf("alex")).toBe(10);
+      // Three turns, none of which pressed the proposal — pressing (and its
+      // own price) is a separate route this file never calls.
+      expect(await balanceOf("alex")).toBeCloseTo(9.94, 5);
     });
   });
 

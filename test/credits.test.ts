@@ -326,6 +326,11 @@ describe("the grant path is not reachable over HTTP", () => {
     "app/api/helper/[user]/day/write-day/route.ts",
     "app/api/helper/[user]/day/describe-photos/route.ts",
     "app/api/helper/[user]/transcribe/route.ts",
+    // B1091. `ask` and `search` now charge `HELPER_TURN_CREDITS` before
+    // their one model call and give it back if the call throws — the same
+    // shape as every route above.
+    "app/api/helper/[user]/ask/route.ts",
+    "app/api/helper/[user]/search/route.ts",
   ];
 
   test("only the sanctioned routes import refund from lib/credits", () => {
@@ -353,6 +358,104 @@ describe("the grant path is not reachable over HTTP", () => {
       const full = path.join(process.cwd(), rel);
       expect(fs.existsSync(full)).toBe(true);
       expect(fs.readFileSync(full, "utf8")).toMatch(/\brefund\b/);
+    }
+  });
+});
+
+/**
+ * B1091's own finding, mechanised. `answerInThread` and `findInJournal` sat
+ * in `lib/helper/model.ts` beside `writeDay`, built the identical
+ * `new Anthropic()`, and were free — nothing here ever asked "who calls the
+ * thing that costs money" of either. This asks it of every export in that
+ * file that builds an `Anthropic` client, and of the one export in
+ * `lib/helper/transcribe.ts` that reaches Deepgram — broader than the two
+ * routes B1091 named, so the next paid export added there is covered by
+ * construction rather than by somebody remembering to add a line here.
+ *
+ * The same trade `GRANT_ALLOWED`/`REFUND_ALLOWED` above make: an
+ * import-presence check, not a read of execution order. A file that never
+ * imports `spend` cannot be the one guarding a paid call, whatever order its
+ * own lines run in; a file that does still has to have got the order right,
+ * which is what the route-level `no_credits` behaviour above and the
+ * per-route reading in `AGENTS.md`'s own review verify.
+ */
+describe("every paid model call is reached only from a file that spends first", () => {
+  /** Comments quote call shapes in prose (`lib/helper/caller.ts` names
+   *  `answerInThread(username, …)` while explaining something else
+   *  entirely) — stripped so a doc comment cannot fake a caller. */
+  function withoutComments(src: string): string {
+    return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  }
+
+  /** Every export in `file` whose body constructs `new Anthropic()`. */
+  function pricedExports(file: string): string[] {
+    const src = withoutComments(fs.readFileSync(path.join(process.cwd(), file), "utf8"));
+    const names: string[] = [];
+    for (const part of src.split(/\n(?=export (?:async )?function )/)) {
+      const m = part.match(/^export (?:async )?function (\w+)/);
+      if (m && part.includes("new Anthropic()")) names.push(m[1]);
+    }
+    return names;
+  }
+
+  /**
+   * Every file outside `own` that calls `name(`. `lib/helper/tools/` is
+   * excluded on purpose: those are the tools `answerInThread` itself runs
+   * mid-turn (`runTool`, `lib/helper/tools.ts`), so a nested `findInJournal`
+   * reached that way sits inside a turn the *route* already charged once,
+   * flat, for the whole turn — it is not a second door a second spend
+   * belongs on.
+   */
+  function callersOf(name: string, own: string): string[] {
+    const found = new Set<string>();
+    const walk = (d: string): void => {
+      for (const item of fs.readdirSync(d, { withFileTypes: true })) {
+        const full = path.join(d, item.name);
+        const rel = path.relative(process.cwd(), full);
+        if (item.isDirectory()) {
+          if (rel === "lib/helper/tools") continue;
+          walk(full);
+        } else if (/\.(ts|tsx)$/.test(item.name) && rel !== own) {
+          const src = withoutComments(fs.readFileSync(full, "utf8"));
+          if (new RegExp(`\\b${name}\\(`).test(src)) found.add(rel);
+        }
+      }
+    };
+    walk(path.join(process.cwd(), "app"));
+    walk(path.join(process.cwd(), "lib"));
+    return [...found];
+  }
+
+  test("every Anthropic-calling export in lib/helper/model.ts is only reached from a file that imports spend", () => {
+    const priced = pricedExports("lib/helper/model.ts");
+    // Not stale: this is the list B1091 found, and a fifth one added later
+    // without a spend around it is exactly what this test exists to catch.
+    expect(priced).toEqual(
+      expect.arrayContaining([
+        "writeDay",
+        "describePhotos",
+        "mapStatementColumns",
+        "answerInThread",
+        "findInJournal",
+      ]),
+    );
+    const offenders: string[] = [];
+    for (const name of priced) {
+      for (const caller of callersOf(name, "lib/helper/model.ts")) {
+        const src = fs.readFileSync(path.join(process.cwd(), caller), "utf8");
+        if (!/\bspend\b/.test(src)) offenders.push(`${caller} calls ${name}() without importing spend`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  test("transcribeAudio, the one Deepgram door, is only reached from a file that imports spend", () => {
+    const src = fs.readFileSync(path.join(process.cwd(), "lib/helper/transcribe.ts"), "utf8");
+    expect(src).toMatch(/deepgram/);
+    const callers = callersOf("transcribeAudio", "lib/helper/transcribe.ts");
+    expect(callers.length).toBeGreaterThan(0);
+    for (const caller of callers) {
+      expect(fs.readFileSync(path.join(process.cwd(), caller), "utf8")).toMatch(/\bspend\b/);
     }
   });
 });

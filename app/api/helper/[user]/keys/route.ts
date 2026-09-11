@@ -2,19 +2,81 @@ import { listSessions, revokeSession } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { refused, wrote } from "@/lib/helper/thread";
+import { getTrip, tripRef } from "@/lib/trips";
 
 export const dynamic = "force-dynamic";
 
 /**
  * One key taken back, from the room — B1042 batch (`keys` and `revoke_key` in
- * `lib/helper/tools/areas/journal.ts`).
+ * `lib/helper/tools/areas/journal.ts`), and one key list seen without asking
+ * for it — B1154.
  *
  * Owner only — a companion's own key is theirs to see on `GET
- * /api/v1/<user>/keys`, but revoking one here is the same authority the room
- * gates everything else on. Never a bearer token: this is where the owner is
- * sitting when a key needs taking back, not something an agent does to
- * itself.
+ * /api/v1/<user>/keys`, but this room is a page holding a cookie, never a
+ * bearer token, so it needs its own cookie-only door onto the identical rows
+ * rather than pointing the panel at that route: `isOwner` there also accepts
+ * an owner's own **bearer** token as owner-equivalent, and `isHelperOwner`
+ * never reads an `Authorization` header at all — the guarantee AGENTS.md
+ * asks of every browser surface in this family.
  */
+
+/** The same test `app/api/v1/[user]/keys/route.ts`'s own `live()` applies:
+ *  only a row that could still be used right now, and only the two kinds
+ *  that can ever write. */
+function live(row: { kind: string; revokedAt: string | null; expiresAt: string }): boolean {
+  if (row.kind !== "agent" && row.kind !== "handover") return false;
+  if (row.revokedAt) return false;
+  return new Date(row.expiresAt).getTime() > Date.now();
+}
+
+/** `write:trip:<id>` back to the id alone, or nothing for a whole-journal
+ *  key — the one string `tripWriteScope` builds, read the other way. A row
+ *  with no scope at all is the whole-journal default (`SESSION_SCOPE.agent`
+ *  applies when a row carries none), so it is never trip-scoped either. */
+function scopedTripId(scope: string | null): string | null {
+  return scope?.startsWith("write:trip:") ? scope.slice("write:trip:".length) : null;
+}
+
+/**
+ * What each key is, never what it holds — B1154.
+ *
+ * `id`, `kind`, `createdAt`, `expiresAt`, `lastSeenAt` and `scope`: the same
+ * fields `GET /api/v1/<user>/keys` already answers, read back from the same
+ * `listSessions`. **Never a token** — `listSessions` does not return one, so
+ * there is nothing here to leak; `test/helper-journal.test.ts`-style
+ * coverage pins that the rendered room never carries one either.
+ *
+ * **One field on top of that shape: `tripTitle`.** A trip-scoped key's own
+ * `scope` names an id (`write:trip:alps-2024`), and the room has no other
+ * trip list loaded to turn that back into words a person recognises — the
+ * panel is meant to say "writes to Alps 2024", not repeat an id already
+ * chosen for a URL. `null` for a whole-journal key, and for a trip since
+ * deleted.
+ */
+export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/keys">) {
+  const { user } = await params;
+  if (!(await isHelperOwner(user))) {
+    return notYourJournal(request, user);
+  }
+  if (!isEnabled("auth", user)) {
+    return Response.json({ error: "auth_disabled" }, { status: 409 });
+  }
+
+  const keys = (await listSessions(user)).filter(live).map((row) => {
+    const tripId = scopedTripId(row.scope);
+    const trip = tripId ? getTrip(tripRef(user, tripId)) : undefined;
+    return {
+      id: row.id,
+      kind: row.kind,
+      createdAt: row.createdAt,
+      expiresAt: row.expiresAt,
+      lastSeenAt: row.lastSeenAt,
+      scope: row.scope,
+      tripTitle: trip?.title ?? null,
+    };
+  });
+  return Response.json({ keys });
+}
 export async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/keys">,

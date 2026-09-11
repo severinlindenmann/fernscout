@@ -8,10 +8,11 @@ import { isEmail } from "../auth";
 import { isEnabled } from "../capabilities";
 import { contentRoot } from "../contentRoot";
 import { createInvite, inviteLinkUrl } from "../contacts/invites";
-import { balanceOf } from "../credits";
+import { balanceOf, refund, spend } from "../credits";
 import { getUser } from "../users";
 import { AS_AUTHOR, getAllEntries } from "../entries";
 import { currentHelperProvider, hasHelperConsent, recordHelperConsent } from "../helper/consent";
+import { HELPER_TURN_CREDITS, noCreditsAnswer } from "../helper/creditGate";
 import { NO_PROSE } from "../helper/draft";
 import type { Proposal } from "../helper/blocks";
 import { sayIn } from "../helper/intents";
@@ -789,10 +790,24 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
     }
   }
 
+  // The credit, before the model — B1091, the same gate `answerInThread`'s
+  // other two callers (`/ask` and `/search`) use, and the same reason: a
+  // turn nothing can pay for must never reach a provider.
+  const ledgerRef = `${username}/whatsapp-ask/${Date.now()}`;
+  if (!(await spend(username, HELPER_TURN_CREDITS, "ask_thread", ledgerRef))) {
+    const balance = (await balanceOf(username)) ?? 0;
+    const url = `${serverSite().url}/${username}/account`;
+    await sendServiceReply(to, noCreditsAnswer(say, balance, url), username);
+    console.log(`[whatsapp:inbound] ${maskNumber(to)} (${username}) refused: no_credits (ask_thread)`);
+    return;
+  }
+
   let thread;
   try {
     thread = await answerInThread(username, said, turns, today, say, [], locale, "whatsapp");
   } catch (err) {
+    // The credit bought nothing — B1091, the same refund the web door gives.
+    await refund(username, HELPER_TURN_CREDITS, ledgerRef);
     console.error(`[whatsapp:inbound] model turn failed for ${username}:`, err);
     return;
   }

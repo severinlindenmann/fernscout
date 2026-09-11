@@ -36,7 +36,7 @@ vi.mock("next/headers", () => ({
 const { POST: postJournal } = await import("@/app/api/helper/[user]/journal/route");
 const { POST: postCleanup } = await import("@/app/api/helper/[user]/storage/cleanup/route");
 const { POST: postStorage } = await import("@/app/api/helper/[user]/storage/route");
-const { POST: postKeys } = await import("@/app/api/helper/[user]/keys/route");
+const { GET: getKeys, POST: postKeys } = await import("@/app/api/helper/[user]/keys/route");
 
 let dir: string;
 const params = { params: Promise.resolve({ user: "alex" }) };
@@ -221,6 +221,22 @@ describe("keys and revoke_key", () => {
 
     const after = await runTool("alex", "keys", {}, say, "2026-05-06");
     expect((after.result as unknown[]).length).toBe(0);
+  });
+
+  // B1154 — the room's own door onto the same rows: cookie-only, never a
+  // token in the answer, same as the tool.
+  test("GET lists the same rows the tool sees, and the rendered body never carries the token", async () => {
+    const { issueCode, verifyCode } = await import("@/lib/auth");
+    const { code } = await issueCode("alex", OWNER_EMAIL, "agent");
+    const minted = await verifyCode("alex", OWNER_EMAIL, code, "agent");
+    if (!minted.ok) throw new Error("no token");
+
+    const response = await getKeys(new Request("https://t.test/api/helper/alex/keys"), params);
+    expect(response.status).toBe(200);
+    const text = await response.text();
+    expect(text).not.toContain(minted.token);
+    const body = JSON.parse(text) as { keys: { id: string; kind: string }[] };
+    expect(body.keys.some((row) => row.kind === "agent")).toBe(true);
   });
 
   test("an unknown id is refused, and the refusal leaves a row", async () => {

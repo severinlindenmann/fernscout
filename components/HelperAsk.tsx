@@ -363,6 +363,7 @@ export default function HelperAsk({
   whatsappNumber,
   weather = false,
   onProposal,
+  onCreditsSettled,
 }: {
   username: string;
   /** Whether this journal has already agreed to a model being spoken to
@@ -485,6 +486,16 @@ export default function HelperAsk({
    * sentence for the model to interpret.
    */
   onProposal?: (tool: string, args: Record<string, string>) => void;
+  /**
+   * Told after every turn and every accepted proposal has settled, spent or
+   * not — B1255. `ask` charges a flat credit a turn since B1091 and a write
+   * proposal's own route may charge more; this is called unconditionally
+   * rather than only on the writes this file happens to know cost something,
+   * because a second list of "which tools charge" here would duplicate the
+   * server's own pricing and drift from it. The host re-reads the balance;
+   * this component never reads or shows one itself.
+   */
+  onCreditsSettled?: () => void;
 }) {
   const { t, formatLongDate } = useI18n();
   // Closed until somebody asks for it — B767. The one thing this card is for
@@ -828,6 +839,10 @@ export default function HelperAsk({
     } finally {
       setBusy(false);
       setStatus("");
+      // Settled, whichever way — B1255. `ask` spends a flat credit before
+      // its one model call (B1091) and a 402 is as real a spend-adjacent
+      // event as a 200, so this runs on both.
+      onCreditsSettled?.();
     }
   }
 
@@ -1019,6 +1034,10 @@ export default function HelperAsk({
       throw thrown;
     } finally {
       setBusy(false);
+      // Settled, whichever way — B1255. A write proposal may charge on its
+      // own route, and a refusal (including `no_credits`) is a settled
+      // attempt too.
+      onCreditsSettled?.();
     }
   }
 
@@ -1354,6 +1373,7 @@ export default function HelperAsk({
                 setHeard(spoken);
                 box.current?.focus();
               }}
+              onSettled={onCreditsSettled}
             />
           )}
           <BusyButton

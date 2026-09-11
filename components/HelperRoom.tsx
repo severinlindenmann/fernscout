@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import AgentHandover from "@/components/AgentHandover";
 import BackLink from "@/components/BackLink";
+import BusyButton from "@/components/BusyButton";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import CurrencyProvider from "@/components/CurrencyProvider";
 import HelperAsk from "@/components/HelperAsk";
@@ -129,7 +130,7 @@ export default function HelperRoom({
   consentedSpeech,
   speechProvider,
   whatsappNumber,
-  credits = null,
+  credits: initialCredits = null,
   siteUrl,
   weather = false,
 }: {
@@ -511,6 +512,27 @@ export default function HelperRoom({
    * `sessionStorage` at all) than on the client's first paint and throw a
    * hydration mismatch.
    */
+  /**
+   * The balance, kept live — B1255.
+   *
+   * `initialCredits` is a server render, read once when the page loaded; a
+   * spend since then (a write, a turn, a transcription) left it showing a
+   * number that was no longer true. `null` — credits off on this instance —
+   * is never refetched: there is nothing to read, and the account route
+   * would answer `null` again at the cost of a request every turn makes for
+   * nothing.
+   */
+  const [credits, setCredits] = useState(initialCredits);
+  const refreshCredits = useCallback(() => {
+    if (initialCredits === null) return;
+    fetch(`/api/helper/${encodeURIComponent(username)}/account`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { credits?: number | null } | null) => {
+        if (body && typeof body.credits === "number") setCredits(body.credits);
+      })
+      .catch(() => {});
+  }, [initialCredits, username]);
+
   const dismissKey = `fs.agent.lowCreditsDismissed.${username}`;
   const [creditsDismissed, setCreditsDismissed] = useState(false);
   useEffect(() => {
@@ -937,8 +959,10 @@ export default function HelperRoom({
         */}
         <div className="flex shrink-0 items-center gap-1">
           {/* The balance, whenever this instance charges at all — B1208
-              (D06/D08). Coral once it is low enough to matter; the tap opens
-              the account sheet, which is where the buy link lives. */}
+              (D06/D08). Yellow once it is low enough to matter, not coral —
+              being low on credit is not an error (B1155's 2026-09-09
+              decision record). `text-navy-900` rather than white: white on
+              `yellow-600` is 2.5:1, well under AA. */}
           {credits !== null && (
             <button
               type="button"
@@ -946,7 +970,7 @@ export default function HelperRoom({
               aria-label={t("agent.room.account")}
               className={`flex min-h-8 shrink-0 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold transition-colors ${
                 lowCredits
-                  ? "border-coral-600 bg-coral-600 text-white hover:bg-coral-400"
+                  ? "border-yellow-600 bg-yellow-600 text-navy-900 hover:bg-yellow-400"
                   : "border-navy-300 bg-white text-navy-800 hover:bg-navy-50"
               }`}
             >
@@ -1092,6 +1116,7 @@ export default function HelperRoom({
             whatsappNumber={whatsappNumber}
             weather={weather}
             onProposal={proposeToThread}
+            onCreditsSettled={refreshCredits}
             selected={selected}
             onSubject={(day) => {
               setSubject({ ...day, at: Date.now() });
@@ -1153,7 +1178,16 @@ export default function HelperRoom({
                   </button>
                 </div>
               ) : lowCredits ? (
-                <p className="mb-2 flex shrink-0 items-start gap-2 rounded-xl border border-coral-400 bg-coral-50 px-3 py-2 text-sm leading-5 text-coral-600">
+                // Yellow, not coral — B1155. Every other coral in this app is
+                // an error state, and running low on credit is not one.
+                // `text-yellow-900`/`bg-yellow-50` rather than `yellow-600`
+                // on white: `yellow-600` reads at roughly 2.4:1 against both
+                // white and near-white, well under AA either way round —
+                // the same reason the pill beside this banner uses
+                // `text-navy-900` rather than white. `border-yellow-600` is
+                // the one place the named token carries: the accent, not
+                // the body text.
+                <p className="mb-2 flex shrink-0 items-start gap-2 rounded-xl border border-yellow-600 bg-yellow-50 px-3 py-2 text-sm leading-5 text-yellow-900">
                   <span className="min-w-0 flex-1">
                     {t("agent.room.lowCredits")}{" "}
                     <a
@@ -1170,7 +1204,7 @@ export default function HelperRoom({
                       setCreditsDismissed(true);
                     }}
                     aria-label={t("agent.room.closeAccount")}
-                    className="shrink-0 rounded-full px-1.5 text-coral-600 hover:bg-coral-100"
+                    className="shrink-0 rounded-full px-1.5 text-yellow-900 hover:bg-yellow-100"
                   >
                     ✕
                   </button>
@@ -1934,6 +1968,121 @@ function HistoryPanel({
 }
 
 
+/** What `GET /api/helper/<user>/keys` answers — B1154. */
+type RoomKey = {
+  id: string;
+  kind: "agent" | "handover";
+  createdAt: string;
+  expiresAt: string;
+  lastSeenAt: string | null;
+  scope: string | null;
+  tripTitle: string | null;
+};
+
+/** Whole days since `iso`, floored — "today" is 0, not a fraction. */
+function daysSince(iso: string): number {
+  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / (24 * 60 * 60 * 1000)));
+}
+
+/**
+ * The key list a credit-off instance never needed a sheet for before —
+ * B1154. A key a person forgot they issued is a key still writing, and the
+ * only place that was ever true before this was a sentence to the model
+ * (`keys`, `lib/helper/tools/areas/journal.ts`) or a page away
+ * (`/<user>/me`'s own device list). Ranked above the balance in this shared
+ * sheet, per the 2026-09-09 decision record: it is the more important half.
+ *
+ * Labelled by kind, scope and issue date — the only identifying fields the
+ * route answers, there being no name field to give a key (B1154 rules one
+ * out). `tripTitle` is the one field beyond `GET /api/v1/<user>/keys`'s own
+ * shape, resolved server-side because the room has no trip list of its own
+ * loaded to turn `write:trip:<id>` back into words.
+ */
+function KeysSection({ username }: { username: string }) {
+  const { t, tn } = useI18n();
+  const [keys, setKeys] = useState<RoomKey[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    fetch(`/api/helper/${encodeURIComponent(username)}/keys`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { keys?: RoomKey[] } | null) => {
+        if (live) setKeys(body?.keys ?? []);
+      })
+      .catch(() => {
+        if (live) setKeys([]);
+      });
+    return () => {
+      live = false;
+    };
+  }, [username]);
+
+  async function revoke(id: string) {
+    setBusy(id);
+    await fetch(`/api/helper/${encodeURIComponent(username)}/keys`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id }),
+    }).catch(() => {});
+    setKeys((rows) => rows?.filter((row) => row.id !== id) ?? rows);
+    setBusy(null);
+  }
+
+  if (keys === null || keys.length === 0) return null;
+
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide text-navy-500">
+        {t("agent.room.keysTitle")}
+      </p>
+      <ul className="mt-1.5 flex flex-col gap-2">
+        {keys.map((key) => {
+          const kindLabel =
+            key.kind === "handover"
+              ? t("agent.room.keysHandover")
+              : key.tripTitle
+                ? t("agent.room.keysAgentTrip", { trip: key.tripTitle })
+                : t("agent.room.keysAgentWhole");
+          const issuedDays = daysSince(key.createdAt);
+          const issued =
+            issuedDays === 0
+              ? t("agent.room.keysIssuedToday")
+              : tn("agent.room.keysIssuedDaysAgo", issuedDays, { count: String(issuedDays) });
+          const used = !key.lastSeenAt
+            ? t("agent.room.keysNeverUsed")
+            : daysSince(key.lastSeenAt) === 0
+              ? t("agent.room.keysUsedNow")
+              : tn("agent.room.keysUsedDaysAgo", daysSince(key.lastSeenAt), {
+                  count: String(daysSince(key.lastSeenAt)),
+                });
+          return (
+            <li
+              key={key.id}
+              className="flex items-start justify-between gap-2 rounded-lg border border-navy-200 px-3 py-2"
+            >
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-navy-900">{kindLabel}</span>
+                <span className="block text-xs text-navy-600">
+                  {issued} · {used}
+                </span>
+              </span>
+              <BusyButton
+                busy={busy === key.id}
+                type="button"
+                onClick={() => revoke(key.id)}
+                className="shrink-0 rounded-full border border-navy-300 px-3 py-1 text-xs font-semibold text-navy-700 disabled:opacity-50"
+              >
+                {t("agent.room.keysRevoke")}
+              </BusyButton>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 /** What `GET /api/helper/<user>/account` answers — B1208 (D06/D07). */
 type AccountFacts = {
   credits: number | null;
@@ -2001,11 +2150,15 @@ function AccountSheet({
           landed on the wrong element in round 2's first attempt (the class
           string existed three times; the sed hit the history panel). */}
       <div className="min-h-40 flex-1 overflow-y-auto overscroll-contain p-4 sm:min-h-0">
-        {facts === null ? (
-          <p className="text-sm leading-6 text-navy-700">{t("agent.room.historyLoading")}</p>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {facts.credits !== null && (
+        <div className="flex flex-col gap-4">
+          {/* Above the balance, per the 2026-09-09 decision record — B1154
+              is the more important half of this sheet. Its own fetch, so a
+              slow `/account` call never holds the key list hostage. */}
+          <KeysSection username={username} />
+          {facts === null ? (
+            <p className="text-sm leading-6 text-navy-700">{t("agent.room.historyLoading")}</p>
+          ) : (
+            facts.credits !== null && (
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-navy-500">
                   {t("agent.room.accountBalance")}
@@ -2032,9 +2185,9 @@ function AccountSheet({
                   {t("agent.room.accountBuy")}
                 </a>
               </div>
-            )}
-          </div>
-        )}
+            )
+          )}
+        </div>
       </div>
     </dialog>
   );

@@ -7,6 +7,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
+import { grant } from "@/lib/credits";
 import { refusalFor, type Say } from "@/lib/helper/intents";
 import { TOOLS, runTool } from "@/lib/helper/tools";
 import { getTrips } from "@/lib/trips";
@@ -119,6 +120,9 @@ beforeEach(async () => {
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
+  // B1091 — `ask` now spends `HELPER_TURN_CREDITS` before its one model
+  // call, and this file's `credits: { enabled: true }` means it is on.
+  await grant("alex", 1);
   await consentRoute(
     new Request("https://t.test/api/helper/alex/consent", { method: "POST" }),
     params,
