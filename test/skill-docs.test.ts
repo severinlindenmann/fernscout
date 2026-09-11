@@ -8,6 +8,7 @@ import { agentGuide, instanceDocumentation, userDocumentation } from "@/lib/api/
 import { skillDoc } from "@/lib/api/skillDocs";
 import { SKILL_DOC_SLUGS, type SkillDocSlug } from "@/lib/api/skillDocMeta";
 import { PERFECT_DAY_EXAMPLE, PERFECT_TRIP_EXAMPLE } from "@/lib/api/agentCopy";
+import { openApiDocument } from "@/lib/api/openapi";
 
 let dir: string;
 
@@ -166,6 +167,56 @@ describe("the guide split by task (B311)", () => {
     expect(found.size).toBeGreaterThan(0);
     for (const slug of found) {
       expect(SKILL_DOC_SLUGS as string[], `${slug} named in route source`).toContain(slug);
+    }
+  });
+
+  // B1459: a route that sends a `next` pointer at a skill document but never
+  // says so in the contract is the exact failure AGENTS.md names — "a field
+  // the code accepts and the document does not describe is a field nobody
+  // outside will ever use", one hop earlier. This derives each route file's
+  // OpenAPI path from its position under app/api (Next.js file routing:
+  // app/api/v1/journals/route.ts -> /api/v1/journals, [user] -> {user}) and
+  // fails if the operation whose handler calls skillDocPath() has no `201`
+  // response description mentioning `next`.
+  test("every route that sends a next pointer documents it", () => {
+    const apiRoot = path.join(process.cwd(), "app/api");
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (entry.name === "route.ts") files.push(full);
+      }
+    };
+    walk(apiRoot);
+
+    const withNextPointer = files.filter((file) =>
+      /skillDocPath\(/.test(fs.readFileSync(file, "utf8")),
+    );
+    expect(withNextPointer.length).toBeGreaterThan(0);
+
+    const doc = openApiDocument() as {
+      paths: Record<string, Record<string, { responses?: Record<string, { description?: string }> }>>;
+    };
+    for (const file of withNextPointer) {
+      const routePath =
+        "/" +
+        path
+          .relative(process.cwd(), file)
+          .replace(/\\/g, "/")
+          .replace(/^app\//, "")
+          .replace(/\/route\.ts$/, "")
+          .replace(/\[([^\]]+)\]/g, "{$1}");
+      const methods = doc.paths[routePath];
+      expect(methods, `${routePath} (from ${file}) should be a documented path`).toBeTruthy();
+      const anyOperationDocumentsNext = Object.values(methods ?? {}).some((op) =>
+        Object.values(op.responses ?? {}).some((r) => r.description?.includes("`next`")),
+      );
+      expect(
+        anyOperationDocumentsNext,
+        `${routePath} sends a next pointer via skillDocPath() but no response ` +
+          "description in lib/api/openapi.ts mentions `next`",
+      ).toBe(true);
     }
   });
 
