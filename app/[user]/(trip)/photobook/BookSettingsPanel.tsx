@@ -66,7 +66,13 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-/** A value that opens a native picker, drawn as a value rather than a box. */
+/**
+ * A value that opens a native picker, drawn as a value rather than a box.
+ *
+ * No chevron of its own — B1489. `app/globals.css` already draws one on every
+ * `select` in the codebase (there were twenty-four of them and not one set
+ * `appearance`), so a second one here rendered two arrows side by side.
+ */
 function ValueSelect({
   value,
   onChange,
@@ -88,9 +94,6 @@ function ValueSelect({
       >
         {children}
       </select>
-      <span aria-hidden className="pointer-events-none absolute right-1 text-navy-500">
-        ▾
-      </span>
     </span>
   );
 }
