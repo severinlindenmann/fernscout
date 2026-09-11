@@ -17,7 +17,7 @@ import { readJpeg } from "@/lib/postcard/pdf";
 import { backLayout, resolutionNote } from "@/lib/postcard/preview";
 import { getOrder, isExpired, isPending } from "@/lib/postcard/orders";
 import { postcardOrderView } from "@/lib/order/view";
-import { OrderPill } from "@/components/order/OrderDocket";
+import OrderDocket, { OrderPill } from "@/components/order/OrderDocket";
 import { travellerPartyFor } from "@/lib/postcard/entry";
 import { travellersSvg } from "@/lib/photobook/travellers";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
@@ -153,6 +153,9 @@ export default async function PostcardOrderPage({
   const balance = creditsEnabled() ? await balanceOf(username) : null;
   const expired = isExpired(order);
   const sendable = isPending(order) && !expired && live.length > 0;
+  /** Nothing left to compose: sent, refused, or a proposal that ran out —
+   *  B1479. The stepper is for an order somebody can still change. */
+  const settled = !isPending(order) || expired;
   const short = balance !== null && balance < cost;
 
   // B474. `payload.day` is a slug — a URL segment, not a name — and the page
@@ -262,9 +265,53 @@ export default async function PostcardOrderPage({
           </p>
         ) : null}
 
+        {/* Once it is settled there is nothing left to compose — B1479.
+            A sent order used to render the stepper read-only: a crop slider
+            that cannot crop, a message field that cannot be edited, three
+            step buttons for steps that are over. What an order that has gone
+            is, is a receipt, and that is the same element a photobook order
+            lands on.
+
+            `Look` and `Write` are untouched below, for as long as the order
+            is still pending. Composing is not ordering. */}
+        {settled ? (
+          <div className="mt-6">
+            <OrderDocket
+              view={view}
+              labels={{
+                price: t("photobook.receipt.priceHeading"),
+                total: t("photobook.receipt.total"),
+                goingTo: t("postcard.page.goingOne"),
+                files: t("photobook.downloadFile"),
+                download: t("photobook.downloadFile"),
+                noFiles: t("photobook.print.noFiles"),
+              }}
+              objectMedia={
+                /* The photograph under this order's own crop — the same three
+                   properties `PostcardCropper` sets, so the plate frames what
+                   was printed rather than the whole picture. */
+                <img
+                  src={photoSrc}
+                  alt={t("postcard.page.front")}
+                  style={{
+                    objectFit: "cover",
+                    aspectRatio: String(back.aspect),
+                    objectPosition: `${(order.payload.crop?.x ?? 0.5) * 100}% ${(order.payload.crop?.y ?? 0.5) * 100}%`,
+                    transform:
+                      (order.payload.crop?.zoom ?? 1) === 1
+                        ? undefined
+                        : `scale(${order.payload.crop?.zoom})`,
+                    transformOrigin: `${(order.payload.crop?.x ?? 0.5) * 100}% ${(order.payload.crop?.y ?? 0.5) * 100}%`,
+                  }}
+                  className="block w-full bg-navy-50"
+                />
+              }
+            />
+          </div>
+        ) : (
         <PostcardSteps
           start={typeof result === "string" || confirming ? "send" : "look"}
-          settled={!isPending(order) || expired}
+          settled={settled}
           labels={{
             look: t("postcard.step.look"),
             write: t("postcard.step.write"),
@@ -529,6 +576,7 @@ export default async function PostcardOrderPage({
             </div>
           }
         />
+        )}
       </main>
     </div>
   );
