@@ -147,7 +147,10 @@ describe("the signup wizard", () => {
     typeInto(input("signup-currency"), "EUR");
     await submit();
 
-    expect(container!.textContent).toMatch(/reserved by this server/);
+    // B1250 — the wizard renders its own person-facing sentence for a known
+    // cause, not the API's machine-facing message (which names routes and
+    // tokens for an agent reading it, not a person).
+    expect(container!.textContent).toMatch(/is reserved on this server/);
     // No network call ever left this test — every response above was a stub.
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });

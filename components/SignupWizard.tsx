@@ -6,8 +6,32 @@ import BusyButton from "@/components/BusyButton";
 import { PRIMARY_BUTTON } from "@/components/LandingSections";
 import { useI18n } from "@/components/LocaleProvider";
 import TelField from "@/components/TelField";
-import { LOCALE_LABEL, MAINTAINED_LOCALES } from "@/lib/i18n";
+import { LOCALE_LABEL, MAINTAINED_LOCALES, type TranslationKey } from "@/lib/i18n";
 import { LOCALE_COOKIE } from "@/lib/requestKeys";
+
+/**
+ * Every refusal `post()` can actually get back from the signup routes, and
+ * the sentence it gets — B1247/B1250, the same shape as `HelperAsk.tsx`'s
+ * `NAMED_FAILURES`. The eight are every `createJournal()` refusal
+ * (`lib/journals.ts`) a person's own input can trigger; `invalid_token` and
+ * `missing_token` are the two ways `/api/v1/journals` and the phone-request
+ * route refuse a signup token that has expired or was already spent —
+ * neither of which reads as a sentence when shown raw, since both name an
+ * HTTP endpoint. `phone_required` is not here: `createJournal()` branches on
+ * it before `post()`'s fallback is ever reached, and it must stay there.
+ */
+const SIGNUP_FAILURES = [
+  "invalid_username",
+  "deleted_username",
+  "reserved_username",
+  "username_taken",
+  "invalid_title",
+  "invalid_owner",
+  "too_many_journals",
+  "tel_taken",
+  "invalid_token",
+  "missing_token",
+] as const;
 
 /** The same cookie `LocaleSwitcher` writes, at module level for the same
  *  reason it is there: the linter is right that a component body should not
@@ -185,11 +209,16 @@ export default function SignupWizard({
       if (typeof json?.error === "string" && passthrough?.includes(json.error)) {
         return json;
       }
-      const message =
-        typeof json?.message === "string"
-          ? json.message
-          : response?.statusText || "unknown";
-      setError(t("agent.failed", { error: message }));
+      // A known cause gets its own sentence, in the reader's own language —
+      // never the API's own machine-facing message, which is written for an
+      // agent and names endpoints and tokens (B1250). Anything else falls to
+      // one honest, generic sentence: nothing typed so far was lost, and
+      // nothing here says what actually happened, because we do not know.
+      if (typeof json?.error === "string" && (SIGNUP_FAILURES as readonly string[]).includes(json.error)) {
+        setError(t(`agent.error.${json.error}` as TranslationKey));
+        return null;
+      }
+      setError(t("agent.signupFailed"));
       return null;
     }
     return json;
