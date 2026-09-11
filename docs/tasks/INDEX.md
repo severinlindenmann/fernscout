@@ -292,11 +292,10 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (7)
+## open (6)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1488](open/B1488-the-buy-panel-has-no-object.md) | The buy panel has no object plate and no read-or-order pair where the drawing has both | FEATURE | high | low |
 | [B1489](open/B1489-the-postcard-steps-on-a-phone.md) | The postcard steps on a phone are nothing like the drawing they were approved from | FEATURE | high | high |
 | [B1490](open/B1490-a-proposal-opens-straight-into-the.md) | A proposal opens straight into the cropper with no card that says four cards are waiting | FEATURE | high | low |
 | [B109](open/B109-reactions-are-on-at-fernscout-ch.md) | Reactions are on at fernscout.ch and nothing has confirmed one is recorded and survives a restart | OPS | low | low |
@@ -304,10 +303,11 @@ Do not edit them by hand; run the script.
 | [B1119](open/B1119-fernscout-ch-s-caddy-block-is.md) | fernscout.ch's Caddy block is hand-merged, so proxy directives drift until applied by hand | OPS | low | low |
 | [B1150](open/B1150-ghostscript-is-not-installed-on-the.md) | Ghostscript is not installed on the VPS, so the instance cannot produce a conformant PDF/X-4 | OPS | low | low |
 
-## in-development (6)
+## in-development (7)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1488](in-development/B1488-the-buy-panel-has-no-object.md) | The buy panel has no object plate and no read-or-order pair where the drawing has both | FEATURE | high | low | `3f748903` |
 | [B1272](in-development/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low | `13f12910` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
