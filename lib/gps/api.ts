@@ -1,5 +1,6 @@
 import { GPS_IMPORTERS } from "@/importers/gps";
 import { COSTS_IMPORTERS } from "@/importers/costs";
+import { CONTACTS_IMPORTERS } from "@/importers/contacts";
 import { checkGpsImporter, type GpsImporter } from "@/importers/gps/schema";
 import { appendFixes, type AppendResult } from "./store";
 import { readExcludeZones, trackForTrip } from "./enrich";
@@ -33,7 +34,7 @@ import { readTrack, trackPointCount, writeTrack } from "./track";
  * bank statement as positions is not a mistake to make quietly, and it was one
  * word away while there was a single kind to fall back to.
  */
-export const IMPORT_KINDS = ["gps", "costs"] as const;
+export const IMPORT_KINDS = ["gps", "costs", "contacts"] as const;
 export type ImportKind = (typeof IMPORT_KINDS)[number];
 
 export type ImportOutcome = {
@@ -78,6 +79,11 @@ export function importFormats(): {
       kind: "costs",
       what: "what a trip cost — a bank statement, read into the days it happened on",
       formats: COSTS_IMPORTERS.map((i) => ({ id: i.id, label: i.label })),
+    },
+    {
+      kind: "contacts",
+      what: "who might get post — a phone's own address book, read and shown before anybody is added",
+      formats: CONTACTS_IMPORTERS.map((i) => ({ id: i.id, label: i.label })),
     },
   ];
 }

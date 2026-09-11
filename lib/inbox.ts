@@ -74,7 +74,7 @@ export type InboxKind = (typeof INBOX_KINDS)[number];
  * something is built that understands it, and so the format does not have to
  * change then.
  */
-export const INBOX_FILE_EXTENSIONS = new Set([".csv", ".pdf", ".json", ".txt", ".gpx", ".md"]);
+export const INBOX_FILE_EXTENSIONS = new Set([".csv", ".pdf", ".json", ".txt", ".gpx", ".md", ".vcf"]);
 
 /** What somebody said about a file. Every field optional, every field theirs. */
 export type InboxMeta = {

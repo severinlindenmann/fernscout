@@ -28,6 +28,7 @@ import { INBOX_FILE_EXTENSIONS, INBOX_KINDS } from "@/lib/inbox";
 import { IMPORT_KINDS } from "@/lib/gps/api";
 import { GPS_FORMATS } from "@/importers/gps";
 import { COSTS_FORMATS } from "@/importers/costs";
+import { CONTACTS_FORMATS } from "@/importers/contacts";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
 // Every enum below is imported rather than typed out. A hand-written list
@@ -2875,11 +2876,13 @@ export function openApiDocument() {
             "history is every address somebody sleeps at and every place they work; what a " +
             "reader ever sees is the derived line for one trip, drawn behind that trip's own " +
             "gate.\n\n" +
-            "**The two kinds end differently.** `gps` is stored as it is read — a coordinate " +
-            "is a measurement and there is nothing to decide about it. `costs` writes " +
-            "nothing at all: a statement covers the trip and the fortnight either side of " +
-            "it, and what each line was *for* is an editorial decision. It reports, a person " +
-            "agrees, and `POST /api/v1/{user}/trips/{trip}/costs/import` writes.\n\n" +
+            "**`gps` ends differently from the other two.** It is stored as it is read — a " +
+            "coordinate is a measurement and there is nothing to decide about it. `costs` " +
+            "and `contacts` write nothing at all: a statement covers the trip and the " +
+            "fortnight either side of it, and a vCard is somebody's whole address book, and " +
+            "in both cases what a row is *for* is an editorial decision. They report, a " +
+            "person agrees, and `POST /api/v1/{user}/trips/{trip}/costs/import` or " +
+            "`POST /api/v1/{user}/contacts/import` writes.\n\n" +
             "**A trip-scoped token is refused** on all of these — the history belongs to the " +
             "journal, not to the trip you came on.",
           parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
@@ -2894,8 +2897,8 @@ export function openApiDocument() {
           description:
             "Takes a file somebody exported from somewhere else — Google Maps Timeline, a " +
             "Takeout `Records.json`, a GPX track, plain JSON Lines from a tool of your own, " +
-            "or a Revolut statement — and reads it into the journal.\n\n" +
-            "**Say the `kind`.** With two of them an absent one is refused rather than " +
+            "a Revolut statement, or a phone's own vCard — and reads it into the journal.\n\n" +
+            "**Say the `kind`.** With more than one, an absent one is refused rather than " +
             "guessed at: reading a bank statement as positions, or a location history as " +
             "money, is not a mistake to make quietly.\n\n" +
             "**Three ways to hand over the bytes.** `inbox` names a file already staged with " +
@@ -2928,7 +2931,7 @@ export function openApiDocument() {
                     },
                     format: {
                       type: "string",
-                      enum: [...GPS_FORMATS, ...COSTS_FORMATS],
+                      enum: [...GPS_FORMATS, ...COSTS_FORMATS, ...CONTACTS_FORMATS],
                       description:
                         "Who wrote the file, within its kind. Left out, it is detected from " +
                         "the contents.",
@@ -2959,10 +2962,10 @@ export function openApiDocument() {
                       description:
                         "`gps` only: parse, check and report without writing anything. This " +
                         "is how you test an importer you wrote — it runs the same contract " +
-                        "check the format's own `schema.ts` exports. A `costs` import never " +
-                        "writes in the first place, so the flag changes nothing there; it " +
-                        "is accepted, and the answer says so rather than leaving you to " +
-                        "wonder whether the read happened.",
+                        "check the format's own `schema.ts` exports. A `costs` or `contacts` " +
+                        "import never writes in the first place, so the flag changes nothing " +
+                        "there; it is accepted, and the answer says so rather than leaving " +
+                        "you to wonder whether the read happened.",
                     },
                   },
                 },
@@ -2974,7 +2977,7 @@ export function openApiDocument() {
                   properties: {
                     file: { type: "string", format: "binary" },
                     kind: { type: "string", enum: [...IMPORT_KINDS] },
-                    format: { type: "string", enum: [...GPS_FORMATS, ...COSTS_FORMATS] },
+                    format: { type: "string", enum: [...GPS_FORMATS, ...COSTS_FORMATS, ...CONTACTS_FORMATS] },
                     dryRun: { type: "string", enum: ["true", "false"] },
                   },
                 },
@@ -3066,6 +3069,69 @@ export function openApiDocument() {
             "401": { description: "No live token — authenticate" },
             "403": { description: "A token that may not write this trip" },
             "404": { description: "No such trip" },
+          },
+        },
+      },
+      "/api/v1/{user}/contacts/import": {
+        post: {
+          summary: "File the vCard rows a person agreed are actually contacts",
+          description:
+            "The second half of a `contacts` import. `POST /api/v1/{user}/import` (kind " +
+            "`contacts`) read a vCard and wrote nothing; this takes back the entries a " +
+            "person has agreed and files each as a `pending` request — the same row shape " +
+            "and the same confirmation mail the public request form produces. Nothing is " +
+            "pre-approved, and nobody is a reader, a postcard recipient or anything else " +
+            "until the address itself confirms.\n\n" +
+            "**One decision happens in between, and it is not yours.** A phone's own " +
+            "address book is mostly people who have nothing to do with this journal; " +
+            "*which rows are actually contacts* is a person's call, made against the " +
+            "`people` the import reported.\n\n" +
+            "A row with no `email` cannot be filed — `lib/contacts` keys every row on one, " +
+            "the same reason a phone-only contact is shown but not importable.\n\n" +
+            "**Owner only.** A trip-scoped token is refused: an address book belongs to " +
+            "the whole journal, not to the days a trip covers.",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["rows"],
+                  properties: {
+                    rows: {
+                      type: "array",
+                      maxItems: 50,
+                      items: {
+                        type: "object",
+                        required: ["name", "email"],
+                        properties: {
+                          name: { type: "string" },
+                          email: { type: "string" },
+                          tel: {
+                            type: "string",
+                            description:
+                              "Carried through from the card if it had one. Never a postal " +
+                              "address — a vCard's own is not imported here.",
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "`filed` and `invalid` counts, plus `results` naming the outcome per row: " +
+                "`created`, `updated`, `ignored` (a blocked address) or `invalid`",
+            },
+            "400": { description: "No `rows`, an empty array, or more than 50 of them" },
+            "401": { description: "No live token — authenticate" },
+            "403": { description: "A token scoped to a trip rather than the whole journal" },
+            "404": { description: "No such journal, or contacts are off on it" },
           },
         },
       },

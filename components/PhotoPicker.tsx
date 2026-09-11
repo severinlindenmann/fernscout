@@ -19,7 +19,7 @@ import type { TranslationKey } from "@/lib/i18n";
  * from drifting. A wrong guess is not a refusal either way — the route decides
  * — but a missing extension is a file a phone will grey out.
  */
-export const PICKER_ACCEPT = "image/*,video/*,.csv,.pdf,.json,.txt,.gpx,.md";
+export const PICKER_ACCEPT = "image/*,video/*,.csv,.pdf,.json,.txt,.gpx,.md,.vcf";
 
 /**
  * The extensions that are *not* photographs — `INBOX_FILE_EXTENSIONS` in
@@ -27,7 +27,7 @@ export const PICKER_ACCEPT = "image/*,video/*,.csv,.pdf,.json,.txt,.gpx,.md";
  * `test/agent-picker-kinds.test.ts` keeps the two from drifting, the same way
  * `PICKER_ACCEPT` above is kept honest.
  */
-const FILE_EXTENSIONS = [".csv", ".pdf", ".json", ".txt", ".gpx", ".md"];
+const FILE_EXTENSIONS = [".csv", ".pdf", ".json", ".txt", ".gpx", ".md", ".vcf"];
 
 /**
  * How many of a pick are photographs and how many are something else — B845.
