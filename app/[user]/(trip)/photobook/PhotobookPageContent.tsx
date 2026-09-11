@@ -590,10 +590,19 @@ export default function PhotobookPageContent({
         </h1>
 
         {/* Said before setup begins — B1368. Only one size/cover has ever
-            been checked against a real, printed copy. */}
-        <div className="mt-4">
-          <ExperimentalPrintNotice />
-        </div>
+            been checked against a real, printed copy.
+            **Only while setup is showing** — B1480. B1368 asked for it twice,
+            in two places that were never meant to be on screen together: here
+            before the questions, and again as the last thing read before the
+            press. On the book itself they were, forty words of coral repeated
+            two hundred pixels apart, which is how a warning becomes something
+            a person learns to scroll past. The book keeps the one that matters
+            — the one beside the button. */}
+        {showFlow && (
+          <div className="mt-4">
+            <ExperimentalPrintNotice />
+          </div>
+        )}
 
         {/* The outcome of the last press, above everything else: a page that
             looked identical whether Pay had just failed or never been
