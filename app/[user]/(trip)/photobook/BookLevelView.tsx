@@ -8,6 +8,7 @@ import type { BookOptions } from "@/lib/photobook/options";
 import type { MediaTile } from "@/lib/types";
 import { addressLines, type PanelRecipient } from "@/components/PhotobookPrintPanel";
 import BookSettingsPanel, { SIZE_LABEL } from "./BookSettingsPanel";
+import ExperimentalPrintNotice from "./ExperimentalPrintNotice";
 import { readingHtml } from "./previewSlice";
 import ReadTheBookView, {
   useHasKeyboard,
@@ -19,6 +20,10 @@ export type PreviewState = {
   pages: number;
   volumes: number;
   credits: number;
+  /** The print-only portion of `credits`, or `null` when there is no quote
+   * yet — B1406. `credits` alone cannot say whether it includes postage;
+   * this is what lets the price line tell the difference. */
+  printCredits: number | null;
   /** The shape of one spread — two pages and their bleed, side by side. The
    * frame is sized from this, so the book is never a letterbox with its own
    * scrollbar. */
@@ -31,7 +36,22 @@ export type PreviewState = {
     photos?: string[];
   }[];
   buyable: boolean;
+  /** Which of the three reasons `buyable` is false, or `null` when it is
+   * true — B1406. Sent by the route rather than re-derived here so a new
+   * refusal added to `preview/route.ts` fails `tsc` at `UNBUYABLE_MESSAGE`
+   * below instead of silently rendering the wrong sentence. */
+  unbuyableReason: UnbuyableReason | null;
 } | null;
+
+type UnbuyableReason = "no-photos" | "no-recipient" | "printer-unavailable";
+
+/** One sentence per reason the button is dead — B1406. A total `Record`,
+ * following `OUTCOME_MESSAGE`'s own shape in `PhotobookPageContent.tsx`. */
+const UNBUYABLE_MESSAGE: Record<UnbuyableReason, TranslationKey> = {
+  "no-photos": "photobook.noPhotos",
+  "no-recipient": "photobook.print.noRecipients",
+  "printer-unavailable": "photobook.printerUnavailable",
+};
 
 type T = (key: TranslationKey, vars?: Record<string, string>) => string;
 type Tn = (
@@ -420,10 +440,17 @@ export default function BookLevelView({
             were unrelated. */}
         {credits !== null && (
           <p className="mt-3 text-base font-semibold text-navy-900">
-            {t("photobook.price", {
-              credits: String(credits),
-              money: formatChf(creditsInRappen(credits)),
-            })}
+            {t(
+              // No quote yet — the printer was never asked, because there is
+              // nobody to post to or it could not answer — so this total is
+              // the print cost alone. `photobook.price` promises postage and
+              // would be a real number for the wrong thing — B1406.
+              preview?.printCredits === null ? "photobook.pricePrintOnly" : "photobook.price",
+              {
+                credits: String(credits),
+                money: formatChf(creditsInRappen(credits)),
+              },
+            )}
           </p>
         )}
         {balance !== null && (
@@ -433,6 +460,11 @@ export default function BookLevelView({
         )}
 
         <p className="mt-3 text-sm text-navy-700">{t("photobook.orderNext")}</p>
+
+        {/* The last thing read before the button — B1368. */}
+        <div className="mt-3">
+          <ExperimentalPrintNotice />
+        </div>
 
         <form
           method="post"
@@ -483,11 +515,15 @@ export default function BookLevelView({
               {t("photobook.building")}
             </p>
           )}
-          {unbuyable && (
-            <p className="mt-2 text-sm text-red-700">
-              {t("photobook.noPhotos")}
-            </p>
-          )}
+          {/* Not for "no-recipient" — the grey paragraph above the address
+              already says it, and repeating it in red says nothing new. */}
+          {unbuyable &&
+            preview?.unbuyableReason &&
+            preview.unbuyableReason !== "no-recipient" && (
+              <p className="mt-2 text-sm text-red-700">
+                {t(UNBUYABLE_MESSAGE[preview.unbuyableReason])}
+              </p>
+            )}
           {/* Not a dead disabled button: the one place credits are bought is
               the owner's own page, and this is the link to it — B551. */}
           {tooPoor && credits !== null && balance !== null && (

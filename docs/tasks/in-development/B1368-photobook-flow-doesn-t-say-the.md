@@ -62,3 +62,9 @@ A person opening the photobook page for a trip sees an "experimental print"
 notice before setting up a book, and again beside the Pay button before
 paying, in their own language (en/de/hu, none of them a placeholder copy of
 another locale). `npm run verify` passes.
+
+## Note
+
+`photobook.experimentalPrint` ships with a placeholder — the English string —
+for `hu`, per the batch's Hungarian decision (real hu text needs a native
+speaker). Needs a native read before this leaves `testing/`.
