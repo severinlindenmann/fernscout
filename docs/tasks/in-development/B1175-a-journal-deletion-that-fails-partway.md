@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: deletions, registry, ops
 found: "2026-09-09T20:20:00Z"
+started: "2026-09-11T12:32:28Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T12:32:28Z"
 ---
 
 # B1175 — a journal deletion that fails partway leaves the journal gone, no tombstone, and a spent confirmation link

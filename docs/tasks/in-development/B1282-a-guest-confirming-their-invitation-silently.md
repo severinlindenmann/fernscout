@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: contacts
 found: "2026-09-10T10:45:41Z"
+started: "2026-09-11T12:32:28Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T12:32:28Z"
 ---
 
 # B1282 — A guest confirming their invitation silently deletes the postal address the owner entered for them
