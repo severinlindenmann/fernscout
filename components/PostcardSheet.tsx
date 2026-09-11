@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import BusyButton from "@/components/BusyButton";
 import { X } from "lucide-react";
@@ -95,126 +95,98 @@ export default function PostcardSheet({
 }) {
   const { t } = useI18n();
   const router = useRouter();
-  const [candidates, setCandidates] = useState<Candidate[] | null>(null);
-  const [creditsEach, setCreditsEach] = useState(0);
-  const [chosen, setChosen] = useState<string[]>([]);
-  const [days, setDays] = useState<DayText[]>([]);
-  const [day, setDay] = useState(tile.slug);
-  const [locale, setLocale] = useState("");
-  const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
+  /** `null` while the round trip is in flight; the two states that stop it
+   *  are the only things this component renders any more. */
+  const [nobody, setNobody] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
+  /**
+   * No form — B1500.
+   *
+   * This used to ask four things and then hand over to a flow that asks all
+   * four again, better: the words on the Write step, the language beside
+   * them, the recipients on Send. A form in front of a form, and the one
+   * screen in the flow that looked like a settings dialog.
+   *
+   * So the tap *is* the create, and what the dialog collected are the
+   * defaults it already offered: the day the photograph is from, the language
+   * the journal writes in, and — because `POST …/postcards` will not take an
+   * order addressed to nobody — the first person this journal may post to.
+   * That last one is provisional: the Send step is where the list is chosen,
+   * nothing is printed or charged before that press, and the press is the
+   * only thing in this codebase that spends at a printer.
+   *
+   * One effect rather than three, and the navigation at the end of it. Two
+   * effects filling state that a third watched for was a synchronous
+   * `setState` inside an effect — a cascading render, and the linter is
+   * right about it.
+   */
   useEffect(() => {
     let live = true;
     (async () => {
-      const res = await fetch(`/api/v1/${username}/postcards/recipients`);
-      if (!res.ok || !live) return;
-      const body = (await res.json()) as {
-        recipients: Candidate[];
-        creditsEach: number;
-      };
-      if (!live) return;
-      setCandidates(body.recipients);
-      setCreditsEach(body.creditsEach);
-    })().catch(() => {
-      if (live) setCandidates([]);
-    });
+      try {
+        const [recRes, textRes] = await Promise.all([
+          fetch(`/api/v1/${username}/postcards/recipients`),
+          fetch(`/api/v1/${username}/postcards/texts?trip=${encodeURIComponent(trip)}`),
+        ]);
+        if (!live) return;
+
+        const rec = recRes.ok
+          ? ((await recRes.json()) as { recipients: Candidate[] })
+          : { recipients: [] };
+        const to = rec.recipients[0];
+        if (!to) {
+          if (live) setNobody(true);
+          return;
+        }
+
+        // A journal with no words on this day still gets a card: the Write
+        // step is where they are written, and an empty back there is a box
+        // waiting rather than a failure here.
+        let message = "";
+        let locale = "";
+        if (textRes.ok) {
+          const text = (await textRes.json()) as {
+            writtenLocale: string;
+            days: DayText[];
+          };
+          const day = text.days.find((d) => d.slug === tile.slug) ?? text.days[0];
+          if (day) {
+            locale = day.texts[text.writtenLocale] ? text.writtenLocale : Object.keys(day.texts)[0] ?? "";
+            message = day.texts[locale] ?? "";
+          }
+        }
+        if (!live) return;
+
+        const res = await fetch(`/api/v1/${username}/postcards`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            trip,
+            day: tile.slug,
+            photo: photoPathOf(tile.src, username, trip),
+            message: message.trim(),
+            from,
+            recipients: [to.contactId],
+            ...(locale ? { locale } : {}),
+          }),
+        });
+        if (!res.ok) throw new Error(String(res.status));
+        const created = (await res.json()) as { url: string };
+        if (!live) return;
+        // `router.push`, not `window.location.assign` — B982. The order is a
+        // page on this site and this was the first of four white flashes on
+        // the way to posting a card.
+        router.push(created.url);
+      } catch {
+        if (live) setFailed(true);
+      }
+    })();
     return () => {
       live = false;
     };
-  }, [username]);
-
-  useEffect(() => {
-    let live = true;
-    (async () => {
-      const res = await fetch(
-        `/api/v1/${username}/postcards/texts?trip=${encodeURIComponent(trip)}`,
-      );
-      if (!res.ok || !live) return;
-      const body = (await res.json()) as {
-        writtenLocale: string;
-        days: DayText[];
-      };
-      if (!live) return;
-      setDays(body.days);
-      // The day the photograph is from, in the language the journal is written
-      // in — the same two answers this component gave before there was
-      // anything to choose. Either can be missing: a day whose prose is empty
-      // is not offered at all, and then the first day that has words is a
-      // better start than an empty box with a select pointing at nothing.
-      const start = body.days.find((d) => d.slug === tile.slug) ?? body.days[0];
-      if (!start) return;
-      const loc = start.texts[body.writtenLocale]
-        ? body.writtenLocale
-        : Object.keys(start.texts)[0];
-      setDay(start.slug);
-      setLocale(loc);
-      setMessage(start.texts[loc] ?? "");
-    })().catch(() => {
-      // Offline, or a journal with no days worth quoting. An empty box is a
-      // fine place to start and a failure to prefill is not a failure to
-      // compose.
-    });
-    return () => {
-      live = false;
-    };
-  }, [username, trip, tile.slug]);
-
-  const current = days.find((d) => d.slug === day);
-  /** Only the languages this day actually has words in — see the route. */
-  const languages = current ? Object.keys(current.texts) : [];
-
-  /** Both selects do the same thing: put that day's words, in that language,
-   * in the box. Written once so they cannot drift into disagreeing about
-   * which of the two is the one that reloads the text. */
-  function take(nextDay: string, nextLocale: string) {
-    const found = days.find((d) => d.slug === nextDay);
-    const loc = found?.texts[nextLocale]
-      ? nextLocale
-      : (Object.keys(found?.texts ?? {})[0] ?? "");
-    setDay(nextDay);
-    setLocale(loc);
-    setMessage(found?.texts[loc] ?? "");
-  }
-
-  const total = creditsEach * chosen.length;
-  const ready = chosen.length > 0 && message.trim().length > 0 && !busy;
-
-  async function create() {
-    setBusy(true);
-    setFailed(false);
-    try {
-      const res = await fetch(`/api/v1/${username}/postcards`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          trip,
-          day: tile.slug,
-          photo: photoPathOf(tile.src, username, trip),
-          message: message.trim(),
-          from,
-          recipients: chosen,
-          ...(locale ? { locale } : {}),
-        }),
-      });
-      if (!res.ok) throw new Error(String(res.status));
-      const body = (await res.json()) as { url: string };
-      // Leaves this page entirely. The next thing the owner sees is the
-      // preview, with the button on it — which is the handover this whole
-      // component exists to perform.
-      //
-      // `router.push` and not `window.location.assign` — B982. The preview is
-      // a page on this site and this was the first of four white flashes on
-      // the way to posting a card; a soft navigation renders it in place,
-      // keeps the busy button spinning until it is actually there, and asks
-      // the server for exactly the same thing.
-      router.push(body.url);
-    } catch {
-      setFailed(true);
-      setBusy(false);
-    }
-  }
+  }, [username, trip, tile.slug, tile.src, from, router, attempt]);
 
   return (
     <div
@@ -241,118 +213,28 @@ export default function PostcardSheet({
           </button>
         </div>
 
-        {/* Rendered only when there is a choice to make. One day in one
-            language is the common case for a journal that keeps no
-            translations, and a select with a single option is furniture. */}
-        {days.length > 1 || languages.length > 1 ? (
-          <div className="mt-4 flex flex-wrap gap-3">
-            {days.length > 1 ? (
-              <label className="text-sm font-semibold text-navy-700">
-                {t("postcard.textFrom")}
-                <select
-                  value={day}
-                  onChange={(e) => take(e.target.value, locale)}
-                  className="mt-1 block rounded-lg border border-navy-200 px-2 py-1.5 text-sm font-normal text-navy-900"
-                >
-                  {days.map((d) => (
-                    <option key={d.slug} value={d.slug}>
-                      {d.date} — {d.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-            {languages.length > 1 ? (
-              <label className="text-sm font-semibold text-navy-700">
-                {t("postcard.page.writtenIn")}
-                <select
-                  value={locale}
-                  onChange={(e) => take(day, e.target.value)}
-                  className="mt-1 block rounded-lg border border-navy-200 px-2 py-1.5 text-sm font-normal text-navy-900"
-                >
-                  {languages.map((code) => (
-                    <option key={code} value={code}>
-                      {LOCALE_LABEL[code] ?? code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
+        {nobody ? (
+          <p className="mt-4 text-sm text-navy-700">{t("postcard.noRecipients")}</p>
+        ) : failed ? (
+          <div className="mt-4">
+            <p className="text-sm text-coral-600">{t("postcard.failed")}</p>
+            <button
+              onClick={() => {
+                setFailed(false);
+                setAttempt((n) => n + 1);
+              }}
+              className="mt-3 min-h-11 rounded-full border-2 border-yellow-600 bg-yellow-400 px-5 text-sm font-semibold text-yellow-950"
+            >
+              {t("postcard.start")}
+            </button>
           </div>
-        ) : null}
-
-        {/* The words are shown, not asked for — B1005.
-            There used to be a textarea here and another one on the preview
-            page, holding the same message, and nobody could tell which was
-            the real one. The second is: it sits under a drawing of the card
-            at print size, which is where a wrong word actually becomes
-            obvious. So this is where the words *start* — a day's own opening,
-            trimmed by the server — and the next screen is where they are
-            written. */}
-        <div className="mt-4">
-          <p className="text-sm font-semibold text-navy-700">
-            {t("postcard.startsFrom")}
+        ) : (
+          /* The only thing between the tap and the flow, and it is a wait
+             rather than a question. */
+          <p className="mt-4 text-sm text-navy-700" role="status">
+            {t("postcard.creating")}
           </p>
-          <p className="mt-1 line-clamp-3 rounded-lg border border-navy-200 bg-cream-50 p-2.5 text-sm text-navy-800">
-            {message || t("postcard.startsFromNothing")}
-          </p>
-          <p className="mt-1 text-xs text-navy-600">{t("postcard.writeNext")}</p>
-        </div>
-
-        <fieldset className="mt-4">
-          <legend className="text-sm font-semibold text-navy-700">
-            {t("postcard.recipientsLabel")}
-          </legend>
-          {candidates !== null && candidates.length === 0 ? (
-            <p className="mt-1 text-sm text-navy-600">
-              {t("postcard.noRecipients")}
-            </p>
-          ) : (
-            <ul className="mt-1 space-y-1">
-              {(candidates ?? []).map((c) => (
-                <li key={c.contactId}>
-                  <label className="flex items-center gap-2 text-sm text-navy-800">
-                    <input
-                      type="checkbox"
-                      checked={chosen.includes(c.contactId)}
-                      onChange={(e) =>
-                        setChosen((was) =>
-                          e.target.checked
-                            ? [...was, c.contactId]
-                            : was.filter((id) => id !== c.contactId),
-                        )
-                      }
-                    />
-                    {/* A town, never a street. The full address is behind a
-                        disclosure on the preview page, which is where somebody
-                        is actually checking an envelope. */}
-                    {c.name} — {c.city}
-                    {c.country ? `, ${c.country}` : ""}
-                  </label>
-                </li>
-              ))}
-            </ul>
-          )}
-        </fieldset>
-
-        {failed && (
-          <p className="mt-3 text-sm text-navy-800">{t("postcard.failed")}</p>
         )}
-
-        <p className="mt-4 text-sm font-semibold text-navy-900">
-          {t("postcard.cost", { credits: String(total) })}
-        </p>
-        <p className="mt-1 text-xs text-navy-600">{t("postcard.nextStep")}</p>
-
-        <BusyButton
-          busy={busy}
-          onClick={create}
-          disabled={!ready}
-          className="mt-3 min-h-11 w-full rounded-full bg-navy-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-40"
-          busyLabel={t("postcard.creating")}
-        >
-          {t("postcard.create")}
-        </BusyButton>
       </div>
     </div>
   );
