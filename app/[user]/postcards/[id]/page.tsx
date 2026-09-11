@@ -17,7 +17,7 @@ import { readJpeg } from "@/lib/postcard/pdf";
 import { backLayout, resolutionNote } from "@/lib/postcard/preview";
 import { getOrder, isExpired, isPending } from "@/lib/postcard/orders";
 import { postcardOrderView } from "@/lib/order/view";
-import OrderDocket, { OrderPill } from "@/components/order/OrderDocket";
+import OrderDocket from "@/components/order/OrderDocket";
 import { travellerPartyFor } from "@/lib/postcard/entry";
 import { travellersSvg } from "@/lib/photobook/travellers";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
@@ -253,17 +253,17 @@ export default async function PostcardOrderPage({
             photobook's, rather than by a three-way ladder written out here.
             B474 and the ticket after it are both faults of that ladder: an
             order already at the printer headed "ready to send", and a
-            refused set headed "sent". */}
-        <h1 className="font-display text-2xl font-semibold text-navy-900">{view.head.title}</h1>
-        <p className="mt-1 text-sm text-navy-600">{view.head.subtitle}</p>
-        {/* The pill only once there is something to report. A pending order
-            says "waiting for you" in the send step's own button; saying it
-            twice above the photograph would be the page talking to itself. */}
-        {!isPending(order) && view.status ? (
-          <p className="mt-3">
-            <OrderPill tone={view.status.tone} label={view.status.label} />
-          </p>
-        ) : null}
+            refused set headed "sent".
+
+            **Only while it is pending** — the docket below carries its own
+            head, and a settled order printed both: the same title, the same
+            sentence and the same pill, twice, two hundred pixels apart. */}
+        {!settled && (
+          <>
+            <h1 className="font-display text-2xl font-semibold text-navy-900">{view.head.title}</h1>
+            <p className="mt-1 text-sm text-navy-600">{view.head.subtitle}</p>
+          </>
+        )}
 
         {/* Once it is settled there is nothing left to compose — B1479.
             A sent order used to render the stepper read-only: a crop slider
@@ -281,7 +281,7 @@ export default async function PostcardOrderPage({
               labels={{
                 price: t("photobook.receipt.priceHeading"),
                 total: t("photobook.receipt.total"),
-                goingTo: t("postcard.page.goingOne"),
+                goingTo: t("photobook.print.toLabel"),
                 files: t("photobook.downloadFile"),
                 download: t("photobook.downloadFile"),
                 noFiles: t("photobook.print.noFiles"),
