@@ -132,6 +132,13 @@ export type PhotobookViewInput = {
   files: string[];
   /** Where a file of this order is downloaded from. */
   fileHref: (file: string) => string;
+  /**
+   * The photograph on the front of this book — B1469, and only when the page
+   * has confirmed the file is still there. Absent is the ordinary case (a
+   * cover the planner picked leaves no record on the order), and absent is
+   * fine: the slot falls back to the size and the binding.
+   */
+  coverImage?: string;
 };
 
 /**
@@ -213,7 +220,12 @@ export function photobookOrderView(input: PhotobookViewInput): OrderView {
     recipients: input.recipient
       ? [{ name: input.recipient.name, lines: addressLines(input.recipient) }]
       : [],
-    object: { label: t("order.object.cover"), spec: sizeLabel, shape: "square" },
+    object: {
+      label: t("order.object.cover"),
+      spec: sizeLabel,
+      shape: "square",
+      image: input.coverImage,
+    },
     files: input.files.map((file) => ({ name: file, sub: sizeLabel, href: input.fileHref(file) })),
     meta: t("photobook.receipt.meta", { date: order.createdAt.slice(0, 10), id: order.id }),
   };

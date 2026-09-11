@@ -9,6 +9,7 @@ import { fetchOrderStatus } from "@/lib/photobook/gelato";
 import { getPhotobookOrder } from "@/lib/photobook/orders";
 import { bookAddressFor } from "@/lib/photobook/recipients";
 import { visibleBookFiles } from "@/lib/photobook/visibleFiles";
+import { resolveMediaFile } from "@/lib/media";
 import { BOOK_SIZES } from "@/lib/photobook/spec";
 import { translateIn, requestLocale } from "@/lib/locales";
 import type { TranslationKey } from "@/lib/i18n";
@@ -74,6 +75,29 @@ export default async function PhotobookOrderPage({
   // envelope is dropped, not thrown — B1458.
   const recipient = print?.contactId ? await bookAddressFor(username, print.contactId) : null;
 
+  /**
+   * The photograph on the cover — B1469.
+   *
+   * `options.cover` is the URL of a photograph in the trip's own media, set
+   * when the owner chose a cover rather than letting the planner pick one, so
+   * it is *absent* on most books and that is a fine answer: the plate falls
+   * back to the size and the binding. It is checked against the disk before
+   * it is rendered — a trip deleted or a photograph removed since the order
+   * would otherwise leave a broken-image icon where somebody's book should
+   * be, which is worse than no picture at all.
+   *
+   * What this is **not** is a render of the printed cover: the title is set
+   * over this photograph in the PDF, and nothing here draws that. Doing it
+   * properly means rasterising the built cover page, which needs a
+   * rasteriser this project does not have.
+   */
+  const coverUrl = order.payload.options.cover;
+  const coverSegments = coverUrl?.startsWith(`/${username}/media/`)
+    ? coverUrl.slice(`/${username}/media/`.length).split("/")
+    : null;
+  const coverImage =
+    coverSegments && resolveMediaFile(username, coverSegments) ? coverUrl : undefined;
+
   const view = photobookOrderView({
     order,
     t,
@@ -82,6 +106,7 @@ export default async function PhotobookOrderPage({
     providerStatus,
     recipient,
     files: visibleBookFiles(order.payload.files ?? []),
+    coverImage,
     fileHref: (file) => `/${username}/photobooks/${id}/${file}`,
   });
 
