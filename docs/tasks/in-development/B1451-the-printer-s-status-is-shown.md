@@ -104,3 +104,11 @@ the tracking rows B1440 added below the status.
 - Looked at in a browser at 390px, not judged from the source — the pill is
   drawn, so `check-a-drawing` applies.
 - `npm run verify` clean.
+
+## Note
+
+`hu` carries English for the five new keys this ticket added
+(`photobook.print.status.unknown`, `.accepted`, `.inProduction`, `.shipped`,
+`.refused`) — no native Hungarian pass, same debt B1438 and B1440 already
+left on the rest of the `photobook.*` block. A native speaker should do one
+pass over the whole block rather than one ticket at a time.
