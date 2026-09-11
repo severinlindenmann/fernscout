@@ -302,16 +302,15 @@ Do not edit them by hand; run the script.
 | [B1501](open/B1501-the-postcard-order-opens-on-a.md) | The postcard order opens on a card that stands between the owner and the first step | ISSUE | high | low |
 | [B1502](open/B1502-the-two-gallery-actions-stack-one.md) | The two gallery actions stack one per line on a small phone, and the step bar wraps mid-row | ISSUE | high | low |
 
-## in-development (4)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1499](in-development/B1499-a-sent-postcard-order-says-the.md) | A sent postcard order says the cards are Shipped, and nothing has ever told us that | ISSUE | high | low | `3f748903` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
-| [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
 | [B1495](in-development/B1495-a-journal-can-be-synced-down.md) | A journal can be synced down to a folder and back up, incrementally | FEATURE | medium | high | `a46b89fa` |
 
-## testing (63)
+## testing (64)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -352,6 +351,7 @@ Do not edit them by hand; run the script.
 | [B1295](testing/B1295-the-landing-page-promises-you-can.md) | The landing page promises you can export everything, and somebody without an agent has no way to | ISSUE | medium | medium | — |
 | [B1297](testing/B1297-agents-md-says-there-is-no.md) | AGENTS.md says there is no form that maps fields onto frontmatter, and Correct this day is one | DOCS | medium | low | — |
 | [B1300](testing/B1300-with-one-day-of-costs-the.md) | With one day of costs the bar chart is a full-width block and the running total draws nothing | ISSUE | medium | low | — |
+| [B1394](testing/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | — |
 | [B1460](testing/B1460-b1450-s-acceptance-cannot-be-checked.md) | B1450's acceptance cannot be checked, because nothing keeps the two numbers it names | CHORE | medium | low | — |
 | [B1461](testing/B1461-the-photobook-receipt-page-never-says.md) | The photobook receipt page never says what the book cost | FEATURE | medium | low | — |
 | [B1468](testing/B1468-legacy-left-behind-once-both-order.md) | Legacy left behind once both order surfaces share one element | CHORE | medium | low | — |
