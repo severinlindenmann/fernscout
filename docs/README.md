@@ -19,6 +19,7 @@ maintained guidance for an agent; this folder is the long form for a person.
 | [deploy-mail.md](deploy-mail.md) | mail, and the file transport that needs no SMTP |
 | [providers/](providers/) | the print providers |
 | [providers/whatsapp.md](providers/whatsapp.md) | the WhatsApp channel: the three subscriptions, the Feldprobe trap, the WABA id trick |
+| [compliance/whatsapp-ai-policy.md](compliance/whatsapp-ai-policy.md) | is the WhatsApp helper a general-purpose AI assistant Meta bans, or a scoped business process? The argument, and who accepted the residual risk |
 | [TESTING.md](TESTING.md) · [qa/](qa/) | the manual walkthrough, and the scenario catalogue |
 | [ROADMAP.md](ROADMAP.md) | the decision log |
 | [branding/](branding/) | the mark, the palette, and what not to do to them |

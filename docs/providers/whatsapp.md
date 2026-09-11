@@ -14,6 +14,12 @@ real phone produced no webhook call at all. No error, no delivery attempt,
 nothing in the log. This page exists so the next instance does not spend that
 hour again.
 
+**Whether this channel is even allowed to exist is a separate question,
+answered on its own page:** `docs/compliance/whatsapp-ai-policy.md` (B1077)
+— Meta prohibits general-purpose AI chatbots on this platform, and that
+page is the argument for why this helper is on the permitted side of that
+line. Read it before relying on this one operationally.
+
 ---
 
 ## The three subscriptions, in order
