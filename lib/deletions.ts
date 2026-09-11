@@ -132,9 +132,18 @@ export function humanBytes(bytes: number): string {
  * Drafts are counted with everything else. They are the part somebody is most
  * likely to have forgotten exists, and the whole purpose of this number is to
  * be recognised — "three journeys, ninety-one days" — before the button.
+ *
+ * `ignoreTombstone` is for `resolveDeletionToken` alone (B1175): a journal
+ * deletion writes its tombstone before removing anything, so a step that
+ * throws after that point leaves the journal reading as gone to every
+ * ordinary caller while its folder is still on disk. Resuming that deletion
+ * needs to find it anyway.
  */
-export function summarise(target: DeletionTarget): DeletionSummary | null {
-  const user = getUser(target.username);
+export function summarise(
+  target: DeletionTarget,
+  opts?: { ignoreTombstone?: boolean },
+): DeletionSummary | null {
+  const user = getUser(target.username, opts);
   if (!user) return null;
 
   if (target.kind === "journal") {
@@ -183,8 +192,11 @@ export function summarise(target: DeletionTarget): DeletionSummary | null {
  * of those callers `await` a query they never look at would be a cost paid
  * everywhere for a fact needed in exactly two places — the mail and the page.
  */
-async function summariseWithCredits(target: DeletionTarget): Promise<DeletionSummary | null> {
-  const summary = summarise(target);
+async function summariseWithCredits(
+  target: DeletionTarget,
+  opts?: { ignoreTombstone?: boolean },
+): Promise<DeletionSummary | null> {
+  const summary = summarise(target, opts);
   if (!summary || summary.kind !== "journal") return summary;
   return { ...summary, credits: await balanceOf(summary.username) };
 }
@@ -462,7 +474,11 @@ export async function resolveDeletionToken(
     kind === "trip"
       ? { kind, username: row.owner_id, tripId: row.trip_id ?? "" }
       : { kind, username: row.owner_id };
-  const summary = await summariseWithCredits(target);
+  // `ignoreTombstone`: this row's own deletion may already have written one
+  // (B1175) — a step throwing after that point must not make a resumable
+  // deletion look like a link to nothing, which is the one case a tombstone
+  // is not answering "is it gone" for.
+  const summary = await summariseWithCredits(target, { ignoreTombstone: true });
   // The target went away between the mail and the click — deleted by hand, or
   // by a second link. There is nothing left to confirm.
   if (!summary) return { ok: false, reason: "gone" };
@@ -492,9 +508,14 @@ export type DeletionDone = {
 /**
  * Spend the link and do it.
  *
- * The row is marked consumed **before** anything is removed, so the link is
- * single-use even if the removal then fails half way — a second press must
- * never start a second sweep over a half-deleted journal.
+ * The row is marked consumed **before** anything is removed, so two presses
+ * at once cannot both delete. That is not the same claim as "a failed
+ * deletion leaves a dead link" — `deleteJournal`/`deleteTrip` write their
+ * tombstone first and treat everything after it as best-effort cleanup (see
+ * their own comments and B1175), so the only way either can throw here is
+ * before anything has actually been destroyed. On that throw the claim is
+ * released, so the same link works again rather than answering "already
+ * used" for a deletion that never started.
  */
 export async function confirmDeletion(
   username: string,
@@ -516,14 +537,19 @@ export async function confirmDeletion(
   // go on to delete anything.
   if (Number(spent.numUpdatedRows ?? 0) === 0) return { ok: false, reason: "used" };
 
-  if (pending.kind === "journal") {
-    await deleteJournal(username, pending.email);
-    return { ok: true, kind: "journal", username, title: pending.summary?.title ?? username };
-  }
+  try {
+    if (pending.kind === "journal") {
+      await deleteJournal(username, pending.email);
+      return { ok: true, kind: "journal", username, title: pending.summary?.title ?? username };
+    }
 
-  const tripId = pending.tripId ?? "";
-  await deleteTrip(username, tripId, pending.email);
-  return { ok: true, kind: "trip", username, tripId, title: pending.summary?.title ?? tripId };
+    const tripId = pending.tripId ?? "";
+    await deleteTrip(username, tripId, pending.email);
+    return { ok: true, kind: "trip", username, tripId, title: pending.summary?.title ?? tripId };
+  } catch (err) {
+    await db.updateTable("deletion_requests").set({ consumed_at: null }).where("id", "=", pending.id).execute();
+    throw err;
+  }
 }
 
 /**
@@ -574,6 +600,32 @@ function dropMediaCache(): void {
 }
 
 /**
+ * Run one *hygiene* step without letting it take another down with it, or the
+ * tombstone above it.
+ *
+ * B1175: the live incident was `release()` throwing `EACCES` on an
+ * unwritable `.registry/` *after* the folder and every database row were
+ * already gone, and the throw skipped the tombstone that would have made the
+ * whole thing recoverable. Now the tombstone is written first, so a registry
+ * lock or a stale media cache lost to one unlucky `unlink` is trading the
+ * product for the bookkeeping — the same trade `recordUsage` already makes —
+ * rather than losing the record of the deletion itself. Only for the two
+ * steps that are bookkeeping and not content: the actual removal (the
+ * database rows and the folder) is not run through this, because a caller
+ * asking "is it gone" deserves a true answer, and `confirmDeletion` turns
+ * that failure into a safe retry rather than a false success. Logged rather
+ * than swallowed outright, so an operator reading server logs still learns
+ * about the misconfiguration (this is what B1176 fixed on the box).
+ */
+async function bestEffort(label: string, username: string, fn: () => void | Promise<void>): Promise<void> {
+  try {
+    await fn();
+  } catch (err) {
+    console.error(`[deletions] ${label} for ${username} failed:`, err);
+  }
+}
+
+/**
  * A journal: the folder, and every row in the database that names it.
  *
  * **Iterated over `TABLE_NAMES` rather than written out table by table.** Two
@@ -583,6 +635,19 @@ function dropMediaCache(): void {
  * first time somebody adds a table — and the failure is invisible, which is
  * the worst kind. Reversed, so children go before the `users` rows they point
  * at.
+ *
+ * **The tombstone is written first**, before any of that — B1175. A crash or
+ * a permission error in any step below then leaves the journal reading as
+ * gone (`isDeletedUsername`, `proxy.ts`'s `410`) with its name reserved,
+ * rather than removed everywhere and recorded nowhere. The cost is real and
+ * accepted rather than hidden: for the (typically single-digit-millisecond,
+ * all synchronous or same-process) span between this write and the folder
+ * actually leaving disk, a concurrent reader hits `410` on a journal that is
+ * still fully there. That is the direction this trades for, on purpose — see
+ * the ticket's decision — because every step after this point becomes
+ * idempotent: re-running this function (a second press of the confirmation
+ * link, see `confirmDeletion`) against a partially-deleted journal just
+ * repeats whichever steps did not finish, rather than needing a shell.
  */
 async function deleteJournal(username: string, requestedBy: string): Promise<void> {
   const summary = summarise({ kind: "journal", username });
@@ -593,16 +658,6 @@ async function deleteJournal(username: string, requestedBy: string): Promise<voi
   // Read before the config is removed, for the same reason — B1064's "deleting
   // a journal frees its address and its number" needs to know what they were.
   const owner = getUser(username)?.owner;
-
-  const { db } = await getDatabase();
-  for (const table of [...TABLE_NAMES].reverse()) {
-    await sql`delete from ${sql.table(table)} where owner_id = ${username}`.execute(db);
-  }
-
-  for (const trip of getTrips(username)) forgetEntries(tripRef(username, trip.id));
-  fs.rmSync(dir, { recursive: true, force: true });
-  dropMediaCache();
-  release(username, owner?.email ?? null, owner?.tel ?? null);
 
   writeTombstone({
     kind: "journal",
@@ -619,10 +674,42 @@ async function deleteJournal(username: string, requestedBy: string): Promise<voi
     notice,
   });
 
+  // The actual removal. Captured rather than left to throw straight out, so
+  // the hygiene below still runs and the tombstone is never the only thing
+  // that happened — but not swallowed: `contentFailure` is rethrown once
+  // hygiene is done, so a real failure here is still a real failure.
+  let contentFailure: unknown;
+  try {
+    const { db } = await getDatabase();
+    for (const table of [...TABLE_NAMES].reverse()) {
+      // `deletion_requests` is swept last, deliberately, and outside this
+      // loop: it holds the very row that authorised this call, still marked
+      // consumed at this point, and `confirmDeletion` needs that row to
+      // still exist if anything below throws — it is what a retry
+      // un-consumes. Only removed once the rest of this `try` has finished
+      // without throwing.
+      if (table === "deletion_requests") continue;
+      await sql`delete from ${sql.table(table)} where owner_id = ${username}`.execute(db);
+    }
+    for (const trip of getTrips(username)) forgetEntries(tripRef(username, trip.id));
+    fs.rmSync(dir, { recursive: true, force: true });
+    await sql`delete from ${sql.table("deletion_requests")} where owner_id = ${username}`.execute(db);
+  } catch (err) {
+    contentFailure = err;
+  }
+
+  await bestEffort("dropping the media cache", username, () => dropMediaCache());
+  await bestEffort("releasing the registry locks", username, () =>
+    release(username, owner?.email ?? null, owner?.tel ?? null),
+  );
+
   // Both caches key on the content root and would otherwise answer "yes, that
-  // user exists" for the rest of this process's life.
+  // user exists" for the rest of this process's life. Run unconditionally —
+  // a stale cache is its own bug, whatever the steps above did.
   clearUserCache();
   clearConfigCache();
+
+  if (contentFailure) throw contentFailure;
 }
 
 /**
@@ -633,6 +720,11 @@ async function deleteJournal(username: string, requestedBy: string): Promise<voi
  * A trip taking its media with it is the right behaviour — there is nothing
  * left to write them into — but it is a difference, and it is said out loud in
  * the confirmation mail rather than discovered afterwards.
+ *
+ * Same shape as `deleteJournal` above, and for the same reason (B1175): the
+ * tombstone is written first, the actual removal is captured rather than
+ * left to skip the hygiene below it, and only the hygiene step
+ * (`dropMediaCache`) is allowed to fail silently.
  */
 export async function deleteTrip(
   username: string,
@@ -650,28 +742,6 @@ export async function deleteTrip(
     journalTitle: summary?.journalTitle,
   });
 
-  const { db } = await getDatabase();
-  // Every table that carries a `trip_id`, discovered rather than listed, for
-  // the same reason the journal sweep iterates TABLE_NAMES: a list written out
-  // here is a list that stops being true.
-  const tables = await db.introspection.getTables();
-  for (const table of tables) {
-    if (!(TABLE_NAMES as readonly string[]).includes(table.name)) continue;
-    // Bookkeeping, not content: `deletion_requests` carries a `trip_id` and
-    // would otherwise sweep away the very row that authorised this call. A
-    // second press of the same button would then read as "no such link"
-    // instead of "you already used it", which is the less useful of the two
-    // sentences. A journal deletion does take these rows, because then there
-    // is no journal left for them to describe.
-    if (table.name === "deletion_requests") continue;
-    if (!table.columns.some((c) => c.name === "trip_id")) continue;
-    await sql`delete from ${sql.table(table.name)} where owner_id = ${username} and trip_id = ${tripId}`.execute(db);
-  }
-
-  forgetEntries(ref);
-  fs.rmSync(tripDir(ref), { recursive: true, force: true });
-  dropMediaCache();
-
   writeTombstone({
     kind: "trip",
     username,
@@ -682,4 +752,38 @@ export async function deleteTrip(
     held: { days: summary?.days, files: summary?.files ?? 0, bytes: summary?.bytes ?? 0 },
     notice,
   });
+
+  // The actual removal — captured rather than left to skip the hygiene
+  // below, but rethrown afterwards so `confirmDeletion` sees a real failure
+  // and frees the link for a retry instead of reporting a false success.
+  let contentFailure: unknown;
+  try {
+    const { db } = await getDatabase();
+    // Every table that carries a `trip_id`, discovered rather than listed,
+    // for the same reason the journal sweep iterates TABLE_NAMES: a list
+    // written out here is a list that stops being true.
+    const tables = await db.introspection.getTables();
+    for (const table of tables) {
+      if (!(TABLE_NAMES as readonly string[]).includes(table.name)) continue;
+      // Bookkeeping, not content: `deletion_requests` carries a `trip_id` and
+      // would otherwise sweep away the very row that authorised this call. A
+      // second press of the same button would then read as "no such link"
+      // instead of "you already used it", which is the less useful of the two
+      // sentences. A journal deletion does take these rows, because then
+      // there is no journal left for them to describe.
+      if (table.name === "deletion_requests") continue;
+      if (!table.columns.some((c) => c.name === "trip_id")) continue;
+      await sql`delete from ${sql.table(table.name)} where owner_id = ${username} and trip_id = ${tripId}`.execute(
+        db,
+      );
+    }
+    forgetEntries(ref);
+    fs.rmSync(tripDir(ref), { recursive: true, force: true });
+  } catch (err) {
+    contentFailure = err;
+  }
+
+  await bestEffort("dropping the media cache", username, () => dropMediaCache());
+
+  if (contentFailure) throw contentFailure;
 }

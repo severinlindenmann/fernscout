@@ -168,7 +168,18 @@ export function contentRootProblem(): string | null {
  * and the work it saves is the config load and the reserved-name check per
  * directory.
  */
-export function getUsernames(): string[] {
+export function getUsernames(
+  /** B1175 — `ignoreTombstone` asks the same question `isReservedUsername`
+   *  already answers for a name: is there a directory here, never mind
+   *  whether its own tombstone (written mid-deletion, before the directory
+   *  necessarily left disk) says it is gone. Deletion's own retry path needs
+   *  this: a journal it half-deleted reads as gone to everyone else from the
+   *  moment the tombstone lands, and that is by design (AGENTS.md), but the
+   *  deletion resuming it must still find the folder it has not finished
+   *  removing. Bypasses the cache below rather than keying it by option, since
+   *  this path is rare and a stale hit here would defeat the point. */
+  opts?: { ignoreTombstone?: boolean },
+): string[] {
   const root = contentRoot();
 
   let entries: fs.Dirent[] = [];
@@ -187,7 +198,7 @@ export function getUsernames(): string[] {
       );
     }
     rootProblem = { root, message };
-    cache.set(root, { signature: "", names: [] });
+    if (!opts?.ignoreTombstone) cache.set(root, { signature: "", names: [] });
     return [];
   }
   rootProblem = null;
@@ -197,8 +208,10 @@ export function getUsernames(): string[] {
     .map((e) => e.name)
     .sort()
     .join("|");
-  const hit = cache.get(root);
-  if (hit && hit.signature === signature) return hit.names;
+  if (!opts?.ignoreTombstone) {
+    const hit = cache.get(root);
+    if (hit && hit.signature === signature) return hit.names;
+  }
 
   const names: string[] = [];
   for (const entry of entries) {
@@ -216,7 +229,7 @@ export function getUsernames(): string[] {
       );
       continue;
     }
-    if (isReservedUsername(name)) {
+    if (isReservedUsername(name, opts)) {
       console.warn(`[users] content/${name} shadows a reserved route name — skipping.`);
       continue;
     }
@@ -228,12 +241,12 @@ export function getUsernames(): string[] {
   }
 
   names.sort();
-  cache.set(root, { signature, names });
+  if (!opts?.ignoreTombstone) cache.set(root, { signature, names });
   return names;
 }
 
-export function userExists(username: string): boolean {
-  return getUsernames().includes(username);
+export function userExists(username: string, opts?: { ignoreTombstone?: boolean }): boolean {
+  return getUsernames(opts).includes(username);
 }
 
 /**
@@ -262,8 +275,8 @@ export function listedUsernames(): string[] {
 }
 
 /** A user's config, or null when there is no such user. */
-export function getUser(username: string): UserConfig | null {
-  if (!userExists(username)) return null;
+export function getUser(username: string, opts?: { ignoreTombstone?: boolean }): UserConfig | null {
+  if (!userExists(username, opts)) return null;
   try {
     return loadUserConfig(username);
   } catch (err) {
