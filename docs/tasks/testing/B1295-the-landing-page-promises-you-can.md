@@ -7,8 +7,7 @@ complexity: medium
 area: export, helper
 found: "2026-09-10T11:01:13Z"
 started: "2026-09-11T16:26:43Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T16:26:43Z"
+merged: "2026-09-11T16:59:26Z"
 ---
 
 # B1295 — The landing page promises you can export everything, and somebody without an agent has no way to
