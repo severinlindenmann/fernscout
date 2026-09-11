@@ -1753,6 +1753,26 @@ function ProposalView({
     if (failure !== "") alarm.current?.focus();
   }, [failure]);
   const id = `${proposal.tool}-${useId()}`;
+  /**
+   * A second press for what cannot be undone — B1391.
+   *
+   * A typed reply confirming the helper's own question ("löschen", "delete
+   * them", "igen, töröld") used to be refused before it ever reached a
+   * model, because a bare destruction word with nothing named alongside it
+   * cannot be told apart from "delete my whole journal" — the very sentence
+   * that guard exists to catch (`refusalFor` in `lib/helper/intents.ts`).
+   * Rather than teach that guard to read the conversation for context, the
+   * confirmation moves off free text entirely: the first press swaps the
+   * accept row for a real `ConfirmPanel`, in place on this same card, and
+   * only the second press writes. Nobody needs to type a confirmation at
+   * all any more.
+   *
+   * `unpublish_day` is `destroy`-shaped by name (`decisionKind`) but stays
+   * at one press: it changes `status:` and the day stays on disk as a
+   * draft, so it is reversible in the one sense that matters here — nothing
+   * this button does is unrecoverable.
+   */
+  const [confirming, setConfirming] = useState(false);
 
   // B1107 — a field the server already resolved (a trip id, a day slug, an
   // invite id) is not drawn at all: it still travels with the press inside
@@ -1826,12 +1846,25 @@ function ProposalView({
       .catch((thrown: unknown) => setFailure(failureSentence(t, (thrown as Error).message)))
       .finally(() => setPressing(false));
   };
-  const actions = (
+  // B1391: `unpublish_day` alone stays reversible-and-one-press — see the
+  // comment beside `confirming` above.
+  const needsSecondPress = kind === "destroy" && proposal.tool !== "unpublish_day";
+  const actions = confirming ? (
+    <ConfirmPanel
+      label={proposal.accept}
+      question={t("agent.card.confirmDestroy")}
+      confirmLabel={proposal.accept}
+      busy={busy || pressing}
+      busyLabel={t("agent.chat.writing")}
+      onConfirm={press}
+      onCancel={() => setConfirming(false)}
+    />
+  ) : (
     <div className="flex flex-wrap items-center gap-2">
       <BusyButton
         busy={busy || pressing}
         type="button"
-        onClick={press}
+        onClick={needsSecondPress ? () => setConfirming(true) : press}
         className="min-h-11 rounded-full bg-navy-800 px-5 text-base font-semibold text-cream-50 transition-colors hover:bg-navy-900 disabled:opacity-50"
         busyLabel={t("agent.chat.writing")}
       >

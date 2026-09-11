@@ -363,6 +363,37 @@ describe("a named refusal instead of silence — B783", () => {
     }
   });
 
+  /**
+   * B1391 — "lösche alle Dateien in meiner Inbox" named the removable thing
+   * explicitly (`Dateien`) and was refused anyway, because `alle` was also a
+   * word the keep-list watched for. `all`/`everything` came out of that list;
+   * what must not have moved is right here, locked: a bare bulk word with
+   * nothing removable named is still caught by the match's other branch, and
+   * a day/trip/journal/account/entry named alongside "all" is still refused
+   * regardless.
+   */
+  test("\"all\"/\"everything\" alongside a photo or a file reaches the conversation now", () => {
+    for (const said of [
+      "delete all the photos",
+      "lösche alle Dateien in meiner Inbox",
+      "töröld az összes fényképet",
+    ]) {
+      expect(refusalFor(said), said).toBeNull();
+    }
+  });
+
+  test("\"all\"/\"everything\" alone, or beside a day/trip/journal/account, is still refused", () => {
+    for (const said of [
+      "lösche alles",
+      "delete everything",
+      "delete all my trips",
+      "lösche alle Reisen",
+      "get rid of every entry",
+    ]) {
+      expect(refusalFor(said)?.name, said).toBe("remove");
+    }
+  });
+
   test("both refusals answer in German and Hungarian too", () => {
     for (const locale of ["de", "hu"]) {
       const dictionary = JSON.parse(

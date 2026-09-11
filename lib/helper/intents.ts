@@ -149,10 +149,24 @@ const DESTROY = String.raw`\b(delete|deleting|deleted|erase|erasing|wipe|destroy
  *  and a file still waiting in the inbox. `remove_photo` and `discard_file`. */
 const REMOVABLE = String.raw`\b(photo|photos|photograph|photographs|picture|pictures|image|images|file|files|foto|fotos|bild|bilder|datei|dateien|kép|képet|képek|képével|fénykép|fényképet|fényképével|fájl|fájlt)\b`;
 
-/** And the things nothing here can: naming one of these refuses the sentence
- *  even when it also names a photograph, because "delete the day with the
- *  photo of Anna" is a request to delete a day. */
-const KEPT = String.raw`\b(day|days|trip|trips|journal|account|everything|all|entry|entries|yesterday)\b|\btage?\b|reise|tagebuch|konto|\balles?\b|\bnapot?\b|napló|\bútat?\b|mindent|fiók`;
+/**
+ * And the things nothing here can: naming one of these refuses the sentence
+ * even when it also names a photograph, because "delete the day with the
+ * photo of Anna" is a request to delete a day.
+ *
+ * **"all"/"everything" is deliberately not in this list** — B1391. It used
+ * to be, and "lösche alle Dateien in meiner Inbox" named the removable thing
+ * explicitly (`Dateien`) and was refused anyway, purely because `alle` also
+ * happened to be a word this list watched for. That branch of the match
+ * below only exists to catch a *kept* thing riding alongside a removable
+ * one ("the day with the photo of Anna"); it was never needed for bare
+ * bulk quantifiers, because the match's other branch already refuses any
+ * destruction word with **no** removable thing named at all — which is what
+ * still catches "lösche alles" on its own, with nothing else changed here.
+ * `day`/`trip`/`journal`/`account`/`entry`/`entries` stay exactly as they
+ * were: nothing about this loosens what those words already lock.
+ */
+const KEPT = String.raw`\b(day|days|trip|trips|journal|account|entry|entries|yesterday)\b|\btage?\b|reise|tagebuch|konto|\bnapot?\b|napló|\bútat?\b|fiók`;
 
 const REFUSALS: readonly Refusal[] = [
   {
