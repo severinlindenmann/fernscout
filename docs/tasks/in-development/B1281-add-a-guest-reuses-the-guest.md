@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: contacts
 found: "2026-09-10T10:38:00Z"
+started: "2026-09-11T13:21:53Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T13:21:53Z"
 ---
 
 # B1281 — Add a guest reuses the guest's own form, so the owner is asked for Your name and Write to me in

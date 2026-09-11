@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: components/ContactsAdmin.tsx
 found: "2026-09-09T16:20:00Z"
+started: "2026-09-11T13:21:53Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T13:21:53Z"
 ---
 
 # B1094 — Editing a contact opens a form off-screen above the button, so the button looks broken

@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: contacts, mobile
 found: "2026-09-10T10:46:32Z"
+started: "2026-09-11T13:21:54Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T13:21:54Z"
 ---
 
 # B1283 — The phone country field is too narrow for its own default value, so the dialling code is cut off

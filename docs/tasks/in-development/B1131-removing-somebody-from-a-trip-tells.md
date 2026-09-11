@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: api, auth, contacts
 found: "2026-09-09T17:59:56Z"
+started: "2026-09-11T13:21:55Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T13:21:55Z"
 ---
 
 # B1131 — Removing somebody from a trip tells the owner their token keeps working, and it does not
