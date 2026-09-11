@@ -5,6 +5,7 @@ type: OPS
 priority: high
 complexity: low
 area: photobook, print
+superseded: B1428
 found: "2026-09-08T05:23:20Z"
 ---
 
@@ -89,3 +90,15 @@ ticket cannot pass whatever its Work section says.
 VAT-inclusive landed cost (B1425, B1428), so the 46-page square softcover that
 cost 205 credits when this ticket was written now costs 238. Budget the demo
 journal's balance accordingly.
+
+---
+
+**Superseded 2026-09-11 by B1428.** The whole flow this task is about testing
+— `POST /api/v1/<user>/photobooks/<id>/print` to propose, then the owner's
+own button — was deleted whole: nothing outside the demo journal had ever
+used it, so B1428 removed `printOrder`, `proposePrint`, both print routes,
+and the `print.paid` guard rather than fixing the pricing bug found while
+verifying B1425. There is no in-product print flow left of this shape to run
+against the live site; the current one-press order button
+(`app/[user]/photobook/order/route.ts`) is untested-live for a different
+reason and would need its own ticket if that is still wanted.
