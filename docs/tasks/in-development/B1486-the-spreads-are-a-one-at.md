@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: photobook
 found: "2026-09-11T16:50:25Z"
+started: "2026-09-11T16:57:44Z"
+session: 3f748903-2dc3-47a2-a958-98b83d641dc0
+claimed: "2026-09-11T16:57:44Z"
 ---
 
 # B1486 — The spreads are a one-at-a-time strip where the drawing has a grid of the whole book
