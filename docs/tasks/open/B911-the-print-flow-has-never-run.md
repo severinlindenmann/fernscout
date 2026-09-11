@@ -49,3 +49,43 @@ Then a hardcover, which has been through no Gelato endpoint at all — only the
 - A `print_orders` row for the demo journal with `provider = 'gelato'` and a
   `provider_ref`, from a button press rather than a curl.
 - The findings recorded in `docs/providers/photobook.md`.
+
+---
+
+## The Work above is stale — rewritten 2026-09-11
+
+**The premise still holds.** No photobook has ever been printed by this
+instance through its own flow. That is still worth proving and this ticket
+should stay open.
+
+**The method above no longer exists.** B1428 deleted the propose-then-press
+path this ticket was written against: `POST /api/v1/<user>/photobooks/<id>/print`
+is gone, `lib/photobook/propose.ts` is gone, and so is the owner's separate
+print button. There is nothing left to propose with and no second press to
+make. Following steps 2 and 3 as written would fail at the first call.
+
+**What to do instead.** There is one door now, and it is the B1157 one-press
+buy: the owner opens the trip's photobook page, builds a book, chooses a
+recipient, and presses once. That single press quotes, claims, builds, spends
+and submits. So the engagement is shorter than it was:
+
+- Give the demo journal a contact with a real postal address, through the
+  ordinary contacts flow. (Already done, per the 2026-09-10 run — check before
+  redoing it.)
+- Open the trip's photobook page as the owner and buy one book.
+- Confirm: credits moved exactly once, `provider_ref` is set on the row,
+  Gelato holds the order, and the order page reads its status back.
+- Press twice in quick succession and confirm one order and one charge. The
+  claim-before-spend ordering is what should make that safe.
+- Then a hardcover, which has still never reached any Gelato endpoint.
+
+**And the real blocker is unchanged.** On 2026-09-10 a genuine press did all
+of the above and Gelato refused it: *"To be able to place an order please
+complete the company information in the portal."* 186 credits were spent and
+correctly refunded. Until somebody completes that in Gelato's own portal, this
+ticket cannot pass whatever its Work section says.
+
+**One number changed while this sat here.** A book is now priced at twice its
+VAT-inclusive landed cost (B1425, B1428), so the 46-page square softcover that
+cost 205 credits when this ticket was written now costs 238. Budget the demo
+journal's balance accordingly.
