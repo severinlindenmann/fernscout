@@ -7,8 +7,7 @@ complexity: medium
 area: orders
 found: "2026-09-11T14:18:06Z"
 started: "2026-09-11T14:38:57Z"
-session: 3f748903-2dc3-47a2-a958-98b83d641dc0
-claimed: "2026-09-11T14:38:57Z"
+merged: "2026-09-11T14:53:40Z"
 ---
 
 # B1464 — There is nowhere to look at an order in the states a reader cannot reach
