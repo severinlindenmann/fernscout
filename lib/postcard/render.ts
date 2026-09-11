@@ -127,6 +127,34 @@ function textWidth(text: string, size: number): number {
   return (units / 1000) * size;
 }
 
+/**
+ * How much of the message the printer will actually set — B1511.
+ *
+ * The preview cannot answer this. On a phone the card renders about 358px
+ * wide, where the message's true size is 8.5px, so `MESSAGE_FLOOR_PX` takes
+ * over at 14 and the words come out two thirds larger than they print
+ * (B1286, and the caption says so). That is the right trade — 8px is not
+ * readable — but it leaves somebody looking at a card that seems full when it
+ * is not, and cutting a sentence they did not need to cut.
+ *
+ * So the question is answered from the printer's own arithmetic instead: the
+ * same wrap, the same box, the same leading the PDF uses a hundred lines
+ * below. Exported for the preview page, which has no other way to know.
+ */
+export function messageFit(
+  message: string,
+  spec: PostcardSpec = A6_LANDSCAPE,
+): { lines: number; maxLines: number } {
+  const bleed = mm(spec.bleedMm);
+  const messageWidth = mm(DIVIDER_X_MM - spec.safeMm - 8);
+  const messageTop = bleed + mm(spec.trimHeightMm - spec.safeMm - 8);
+  const leading = MESSAGE_PT * LEADING;
+  return {
+    lines: wrap(message, MESSAGE_PT, messageWidth).length,
+    maxLines: Math.floor((messageTop - bleed - mm(spec.safeMm + 10)) / leading),
+  };
+}
+
 function wrap(text: string, size: number, maxWidth: number): string[] {
   const lines: string[] = [];
   for (const paragraph of text.split(/\n/)) {

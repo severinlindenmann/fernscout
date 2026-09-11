@@ -15,6 +15,7 @@ import { addressesFor, postcardCandidates, recipientsOf } from "@/lib/postcard/c
 import { printerAddressLines } from "@/lib/postcard/providers";
 import { readJpeg } from "@/lib/postcard/pdf";
 import { backLayout, resolutionNote } from "@/lib/postcard/preview";
+import { messageFit } from "@/lib/postcard/render";
 import { getOrder, isExpired, isPending } from "@/lib/postcard/orders";
 import { postcardOrderView } from "@/lib/order/view";
 import OrderDocket from "@/components/order/OrderDocket";
@@ -218,6 +219,13 @@ export default async function PostcardOrderPage({
   const showFigures = order.payload.figures !== false && hasParty;
 
   // One order, in the same shape a photobook order takes — B1467.
+  /** How much of the message the printer will set — B1511, and the only
+   *  honest answer to "does it fit" while the preview is not to scale. */
+  const fit = (() => {
+    const { lines, maxLines } = messageFit(order.payload.message);
+    return { over: lines - maxLines };
+  })();
+
   const view = postcardOrderView({
     order,
     t,
@@ -413,6 +421,19 @@ export default async function PostcardOrderPage({
                   failed: t("postcard.page.saveFailed"),
                   sameCard: t("postcard.page.sameCard"),
                   printerAdds: t("postcard.page.printerAdds"),
+                  // B1511. The preview is not to scale on a phone, so what
+                  // fits is answered from the renderer rather than from the
+                  // picture.
+                  fit:
+                    fit.over <= 0
+                      ? t("postcard.page.fits")
+                      : t(
+                          fit.over === 1
+                            ? "postcard.page.overflows.one"
+                            : "postcard.page.overflows",
+                          { count: String(fit.over) },
+                        ),
+                  fitOver: fit.over > 0,
                   caption:
                     live.length > 1
                       ? t("postcard.page.backFirstOf", {

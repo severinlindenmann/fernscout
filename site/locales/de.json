@@ -2380,5 +2380,8 @@
   "order.meta.proposed": "Vorgeschlagen am {date} · Referenz {id}",
   "order.meta.sent": "Gesendet am {date} · Referenz {id}",
   "postcard.status.withPrinter": "In der Druckerei",
-  "postcard.status.withPrinterNote": "Die Druckerei hat den Auftrag angenommen. Die Karten gehen in den nächsten Tagen raus."
+  "postcard.status.withPrinterNote": "Die Druckerei hat den Auftrag angenommen. Die Karten gehen in den nächsten Tagen raus.",
+  "postcard.page.fits": "Passt auf die Karte.",
+  "postcard.page.overflows": "{count} Zeilen mehr, als auf die Karte passen — sie werden nicht gedruckt.",
+  "postcard.page.overflows.one": "Eine Zeile mehr, als auf die Karte passt — sie wird nicht gedruckt."
 }

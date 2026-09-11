@@ -2380,5 +2380,8 @@
   "order.meta.proposed": "Proposed {date} · Reference {id}",
   "order.meta.sent": "Sent {date} · Reference {id}",
   "postcard.status.withPrinter": "With the printer",
-  "postcard.status.withPrinterNote": "The printer has taken this order. Cards go out over the days that follow."
+  "postcard.status.withPrinterNote": "The printer has taken this order. Cards go out over the days that follow.",
+  "postcard.page.fits": "It fits on the card.",
+  "postcard.page.overflows": "{count} lines more than the card holds — they will not be printed.",
+  "postcard.page.overflows.one": "One line more than the card holds — it will not be printed."
 }
