@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -130,7 +130,7 @@ export default function HelperRoom({
   consentedSpeech,
   speechProvider,
   whatsappNumber,
-  credits = null,
+  credits: initialCredits = null,
   siteUrl,
   weather = false,
 }: {
@@ -512,6 +512,27 @@ export default function HelperRoom({
    * `sessionStorage` at all) than on the client's first paint and throw a
    * hydration mismatch.
    */
+  /**
+   * The balance, kept live — B1255.
+   *
+   * `initialCredits` is a server render, read once when the page loaded; a
+   * spend since then (a write, a turn, a transcription) left it showing a
+   * number that was no longer true. `null` — credits off on this instance —
+   * is never refetched: there is nothing to read, and the account route
+   * would answer `null` again at the cost of a request every turn makes for
+   * nothing.
+   */
+  const [credits, setCredits] = useState(initialCredits);
+  const refreshCredits = useCallback(() => {
+    if (initialCredits === null) return;
+    fetch(`/api/helper/${encodeURIComponent(username)}/account`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { credits?: number | null } | null) => {
+        if (body && typeof body.credits === "number") setCredits(body.credits);
+      })
+      .catch(() => {});
+  }, [initialCredits, username]);
+
   const dismissKey = `fs.agent.lowCreditsDismissed.${username}`;
   const [creditsDismissed, setCreditsDismissed] = useState(false);
   useEffect(() => {
@@ -1095,6 +1116,7 @@ export default function HelperRoom({
             whatsappNumber={whatsappNumber}
             weather={weather}
             onProposal={proposeToThread}
+            onCreditsSettled={refreshCredits}
             selected={selected}
             onSubject={(day) => {
               setSubject({ ...day, at: Date.now() });

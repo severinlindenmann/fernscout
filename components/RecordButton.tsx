@@ -83,6 +83,7 @@ export default function RecordButton({
   language: fixedLanguage,
   hold: holdToTalk = true,
   maxSeconds = MAX_SPEECH_SECONDS,
+  onSettled,
 }: {
   username: string;
   /** Whether this journal has already agreed to its owner's voice being sent
@@ -160,6 +161,13 @@ export default function RecordButton({
    * ceiling for *this* use of the control.
    */
   maxSeconds?: number;
+  /**
+   * Told once a recording has finished settling, spent or not — B1255. The
+   * host re-reads the balance from it; this component knows nothing about
+   * credits and never did, it only marks the moment a spend could have
+   * happened.
+   */
+  onSettled?: () => void;
 }) {
   const { t, locale } = useI18n();
   const [consented, setConsented] = useState(initialConsent);
@@ -346,9 +354,14 @@ export default function RecordButton({
       } finally {
         setBusy(false);
         setSeconds(0);
+        // Settled, whichever way — B1255. A failed transcription still
+        // spent (`spendAndTranscribe` charges before the call), so the
+        // header pill has to re-read the balance on a 402 exactly as much
+        // as on a success.
+        onSettled?.();
       }
     },
-    [language, locale, onText, t, username],
+    [language, locale, onSettled, onText, t, username],
   );
 
   const start = useCallback(async () => {
