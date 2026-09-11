@@ -176,7 +176,7 @@ function pathData(place: Place, d: string): string {
  */
 /** A stroke width, for the shapes that can carry one. */
 export function strokeWidth(shape: Shape): number {
-  return shape.kind === "rect" || shape.kind === "group" ? 1 : (shape.width ?? 1);
+  return shape.kind === "group" ? 1 : (shape.width ?? 1);
 }
 
 function paint(page: Page, place: Place, unit: number, shape: Shape): void {
