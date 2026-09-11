@@ -119,17 +119,14 @@ export function contentModel(): ContentModelDocument {
       units: {},
       manualRates: { type: "object" },
       features: { type: "object" },
-      // No API call reads a journal's default travellers — see model.mjs.
-      // fileOnly with no openapi.json description to borrow a tip from, so
-      // the prose is carried here — B620.
-      travellers: {
-        type: "array",
-        fileOnly: true,
-        because:
-          "how the walking figures are drawn when a trip does not say. There is no API call " +
-          "for the journal's default party — it is read from this file, and a trip's own " +
-          "travellers: block is set through …/trips/<trip>/travellers",
-      },
+      // B1526: no longer fileOnly. `PATCH …/config` accepts it and
+      // `GET …/travellers` reads it back, so this key now has an
+      // openapi.json field description to borrow a tip from at run time,
+      // the same way every other non-fileOnly key here does — the stale
+      // "there is no API call for this" prose that used to live in this
+      // comment (B620) would otherwise mislead a hosted journal, which has
+      // no file to fall back on.
+      travellers: { type: "array" },
       // This journal's own upload allowance; may narrow the server's.
       media: { type: "object", fileOnly: true },
     }),

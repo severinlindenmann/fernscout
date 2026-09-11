@@ -62,3 +62,42 @@ caller cannot read the default party either — only guess that there is none.
   plainly that it cannot and why.
 - `validate-content`'s tip for `config.json`'s `travellers` does not point at a
   file the owner has no way to write.
+
+## Done
+
+Took the first option: `PATCH /api/v1/{user}/config` now accepts `travellers`
+(`lib/journals.ts`), validated by the exact `travellersBlock` function
+`.../trips/{trip}/travellers` already uses, so a figure refused on one route
+is refused on the other in the same words — verified in
+`test/journal-features.test.ts`'s new "an unknown figure field is refused by
+name, the same message the trip route gives". An empty list clears the
+default (removes the key, same convention as `tagline`), and a `changed`
+count no longer misfires on clearing an already-empty default (the old
+`before[field] !== ""` check assumed every clearable field was a string;
+fixed with a per-field `EMPTY` map).
+
+Added `GET /api/v1/{user}/travellers` (`app/api/v1/[user]/travellers/route.ts`)
+mirroring `.../trips/{trip}/travellers`'s `GET` — owner-only, the same gate
+`GET .../config` uses, since a trip-scoped token may change its own trip's
+party but not the journal's default (tested: a trip-scoped token gets `403`
+from both the read and the write).
+
+Both routes are in `lib/api/openapi.ts` — the `PATCH …/config` schema gained
+a `travellers` property (`$ref: Traveller`, same as the trip route), and
+`/api/v1/{user}/travellers` is a new path — plus `lib/api/documentation.ts`'s
+`/documentation.txt` guide, which named the field and pointed at both new
+calls.
+
+Fixed the stale tip in this repo: `lib/contentModel/document.ts`'s
+`config.json` rule for `travellers` was `fileOnly: true` with hand-written
+prose saying "There is no API call for the journal's default party — it is
+read from this file". Removed `fileOnly` now that there is a real API door;
+`fernscout-helper`'s tip-builder is documented (in the comment this replaced)
+to borrow a description from `openapi.json` for any non-`fileOnly` key, so it
+now picks up the `PATCH …/config` schema's own `travellers` description
+instead. This part of the fix could only be made here — nothing under
+`fernscout-helper` was reachable from this checkout.
+
+Verified: `npx vitest run test/journal-features.test.ts test/content-model.test.ts
+test/openapi-contract.test.ts test/api-route-schemas.test.ts` — 124 tests,
+all pass.

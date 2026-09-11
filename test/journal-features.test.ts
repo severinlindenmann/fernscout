@@ -472,6 +472,90 @@ describe("what a journal says about itself", () => {
   });
 });
 
+/**
+ * B1526 — a hosted journal had no file to fall back on, and no API call
+ * wrote its landing page's default party either. Validated the same way
+ * `.../trips/{trip}/travellers` is: figures that route refuses are refused
+ * here too.
+ */
+describe("the journal's own default party — B1526", () => {
+  async function getTravellers() {
+    const { GET } = await import("@/app/api/v1/[user]/travellers/route");
+    const response = await GET(
+      new Request(`${SITE}/api/v1/ana/travellers`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      { params: Promise.resolve({ user: "ana" }) },
+    );
+    return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+  }
+
+  test("absent by default, and GET says so", async () => {
+    const { status, body } = await getTravellers();
+    expect(status).toBe(200);
+    expect(body.travellers).toEqual([]);
+  });
+
+  test("PATCH …/config writes it, and GET …/travellers reads it back", async () => {
+    const { status, body } = await patch({
+      travellers: [{ skin: "medium", hair: "black", hairStyle: "braids" }],
+    });
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ ok: true, changed: ["travellers"] });
+    expect(rawConfig().travellers).toEqual([
+      { skin: "medium", hair: "black", hairStyle: "braids" },
+    ]);
+
+    const read = await getTravellers();
+    expect(read.body.travellers).toEqual([{ skin: "medium", hair: "black", hairStyle: "braids" }]);
+  });
+
+  test("an unknown figure field is refused by name, the same message the trip route gives", async () => {
+    const { status, body } = await patch({ travellers: [{ preset: "west-african" }] });
+    expect(status).toBe(400);
+    expect(body.error).toBe("invalid_travellers");
+    expect(String(body.message)).toContain("preset");
+    expect(getUser("ana")?.travellers).toEqual([]);
+  });
+
+  test("sending [] clears an existing default, removing the key rather than writing an empty list", async () => {
+    await patch({ travellers: [{ skin: "medium" }] });
+    expect("travellers" in rawConfig()).toBe(true);
+
+    const { status, body } = await patch({ travellers: [] });
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ ok: true, changed: ["travellers"] });
+    expect("travellers" in rawConfig()).toBe(false);
+  });
+
+  test("clearing an already-empty default changes nothing", async () => {
+    const { status, body } = await patch({ travellers: [] });
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ ok: true, changed: [] });
+  });
+
+  test("a trip-scoped token cannot read or write the journal's own default", async () => {
+    // The same authority split `GET`/`PATCH …/config` already enforce.
+    const { issueCode, verifyCode, tripWriteScope } = await import("@/lib/auth");
+    const { code } = await issueCode("ana", "ana@example.test", "agent", { trip: "loop" });
+    const session = await verifyCode("ana", "ana@example.test", code, "agent", tripWriteScope("loop"));
+    if (!session.ok) throw new Error("could not mint a trip token");
+    const scoped = session.token;
+
+    const denied = await patch({ travellers: [] }, scoped);
+    expect(denied.status).toBe(403);
+
+    const { GET } = await import("@/app/api/v1/[user]/travellers/route");
+    const deniedRead = await GET(
+      new Request(`${SITE}/api/v1/ana/travellers`, {
+        headers: { Authorization: `Bearer ${scoped}` },
+      }),
+      { params: Promise.resolve({ user: "ana" }) },
+    );
+    expect(deniedRead.status).toBe(403);
+  });
+});
+
 describe("the three fields it will not write", () => {
   test("owner.email is still refused, and the whole body with it", async () => {
     const before = rawConfig();

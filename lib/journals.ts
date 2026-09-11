@@ -23,6 +23,9 @@ import { sendMail } from "./mail";
 import { renderMail } from "./mail/template";
 import { serverSite } from "./site";
 import { clearTombstone, journalTombstone } from "./tombstones";
+import { travellersBlock } from "./tripWrite";
+import { parseTravellers } from "./travellers/parse";
+import type { Figure } from "./travellers/vocabulary";
 import { clearUserCache, getUser, getUsernames, isReservedUsername, isValidUsername } from "./users";
 
 /**
@@ -873,6 +876,14 @@ export function setJournalFeatures(
  *   would not ship; the audience for this block is the operator, who has the
  *   file.
  *
+ * **`travellers`** joined in B1526: the journal's own default party — how a
+ * trip is drawn when it carries no `travellers:` block of its own. It was
+ * `fileOnly` until then, which is only honest for a self-hosted instance with
+ * a `CONTENT_DIR` somebody can edit; a hosted journal had no way to give its
+ * landing page a party at all. Validated by the same `travellersBlock` the
+ * trip-level `.../trips/{trip}/travellers` route uses, so a figure refused
+ * there is refused here too, and one accepted reads back identically.
+ *
  * ## Two calls, not one
  *
  * A body naming both `features` and one of these is refused by the route
@@ -891,6 +902,7 @@ export const JOURNAL_PROFILE_FIELDS = [
   "displayCurrencies",
   "manualRates",
   "ownerTel",
+  "travellers",
 ] as const;
 
 type JournalProfileField = (typeof JOURNAL_PROFILE_FIELDS)[number];
@@ -945,6 +957,9 @@ export type JournalProfile = {
   /** Read-only here, and included because `displayCurrencies` must contain
    * it — a caller that cannot see it can only guess. */
   baseCurrency: string;
+  /** The journal's own default party — see the note on `travellers` above.
+   * `[]` means no default; `partyFor()` then draws one neutral figure. */
+  travellers: Figure[];
 };
 
 export type SetProfileResult =
@@ -972,6 +987,7 @@ export function journalProfile(user: UserConfig): JournalProfile {
     manualRates: user.manualRates,
     ownerTel: user.owner.tel ?? "",
     baseCurrency: user.baseCurrency,
+    travellers: user.travellers,
   };
 }
 
@@ -1254,6 +1270,25 @@ export function setJournalProfile(
         patch.manualRates = merged;
         break;
       }
+
+      case "travellers": {
+        // The same validator `.../trips/{trip}/travellers` uses — a figure
+        // refused there is refused here, in the same words.
+        const block = travellersBlock(value);
+        if (!block.ok) return refuse(block.error, block.message);
+        if (!Array.isArray(value) || value.length === 0) {
+          // Same convention as `tagline`/`startLocation`: cleared means the
+          // key comes out of the file, not that it is written as `[]`.
+          remove.push("travellers");
+        } else {
+          // `travellersBlock` already refused anything `parseTravellers`
+          // would otherwise have to drop, so this is just the same shape
+          // read back into `Figure[]` for the JSON file rather than into
+          // frontmatter lines.
+          patch.travellers = parseTravellers(value, `${username}/config.json`) as Figure[];
+        }
+        break;
+      }
     }
   }
 
@@ -1279,11 +1314,17 @@ export function setJournalProfile(
 
   const before = journalProfile(user);
   const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  // What "cleared" looks like once removed, per field — every other
+  // clearable field is a string, so `""` was the only case there used to be;
+  // `travellers` clears to `[]`, which is what `parseTravellers` returns for
+  // an absent block, so a journal already without one still reads as
+  // unchanged.
+  const EMPTY: Partial<Record<JournalProfileField, unknown>> = { travellers: [] };
   const changed: JournalProfileField[] = [];
   for (const field of JOURNAL_PROFILE_FIELDS) {
     // Cleared: a change only if there was something there to clear.
     if (remove.includes(field)) {
-      if (before[field] !== "") changed.push(field);
+      if (!same(before[field], EMPTY[field] ?? "")) changed.push(field);
     } else if (field in patch && !same(patch[field], before[field])) {
       changed.push(field);
     }

@@ -4336,7 +4336,8 @@ export function openApiDocument() {
           description:
             "Send only what you are changing: `{\"features\": {\"contacts\": true}}`, or one " +
             "or more of `title`, `tagline`, `visibility`, `startLocation`, `units`, " +
-            "`locales`, `defaultLocale`, `displayCurrencies`, `manualRates`, `ownerTel`. " +
+            "`locales`, `defaultLocale`, `displayCurrencies`, `manualRates`, `ownerTel`, " +
+            "`travellers`. " +
             "Before this " +
             "there was no endpoint, tool or page that wrote a journal's config at all, so it " +
             "was fixed at creation and only an operator with a shell could change it — which " +
@@ -4459,6 +4460,19 @@ export function openApiDocument() {
                         "The ECB's direction: `{\"VND\": 30500}` is \"1 EUR = 30 500 VND\", " +
                         "the opposite of a trip's own `rates`. `null` removes a code.",
                     },
+                    travellers: {
+                      type: "array",
+                      maxItems: 10,
+                      items: { $ref: "#/components/schemas/Traveller" },
+                      description:
+                        "The journal's own default party — how a trip draws its walking " +
+                        "figures when it carries no `travellers:` block of its own. Replaced " +
+                        "wholesale, the same as `.../trips/{trip}/travellers`: send the whole " +
+                        "list, and `[]` to go back to having no default (one neutral figure). " +
+                        "Ask GET /api/v1/{user}/travellers/presets for the vocabulary first; " +
+                        "an unknown key inside a figure is `400 invalid_travellers` rather " +
+                        "than dropped. Read back with GET /api/v1/{user}/travellers.",
+                    },
                   },
                 },
               },
@@ -4474,10 +4488,32 @@ export function openApiDocument() {
                 "An unknown capability, a non-boolean, an unwritable field (`owner`, " +
                 "`baseCurrency`, `media`), a capability this server does not provide, one " +
                 "the server decides for every journal (`capability_not_yours`: `photobook`, " +
-                "`postcards`, `logging`, `credits`), or `features` sent together with a " +
-                "profile field " +
-                "(`mixed_change`)",
+                "`postcards`, `logging`, `credits`), `features` sent together with a " +
+                "profile field (`mixed_change`), or a `travellers` figure with an unknown " +
+                "field (`invalid_travellers`)",
             },
+            "401": { description: "Missing or invalid token" },
+            "403": {
+              description:
+                "The token belongs to a different journal, or is scoped to one trip",
+            },
+            "404": { description: "No such journal" },
+          },
+        },
+      },
+      "/api/v1/{user}/travellers": {
+        get: {
+          summary: "The journal's own default party",
+          description:
+            "How this journal draws its landing page's walking figures when a trip does not " +
+            "say for itself — B1526. `PATCH /api/v1/{user}/config` with `{\"travellers\": " +
+            "[...]}` is where it is written; `.../trips/{trip}/travellers` is the same door " +
+            "one trip down. Owner only, the same gate `GET .../config` uses.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "The journal's default travellers block" },
             "401": { description: "Missing or invalid token" },
             "403": {
               description:
