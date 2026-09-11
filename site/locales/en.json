@@ -892,7 +892,6 @@
   "photobook.first.summary": "Your book",
   "photobook.first.planning": "Working out how long it is…",
   "photobook.first.bindingPerfect": "{pages} pages, so it gets a glued spine — thick enough to stand on a shelf and carry its title down the edge.",
-  "photobook.first.price": "About {money} ({credits} credits).",
   "photobook.first.changeable": "Everything here can still be changed, under “Change how the book is made”.",
   "photobook.first.again": "Start from the questions again",
   "photobook.start": "Make a photobook",

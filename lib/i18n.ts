@@ -1743,7 +1743,6 @@ export type TranslationKey =
   | "photobook.first.next"
   | "photobook.first.open"
   | "photobook.first.planning"
-  | "photobook.first.price"
   | "photobook.first.progress"
   | "photobook.first.resume"
   | "photobook.first.resume.again"

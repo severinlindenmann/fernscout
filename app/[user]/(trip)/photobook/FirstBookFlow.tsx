@@ -4,7 +4,6 @@ import { useState } from "react";
 import Image from "next/image";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { mediaLoader } from "@/components/mediaLoader";
-import { creditsInRappen, formatChf } from "@/lib/credits/pricing";
 import type { TranslationKey } from "@/lib/i18n";
 import { DAY_LAYOUTS, type BookOptions, type DayLayout } from "@/lib/photobook/options";
 import { COVER_TYPES, defaultSizeFor, sizesFor, type CoverType } from "@/lib/photobook/spec";
@@ -526,12 +525,6 @@ export default function FirstBookFlow({
                   photobook, so this is a fact rather than a choice. */}
               <p className="mt-2 text-sm text-navy-700">
                 {t("photobook.first.bindingPerfect", { pages: String(preview.pages) })}
-              </p>
-              <p className="mt-1 text-sm text-navy-700">
-                {t("photobook.first.price", {
-                  credits: String(preview.credits),
-                  money: formatChf(creditsInRappen(preview.credits)),
-                })}
               </p>
             </>
           ) : (

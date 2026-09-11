@@ -892,7 +892,6 @@
   "photobook.first.summary": "Dein Buch",
   "photobook.first.planning": "Wird berechnet, wie lang es wird …",
   "photobook.first.bindingPerfect": "{pages} Seiten, also ein geklebter Rücken — dick genug fürs Regal, mit dem Titel auf der Kante.",
-  "photobook.first.price": "Etwa {money} ({credits} Credits).",
   "photobook.first.changeable": "Alles hier lässt sich weiterhin ändern, unter „Ändern, wie das Buch gemacht wird“.",
   "photobook.first.again": "Wieder mit den Fragen anfangen",
   "photobook.start": "Fotobuch erstellen",
