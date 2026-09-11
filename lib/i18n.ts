@@ -965,6 +965,7 @@ export type TranslationKey =
   | "contact.mailCodeFallback"
   | "contact.mailCodeIgnore"
   | "contact.mailCodeLinkBody"
+  | "contact.mailCodeLinkBodyPreapproved"
   | "contact.mailCodeLinkTitle"
   | "contact.mailCodeSubject"
   | "contact.mailCodeTitle"

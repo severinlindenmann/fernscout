@@ -150,6 +150,7 @@
   "contact.mailCodeButton": "Az e-mail-címem megerősítése",
   "contact.mailCodeFallback": "Ha a gomb nem működik, írd be inkább ezt a kódot azon az oldalon, ahonnan jöttél: {code}. {minutes} percig érvényes.",
   "contact.mailCodeLinkBody": "Koppints a gombra, és tudni fogjuk, hogy a cím a tiéd. Ezzel még semmi nem nyílik meg — aki a naplót vezeti, továbbra is maga dönt.",
+  "contact.mailCodeLinkBodyPreapproved": "Koppints a gombra, és tudni fogjuk, hogy a cím a tiéd — és ezzel kész is vagy. Ez a cím már jóváhagyást kapott, tehát a koppintás után azonnal bent vagy.",
   "contact.mailCodeLinkTitle": "Egy koppintás, és kész",
   "contact.mailCodeIgnore": "Ha nem te kérted, hagyd figyelmen kívül — semmi nem változott.",
   "contact.mailCodeSubject": "A kódod ide: {title}",

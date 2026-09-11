@@ -150,6 +150,7 @@
   "contact.mailCodeButton": "Confirm my email address",
   "contact.mailCodeFallback": "If that button does not work, type this code into the page you came from instead: {code}. It works for {minutes} minutes.",
   "contact.mailCodeLinkBody": "Press the button and we will know this address is yours. Nothing opens yet — whoever keeps the journal still decides who comes in.",
+  "contact.mailCodeLinkBodyPreapproved": "Press the button and we will know this address is yours — and that is the whole of it. This address was already approved, so you are in as soon as you press it.",
   "contact.mailCodeLinkTitle": "One press, and you are done",
   "contact.mailCodeIgnore": "If you didn't ask for this, ignore it — nothing has changed.",
   "contact.mailCodeSubject": "Your code for {title}",

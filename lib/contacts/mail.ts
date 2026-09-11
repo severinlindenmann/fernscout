@@ -138,6 +138,12 @@ export async function sendCodeMail(
   locale: Locale,
   code: string,
   linkToken?: string | null,
+  /** B1132: whether the address this code is proving is already
+   * pre-approved on the invite it arrived on (`preapprovedEmailFor`). The
+   * link, when there is one, is the whole of what stands between this
+   * reader and being let in — "nothing opens yet" is true for the ordinary
+   * queued reader and false for this one, so the mail must not say it. */
+  preapproved = false,
 ) {
   // The one named exception (B334): an unconfirmed address is the whole point
   // of a passcode mail — there is nothing yet to have confirmed.
@@ -162,7 +168,10 @@ export async function sendCodeMail(
             ? [
                 {
                   kind: "paragraph" as const,
-                  text: translateIn(locale, "contact.mailCodeLinkBody"),
+                  text: translateIn(
+                    locale,
+                    preapproved ? "contact.mailCodeLinkBodyPreapproved" : "contact.mailCodeLinkBody",
+                  ),
                 },
                 {
                   kind: "button" as const,

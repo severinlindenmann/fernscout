@@ -153,6 +153,17 @@ function tokenFrom(url: string): string {
   return url.split("/").pop() ?? "";
 }
 
+/** Every MIME part of a written `.eml` is base64 (`lib/mail/rfc822.ts`), so a
+ * raw string match against the file finds nothing — decode every part the
+ * way `test/mail.test.ts` does before matching against the wording inside. */
+function decodeEml(raw: string): string {
+  const parts = raw
+    .split(/--fs-[a-z0-9-]+/)
+    .map((p) => p.split(/\r?\n\r?\n/).slice(1).join("\n").trim())
+    .filter(Boolean);
+  return parts.map((p) => Buffer.from(p, "base64").toString("utf8")).join("\n");
+}
+
 let writeSpy: ReturnType<typeof vi.spyOn> | null = null;
 
 /** Makes the next mail to `email` — and only that one — throw the way a real
@@ -297,6 +308,34 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       expect(await notifiedAt(FAMILY)).toBeNull();
     });
 
+    /**
+     * B1132 — the code mail told every reader "nothing opens yet", which was
+     * false for exactly this address: pressing the button is the whole of
+     * it. The two variants have to differ, and this one is the one that must
+     * not repeat the ordinary claim.
+     */
+    test("the code mail says pressing the button is the whole of it, not that nothing opens yet", async () => {
+      const owner = await ownerToken();
+      const created = await createLink(owner, {
+        kind: "guest",
+        email: "preapproved-mail@example.test",
+        name: "Preapproved Mail",
+        locale: "en",
+      });
+      const token = tokenFrom(created.body.invite!.url!);
+      await redeem({ token, name: "Preapproved Mail", email: "preapproved-mail@example.test" });
+
+      const files = fs.readdirSync(path.join(dir, "mail", OWNER));
+      const codeMail = files
+        .filter((f) => f.includes("preapproved-mail-example-test"))
+        .sort()
+        .pop();
+      expect(codeMail).toBeTruthy();
+      const body = decodeEml(fs.readFileSync(path.join(dir, "mail", OWNER, codeMail!), "utf8"));
+      expect(body).toMatch(/already approved/);
+      expect(body).not.toMatch(/Nothing opens yet/);
+    });
+
     test("a different address redeeming the same link still asks, and grants nothing", async () => {
       const owner = await ownerToken();
       const created = await createLink(owner, { kind: "guest", email: FAMILY, name: "Family", locale: "en" });
@@ -306,6 +345,16 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       // The link forwarded on, exactly as decision 19 says is safe to do.
       const redeemed = await redeem({ token, name: "Stranger", email: STRANGER });
       expect(redeemed.body.status).toBe("code");
+
+      // B1132: this address is not the one the invite pre-approved, so its
+      // code mail must still carry the ordinary queued wording — the same
+      // link, a different reader, a true sentence either way.
+      const files = fs.readdirSync(path.join(dir, "mail", OWNER));
+      const codeMail = files.filter((f) => f.includes("stranger-example-test")).sort().pop();
+      expect(codeMail).toBeTruthy();
+      const body = decodeEml(fs.readFileSync(path.join(dir, "mail", OWNER, codeMail!), "utf8"));
+      expect(body).toMatch(/Nothing opens yet/);
+      expect(body).not.toMatch(/already approved/);
 
       const code = await freshCode(STRANGER);
       const result = await confirm(STRANGER, code);
