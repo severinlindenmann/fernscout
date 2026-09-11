@@ -412,9 +412,6 @@ export default function PostcardBack({
                         </option>
                       ))}
                     </select>
-                    <span aria-hidden className="pointer-events-none absolute right-1 text-navy-500">
-                      ▾
-                    </span>
                   </span>
                 </label>
               ) : (
