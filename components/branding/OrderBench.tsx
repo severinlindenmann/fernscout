@@ -146,6 +146,26 @@ const CASES: { title: string; why: string; node: React.ReactNode }[] = [
     ),
   },
   {
+    title: "With the cover it was ordered with",
+    why: "B1469: the plate is the photograph the owner chose, checked against the disk first — a book whose photograph has since gone shows the block above instead, never a broken image. It is not a render of the printed cover; the title is set over this in the PDF and nothing here draws that.",
+    node: (
+      <OrderDocket
+        labels={LABELS}
+        view={photobookOrderView({
+          ...bookInput,
+          // A data URI, so the bench still needs no journal and no media.
+          coverImage:
+            "data:image/svg+xml;utf8," +
+            encodeURIComponent(
+              `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe9bd"/><stop offset="1" stop-color="#aeb7c5"/></linearGradient></defs><rect width="400" height="400" fill="url(#g)"/></svg>`,
+            ),
+          order: book({ print: printed("g-6") }),
+          providerStatus: "created",
+        })}
+      />
+    ),
+  },
+  {
     title: "Being printed",
     why: "The one yellow pill. Yellow is a fill on this palette and never text, which is why the dot carries it and the chip stays a tint.",
     node: (
