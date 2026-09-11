@@ -525,9 +525,14 @@ function pageHtml(
   const date = page.kind === "day" || page.kind === "photos" ? page.date : undefined;
   return (
     `<figure class="page ${page.side}" data-kind="${escape(page.kind)}"${date ? ` data-date="${escape(date)}"` : ""}>` +
-    `<div class="sheet">${parts.join("")}` +
+    // Everything printed on the page sits in one layer inside the sheet, so
+    // that a phone reader pinching it has a single thing to transform and the
+    // sheet stays the window it is seen through — B1421. It is a plain
+    // `position:absolute;inset:0` box, so every percentage inside it (and the
+    // sheet's own container query units) resolves exactly as it did.
+    `<div class="sheet"><div class="zoom">${parts.join("")}` +
     `<div class="trim" style="left:${trim.left};right:${trim.left};top:${trim.top};bottom:${trim.top}"></div>` +
-    `</div>` +
+    `</div></div>` +
     `<figcaption>${page.number} · ${escape(
       captionFor ? captionFor(page) : page.kind + (page.kind === "photos" ? ` · ${page.layout}` : ""),
     )}</figcaption>` +
@@ -660,6 +665,10 @@ export function renderPreview(
   figcaption { font-size:11px; color:var(--muted); margin-top:.35rem; }
   .sheet { position:relative; aspect-ratio:${ratio.toFixed(4)}; background:var(--paper);
            container-type:size; overflow:hidden; box-shadow:0 1px 3px #0003,0 8px 24px #0002; }
+  /* One layer holding everything printed on the page, so a pinch has one
+     thing to move and the sheet stays the window — B1421. Untransformed by
+     default, which is every reader who never pinches. */
+  .zoom { position:absolute; inset:0; transform-origin:center center; }
   .page.left .sheet { box-shadow:inset 6px 0 12px -10px #0006,0 1px 3px #0003; }
   .page.right .sheet { box-shadow:inset -6px 0 12px -10px #0006,0 1px 3px #0003; }
 
@@ -804,8 +813,43 @@ export function renderPreview(
   body.bare.read[data-view="spreads"] .spread.solo figure { flex:1 1 auto; }
   body.bare.read figcaption { display:block; text-align:center; }
   /* Reading, not arranging: a tap here must not swap the level underneath
-     the reader. The drill-in belongs to the strip. */
+     the reader. The drill-in belongs to the strip. The script below also
+     declines to bind the drill listener in this document at all, which is
+     what lets the phone rules give a page its taps back for zooming. */
   body.bare.read figure { pointer-events:none; }
+
+  /* A phone is not wide enough for two pages — B1421.
+     640px and under, a stop is one page: the spread unwraps with the
+     same display:contents the single-page view has always used, and each page
+     takes the full width. A square page goes from about 190px to 390px on a
+     phone, four times the area, and this is the last look somebody takes
+     before paying for a printed object.
+
+     The fold band is drawn down the middle of a spread and goes with it —
+     but the seam is not lost. .page.left / .page.right keep the inset
+     shadow on the gutter edge, so a split page still says which side of the
+     fold it is on and B518's class of fault (a route map in the gutter) is
+     still visible one page at a time. Above this width nothing changes:
+     facing pages, band and all. */
+  @media (max-width:640px) {
+    body.bare.read[data-view="spreads"] .spread,
+    body.bare.read[data-view="spreads"] .spread.solo { display:contents; }
+    /* The band is drawn down the middle of a spread, and a display:contents
+       element still generates its pseudo — with position:relative no longer
+       having any effect on it, so the absolute box escapes to the viewport
+       and paints a dark stripe down the whole screen. Seen at 390px before
+       it was removed. The gutter shadow on the page is what carries the
+       seam here. */
+    body.bare.read[data-view="spreads"] .spread::before { display:none; }
+    body.bare.read[data-view="spreads"] .page {
+      flex:0 0 auto; width:100%; max-width:calc(76svh * ${ratio.toFixed(4)});
+      scroll-snap-align:center;
+      /* Zoomable, and only here. pan-y leaves the one-finger swipe to the
+         scroller — the book still scrolls — and hands two-finger gestures to
+         the script, which is the only way to have both. */
+      pointer-events:auto; touch-action:pan-y;
+    }
+  }
 </style></head><body${bare ? ' class="bare"' : ""} data-view="spreads">
 ${bare ? "" : header}${warnings}
 ${volumes}
@@ -824,8 +868,15 @@ ${volumes}
   // iframe) which spread was tapped. Posted rather than navigated, because
   // this document has no idea it is inside one — opened straight from a
   // folder, as the CLI leaves it, nothing is listening and this is a no-op.
+  //
+  // Not in the reading view. That document is the same string with one class
+  // added, and a tap in it must not swap the level underneath the reader —
+  // which used to be guaranteed by pointer-events:none on the figure alone.
+  // B1421 gives a page its taps back on a phone so it can be pinched, so the
+  // guarantee moves here, where it is stronger: the listener is never bound.
+  var READING = document.body.classList.contains("read");
   var DRILLABLE = ["day", "photos"];
-  document.querySelectorAll("figure[data-kind]").forEach(function (fig) {
+  if (!READING) document.querySelectorAll("figure[data-kind]").forEach(function (fig) {
     var kind = fig.dataset.kind;
     if (DRILLABLE.indexOf(kind) === -1) return;
     fig.classList.add("drillable");
@@ -834,6 +885,93 @@ ${volumes}
         { source: "fernscout-photobook-preview", kind: kind, date: fig.dataset.date || null },
         "*",
       );
+    });
+  });
+
+  // Pinch and double-tap one page — B1421.
+  //
+  // A phone shows one page at a time and it is still a 21 cm object at about
+  // 390px, so the last look before paying for print needs a way in closer.
+  // The book is an iframe, and no browser zooms an iframe's contents on their
+  // own — a pinch inside one scales the whole dialog, Order button and all —
+  // so the gesture is handled here or not at all.
+  //
+  // Bound in the reading document only; at wider widths the CSS above leaves
+  // pointer-events:none in place and none of this can fire, which is the
+  // intended shape rather than an accident: a desktop spread is already large.
+  if (READING) document.querySelectorAll("figure.page").forEach(function (fig) {
+    var layer = fig.querySelector(".zoom");
+    if (!layer) return;
+    var MAX = 3, scale = 1, tx = 0, ty = 0, pts = {}, n = 0, start = null, lastTap = 0;
+
+    function apply() {
+      // Panning is clamped to the sheet, so a zoomed page cannot be dragged
+      // off its own paper and left showing the ground behind it.
+      var lim = (fig.getBoundingClientRect().width * (scale - 1)) / 2;
+      tx = Math.max(-lim, Math.min(lim, tx));
+      ty = Math.max(-lim, Math.min(lim, ty));
+      layer.style.transform = scale === 1 ? "" : "translate(" + tx + "px," + ty + "px) scale(" + scale + ")";
+    }
+
+    function spanOfTwo() {
+      var a = null, b = null;
+      for (var id in pts) { if (!a) a = pts[id]; else if (!b) b = pts[id]; }
+      return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
+    }
+
+    fig.addEventListener("pointerdown", function (e) {
+      if (!pts[e.pointerId]) n++;
+      pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+      if (n === 2) start = { d: spanOfTwo(), s: scale };
+      else if (n === 1 && scale > 1) {
+        fig.setPointerCapture(e.pointerId);
+        start = { x: e.clientX, y: e.clientY, tx: tx, ty: ty };
+      }
+    });
+
+    fig.addEventListener("pointermove", function (e) {
+      if (!pts[e.pointerId]) return;
+      pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+      if (n === 2 && start) {
+        e.preventDefault();
+        scale = Math.max(1, Math.min(MAX, start.s * (spanOfTwo() / start.d)));
+        apply();
+      } else if (n === 1 && scale > 1 && start && start.tx !== undefined) {
+        e.preventDefault();
+        tx = start.tx + (e.clientX - start.x);
+        ty = start.ty + (e.clientY - start.y);
+        apply();
+      }
+    });
+
+    function release(e) {
+      if (pts[e.pointerId]) { delete pts[e.pointerId]; n--; }
+      if (n < 2) start = null;
+      // Anything within a hair of life size goes back to exactly life size,
+      // so a page is never left a per cent off and slightly soft.
+      if (scale <= 1.02) { scale = 1; tx = ty = 0; apply(); }
+    }
+    fig.addEventListener("pointerup", release);
+    fig.addEventListener("pointercancel", release);
+
+    // The same gesture on a phone and on a trackpad, and the way back out.
+    // Zooms toward the tap rather than the middle, because what somebody
+    // wants a closer look at is rarely in the centre of the page.
+    fig.addEventListener("click", function (e) {
+      var gap = e.timeStamp - lastTap;
+      lastTap = e.timeStamp;
+      if (gap >= 350) return;
+      // A tap that has been acted on is not half of the next pair, or three
+      // taps in a row zoom in and straight back out again.
+      lastTap = 0;
+      if (scale > 1) { scale = 1; tx = ty = 0; }
+      else {
+        var box = fig.getBoundingClientRect();
+        scale = 2.5;
+        tx = (box.left + box.width / 2 - e.clientX) * (scale - 1);
+        ty = (box.top + box.height / 2 - e.clientY) * (scale - 1);
+      }
+      apply();
     });
   });
 </script>
