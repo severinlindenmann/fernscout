@@ -168,7 +168,16 @@ describe("the signup wizard", () => {
     const responses: Array<{ ok: boolean; json: () => Promise<unknown> }> = [
       { ok: true, json: async () => ({ status: "accepted" }) },
       { ok: true, json: async () => ({ ok: true, token: "signup-token" }) },
-      { ok: true, json: async () => ({ ok: true, token: "agent-token", user: "robin", signIn: "" }) },
+      {
+        ok: true,
+        json: async () => ({
+          ok: true,
+          token: "agent-token",
+          user: "robin",
+          signIn: "",
+          url: "https://example.test/robin",
+        }),
+      },
     ];
     // Typed, because this test reads the request body back out — which is
     // the whole assertion: what the form *sent*, not what it drew.
@@ -217,6 +226,11 @@ describe("the signup wizard", () => {
     expect(body.locales).toEqual(["de", "hu"]);
     // B839 — asked, not defaulted to the francs `createJournal` used to write.
     expect(body.baseCurrency).toBe("EUR");
+    // B1292 — the trip step confirms the journal that create just made,
+    // rather than showing the "New here?" pitch again with nothing said
+    // about the success that just happened.
+    expect(container!.textContent).not.toMatch(/New here\?/);
+    expect(container!.textContent).toContain("https://example.test/robin");
   });
 
   /**

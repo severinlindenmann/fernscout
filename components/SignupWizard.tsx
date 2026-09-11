@@ -180,6 +180,12 @@ export default function SignupWizard({
   const [agentToken, setAgentToken] = useState("");
   const [signInUrl, setSignInUrl] = useState("");
   const [journalUsername, setJournalUsername] = useState("");
+  /** The journal's own canonical address, from the create response's `url`
+   * (B1292) — computed server-side from `serverSite().url`, which can differ
+   * from this browser's own origin behind a proxy, so it is used as-is and
+   * never rebuilt here. Shown at the trip step, in place of the "New here?"
+   * pitch that used to survive a successful create. */
+  const [journalUrl, setJournalUrl] = useState("");
 
   const [tripTitle, setTripTitle] = useState("");
   const [tripStart, setTripStart] = useState("");
@@ -289,6 +295,7 @@ export default function SignupWizard({
     setAgentToken(result.token as string);
     setJournalUsername(result.user as string);
     setSignInUrl(typeof result.signIn === "string" ? result.signIn : "");
+    setJournalUrl(typeof result.url === "string" ? result.url : "");
     setStep("trip");
   }
 
@@ -444,13 +451,22 @@ export default function SignupWizard({
   return (
     <section className="rounded-2xl border border-navy-200 bg-cream-50 p-5 sm:p-6">
       <h2 className="font-display text-xl font-semibold text-navy-900">
-        {t("agent.startTitle")}
+        {step === "trip" ? t("agent.journalCreated") : t("agent.startTitle")}
       </h2>
+      {/* B1292 — the journal already exists by the time this step shows; the
+          "New here?" pitch above used to survive a successful create and say
+          nothing of it. `result.url` is the server's own canonical address
+          (behind a proxy it can differ from this browser's origin) — shown
+          plain, not as a link, since a tap away from here loses the rest of
+          the wizard's state and the journal has no content yet to visit. */}
+      {step === "trip" && (
+        <p className="mt-2 break-all font-mono text-sm text-navy-900">{journalUrl}</p>
+      )}
       {/* B1370 — the phone-wa step ("Noch ein Schritt: Bestätige deine
           Telefonnummer per WhatsApp") is a confirmation, not a fresh pitch;
           the intro above belongs to the steps that still need to sell the
           idea, not to the one that is only waiting on a tap in WhatsApp. */}
-      {step !== "phone-wa" && (
+      {step !== "phone-wa" && step !== "trip" && (
         <p className="mt-2 text-base leading-7 text-navy-700">
           {t("agent.startIntro")}
         </p>
