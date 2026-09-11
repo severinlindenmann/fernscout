@@ -1056,7 +1056,7 @@
   "photobook.done.order": "See this order →",
   "photobook.receipt.subject": "A fotókönyved: {trip}",
   "photobook.receipt.preheader": "{pages} pages, {cover}, ready to download",
-  "photobook.receipt.title": "Thank you — your photobook is on the way",
+  "photobook.receipt.title": "Köszönjük — a fotókönyved hamarosan nyomdába kerül",
   "photobook.receipt.body": "{trip} — {pages} pages, {cover}, {size}. The whole book is a single PDF with the cover as its first page, which is how a printer wants it.",
   "photobook.cover.soft.name": "Softcover",
   "photobook.cover.hard.name": "Hardcover",

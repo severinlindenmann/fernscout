@@ -1056,7 +1056,7 @@
   "photobook.done.order": "Diese Bestellung ansehen →",
   "photobook.receipt.subject": "Dein Fotobuch von {trip}",
   "photobook.receipt.preheader": "{pages} Seiten, {cover}, bereit zum Download",
-  "photobook.receipt.title": "Danke — dein Fotobuch ist unterwegs",
+  "photobook.receipt.title": "Danke — dein Fotobuch wird bald gedruckt",
   "photobook.receipt.body": "{trip} — {pages} Seiten, {cover}, {size}. Das ganze Buch ist eine einzige PDF, der Umschlag ist die erste Seite — so will es eine Druckerei.",
   "photobook.cover.soft.name": "Softcover",
   "photobook.cover.hard.name": "Hardcover",
