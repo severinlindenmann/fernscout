@@ -7,8 +7,7 @@ complexity: low
 area: photobook
 found: "2026-09-11T15:56:55Z"
 started: "2026-09-11T15:58:19Z"
-session: 3f748903-2dc3-47a2-a958-98b83d641dc0
-claimed: "2026-09-11T15:58:19Z"
+merged: "2026-09-11T16:03:31Z"
 ---
 
 # B1480 — The experimental-print warning is printed twice on the same screen
