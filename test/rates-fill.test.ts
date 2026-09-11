@@ -39,13 +39,13 @@ function historyXml(days: Record<string, Record<string, number>>) {
   return `<?xml version="1.0"?><gesmes:Envelope><Cube>${cubes}</Cube></gesmes:Envelope>`;
 }
 
-function writeInstance() {
+function writeInstance(costsOn = true) {
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({
       site: { name: "Fernscout", url: "https://example.test", defaultUser: "ana" },
       users: { reserved: [] },
-      features: { costs: { enabled: true } },
+      features: { costs: { enabled: costsOn } },
     }),
   );
 }
@@ -158,7 +158,9 @@ describe("parsing the ECB's own document", () => {
 
 describe("the capability is off", () => {
   test("no request is made, and nothing is written", async () => {
-    writeJournal(false);
+    // B1092: `costs` is operator-only, so only the server's own switch turns
+    // it off — a journal's `features.costs` is never read any more.
+    writeInstance(false);
     writeDay("dinner", "2026-08-24", "THB");
     reload();
     const fetchSpy = vi.spyOn(globalThis, "fetch");
