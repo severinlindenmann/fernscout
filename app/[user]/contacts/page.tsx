@@ -16,7 +16,7 @@ import { isOwner } from "@/lib/contacts/session";
 
 import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
-import { peopleOf } from "@/lib/tripPeople";
+import { pendingTripRequestsFor, peopleOf } from "@/lib/tripPeople";
 import { getTrips } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import { whatsappCountryCode } from "@/lib/whatsapp/settings";
@@ -117,6 +117,14 @@ export default async function ContactsAdminPage({
   );
   const liveGrants = await contactsWithReadGrant(username, new Date());
 
+  // B1301 — a request `claimTripPlace` wrote, that nothing has opened yet.
+  // The normal case is a `pending` contact's first trip, already visible from
+  // `via` below; the one this exists for is an *already-active* contact whose
+  // later buddy link named a different trip, who would otherwise carry no
+  // mark at all that something is waiting on them.
+  const pendingTripIds = await pendingTripRequestsFor(username);
+  const tripTitle = (id: string) => trips.find((trip) => trip.id === id)?.title ?? id;
+
   const contacts: AdminContact[] = all.map((contact) => ({
     id: contact.id,
     name: contact.name,
@@ -140,6 +148,7 @@ export default async function ContactsAdminPage({
       tripMemberships,
       contact.status === "active" && liveGrants.has(contact.id),
     ),
+    pendingTrips: (pendingTripIds.get(contact.id) ?? []).map(tripTitle),
   }));
 
   return (

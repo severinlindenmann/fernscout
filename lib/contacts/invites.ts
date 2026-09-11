@@ -259,11 +259,32 @@ export async function createInvite(
  * a dead link before anything is written; a row that got this far was live
  * when it mattered, and whether it still is by the time somebody types a code
  * has no bearing on whether the owner vouched for the address.
+ *
+ * **`currentStatus` refuses an already-`active` contact outright, before the
+ * lookup even runs — B1301.** `createdVia` is stamped once, on insert, and
+ * `requestContact`'s update branch deliberately leaves it alone (see that
+ * function and `/api/contacts/self`'s own comment on why); a contact who
+ * redeems a *second*, different invite therefore still carries the *first*
+ * one's id. For an address that was mailed the original invite, that id's
+ * `email_key` still matches, and this function would otherwise call it
+ * pre-approved on the strength of a decision the owner made about a different
+ * invite entirely — the guest link that made them a reader, say, read as
+ * consent for a buddy link that was never mailed to them and hands out write
+ * access to a trip. `approveContact` is idempotent for a reader who is
+ * already active, so the only thing an already-active contact's own
+ * redemption can still need is whatever *this* invite adds — a place on a
+ * trip — and that stays exactly what B1301 requires it to be: a fresh
+ * decision in the owner's queue, never skipped by a stamp left over from
+ * before. This is every caller's one gate: `preapprovedEmailFor` is what
+ * `approveContact` runs from, in all three of them.
  */
 export async function preapprovedEmailFor(
   owner: string,
   createdVia: string | null,
+  currentStatus: "pending" | "active" | "blocked",
 ): Promise<string | null> {
+  if (currentStatus === "active") return null;
+
   const prefix = "invite:";
   if (!createdVia?.startsWith(prefix)) return null;
   const id = createdVia.slice(prefix.length);

@@ -52,6 +52,8 @@
   "contact.adminApproved": "Jóváhagyva",
   "contact.adminApprovedNoTrip": "Jóváhagyva — ez csak magát a naplót nyitja meg; egyetlen utazás sincs még megnyitva vendégeknek.",
   "contact.adminApprovedTrips": "Jóváhagyva — ez írási jogot is ad ehhez: {trips}.",
+  "contact.adminPendingTripOne": "Írási jogot szeretne ehhez is: {trip} — a jóváhagyás megnyitja.",
+  "contact.adminPendingTripCount": "Írási jogot szeretne ezekhez is: {trips} — a jóváhagyás megnyitja őket.",
   "contact.adminBlockedContact": "Ezt a címet letiltottuk.",
   "contact.adminChannelEmail": "E-mail",
   "contact.adminChannelPostcard": "Képeslap",

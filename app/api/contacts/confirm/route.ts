@@ -68,7 +68,8 @@ export async function POST(request: Request) {
   // address* as one the owner pre-approved? `contact.email` is already
   // case-folded — see `requestContact` — so a straight comparison is enough.
   const preapproved =
-    (await preapprovedEmailFor(username, result.contact.createdVia)) === result.contact.email;
+    (await preapprovedEmailFor(username, result.contact.createdVia, result.contact.status)) ===
+    result.contact.email;
 
   const status = preapproved
     ? ((await approveContact(username, result.contact.id))?.contact.status ?? result.contact.status)

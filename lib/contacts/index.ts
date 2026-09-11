@@ -397,7 +397,8 @@ export async function confirmContact(
   // B319/B350: does the invite that brought this address here name *this
   // exact address* as one the owner pre-approved? If not, this is the
   // ordinary path and the session is revoked below exactly as before.
-  const preapproved = (await preapprovedEmailFor(owner, row.created_via)) === row.email;
+  const preapproved =
+    (await preapprovedEmailFor(owner, row.created_via, toStatus(row.status))) === row.email;
   if (!preapproved) {
     const session = await resolveSession(verified.token, "guest");
     if (session) await revokeSession(session.id);
