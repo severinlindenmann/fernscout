@@ -1,6 +1,6 @@
 import { formatCredits } from "../credits/format";
-import { creditsInRappen, formatChf } from "../credits/pricing";
 import type { TranslationKey } from "../i18n";
+import { orderLedger, type OrderLedger, type OrderLedgerLine } from "./ledger";
 import type { PhotobookOrder } from "../photobook/orders";
 import type { PostcardOrder } from "../postcard/orders";
 import { orderCost, isExpired, isPending } from "../postcard/orders";
@@ -55,28 +55,6 @@ type OrderStatus = {
   note?: string;
 };
 
-/** One charge, or one refund. `credits` is always positive and `refund` is
- *  what makes it read as money coming back, so a caller cannot accidentally
- *  show a charge of minus two hundred; `amount` is that decision already
- *  made, because a component that formats money is a component that can
- *  format it differently from the total above it. */
-type OrderLedgerLine = {
-  label: string;
-  credits: number;
-  refund?: true;
-  amount: string;
-};
-
-type OrderLedger = {
-  lines: OrderLedgerLine[];
-  /** What the person is out of pocket, after any refund. */
-  totalCredits: number;
-  /** Preformatted, because a page that formats money itself is a page that
-   *  can format it differently from the page beside it. */
-  totalLabel: string;
-  totalMoney: string;
-};
-
 /** An envelope, as it is read: the name over the address. */
 type OrderRecipient = { name: string; lines: string[] };
 
@@ -118,21 +96,6 @@ export function addressLines(to: PostalAddress): string[] {
   return [to.line1, to.line2, `${to.postcode} ${to.city}`.trim(), to.country]
     .map((line) => line?.trim() ?? "")
     .filter((line) => line !== "");
-}
-
-function ledgerOf(t: Translate, lines: Omit<OrderLedgerLine, "amount">[]): OrderLedger {
-  const total = lines.reduce((sum, l) => sum + (l.refund ? -l.credits : l.credits), 0);
-  return {
-    lines: lines.map((line) => ({
-      ...line,
-      amount: t(line.refund ? "photobook.receipt.creditsNegative" : "photobook.receipt.credits", {
-        credits: formatCredits(line.credits),
-      }),
-    })),
-    totalCredits: total,
-    totalLabel: t("photobook.receipt.credits", { credits: formatCredits(total) }),
-    totalMoney: t("photobook.receipt.about", { money: formatChf(creditsInRappen(total)) }),
-  };
 }
 
 /**
@@ -259,7 +222,7 @@ export function photobookOrderView(input: PhotobookViewInput): OrderView {
       ),
     },
     status,
-    ledger: ledgerOf(t, lines),
+    ledger: orderLedger(t, lines),
     recipients: input.recipient
       ? [{ name: input.recipient.name, lines: addressLines(input.recipient) }]
       : [],
@@ -355,7 +318,7 @@ export function postcardOrderView(input: PostcardViewInput): OrderView {
       subtitle: t(introKey, { day: input.dayName ?? "", when: input.sentWhen }),
     },
     status,
-    ledger: ledgerOf(t, lines),
+    ledger: orderLedger(t, lines),
     recipients: input.recipients.map((r) => ({ name: r.name, lines: [r.town] })),
     // The size comes from the print spec rather than a string in a locale
     // file — a card's dimensions are a fact about what is printed, and a
