@@ -44,6 +44,18 @@ thing the person was thinking when they chose it.
 Not doing: any change to the three verdicts, the sketches, or the artifact's
 structure.
 
+**Done.** `triage-a-backlog` step 6 now gives every ticket row a note field
+open regardless of which of the three buttons is pressed, following
+`report-a-run`'s own gate shape rather than inventing a second one — same
+"carried beside the id, empty note contributes nothing" rule, same reasoning
+quoted almost verbatim. The paste-ready block's existing grouped list now
+carries that note beside the id, below the `plan-a-run <ids>` line, unchanged
+in every other respect. `plan-a-run` step 1 now says a note arriving with an
+id is input to that ticket's question set — read before step 2, handed to the
+subagent alongside the ticket file — and is explicit that it is not the same
+weight as a `## Decided` section: a subagent still checks it against the code
+rather than taking it as given.
+
 ## Acceptance
 
 - A note typed against a promoted ticket appears in the clipboard block under

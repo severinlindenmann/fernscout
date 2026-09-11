@@ -64,6 +64,19 @@ dispatching anything — you need each ticket's Why, Work and Acceptance to
 brief the subagents in step 2, and a subagent hand-fed only an id re-reads a
 file you already have open.
 
+**A note arriving with an id is input to that ticket's question set, not a
+decision already made.** `triage-a-backlog`'s decision bar carries a note per
+ticket ("promote, but only the read side", "same work as B1054") and the
+paste-ready `plan-a-run B1091 B1092 …` line a person hands you is often
+followed by exactly this: lines of prose under the ids, one per ticket that
+carried a note. Read it before step 2 and hand it to that ticket's subagent
+alongside the file — it is the person telling you what they were thinking when
+they chose, and it can narrow validity, rule out an option before it is drawn,
+or answer a question the ticket itself never poses. It is still not a
+`## Decided` section (see step 2): a triage note is what somebody thought
+skimming a title, not a verified answer, so a subagent still checks it against
+the code rather than taking it as given.
+
 Say the count before you start, same as `triage-a-backlog`.
 
 ## Step 2 — one subagent per ticket, on Sonnet, dispatched together

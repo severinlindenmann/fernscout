@@ -172,6 +172,15 @@ Every ticket carries three buttons — **promote / hold / don't do** — with
 is the button. A choice that differs from your verdict is flagged *changed*, so
 that when they paste the result back you can see where you were wrong.
 
+Every ticket also carries a note field, open regardless of the button pressed
+— `report-a-run`'s own gate already does exactly this, for the same reason:
+somebody working through forty rows forms an opinion far more specific than a
+verdict — "yes, but only the read side", "promote, and it is the same work as
+B1054", "hold until the helper router lands" — and a page that keeps only the
+button has thrown that away. Whatever is typed there is carried into the
+generated block beside that ticket's id. An empty note contributes nothing —
+no blank bullet, no placeholder line.
+
 **The bar is a control surface, not a document, so it obeys the UI half of
 `artifact-design`, not the prose half the cards above follow.** Two things that
 `report-a-run`'s own gate got wrong in its first real use (B1152), and that
@@ -202,9 +211,10 @@ line: `plan-a-run` followed by the promoted ids, in order, and nothing else —
 `plan-a-run B1091 B1092 B1057` — so a person can hand it to an agent with
 nothing added. `plan-a-run` is the skill that takes that line and turns it
 into a run; this one only has to produce a line it accepts. Below that line,
-the existing grouped markdown list stands unchanged: each id, its title, and a
-note where they overruled you, ending with the undecided ones, which matter as
-much as the rest. Put the whole block in a `readonly` textarea,
+the existing grouped markdown list stands unchanged: each id, its title, and —
+where its note field carries text — that note beside it, ending with the
+undecided ones, which matter as much as the rest. Put the whole block in a
+`readonly` textarea,
 selected, **and** attempt `navigator.clipboard.writeText`, reporting honestly
 which of the two happened: "Copied to your clipboard" only when the promise
 resolved, "Select all and copy" otherwise. Never offer a download — the artifact
