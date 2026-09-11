@@ -88,3 +88,85 @@ the first thing that deserves to be called `printed`.
 - The observed payload shape for each subscribed event is written down in
   `docs/providers/photobook.md`.
 - `npm run verify` clean.
+
+---
+
+## The real payloads, supplied by the owner 2026-09-11
+
+No longer guesswork. Three events, with our own current response beside each —
+which is itself the record of what we ignore today.
+
+**1. `order_item_status_updated`** — per item, the preflight/production step.
+
+```json
+{ "id": "is_5b6403bd3cf1f", "event": "order_item_status_updated",
+  "itemReferenceId": "…", "orderReferenceId": "…",
+  "orderId": "e82885f8-…", "storeId": null,
+  "fulfillmentCountry": "US", "fulfillmentStateProvince": "NY",
+  "fulfillmentFacilityId": "21315db8-…",
+  "status": "passed", "comment": null, "created": "2018-08-03T07:26:52+00:00" }
+```
+We answer `{"ok":{},"ignored":"event"}` — the handler only reads
+`order_status_updated`.
+
+**2. `order_item_tracking_code_updated`** — the one that carries the parcel.
+
+```json
+{ "id": "tc_5b6403bd3cf2e", "event": "order_item_tracking_code_updated",
+  "orderId": "a6a1f9ce-…", "storeId": "84086be9-…",
+  "itemReferenceId": "…", "orderReferenceId": "…",
+  "trackingCode": "code123",
+  "trackingUrl": "http://example.com/tracking?code=code123",
+  "shipmentMethodName": "DHL Express Domestic BR",
+  "shipmentMethodUid": "dhl_express_domestic_br",
+  "productionCountry": "BR", "productionStateProvince": "SP",
+  "productionFacilityId": "940fec84-…", "created": "2018-08-03T12:11:30+00:00" }
+```
+Also `{"ok":{},"ignored":"event"}`.
+
+**3. `order_status_updated`** with `fulfillmentStatus: "shipped"` — and it
+carries the tracking too, nested.
+
+```json
+{ "id": "os_5e5680ce494f6", "event": "order_status_updated",
+  "orderId": "a6a1f9ce-…", "storeId": null, "orderReferenceId": "…",
+  "fulfillmentStatus": "shipped",
+  "items": [ { "itemReferenceId": "…", "fulfillmentStatus": "shipped",
+    "fulfillments": [
+      { "trackingCode": "code123", "trackingUrl": "…",
+        "shipmentMethodName": "DHL Express Domestic BR",
+        "shipmentMethodUid": "dhl_express_domestic_br",
+        "fulfillmentCountry": "BR", "fulfillmentStateProvince": "SP",
+        "fulfillmentFacilityId": "940fec84-…" },
+      { "trackingCode": "code234", "…": "…" } ] } ] }
+```
+We answered `{"ok":{},"ignored":"reference"}` — **only** because
+`orderReferenceId` was the literal `{{MyOrderId}}` placeholder and failed
+`ORDER_ID_RE` (route.ts:143). For a real order this event *is* read, and then
+dropped at `isTerminalFailure` (`:146`). So this is the event to build on and
+the join key is `orderReferenceId`, which is our own order id.
+
+### Four things these payloads settle
+
+- **Tracking arrives by two routes**, the dedicated event and nested inside
+  `order_status_updated`. Handle at least the nested one, since it comes with
+  the status that matters; handling both is cheap and Gelato's ordering is not
+  guaranteed.
+- **`fulfillments` is an array and the example has two codes for one item.**
+  A book can ship in more than one parcel. Do not write this as a single
+  `trackingCode` column and do not show only the first.
+- **`orderId` is Gelato's id — our `provider_ref`** — and `orderReferenceId`
+  is ours. Two ids, and the handler already keys on the right one.
+- **`order_item_status_updated` is per item.** A photobook order is one item,
+  so it adds nothing `order_status_updated` does not already say. Skip it
+  unless a reason appears; fewer subscriptions is fewer half-handled words.
+
+### The proposal, unless the owner says otherwise
+
+**One mail, not three.** `shipped` earns one — it is the moment a person can
+act on something, and it carries the tracking. `printed` and `in_production`
+update the order page and send nothing; a mail for every hop is how a useful
+sender becomes one that gets filtered. If a mail for "it has been printed" is
+wanted, say so and it is a small addition.
+
+`passed` stays an acknowledged no-op, as does anything unrecognised.

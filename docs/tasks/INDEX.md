@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (163)
+## backlog (164)
 
 ### security (3)
 
@@ -112,7 +112,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (17)
+### small-feature (18)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -131,6 +131,7 @@ Do not edit them by hand; run the script.
 | [B1028](backlog/small-feature/B1028-the-owner-s-own-trip-form.md) | The owner's own trip form cannot edit the three fields the API just gained | FEATURE | low | low |
 | [B1143](backlog/small-feature/B1143-making-a-trip-public-from-the.md) | Making a trip public from the day panel is the same single press as fixing a typo | FEATURE | low | low |
 | [B1317](backlog/small-feature/B1317-the-sms-number-is-domestic-only.md) | The SMS number is domestic-only - a non-Swiss number cannot receive a code or a send | FEATURE | low | medium |
+| [B1441](backlog/small-feature/B1441-postcard-order-status-only-updates-when.md) | Postcard order status only updates when the page is opened | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 | [B741](backlog/small-feature/B741-the-site-has-no-dark-palette.md) | The site has no dark palette at all, though the brand mockups already draw one | FEATURE | low | medium |
 
