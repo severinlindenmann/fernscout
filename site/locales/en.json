@@ -1211,7 +1211,6 @@
   "postcard.page.titleSent": "Postcards, sent",
   "postcard.page.titleFailed": "Postcards, not sent",
   "postcard.page.writtenIn": "Written in",
-  "postcard.page.photoFixed": "The photograph is fixed — a different one means a new card.",
   "postcard.page.smallPhoto": "This photograph is on the small side and will print a little soft. A larger one would be sharper, if you have another you like.",
   "postcard.pickHint": "Tap a photograph to put it on a postcard.",
   "postcard.pickPhoto": "Choose a photograph",
@@ -2311,7 +2310,6 @@
   "postcard.step.look": "Look",
   "postcard.step.nextLook": "Looks right",
   "postcard.step.nextWrite": "Ready to send",
-  "postcard.step.of": "of",
   "postcard.step.send": "Send",
   "postcard.step.write": "Write",
   "postcard.writeNext": "You write the card on the next screen, where you can see it at print size.",
@@ -2382,5 +2380,5 @@
   "order.meta.proposed": "Proposed {date} · Reference {id}",
   "order.meta.sent": "Sent {date} · Reference {id}",
   "postcard.status.withPrinter": "With the printer",
-  "postcard.status.withPrinterNote": "The printer has taken this order. Cards go out over the days that follow — nothing tells this journal when they land, so nothing here will claim to know."
+  "postcard.status.withPrinterNote": "The printer has taken this order. Cards go out over the days that follow."
 }

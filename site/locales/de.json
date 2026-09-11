@@ -1211,7 +1211,6 @@
   "postcard.page.titleSent": "Postkarten, gesendet",
   "postcard.page.titleFailed": "Postkarten, nicht gesendet",
   "postcard.page.writtenIn": "Geschrieben auf",
-  "postcard.page.photoFixed": "Das Foto steht fest — ein anderes bedeutet eine neue Karte.",
   "postcard.page.smallPhoto": "Dieses Foto ist eher klein und wird etwas weich gedruckt. Ein grösseres wäre schärfer, falls du ein anderes magst.",
   "postcard.pickHint": "Tippe ein Foto an, um es auf eine Postkarte zu setzen.",
   "postcard.pickPhoto": "Foto auswählen",
@@ -2311,7 +2310,6 @@
   "postcard.step.look": "Ansehen",
   "postcard.step.nextLook": "Sieht gut aus",
   "postcard.step.nextWrite": "Bereit zum Senden",
-  "postcard.step.of": "von",
   "postcard.step.send": "Senden",
   "postcard.step.write": "Schreiben",
   "postcard.writeNext": "Geschrieben wird die Karte im nächsten Schritt, wo du sie in Druckgrösse siehst.",
@@ -2382,5 +2380,5 @@
   "order.meta.proposed": "Vorgeschlagen am {date} · Referenz {id}",
   "order.meta.sent": "Gesendet am {date} · Referenz {id}",
   "postcard.status.withPrinter": "In der Druckerei",
-  "postcard.status.withPrinterNote": "Die Druckerei hat den Auftrag angenommen. Die Karten gehen in den nächsten Tagen raus — wann sie ankommen, erfährt dieses Journal nicht, und darum behauptet es hier auch nichts."
+  "postcard.status.withPrinterNote": "Die Druckerei hat den Auftrag angenommen. Die Karten gehen in den nächsten Tagen raus."
 }
