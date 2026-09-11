@@ -7,8 +7,7 @@ complexity: low
 area: orders
 found: "2026-09-11T14:18:12Z"
 started: "2026-09-11T15:17:44Z"
-session: 3f748903-2dc3-47a2-a958-98b83d641dc0
-claimed: "2026-09-11T15:17:44Z"
+merged: "2026-09-11T15:24:48Z"
 ---
 
 # B1468 — Legacy left behind once both order surfaces share one element
