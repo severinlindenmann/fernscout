@@ -37,78 +37,126 @@ ceiling (`lib/storageQuota.ts`) counts the whole of `content/<user>/`.
 There is a second prize. If a local folder can round-trip faithfully, several
 helper skills stop needing to know the API at all — `publish` becomes
 `sync up`, and `validate-content`, `trip-budget`, `statement-costs` all work
-against a folder that is genuinely current rather than a guess. That
-consolidation is the reason to check the helper's skill list as part of this,
-not a separate ticket.
+against a folder that is genuinely current rather than a guess.
+
+## Decided, 2026-09-11
+
+Answered by the owner before any code. These are settled; do not re-litigate
+them in the branch.
+
+**1. `gps/` is out entirely, and the exclusion is a test.** No sync route ever
+reads the position store. A laptop copy gets each trip's derived, clipped
+`track.json` and nothing else. Two reasons, neither about this owner: a
+manifest covering `gps/` would be the first route in the codebase that can
+return a coordinate — served to whoever holds an owner token, and those sit in
+agent scrollbacks — and it would end the property that makes the folder safe at
+all, that deleting `gps/` leaves every trip rendering identically.
+`test/gps-store.test.ts` already asserts the import graph; extend it to cover
+whatever module the sync manifest is built from, so this is mechanism rather
+than a sentence somebody later disagrees with. A GPS backup, if it is ever
+wanted, is a separate feature with its own gate.
+
+**2. Media syncs as derivatives, as the files sit on disk.** The local copy
+then renders and validates exactly like the site, and no local derive step can
+disagree with the server's and manufacture a false diff on every run. Costs
+roughly double bytes on the first sync and only changes after.
+
+**3. Both sides changed the same file → stop, name it, write nothing.** Print
+every conflicting path and exit non-zero. `--prefer-local` / `--prefer-remote`
+resolve, per file. Silently overwriting a day somebody wrote on the site is the
+same class of harm as inventing one.
+
+**4. Deletions propagate, behind a named confirmation.** The base manifest can
+distinguish "deleted since the last sync" from "never had it", so a local
+delete can remove the day on the site and a remote delete can prune the laptop.
+Neither happens silently: the run lists exactly what it is about to delete, on
+which side, and waits for a yes. An unattended run (`--yes`) may only be
+reached deliberately, and a deletion set above some obvious threshold is worth
+refusing outright rather than confirming — decide the number and say so. Note
+that deleting a whole journal or trip on the instance still goes through the
+delete route and its mail (`lib/deletions.ts`); sync deletes files, never a
+journal.
+
+**5. `inbox/` syncs both ways.** It is where photographs wait before they
+belong to a day, which is the one job the helper exists for, and its files are
+already named by a hash of their own bytes (`lib/inbox.ts`) — exactly what the
+manifest wants. The `<name>.meta.json` sidecars go with them. It is not in
+`export.zip` today, so the fresh-sync path needs a second call or the export
+needs widening — decide which.
+
+**6. Drafts come down.** `status: draft` days sync like any other file, the
+way `export.zip`'s `all` scope already does. The folder is a faithful mirror
+or it is not a backup.
+
+**7. The client is a new `sync` skill in `fernscout-helper`; `publish` becomes
+a thin wrapper over its up leg** and keeps its name, its description and its
+docs, so no existing prompt breaks. No CLI in this repository (B671: the door
+is the API).
+
+**8. B245 is already done — the blocker this ticket first assumed does not
+exist.** `PATCH /api/v1/<user>/trips/<trip>` (`lib/api/tripDetails.ts`) carries
+`title`, `tagline`, `start`, `end`, `cover`, `accent`, `costsVisibility` and
+`intro`. `visibility`/`listed`, `rates`, `people`, `travellers`, `tracks` and
+`costs` have doors of their own. The one field still uncorrectable is
+`translations`, which is **B1496**; take it first or absorb it, but do not ship
+an up leg that drops it in silence. The `publish` skill's SKILL.md prose about
+B245 is stale and should be corrected in the same run.
 
 ## Work
 
-Research first, then build. **The research is the bulk of the value here and
-should land as a written decision in this ticket before any code.**
+Research still open, and it should land as written decisions in this file
+before the routes exist:
 
-Open questions to answer, in order:
+1. **What identifies a version.** A content hash of the bytes is almost
+   certainly the answer — the inbox already names files that way — but decide
+   whether the manifest is hash-only or hash + size + mtime, and what the hash
+   is (and keep it cheap enough to run over a gigabyte of media on every sync;
+   a cached per-file hash keyed on size+mtime is the obvious out).
+2. **The doors.** Nothing lists a journal's files with hashes today. Likely
+   `GET /api/v1/<user>/sync/manifest` plus a per-file `GET`, `PUT` and
+   `DELETE` — owner only, gated with `mayActAsOwner` exactly as `export.zip`
+   is, never a trip-scoped token. Check first whether the existing
+   per-resource routes can carry the up leg; a new door is only worth it if
+   they cannot. A day written through a raw file `PUT` bypasses every
+   validator `POST .../days` runs, which is the strongest argument for the up
+   leg going through the existing typed routes and only media/inbox bytes
+   going through a file door. Decide this one explicitly — it is the biggest
+   design question left.
+3. **Generated output is out**: `postcards/`, `photobooks/`, `.ingest.json`,
+   `track.json` (derived server-side; down-only if it syncs at all).
+4. **Fresh sync.** Missing or corrupt local copy → `/<user>/export.zip`, then
+   write a fresh base manifest. Confirm the zip is byte-faithful enough to be
+   a valid base in its `all` scope, and settle the inbox gap from decision 5.
+5. **Base manifest on disk.** `.fernscout-sync.json` in the local root, the way
+   `.ingest.json` records what ingest imported. Gitignored, and never uploaded.
+6. **Which helper skills this thins.** Read all six in
+   `fernscout-helper/.claude/skills/` and say, per skill, whether sync subsumes
+   it, feeds it, or is unrelated.
 
-1. **What identifies a file's version.** A content hash of the bytes is the
-   obvious answer and the inbox already names files that way
-   (`lib/inbox.ts`); mtime alone is not trustworthy across a download. Decide
-   whether the manifest is hash-only, or hash + size + mtime.
-2. **Where the manifest comes from.** There is no endpoint that lists a
-   journal's files with hashes. Almost certainly a new
-   `GET /api/v1/<user>/sync/manifest` — owner only, the same
-   `mayActAsOwner` gate `export.zip` uses, never a trip-scoped token — plus a
-   per-file `GET` for the down leg and a per-file `PUT`/`DELETE` for the up
-   leg. Check first whether the existing per-resource routes
-   (`…/trips/<trip>/days/<slug>`, `…/trips/<trip>/media`) can carry it; a new
-   door is only worth it if they cannot.
-3. **What is in scope of a sync and what is deliberately not.**
-   - `gps/` is **out**, absolutely. It is in no export and reachable from no
-     route by design (AGENTS.md; `test/gps-store.test.ts` asserts the import
-     graph). A sync endpoint that served it would be the exact regression that
-     test exists to prevent. Say so in the code, not only here.
-   - `inbox/` — decide. It is real owner content and it is not in the export.
-   - `media/` derivatives: decide whether they sync or are re-derived locally.
-     Sending derivatives doubles the bytes; not sending them means a local copy
-     that does not render.
-   - Generated output (`postcards/`, `photobooks/`) is out.
-4. **Conflict.** Both sides changed the same day. The honest model is a stored
-   base manifest from the last sync (`.fernscout-sync.json` in the local root,
-   the way `.ingest.json` records what ingest imported) and a three-way
-   comparison: changed-on-one-side wins, changed-on-both stops and asks. **It
-   must stop and ask** — silently overwriting a day somebody wrote on the site
-   is the same class of harm as inventing one. Deletion is the sharp edge:
-   decide whether a file missing locally means "delete it on the site" (it
-   should not, by default) and whether `sync down` may delete local files.
-5. **Fresh sync.** Missing or corrupt local copy → fall back to
-   `/<user>/export.zip` and write a fresh base manifest. This mostly exists;
-   confirm the zip is byte-faithful enough to be a valid base (it filters
-   drafts only in the `open-to-link` scope, not `all`).
-6. **Which helper skills this replaces or thins.** Read all six in
-   `fernscout-helper/.claude/skills/` and say, per skill, whether sync
-   subsumes it, feeds it, or is unrelated. `publish` is the obvious one. Note
-   that B245 (trip fields with no update door) blocks a faithful up leg for
-   `title`, `start`, `end`, `tagline`, `accent`, `intro`, `translations` —
-   either B245 lands first or this ticket owns it.
+**Not in this ticket:** a daemon or watcher, file locking, multi-machine
+concurrency beyond the conflict stop, a public/guest scope (owner only), and
+GPS in any form.
 
-**Not in this ticket:** a daemon, a watcher, file locking, multi-machine
-concurrency beyond the conflict stop above, and any CLI in this repository
-(B671: the door is the API; the client lives in the helper).
-
-Split the build once the research lands: server-side manifest + file doors
-here, the `sync` skill in `fernscout-helper`. Contract work per
-`keep-the-contract` — every new route in `lib/api/openapi.ts` with a refusal
-documented.
+Split the build: manifest + file doors here, the `sync` skill in the helper.
+Contract work per `keep-the-contract` — every new route in `lib/api/openapi.ts`
+with at least one refusal documented.
 
 ## Acceptance
 
-- The research answers above are written into this file before any route is
-  added, and the `gps/` exclusion is a test, not a sentence.
-- Against a running instance, as the owner: sync down a journal into an empty
-  folder, change one day on the site, sync down again, and only that one day's
-  bytes move (prove it from the run's own printed plan, not by assertion).
-- Change one day locally, `sync up`, and the site shows it; nothing else is
-  re-sent.
-- Change the same day on both sides and the sync refuses, names the file, and
-  writes nothing.
-- A trip-scoped token is refused by every new route.
-- `npm run verify` green; `/openapi.json` documents each new route with at
-  least one refusal.
+- `gps/` is unreachable from the sync path by test, not by comment, and
+  deleting `gps/` still leaves every trip rendering identically.
+- Against a running instance, as the owner: sync down into an empty folder,
+  change one day on the site, sync down again, and only that day's bytes move —
+  proved from the run's own printed plan, not asserted.
+- Change one day locally, `sync up`, the site shows it, nothing else is re-sent.
+- Change the same day on both sides: the sync refuses, names the file, writes
+  nothing, exits non-zero.
+- Delete a day locally and `sync up`: the run names what it will delete on the
+  site and does nothing until confirmed; `--prefer-*` and `--yes` behave as
+  documented.
+- A photograph added to `inbox/` locally reaches the instance's inbox, and one
+  added through the API arrives on the next `sync down`.
+- A draft day on the instance is present in the local folder after a sync down.
+- A trip-scoped token is refused by every new route, with a test.
+- `npm run verify` green; `/openapi.json` documents each new route with a
+  refusal.

@@ -6,9 +6,6 @@ priority: medium
 complexity: medium
 area: notifications, trips
 found: "2026-09-07T08:56:14Z"
-started: "2026-09-11T17:27:02Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T17:27:02Z"
 superseded: B1219
 ---
 

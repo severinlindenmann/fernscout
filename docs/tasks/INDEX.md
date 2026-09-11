@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (196)
+## backlog (198)
 
 ### security (3)
 
@@ -59,7 +59,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (44)
+### issue (45)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -107,6 +107,7 @@ Do not edit them by hand; run the script.
 | [B1436](backlog/issue/B1436-deleting-the-wizard-s-tests-dropped.md) | deleting the wizard's tests dropped the only coverage for PhotoPicker's localized label and sr-only clip | ISSUE | low | low |
 | [B1445](backlog/issue/B1445-a-spent-trip-choice-card-stays.md) | A spent trip-choice card stays a pressable button that does nothing | ISSUE | low | low |
 | [B1475](backlog/issue/B1475-the-map-s-aria-label-derives.md) | The map's aria-label derives its own tense and never learns the trip is over | ISSUE | low | low |
+| [B1496](backlog/issue/B1496-a-trip-s-translations-can-be.md) | A trip's translations can be set once and never corrected | ISSUE | low | low |
 
 ### big-feature (12)
 
@@ -189,7 +190,7 @@ Do not edit them by hand; run the script.
 | [B1483](backlog/docs-and-skills/B1483-a-dispatched-agent-works-in-a.md) | A dispatched agent works in a worktree but its working directory is the shared checkout, so anything reading the current diff reads the wrong one | DOCS | medium | low |
 | [B1415](backlog/docs-and-skills/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low |
 
-### superseded (82)
+### superseded (83)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -242,6 +243,7 @@ Do not edit them by hand; run the script.
 | [B602](backlog/superseded/B602-a-reader-refused-at-the-trip.md) | A reader refused at the trip gate has no way to ask the owner to let them in | FEATURE | medium | medium |
 | [B654](backlog/superseded/B654-whether-restic-can-drive-rclone-s.md) | Whether restic can drive rclone's Proton Drive backend well enough to trust it | OPS | medium | medium |
 | [B655](backlog/superseded/B655-the-backup-has-one-destination-and.md) | The backup has one destination, and no second copy off Backblaze | CHORE | medium | medium |
+| [B673](backlog/superseded/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium |
 | [B728](backlog/superseded/B728-the-wizard-ignores-the-date-and.md) | The wizard ignores the date and trip the ask box sends it | ISSUE | medium | low |
 | [B861](backlog/superseded/B861-the-account-page-does-not-say.md) | The account page does not say what credits went on AI | FEATURE | medium | low |
 | [B880](backlog/superseded/B880-recordprint-is-exported-and-unreachable-so.md) | recordPrint is exported and unreachable, so knip fails verify on main | CHORE | medium | low |
@@ -303,7 +305,7 @@ Do not edit them by hand; run the script.
 | [B1119](open/B1119-fernscout-ch-s-caddy-block-is.md) | fernscout.ch's Caddy block is hand-merged, so proxy directives drift until applied by hand | OPS | low | low |
 | [B1150](open/B1150-ghostscript-is-not-installed-on-the.md) | Ghostscript is not installed on the VPS, so the instance cannot produce a conformant PDF/X-4 | OPS | low | low |
 
-## in-development (7)
+## in-development (6)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -311,7 +313,6 @@ Do not edit them by hand; run the script.
 | [B1272](in-development/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low | `13f12910` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
-| [B673](in-development/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium | `13f12910` |
 | [B675](in-development/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium | `13f12910` |
 | [B909](in-development/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high | `13f12910` |
 
