@@ -7,8 +7,7 @@ complexity: low
 area: skills
 found: "2026-09-09T17:13:56Z"
 started: "2026-09-11T12:40:04Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T12:40:04Z"
+merged: "2026-09-11T12:51:37Z"
 ---
 
 # B1115 — A brief can say a ticket is dropped or live, and B1058 is neither
