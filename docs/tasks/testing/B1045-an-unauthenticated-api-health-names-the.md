@@ -7,8 +7,7 @@ complexity: low
 area: ops,health,privacy
 found: "2026-09-09T06:15:56Z"
 started: "2026-09-11T15:47:55Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T15:47:55Z"
+merged: "2026-09-11T16:00:28Z"
 ---
 
 # B1045 — An unauthenticated /api/health names the host's systemd unit and its backup failures

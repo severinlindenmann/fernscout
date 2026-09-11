@@ -7,8 +7,7 @@ complexity: low
 area: ops, health
 found: "2026-09-10T09:15:00Z"
 started: "2026-09-11T15:47:55Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T15:47:55Z"
+merged: "2026-09-11T16:00:29Z"
 ---
 
 # B1248 — The health endpoint reports content ok without ever checking the content root is writable
