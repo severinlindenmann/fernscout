@@ -1284,29 +1284,13 @@ export default function HelperAsk({
           the end of it. */}
       <div className="sticky bottom-0 rounded-xl border border-navy-200 bg-white p-2 shadow-sm">
         {/**
-         * One row: the way into files, a field that grows, the microphone,
-         * and one filled send button — B1211 (D13/D14/D15). "Ask" as a
-         * word is gone; the arrow is the room's one bright pressable once
-         * a conversation has started.
+         * The field on its own row, full width, so it is legible to read
+         * from and to type into on a phone — B1252. Files, the microphone
+         * and send sit together on a row beneath it, grouped rather than
+         * split to either edge, so the field is never squeezed for
+         * corner space (B1211 D13/D14/D15 for what each control is).
          */}
-        {/* `flex-wrap` — B1378. Voice mode adds a language select to this
-            row (see `RecordButton`'s compact form); at 6rem and shrink-0
-            beside the paperclip, mic and send, it left the field — the one
-            item allowed to shrink — squeezed to a sliver. The select now
-            asks for a whole line to itself (`basis-full`) and wraps below
-            rather than fighting the field for space on the one it started
-            on. */}
-        <div className="flex flex-wrap items-end gap-1.5">
-          {onOpenFiles && (
-            <button
-              type="button"
-              onClick={onOpenFiles}
-              aria-label={t("agent.room.files")}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-navy-50 hover:text-navy-900 lg:hidden"
-            >
-              <Paperclip className="h-5 w-5" aria-hidden />
-            </button>
-          )}
+        <div className="flex flex-col gap-1.5">
           <textarea
             ref={box}
             id={`ask-${username}`}
@@ -1331,42 +1315,59 @@ export default function HelperAsk({
               }
             }}
             placeholder={t("agent.askPlaceholder")}
-            className="min-w-[8rem] max-h-[152px] min-h-11 flex-1 resize-none rounded-2xl bg-transparent px-3 py-2.5 text-base leading-6 text-navy-900 placeholder:text-navy-500 focus:outline-none"
+            className="max-h-[152px] min-h-11 w-full resize-none rounded-2xl bg-transparent px-3 py-2.5 text-base leading-6 text-navy-900 placeholder:text-navy-500 focus:outline-none"
           />
-          {speech && (
-            <RecordButton
-              username={username}
-              consented={consentedSpeech}
-              provider={speechProvider}
-              disabled={busy}
-              compact
-              // Static in the row rather than pinned to a corner — B1211
-              // (D15): the microphone is a full-size control beside send.
-              compactClassName="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-navy-300 bg-white"
-              onText={(spoken) => {
-                // Added to what is already there rather than replacing it —
-                // B893. A turn is often spoken in two goes, or typed and then
-                // finished out loud, and a transcript that overwrote the field
-                // threw the first half away without saying so.
-                setSaid((was) =>
-                  was.trim() === "" ? spoken : `${was.trim()} ${spoken}`,
-                );
-                setHeard(spoken);
-                box.current?.focus();
-              }}
-            />
-          )}
-          <BusyButton
-            busy={busy}
-            type="button"
-            disabled={said.trim() === ""}
-            onClick={() => go()}
-            aria-label={t("agent.askGo")}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-yellow-400 text-navy-900 transition-colors hover:bg-yellow-300 disabled:opacity-40"
-            busyLabel={null}
-          >
-            <ArrowUp className="h-5 w-5" aria-hidden />
-          </BusyButton>
+          {/* `flex-wrap` — B1378. Voice mode adds a language select to this
+              row (see `RecordButton`'s compact form); at 6rem and shrink-0
+              beside the paperclip, mic and send, it left them squeezed. The
+              select now asks for a whole line to itself (`basis-full`) and
+              wraps below rather than fighting them for space. */}
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            {onOpenFiles && (
+              <button
+                type="button"
+                onClick={onOpenFiles}
+                aria-label={t("agent.room.files")}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-navy-50 hover:text-navy-900 lg:hidden"
+              >
+                <Paperclip className="h-5 w-5" aria-hidden />
+              </button>
+            )}
+            {speech && (
+              <RecordButton
+                username={username}
+                consented={consentedSpeech}
+                provider={speechProvider}
+                disabled={busy}
+                compact
+                // Static in the row rather than pinned to a corner — B1211
+                // (D15): the microphone is a full-size control beside send.
+                compactClassName="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-navy-300 bg-white"
+                onText={(spoken) => {
+                  // Added to what is already there rather than replacing it —
+                  // B893. A turn is often spoken in two goes, or typed and then
+                  // finished out loud, and a transcript that overwrote the field
+                  // threw the first half away without saying so.
+                  setSaid((was) =>
+                    was.trim() === "" ? spoken : `${was.trim()} ${spoken}`,
+                  );
+                  setHeard(spoken);
+                  box.current?.focus();
+                }}
+              />
+            )}
+            <BusyButton
+              busy={busy}
+              type="button"
+              disabled={said.trim() === ""}
+              onClick={() => go()}
+              aria-label={t("agent.askGo")}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-yellow-400 text-navy-900 transition-colors hover:bg-yellow-300 disabled:opacity-40"
+              busyLabel={null}
+            >
+              <ArrowUp className="h-5 w-5" aria-hidden />
+            </BusyButton>
+          </div>
         </div>
 
         {/* Where the transcript landed, said once — B893. A transcription is
