@@ -148,6 +148,15 @@ export function contentModel(): ContentModelDocument {
       // The prose under the frontmatter; the API calls it `intro`.
       intro: { apiOnly: true, because: "the prose under the frontmatter; the API calls it intro" },
       listed: { type: "boolean", because: "false keeps a public trip out of the sitemap, the feed and the switcher — it only ever narrows" },
+      // B1389: absent from this document entirely until now, though the API
+      // accepts, validates, documents and parses it. A closed trip named on
+      // the trips page without being opened — a locked card with its title
+      // and dates and nothing else — refused on a public trip, where
+      // `listed` is the key that decides instead.
+      teaser: {
+        type: "boolean",
+        because: "a closed trip saying it exists; refused on a public trip, where `listed` is the gate",
+      },
       people: { type: "array" },
       travellers: { type: "array" },
       rates: { type: "object" },

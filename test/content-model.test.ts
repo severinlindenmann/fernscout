@@ -182,6 +182,25 @@ describe("known-key / never-in-file / never-over-api against /openapi.json", () 
     const missing = offered.filter((k) => !apiKeys.has(k));
     expect(missing, "offered here but not accepted by POST …/trips — would be dropped on publish").toEqual([]);
   });
+
+  // B1389: the direction above (docs→API) is the one this file had, and it
+  // could not have caught `teaser` — a key absent from *both* lists agrees
+  // with itself. The missing direction is API→docs: every key POST …/trips
+  // actually takes must be in trip.md's known keys, in apiOnlyKeys, or
+  // (B1389's own fix aside) this document is silently behind the route it
+  // claims to describe.
+  //
+  // PUT …/trips/{trip}/visibility is deliberately not fed into this check:
+  // it only amends `visibility`/`listed`/`teaser`/`status`/`costsVisibility`,
+  // keys POST …/trips already accepts, so today this crosscheck would find
+  // nothing there that the create route does not already cover.
+  test("trip.md: every key POST …/trips takes is known to this document", () => {
+    const created = body("/api/v1/{user}/trips", "post");
+    const apiKeys = Object.keys(created.properties ?? {});
+    const fileKeys = new Set(fileKnownKeys("trip.md"));
+    const undeclared = apiKeys.filter((k) => !fileKeys.has(k) && !apiOnlyKeys("trip.md").includes(k));
+    expect(undeclared, "keys POST …/trips takes that this document does not mention at all").toEqual([]);
+  });
 });
 
 describe("trip.md's id/start/end pattern agrees with lib/tripWrite.ts", () => {
