@@ -13,6 +13,14 @@ claimed: "2026-09-11T12:09:40Z"
 
 # B1452 — An owner cannot see the status of their photobook and postcard orders in one place
 
+## Revalidation
+
+Valid. Confirmed by reading `lib/postcard/orders.ts` and
+`lib/photobook/orders.ts`: `getOrder`/`getPhotobookOrder` each read one row by
+id, and neither module (nor anything under `app/[user]/account`) has a
+function that lists every `print_orders` row for an owner. No page under
+`app/[user]/` reads `print_orders` without an id already in hand.
+
 ## Why
 
 An owner who has proposed several photobooks and postcards has no page that
