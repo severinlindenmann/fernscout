@@ -7,8 +7,7 @@ complexity: low
 area: postcards, mobile
 found: "2026-09-10T10:52:43Z"
 started: "2026-09-11T15:12:39Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T15:12:39Z"
+merged: "2026-09-11T15:36:19Z"
 ---
 
 # B1286 — The postcard back is labelled at print size and renders its message at eight pixels on a phone

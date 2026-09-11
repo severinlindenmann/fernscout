@@ -7,8 +7,7 @@ complexity: medium
 area: orders
 found: "2026-09-11T14:18:13Z"
 started: "2026-09-11T15:31:22Z"
-session: 3f748903-2dc3-47a2-a958-98b83d641dc0
-claimed: "2026-09-11T15:31:22Z"
+merged: "2026-09-11T15:36:28Z"
 ---
 
 # B1469 — A photobook order has no picture of the book it is an order for
