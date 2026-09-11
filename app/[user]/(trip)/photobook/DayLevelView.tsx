@@ -47,6 +47,7 @@ export default function DayLevelView({
   resetFocal,
   options,
   setOptions,
+  spineDefault,
   media,
   locales,
   resetBook,
@@ -80,6 +81,9 @@ export default function DayLevelView({
   resetFocal: (src: string) => void;
   options: BookOptions;
   setOptions: (update: (o: BookOptions) => BookOptions) => void;
+  /** Passed through to the settings panel, which is the same panel level 1
+   * shows — see `BookSettingsPanel`. B1544. */
+  spineDefault: string;
   media: MediaTile[];
   locales: string[];
   resetBook: () => void;
@@ -116,6 +120,7 @@ export default function DayLevelView({
           <BookSettingsPanel
             options={options}
             setOptions={setOptions}
+            spineDefault={spineDefault}
             media={media}
             locales={locales}
             resetBook={resetBook}

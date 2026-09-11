@@ -49,11 +49,15 @@ Two changes, and the second is the real one — the first is only a good default
    override as an argument, or the two call sites consult the option before
    calling it — one of the two, not both.
 
-Watch the width: `spineTextSize()` (`lib/photobook/render.ts:1047`) returns
-`null` when the text will not fit and the spine prints bare. A free-text field
-makes a too-long string easy to type, so the order page has to show the same
-"this will not fit" answer the renderer would reach, rather than accepting it
-and printing nothing.
+Watch the width — **and this paragraph was wrong when it was written.**
+`spineTextSize()` (`lib/photobook/render.ts:1047`) does return `null` and print
+a bare spine, but it is measuring the spine's *thickness* against the type's
+size and never looks at the text at all: a thin enough book gets no title
+however short the title is. What a long title actually does is overrun the
+spine's *length* — `renderCover` centres the rotated line on the panel height
+without measuring it, so anything longer than the book is tall runs off both
+ends and is trimmed away. Same conclusion, different mechanism: the length
+has to be bounded.
 
 Not doing: the front cover or the title page, which print the trip title alone
 and are not wrong. This is the spine only.
@@ -72,3 +76,64 @@ Hungarian, and `npm run i18n:keys`.
   dropped at render time.
 - Seen on a real book of an existing trip, not a fixture — the spine is the one
   part of a photobook no test looks at.
+
+## What was found and done
+
+**Valid.** `spineTextFor()` was `` `${title} · ${start.slice(0, 4)}` `` with no
+condition, and its two callers — the planner and the order page — both went
+through it, which is why the page showed the duplicate too rather than
+catching it.
+
+Both halves built as described, with one correction to the Work section above
+(the width paragraph: the failure mode is an overrun along the spine's length,
+not the renderer dropping the title). What follows from that correction is the
+shape of the guard: a **length cap**, `MAX_SPINE_TEXT = 60`, enforced in
+`parseOptions` and again as `maxLength` on the field. The number is derived
+from the smallest book — 140 mm tall, 7 pt type, ~1.4 mm a character, so a
+hundred characters is where the shortest book is in trouble — and written down
+beside the constant rather than left as a round number somebody later "tidies".
+
+Three things worth knowing about the shape:
+
+- **`coverFor()` takes the override as an argument** rather than reading
+  `options`, because it takes no options today and threading the whole object
+  in to read one string is a wider door than the change needs.
+- **Blank never reaches an arrangement.** `parseOptions` drops an
+  all-whitespace value instead of storing it, so "clear the field" reads back
+  as "derive it" — the same shape `cover` uses for "the planner picks", and
+  the reason the field can be blanked to get the default back without the
+  owner having to remember what it was.
+- **The row is stacked, not inline.** Every other control in the panel puts
+  its value beside its label, and sixty characters beside a label in a 24rem
+  card is a slot showing nineteen of them — the first build did exactly that
+  and the screenshot showed "Down the Susten, tw". `Row` gained a `stacked`
+  variant for it.
+
+`DayLevelView` renders the same settings panel as `BookLevelView`, so the new
+prop is threaded through both — the compiler found that, not a reader.
+
+## Evidence
+
+- `test/photobook-options.test.ts` — a new "the spine" block, seven
+  assertions, all against a real `planBook`: the year appended when the title
+  lacks it, not appended when it has it, still appended when the title names a
+  different year, the owner's words beating both, blank meaning derive,
+  60 characters accepted and 61 refused, and an arrangement stored before the
+  field existed still parsing.
+- `npm run verify` — all 5 steps green, twice (once after the panel was
+  restacked).
+- Driven in a real browser against `example/alps-2024`, an existing trip
+  nobody wrote for this change, signed in as the owner. Before:
+  placeholder and sentence both "Four days round the Alps · 2024", `maxLength`
+  60. After typing: *"The spine is printed with “Down the Susten, twice”."*
+  Captures in the run's scratch directory — `b1544/before-1280.png`,
+  `after-1280.png`, `after-390.png`, `spine.json`. 200, no console errors, no
+  failed requests.
+- The 390 px pass carries the same JSON; the stacked row is full-width and the
+  page does not scroll sideways.
+
+Not covered by evidence, and deliberately: a printed PDF carrying a *custom*
+spine. `npm run photobook` plans with `DEFAULT_OPTIONS` and has no flag for
+one, and adding a CLI flag to prove a UI field is a wider change than the
+ticket. `cover.spineText` is asserted straight off `planBook`, which is the
+value `renderCover` draws.
