@@ -85,3 +85,20 @@ Expect this to produce a handful of follow-up captures. It is a fortnight.
   or narrowed to whatever is still true.
 - `npm run verify` passes (docs changes can still break `knip` and the link
   checks).
+
+
+## Decision, 2026-09-11 — do the pass B311 was blocking, and stop there
+
+B311 landed today, so the reason this was held is gone: `/agent.md` is now a 301
+to `/documentation.txt`, and the guide is nine `/skill/<task>.md` documents plus
+that index.
+
+**Scope for this session: the network-facing documents only.** Correct what an
+agent reads — the nine skill documents and `/documentation.txt` — so nothing in
+them names a route, a field or a file that no longer exists.
+
+Deliberately **not** in this session: the wider `docs/` sweep and `AGENTS.md`.
+Its own estimate was a fortnight of reading, and `AGENTS.md` changed four times
+today alone (B1046, B1141, B1297, and B311's own reference updates). A
+correctness pass over a file that is moving that fast is a pass that is stale
+before it merges.

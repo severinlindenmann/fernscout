@@ -104,3 +104,21 @@ in anybody's hands.
 
 Remaining work is the agree-per-row surface and nothing else. The twenty-entry
 case in the acceptance list is the one that decides whether it is usable.
+
+
+## Decision, 2026-09-11 — the agree surface is a card in the conversation
+
+Asked, and chosen over a page on `/contacts` and over asking name by name.
+
+The helper shows what it found as a proposal card — the names, and which of them
+carry a postal address — with a tick per row and one button. It reuses
+`ConfirmPanel`, matches the shape every other decision in the room already has,
+and does not take somebody out of the conversation they are in the middle of.
+
+The alternative that was rejected for a stated reason: asking one name at a time
+turns a twenty-entry vCard into twenty questions, and the twenty-entry case is
+the one this ticket's own acceptance says decides whether the flow is usable at
+all.
+
+Nothing about the route changes — it already writes only the rows it is given.
+This builds the thing that gives it rows.
