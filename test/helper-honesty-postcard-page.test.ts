@@ -53,7 +53,17 @@ const { create } = vi.hoisted(() => ({ create: vi.fn() }));
 vi.mock("@anthropic-ai/sdk", () => ({
   default: class {
     messages = {
-      create: async (params: Record<string, unknown>) => create(params),
+      // B1053 — the area-pick round ahead of `rounds()` is answered here,
+      // structurally, so it never consumes a scripted `mockResolvedValueOnce`
+      // meant for a real round. Which area does not matter to anything here.
+      create: async (params: Record<string, unknown>) => {
+        const format = (params.output_config as { format?: { schema?: { properties?: Record<string, unknown> } } })
+          ?.format;
+        if (format?.schema?.properties?.area) {
+          return { content: [{ type: "text", text: '{"area":"days"}' }], usage: { input_tokens: 40, output_tokens: 5 } };
+        }
+        return create(params);
+      },
     };
   },
 }));

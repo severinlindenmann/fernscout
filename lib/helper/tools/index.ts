@@ -13,7 +13,7 @@ import "server-only";
  * tool is written, not how one is used, and a caller reaching for
  * `resolveTrip` is a caller doing the registry's job somewhere else.
  */
-export { TOOLS } from "./registry";
+export { AREAS, TOOLS, type AreaKey } from "./registry";
 export { proposalFor, runTool, toolList, toolSchemas, writeTool } from "./run";
 /**
  * The types are **not** re-exported here — knip is right that nobody outside
