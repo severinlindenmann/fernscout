@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (154)
+## backlog (156)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (25)
+### issue (27)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -78,6 +78,7 @@ Do not edit them by hand; run the script.
 | [B1409](backlog/issue/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low |
 | [B1416](backlog/issue/B1416-the-files-rail-chip-downloads-uncapped.md) | The files-rail chip downloads uncapped photographs for a 42px avatar | ISSUE | medium | low |
 | [B1417](backlog/issue/B1417-inbox-file-thumbnails-download-uncapped-photographs.md) | Inbox file thumbnails download uncapped photographs for a 96px tile | ISSUE | medium | low |
+| [B1431](backlog/issue/B1431-a-model-turn-that-throws-says.md) | A model turn that throws says nothing, on every ordinary WhatsApp reply | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
@@ -87,6 +88,7 @@ Do not edit them by hand; run the script.
 | [B1266](backlog/issue/B1266-asking-for-the-last-day-only.md) | Asking for the last day only searches unfinished drafts | ISSUE | low | low |
 | [B1426](backlog/issue/B1426-the-preview-s-istest-banner-has.md) | The preview's isTest banner has the same missing-context gap DraftNotice had | ISSUE | low | low |
 | [B1427](backlog/issue/B1427-the-draft-banner-s-height-at.md) | The draft banner's height at 390px needs its own cleanup pass | ISSUE | low | low |
+| [B1430](backlog/issue/B1430-a-failed-transcription-says-nothing-on.md) | A failed transcription says nothing, on the WhatsApp voice-note path | ISSUE | low | low |
 
 ### big-feature (12)
 
@@ -320,16 +322,14 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (17)
+## in-development (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1077](in-development/B1077-meta-bans-general-purpose-ai-chatbots.md) | Meta bans general-purpose AI chatbots on WhatsApp, and nothing establishes which side of that line the helper is on | OPS | high | low | `13f12910` |
 | [B1280](in-development/B1280-the-helper-offers-to-add-a.md) | The helper offers to add a postcard recipient, then refuses and names a settings page that does not exist | ISSUE | high | low | `13f12910` |
 | [B1387](in-development/B1387-deleting-one-trip-offers-an-export.md) | Deleting one trip offers an export of the whole journal, and the zip carries machine state | ISSUE | high | medium | `13f12910` |
 | [B1393](in-development/B1393-a-postcard-can-only-be-made.md) | A postcard can only be made from a photograph already on a day, and the helper cannot add the recipient it just asked for | FEATURE | high | medium | `13f12910` |
 | [B1399](in-development/B1399-the-helper-tells-an-owner-who.md) | The helper tells an owner who has just saved their own contact to go and save a contact | ISSUE | high | medium | `13f12910` |
-| [B1404](in-development/B1404-a-matched-number-with-the-channel.md) | A matched number with the channel off gets silence instead of a fresh opt-in ask | ISSUE | high | medium | `13f12910` |
 | [B1239](in-development/B1239-the-retired-wizard-s-code-still.md) | The retired wizard's code still ships: AgentWizard, its queue and its suites await deletion | CHORE | medium | medium | `13f12910` |
 | [B1276](in-development/B1276-a-day-written-through-the-helper.md) | A day written through the helper gets the date as its slug, so its address is fernscout.ch slash day slash 2026-09-05 | ISSUE | medium | low | `13f12910` |
 | [B1288](in-development/B1288-nothing-on-the-live-instance-ever.md) | Nothing on the live instance ever fills in a day that asked for weather | OPS | medium | low | `13f12910` |
@@ -338,11 +338,9 @@ Do not edit them by hand; run the script.
 | [B1428](in-development/B1428-a-book-bought-before-the-one.md) | A book bought before the one-price change would be charged the whole price again to print it | ISSUE | medium | low | `96a5b964` |
 | [B1038](in-development/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low | `13f12910` |
 | [B1044](in-development/B1044-six-fonts-are-preloaded-on-every.md) | Six fonts are preloaded on every page and none of them is used in time | ISSUE | low | low | `13f12910` |
-| [B1180](in-development/B1180-the-subscribed-apps-post-is-a.md) | The subscribed_apps POST is a documented curl, not a one-shot script | CHORE | low | low | `13f12910` |
-| [B1271](in-development/B1271-a-failed-voice-note-download-also.md) | A failed voice-note download also says nothing | ISSUE | low | low | `13f12910` |
 | [B1396](in-development/B1396-the-whatsapp-checkbox-carries-a-second.md) | The WhatsApp checkbox carries a second sentence about Meta that the form does not need | DOCS | low | low | `13f12910` |
 
-## testing (210)
+## testing (214)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -355,6 +353,7 @@ Do not edit them by hand; run the script.
 | [B1065](testing/B1065-there-is-no-way-to-prove.md) | There is no way to prove that somebody holds the telephone number they typed | FEATURE | high | medium | — |
 | [B1075](testing/B1075-the-off-site-backup-has-never.md) | The off-site backup has never once succeeded, and the nightly run failed two days ago | OPS | high | low | — |
 | [B1076](testing/B1076-voice-recordings-are-sent-to-deepgram.md) | Voice recordings are sent to Deepgram without opting out of its model-training programme | SECURITY | high | low | — |
+| [B1077](testing/B1077-meta-bans-general-purpose-ai-chatbots.md) | Meta bans general-purpose AI chatbots on WhatsApp, and nothing establishes which side of that line the helper is on | OPS | high | low | — |
 | [B1091](testing/B1091-the-two-model-calls-that-cost.md) | The two model calls that cost real money are free, so the ledger cannot account for what the instance spends | FEATURE | high | medium | — |
 | [B1093](testing/B1093-a-person-cannot-choose-who-a.md) | A person cannot choose who a photobook is posted to | FEATURE | high | medium | — |
 | [B1098](testing/B1098-work-on-a-task-revalidates-a.md) | work-on-a-task revalidates a ticket in one sentence of prose, and asks for a visual check it leaves no evidence of | DOCS | high | low | — |
@@ -465,6 +464,7 @@ Do not edit them by hand; run the script.
 | [B1383](testing/B1383-microphone-stays-held-after-leaving-the.md) | Microphone stays held after leaving the page | ISSUE | high | medium | — |
 | [B1385](testing/B1385-the-conversation-storage-consent-block-is.md) | The conversation-storage consent block is shown to signed-out visitors | ISSUE | high | low | — |
 | [B1391](testing/B1391-the-helper-refuses-a-bare-yes.md) | The helper refuses a bare yes to its own delete question, and an inbox cannot be emptied at all | ISSUE | high | medium | — |
+| [B1404](testing/B1404-a-matched-number-with-the-channel.md) | A matched number with the channel off gets silence instead of a fresh opt-in ask | ISSUE | high | medium | — |
 | [B1406](testing/B1406-a-book-with-no-recipient-is.md) | A book with no recipient is refused with the message for a book with no photographs | ISSUE | high | low | — |
 | [B1408](testing/B1408-an-en-dash-in-a-day.md) | An en dash in a day's words comes out as a blank gap in the book | ISSUE | high | low | — |
 | [B1425](testing/B1425-a-photobook-is-sold-as-one.md) | A photobook is sold as one thing at one price, costed with VAT and a 50 percent margin | FEATURE | high | medium | — |
@@ -546,8 +546,10 @@ Do not edit them by hand; run the script.
 | [B1134](testing/B1134-accept-language-is-the-only-way.md) | Accept-Language is the only way to set the language of the two pre-journal mails and no agent-facing document says so | FEATURE | low | low | — |
 | [B1149](testing/B1149-the-pdf-x-report-tells-you.md) | The PDF/X report tells you to run gs-pdfx.sh, which is only written when the run already had an ICC | ISSUE | low | low | — |
 | [B1179](testing/B1179-a-reopened-conversation-reads-as-one.md) | A reopened conversation reads as one undifferentiated wall with no date | ISSUE | low | low | — |
+| [B1180](testing/B1180-the-subscribed-apps-post-is-a.md) | The subscribed_apps POST is a documented curl, not a one-shot script | CHORE | low | low | — |
 | [B1199](testing/B1199-the-day-context-offer-still-offers.md) | The day-context offer still offers taking a draft off the site | ISSUE | low | low | — |
 | [B1202](testing/B1202-one-reply-can-carry-the-same.md) | One reply can carry the same proposal card twice, verbatim | ISSUE | low | low | — |
+| [B1271](testing/B1271-a-failed-voice-note-download-also.md) | A failed voice-note download also says nothing | ISSUE | low | low | — |
 | [B1294](testing/B1294-the-photobook-route-answers-that-the.md) | The photobook route answers that the trip was taken down or renamed when the trip is still there | ISSUE | low | low | — |
 | [B1296](testing/B1296-the-room-names-trips-by-their.md) | The room names trips by their id and dates in ISO, in a conversation that otherwise speaks plainly | ISSUE | low | low | — |
 | [B1298](testing/B1298-the-day-chip-in-the-helper.md) | The day chip in the helper downloads three 2000px photographs to draw three 38px thumbnails | ISSUE | low | low | — |

@@ -7,8 +7,7 @@ complexity: low
 area: whatsapp, meta policy, compliance
 found: "2026-09-09T11:00:03Z"
 started: "2026-09-11T08:26:10Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T08:26:10Z"
+merged: "2026-09-11T09:00:32Z"
 ---
 
 # B1077 — Meta bans general-purpose AI chatbots on WhatsApp, and nothing establishes which side of that line the helper is on

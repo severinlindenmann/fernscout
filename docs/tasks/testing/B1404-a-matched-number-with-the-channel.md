@@ -7,8 +7,7 @@ complexity: medium
 area: whatsapp
 found: "2026-09-10T19:41:01Z"
 started: "2026-09-11T08:26:09Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T08:26:09Z"
+merged: "2026-09-11T09:00:30Z"
 ---
 
 # B1404 — A matched number with the channel off gets silence instead of a fresh opt-in ask
