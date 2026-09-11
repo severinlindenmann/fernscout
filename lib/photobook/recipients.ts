@@ -77,3 +77,14 @@ export async function bookAddressFor(owner: string, contactId: string): Promise<
   }
   return null;
 }
+
+/**
+ * A recipient as the photobook composer needs them: the agent-safe row, plus
+ * the address the owner is posting to — B1145, moved here from
+ * `components/PhotobookPrintPanel.tsx` when B1468 emptied that file.
+ *
+ * The address is added *here* rather than in `bookRecipients`, which stays a
+ * name and a town: that shape is what an agent proposing a book receives, and
+ * a street must not join it.
+ */
+export type PanelRecipient = BookRecipient & { address: PostalAddress };
