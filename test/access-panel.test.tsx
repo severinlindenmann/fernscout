@@ -609,7 +609,7 @@ describe("the account page is not advertised on /me — B876", () => {
  * and the owner both get the block.
  */
 describe("the sessions-consent block — B1385", () => {
-  const sessionsTitle = () => dictionaryFor("en")["me.sessionsTitle"];
+  const sessionsTitle = () => dictionaryFor("en")["me.dataTitle"];
 
   const buddy: Viewer = {
     email: "kevin@example.test",

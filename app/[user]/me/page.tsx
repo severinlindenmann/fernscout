@@ -122,20 +122,28 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
     : undefined;
 
   /**
-   * Every model-facing consent this journal has granted, and who each named —
-   * B723. Owner only, same as the withdraw route itself (`isHelperOwner`):
-   * this is a record of what was agreed to and who it went to, not something
-   * a guest reading the journal should learn.
+   * The four one-way, model-facing grants — B723. Owner only, same as the
+   * withdraw route itself (`isHelperOwner`): this is a record of what was
+   * agreed to and who it went to, not something a guest reading the journal
+   * should learn.
    *
-   * `sessions` is left out — it has its own control just below
-   * (`sessionsShared`), asked and worded differently since it starts on
-   * rather than off (B976).
+   * Always all four, granted or not — B1390. It used to be filtered down to
+   * `consent.scopes`, so an owner who had never opened the wizard had an
+   * empty list and, since the section only rendered on a non-empty list,
+   * nothing at all saying these permissions existed. Now every scope is a
+   * row and `granted` says which.
+   *
+   * `sessions` is left out — it has its own row inside the same section now
+   * (`sessionsShared`, passed separately), asked and worded differently
+   * since it starts on rather than off (B976).
    */
   const consent = viewer.owner ? helperConsent(user) : null;
-  const consentRows = consent
-    ? consent.scopes
-        .filter((scope): scope is "words" | "photos" | "speech" | "statement" => scope !== "sessions")
-        .map((scope) => ({ scope, provider: consent.providers[scope] ?? "" }))
+  const consentRows = viewer.owner
+    ? (["words", "photos", "speech", "statement"] as const).map((scope) => ({
+        scope,
+        granted: consent?.scopes.includes(scope) ?? false,
+        provider: consent?.providers[scope],
+      }))
     : [];
 
   /**

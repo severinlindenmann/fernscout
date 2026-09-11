@@ -16,7 +16,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AgentHandover from "@/components/AgentHandover";
 import AgentKeys from "@/components/AgentKeys";
-import SessionsConsent from "@/components/SessionsConsent";
 import HelperConsentList, { type ConsentRow } from "@/components/HelperConsentList";
 import BuddyHandover from "@/components/BuddyHandover";
 import ContactManage, { type ManageContact } from "@/components/ContactManage";
@@ -498,10 +497,15 @@ export default function MePageContent({
   /** Whether the operator may read this journal's conversations, or `null`
    *  where there is no helper on it to have any — B976. */
   sessionsShared?: boolean | null;
-  /** When this journal's model-facing consent was last written, and each
-   *  scope it currently covers — B723. Owner only; absent (and `consentRows`
-   *  empty) for everybody else and for an owner who has agreed to nothing. */
+  /** When this journal's model-facing consent was last written — B723.
+   *  Absent for everybody but the owner, and for an owner who has agreed to
+   *  nothing yet. */
   consentAgreedAt?: string;
+  /** The four one-way grants, always present and owner only — B1390. Never
+   *  filtered to what was granted: an ungranted scope is still a row, shown
+   *  as not granted, which is what tells an owner who has never opened the
+   *  wizard that the other four permissions exist at all. Empty for
+   *  everybody else. */
   consentRows?: ConsentRow[];
   /** The one postcard-shaped moment worth surfacing, if there is one right
    *  now — B436. Computed by the same function `journalStatus` reads its
@@ -1155,39 +1159,33 @@ export default function MePageContent({
         />
 
         {/*
-          Who may read the conversations — B976, and it belongs down here.
+          What this journal sends a model or the operator, and what to do
+          about it here — B976 and B723, merged into one section by B1390.
 
-          It sat in the owner block beside the agent card, on the grounds that
-          both are about what the helper does with what you tell it. That put
-          a settled default in the middle of the things somebody came to the
-          page to *do* — issue a key, see who can read, rename the journal —
-          and it is not one of those. It is a switch you touch once, or never.
+          Used to be two: "your conversations" and, underneath it, "what
+          you've let the helper send" — same chrome, same subject, and each
+          hid independently, so an owner who had never opened the wizard saw
+          the first alone with nothing saying the other four permissions
+          existed. One heading now, one component, which is why there is only
+          one gate to read here.
 
-          So: last but one, beside signing out. The two things at the foot of
-          this page are now the two that are about you rather than about your
-          journal, and neither is in the way of the other.
-        */}
-        {/*
           Owner or buddy only — B1385. `sessionsShared` used to be the whole
           gate, computed from the capability alone with no viewer check, so a
-          signed-out stranger reading a public journal was shown a block
+          signed-out stranger reading a public journal was shown this section
           about conversations they never had. `viewer.owner ||
           writableTrips.length > 0` is the same expression the guide link
           below already uses to tell a journal's own people apart from
-          everyone else.
+          everyone else. `consentRows` is always the four grants, owner only
+          (B1390) — a buddy still gets the section, with only the
+          `sessions` row in it.
         */}
         {sessionsShared !== null && (viewer.owner || writableTrips.length > 0) && (
-          <SessionsConsent username={username} shared={sessionsShared} />
-        )}
-
-        {/*
-          What else this journal has agreed to send a model, and a button to
-          take each back — B723, the plan's own version of the withdraw
-          button that B684 put inside the wizard instead. Absent with nothing
-          granted, same as the components either side of it.
-        */}
-        {consentAgreedAt && consentRows.length > 0 && (
-          <HelperConsentList username={username} agreedAt={consentAgreedAt} rows={consentRows} />
+          <HelperConsentList
+            username={username}
+            agreedAt={consentAgreedAt}
+            rows={consentRows}
+            sessionsShared={sessionsShared}
+          />
         )}
 
         {/*
