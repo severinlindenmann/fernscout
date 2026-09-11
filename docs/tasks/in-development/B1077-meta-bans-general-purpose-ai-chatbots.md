@@ -15,6 +15,17 @@ claimed: "2026-09-11T08:26:10Z"
 
 ## Why
 
+VALID, built as CHOSEN A per the plan-a-run brief
+(`.claude/runs/2026-09-10-agent-room/B1077/option-a.html`): record the
+argument, change no code. Meta's own AI Providers clause was re-fetched
+2026-09-11 from `whatsapp.com/legal/business-solution-terms` and matches
+this ticket's own corrected quote verbatim (the "primary (rather than
+incidental or ancillary) functionality … as determined by Meta in its sole
+discretion" language), with no opt-out clause found on that page — confirming
+the ticket's own 2026-09-09 same-day correction rather than the original
+four-criteria table. The document is at
+`docs/compliance/whatsapp-ai-policy.md`.
+
 **Meta prohibits general-purpose AI chatbots on the WhatsApp Business
 Platform.** In force for accounts registered on or after **15 October 2025**,
 and for every existing account from **15 January 2026**. Both dates are in the
@@ -78,6 +89,13 @@ Not a diff. A page, and two things that go into other tickets.
 A page exists that answers "is this permitted?" with Meta's own words and this
 instance's own facts, and the two consequences are recorded in B1057 and B1062
 rather than only here.
+
+Done: `docs/compliance/whatsapp-ai-policy.md`, cross-referenced from
+`docs/providers/whatsapp.md`'s intro and indexed in `docs/README.md`. It
+quotes Meta's own clause, re-fetched and dated, states no legal conclusion
+as fact, and leaves an explicit "Who accepted this" section with the
+operator's name left blank for a person to fill in and date — an agent
+cannot be the one who decided to carry the residual risk.
 
 ## Corrected — 2026-09-09, same day
 

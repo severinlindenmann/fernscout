@@ -11,6 +11,7 @@ import { createInvite, inviteLinkUrl } from "../contacts/invites";
 import { balanceOf, refund, spend } from "../credits";
 import { getUser } from "../users";
 import { AS_AUTHOR, getAllEntries } from "../entries";
+import { setJournalFeatures } from "../journals";
 import { currentHelperProvider, hasHelperConsent, recordHelperConsent } from "../helper/consent";
 import { HELPER_TURN_CREDITS, noCreditsAnswer } from "../helper/creditGate";
 import { NO_PROSE } from "../helper/draft";
@@ -37,6 +38,7 @@ import { announceHeldAnswer, takeHeldAnswer } from "./held";
 import { cloudCredentials, maskNumber } from "./index";
 import { flushMediaBatch, noteMedia } from "./mediaBatch";
 import { handleOnboarding, onboardingOffered } from "./onboarding";
+import { clearPendingChannelAsk, hasPendingChannelAsk, markPendingChannelAsk } from "./pendingChannelAsk";
 import { clearPendingProposal, holdProposal, peekPendingProposal, takePendingProposal } from "./pendingProposal";
 import { isWhatsappExecutable, pressProposal } from "./proposalExecution";
 import { BUTTON_TITLE_MAX, CONFIRM_NO_ID, CONFIRM_YES_ID, confirmButtonsFor, renderForWhatsapp, truncate } from "./render";
@@ -176,19 +178,38 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
   // capabilities exist separately for exactly this reason, and checking the
   // wrong one here would silently ignore a journal's own "no".
   if (!isEnabled("whatsappInbound", username)) {
-    console.log(`[whatsapp:inbound] ${maskNumber(message.from)} matches ${username}, which has not opted into the channel — no reply`);
     /**
-     * Said once, so the silence is not total — B1382. A number that matches a
-     * journal belongs to somebody standing in front of a chat that simply
-     * never answers, with no way to learn why. One sentence, once per number,
-     * naming the place that does answer; after that the channel is as quiet
-     * as the journal asked it to be.
+     * A fresh opt-in ask, in chat, rather than only a pointer elsewhere —
+     * B1404. `username` here can only ever be the journal's own owner:
+     * `journalForNumber()` two lines above resolves nothing but the tel
+     * registry, whose sole writer is the owner's own proven number (see
+     * `lib/registry.ts`). So there is no further identity check to make —
+     * anybody else's number never reaches this branch at all, and falls
+     * into the stranger path above instead.
      */
+    const optInLocale = getUser(username)?.defaultLocale ?? "en";
+
+    if (hasPendingChannelAsk(username, message.from)) {
+      // Resolved either way, the moment the next message answers it — a
+      // "yes" turns the channel on; anything else is read as "not now"
+      // rather than re-asked, the same discipline `speechConsent.ts` uses.
+      clearPendingChannelAsk(username, message.from);
+      if (message.kind === "text" && isAcknowledgement(message.body, optInLocale)) {
+        setJournalFeatures(username, { whatsappInbound: true });
+        await sendServiceReply(message.from, translateIn(optInLocale, "wa.channelOnConfirmed"), null);
+        console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) switched whatsappInbound on from chat`);
+      } else {
+        markTold(username, message.from, "channel-off");
+        console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) declined the channel opt-in ask`);
+      }
+      return;
+    }
+
     if (!hasBeenTold(username, message.from, "channel-off")) {
-      const locale = getUser(username)?.defaultLocale ?? "en";
       const agentUrl = `${serverSite().url.replace(/\/$/, "")}/agent`;
-      await sendServiceReply(message.from, translateIn(locale, "wa.channelOff", { agentUrl }), null);
-      markTold(username, message.from, "channel-off");
+      await sendServiceReply(message.from, translateIn(optInLocale, "wa.channelOffOptIn", { agentUrl }), null);
+      markPendingChannelAsk(username, message.from);
+      console.log(`[whatsapp:inbound] ${maskNumber(message.from)} matches ${username}, which has not opted into the channel — asked in chat`);
     }
     return;
   }
@@ -448,6 +469,10 @@ async function handleVoiceNote(
     audio = await downloadMedia(cloudCredentials(), message.mediaId);
   } catch (err) {
     console.error(`[whatsapp:inbound] could not download voice note for ${username}:`, err);
+    // B1271 — the same silent drop B1263 fixed for handleMedia: a sender
+    // whose voice note failed to download got nothing back and could not
+    // tell a real failure from "still typing…".
+    await sendServiceReply(message.from, translateIn(locale, "wa.mediaDownloadFailed"), username);
     return;
   }
 

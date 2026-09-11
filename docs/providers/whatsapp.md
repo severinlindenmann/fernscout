@@ -14,6 +14,12 @@ real phone produced no webhook call at all. No error, no delivery attempt,
 nothing in the log. This page exists so the next instance does not spend that
 hour again.
 
+**Whether this channel is even allowed to exist is a separate question,
+answered on its own page:** `docs/compliance/whatsapp-ai-policy.md` (B1077)
+— Meta prohibits general-purpose AI chatbots on this platform, and that
+page is the argument for why this helper is on the permitted side of that
+line. Read it before relying on this one operationally.
+
 ---
 
 ## The three subscriptions, in order
@@ -35,15 +41,21 @@ message reaches the webhook:
 ### The subscribed_apps POST
 
 ```
+npm run whatsapp:subscribe -- --waba <WABA_ID>
+```
+
+Run it once per WABA, after steps 1 and 2, with `WHATSAPP_ACCESS_TOKEN` set to
+a token scoped with `whatsapp_business_management` on that WABA. Prints
+`{"success": true}` on success (B1180 — `scripts/whatsapp-subscribe.mts`).
+There is no UI control for this step; the script (or the raw call it makes,
+below, if you would rather run it by hand) is the only way to do it.
+
+```
 POST https://graph.facebook.com/v25.0/<WABA_ID>/subscribed_apps
 Authorization: Bearer <token with whatsapp_business_management on the WABA>
 
 → {"success": true}
 ```
-
-Run it once per WABA, after steps 1 and 2. There is no UI control for it; a
-`curl` (or the token exchange in whatever admin tooling issued the access
-token) is the only way to do it today — see the follow-up ticket noted below.
 
 ---
 
@@ -118,12 +130,3 @@ testers; a non-test number's message is accepted by Meta and never delivered
 to the callback URL, which looks identical to the `subscribed_apps` failure
 above from this server's side. Check the app's mode before re-chasing the
 subscription checklist a second time.
-
----
-
-## Not built: a one-shot subscribe script
-
-The `subscribed_apps` POST above is a documented `curl`, not a script. See the
-follow-up ticket captured from this doc for turning it into
-`scripts/whatsapp:subscribe`, so the next instance runs one command instead of
-rediscovering the missing third subscription by hand.

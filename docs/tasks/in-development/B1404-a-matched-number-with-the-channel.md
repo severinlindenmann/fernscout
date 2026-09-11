@@ -15,6 +15,10 @@ claimed: "2026-09-11T08:26:09Z"
 
 ## Why
 
+VALID, confirmed 2026-09-11. Built as CHOSEN A per the plan-a-run brief and
+`.claude/runs/2026-09-10-agent-room/B1404/option-a.html`: "yes" flips
+`whatsappInbound` on for the journal, right on that reply.
+
 `lib/whatsapp/dispatch.ts` (the `!isEnabled("whatsappInbound", username)`
 branch, ~line 177): when an inbound message matches a journal whose
 `whatsappInbound` is off, the server drops it. Since B1382 it says one

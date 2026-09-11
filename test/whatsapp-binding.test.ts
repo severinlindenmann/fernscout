@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { isEnabled } from "@/lib/capabilities";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { createJournal, setJournalFeatures } from "@/lib/journals";
@@ -120,5 +121,73 @@ describe("binding an inbound number", () => {
 
     await handleInboundMessage(textMessage("41760002222", "wamid.optout-1"));
     expect(repliesTo("optout").length).toBe(0);
+  });
+});
+
+/**
+ * B1404 — a matched number with the channel off gets a fresh opt-in ask,
+ * asked in chat, rather than only silence and a link. `journalForNumber()`
+ * resolves nothing but the owner's own proven tel, so every number reaching
+ * this branch is provably the owner (see `lib/registry.ts`).
+ */
+describe("a channel opt-in ask from the owner's own number — B1404", () => {
+  async function bindWithChannelOff(username: string, tel: string): Promise<void> {
+    const created = createJournal({
+      username,
+      title: "A journal",
+      ownerEmail: `${username}@example.test`,
+      ownerName: "Owner",
+      ownerNickname: "Owner",
+      defaultLocale: "en",
+      ownerTel: tel,
+      ownerTelProvenAt: new Date().toISOString(),
+      ownerTelProvenMethod: "sms",
+    });
+    expect(created.ok).toBe(true);
+    // No setJournalFeatures call: whatsappInbound defaults to off.
+  }
+
+  test("asks in chat rather than only pointing at /agent", async () => {
+    await bindWithChannelOff("optina", "41760003001");
+
+    await handleInboundMessage(textMessage("41760003001", "wamid.optina-1"));
+
+    const files = repliesTo(null);
+    expect(files.length).toBe(1);
+    const body = JSON.parse(fs.readFileSync(path.join(dir, ".whatsapp", "whatsapp-replies", files[0]), "utf8"));
+    expect(body.body).toMatch(/yes/i);
+    expect(isEnabled("whatsappInbound", "optina")).toBe(false);
+  });
+
+  test("'yes' turns the channel on, and the next message is answered normally", async () => {
+    await bindWithChannelOff("optinb", "41760003002");
+    await handleInboundMessage(textMessage("41760003002", "wamid.optinb-1"));
+    expect(isEnabled("whatsappInbound", "optinb")).toBe(false);
+
+    await handleInboundMessage(textMessage("41760003002", "wamid.optinb-2", "yes"));
+
+    expect(isEnabled("whatsappInbound", "optinb")).toBe(true);
+    // The confirmation is the second reply on the neutral door — the journal
+    // has no `whatsapp-replies` dir of its own until the channel is on.
+    expect(repliesTo(null).length).toBe(2);
+
+    // The very next message runs the ordinary greeted sequence — B1404's own
+    // instruction not to special-case around it.
+    await handleInboundMessage(textMessage("41760003002", "wamid.optinb-3"));
+    expect(repliesTo("optinb").length).toBe(1);
+  });
+
+  test("'no' leaves it off, asked exactly once, and stays quiet after", async () => {
+    await bindWithChannelOff("optinc", "41760003003");
+    await handleInboundMessage(textMessage("41760003003", "wamid.optinc-1"));
+
+    await handleInboundMessage(textMessage("41760003003", "wamid.optinc-2", "no"));
+    expect(isEnabled("whatsappInbound", "optinc")).toBe(false);
+    expect(repliesTo(null).length).toBe(1); // no confirmation sent for "no"
+
+    // A third message gets no second ask — asked once per number.
+    await handleInboundMessage(textMessage("41760003003", "wamid.optinc-3"));
+    expect(repliesTo(null).length).toBe(1);
+    expect(isEnabled("whatsappInbound", "optinc")).toBe(false);
   });
 });
