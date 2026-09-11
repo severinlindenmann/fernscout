@@ -47,3 +47,28 @@ makes the inconsistency cost something.
 
 - At 390px, each hint on the create form is adjacent to the field it describes,
   on the same side for all four.
+
+
+## Decision, 2026-09-11 — do not move the address hint
+
+**The inconsistency is deliberate on the field that matters, and the fix this
+ticket proposes would undo a tested one.**
+
+`components/SignupWizard.tsx:689-694` says why in its own comment: *"B809 —
+above the field, not below it. A tester chose an address and only then read that
+it was going to be a web address, which is the one thing here that cannot be
+corrected afterwards."* B809 merged on 2026-09-07, three days before this ticket
+was captured, and moved that hint above **on purpose** after a 23-year-old
+tester typed a username before reading what it would become.
+
+So the rule is not "hints go below". It is: **a hint that must be read before
+typing sits above; one that need not sits below.** The address hint is the only
+field here nobody can correct afterwards.
+
+What is left of this ticket, and it is real: the address hint reads as though it
+belongs to the **title** field above it rather than the username field below.
+Fix that by grouping — tighten the gap to the field it describes, or add a rule
+or band tying the two together — not by relocating it.
+
+The currency hint is above with no comment and no such constraint; currency is
+freely correctable later, so it can move below to match name and nickname.
