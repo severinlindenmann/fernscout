@@ -668,9 +668,26 @@ const CLAIM = new RegExp(
     "\\b(?:saved|started|created|published|added|attached|recorded)\\s+(?:it|them|that|the day|the trip)\\b",
     "\\bit\\s+is\\s+on\\s+the\\s+site\\b",
     "\\bthey\\s+are\\s+on\\s+the\\s+day\\b",
+    /**
+     * **A postcard proposed and never written was reported as already "on
+     * your postcards page"** — B1323. The write matchers above all look for
+     * a verb of doing (saved, published, added); this is the other shape of
+     * the same lie — a noun claim, that the thing now *exists* somewhere a
+     * person could go and find it. A pending proposal really does put a
+     * button in front of somebody (`claimsAButton` already covers that,
+     * honestly), but "it is on your `<x>` page" is a stronger claim than a
+     * button being there: it says the artefact is already filed, which is
+     * false until a write actually happens.
+     */
+    // en — "is on your postcards page", "it's on the photobook page now"
+    "\\b(?:is|are|it's)\\s+(?:now\\s+|already\\s+)?on\\s+(?:your|the)\\s+\\S+\\s+page\\b",
     // de — "ist gespeichert", "habe ich hinzugefügt", "wurde veröffentlicht"
     "\\b(?:ist|sind|wurde|wurden|habe|hab|haben)\\s+(?:\\S+\\s+){0,3}?(?:gespeichert|angelegt|erstellt|begonnen|angefangen|ver\u00f6ffentlicht|hinzugef\u00fcgt|eingetragen|gesichert)\\b",
     "\\b(?:gespeichert|ver\u00f6ffentlicht|hinzugef\u00fcgt|angelegt|erstellt|eingetragen)\\.",
+    // de — "ist jetzt auf deiner Postkarten-Seite", "ist schon auf der Seite"
+    "\\b(?:ist|sind)\\s+(?:jetzt\\s+|schon\\s+|bereits\\s+)?auf\\s+(?:deiner|der)\\s+\\S*seite\\b",
+    // hu — "most már a képeslapok oldaladon van"
+    "\\boldalad(?:on|\u00e1n)\\s+van\\b",
     /**
      * **Taking a day down is a write too** — B944, and the matcher had no
      * word for it. `unpublish_day` arrived with B914 and this list was not
