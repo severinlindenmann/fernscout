@@ -29,8 +29,9 @@ export function useHasKeyboard(): boolean {
  * The book lives inside an iframe, so the keys cannot simply be left to the
  * browser: the document that scrolls is not the document with focus. The
  * frame is `srcDoc` and therefore same-origin, so the scroller is reachable
- * directly, and one spread is the step — the unit the book is actually read
- * in, and the one the CSS snap points already land on.
+ * directly, and one stop is the step — the unit the book is actually read in,
+ * and the one the CSS snap points already land on. Which is a spread on the
+ * strip and, since B1421, a single page in the reading view on a phone.
  *
  * `axis` is the whole difference between the two places the book is shown:
  * the composer's strip is swiped sideways, the reading view is scrolled down.
@@ -58,10 +59,16 @@ export function useSpreadKeys(
       if (!forward && !back) return;
       const doc = frame.current?.contentDocument;
       const strip = doc?.querySelector<HTMLElement>(".spreads");
-      const spread = doc?.querySelector<HTMLElement>(".spread");
-      if (!strip || !spread) return;
+      // The step is one stop, and on a phone a stop is one page (B1421) —
+      // where the spread is `display:contents` and has no box at all, so
+      // measuring it would step the book 24px. A page is exactly as tall as
+      // the spread holding it, so on the y axis this is the same number it
+      // was measuring before and nothing changes on a wide screen. The strip
+      // keeps the spread, which is what it snaps to.
+      const stop = doc?.querySelector<HTMLElement>(axis === "y" ? ".page" : ".spread");
+      if (!strip || !stop) return;
       e.preventDefault();
-      const box = spread.getBoundingClientRect();
+      const box = stop.getBoundingClientRect();
       const step = (forward ? 1 : -1) * ((axis === "x" ? box.width : box.height) + 24);
       strip.scrollBy({ [axis === "x" ? "left" : "top"]: step, behavior: "smooth" });
     }

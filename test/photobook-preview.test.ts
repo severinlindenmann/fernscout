@@ -191,6 +191,52 @@ describe("the bare preview", () => {
 });
 
 /**
+ * B1421 — a phone reads the book one page at a time, and can pinch it.
+ *
+ * What a test can honestly say about a layout is which selectors carry it, so
+ * that is what this checks: the rule is scoped to the reading view and to a
+ * phone, and every page has the layer a pinch moves. Whether the result is
+ * legible is a browser at 390px, and no assertion here stands in for that.
+ */
+describe("the phone-width reading view", () => {
+  const bare = renderPreview(planBook(SOURCE, defaultSpec()), "", (f) => f, undefined, {
+    bare: true,
+  });
+
+  test("splits the spread into single pages, and only when reading on a phone", () => {
+    const block = bare.slice(bare.indexOf("@media (max-width:640px)"));
+    expect(block).toContain('body.bare.read[data-view="spreads"] .spread');
+    expect(block).toContain("display:contents");
+
+    // Scoped to `.read`. The composer's strip and B534's day slice are the
+    // same document without that class, and a page on its own snap stop
+    // would put the dimmed "(other)" facing page of a slice on one of its
+    // own — which is the regression this scoping exists to refuse.
+    const phoneRules = block.slice(0, block.indexOf("</style>"));
+    for (const line of phoneRules.split("\n")) {
+      if (!line.includes("body.bare")) continue;
+      expect(line, line.trim()).toContain("body.bare.read");
+    }
+  });
+
+  test("gives every page a layer to pinch, and binds the gesture", () => {
+    const pages = (bare.match(/class="page /g) ?? []).length;
+    expect(pages).toBeGreaterThan(0);
+    expect((bare.match(/<div class="zoom">/g) ?? []).length).toBe(pages);
+    expect(bare).toContain("pointerdown");
+  });
+
+  test("does not drill into a day from the reading view", () => {
+    // The tap that swaps the level underneath the reader belongs to the
+    // strip. It used to be held off by pointer-events alone; a phone needs
+    // those taps back for the pinch, so the listener is bound only where
+    // there is no `read` class.
+    expect(bare).toContain('classList.contains("read")');
+    expect(bare).toMatch(/if \(!READING\) document\.querySelectorAll\("figure\[data-kind\]"\)/);
+  });
+});
+
+/**
  * B562 — the caption says where the page came from.
  *
  * A stub translator rather than the real dictionary: what is being checked is
