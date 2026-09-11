@@ -2368,5 +2368,8 @@
   "order.object.cover": "Cover",
   "order.object.front": "Front",
   "order.meta.proposed": "Proposed {date} · Reference {id}",
-  "order.meta.sent": "Sent {date} · Reference {id}"
+  "order.meta.sent": "Sent {date} · Reference {id}",
+  "postcard.page.waitingTitle": "{count} cards are waiting",
+  "postcard.page.waitingTitle.one": "One card is waiting",
+  "postcard.page.openCards": "Open the cards"
 }

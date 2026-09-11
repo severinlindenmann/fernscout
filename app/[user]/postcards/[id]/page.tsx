@@ -310,6 +310,41 @@ export default async function PostcardOrderPage({
           </div>
         ) : (
         <PostcardSteps
+          /* The card a proposal opens on — B1490. The picture is the front
+             under this order's own crop, the same three properties the
+             cropper sets, so the opening shows what would be printed rather
+             than the whole photograph. */
+          opening={{
+            eyebrow: t("postcard.title"),
+            title: t(
+              live.length === 1
+                ? "postcard.page.waitingTitle.one"
+                : "postcard.page.waitingTitle",
+              { count: String(live.length) },
+            ),
+            body: view.head.subtitle,
+            note: t("postcard.page.sendWarning"),
+            label: t("postcard.page.openCards"),
+            media: (
+              <div className="overflow-hidden rounded-xl border border-navy-200 bg-white">
+                <img
+                  src={photoSrc}
+                  alt={t("postcard.page.front")}
+                  style={{
+                    objectFit: "cover",
+                    aspectRatio: String(back.aspect),
+                    objectPosition: `${(order.payload.crop?.x ?? 0.5) * 100}% ${(order.payload.crop?.y ?? 0.5) * 100}%`,
+                    transform:
+                      (order.payload.crop?.zoom ?? 1) === 1
+                        ? undefined
+                        : `scale(${order.payload.crop?.zoom})`,
+                    transformOrigin: `${(order.payload.crop?.x ?? 0.5) * 100}% ${(order.payload.crop?.y ?? 0.5) * 100}%`,
+                  }}
+                  className="block w-full bg-navy-50"
+                />
+              </div>
+            ),
+          }}
           start={typeof result === "string" || confirming ? "send" : "look"}
           settled={settled}
           labels={{
