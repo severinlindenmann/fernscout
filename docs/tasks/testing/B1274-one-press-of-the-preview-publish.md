@@ -7,8 +7,7 @@ complexity: low
 area: helper, mobile
 found: "2026-09-10T10:23:02Z"
 started: "2026-09-11T04:33:19Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T04:33:19Z"
+merged: "2026-09-11T05:45:36Z"
 ---
 
 # B1274 — One press of the preview publish button fires three requests and stacks three identical publish cards
