@@ -214,6 +214,24 @@ content/
     postcards/ photobooks/    generated output (gitignored)
 ```
 
+**A photograph you upload is kept, untouched, as the print master — send the
+largest file you have, not the size the site displays.** `POST
+.../trips/<trip>/media` derives a resized copy the browser is served and
+keeps what you sent, whole, for a photobook to print from; a copy of the
+document sent to a print run does not get another chance at the pixels a
+smaller upload discarded (B1533). A full-page plate at 300 dpi on A4 wants
+roughly **2500×3500 px** — well past the 2000px the served copy is capped
+to — so aim for at least that when the source has it, and higher up to
+`/api/health`'s `media.imageMaxEdge` ceiling is better still, not merely
+tolerated. **There is no way to improve a photograph already on a day by
+re-sending a larger version of it**: the upload route's own duplicate check
+compares bytes, not names, so a bigger export of the same picture is not
+recognised as "the same photograph, better" and lands as a second, separate
+item rather than replacing the first. Swapping in a better file means
+deleting the original with `DELETE .../media` first — there is no in-place
+upgrade, which makes it cheaper to send the largest file from the start than
+to discover this after a trip is already published.
+
 **`gps/` is the most sensitive folder in this repository, and it is the one an
 agent must never read out.** It is a person's whole location history — every
 address they sleep at, every place they work, everywhere they have been ill —

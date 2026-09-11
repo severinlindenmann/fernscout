@@ -41,9 +41,19 @@ const CREAM = "#fffaf0";
 
 export type PrintableMode = Exclude<TransportMode, "walk">;
 
-/** Every vehicle is drawn inside this box, wheels on the bottom edge. */
+/** Every vehicle is drawn inside this box, wheels on the bottom edge.
+ *
+ * `metro` and `tram` reuse `train`'s box exactly (B1519) rather than getting
+ * their own geometry: the box is only the aspect ratio the shapes below are
+ * drawn to, and both `Vehicle` and the photobook scale it to whatever width
+ * the caller asks for — `components/TravelScene.tsx`'s `VEHICLE_WIDTH` is
+ * what actually makes a metro read as a shorter, urban hop rather than an
+ * intercity train, by asking for less of it. `ferry` reuses `boat`'s box the
+ * same way, per the ticket's own suggestion. */
 export const VEHICLE_BOX: Record<PrintableMode, { width: number; height: number }> = {
   train: { width: 190, height: 54 },
+  metro: { width: 190, height: 54 },
+  tram: { width: 190, height: 54 },
   flight: { width: 150, height: 52 },
   bus: { width: 132, height: 52 },
   car: { width: 104, height: 44 },
@@ -51,6 +61,7 @@ export const VEHICLE_BOX: Record<PrintableMode, { width: number; height: number 
   motorbike: { width: 88, height: 44 },
   bicycle: { width: 78, height: 44 },
   boat: { width: 136, height: 56 },
+  ferry: { width: 136, height: 56 },
 };
 
 /**
@@ -134,6 +145,8 @@ function nacelle(x: number, y: number, length: number, thickness: number, fill: 
 /** Where a wheel goes, per mode. Empty for the two that have none. */
 export function vehicleWheels(mode: PrintableMode): VehicleWheel[] {
   switch (mode) {
+    case "metro":
+    case "tram":
     case "train":
       // Every wheel the same size: 9, 9 and 6 against the carriages' 7 read as
       // a fault rather than as a driving wheel.
@@ -180,12 +193,15 @@ export function vehicleTitles(
   mode: PrintableMode,
 ): { x: number; y: number; size: number; fill: string }[] {
   switch (mode) {
+    case "metro":
+    case "tram":
     case "train":
       return [4, 64].map((x) => ({ x: x + 6, y: 37, size: 6.5, fill: "#dbeaf7" }));
     case "flight":
       return [{ x: 36, y: 31, size: 7.5, fill: "#8fa3bd" }];
     case "bus":
       return [{ x: 40, y: 32.5, size: 6.5, fill: "#8a6a1f" }];
+    case "ferry":
     case "boat":
       return [{ x: 26, y: 38, size: 7.5, fill: "#f6c9c4" }];
     default:
@@ -204,6 +220,11 @@ export function vehicleTitles(
  */
 export function vehicleBody(mode: PrintableMode): Shape[] {
   switch (mode) {
+    // `metro` and `tram` draw the same carriages as `train` — B1519 leans on
+    // `VEHICLE_WIDTH` in the scene to make one read as a short urban hop
+    // rather than an intercity trip, rather than drawing a second locomotive.
+    case "metro":
+    case "tram":
     case "train": {
       const carriage = (x: number): Shape[] => [
         { kind: "rect", x, y: 14, w: 56, h: 26, r: 4, fill: "#6ea8dc" },
@@ -330,6 +351,9 @@ export function vehicleBody(mode: PrintableMode): Shape[] {
         { kind: "rect", x: 36, y: 34, w: 5, h: 1.8, r: 0.9, fill: DARK },
       ];
 
+    // `ferry` reuses `boat`'s hull rather than earning its own — the
+    // ticket's own suggestion where there is no time for bespoke art.
+    case "ferry":
     case "boat":
       return [
         { kind: "rect", x: 44, y: 4, w: 3, h: 22, r: 1.5, fill: METAL },

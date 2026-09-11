@@ -27,6 +27,8 @@ export type Surface = "rail" | "road" | "water" | "sky" | "path";
 export function surfaceFor(mode: TransportMode): Surface {
   switch (mode) {
     case "train":
+    case "metro":
+    case "tram":
       return "rail";
     case "car":
     case "taxi":
@@ -35,6 +37,7 @@ export function surfaceFor(mode: TransportMode): Surface {
     case "bicycle":
       return "road";
     case "boat":
+    case "ferry":
       return "water";
     case "flight":
       return "sky";

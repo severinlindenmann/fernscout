@@ -12,6 +12,8 @@ import {
 import {
   Plane,
   TrainFront,
+  TrainFrontTunnel,
+  TramFront,
   Bus,
   Bike,
   Motorbike,
@@ -42,12 +44,17 @@ import Ground, { GROUND_HEIGHT, surfaceFor } from "./travel/Ground";
 const VEHICLE_ICON = {
   flight: Plane,
   train: TrainFront,
+  // The underground/elevated feel a metro needs and a `TrainFront` does not
+  // give it — B1519.
+  metro: TrainFrontTunnel,
+  tram: TramFront,
   bus: Bus,
   motorbike: Motorbike,
   bicycle: Bike,
   car: Car,
   taxi: CarTaxiFront,
   boat: Ship,
+  ferry: Ship,
   walk: Footprints,
 } as const;
 
@@ -97,10 +104,18 @@ const VEHICLE_WIDTH: Record<TransportMode, number> = {
   flight: 165,
   bus: 145,
   boat: 150,
+  // A ferry is drawn as a full-size boat — see `vehicleBody` in
+  // lib/travel/vehicleShapes.ts — so it gets the same width.
+  ferry: 150,
   car: 115,
   taxi: 115,
   motorbike: 95,
   bicycle: 84,
+  // Reuses `train`'s carriages (see lib/travel/vehicleShapes.ts) but at a
+  // fraction of the width, which is what actually reads as "a short, urban
+  // hop" rather than an intercity trip — B1519.
+  metro: 110,
+  tram: 100,
   walk: 0,
 };
 
@@ -140,8 +155,11 @@ const FALLBACK_DURATION = 6;
 const PACE: Record<TransportMode, number> = {
   walk: 1.7,
   boat: 1.6,
+  ferry: 1.6,
   train: 1.15,
   bus: 1.15,
+  metro: 1.15,
+  tram: 1.15,
   car: 1,
   taxi: 1,
   motorbike: 1,

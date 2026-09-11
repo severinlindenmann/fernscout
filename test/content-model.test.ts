@@ -525,29 +525,36 @@ describe("B620: test is never offered as a tip, cover and travellers carry their
     expect(suppressed.sort()).toEqual(["entries/YYYY-MM-DD-slug.md:test", "trip.md:test"].sort());
   });
 
-  // cover (trip.md) and travellers (config.json) are the two `fileOnly` keys
-  // with real tip prose in model.mjs and no `openapi.json` field description
-  // to borrow one from at run time — confirmed by checking every fileOnly
-  // key's `because`, not assumed to be only these two.
-  test("cover (trip.md) and travellers (config.json) carry tip prose on their never-over-api rule", () => {
+  // cover (trip.md) was the one `fileOnly` key left with real tip prose in
+  // model.mjs and no `openapi.json` field description to borrow one from at
+  // run time. config.json's `travellers` used to be its companion here —
+  // B1526 gave it an API door (`PATCH …/config`, `GET …/travellers`), so it
+  // is no longer `fileOnly` and no longer needs prose carried in this file:
+  // a caller now borrows its tip from openapi.json's own field description,
+  // the same as every other non-fileOnly key.
+  test("cover (trip.md) carries tip prose on its never-over-api rule", () => {
     const coverRule = doc.rules.find((r) => r.where === "trip.md" && r.path === "cover" && r.assert === "never-over-api");
-    const travellersRule = doc.rules.find((r) => r.where === "config.json" && r.path === "travellers" && r.assert === "never-over-api");
     expect(coverRule?.because?.length ?? 0).toBeGreaterThan(0);
-    expect(travellersRule?.because?.length ?? 0).toBeGreaterThan(0);
+  });
+
+  test("travellers (config.json) is no longer fileOnly, since B1526 gave it an API door", () => {
+    const travellersRule = doc.rules.find((r) => r.where === "config.json" && r.path === "travellers" && r.assert === "never-over-api");
+    expect(travellersRule).toBeUndefined();
   });
 
   test("every other fileOnly (never-over-api) key is unchanged from before B620", () => {
     // model.mjs's fileOnly keys with a `tip` (as opposed to only a `note`)
-    // are exactly config.json's travellers and trip.md's cover — every other
-    // fileOnly key had no *tip* to lose. entries' `status` already carried a
-    // `because` before this ticket (its always-shown "publishing is a
-    // separate call" prose, unaffected by B620); the rest carry none, same
-    // as model.mjs's own `note`-only or bare fileOnly keys.
+    // were config.json's travellers and trip.md's cover — B1526 removed
+    // travellers from that list by giving it an API door, so trip.md's cover
+    // is the only one left. entries' `status` already carried a `because`
+    // before this ticket (its always-shown "publishing is a separate call"
+    // prose, unaffected by B620); the rest carry none, same as model.mjs's
+    // own `note`-only or bare fileOnly keys.
     const withProse = doc.rules
       .filter((r) => r.assert === "never-over-api" && (r.because?.length ?? 0) > 0)
       .map((r) => `${r.where}:${r.path}`);
     expect(withProse.sort()).toEqual(
-      ["config.json:travellers", "trip.md:cover", "entries/YYYY-MM-DD-slug.md:status"].sort(),
+      ["trip.md:cover", "entries/YYYY-MM-DD-slug.md:status"].sort(),
     );
   });
 });

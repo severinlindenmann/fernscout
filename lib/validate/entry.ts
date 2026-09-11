@@ -18,9 +18,18 @@ import { PHOTO_VISIBILITIES, mediaKey } from "../photos";
 
 /** Mirrors `TransportMode` in lib/types.ts. TypeScript has no way to turn a
  * type union back into a runtime array, so this list is kept in sync by hand
- * — there are only nine, and a missing one shows up immediately as a
- * rejected, correct value. */
-export const TRANSPORT_MODES = ["flight", "train", "bus", "motorbike", "bicycle", "boat", "car", "taxi", "walk"] as const;
+ * — there are only twelve, and a missing one shows up immediately as a
+ * rejected, correct value.
+ *
+ * `metro`, `tram` and `ferry` joined in B1519, added together rather than one
+ * at a time: an owner asked for a metro ride through Bangkok, and `tram` and
+ * `ferry` (distinct from a general `boat`) were the same gap in the same
+ * granularity — the list already tells `bus` from `train` and `taxi` from
+ * `car` by how the day felt to travel, not by rail-vs-road. */
+export const TRANSPORT_MODES = [
+  "flight", "train", "bus", "motorbike", "bicycle", "boat", "car", "taxi", "walk",
+  "metro", "tram", "ferry",
+] as const;
 
 /** Mirrors `TravelSceneVariant` in lib/types.ts, the same split as
  * `TRANSPORT_MODES` above. Kept as the list an agent can discover — it is

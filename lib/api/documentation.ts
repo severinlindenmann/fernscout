@@ -1407,11 +1407,18 @@ Content-Type: application/json
 \`\`\`
 
 \`title\`, \`tagline\`, \`visibility\`, \`startLocation\`, \`units\`, \`locales\`,
-\`defaultLocale\`, \`displayCurrencies\`, \`manualRates\` and \`ownerTel\`. Send only
+\`defaultLocale\`, \`displayCurrencies\`, \`manualRates\`, \`ownerTel\` and
+\`travellers\`. Send only
 what you are changing; \`""\` clears a tagline, a start location or the number. Capabilities and these are
 **two calls** — a body naming both is refused rather than half-applied, because
 each call rewrites \`config.json\` whole and puts it back if it does not load.
 \`GET\` returns all of it under \`journal\`.
+
+\`travellers\` is the journal's own default party — how a trip draws its
+walking figures when it carries none of its own — validated the same way
+\`.../trips/{trip}/travellers\` is: \`GET /api/v1/${example}/travellers/presets\`
+for the vocabulary, and \`GET /api/v1/${example}/travellers\` to read the
+default back. Send \`[]\` to go back to having no default.
 
 \`locales\` and \`defaultLocale\` take the languages this instance maintains —
 ${LOCALE_LIST} — and nothing else, which is the same set creation refuses

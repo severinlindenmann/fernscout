@@ -12,6 +12,8 @@ import {
   ChevronRight,
   Plane,
   TrainFront,
+  TrainFrontTunnel,
+  TramFront,
   Bus,
   Bike,
   Motorbike,
@@ -634,12 +636,15 @@ function Ctrl({
 const VEHICLE_ICON = {
   flight: Plane,
   train: TrainFront,
+  metro: TrainFrontTunnel,
+  tram: TramFront,
   bus: Bus,
   motorbike: Motorbike,
   bicycle: Bike,
   car: Car,
   taxi: CarTaxiFront,
   boat: Ship,
+  ferry: Ship,
   walk: Footprints,
 } as const;
 
