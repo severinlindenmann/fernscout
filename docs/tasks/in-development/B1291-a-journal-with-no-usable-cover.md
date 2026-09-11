@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: landing
 found: "2026-09-10T10:59:24Z"
+started: "2026-09-11T15:12:41Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T15:12:41Z"
 ---
 
 # B1291 — A journal with no usable cover renders half a card of flat colour on the landing page
