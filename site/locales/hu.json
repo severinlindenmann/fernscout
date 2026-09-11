@@ -1737,6 +1737,8 @@
   "agent.room.noFiles": "Semmi sem vár, és ezen az úton még nincs fénykép.",
   "agent.room.photos": "Fényképek",
   "agent.room.documents": "Dokumentumok",
+  "agent.room.addFiles": "Fényképek vagy fájlok hozzáadása",
+  "agent.room.pickAnyFile": "Amit kiválasztasz, fent vár a „Fényképek” vagy a „Dokumentumok” alatt — fényképek, videók, bankszámlakivonat, helyadat-export (csv, gpx, json, pdf). Aztán mondd meg, mit kezdjek velük.",
   "agent.room.fileMeta": "{size} · {date}",
   "agent.room.selected": "{count} kiválasztva",
   "agent.room.selected.one": "1 kiválasztva",

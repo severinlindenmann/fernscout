@@ -33,7 +33,7 @@ function render(files: InboxFile[]) {
   act(() => {
     root!.render(
       <LocaleProvider locale="en" dictionary={dictionary}>
-        <InboxFileGroups files={files} selected={[]} onToggle={() => {}} />
+        <InboxFileGroups files={files} selected={[]} onToggle={() => {}} onRemove={() => {}} />
       </LocaleProvider>,
     );
   });
