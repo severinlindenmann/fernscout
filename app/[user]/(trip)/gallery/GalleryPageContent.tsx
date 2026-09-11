@@ -49,7 +49,11 @@ export default function GalleryPageContent({
           <p className="text-sm text-navy-600">
             {media.length} {t("gallery.subtitle")}
           </p>
-          <div className="flex flex-wrap items-center gap-2">
+          {/* One row at every width — B1502. `shrink-0` on two buttons whose
+              German labels are 150px each meant they could not share 390px
+              and wrapped one per line, so the header was three rows deep
+              before the filter chips. They shrink and tighten instead. */}
+          <div className="flex min-w-0 items-center gap-2">
             {/* A link, not a picker: a book is the whole trip, so there is
                 nothing to select in the gallery first — unlike the postcard
                 button beside it, which does pick a photograph. Always the
@@ -59,9 +63,9 @@ export default function GalleryPageContent({
             {photobook && media.length > 0 && (
               <a
                 href={`/${photobook.username}/trips/${photobook.trip}/photobook`}
-                className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-navy-200 bg-white px-4 text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500"
+                className="flex min-h-11 min-w-0 items-center gap-1.5 truncate rounded-full border border-navy-200 bg-white px-3 text-xs font-semibold text-navy-700 transition-colors hover:border-navy-500 sm:px-4 sm:text-sm"
               >
-                <BookOpen className="h-4 w-4" />
+                <BookOpen className="h-4 w-4 shrink-0" />
                 {t("photobook.start")}
               </a>
             )}
@@ -73,13 +77,13 @@ export default function GalleryPageContent({
               <button
                 onClick={() => setPicking((was) => !was)}
                 aria-pressed={picking}
-                className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition-colors ${
+                className={`flex min-h-11 min-w-0 items-center gap-1.5 truncate rounded-full border px-3 text-xs font-semibold transition-colors sm:px-4 sm:text-sm ${
                   picking
                     ? "border-yellow-600 bg-yellow-400 text-yellow-950"
                     : "border-navy-200 bg-white text-navy-700 hover:border-navy-500"
                 }`}
               >
-                <Send className="h-4 w-4" />
+                <Send className="h-4 w-4 shrink-0" />
                 {picking ? t("postcard.cancel") : t("postcard.start")}
               </button>
             )}

@@ -167,8 +167,13 @@ export default function PostcardSteps({
       {stepped ? (
         <nav
           aria-label={`${labels.look} · ${labels.write} · ${labels.send}`}
-          className="mb-6 flex flex-wrap items-center gap-2"
+          /* Three pills across 390 and the count under them — B1502. With
+             `px-4` and the count beside them the row wrapped after the
+             second, which reads as two groups rather than one bar. The
+             margin above is so the intro is not touching it. */
+          className="mb-6 mt-5 flex flex-col gap-2"
         >
+          <span className="flex items-center gap-1.5">
           {ORDER.map((name, i) => {
             const active = name === step;
             return (
@@ -181,7 +186,7 @@ export default function PostcardSteps({
                    own bar. Navy-on-white filled the whole pill with the
                    colour this palette keeps for type, and read as a button
                    that had just been pressed rather than as where you are. */
-                className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-xs font-bold uppercase tracking-wider transition-colors ${
+                className={`inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full border px-2 text-xs font-bold uppercase tracking-wider transition-colors sm:flex-none sm:px-4 ${
                   active
                     ? "border-yellow-600 bg-yellow-400 text-yellow-950"
                     : "border-navy-200 bg-white text-navy-500 hover:border-navy-400"
@@ -200,7 +205,8 @@ export default function PostcardSteps({
               </button>
             );
           })}
-          <span className="ml-auto font-mono text-xs text-navy-500">
+          </span>
+          <span className="font-mono text-xs text-navy-500">
             {index + 1} {labels.of} 3
           </span>
         </nav>
