@@ -5,7 +5,7 @@ import PhotobookPrintPanel from "@/components/PhotobookPrintPanel";
 import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
 import { balanceOf, creditsEnabled } from "@/lib/credits";
-import { photobookPrintCredits } from "@/lib/credits/pricing";
+import { photobookPriceCredits } from "@/lib/credits/pricing";
 import { formatCredits } from "@/lib/credits/format";
 import { isoCountry } from "@/lib/photobook/country";
 import { fetchOrderStatus, quoteBook } from "@/lib/photobook/gelato";
@@ -185,7 +185,7 @@ export default async function PhotobookOrderPage({
       if ("error" in quote) {
         statusText = t("photobook.print.providerUnavailable");
       } else {
-        const quotedCredits = photobookPrintCredits(quote.printMinor, quote.shipMinor);
+        const quotedCredits = photobookPriceCredits(quote.printMinor, quote.shipMinor);
         panel = (
           <PhotobookPrintPanel
             username={username}

@@ -103,7 +103,7 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
   const parsed = parseTripRef(trip);
   // What `preview/route.ts` last quoted this page, in credits — B595. Not
   // trusted as the price to charge; only as the number to check a fresh
-  // `priceOf` against below, so a caller cannot lower their own price by
+  // quote against below, so a caller cannot lower their own price by
   // sending a smaller one. A missing or non-numeric value fails that check
   // exactly like a mismatch: there is no previewed price to have agreed with.
   const previewedCreditsRaw = form.get("previewedCredits");
@@ -160,7 +160,7 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
    * seen it is exactly what B595 is about.
    *
    * So the previewed price travels with the form (`previewedCredits`,
-   * `BookLevelView.tsx`) and is compared against a fresh `priceOf` on *this*
+   * `BookLevelView.tsx`) and is compared against a fresh quote on *this*
    * plan before anything is claimed or spent. Three ways this can fail, and
    * all three answer the same `stale_preview` rather than a guess: the field
    * is missing (an old tab, or a form built by hand), the trip changed and
@@ -179,6 +179,10 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
    * one and a stale quote is somebody else paying it.
    *
    * A refusal here costs nothing — nothing is claimed, built or spent yet.
+   *
+   * `quote.totalCredits` is the whole price — B1425. There is no build/print
+   * split left to name a "print portion" from, so the same single number is
+   * what is charged and what is frozen onto the order below.
    */
   const contactId = String(form.get("contactId") ?? "").trim();
   if (!contactId) return back_("no_recipient");
@@ -229,7 +233,7 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
     // afterwards.
     print: {
       contactId,
-      quotedCredits: quote.printCredits,
+      quotedCredits: quote.totalCredits,
       quotedAt: nowIso(),
       shipmentMethodUid: quote.shipmentMethodUid,
       quotedMinor: quote.quotedMinor,

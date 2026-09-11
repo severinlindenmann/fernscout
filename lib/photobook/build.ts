@@ -4,7 +4,6 @@ import path from "node:path";
 import { contentRoot } from "../contentRoot";
 import { isEnabled } from "../capabilities";
 import { listContacts } from "../contacts";
-import { photobookCredits } from "../credits/pricing";
 import { planBook, type Photobook } from "./plan";
 import { buildBookSource, resolvePrintFile } from "./source";
 import { BOOK_SIZES, defaultSpec, productUidFor, type BookSpec } from "./spec";
@@ -71,18 +70,6 @@ export async function followerNames(owner: string): Promise<string[]> {
     console.error(`[photobook] could not read contacts for ${owner}:`, error);
     return [];
   }
-}
-
-/**
- * Per volume, because each volume is a separate book that has to be laid out.
- *
- * It no longer takes the options: building is a flat charge whatever the size
- * or the cover, since the print step charges the paper from a live quote. The
- * argument stayed behind for a while after the number stopped depending on
- * it, which is how a signature starts lying about what a function reads.
- */
-export function priceOf(book: Photobook): number {
-  return book.volumes.reduce((sum) => sum + photobookCredits(), 0);
 }
 
 export function orderDir(owner: string, orderId: string): string {

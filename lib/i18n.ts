@@ -1835,7 +1835,6 @@ export type TranslationKey =
   | "photobook.pay"
   | "photobook.payTotal"
   | "photobook.price"
-  | "photobook.pricePrintOnly"
   | "photobook.print.balance"
   | "photobook.print.button"
   | "photobook.print.chooseLabel"

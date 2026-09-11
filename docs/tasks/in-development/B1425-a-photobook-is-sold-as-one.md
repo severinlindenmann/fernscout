@@ -102,3 +102,14 @@ if ESTV says otherwise the constant is one line.
   landed cost, within a rappen, and a test says so.
 - `grep -rn "buildCredits\|priceOf\|PHOTOBOOK_BASE_CREDITS" lib app` is empty.
 - `npm run verify` clean.
+
+## Follow-up needed
+
+`pricing.rowPhotobookPrintDetail` in `site/locales/hu.json` was set to the
+English string rather than translated, because this session cannot write
+Hungarian — the same rule as inventing a day, one level down. A native
+Hungarian speaker should translate:
+
+> "Your whole trip as a book, printed near the recipient and posted to
+> whoever you choose. The price depends on the size, the page count and
+> where it goes, and you see it before you order."

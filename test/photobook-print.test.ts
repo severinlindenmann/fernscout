@@ -40,7 +40,7 @@ import { printOrder } from "@/lib/photobook/print";
 const OWNER = "ana";
 const POOR_OWNER = "poor";
 const ID = "book-one-12345";
-const QUOTED = 125; // photobookPrintCredits(1440, 220) = ceil(1660 * 1.5 / 20)
+const QUOTED = 172; // photobookPriceCredits(1440, 220), VAT-inclusive landed cost x2
 const START = 500;
 
 const ADDRESS = {

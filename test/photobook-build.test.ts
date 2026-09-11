@@ -1,10 +1,8 @@
 import { afterEach, describe, expect, it, test } from "vitest";
 import { DEFAULT_OPTIONS } from "@/lib/photobook/options";
-import { specFor, priceOf } from "@/lib/photobook/build";
-import { planBook } from "@/lib/photobook/plan";
+import { specFor } from "@/lib/photobook/build";
 import { BOOK_SIZES, GELATO_PAGE_RULE } from "@/lib/photobook/spec";
 import { pdfxReadiness } from "@/lib/photobook/pdfx";
-import { photobookCredits } from "@/lib/credits/pricing";
 
 // planFor and buildPhotobook read the filesystem; they are exercised by the
 // fixture-backed test in Task 11's manual pass and by photobook-source's
@@ -19,17 +17,6 @@ describe("spec from options", () => {
   it("always uses the one page rule, whatever a stored option says", () => {
     expect(specFor({ ...DEFAULT_OPTIONS, binding: "saddle" } as never).pageCount).toEqual(GELATO_PAGE_RULE);
     expect(specFor({ ...DEFAULT_OPTIONS, size: "large-square" }).pageCount).toEqual(GELATO_PAGE_RULE);
-  });
-});
-
-describe("price of a planned book", () => {
-  test("a multi-volume book is priced per volume", () => {
-    const book = {
-      volumes: [{ interiorPages: 40 }, { interiorPages: 60 }],
-    } as unknown as ReturnType<typeof planBook>;
-    expect(priceOf(book)).toBe(
-      photobookCredits() + photobookCredits(),
-    );
   });
 });
 

@@ -116,95 +116,126 @@ export function isBuyableAmount(credits: unknown): credits is number {
 export const POSTCARD_CREDITS = 20;
 
 /**
- * What one printed photobook costs the owner — measured now, B841.
+ * What one printed photobook costs the owner, and the whole of what it is
+ * sold for — B1425.
+ *
+ * **One product, one price.** The owner's own words: *"we don't charge for
+ * build or print, we charge the customer for the full photobook, we just
+ * want a solid margin."* There is no build charge and no print charge,
+ * on screen or in this file — `photobookPriceCredits` below is the only
+ * number, computed from the live Gelato quote alone.
+ *
+ * **VAT is a cost, not a line item.** Gelato quotes ex-VAT, and this instance
+ * is far below the CHF 100,000 Swiss registration threshold, so it neither
+ * charges VAT to a customer nor reclaims it from one — the tax is money that
+ * leaves with the printer's invoice and never comes back, exactly like the
+ * paper and the postage it is charged on. `PHOTOBOOK_PRINT_VAT_RATE` (2.6%,
+ * printed matter) and `PHOTOBOOK_SHIPPING_VAT_RATE` (8.1%, the standard rate
+ * carriage is taxed at) fold it into the landed cost before the margin, so
+ * the margin is a margin on what this actually costs rather than on a number
+ * that understates it.
+ *
+ * **The margin is 2.0x, targeting 50% gross at list.** It used to be 1.5x on
+ * the print alone while a separate flat charge carried the render — the two
+ * never met, VAT was in neither, and the measured gross was 43.9%, falling
+ * to 29.9% for a buyer on the full credit discount. Priced as one object at
+ * 2.0x its VAT-inclusive landed cost, the 46-page book a person actually had
+ * on screen is 231 credits — CHF 46.20 — against OptimalPrint's CHF 46.90
+ * and ifolor's ~CHF 54.70 delivered — at market rather than under it.
+ *
+ * **The volume discount erodes this, deliberately.** `priceRappen` above
+ * takes up to 20% off the credits somebody buys, and that discount is applied
+ * to what this function charges exactly like it is applied to everything
+ * else bought with credits — nothing here defends the margin against it. A
+ * buyer on the full discount lands near 37.8% gross, which is the owner's own
+ * call, read as a volume rebate rather than an oversight: **do not add a
+ * second pricing rule to protect the margin from the discount.**
  *
  * **The basis, a live Gelato quote to Zurich, CHF, ex-VAT, 2026-09-07:**
  * softcover 200×200 square fits `6.04 + 0.161 × pages` almost exactly (32
- * pages 11.18, 52 pages 14.40, 100 pages 22.12, 160 pages 31.78), printed in
- * Switzerland, plus Swiss Post Economy shipping at 8.52. A 52-page square
- * book lands at CHF 22.92. Two things this basis does **not** cover: VAT, and
- * delivery outside Switzerland, which is a different quote every time and
- * therefore cannot be folded into one constant here.
- *
- * **The base was 90 until B840, then 160 against an estimate.** The estimate
- * came from Gelato's published "from $11.85" figure at a size Gelato does not
- * print (210×210) and a landed cost guessed at roughly CHF 25 — arithmetic on
- * a number that was never a quote. The measured landed cost turned out lower,
- * CHF 22.92, but the base stays 160 here anyway: a second plan (not this one)
- * splits the build charge from the print charge, and moving this number twice
- * — once to match a better guess, again when that split lands — is a price
- * that moved for no reason a reader can see. At 160 credits and 2 a page, a
- * 52-page book is priced (after the volume discount `priceRappen` already
- * applies at that many credits) at roughly twice landed cost, the same
- * multiple the postcard carries, and one reprint of a spoiled book still does
- * not wipe out the margin on three sales.
+ * pages 11.18, 52 pages 14.40, 100 pages 22.12, 160 pages 31.78), printed
+ * near the recipient, plus Swiss Post Economy shipping at 8.52. That
+ * `0.161`-a-page rate is the 200×200 softcover curve specifically, not the
+ * catalogue's — Pocket 140×140 softcover measures CHF 0.106 a page over the
+ * same range, so the formula does not transfer to another size. Postage
+ * itself is flatter than the print price: CHF 8.52 to Switzerland whatever
+ * the page count, softcover, and CHF 9.35 for hardcover — it varies by cover
+ * type, not by how thick the book is. Re-checked live on 2026-09-11 against
+ * a 28-page 200×200 softcover: the print formula predicts CHF 10.55, the
+ * quote came back CHF 10.53 — two rappen out, and close enough to trust.
  *
  * `PHOTOBOOK_PRICING_VERIFIED` is how "measured, not guessed" is said in the
  * data rather than only in a comment. `test/photobook-pricing.test.ts` checks
- * both that it is `true` and that the charge for a 52-page square book sits
- * between the measured landed cost and twice it.
+ * both that it is `true` and that the charge for the 52-page book above is
+ * twice its VAT-inclusive landed cost, within a rappen.
  */
-export const PHOTOBOOK_BASE_CREDITS = 40;
 export const PHOTOBOOK_PRICING_VERIFIED = true;
 
-/**
- * What building the PDF costs, and why it no longer depends on the book.
- *
- * It used to be `160 + 2 per page`, times a factor for the larger sheet, and
- * every part of that was pricing *paper* — because until Gelato was connected
- * there was no second step to charge for, so the one charge had to cover a
- * printed object nobody could actually order.
- *
- * Now printing has its own live quote (`photobookPrintCredits` below), and
- * leaving the paper in this number would charge for it twice. What is left is
- * the render: laying the trip out, choosing the pages, making the covers.
- * That is the same work for a 28-page book as for a 200-page one and the same
- * work for every size, so it is one flat number.
- *
- * **A component of one price, not a product** — B1157, restated by B1331.
- * There is no PDF-only purchase: `quoteBookFor` (`lib/photobook/quote.ts`)
- * adds this to the print quote and the order page charges the total in one
- * press, with the files arriving alongside the book. The public pricing
- * table quotes that combined figure and nothing separate for this half
- * (B1332).
- *
- * `SIZE_FACTOR` went with it. It scaled this charge by measured *print* price
- * ratios, which belong to the print step and are now read from the quote.
- */
-export function photobookCredits(): number {
-  return PHOTOBOOK_BASE_CREDITS;
-}
+/** Swiss VAT on printed matter — a book is taxed at the reduced rate.
+ *  Charged by the printer, never reclaimed (this instance is below the
+ *  CHF 100,000 registration threshold), so it is a cost folded into what
+ *  printing lands at rather than a rate this journal charges anybody. */
+export const PHOTOBOOK_PRINT_VAT_RATE = 0.026;
+
+/** Swiss VAT at the standard rate, which is what carriage (postage) is taxed
+ *  at rather than the reduced book rate above. Same reasoning: a cost this
+ *  instance pays and cannot claim back, not a rate it charges. */
+export const PHOTOBOOK_SHIPPING_VAT_RATE = 0.081;
 
 /**
- * What printing one book costs the owner, from a live Gelato quote.
+ * The margin on the whole book — B1425, up from the 1.5x this used to be,
+ * which sat on the print alone while a separate charge carried the render.
+ * 2.0x targets 50% gross at list; see the doc block above this section for
+ * what the volume discount is allowed to do to that.
+ */
+export const PHOTOBOOK_MARGIN = 2.0;
+
+/**
+ * The floor, not an example — the cheapest book this catalogue can produce,
+ * quoted live to Zurich on 2026-09-11, and every other combination is
+ * dearer.
  *
- * The quote is the real landed cost — print plus postage to the recipient's
- * own country, measured per order rather than assumed, because a book to
- * Australia is not a book to Zurich. `PHOTOBOOK_PRINT_MARGIN` is what sits on
- * top: 1.5x, in the 30-50% band print-on-demand resale runs at, and enough
- * that one spoiled book costs a third of a sale rather than a whole one.
+ * All six size-and-cover combinations Gelato offers were quoted at
+ * `GELATO_PAGE_RULE.min` (28 pages, the fewest any of them will print) with
+ * the cheapest available shipping, and this is the winner: Pocket square
+ * 140×140 softcover, Swiss Post Economy. **Postage varies by cover, not by
+ * page count** — measured flat at CHF 8.52 to Switzerland for softcover from
+ * 28 to 200 pages, and CHF 9.35 for hardcover over the same range — so
+ * hardcover's own floor (CHF 9.35 shipping, CHF 49.00 landed) can never
+ * undercut this one regardless of how thin the book is.
  *
- * Rounded up to a whole credit, and computed here rather than at the call
- * site so the panel that shows a price and the code that charges it cannot
- * drift apart — the stale-quote check compares the two, and two formulas
+ * This is what the public price table shows, as a "from" figure, and it is
+ * the floor of a wide range: the same catalogue runs from this CHF 35.20 book
+ * up to a 200-page 280×280 hardcover at CHF 196.20 — the size and the page
+ * count are most of what moves it, which is why the panel quotes the real
+ * book before anybody orders rather than trusting this constant for more
+ * than the headline figure.
+ */
+export const PHOTOBOOK_QUOTE_MINIMUM = { pages: 28, printMinor: 815, shipMinor: 852 };
+
+/**
+ * What one photobook costs, in credits — the single price, from a live
+ * Gelato quote alone.
+ *
+ * `printMinor` and `shipMinor` are Gelato's own ex-VAT figures, in minor
+ * units (rappen). VAT is added per component — printed matter at
+ * `PHOTOBOOK_PRINT_VAT_RATE`, carriage at `PHOTOBOOK_SHIPPING_VAT_RATE` —
+ * before the margin, and the whole thing is rounded up to a whole credit
+ * once, at the end: rounding either component first would round the price
+ * itself before the margin even applies, and would make the last-rappen
+ * comparison a test asserts (`test/photobook-pricing.test.ts`) fail on its
+ * own arithmetic rather than on the code's.
+ *
+ * Computed here rather than at either call site so the panel that shows a
+ * price and the code that charges it cannot drift apart — `order/route.ts`'s
+ * stale-quote check compares two calls to this function, and two formulas
  * would make it compare a number against itself computed differently.
- *
- * Measured basis, 2026-09-07, 52-page 200x200 softcover to Zurich: print
- * CHF 14.40 + postage CHF 8.52 = CHF 22.92 landed, so 172 credits (CHF 34.40).
  */
-export const PHOTOBOOK_PRINT_MARGIN = 1.5;
-
-/**
- * The book the price table quotes as an example, and the one every measured
- * number in this file was taken from: a 52-page 200 x 200 softcover to a
- * Swiss address, quoted 2026-09-07. Kept here so the public table and the
- * comments above cannot quote different books.
- */
-export const PHOTOBOOK_QUOTE_EXAMPLE = { pages: 52, printMinor: 1440, shipMinor: 852 };
-
-export function photobookPrintCredits(printMinor: number, shipMinor: number): number {
-  const landedMinor = printMinor + shipMinor;
-  return Math.ceil((landedMinor * PHOTOBOOK_PRINT_MARGIN) / BASE_RAPPEN_PER_CREDIT);
+export function photobookPriceCredits(printMinor: number, shipMinor: number): number {
+  const printInclVat = printMinor * (1 + PHOTOBOOK_PRINT_VAT_RATE);
+  const shipInclVat = shipMinor * (1 + PHOTOBOOK_SHIPPING_VAT_RATE);
+  const landedInclVat = printInclVat + shipInclVat;
+  return Math.ceil((landedInclVat * PHOTOBOOK_MARGIN) / BASE_RAPPEN_PER_CREDIT);
 }
 
 

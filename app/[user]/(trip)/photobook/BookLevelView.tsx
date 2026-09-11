@@ -19,11 +19,10 @@ export type PreviewState = {
   html: string;
   pages: number;
   volumes: number;
-  credits: number;
-  /** The print-only portion of `credits`, or `null` when there is no quote
-   * yet — B1406. `credits` alone cannot say whether it includes postage;
-   * this is what lets the price line tell the difference. */
-  printCredits: number | null;
+  /** `null` until a recipient exists and Gelato has quoted them — B1425.
+   *  There is no build-only fallback figure: a book is one product at one
+   *  price, and with nobody to post it to there is no honest total. */
+  credits: number | null;
   /** The shape of one spread — two pages and their bleed, side by side. The
    * frame is sized from this, so the book is never a letterbox with its own
    * scrollbar. */
@@ -440,17 +439,10 @@ export default function BookLevelView({
             were unrelated. */}
         {credits !== null && (
           <p className="mt-3 text-base font-semibold text-navy-900">
-            {t(
-              // No quote yet — the printer was never asked, because there is
-              // nobody to post to or it could not answer — so this total is
-              // the print cost alone. `photobook.price` promises postage and
-              // would be a real number for the wrong thing — B1406.
-              preview?.printCredits === null ? "photobook.pricePrintOnly" : "photobook.price",
-              {
-                credits: String(credits),
-                money: formatChf(creditsInRappen(credits)),
-              },
-            )}
+            {t("photobook.price", {
+              credits: String(credits),
+              money: formatChf(creditsInRappen(credits)),
+            })}
           </p>
         )}
         {balance !== null && (
