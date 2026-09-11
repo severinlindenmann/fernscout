@@ -249,7 +249,7 @@ Do not edit them by hand; run the script.
 | [B1364](backlog/wont-do/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (84)
+## open (83)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -277,7 +277,6 @@ Do not edit them by hand; run the script.
 | [B1400](open/B1400-publish-mjs-reports-every-requested-feature.md) | publish.mjs reports every requested feature key as applied without reading the response back | ISSUE | high | low |
 | [B1401](open/B1401-the-helper-client-s-yaml-parser.md) | The helper client's YAML parser stops at the first unsupported line and silently drops every key after it | ISSUE | high | medium |
 | [B1404](open/B1404-a-matched-number-with-the-channel.md) | A matched number with the channel off gets silence instead of a fresh opt-in ask | ISSUE | high | medium |
-| [B1425](open/B1425-a-photobook-is-sold-as-one.md) | A photobook is sold as one thing at one price, costed with VAT and a 50 percent margin | FEATURE | high | medium |
 | [B911](open/B911-the-print-flow-has-never-run.md) | The print flow has never run against the live site | OPS | high | low |
 | [B106](open/B106-push-has-never-been-switched-on.md) | Push has never been switched on anywhere, so nothing has proved a notification reaches a phone | OPS | medium | medium |
 | [B1072](open/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
@@ -338,13 +337,14 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (12)
+## in-development (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1254](in-development/B1254-reloading-the-helper-loses-every-interactive.md) | Reloading the helper loses every interactive card, leaving prose that points at one | ISSUE | high | medium | `13f12910` |
 | [B1275](in-development/B1275-the-preview-header-offers-put-this.md) | The preview header offers Put this day on the site, which does not put the day on the site | ISSUE | high | low | `13f12910` |
 | [B1391](in-development/B1391-the-helper-refuses-a-bare-yes.md) | The helper refuses a bare yes to its own delete question, and an inbox cannot be emptied at all | ISSUE | high | medium | `13f12910` |
+| [B1425](in-development/B1425-a-photobook-is-sold-as-one.md) | A photobook is sold as one thing at one price, costed with VAT and a 50 percent margin | FEATURE | high | medium | `96a5b964` |
 | [B1252](in-development/B1252-the-helper-composer-gives-the-text.md) | The helper composer gives the text under half the screen width on a phone | ISSUE | medium | low | `13f12910` |
 | [B1253](in-development/B1253-a-proposal-card-taller-than-the.md) | A proposal card taller than the phone opens scrolled past its own explanation, mid-sentence | ISSUE | medium | low | `13f12910` |
 | [B1256](in-development/B1256-every-card-outcome-is-announced-twice.md) | Every card outcome is announced twice, once by the card and once by the model | ISSUE | medium | low | `13f12910` |
