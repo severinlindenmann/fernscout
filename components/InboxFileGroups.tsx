@@ -82,10 +82,19 @@ export function InboxFileGroups({
   files,
   selected,
   onToggle,
+  onRemove,
 }: {
   files: InboxFile[];
   selected: string[];
   onToggle: (id: string) => void;
+  /**
+   * A visible remove control per tile — B1272. The long-press/right-click
+   * menu (`HelperRoom`'s `data-inbox-id` handler) already offered this, but
+   * `contextmenu` is not a gesture a phone announces itself, so the pane had
+   * no control anybody could actually find. One tap here opens the same
+   * `discard_file` confirmation the menu does; nothing is removed without it.
+   */
+  onRemove: (id: string) => void;
 }) {
   const { t } = useI18n();
   const photos = newestFirst(files.filter((f) => f.kind === "photo" || f.kind === "video"));
@@ -100,7 +109,7 @@ export function InboxFileGroups({
           </h3>
           <ul className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-3">
             {photos.map((file) => (
-              <li key={file.id}>
+              <li key={file.id} className="relative">
                 <label
                   data-inbox-id={file.id}
                   className={`flex cursor-pointer flex-col overflow-hidden rounded-lg border bg-white focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-navy-800 ${
@@ -141,6 +150,14 @@ export function InboxFileGroups({
                     {file.name}
                   </span>
                 </label>
+                <button
+                  type="button"
+                  onClick={() => onRemove(file.id)}
+                  aria-label={t("agent.room.menuDiscard")}
+                  className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-navy-900/70 text-sm leading-none text-white"
+                >
+                  ×
+                </button>
               </li>
             ))}
           </ul>
@@ -154,10 +171,10 @@ export function InboxFileGroups({
           </h3>
           <ul className="mt-2 space-y-1">
             {documents.map((file) => (
-              <li key={file.id}>
+              <li key={file.id} className="flex items-center gap-1">
                 <label
                   data-inbox-id={file.id}
-                  className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-navy-800 ${
+                  className={`flex min-h-11 flex-1 cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-navy-800 ${
                     selected.includes(file.id) ? "border-navy-800 ring-2 ring-navy-800" : "border-navy-200 bg-white"
                   }`}
                 >
@@ -180,6 +197,14 @@ export function InboxFileGroups({
                     )}
                   </span>
                 </label>
+                <button
+                  type="button"
+                  onClick={() => onRemove(file.id)}
+                  aria-label={t("agent.room.menuDiscard")}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg text-navy-500 hover:bg-navy-50"
+                >
+                  ×
+                </button>
               </li>
             ))}
           </ul>

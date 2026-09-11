@@ -2259,6 +2259,9 @@ function FilesPane({
           }))}
           selected={selected}
           onToggle={onToggle}
+          onRemove={(id) =>
+            onProposal("discard_file", { file: id.replace(/^inbox:/, "") })
+          }
         />
         </div>
       )}
@@ -2468,8 +2471,12 @@ function UploadPanel({
 
   return (
     <section className="mt-4 border-t border-navy-200 pt-4">
+      {/* Named apart from the "Photographs" heading above it — B1272. Both
+       *  used to read "Photographs"/"Photographs and files", near enough
+       *  alike that the waiting grid and the control that adds to it looked
+       *  like one list and a bigger one. */}
       <h2 className="text-xs font-semibold uppercase tracking-wide text-navy-600">
-        {t("agent.uploadTitle")}
+        {t("agent.room.addFiles")}
       </h2>
 
       {/* The two ways in, side by side — B1349: two lonely buttons around a

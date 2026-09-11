@@ -1727,6 +1727,8 @@
   "agent.room.noFiles": "Es wartet nichts, und diese Reise hat noch keine Fotos.",
   "agent.room.photos": "Fotos",
   "agent.room.documents": "Dokumente",
+  "agent.room.addFiles": "Fotos oder Dateien hinzufügen",
+  "agent.room.pickAnyFile": "Alles, was du auswählst, wartet oben unter „Fotos“ oder „Dokumente“ — Fotos, Videos, ein Kontoauszug, ein Standortexport (csv, gpx, json, pdf). Sag mir dann, was ich damit tun soll.",
   "agent.room.fileMeta": "{size} · {date}",
   "agent.room.selected": "{count} ausgewählt",
   "agent.room.selected.one": "1 ausgewählt",
