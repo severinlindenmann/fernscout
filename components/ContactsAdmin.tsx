@@ -713,16 +713,17 @@ function fieldsFor(
 
 /**
  * The owner's own entry into the guest list (W37) — the create-a-contact form
- * this journal never had before now. The *field* labels — name, email,
- * language, the address block — are lifted from `ContactForm.tsx` rather than
- * re-worded: they are person-neutral, and giving the two forms separate
- * copies of the same label is how they drift apart (the visibility vocabulary
- * did exactly that in W27). The two consent checkboxes and the address hint
- * are the opposite case: `ContactForm.tsx`'s copy for them is first-person
- * ("Send me…", "only if you'd like…"), written for the guest filling in their
- * own form, and reads as talking to the wrong person when it is the owner
- * typing on somebody else's behalf — so those three get their own
- * `contact.admin*` keys instead of reuse.
+ * this journal never had before now. The *address block*'s labels are lifted
+ * from `ContactForm.tsx` rather than re-worded: they are person-neutral
+ * ("Postal address", "Postcode"), and giving the two forms separate copies of
+ * the same label is how they drift apart (the visibility vocabulary did
+ * exactly that in W27). Name, email and language are the opposite case —
+ * `ContactForm.tsx`'s copy for them ("Your name", "Write to me in") is
+ * first-person, written for the guest filling in their own form, and reads as
+ * asking the owner for their *own* details when it is the owner typing on
+ * somebody else's behalf (B1281) — so those three, and the two consent
+ * checkboxes and the address hint, get their own `contact.admin*` keys
+ * instead of reuse.
  *
  * One instance of this form exists on the page at a time — opened either by
  * the "Add a guest" toggle above the pending group, or by a row's own Edit
@@ -865,7 +866,7 @@ export function GuestForm({
 
       <div className="mt-4">
         <label className={LABEL} htmlFor="guest-name">
-          {t("contact.name")}
+          {t("contact.adminGuestName")}
         </label>
         <input
           id="guest-name"
@@ -878,7 +879,7 @@ export function GuestForm({
 
       <div className="mt-4">
         <label className={LABEL} htmlFor="guest-email">
-          {t("contact.email")}
+          {t("contact.adminGuestEmail")}
         </label>
         <input
           id="guest-email"
@@ -897,7 +898,7 @@ export function GuestForm({
 
       <div className="mt-4">
         <label className={LABEL} htmlFor="guest-locale">
-          {t("contact.language")}
+          {t("contact.adminGuestLanguage")}
         </label>
         <select
           id="guest-locale"
