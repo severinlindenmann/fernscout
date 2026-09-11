@@ -1554,6 +1554,7 @@
   "agent.error.slug_taken": "Another day in this trip already has this same address — its title reads the same way. Give this day a title that differs by a word, then press again.",
   "agent.error.consent_required": "Nothing was written: this journal has not yet agreed to a model being spoken to. Agree on the panel above, then press again.",
   "agent.error.no_credits": "There are not enough credits left for that. Add some on your own page, then press again.",
+  "agent.noCredits": "That would cost {cost} credits, and the balance is {balance} — top up at {url}.",
   "agent.error.already_published": "That day is already on the site, so there was nothing to publish.",
   "agent.error.no_day_on_date": "There is no day on that date yet. Start the day first, and then there is something here to change.",
   "agent.error.invalid_trip": "A trip needs a name and both dates. Fill in the empty one and press again.",

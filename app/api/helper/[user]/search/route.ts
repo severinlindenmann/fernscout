@@ -1,6 +1,10 @@
 import { isEnabled } from "@/lib/capabilities";
+import { balanceOf, refund, spend } from "@/lib/credits";
+import { HELPER_TURN_CREDITS, noCreditsAnswer } from "@/lib/helper/creditGate";
+import { sayIn } from "@/lib/helper/intents";
 import { findInJournal } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
+import { requestLocale } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { searchCatalogueFor } from "@/lib/search";
 
@@ -14,10 +18,13 @@ export const dynamic = "force-dynamic";
  * are nowhere in the journal. "The day we got lost near the border" matches no
  * token and is exactly how a person remembers a day.
  *
- * **Free**, for the reason `ask` is free: at a fraction of a rappen a call, a
- * front door that meters is a front door nobody knocks on. `lib/rateLimit.ts`
- * is the brake instead, and `recordUsage` still books it so the operator can
- * see what it costs (`/admin`).
+ * **A flat `HELPER_TURN_CREDITS` a call, since B1091** — spent right before
+ * `findInJournal` and refunded if it throws, the same shape `ask` uses and
+ * for the same reason: nothing here should be a second implementation of
+ * that gate. A catalogue with nothing in it, or a rate limit already tripped,
+ * never reaches the model and is never charged. `lib/rateLimit.ts` is the
+ * brake beneath the credit, and `recordUsage` still books every call so the
+ * operator can see what it costs (`/admin`).
  *
  * **The catalogue is the reader's own.** `searchCatalogueFor` is
  * `buildDocsForReader` flattened, so the model is shown nothing this caller
@@ -78,13 +85,32 @@ export async function POST(
   const rows = await searchCatalogueFor(user, request);
   if (rows.length === 0) return Response.json({ hits: [] });
 
-  const found = await findInJournal(
-    said,
-    rows,
-    new Date().toISOString().slice(0, 10),
-    user,
-    spoken,
-  );
+  const locale = await requestLocale();
+  const say = sayIn(locale);
+  const ledgerRef = `${user}/search/${Date.now()}`;
+  if (!(await spend(user, HELPER_TURN_CREDITS, "find_in_journal", ledgerRef))) {
+    const balance = (await balanceOf(user)) ?? 0;
+    return Response.json({
+      suggestion: noCreditsAnswer(say, balance, `/${encodeURIComponent(user)}/account#buy`),
+      hits: [],
+    });
+  }
+
+  let found;
+  try {
+    found = await findInJournal(
+      said,
+      rows,
+      new Date().toISOString().slice(0, 10),
+      user,
+      spoken,
+    );
+  } catch {
+    // The credit bought nothing — B1091, the same refund `ask` gives for the
+    // identical reason.
+    await refund(user, HELPER_TURN_CREDITS, ledgerRef);
+    return Response.json({ suggestion: "", hits: [] });
+  }
   const byId = new Map(rows.map((row) => [row.id, row]));
 
   return Response.json({

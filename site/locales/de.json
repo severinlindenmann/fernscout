@@ -1554,6 +1554,7 @@
   "agent.error.slug_taken": "Ein anderer Tag in dieser Reise hat schon dieselbe Adresse — sein Titel liest sich gleich. Gib diesem Tag einen Titel, der sich um ein Wort unterscheidet, und drücke dann noch einmal.",
   "agent.error.consent_required": "Es wurde nichts geschrieben: dieses Journal hat dem Sprechen mit einem Modell noch nicht zugestimmt. Stimme oben zu und drücke dann noch einmal.",
   "agent.error.no_credits": "Dafür reichen die Credits nicht. Lade auf deiner eigenen Seite welche auf und drücke dann noch einmal.",
+  "agent.noCredits": "Das würde {cost} Credits kosten, und der Kontostand ist {balance} — aufladen unter {url}.",
   "agent.error.already_published": "Dieser Tag steht schon auf der Seite, es gab also nichts zu veröffentlichen.",
   "agent.error.no_day_on_date": "An diesem Datum gibt es noch keinen Tag. Lege ihn zuerst an, dann gibt es hier etwas zu ändern.",
   "agent.error.invalid_trip": "Eine Reise braucht einen Namen und beide Daten. Füll das leere Feld aus und drück noch einmal.",

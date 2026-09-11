@@ -1,6 +1,8 @@
 import { isEnabled } from "@/lib/capabilities";
+import { balanceOf, refund, spend } from "@/lib/credits";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import type { Block } from "@/lib/helper/blocks";
+import { HELPER_TURN_CREDITS, noCreditsAnswer } from "@/lib/helper/creditGate";
 import { refusalFor, sayIn } from "@/lib/helper/intents";
 import { answerInThread, statusKeyFor, type ToolKind } from "@/lib/helper/model";
 import { describeSelection, isHelperOwner, notYourJournal } from "@/lib/helper/server";
@@ -13,15 +15,19 @@ import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 export const dynamic = "force-dynamic";
 
 /**
- * A sentence in, a conversation out — B685, B889, and B900.
+ * A sentence in, a conversation out — B685, B889, B900, and B1091.
  *
- * **Free.** Nothing here touches the ledger, and that is a decision rather
- * than an oversight: at roughly a third of a rappen a turn, metering the front
- * door would cost more in people not daring to knock than it could ever
- * recover. A *write* may cost something — one of them does — and it is charged
- * by the route the press posts to, once, when it is accepted. A proposal
- * corrected three times and then abandoned costs nothing at all.
- * `lib/rateLimit.ts` is the brake instead.
+ * **A flat `HELPER_TURN_CREDITS` a turn**, spent before the model is ever
+ * called and refunded if the call throws — the same before/refund shape
+ * `write-day` already uses, and the reason it lives here rather than inside
+ * `answerInThread`: this route is the one door, `lib/helper/model.ts` stays
+ * model-only. A sentence the refusal table below catches, or a turn refused
+ * for want of credits, never reaches a model at all, so neither is charged.
+ * `lib/rateLimit.ts` is the brake beneath the credit, for the same reasons it
+ * always was. A *write* proposal may cost something more on top — one of
+ * them does — and it is charged by the route the press posts to, once, when
+ * it is accepted. A proposal corrected three times and then abandoned costs
+ * only the turns that produced it.
  *
  * **One path, since B900.** There was a router in front of this: a model that
  * classified the sentence into a row of `lib/helper/intents.ts`, answered it
@@ -224,6 +230,31 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     return Response.json({ error: "consent_required" }, { status: 403 });
   }
 
+  /**
+   * The credit, after consent and before the model — B1091, the same gate
+   * order `write-day` already uses. A ledger ref that is merely unique
+   * rather than meaningful: unlike a day's write-up this turn names no trip
+   * and no date, and the reason on the row is what an operator reconciles
+   * against, not this string.
+   */
+  const ledgerRef = `${user}/ask/${Date.now()}`;
+  if (!(await spend(user, HELPER_TURN_CREDITS, "ask_thread", ledgerRef))) {
+    const balance = (await balanceOf(user)) ?? 0;
+    const noCredits = noCreditsAnswer(
+      say,
+      balance,
+      `/${encodeURIComponent(user)}/account#buy`,
+    );
+    return Response.json({
+      ok: true,
+      kind: "read",
+      answer: noCredits,
+      looked: [],
+      blocks: [{ shape: "say", text: noCredits }] satisfies Block[],
+      proposals: [],
+    });
+  }
+
   // The person's own today, because "yesterday" is answered from where they
   // are standing. Anything that is not a date falls back to the server's.
   const today =
@@ -286,6 +317,9 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
         onToolStart,
       );
     } catch {
+      // The credit bought nothing — B1091, the same refund `write-day` gives
+      // for the identical reason.
+      await refund(user, HELPER_TURN_CREDITS, ledgerRef);
       return { status: 502, body: { error: "model_failed" } };
     }
     // Nothing said and nothing drawn is a failed turn, and it is honest to

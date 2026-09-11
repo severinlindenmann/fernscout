@@ -78,6 +78,8 @@ type LedgerReason =
   | "storage"
   | "helper"
   | "transcription"
+  | "ask_thread"
+  | "find_in_journal"
   | "refund"
   /** Credits taken back because the money that bought them was returned —
    * B878. A negative delta that is not a spend, which is why
@@ -126,7 +128,17 @@ export type SpendReason =
    * what an operator reconciles a bill against, and two suppliers are two
    * bills. Charged per *started* minute, before the call, refunded when the
    * call fails. */
-  | "transcription";
+  | "transcription"
+  /** One turn of the free-form conversation — `POST …/ask` — B1091. Its own
+   * value rather than reusing `helper`, for the reason `digest` is its own
+   * value above: `helper` is one write-up kept in a day, this is a sentence
+   * that changes nothing, and a card statement reconciles better against two
+   * counts than one. Charged before the call, refunded when it throws. */
+  | "ask_thread"
+  /** One "find this for me" lookup — `POST …/search` — B1091. Its own value
+   * for the same reason `ask_thread` is: a different door, a different line
+   * on the ledger. Charged before the call, refunded when it throws. */
+  | "find_in_journal";
 
 export type LedgerRow = {
   id: string;
