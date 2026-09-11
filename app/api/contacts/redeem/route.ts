@@ -363,11 +363,20 @@ export async function POST(request: Request) {
     // **Nothing about what a redemption grants changes.** The session the link
     // mints is an address, not a permission (`mayReadTrip` still asks
     // `isJournalGuest`), and the confirm step still ends at a `pending` row
-    // with `approveContact` the only thing that can open it.
+    // with `approveContact` the only thing that can open it — *unless* the
+    // address is pre-approved, in which case `/api/contacts/confirm` opens it
+    // the moment the code is proved. B1132: the mail has to say which of
+    // those is true, checked the same way the signed-in branch below checks
+    // it, against this contact's own `createdVia` and current `status`.
+    const contactNow = await getContactByEmail(username, email);
+    const preapproved =
+      contactNow !== null &&
+      (await preapprovedEmailFor(username, contactNow.createdVia, contactNow.status)) ===
+        contactNow.email;
     const { code, linkToken } = await issueCode(username, email, "guest", {
       destination: `/${username}/invite/${invite.kind}/${token}`,
     });
-    await sendCodeMail(username, user, email, locale, code, linkToken);
+    await sendCodeMail(username, user, email, locale, code, linkToken, preapproved);
     rateLimitFor("contacts-redeem", ip, REDEEMED);
     return Response.json({ status: "code" }, { status: 202 });
   }

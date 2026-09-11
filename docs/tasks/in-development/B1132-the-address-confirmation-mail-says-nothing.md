@@ -47,14 +47,30 @@ does not happen.
 
 ## Work
 
-The code-issuing path already knows: `/api/contacts/redeem` resolves the invite
-before it calls `issueCode` (`app/api/contacts/redeem/route.ts:345`). Carry that
-one fact into the mail and pick between two strings — the existing one, and a
-new one for the pre-approved case saying that pressing the button is the whole
-of it.
+Done. `app/api/contacts/redeem/route.ts`'s `!sessionEmail` branch now fetches
+the contact just written (`getContactByEmail`) and calls `preapprovedEmailFor`
+against its `createdVia`/`status` — the same call the signed-in branch already
+made a few lines down — and passes the result to `sendCodeMail` as a new
+`preapproved` argument.
 
-Three locales, and `npm run i18n:keys` after adding the key. Real German and
-real Hungarian, or leave the ticket short of done and say so.
+`lib/contacts/mail.ts`'s `sendCodeMail` picks between
+`contact.mailCodeLinkBody` (unchanged) and a new
+`contact.mailCodeLinkBodyPreapproved` when `preapproved` is true. Added the key
+to `site/locales/en.json`, `de.json` and `hu.json` (real German and Hungarian,
+not machine-translated placeholders) and ran `npm run i18n:keys`.
+
+Verified both mail bodies by decoding the `.eml` files `test-mail`'s file
+transport writes (`test/invite-preapproval.test.ts`, new tests): a pre-approved
+redemption's code mail says pressing the button is the whole of it and does
+not say "Nothing opens yet"; a different address redeeming the same
+pre-approved link (never itself pre-approved) still gets the ordinary
+"Nothing opens yet" wording. English wording:
+
+- Ordinary: "Press the button and we will know this address is yours. Nothing
+  opens yet — whoever keeps the journal still decides who comes in."
+- Pre-approved: "Press the button and we will know this address is yours — and
+  that is the whole of it. This address was already approved, so you are in
+  as soon as you press it."
 
 ## Acceptance
 

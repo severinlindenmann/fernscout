@@ -150,6 +150,7 @@
   "contact.mailCodeButton": "Meine E-Mail-Adresse bestätigen",
   "contact.mailCodeFallback": "Falls der Knopf nicht funktioniert, tipp stattdessen diesen Code auf der Seite ein, von der du kommst: {code}. Er gilt {minutes} Minuten.",
   "contact.mailCodeLinkBody": "Klick auf den Knopf, dann wissen wir, dass die Adresse dir gehört. Freigeschaltet ist damit noch nichts — wer das Journal führt, entscheidet weiterhin selbst.",
+  "contact.mailCodeLinkBodyPreapproved": "Klick auf den Knopf, dann wissen wir, dass die Adresse dir gehört — und das ist schon alles. Diese Adresse ist bereits freigegeben, du bist also drin, sobald du klickst.",
   "contact.mailCodeLinkTitle": "Ein Klick, dann bist du fertig",
   "contact.mailCodeIgnore": "Wenn du das nicht warst, ignorier diese Mail — es hat sich nichts geändert.",
   "contact.mailCodeSubject": "Dein Code für {title}",
