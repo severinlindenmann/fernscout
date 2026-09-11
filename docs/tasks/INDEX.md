@@ -327,7 +327,7 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (8)
+## in-development (5)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -336,11 +336,8 @@ Do not edit them by hand; run the script.
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
 | [B1452](in-development/B1452-an-owner-cannot-see-the-status.md) | An owner cannot see the status of their photobook and postcard orders in one place | FEATURE | medium | medium | `96bf5e0d` |
-| [B1457](in-development/B1457-a-refused-book-sends-the-reader.md) | A refused book sends the reader to a page to re-order instead of just saying try again | CHORE | medium | low | `96a5b964` |
-| [B1458](in-development/B1458-the-order-page-does-not-say.md) | The order page does not say who the book is going to | FEATURE | medium | low | `96a5b964` |
-| [B1455](in-development/B1455-the-same-credit-figure-prints-as.md) | The same credit figure prints as 220.00 on the page and 284 in the mail | CHORE | low | low | `96a5b964` |
 
-## testing (241)
+## testing (244)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -561,6 +558,8 @@ Do not edit them by hand; run the script.
 | [B1440](testing/B1440-nothing-tells-the-owner-their-book.md) | Nothing tells the owner their book was printed or posted, or gives them the tracking code | FEATURE | medium | medium | — |
 | [B1450](testing/B1450-the-thread-re-sends-its-whole.md) | The thread re-sends its whole 10,800-token prefix on every round | CHORE | medium | low | — |
 | [B1451](testing/B1451-the-printer-s-status-is-shown.md) | The printer's status is shown as a raw English API word instead of a readable state | FEATURE | medium | low | — |
+| [B1457](testing/B1457-a-refused-book-sends-the-reader.md) | A refused book sends the reader to a page to re-order instead of just saying try again | CHORE | medium | low | — |
+| [B1458](testing/B1458-the-order-page-does-not-say.md) | The order page does not say who the book is going to | FEATURE | medium | low | — |
 | [B852](testing/B852-a-journal-s-languages-units-and.md) | A journal's languages, units and currencies cannot be changed anywhere | FEATURE | medium | medium | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
 | [B1038](testing/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low | — |
@@ -585,6 +584,7 @@ Do not edit them by hand; run the script.
 | [B1396](testing/B1396-the-whatsapp-checkbox-carries-a-second.md) | The WhatsApp checkbox carries a second sentence about Meta that the form does not need | DOCS | low | low | — |
 | [B1402](testing/B1402-a-content-path-one-level-too.md) | A content path one level too shallow is reported accurately and without naming the likely cause | ISSUE | low | low | — |
 | [B1438](testing/B1438-the-receipt-mail-offers-three-pdfs.md) | The receipt mail offers three PDFs where the order page offers one | CHORE | low | low | — |
+| [B1455](testing/B1455-the-same-credit-figure-prints-as.md) | The same credit figure prints as 220.00 on the page and 284 in the mail | CHORE | low | low | — |
 
 ## completed (942)
 

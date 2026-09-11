@@ -7,8 +7,7 @@ complexity: low
 area: photobook, the order page
 found: "2026-09-11T12:35:07Z"
 started: "2026-09-11T12:35:36Z"
-session: 96a5b964-fad1-4616-9124-a01eabbd8a46
-claimed: "2026-09-11T12:35:36Z"
+merged: "2026-09-11T12:52:16Z"
 ---
 
 # B1458 — The order page does not say who the book is going to

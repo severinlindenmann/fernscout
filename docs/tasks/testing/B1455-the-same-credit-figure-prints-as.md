@@ -7,8 +7,7 @@ complexity: low
 area: credits, i18n, mail
 found: "2026-09-11T12:31:26Z"
 started: "2026-09-11T12:35:38Z"
-session: 96a5b964-fad1-4616-9124-a01eabbd8a46
-claimed: "2026-09-11T12:35:38Z"
+merged: "2026-09-11T12:52:15Z"
 ---
 
 # B1455 — The same credit figure prints as 220.00 on the page and 284 in the mail

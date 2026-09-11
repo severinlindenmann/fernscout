@@ -7,8 +7,7 @@ complexity: low
 area: photobook, i18n
 found: "2026-09-11T12:35:06Z"
 started: "2026-09-11T12:35:35Z"
-session: 96a5b964-fad1-4616-9124-a01eabbd8a46
-claimed: "2026-09-11T12:35:35Z"
+merged: "2026-09-11T12:52:15Z"
 ---
 
 # B1457 — A refused book sends the reader to a page to re-order instead of just saying try again
