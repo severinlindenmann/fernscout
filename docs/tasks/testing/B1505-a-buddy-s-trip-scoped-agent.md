@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: helper
 found: "2026-09-11T18:55:28Z"
+merged: "2026-09-11T19:24:12Z"
 ---
 
 # B1505 — A buddy's trip-scoped agent token cannot drive /agent at all

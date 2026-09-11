@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (207)
+## backlog (206)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (49)
+### issue (48)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -76,7 +76,6 @@ Do not edit them by hand; run the script.
 | [B1448](backlog/issue/B1448-an-honest-answer-that-promises-a.md) | An honest answer that promises a button next turn is caught as a claim about this one | ISSUE | high | medium |
 | [B1472](backlog/issue/B1472-the-dangling-reference-guard-matches-two.md) | The dangling-reference guard matches two and three digit ids, and every id since B1000 has four | ISSUE | high | low |
 | [B1498](backlog/issue/B1498-a-guest-or-buddy-who-signs.md) | A guest or buddy who signs up for their own journal is unverified territory | ISSUE | high | medium |
-| [B1505](backlog/issue/B1505-a-buddy-s-trip-scoped-agent.md) | A buddy's trip-scoped agent token cannot drive /agent at all | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -309,15 +308,16 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B1511](open/B1511-the-message-on-the-back-preview.md) | The message on the back preview is far larger than the message that prints | ISSUE | high | medium |
 
-## in-development (1)
+## in-development (0)
+
+_Nothing here._
+
+## testing (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1510](in-development/B1510-the-step-screens-say-three-things.md) | The step screens say three things the screen already says | ISSUE | medium | low | `3f748903` |
-
-## testing (0)
-
-_Nothing here._
+| [B1505](testing/B1505-a-buddy-s-trip-scoped-agent.md) | A buddy's trip-scoped agent token cannot drive /agent at all | ISSUE | high | low | — |
+| [B1510](testing/B1510-the-step-screens-say-three-things.md) | The step screens say three things the screen already says | ISSUE | medium | low | — |
 
 ## completed (1261)
 
