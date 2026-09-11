@@ -22,6 +22,8 @@ maintained guidance for an agent; this folder is the long form for a person.
 | [TESTING.md](TESTING.md) · [qa/](qa/) | the manual walkthrough, and the scenario catalogue |
 | [ROADMAP.md](ROADMAP.md) | the decision log |
 | [branding/](branding/) | the mark, the palette, and what not to do to them |
+| [guides/](guides/) | the three reader-facing guides (guest, buddy, creator), served live at `/docs/guide/<id>` in every maintained locale (B445) |
+| [screenshots/](screenshots/) | how the pictures in the root `README.md` were made, and the byte ceiling they are kept under |
 | [tasks/](tasks/) | everything to build and everything found broken |
 | [plans/](plans/) | the record of intent, written before the work |
 
