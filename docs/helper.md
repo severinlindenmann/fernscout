@@ -119,6 +119,35 @@ somebody typed and costs read from a statement live in the same list, and only
 the imported ones are marked — so re-importing replaces those and never touches
 yours.
 
+## This instance's own import door
+
+Everything above assumes an agent with a shell, running this tool on your own
+machine against files this project reads and writes directly. A **hosted**
+journal's owner has no shell on the server, and an agent driving one over the
+network never does either — so since B665/B671/B677 this project has grown
+its own door for the two kinds of data that are measurements rather than
+editorial judgement: `POST /api/v1/<user>/import`, taking a `kind` of `gps`
+or `costs` and bytes from the inbox, from multipart or from plain `text`.
+
+It is not a replacement for this repository's interview — **costs** import
+still writes nothing on its own: a statement is reported, a person agrees the
+categories merchant by merchant the same way they would in a conversation
+with an agent, and a second call (`.../costs/import`) writes the agreed rows.
+**GPS** import is different in kind, not degree: a coordinate is a
+measurement, so it is stored as read, with no agreement step at all — see
+`docs/gps.md`. `importers/` (MIT-licensed, same as this whole tool) is the
+registry of small parsers behind both: Google Timeline, Google Takeout, GPX
+and a neutral JSON Lines format on the GPS side; a bank statement's own CSV
+shape on the costs side.
+
+There is no equivalent import kind for photographs yet. `content/<user>/inbox/media/`
+(B663) is where a file can land before it belongs to a day — named by a hash
+of its own bytes, so uploading the same picture twice is a no-op — but
+turning a folder of camera files into entries is still either this
+repository's own interview, locally, or — for an owner self-hosting with a
+shell on their own checkout — `npm run ingest` against a folder of camera
+files directly.
+
 ## What comes out
 
 ```
