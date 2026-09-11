@@ -31,6 +31,19 @@ not persisted — it is an opening, not a setting.
 Not doing: anything for a settled order, which goes straight to the docket
 (B1479).
 
+## What the first attempt got wrong
+
+The card printed the head a second time: the page's title and intro, then the
+card's own eyebrow, title and the same intro. That is the third time in this
+programme a component grew a head while the page kept its own — B1479 and
+B1480 were the other two — and the reason is always the same: a server-rendered
+head above a client-rendered one, neither able to see the other.
+
+Fixed by giving the head one owner. A pending order's head is the stepper's,
+because only the stepper knows whether the opening card is showing and which
+of the two titles applies; a settled order's is the docket's. The page renders
+neither.
+
 ## Acceptance
 
 A pending order at 390 opens on the card, and one press reveals `Look`.
