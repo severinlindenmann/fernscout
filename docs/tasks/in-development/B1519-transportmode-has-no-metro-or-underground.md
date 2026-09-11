@@ -60,3 +60,40 @@ ask for the tram.
 - `/openapi.json` lists the new value, so `validate-content` in
   `fernscout-helper` picks it up without a change there — it reads the enum
   from the instance.
+
+## Done
+
+Added `metro`, `tram` and `ferry` to `TRANSPORT_MODES`
+(`lib/validate/entry.ts`) and `TransportMode` (`lib/types.ts`), all three
+decided at once per the ticket's own suggestion. `lib/api/openapi.ts` and
+`lib/api/documentation.ts` both import the constant, so `/openapi.json` and
+the day guide picked up the three new values with no change of their own —
+verified by `test/openapi-contract.test.ts`'s existing "enum agrees with its
+source" checks, which pass unmodified.
+
+Rendering (`components/TravelScene.tsx`, `components/travel/Ground.tsx`,
+`lib/travel/vehicleShapes.ts`):
+
+- `surfaceFor`: `metro`/`tram` → `rail` (same surface as `train`), `ferry` →
+  `water` (same as `boat`).
+- Icons (the `quick` variant): `metro` → `TrainFrontTunnel` (reads as
+  underground), `tram` → `TramFront`, `ferry` → `Ship` (shared with `boat`).
+- The full scene: `metro`/`tram` reuse `train`'s drawn carriages
+  (`vehicleBody`/`vehicleWheels`/`vehicleTitles`/`VEHICLE_BOX` in
+  `lib/travel/vehicleShapes.ts` — same geometry, not a second locomotive) but
+  are asked for at a smaller `VEHICLE_WIDTH` (110/100 against train's 210),
+  which is what actually reads as "a short urban hop" rather than an
+  intercity trip. `ferry` reuses `boat`'s hull and width outright, per the
+  ticket's own suggestion for where bespoke art isn't worth the time.
+- The photobook's own vocabulary (`lib/photobook/strings.ts`) got real EN/DE/HU
+  entries for all three modes, checked by `test/photobook-strings.test.ts`
+  (extended to include them).
+
+Verified: `npx vitest run test/validate-entry.test.ts test/travel-scene.test.ts
+test/photobook-strings.test.ts test/photobook-vehicles.test.ts
+test/openapi-contract.test.ts test/content-model.test.ts` — all pass
+(140 tests). `test/photobook-vehicles.test.ts`'s
+"covers TRANSPORT_MODES exactly, less walk" test — unmodified — is what
+confirms every new mode got a drawing; an unknown mode (`"subway"` in a new
+`validate-entry.test.ts` case) is still refused by name, listing `metro` among
+the known ones.

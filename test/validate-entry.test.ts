@@ -117,9 +117,26 @@ describe("transport", () => {
   });
 
   test("every documented mode is accepted", () => {
-    for (const mode of ["flight", "train", "bus", "motorbike", "bicycle", "boat", "car", "taxi", "walk"]) {
+    for (const mode of [
+      "flight", "train", "bus", "motorbike", "bicycle", "boat", "car", "taxi", "walk",
+      "metro", "tram", "ferry",
+    ]) {
       expect(validateEntry({ ...ok, transportMode: mode }), mode).toEqual([]);
     }
+  });
+
+  // B1519 — the metro/underground gap an owner writing up Bangkok reported,
+  // plus the two the same ticket decided to close alongside it.
+  test("metro, tram and ferry are all accepted", () => {
+    for (const mode of ["metro", "tram", "ferry"]) {
+      expect(validateEntry({ ...ok, transportMode: mode }), mode).toEqual([]);
+    }
+  });
+
+  test("an unknown mode is still refused by name once the list has grown", () => {
+    const problem = only({ transportMode: "subway" });
+    expect(problem.field).toBe("transportMode");
+    expect(problem.expected).toContain("metro");
   });
 });
 

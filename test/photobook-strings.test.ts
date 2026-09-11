@@ -11,7 +11,10 @@ import { bookStrings, fill, isBookLocale } from "@/lib/photobook/strings";
  */
 
 const LOCALES = ["en", "de", "hu"] as const;
-const MODES = ["flight", "train", "bus", "car", "taxi", "motorbike", "bicycle", "boat", "walk"];
+const MODES = [
+  "flight", "train", "metro", "tram", "bus", "car", "taxi", "motorbike", "bicycle", "boat",
+  "ferry", "walk",
+];
 
 describe("the book's words", () => {
   test("every language has every key", () => {

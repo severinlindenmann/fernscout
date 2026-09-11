@@ -8,10 +8,13 @@ import type { DaySummary, TransportMode } from "@/lib/types";
 const MODES: TransportMode[] = [
   "flight",
   "train",
+  "metro",
+  "tram",
   "bus",
   "motorbike",
   "bicycle",
   "boat",
+  "ferry",
   "car",
   "taxi",
   "walk",
@@ -139,6 +142,14 @@ describe("surfaceFor", () => {
     for (const mode of ["car", "bus", "motorbike"] as const) {
       expect(surfaceFor(mode)).toBe("road");
     }
+  });
+
+  // B1519 — metro and tram read as rail, and a ferry as water, the same as
+  // the modes they were added beside.
+  test("metro and tram share the train's surface, and a ferry the boat's", () => {
+    expect(surfaceFor("metro")).toBe("rail");
+    expect(surfaceFor("tram")).toBe("rail");
+    expect(surfaceFor("ferry")).toBe("water");
   });
 
   test("every surface has a height and a tile", () => {

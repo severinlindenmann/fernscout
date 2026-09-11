@@ -13,7 +13,10 @@ export type TransportMode =
   | "boat"
   | "car"
   | "taxi"
-  | "walk";
+  | "walk"
+  | "metro"
+  | "tram"
+  | "ferry";
 
 export type Locale = "en" | "de" | "hu";
 
