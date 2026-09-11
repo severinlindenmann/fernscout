@@ -346,7 +346,7 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (7)
+## in-development (6)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -356,9 +356,8 @@ Do not edit them by hand; run the script.
 | [B1389](in-development/B1389-teaser-is-missing-from-content-model.md) | `teaser` is missing from /content-model.json, so the helper's validator calls it not a field | ISSUE | medium | low | `13f12910` |
 | [B1403](in-development/B1403-nothing-an-outside-agent-reads-says.md) | Nothing an outside agent reads says weatherData is written by the server, so a filled block reads as fabricated | DOCS | medium | low | `13f12910` |
 | [B1134](in-development/B1134-accept-language-is-the-only-way.md) | Accept-Language is the only way to set the language of the two pre-journal mails and no agent-facing document says so | FEATURE | low | low | `13f12910` |
-| [B1296](in-development/B1296-the-room-names-trips-by-their.md) | The room names trips by their id and dates in ISO, in a conversation that otherwise speaks plainly | ISSUE | low | low | `13f12910` |
 
-## testing (177)
+## testing (178)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -534,6 +533,7 @@ Do not edit them by hand; run the script.
 | [B1199](testing/B1199-the-day-context-offer-still-offers.md) | The day-context offer still offers taking a draft off the site | ISSUE | low | low | — |
 | [B1202](testing/B1202-one-reply-can-carry-the-same.md) | One reply can carry the same proposal card twice, verbatim | ISSUE | low | low | — |
 | [B1294](testing/B1294-the-photobook-route-answers-that-the.md) | The photobook route answers that the trip was taken down or renamed when the trip is still there | ISSUE | low | low | — |
+| [B1296](testing/B1296-the-room-names-trips-by-their.md) | The room names trips by their id and dates in ISO, in a conversation that otherwise speaks plainly | ISSUE | low | low | — |
 | [B1365](testing/B1365-photobook-order-success-redirects-through-the.md) | Photobook order success redirects through the trip page instead of straight to the order page | CHORE | low | low | — |
 | [B1366](testing/B1366-order-page-shows-book-interior-pdf.md) | Order page shows book-interior.pdf and book-cover.pdf links nobody needs | CHORE | low | low | — |
 | [B1367](testing/B1367-photobook-order-page-reads-as-unstyled.md) | Photobook order page reads as unstyled text, not a Fernscout page | CHORE | low | low | — |
