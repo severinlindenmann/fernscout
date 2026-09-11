@@ -56,21 +56,54 @@ hypothetical.
 
 ## Work
 
-The smallest honest thing, not the migration. Options, cheapest first:
+Done: logged it, at the one place every call already passes through —
+`book()` in `lib/helper/model.ts`, which every one of the seven call sites
+(`describe_photos`, `write_day`, `map_statement`, `ask_thread` ×3,
+`find_in_journal`) already calls with the raw `usage` object before folding
+it for `recordUsage`. One `logUsage()` added there, so the line exists for
+every call without touching a call site.
 
-- **Log it.** One line at debug level carrying the two counters per call. Costs
-  nothing, keeps no schema, and makes the check a `journalctl` grep. Probably
-  the right answer.
-- A single boolean or small integer on the existing row — "this call read a
-  cached prefix" — which is one migration but a trivial one.
-- The full two-column migration B1450 named and declined. Only worth it when a
-  price turns on it.
+Shape: `[helper-cache] <operation> in=<n> out=<n> cache_write=<n>
+cache_read=<n>[ <note>]` — a real cold-then-warm pair from an ask_thread turn
+would read:
 
-Whichever: the point is that somebody can answer "is the cache still working"
-without editing code first.
+```
+[helper-cache] ask_thread in=453 out=612 cache_write=5601 cache_read=0
+[helper-cache] ask_thread in=112 out=340 cache_write=0 cache_read=5601
+```
 
-Not in scope: changing how the bill is computed. Folding at face value
-overstates slightly and in the safe direction, and that decision stands.
+Gated on `isEnabled("logging")`, the same operator switch `proxy.ts` already
+reads for the request line — this is the mechanism the codebase already has,
+not a second one, and it goes silent along with everything else logging
+governs when the switch is off. Written with `console.log`, matching every
+other `lib/*.ts` line (`[module] message`), not `console.error`/`warn` since
+this is not a fault condition.
+
+The near-floor question: yes, a note is appended, but only for `ask_thread` —
+the only operation that ever sets `cache_control` (see the `cachedSystem`
+comment in `lib/helper/model.ts`). For every other operation a zero on both
+counters is the normal, permanent state and would be a false alarm if
+flagged. For `ask_thread`:
+  - both counters at zero → `cache=not-written (prefix may be under the
+    floor)` — the silent-decline failure the `cachedSystem` comment warns
+    about, since Haiku 4.5 says nothing when it refuses to cache a prefix
+    under 4,096 tokens.
+  - a nonzero write under `4,096 × 1.25` (5,120) → `cache=near-floor` — cached
+    today, but close enough to the floor that the next prompt trim could push
+    it under without any other symptom. B1053 already moved the prefix from
+    ~11,700 to ~5,600 tokens, which is why this is worth a distinct signal
+    rather than only raw numbers an operator has to do arithmetic on.
+
+Grep an operator would run: `journalctl -u fernscout | grep helper-cache` for
+everything, or `journalctl -u fernscout | grep 'helper-cache ask_thread'` to
+watch caching specifically — `cache_write` > 4,096 on a cold call and
+`cache_read` > 4,096 on the next is B1450's acceptance, now checkable without
+editing code.
+
+Not in scope, unchanged: `book()`'s own fold for `recordUsage`/the bill is
+untouched. Folding at face value still overstates slightly and in the safe
+direction; that decision stands, and this line is a separate, parallel
+observation of the same numbers before the fold, not a replacement for it.
 
 ## Acceptance
 

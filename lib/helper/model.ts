@@ -6,6 +6,7 @@ import {
   type DateFormat,
   type Table,
 } from "@/importers/costs/mapping";
+import { isEnabled } from "../capabilities";
 import { recordUsage, type Operation } from "../usage";
 import type { Block, Proposal } from "./blocks";
 import type { Say } from "./intents";
@@ -72,6 +73,57 @@ The title is short — a few words, no punctuation at the end — and names some
 Use warnings to name, one short sentence each, anything you deliberately did not write: something you were unsure about, something that read like a fact you could not confirm, a gap you noticed. Say nothing there about your own limitations, only about this day. If there is nothing to say, return an empty list.`;
 
 /**
+ * Haiku 4.5 will not cache a prefix under this many tokens, and says nothing
+ * when it declines (see the comment on `cachedSystem` below). A cache write
+ * this close to the floor is a warning that the next prompt trim could cross
+ * it silently — B1460.
+ */
+const CACHE_FLOOR_TOKENS = 4096;
+
+/**
+ * One line per call, at debug level, carrying the two numbers `book()`
+ * folds together before they reach the `usage` table — B1460.
+ *
+ * `book()`'s own fold overstates the bill slightly and in the safe
+ * direction (a cache read bills at 0.1x, a write at 1.25x), which is a
+ * decision about money and stays exactly as it is. This line changes
+ * nothing about that; it exists because the fold also erases the one
+ * thing worth watching operationally — whether the cache is being written
+ * to and read from at all — and there was nowhere on the running instance
+ * to see it. `journalctl -u fernscout | grep helper-cache` is the whole of
+ * how to look.
+ *
+ * Only `ask_thread` ever sets `cache_control` (see `cachedSystem` below),
+ * so a zero on every other operation is normal and gets no note; a zero
+ * here, on `ask_thread`, is the silent-decline failure mode the comment on
+ * `cachedSystem` names — the prefix has fallen under `CACHE_FLOOR_TOKENS`.
+ */
+function logUsage(
+  operation: Operation,
+  usage:
+    | {
+        input_tokens?: number | null;
+        output_tokens?: number | null;
+        cache_read_input_tokens?: number | null;
+        cache_creation_input_tokens?: number | null;
+      }
+    | undefined,
+): void {
+  if (!isEnabled("logging")) return;
+  const write = usage?.cache_creation_input_tokens ?? 0;
+  const read = usage?.cache_read_input_tokens ?? 0;
+  let note = "";
+  if (operation === "ask_thread") {
+    if (write === 0 && read === 0) note = " cache=not-written (prefix may be under the floor)";
+    else if (write > 0 && write < CACHE_FLOOR_TOKENS * 1.25) note = " cache=near-floor";
+  }
+  console.log(
+    `[helper-cache] ${operation} in=${usage?.input_tokens ?? 0} out=${usage?.output_tokens ?? 0} ` +
+      `cache_write=${write} cache_read=${read}${note}`,
+  );
+}
+
+/**
  * Book what the call consumed — B746.
  *
  * One helper rather than three copies, and it takes the whole response so a
@@ -95,6 +147,7 @@ async function book(
       }
     | undefined,
 ): Promise<void> {
+  logUsage(operation, usage);
   if (!owner) return;
   await recordUsage({
     owner,
