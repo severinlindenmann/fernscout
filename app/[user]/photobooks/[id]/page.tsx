@@ -234,12 +234,17 @@ export default async function PhotobookOrderPage({
             {t(print?.paid ? "photobook.print.receiptTitle" : "photobook.print.orderTitle")}
           </h1>
           <p className="mt-2 text-sm text-navy-600">
-            {t("photobook.print.orderIntro", {
-              trip: trip?.title ?? order.payload.trip,
-              pages: String(order.payload.pages),
-              volumes: String(order.payload.volumes),
-              size: bookSizeLabel,
-            })}
+            {t(
+              order.payload.volumes === 1
+                ? "photobook.print.orderIntro.one"
+                : "photobook.print.orderIntro",
+              {
+                trip: trip?.title ?? order.payload.trip,
+                pages: String(order.payload.pages),
+                volumes: String(order.payload.volumes),
+                size: bookSizeLabel,
+              },
+            )}
           </p>
         </div>
 

@@ -92,7 +92,7 @@ export default function DayNotify({
   if (status.short) {
     return (
       <p className="col-span-full text-xs text-coral-600">
-        {t("notify.short", {
+        {tn("notify.short", status.needed, {
           needed: String(status.needed),
           balance: formatCredits(status.balance ?? 0),
         })}{" "}
