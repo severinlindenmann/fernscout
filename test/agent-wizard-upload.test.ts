@@ -13,14 +13,17 @@ import { POST as createTripRoute } from "@/app/api/v1/[user]/trips/route";
 /**
  * The two-phase upload, from the server's side — B683.
  *
- * The browser half (the downscale, the IndexedDB queue, the backoff) lives in
- * `components/uploadQueue.ts` and is checked by driving a phone at 390px,
- * which is the only check that means anything for it. What can be asserted
- * here is the half the queue depends on being true: that a web copy comes back
- * with a `src`, that the original sent afterwards lands in `originals/` under
- * the same stem and *replaces* the web copy rather than sitting beside it —
- * one photograph, one original, one lot of bytes against the ceiling — and
- * that a file which is not media is kept in the inbox rather than refused.
+ * The browser half (the downscale, the IndexedDB queue, the backoff) lived in
+ * `components/uploadQueue.ts`, checked by driving a phone at 390px — the only
+ * check that ever meant anything for it. That component was the retired
+ * step-wizard's own and was deleted with it (B1239; see B1435 for whether
+ * anything still drives this route's original-replaces-web-copy path from a
+ * browser at all). What is asserted here is the server half regardless: that
+ * a web copy comes back with a `src`, that the original sent afterwards lands
+ * in `originals/` under the same stem and *replaces* the web copy rather than
+ * sitting beside it — one photograph, one original, one lot of bytes against
+ * the ceiling — and that a file which is not media is kept in the inbox
+ * rather than refused.
  */
 
 const OWNER_EMAIL = "alex@example.test";

@@ -53,7 +53,11 @@ export type WizardDraft = {
   hasCoordinates?: true;
 };
 
-export const WIZARD_STEPS = ["trip", "date", "photos", "words", "preview", "publish"] as const;
+// Not exported since B1239 — nothing outside this file needs the array
+// itself any more (only AgentWizard.tsx did, and it was the retired
+// step-wizard's own), but `WizardStep` below is still derived from it and is
+// still used by `stepFor`/`backFrom`, which the day route and its tests read.
+const WIZARD_STEPS = ["trip", "date", "photos", "words", "preview", "publish"] as const;
 export type WizardStep = (typeof WIZARD_STEPS)[number];
 
 /** Whether this day's prose is somebody's words rather than the placeholder. */

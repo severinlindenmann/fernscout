@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import { readFileSync } from "node:fs";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, test } from "vitest";
@@ -10,14 +9,18 @@ import RecordButton from "@/components/RecordButton";
 import { dictionaryFor } from "@/lib/locales";
 
 /**
- * B794, B795, B796 — the helper is operable without a mouse and without eyes.
+ * B794, B795, B812 — the helper is operable without a mouse and without eyes.
  *
- * All three faults were found by a blind tester on the live site, and all
- * three are shapes a jsdom render can see: whether the record button answers a
- * `click` at all, whether a `ConfirmPanel` takes focus when it mounts, and
- * whether the wizard's refusal carries `role="alert"`. The same
- * `createRoot` harness `test/record-button-consent.test.tsx` uses, rather than
- * a testing-library dependency for three assertions.
+ * Found by a blind tester on the live site, and each a shape a jsdom render
+ * can see: whether the record button answers a `click` at all, whether a
+ * `ConfirmPanel` takes focus when it mounts, and whether the handover prompt
+ * takes focus when it replaces the mint button. The same `createRoot`
+ * harness `test/record-button-consent.test.tsx` uses, rather than a
+ * testing-library dependency for three assertions.
+ *
+ * A fourth, B796 — whether the retired step-wizard's refusal carried
+ * `role="alert"` — was asserted here by reading `components/AgentWizard.tsx`'s
+ * own source and was deleted along with that component, B1239.
  */
 
 let root: Root | undefined;
@@ -112,27 +115,5 @@ describe("B812 — the handover prompt takes focus when it replaces the button",
     // replaced it — not <body> — has to hold it now.
     expect(document.activeElement).toBe(host.firstElementChild);
     expect(document.activeElement).not.toBe(document.body);
-  });
-});
-
-describe("B796 — a refusal is spoken", () => {
-  test("the wizard's error carries role=alert, as SignupWizard's does", () => {
-    const wizard = readFileSync("components/AgentWizard.tsx", "utf8");
-    // The one refusal in the wizard, and the shape the ticket names: the
-    // paragraph that renders `error` has to be an alert.
-    const errorBlock = wizard.slice(wizard.indexOf("{error && ("));
-    expect(errorBlock.slice(0, 200)).toMatch(/role="alert"/);
-  });
-
-  test("the three sub-headings are headings", () => {
-    const wizard = readFileSync("components/AgentWizard.tsx", "utf8");
-    for (const key of ["agent.missingTitle", "agent.helperSuggestionTitle", "agent.captionsTitle"]) {
-      const at = wizard.indexOf(`t("${key}")`);
-      expect(at).toBeGreaterThan(-1);
-      // The opening tag immediately before the call.
-      const before = wizard.slice(0, at);
-      const tag = before.slice(before.lastIndexOf("<"));
-      expect(tag.startsWith("<h")).toBe(true);
-    }
   });
 });

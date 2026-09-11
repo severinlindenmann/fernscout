@@ -4,13 +4,18 @@ import path from "node:path";
 import { backFrom, NO_PROSE, isWritten, stepFor, type WizardDraft } from "@/lib/helper/draft";
 
 /**
- * The wizard at `/agent/<user>` — B682.
+ * `lib/helper/draft.ts`, and the helper routes' own door guard — B682.
  *
- * The whole of its state machine is `stepFor`, and that is the point: there is
- * no session row, no persisted position and nothing to migrate, so the only
- * thing that can be wrong is this function's reading of a draft on disk. A
- * half-written day has to resolve to the same step from any device and after
- * any crash, which is what the first block asserts.
+ * Renamed from `test/agent-wizard.test.ts` when B1239 deleted the retired
+ * step-wizard component (`components/AgentWizard.tsx`, B1220) — this file
+ * never rendered it, and only ever tested `draft.ts` (still live: the day
+ * route and WhatsApp dispatch both read it) and the route-guard census
+ * below, which is independent of any component.
+ *
+ * `stepFor`'s state machine has no session row, no persisted position and
+ * nothing to migrate, so the only thing that can be wrong is its reading of
+ * a draft on disk. A half-written day has to resolve to the same step from
+ * any device and after any crash, which is what the first block asserts.
  */
 
 function draft(over: Partial<WizardDraft> = {}): WizardDraft {
@@ -159,27 +164,5 @@ describe("the helper routes", () => {
   test("none of them can publish except the one that is for it", () => {
     const publishers = sources.filter((source) => source.includes("publishDraft"));
     expect(publishers).toHaveLength(1);
-  });
-});
-
-/**
- * B711 — the preview card kept saying "Draft — not on the site yet" after a
- * successful publish, because `preview.day` is read once before publishing
- * and carries `draft: true` on every entry; nothing re-fetched it once
- * `publishedUrl` was set, so the outcome panel below said "It is on the
- * site." while the card above it still said the opposite.
- *
- * Asserted at the source, in the style of `test/agent-shell.test.ts`: there is
- * no component-render harness in this suite, and what matters is that the
- * card's own render guard excludes the published state, not what a snapshot
- * looks like.
- */
-describe("the preview card, once published", () => {
-  test("is no longer shown once the outcome panel takes over", () => {
-    const source = fs.readFileSync(
-      path.join(import.meta.dirname, "..", "components", "AgentWizard.tsx"),
-      "utf8",
-    );
-    expect(source).toContain("preview && !publishedUrl");
   });
 });
