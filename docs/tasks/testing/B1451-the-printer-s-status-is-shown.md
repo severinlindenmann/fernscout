@@ -7,8 +7,7 @@ complexity: low
 area: photobook, design, i18n
 found: "2026-09-11T11:56:02Z"
 started: "2026-09-11T11:56:33Z"
-session: 96a5b964-fad1-4616-9124-a01eabbd8a46
-claimed: "2026-09-11T11:56:33Z"
+merged: "2026-09-11T12:10:28Z"
 ---
 
 # B1451 — The printer's status is shown as a raw English API word instead of a readable state
