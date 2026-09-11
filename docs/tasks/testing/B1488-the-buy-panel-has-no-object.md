@@ -7,8 +7,7 @@ complexity: low
 area: photobook
 found: "2026-09-11T16:50:27Z"
 started: "2026-09-11T17:30:26Z"
-session: 3f748903-2dc3-47a2-a958-98b83d641dc0
-claimed: "2026-09-11T17:30:26Z"
+merged: "2026-09-11T17:38:52Z"
 ---
 
 # B1488 — The buy panel has no object plate and no read-or-order pair where the drawing has both
