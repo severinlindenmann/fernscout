@@ -181,6 +181,27 @@ export async function getPhotobookOrder(owner: string, id: string): Promise<Phot
   };
 }
 
+/** Every photobook order this owner has, newest first — B1452. */
+export async function listPhotobookOrders(owner: string): Promise<PhotobookOrder[]> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return [];
+  const rows = await handle.db
+    .selectFrom("print_orders")
+    .select(["id", "owner_id", "status", "payload", "created_at", "updated_at"])
+    .where("owner_id", "=", owner)
+    .where("kind", "=", "photobook")
+    .orderBy("created_at", "desc")
+    .execute();
+  return rows.map((row) => ({
+    id: row.id,
+    owner: row.owner_id,
+    status: row.status,
+    payload: JSON.parse(row.payload) as PhotobookPayload,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
+}
+
 /**
  * Every state `order/route.ts`'s redirect can carry back to the page — B484.
  *
