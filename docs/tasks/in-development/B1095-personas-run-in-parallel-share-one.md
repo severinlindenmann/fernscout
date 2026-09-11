@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: .claude/skills/test-with-personas
 found: "2026-09-09T16:05:35Z"
+started: "2026-09-11T12:40:02Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T12:40:02Z"
 ---
 
 # B1095 — Personas run in parallel share one browser tab and interleave, invalidating the round

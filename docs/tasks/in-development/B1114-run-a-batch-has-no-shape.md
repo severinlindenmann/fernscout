@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: skills
 found: "2026-09-09T17:13:55Z"
+started: "2026-09-11T12:40:03Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T12:40:03Z"
 ---
 
 # B1114 — run-a-batch has no shape for an engagement, so an OPS ticket cannot be in a batch at all
