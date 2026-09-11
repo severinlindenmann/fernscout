@@ -122,3 +122,70 @@ all.
 
 Nothing about the route changes — it already writes only the rows it is given.
 This builds the thing that gives it rows.
+
+## Built, 2026-09-11 — the agree card
+
+The missing surface is a card in the conversation, on the `import_contacts`
+tool (`lib/helper/tools/areas/files.ts`, alongside `attach_files` and
+`discard_file` — it reads whichever `.vcf` is staged, or the ticked one when
+more than one is waiting).
+
+- **`ProposalField` grew a `checkbox` field** (`lib/helper/blocks.ts`), with
+  its own `label` (raw, never run through `t()` — it is somebody's name) and
+  `detail` (a short subtitle, "already a contact of this journal"). Every
+  other field still names itself through `agent.slot.<name>`; a checkbox row
+  never did and could not, since twenty rows would need twenty translation
+  keys.
+- **`ProposalView` (`components/HelperAsk.tsx`) draws checkbox fields as their
+  own scrollable list**, separate from the ordinary two-column grid of typed
+  fields — `max-h-72 overflow-y-auto`, so twenty rows scroll inside the card
+  rather than pushing everything below it off screen — with a select-all /
+  select-none pair above the list when there is more than one row. This is
+  the "reuse ConfirmPanel, match the shape every other decision already has"
+  the decision above asked for, applied literally to the room's existing
+  proposal card rather than to a bespoke `<ConfirmPanel>` instance: the card
+  already is the room's one confirmation shape (sentence, fields, one button,
+  "leave it"), and `import_contacts` is not destructive, so it does not need
+  `ConfirmPanel`'s own second-press gate — that stays reserved for
+  `destroy`-kind proposals per B1391.
+- **The write is `POST /api/helper/<user>/contacts/import`**
+  (`app/api/helper/[user]/contacts/import/route.ts`), cookie-only, owner-only,
+  outside `/api/v1`. The card's rows travel as one `fixed` field
+  (`vcard_rows`, a JSON array, resolved server-side and never retyped by the
+  model) plus one `sel_<n>` checkbox per row; the route zips the two back
+  together, keeps only what is ticked, and hands the result to
+  `importContactRows` (`lib/contacts/importRows.ts`) — the loop
+  `POST /api/v1/<user>/contacts/import` already ran, pulled out so a row
+  filed from the card and one filed by an agent over the API land exactly the
+  same way: `pending`, its own confirmation mail, never pre-approved.
+- **A row already known to this journal says so.** `propose` reads
+  `listContacts` once and marks a checkbox's `detail` when the vCard's email
+  matches an existing contact's, rather than offering it as new.
+- **The three acceptance cases:**
+  - *No address at all* — a vCard with only `FN`/`N` and no `EMAIL`/`TEL`
+    parses (a name is enough to be "sane"), but nothing can become a contact
+    without an email, so the tool refuses in words
+    (`agent.tool.contactsImportNoEmail`) rather than offering an empty card.
+  - *Malformed* — no `BEGIN:VCARD` at all fails the importer's own parse and
+    the tool refuses (`agent.tool.contactsImportUnreadable`).
+  - *Twenty entries* — the card scrolls, select-all/none makes ticking or
+    clearing all twenty one tap, and each row still shows its own name and
+    (where applicable) whether it is already known.
+- **Every string is en/de/hu**, real German and Hungarian, `npm run
+  i18n:keys` run.
+- `test/helper-routes.test.ts`, `test/helper-tool-areas.test.ts`,
+  `test/helper-proposal-arguments.test.ts` and `test/helper-thread.test.ts`
+  updated for the new route/tool (counts, the arguments-alone press, and the
+  token ceiling — the tool's own `describe` stayed short on purpose: the
+  ceiling test failed at anything longer and B930's rule is to cut rather
+  than raise it).
+
+`npm run verify` clean: 534 files, 6989 passing, 4 skipped, knip clean.
+
+Not done here: no ADR (postal address) parsing — the vCard importer
+(`importers/contacts/vcard.ts`) only ever read `FN`/`N`, `EMAIL` and `TEL`,
+by design (B1394's original Work section), so "which of them carry a postal
+address" in this ticket's Decision section is read as "which carry contact
+info at all" (an email, required to become a contact) — the card does not
+show a postal-address indicator because there is no postal address to show
+one of.

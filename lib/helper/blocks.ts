@@ -79,6 +79,30 @@ export type ProposalField = {
    * shown, never what is sent.
    */
   fixed?: true;
+  /**
+   * One row of a list to tick, rather than a slot to fill in — B1394.
+   *
+   * `import_contacts` is the first caller: up to fifty rows from somebody's
+   * own vCard, each a name a person recognises or does not, not a field this
+   * software is asking them to type. `"1"` is ticked, anything else is not.
+   * A proposal with checkbox fields draws them as their own scrollable list,
+   * separate from the ordinary two-column grid of typed-in fields, with a
+   * select-all / select-none pair above it — the twenty-entry case is the one
+   * that decides whether this is usable at all.
+   */
+  checkbox?: true;
+  /**
+   * The row's own label, already resolved — a person's name, read off their
+   * vCard. **Never run through `t()`**: unlike every other field's label,
+   * this is somebody's own content, and translating a name is not this
+   * software's to do. Only meaningful alongside `checkbox`; an ordinary field
+   * still names itself through `agent.slot.<name>`.
+   */
+  label?: string;
+  /** A short subtitle under a checkbox row's label — "already a contact of
+   *  this journal", say. Never a postal address: AGENTS.md keeps addresses
+   *  out of a conversation, and this is drawn in one. */
+  detail?: string;
 };
 
 /** What a tool's result looks like on the screen. */

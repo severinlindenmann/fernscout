@@ -1798,6 +1798,16 @@ function ProposalView({
   // invite id) is not drawn at all: it still travels with the press inside
   // `values`, seeded from every field including this one, below.
   const editable = fields.filter((field) => !field.fixed);
+  // B1394 — the rows to tick draw as their own list, not as slots in the
+  // ordinary grid: each one's label is somebody's own name, not a field this
+  // software asked for.
+  const checkboxFields = editable.filter((field) => field.checkbox);
+  const otherFields = editable.filter((field) => !field.checkbox);
+  const setAllRows = (checked: boolean) =>
+    setValues((was) => ({
+      ...was,
+      ...Object.fromEntries(checkboxFields.map((field) => [field.name, checked ? "1" : ""])),
+    }));
 
   /**
    * The keyboard problem — B1122. While any field on *this* card has focus,
@@ -1921,7 +1931,58 @@ function ProposalView({
       </p>
       <p className="mt-1 text-base leading-6 text-navy-900">{proposal.sentence}</p>
 
-      {editable.length > 0 && (
+      {checkboxFields.length > 0 && (
+        <div className="mt-3">
+          {checkboxFields.length > 1 && (
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setAllRows(true)}
+                className="text-sm font-semibold text-navy-700 underline underline-offset-4"
+              >
+                {t("agent.chat.selectAll")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setAllRows(false)}
+                className="text-sm font-semibold text-navy-700 underline underline-offset-4"
+              >
+                {t("agent.chat.selectNone")}
+              </button>
+            </div>
+          )}
+          {/* Scrollable rather than a tower that swallows the card — B1394's
+              own acceptance names twenty entries as the case that decides
+              whether this is usable at all. */}
+          <ul className="mt-2 max-h-72 space-y-1 overflow-y-auto rounded-xl border border-navy-200 bg-cream-50 p-2">
+            {checkboxFields.map((field) => (
+              <li key={field.name}>
+                <label className="flex min-h-11 cursor-pointer items-start gap-2 rounded-lg px-2 py-1 hover:bg-white">
+                  <input
+                    type="checkbox"
+                    checked={values[field.name] === "1"}
+                    onChange={(event) =>
+                      setValues((was) => ({
+                        ...was,
+                        [field.name]: event.target.checked ? "1" : "",
+                      }))
+                    }
+                    className="mt-0.5 h-5 w-5 shrink-0 rounded border-navy-300 text-navy-900"
+                  />
+                  <span className="text-base leading-6 text-navy-900">
+                    {field.label ?? field.name}
+                    {field.detail && (
+                      <span className="block text-xs text-navy-500">{field.detail}</span>
+                    )}
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {otherFields.length > 0 && (
         <div
           ref={fieldsBox}
           onFocusCapture={() => setFieldFocused(true)}
@@ -1937,8 +1998,8 @@ function ProposalView({
              by side instead of a tower; anything long spans the row. */
           className="mt-3 grid gap-3 sm:grid-cols-2"
         >
-          {editable.map((field, index) => {
-            const last = index === editable.length - 1;
+          {otherFields.map((field, index) => {
+            const last = index === otherFields.length - 1;
             return (
               <div key={field.name} className={field.long ? "sm:col-span-2" : undefined}>
                 <label

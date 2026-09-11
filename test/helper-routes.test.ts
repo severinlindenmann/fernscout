@@ -150,8 +150,8 @@ describe("the helper routes", () => {
   // Forty-three: `contacts/add-me` (B1393), the press behind `add_contact` —
   // the owner adding themself as a contact, from the name already on this
   // journal. Same cookie, same owner check.
-  test("there are forty-three of them, and each is guarded", () => {
-    expect(sources).toHaveLength(43);
+  test("there are forty-four of them, and each is guarded", () => {
+    expect(sources).toHaveLength(44);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

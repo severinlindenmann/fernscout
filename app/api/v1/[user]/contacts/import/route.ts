@@ -1,9 +1,6 @@
 import { authenticate, errorResponse, mayActAsOwner, outOfScope, ownsUser } from "@/lib/api/auth";
 import { isEnabled } from "@/lib/capabilities";
-import { requestContact } from "@/lib/contacts";
-import { pickLocale } from "@/lib/contacts/locale";
-import { sendCodeMail } from "@/lib/contacts/mail";
-import { isEmail, issueCode } from "@/lib/auth";
+import { importContactRows, type ImportRow } from "@/lib/contacts/importRows";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -33,14 +30,6 @@ export const dynamic = "force-dynamic";
 
 const MAX_ROWS = 50;
 
-type Row = { name?: unknown; email?: unknown; tel?: unknown };
-
-function str(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-type RowOutcome = { name: string; email: string; outcome: "created" | "updated" | "ignored" | "invalid" };
-
 export async function POST(request: Request, { params }: RouteContext<"/api/v1/[user]/contacts/import">) {
   const auth = await authenticate(request);
   if (!auth.ok) return errorResponse(auth);
@@ -66,7 +55,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
   }
 
   const body = (await request.json().catch(() => null)) as { rows?: unknown } | null;
-  const rows = Array.isArray(body?.rows) ? (body.rows as Row[]) : null;
+  const rows = Array.isArray(body?.rows) ? (body.rows as ImportRow[]) : null;
   if (!rows || rows.length === 0) {
     return Response.json(
       {
@@ -86,53 +75,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
     );
   }
 
-  const locale = pickLocale(null, config.defaultLocale);
-  const results: RowOutcome[] = [];
-
-  for (const row of rows) {
-    const name = str(row.name);
-    const email = str(row.email);
-    const tel = str(row.tel);
-    if (!name || !isEmail(email)) {
-      results.push({ name, email, outcome: "invalid" });
-      continue;
-    }
-
-    const result = await requestContact(user, {
-      name,
-      email,
-      locale,
-      // A number carried through and nothing else — the same shape the
-      // public form uses for "I did not say" beyond it. `EMPTY_ADDRESS`
-      // itself is not imported here; a postal address is not on a phone's
-      // contact card the way it is on an envelope somebody already sent.
-      address: tel ? { tel } : undefined,
-      wantsEmailDigest: false,
-      wantsPostcard: false,
-      // Left untouched on purpose — B1394's own note: a vCard's TEL is
-      // carried through so it is not lost, but ticking "message me on
-      // WhatsApp" is a separate decision nobody made on this row's behalf.
-      wantsWhatsapp: false,
-      createdVia: "owner-import",
-    });
-
-    if (result.outcome === "ignored") {
-      results.push({ name, email, outcome: "ignored" });
-      continue;
-    }
-
-    // Best effort, the same reasoning `sendApprovedMail` and every other
-    // mail in this family gets: the row already exists by the time this
-    // runs, and a dead SMTP host must not undo it.
-    try {
-      const { code } = await issueCode(user, email, "guest");
-      await sendCodeMail(user, config, email, locale, code);
-    } catch {
-      // The row is still pending and still correct; only the mail failed.
-    }
-    results.push({ name, email, outcome: result.outcome });
-  }
-
+  const results = await importContactRows(user, config, rows);
   const filed = results.filter((r) => r.outcome === "created" || r.outcome === "updated").length;
   return Response.json({
     filed,

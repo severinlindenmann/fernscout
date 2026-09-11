@@ -508,6 +508,9 @@ describe("the tools", () => {
       // The trip's own settings, reached from the conversation instead of a
       // shell — this round's four.
       "edit_trip",
+      // B1394 — a phone's own address book, read and reported into the
+      // conversation, a tick per row.
+      "import_contacts",
       // B931 — the only way somebody who was not on a trip can ever read it.
       "invite_guest",
       "journal_settings",

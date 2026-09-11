@@ -105,6 +105,7 @@ const ROUTES: Record<string, () => Promise<Record<string, unknown>>> = {
   "/day/undo": () => import("@/app/api/helper/[user]/day/undo/route"),
   "/day/weather": () => import("@/app/api/helper/[user]/day/weather/route"),
   "/contacts/add-me": () => import("@/app/api/helper/[user]/contacts/add-me/route"),
+  "/contacts/import": () => import("@/app/api/helper/[user]/contacts/import/route"),
 };
 
 /** The gallery item `remove_photo`'s own row below removes — `DRAFT`'s own
@@ -148,6 +149,10 @@ const SAID: Record<string, Record<string, string>> = {
   attach_files: { trip: AS_SAID, slug: DRAFT },
   remove_photo: { trip: AS_SAID, slug: DRAFT, src: DRAFT_PHOTO },
   discard_file: {},
+  // A vCard is staged per-run, below, the same way `attach_files` stages a
+  // photograph — `import_contacts` reads whichever `.vcf` is waiting when
+  // nothing is ticked, so there is nothing to say in advance here.
+  import_contacts: {},
   invite_guest: { name: "Mira" },
   set_rate: { trip: AS_SAID, currency: "thb", rate: "0.03" },
   set_budget: { trip: AS_SAID, total: "500", days: "5" },
@@ -361,6 +366,15 @@ describe("a proposal's arguments are the press", () => {
     if (name === "discard_file") {
       const staged = await storeInboxFile("alex", "media", "boot.jpg", await paintJpeg(40, 30, 2), {});
       said.file = staged.entry.id;
+    }
+    if (name === "import_contacts") {
+      await storeInboxFile(
+        "alex",
+        "files",
+        "contacts.vcf",
+        Buffer.from("BEGIN:VCARD\nVERSION:3.0\nFN:Greta Muster\nEMAIL:greta@example.test\nEND:VCARD\n"),
+        {},
+      );
     }
     const ran = await runTool("alex", name, said, say, "2026-05-06");
     const proposal = ran.proposal;
