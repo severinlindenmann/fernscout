@@ -15,18 +15,6 @@ claimed: "2026-09-11T14:51:58Z"
 
 ## Why
 
-TODO — the problem, not the fix.
-
-## Work
-
-TODO
-
-## Acceptance
-
-TODO
-
-## Why
-
 `next build` takes a lock. Two sessions running `npm run verify` in the same
 checkout — which is normal here, since several agents work at once and the
 shared checkout is where merges are verified — and the second one dies with
@@ -63,3 +51,16 @@ is the right answer and a person can read the message and wait.
 
 Start a build, then run `npm run verify` in the same checkout while it runs.
 The message names the other build.
+
+## Done
+
+`scripts/verify.mjs` now checks the failing build's captured output for
+`"Another next build process is already running"` and, when it matches,
+prints a message naming the collision and telling the caller to wait —
+instead of the generic "this tree is not ready" — then exits with the same
+status. Confirmed the exact string Next prints by reading
+`node_modules/next/dist/build/lockfile.js`: `` `Another ${processName} build
+process is already running.` ``, which matches.
+
+`AGENTS.md`, in the "Where the work happens" list beside the `cp -Rc` bullet,
+now has its own bullet naming the symptom and the fix (B1046).

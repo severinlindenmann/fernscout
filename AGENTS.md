@@ -420,9 +420,11 @@ mattered and no test could have said so. B1090. `work-on-a-task` step 5,
 `test-in-a-browser` and `check-a-drawing` each carry the procedure.
 
 **While you are iterating, run the one test file** — `npx vitest run
-test/thing.test.ts` — and keep `verify` for the end. The full suite is fifty
-seconds and the build seventy, and a change is usually wrong in one file at a
-time.
+test/thing.test.ts` — and keep `verify` for the end. Measured on this
+checkout: `npx vitest run` alone is well over four minutes across 500-odd
+files, and the build is under a minute; a full `npm run verify` is closer to
+five. A change is usually wrong in one file at a time, which is what makes the
+single-file run worth the habit.
 
 **Why the build goes first, since the script no longer makes you think about
 it.** Next generates the typed-route definitions in `.next/types` during a
@@ -610,6 +612,22 @@ Four things that follow, and are easy to get wrong:
   out of the filesystem root"*, and `verify` fails at step one for a reason
   that has nothing to do with the change. On a filesystem without `cp -Rc`,
   `npm ci` is still the answer.
+- **That clone is a snapshot, and goes stale the moment `main` moves past it.**
+  Merge `main` into a worktree cut a week ago and the lockfile can have moved
+  while the cloned `node_modules` did not, so the build dies with something
+  like `Module not found: Can't resolve 'tz-lookup'` — in a file the change
+  never touched, from a dependency the change has nothing to do with. That
+  symptom, not a broken merge, is what it means: check
+  `git diff --stat <old>..HEAD -- package-lock.json`, and if it moved,
+  re-run `cp -Rc`. Three sessions read this as a broken merge on 2026-09-09
+  before finding the real cause. B1141.
+- **Two sessions building the same checkout collide on `next`'s own build
+  lock, not on each other's code.** `npm run verify` in the shared checkout
+  while another session's build is still running dies with `⨯ Another next
+  build process is already running`; `verify` now says so and tells you to
+  wait rather than printing its generic "this tree is not ready". A worktree's
+  own `.next` never collides with anything — only two verifies in the *same*
+  checkout do. B1046.
 - **`.claude/worktrees/` already holds other sessions' work.** Never work in
   one you did not create, and never assume `main` is ahead of them — an id or
   a change captured in a sibling worktree has not reached `main` yet.

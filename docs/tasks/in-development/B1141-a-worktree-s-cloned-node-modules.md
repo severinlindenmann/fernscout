@@ -64,3 +64,20 @@ deliberately free of harness requirements a fresh clone would not have.
 person or agent actually sees finds the answer. An agent handed a two-week-old
 branch merges `main`, hits nothing, or hits this and recognises it from the
 document rather than from bisecting the build.
+
+## Done
+
+`AGENTS.md`, "Where the work happens", gained a bullet beside `cp -Rc` naming
+the symptom (`Module not found` for a package the change never touched, from
+a lockfile that moved) and the fix (`git diff --stat` on `package-lock.json`,
+then re-run `cp -Rc`). `.claude/skills/work-on-a-task/SKILL.md` step 2 got the
+same paragraph beside its own `cp -Rc` recipe, since it is the document an
+agent taking a stale ticket reads first.
+
+Also corrected the stale timing claim in the same section of `AGENTS.md`
+("the full suite is fifty seconds and the build seventy") — measured in this
+checkout: `npx vitest run` alone is ~262s across 525 files, `npm run build`
+is ~33s, so the sentence now says "well over four minutes" for the suite and
+"under a minute" for the build, with a full `npm run verify` "closer to
+five" (lint and knip add the rest). Timed with `time npm run build` and
+`time npx vitest run`.

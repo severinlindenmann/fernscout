@@ -115,6 +115,16 @@ for (const [name, [command, args], what] of steps) {
           : "\n─── vitest failed but printed nothing matching FAIL/✗/✕ — read the output above.\n",
       );
     }
+    if (name === "build" && lines.some((l) => l.includes("Another next build process is already running"))) {
+      console.error(
+        "\n─── build failed, but not because of this tree: another `next build`\n" +
+          "    is running in this same checkout right now (a second session, most\n" +
+          "    likely). That process holds the lock; nothing here is broken. Wait\n" +
+          "    for it to finish and run `npm run verify` again — do not read this as\n" +
+          "    your change failing.\n",
+      );
+      process.exit(status ?? 1);
+    }
     console.error(
       `\n─── ${name} failed. Stopping here — ${what} is what to read, and the steps` +
         `\n    after it would only tell you again that this tree is not ready.\n`,
