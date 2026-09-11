@@ -6,8 +6,7 @@ priority: medium
 complexity: low
 area: photobook
 found: "2026-09-11T21:18:24Z"
-started: "2026-09-11T21:23:17Z"
-merged: "2026-09-11T21:30:53Z"
+wontDo: The owner looked at the printed result and did not want the paper. Built, merged, deployed, then reverted on their word — the blank verso is the printing convention and it is their book.
 ---
 
 # B1542 — The title page's reverse is printed on, so the title leaf reads as a page rather than a title
@@ -87,3 +86,29 @@ wants without a blank of its own — on `example/asia-2023` the spread sits on
   existing example trip, page 2 white and page 3 the intro.
 - No `blank-padding` warning appeared that was not there before; the trip's
   own short-book warning is unchanged.
+
+## Reverted — 2026-09-12
+
+The owner saw the blank verso in a rendered book and said the extra white
+pages were unnecessary. Reverted in full: `draftsForFront()` opens with the
+title alone again, and `test/photobook.test.ts` now asserts the *opposite* —
+`pages[1]` is not blank — so nobody reinstates this by reading the convention
+out of a printing manual.
+
+Two things worth keeping, since the next person to notice the title page will
+reach the same conclusion this ticket did:
+
+- **The convention is real and was not the disagreement.** A title leaf with a
+  printed reverse is unusual in trade publishing, which is why this was filed
+  and built. It lost on cost, not on correctness: a blank leaf is a sheet of
+  paper in a book somebody is paying per page to print, and that is the
+  owner's call and not a planner's.
+- **It was mistaken for the Gelato leaves at first.** The interior file
+  carries two more pages than the book (`END_LEAVES`, B1173/B1231), which is
+  required — prepress refuses `pageCount + 3` and says so. Those are not this,
+  and they are not removable. A short trip's trailing white run is a third
+  thing again: 8 padding pages here, because four days cannot fill the
+  28-page minimum, which `blank-padding` already warns about.
+
+Nothing about the `spineText` work in B1544 depends on this; the two shared
+only `lib/photobook/plan.ts`.
