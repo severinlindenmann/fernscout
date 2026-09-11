@@ -217,10 +217,13 @@ describe("the four German sentences that used to come back unknown", () => {
     const answered = await read(await ask("was kostet das"));
     expect(answered.body.looked).toEqual(["account"]);
     expect(String(answered.body.answer)).toContain("10 Credits");
-    // The tool actually ran, and its answer went back to the model.
+    // The tool actually ran, and its answer went back to the model. 9.98
+    // rather than the granted 10 — B1091: this turn's own flat
+    // `HELPER_TURN_CREDITS` (0.02) was already spent, before the model was
+    // ever called, so the balance the tool reads back is the true one.
     const back = (sent[1].messages as { role: string; content: unknown }[])[2];
     const result = (back.content as { content: string }[])[0].content;
-    expect(JSON.parse(result)).toMatchObject({ credits: 10 });
+    expect(JSON.parse(result)).toMatchObject({ credits: 9.98 });
   });
 
   test('"ich war in lissabon" is answered without anything being written down', async () => {
@@ -400,7 +403,11 @@ describe("a proposal chained without the model — B926", () => {
     // error or a lapsed balance produces. `refused()` deliberately never
     // touches the thread — the route's own answer already says what
     // happened — so this must not remove what the proposal already put there.
-    await spend("alex", 10, "helper", "drain-for-test");
+    // Drained to just short of zero rather than to it — B1091: `ask` below
+    // now spends its own flat `HELPER_TURN_CREDITS` (0.02) before its model
+    // call, and this leaves exactly that much, still nowhere near the whole
+    // `WRITE_DAY_CREDITS` the press needs.
+    await spend("alex", 9.98, "helper", "drain-for-test");
     const pressed = await pressWriteDay({
       trip: "reise",
       slug: "kazbegi-tag",
