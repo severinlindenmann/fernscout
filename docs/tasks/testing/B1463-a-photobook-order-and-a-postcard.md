@@ -7,8 +7,7 @@ complexity: medium
 area: orders
 found: "2026-09-11T14:18:04Z"
 started: "2026-09-11T14:25:57Z"
-session: 3f748903-2dc3-47a2-a958-98b83d641dc0
-claimed: "2026-09-11T14:25:57Z"
+merged: "2026-09-11T14:37:40Z"
 ---
 
 # B1463 — A photobook order and a postcard order are two pages with no shared vocabulary

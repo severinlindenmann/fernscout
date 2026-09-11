@@ -323,20 +323,20 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (4)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1463](in-development/B1463-a-photobook-order-and-a-postcard.md) | A photobook order and a postcard order are two pages with no shared vocabulary | FEATURE | high | medium | `3f748903` |
 | [B1272](in-development/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low | `13f12910` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
 
-## testing (14)
+## testing (15)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1070](testing/B1070-the-three-ways-to-reach-this.md) | The three ways to reach this journal are not written down anywhere as three ways | DOCS | high | medium | — |
+| [B1463](testing/B1463-a-photobook-order-and-a-postcard.md) | A photobook order and a postcard order are two pages with no shared vocabulary | FEATURE | high | medium | — |
 | [B1094](testing/B1094-editing-a-contact-opens-a-form.md) | Editing a contact opens a form off-screen above the button, so the button looks broken | ISSUE | medium | low | — |
 | [B1131](testing/B1131-removing-somebody-from-a-trip-tells.md) | Removing somebody from a trip tells the owner their token keeps working, and it does not | ISSUE | medium | low | — |
 | [B1132](testing/B1132-the-address-confirmation-mail-says-nothing.md) | The address-confirmation mail says nothing opens yet, but a pre-approved invite admits the reader on confirming | ISSUE | medium | low | — |
