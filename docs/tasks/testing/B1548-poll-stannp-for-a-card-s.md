@@ -7,8 +7,7 @@ complexity: low
 area: postcards
 found: "2026-09-11T22:42:22Z"
 started: "2026-09-11T22:42:31Z"
-session: 34e11f5c-596a-4841-adfb-259f4651382a
-claimed: "2026-09-11T22:42:31Z"
+merged: "2026-09-11T22:52:01Z"
 ---
 
 # B1548 — Poll Stannp for a card's status when the order page is opened
