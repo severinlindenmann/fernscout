@@ -14,7 +14,13 @@ import {
   recordPrint,
   type PhotobookPayload,
 } from "@/lib/photobook/orders";
-import { createOrder as createPostcardOrder } from "@/lib/postcard/orders";
+import {
+  createOrder as createPostcardOrder,
+  findOrderByProviderRef,
+  getOrder as getPostcardOrder,
+  recordProviderCancellation,
+  recordResults,
+} from "@/lib/postcard/orders";
 import { listAllOrders } from "@/lib/orders";
 
 /**
@@ -135,5 +141,54 @@ describe("listAllOrders", () => {
     expect(rows.map((r) => r.kind).sort()).toEqual(["photobook", "postcard"]);
     // Sorted newest first by `createdAt`, whichever of the two that is.
     expect(rows[0].createdAt >= rows[1].createdAt).toBe(true);
+  });
+});
+
+/**
+ * `app/api/webhooks/stannp/route.ts` — B1484. A real database round trip,
+ * unlike `test/stannp-webhook.test.ts`'s own mocked `recordProviderCancellation`:
+ * this is what that mock stands in for.
+ */
+describe("findOrderByProviderRef / recordProviderCancellation", () => {
+  test("finds the order and contact a card's own ref belongs to, and cancelling it is additive", async () => {
+    const order = await createPostcardOrder(OWNER, {
+      provider: "dry-run",
+      trip: "alex/asia-2026",
+      day: "2026-01-01-day",
+      photo: "photo.jpg",
+      message: "hi",
+      from: "Us",
+      recipients: ["contact-1"],
+      locale: "en",
+    });
+    expect(order).not.toBeNull();
+    if (!order) return;
+
+    await recordResults(OWNER, order.id, order.payload, [
+      { contactId: "contact-1", ok: true, ref: "stannp:9001" },
+    ]);
+
+    const found = await findOrderByProviderRef("stannp:9001");
+    expect(found).toEqual({ owner: OWNER, id: order.id, contactId: "contact-1" });
+    expect(await findOrderByProviderRef("stannp:no-such-id")).toBeNull();
+
+    expect(await recordProviderCancellation("stannp:9001")).toBe(true);
+    const after = await getPostcardOrder(OWNER, order.id);
+    // Additive: still `built`, still `ok: true` — this card really did reach
+    // the printer. `providerStatus` is the one new fact.
+    expect(after?.status).toBe("built");
+    expect(after?.payload.results?.[0]).toEqual({
+      contactId: "contact-1",
+      ok: true,
+      ref: "stannp:9001",
+      providerStatus: "cancelled",
+    });
+
+    // A retried webhook delivery costs a write, not a second anything.
+    expect(await recordProviderCancellation("stannp:9001")).toBe(true);
+    const again = await getPostcardOrder(OWNER, order.id);
+    expect(again?.payload.results?.[0]?.providerStatus).toBe("cancelled");
+
+    expect(await recordProviderCancellation("stannp:no-such-id")).toBe(false);
   });
 });
