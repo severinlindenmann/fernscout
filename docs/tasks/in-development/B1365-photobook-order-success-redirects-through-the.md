@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: photobook
 found: "2026-09-10T18:27:27Z"
+started: "2026-09-11T04:23:04Z"
+session: 96a5b964-fad1-4616-9124-a01eabbd8a46
+claimed: "2026-09-11T04:23:04Z"
 ---
 
 # B1365 — Photobook order success redirects through the trip page instead of straight to the order page

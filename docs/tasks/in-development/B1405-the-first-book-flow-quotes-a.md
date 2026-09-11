@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: photobook, the first-book flow
 found: "2026-09-10T21:50:00Z"
+started: "2026-09-11T04:23:09Z"
+session: 96a5b964-fad1-4616-9124-a01eabbd8a46
+claimed: "2026-09-11T04:23:09Z"
 ---
 
 # B1405 — The first-book flow quotes a price before the recipient is known, so the figure can change before the press

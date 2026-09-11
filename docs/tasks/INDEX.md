@@ -238,7 +238,7 @@ Do not edit them by hand; run the script.
 | [B1364](backlog/wont-do/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (132)
+## open (117)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -255,7 +255,6 @@ Do not edit them by hand; run the script.
 | [B1153](open/B1153-handing-your-journal-to-your-own.md) | Handing your journal to your own agent means leaving the conversation to fetch the key | FEATURE | high | low |
 | [B1154](open/B1154-a-key-that-can-write-to.md) | A key that can write to this journal for seven days is visible nowhere in the room | FEATURE | high | medium |
 | [B1175](open/B1175-a-journal-deletion-that-fails-partway.md) | a journal deletion that fails partway leaves the journal gone, no tombstone, and a spent confirmation link | ISSUE | high | medium |
-| [B1223](open/B1223-three-failed-photobooks-for-one-journal.md) | Three failed photobooks for one journal share one attention-band id, so acknowledging one silently hides the other two and React sees duplicate keys | ISSUE | high | low |
 | [B1246](open/B1246-a-root-owned-content-registry-silently.md) | A root-owned content/.registry silently breaks every signup on the instance | ISSUE | high | low |
 | [B1247](open/B1247-a-failed-journal-creation-says-unknown.md) | A failed journal creation says unknown and empties every field the person filled in | ISSUE | high | low |
 | [B1249](open/B1249-a-signup-token-is-spent-by.md) | A signup token is spent by a creation that failed, so the person cannot retry at all | ISSUE | high | low |
@@ -264,7 +263,6 @@ Do not edit them by hand; run the script.
 | [B1254](open/B1254-reloading-the-helper-loses-every-interactive.md) | Reloading the helper loses every interactive card, leaving prose that points at one | ISSUE | high | medium |
 | [B1274](open/B1274-one-press-of-the-preview-publish.md) | One press of the preview publish button fires three requests and stacks three identical publish cards | ISSUE | high | low |
 | [B1275](open/B1275-the-preview-header-offers-put-this.md) | The preview header offers Put this day on the site, which does not put the day on the site | ISSUE | high | low |
-| [B1279](open/B1279-a-photobook-of-a-trip-with.md) | A photobook of a trip with three photographs contains none and cannot be ordered | ISSUE | high | medium |
 | [B1280](open/B1280-the-helper-offers-to-add-a.md) | The helper offers to add a postcard recipient, then refuses and names a settings page that does not exist | ISSUE | high | low |
 | [B1282](open/B1282-a-guest-confirming-their-invitation-silently.md) | A guest confirming their invitation silently deletes the postal address the owner entered for them | ISSUE | high | medium |
 | [B1301](open/B1301-an-approved-reader-who-opens-a.md) | An approved reader who opens a buddy link is given write access to the trip with no owner decision, and told there is nothing to do | SECURITY | high | medium |
@@ -279,14 +277,11 @@ Do not edit them by hand; run the script.
 | [B1400](open/B1400-publish-mjs-reports-every-requested-feature.md) | publish.mjs reports every requested feature key as applied without reading the response back | ISSUE | high | low |
 | [B1401](open/B1401-the-helper-client-s-yaml-parser.md) | The helper client's YAML parser stops at the first unsupported line and silently drops every key after it | ISSUE | high | medium |
 | [B1404](open/B1404-a-matched-number-with-the-channel.md) | A matched number with the channel off gets silence instead of a fresh opt-in ask | ISSUE | high | medium |
-| [B1406](open/B1406-a-book-with-no-recipient-is.md) | A book with no recipient is refused with the message for a book with no photographs | ISSUE | high | low |
-| [B1408](open/B1408-an-en-dash-in-a-day.md) | An en dash in a day's words comes out as a blank gap in the book | ISSUE | high | low |
 | [B911](open/B911-the-print-flow-has-never-run.md) | The print flow has never run against the live site | OPS | high | low |
 | [B106](open/B106-push-has-never-been-switched-on.md) | Push has never been switched on anywhere, so nothing has proved a notification reaches a phone | OPS | medium | medium |
 | [B1072](open/B1072-two-more-components-format-a-date.md) | Two more components format a date in whatever locale the renderer happens to have | ISSUE | medium | low |
 | [B1094](open/B1094-editing-a-contact-opens-a-form.md) | Editing a contact opens a form off-screen above the button, so the button looks broken | ISSUE | medium | low |
 | [B1112](open/B1112-a-triage-decision-carries-no-reason.md) | A triage decision carries no reason, so the run brief starts from ids alone | DOCS | medium | low |
-| [B1113](open/B1113-api-health-cannot-say-whether-this.md) | /api/health cannot say whether this instance actually prints photobooks | ISSUE | medium | low |
 | [B1116](open/B1116-plan-a-run-re-opens-questions.md) | plan-a-run re-opens questions a ticket has already decided unless the dispatch says not to | DOCS | medium | low |
 | [B1117](open/B1117-a-lane-move-can-invalidate-another.md) | A lane move can invalidate another ticket's acceptance section and nothing notices | ISSUE | medium | low |
 | [B112](open/B112-local-scripts-write-straight-to-content.md) | Local scripts still write straight to content, and the one guarantee they skip is the draft rule | FEATURE | medium | medium |
@@ -296,9 +291,7 @@ Do not edit them by hand; run the script.
 | [B1132](open/B1132-the-address-confirmation-mail-says-nothing.md) | The address-confirmation mail says nothing opens yet, but a pre-approved invite admits the reader on confirming | ISSUE | medium | low |
 | [B1139](open/B1139-a-hold-in-in-development-survives.md) | A hold in in-development survives the session that took it, and nothing says the work already merged | ISSUE | medium | medium |
 | [B1141](open/B1141-a-worktree-s-cloned-node-modules.md) | A worktree's cloned node_modules goes stale when main adds a dependency, and the build fails as if the change were wrong | DOCS | medium | low |
-| [B1148](open/B1148-a-refused-print-credential-is-reported.md) | A refused print credential is reported to the owner as the printer being unreachable, with advice to try again | ISSUE | medium | low |
 | [B1155](open/B1155-a-turn-spends-a-credit-and.md) | A turn spends a credit and nothing on screen says so | FEATURE | medium | medium |
-| [B1165](open/B1165-a-printer-refusal-says-nothing-about.md) | A printer refusal says nothing about why, to anybody who could act on it | ISSUE | medium | low |
 | [B1176](open/B1176-every-file-under-content-registry-was.md) | every file under content/.registry was root-owned, so the service account could not release a lock | OPS | medium | low |
 | [B1239](open/B1239-the-retired-wizard-s-code-still.md) | The retired wizard's code still ships: AgentWizard, its queue and its suites await deletion | CHORE | medium | medium |
 | [B1248](open/B1248-the-health-endpoint-reports-content-ok.md) | The health endpoint reports content ok without ever checking the content root is writable | ISSUE | medium | low |
@@ -332,8 +325,6 @@ Do not edit them by hand; run the script.
 | [B1395](open/B1395-a-buddy-listed-on-a-trip.md) | A buddy listed on a trip has no way to give or correct their address on /me | ISSUE | medium | low |
 | [B1397](open/B1397-a-busy-button-draws-two-loaders.md) | A busy button draws two loaders at once when the caller gives its own busy label | ISSUE | medium | low |
 | [B1403](open/B1403-nothing-an-outside-agent-reads-says.md) | Nothing an outside agent reads says weatherData is written by the server, so a filled block reads as fabricated | DOCS | medium | low |
-| [B1405](open/B1405-the-first-book-flow-quotes-a.md) | The first-book flow quotes a price before the recipient is known, so the figure can change before the press | ISSUE | medium | low |
-| [B1407](open/B1407-a-photograph-too-small-to-fill.md) | A photograph too small to fill its slot sits at the foot of the page instead of in the space it has | ISSUE | medium | medium |
 | [B673](open/B673-nobody-is-reminded-to-write-while.md) | Nobody is reminded to write while the trip is happening | FEATURE | medium | medium |
 | [B852](open/B852-a-journal-s-languages-units-and.md) | A journal's languages, units and currencies cannot be changed anywhere | FEATURE | medium | medium |
 | [B1038](open/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low |
@@ -350,7 +341,6 @@ Do not edit them by hand; run the script.
 | [B1133](open/B1133-the-owner-s-own-copy-of.md) | The owner's own copy of a day letter says they asked to be kept posted and offers no way to stop it | ISSUE | low | low |
 | [B1134](open/B1134-accept-language-is-the-only-way.md) | Accept-Language is the only way to set the language of the two pre-journal mails and no agent-facing document says so | FEATURE | low | low |
 | [B1142](open/B1142-the-share-control-gate-test-asserts.md) | The share-control gate test asserts proximity with a character window that is widened every time the file grows | ISSUE | low | low |
-| [B1149](open/B1149-the-pdf-x-report-tells-you.md) | The PDF/X report tells you to run gs-pdfx.sh, which is only written when the run already had an ICC | ISSUE | low | low |
 | [B1150](open/B1150-ghostscript-is-not-installed-on-the.md) | Ghostscript is not installed on the VPS, so the instance cannot produce a conformant PDF/X-4 | OPS | low | low |
 | [B1151](open/B1151-macos-appledouble-files-are-synced-into.md) | macOS AppleDouble files are synced into the demo journal's originals on the server | CHORE | low | low |
 | [B1180](open/B1180-the-subscribed-apps-post-is-a.md) | The subscribed_apps POST is a documented curl, not a one-shot script | CHORE | low | low |
@@ -360,13 +350,8 @@ Do not edit them by hand; run the script.
 | [B1283](open/B1283-the-phone-country-field-is-too.md) | The phone country field is too narrow for its own default value, so the dialling code is cut off | ISSUE | low | low |
 | [B1291](open/B1291-a-journal-with-no-usable-cover.md) | A journal with no usable cover renders half a card of flat colour on the landing page | ISSUE | low | low |
 | [B1293](open/B1293-two-of-the-four-signup-hints.md) | Two of the four signup hints sit above their field and two below, so the address rule reads as the title rule | ISSUE | low | low |
-| [B1294](open/B1294-the-photobook-route-answers-that-the.md) | The photobook route answers that the trip was taken down or renamed when the trip is still there | ISSUE | low | low |
 | [B1296](open/B1296-the-room-names-trips-by-their.md) | The room names trips by their id and dates in ISO, in a conversation that otherwise speaks plainly | ISSUE | low | low |
 | [B1298](open/B1298-the-day-chip-in-the-helper.md) | The day chip in the helper downloads three 2000px photographs to draw three 38px thumbnails | ISSUE | low | low |
-| [B1365](open/B1365-photobook-order-success-redirects-through-the.md) | Photobook order success redirects through the trip page instead of straight to the order page | CHORE | low | low |
-| [B1366](open/B1366-order-page-shows-book-interior-pdf.md) | Order page shows book-interior.pdf and book-cover.pdf links nobody needs | CHORE | low | low |
-| [B1367](open/B1367-photobook-order-page-reads-as-unstyled.md) | Photobook order page reads as unstyled text, not a Fernscout page | CHORE | low | low |
-| [B1368](open/B1368-photobook-flow-doesn-t-say-the.md) | Photobook flow doesn't say the print is experimental | CHORE | low | low |
 | [B1396](open/B1396-the-whatsapp-checkbox-carries-a-second.md) | The WhatsApp checkbox carries a second sentence about Meta that the form does not need | DOCS | low | low |
 | [B1402](open/B1402-a-content-path-one-level-too.md) | A content path one level too shallow is reported accurately and without naming the likely cause | ISSUE | low | low |
 | [B442](open/B442-a-postcard-order-closed-in-a.md) | A postcard order closed in a tab cannot be found again | FEATURE | low | low |
@@ -375,9 +360,25 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (0)
+## in-development (15)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B1223](in-development/B1223-three-failed-photobooks-for-one-journal.md) | Three failed photobooks for one journal share one attention-band id, so acknowledging one silently hides the other two and React sees duplicate keys | ISSUE | high | low | `96a5b964` |
+| [B1279](in-development/B1279-a-photobook-of-a-trip-with.md) | A photobook of a trip with three photographs contains none and cannot be ordered | ISSUE | high | medium | `96a5b964` |
+| [B1406](in-development/B1406-a-book-with-no-recipient-is.md) | A book with no recipient is refused with the message for a book with no photographs | ISSUE | high | low | `96a5b964` |
+| [B1408](in-development/B1408-an-en-dash-in-a-day.md) | An en dash in a day's words comes out as a blank gap in the book | ISSUE | high | low | `96a5b964` |
+| [B1113](in-development/B1113-api-health-cannot-say-whether-this.md) | /api/health cannot say whether this instance actually prints photobooks | ISSUE | medium | low | `96a5b964` |
+| [B1148](in-development/B1148-a-refused-print-credential-is-reported.md) | A refused print credential is reported to the owner as the printer being unreachable, with advice to try again | ISSUE | medium | low | `96a5b964` |
+| [B1165](in-development/B1165-a-printer-refusal-says-nothing-about.md) | A printer refusal says nothing about why, to anybody who could act on it | ISSUE | medium | low | `96a5b964` |
+| [B1405](in-development/B1405-the-first-book-flow-quotes-a.md) | The first-book flow quotes a price before the recipient is known, so the figure can change before the press | ISSUE | medium | low | `96a5b964` |
+| [B1407](in-development/B1407-a-photograph-too-small-to-fill.md) | A photograph too small to fill its slot sits at the foot of the page instead of in the space it has | ISSUE | medium | medium | `96a5b964` |
+| [B1149](in-development/B1149-the-pdf-x-report-tells-you.md) | The PDF/X report tells you to run gs-pdfx.sh, which is only written when the run already had an ICC | ISSUE | low | low | `96a5b964` |
+| [B1294](in-development/B1294-the-photobook-route-answers-that-the.md) | The photobook route answers that the trip was taken down or renamed when the trip is still there | ISSUE | low | low | `96a5b964` |
+| [B1365](in-development/B1365-photobook-order-success-redirects-through-the.md) | Photobook order success redirects through the trip page instead of straight to the order page | CHORE | low | low | `96a5b964` |
+| [B1366](in-development/B1366-order-page-shows-book-interior-pdf.md) | Order page shows book-interior.pdf and book-cover.pdf links nobody needs | CHORE | low | low | `96a5b964` |
+| [B1367](in-development/B1367-photobook-order-page-reads-as-unstyled.md) | Photobook order page reads as unstyled text, not a Fernscout page | CHORE | low | low | `96a5b964` |
+| [B1368](in-development/B1368-photobook-flow-doesn-t-say-the.md) | Photobook flow doesn't say the print is experimental | CHORE | low | low | `96a5b964` |
 
 ## testing (155)
 

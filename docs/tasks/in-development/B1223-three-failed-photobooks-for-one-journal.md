@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: lib/adminConsole.ts
 found: "2026-09-10T04:51:05Z"
+started: "2026-09-11T04:23:06Z"
+session: 96a5b964-fad1-4616-9124-a01eabbd8a46
+claimed: "2026-09-11T04:23:06Z"
 ---
 
 # B1223 — Three failed photobooks for one journal share one attention-band id, so acknowledging one silently hides the other two and React sees duplicate keys

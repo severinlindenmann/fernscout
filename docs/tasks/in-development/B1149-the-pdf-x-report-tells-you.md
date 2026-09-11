@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: photobook, print
 found: "2026-09-09T18:38:34Z"
+started: "2026-09-11T04:23:10Z"
+session: 96a5b964-fad1-4616-9124-a01eabbd8a46
+claimed: "2026-09-11T04:23:10Z"
 ---
 
 # B1149 — The PDF/X report tells you to run gs-pdfx.sh, which is only written when the run already had an ICC

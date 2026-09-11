@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: photobook
 found: "2026-09-10T10:59:33Z"
+started: "2026-09-11T04:23:09Z"
+session: 96a5b964-fad1-4616-9124-a01eabbd8a46
+claimed: "2026-09-11T04:23:09Z"
 ---
 
 # B1294 — The photobook route answers that the trip was taken down or renamed when the trip is still there

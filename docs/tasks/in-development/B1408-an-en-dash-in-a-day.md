@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: photobook, text rendering
 found: "2026-09-10T22:18:00Z"
+started: "2026-09-11T04:23:03Z"
+session: 96a5b964-fad1-4616-9124-a01eabbd8a46
+claimed: "2026-09-11T04:23:03Z"
 ---
 
 # B1408 — An en dash in a day's words comes out as a blank gap in the book

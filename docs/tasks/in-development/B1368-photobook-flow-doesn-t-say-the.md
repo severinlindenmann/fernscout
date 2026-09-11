@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: photobook
 found: "2026-09-10T18:31:58Z"
+started: "2026-09-11T04:23:08Z"
+session: 96a5b964-fad1-4616-9124-a01eabbd8a46
+claimed: "2026-09-11T04:23:08Z"
 ---
 
 # B1368 — Photobook flow doesn't say the print is experimental

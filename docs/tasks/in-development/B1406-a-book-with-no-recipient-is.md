@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: photobook, the ordering panel
 found: "2026-09-10T22:00:00Z"
+started: "2026-09-11T04:23:07Z"
+session: 96a5b964-fad1-4616-9124-a01eabbd8a46
+claimed: "2026-09-11T04:23:07Z"
 ---
 
 # B1406 — A book with no recipient is refused with the message for a book with no photographs
