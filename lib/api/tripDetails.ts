@@ -3,14 +3,17 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import { AS_AUTHOR, getAllMedia } from "../entries";
-import { getTrip, parseTripRef, tripDir, type TripRef } from "../trips";
-import { ACCENTS, COSTS_VISIBILITIES, DATE_RE } from "../tripWrite";
-import { spliceScalar } from "../frontmatterScalar";
+import { getTrip, parseTranslations, parseTripRef, tripDir, type TripRef } from "../trips";
+import { ACCENTS, COSTS_VISIBILITIES, DATE_RE, translationsBlock } from "../tripWrite";
+import { spliceBlock, spliceScalar } from "../frontmatterScalar";
+import { getUser } from "../users";
+import type { TripTranslations } from "../types";
 
 /**
  * A trip's `title:`, `tagline:`, `start:`, `end:`, `cover:`, `accent:`,
- * `costsVisibility:` and `intro`, after it exists — B621, `cover` since
- * B245, and `accent`/`costsVisibility`/`intro` since B907.
+ * `costsVisibility:`, `intro` and `translations:`, after it exists — B621,
+ * `cover` since B245, `accent`/`costsVisibility`/`intro` since B907, and
+ * `translations` since B1496.
  *
  * `title`/`tagline`/`start`/`end` were the last four fields of a trip that
  * nothing could write. Every other one got a door as somebody needed it —
@@ -40,6 +43,17 @@ import { spliceScalar } from "../frontmatterScalar";
  * than a frontmatter line, so it is replaced whole rather than spliced —
  * there is only one paragraph of it to preserve, unlike the several
  * frontmatter keys a splice has to leave untouched.
+ *
+ * `translations` was the last of the eleven fields `createTrip` accepts with
+ * no way back at all (B1496): writable at create, readable on this route's
+ * own `GET` since B540, correctable nowhere. That is worse than the eight
+ * above rather than merely equal to them, because whoever reads a trip's
+ * German title is reading it *instead of* the English one and has no way to
+ * see that it is wrong. It is a block rather than a line, so it splices with
+ * `spliceBlock` and replaces whole; and it is validated by `translationsBlock`
+ * imported from `lib/tripWrite.ts` rather than re-checked here, so the
+ * correction and the create refuse in the same words by construction — a
+ * second copy of that check is the next version of this same bug.
  *
  * Two fields `createTrip` also accepts are deliberately still not here.
  * `status` is `upcoming`/`current`/`past`, derived from the calendar at every
@@ -76,6 +90,7 @@ type TripDetailsShape = {
   accent?: string;
   costsVisibility: string;
   intro: string;
+  translations?: TripTranslations;
 };
 
 export type TripDetailsWriteResult =
@@ -95,6 +110,7 @@ function readTripDetails(ref: TripRef): TripDetailsShape | null {
     accent: trip.accent,
     costsVisibility: trip.costsVisibility,
     intro: trip.intro,
+    translations: trip.translations,
   };
 }
 
@@ -153,6 +169,7 @@ export function patchTripDetails(ref: TripRef, raw: unknown): TripDetailsWriteRe
     accent?: unknown;
     costsVisibility?: unknown;
     intro?: unknown;
+    translations?: unknown;
   };
 
   const before = readTripDetails(ref)!;
@@ -291,6 +308,42 @@ export function patchTripDetails(ref: TripRef, raw: unknown): TripDetailsWriteRe
     next.intro = body.intro.trim();
   }
 
+  // `translations` is the last of the eleven fields `POST .../trips` accepts
+  // that had no way back (B1496): writable at create, readable on this
+  // route's own `GET`, correctable nowhere. It matters more than most,
+  // because whoever reads a trip's German title is reading it *instead of*
+  // the English one and has no way to tell it is wrong.
+  //
+  // Validated by `translationsBlock` — the same function `createTrip` uses,
+  // imported rather than re-implemented, so the refusals agree by
+  // construction: the same `invalid_translations` code, the same sentence
+  // about a locale this journal does not declare. Unlike the scalars above
+  // it is a block, so it splices whole rather than a line at a time, and it
+  // replaces rather than merges: sending `{"de": {...}}` leaves a trip that
+  // has German and nothing else, which is the same "send what it should be"
+  // rule every other field on this route follows.
+  //
+  // `null` and `{}` both clear it, the `null`/`""` convention `tagline`,
+  // `cover` and `accent` use one field-shape up — `translationsBlock`
+  // already answers both with no lines, and an empty block is removed rather
+  // than written as a `translations:` holding nothing.
+  let translationLines: string[] | null = null;
+  if (body.translations !== undefined) {
+    const user = getUser(parseTripRef(ref)!.username);
+    if (!user) return { ok: false, error: "no_such_journal" };
+    const block = translationsBlock(body.translations, user.locales);
+    if (!block.ok) return { ok: false, error: block.error, message: block.message };
+    translationLines = block.lines;
+    // What the file is about to say, read by the same two functions that will
+    // read it off disk afterwards — `matter` over the block this is about to
+    // splice in, then `parseTranslations`. Predicting it any other way would
+    // be a second normaliser, and the read-back check below would then fail
+    // on a trimmed value rather than on a real bug.
+    next.translations = parseTranslations(
+      matter(["---", ...block.lines, "---", ""].join("\n")).data.translations,
+    );
+  }
+
   const file = path.join(tripDir(ref), "trip.md");
   const text = fs.readFileSync(file, "utf8");
 
@@ -363,6 +416,17 @@ export function patchTripDetails(ref: TripRef, raw: unknown): TripDetailsWriteRe
     };
   }
 
+  if (translationLines !== null) {
+    spliced = spliceBlock(spliced, "translations", translationLines);
+    if (spliced === null) {
+      return {
+        ok: false,
+        error: "no_frontmatter",
+        message: "trip.md has no frontmatter block to edit. Edit the file by hand.",
+      };
+    }
+  }
+
   // The one field that is not a frontmatter line: replaces the prose whole,
   // after every scalar splice above, so the two never fight over which one
   // owns the closing `---`.
@@ -400,7 +464,8 @@ export function patchTripDetails(ref: TripRef, raw: unknown): TripDetailsWriteRe
     (after.cover ?? undefined) !== (next.cover ?? undefined) ||
     (after.accent ?? undefined) !== (next.accent ?? undefined) ||
     after.costsVisibility !== next.costsVisibility ||
-    after.intro !== next.intro
+    after.intro !== next.intro ||
+    JSON.stringify(after.translations ?? null) !== JSON.stringify(next.translations ?? null)
   ) {
     return {
       ok: false,

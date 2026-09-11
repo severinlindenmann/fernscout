@@ -530,7 +530,12 @@ function parseRatesFrom(raw: unknown): Record<string, string> {
   return out;
 }
 
-function parseTranslations(raw: unknown): TripTranslations | undefined {
+/**
+ * Exported since B1496 so `patchTripDetails` can predict what the file it is
+ * about to write will read back as, using the reader itself rather than a
+ * second normaliser that would disagree about a trimmed or emptied entry.
+ */
+export function parseTranslations(raw: unknown): TripTranslations | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const src = raw as Record<string, { title?: string; tagline?: string } | undefined>;
   const out: TripTranslations = {};

@@ -9,9 +9,12 @@
  * hand-wrote, and the diff would be unreadable. This changes the one line it
  * was asked about and leaves the rest byte for byte.
  *
- * `lib/api/tripRates.ts` keeps a copy of its own on purpose: that one splices
- * a *block* (`rates:` with indented children) and this one refuses to, which
- * makes them two functions rather than one with a flag.
+ * Two shapes, one implementation: `spliceScalar` for `key: value`, and — since
+ * B1496 — `spliceBlock` for a key with indented children under it.
+ * `lib/api/tripRates.ts` and `lib/api/costs.ts` each still keep a private copy
+ * of the block form, on the call their own comments make: a dozen lines beside
+ * the file they edit, rather than an import that couples two modules which
+ * touch different files.
  */
 
 const INDENTED_RE = /^\s+\S/;
@@ -35,6 +38,26 @@ function frontmatterLineOf(lines: string[], closing: number, key: string): numbe
  * callers turn into a refusal rather than writing a file that had none.
  */
 export function spliceScalar(markdown: string, key: string, newLine: string | null): string | null {
+  return spliceFrontmatter(markdown, key, newLine === null ? [] : [newLine]);
+}
+
+/**
+ * The same edit for a key with indented children — `translations:` and its
+ * per-locale entries (B1496).
+ *
+ * An empty array removes the key and everything under it, which is how a
+ * `translations: {}` clears a block that should no longer be there. This is
+ * the shape `lib/api/tripRates.ts` and `lib/api/costs.ts` each keep a private
+ * copy of; those two are left alone deliberately — their own comments make
+ * the call that a dozen lines beside the file they edit beats an import — but
+ * a *fourth* copy in `lib/api/tripDetails.ts`, which already imports this
+ * module for its scalars, would have been a copy for nothing.
+ */
+export function spliceBlock(markdown: string, key: string, newLines: string[]): string | null {
+  return spliceFrontmatter(markdown, key, newLines);
+}
+
+function spliceFrontmatter(markdown: string, key: string, newLines: string[]): string | null {
   const lines = markdown.split("\n");
   if (lines[0]?.trim() !== "---") return null;
   const closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
@@ -43,13 +66,13 @@ export function spliceScalar(markdown: string, key: string, newLine: string | nu
   const at = frontmatterLineOf(lines, closing, key);
   if (at >= 0) {
     // Any indented lines under it belong to it — a scalar has none, but a
-    // caller that passes a block key would otherwise leave its children
-    // orphaned under the replacement.
+    // block key would otherwise leave its children orphaned under the
+    // replacement.
     let end = at + 1;
     while (end < closing && INDENTED_RE.test(lines[end])) end++;
-    lines.splice(at, end - at, ...(newLine === null ? [] : [newLine]));
-  } else if (newLine !== null) {
-    lines.splice(closing, 0, newLine);
+    lines.splice(at, end - at, ...newLines);
+  } else if (newLines.length > 0) {
+    lines.splice(closing, 0, ...newLines);
   }
   return lines.join("\n");
 }

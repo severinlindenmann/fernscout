@@ -245,6 +245,7 @@ export async function PATCH(
     "accent",
     "costsVisibility",
     "intro",
+    "translations",
   ] as const;
   if (!FIELDS.some((field) => body[field] !== undefined)) {
     return Response.json(
@@ -280,5 +281,9 @@ export async function PATCH(
     ...(result.accent ? { accent: result.accent } : {}),
     costsVisibility: result.costsVisibility,
     intro: result.intro,
+    // Read back on the same call that wrote it — the contract rule that a
+    // field the API accepts is a field it has to show, and the reason the
+    // correction can be checked without a second request.
+    ...(result.translations ? { translations: result.translations } : {}),
   });
 }
