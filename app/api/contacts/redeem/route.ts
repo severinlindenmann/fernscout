@@ -360,7 +360,8 @@ export async function POST(request: Request) {
   // for why comparing to the invite's own `email_key` is safe against a
   // forwarded link.
   const preapproved =
-    (await preapprovedEmailFor(username, confirmed.contact.createdVia)) === confirmed.contact.email;
+    (await preapprovedEmailFor(username, confirmed.contact.createdVia, confirmed.contact.status)) ===
+    confirmed.contact.email;
   const status = preapproved
     ? ((await approveContact(username, confirmed.contact.id))?.contact.status ??
       confirmed.contact.status)
@@ -387,7 +388,14 @@ export async function POST(request: Request) {
       // already had, or the pre-approval above just did it in this same
       // request — and there is nothing to wait for. They proved this address
       // to get here, so telling them the truth about their own row discloses
-      // nothing.
+      // nothing. This is a fact about the *journal*, not about any one trip:
+      // an already-active reader whose buddy link was correctly refused
+      // pre-approval above (B1301) is still told "in" here, exactly as
+      // `test/invite-links.test.ts`'s "signed in here, a redemption is one
+      // confirmation and no form at all" expects — the trip place itself
+      // stays a request either way, visible to the owner through
+      // `pendingTripRequestsFor` and to the reader through `isPersonOn`
+      // (see that test's next case), never through this field.
       status: status === "active" ? "in" : "waiting",
     },
     { status: 202 },

@@ -909,6 +909,8 @@ export type TranslationKey =
   | "contact.adminNone"
   | "contact.adminOther"
   | "contact.adminPending"
+  | "contact.adminPendingTripCount"
+  | "contact.adminPendingTripOne"
   | "contact.adminPush"
   | "contact.adminPushDevices"
   | "contact.adminPushDevices.one"

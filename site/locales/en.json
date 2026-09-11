@@ -42,6 +42,8 @@
   "contact.adminApproved": "Approved",
   "contact.adminApprovedNoTrip": "Approved — this only opens the journal itself; no trip is open to guests yet.",
   "contact.adminApprovedTrips": "Approved — this also gives them write access to {trips}.",
+  "contact.adminPendingTripOne": "Also asking to write to {trip} — approving opens it.",
+  "contact.adminPendingTripCount": "Also asking to write to {trips} — approving opens them.",
   "contact.adminBlockedContact": "That address was shown the door.",
   "contact.adminChannelEmail": "Email",
   "contact.adminChannelPostcard": "Postcard",

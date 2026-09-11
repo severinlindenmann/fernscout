@@ -78,13 +78,50 @@ already-approved reader.
 
 ## Work
 
-- Decide whether an existing guest grant should satisfy a buddy link. If it
-  should, the module comment and AGENTS.md are wrong and must be corrected — a
-  documented invariant that the code does not keep is worse than either.
-- If it should not, the redemption needs its own pending row for the trip, and the
-  page must not say "You're already in" about a grant the person does not have.
-- Whichever way it goes, `test/` should carry it: approved guest opens buddy link
-  → assert what `relationship.buddyOf` contains.
+Built, per the 2026-09-11 decision below: the invariant stands, so the fix is
+a guard, not a product change.
+
+- **`preapprovedEmailFor`** (`lib/contacts/invites.ts`) now takes the
+  confirming contact's *current* status and refuses outright — before it even
+  looks up the invite — when that status is `"active"`. This is the one
+  function all three callers of it route through
+  (`app/api/contacts/redeem/route.ts`'s signed-in branch,
+  `app/api/contacts/confirm/route.ts`'s mailed-code branch, and
+  `confirmContact` in `lib/contacts/index.ts`, which also decides whether to
+  keep a B350 session alive), so the guard closes the escalation on all three
+  at once rather than only on the path B1301 was reproduced against. A stale
+  `createdVia` — stamped once, on insert, never rewritten by `requestContact`'s
+  update branch — can therefore never again be read as consent for a *second*,
+  unrelated invite once the contact is already vouched for.
+- **B319 still works**: a *brand-new* contact's first confirmation is still
+  `pending` (never `active`) at the moment this check runs, so the guard does
+  not fire and `approveContact` still runs on the spot. Proved by
+  `test/buddy-preapproval-escalation.test.ts`, which redeems a real B319-style
+  mailed invite before redeeming the escalating one.
+- **The owner's queue, closed for real rather than left silently swallowed.**
+  `pendingTripRequestsFor` (`lib/tripPeople.ts`) answers, per contact, which
+  trips still have an ungranted `trip_people` row; `app/[user]/contacts/page.tsx`
+  reads it and `components/ContactsAdmin.tsx` shows it on an otherwise-settled
+  active contact's own row — "Also asking to write to `<trip>`" — with the same
+  Approve button a brand-new pending contact gets, since `approveContact` was
+  already correct and idempotent for this (it calls `approveTripPlaces`
+  regardless of current status). Three new locale keys
+  (`contact.adminPendingTripOne/Count`), written in English, German and
+  Hungarian.
+- **What was tried and reverted.** An earlier pass also changed
+  `/api/contacts/redeem`'s and `/api/contacts/confirm`'s own `status` field to
+  say "waiting" instead of "in" whenever a trip was still pending, and adjusted
+  `InviteRedeem.tsx` to match. That broke
+  `test/invite-links.test.ts`'s "signed in here, a redemption is one
+  confirmation and no form at all" — which had already, independently, encoded
+  the correct design: `status`/`"in"` is a fact about the *journal*
+  (`contact.status === "active"`), never about any one trip, and the very next
+  case in that same file (`"the buddy place they asked for is still waiting on
+  the owner"`) already asserts `isPersonOn(...) === false` right after this
+  same kind of redemption. So "you're in" said about the journal while a trip
+  request sits pending is the pre-existing, intentional design, not part of
+  the bug — the bug was only ever the silent auto-grant. Reverted rather than
+  argued past that test.
 
 ## Acceptance
 

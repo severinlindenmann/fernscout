@@ -346,6 +346,42 @@ export async function claimTripPlace(
 }
 
 /**
+ * Every trip a contact has asked to join and nobody has granted yet — B1301.
+ *
+ * `approveContact` is still the only thing that opens one of these rows, and
+ * that stays true whether the contact is `pending` or already `active`: an
+ * address the owner approved for one trip does not carry over to a *different*
+ * one a later buddy link named, so the row `claimTripPlace` writes for that
+ * later trip sits here, unopened, until the owner presses Approve again — the
+ * same click that opens a brand-new contact's first trip. This is what makes
+ * that click visible on the owner's own page for an already-active contact,
+ * who would otherwise have nothing marking them as `pending` at all.
+ *
+ * Keyed by contact id rather than returned as a flat list, because the page
+ * that reads this is walking one contact at a time and would otherwise filter
+ * the same rows once per row.
+ */
+export async function pendingTripRequestsFor(username: string): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  const handle = await getDatabaseOrNull();
+  if (!handle) return out;
+  const rows = await handle.db
+    .selectFrom("trip_people")
+    .select(["contact_id", "trip_id"])
+    .where("owner_id", "=", username)
+    .where("granted_at", "is", null)
+    .where("revoked_at", "is", null)
+    .execute();
+
+  for (const row of rows) {
+    const list = out.get(row.contact_id) ?? [];
+    list.push(row.trip_id);
+    out.set(row.contact_id, list);
+  }
+  return out;
+}
+
+/**
  * The owner waved somebody in, so every trip they asked to join opens.
  *
  * Called from `approveContact` and nowhere else, which is what keeps the

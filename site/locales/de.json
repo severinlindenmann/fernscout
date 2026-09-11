@@ -42,6 +42,8 @@
   "contact.adminApproved": "Freigegeben",
   "contact.adminApprovedNoTrip": "Genehmigt — das öffnet nur das Journal selbst; noch keine Reise ist für Gäste offen.",
   "contact.adminApprovedTrips": "Genehmigt — das gibt auch Schreibzugriff auf {trips}.",
+  "contact.adminPendingTripOne": "Möchte auch Schreibzugriff auf {trip} — Genehmigen öffnet es.",
+  "contact.adminPendingTripCount": "Möchte auch Schreibzugriff auf {trips} — Genehmigen öffnet sie.",
   "contact.adminBlockedContact": "Diese Adresse wurde gesperrt.",
   "contact.adminChannelEmail": "E-Mail",
   "contact.adminChannelPostcard": "Postkarte",

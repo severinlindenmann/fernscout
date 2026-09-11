@@ -80,6 +80,16 @@ export type AdminContact = {
   /** Owner, buddy (per trip) and guest — derived server-side from the same
    * checks the gates ask, never stored. See `relationshipsFor` — B630. */
   relationship: ContactRelationship;
+  /**
+   * Trip titles this contact has asked to join and nobody has granted yet —
+   * B1301. Not the same list as `relationship.buddyOf`, which only ever
+   * names a *live* place: this is what `pendingTripRequestsFor` still finds
+   * with `granted_at: null`, and it is the one thing that can be true of an
+   * already-`active` contact, when a later buddy link named a trip the
+   * earlier approval never covered. Optional so a fixture built before this
+   * existed still satisfies the type.
+   */
+  pendingTrips?: string[];
 };
 
 /**
@@ -356,6 +366,12 @@ function ContactRow({
 
   const postal = contact.postalAddress;
 
+  // B1301 — an already-`active` contact whose later buddy link named a trip
+  // the earlier approval never covered. `relationship.buddyOf` only lists a
+  // *live* place, so this is the one thing that still needs a decision from
+  // a row that otherwise reads as fully settled.
+  const pendingTrips = contact.status === "active" ? (contact.pendingTrips ?? []) : [];
+
   // B630 — what this person actually is to the journal, said in words rather
   // than left for the owner to work out from a status and a "via" line. More
   // than one can be true at once, and each is said rather than one winning.
@@ -503,6 +519,17 @@ function ContactRow({
           {t("contact.adminInvitePending")}
         </p>
       )}
+      {pendingTrips.length > 0 && (
+        // B1301 — the whole reason this note exists: an already-active
+        // contact is otherwise indistinguishable from one with nothing
+        // waiting on them, and the Approve button below is what a
+        // pending-but-unconfirmed row shows instead.
+        <p className="mt-3 text-base text-navy-600">
+          {pendingTrips.length === 1
+            ? t("contact.adminPendingTripOne", { trip: pendingTrips[0] })
+            : t("contact.adminPendingTripCount", { trips: pendingTrips.join(", ") })}
+        </p>
+      )}
       <div className="mt-4 flex flex-wrap gap-2">
         {canResend && (
           <BusyButton
@@ -514,7 +541,7 @@ function ContactRow({
             {t("contact.adminResendInvite")}
           </BusyButton>
         )}
-        {contact.status !== "active" && contact.confirmedAt && (
+        {((contact.status !== "active" && contact.confirmedAt) || pendingTrips.length > 0) && (
           <BusyButton
             busy={busy}
             type="button"
