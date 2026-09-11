@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (212)
+## backlog (210)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (54)
+### issue (52)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -99,8 +99,6 @@ Do not edit them by hand; run the script.
 | [B1510](backlog/issue/B1510-publish-drops-teaser-in-silence.md) | fernscout-helper's publish drops teaser in silence, so a closed trip never appears on /trips | ISSUE | medium | low |
 | [B1512](backlog/issue/B1512-two-days-with-the-same-title-collide.md) | Two days with the same title collide at publish with 409, and nothing catches it first | ISSUE | medium | low |
 | [B1513](backlog/issue/B1513-costs-cannot-be-imported-before-a-trip-exists.md) | Statement costs cannot be imported before a trip exists, and publish will not run until they are | ISSUE | medium | medium |
-| [B1515](backlog/issue/B1515-the-back-has-a-save-button.md) | The back has a save button for something that saves itself, and a warning the price already gives | ISSUE | medium | low |
-| [B1516](backlog/issue/B1516-the-message-floor-makes-the-preview.md) | The message floor makes the preview bigger than the card it is previewing | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
@@ -308,15 +306,18 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (0)
+## open (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity |
+| --- | --- | --- | --- | --- |
+| [B1516](open/B1516-the-message-floor-makes-the-preview.md) | The message floor makes the preview bigger than the card it is previewing | ISSUE | medium | low |
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1506](in-development/B1506-test-a-feature-has-no-isolated.md) | test-a-feature has no isolated CONTENT_DIR, so a local run writes into the tracked demo journal | CHORE | medium | medium | `01ffdab4` |
+| [B1515](in-development/B1515-the-back-has-a-save-button.md) | The back has a save button for something that saves itself, and a warning the price already gives | ISSUE | medium | low | `3f748903` |
 
 ## testing (3)
 
