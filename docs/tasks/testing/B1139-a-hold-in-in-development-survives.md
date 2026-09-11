@@ -7,8 +7,7 @@ complexity: medium
 area: tasks, tooling
 found: "2026-09-09T18:33:29Z"
 started: "2026-09-11T14:52:01Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T14:52:01Z"
+merged: "2026-09-11T15:15:02Z"
 ---
 
 # B1139 — A hold in in-development survives the session that took it, and nothing says the work already merged
