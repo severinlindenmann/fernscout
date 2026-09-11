@@ -247,7 +247,7 @@ export default function PostcardSend({
               type="submit"
               busy={busy}
               busyLabel={strings.sending}
-              className="min-h-11 rounded-full bg-navy-900 px-5 text-sm font-semibold text-white shadow-md transition-all duration-150 hover:bg-navy-700 hover:shadow-lg focus-visible:ring-4 focus-visible:ring-yellow-400 active:translate-y-px active:shadow-sm"
+              className="min-h-11 w-full rounded-full border-2 border-yellow-600 bg-yellow-400 px-5 text-sm font-semibold text-yellow-950 shadow-md transition-all duration-150 hover:bg-yellow-300 hover:shadow-lg focus-visible:ring-4 focus-visible:ring-navy-900 active:translate-y-px active:shadow-sm sm:w-auto"
             >
               {strings.yes}
             </BusyButton>
@@ -264,7 +264,16 @@ export default function PostcardSend({
           </form>
         </div>
       ) : (
-        <div className="mt-3">
+        <div className="mt-3 flex flex-col gap-3">
+          {/* The warning above the press, in coral, and not below it — B1489.
+              It was a grey line under the button, which is where a person
+              reads it only after deciding. This is the sentence that says
+              real cards and real money, and the drawing puts it in front of
+              the press for that reason. Coral, because on this palette that
+              is what a thing you cannot undo looks like. */}
+          <p className="rounded-r-lg border-l-4 border-coral-600 bg-coral-50 px-3 py-2 text-sm text-coral-600">
+            {strings.warning}
+          </p>
           {/* A link, not a submit: the first press only *asks*. */}
           <Link
             href={sendable ? `/${username}/postcards/${id}?confirm=1#send` : ""}
@@ -276,15 +285,14 @@ export default function PostcardSend({
               e.preventDefault();
               setStep("confirm");
             }}
-            className={`inline-flex min-h-11 items-center rounded-full px-5 text-sm font-semibold transition-colors ${
+            className={`inline-flex min-h-11 w-full items-center justify-center rounded-full border-2 px-5 text-sm font-semibold transition-colors sm:w-auto ${
               sendable
-                ? "bg-navy-900 text-white hover:bg-navy-700"
-                : "pointer-events-none bg-navy-900/40 text-white"
+                ? "border-yellow-600 bg-yellow-400 text-yellow-950 hover:bg-yellow-300"
+                : "pointer-events-none border-navy-200 bg-navy-100 text-navy-400"
             }`}
           >
             {strings.send}
           </Link>
-          <p className="mt-2 text-xs text-navy-600">{strings.warning}</p>
         </div>
       )}
     </section>
