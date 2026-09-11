@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: tests
 found: "2026-09-09T18:36:30Z"
+started: "2026-09-11T15:47:59Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T15:47:59Z"
 ---
 
 # B1142 — The share-control gate test asserts proximity with a character window that is widened every time the file grows

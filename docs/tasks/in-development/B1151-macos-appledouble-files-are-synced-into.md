@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: ops, content, deploy
 found: "2026-09-09T18:38:35Z"
+started: "2026-09-11T15:48:00Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T15:48:00Z"
 ---
 
 # B1151 — macOS AppleDouble files are synced into the demo journal's originals on the server

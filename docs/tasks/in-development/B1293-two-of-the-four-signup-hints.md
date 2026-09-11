@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: signup
 found: "2026-09-10T10:59:32Z"
+started: "2026-09-11T15:47:57Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T15:47:57Z"
 ---
 
 # B1293 — Two of the four signup hints sit above their field and two below, so the address rule reads as the title rule

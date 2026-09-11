@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: mail, digest
 found: "2026-09-09T18:00:03Z"
+started: "2026-09-11T15:47:58Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T15:47:58Z"
 ---
 
 # B1133 — The owner's own copy of a day letter says they asked to be kept posted and offers no way to stop it
