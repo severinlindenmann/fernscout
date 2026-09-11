@@ -2368,5 +2368,8 @@
   "order.object.cover": "Umschlag",
   "order.object.front": "Vorderseite",
   "order.meta.proposed": "Vorgeschlagen am {date} · Referenz {id}",
-  "order.meta.sent": "Gesendet am {date} · Referenz {id}"
+  "order.meta.sent": "Gesendet am {date} · Referenz {id}",
+  "postcard.page.waitingTitle": "{count} Karten warten auf dich",
+  "postcard.page.waitingTitle.one": "Eine Karte wartet auf dich",
+  "postcard.page.openCards": "Karten öffnen"
 }

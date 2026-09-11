@@ -2368,5 +2368,8 @@
   "order.object.cover": "Borító",
   "order.object.front": "Előlap",
   "order.meta.proposed": "Javasolva: {date} · Hivatkozás: {id}",
-  "order.meta.sent": "Elküldve: {date} · Hivatkozás: {id}"
+  "order.meta.sent": "Elküldve: {date} · Hivatkozás: {id}",
+  "postcard.page.waitingTitle": "{count} képeslap vár rád",
+  "postcard.page.waitingTitle.one": "Egy képeslap vár rád",
+  "postcard.page.openCards": "Képeslapok megnyitása"
 }

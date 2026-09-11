@@ -89,6 +89,7 @@ function Panel({
 const ORDER: StepName[] = ["look", "write", "send"];
 
 export default function PostcardSteps({
+  opening,
   lookPanel,
   writePanel,
   sendPanel,
@@ -104,6 +105,16 @@ export default function PostcardSteps({
    * opens where the outcome is. */
   settled = false,
 }: {
+  /** The card a proposal opens on, before the steps — B1490. Absent for an
+   *  order that is not a fresh proposal. */
+  opening?: {
+    eyebrow: string;
+    title: string;
+    body: string;
+    note: string;
+    label: string;
+    media: React.ReactNode;
+  };
   lookPanel: React.ReactNode;
   writePanel: React.ReactNode;
   sendPanel: React.ReactNode;
@@ -132,8 +143,56 @@ export default function PostcardSteps({
     () => false,
   );
   const [step, setStep] = useState<StepName>(settled ? "send" : start);
+  /**
+   * Whether the opening card has been pressed through — B1490.
+   *
+   * A proposal used to land the owner on the cropper, with a slider under
+   * their thumb before they had been told what they were looking at. The
+   * drawing opens on a card instead: the front, what it is, and the sentence
+   * that matters — nothing has been printed or charged, and nothing will be
+   * until you press send.
+   *
+   * Not persisted, and not a setting: it is an opening. Coming back to the
+   * page opens it again, which is right for a card that says what the page
+   * is about.
+   */
+  const [opened, setOpened] = useState(false);
 
   const index = ORDER.indexOf(step);
+
+  /* Only for a proposal nobody has touched yet: an order the owner is
+     already part-way through (arriving on `send` from a failed press, or
+     confirming) has nothing to be introduced to. */
+  const introducing = opening !== undefined && !opened && !settled && start === "look";
+
+  if (introducing) {
+    return (
+      <div className="mt-6 flex flex-col gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">
+            {opening.eyebrow}
+          </p>
+          <h2 className="mt-1 font-display text-2xl font-semibold text-navy-900">
+            {opening.title}
+          </h2>
+          <p className="mt-2 text-sm text-navy-600">{opening.body}</p>
+        </div>
+        {opening.media}
+        <div className="rounded-xl border border-navy-200 bg-white px-4 py-3">
+          <p className="text-sm text-navy-700">{opening.note}</p>
+        </div>
+        <div>
+          <button
+            type="button"
+            onClick={() => setOpened(true)}
+            className="min-h-11 w-full rounded-full border-2 border-yellow-600 bg-yellow-400 px-5 text-sm font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 sm:w-auto"
+          >
+            {opening.label}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-6">
