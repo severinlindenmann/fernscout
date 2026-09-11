@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -610,6 +610,63 @@ describe("deleting a journal", () => {
       params: Promise.resolve({ user }),
     });
     expect(response.status).toBe(410);
+  });
+
+  /**
+   * B1175 — the live incident: a step deep in the sweep threw (there, an
+   * `EACCES` unlinking a `.registry/` lock; here, the same shape on the
+   * folder itself) after the folder and the database rows were already gone
+   * and the tombstone was still the *last* thing written. The throw skipped
+   * it, leaving a journal that was gone everywhere but still answered 404
+   * rather than 410, with its address and username never freed and no
+   * record of what happened — recoverable only with a shell and
+   * `npm run registry -- reconcile`.
+   */
+  test("a step throwing after the tombstone still leaves the tombstone, the 410, and the hygiene that follows it", async () => {
+    const user = makeJournal();
+    makeTrip(user);
+    const dirPath = path.join(dir, user);
+    const originalRmSync = fs.rmSync.bind(fs);
+    const rmSpy = vi.spyOn(fs, "rmSync").mockImplementation((target: fs.PathLike, options?: fs.RmOptions) => {
+      if (String(target) === dirPath) {
+        throw Object.assign(new Error("EACCES: permission denied, unlink"), { code: "EACCES" });
+      }
+      return originalRmSync(target, options);
+    });
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await requestDeletion({ kind: "journal", username: user });
+    const token = takeToken(user);
+
+    // The removal itself failed — this is not silently reported as done.
+    await expect(confirmDeletion(user, token)).rejects.toThrow(/EACCES/);
+    rmSpy.mockRestore();
+
+    // But the tombstone is there, from before any of that ran, so the
+    // journal already reads as gone.
+    const stone = journalTombstone(user);
+    expect(stone).toMatchObject({ kind: "journal", username: user, title: "Anna's journal" });
+    const response = proxy(new NextRequest(new Request(`https://t.test/${user}`)));
+    expect(response?.status).toBe(410);
+
+    // The hygiene that comes after the failed step still ran: the owner's
+    // address is free again, even though the old folder is still on disk.
+    const freed = createJournal({
+      username: "someone-else",
+      title: "A different journal",
+      ownerEmail: OWNER,
+      ownerName: "Someone Else",
+      ownerNickname: "Someone",
+    });
+    expect(freed).toMatchObject({ ok: true });
+
+    // The link was not left spent on a deletion that never finished: the
+    // same token still works, and completes now that the removal succeeds.
+    const retried = await confirmDeletion(user, token);
+    expect(retried).toMatchObject({ ok: true, kind: "journal" });
+    expect(fs.existsSync(dirPath)).toBe(false);
+
+    errorLog.mockRestore();
   });
 });
 

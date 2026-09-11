@@ -111,3 +111,81 @@ Verified before deciding: `confirmDeletion` (`lib/deletions.ts:499-527`) spends
 `deleteJournal` (587-620) runs DB deletes, `fs.rmSync`, `dropMediaCache()` and
 `release()` before `writeTombstone` ever runs, so a throw at any of those skips
 the tombstone entirely. `deleteTrip` has the same shape at 672-675.
+
+## Built, 2026-09-11
+
+**New order in both `deleteJournal` and `deleteTrip`:** gather the summary,
+notice and (for a journal) the owner's address/tel — all reads, unchanged —
+then `writeTombstone(...)` **first**, before anything is touched. Everything
+after that point is split into two kinds of step, not treated uniformly:
+
+- **Content** (the database rows and the folder itself) runs inside a single
+  `try`, and a throw there is *captured* rather than swallowed — the tombstone
+  is already down, so nothing is lost by continuing, but the failure is real
+  and must not be reported as success.
+- **Hygiene** (`dropMediaCache()`, and for a journal `release()` on the
+  `.registry/` locks) runs through a small `bestEffort()` helper that logs and
+  continues — this is exactly where the live incident's `EACCES` was, and now
+  it can never again skip the tombstone or block the other hygiene step.
+  `clearUserCache()`/`clearConfigCache()` run unconditionally after both.
+
+The captured content failure is rethrown at the very end of the function, once
+hygiene has run. `deleteTrip` got the identical treatment (same shape, minus
+`release()`, which trips never touch) — the ticket asked to decide this
+explicitly, and the answer is yes: leaving `deleteTrip` on the old order would
+have reintroduced exactly this bug for trip deletions the moment anything in
+its own sweep threw.
+
+**The 410 window:** accepted, not engineered around. Between the tombstone
+write and the folder actually leaving disk, a concurrent reader can hit `410`
+on a journal that is still fully present — for local SQLite, all synchronous
+JS between two lines; for Postgres, the span of the DB delete loop plus one
+`rmSync`, typically low milliseconds. No "provisional" flag was built: the
+decision above already named this as the traded-for cost, and a flag that
+itself needs to be cleared under the same partial-failure conditions this
+ticket is about would just move the bug rather than remove it.
+
+**The spent link:** `confirmDeletion` now wraps the `deleteJournal`/
+`deleteTrip` call in `try/catch`; on a throw it resets `consumed_at` to `null`
+and rethrows, so the *same mail link* works again — no operator, no shell.
+This surfaced a second, related bug, fixed alongside it: `resolveDeletionToken`
+resolves the target through `getUser`/`userExists`, which (correctly, for
+every other caller) treat a tombstoned name as gone — so the instant the
+tombstone landed, the token's own re-resolution read the target as "gone" and
+refused the retry with the wrong reason. Fixed by threading an
+`ignoreTombstone` option through `getUsernames`/`userExists`/`getUser` (mirrors
+the option `isReservedUsername` already had for `createJournal`'s reclaim
+case) and having `resolveDeletionToken` alone pass it — every other caller in
+the codebase is unaffected, and a genuinely-gone journal (directory actually
+absent) still resolves to "gone" regardless of the option, since that check
+never depends on the tombstone in the first place.
+
+`deleteJournal`'s own DB sweep was also changed to skip `deletion_requests`
+until the very last line of its content step (right after the folder is
+actually removed) rather than sweeping it with every other table — otherwise
+the confirming row itself was destroyed before a later throw, and the retry
+above had nothing left to un-consume. `deleteTrip` already skipped it
+entirely, unchanged.
+
+**Test:** `test/deletions.test.ts`, "a step throwing after the tombstone
+still leaves the tombstone, the 410, and the hygiene that follows it" — stubs
+`fs.rmSync` to throw only for the journal's own directory (the live EACCES's
+shape, generalised), then asserts: `confirmDeletion` rejects rather than
+reporting success; the tombstone exists; the old URL answers `410`; the
+*next* hygiene step (`release()`) still ran, freeing the owner's email for a
+new journal even though the old folder is still on disk; and the same
+confirmation token, pressed again, now completes and actually removes the
+folder. Confirmed failing on the pre-fix code by `git stash`-ing the
+`lib/` changes and running just this test: it failed at the very first
+assertion (`journalTombstone(user)` was `null`), because the unfixed code
+still writes the tombstone last.
+
+**Out of scope, unchanged:** whether `npm run registry -- reconcile` belongs
+behind `/admin` — not built, per the ticket. Worth noting: this fix makes
+that question lower-stakes than it looked, since the registry-lock failure
+that motivated it (release() throwing) can no longer strand a journal or a
+link; reconcile would now only be needed to repair a registry that was wrong
+for some *other* reason.
+
+`npm run verify`: build, tsc, eslint, 6865 tests passed (4 skipped across 522
+files), knip clean. Exit code 0.
