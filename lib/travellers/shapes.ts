@@ -39,7 +39,18 @@ export type Shape =
   | { kind: "path"; d: string; fill?: Paint; stroke?: Paint; width?: number; opacity?: number }
   | { kind: "circle"; cx: number; cy: number; r: number; fill?: Paint; stroke?: Paint; width?: number; opacity?: number }
   | { kind: "ellipse"; cx: number; cy: number; rx: number; ry: number; fill?: Paint; stroke?: Paint; width?: number; opacity?: number }
-  | { kind: "rect"; x: number; y: number; w: number; h: number; r?: number; fill: Paint; opacity?: number }
+  | {
+      kind: "rect";
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      r?: number;
+      fill: Paint;
+      stroke?: Paint;
+      width?: number;
+      opacity?: number;
+    }
   /** A horizontal scale about `aboutX` — the `build` silhouette. Its own kind
    *  rather than baked into coordinates because the paths inside it are `d`
    *  strings, and scaling those would mean parsing them here. */
@@ -49,6 +60,23 @@ export type Shape =
 export const SHADOW: Paint = "shadow";
 
 const K = 0.5522847498307936;
+
+/**
+ * A garment's fill, plus a thin edge darker than that fill.
+ *
+ * B1527: at figure size, flat fills with no outline mean a garment reads as
+ * clothing only when it *contrasts* with the skin beside it — and `cream`
+ * next to `light` skin, or `sand` next to `light-medium`, do not. The fix is
+ * not "pick a stroke that differs from this skin", which would be a lookup
+ * table that is always missing its next pairing; it is that **every** garment
+ * gets an edge darker than its own fill, unconditionally. A dark navy shirt's
+ * edge is barely visible against its own fill and does no harm; a cream
+ * shirt's edge is the line that was missing. Every skin/garment pair is
+ * covered without either vocabulary losing a value.
+ */
+function edged(fill: string): { fill: string; stroke: string; width: number } {
+  return { fill, stroke: shade(fill, 0.62), width: 0.9 };
+}
 
 /** A ring of overlapping circles around the skull, for curls and coils. */
 function clump(fill: string, r: number, radius: number, from: number, to: number, n: number): Shape[] {
@@ -169,16 +197,22 @@ function hairInFront(style: HairStyle, c: string): Shape[] {
  * case, because a hem has to sit over the top of them.
  */
 function lowerBody(outfit: string, shirt: string, pants: string, skin: string): Shape[] {
-  const legs = (top: number, length: number, fill: string, inset = 0): Shape[] => [
-    { kind: "rect", x: 21 + inset, y: top, w: 9.5 - inset * 2, h: length, r: 4.75 - inset, fill },
-    { kind: "rect", x: 33.5 + inset, y: top, w: 9.5 - inset * 2, h: length, r: 4.75 - inset, fill },
-  ];
+  // `edge` chooses whether a pair of leg rects gets the garment's darker
+  // outline (a trouser leg, a shorts hem) or none (bare skin is not a
+  // garment and needs no edge of its own).
+  const legs = (top: number, length: number, fill: string, inset = 0, edge = false): Shape[] => {
+    const paint = edge ? edged(fill) : { fill };
+    return [
+      { kind: "rect", x: 21 + inset, y: top, w: 9.5 - inset * 2, h: length, r: 4.75 - inset, ...paint },
+      { kind: "rect", x: 33.5 + inset, y: top, w: 9.5 - inset * 2, h: length, r: 4.75 - inset, ...paint },
+    ];
+  };
   const feet: Shape[] = [
     { kind: "ellipse", cx: 25.5, cy: 89, rx: 6.5, ry: 3.2, fill: "#2b3648" },
     { kind: "ellipse", cx: 38.5, cy: 89, rx: 6.5, ry: 3.2, fill: "#2b3648" },
   ];
   const torso: Shape[] = [
-    { kind: "path", d: "M17 42q15-6 30 0l2 24q-17 6-34 0z", fill: shirt },
+    { kind: "path", d: "M17 42q15-6 30 0l2 24q-17 6-34 0z", ...edged(shirt) },
     {
       kind: "path",
       d: "M17 42q15-6 30 0l0.6 7q-15-5-31 0z",
@@ -191,12 +225,12 @@ function lowerBody(outfit: string, shirt: string, pants: string, skin: string): 
     case "shorts":
       // The hem clears the torso before it stops, or the garment is hidden
       // under the shirt and all that reads is bare legs — which is any outfit.
-      return [...legs(64, 24, skin, 0.55), ...feet, ...legs(64, 15, pants), ...torso];
+      return [...legs(64, 24, skin, 0.55), ...feet, ...legs(64, 15, pants, 0, true), ...torso];
     case "skirt":
       return [
         ...legs(64, 24, skin, 0.55),
         ...feet,
-        { kind: "path", d: "M18.5 64q13.5-4 27 0l4 16q-17.5 5-35 0z", fill: pants },
+        { kind: "path", d: "M18.5 64q13.5-4 27 0l4 16q-17.5 5-35 0z", ...edged(pants) },
         {
           kind: "path",
           d: "M18.5 64q13.5-4 27 0l0.5 3q-14-3.4-28 0z",
@@ -209,7 +243,7 @@ function lowerBody(outfit: string, shirt: string, pants: string, skin: string): 
       return [
         ...legs(70, 18, skin, 0.55),
         ...feet,
-        { kind: "path", d: "M17 42q15-6 30 0l7 34q-22 6-44 0z", fill: shirt },
+        { kind: "path", d: "M17 42q15-6 30 0l7 34q-22 6-44 0z", ...edged(shirt) },
         {
           kind: "path",
           d: "M17 42q15-6 30 0l0.6 7q-15-5-31 0z",
@@ -220,7 +254,7 @@ function lowerBody(outfit: string, shirt: string, pants: string, skin: string): 
     case "robe":
       return [
         ...feet,
-        { kind: "path", d: "M17 42q15-6 30 0l6 46q-21 5-42 0z", fill: shirt },
+        { kind: "path", d: "M17 42q15-6 30 0l6 46q-21 5-42 0z", ...edged(shirt) },
         {
           kind: "path",
           d: "M17 42q15-6 30 0l0.6 7q-15-5-31 0z",
@@ -231,7 +265,7 @@ function lowerBody(outfit: string, shirt: string, pants: string, skin: string): 
       ];
     case "trousers":
     default:
-      return [...legs(64, 24, pants), ...feet, ...torso];
+      return [...legs(64, 24, pants, 0, true), ...feet, ...torso];
   }
 }
 
@@ -351,8 +385,8 @@ export function figureShapes(figure: Figure, options: { head?: boolean } = {}): 
       aboutX: 32,
       shapes: [
         ...lowerBody(figure.outfit ?? "trousers", shirt, pants, skin),
-        { kind: "rect", x: 11.5, y: 44, w: 8, h: 22, r: 4, fill: shirt },
-        { kind: "rect", x: 44.5, y: 44, w: 8, h: 22, r: 4, fill: shirt },
+        { kind: "rect", x: 11.5, y: 44, w: 8, h: 22, r: 4, ...edged(shirt) },
+        { kind: "rect", x: 44.5, y: 44, w: 8, h: 22, r: 4, ...edged(shirt) },
         { kind: "circle", cx: 15.5, cy: 67, r: 4.6, fill: skin },
         { kind: "circle", cx: 48.5, cy: 67, r: 4.6, fill: skin },
       ],
