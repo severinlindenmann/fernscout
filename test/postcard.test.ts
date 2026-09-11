@@ -5,7 +5,6 @@ import {
   A6_LANDSCAPE,
   DIVIDER_X_MM,
   FIGURES_AREA,
-  MESSAGE_FLOOR_PX,
   MESSAGE_PT,
   fontFraction,
   mediaBox,
@@ -525,12 +524,13 @@ function cqwOf(value: string): number {
 }
 
 describe("the preview is drawn to the printer's measurements", () => {
-  test("the message percentage is the point size over the card width, floored for legibility", () => {
-    // B1286: no longer the bare percentage — `max()` with a floor under it,
-    // since the same percentage renders at 8px on a phone. The percentage
-    // itself is unchanged.
-    const expected = `max(${(fontFraction(MESSAGE_PT) * 100).toFixed(3)}cqw, ${MESSAGE_FLOOR_PX}px)`;
-    expect(backLayout().font.message).toBe(expected);
+  test("the message percentage is the point size over the card width, and nothing else", () => {
+    // B1516: the bare percentage again. B1286's 14px floor kept the words
+    // readable on a phone and made the preview two thirds larger than the
+    // card it previews, so a message that fits the paper overflowed the
+    // drawing — which is the one question the drawing is there to answer.
+    // The field under it is where the words are read.
+    expect(backLayout().font.message).toBe(`${(fontFraction(MESSAGE_PT) * 100).toFixed(3)}cqw`);
   });
 
   test("and that is about 2.3% of the card, not 2.4", () => {

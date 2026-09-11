@@ -6,7 +6,6 @@ import {
   DIVIDER_X_MM,
   FIGURES_AREA,
   LEADING,
-  MESSAGE_FLOOR_PX,
   MESSAGE_PT,
   PRINT_FLOOR_DPI,
   SIGNATURE_PT,
@@ -107,25 +106,25 @@ export function backLayout(spec: PostcardSpec = A6_LANDSCAPE) {
      */
     font: {
       /**
-       * `max()`, not the bare percentage — B1286. Below a card width of
-       * `messageTrueAbovePx` the percentage alone renders under
-       * `MESSAGE_FLOOR_PX` and the floor wins instead, which is what makes the
-       * message readable on a phone at the cost of no longer being to scale.
+       * The message at its true fraction of the card, at every width — B1516.
+       *
+       * B1286 put a 14px floor under this so the words stayed readable on a
+       * phone, where the true size is about 8.5px. The cost was a preview
+       * two thirds larger than the card it previews: a message that fits the
+       * paper overflowed the drawn back and was clipped mid-word, which is
+       * the one question this picture exists to answer.
+       *
+       * The owner's call, and the right one: the preview is for the shape of
+       * the card — where the words sit, how much white is left — and the
+       * field directly under it holds the same words at 16px, which is where
+       * anybody actually reads them.
        */
-      message: `max(${(fontFraction(MESSAGE_PT, spec) * 100).toFixed(3)}cqw, ${MESSAGE_FLOOR_PX}px)`,
+      message: `${(fontFraction(MESSAGE_PT, spec) * 100).toFixed(3)}cqw`,
       signature: `${(fontFraction(SIGNATURE_PT, spec) * 100).toFixed(3)}cqw`,
       address: `${(fontFraction(ADDRESS_PT, spec) * 100).toFixed(3)}cqw`,
       /** Unitless, so it multiplies whatever font size it lands on. */
       leading: LEADING,
       addressLeading: ADDRESS_LEADING_PT / ADDRESS_PT,
-      /**
-       * The card width, in CSS px, above which the message's own `cqw`
-       * already clears `MESSAGE_FLOOR_PX` on its own — the point the floor
-       * above stops doing any work. The client measures its own rendered
-       * width against this to decide whether the caption may still say the
-       * message is at print size (`PostcardBack.tsx`).
-       */
-      messageTrueAbovePx: MESSAGE_FLOOR_PX / fontFraction(MESSAGE_PT, spec),
     },
   };
 }

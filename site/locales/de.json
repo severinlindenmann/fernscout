@@ -1168,8 +1168,6 @@
   "postcard.page.alreadySent": "Diese Karten wurden bereits gesendet.",
   "postcard.page.back": "Die Rückseite, in Druckgrösse",
   "postcard.page.backFirstOf": "Die Rückseite, in Druckgrösse — adressiert an die erste von {count}",
-  "postcard.page.backNotToScale": "Die Rückseite, nicht massstabsgetreu",
-  "postcard.page.backFirstOfNotToScale": "Die Rückseite, nicht massstabsgetreu — adressiert an die erste von {count}",
   "postcard.page.balance": "Du hast {balance}.",
   "postcard.page.buy": "Credits kaufen",
   "postcard.page.cropHint": "Zieh das Foto, um es zu verschieben, und den Regler, um näher heranzugehen.",
