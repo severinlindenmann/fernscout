@@ -304,7 +304,7 @@ Do not edit them by hand; run the script.
 | [B1119](open/B1119-fernscout-ch-s-caddy-block-is.md) | fernscout.ch's Caddy block is hand-merged, so proxy directives drift until applied by hand | OPS | low | low |
 | [B1150](open/B1150-ghostscript-is-not-installed-on-the.md) | Ghostscript is not installed on the VPS, so the instance cannot produce a conformant PDF/X-4 | OPS | low | low |
 
-## in-development (6)
+## in-development (5)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -313,9 +313,8 @@ Do not edit them by hand; run the script.
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
 | [B675](in-development/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium | `13f12910` |
-| [B909](in-development/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high | `13f12910` |
 
-## testing (54)
+## testing (55)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -373,6 +372,7 @@ Do not edit them by hand; run the script.
 | [B1434](testing/B1434-the-photograph-reaches-meta-first-disclosure.md) | The photograph-reaches-Meta-first disclosure has no owner-facing home after B1396 | DOCS | low | low | — |
 | [B1459](testing/B1459-journal-creation-sends-a-next-pointer.md) | Journal creation sends a next pointer the contract never mentions | ISSUE | low | low | — |
 | [B539](testing/B539-a-costs-page-with-a-budget.md) | A costs page with a budget and no day-level spending just looks thin | FEATURE | low | low | — |
+| [B909](testing/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high | — |
 
 ## completed (1192)
 

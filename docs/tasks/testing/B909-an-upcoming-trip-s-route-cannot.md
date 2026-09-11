@@ -7,8 +7,7 @@ complexity: high
 area: api, plan
 found: "2026-09-08T04:57:43Z"
 started: "2026-09-11T17:27:01Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T17:27:01Z"
+merged: "2026-09-11T17:53:42Z"
 ---
 
 # B909 — An upcoming trip's route cannot be reached over the network at all
