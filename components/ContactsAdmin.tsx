@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import { useRouter } from "next/navigation";
 import { BellRing, Mail, MessageCircle, Stamp } from "lucide-react";
@@ -266,6 +266,28 @@ type Count = (
 ) => string;
 
 /**
+ * The props `GuestForm` needs beyond the contact it is editing — B1094.
+ *
+ * Bundled so a row can be handed everything the form needs in one prop
+ * rather than threading eight of them individually through `ContactGroup`
+ * and `ContactRow`, which otherwise carry them only to pass them on.
+ */
+type GuestFormEnv = {
+  fallbackLocale: Locale;
+  locales: string[];
+  username: string;
+  t: Translate;
+  busy: boolean;
+  act: (body: Record<string, unknown>) => Promise<Response | null>;
+  postcardsEnabled: boolean;
+  pushEnabled: boolean;
+  whatsappEnabled: boolean;
+  defaultCountryCode?: string;
+  addressLookupEnabled: boolean;
+  onClose: () => void;
+};
+
+/**
  * One channel this reader is on — B453.
  *
  * A chip rather than a line of the list, and two words rather than the
@@ -305,6 +327,8 @@ function ContactRow({
   locales,
   defaultCountryCode,
   approvedTrips,
+  editing = false,
+  guestFormEnv,
 }: {
   contact: AdminContact;
   /** How they came to be here, already in words — see `viaLabel`. Resolved by
@@ -349,6 +373,18 @@ function ContactRow({
    * that same "nothing to say" case.
    */
   approvedTrips?: string[];
+  /**
+   * Whether this is the row the owner pressed Edit on — B1094. `GuestForm`
+   * used to render once, above every group, regardless of which row's edit
+   * button opened it — which put the form off-screen for anything but the
+   * first few contacts. Rendering it in the card being edited removes the
+   * distance instead of compensating for it, the way `EditDay` sits under
+   * the day it corrects (B980).
+   */
+  editing?: boolean;
+  /** Everything `GuestForm` needs beyond the contact — present exactly when
+   * `editing` is, so a row that is not being edited pays nothing for it. */
+  guestFormEnv?: GuestFormEnv;
 }) {
   // Owner-facing copy, not the guest form's first-person "Send me…" — this
   // list is read by the owner, about somebody else.
@@ -592,6 +628,28 @@ function ContactRow({
           {t("contact.adminDelete")}
         </BusyButton>
       </div>
+      {/* B1094 — the edit form for this exact row, in place, rather than off
+          the top of the page. `key`ed on the contact id so switching from one
+          row's edit button to another's remounts rather than patching stale
+          field values from whoever was being edited before. */}
+      {editing && guestFormEnv && (
+        <GuestForm
+          key={contact.id}
+          contact={contact}
+          fallbackLocale={guestFormEnv.fallbackLocale}
+          locales={guestFormEnv.locales}
+          username={guestFormEnv.username}
+          t={guestFormEnv.t}
+          busy={guestFormEnv.busy}
+          act={guestFormEnv.act}
+          onClose={guestFormEnv.onClose}
+          postcardsEnabled={guestFormEnv.postcardsEnabled}
+          pushEnabled={guestFormEnv.pushEnabled}
+          whatsappEnabled={guestFormEnv.whatsappEnabled}
+          defaultCountryCode={guestFormEnv.defaultCountryCode}
+          addressLookupEnabled={guestFormEnv.addressLookupEnabled}
+        />
+      )}
     </li>
   );
 }
@@ -668,9 +726,10 @@ function fieldsFor(
  *
  * One instance of this form exists on the page at a time — opened either by
  * the "Add a guest" toggle above the pending group, or by a row's own Edit
- * button, which is why it is `key`ed by the caller on the contact being
- * edited (or "new"): switching targets has to reset every field, not patch
- * over what the previous target left behind.
+ * button, which since B1094 renders the form in that row rather than here:
+ * switching targets has to reset every field, not patch over what the
+ * previous target left behind, which is why each is `key`ed on the contact
+ * being edited (or, above the pending group, mounts only for "new").
  *
  * No field here can *choose* `status` — that is `updateContactByOwner`'s
  * rule. Changing the email of an already-active contact still moves it back
@@ -739,6 +798,16 @@ export function GuestForm({
     fieldsFor(contact, fallbackLocale, defaultCountryCode),
   );
   const [error, setError] = useState<string | null>(null);
+  const nameFieldRef = useRef<HTMLInputElement>(null);
+
+  // B1094 — focus lands inside the form the moment it opens, whichever
+  // button opened it. Rendering the form in place (rather than off-screen
+  // above the button, which is what B1094 fixed) already puts it on screen;
+  // this is what tells a screen-reader user something happened, and — for
+  // the row furthest down a long list — is what scrolls it into view at all.
+  useEffect(() => {
+    nameFieldRef.current?.focus();
+  }, []);
 
   // Changing the email of an already-active contact knocks them back to
   // `pending` and drops their access grant (`updateContactByOwner`,
@@ -800,6 +869,7 @@ export function GuestForm({
         </label>
         <input
           id="guest-name"
+          ref={nameFieldRef}
           className={FIELD}
           value={form.name}
           onChange={(e) => field("name", e.target.value)}
@@ -1068,6 +1138,8 @@ function ContactGroup({
   locales,
   defaultCountryCode,
   approvedTripsByContact,
+  editingId,
+  guestFormEnv,
 }: {
   title: string;
   rows: AdminContact[];
@@ -1095,6 +1167,12 @@ function ContactGroup({
   /** B244 — see `ContactRow`'s own note. Keyed by contact id, so only the row
    * just approved renders anything different. */
   approvedTripsByContact?: Record<string, string[]>;
+  /** B1094 — the contact id whose edit form should render in place, or
+   * `null` when nobody's editing (or "Add a guest" is open instead, which
+   * renders above every group rather than in one). */
+  editingId?: string | null;
+  /** B1094 — see `ContactRow`'s own note. */
+  guestFormEnv?: GuestFormEnv;
 }) {
   return (
     <section className="mt-10">
@@ -1119,6 +1197,8 @@ function ContactGroup({
               locales={locales}
               defaultCountryCode={defaultCountryCode}
               approvedTrips={approvedTripsByContact?.[contact.id]}
+              editing={contact.id === editingId}
+              guestFormEnv={guestFormEnv}
               key={contact.id}
             />
           ))}
@@ -1507,6 +1587,30 @@ export default function ContactsAdmin({
     !contact.confirmedAt &&
     resendableInvite(contact.createdVia, invites) !== null;
 
+  // B1094 — which row (if any) should render its own edit form in place,
+  // and what that form needs beyond the contact it is editing. `null` when
+  // nothing is being edited, and also when "Add a guest" is open instead —
+  // that form still renders above every group, at the button it always
+  // opened at (see the ticket's own constraint).
+  const editingId =
+    formTarget !== null && formTarget !== "new" ? formTarget.id : null;
+  const guestFormEnv: GuestFormEnv | undefined = editingId
+    ? {
+        fallbackLocale: locale,
+        locales,
+        username,
+        t,
+        busy,
+        act,
+        postcardsEnabled,
+        pushEnabled,
+        whatsappEnabled,
+        defaultCountryCode,
+        addressLookupEnabled,
+        onClose: () => setFormTarget(null),
+      }
+    : undefined;
+
   // Put the highlighted request in view rather than merely marked — B319.
   // Runs once per id: `refresh()` after an approve or a revoke reloads every
   // row, and a highlighted request that the owner has just acted on should
@@ -1584,7 +1688,7 @@ export default function ContactsAdmin({
       )}
 
       <div className="mt-8">
-        {formTarget === null ? (
+        {formTarget === null && (
           <button
             type="button"
             onClick={() => setFormTarget("new")}
@@ -1592,13 +1696,15 @@ export default function ContactsAdmin({
           >
             {t("contact.adminAddGuest")}
           </button>
-        ) : (
+        )}
+        {/* B1094 — "Add a guest" keeps opening here, where its own button is.
+            Editing an existing contact no longer renders here at all: it
+            renders inline in that contact's own card, below, so a row deep
+            in a long group does not put its form off-screen above this
+            button. */}
+        {formTarget === "new" && (
           <GuestForm
-            // Keyed on the target so switching from one row to another — or to
-            // "new" — remounts the form instead of patching stale field values
-            // from whoever was being edited before.
-            key={formTarget === "new" ? "new" : formTarget.id}
-            contact={formTarget === "new" ? null : formTarget}
+            contact={null}
             fallbackLocale={locale}
             locales={locales}
             username={username}
@@ -1631,6 +1737,8 @@ export default function ContactsAdmin({
         locales={locales}
         defaultCountryCode={defaultCountryCode}
         approvedTripsByContact={approvedTripsByContact}
+        editingId={editingId}
+        guestFormEnv={guestFormEnv}
       />
       <ContactGroup
         title={t("contact.adminApproved")}
@@ -1647,6 +1755,8 @@ export default function ContactsAdmin({
         locales={locales}
         defaultCountryCode={defaultCountryCode}
         approvedTripsByContact={approvedTripsByContact}
+        editingId={editingId}
+        guestFormEnv={guestFormEnv}
       />
       {other.length > 0 && (
         <ContactGroup
@@ -1664,6 +1774,8 @@ export default function ContactsAdmin({
           locales={locales}
           defaultCountryCode={defaultCountryCode}
           approvedTripsByContact={approvedTripsByContact}
+          editingId={editingId}
+          guestFormEnv={guestFormEnv}
         />
       )}
 
