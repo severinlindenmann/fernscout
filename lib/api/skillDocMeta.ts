@@ -62,5 +62,5 @@ export const SKILL_DOC_SUMMARY: Record<SkillDocSlug, string> = {
   "invite-someone": "Let somebody else read the journal or write to one trip.",
   costs: "A trip's budget, what it actually cost, and the rates that convert it.",
   "send-postcards": "Propose a printed postcard from a day — a person still has to send it.",
-  "make-a-photobook": "Propose printing a book that has already been built — a person still has to print it.",
+  "make-a-photobook": "A person builds and prints it themselves, on their own trip page — read where an order already made stands.",
 };

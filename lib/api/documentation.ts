@@ -3028,50 +3028,34 @@ rather than asking for the old one to be revived.
 
 ## Printing a photobook
 
-A journal with \`photobook\` switched on that has already built a book — from
-the owner's own order page, not from here, since the size and the cover are
-the owner's own choice and there is no API call that builds one — can put a
-printed copy in somebody's letterbox the same way a postcard does: **you
-propose it, you never print it.**
+Unlike a postcard, **there is nothing here for you to propose.** Since B1157
+choosing the book, pricing it, paying for it and sending it to the printer are
+one page and one press, owner-only and outside \`/api/v1\` — there is no build
+call, no propose call and no separate print call for an agent to make. Point
+the owner at their own trip's photobook page instead:
 
-If the owner asks what a book could look like before opening that page: the
-cover (\`${COVER_TYPES.join("\` or \`")}\`) is chosen before the size, because
-not every size exists in both — softcover offers
+\`\`\`
+${site.url}/${example}/trips/<trip-id>/photobook
+\`\`\`
+
+If they ask what a book could look like before opening that page: the cover
+(\`${COVER_TYPES.join("\` or \`")}\`) is chosen before the size, because not
+every size exists in both — softcover offers
 \`${sizesFor("soft").map((s) => s.id).join("\`, \`")}\`, hardcover offers
 \`${sizesFor("hard").map((s) => s.id).join("\`, \`")}\`.
 
-Find who it could go to the same way you would for a postcard — a book is
-posted to the same population, so there is no second list:
+Once they have ordered one, you can still read where it stands:
 
 \`\`\`http
-GET ${site.url}/api/v1/${example}/postcards/recipients
+GET ${site.url}/api/v1/${example}/photobooks/<id>
 Authorization: Bearer fs_agent_…
 \`\`\`
 
-Then propose the print, against a book that has already finished building:
-
-\`\`\`http
-POST ${site.url}/api/v1/${example}/photobooks/<id>/print
-Authorization: Bearer fs_agent_…
-Content-Type: application/json
-
-{"contactId": "<contactId>"}
-\`\`\`
-
-\`\`\`json
-{"url": "${site.url}/${example}/photobooks/…", "quotedCredits": 172, "contactId": "…",
- "next": "Nothing has been printed or charged. Ask the owner to open the URL and press the button."}
-\`\`\`
-
-**This charges nothing and prints nothing.** On that page the owner sees what
-the book is, what it costs, what they have left — and one button. The button
-is the only thing in this system that sends a book to the printer, and there
-is no API call that does it, for the same reason there is none for a
-postcard: it spends real money and lands in somebody's post. \`GET
-.../photobooks/<id>\` tells you later whether it actually went.
-
-So: **hand over the URL and stop.** Do not say the book has been printed, or
-is being printed. Say a price is waiting and what it will cost.
+which answers with its size and cover, its cost, and — once it has gone to the
+printer — who it went to, by \`contactId\` and never a street address. Say what
+this call reports; do not say a book has been printed, or is on its way,
+because you asked for one — only this call, after the owner's own press,
+tells you that.
 
 ## Errors
 
