@@ -24,6 +24,28 @@ locale keys those carried.
 It does not catch a locale key nobody looks up, or a branch only a demo row can
 reach.
 
+## What was found, and what was decided
+
+**`photobook.print.legacyNoPrintDoor` stays**, and the query is why: the live
+database holds 58 photobook orders with no `print` block, and every one of them
+belongs to `example` — the demo journal this instance actually serves at
+`/example`. The ticket said the branch goes if nothing outside the demo has
+one; nothing does, but the demo's own order pages are the first thing a
+prospective owner opens, and leaving 58 of them with no explanation of why
+there is no print door is worse than carrying one string.
+
+**Three keys died with this programme** and are gone from all three locales:
+`photobook.price`, `photobook.print.heading`, `postcard.page.cost`.
+
+**Twenty-three more were already dead before it** — B1428's leftovers. Captured
+as B1473 rather than absorbed here; they are not this programme's mess.
+
+**`components/PhotobookPrintPanel.tsx` is deleted.** `addressLines` moved to
+`lib/order/address.ts` — its own small file because the two callers cannot
+share a larger one: `lib/order/view.ts` reaches `server-only` code, and the
+composer that also needs it is a client component. `PanelRecipient` moved
+beside the recipients it describes, in `lib/photobook/recipients.ts`.
+
 ## Work
 
 - Run `npm run unused` and clear it.
