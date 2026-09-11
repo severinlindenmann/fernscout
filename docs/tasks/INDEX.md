@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (224)
+## backlog (225)
 
 ### security (4)
 
@@ -124,11 +124,12 @@ Do not edit them by hand; run the script.
 | [B1527](backlog/issue/B1527-a-figure-whose-shirt-matches-its.md) | A figure whose shirt matches its skin tone renders as nude, and nothing warns | ISSUE | low | low |
 | [B1532](backlog/issue/B1532-a-card-stannp-cancels-after-acceptance.md) | A card Stannp cancels after acceptance is never refunded | ISSUE | low | medium |
 
-### big-feature (11)
+### big-feature (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1049](backlog/big-feature/B1049-a-model-choosing-among-forty-three.md) | A model choosing among forty-three tools chooses worse than one choosing among seventeen | FEATURE | medium | high |
+| [B1537](backlog/big-feature/B1537-a-journal-can-only-have-one.md) | A journal can only have one owner - couples and families can't share ownership | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B491](backlog/big-feature/B491-there-is-no-way-to-manage.md) | A journal folder can be exported and never pushed back, so writing locally is a one-way trip | FEATURE | medium | high |
