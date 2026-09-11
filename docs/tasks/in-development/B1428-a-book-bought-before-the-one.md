@@ -85,7 +85,7 @@ one-press flow. The new price is correct; only this legacy door is wrong.
 
 ---
 
-## Decided 2026-09-11 — delete the legacy print path; the VAT rates stay as they are
+## Decided 2026-09-11 — delete the legacy print path; one VAT rate, measured off a real invoice
 
 The owner's words: *"remove everything that is legacy, no legacy code, and
 mwst take 2.6%."* So of the three options above, the third: the path goes.
@@ -95,21 +95,45 @@ demo journal — 58 rows carrying the old build-only charge and one bought
 through the current one-press flow. No other journal has ever ordered a book,
 so no person loses a door they were using.
 
-**Flattening the VAT into one rate was considered and reversed.** A first pass
-at this ticket read "mwst take 2.6%" as folding
-`PHOTOBOOK_SHIPPING_VAT_RATE` (8.1%, carriage) into
-`PHOTOBOOK_PRINT_VAT_RATE` (2.6%, printed matter) and charging one rate on
-both. That is wrong: Gelato's own invoice splits the two — printed matter at
-2.6%, carriage at 8.1% — and this instance mirrors that invoice because it is
-what is actually paid, not a rate this journal charges anybody. Below the
-CHF 100,000 Swiss registration threshold the VAT is an unreclaimable cost
-input rather than a line item, but it is *this* cost input, at the rates
-Gelato actually bills, not a simplified one. **Both rates stay exactly as
-they are on `main`** — `PHOTOBOOK_PRINT_VAT_RATE = 0.026` and
-`PHOTOBOOK_SHIPPING_VAT_RATE = 0.081` — and so does the formula and every
-price it produces.
+**The VAT question went through three readings before a real invoice settled
+it.** First, "mwst take 2.6%" was read as folding the standard rate on
+carriage into the reduced rate on the book — one rate at 2.6% on both. Then,
+on the owner's correction, as the two rates staying exactly as they were
+(2.6% print, 8.1% shipping), on the theory that Gelato bills them
+separately. Neither survived a real invoice. A Gelato invoice for a 30-page
+200×200 softcover, Swiss Post Economy, dated in this session's window, reads:
 
-Floor unchanged: **CHF 35.20**.
+    Subtotal   1 Item                 10.86 CHF
+    Shipping   Swiss Post Economy      8.52 CHF
+    Discounts  50% off offer          -5.43 CHF
+    Tax        8%                      1.13 CHF
+    Total                             15.08 CHF
+
+`1.13 / (10.86 + 8.52 - 5.43) = 8.10%` — one rate, charged on the book and the
+carriage *together*, after discounts, reconciling to the rappen. Gelato does
+not treat this as reduced-rate printed matter at all; it bills the whole
+shipment at the standard rate. So: **one constant**,
+`PHOTOBOOK_VAT_RATE = 0.081`, replacing both
+`PHOTOBOOK_PRINT_VAT_RATE` (0.026) and `PHOTOBOOK_SHIPPING_VAT_RATE` (0.081),
+applied to print and shipping summed together rather than per component —
+measured, not inferred, and with the evidence recorded beside the constant
+rather than left as something a later reader has to take on faith.
+
+**The 50% discount on that invoice is deliberately not in the cost basis.**
+It was an introductory offer, and pricing this journal's margin on a
+promotional rate that can end at any time would be a margin built on sand.
+Do not "correct" the constants downward to match the discounted invoice —
+the pre-discount figures (10.86, 8.52) are the ones this file already used
+and are what the formula is checked against.
+
+**The same invoice validates the stored cost formula on real money**, as a
+side effect of settling the VAT question: `6.04 + 0.161 × 30 = 10.87`
+predicted, `10.86` billed — one rappen out, same order of accuracy as the
+28-page check already in `lib/credits/pricing.ts`.
+
+New floor: **CHF 36.20** (was 35.20 before this ticket; the two intermediate
+figures floated during this ticket — 34.40 and 35.20-unchanged — were both
+wrong and never shipped).
 
 ## Work, as decided
 
@@ -131,9 +155,11 @@ Delete, do not deprecate:
 - Every comment describing the split — `orders.ts:77` still explains "165
   credits against the 205 that had been paid".
 
-Then `PHOTOBOOK_SHIPPING_VAT_RATE` folds into one `PHOTOBOOK_VAT_RATE = 0.026`
-with a comment saying why one rate and what the exposure is if carriage is
-really 8.1%.
+`PHOTOBOOK_PRINT_VAT_RATE` and `PHOTOBOOK_SHIPPING_VAT_RATE` fold into one
+`PHOTOBOOK_VAT_RATE = 0.081`, applied to `printMinor + shipMinor` together —
+see "Decided" above for the invoice this is measured off. The comment records
+the evidence, not an inference, and states it as settled: no hedge, no open
+question to revisit later.
 
 Leave the 58 stored rows alone. They are built books whose PDFs still
 download; they simply have no print door any more, which is correct — the
@@ -141,9 +167,9 @@ object they half-paid for is not one this instance sells.
 
 ## Acceptance, as decided
 
-- `grep -rn "printOrder\|proposePrint\|already_paid\|stale_quote\|print\.paid\|PHOTOBOOK_SHIPPING_VAT_RATE" lib app test` is empty.
+- `grep -rn "printOrder\|proposePrint\|already_paid\|stale_quote\|print\.paid\|PHOTOBOOK_PRINT_VAT_RATE\|PHOTOBOOK_SHIPPING_VAT_RATE" lib app test` is empty.
 - `/openapi.json` does not describe a route that no longer exists, and
   `test/openapi-contract.test.ts` passes.
-- The floor on the public pricing table reads CHF 34.40.
-- A 46-page square softcover prices at 226 credits (CHF 45.20).
+- The floor on the public pricing table reads CHF 36.20.
+- A 46-page square softcover prices at 238 credits (CHF 47.60).
 - `npm run verify` clean.
