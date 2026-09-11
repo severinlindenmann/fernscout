@@ -85,7 +85,7 @@ one-press flow. The new price is correct; only this legacy door is wrong.
 
 ---
 
-## Decided 2026-09-11 — delete it, and flatten the VAT
+## Decided 2026-09-11 — delete the legacy print path; the VAT rates stay as they are
 
 The owner's words: *"remove everything that is legacy, no legacy code, and
 mwst take 2.6%."* So of the three options above, the third: the path goes.
@@ -95,15 +95,21 @@ demo journal — 58 rows carrying the old build-only charge and one bought
 through the current one-press flow. No other journal has ever ordered a book,
 so no person loses a door they were using.
 
-**The VAT becomes one rate.** Print and carriage both at 2.6%, not 2.6% on the
-book and 8.1% on the postage. A delivery charged as part of supplying goods
-follows the rate of the goods under Swiss VAT, so a single rate on a single
-supply is the more defensible reading, and it is what was asked for. The
-prices fall by CHF 0.80-1.20. If Gelato does in fact invoice 8.1% on carriage,
-the cost basis is understated by about CHF 0.47 a book and the realised margin
-is 48.9-49.7% rather than 50% — accepted, and one constant if it matters later.
+**Flattening the VAT into one rate was considered and reversed.** A first pass
+at this ticket read "mwst take 2.6%" as folding
+`PHOTOBOOK_SHIPPING_VAT_RATE` (8.1%, carriage) into
+`PHOTOBOOK_PRINT_VAT_RATE` (2.6%, printed matter) and charging one rate on
+both. That is wrong: Gelato's own invoice splits the two — printed matter at
+2.6%, carriage at 8.1% — and this instance mirrors that invoice because it is
+what is actually paid, not a rate this journal charges anybody. Below the
+CHF 100,000 Swiss registration threshold the VAT is an unreclaimable cost
+input rather than a line item, but it is *this* cost input, at the rates
+Gelato actually bills, not a simplified one. **Both rates stay exactly as
+they are on `main`** — `PHOTOBOOK_PRINT_VAT_RATE = 0.026` and
+`PHOTOBOOK_SHIPPING_VAT_RATE = 0.081` — and so does the formula and every
+price it produces.
 
-New floor: **CHF 34.40** (was 35.20).
+Floor unchanged: **CHF 35.20**.
 
 ## Work, as decided
 
