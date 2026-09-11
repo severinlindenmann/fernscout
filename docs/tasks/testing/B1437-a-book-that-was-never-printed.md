@@ -7,8 +7,7 @@ complexity: medium
 area: photobook, postcards, print orders, admin
 found: "2026-09-11T10:28:29Z"
 started: "2026-09-11T10:29:05Z"
-session: 96a5b964-fad1-4616-9124-a01eabbd8a46
-claimed: "2026-09-11T10:29:05Z"
+merged: "2026-09-11T10:57:54Z"
 ---
 
 # B1437 — A book that was never printed is recorded as printed, because the status means built

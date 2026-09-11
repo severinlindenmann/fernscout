@@ -7,8 +7,7 @@ complexity: low
 area: photobook, mail
 found: "2026-09-11T10:28:29Z"
 started: "2026-09-11T10:29:06Z"
-session: 96a5b964-fad1-4616-9124-a01eabbd8a46
-claimed: "2026-09-11T10:29:06Z"
+merged: "2026-09-11T10:57:54Z"
 ---
 
 # B1438 — The receipt mail offers three PDFs where the order page offers one

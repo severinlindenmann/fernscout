@@ -327,16 +327,14 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (4)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
-| [B1437](in-development/B1437-a-book-that-was-never-printed.md) | A book that was never printed is recorded as printed, because the status means built | ISSUE | medium | medium | `96a5b964` |
-| [B1438](in-development/B1438-the-receipt-mail-offers-three-pdfs.md) | The receipt mail offers three PDFs where the order page offers one | CHORE | low | low | `96a5b964` |
 
-## testing (227)
+## testing (229)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -544,6 +542,7 @@ Do not edit them by hand; run the script.
 | [B1418](testing/B1418-the-open-mobile-menu-gives-no.md) | The open mobile menu gives no sign that it scrolls | ISSUE | medium | low | — |
 | [B1421](testing/B1421-on-a-phone-the-photobook-preview.md) | On a phone the photobook preview is two pages wide and too small to read | FEATURE | medium | medium | — |
 | [B1428](testing/B1428-a-book-bought-before-the-one.md) | A book bought before the one-price change would be charged the whole price again to print it | ISSUE | medium | low | — |
+| [B1437](testing/B1437-a-book-that-was-never-printed.md) | A book that was never printed is recorded as printed, because the status means built | ISSUE | medium | medium | — |
 | [B852](testing/B852-a-journal-s-languages-units-and.md) | A journal's languages, units and currencies cannot be changed anywhere | FEATURE | medium | medium | — |
 | [B879](testing/B879-nothing-points-a-crawler-or-an.md) | Nothing points a crawler or an agent at the product pages, the feed or the markdown | FEATURE | medium | low | — |
 | [B1038](testing/B1038-retest-storage-photo-phrasing-against-the.md) | Retest storage/photo phrasing against the live helper under the new tool-calling router | ISSUE | low | low | — |
@@ -567,6 +566,7 @@ Do not edit them by hand; run the script.
 | [B1372](testing/B1372-quick-action-says-fotos-nachtragen-where.md) | Quick action says Fotos nachtragen where Fotos erfassen is meant | ISSUE | low | low | — |
 | [B1396](testing/B1396-the-whatsapp-checkbox-carries-a-second.md) | The WhatsApp checkbox carries a second sentence about Meta that the form does not need | DOCS | low | low | — |
 | [B1402](testing/B1402-a-content-path-one-level-too.md) | A content path one level too shallow is reported accurately and without naming the likely cause | ISSUE | low | low | — |
+| [B1438](testing/B1438-the-receipt-mail-offers-three-pdfs.md) | The receipt mail offers three PDFs where the order page offers one | CHORE | low | low | — |
 
 ## completed (941)
 
