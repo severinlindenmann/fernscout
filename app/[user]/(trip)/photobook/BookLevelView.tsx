@@ -282,11 +282,13 @@ export default function BookLevelView({
 
   return (
     <div hidden={hidden} className="mt-4">
-      {/* Two columns from `lg` — B1482. The book on the left at the width it
+      {/* Two columns from `lg` — B1482, the settings column widened to 24rem
+          by B1524: at 20rem a format name did not fit on a line with its own
+          label. The book on the left at the width it
           actually needs, the settings open beside it rather than shut behind
           a disclosure nobody clicks. Below `lg` this collapses to exactly
           what shipped before: the book, then the details, in one column. */}
-      <div className="lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start lg:gap-6">
+      <div className="lg:grid lg:grid-cols-[24rem_minmax(0,1fr)] lg:items-start lg:gap-6">
         {/* The settings first in the source, so they are the left column at
             `lg` — the side the approved drawing puts them on — while at 390
             the book still comes first, which is the order B548 wants and the

@@ -59,8 +59,15 @@ const LANGUAGE_NAME: Record<string, string> = {
  */
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-2.5">
-      <span className="min-w-0 text-sm text-navy-800">{label}</span>
+    // The label gives way, never the value — B1524. The card was 20rem wide
+    // beside the book, and "Quadratisch, 20 x 20 cm" is wider than the space
+    // a `shrink-0` value was left with, so the select overran its own label
+    // and the two sat on top of each other. The card is 24rem now (see
+    // `BookLevelView`'s columns) and the label wraps inside what is left,
+    // which keeps the thing being chosen readable in full — truncating a
+    // format name hides the choice somebody is making.
+    <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+      <span className="min-w-0 flex-1 text-sm text-navy-800">{label}</span>
       <span className="shrink-0">{children}</span>
     </div>
   );
@@ -85,12 +92,12 @@ function ValueSelect({
   label: string;
 }) {
   return (
-    <span className="relative inline-flex items-center">
+    <span className="relative flex min-w-0 items-center justify-end">
       <select
         aria-label={label}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="min-h-11 cursor-pointer appearance-none rounded-lg bg-transparent py-1 pl-2 pr-6 text-right font-mono text-sm text-navy-900 hover:bg-navy-50 focus-visible:outline-2 focus-visible:outline-yellow-600"
+        className="min-h-11 max-w-full cursor-pointer appearance-none rounded-lg bg-transparent py-1 pl-2 pr-6 text-right font-mono text-sm text-navy-900 hover:bg-navy-50 focus-visible:outline-2 focus-visible:outline-yellow-600"
       >
         {children}
       </select>
@@ -307,11 +314,14 @@ export default function BookSettingsPanel({
           than hidden when there is nothing to lose: a control that vanishes
           the moment it would do nothing is harder to find the one time it
           matters. */}
-      <div className="flex flex-wrap items-center gap-4 border-t border-navy-200 bg-navy-50 px-4 py-3">
+      {/* One under the other and ranged left — B1524. Two sentence-long links
+          on one wrapping row centred themselves into a paragraph of
+          underlined text that read as prose rather than as two controls. */}
+      <div className="flex flex-col items-start gap-2 border-t border-navy-200 bg-navy-50 px-4 py-3">
         <button
           type="button"
           onClick={startOver}
-          className="text-xs font-semibold text-navy-600 underline"
+          className="text-left text-xs font-semibold text-navy-600 underline"
         >
           {t("photobook.first.again")}
         </button>
@@ -319,7 +329,7 @@ export default function BookSettingsPanel({
           type="button"
           onClick={resetBook}
           disabled={!canReset}
-          className="text-xs font-semibold text-navy-600 underline disabled:cursor-not-allowed disabled:text-navy-300 disabled:no-underline"
+          className="text-left text-xs font-semibold text-navy-600 underline disabled:cursor-not-allowed disabled:text-navy-300 disabled:no-underline"
         >
           {t("photobook.resetAll")}
         </button>
