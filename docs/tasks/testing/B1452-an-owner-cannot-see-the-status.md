@@ -7,8 +7,7 @@ complexity: medium
 area: app/[user]/account, lib/postcard/orders.ts, lib/photobook/orders.ts
 found: "2026-09-11T12:07:33Z"
 started: "2026-09-11T12:35:10Z"
-session: 96bf5e0d-32d8-48d5-acef-17f7a5c44f82
-claimed: "2026-09-11T12:35:10Z"
+merged: "2026-09-11T13:09:45Z"
 ---
 
 # B1452 — An owner cannot see the status of their photobook and postcard orders in one place
