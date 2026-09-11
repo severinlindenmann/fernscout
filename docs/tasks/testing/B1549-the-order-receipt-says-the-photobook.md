@@ -7,8 +7,7 @@ complexity: low
 area: photobook
 found: "2026-09-12T00:45:00Z"
 started: "2026-09-11T22:46:08Z"
-session: 57d87f37-ef96-4bb1-8533-8025978abf0c
-claimed: "2026-09-11T22:46:08Z"
+merged: "2026-09-11T22:52:54Z"
 ---
 
 # B1549 — The order receipt says the photobook is on its way when it has only reached the printer's queue

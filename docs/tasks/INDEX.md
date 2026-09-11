@@ -325,13 +325,11 @@ Do not edit them by hand; run the script.
 | [B1525](open/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low |
 | [B1534](open/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
 
-## in-development (1)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1549](in-development/B1549-the-order-receipt-says-the-photobook.md) | The order receipt says the photobook is on its way when it has only reached the printer's queue | ISSUE | medium | low | `57d87f37` |
+_Nothing here._
 
-## testing (20)
+## testing (21)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -353,6 +351,7 @@ Do not edit them by hand; run the script.
 | [B1533](testing/B1533-send-the-largest-file-you-have.md) | \"Send the largest file you have\" is true, load-bearing, and buried where no uploader reads it | DOCS | medium | low | — |
 | [B1544](testing/B1544-the-spine-appends-the-year-to.md) | The spine appends the year to a title that already carries one, and the owner cannot say otherwise | FEATURE | medium | low | — |
 | [B1548](testing/B1548-poll-stannp-for-a-card-s.md) | Poll Stannp for a card's status when the order page is opened | FEATURE | medium | low | — |
+| [B1549](testing/B1549-the-order-receipt-says-the-photobook.md) | The order receipt says the photobook is on its way when it has only reached the printer's queue | ISSUE | medium | low | — |
 | [B1527](testing/B1527-a-figure-whose-shirt-matches-its.md) | A figure whose shirt matches its skin tone renders as nude, and nothing warns | ISSUE | low | low | — |
 | [B1545](testing/B1545-the-animation-bench-s-own-vehicle.md) | The animation bench's own vehicle list predates metro/tram/ferry, so B1519's new modes are invisible there | ISSUE | low | low | — |
 
