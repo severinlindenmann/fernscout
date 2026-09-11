@@ -195,7 +195,7 @@ describe("the guide split by task (B311)", () => {
     );
     expect(withNextPointer.length).toBeGreaterThan(0);
 
-    const doc = openApiDocument() as {
+    const doc = openApiDocument() as unknown as {
       paths: Record<string, Record<string, { responses?: Record<string, { description?: string }> }>>;
     };
     for (const file of withNextPointer) {
