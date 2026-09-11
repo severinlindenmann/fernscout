@@ -64,6 +64,19 @@ dispatching anything — you need each ticket's Why, Work and Acceptance to
 brief the subagents in step 2, and a subagent hand-fed only an id re-reads a
 file you already have open.
 
+**A note arriving with an id is input to that ticket's question set, not a
+decision already made.** `triage-a-backlog`'s decision bar carries a note per
+ticket ("promote, but only the read side", "same work as B1054") and the
+paste-ready `plan-a-run B1091 B1092 …` line a person hands you is often
+followed by exactly this: lines of prose under the ids, one per ticket that
+carried a note. Read it before step 2 and hand it to that ticket's subagent
+alongside the file — it is the person telling you what they were thinking when
+they chose, and it can narrow validity, rule out an option before it is drawn,
+or answer a question the ticket itself never poses. It is still not a
+`## Decided` section (see step 2): a triage note is what somebody thought
+skimming a title, not a verified answer, so a subagent still checks it against
+the code rather than taking it as given.
+
 Say the count before you start, same as `triage-a-backlog`.
 
 ## Step 2 — one subagent per ticket, on Sonnet, dispatched together
@@ -80,6 +93,20 @@ You are preparing ticket <id> — "<title>" — to be built unattended, later,
 by an agent that will see only a JSON brief and never this conversation.
 Read the ticket in full (given below) and then the code it names. Do not
 write any code and do not move the task file.
+
+**Before any of the below: look for a decision section already in the
+ticket** — a heading such as `## Decided`, `## Decision`, `## Decided,
+<date>`, or any section dated after the ticket's own `found:` timestamp,
+recording an owner's answer with the reasoning behind it. The heading wording
+varies ticket to ticket; look for the shape — a section, later than the
+ticket's filing, that settles a fork rather than describing one — not one
+exact string. Treat what it settles as **settled**: do not draw an option set
+for a question it already answered, and do not raise it again under
+QUESTIONS. If you believe the recorded decision is wrong or no longer holds,
+say so as a QUESTION, with your reasoning — that is a cheap thing to ask and a
+re-opened option set is not. A decided question re-asked costs the person the
+same minute twice and invites a different answer from the one the code was
+already written toward.
 
 Answer, in order:
 
