@@ -957,7 +957,11 @@ function noteMentions(item) {
   const mentionsId = new RegExp(`\\b${item.id}\\b`, "i");
   const mentionsLane = new RegExp(`\\b(${LANES.join("|")})\\b`, "i");
   for (const other of allItems()) {
-    if (other.file === item.file) continue;
+    // By id, not by path: `item.file` is where the ticket was BEFORE the
+    // rename and `allItems()` re-reads the tree after it, so comparing paths
+    // never matches and every move announced that a ticket mentions itself —
+    // which every ticket does, in its own H1.
+    if (other.id === item.id) continue;
     const text = fs.readFileSync(other.file, "utf8");
     if (mentionsId.test(text) && mentionsLane.test(text)) {
       console.log(`  note: ${item.id} is mentioned by ${other.id} (${other.href}) — check whether that still holds.`);
