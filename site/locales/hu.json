@@ -2380,5 +2380,8 @@
   "order.meta.proposed": "Javasolva: {date} · Hivatkozás: {id}",
   "order.meta.sent": "Elküldve: {date} · Hivatkozás: {id}",
   "postcard.status.withPrinter": "A nyomdában",
-  "postcard.status.withPrinterNote": "A nyomda átvette a megrendelést. A lapok a következő napokban indulnak útnak."
+  "postcard.status.withPrinterNote": "A nyomda átvette a megrendelést. A lapok a következő napokban indulnak útnak.",
+  "postcard.page.fits": "Ráfér a lapra.",
+  "postcard.page.overflows": "{count} sorral több, mint amennyi a lapra fér — ezek nem kerülnek nyomtatásra.",
+  "postcard.page.overflows.one": "Egy sorral több, mint amennyi a lapra fér — ez nem kerül nyomtatásra."
 }

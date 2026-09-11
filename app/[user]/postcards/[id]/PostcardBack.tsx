@@ -66,6 +66,10 @@ export type BackStrings = {
   captionNotToScale: string;
   /** Who prints the address and the postage mark — B982. */
   printerAdds: string;
+  /** Whether the message fits on the paper — B1511. Computed on the server
+   *  from `messageFit`, because only the renderer's own wrap knows. */
+  fit?: string;
+  fitOver?: boolean;
 };
 
 export default function PostcardBack({
@@ -327,6 +331,17 @@ export default function PostcardBack({
             read as one run-on line — B982. */}
         {address ? (
           <p className="mt-1 text-xs text-navy-500">{strings.printerAdds}</p>
+        ) : null}
+        {/* Whether it fits, from the printer's own wrap — B1511. The preview
+            cannot answer this on a phone: below about 590px of card width the
+            message renders at a readable floor rather than at its true size
+            (B1286), so a card that looks full may have room and a person cuts
+            a sentence they did not need to. This is the same arithmetic the
+            PDF does. */}
+        {strings.fit ? (
+          <p className={`mt-1 text-xs ${strings.fitOver ? "text-coral-600" : "text-navy-500"}`}>
+            {strings.fit}
+          </p>
         ) : null}
       </figure>
 

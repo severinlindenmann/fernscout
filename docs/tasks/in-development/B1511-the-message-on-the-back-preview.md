@@ -25,8 +25,38 @@ It matters more than it looks: the preview is where somebody decides whether
 what they wrote fits. If it reads as full when it is not, they cut a sentence
 they did not need to cut.
 
+## What it turned out to be — not a wrong size
+
+The preview's size is derived from the print size and always has been:
+`fontFraction(MESSAGE_PT, spec)` in `cqw` against the card. What it also has,
+since B1286, is a **floor**:
+
+```
+max(2.385cqw, 14px)
+```
+
+At a card 358px wide — a phone — the true size is **8.5px** and the floor
+renders **14px**, two thirds larger. Above about 590px of card width the floor
+stops mattering and the preview is exact. The caption already tells the truth
+about it: it says *nicht massstabsgetreu* whenever the floor is in play.
+
+So the trade is deliberate and right — 8px is not readable — and the thing it
+costs is the only question the preview is there to answer: **does what I wrote
+fit.** A card that looks full may have room, and somebody cuts a sentence they
+did not need to.
+
 ## Work
 
+Answer the fit question from the renderer instead of from the picture.
+`messageFit` in `lib/postcard/render.ts` runs the same wrap, the same box and
+the same leading the PDF uses, and the page prints one line under the card:
+it fits, or how many lines will not be printed.
+
+Not doing: lowering the floor. It is 14px because that is the size of the
+field the message is actually typed into, and a preview nobody can read is
+worse than one that is not to scale.
+
+Original plan, kept for the record:
 Find where the two sizes come from. `lib/postcard/render.ts` sets the printed
 size in real units against the card's trim; `PostcardBack` draws the preview in
 CSS pixels against whatever width the frame has. The preview's size has to be
