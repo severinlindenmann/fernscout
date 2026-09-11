@@ -10,7 +10,7 @@ import { DEFAULT_OPTIONS } from "@/lib/photobook/options";
 import {
   claimOrder,
   getPhotobookOrder,
-  markPrinted,
+  markBuilt,
   type PhotobookPayload,
 } from "@/lib/photobook/orders";
 import { pruneOldPhotobooks } from "@/lib/photobook/retention";
@@ -36,7 +36,7 @@ let dir: string;
  * it, the way `buildPhotobook` leaves one. */
 async function writeOrder(id: string, createdAt: string): Promise<void> {
   await claimOrder(OWNER, id, PAYLOAD);
-  await markPrinted(OWNER, id, { ...PAYLOAD, files: [`${id}-interior.pdf`] });
+  await markBuilt(OWNER, id, { ...PAYLOAD, files: [`${id}-interior.pdf`] });
   const handle = await getDatabase();
   await handle.db
     .updateTable("print_orders")
@@ -107,7 +107,7 @@ describe("pruning old photobooks", () => {
     expect(fs.existsSync(orderDir(OWNER, "order-newest-1"))).toBe(true);
 
     const pruned = await getPhotobookOrder(OWNER, "order-oldest-1");
-    expect(pruned?.status).toBe("printed"); // still a real, paid-for order
+    expect(pruned?.status).toBe("built"); // still a real, paid-for order
     expect(pruned?.payload.pruned).toBe(true);
     expect(pruned?.payload.files).toEqual([]);
 

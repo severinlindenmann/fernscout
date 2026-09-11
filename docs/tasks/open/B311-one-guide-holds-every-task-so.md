@@ -102,3 +102,12 @@ is made of, and they are being written now.
 - No fact about the API appears in two documents from two sources; a test
   asserts the skill files and the guide render from the same constants.
 - `npm run build`, `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`.
+
+## Decision, 2026-09-11
+
+**Yes — split it.** Asked as a yes/no because B1384 was blocked on it: there
+was no point correcting a 56KB file sentence by sentence only for this ticket
+to re-split it. The answer is to split.
+
+So B1384's `/agent.md` correctness pass waits on this ticket rather than the
+other way round, and B1384 stays in `in-development/` until then.

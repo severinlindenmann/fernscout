@@ -10,7 +10,7 @@ import {
   ORDER_ID_RE,
   claimOrder,
   markFailed,
-  markPrinted,
+  markBuilt,
   type PhotobookOutcomeState,
 } from "@/lib/photobook/orders";
 import { pruneOldPhotobooks } from "@/lib/photobook/retention";
@@ -294,15 +294,15 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
     return back_("no_credits");
   }
 
-  // `markPrinted` returns `false` when the row had already left `submitted` —
+  // `markBuilt` returns `false` when the row had already left `submitted` —
   // a second build finishing after a first (there is only ever one build per
   // order, so this would mean a bug) or a failure notice landing after this
-  // one already marked it printed. Either way the files on disk are real and
+  // one already marked it built. Either way the files on disk are real and
   // paid for, so this still redirects as a success; the mismatch is logged
   // for whoever reconciles the order table, not surfaced to the owner as an
   // error about a book that in fact exists.
-  if (!(await markPrinted(user, orderId, { ...payload, files: built.files }))) {
-    console.warn(`[photobook] ${orderId} built but was not in 'submitted' when marked printed`);
+  if (!(await markBuilt(user, orderId, { ...payload, files: built.files }))) {
+    console.warn(`[photobook] ${orderId} built but was not in 'submitted' when marked built`);
   }
 
   /**

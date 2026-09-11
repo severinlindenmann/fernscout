@@ -31,6 +31,7 @@ import * as helperThreads from "./029-helper-threads";
 import * as adminAcks from "./030-admin-acks";
 import * as smsMessages from "./031-sms-messages";
 import * as whatsappSends from "./032-whatsapp-sends";
+import * as builtStatus from "./033-built-status";
 
 /**
  * Every migration, listed by hand.
@@ -77,6 +78,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "030-admin-acks": adminAcks,
   "031-sms-messages": smsMessages,
   "032-whatsapp-sends": whatsappSends,
+  "033-built-status": builtStatus,
 };
 
 export const migrationProvider: MigrationProvider = {

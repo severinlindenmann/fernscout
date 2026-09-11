@@ -8,6 +8,7 @@ area: components/HelperRoom.tsx, lib/usage.ts, lib/credits.ts
 found: "2026-09-09T18:49:32Z"
 started: "2026-09-11T06:40:36Z"
 merged: "2026-09-11T07:31:10Z"
+completed: "2026-09-11T10:53:46Z"
 ---
 
 # B1155 — A turn spends a credit and nothing on screen says so

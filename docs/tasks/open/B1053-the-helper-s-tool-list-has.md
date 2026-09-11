@@ -94,3 +94,14 @@ answer; the choosing problem is unaffected by the budget.
   must not make a capability unreachable, which is the one way this fix is
   worse than the problem.
 
+## Decision, 2026-09-11
+
+**Group the registry.** Asked directly after B1393 landed, and answered: the
+registry is grouped into areas a model picks from, not given a third raise.
+The ceiling is the symptom and the choosing is the cost, which is what this
+ticket said already.
+
+B1393 is the evidence that settled it. Adding one tool (`add_contact`) took
+the tool-schema budget to **7,979 of 8,000**, and it only fitted after
+trimming description strings — 21 tokens of headroom for the next tool
+anybody adds. See B1049 for the same argument from the model's side.

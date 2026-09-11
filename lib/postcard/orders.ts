@@ -165,10 +165,13 @@ export type OrderPayload = {
   results?: RecipientResult[];
 };
 
-/** `draft | submitted | printed | failed`, the vocabulary `001-initial`
- * already documents for this table. `submitted` is the claimed-but-not-yet-
- * confirmed middle, which is what makes a double press cost one card. */
-type OrderStatus = "draft" | "submitted" | "printed" | "failed";
+/** `draft | submitted | built | failed`, the vocabulary `001-initial`
+ * already documents for this table under its old name (`printed`, renamed by
+ * B1437 — a card marked this way has only been rendered and sent to a
+ * provider, never confirmed to have reached paper). `submitted` is the
+ * claimed-but-not-yet-confirmed middle, which is what makes a double press
+ * cost one card. */
+type OrderStatus = "draft" | "submitted" | "built" | "failed";
 
 export type PostcardOrder = {
   id: string;
@@ -527,7 +530,7 @@ export async function recordResults(
       // `failed` is reserved for the order where nothing did, so that the
       // status answers "is there anything to chase" rather than "was it
       // perfect".
-      status: results.some((r) => r.ok) ? "printed" : "failed",
+      status: results.some((r) => r.ok) ? "built" : "failed",
       payload: JSON.stringify({ ...payload, results }),
       ...(costMinor > 0 ? { cost_minor: costMinor, currency } : {}),
       updated_at: nowIso(),

@@ -6,8 +6,9 @@ priority: medium
 complexity: medium
 area: the web helper, contacts
 found: "2026-09-10T20:30:00Z"
-started: "2026-09-11T08:26:08Z"
-merged: "2026-09-11T09:55:08Z"
+started: "2026-09-11T10:53:44Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T10:53:44Z"
 ---
 
 # B1394 — A phone's own contacts cannot be handed to the upload field
@@ -86,3 +87,20 @@ beyond what the import needs to show. No change to confirmation, to
   usable at all.
 - `npm run verify` clean, including both picker tests and the importer's own
   registry test.
+
+## Back to in-development, 2026-09-11
+
+Built and merged, then returned here rather than reviewed as done. The parse
+and the write shipped correctly separated — the route writes only the rows it
+is given — but **no surface a person actually ticks was built**, so the third
+and fifth acceptance lines above are unmet.
+
+That is not a detail of this ticket, it is the reason its option was chosen:
+the alternative was rejected precisely because under it an unintended contact
+is already a pending row and a confirmation mail has already reached that
+stranger before anybody reviewed anything. A vCard is somebody's whole address
+book, and the protection currently exists in the shape of a route rather than
+in anybody's hands.
+
+Remaining work is the agree-per-row surface and nothing else. The twenty-entry
+case in the acceptance list is the one that decides whether it is usable.

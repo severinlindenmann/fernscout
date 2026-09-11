@@ -62,3 +62,15 @@ The same German sentence, run several times against the live model, no
 longer answers in bytes only when the inbox has real waiting files — or, if
 it is confirmed non-deterministic and rare enough not to be worth a guard,
 this ticket is closed `wontDo` by a person with that reasoning recorded.
+
+## Decision, 2026-09-11
+
+**A code guard, not a tool description.** Asked when this was promoted, and
+answered against this codebase's own record: rewording a prompt or a
+description has never fixed one of these and a guard has fixed all of them
+(AGENTS.md says so from B829, which is the failure this ticket reproduces).
+
+That also settles the practical half. B1393 left the tool registry at 7,979 of
+8,000 tokens, so "tighten `account`'s description" in the Work section above
+has no room to be tightened into — and B1053 is now going to regroup that
+registry anyway. Build the guard; leave the descriptions alone.

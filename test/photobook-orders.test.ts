@@ -11,7 +11,7 @@ import {
   claimOrder,
   getPhotobookOrder,
   markFailed,
-  markPrinted,
+  markBuilt,
   outcomeFrom,
   type PhotobookPayload,
 } from "@/lib/photobook/orders";
@@ -98,9 +98,9 @@ describe("photobook orders", () => {
   test("printed and failed are recorded with the payload", async () => {
     await claimOrder(OWNER, "order-four-1234", PAYLOAD);
     expect(
-      await markPrinted(OWNER, "order-four-1234", { ...PAYLOAD, files: ["interior.pdf", "cover.pdf"] }),
+      await markBuilt(OWNER, "order-four-1234", { ...PAYLOAD, files: ["interior.pdf", "cover.pdf"] }),
     ).toBe(true);
-    expect((await getPhotobookOrder(OWNER, "order-four-1234"))?.status).toBe("printed");
+    expect((await getPhotobookOrder(OWNER, "order-four-1234"))?.status).toBe("built");
 
     await claimOrder(OWNER, "order-five-1234", PAYLOAD);
     expect(await markFailed(OWNER, "order-five-1234", PAYLOAD, "render threw")).toBe(true);
@@ -109,11 +109,11 @@ describe("photobook orders", () => {
     expect(failed?.payload.failure).toBe("render threw");
   });
 
-  test("a terminal status cannot be overwritten — markPrinted cannot resurrect a failed order", async () => {
+  test("a terminal status cannot be overwritten — markBuilt cannot resurrect a failed order", async () => {
     await claimOrder(OWNER, "order-six-1234", PAYLOAD);
     expect(await markFailed(OWNER, "order-six-1234", PAYLOAD, "render threw")).toBe(true);
 
-    expect(await markPrinted(OWNER, "order-six-1234", PAYLOAD)).toBe(false);
+    expect(await markBuilt(OWNER, "order-six-1234", PAYLOAD)).toBe(false);
     const order = await getPhotobookOrder(OWNER, "order-six-1234");
     expect(order?.status).toBe("failed");
     expect(order?.payload.failure).toBe("render threw");
@@ -139,7 +139,7 @@ describe("photobook orders", () => {
     // Narrowed from "nothing under app/api names photobook/orders at all" —
     // an agent-facing GET (`app/api/v1/[user]/photobooks/[id]/route.ts`)
     // legitimately reads an order row (`getPhotobookOrder`), which neither
-    // builds a book nor spends a credit. `claimOrder`, `markPrinted` and
+    // builds a book nor spends a credit. `claimOrder`, `markBuilt` and
     // `markFailed` are the credit-spending build flow's own — see
     // `app/[user]/photobook/order/route.ts` — and stay forbidden by name.
     // B1428 deleted the agent-facing proposal write this comment used to name
@@ -155,7 +155,7 @@ describe("photobook orders", () => {
           if (
             text.includes("photobook/build") ||
             text.includes("claimOrder") ||
-            text.includes("markPrinted") ||
+            text.includes("markBuilt") ||
             text.includes("markFailed")
           ) {
             offenders.push(full);

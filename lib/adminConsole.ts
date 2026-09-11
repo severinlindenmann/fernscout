@@ -284,17 +284,17 @@ export async function troubles(since: string): Promise<Trouble[]> {
       });
     }
 
-    // B1165. A photobook refusal returns the row to `printed` — B1348's
+    // B1165. A photobook refusal returns the row to `built` — B1348's
     // conditional claim needs it retryable, not stuck — so the `WHERE status
     // = 'failed'` above never sees it. `markPrintFailed` records what
-    // happened in `payload.print`, so a second pass over recent `printed`
+    // happened in `payload.print`, so a second pass over recent `built`
     // rows, filtered in application code (this column is JSON-as-text, not
     // something either dialect can query into portably), is what surfaces
     // one to the operator at all.
     const printedRecently = await handle.db
       .selectFrom("print_orders")
       .select(["owner_id", "kind", "provider", "created_at", "id", "payload"])
-      .where("status", "=", "printed")
+      .where("status", "=", "built")
       .where("kind", "=", "photobook")
       .where("created_at", ">=", since)
       .orderBy("created_at", "desc")

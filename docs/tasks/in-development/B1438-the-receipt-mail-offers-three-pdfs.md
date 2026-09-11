@@ -122,4 +122,18 @@ reply, and the link does not replace it.
   ones.
 - Real German and real Hungarian for any new or changed string, or the English
   in `hu` with a note in this file flagging it for a native read.
+<<<<<<< HEAD
+=======
+
+## Flagged for a native read
+
+`hu` carries the English text, not a translation, for the three strings this
+ticket touched: `photobook.receipt.title` (reworded from "ready" to "on the
+way"), `photobook.receipt.viewOrder` and `photobook.refused.viewOrder` (new).
+`photobook.receipt.preheader`, `.body`, `.bodyVolumes`, and every
+`photobook.refused.*` key already carried English in `hu` before this
+ticket — that gap is pre-existing and not this ticket's to close, but a
+native read of the whole `photobook.*` block in `hu.json` would be worth
+doing in one pass.
+>>>>>>> b1437-built-status
 - `npm run verify` clean.

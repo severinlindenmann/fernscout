@@ -35,14 +35,14 @@ vi.mock("@/lib/photobook/build", async (importOriginal) => {
 });
 vi.mock("@/lib/photobook/orders", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/photobook/orders")>();
-  return { ...actual, claimOrder: vi.fn(), markFailed: vi.fn(), markPrinted: vi.fn() };
+  return { ...actual, claimOrder: vi.fn(), markFailed: vi.fn(), markBuilt: vi.fn() };
 });
 
 import { POST } from "@/app/[user]/photobook/order/route";
 import { GET } from "@/app/[user]/photobooks/[id]/[file]/route";
 import { balanceOf, spend } from "@/lib/credits";
 import { planFor, buildPhotobook } from "@/lib/photobook/build";
-import { claimOrder, markFailed, markPrinted } from "@/lib/photobook/orders";
+import { claimOrder, markFailed, markBuilt } from "@/lib/photobook/orders";
 import { quoteBookFor } from "@/lib/photobook/quote";
 import { submitBuiltBook } from "@/lib/photobook/print";
 import { sendPhotobookReceipt, sendPhotobookRefused } from "@/lib/photobook/receipt";
@@ -115,7 +115,7 @@ describe("the order route", () => {
       });
       vi.mocked(claimOrder).mockResolvedValue(true);
       vi.mocked(markFailed).mockResolvedValue(true);
-      vi.mocked(markPrinted).mockResolvedValue(true);
+      vi.mocked(markBuilt).mockResolvedValue(true);
       vi.mocked(balanceOf).mockResolvedValue(CREDITS * 4);
     });
 

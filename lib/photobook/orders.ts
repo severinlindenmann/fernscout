@@ -50,7 +50,7 @@ export type PhotobookPayload = {
   pruned?: true;
   /**
    * The printing that follows the build, on the same row. It is a second
-   * step after `printed` rather than a table of its own for the same reason
+   * step after `built` rather than a table of its own for the same reason
    * `provider`/`provider_ref`/`contact_id`/`cost_minor`/`currency` already
    * exist unused on `print_orders`: one book is at most one print job, and a
    * reprint is a new build (the PDFs may already be pruned — B483), so there
@@ -68,7 +68,7 @@ export type PhotobookPayload = {
     quotedMinor?: number;
     quotedCurrency?: string;
     providerRef?: string;
-    /** Set by `markPrintFailed`; the row returns to `printed` alongside it. */
+    /** Set by `markPrintFailed`; the row returns to `built` alongside it. */
     failure?: string;
     /**
      * The provider's own words for the refusal — B1165.
@@ -235,10 +235,10 @@ function isOutcomeState(value: string): value is PhotobookOutcomeState {
 }
 
 /**
- * Every printed order for one journal, newest first — B483's retention needs
- * to know which ones are oldest, and `printed` is deliberately the only
- * status considered: a `submitted` order is a build in progress and must
- * never be touched, and a `failed` one left no files behind to prune.
+ * Every built order for one journal, newest first — B483's retention needs
+ * to know which ones are oldest, and `built` is deliberately the only status
+ * considered: a `submitted` order is a build in progress and must never be
+ * touched, and a `failed` one left no files behind to prune.
  */
 /**
  * Every order that has gone to a printer and not been heard about since —
@@ -319,7 +319,7 @@ export async function listPrintedOrderIds(owner: string): Promise<string[]> {
     .select(["id"])
     .where("owner_id", "=", owner)
     .where("kind", "=", "photobook")
-    .where("status", "=", "printed")
+    .where("status", "=", "built")
     .orderBy("created_at", "desc")
     .orderBy("id", "desc")
     .execute();
@@ -330,10 +330,10 @@ export async function listPrintedOrderIds(owner: string): Promise<string[]> {
  * Records that an order's PDFs were removed to make room for newer ones.
  *
  * Deliberately not `setStatus`: the order is not failing or being reprinted,
- * it stays `printed` — the book was made and paid for — only its files are
+ * it stays `built` — the book was made and paid for — only its files are
  * gone. Not gated on the current status the way `setStatus` is, either,
  * because pruning only ever runs against orders `listPrintedOrderIds` already
- * found `printed`, moments earlier in the same call.
+ * found `built`, moments earlier in the same call.
  */
 export async function clearPrunedFiles(
   owner: string,
@@ -396,9 +396,9 @@ export async function outcomeFrom(
  * Gated on `status = 'submitted'`, the same rows-affected reasoning as
  * `claimForSend`: `submitted` is the only status this is meant to leave, so a
  * second call — the render finishing twice, or a failure notice arriving
- * after a printed one — changes nothing instead of overwriting a `failed` row
+ * after a built one — changes nothing instead of overwriting a `failed` row
  * (whose `payload.failure` means the credits were already returned) back to
- * `printed`, which would read as fine while the refund silently stood.
+ * `built`, which would read as fine while the refund silently stood.
  */
 async function setStatus(
   owner: string,
@@ -421,12 +421,12 @@ async function setStatus(
   return Number(result.numUpdatedRows ?? 0) === 1;
 }
 
-export async function markPrinted(
+export async function markBuilt(
   owner: string,
   id: string,
   payload: PhotobookPayload,
 ): Promise<boolean> {
-  return setStatus(owner, id, "printed", payload);
+  return setStatus(owner, id, "built", payload);
 }
 
 export async function markFailed(
@@ -442,7 +442,7 @@ export async function markFailed(
  * Take a built book for printing, or say somebody already has.
  *
  * Same shape as `claimOrder` and `setStatus`: a single UPDATE gated in its
- * `WHERE` on the status it is meant to leave (`printed`), scoped to the owner
+ * `WHERE` on the status it is meant to leave (`built`), scoped to the owner
  * *and* to `kind = 'photobook'`, with rows-affected read back as the answer.
  * Never read-then-write — two presses racing to move the same row both see a
  * healthy `printed` status if this reads first and decides after, and both
@@ -458,7 +458,7 @@ export async function claimForPrint(owner: string, id: string): Promise<boolean>
     .where("id", "=", id)
     .where("owner_id", "=", owner)
     .where("kind", "=", "photobook")
-    .where("status", "=", "printed")
+    .where("status", "=", "built")
     .executeTakeFirst();
   return Number(result.numUpdatedRows ?? 0) === 1;
 }
@@ -493,7 +493,7 @@ export async function recordPrint(
 
 /**
  * Returns a print that Gelato refused, or that never reached it, to
- * `printed` — so a person can try again rather than being stuck on a row
+ * `built` — so a person can try again rather than being stuck on a row
  * `claimForPrint` will never move again. The credits are refunded by the
  * caller; this only records why and reopens the row.
  */
@@ -510,7 +510,7 @@ export async function markPrintFailed(
   const result = await handle.db
     .updateTable("print_orders")
     .set({
-      status: "printed",
+      status: "built",
       // The caller (`submitBuiltBook`) always has a `print` block to extend
       // by the time a submission can fail; the empty defaults only matter to
       // a caller (or a test) that skips straight to failure.
