@@ -88,3 +88,66 @@ than being deleted.
 
 Not in scope: changing what the archive contains, or the agent-token route,
 which keeps working as it does.
+
+## Work
+
+Built as decided, in `.claude/worktrees/b1295-export-link` (branch
+`b1295-export-link`), reusing the `deletion_requests` table rather than a
+second one:
+
+- `lib/deletions.ts` gained `requestExport(username)`, `consumeExportToken`
+  and `sendExportMail` — the same table, a new `kind: "export"` row
+  (`trip_id` always null: this is always the whole journal), a random
+  32-byte token hashed with the same `hashSecret`, and the same
+  `DELETION_TTL_MS`/`DELETION_TTL_MINUTES` clock the deletion flow already
+  uses. An earlier live export link for the journal is retired the same way
+  `requestDeletion` retires an earlier deletion link — one live link per
+  inbox.
+- **New, not reused:** the export flow has no confirmation page, because
+  there is nothing to confirm — downloading a copy changes nothing, so
+  `consumeExportToken` spends the token the moment the archive route
+  resolves it (single use in the literal sense), rather than leaving it live
+  the way the deletion flow's own export button must (that one shares a
+  token with a delete button still to come).
+- `app/[user]/me/export/route.ts` — POST, cookie-only (an `Authorization`
+  header is refused before it is read, mirroring `app/[user]/me/delete`),
+  owner-gated via `isOwner`, rate-limited with `rateLimitFor("export-request",
+  clientIp(request), { max: 3, windowMs: 60 * 60 * 1000 })`. There was no
+  existing rate limit on `requestDeletion`'s own callers to match exactly —
+  `DELETE /api/v1/<user>`, `.../trips/<trip>` and `/me/delete` all send mail
+  with no per-IP throttle today — so this borrows the shape of the nearest
+  analogous "resend a link" action instead: `contact-resend` in
+  `app/api/contacts/admin/route.ts` (max 3, one hour).
+- `app/[user]/export/[token]/route.ts` — GET, streams the zip straight back
+  (no confirmation page in front of it, unlike the deletion flow), 404 for an
+  unknown journal, 410 for an invalid/expired/used token. Not under
+  `/api/v1/`, so `test/openapi-contract.test.ts` does not need an entry —
+  same as `/[user]/delete/[token]/export.zip` beside it.
+- `components/ExportAccount.tsx` — one button, no `ConfirmPanel` (nothing to
+  confirm), wired into `MePageContent.tsx` directly above `DeleteAccount`,
+  both owner-only.
+- Locale keys `me.export*` (button copy) and `exp.*` (the mail) in en/de/hu;
+  `npm run i18n:keys` regenerated the union in `lib/i18n.ts`.
+- `pricing.freeExport` ("Export everything, whenever you like") needed no
+  wording change — it is true now.
+- `config.json` still travels with a whole-journal export (`tripId` absent
+  in `createUserExportArchive(user, "all")`), exactly like the owner's own
+  `/<user>/export.zip` and the whole-journal deletion mail's export button —
+  B1387's exclusion only ever applied to a *trip*-scoped export, and this one
+  is never trip-scoped.
+
+**Verified with a real mail**, not just a green suite: a throwaway vitest
+test (not committed) called `requestExport`, read the `.eml` `file` transport
+wrote under a temp `dataDir()`, decoded the base64 `text/plain` part, and
+confirmed the subject ("Your export from Testbed is ready"), the download
+link (`https://t.test/anna/export/<token>`), and the 60-minute expiry line
+all read correctly. A second run pulled the real token out of that mail,
+called `consumeExportToken` twice, and confirmed the first succeeds and the
+second is refused with `reason: "used"`.
+
+`npm run verify` (full, unabridged): build, tsc and eslint clean; vitest
+526 test files / 6918 tests passed, 4 skipped; knip clean (only the same six
+pre-existing `knip.jsonc` configuration hints this tree already had, no
+unused-export or unused-file failures). One knip failure was hit and fixed
+along the way: `exportLinkUrl` was exported but only used inside
+`lib/deletions.ts` itself, so the `export` keyword came off.
