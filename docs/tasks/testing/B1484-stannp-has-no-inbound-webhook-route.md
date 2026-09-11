@@ -7,8 +7,7 @@ complexity: medium
 area: postcards
 found: "2026-09-11T16:35:58Z"
 started: "2026-09-11T20:18:05Z"
-session: 01ffdab4-e3d9-4d0a-810b-5d15c09d3f77
-claimed: "2026-09-11T20:18:05Z"
+merged: "2026-09-11T20:40:55Z"
 ---
 
 # B1484 — Stannp has no inbound webhook route, unlike every other print/message provider

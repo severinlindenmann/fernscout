@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (221)
+## backlog (224)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (58)
+### issue (59)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -102,6 +102,8 @@ Do not edit them by hand; run the script.
 | [B1520](backlog/issue/B1520-two-days-with-the-same-title-collide.md) | Two days with the same title collide at publish with 409, and nothing catches it first | ISSUE | medium | low |
 | [B1525](backlog/issue/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low |
 | [B1526](backlog/issue/B1526-the-journals-own-walking-figures-cannot.md) | The journal's own walking figures cannot be set at all over the API | ISSUE | medium | low |
+| [B1534](backlog/issue/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
+| [B1535](backlog/issue/B1535-an-agent-code-for-the-instance.md) | An agent code for the instance admin is refused on every journal they do not own | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
@@ -120,8 +122,7 @@ Do not edit them by hand; run the script.
 | [B1504](backlog/issue/B1504-an-up-leg-reports-success-on.md) | An up leg reports success on config fields that can never reach the site | ISSUE | low | low |
 | [B1514](backlog/issue/B1514-publish-stops-a-whole-run-on-a-transient-502.md) | publish stops a whole run on a transient 502 from a media upload | ISSUE | low | low |
 | [B1527](backlog/issue/B1527-a-figure-whose-shirt-matches-its.md) | A figure whose shirt matches its skin tone renders as nude, and nothing warns | ISSUE | low | low |
-| [B1529](backlog/issue/B1529-a-card-stannp-cancels-after-acceptance.md) | A card Stannp cancels after acceptance is never refunded | ISSUE | low | medium |
-| [B1532](backlog/issue/B1532-a-card-stannp-cancels-after-acceptance.md) | A card Stannp cancels after acceptance is never refunded (renumbered) | ISSUE | low | medium |
+| [B1532](backlog/issue/B1532-a-card-stannp-cancels-after-acceptance.md) | A card Stannp cancels after acceptance is never refunded | ISSUE | low | medium |
 
 ### big-feature (11)
 
@@ -182,7 +183,7 @@ Do not edit them by hand; run the script.
 | [B1453](backlog/chore/B1453-createjournal-still-writes-costs-enabled-into.md) | createJournal still writes costs: enabled into every new journal's config, where nothing reads it | CHORE | low | low |
 | [B1473](backlog/chore/B1473-twenty-three-photobook-print-strings-lost.md) | Twenty-three photobook print strings lost their reader in B1428 and are still shipped in three languages | CHORE | low | low |
 
-### ops (13)
+### ops (14)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -196,11 +197,12 @@ Do not edit them by hand; run the script.
 | [B1137](backlog/ops/B1137-there-is-no-place-to-try.md) | There is no place to try a change against real data before it reaches fernscout.ch | OPS | medium | medium |
 | [B1183](backlog/ops/B1183-whether-an-eu-art-27-representative.md) | Whether an EU Art. 27 representative is owed is a lawyer's question nobody has asked | OPS | medium | low |
 | [B1312](backlog/ops/B1312-a-restart-with-no-rebuild-strands.md) | A restart with no rebuild strands the service, and a corrupted Turbopack cache fails the build until cleared | OPS | medium | low |
+| [B1536](backlog/ops/B1536-enable-the-stannp-webhook-on-the.md) | Enable the Stannp webhook on the live instance | OPS | medium | low |
 | [B437](backlog/ops/B437-no-postcard-has-ever-been-posted.md) | No postcard has ever been posted through a real provider account | OPS | medium | medium |
 | [B546](backlog/ops/B546-the-open-meteo-free-tier-is.md) | The Open-Meteo free tier is non-commercial and this instance takes money | OPS | medium | low |
 | [B1036](backlog/ops/B1036-content-example-s-new-trips-can.md) | content/example's new trips can flicker as malformed during ship.sh's demo sync | OPS | low | low |
 
-### docs-and-skills (7)
+### docs-and-skills (8)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -210,6 +212,7 @@ Do not edit them by hand; run the script.
 | [B1384](backlog/docs-and-skills/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high |
 | [B1478](backlog/docs-and-skills/B1478-the-print-bench-shows-one-postcard.md) | The print bench shows one postcard and one book; it should show every format and what Gelato actually requires | DOCS | medium | medium |
 | [B1483](backlog/docs-and-skills/B1483-a-dispatched-agent-works-in-a.md) | A dispatched agent works in a worktree but its working directory is the shared checkout, so anything reading the current diff reads the wrong one | DOCS | medium | low |
+| [B1533](backlog/docs-and-skills/B1533-send-the-largest-file-you-have.md) | \"Send the largest file you have\" is true, load-bearing, and buried where no uploader reads it | DOCS | medium | low |
 | [B1415](backlog/docs-and-skills/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low |
 
 ### superseded (84)
@@ -321,19 +324,18 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (1)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1484](in-development/B1484-stannp-has-no-inbound-webhook-route.md) | Stannp has no inbound webhook route, unlike every other print/message provider | ISSUE | medium | medium | `01ffdab4` |
+_Nothing here._
 
-## testing (8)
+## testing (9)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1505](testing/B1505-a-buddy-s-trip-scoped-agent.md) | A buddy's trip-scoped agent token cannot drive /agent at all | ISSUE | high | low | — |
 | [B1511](testing/B1511-the-message-on-the-back-preview.md) | The message on the back preview is far larger than the message that prints | ISSUE | high | medium | — |
 | [B1524](testing/B1524-the-photobook-composer-s-switches-do.md) | The photobook composer's switches do not match what they remove, and the cover is never shown | ISSUE | high | medium | — |
+| [B1484](testing/B1484-stannp-has-no-inbound-webhook-route.md) | Stannp has no inbound webhook route, unlike every other print/message provider | ISSUE | medium | medium | — |
 | [B1506](testing/B1506-test-a-feature-has-no-isolated.md) | test-a-feature has no isolated CONTENT_DIR, so a local run writes into the tracked demo journal | CHORE | medium | medium | — |
 | [B1507](testing/B1507-owner-new-onboard-whatsapp-assumes-a.md) | owner-new-onboard-whatsapp assumes a draft appears without completing WhatsApp onboarding | CHORE | medium | low | — |
 | [B1510](testing/B1510-the-step-screens-say-three-things.md) | The step screens say three things the screen already says | ISSUE | medium | low | — |
