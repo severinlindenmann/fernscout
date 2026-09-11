@@ -49,6 +49,57 @@ has at this width.
 - Check the same page for a trip that is under way, one that is upcoming, and one
   that is over — all three tenses exist and only one is being written for.
 
+**Built.**
+
+- `app/[user]/(trip)/map/page.tsx`: both `generateMetadata` and the page now
+  compute `getDays(ref, read)` alongside `getPlaces`, and the tense is
+  `hasPlaces || (hasDays && isOver(trip, days))` rather than `hasPlaces`
+  alone. `isOver` only gets a vote once a day actually exists — see the
+  guard below, which is the whole subtlety in this ticket.
+- **The zero-day case had to stay untouched, and nearly didn't.** The map
+  page carries an existing, deliberate policy from B118: a trip with *no
+  days at all* stays in the planned tense even once its dates are past —
+  "has been nowhere and is going nowhere" — and `test/map-tense.test.tsx`
+  already asserted this for a `status: past` trip with zero entries. My
+  first pass tied the tense to `isOver(trip, days)` unconditionally, which
+  flipped that case to the past tense too (a past-status trip with no
+  entries is `isOver` by definition) and broke four tests. The fix is
+  gating `isOver` on `hasDays` — the ticket's own case is a trip with *one*
+  published day and no coordinates, not a trip with nothing written; those
+  are different facts and needed different tenses.
+- `app/[user]/(trip)/map/MapPageContent.tsx`: takes two new optional props,
+  `over` and `hasDays` (both default `false`, the more conservative
+  reading). `pastTense = hasPlaces || (over && hasDays)` drives the h1 and
+  subtitle. The empty-map paragraph now reads `map.emptyNoPlace` ("no day
+  says where it was") when `hasDays` is true and the older `map.empty` ("no
+  days written") otherwise — `hasDays` is what tells the two apart, since a
+  day with no coordinates never appears in `places` at all (B381).
+- New locale key `map.emptyNoPlace` in en/de/hu, `npm run i18n:keys` run.
+- **Not touched:** `components/WorldMap.tsx` derives its own aria-label
+  tense independently, from `places.length > 0` only — it never sees `over`.
+  This can only mismatch the h1 in a case this ticket doesn't name (a
+  finished trip with a *planned route or track but no coordinate places*,
+  which would now show a past-tense heading over a present-tense-labelled
+  map region) and plumbing `over` into `WorldMap` felt like scope creep on a
+  low-complexity ticket. Flagging it rather than fixing it quietly.
+
+**Tests added**, both exercising the exact scenario the ticket names (a
+finished trip, one published day, no coordinates) as well as re-confirming
+B118's zero-day policy still holds:
+- `test/map-tense.test.tsx`: `journal()` gained a `dayHasCoords` option; new
+  test "a finished trip whose only day has no coordinates: the heading still
+  looks back" (per locale).
+- `test/map-page.test.tsx`: `render()` takes `over`/`hasDays`; new describe
+  block asserts `map.emptyNoPlace` shows instead of `map.empty`, and that the
+  heading looks back when `over` is true even with nothing to draw.
+
+**Verified live in a browser** (local dev, `http://localhost:3411`) against
+the demo journal's `alps-2024` trip (a real finished trip with real days,
+already on disk) at 390px — renders "Where we've been" as before, no
+regression. I did not have a local trip matching the exact no-coordinates
+case to screenshot (the demo content's days all carry coordinates); that path
+is covered by the two new automated tests above instead.
+
 ## Acceptance
 
 - A finished trip's map page is not titled in the future tense.

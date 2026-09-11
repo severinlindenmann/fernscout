@@ -5,6 +5,7 @@ import {
   A6_LANDSCAPE,
   DIVIDER_X_MM,
   FIGURES_AREA,
+  MESSAGE_FLOOR_PX,
   MESSAGE_PT,
   fontFraction,
   mediaBox,
@@ -514,16 +515,28 @@ describe("two recipients with the same name", () => {
  * change `MESSAGE_PT` and the preview has to move with it, because there is
  * nowhere else for the percentage to come from.
  */
+/** Pulls the bare `cqw` number back out of a `max(Xcqw, Ypx)` font size —
+ * B1286 wrapped the message's own percentage in a floor, and these tests are
+ * about the percentage, not the floor. */
+function cqwOf(value: string): number {
+  const match = /([\d.]+)cqw/.exec(value);
+  if (!match) throw new Error(`not a cqw value: ${value}`);
+  return Number(match[1]);
+}
+
 describe("the preview is drawn to the printer's measurements", () => {
-  test("the message percentage is the point size over the card width", () => {
-    const expected = `${(fontFraction(MESSAGE_PT) * 100).toFixed(3)}cqw`;
+  test("the message percentage is the point size over the card width, floored for legibility", () => {
+    // B1286: no longer the bare percentage — `max()` with a floor under it,
+    // since the same percentage renders at 8px on a phone. The percentage
+    // itself is unchanged.
+    const expected = `max(${(fontFraction(MESSAGE_PT) * 100).toFixed(3)}cqw, ${MESSAGE_FLOOR_PX}px)`;
     expect(backLayout().font.message).toBe(expected);
   });
 
   test("and that is about 2.3% of the card, not 2.4", () => {
     // 10pt on a 154mm (436.5pt) bleed box. Spelled out because the old value
     // was close enough to look right and wrong enough to double the type.
-    const pct = Number(backLayout().font.message.replace("cqw", ""));
+    const pct = cqwOf(backLayout().font.message);
     expect(pct).toBeGreaterThan(2.25);
     expect(pct).toBeLessThan(2.35);
   });
@@ -531,7 +544,7 @@ describe("the preview is drawn to the printer's measurements", () => {
   test("the address block is set larger than the message, as on paper", () => {
     const layout = backLayout();
     expect(Number(layout.font.address.replace("cqw", ""))).toBeGreaterThan(
-      Number(layout.font.message.replace("cqw", "")),
+      cqwOf(layout.font.message),
     );
   });
 });

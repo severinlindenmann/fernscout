@@ -622,9 +622,12 @@ export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
                     loading="lazy"
                     className="h-28 w-full object-cover"
                   />
-                ) : (
-                  <div className="h-28 w-full bg-cream-100" />
-                )}
+                ) : null}
+                {/* No band when there is no cover — B1291. 112px of flat
+                    `cream-100` said nothing and read as a photograph that had
+                    failed to load; a coverless journal is title-and-line, and
+                    nothing here has to earn a phone screen's worth of colour
+                    it cannot fill. */}
                 <div className="p-4">
                   <p className="font-display text-base font-semibold text-navy-900">
                     {journal.title}

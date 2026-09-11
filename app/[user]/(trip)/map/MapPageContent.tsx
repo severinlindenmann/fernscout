@@ -22,6 +22,8 @@ export default function MapPageContent({
   track = [],
   reachedCount = 0,
   basemap = null,
+  over = false,
+  hasDays = false,
 }: {
   places: PlaceView[];
   /** This trip's own line, where the owner has derived one — see lib/gps/. */
@@ -31,6 +33,14 @@ export default function MapPageContent({
   reachedCount?: number;
   /** Clipped on the server to this trip's frame — see lib/basemap.ts. */
   basemap?: Basemap | null;
+  /** Whether the trip itself is finished (`isOver`, lib/tripTime.ts) — B1289.
+   * Defaults to false, so a page that forgets to pass it keeps the older,
+   * narrower claim rather than calling an unfinished trip done. */
+  over?: boolean;
+  /** Whether a day is written at all, distinct from whether any carries
+   * coordinates — B1289. Defaults to false, so a caller that forgets it gets
+   * the more conservative "no days written" rather than a false negative. */
+  hasDays?: boolean;
 }) {
   const { t, tn, formatShortDate, formatStay } = useI18n();
   // Day permalinks hang off the trip in view — `/example/day/…` for the
@@ -56,6 +66,17 @@ export default function MapPageContent({
   // and asked as `places.length > 0` in four separate places the first kind
   // rendered anyway — as four zeroes, an empty box, and no map at all.
   const hasPlaces = places.length > 0;
+  // The tense the heading speaks in — B1289. `hasPlaces` alone said a
+  // finished trip with a published day and no coordinates was still "going",
+  // because nothing had been drawn yet. `over` is the trip's own hero telling
+  // the same fact a different way: it is done regardless of what got drawn.
+  //
+  // `over` only gets a say once `hasDays` is true, or B118's own policy
+  // breaks: a trip with nothing written at all stays in the planned tense
+  // even once its dates are past — "has been nowhere and is going nowhere" —
+  // and `hasDays` is what tells that trip apart from one `over` is actually
+  // reporting on.
+  const pastTense = hasPlaces || (over && hasDays);
 
   return (
     <div className="min-h-screen">
@@ -65,15 +86,14 @@ export default function MapPageContent({
             false one: "Wo wir waren" over eight places nobody has been to yet.
             The subtitle was worse — it invited the reader to tap stops that do
             not exist, because the only markers on the map are planned ones and
-            they open nothing. Both follow `hasPlaces`, the same question the
-            rest of the page asks (B18), rather than `trip.status`, which this
-            component is deliberately never told. */}
+            they open nothing. Both follow `pastTense` — `hasPlaces` or `over`,
+            never `trip.status` directly, so the two cannot drift apart. */}
         <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
-          {t(hasPlaces ? "map.title" : "map.titlePlanned")}
+          {t(pastTense ? "map.title" : "map.titlePlanned")}
         </h1>
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-navy-600">
-            {t(hasPlaces ? "map.subtitle" : "map.subtitlePlanned")}
+            {t(pastTense ? "map.subtitle" : "map.subtitlePlanned")}
           </p>
           {hasPlaces && (
             <button
@@ -124,7 +144,16 @@ export default function MapPageContent({
             // Not `story.empty`. "No entries yet" is true and is not the reason
             // the map is missing; with neither days nor a route there is
             // nothing to draw, and the message should say that instead.
-            <p className="text-navy-600">{t("map.empty")}</p>
+            //
+            // And not always the same sentence — B1289. `hasDays` tells apart
+            // "nobody has written a day" from "a day is written and has no
+            // place attached", which is the ordinary case for anybody writing
+            // without GPS and a different fact from the first. Saying "no days
+            // written" over a published day told an owner their day was
+            // missing when it was on the site.
+            <p className="text-navy-600">
+              {t(hasDays ? "map.emptyNoPlace" : "map.empty")}
+            </p>
           )}
         </div>
 

@@ -149,6 +149,18 @@ export function fontFraction(points: number, spec: PostcardSpec = A6_LANDSCAPE):
 }
 
 /**
+ * The smallest the message on the card preview is ever allowed to render —
+ * B1286. The message's own `cqw` is true to the paper only when the card
+ * renders at its real width; on a phone, where the preview shrinks to its
+ * grid column, the same percentage came out at 8px. Below this a floor takes
+ * over and the caption stops calling it print size (see `preview.ts` and
+ * `PostcardBack.tsx`). 14px matches the editable field's own `text-sm` two
+ * hundred pixels below it — once this preview is no longer to scale, it may
+ * as well be as readable as the box everyone actually reads from.
+ */
+export const MESSAGE_FLOOR_PX = 14;
+
+/**
  * How far into a photograph a crop may be dragged — B627. Beyond about four
  * times, a phone photograph on an A6 card is mush, and the low-resolution
  * warning `renderPostcard` computes is what says so out loud.

@@ -67,8 +67,9 @@ vi.mock("next/navigation", async (importOriginal) => ({
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { clearLocaleCache, dictionaryFor } from "@/lib/locales";
-import { getPlaces } from "@/lib/entries";
-import { currentTripRef } from "@/lib/trips";
+import { getDays, getPlaces } from "@/lib/entries";
+import { currentTripRef, getTrip } from "@/lib/trips";
+import { isOver } from "@/lib/tripTime";
 import { generateMetadata } from "@/app/[user]/(trip)/map/page";
 import MapPageContent from "@/app/[user]/(trip)/map/MapPageContent";
 import LocaleProvider from "@/components/LocaleProvider";
@@ -104,7 +105,14 @@ function userCfg(locale: string, offers?: string[]): string {
  * falls back to the most recent past trip, so this is what `/alex/map` renders
  * for a journal between trips — not a transient pre-departure state.
  */
-function journal(opts: { locale: string; withDay: boolean; offers?: string[] }): void {
+function journal(opts: {
+  locale: string;
+  withDay: boolean;
+  offers?: string[];
+  /** False writes a day with no `lat`/`lng` at all — B1289's own case: a day
+   * that is written and on the site, and simply has nowhere to plot. */
+  dayHasCoords?: boolean;
+}): void {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "map-tense-"));
   fs.writeFileSync(path.join(dir, "config.json"), SERVER_CFG);
   const trip = path.join(dir, "alex", "trips", "ridge-2026");
@@ -116,10 +124,11 @@ function journal(opts: { locale: string; withDay: boolean; offers?: string[] }):
       "status: past\nvisibility: public\n---\n\nSomething.\n",
   );
   if (opts.withDay) {
+    const coords = opts.dayHasCoords === false ? "" : 'lat: 46.8508\nlng: 9.5320\n';
     fs.writeFileSync(
       path.join(trip, "entries", "2026-05-02-first.md"),
       '---\ntitle: "First"\ndate: "2026-05-02"\nlocation: "Chur"\ncountry: "Switzerland"\n' +
-        'countryCode: "CH"\nlat: 46.8508\nlng: 9.5320\n---\n\nA day.\n',
+        `countryCode: "CH"\n${coords}---\n\nA day.\n`,
     );
   }
   process.env.CONTENT_DIR = dir;
@@ -148,6 +157,8 @@ const site = {
  */
 function headingOf(locale: string): string {
   const ref = currentTripRef("alex");
+  const trip = ref ? getTrip(ref) : undefined;
+  const days = ref ? getDays(ref) : [];
   const html = renderToStaticMarkup(
     <LocaleProvider locale={locale} dictionary={dictionaryFor(locale)}>
       <SiteProvider value={site}>
@@ -158,6 +169,8 @@ function headingOf(locale: string): string {
               plan={[]}
               stats={{ tripDays: 0, places: 0, countries: 0, totalMedia: 0 }}
               reachedCount={0}
+              over={trip !== undefined && isOver(trip, days)}
+              hasDays={days.length > 0}
             />
           </TripListProvider>
         </CurrencyProvider>
@@ -222,6 +235,25 @@ describe.each(LOCALES)("a journal reading in %s", (locale) => {
     expect(headingOf(locale)).toBe(dict["map.title"]);
     expect(meta.title).toBe(headingOf(locale));
     expect(meta.description).toBe(dict["map.subtitle"]);
+  });
+
+  /**
+   * B1289 — a finished trip with a published day that has nowhere to plot.
+   * `getPlaces` drops such a day outright (B381), so `hasPlaces` alone stayed
+   * false and the page kept the planned tense over a trip that was plainly
+   * over — `status: past`, ten days behind "now" in this fixture. `isOver`
+   * is what tells the page the trip is finished regardless of what got
+   * drawn, and it only gets a say because a day was actually written — see
+   * the "no days at all" case above, which must stay in the planned tense.
+   */
+  test("a finished trip whose only day has no coordinates: the heading still looks back", async () => {
+    journal({ locale, withDay: true, dayHasCoords: false });
+    const meta = await metaFor();
+
+    expect(meta.title).toBe(dict["map.title"]);
+    expect(headingOf(locale)).toBe(dict["map.title"]);
+    expect(meta.title).toBe(headingOf(locale));
+    expect(meta.title).not.toBe(dict["map.titlePlanned"]);
   });
 
   test("the two strings are actually different in this language", () => {

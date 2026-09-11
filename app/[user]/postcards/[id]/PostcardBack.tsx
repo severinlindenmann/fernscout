@@ -42,6 +42,9 @@ type Layout = {
     signature: string;
     address: string;
     addressLeading: number;
+    /** The card width, in CSS px, above which the message is genuinely at
+     * print size rather than held up by the floor — B1286. */
+    messageTrueAbovePx: number;
   };
 };
 
@@ -55,7 +58,12 @@ export type BackStrings = {
   saved: string;
   failed: string;
   sameCard: string;
+  /** Shown once the card is measured wide enough that the message really is
+   * at print size — B1286. */
   caption: string;
+  /** Shown everywhere narrower, where a floor is holding the message legible
+   * instead of true to scale. */
+  captionNotToScale: string;
   /** Who prints the address and the postage mark — B982. */
   printerAdds: string;
 };
@@ -125,6 +133,32 @@ export default function PostcardBack({
    */
   const request = useRef(0);
   const first = useRef(true);
+
+  /**
+   * Whether the card is currently rendering at its real print scale — B1286.
+   *
+   * Starts `false`: the server cannot know the reader's width, and a phone is
+   * the common case, so the first paint (server and client alike, avoiding a
+   * hydration mismatch) claims the more modest thing. A `ResizeObserver`
+   * corrects it once the card's actual width is known, and again on every
+   * resize — the same card can cross the threshold when a phone rotates or a
+   * window is dragged wider.
+   */
+  const [trueScale, setTrueScale] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const check = (width: number) =>
+      setTrueScale(width >= layout.font.messageTrueAbovePx);
+    check(el.getBoundingClientRect().width);
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) check(entry.contentRect.width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [layout.font.messageTrueAbovePx]);
 
   /**
    * One save, used by the debounce below and by the button — B892.
@@ -207,6 +241,7 @@ export default function PostcardBack({
             so every `cqw` resolved against the message column's own width and
             the type came out at roughly twice its real size. */}
         <div
+          ref={cardRef}
           className="relative overflow-hidden rounded-lg border border-navy-200 bg-white text-black shadow-sm"
           style={{ aspectRatio: layout.aspect, containerType: "inline-size" }}
         >
@@ -284,7 +319,7 @@ export default function PostcardBack({
           </div>
         </div>
         <figcaption className="mt-1 text-xs text-navy-600">
-          {strings.caption}
+          {trueScale ? strings.caption : strings.captionNotToScale}
         </figcaption>
         {/* Its own paragraph rather than a second sentence in the caption: the
             caption names the drawing ("the back, at print size") and this is
