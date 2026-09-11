@@ -234,6 +234,17 @@ export type Trouble = {
   when: string;
   /** The detail that makes it actionable. */
   detail: string;
+  /**
+   * The row this trouble came from — a print order id or a payment id.
+   *
+   * `attention()` builds its id from this, not from `owner` and `what`: two
+   * failed photobooks for the same journal have the same `what` and the same
+   * `owner`, so composing an id out of that prose collided them into one
+   * attention-band entry — acknowledging one silently hid the others (B1223).
+   * The producer already selects the row id for `detail`; this is the same
+   * value, named so a consumer never has to compose one again.
+   */
+  ref: string;
 };
 
 /** How long a filed purchase may sit before it is a person kept waiting. */
@@ -269,6 +280,7 @@ export async function troubles(since: string): Promise<Trouble[]> {
         owner: row.owner_id,
         when: row.created_at.slice(0, 10),
         detail: `${row.provider} refused it · order ${row.id}`,
+        ref: row.id,
       });
     }
 
@@ -291,6 +303,7 @@ export async function troubles(since: string): Promise<Trouble[]> {
         owner: row.owner_id,
         when: (row.requested_at ?? "").slice(0, 10),
         detail: `${row.credits} credits · the approval link is in your mailbox`,
+        ref: row.id,
       });
     }
   } catch {
@@ -954,10 +967,12 @@ export function attention(input: {
 
   for (const trouble of input.troubles) {
     found.push({
-      // The person and the thing, never the date: `troubles` is a window over
-      // recent rows, so an id carrying `when` would be a new id every day and
-      // an acknowledgement that never held.
-      id: `trouble:${trouble.owner ?? "-"}:${trouble.what}`,
+      // The row itself, not the person and the thing (B1223): two failed
+      // photobooks for one journal share both `owner` and `what`, so
+      // composing an id from that prose collided them into one entry and
+      // acknowledging one silently hid the other. `ref` is the producer's
+      // own row id, which is unique by construction.
+      id: `trouble:${trouble.ref}`,
       level: 0,
       kind: "fault",
       title: trouble.what,
