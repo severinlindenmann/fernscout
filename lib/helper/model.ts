@@ -86,7 +86,14 @@ Use warnings to name, one short sentence each, anything you deliberately did not
 async function book(
   owner: string | undefined,
   operation: Operation,
-  usage: { input_tokens?: number | null; output_tokens?: number | null } | undefined,
+  usage:
+    | {
+        input_tokens?: number | null;
+        output_tokens?: number | null;
+        cache_read_input_tokens?: number | null;
+        cache_creation_input_tokens?: number | null;
+      }
+    | undefined,
 ): Promise<void> {
   if (!owner) return;
   await recordUsage({
@@ -94,7 +101,14 @@ async function book(
     provider: "anthropic",
     model: HELPER_MODEL,
     operation,
-    inputTokens: usage?.input_tokens ?? 0,
+    // ponytail: cached tokens are folded in at face value, which overstates
+    // slightly (a read bills at 0.1x, a write at 1.25x). Overstating is the
+    // safe direction for an operator's own bill; the honest fix is columns of
+    // their own in the usage table, and that is a migration.
+    inputTokens:
+      (usage?.input_tokens ?? 0) +
+      (usage?.cache_read_input_tokens ?? 0) +
+      (usage?.cache_creation_input_tokens ?? 0),
     outputTokens: usage?.output_tokens ?? 0,
   });
 }
@@ -448,22 +462,27 @@ export async function mapStatementColumns(sample: Table, owner?: string): Promis
  *
  * ## What a turn costs
  *
- * Not measured against the API — this repository has no key, and an invented
- * measurement would be worse than an arithmetic one. What is measured is the
- * fixed part, which is what a next person needs in order to price it:
- * `test/helper-thread.test.ts` counts the characters of the system prompt plus
- * the generated tool schemas and divides by four, the usual English estimate,
- * and fails if it grows past its ceiling. Today that prefix is ≈1,500 tokens.
+ * Measured against the real API on 2026-09-11, which is how the numbers below
+ * got four times larger than the arithmetic that stood here before — B1450.
+ * The estimate this comment used to carry said "≈1,500 tokens" for the fixed
+ * prefix and "a third of a rappen to a rappen a turn". Both were wrong, and
+ * the reason is worth keeping: the ceiling test in `test/helper-thread.test.ts`
+ * measures `tool.properties + describe`, which is *not* what `toolSchemas()`
+ * puts on the wire — the names, the `input_schema` wrappers and the `required`
+ * arrays are unmeasured, and they are per-tool, so the gap widens with every
+ * tool added. B1449 is that.
  *
- * On top of it: the conversation (≤12 turns of a sentence or two, so a few
- * hundred tokens), the tool results (`unfinished` and `list_trips` on a busy
- * journal are the large ones, low hundreds), and the answer (≤400 tokens out).
- * So **roughly 2,000–3,500 input and 100–400 output tokens per turn**, and a
- * turn that calls a tool pays the input twice because the loop re-sends
- * everything. At Haiku's $1/$5 per MTok that is about a third of a rappen to a
- * rappen a turn — ten to thirty times a router turn, which is what the plan
- * said it would be. It is booked to `ask_thread` in `lib/usage.ts`, so the
- * real number is in the operator's own usage page rather than in this comment.
+ * What actually goes out, at 47 tools: the system prompt is ~3,460 tokens and
+ * the schemas ~6,090, so the fixed prefix is **~10,800 tokens** re-sent on
+ * every round. On top of it the conversation (≤12 turns of a sentence or two),
+ * the tool results, and the answer (≤700 tokens out).
+ *
+ * A real two-round turn cost **1.88 Rp** before the prefix was cached and
+ * **0.30 Rp** with the cache warm. A cold cache still came to 1.31 Rp, because
+ * round two reads what round one wrote — see `cachedSystem` in
+ * `answerInThread` for why that is the number that made caching worth doing.
+ * It is booked to `ask_thread` in `lib/usage.ts`, so the live figure is on the
+ * operator's own usage page rather than in this comment.
  * ---------------------------------------------------------------------- */
 
 /** Where a turn stops, whatever the model is doing. Four is a read, a second
@@ -1766,13 +1785,37 @@ export async function answerInThread(
    *  once, after every round (and any retry) is done. */
   const heldRefusals: Block[] = [];
 
+  /**
+   * The tools and the prompt, marked as worth keeping between calls.
+   *
+   * A turn re-sends this whole prefix on every round, and it is ~10,800
+   * tokens — the tool schemas are two thirds of it. Measured on a real
+   * two-round turn: 1.88 Rp without this, 0.30 Rp with it warm, and 1.31 Rp
+   * even on a cold cache, because round two reads what round one wrote. So
+   * this pays for itself inside a single turn and does not depend on the
+   * person answering quickly.
+   *
+   * The breakpoint goes on the system prompt because the render order is
+   * tools → system → messages, so one marker here covers both. Haiku 4.5
+   * will not cache a prefix under 4,096 tokens and says nothing when it
+   * declines — if `cache_creation_input_tokens` ever comes back zero here,
+   * the prefix has been cut, not the feature broken.
+   */
+  const cachedSystem = [
+    {
+      type: "text" as const,
+      text: threadSystemPrompt(today, journalLocale),
+      cache_control: { type: "ephemeral" as const },
+    },
+  ];
+
   /** The rounds, over the messages built above. Returns what it said. */
   async function rounds(): Promise<string> {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
       const response = await client.messages.create({
         model: HELPER_MODEL,
         max_tokens: THREAD_MAX_TOKENS,
-        system: threadSystemPrompt(today, journalLocale),
+        system: cachedSystem,
         tools: toolSchemas(),
         messages,
       });
@@ -1867,6 +1910,10 @@ export async function answerInThread(
     // Four rounds and it is still calling tools. Rather than a fifth, ask for
     // the answer with the tools taken away — the reads are all in the
     // conversation by now, and a sentence about them is what was wanted.
+    //
+    // Deliberately not cached: dropping the tools changes the prefix from its
+    // first byte, so there is nothing here to read, and the prompt alone is
+    // under Haiku's 4,096-token minimum to write.
     const last = await client.messages.create({
       model: HELPER_MODEL,
       max_tokens: THREAD_MAX_TOKENS,
