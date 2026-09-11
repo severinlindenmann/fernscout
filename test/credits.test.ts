@@ -331,6 +331,10 @@ describe("the grant path is not reachable over HTTP", () => {
     // shape as every route above.
     "app/api/helper/[user]/ask/route.ts",
     "app/api/helper/[user]/search/route.ts",
+    // B1517. One photograph classified into a proposed party — charged
+    // before the model call, refunded on a throw, the same shape as every
+    // route above.
+    "app/api/v1/[user]/trips/[trip]/travellers/from-photo/route.ts",
   ];
 
   test("only the sanctioned routes import refund from lib/credits", () => {

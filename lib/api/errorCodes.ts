@@ -101,6 +101,9 @@ export const ERROR_CODES: Record<string, string> = {
   could_not_fetch: "This server could not fetch one of the `urls`. https only, public hosts only, and it is refused after a redirect to a private address.",
   method_not_allowed: "This route does not take that verb, and the `message` names the one that does what you meant.",
   nothing_to_draw: "No figure to draw. Send `figure` or `party` as JSON.",
+  expected_photo: "Name one photograph — multipart bytes under `photo`, or `inbox` or `gallery` in a JSON body.",
+  not_this_trip: "That `gallery` src is not a photograph on this trip's own media — either it names a different trip, or it does not exist. Give a src exactly as a day's gallery already carries it.",
+  idempotency_conflict: "That `idempotency_key` was already used for a different call. Nothing was written this time either; send a new key for a new request.",
 
   // ── the day is not wrong, it is incomplete ─────────────────────────────
   incomplete_day: "The trip keeps track of something this day says nothing about. `missing` names each one, how to send it, **and how to decline it** — `\"costs\": false` means there was none. Ask the person; never invent a value to get past this.",
@@ -144,4 +147,7 @@ export const ERROR_CODES: Record<string, string> = {
   bad_token: "The single-use token in the body does not verify.",
   bad_method: "That payment method is not one this server takes.",
   too_many_requests: "Too many of these too quickly. `retryAfter` says how long to wait — wait it out rather than retrying immediately.",
+  helper_unavailable: "This journal has no model-backed features switched on. /api/health says which capabilities are on and why.",
+  consent_required: "This journal has not agreed to send photographs to a model. That is asked for on the journal's own page, not by an agent — an owner has to say yes to this themselves.",
+  model_failed: "The model call failed. Nothing was written and any credit charged for it was refunded; retrying is reasonable.",
 };

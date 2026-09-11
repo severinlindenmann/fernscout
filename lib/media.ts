@@ -273,3 +273,24 @@ export async function resizedCopy(file: string, width: number): Promise<Buffer |
   }
   return bytes;
 }
+
+/**
+ * The same resize `resizedCopy` does, for bytes that were never written to
+ * disk at all — B1517: a freshly uploaded photograph handed straight to a
+ * model has nowhere to be cached from and nothing worth caching, since the
+ * whole point is that it is read once and dropped, not kept.
+ *
+ * Returns null on anything sharp cannot decode, the same as `resizedCopy`.
+ */
+export async function resizedBuffer(bytes: Buffer, width: number): Promise<Buffer | null> {
+  const sharp = (await import("sharp")).default;
+  try {
+    return await sharp(bytes, { failOn: "error" })
+      .rotate()
+      .resize(width, undefined, { withoutEnlargement: true })
+      .webp({ quality: 78 })
+      .toBuffer();
+  } catch {
+    return null;
+  }
+}

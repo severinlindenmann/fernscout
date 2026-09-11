@@ -1,5 +1,6 @@
 import { AGE_SCALE, type Figure } from "./vocabulary";
 import { figureShapes, SHADOW, type Shape } from "./shapes";
+import { arrangeParty } from "./layout";
 
 /**
  * A figure in, SVG out. Pure — no React, no DOM, no `fs`, no server-only.
@@ -135,6 +136,34 @@ export function renderFigure(figure: Figure, options: RenderOptions = {}): strin
     `<g transform="translate(32,96) scale(${scale}) translate(-32,-96)">` +
     toSvg(figureShapes(figure, { head })) +
     `</g></svg>`
+  );
+}
+
+/**
+ * A whole party, arranged and drawn as one `<svg>` document — the same shape
+ * `GET .../travellers/preview` answers, and every caller that has to hand
+ * somebody a picture rather than a data structure should reach for this
+ * rather than re-arranging and re-serialising a party by hand (B1517).
+ */
+export function renderPartySvg(figures: Figure[], size = 106): string {
+  const { placements, width, height } = arrangeParty(figures, size);
+  const body = placements
+    .map((p) => {
+      // Feet on the baseline: the figure is drawn at its own height and then
+      // translated down by whatever the composition's height leaves over.
+      const top = height - p.bottom - Math.round(size * 1.42) * p.scale;
+      return (
+        `<g transform="translate(${p.x.toFixed(1)}, ${top.toFixed(1)}) scale(${p.scale})">` +
+        renderFigure(p.figure, { width: size, decorative: true }) +
+        `</g>`
+      );
+    })
+    .join("");
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(width)}" ` +
+    `height="${height}" viewBox="0 0 ${Math.round(width)} ${height}" role="img" ` +
+    `aria-label="${figures.length === 1 ? "an illustrated traveller" : `${figures.length} illustrated travellers`}">` +
+    `${body}</svg>`
   );
 }
 
