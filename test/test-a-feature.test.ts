@@ -4,7 +4,7 @@ import { resolveFlows } from "@/scripts/test-a-feature";
 describe("resolveFlows", () => {
   test("returns the flows a covered capability names", () => {
     const result = resolveFlows("helper");
-    expect(result.flows).toEqual(["buddy-established-add-day-agent"]);
+    expect(result.flows).toEqual(["owner-established-use-agent-helper"]);
     expect(result.note).toBeUndefined();
   });
 
