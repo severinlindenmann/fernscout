@@ -220,6 +220,8 @@ describe("planning a three-day trip", () => {
   test("opens with the title on a recto and ends with the colophon", () => {
     expect(volume.pages[0].kind).toBe("title");
     expect(volume.pages[0].side).toBe("right");
+    // The title is a leaf, not a page: nothing prints on its back. B1542.
+    expect(volume.pages[1].kind).toBe("blank");
     const kinds = volume.pages.map((p) => p.kind);
     expect(kinds).toContain("colophon");
     expect(kinds.lastIndexOf("colophon")).toBeGreaterThan(kinds.lastIndexOf("chapter"));
