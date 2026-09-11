@@ -150,10 +150,14 @@ export default function PostcardSteps({
                 type="button"
                 onClick={() => setStep(name)}
                 aria-current={active ? "step" : undefined}
-                className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors ${
+                /* The current step wears the yellow — B1489, the drawing's
+                   own bar. Navy-on-white filled the whole pill with the
+                   colour this palette keeps for type, and read as a button
+                   that had just been pressed rather than as where you are. */
+                className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-xs font-bold uppercase tracking-wider transition-colors ${
                   active
-                    ? "border-navy-900 bg-navy-900 text-white"
-                    : "border-navy-200 bg-white text-navy-700 hover:border-navy-900"
+                    ? "border-yellow-600 bg-yellow-400 text-yellow-950"
+                    : "border-navy-200 bg-white text-navy-500 hover:border-navy-400"
                 }`}
               >
                 {/* The number is not decoration: these are steps in an order,
@@ -161,7 +165,7 @@ export default function PostcardSteps({
                     is otherwise three words. */}
                 <span
                   aria-hidden="true"
-                  className={`font-mono text-xs ${active ? "text-white/70" : "text-navy-500"}`}
+                  className={`font-mono text-[0.65rem] ${active ? "text-yellow-950/60" : "text-navy-400"}`}
                 >
                   {i + 1}
                 </span>
@@ -198,7 +202,12 @@ export default function PostcardSteps({
           <button
             type="button"
             onClick={() => setStep(ORDER[index + 1])}
-            className="min-h-11 rounded-full bg-navy-900 px-5 text-sm font-semibold text-white transition-colors hover:bg-navy-700"
+            /* Yellow, and full width on a phone — B1489. It is the forward
+               action of the step and the drawing gives it the same weight as
+               the press at the end; navy-on-white made it the third-heaviest
+               thing on a screen whose whole job is "go on". Nothing here
+               spends: the one button that does is on the send panel. */
+            className="min-h-11 w-full rounded-full border-2 border-yellow-600 bg-yellow-400 px-5 text-sm font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 sm:w-auto"
           >
             {step === "look" ? next.look : next.write}
           </button>
