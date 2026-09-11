@@ -20,6 +20,20 @@ tables, the envelope markup and the ledger are now duplicated by
 `components/order/` (B1464). Two copies of a status vocabulary is how the
 vocabularies drift.
 
+## Validity
+
+Valid: 401 lines, of which the tone tables, the envelope and the ledger were
+all duplicated by `components/order/` the moment B1464 merged.
+
+## What is left on the page
+
+Three things only a page can do: decide who may look, ask Gelato where the
+print has got to, and draw the tracking rows — whose links are markup rather
+than a fact about an order, so they go in the `statusExtra` slot. The
+`undefined` / `null` distinction on `providerStatus` is deliberate and is
+carried into the call: nothing to ask about is not the same answer as a lookup
+that failed.
+
 ## Work
 
 Replace the body of the receipt page with `photobookOrderView` + `OrderDocket`.
