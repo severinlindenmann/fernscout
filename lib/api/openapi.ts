@@ -2836,6 +2836,91 @@ export function openApiDocument() {
           },
         },
       },
+      "/api/v1/{user}/sync/manifest": {
+        get: {
+          summary: "Every file in this journal, with a hash — the call a sync makes first",
+          description:
+            "What the journal's folder holds, file by file: a POSIX-slashed path relative to " +
+            "`content/<user>/`, a size, and a 32-character SHA-256 prefix of the whole file. " +
+            "Diff it against your own folder and you know exactly what moved, in either " +
+            "direction — which is the thing that was impossible before B1495, when content " +
+            "only ever flowed up and getting the newest version back down meant unzipping a " +
+            "whole export over the top of whatever was local.\n\n" +
+            "**In it:** `config.json`, and everything under `trips/<id>/` — `trip.md`, " +
+            "`entries/*.md` **including drafts**, `costs.md`, `plan.md`, and `media/` as the " +
+            "derivative files the site itself serves. `inbox/**` is in it too, sidecars and " +
+            "all. Drafts are included on purpose: the folder is a faithful mirror or it is " +
+            "not a backup.\n\n" +
+            "**Not in it,** and each for its own reason: `gps/`, the owner's position " +
+            "history, which no route returns and no manifest names; generated output " +
+            "(`postcards/`, `photobooks/`, `.ingest.json`, and `track.json`, which this " +
+            "server derives — do not send it back); `originals/`, the full-resolution " +
+            "photographs a photobook prints from, which are an order of magnitude larger " +
+            "than what the site serves and are backed up from the filesystem rather than " +
+            "through a browser; and dotfiles at any depth. The `omitted.originals` block " +
+            "counts what was left behind, so a client can say so rather than present a " +
+            "partial copy as a complete one.\n\n" +
+            "Fetch a file with `GET /api/v1/{user}/sync/file/{path}`. To send changes **up**, " +
+            "use the ordinary typed routes — `PATCH .../days/{slug}`, `PATCH .../trips/{trip}` " +
+            "and the rest. There is deliberately no file `PUT`: writing a day as raw bytes " +
+            "would go around every check `POST .../days` runs, including the one that refuses " +
+            "a caller supplying its own weather reading.\n\n" +
+            "**Owner only.** A trip-scoped token is refused, because this lists every private " +
+            "trip and every unpublished draft in the journal — the same gate, and the same " +
+            "404-rather-than-403 refusal, that `/{user}/export.zip` uses.",
+          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            "200": {
+              description:
+                "`{user, files: [{path, size, hash}], bytes, omitted, next}`, files sorted by path",
+            },
+            "401": { description: "No live token — authenticate" },
+            "404": {
+              description:
+                "No such journal, or a token that is not the owner's — including a " +
+                "trip-scoped one. The two answer alike, so this cannot be used to ask which " +
+                "journals exist.",
+            },
+          },
+        },
+      },
+      "/api/v1/{user}/sync/file/{path}": {
+        get: {
+          summary: "One file of the journal's folder, by the path the manifest named",
+          description:
+            "The bytes of one file, unchanged. `path` is the manifest's own `path` for it, " +
+            "slashes and all (`trips/alps-2024/media/over-the-susten/01.jpg`). The response " +
+            "carries the file's own content type.\n\n" +
+            "**Only what the manifest lists is fetchable.** The same predicate decides both, " +
+            "so a path the listing left out is refused here whether it was guessed or " +
+            "inferred — `gps/` most of all, but equally `originals/`, `track.json` and any " +
+            "dotfile. A path climbing out of the journal is refused rather than resolved.\n\n" +
+            "**Read-only, and there is no `PUT` beside it.** Send changes up through the " +
+            "typed routes; see the manifest call for why that asymmetry is deliberate.\n\n" +
+            "**Owner only**, the same gate as the manifest.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+            {
+              name: "path",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+              description: "The manifest's `path` for the file, relative to `content/<user>/`.",
+            },
+          ],
+          responses: {
+            "200": { description: "The file's bytes, with its own content type" },
+            "401": { description: "No live token — authenticate" },
+            "404": {
+              description:
+                "No such journal; a token that is not the owner's, including a trip-scoped " +
+                "one; no such file; or a path this sync does not carry (`gps/`, " +
+                "`originals/`, `track.json`, a dotfile, or one climbing out of the journal). " +
+                "All answer alike.",
+            },
+          },
+        },
+      },
       "/api/v1/{user}/inbox": {
         get: {
           summary: "Everything staged, and what was said about it",
