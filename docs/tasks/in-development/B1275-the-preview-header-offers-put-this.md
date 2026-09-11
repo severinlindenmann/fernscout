@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: helper, publishing
 found: "2026-09-10T10:23:09Z"
+started: "2026-09-11T06:40:34Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T06:40:34Z"
 ---
 
 # B1275 — The preview header offers Put this day on the site, which does not put the day on the site

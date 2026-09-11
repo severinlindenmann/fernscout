@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: helper, consent, privacy
 found: "2026-09-10T19:15:55Z"
+started: "2026-09-11T06:40:38Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T06:40:38Z"
 ---
 
 # B1385 — The conversation-storage consent block is shown to signed-out visitors

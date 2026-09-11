@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: the owner's own page
 found: "2026-09-10T19:41:00Z"
+started: "2026-09-11T06:40:39Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T06:40:39Z"
 ---
 
 # B1390 — One subject, two sections: what the helper does with your words is drawn twice on /me

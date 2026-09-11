@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: helper
 found: "2026-09-10T11:13:05Z"
+started: "2026-09-11T06:40:33Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T06:40:33Z"
 ---
 
 # B1299 — A refusal from the trip-people tool appears alone in the transcript during a conversation about costs

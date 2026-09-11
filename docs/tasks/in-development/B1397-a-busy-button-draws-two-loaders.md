@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: the web helper, components/BusyButton
 found: "2026-09-10T21:00:00Z"
+started: "2026-09-11T06:40:30Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T06:40:30Z"
 ---
 
 # B1397 — A busy button draws two loaders at once when the caller gives its own busy label

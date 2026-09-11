@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: helper, credits
 found: "2026-09-10T09:57:28Z"
+started: "2026-09-11T06:40:37Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T06:40:37Z"
 ---
 
 # B1255 — The credit balance in the helper header does not change when a credit is spent

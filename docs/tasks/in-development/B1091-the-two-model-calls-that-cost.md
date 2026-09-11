@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: credits, helper, model, transcription
 found: "2026-09-09T15:51:52Z"
+started: "2026-09-11T06:40:35Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T06:40:35Z"
 ---
 
 # B1091 — The two model calls that cost real money are free, so the ledger cannot account for what the instance spends
