@@ -1363,7 +1363,7 @@ export default function HelperAsk({
             onClick={() => go()}
             aria-label={t("agent.askGo")}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-yellow-400 text-navy-900 transition-colors hover:bg-yellow-300 disabled:opacity-40"
-            busyLabel={<span className="fs-waymark-bounce block h-2.5 w-2.5 rounded-full bg-navy-900" aria-hidden />}
+            busyLabel={null}
           >
             <ArrowUp className="h-5 w-5" aria-hidden />
           </BusyButton>
