@@ -38,10 +38,33 @@ export default function PageHeader({
   const currentSection = navEntries.find((e) => e.active);
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [panelOverflowsBelow, setPanelOverflowsBelow] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const wasOpen = useRef(false);
+
+  // Whether the panel has more content below the fold — B1418. Drives a
+  // bottom fade so a reader does not mistake a `max-h` cut for the whole
+  // menu; recomputed on scroll and on resize, since a rotation can turn an
+  // overflowing panel into one that fits.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    const update = () => {
+      setPanelOverflowsBelow(
+        panel.scrollHeight - panel.scrollTop - panel.clientHeight > 1,
+      );
+    };
+    update();
+    panel.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => {
+      panel.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -185,7 +208,7 @@ export default function PageHeader({
             aria-modal="false"
             aria-label={t("nav.menu")}
             tabIndex={-1}
-            className="mt-3 max-h-[70vh] overflow-y-auto rounded-2xl border border-navy-200 bg-cream-50 p-3 shadow-lg"
+            className="relative mt-3 max-h-[70vh] overflow-y-auto rounded-2xl border border-navy-200 bg-cream-50 p-3 shadow-lg"
           >
             {/* `children` is not repeated here: the one caller that passes any
                 (`TripStory`'s day counter) already marks it `xl:block`, so it
@@ -259,6 +282,13 @@ export default function PageHeader({
                 <SiteNav variant="list" onNavigate={() => setMenuOpen(false)} />
               </div>
             </div>
+            {panelOverflowsBelow && (
+              <div
+                aria-hidden
+                className="pointer-events-none sticky bottom-0 -mx-3 -mb-3 -mt-8 h-8
+                           rounded-b-2xl bg-gradient-to-t from-cream-50 to-transparent"
+              />
+            )}
           </div>
         )}
       </div>
