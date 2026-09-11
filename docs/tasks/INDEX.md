@@ -49,18 +49,26 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (219)
+## backlog (229)
 
-### security (4)
+### security (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | high | low |
+| [B1550](backlog/security/B1550-transcription-trusts-caller-claimed-seconds-and.md) | Transcription trusts caller-claimed seconds and the top-up charge fails open | SECURITY | high | low |
+| [B1551](backlog/security/B1551-any-route-buffers-512-mib-in.md) | Any route buffers 512 MiB in memory before auth runs; Caddy sets no request_body max_size | SECURITY | high | low |
+| [B1552](backlog/security/B1552-email-code-endpoints-have-per-ip.md) | Email code endpoints have per-IP limits only — no per-recipient or per-instance cap | SECURITY | high | low |
+| [B1553](backlog/security/B1553-test-usernames-skip-phone-proof-but.md) | test- usernames skip phone proof but still receive the 10-credit grant and 5 GB quota | SECURITY | high | low |
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
+| [B1554](backlog/security/B1554-api-upload-path-never-enforces-imageedge.md) | API upload path never enforces imageEdge; pixel bombs bounded only by sharp defaults and HEIC fallback unbounded | SECURITY | medium | medium |
+| [B1555](backlog/security/B1555-submitbuiltbook-refunds-before-claiming-the-failure.md) | submitBuiltBook refunds before claiming the failure — double refund race with the Gelato webhook | SECURITY | medium | low |
+| [B1556](backlog/security/B1556-storage-quota-is-check-then-write.md) | Storage quota is check-then-write — parallel uploads pass the ceiling arbitrarily | SECURITY | medium | medium |
+| [B1559](backlog/security/B1559-paid-send-routes-rely-on-samesite.md) | Paid send routes rely on SameSite=lax alone — no Origin check as second layer | SECURITY | low | low |
 
-### issue (54)
+### issue (56)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -118,6 +126,8 @@ Do not edit them by hand; run the script.
 | [B1504](backlog/issue/B1504-an-up-leg-reports-success-on.md) | An up leg reports success on config fields that can never reach the site | ISSUE | low | low |
 | [B1514](backlog/issue/B1514-publish-stops-a-whole-run-on-a-transient-502.md) | publish stops a whole run on a transient 502 from a media upload | ISSUE | low | low |
 | [B1532](backlog/issue/B1532-a-card-stannp-cancels-after-acceptance.md) | A card Stannp cancels after acceptance is never refunded | ISSUE | low | medium |
+| [B1557](backlog/issue/B1557-refund-allowed-test-walks-app-only.md) | REFUND_ALLOWED test walks app/ only while grant's walks app/ and lib/ | ISSUE | low | low |
+| [B1558](backlog/issue/B1558-submitrequest-lost-race-mails-the-operator.md) | submitRequest lost race mails the operator a dead approval link | ISSUE | low | low |
 
 ### big-feature (13)
 
