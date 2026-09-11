@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (191)
+## backlog (187)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (43)
+### issue (42)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -73,7 +73,6 @@ Do not edit them by hand; run the script.
 | [B1447](backlog/issue/B1447-an-honest-answer-that-promises-a.md) | An honest answer that promises a button next turn is caught as a claim about this one | ISSUE | high | medium |
 | [B1448](backlog/issue/B1448-an-honest-answer-that-promises-a.md) | An honest answer that promises a button next turn is caught as a claim about this one | ISSUE | high | medium |
 | [B1472](backlog/issue/B1472-the-dangling-reference-guard-matches-two.md) | The dangling-reference guard matches two and three digit ids, and every id since B1000 has four | ISSUE | high | low |
-| [B1480](backlog/issue/B1480-the-experimental-print-warning-is-printed.md) | The experimental-print warning is printed twice on the same screen | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -122,15 +121,12 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (20)
+### small-feature (17)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1315](backlog/small-feature/B1315-twilio-sms-inbound-inbox-in-admin.md) | Twilio SMS - inbound inbox in admin, outbound sending, SMS signup fallback | FEATURE | high | medium |
 | [B1392](backlog/small-feature/B1392-staged-files-are-counted-in-the.md) | Staged files are counted in the storage card and on /agent, and neither offers a way to clear them | FEATURE | high | low |
-| [B1479](backlog/small-feature/B1479-a-sent-postcard-order-still-shows.md) | A sent postcard order still shows the editing stepper instead of the order it has become | FEATURE | high | low |
-| [B1481](backlog/small-feature/B1481-the-buy-panel-names-the-book.md) | The buy panel names the book but never shows it, and runs down one column on a 1280px screen | FEATURE | high | medium |
-| [B1482](backlog/small-feature/B1482-the-composer-is-one-tall-column.md) | The composer is one tall column on desktop, with the settings shut behind a disclosure | FEATURE | high | medium |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
 | [B1069](backlog/small-feature/B1069-there-is-no-tool-surface-for.md) | There is no tool surface for an agent that would rather be guided than read a spec | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
@@ -287,10 +283,13 @@ Do not edit them by hand; run the script.
 | [B1364](backlog/wont-do/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (16)
+## open (19)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B1479](open/B1479-a-sent-postcard-order-still-shows.md) | A sent postcard order still shows the editing stepper instead of the order it has become | FEATURE | high | low |
+| [B1481](open/B1481-the-buy-panel-names-the-book.md) | The buy panel names the book but never shows it, and runs down one column on a 1280px screen | FEATURE | high | medium |
+| [B1482](open/B1482-the-composer-is-one-tall-column.md) | The composer is one tall column on desktop, with the settings shut behind a disclosure | FEATURE | high | medium |
 | [B106](open/B106-push-has-never-been-switched-on.md) | Push has never been switched on anywhere, so nothing has proved a notification reaches a phone | OPS | medium | medium |
 | [B112](open/B112-local-scripts-write-straight-to-content.md) | Local scripts still write straight to content, and the one guarantee they skip is the draft rule | FEATURE | medium | medium |
 | [B1176](open/B1176-every-file-under-content-registry-was.md) | every file under content/.registry was root-owned, so the service account could not release a lock | OPS | medium | low |
@@ -308,10 +307,11 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (12)
+## in-development (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1480](in-development/B1480-the-experimental-print-warning-is-printed.md) | The experimental-print warning is printed twice on the same screen | ISSUE | high | low | `3f748903` |
 | [B1248](in-development/B1248-the-health-endpoint-reports-content-ok.md) | The health endpoint reports content ok without ever checking the content root is writable | ISSUE | medium | low | `13f12910` |
 | [B1258](in-development/B1258-the-publish-card-says-to-read.md) | The publish card says to read the day as readers will see it and does not show the day | ISSUE | medium | low | `13f12910` |
 | [B1260](in-development/B1260-a-trip-with-nothing-recorded-yet.md) | A trip with nothing recorded yet fills two phone screens with an empty sky, the whole world map and six zeros | ISSUE | medium | medium | `13f12910` |
