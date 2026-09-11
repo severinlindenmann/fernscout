@@ -220,6 +220,11 @@ export const PHOTOBOOK_OUTCOME_STATES = [
   // honest total to charge. Nothing is claimed, built or spent; pressing again
   // when Gelato is reachable works.
   "printer_unavailable",
+  // B1148. The printer *answered* the quote request and refused this
+  // server's own account (a rejected or missing key) — distinct from
+  // "printer_unavailable"'s weather, because pressing again cannot fix an
+  // account the printer will not take.
+  "printer_refused",
 ] as const;
 export type PhotobookOutcomeState = (typeof PHOTOBOOK_OUTCOME_STATES)[number];
 

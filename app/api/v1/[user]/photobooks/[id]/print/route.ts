@@ -105,14 +105,22 @@ export async function POST(
           "That contact's country is not one this journal's printer can quote postage to. Ask " +
             "the owner to correct the contact's address.",
         );
-      case "provider_unavailable":
+      case "provider_unavailable": {
+        // B1148. `result.kind` is the real GelatoFailure: `no_key` and
+        // `refused` are the printer refusing this server's own account,
+        // which retrying cannot fix; `unreachable` is weather. The wire
+        // `error` stays the one code either way.
+        const operatorFault = result.kind === "no_key" || result.kind === "refused";
         return Response.json(
           {
             error: "provider_unavailable",
-            message: "The printer could not be reached for a quote. Nothing was changed; try again shortly.",
+            message: operatorFault
+              ? "The printer is not accepting this server's account. Nothing was charged — this needs whoever runs the instance."
+              : "The printer could not be reached for a quote. Nothing was changed; try again shortly.",
           },
           { status: 502 },
         );
+      }
     }
   }
   const { quotedCredits } = result;

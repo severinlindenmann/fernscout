@@ -69,7 +69,19 @@ export async function POST(
   if (contactId) {
     const proposed = await proposeBookPrint(user, id, contactId);
     if (!proposed.ok) {
-      return backTo(user, id, proposed.reason === "unknown_contact" ? "no_recipient" : proposed.reason);
+      // B1148. A quote failure on this door reuses the order page's own
+      // "refused" state for an operator fault (`no_key` / `refused`) rather
+      // than the "provider_unavailable" state's "try again shortly" —
+      // `proposed.kind` is only set when `reason` is "provider_unavailable".
+      const operatorFault =
+        proposed.reason === "provider_unavailable" && proposed.kind !== "unreachable";
+      const state =
+        proposed.reason === "unknown_contact"
+          ? "no_recipient"
+          : operatorFault
+            ? "refused"
+            : proposed.reason;
+      return backTo(user, id, state);
     }
   }
 

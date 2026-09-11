@@ -3,7 +3,7 @@ import { photobookPrintCredits } from "../credits/pricing";
 import { priceOf } from "./build";
 import type { Photobook } from "./plan";
 import { isoCountry } from "./country";
-import { quoteBook } from "./gelato";
+import { quoteBook, type GelatoFailure } from "./gelato";
 import { bookAddressFor, bookRecipients } from "./recipients";
 import { productUidFor } from "./spec";
 import type { BookOptions } from "./options";
@@ -65,7 +65,7 @@ export async function quoteBookFor(
   book: Photobook,
   options: BookOptions,
   contactId: string,
-): Promise<BookQuote | { error: QuoteFailure }> {
+): Promise<BookQuote | { error: QuoteFailure; kind?: GelatoFailure }> {
   // The same gate `proposeBookPrint` applies, for the same reason: a book can
   // only ever be addressed to somebody who asked this journal for post.
   const recipients = await bookRecipients(owner);
@@ -82,7 +82,10 @@ export async function quoteBookFor(
 
   const pageCount = book.volumes.reduce((n, v) => n + v.interiorPages, 0);
   const quote = await quoteBook({ productUid, pageCount, country, currency: QUOTE_CURRENCY });
-  if ("error" in quote) return { error: "provider_unavailable" };
+  // `kind` carries which GelatoFailure this was — B1148 — so a caller can
+  // tell "the printer refused this server's account" from "the printer could
+  // not be reached" without the wire error itself growing a second code.
+  if ("error" in quote) return { error: "provider_unavailable", kind: quote.error };
 
   const buildCredits = priceOf(book);
   const printCredits = photobookPrintCredits(quote.printMinor, quote.shipMinor);

@@ -5,7 +5,7 @@ import { getUser } from "../users";
 import { serverSite } from "../site";
 import { isoCountry } from "./country";
 import { signFileLink } from "./fileLink";
-import { fetchOrderStatus, quoteBook, submitBookPrint } from "./gelato";
+import { fetchOrderStatus, quoteBook, submitBookPrint, type GelatoFailure } from "./gelato";
 import {
   claimForPrint,
   getPhotobookOrder,
@@ -62,6 +62,17 @@ type PrintFailure =
 export type PrintOutcome =
   | { ok: true; providerRef: string; charged: number }
   | { ok: false; reason: PrintFailure };
+
+/**
+ * `no_key` and `refused` are the printer answering — or refusing to be
+ * asked — because this server's own account is rejected; nothing an owner
+ * does fixes that. `unreachable` is weather. B1148: the owner-facing reason
+ * forks on this, not on the raw `GelatoFailure`, so there are two messages
+ * rather than three.
+ */
+function isOperatorFault(kind: GelatoFailure): boolean {
+  return kind !== "unreachable";
+}
 
 /**
  * Every state `app/[user]/photobooks/[id]/print/route.ts`'s redirect can
@@ -156,10 +167,12 @@ export async function submitBuiltBook(owner: string, id: string): Promise<PrintO
 
   if ("error" in result) {
     // Everything back. `payload.credits` is what the owner actually pressed —
-    // build and print together — not just the print portion.
+    // build and print together — not just the print portion. The stored
+    // failure is the real GelatoFailure, not a fixed word, so /admin (B1165)
+    // can eventually show what actually happened.
     await refund(owner, order.payload.credits, id);
-    await markPrintFailed(owner, id, order.payload, "refused");
-    return { ok: false, reason: "refused" };
+    await markPrintFailed(owner, id, order.payload, result.error);
+    return { ok: false, reason: isOperatorFault(result.error) ? "refused" : "provider_unavailable" };
   }
 
   const payload: PhotobookPayload = { ...order.payload, print: { ...print, providerRef: result.providerRef } };
@@ -318,7 +331,9 @@ export async function printOrder(owner: string, id: string, quotedCredits: numbe
     country,
     currency: QUOTE_CURRENCY,
   });
-  if ("error" in quote) return { ok: false, reason: "provider_unavailable" };
+  if ("error" in quote) {
+    return { ok: false, reason: isOperatorFault(quote.error) ? "refused" : "provider_unavailable" };
+  }
   if (photobookPrintCredits(quote.printMinor, quote.shipMinor) !== quotedCredits) {
     return { ok: false, reason: "stale_quote" };
   }
@@ -338,8 +353,8 @@ export async function printOrder(owner: string, id: string, quotedCredits: numbe
 
   if ("error" in result) {
     await refund(owner, quotedCredits, id);
-    await markPrintFailed(owner, id, order.payload, "refused");
-    return { ok: false, reason: "refused" };
+    await markPrintFailed(owner, id, order.payload, result.error);
+    return { ok: false, reason: isOperatorFault(result.error) ? "refused" : "provider_unavailable" };
   }
 
   const payload: PhotobookPayload = { ...order.payload, print: { ...print, providerRef: result.providerRef } };

@@ -185,7 +185,12 @@ export async function POST(request: Request, { params }: RouteContext<"/[user]/p
 
   const quote = await quoteBookFor(user, book, options, contactId);
   if ("error" in quote) {
-    return back_(quote.error === "provider_unavailable" ? "printer_unavailable" : "no_recipient");
+    if (quote.error !== "provider_unavailable") return back_("no_recipient");
+    // B1148. `quote.kind` is the real GelatoFailure: `unreachable` is
+    // weather and keeps the retry-friendly message; `no_key` / `refused` is
+    // the printer refusing this server's own account, which pressing again
+    // cannot fix.
+    return back_(quote.kind === "unreachable" ? "printer_unavailable" : "printer_refused");
   }
 
   const currentCredits = quote.totalCredits;
