@@ -231,7 +231,9 @@ export default function FirstBookFlow({
       (e.id !== "numbers" || hasCosts || hasWeather) &&
       // The figures are drawn from the party, and `buildBookSource` empties
       // that when "who travelled" is off — so this switch would draw nothing.
-      (e.id !== "figures" || (hasFigures && options.includeNames)) &&
+      // They are drawn *on* the chapter dividers too (B1524), which is the
+      // other way this tile can end up offering a decoration nobody will see.
+      (e.id !== "figures" || (hasFigures && options.includeNames && options.includeChapters)) &&
       // Same rule for the vehicles: they are drawn on the transport page, and
       // a trip that never said how it moved does not get one.
       (e.id !== "vehicles" || hasTransport),

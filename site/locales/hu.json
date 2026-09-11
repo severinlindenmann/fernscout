@@ -976,6 +976,7 @@
   "photobook.option.costs": "Költségösszesítővel",
   "photobook.option.charts": "Diagramok hozzáadása",
   "photobook.option.figureMarks": "Az alakjaitok minden ország elején",
+  "photobook.option.needs": "Ehhez kell: „{switch}”",
   "photobook.option.photos": "Fényképek",
   "photobook.option.photoName": "{index}. fénykép, összesen {total}",
   "photobook.balance": "{balance} kredited van",

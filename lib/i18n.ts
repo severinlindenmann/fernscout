@@ -1906,6 +1906,7 @@ export type TranslationKey =
   | "photobook.option.languageHint"
   | "photobook.option.map"
   | "photobook.option.names"
+  | "photobook.option.needs"
   | "photobook.option.photoName"
   | "photobook.option.photos"
   | "photobook.option.size"
