@@ -252,6 +252,33 @@ fi
 if [ "$do_build" = 1 ]; then
   log "building"
   as_service npm run build
+
+  # And then: is what it wrote complete? — B1429.
+  #
+  # `next build` exits 0 on a `.next` that is missing a page's client
+  # reference manifest, and the page 500s on the first request after the
+  # restart. It happened here on 2026-09-11 and every gate missed it: the
+  # build was green, /api/health was green (it renders no page), and the
+  # broken route was owner-only, so nothing an unauthenticated check could
+  # reach would have touched it. `scripts/check-build.mjs` says why this is
+  # the shape of the check.
+  #
+  # The remedy is the one the incident itself proved: build again. The second
+  # build of that same commit wrote the missing file and served the page.
+  # Deliberately *not* `rm -rf .next` first — the running site is still
+  # reading out of that directory, and removing it would take the old build
+  # down to fix a new one that has not been restarted onto yet. If a plain
+  # rebuild is ever not enough, this fails and says so, which is the point.
+  if ! as_service node scripts/check-build.mjs; then
+    log "the build is incomplete — building again before going near the restart"
+    as_service npm run build
+    if ! as_service node scripts/check-build.mjs; then
+      echo "ERROR: two builds of ${HEAD_SHA:0:12} both left pages without a client reference manifest." >&2
+      echo "       Nothing was restarted, so the previous build is still serving." >&2
+      echo "       Try: cd ${APP_DIR} && rm -rf .next && sudo ./scripts/deploy.sh --full" >&2
+      exit 1
+    fi
+  fi
 else
   skip "build" "nothing the build reads changed"
 fi
