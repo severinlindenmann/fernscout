@@ -1162,75 +1162,16 @@ export function openApiDocument() {
           },
         },
       },
-      /**
-       * The one door onto printing a book — B434's shape again, followed
-       * exactly. There is deliberately no `/api/v1/{user}/photobooks` that
-       * *builds* one yet: a book is still composed at the owner's own
-       * `/[user]/(trip)/photobook` page, and this pair only covers what
-       * happens to a book once it exists — asking who it may be posted to is
-       * still `.../postcards/recipients`, which names the same population.
-       */
-      "/api/v1/{user}/photobooks/{id}/print": {
-        post: {
-          summary: "Propose printing a built photobook, for a person to press",
-          description:
-            "Writes who the book should go to and what it will cost, and answers with a URL. " +
-            "**It charges nothing and prints nothing.**\n\n" +
-            "There is no endpoint that sends. Not an owner-only one — none at all: the print " +
-            "is a button on the page this returns, because pressing it spends real money at a " +
-            "printer and posts a physical object to somebody's house. Hand the `url` over and " +
-            "stop; do not report the book as printed, or as being printed. " +
-            "`GET .../photobooks/{id}` says later whether it went.\n\n" +
-            "Owner only, and `contactId` must be an id from `.../postcards/recipients` — the " +
-            "same population a book may be posted to, so there is no separate list to fetch.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-            { name: "id", in: "path", required: true, schema: { type: "string" } },
-          ],
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  required: ["contactId"],
-                  properties: {
-                    contactId: {
-                      type: "string",
-                      description:
-                        "A contact id from `.../postcards/recipients` — never an address. " +
-                        "Anything else is refused by name.",
-                    },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            "201": {
-              description:
-                "`url` a person opens to look at the price and press the button, plus the " +
-                "`quotedCredits` it will cost. Nothing has been charged.",
-            },
-            "400": {
-              description:
-                "Missing `contactId`, a contact this journal cannot post to, an order not yet " +
-                "built, or an address in a country this printer cannot quote (`unknown_country`)",
-            },
-            "403": { description: "Not this journal's owner" },
-            "404": { description: "No such journal or order, or photobooks are off" },
-            "502": { description: "The printer could not be reached for a quote" },
-          },
-        },
-      },
       "/api/v1/{user}/photobooks/{id}": {
         get: {
           summary: "Where one photobook order stands",
           description:
-            "What it is, what it cost to build, and — once `.../print` has been called — who " +
-            "it is proposed to go to, by `contactId`, and at what quote. **Never a street " +
-            "address.** `providerRef` and `status` only appear once the owner has actually " +
-            "pressed the button. Owner only.\n\n" +
+            "What it is, what it cost, and — once it has been bought printed from the trip's " +
+            "photobook page — who it went to, by `contactId`, and at what quote. **Never a " +
+            "street address.** `providerRef` only appears once the printer has actually taken " +
+            "the order; there is no separate press to call from here, because a photobook is " +
+            "bought and printed in one motion on the owner's own trip page (B1157) rather than " +
+            "proposed by an agent and pressed later. Owner only.\n\n" +
             `\`size\` is one of \`${Object.keys(BOOK_SIZES).join("\`, \`")}\`, and \`coverType\` ` +
             `is one of \`${COVER_TYPES.join("\`, \`")}\` — the two the order was actually built ` +
             "with, not every combination the catalogue offers: not every size exists in both " +

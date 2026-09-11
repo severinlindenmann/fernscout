@@ -115,11 +115,12 @@ print. Nobody has held one of these books, and nobody has submitted one with
 fonts embedded — the improvement above is unverified against a live
 preflight until that happens.
 
-Two smaller things also remain untested: the in-product print flow
-(`POST /api/v1/<user>/photobooks/<id>/print`, then the owner's button) has
-never run against the live site, because the demo journal has no contact with
-a postal address to send a book to — the draft above was posted directly. And
-no hardcover has been through Gelato at all; only the 200 × 200 softcover has.
+Two smaller things also remain untested: the in-product print flow (the
+owner's one-press order button at `/[user]/photobook/order`, which builds,
+charges and submits to Gelato together — B1157) has never run against the
+live site, because the demo journal has no contact with a postal address to
+send a book to — the draft above was posted directly. And no hardcover has
+been through Gelato at all; only the 200 × 200 softcover has.
 
 ---
 

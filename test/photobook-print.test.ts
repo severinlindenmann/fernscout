@@ -28,19 +28,22 @@ vi.mock("@/lib/photobook/gelato", async () => {
 });
 
 import { fetchOrderStatus, quoteBook, submitBookPrint } from "@/lib/photobook/gelato";
-import { printOrder } from "@/lib/photobook/print";
 
 /**
- * Task 5 of the Gelato photobook plan — claim, spend, print, refund what was
- * refused. Same properties `test/postcard-orders.test.ts` holds `sendOrder`
- * to: claim before spend so a double press costs one book, a stale quote
- * spends nothing, and a provider refusal gives every credit back.
+ * `submitBuiltBook` — claim, print, refund what was refused. Same properties
+ * `test/postcard-orders.test.ts` holds `sendOrder` to: claim before anything
+ * else so a double press submits one book, and a provider refusal gives
+ * every credit back.
+ *
+ * B1428 deleted the pre-B1157 door that quoted and spent a "print portion"
+ * against a book bought for its build alone — nothing but the demo journal
+ * had ever used it. What remains here is `submitBuiltBook`, the one-press
+ * flow's own door to Gelato.
  */
 
 const OWNER = "ana";
-const POOR_OWNER = "poor";
 const ID = "book-one-12345";
-const QUOTED = 172; // photobookPriceCredits(1440, 220), VAT-inclusive landed cost x2
+const QUOTED = 180; // photobookPriceCredits(1440, 220), VAT-inclusive landed cost x2 — fixture data only, not asserted directly
 const START = 500;
 
 const ADDRESS = {
@@ -111,17 +114,15 @@ beforeEach(async () => {
       },
     }),
   );
-  for (const owner of [OWNER, POOR_OWNER]) {
-    fs.mkdirSync(path.join(dir, owner), { recursive: true });
-    fs.writeFileSync(
-      path.join(dir, owner, "config.json"),
-      JSON.stringify({
-        title: owner,
-        owner: { name: owner, nickname: owner, email: `${owner}@example.test` },
-        features: { photobook: { enabled: true } },
-      }),
-    );
-  }
+  fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, OWNER, "config.json"),
+    JSON.stringify({
+      title: OWNER,
+      owner: { name: OWNER, nickname: OWNER, email: `${OWNER}@example.test` },
+      features: { photobook: { enabled: true } },
+    }),
+  );
 
   clearConfigCache();
   clearUserCache();
@@ -129,7 +130,6 @@ beforeEach(async () => {
   await migrateToLatest(await getDatabase());
 
   await grant(OWNER, START);
-  await grant(POOR_OWNER, 1);
 
   CONTACT = await activeContact(OWNER, "reader@example.test");
 
@@ -204,35 +204,6 @@ describe("submitBuiltBook", () => {
     expect((await getPhotobookOrder(OWNER, ID))?.payload.print?.providerRef).toBe("gel-1");
   });
 
-  test("printOrder refuses a book whose print was already bought", async () => {
-    const { printOrder } = await import("@/lib/photobook/print");
-    const { getDatabaseOrNull } = await import("@/lib/db");
-    const handle = await getDatabaseOrNull();
-    const order = await getPhotobookOrder(OWNER, ID);
-    // The shape `order/route.ts` writes since B1157: bought printed.
-    await handle!.db
-      .updateTable("print_orders")
-      .set({
-        payload: JSON.stringify({
-          ...order!.payload,
-          print: { ...order!.payload.print, paid: true },
-        }),
-      })
-      .where("id", "=", ID)
-      .execute();
-    const before = (await balanceOf(OWNER)) ?? 0;
-
-    const result = await printOrder(OWNER, ID, QUOTED);
-
-    // B1164. The order page used to offer this as a second, smaller charge for
-    // a book already bought printed. Refused at the route, so hiding the
-    // button is not the only thing standing between the owner and paying
-    // twice.
-    expect(result).toEqual({ ok: false, reason: "already_paid" });
-    expect((await balanceOf(OWNER)) ?? 0).toBe(before);
-    expect(submitBookPrint).not.toHaveBeenCalled();
-  });
-
   test("gives everything back when the printer accepts and then refuses", async () => {
     const { submitBuiltBook } = await import("@/lib/photobook/print");
     // B1333. Gelato answers the create with a reference and decides seconds
@@ -263,8 +234,8 @@ describe("submitBuiltBook", () => {
   test("does not quote — the price was agreed before the book was built", async () => {
     const { submitBuiltBook } = await import("@/lib/photobook/print");
     await submitBuiltBook(OWNER, ID);
-    // A second quote here would be a second price for a purchase already made,
-    // and `stale_quote` on it would strand a paid-for book.
+    // A second quote here would be a second price for a purchase already
+    // made, and a mismatched one would strand a paid-for book.
     expect(quoteBook).not.toHaveBeenCalled();
   });
 });
@@ -305,71 +276,10 @@ describe("settling a refused print, twice at once", () => {
   });
 });
 
-describe("printOrder", () => {
-  test("claims before it spends, so two presses cost one book", async () => {
-    const [a, b] = await Promise.all([printOrder(OWNER, ID, QUOTED), printOrder(OWNER, ID, QUOTED)]);
-    expect([a.ok, b.ok].filter(Boolean)).toHaveLength(1);
-    expect(await balanceOf(OWNER)).toBe(START - QUOTED);
-  });
-
-  test("refuses when the quote it was shown is not the quote now", async () => {
-    const result = await printOrder(OWNER, ID, QUOTED + 1);
-    expect(result).toEqual({ ok: false, reason: "stale_quote" });
-    expect(await balanceOf(OWNER)).toBe(START);
-    expect(submitBookPrint).not.toHaveBeenCalled();
-  });
-
-  test("gives the credits back when the provider refuses", async () => {
-    vi.mocked(submitBookPrint).mockResolvedValue({ error: "refused" });
-    const result = await printOrder(OWNER, ID, QUOTED);
-    expect(result).toEqual({ ok: false, reason: "refused" });
-    expect(await balanceOf(OWNER)).toBe(START);
-    expect((await getPhotobookOrder(OWNER, ID))?.status).toBe("printed");
-  });
-
-  test("spends nothing when there are not enough credits", async () => {
-    const claimed = await claimOrder(POOR_OWNER, "book-two-12345", PAYLOAD);
-    expect(claimed).toBe(true);
-    await markPrinted(POOR_OWNER, "book-two-12345", PAYLOAD);
-    const poorContact = await activeContact(POOR_OWNER, "poor-reader@example.test");
-    const { getDatabaseOrNull } = await import("@/lib/db");
-    const handle = await getDatabaseOrNull();
-    await handle!.db
-      .updateTable("print_orders")
-      .set({
-        payload: JSON.stringify({
-          ...PAYLOAD,
-          print: { contactId: poorContact, quotedCredits: QUOTED, quotedAt: new Date().toISOString(), shipmentMethodUid: "swiss_post_economy" },
-        }),
-      })
-      .where("id", "=", "book-two-12345")
-      .where("owner_id", "=", POOR_OWNER)
-      .execute();
-
-    const result = await printOrder(POOR_OWNER, "book-two-12345", QUOTED);
-    expect(result).toEqual({ ok: false, reason: "no_credits" });
-    expect(await balanceOf(POOR_OWNER)).toBe(1);
-  });
-
-  test("hands Gelato a signed URL and not a bare one", async () => {
-    await printOrder(OWNER, ID, QUOTED);
-    const order = vi.mocked(submitBookPrint).mock.calls[0][0];
-    expect(order.interiorUrl).toContain("sig=");
-    expect(order.coverUrl).toContain("exp=");
-  });
-
-  test("hands the printer an ISO country code and not the stored name", async () => {
-    await printOrder(OWNER, ID, QUOTED);
-    const order = vi.mocked(submitBookPrint).mock.calls[0][0];
-    // B1126. The fixture contact's address says "Switzerland", which is how
-    // people write addresses; `ShippingAddress.country` is documented as ISO
-    // 3166-1 alpha-2 and two of the four provider builders name the field
-    // `countryCode` outright. Passing the name through got as far as the
-    // printer and was refused there — after the credits had been spent.
-    expect(order.to.country).toBe("CH");
-  });
-
-  test("is reachable from no API route", () => {
+describe("no route to Gelato outside the owner's own order flow", () => {
+  test("nothing under app/api can reach the printer", () => {
+    // The module doc comment on `lib/photobook/print.ts` claims this by name;
+    // this is what makes the claim true rather than aspirational.
     const hits: string[] = [];
     const walk = (root: string) => {
       for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
@@ -385,16 +295,5 @@ describe("printOrder", () => {
     };
     walk(path.join(process.cwd(), "app", "api"));
     expect(hits).toEqual([]);
-  });
-});
-
-describe("where the book is going decides what it costs", () => {
-  test("refuses an address whose country Gelato cannot be asked about", async () => {
-    const before = (await balanceOf(OWNER)) ?? 0;
-    const result = await printOrder(OWNER, ID, QUOTED);
-    // The fixture contact's country is "Switzerland", a name rather than a
-    // code — resolved through COUNTRY_CODES, so this must still succeed.
-    expect(result).not.toEqual({ ok: false, reason: "unknown_country" });
-    expect((await balanceOf(OWNER)) ?? 0).toBeLessThanOrEqual(before);
   });
 });

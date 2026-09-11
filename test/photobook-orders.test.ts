@@ -137,12 +137,14 @@ describe("photobook orders", () => {
     // for the same reason: an agent must not be able to spend credits.
     //
     // Narrowed from "nothing under app/api names photobook/orders at all" —
-    // B434's photobook counterpart (Task 6) adds an agent-facing GET and a
-    // proposal POST that legitimately read and write an order row
-    // (`getPhotobookOrder`, `proposePrint`), neither of which builds a book
-    // or spends a credit. `claimOrder`, `markPrinted` and `markFailed` are
-    // the credit-spending build flow's own — see
+    // an agent-facing GET (`app/api/v1/[user]/photobooks/[id]/route.ts`)
+    // legitimately reads an order row (`getPhotobookOrder`), which neither
+    // builds a book nor spends a credit. `claimOrder`, `markPrinted` and
+    // `markFailed` are the credit-spending build flow's own — see
     // `app/[user]/photobook/order/route.ts` — and stay forbidden by name.
+    // B1428 deleted the agent-facing proposal write this comment used to name
+    // alongside the GET — nothing under `app/api` writes an order row at all
+    // any more.
     const offenders: string[] = [];
     const walk = (root: string) => {
       for (const item of fs.readdirSync(root, { withFileTypes: true })) {

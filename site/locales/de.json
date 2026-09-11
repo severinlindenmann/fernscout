@@ -1054,6 +1054,7 @@
   "photobook.print.orderIntro.one": "{trip} — {pages} Seiten in 1 Buch, {size}.",
   "photobook.print.noFiles": "Dieses Buch ist noch nicht fertig gebaut, es gibt also nichts herunterzuladen.",
   "photobook.print.heading": "Drucken",
+  "photobook.print.legacyNoPrintDoor": "Dieses Buch wurde erstellt, bevor dieses Journal gedruckte Exemplare in einem Schritt kaufen konnte. Von hier aus kann kein gedrucktes Exemplar bestellt werden — laden Sie die Dateien unten herunter.",
   "photobook.print.noLongerEligible": "Die vorgeschlagene Person kann nicht mehr beliefert werden — einen neuen Vorschlag anfordern.",
   "photobook.print.refusedRefunded": "Die Druckerei hat diesen Auftrag nicht angenommen. Alle {credits} Credits sind zurück auf deinem Konto, und die Dateien unten gehören dir. Bestell das Buch auf der Fotobuch-Seite der Reise erneut, wenn du es nochmal versuchen willst.",
   "photobook.print.result.alreadyPaid": "Dieses Buch wurde bereits gedruckt und verschickt gekauft — es gibt nichts mehr zu zahlen.",
