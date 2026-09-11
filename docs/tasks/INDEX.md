@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (154)
+## backlog (153)
 
 ### security (2)
 
@@ -58,7 +58,7 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 
-### issue (24)
+### issue (23)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -78,7 +78,6 @@ Do not edit them by hand; run the script.
 | [B1409](backlog/issue/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low |
 | [B1416](backlog/issue/B1416-the-files-rail-chip-downloads-uncapped.md) | The files-rail chip downloads uncapped photographs for a 42px avatar | ISSUE | medium | low |
 | [B1417](backlog/issue/B1417-inbox-file-thumbnails-download-uncapped-photographs.md) | Inbox file thumbnails download uncapped photographs for a 96px tile | ISSUE | medium | low |
-| [B1418](backlog/issue/B1418-the-open-mobile-menu-gives-no.md) | The open mobile menu gives no sign that it scrolls | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
@@ -338,7 +337,7 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (16)
+## in-development (17)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -356,6 +355,7 @@ Do not edit them by hand; run the script.
 | [B1390](in-development/B1390-one-subject-two-sections-what-the.md) | One subject, two sections: what the helper does with your words is drawn twice on /me | ISSUE | medium | low | `13f12910` |
 | [B1395](in-development/B1395-a-buddy-listed-on-a-trip.md) | A buddy listed on a trip has no way to give or correct their address on /me | ISSUE | medium | low | `13f12910` |
 | [B1397](in-development/B1397-a-busy-button-draws-two-loaders.md) | A busy button draws two loaders at once when the caller gives its own busy label | ISSUE | medium | low | `13f12910` |
+| [B1418](in-development/B1418-the-open-mobile-menu-gives-no.md) | The open mobile menu gives no sign that it scrolls | ISSUE | medium | low | `ceb70967` |
 | [B852](in-development/B852-a-journal-s-languages-units-and.md) | A journal's languages, units and currencies cannot be changed anywhere | FEATURE | medium | medium | `13f12910` |
 | [B1298](in-development/B1298-the-day-chip-in-the-helper.md) | The day chip in the helper downloads three 2000px photographs to draw three 38px thumbnails | ISSUE | low | low | `13f12910` |
 
