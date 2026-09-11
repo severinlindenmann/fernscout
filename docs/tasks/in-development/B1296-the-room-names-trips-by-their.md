@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: helper
 found: "2026-09-10T11:04:54Z"
+started: "2026-09-11T04:33:20Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T04:33:20Z"
 ---
 
 # B1296 — The room names trips by their id and dates in ISO, in a conversation that otherwise speaks plainly

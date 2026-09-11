@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: content model, agent guide, weather
 found: "2026-09-10T21:26:00Z"
+started: "2026-09-11T04:33:22Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T04:33:22Z"
 ---
 
 # B1403 — Nothing an outside agent reads says weatherData is written by the server, so a filled block reads as fabricated

@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: signup, ops
 found: "2026-09-10T09:12:51Z"
+started: "2026-09-11T04:33:21Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T04:33:21Z"
 ---
 
 # B1246 — A root-owned content/.registry silently breaks every signup on the instance

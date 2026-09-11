@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: mail, i18n, api, docs
 found: "2026-09-09T18:00:06Z"
+started: "2026-09-11T04:33:24Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T04:33:24Z"
 ---
 
 # B1134 — Accept-Language is the only way to set the language of the two pre-journal mails and no agent-facing document says so
