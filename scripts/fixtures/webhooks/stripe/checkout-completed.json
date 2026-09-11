@@ -1,0 +1,14 @@
+{
+  "id": "evt_test_checkout_completed",
+  "object": "event",
+  "type": "checkout.session.completed",
+  "data": {
+    "object": {
+      "id": "cs_test_TEST_SESSION",
+      "payment_status": "paid",
+      "currency": "chf",
+      "amount_total": 1000,
+      "metadata": { "owner": "REPLACE_WITH_REAL_USERNAME", "paymentId": "REPLACE_WITH_REAL_PAYMENT_ID" }
+    }
+  }
+}
