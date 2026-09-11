@@ -1,5 +1,10 @@
 import { isEnabled } from "@/lib/capabilities";
-import { importContactRows, type ImportRow } from "@/lib/contacts/importRows";
+import {
+  importContactRows,
+  MAX_IMPORT_ROWS,
+  TooManyRowsError,
+  type ImportRow,
+} from "@/lib/contacts/importRows";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { refused, wrote } from "@/lib/helper/thread";
 import { getUser } from "@/lib/users";
@@ -57,6 +62,17 @@ export async function POST(
   if (chosen.length === 0) {
     refused(user, "import_contacts", "no_rows");
     return Response.json({ error: "no_rows", message: "Nothing was ticked, so nothing was filed." }, { status: 400 });
+  }
+
+  // The bound is the writer's, because every row sends somebody a letter and
+  // both doors have to hold it — see MAX_IMPORT_ROWS. Answering it here rather
+  // than letting it throw keeps the card's own refusal readable.
+  if (chosen.length > MAX_IMPORT_ROWS) {
+    refused(user, "import_contacts", "too_many_rows");
+    return Response.json(
+      { error: "too_many_rows", message: new TooManyRowsError(chosen.length).message },
+      { status: 400 },
+    );
   }
 
   const results = await importContactRows(user, config, chosen);

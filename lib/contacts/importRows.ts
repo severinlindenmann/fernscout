@@ -16,6 +16,29 @@ import type { UserConfig } from "../config";
  * the mail still goes" rule is written, rather than two that could drift.
  */
 
+/**
+ * The most rows one call may file.
+ *
+ * It lives here rather than in a route because **every row sends somebody a
+ * confirmation mail**, and that is the bound worth holding: a thousand rows is
+ * a thousand letters to a thousand strangers, from a server they have no reason
+ * to expect one from.
+ *
+ * `POST /api/v1/<user>/contacts/import` had this number and the helper's own
+ * card route, added beside it in B1394, did not — the refactor that gave the two
+ * doors one write path left the guard behind in one caller. A bound that lives
+ * in the caller is a bound the next caller forgets, so it is in the writer now
+ * and both doors inherit it.
+ */
+export const MAX_IMPORT_ROWS = 50;
+
+export class TooManyRowsError extends Error {
+  constructor(readonly count: number) {
+    super(`${count} rows; one call carries at most ${MAX_IMPORT_ROWS}.`);
+    this.name = "TooManyRowsError";
+  }
+}
+
 export type ImportRow = { name?: unknown; email?: unknown; tel?: unknown };
 export type RowOutcome = {
   name: string;
@@ -32,6 +55,7 @@ export async function importContactRows(
   config: UserConfig,
   rows: ImportRow[],
 ): Promise<RowOutcome[]> {
+  if (rows.length > MAX_IMPORT_ROWS) throw new TooManyRowsError(rows.length);
   const locale = pickLocale(null, config.defaultLocale);
   const results: RowOutcome[] = [];
 
