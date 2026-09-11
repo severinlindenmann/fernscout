@@ -57,7 +57,19 @@ const LANGUAGE_NAME: Record<string, string> = {
  * the keyboard, the screen reader and the phone's native picker all behave
  * exactly as they did. Only the paint is different.
  */
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({
+  label,
+  children,
+  indented,
+  note,
+}: {
+  label: string;
+  children: React.ReactNode;
+  /** A switch that depends on the one above it — B1524. */
+  indented?: boolean;
+  /** Why it is doing nothing, when it is. */
+  note?: string;
+}) {
   return (
     // The label gives way, never the value — B1524. The card was 20rem wide
     // beside the book, and "Quadratisch, 20 x 20 cm" is wider than the space
@@ -66,8 +78,15 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
     // `BookLevelView`'s columns) and the label wraps inside what is left,
     // which keeps the thing being chosen readable in full — truncating a
     // format name hides the choice somebody is making.
-    <div className="flex items-center justify-between gap-3 px-4 py-2.5">
-      <span className="min-w-0 flex-1 text-sm text-navy-800">{label}</span>
+    <div
+      className={`flex items-center justify-between gap-3 py-2.5 pr-4 ${
+        indented ? "ml-4 border-l-2 border-navy-100 pl-4" : "pl-4"
+      }`}
+    >
+      <span className="min-w-0 flex-1 text-sm text-navy-800">
+        {label}
+        {note && <span className="mt-0.5 block text-xs text-navy-500">{note}</span>}
+      </span>
       <span className="shrink-0">{children}</span>
     </div>
   );
@@ -111,17 +130,22 @@ function Switch({
   checked,
   onChange,
   label,
+  disabled,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   label: string;
+  /** Its parent is off, so it can draw nothing — B1524. Disabled rather than
+   * hidden: a control that vanishes is one nobody can find again. */
+  disabled?: boolean;
 }) {
   return (
-    <label className="flex min-h-11 cursor-pointer items-center">
+    <label className={`flex min-h-11 items-center ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}>
       <span className="sr-only">{label}</span>
       <input
         type="checkbox"
         checked={checked}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
         className="peer sr-only"
       />
@@ -132,6 +156,52 @@ function Switch({
     </label>
   );
 }
+
+/**
+ * The switches, and which of them depend on another — B1524.
+ *
+ * A flat list of eight said nothing about the fact that the figures are drawn
+ * *on* the chapter dividers and come from the party the names switch carries:
+ * turning either of those off left "your figures at the start of each country"
+ * standing there, on, drawing nothing. So a switch may name what it needs, and
+ * one that is not getting it is shown indented under the row it belongs to,
+ * switched off and refusing to be switched on, with a line saying which
+ * control to go and use.
+ *
+ * `needs` is read from the same direction the planner reads it, so the panel
+ * cannot claim a dependency the book does not have: `includeFigureMarks`
+ * draws on `chapter` pages (`draftsForChapters`) out of `source.figures`,
+ * which `buildBookSource` empties when `includeNames` is off.
+ *
+ * The order is the reading order of the book, with each dependant directly
+ * under what it depends on.
+ */
+const SWITCHES: {
+  key: keyof BookOptions & `include${string}`;
+  label: TranslationKey;
+  /** Every switch that has to be on for this one to draw anything. */
+  needs?: (keyof BookOptions & `include${string}`)[];
+}[] = [
+  { key: "includeText", label: "photobook.option.text" },
+  { key: "includeMap", label: "photobook.option.map" },
+  { key: "includeNames", label: "photobook.option.names" },
+  { key: "includeChapters", label: "photobook.option.chapters" },
+  {
+    key: "includeFigureMarks",
+    label: "photobook.option.figureMarks",
+    needs: ["includeChapters", "includeNames"],
+  },
+  { key: "includeCosts", label: "photobook.option.costs" },
+  { key: "includeCharts", label: "photobook.option.charts" },
+  { key: "includeVehicles", label: "photobook.option.vehicles" },
+];
+
+/** What to call a switch inside another switch's explanation. Derived from
+ * the table above so a relabelled control cannot be named by its old words in
+ * the sentence pointing at it. */
+const SWITCH_LABEL: Record<string, TranslationKey> = Object.fromEntries(
+  SWITCHES.map((s) => [s.key, s.label]),
+);
 
 export default function BookSettingsPanel({
   options,
@@ -288,26 +358,26 @@ export default function BookSettingsPanel({
           </Row>
         )}
 
-        {(
-          [
-            ["includeText", "photobook.option.text"],
-            ["includeMap", "photobook.option.map"],
-            ["includeChapters", "photobook.option.chapters"],
-            ["includeNames", "photobook.option.names"],
-            ["includeCosts", "photobook.option.costs"],
-            ["includeCharts", "photobook.option.charts"],
-            ["includeFigureMarks", "photobook.option.figureMarks"],
-            ["includeVehicles", "photobook.option.vehicles"],
-          ] as const
-        ).map(([key, label]) => (
-          <Row key={key} label={t(label)}>
-            <Switch
+        {SWITCHES.map(({ key, label, needs }) => {
+          // A switch whose page is not being printed cannot do anything, and
+          // the panel now says so rather than leaving it live and inert.
+          const unmet = needs?.find((n) => options[n] === false);
+          return (
+            <Row
+              key={key}
               label={t(label)}
-              checked={options[key]}
-              onChange={(v) => setOptions((o) => ({ ...o, [key]: v }))}
-            />
-          </Row>
-        ))}
+              indented={Boolean(needs)}
+              note={unmet ? t("photobook.option.needs", { switch: t(SWITCH_LABEL[unmet]) }) : undefined}
+            >
+              <Switch
+                label={t(label)}
+                checked={options[key] && !unmet}
+                disabled={Boolean(unmet)}
+                onChange={(v) => setOptions((o) => ({ ...o, [key]: v }))}
+              />
+            </Row>
+          );
+        })}
       </div>
 
       {/* The two ways back out, on the card's own footer. Disabled rather

@@ -850,22 +850,32 @@ export function renderPreview(
    * that still claims a viewport of height leaves a screen of cream under
    * three rows of book.
    */
+  /* Not(.read) on every one of these — B1524. The reading view is the same
+     document with one class added, and it sets the direction back to a column
+     but never touched the wrap: a wrapping column with a viewport of height
+     puts the rest of the book in fresh columns to the *right*, so a 32-page
+     book was 15,800px wide, scrolled sideways, and the arrow keys pushed a
+     scroller whose scrollHeight equalled its clientHeight and moved nothing.
+     Reading is down the page; the grid below belongs to the composer alone.
+     (No backticks in this comment: it is inside a template literal, and one
+     closed it — a 500 on every preview, which is the same trap the copy
+     block above warns about.) */
   @media (min-width:620px) {
-    body.bare[data-view="spreads"] .spreads {
+    body.bare:not(.read)[data-view="spreads"] .spreads {
       flex-wrap:wrap; align-items:flex-start; align-content:flex-start;
       justify-content:flex-start;
       min-height:0; gap:1rem; padding:.75rem;
       overflow-x:hidden; overflow-y:auto; scroll-snap-type:none;
     }
-    body.bare[data-view="spreads"] .spread { flex:0 0 calc(50% - .5rem); scroll-snap-align:none; }
+    body.bare:not(.read)[data-view="spreads"] .spread { flex:0 0 calc(50% - .5rem); scroll-snap-align:none; }
     /* Page one alone still takes half a row rather than a whole one: in a
        grid there is no snap step for it to own. */
-    body.bare[data-view="spreads"] .spread.solo { flex:0 0 calc(25% - .5rem); }
+    body.bare:not(.read)[data-view="spreads"] .spread.solo { flex:0 0 calc(25% - .5rem); }
     /* The date under each day's page, which is what the drawing labels the
        grid with. Read off the same attribute extractSpreads matches on, so
        nothing new has to be stamped; front matter has no date and gets no
        label rather than an invented one. */
-    body.bare[data-view="spreads"] figure[data-date]::after {
+    body.bare:not(.read)[data-view="spreads"] figure[data-date]::after {
       content:attr(data-date);
       display:block; text-align:center; padding-top:.35rem;
       font:500 11px/1.2 ui-monospace,SFMono-Regular,monospace; color:#5a6a80;

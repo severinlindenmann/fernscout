@@ -976,6 +976,7 @@
   "photobook.option.costs": "Kostenübersicht mitdrucken",
   "photobook.option.charts": "Diagramme aufnehmen",
   "photobook.option.figureMarks": "Eure Figuren zu Beginn jedes Landes",
+  "photobook.option.needs": "Braucht „{switch}“",
   "photobook.option.photos": "Fotos",
   "photobook.option.photoName": "Foto {index} von {total}",
   "photobook.balance": "Du hast {balance} Credits",

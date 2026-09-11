@@ -976,6 +976,7 @@
   "photobook.option.costs": "Include the cost summary",
   "photobook.option.charts": "Include the charts",
   "photobook.option.figureMarks": "Your figures at the start of each country",
+  "photobook.option.needs": "Needs “{switch}”",
   "photobook.option.photos": "Photographs",
   "photobook.option.photoName": "Photo {index} of {total}",
   "photobook.balance": "You have {balance} credits",
