@@ -7,8 +7,7 @@ complexity: medium
 area: photobook
 found: "2026-09-10T10:34:09Z"
 started: "2026-09-11T04:23:02Z"
-session: 96a5b964-fad1-4616-9124-a01eabbd8a46
-claimed: "2026-09-11T04:23:02Z"
+merged: "2026-09-11T04:50:48Z"
 ---
 
 # B1279 — A photobook of a trip with three photographs contains none and cannot be ordered
