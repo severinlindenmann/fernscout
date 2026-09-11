@@ -7,8 +7,7 @@ complexity: medium
 area: agent docs, byoa
 found: "2026-09-09T07:11:58Z"
 started: "2026-09-11T14:10:10Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T14:10:10Z"
+merged: "2026-09-11T14:24:01Z"
 ---
 
 # B1070 — The three ways to reach this journal are not written down anywhere as three ways

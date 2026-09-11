@@ -7,8 +7,7 @@ complexity: low
 area: agents.md
 found: "2026-09-10T11:06:25Z"
 started: "2026-09-11T14:10:09Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T14:10:09Z"
+merged: "2026-09-11T14:24:00Z"
 ---
 
 # B1297 — AGENTS.md says there is no form that maps fields onto frontmatter, and Correct this day is one
