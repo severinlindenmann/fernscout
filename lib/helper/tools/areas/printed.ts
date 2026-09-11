@@ -219,6 +219,12 @@ export const PRINTED_TOOLS: readonly Tool[] = [
       const validIds = new Set(candidates.map((c) => c.contactId));
       const recipients = requested.filter((id) => validIds.has(id));
       const unknownRecipients = requested.length > 0 && recipients.length === 0;
+      // B1322 — the route refuses an empty `from` outright, and until now
+      // nothing stopped the model proposing a card with one: it drew the
+      // button straight from the raw refusal, which nobody reads as a
+      // question. Ask for the signature in the room instead — the same shape
+      // as the photo/recipient/test-day refusals above.
+      const noSignature = !!entry && !(args.from ?? "").trim();
       const each = POSTCARD_CREDITS;
       const total = each * Math.max(recipients.length, 1);
       const metered = creditsEnabled();
@@ -259,9 +265,11 @@ export const PRINTED_TOOLS: readonly Tool[] = [
             ? { refuse: "agent.tool.postcardsTestDay" }
             : entry && !photo
               ? { refuse: "agent.tool.postcardsNoPhoto" }
-              : unknownRecipients
-                ? { refuse: "agent.tool.postcardsUnknownRecipient" }
-                : {}),
+              : noSignature
+                ? { refuse: "agent.tool.postcardsNoSignature" }
+                : unknownRecipients
+                  ? { refuse: "agent.tool.postcardsUnknownRecipient" }
+                  : {}),
         sentence,
         accept: say("agent.tool.proposePostcardsAccept"),
         done: say("agent.tool.proposePostcardsDone"),

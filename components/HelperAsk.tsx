@@ -173,6 +173,13 @@ const NAMED_FAILURES = [
   "too_many_requests",
   "invalid_json",
   "too_long",
+  "invalid_request",
+  "unknown_recipient",
+  "unknown_photo",
+  "no_recipients",
+  "test_content",
+  "postcards_disabled",
+  "no_database",
 ] as const;
 
 function failureSentence(
