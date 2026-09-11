@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (155)
+## backlog (154)
 
 ### security (2)
 
@@ -105,7 +105,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (17)
+### small-feature (16)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -117,7 +117,6 @@ Do not edit them by hand; run the script.
 | [B132](backlog/small-feature/B132-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to learn a new release exists, let alone install it | FEATURE | medium | medium |
 | [B1388](backlog/small-feature/B1388-whatsappinbound-has-no-owner-facing-switch.md) | whatsappInbound has no owner-facing switch | FEATURE | medium | medium |
 | [B1398](backlog/small-feature/B1398-choosing-the-postcard-picture-means-picking.md) | Choosing the postcard picture means picking a day from a list of titles, never seeing a photograph | FEATURE | medium | medium |
-| [B1421](backlog/small-feature/B1421-on-a-phone-the-photobook-preview.md) | On a phone the photobook preview is two pages wide and too small to read | FEATURE | medium | medium |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
 | [B991](backlog/small-feature/B991-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium |
 | [B1025](backlog/small-feature/B1025-push-exists-as-a-capability-and.md) | Push exists as a capability and is not a channel this day can be sent on | FEATURE | low | medium |
@@ -339,7 +338,7 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (12)
+## in-development (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -354,6 +353,7 @@ Do not edit them by hand; run the script.
 | [B1299](in-development/B1299-a-refusal-from-the-trip-people.md) | A refusal from the trip-people tool appears alone in the transcript during a conversation about costs | ISSUE | medium | low | `13f12910` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1397](in-development/B1397-a-busy-button-draws-two-loaders.md) | A busy button draws two loaders at once when the caller gives its own busy label | ISSUE | medium | low | `13f12910` |
+| [B1421](in-development/B1421-on-a-phone-the-photobook-preview.md) | On a phone the photobook preview is two pages wide and too small to read | FEATURE | medium | medium | `975594e4` |
 | [B1298](in-development/B1298-the-day-chip-in-the-helper.md) | The day chip in the helper downloads three 2000px photographs to draw three 38px thumbnails | ISSUE | low | low | `13f12910` |
 
 ## testing (194)

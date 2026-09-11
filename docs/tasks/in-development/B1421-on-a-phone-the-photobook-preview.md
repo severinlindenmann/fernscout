@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: lib/photobook/preview.ts, app/[user]/(trip)/photobook/ReadTheBookView.tsx
 found: "2026-09-11T07:34:00Z"
+started: "2026-09-11T07:54:29Z"
+session: 975594e4-e8d1-4286-bab8-0faa7d0d368f
+claimed: "2026-09-11T07:54:29Z"
 ---
 
 # B1421 — On a phone the photobook preview is two pages wide and too small to read
