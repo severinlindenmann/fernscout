@@ -239,6 +239,7 @@
   "cost.disclaimer": "Angegeben ist, was {travellers} tatsächlich bezahlt haben, zum Tageskurs in {currency}.",
   "cost.everyExpense": "Alle Ausgaben",
   "cost.hideTable": "Tabelle ausblenden",
+  "cost.noDaySpending": "Diese Reise hat ein Budget, aber noch kein Tag hat Ausgaben eingetragen. Tagesausgaben werden auf dem jeweiligen Tag erfasst, nicht hier.",
   "cost.noRate": "kein Kurs",
   "cost.ofBudget": "des Budgets verbraucht",
   "cost.onPace": "bisher genau im Plan",

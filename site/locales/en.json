@@ -239,6 +239,7 @@
   "cost.disclaimer": "Prices are what {travellers} actually paid, converted to {currency} at the rate on the day.",
   "cost.everyExpense": "Every expense",
   "cost.hideTable": "Hide table",
+  "cost.noDaySpending": "This trip has a budget and no day has any spending recorded yet. Day-level costs are written on each day, not here.",
   "cost.noRate": "no rate",
   "cost.ofBudget": "of the budget used",
   "cost.onPace": "exactly on plan so far",

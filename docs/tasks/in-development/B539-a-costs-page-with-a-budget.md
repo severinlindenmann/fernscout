@@ -43,3 +43,27 @@ error and must not look like one.
 - The owner opening a costs page with a budget and no day costs sees one line
   saying so; a reader who is not the owner sees the page unchanged.
 - `npm run verify` green.
+
+## Done
+
+`app/[user]/(trip)/costs/page.tsx` now calls `tripGaps(tripId, true)` — gated
+on `canPublish` (the owner signal `readFor(trip)` already returns; no second
+owner check added) and on `summary.budget` existing — and derives one boolean,
+`noDaySpending`, from exactly the fact `tripGaps` computes at
+`lib/api/tripGaps.ts:78`: `gaps.days > 0 && gaps.daysWithCosts === 0`.
+
+That boolean, not `tripGaps`'s own English `note` string, is what reaches
+`CostsPageContent`: the note text in `tripGaps.ts` is written for an agent
+reading JSON over the API and is English-only, while a line rendered on this
+page has to go through the site's own i18n (`AGENTS.md`'s "a new string in the
+UI is three files and a script"). So the new `cost.noDaySpending` locale key
+(en/de/hu, real translations) is the sentence a reader actually sees, and
+`tripGaps` supplies only the yes/no.
+
+`tripGaps` also reports a second, unrelated gap (dates in range with no day at
+all) in the same joined `note` — deliberately not surfaced here, since B539
+is scoped to "budget and no day-level spending" only; the missing-dates fact
+already has its home on the status/import side this ticket does not touch.
+
+Visual check: see the run report below for whether this was driven in a real
+browser or left as measurements to take.

@@ -1063,6 +1063,7 @@ export type TranslationKey =
   | "cost.disclaimer"
   | "cost.everyExpense"
   | "cost.hideTable"
+  | "cost.noDaySpending"
   | "cost.noRate"
   | "cost.ofBudget"
   | "cost.onPace"

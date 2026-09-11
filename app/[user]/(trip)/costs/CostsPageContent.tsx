@@ -20,9 +20,12 @@ import type { TranslationKey } from "@/lib/i18n";
 export default function CostsPageContent({
   summary,
   travellers,
+  noDaySpending = false,
 }: {
   summary: CostSummary;
   travellers: string;
+  /** Owner-only: a budget with not one day recording any spending. B539. */
+  noDaySpending?: boolean;
 }) {
   const { t, formatShortDate } = useI18n();
   const { money, original, currency, base, approximate, asOf } = useMoney();
@@ -90,6 +93,10 @@ export default function CostsPageContent({
           ) : (
             <PlannedBudgetPanel budget={summary.budget} spent={summary.total} />
           ))}
+
+        {/* Owner-only: says why the page otherwise looks like an import that
+            dropped everything, rather than leaving them to wonder. B539. */}
+        {noDaySpending && <p className="mt-2 text-xs text-navy-600">{t("cost.noDaySpending")}</p>}
 
         {/* Where the money went */}
         <Section title={t("cost.byCategory")}>
