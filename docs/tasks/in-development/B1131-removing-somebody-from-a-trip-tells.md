@@ -47,15 +47,27 @@ system knows to be untrue.
 
 ## Work
 
-Correct the `removed` branch of the note. It should say that the address can no
-longer write to the trip and that any token it holds is refused from now on —
-which is what `mayWriteTrip` actually does.
+Done. `app/api/v1/[user]/trips/[trip]/people/route.ts:96-98` no longer tells
+the owner a token "keeps working until it expires" or to "revoke it if that
+matters". It now says: the removed address is no longer on the trip and no
+longer in the byline, and any trip-scoped token already issued to it can no
+longer write — re-checked on every request, so there is nothing left to
+revoke.
 
-Check the same claim has not been copied elsewhere: `grep -rn "until it
-expires" app lib`, and the buddy/contact revoke paths in `lib/contacts/`.
+`grep -rn "until it expires" app lib` found exactly the one occurrence; the
+buddy/contact revoke paths in `lib/contacts/` carry no version of this claim
+(checked `lib/contacts/index.ts` and `lib/contacts/inviteMailNote.ts`, neither
+says a revoked credential keeps working).
 
-Not doing: changing any behaviour. The behaviour is right; only the sentence is
-wrong.
+`test/trip-party-api.test.ts` had the old, false claim baked into its own
+assertion (`/keeps working until it expires/`) — updated to assert the true
+sentence and to refuse the old phrase and "Revoke it if that matters"
+outright. Added a second test that removes a person, then calls
+`tripWriteVerdict` with their scope and address against the trip as it now
+stands and asserts `"revoked"` — so the note's claim is checked against
+`mayWriteTrip`'s actual verdict, not merely against phrasing.
+
+No behaviour changed; only the sentence.
 
 ## Acceptance
 

@@ -93,9 +93,9 @@ export async function PATCH(
           `scoped to it, using that address. `
         : "") +
       (removed.length
-        ? `${removed.join(", ")} is no longer on the trip and no longer in the byline — but a ` +
-          `trip-scoped token already issued to that address keeps working until it expires. ` +
-          `Revoke it if that matters. `
+        ? `${removed.join(", ")} is no longer on the trip and no longer in the byline. Any ` +
+          `trip-scoped token already issued to that address can no longer write to it — this ` +
+          `is re-checked on every request, so there is nothing left to revoke. `
         : "") +
       "The byline on the trip changes with this list; a buddy the owner approved separately is " +
       "unaffected.",

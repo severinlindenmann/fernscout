@@ -7,7 +7,7 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { issueCode, verifyCode } from "@/lib/auth";
-import { tripWriteScope } from "@/lib/tripPeople";
+import { tripWriteScope, tripWriteVerdict } from "@/lib/tripPeople";
 import { getTrip } from "@/lib/trips";
 import {
   GET as getPeople,
@@ -153,9 +153,30 @@ describe("PATCH .../people", () => {
     expect(status).toBe(200);
     expect(body.removed).toEqual(["ana@example.test"]);
     expect(getTrip(REF)!.people.map((p) => p.email)).toEqual(["bo@example.test"]);
-    // Removing somebody does not silently revoke a token they hold, and the
-    // response has to say so rather than let it be assumed.
-    expect(String(body.note)).toMatch(/keeps working until it expires/);
+    // B1131: `mayWriteTrip` re-checks membership on every request (B98), so a
+    // token the removed address already holds is refused immediately — the
+    // note must say that rather than the false "keeps working" claim it used
+    // to carry.
+    expect(String(body.note)).toMatch(/can no longer write to it/);
+    expect(String(body.note)).not.toMatch(/keeps working until it expires/);
+    expect(String(body.note)).not.toMatch(/Revoke it if that matters/);
+  });
+
+  test("the token the note describes is in fact refused, not merely claimed to be", async () => {
+    writeTrip(["people:", '  - name: "Ana Meyer"', '    email: "ana@example.test"']);
+    const scope = tripWriteScope("reise");
+    const owner = await ownerToken();
+    const { status, body } = await call(patchPeople, "PATCH", owner, {
+      people: [{ name: "Bo Lind", email: "bo@example.test" }],
+    });
+    expect(status).toBe(200);
+    expect(body.removed).toEqual(["ana@example.test"]);
+
+    // What the note promises — "any token already issued to that address can
+    // no longer write" — is `mayWriteTrip`'s own verdict on the token's scope
+    // and the address it belongs to, checked here rather than taken on faith.
+    const verdict = await tripWriteVerdict(scope, "ana@example.test", getTrip(REF)!);
+    expect(verdict).toBe("revoked");
   });
 
   test("an empty list clears the block instead of leaving a bare key", async () => {
