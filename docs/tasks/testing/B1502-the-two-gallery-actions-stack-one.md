@@ -7,8 +7,7 @@ complexity: low
 area: postcards
 found: "2026-09-11T18:30:46Z"
 started: "2026-09-11T18:54:32Z"
-session: 3f748903-2dc3-47a2-a958-98b83d641dc0
-claimed: "2026-09-11T18:54:32Z"
+merged: "2026-09-11T19:01:29Z"
 ---
 
 # B1502 — The two gallery actions stack one per line on a small phone, and the step bar wraps mid-row

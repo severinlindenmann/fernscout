@@ -303,15 +303,14 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B1500](open/B1500-tapping-a-photograph-opens-a-form.md) | Tapping a photograph opens a form asking what the flow is about to ask again | FEATURE | high | medium |
 
-## in-development (3)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1502](in-development/B1502-the-two-gallery-actions-stack-one.md) | The two gallery actions stack one per line on a small phone, and the step bar wraps mid-row | ISSUE | high | low | `3f748903` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1495](in-development/B1495-a-journal-can-be-synced-down.md) | A journal can be synced down to a folder and back up, incrementally | FEATURE | medium | high | `a46b89fa` |
 
-## testing (66)
+## testing (67)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -334,6 +333,7 @@ Do not edit them by hand; run the script.
 | [B1492](testing/B1492-an-owner-signed-in-on-their.md) | An owner signed in on their journal is asked to sign in again at /agent | ISSUE | high | low | — |
 | [B1499](testing/B1499-a-sent-postcard-order-says-the.md) | A sent postcard order says the cards are Shipped, and nothing has ever told us that | ISSUE | high | low | — |
 | [B1501](testing/B1501-the-postcard-order-opens-on-a.md) | The postcard order opens on a card that stands between the owner and the first step | ISSUE | high | low | — |
+| [B1502](testing/B1502-the-two-gallery-actions-stack-one.md) | The two gallery actions stack one per line on a small phone, and the step bar wraps mid-row | ISSUE | high | low | — |
 | [B1094](testing/B1094-editing-a-contact-opens-a-form.md) | Editing a contact opens a form off-screen above the button, so the button looks broken | ISSUE | medium | low | — |
 | [B1112](testing/B1112-a-triage-decision-carries-no-reason.md) | A triage decision carries no reason, so the run brief starts from ids alone | DOCS | medium | low | — |
 | [B1116](testing/B1116-plan-a-run-re-opens-questions.md) | plan-a-run re-opens questions a ticket has already decided unless the dispatch says not to | DOCS | medium | low | — |
