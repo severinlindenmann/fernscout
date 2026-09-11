@@ -50,6 +50,18 @@ Whichever is chosen, write the sentence once and point everything else at
 it, the same discipline `AGENTS.md` asks for everywhere else — a fact in two
 places disagrees with itself within a month.
 
+Built, 2026-09-11, per the owner's decision (not the /api/health candidate):
+a new line in `app/[user]/account/AccountPageContent.tsx`, inside the
+WhatsApp row of the channel-cost list, rendered only when
+`payment.channels.whatsapp` is on — read once by the owner switching the
+channel, as the ticket's own first candidate proposed. New locale key
+`me.whatsappPhotoDisclosure` in `site/locales/{en,de,hu}.json`
+("A day's first photograph reaches WhatsApp's operator before it reaches a
+reader — true for every trip, private ones included, because the message
+template requires an image."), `npm run i18n:keys` run. Explicitly did not
+add it to the "what this journal sends out" consent list (that is about the
+model, not WhatsApp delivery) or to `/api/health`.
+
 ## Acceptance
 
 - An owner switching `whatsapp` on sees, on the page or screen that switches

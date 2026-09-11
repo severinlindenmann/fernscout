@@ -56,6 +56,18 @@ whose handler calls `skillDocPath()` has a response description mentioning
 This is small enough to fold into another worktree's work rather than take a
 branch of its own.
 
+Built, 2026-09-11: added the sentence to `POST /api/v1/journals`'s `201` in
+`lib/api/openapi.ts`, in the same voice as the other two — `` `next` names the
+call that creates the first trip and links the skill document for it (B311).
+``
+
+Closed the class in `test/skill-docs.test.ts` ("every route that sends a next
+pointer documents it"): it walks every `app/api/**/route.ts` for a
+`skillDocPath(` call, derives that file's OpenAPI path from Next.js file
+routing (`app/api/v1/journals/route.ts` → `/api/v1/journals`, `[user]` →
+`{user}`), and fails if no response description on that path mentions
+`` `next` ``.
+
 ## Acceptance
 
 - `POST /api/v1/journals`'s `201` description names its `next` pointer.
