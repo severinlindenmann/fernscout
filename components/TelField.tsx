@@ -222,10 +222,14 @@ export default function TelField({
     }
   }
 
+  // B1283 — the closed control shows flag + dialling code only. The code is
+  // the load-bearing part of this value (a phone number needs nothing else),
+  // and the full name — which needs the room a 144px box at 390px does not
+  // have — is what the open list below is for.
   const displayValue = open
     ? query
     : selected
-      ? `${flagOf(selected.iso2)} ${selected.name} (+${selected.cc})`
+      ? `${flagOf(selected.iso2)} +${selected.cc}`
       : "";
 
   return (
