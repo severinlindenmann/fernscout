@@ -675,6 +675,60 @@ test("pressing the preview's publish button twice quickly fires one proposal", a
 });
 
 /**
+ * B1257 — the preview pane renders `DayCard` with no `TripProvider` in
+ * scope, so `DraftNotice`'s own `useTrip()` read used to fall back to
+ * `canPublish: false` and told the owner previewing their own draft that
+ * publishing was somebody else's to ask for. The room is owner-only by
+ * construction, so the owner's own copy ("Draft — only you can see this")
+ * is what belongs here, never the shared reader's ("Draft — not on the site
+ * yet").
+ */
+test("the preview's draft banner speaks to the owner, not a shared reader — B1257", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url.includes("/day?trip=")) {
+        return {
+          ok: true,
+          json: async () => ({
+            preview: {
+              day: {
+                date: "2026-08-01",
+                lead: {
+                  slug: "tuesday",
+                  title: "Ankunft",
+                  date: "2026-08-01",
+                  location: "Bellinzona",
+                  country: "Switzerland",
+                  content: "<p>Words.</p>",
+                  gallery: [],
+                  costs: [],
+                  draft: true,
+                },
+                entries: [],
+              },
+              summary: {},
+              dayIndex: 0,
+            },
+          }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({ ok: true, blocks: [] }) } as Response;
+    }),
+  );
+
+  const box = render({ trip: "a-trip", slug: "tuesday" });
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  const previewSection = box.querySelector('section[aria-label="Preview"]')!;
+  expect(previewSection.textContent).toContain(dictionary["draft.title"]);
+  expect(previewSection.textContent).not.toContain(dictionary["draft.titleShared"]);
+});
+
+/**
  * The strip's own live region — B1016, and the same rule B949 wrote down for
  * the drawer's count: a region created at the same moment as its first
  * content is one a screen reader may never have been watching.

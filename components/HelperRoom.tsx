@@ -2644,7 +2644,14 @@ function PreviewPane({
   return (
     <div aria-busy={reading}>
       <CurrencyProvider options={currency}>
-        <DayCard day={preview.day} summary={preview.summary} dayIndex={preview.dayIndex} />
+        {/* `canPublish` — B1257. This pane renders with no `TripProvider`,
+            so `DraftNotice`'s own context read falls back to `false` and
+            told an owner previewing their own draft that publishing was
+            somebody else's to ask for. The room is owner-only by
+            construction (`app/agent/page.tsx` gates on `role === "owner"`
+            and `isHelperOwner`), so `true` here is simply correct rather
+            than a real trip this route would have to thread through. */}
+        <DayCard day={preview.day} summary={preview.summary} dayIndex={preview.dayIndex} canPublish />
       </CurrencyProvider>
     </div>
   );

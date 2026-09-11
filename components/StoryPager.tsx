@@ -214,10 +214,15 @@ export function DayCard({
   day,
   summary,
   dayIndex,
+  canPublish,
 }: {
   day: Day;
   summary: DaySummary;
   dayIndex: number;
+  /** Passed straight through to `DraftNotice` — B1257. Every public caller
+   *  leaves this out and reads the real `TripProvider` in scope, as before;
+   *  the helper room's preview pane, which has none, passes `true`. */
+  canPublish?: boolean;
 }) {
   // Trip-relative: URLs carry a username now, so a bare "/costs" would send a
   // reader to somebody else's site — or to nothing at all.
@@ -251,7 +256,7 @@ export function DayCard({
       }`}
     >
       {isTest && <TestNotice />}
-      {allDraft && <DraftNotice />}
+      {allDraft && <DraftNotice canPublish={canPublish} />}
 
       {/*
         The day's own identity — the top of the page, not a header band.
