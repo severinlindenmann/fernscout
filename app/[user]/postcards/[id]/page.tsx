@@ -16,7 +16,7 @@ import { printerAddressLines } from "@/lib/postcard/providers";
 import { readJpeg } from "@/lib/postcard/pdf";
 import { backLayout, resolutionNote } from "@/lib/postcard/preview";
 import { messageFit } from "@/lib/postcard/render";
-import { getOrder, isExpired, isPending } from "@/lib/postcard/orders";
+import { getOrder, isExpired, isPending, refreshProviderStatuses } from "@/lib/postcard/orders";
 import { postcardOrderView } from "@/lib/order/view";
 import OrderDocket from "@/components/order/OrderDocket";
 import { travellerPartyFor } from "@/lib/postcard/entry";
@@ -130,8 +130,15 @@ export default async function PostcardOrderPage({
     );
   }
 
-  const order = await getOrder(username, id);
+  let order = await getOrder(username, id);
   if (!order) notFound();
+
+  // B1548 — Stannp has no push for `printing`/`dispatched`, only for
+  // cancellation, so a card already at the printer is the only case worth
+  // asking about here. Best-effort: `refreshProviderStatuses` never throws.
+  if (order.status === "built" || order.status === "failed") {
+    order = await refreshProviderStatuses(order);
+  }
 
   const people = await recipientsOf(username, order.payload.recipients);
   // Everyone who could be on this card, not only who is — B1005's send step

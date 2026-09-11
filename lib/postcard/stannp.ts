@@ -31,6 +31,58 @@ import type { PostalAddress } from "./render";
 
 export type StannpResult = { ok: true; ref: string; pdf?: string; cost?: string } | { ok: false; error: string };
 
+/**
+ * The states this instance will store — B1548.
+ *
+ * Stannp reports `printing`, `dispatched`, `local_delivery`, `delivered`,
+ * `returned` and `cancelled` too, but writing any of the last three would
+ * mean this system claiming to know a card was delivered — the thing
+ * `app/api/webhooks/stannp/route.ts`'s own module comment already decided
+ * it never will. Its webhook only ever writes `"cancelled"`; this list is
+ * the same boundary, just reachable without waiting for a webhook.
+ */
+const KNOWN_STATUSES = ["received", "printing", "dispatched", "cancelled"] as const;
+export type StannpStatus = (typeof KNOWN_STATUSES)[number];
+
+/**
+ * What Stannp says about one card **right now** — B1548.
+ *
+ * There is no websocket and no push from them for anything but
+ * cancellation, so this is the only way this instance can learn
+ * `printing` happened between two page loads. `ref` is
+ * `RecipientResult.ref` — `stannp:<id>` or `stannp-test:<id>` — and the id
+ * in the path is theirs, not a query parameter: `?id=` answers `"Missing
+ * resource ID"`, `/get/<id>` is what actually works (confirmed against a
+ * live card).
+ *
+ * Best-effort: no key, no match, a network failure or a status this
+ * instance has not chosen to store all come back `null` rather than
+ * throwing, because a Stannp outage must not break the page that shows a
+ * card already went to the printer.
+ */
+export async function fetchStannpStatus(ref: string): Promise<StannpStatus | null> {
+  const key = process.env.STANNP_API_KEY;
+  if (!key) return null;
+  const match = /^stannp(?:-test)?:(\d+)$/.exec(ref);
+  if (!match) return null;
+
+  try {
+    const response = await fetch(
+      `https://api-eu1.stannp.com/v1/postcards/get/${match[1]}`,
+      { headers: { Authorization: authHeader(key) } },
+    );
+    if (!response.ok) return null;
+    const payload = (await response.json()) as { success?: boolean; data?: { status?: string } };
+    if (payload.success !== true) return null;
+    const status = payload.data?.status;
+    return (KNOWN_STATUSES as readonly string[]).includes(status ?? "")
+      ? (status as StannpStatus)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function isLive(): boolean {
   const feature = loadServerConfig().features.postcards as Record<string, unknown>;
   return feature.live === true;

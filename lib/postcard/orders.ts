@@ -2,6 +2,7 @@ import "server-only";
 import { getDatabaseOrNull, newId, nowIso } from "../db";
 import { POSTCARD_CREDITS } from "../credits/pricing";
 import { MAX_CROP_ZOOM } from "./spec";
+import { fetchStannpStatus, type StannpStatus } from "./stannp";
 
 /**
  * A postcard order: what an agent builds, and what a person presses Send on —
@@ -78,19 +79,19 @@ export type RecipientResult = {
   costMinor?: number;
   error?: string;
   /**
-   * The one further word the provider's own webhook can add after send —
-   * B1484. Additive only: `ok`/`sent` still mean exactly what they always
-   * have, "the printer accepted it" — this route never rewrites that, so a
-   * card already counted as sent stays counted as sent. Only `"cancelled"`
-   * is ever written here (`app/api/webhooks/stannp/route.ts`); every other
-   * status Stannp reports (`printing`, `dispatched`, `local_delivery`,
-   * `delivered`, `returned`) is acknowledged and dropped, on purpose —
+   * The provider's own further word on this card, after send — B1484,
+   * widened by B1548. Additive only: `ok`/`sent` still mean exactly what
+   * they always have, "the printer accepted it" — neither the webhook
+   * (`app/api/webhooks/stannp/route.ts`, cancellation only) nor the on-view
+   * refresh (`refreshProviderStatuses`, everything `fetchStannpStatus` can
+   * return) ever rewrites that. Only `StannpStatus`'s four words are ever
+   * written here — never `local_delivery`/`delivered`/`returned` — because
    * `app/api/v1/[user]/postcards/[id]/route.ts`'s own module comment already
-   * decided this system will never know whether a card was delivered, and a
-   * webhook recording delivery status would quietly contradict that.
+   * decided this system will never know whether a card was delivered, and
+   * storing delivery status would quietly contradict that.
    * Refunding the credit this card cost is not built here — see B1532.
    */
-  providerStatus?: "cancelled";
+  providerStatus?: StannpStatus;
 };
 
 /**
@@ -616,6 +617,18 @@ export async function findOrderByProviderRef(
  * delivery costs a write, not a second anything.
  */
 export async function recordProviderCancellation(providerRef: string): Promise<boolean> {
+  return recordProviderStatus(providerRef, "cancelled");
+}
+
+/**
+ * Write whatever the provider now says about one card, by its own `ref` —
+ * the shared write behind `recordProviderCancellation` (the webhook) and
+ * `refreshProviderStatuses` (the page, B1548). Safe to call with the same
+ * status twice: overwriting `"cancelled"` with `"cancelled"` changes
+ * nothing, so a retried webhook delivery or a page opened twice costs a
+ * write, not a second anything.
+ */
+async function recordProviderStatus(providerRef: string, status: StannpStatus): Promise<boolean> {
   const handle = await getDatabaseOrNull();
   if (!handle) return false;
   const found = await findOrderByProviderRef(providerRef);
@@ -629,7 +642,7 @@ export async function recordProviderCancellation(providerRef: string): Promise<b
   if (!row) return false;
   const payload = JSON.parse(row.payload) as OrderPayload;
   const results = (payload.results ?? []).map((r) =>
-    r.ref === providerRef ? { ...r, providerStatus: "cancelled" as const } : r,
+    r.ref === providerRef ? { ...r, providerStatus: status } : r,
   );
   await handle.db
     .updateTable("print_orders")
@@ -638,4 +651,49 @@ export async function recordProviderCancellation(providerRef: string): Promise<b
     .where("owner_id", "=", found.owner)
     .execute();
   return true;
+}
+
+/**
+ * Ask Stannp what it currently thinks of every card on this order, and save
+ * anything new — B1548.
+ *
+ * On-view only: Stannp has no webhook for anything but cancellation
+ * (`app/api/webhooks/stannp/route.ts`), so this is the only way this
+ * instance ever learns `printing` or `dispatched` happened. Deliberately
+ * stops there — `fetchStannpStatus` never returns `delivered` /
+ * `local_delivery` / `returned`, the same boundary the webhook already
+ * draws, so this is reachability rather than a reversal of the decision
+ * that this system will never claim to know a card was delivered.
+ *
+ * Best-effort and silent: a Stannp outage must not break the page that
+ * shows a card already went to the printer. Returns the order with
+ * whatever it found, so the caller renders it without a second read.
+ */
+export async function refreshProviderStatuses(order: PostcardOrder): Promise<PostcardOrder> {
+  const results = order.payload.results;
+  if (!results || results.length === 0) return order;
+
+  let changed = false;
+  const next = await Promise.all(
+    results.map(async (r) => {
+      if (!r.ok || !r.ref || r.providerStatus === "cancelled") return r;
+      const status = await fetchStannpStatus(r.ref);
+      if (!status || status === r.providerStatus) return r;
+      changed = true;
+      return { ...r, providerStatus: status };
+    }),
+  );
+  if (!changed) return order;
+
+  const payload = { ...order.payload, results: next };
+  const handle = await getDatabaseOrNull();
+  if (handle) {
+    await handle.db
+      .updateTable("print_orders")
+      .set({ payload: JSON.stringify(payload), updated_at: nowIso() })
+      .where("id", "=", order.id)
+      .where("owner_id", "=", order.owner)
+      .execute();
+  }
+  return { ...order, payload };
 }

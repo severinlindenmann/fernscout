@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -20,8 +20,12 @@ import {
   getOrder as getPostcardOrder,
   recordProviderCancellation,
   recordResults,
+  refreshProviderStatuses,
 } from "@/lib/postcard/orders";
 import { listAllOrders } from "@/lib/orders";
+
+vi.mock("@/lib/postcard/stannp", () => ({ fetchStannpStatus: vi.fn() }));
+import { fetchStannpStatus } from "@/lib/postcard/stannp";
 
 /**
  * `listAllOrders` is what `/[user]/orders` and the preview on `/[user]/account`
@@ -190,5 +194,73 @@ describe("findOrderByProviderRef / recordProviderCancellation", () => {
     expect(again?.payload.results?.[0]?.providerStatus).toBe("cancelled");
 
     expect(await recordProviderCancellation("stannp:no-such-id")).toBe(false);
+  });
+});
+
+/**
+ * `refreshProviderStatuses` — B1548. The on-view path: no webhook told this
+ * instance anything, so the page itself asks Stannp and saves what changed.
+ */
+describe("refreshProviderStatuses", () => {
+  afterEach(() => vi.mocked(fetchStannpStatus).mockReset());
+
+  test("writes a new status and stops at cancelled", async () => {
+    const order = await createPostcardOrder(OWNER, {
+      provider: "stannp",
+      trip: "alex/asia-2026",
+      day: "2026-01-01-day",
+      photo: "photo.jpg",
+      message: "hi",
+      from: "Us",
+      recipients: ["contact-1", "contact-2"],
+      locale: "en",
+    });
+    expect(order).not.toBeNull();
+    if (!order) return;
+
+    await recordResults(OWNER, order.id, order.payload, [
+      { contactId: "contact-1", ok: true, ref: "stannp:9001" },
+      { contactId: "contact-2", ok: true, ref: "stannp:9002", providerStatus: "cancelled" },
+    ]);
+    const built = await getPostcardOrder(OWNER, order.id);
+    if (!built) throw new Error("order vanished");
+
+    vi.mocked(fetchStannpStatus).mockResolvedValue("dispatched");
+
+    const refreshed = await refreshProviderStatuses(built);
+    expect(refreshed.payload.results?.[0]?.providerStatus).toBe("dispatched");
+    // Already cancelled: never asked, never overwritten by whatever the mock
+    // returns for it — the boundary this function must not cross.
+    expect(refreshed.payload.results?.[1]?.providerStatus).toBe("cancelled");
+    expect(vi.mocked(fetchStannpStatus)).not.toHaveBeenCalledWith("stannp:9002");
+
+    const saved = await getPostcardOrder(OWNER, order.id);
+    expect(saved?.payload.results?.[0]?.providerStatus).toBe("dispatched");
+  });
+
+  test("never stores delivered, local_delivery or returned even if the provider said so", async () => {
+    const order = await createPostcardOrder(OWNER, {
+      provider: "stannp",
+      trip: "alex/asia-2026",
+      day: "2026-01-01-day",
+      photo: "photo.jpg",
+      message: "hi",
+      from: "Us",
+      recipients: ["contact-1"],
+      locale: "en",
+    });
+    if (!order) throw new Error("order not created");
+    await recordResults(OWNER, order.id, order.payload, [
+      { contactId: "contact-1", ok: true, ref: "stannp:9003" },
+    ]);
+    const built = await getPostcardOrder(OWNER, order.id);
+    if (!built) throw new Error("order vanished");
+
+    // `fetchStannpStatus` itself is what enforces this boundary — but a real
+    // provider returning an unmapped word must not surprise this function
+    // either, so the mock stands in for that too.
+    vi.mocked(fetchStannpStatus).mockResolvedValue(null);
+    const refreshed = await refreshProviderStatuses(built);
+    expect(refreshed.payload.results?.[0]?.providerStatus).toBeUndefined();
   });
 });
