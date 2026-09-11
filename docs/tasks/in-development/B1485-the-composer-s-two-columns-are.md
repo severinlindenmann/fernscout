@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: photobook
 found: "2026-09-11T16:47:00Z"
+started: "2026-09-11T16:47:13Z"
+session: 3f748903-2dc3-47a2-a958-98b83d641dc0
+claimed: "2026-09-11T16:47:13Z"
 ---
 
 # B1485 — The composer's two columns are mirrored from the drawing they were built to
