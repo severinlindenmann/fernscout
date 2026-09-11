@@ -143,7 +143,12 @@ describe("the photobook receipt", () => {
     // "Ready" is a claim about a finished, delivered object; this only ever
     // follows a successful submission to Gelato, which can still be refused.
     expect(eml).not.toContain("your photobook is ready");
-    expect(eml).toContain("on the way");
+    // Nor is it on its way — B1549. This mail means the printer has accepted
+    // the order, and the owner read "unterwegs" off a real one and started
+    // counting delivery days. What is true here is that it is about to be
+    // printed; everything after that has its own moment and no mail yet.
+    expect(eml).not.toContain("on the way");
+    expect(eml).toContain("goes to print shortly");
     // Links, never the file: a 300-DPI book does not fit in a mailbox.
     expect(eml).not.toContain("Content-Disposition: attachment");
   });

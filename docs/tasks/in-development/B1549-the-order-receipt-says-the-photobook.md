@@ -51,3 +51,40 @@ the shipping mail, if there ever is one.
 - `test/photobook-receipt.test.ts` asserts the new phrase and still forbids
   "ready".
 - Read on a real `.eml` from the instance, not only in the JSON.
+
+## What was found and done
+
+**Valid, and narrower than it looks.** The receipt is sent from
+`app/[user]/photobook/order/route.ts:363`, and only on the branch where
+`submitBuiltBook` returned `ok` — a refusal takes `sendPhotobookRefused`
+instead (B1330). So this mail has exactly one meaning, and it is "the printer
+has accepted the order". Nothing has been printed and nothing has moved.
+
+Three strings, one test assertion. The German is the owner's own phrasing.
+
+| | |
+| --- | --- |
+| en | Thank you — your photobook goes to print shortly |
+| de | Danke — dein Fotobuch wird bald gedruckt |
+| hu | Köszönjük — a fotókönyved hamarosan nyomdába kerül |
+
+The test assertion is now a pair — the new phrase must be present *and* "on
+the way" must be absent — beside the "your photobook is ready" line that has
+been there since B1330. Three false claims about the same moment have now been
+made in this one heading, so the negatives are the part worth keeping.
+
+Left alone deliberately: `preheader` ("ready to download") is true, and the
+`notPrinted` paragraph is unreachable on an instance that prints, because a
+book that cannot be submitted never gets this mail at all. That paragraph
+looks like dead code from here and is not this ticket's to remove — worth a
+look by whoever next touches `receipt.ts`.
+
+## Evidence
+
+- `npm run verify` — all 5 steps green.
+- `test/photobook-receipt.test.ts` asserts the new phrase and forbids both
+  older claims.
+- A **real rendered `.eml`**, German, through the actual sender and mail
+  transport rather than the dictionary: heading *"Danke — dein Fotobuch wird
+  bald gedruckt"* in the plain-text part and in the `<h1>` of the HTML part.
+  Captured at `scratchpad/b1549-receipt-de.eml.txt`.
