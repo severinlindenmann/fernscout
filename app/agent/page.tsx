@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { CODE_TTL_MINUTES } from "@/lib/auth";
+import { CODE_TTL_MINUTES, GUEST_COOKIE } from "@/lib/auth";
 import { resolveIdentity } from "@/lib/auth/handshake";
 import { isEnabled } from "@/lib/capabilities";
 import { balanceOf } from "@/lib/credits";
 import AgentDoor from "@/components/AgentDoor";
 import HelperRoom from "@/components/HelperRoom";
+import IdentityUpgrade from "@/components/IdentityUpgrade";
 import LocaleProvider from "@/components/LocaleProvider";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { filesForRoom, isHelperOwner } from "@/lib/helper/server";
@@ -48,6 +49,16 @@ export function arrivalFor(asked: {
   const opening = aboutTrip && aboutSlug ? { trip: aboutTrip, slug: aboutSlug } : null;
   const named = asked.c ?? "";
   return { opening, named, shouldForget: opening !== null && named === "" };
+}
+
+/**
+ * Whether the door should ask for the identity this browser has already
+ * earned — B1492, and out here for the same reason `arrivalFor` is: so the
+ * rule is checkable without rendering a page. The long note at the call site
+ * is the why.
+ */
+export function shouldUpgradeIdentity(identity: unknown, journalCookie: string | undefined): boolean {
+  return !identity && Boolean(journalCookie);
 }
 
 // Reads the identity cookie on every request; there is nothing here to
@@ -116,7 +127,8 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
     : [];
 
   const asked = await searchParams;
-  const remembered = (await cookies()).get(JOURNAL_COOKIE)?.value;
+  const jar = await cookies();
+  const remembered = jar.get(JOURNAL_COOKIE)?.value;
   // The remembered journal if it is still theirs, otherwise the first. Never a
   // 404: a stale cookie is somebody who used to own something, and the honest
   // answer to that is their own journal rather than an error.
@@ -268,8 +280,33 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
    * door is the way in and the note for somebody bringing their own agent —
    * everything that used to be a menu of buttons is now the conversation
    * above, and this is not a smaller version of it.
+   *
+   * **One of those readers is not signed out at all** — B1492. This page asks
+   * `resolveIdentity()`, which the instance-wide `fs_identity` satisfies and
+   * nothing else does, for the reason written out in `handshake.ts`. A browser
+   * holding only this journal's own `fs_session` is therefore an owner on
+   * `/<user>/trips` and a stranger here, and what it is shown is a demand for
+   * a code in a mailbox — from the one page a person who cannot write a day
+   * any other way has to reach.
+   *
+   * B459 already built the cure and mounted it in one place: the journal
+   * layout. So the upgrade happened only for somebody who loaded a journal
+   * page *and* let its client effect finish, which a bookmark, a pasted link,
+   * an installed PWA and a fast click past the journal all skip. Mounting it
+   * here as well closes the door on itself: the POST mints the identity a live
+   * journal session has earned, `router.refresh()` re-renders this page, and
+   * the room is what appears.
+   *
+   * Gated on the cookie being *there*, so a genuine stranger at this door
+   * fires no request it could never satisfy. Not gated on the session being
+   * valid — that is the route's own question, asked with the token rather than
+   * with the fact that a cookie exists.
    */
+  const upgradeIdentity = shouldUpgradeIdentity(identity, jar.get(GUEST_COOKIE)?.value);
+
   return (
+    <>
+      {upgradeIdentity && <IdentityUpgrade />}
     <AgentDoor
       docUrl={`${site.url}/documentation.txt`}
       agentUrl={`${site.url}/agent.md`}
@@ -283,5 +320,6 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
       // a proven-number question about, unlike the room's own chip.
       whatsappNumber={whatsappDisplayNumber()}
     />
+    </>
   );
 }

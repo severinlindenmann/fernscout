@@ -62,6 +62,35 @@ Not doing: loosening `resolveIdentity` to accept `fs_session`. `handshake.ts`
 is explicit about why it must not, and the mint is a different act from the
 answer.
 
+## What was built
+
+Valid on revalidation: `app/agent/page.tsx` asked `resolveIdentity()` and
+`components/IdentityUpgrade.tsx` was imported by `app/[user]/layout.tsx` and by
+nothing else.
+
+`app/agent/page.tsx` now mounts `<IdentityUpgrade />` beside the door when
+`shouldUpgradeIdentity(identity, jar.get(GUEST_COOKIE)?.value)` — no identity,
+a journal cookie present. The predicate is exported and tested rather than
+inlined, following `arrivalFor`'s own precedent in the same file (B1242).
+`test/agent-door-identity-upgrade.test.ts` covers the three cases.
+
+Nothing in `lib/auth/` changed: `resolveIdentity` still refuses to be satisfied
+by `fs_session`, and the mint stays a separate act from the answer.
+
+## Evidence
+
+Local dev on :3011 against the `example` journal (helper switched on for the
+run; the config edits were reverted before committing), driven in Playwright at
+390px — `scratchpad/b1492/evidence.json` and `b1492-after-390.png`:
+
+- Browser holding **only `fs_session`** opening `/agent` directly: one upgrade
+  POST, `fs_identity` appears in the jar, and the page settles on the room —
+  the demo journal's own days, none of them written for this branch. No console
+  errors.
+- **Signed-out browser**: no request to `/api/auth/identity/upgrade` at all,
+  cookie jar still empty, the door as before.
+- `npm run verify` — all 5 steps green (532 test files, 6954 tests).
+
 ## Acceptance
 
 - Sign in as an owner locally, delete the `fs_identity` cookie, and open
