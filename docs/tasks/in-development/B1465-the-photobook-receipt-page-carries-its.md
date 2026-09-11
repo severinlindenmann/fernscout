@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: orders
 found: "2026-09-11T14:18:07Z"
+started: "2026-09-11T14:53:54Z"
+session: 3f748903-2dc3-47a2-a958-98b83d641dc0
+claimed: "2026-09-11T14:53:54Z"
 ---
 
 # B1465 — The photobook receipt page carries its own pill table and envelope markup

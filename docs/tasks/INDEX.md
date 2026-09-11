@@ -275,11 +275,10 @@ Do not edit them by hand; run the script.
 | [B1364](backlog/wont-do/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 
-## open (35)
+## open (34)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1465](open/B1465-the-photobook-receipt-page-carries-its.md) | The photobook receipt page carries its own pill table and envelope markup | FEATURE | high | low |
 | [B1466](open/B1466-the-photobook-buy-panel-duplicates-the.md) | The photobook buy panel duplicates the receipt's envelope, ledger and price lines | FEATURE | high | medium |
 | [B1467](open/B1467-the-postcard-order-page-states-its.md) | The postcard order page states its own heading, intro and price in its own words | FEATURE | high | medium |
 | [B1470](open/B1470-the-rebuilt-order-flows-have-not.md) | The rebuilt order flows have not been driven end to end on the live instance | OPS | high | medium |
@@ -315,10 +314,11 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (10)
+## in-development (11)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1465](in-development/B1465-the-photobook-receipt-page-carries-its.md) | The photobook receipt page carries its own pill table and envelope markup | FEATURE | high | low | `3f748903` |
 | [B1112](in-development/B1112-a-triage-decision-carries-no-reason.md) | A triage decision carries no reason, so the run brief starts from ids alone | DOCS | medium | low | `13f12910` |
 | [B1116](in-development/B1116-plan-a-run-re-opens-questions.md) | plan-a-run re-opens questions a ticket has already decided unless the dispatch says not to | DOCS | medium | low | `13f12910` |
 | [B1117](in-development/B1117-a-lane-move-can-invalidate-another.md) | A lane move can invalidate another ticket's acceptance section and nothing notices | ISSUE | medium | low | `13f12910` |
