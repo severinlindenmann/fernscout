@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useReducedMotion } from "motion/react";
 import BusyButton from "@/components/BusyButton";
 import EnvelopeFly from "@/components/EnvelopeFly";
+import { OrderLedgerCard } from "@/components/order/OrderDocket";
+import type { OrderLedger } from "@/lib/order/ledger";
 
 /**
  * The box the money leaves from — B982.
@@ -43,6 +45,7 @@ import EnvelopeFly from "@/components/EnvelopeFly";
  * the button with the refusal above it, and only `sent` settles.
  */
 export default function PostcardSend({
+  ledger,
   username,
   id,
   confirming,
@@ -73,8 +76,11 @@ export default function PostcardSend({
   results: Record<string, string>;
   /** The word a no-JavaScript redirect came back with, if any. */
   initialResult: string | null;
+  /** What it costs, already priced by the page. */
+  ledger: OrderLedger;
   strings: {
-    cost: string;
+    priceHeading: string;
+    priceTotal: string;
     balance: string | null;
     short: string | null;
     buy: string;
@@ -196,10 +202,16 @@ export default function PostcardSend({
         </p>
       ) : null}
 
-      <p className="text-sm">
-        {strings.cost}
-        {strings.balance ? <>{" — "}{strings.balance}</> : null}
-      </p>
+      {/* The same card the order reads back as once the cards have gone —
+          B1467. It used to be a sentence here and nothing at all afterwards,
+          so the only place this order ever named its price was the screen you
+          pressed the button on. */}
+      <OrderLedgerCard
+        ledger={ledger}
+        heading={strings.priceHeading}
+        totalLabel={strings.priceTotal}
+        meta={strings.balance ?? undefined}
+      />
       {short && strings.short ? (
         <p className="mt-2 text-sm">
           {strings.short}{" "}

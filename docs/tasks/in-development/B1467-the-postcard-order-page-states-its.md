@@ -20,6 +20,25 @@ from a ladder of three order states in its own strings, and never shows a
 ledger at all: after sending, the page says the cards went, and nowhere says
 what they cost. The photobook receipt has said so since B1461.
 
+## Validity, and what was actually done
+
+Valid: the title, the intro and the state were a three-way ladder written out
+on the page — the same ladder B474 and the ticket after it were both faults of
+— and a sent order named no price anywhere.
+
+**The whole page does not become one `OrderDocket`, and should not.** Look and
+Write are composing: a croppable photograph, an editable back saved on a
+debounce, a stepper. What the order element replaces is the *vocabulary*:
+
+- the head's title and intro now come from `postcardOrderView`, beside the
+  photobook's;
+- a settled order shows the shared status pill;
+- the Send step shows the shared `OrderLedgerCard` in place of its own price
+  sentence, so the figures a person presses the button on are the same card
+  they read back afterwards.
+
+`postcard.page.cost` has no reader left — B1468 sweeps it.
+
 ## Work
 
 - The page's head and its post-send body render `OrderDocket` from

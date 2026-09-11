@@ -16,6 +16,8 @@ import { printerAddressLines } from "@/lib/postcard/providers";
 import { readJpeg } from "@/lib/postcard/pdf";
 import { backLayout, resolutionNote } from "@/lib/postcard/preview";
 import { getOrder, isExpired, isPending } from "@/lib/postcard/orders";
+import { postcardOrderView } from "@/lib/order/view";
+import { OrderPill } from "@/components/order/OrderDocket";
 import { travellerPartyFor } from "@/lib/postcard/entry";
 import { travellersSvg } from "@/lib/photobook/travellers";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
@@ -212,6 +214,18 @@ export default async function PostcardOrderPage({
   const hasParty = party.length > 0;
   const showFigures = order.payload.figures !== false && hasParty;
 
+  // One order, in the same shape a photobook order takes — B1467.
+  const view = postcardOrderView({
+    order,
+    t,
+    dayName,
+    sentWhen: formatDigestDate(locale, order.updatedAt.slice(0, 10)),
+    recipients: live.map((id) => {
+      const to = people.get(id)!.to;
+      return { name: to.name, town: [to.city, to.country].filter(Boolean).join(", ") };
+    }),
+  });
+
   return (
     <div className="min-h-screen">
       <PageHeader />
@@ -231,31 +245,22 @@ export default async function PostcardOrderPage({
             "sent" side of a boolean, which headed an order whose every card the
             printer had refused "Postcards, sent" over "they are with the
             printer" — the same B474 fault one status further along. */}
-        <h1 className="font-display text-2xl font-semibold text-navy-900">
-          {isPending(order)
-            ? t("postcard.page.title")
-            : order.status === "failed"
-              ? t("postcard.page.titleFailed")
-              : t("postcard.page.titleSent")}
-        </h1>
-        <p className="mt-1 text-sm text-navy-600">
-          {order.payload.trip
-            ? isPending(order)
-              ? t("postcard.page.intro", { day: dayName ?? "" })
-              : order.status === "failed"
-                ? t("postcard.page.introFailed", { day: dayName ?? "" })
-                : t("postcard.page.introSent", {
-                    day: dayName ?? "",
-                    when: formatDigestDate(locale, order.updatedAt.slice(0, 10)),
-                  })
-            : isPending(order)
-              ? t("postcard.page.introFromFile")
-              : order.status === "failed"
-                ? t("postcard.page.introFromFileFailed")
-                : t("postcard.page.introFromFileSent", {
-                    when: formatDigestDate(locale, order.updatedAt.slice(0, 10)),
-                  })}
-        </p>
+        {/* One vocabulary — B1467. The title, the intro and the state this
+            order is in are decided in `postcardOrderView`, beside the
+            photobook's, rather than by a three-way ladder written out here.
+            B474 and the ticket after it are both faults of that ladder: an
+            order already at the printer headed "ready to send", and a
+            refused set headed "sent". */}
+        <h1 className="font-display text-2xl font-semibold text-navy-900">{view.head.title}</h1>
+        <p className="mt-1 text-sm text-navy-600">{view.head.subtitle}</p>
+        {/* The pill only once there is something to report. A pending order
+            says "waiting for you" in the send step's own button; saying it
+            twice above the photograph would be the page talking to itself. */}
+        {!isPending(order) && view.status ? (
+          <p className="mt-3">
+            <OrderPill tone={view.status.tone} label={view.status.label} />
+          </p>
+        ) : null}
 
         <PostcardSteps
           start={typeof result === "string" || confirming ? "send" : "look"}
@@ -464,12 +469,10 @@ export default async function PostcardOrderPage({
                       t(key),
                     ]),
                   )}
+                  ledger={view.ledger}
                   strings={{
-                    cost: t("postcard.page.cost", {
-                      each: String(order.payload.creditsEach),
-                      count: String(live.length),
-                      total: String(cost),
-                    }),
+                    priceHeading: t("photobook.receipt.priceHeading"),
+                    priceTotal: t("photobook.receipt.total"),
                     balance:
                       balance !== null
                         ? t("postcard.page.balance", {
