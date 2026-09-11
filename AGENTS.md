@@ -12,15 +12,18 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 A self-hostable travel journal. **The content is markdown and photographs in a
 folder the author owns.** There is no CMS, and there will not be one (ROADMAP
-decision 24): no form that maps fields onto frontmatter, no upload widget with
-its own idea of what a day is. Writing happens through an agent — and since
-B681/B682, a person with no agent of their own can reach one anyway, through a
-guided web helper at `/agent` that writes through the same API this file
-describes. Reading happens in a browser and, now, so does describing a day out
-loud to the helper; nothing about what a browser is allowed to *do* on the
-owner's behalf without a model in front of it has changed. This file exists for
-the agent on either side of that: the one you are, and the one the helper
-runs.
+decision 24): no form that composes a new day out of fields, no upload widget
+with its own idea of what a day is. **An agent is the only thing that writes a
+day; a person may correct one they already have** — `components/EditDay.tsx`
+(B980) is that correction, reached from the published day itself, and it
+writes no field the day did not already carry and cannot invent a new one.
+Writing happens through an agent — and since B681/B682, a person with no agent
+of their own can reach one anyway, through a guided web helper at `/agent`
+that writes through the same API this file describes. Reading happens in a
+browser and, now, so does describing a day out loud to the helper; nothing
+about what a browser is allowed to *do* on the owner's behalf without a model
+in front of it has changed. This file exists for the agent on either side of
+that: the one you are, and the one the helper runs.
 
 Two ways in, and they are the same content behind two doors:
 

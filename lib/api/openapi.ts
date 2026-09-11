@@ -1902,7 +1902,9 @@ export function openApiDocument() {
                 "carries the same instruction as one sentence, for pasting into a reply. " +
                 "Both are absent when this server has auth off. When `locales` has more than " +
                 "one entry the reply also carries `localesNote`: " +
-                plain(SECOND_LANGUAGE_COMMITMENT),
+                plain(SECOND_LANGUAGE_COMMITMENT) +
+                " `next` names the call that creates the first trip and links the skill " +
+                "document for it (B311).",
             },
             "400": {
               description:

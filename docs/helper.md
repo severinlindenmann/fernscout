@@ -1,8 +1,10 @@
 # Fernscout Helper
 
 **A journal is markdown and photographs in a folder you own, and there is still
-no web form, no upload widget, no CMS — and there will not be one (ROADMAP
-decision 24). Writing happens through an agent.** That is a clean answer to
+no form that composes a new day out of fields, no upload widget with its own
+idea of what a day is, no CMS — and there will not be one (ROADMAP decision
+24). Writing happens through an agent; a person may correct a day they already
+have, in place, but nothing composes a new one.** That is a clean answer to
 "who owns this content" and an unhelpful one to "I have ten days of holiday
 photos on my laptop and no idea where to start" — unless the instance you are
 on hosts an agent for you at `/agent`, in which case that is the shorter path.

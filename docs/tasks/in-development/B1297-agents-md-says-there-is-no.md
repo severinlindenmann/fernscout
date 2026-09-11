@@ -60,6 +60,21 @@ already have.** That is a coherent rule and it is not the one the file states.
   network makes the same promise to agents who will never see this form.
 - Not in scope: changing the form. This ticket is words.
 
+Built, 2026-09-11: reworded AGENTS.md's opening paragraph (was lines 14-15) to
+say the distinction the ticket half-drafted — **an agent is the only thing
+that writes a day; a person may correct one they already have** — naming
+`components/EditDay.tsx` (B980) as that correction and stating it writes no
+field the day did not already carry. Left AGENTS.md:38-40's separate claim
+about the wizard alone; that one (the helper turns speech into a day through a
+model rather than a direct field-set) is still true.
+
+The same absolute turned out to be in three more places than the ticket
+named: `docs/helper.md:4` (named in the brief), and also `README.md:9`, found
+by grepping the repository for the phrase after fixing AGENTS.md. Both
+reworded the same way. `docs/tasks/` and `components/EditDay.tsx`'s own
+docstring quote or restate the old absolute as history rather than current
+claim, so left alone.
+
 ## While you are there
 
 The edit form renders the day's prose in **IBM Plex Mono at 14px** — about forty

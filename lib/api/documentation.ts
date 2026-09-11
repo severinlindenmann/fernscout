@@ -31,6 +31,7 @@ import { getTrips } from "../trips";
 import { COVER_TYPES, sizesFor } from "../photobook/spec";
 import { isIndexable } from "../access";
 import { CODE_TTL_MINUTES } from "../auth";
+import { whatsappDisplayNumber } from "../whatsapp/settings";
 import { openApiDocument } from "./openapi";
 import { SKILL_DOC_SLUGS, SKILL_DOC_SUMMARY, SKILL_DOC_TITLE } from "./skillDocMeta";
 // The sentences these documents share with /openapi.json, kept in one place so
@@ -136,6 +137,59 @@ export function instanceDocumentation(): string {
     "> author owns. Reading happens in a browser. Writing happens through an agent",
     "> holding a token — still no CMS, whether that agent is this instance's own",
     `> hosted one at ${site.url}/agent or one you bring yourself.`,
+    "",
+    "## Three ways in",
+    "",
+    ...wrap(
+      "Whoever you are — a person with no agent, an agent reading this file, or " +
+        "the model behind a browser tab — start by working out which of these " +
+        "three you are. It decides what you fetch next.",
+      78,
+    ),
+    "",
+    ...wrap(
+      `**The guided helper at ${site.url}/agent.** For a person with no agent ` +
+        "of their own. No API key, no HTTP client, no header of your own " +
+        "choosing — a browser tab, or a voice note. It runs on this instance's " +
+        "own model and transcription, spends the journal's own credits to do " +
+        "so, and writes through the same calls this document describes: every " +
+        "day it makes still arrives as a draft, and publishing is still a " +
+        "second, separate step. It cannot skip the owner's own confirmation for " +
+        "anything this document says an agent cannot finish — deleting, a real " +
+        "postcard — and it cannot render a page; it is a caller of this API, " +
+        "not a way around it.",
+      78,
+    ),
+    "",
+    ...wrap(
+      "**Your own agent, against this document and `/openapi.json`.** For an " +
+        "agent that can send an arbitrary HTTP request with a header of its " +
+        "own choosing — see \"Can you write here?\" below if you are not sure " +
+        "that is you. It decides everything itself and pays for its own model " +
+        "calls; **this instance's own model and transcription are not part of " +
+        "the API contract** (B1068) — nothing here lets you spend either, and " +
+        "a day written from a voice note or captioned from a photograph is " +
+        "work your own model does before it calls `POST .../days`, not a call " +
+        "this API answers. Running that agent on your own machine, against a " +
+        "photo library or a bank statement already on disk, is one way of " +
+        `doing this rather than a fourth: ${HELPER_REPO}.`,
+      78,
+    ),
+    "",
+    ...wrap(
+      (whatsappDisplayNumber()
+        ? `**A messenger, at ${whatsappDisplayNumber()}.** `
+        : "**A messenger**, where this instance offers one. ") +
+        "Text it and a model turn answers, on this instance's own model, and " +
+        "spends the journal's credits the same way a WhatsApp announcement " +
+        "does — one per message, never the owner's own (see below). It can " +
+        "start a journal from nothing or add to one that already exists, " +
+        "and it writes through the same drafts-then-publish calls as the other " +
+        "two. What it cannot do is anything this document already says no " +
+        "agent can finish alone, or reach a page only a browser session opens " +
+        "— an owner's own settings still need the owner's own browser.",
+      78,
+    ),
     "",
     "## Already holding a token?",
     "",

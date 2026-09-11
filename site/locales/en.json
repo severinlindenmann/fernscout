@@ -752,6 +752,7 @@
   "me.paymentUnit.one": "credit",
   "me.paymentUpTo": "up to {count} people",
   "me.paymentUpTo.one": "up to 1 person",
+  "me.whatsappPhotoDisclosure": "A day's first photograph reaches WhatsApp's operator before it reaches a reader — true for every trip, private ones included, because the message template requires an image.",
   "me.peopleBody": "Links for other people, and the list of who has asked. Neither link lets anybody in on its own — whoever opens one leaves their name and waits for you.",
   "me.peopleTitle": "Inviting someone, and who reads along",
   "me.postcardCardBody": "\"{title}\" has a photograph, and somebody on your contacts list has asked for a postcard. Ask your agent to compose one.",
