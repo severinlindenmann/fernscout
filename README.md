@@ -6,11 +6,12 @@ A travel journal your agent writes for you. Markdown entries with photos and
 video, a winding day-by-day path, and a scroll-driven animation of the
 travellers moving between stops.
 
-**There is no CMS, no web form, no upload widget, and there will not be one.**
-Reading happens in a browser; writing happens through an agent holding a
-token, over REST — your own, or the guided helper this instance can host at
-`/agent` for people who don't bring one. Everything an agent writes arrives as
-a draft, so you can read a day back before it goes up.
+**There is no CMS, and there will not be one.** Writing happens through an
+agent holding a token, over REST — your own, or the guided helper this
+instance can host at `/agent` for people who don't bring one. Reading happens
+in a browser, where you may also correct a day you already have in place, but
+nothing there composes a new one out of form fields. Everything an agent
+writes arrives as a draft, so you can read a day back before it goes up.
 
 ## Use it hosted: [fernscout.ch](https://fernscout.ch)
 
