@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: photobook
 found: "2026-09-11T21:18:24Z"
+started: "2026-09-11T21:23:17Z"
+session: 57d87f37-ef96-4bb1-8533-8025978abf0c
+claimed: "2026-09-11T21:23:17Z"
 ---
 
 # B1542 — The title page's reverse is printed on, so the title leaf reads as a page rather than a title
