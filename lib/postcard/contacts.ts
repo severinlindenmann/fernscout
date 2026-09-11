@@ -78,6 +78,54 @@ export async function postcardRecipientsFromContacts(owner: string): Promise<Pos
 }
 
 /**
+ * Why nobody, or not everybody, is on `postcardCandidates` — as counts, per
+ * reason, and never a name — B1399.
+ *
+ * `postcardCandidates` returns an empty array whether this journal has no
+ * contacts at all, or has one whose row fails `eligible()`'s gates — the
+ * owner's own "add me" button, for instance, files an `active` row with
+ * every consent off and no address, which is not a recipient by any of the
+ * three tests but is a real row all the same. The helper cannot tell those
+ * two cases apart from the empty array, so it told the owner who had just
+ * pressed that button to go and add a contact.
+ *
+ * **A contact is fine to count here, and the quantities are fine to hand the
+ * model** — the owner already knows every fact a count states back (they are
+ * the one who did or did not tick "wants a postcard"); what AGENTS.md
+ * protects is the address, and none of these three numbers is one. A
+ * contact can fail more than one gate and is counted in each it fails, so
+ * the three numbers do not have to add up to how many contacts exist.
+ *
+ * **Honest limit, not hidden**: with exactly one ineligible contact, a count
+ * of 1 in a single bucket is arithmetically the same as naming that
+ * contact's status — the identifier and the town are still withheld, so this
+ * is strictly less revealing than the eligible-recipient shape above, but it
+ * is unlabelled rather than anonymous, and it should not be sold as more
+ * than that.
+ */
+export type IneligibleCounts = {
+  /** Not `active` — a pending request, or a blocked address. */
+  notActive: number;
+  /** No postal address on file, or not enough of one to post to. */
+  noAddress: number;
+  /** An address is on file, but "wants a postcard" is not ticked. */
+  noConsent: number;
+};
+
+export async function ineligibleCounts(owner: string): Promise<IneligibleCounts> {
+  const contacts = await listContacts(owner);
+  const counts: IneligibleCounts = { notActive: 0, noAddress: 0, noConsent: 0 };
+  for (const contact of contacts) {
+    const postable = !!contact.postalAddress && isPostable(contact.postalAddress);
+    if (contact.status === "active" && postable && contact.wantsPostcard) continue; // eligible
+    if (contact.status !== "active") counts.notActive += 1;
+    if (!postable) counts.noAddress += 1;
+    if (!contact.wantsPostcard) counts.noConsent += 1;
+  }
+  return counts;
+}
+
+/**
  * Somebody an order may be addressed to, as much of them as an agent gets.
  *
  * A name, a town and a country — enough to say "shall I send one to Marta in

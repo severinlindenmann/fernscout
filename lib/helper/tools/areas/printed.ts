@@ -9,7 +9,7 @@ import { POSTCARD_CREDITS } from "../../../credits/pricing";
 import { defaultLocaleFor, localesFor } from "../../../locales";
 import { mediaKey } from "../../../photos";
 import { getOrder, orderCost } from "../../../postcard/orders";
-import { postcardCandidates } from "../../../postcard/contacts";
+import { ineligibleCounts, postcardCandidates, type IneligibleCounts } from "../../../postcard/contacts";
 import { openingOf } from "../../../postcard/opening";
 import { getPhotobookOrder } from "../../../photobook/orders";
 import { BOOK_SIZES, COVER_TYPES, type CoverType } from "../../../photobook/spec";
@@ -59,21 +59,51 @@ export const PRINTED_TOOLS: readonly Tool[] = [
     properties: {},
     run: async (username) => {
       if (!isEnabled("postcards", username) || !isEnabled("contacts", username)) {
-        return { available: false, recipients: [] };
+        return { available: false, recipients: [], ineligible: null };
       }
-      return { available: true, recipients: await postcardCandidates(username) };
+      const recipients = await postcardCandidates(username);
+      // B1399 — only computed when it is actually needed for the answer:
+      // which contact is short of what, as counts, never a name.
+      const ineligible = recipients.length === 0 ? await ineligibleCounts(username) : null;
+      return { available: true, recipients, ineligible };
     },
     block: (data, say) => {
       const result = data as {
         available: boolean;
         recipients: { contactId: string; name: string; city: string; country: string | null }[];
+        ineligible: IneligibleCounts | null;
       };
       if (!result.available) return null;
-      // B1280 — the truth, drawn rather than left to the model's own prose:
-      // nobody has asked yet, and the real page is named by its real name.
-      // `postcard.noRecipients` already says the first half correctly in
-      // all three locales; this only adds where that page actually is.
       if (result.recipients.length === 0) {
+        const counts = result.ineligible;
+        const total = counts ? counts.notActive + counts.noAddress + counts.noConsent : 0;
+        // B1399 — a contact exists and is short of something, which is a
+        // different, more actionable truth than nobody having asked at all.
+        if (counts && total > 0) {
+          const parts = [
+            counts.notActive > 0
+              ? say("postcard.ineligible.notActive", { count: String(counts.notActive) })
+              : null,
+            counts.noAddress > 0
+              ? say("postcard.ineligible.noAddress", { count: String(counts.noAddress) })
+              : null,
+            counts.noConsent > 0
+              ? say("postcard.ineligible.noConsent", { count: String(counts.noConsent) })
+              : null,
+          ].filter((part): part is string => part !== null);
+          return {
+            shape: "say",
+            text: say("agent.block.postcardIneligible", {
+              parts: parts.join(", "),
+              page: say("contact.adminTitle"),
+              nav: say("me.title"),
+            }),
+          };
+        }
+        // B1280 — the truth, drawn rather than left to the model's own prose:
+        // nobody has asked yet, and the real page is named by its real name.
+        // `postcard.noRecipients` already says the first half correctly in
+        // all three locales; this only adds where that page actually is.
         return {
           shape: "say",
           text: say("agent.block.postcardNoRecipients", {

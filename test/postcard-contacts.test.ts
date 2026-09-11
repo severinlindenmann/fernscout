@@ -7,7 +7,7 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { approveContact, confirmContact, requestContact } from "@/lib/contacts";
 import { issueCode } from "@/lib/auth";
-import { postcardRecipientsFromContacts } from "@/lib/postcard/contacts";
+import { ineligibleCounts, postcardRecipientsFromContacts } from "@/lib/postcard/contacts";
 
 /**
  * B273 — `send-postcards` finding a recipient from a contact rather than
@@ -162,5 +162,49 @@ describe("postcardRecipientsFromContacts", () => {
   test("one owner's recipients never include another's", async () => {
     await activeContact("mine@example.test", { address: ADDRESS, wantsPostcard: true });
     expect(await postcardRecipientsFromContacts("somebody-else")).toEqual([]);
+  });
+});
+
+/**
+ * B1399 — the same empty array, for a reason the helper can now tell apart:
+ * genuinely nobody, versus somebody short of one or more of `eligible()`'s
+ * three gates. Counted, never named.
+ */
+describe("ineligibleCounts", () => {
+  test("genuinely nobody: every count is zero", async () => {
+    expect(await ineligibleCounts(OWNER)).toEqual({ notActive: 0, noAddress: 0, noConsent: 0 });
+  });
+
+  test("an eligible contact counts toward none of them", async () => {
+    await activeContact("postable@example.test", { address: ADDRESS, wantsPostcard: true });
+    expect(await ineligibleCounts(OWNER)).toEqual({ notActive: 0, noAddress: 0, noConsent: 0 });
+  });
+
+  test("active, postable, but consent not ticked — the owner's own 'add me' shape", async () => {
+    // Mirrors `addSelfContact`: active, `EMPTY_ADDRESS`, every consent off.
+    await activeContact("self@example.test", { address: null, wantsPostcard: false });
+    expect(await ineligibleCounts(OWNER)).toEqual({ notActive: 0, noAddress: 1, noConsent: 1 });
+  });
+
+  test("pending, postable and consenting — only the confirmation is missing", async () => {
+    await requestContact(OWNER, {
+      name: "Pending Person",
+      email: "pending@example.test",
+      locale: "en",
+      address: ADDRESS,
+      wantsEmailDigest: false,
+      wantsPostcard: true,
+      createdVia: "owner",
+    });
+    const { code } = await issueCode(OWNER, "pending@example.test", "guest");
+    await confirmContact(OWNER, "pending@example.test", code);
+    expect(await ineligibleCounts(OWNER)).toEqual({ notActive: 1, noAddress: 0, noConsent: 0 });
+  });
+
+  test("several contacts each short of something: counted per reason, not per contact", async () => {
+    await activeContact("a@example.test", { address: null, wantsPostcard: false }); // noAddress + noConsent
+    await activeContact("b@example.test", { address: ADDRESS, wantsPostcard: false }); // noConsent only
+    await activeContact("c@example.test", { address: ADDRESS, wantsPostcard: true }); // eligible
+    expect(await ineligibleCounts(OWNER)).toEqual({ notActive: 0, noAddress: 1, noConsent: 2 });
   });
 });

@@ -1015,6 +1015,43 @@ function claimsAddsRecipient(text: string): boolean {
 }
 
 /**
+ * A claim that somebody, named, can receive a postcard or already is a
+ * recipient — B1399.
+ *
+ * *"Speichere einen Kontakt auf deiner Einstellungsseite"* was said to an
+ * owner who had just pressed "add me" — the row existed, `eligible()` still
+ * failed it on two of its three gates, and `postcard_recipients` answered
+ * with an empty list either way, so the sentence for "nobody has asked yet"
+ * was the only one the model had. The tool now says *why* the list is empty
+ * (as counts, never a name); the matching failure mode is the model instead
+ * asserting the opposite — that somebody is ready — when this turn's own
+ * reading said nobody was.
+ *
+ * Checked only against `postcardRecipientsEmpty`, so it never fires about a
+ * card proposed successfully earlier in the conversation with a real
+ * recipient, and never about an ordinary offer ("would you like a card?").
+ */
+const IS_A_RECIPIENT = new RegExp(
+  [
+    // en — "can receive a postcard", "is a recipient", "is on the list"
+    "\\b(?:can|could)\\s+(?:now\\s+)?(?:receive|get)\\s+(?:a\\s+)?(?:real\\s+)?(?:postcard|card)\\b",
+    "\\bis\\s+(?:now\\s+)?(?:a\\s+)?recipient\\b",
+    // de — "kann eine Postkarte bekommen/erhalten", "ist Empfänger"
+    "\\bkann\\s+(?:jetzt\\s+)?(?:eine\\s+)?(?:echte\\s+)?(?:postkarte|karte)\\s+(?:bekommen|erhalten)\\b",
+    "\\bist\\s+(?:jetzt\\s+)?empf\\u00e4nger",
+    // hu — "kaphat egy képeslapot", "címzettként szerepel"
+    "\\bkaphat\\s+(?:most\\s+)?(?:egy\\s+)?(?:val\\u00f3di\\s+)?k\\u00e9peslapot\\b",
+    "\\bc\\u00edmzettk\\u00e9nt\\s+szerepel\\b",
+  ].join("|"),
+  "i",
+);
+function claimsIsARecipient(text: string): boolean {
+  return withoutMarkers(text)
+    .split(/(?<=[.!?\n])\s+/)
+    .some((sentence) => IS_A_RECIPIENT.test(sentence) && !DENIED.test(sentence));
+}
+
+/**
  * What a day says, asserted from memory — B932.
  *
  * She said the saved text was missing *"es war schön"* and was told **"Der
@@ -1539,6 +1576,14 @@ const RECIPIENT_RETRY = `Stop. Your last answer said a postcard recipient would 
 Answer again. Say plainly that nobody has asked this journal for post yet, and that a reader opts in themselves. If they want that person invited, call invite_guest — it proposes a link for the person to open; say only what that link does (they may then ask to read the journal), never that it makes them a postcard recipient. You may also say they can invite readers themselves, from their own access page. Ask for no name, no town and no country.`;
 
 /**
+ * What the model is told when it claimed somebody was a postcard recipient
+ * against an empty list postcard_recipients just answered with — B1399.
+ */
+const IS_A_RECIPIENT_RETRY = `Stop. Your last answer said somebody can receive, or already is, a postcard recipient — and postcard_recipients answered this turn with nobody eligible. Whatever counts it gave you (not active, no address, postcard not ticked) describe what is still missing; none of them means somebody is ready.
+
+Answer again. Say what is actually missing, in the journal's own words, and the next step: confirming a mail, adding an address, or ticking "wants a postcard" on their own access page. Never say a named person is a recipient unless postcard_recipients actually listed them.`;
+
+/**
  * What the model is told when it has said what a day says — B932.
  */
 const READ_IT_RETRY = `Stop. Your last answer said what a day contains, and you did not read that day on this turn. You do not remember their words and you must not describe them from memory.
@@ -1696,6 +1741,20 @@ export async function answerInThread(
    * not.
    */
   const counted: number[] = [];
+  /**
+   * Whether `postcard_recipients` was read this turn and answered with
+   * nobody on it — B1399.
+   *
+   * `eligible()` fails a contact for three separate reasons, and an empty
+   * list means any of them, for anyone, or genuinely nobody at all — the
+   * tool itself now says which (as counts, never a name). This flag is what
+   * lets the answer's own claim be checked against that turn's actual
+   * reading rather than an older one still sitting in the conversation: a
+   * card proposed successfully two turns ago, with a real recipient, must
+   * not be second-guessed by a later turn that read the list again and got
+   * nothing new — see `claimsIsARecipient` below.
+   */
+  let postcardRecipientsEmpty = false;
   const blocks: Block[] = [];
   const proposals: Proposal[] = [];
   /** A tool declining itself, held back rather than shown at once — B1299.
@@ -1789,6 +1848,10 @@ export async function answerInThread(
           // Every figure this tool actually produced — B963. What is not in
           // here, and is said about money, was invented.
           for (const number of numbersIn(result)) counted.push(number);
+        }
+        if (call.name === "postcard_recipients") {
+          const said = result as { available?: boolean; recipients?: unknown[] } | null;
+          postcardRecipientsEmpty = said?.available === true && (said.recipients?.length ?? 0) === 0;
         }
         results.push({
           type: "tool_result",
@@ -1885,6 +1948,7 @@ export async function answerInThread(
     | "words"
     | "access"
     | "recipient"
+    | "eligible"
     | "day"
     | "up"
     | "total"
@@ -1938,6 +2002,10 @@ export async function answerInThread(
     ) {
       return "recipient";
     }
+    // B1399 — the opposite claim, checked against the same turn's own
+    // reading rather than an older one: `postcard_recipients` said nobody
+    // is ready and the answer said somebody is.
+    if (claimsIsARecipient(answer) && postcardRecipientsEmpty) return "eligible";
     if (claimsWhatADaySays(answer) && !looked.includes("read_day")) return "day";
     /**
      * B970 — whether it is on the site, asserted without looking. The press
@@ -2072,6 +2140,7 @@ export async function answerInThread(
     words: WORDS_RETRY,
     access: ACCESS_RETRY,
     recipient: RECIPIENT_RETRY,
+    eligible: IS_A_RECIPIENT_RETRY,
     day: READ_IT_RETRY,
     up: IS_IT_UP_RETRY,
     total: COUNT_IT_RETRY,
@@ -2097,6 +2166,7 @@ export async function answerInThread(
     words: "agent.noWordsProposed",
     access: "agent.noAccessYet",
     recipient: "agent.noRecipientAddTool",
+    eligible: "agent.noOneIsARecipientYet",
     day: "agent.notRead",
     up: "agent.notRead",
     total: "agent.notCounted",
