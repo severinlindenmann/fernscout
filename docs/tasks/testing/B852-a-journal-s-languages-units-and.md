@@ -7,8 +7,7 @@ complexity: medium
 area: journals, ui
 found: "2026-09-07T17:02:27Z"
 started: "2026-09-11T06:40:40Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T06:40:40Z"
+merged: "2026-09-11T07:39:03Z"
 ---
 
 # B852 — A journal's languages, units and currencies cannot be changed anywhere

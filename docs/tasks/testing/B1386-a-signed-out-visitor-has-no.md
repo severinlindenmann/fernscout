@@ -7,8 +7,7 @@ complexity: low
 area: helper, signup, landing
 found: "2026-09-10T19:16:01Z"
 started: "2026-09-11T06:40:39Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T06:40:39Z"
+merged: "2026-09-11T07:39:01Z"
 ---
 
 # B1386 — A signed-out visitor has no way to get a journal of their own
