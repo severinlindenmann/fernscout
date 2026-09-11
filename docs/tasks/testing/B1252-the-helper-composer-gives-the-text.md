@@ -7,8 +7,7 @@ complexity: low
 area: helper, mobile
 found: "2026-09-10T09:49:04Z"
 started: "2026-09-11T06:40:31Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T06:40:31Z"
+merged: "2026-09-11T08:13:12Z"
 ---
 
 # B1252 — The helper composer gives the text under half the screen width on a phone

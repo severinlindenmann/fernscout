@@ -7,8 +7,7 @@ complexity: low
 area: helper, drafts
 found: "2026-09-10T09:59:55Z"
 started: "2026-09-11T06:40:34Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T06:40:34Z"
+merged: "2026-09-11T08:13:18Z"
 ---
 
 # B1257 — The helper preview tells the owner that publishing is somebody else's to ask for, beside a button that does it

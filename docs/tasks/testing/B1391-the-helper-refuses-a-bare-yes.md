@@ -7,8 +7,7 @@ complexity: medium
 area: the web helper
 found: "2026-09-10T19:55:00Z"
 started: "2026-09-11T06:40:33Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T06:40:33Z"
+merged: "2026-09-11T08:13:18Z"
 ---
 
 # B1391 — The helper refuses a bare yes to its own delete question, and an inbox cannot be emptied at all

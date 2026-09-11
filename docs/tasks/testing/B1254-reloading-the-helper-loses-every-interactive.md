@@ -7,8 +7,7 @@ complexity: medium
 area: helper, mobile
 found: "2026-09-10T09:54:08Z"
 started: "2026-09-11T06:40:35Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T06:40:35Z"
+merged: "2026-09-11T08:13:20Z"
 ---
 
 # B1254 — Reloading the helper loses every interactive card, leaving prose that points at one

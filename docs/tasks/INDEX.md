@@ -339,24 +339,14 @@ Do not edit them by hand; run the script.
 | [B675](open/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium |
 | [B909](open/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high |
 
-## in-development (12)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1254](in-development/B1254-reloading-the-helper-loses-every-interactive.md) | Reloading the helper loses every interactive card, leaving prose that points at one | ISSUE | high | medium | `13f12910` |
-| [B1275](in-development/B1275-the-preview-header-offers-put-this.md) | The preview header offers Put this day on the site, which does not put the day on the site | ISSUE | high | low | `13f12910` |
-| [B1391](in-development/B1391-the-helper-refuses-a-bare-yes.md) | The helper refuses a bare yes to its own delete question, and an inbox cannot be emptied at all | ISSUE | high | medium | `13f12910` |
 | [B1425](in-development/B1425-a-photobook-is-sold-as-one.md) | A photobook is sold as one thing at one price, costed with VAT and a 50 percent margin | FEATURE | high | medium | `96a5b964` |
-| [B1252](in-development/B1252-the-helper-composer-gives-the-text.md) | The helper composer gives the text under half the screen width on a phone | ISSUE | medium | low | `13f12910` |
-| [B1253](in-development/B1253-a-proposal-card-taller-than-the.md) | A proposal card taller than the phone opens scrolled past its own explanation, mid-sentence | ISSUE | medium | low | `13f12910` |
-| [B1256](in-development/B1256-every-card-outcome-is-announced-twice.md) | Every card outcome is announced twice, once by the card and once by the model | ISSUE | medium | low | `13f12910` |
-| [B1257](in-development/B1257-the-helper-preview-tells-the-owner.md) | The helper preview tells the owner that publishing is somebody else's to ask for, beside a button that does it | ISSUE | medium | low | `13f12910` |
-| [B1299](in-development/B1299-a-refusal-from-the-trip-people.md) | A refusal from the trip-people tool appears alone in the transcript during a conversation about costs | ISSUE | medium | low | `13f12910` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
-| [B1397](in-development/B1397-a-busy-button-draws-two-loaders.md) | A busy button draws two loaders at once when the caller gives its own busy label | ISSUE | medium | low | `13f12910` |
-| [B1298](in-development/B1298-the-day-chip-in-the-helper.md) | The day chip in the helper downloads three 2000px photographs to draw three 38px thumbnails | ISSUE | low | low | `13f12910` |
 
-## testing (195)
+## testing (205)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -427,7 +417,9 @@ Do not edit them by hand; run the script.
 | [B1229](testing/B1229-the-combined-pdf-is-written-but.md) | The combined PDF is written but cannot be downloaded | ISSUE | high | low | — |
 | [B1234](testing/B1234-proving-a-number-needs-a-template.md) | Proving a number needs a template Meta will not grant - the inbound message already proves it | FEATURE | high | medium | — |
 | [B1246](testing/B1246-a-root-owned-content-registry-silently.md) | A root-owned content/.registry silently breaks every signup on the instance | ISSUE | high | low | — |
+| [B1254](testing/B1254-reloading-the-helper-loses-every-interactive.md) | Reloading the helper loses every interactive card, leaving prose that points at one | ISSUE | high | medium | — |
 | [B1274](testing/B1274-one-press-of-the-preview-publish.md) | One press of the preview publish button fires three requests and stacks three identical publish cards | ISSUE | high | low | — |
+| [B1275](testing/B1275-the-preview-header-offers-put-this.md) | The preview header offers Put this day on the site, which does not put the day on the site | ISSUE | high | low | — |
 | [B1279](testing/B1279-a-photobook-of-a-trip-with.md) | A photobook of a trip with three photographs contains none and cannot be ordered | ISSUE | high | medium | — |
 | [B1284](testing/B1284-every-postcard-proposal-from-the-helper.md) | Every postcard proposal from the helper is refused, because it sends a name slug where a contact id is required | ISSUE | high | low | — |
 | [B1310](testing/B1310-the-whatsapp-door-is-invisible-to.md) | The WhatsApp door is invisible to anyone not already in their room | FEATURE | high | low | — |
@@ -474,6 +466,7 @@ Do not edit them by hand; run the script.
 | [B1382](testing/B1382-whatsapp-channel-dead-on-live-and.md) | WhatsApp channel dead on live and switching agent to whatsapp breaks the session | ISSUE | high | high | — |
 | [B1383](testing/B1383-microphone-stays-held-after-leaving-the.md) | Microphone stays held after leaving the page | ISSUE | high | medium | — |
 | [B1385](testing/B1385-the-conversation-storage-consent-block-is.md) | The conversation-storage consent block is shown to signed-out visitors | ISSUE | high | low | — |
+| [B1391](testing/B1391-the-helper-refuses-a-bare-yes.md) | The helper refuses a bare yes to its own delete question, and an inbox cannot be emptied at all | ISSUE | high | medium | — |
 | [B1406](testing/B1406-a-book-with-no-recipient-is.md) | A book with no recipient is refused with the message for a book with no photographs | ISSUE | high | low | — |
 | [B1408](testing/B1408-an-en-dash-in-a-day.md) | An en dash in a day's words comes out as a blank gap in the book | ISSUE | high | low | — |
 | [B980](testing/B980-correcting-a-day-means-leaving-it.md) | Correcting a day means leaving it for a wizard, when the day itself is what the owner is looking at | FEATURE | high | high | — |
@@ -507,7 +500,11 @@ Do not edit them by hand; run the script.
 | [B1203](testing/B1203-every-entry-in-the-operator-s.md) | Every entry in the operator's attention band is unanswerable: it can be read but not acknowledged, so a thing you have decided to live with is on the list for ever | FEATURE | medium | medium | — |
 | [B1206](testing/B1206-getting-a-credential-into-a-session.md) | Getting a credential into a session is rediscovered every time: the four kinds are described in three skills, none of them says how to make a test journal, and the admin cookie is in none | DOCS | medium | low | — |
 | [B1231](testing/B1231-the-book-ends-on-two-blank.md) | The book ends on two blank pages instead of the colophon | ISSUE | medium | low | — |
+| [B1252](testing/B1252-the-helper-composer-gives-the-text.md) | The helper composer gives the text under half the screen width on a phone | ISSUE | medium | low | — |
+| [B1253](testing/B1253-a-proposal-card-taller-than-the.md) | A proposal card taller than the phone opens scrolled past its own explanation, mid-sentence | ISSUE | medium | low | — |
 | [B1255](testing/B1255-the-credit-balance-in-the-helper.md) | The credit balance in the helper header does not change when a credit is spent | ISSUE | medium | low | — |
+| [B1256](testing/B1256-every-card-outcome-is-announced-twice.md) | Every card outcome is announced twice, once by the card and once by the model | ISSUE | medium | low | — |
+| [B1257](testing/B1257-the-helper-preview-tells-the-owner.md) | The helper preview tells the owner that publishing is somebody else's to ask for, beside a button that does it | ISSUE | medium | low | — |
 | [B1259](testing/B1259-a-trip-prints-the-span-of.md) | A trip prints the span of the days written rather than its own dates, and a single day reads as 5 Sep to 5 Sep | ISSUE | medium | low | — |
 | [B1269](testing/B1269-the-low-credit-warning-s-buy.md) | The low-credit warning's Buy credits link goes to a page with no credits and no way to buy | ISSUE | medium | low | — |
 | [B1272](testing/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low | — |
@@ -516,6 +513,7 @@ Do not edit them by hand; run the script.
 | [B1278](testing/B1278-open-the-photobook-maker-opens-nothing.md) | Open the photobook maker opens nothing and prints a bare URL that is not a link | ISSUE | medium | low | — |
 | [B1285](testing/B1285-the-postcard-page-tells-the-owner.md) | The postcard page tells the owner to answer an API endpoint and write a YAML block | ISSUE | medium | low | — |
 | [B1290](testing/B1290-journals-named-test-are-advertised-on.md) | Journals named test- are advertised on the public landing page beside the demo | ISSUE | medium | low | — |
+| [B1299](testing/B1299-a-refusal-from-the-trip-people.md) | A refusal from the trip-people tool appears alone in the transcript during a conversation about costs | ISSUE | medium | low | — |
 | [B1309](testing/B1309-a-softcover-gets-no-spine-text.md) | A softcover gets no spine text even where the spine is wide enough for one | ISSUE | medium | low | — |
 | [B1318](testing/B1318-the-two-leaves-gelato-requires-are.md) | The two leaves Gelato requires are blank, so prepress calls them a fault | ISSUE | medium | low | — |
 | [B1325](testing/B1325-the-hero-buttons-stack-on-desktop.md) | The hero buttons stack on desktop and the agent page changes colour below the fold | ISSUE | medium | low | — |
@@ -534,6 +532,7 @@ Do not edit them by hand; run the script.
 | [B1389](testing/B1389-teaser-is-missing-from-content-model.md) | `teaser` is missing from /content-model.json, so the helper's validator calls it not a field | ISSUE | medium | low | — |
 | [B1390](testing/B1390-one-subject-two-sections-what-the.md) | One subject, two sections: what the helper does with your words is drawn twice on /me | ISSUE | medium | low | — |
 | [B1395](testing/B1395-a-buddy-listed-on-a-trip.md) | A buddy listed on a trip has no way to give or correct their address on /me | ISSUE | medium | low | — |
+| [B1397](testing/B1397-a-busy-button-draws-two-loaders.md) | A busy button draws two loaders at once when the caller gives its own busy label | ISSUE | medium | low | — |
 | [B1403](testing/B1403-nothing-an-outside-agent-reads-says.md) | Nothing an outside agent reads says weatherData is written by the server, so a filled block reads as fabricated | DOCS | medium | low | — |
 | [B1405](testing/B1405-the-first-book-flow-quotes-a.md) | The first-book flow quotes a price before the recipient is known, so the figure can change before the press | ISSUE | medium | low | — |
 | [B1407](testing/B1407-a-photograph-too-small-to-fill.md) | A photograph too small to fill its slot sits at the foot of the page instead of in the space it has | ISSUE | medium | medium | — |
@@ -550,6 +549,7 @@ Do not edit them by hand; run the script.
 | [B1202](testing/B1202-one-reply-can-carry-the-same.md) | One reply can carry the same proposal card twice, verbatim | ISSUE | low | low | — |
 | [B1294](testing/B1294-the-photobook-route-answers-that-the.md) | The photobook route answers that the trip was taken down or renamed when the trip is still there | ISSUE | low | low | — |
 | [B1296](testing/B1296-the-room-names-trips-by-their.md) | The room names trips by their id and dates in ISO, in a conversation that otherwise speaks plainly | ISSUE | low | low | — |
+| [B1298](testing/B1298-the-day-chip-in-the-helper.md) | The day chip in the helper downloads three 2000px photographs to draw three 38px thumbnails | ISSUE | low | low | — |
 | [B1365](testing/B1365-photobook-order-success-redirects-through-the.md) | Photobook order success redirects through the trip page instead of straight to the order page | CHORE | low | low | — |
 | [B1366](testing/B1366-order-page-shows-book-interior-pdf.md) | Order page shows book-interior.pdf and book-cover.pdf links nobody needs | CHORE | low | low | — |
 | [B1367](testing/B1367-photobook-order-page-reads-as-unstyled.md) | Photobook order page reads as unstyled text, not a Fernscout page | CHORE | low | low | — |

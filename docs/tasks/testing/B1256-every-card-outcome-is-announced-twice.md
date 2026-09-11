@@ -7,8 +7,7 @@ complexity: low
 area: helper
 found: "2026-09-10T09:57:28Z"
 started: "2026-09-11T06:40:32Z"
-session: 13f12910-ff28-4566-894a-9e2b3d055281
-claimed: "2026-09-11T06:40:32Z"
+merged: "2026-09-11T08:13:15Z"
 ---
 
 # B1256 — Every card outcome is announced twice, once by the card and once by the model
