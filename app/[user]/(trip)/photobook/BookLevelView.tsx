@@ -286,8 +286,13 @@ export default function BookLevelView({
           actually needs, the settings open beside it rather than shut behind
           a disclosure nobody clicks. Below `lg` this collapses to exactly
           what shipped before: the book, then the details, in one column. */}
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-6">
-        <div>
+      <div className="lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start lg:gap-6">
+        {/* The settings first in the source, so they are the left column at
+            `lg` — the side the approved drawing puts them on — while at 390
+            the book still comes first, which is the order B548 wants and the
+            drawing's own phone frame shows. `order` does the swap rather than
+            two copies of the markup. */}
+        <div className="order-2 lg:order-1 mt-5 lg:mt-0">
       {/* The book, first and full width. `aspect-ratio` from the plan rather
           than a viewport fraction: the frame is exactly one spread tall, so
           there is nothing to scroll inside it and nothing letterboxed. While
@@ -334,7 +339,7 @@ export default function BookLevelView({
 
         </div>
 
-        <div className="mt-5 lg:mt-0">
+        <div className="order-1 lg:order-2">
       {/* Nothing at all when there is nothing wrong — B549. */}
       {lines.length > 0 && (
         <div className="mt-5 rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-yellow-900">
