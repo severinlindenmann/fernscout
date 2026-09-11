@@ -304,12 +304,11 @@ Do not edit them by hand; run the script.
 | [B1119](open/B1119-fernscout-ch-s-caddy-block-is.md) | fernscout.ch's Caddy block is hand-merged, so proxy directives drift until applied by hand | OPS | low | low |
 | [B1150](open/B1150-ghostscript-is-not-installed-on-the.md) | Ghostscript is not installed on the VPS, so the instance cannot produce a conformant PDF/X-4 | OPS | low | low |
 
-## in-development (8)
+## in-development (7)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1487](in-development/B1487-the-book-settings-are-native-selects.md) | The book settings are native selects and a nine-item checkbox list where the drawing has a card of rows | FEATURE | high | medium | `3f748903` |
-| [B1492](in-development/B1492-an-owner-signed-in-on-their.md) | An owner signed in on their journal is asked to sign in again at /agent | ISSUE | high | low | `91372f16` |
 | [B1272](in-development/B1272-the-files-pane-says-no-photos.md) | The Files pane says No photos chosen under the three photographs it is showing, and offers no way to remove one | ISSUE | medium | low | `13f12910` |
 | [B1384](in-development/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high | `13f12910` |
 | [B1394](in-development/B1394-a-phone-s-own-contacts-cannot.md) | A phone's own contacts cannot be handed to the upload field | FEATURE | medium | medium | `13f12910` |
@@ -317,7 +316,7 @@ Do not edit them by hand; run the script.
 | [B675](in-development/B675-the-task-list-is-invisible-to.md) | The task list is invisible to anybody not standing in the checkout | FEATURE | low | medium | `13f12910` |
 | [B909](in-development/B909-an-upcoming-trip-s-route-cannot.md) | An upcoming trip's route cannot be reached over the network at all | FEATURE | low | high | `13f12910` |
 
-## testing (50)
+## testing (51)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -333,6 +332,7 @@ Do not edit them by hand; run the script.
 | [B1481](testing/B1481-the-buy-panel-names-the-book.md) | The buy panel names the book but never shows it, and runs down one column on a 1280px screen | FEATURE | high | medium | — |
 | [B1482](testing/B1482-the-composer-is-one-tall-column.md) | The composer is one tall column on desktop, with the settings shut behind a disclosure | FEATURE | high | medium | — |
 | [B1486](testing/B1486-the-spreads-are-a-one-at.md) | The spreads are a one-at-a-time strip where the drawing has a grid of the whole book | FEATURE | high | medium | — |
+| [B1492](testing/B1492-an-owner-signed-in-on-their.md) | An owner signed in on their journal is asked to sign in again at /agent | ISSUE | high | low | — |
 | [B1094](testing/B1094-editing-a-contact-opens-a-form.md) | Editing a contact opens a form off-screen above the button, so the button looks broken | ISSUE | medium | low | — |
 | [B1112](testing/B1112-a-triage-decision-carries-no-reason.md) | A triage decision carries no reason, so the run brief starts from ids alone | DOCS | medium | low | — |
 | [B1116](testing/B1116-plan-a-run-re-opens-questions.md) | plan-a-run re-opens questions a ticket has already decided unless the dispatch says not to | DOCS | medium | low | — |

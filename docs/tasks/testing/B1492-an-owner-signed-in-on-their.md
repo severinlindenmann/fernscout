@@ -7,8 +7,7 @@ complexity: low
 area: auth, agent
 found: "2026-09-11T17:16:29Z"
 started: "2026-09-11T17:17:26Z"
-session: 91372f16-ef09-459f-9b81-4dec4accbb1e
-claimed: "2026-09-11T17:17:26Z"
+merged: "2026-09-11T17:28:45Z"
 ---
 
 # B1492 — An owner signed in on their journal is asked to sign in again at /agent
