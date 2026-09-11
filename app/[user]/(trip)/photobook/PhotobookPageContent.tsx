@@ -5,7 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import type { TranslationKey } from "@/lib/i18n";
-import type { PanelRecipient } from "@/components/PhotobookPrintPanel";
+import type { PanelRecipient } from "@/lib/photobook/recipients";
 import {
   DEFAULT_OPTIONS,
   initialBookOptions,

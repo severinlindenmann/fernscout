@@ -5,6 +5,7 @@ import type { PhotobookOrder } from "../photobook/orders";
 import type { PostcardOrder } from "../postcard/orders";
 import { orderCost, isExpired, isPending } from "../postcard/orders";
 import type { PostalAddress } from "../postcard/render";
+import { addressLines } from "./address";
 import { A6_LANDSCAPE } from "../postcard/spec";
 
 /**
@@ -83,20 +84,6 @@ export type OrderView = {
 
 /** A translator already bound to the reader's locale. */
 type Translate = (key: TranslationKey, vars?: Record<string, string>) => string;
-
-/**
- * The address under the name, one line at a time — moved here from
- * `components/PhotobookPrintPanel.tsx`, which was the last thing in that file.
- *
- * The name is rendered separately and so is not repeated, and an empty
- * `line2` is dropped rather than left as a blank line in the middle of an
- * envelope.
- */
-export function addressLines(to: PostalAddress): string[] {
-  return [to.line1, to.line2, `${to.postcode} ${to.city}`.trim(), to.country]
-    .map((line) => line?.trim() ?? "")
-    .filter((line) => line !== "");
-}
 
 /**
  * The Gelato words this instance has a meaning and a colour for — B1451,

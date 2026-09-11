@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { photobookOrderView, postcardOrderView, addressLines } from "@/lib/order/view";
+import { photobookOrderView, postcardOrderView } from "@/lib/order/view";
+import { addressLines } from "@/lib/order/address";
 import type { PhotobookOrder, PhotobookPayload } from "@/lib/photobook/orders";
 import type { PostcardOrder } from "@/lib/postcard/orders";
 import { translateIn } from "@/lib/locales";
