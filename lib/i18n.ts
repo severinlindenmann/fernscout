@@ -1009,7 +1009,6 @@ export type TranslationKey =
   | "contact.wantsDigest"
   | "contact.wantsPostcard"
   | "contact.wantsWhatsapp"
-  | "contact.wantsWhatsappHint"
   | "contact.welcomeBackBody"
   | "contact.welcomeBackTitle"
   | "contact.working"
