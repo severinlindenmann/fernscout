@@ -73,5 +73,17 @@ belongs to the **title** field above it rather than the username field below.
 Fix that by grouping — tighten the gap to the field it describes, or add a rule
 or band tying the two together — not by relocating it.
 
-The currency hint is above with no comment and no such constraint; currency is
-freely correctable later, so it can move below to match name and nickname.
+The currency hint is above with no comment, and I wrote here that it had no such
+constraint and could move below. **That was wrong**, and the build caught it.
+`lib/journals.ts:860-867` documents `baseCurrency` as the field that *"reads
+like a display setting and is not"* — a cost written without a currency **is** a
+cost in the base currency, so changing it silently changes what every bare amount
+ever written meant. It is *"safe exactly once, when the journal is created"*.
+
+So currency is in the same class as the address: permanent, and a hint that must
+be read before typing. It stays above too, and gets the same banded treatment.
+
+(The same sentence is on `/<user>/me` in front of anybody who looks — *"Set once,
+when this journal was created… Ask for a new journal if it was wrong from the
+start."* — so this was a decision made against evidence that was already to
+hand.)
