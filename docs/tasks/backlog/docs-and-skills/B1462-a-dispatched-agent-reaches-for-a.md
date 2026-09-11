@@ -68,3 +68,36 @@ repository's.
 - `grep -rn "run_in_background" .claude/skills/` names the building skills, not
   only `triage-a-backlog`.
 - Whatever timing numbers the documents quote match a measured run.
+
+
+## The count, end of 2026-09-11
+
+**Ten agents in one day**, every one of them having done the work and then
+returned a non-result — *"waiting on the background verify"*, *"I'll wait for
+the completion notification"*, *"Monitor armed"* — and every one needing a
+message back before it could finish.
+
+The number matters more than the anecdote, because of **when** they happened.
+After the fifth, I moved the instruction to the **opening line** of every
+dispatch brief, in bold, with the reason and the exact argument to pass. Five
+more agents stalled after that. One of them wrote afterwards: *"my first
+`npm run verify` invocation omitted the extended timeout — my mistake, contrary
+to the brief's opening instruction."*
+
+So the experiment has already been run, twice, and prose lost both times. That
+is the argument for `hookify` rather than another paragraph: this is a rule
+agents keep breaking while knowing it, which is exactly the case AGENTS.md says
+to turn into a hook so the harness enforces it instead of the prose asking
+nicely.
+
+**A second cost, which is not obvious.** Stalling pushes an agent into narrating
+unusual tool manoeuvres — arming and disarming Monitors, abandoning background
+tasks. One such narration tripped a security warning on an otherwise clean
+three-file change (a doc comment and a test), which then cost a full independent
+re-verification of work that never touched executable code. The trap does not
+only waste the agent's turn; it manufactures false signals for whoever is
+watching.
+
+**And it corrupted a brief.** The stale "fifty seconds and the build seventy" in
+AGENTS.md — corrected by B1141 today to a measured 230-290s — is part of why an
+agent plans a 120-second-shaped command in the first place.
