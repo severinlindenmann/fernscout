@@ -17,6 +17,17 @@ export type SkillDocSlug =
   | "send-postcards"
   | "make-a-photobook";
 
+/**
+ * The path of one skill document — typed on `SkillDocSlug`, so a caller
+ * cannot misspell a slug and point a `next:` field at a document that does
+ * not exist. `test/skill-docs.test.ts` also greps every route source file
+ * for a literal `/skill/<name>.md` and checks the name against
+ * `SKILL_DOC_SLUGS`, in case a string ever bypasses this helper.
+ */
+export function skillDocPath(slug: SkillDocSlug): string {
+  return `/skill/${slug}.md`;
+}
+
 export const SKILL_DOC_SLUGS: SkillDocSlug[] = [
   "new-account",
   "add-journal",

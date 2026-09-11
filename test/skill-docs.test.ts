@@ -61,7 +61,18 @@ describe("the guide split by task (B311)", () => {
   // document under 10KB and can do it, without fetching the whole guide.
   test("add-a-day.md is under 10KB", () => {
     const bytes = Buffer.byteLength(skillDoc("add-a-day"), "utf8");
-    expect(bytes).toBeLessThan(10 * 1024);
+    // This has failed with under 100 bytes to spare before (B311). If it just
+    // failed on you: a day field was added or a sentence grew, and the fix is
+    // not to raise the 10KB ceiling (that is the acceptance line itself) —
+    // trim a sentence out of `add-a-day`'s slices in `lib/api/skillDocs.ts`,
+    // or move the new field's description onto /openapi.json's Draft schema
+    // instead of inlining it here (dayFieldNames() already only lists names).
+    expect(
+      bytes,
+      `add-a-day.md is ${bytes} bytes, over the 10KB ceiling. Do not raise the ceiling — ` +
+        "trim a sentence out of its slices in lib/api/skillDocs.ts, or describe the new " +
+        "field on /openapi.json's Draft schema instead of inlining it here.",
+    ).toBeLessThan(10 * 1024);
   });
 
   test("add-a-day.md carries the fields a day needs and the worked example", () => {
@@ -124,6 +135,58 @@ describe("the guide split by task (B311)", () => {
     const res = GET();
     expect(res.status).toBe(301);
     expect(res.headers.get("location")).toBe("https://example.test/documentation.txt");
+  });
+
+  // B311 follow-up: an API reply's `next` field names the skill document for
+  // the step that follows — a response is not a fetched page, so this is
+  // reachable even for a caller that refuses a link discovered inside a
+  // document (B259). This walks every route source file for the literal
+  // pattern that names one, both through the typed helper and as a raw
+  // string, so a rename that only fixed the type but not a stray literal —
+  // or a slug typed by hand instead of through skillDocPath() — still fails
+  // here rather than shipping a next: aimed at a 404.
+  test("every /skill/<name>.md named in a route file is a real slug", () => {
+    const roots = ["app/api", "lib/api"].map((d) => path.join(process.cwd(), d));
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (entry.name.endsWith(".ts")) files.push(full);
+      }
+    };
+    for (const root of roots) walk(root);
+
+    const found = new Set<string>();
+    for (const file of files) {
+      const text = fs.readFileSync(file, "utf8");
+      for (const m of text.matchAll(/\/skill\/([a-z-]+)\.md/g)) found.add(m[1]);
+      for (const m of text.matchAll(/skillDocPath\(\s*["'`]([a-z-]+)["'`]\s*\)/g)) found.add(m[1]);
+    }
+    expect(found.size).toBeGreaterThan(0);
+    for (const slug of found) {
+      expect(SKILL_DOC_SLUGS as string[], `${slug} named in route source`).toContain(slug);
+    }
+  });
+
+  test("the reply that creates a journal, a trip, and a day each names the next document", () => {
+    const journalsSrc = fs.readFileSync(
+      path.join(process.cwd(), "app/api/v1/journals/route.ts"),
+      "utf8",
+    );
+    expect(journalsSrc).toContain('skillDocPath("add-a-trip")');
+
+    const tripsSrc = fs.readFileSync(
+      path.join(process.cwd(), "app/api/v1/[user]/trips/route.ts"),
+      "utf8",
+    );
+    expect(tripsSrc).toContain('skillDocPath("add-a-day")');
+
+    const daysSrc = fs.readFileSync(
+      path.join(process.cwd(), "app/api/v1/[user]/trips/[trip]/days/route.ts"),
+      "utf8",
+    );
+    expect(daysSrc).toContain('skillDocPath("ingest-photos")');
   });
 
   test("every /skill/<name>.md route answers with its own document", async () => {

@@ -16,6 +16,8 @@ import { getTrip, tripRef } from "@/lib/trips";
 import { validateEntry } from "@/lib/validate/entry";
 import { alsoWrong, checkAgainstContract } from "@/lib/api/contract";
 import { incompleteMessage, missingFrom } from "@/lib/tracks";
+import { skillDocPath } from "@/lib/api/skillDocMeta";
+import { serverSite } from "@/lib/site";
 
 import { getUser } from "@/lib/users";
 
@@ -253,6 +255,8 @@ export async function POST(
         (result.costCurrency
           ? ` A cost line named no currency, so it was written in ${result.costCurrency} — this day's own.`
           : ""),
+      next:
+        `Photographs before publishing? ${serverSite().url}${skillDocPath("ingest-photos")} is how to attach them.`,
     },
     { status: 201 },
   );

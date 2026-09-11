@@ -1513,7 +1513,12 @@ export function openApiDocument() {
             },
           },
           responses: {
-            "201": { description: "Created" },
+            "201": {
+              description:
+                "Created. `next` names the call that writes the first day and links the " +
+                "skill document for it (B311), so a caller that cannot follow a link found " +
+                "inside a fetched document still learns where it is.",
+            },
             "400": { description: "The id, title, dates, people, rates or translations are not usable" },
             "401": { description: "Missing or invalid token" },
             "403": { description: "Another journal's token, or one scoped to a single trip" },
@@ -1769,7 +1774,10 @@ export function openApiDocument() {
             "/api/auth/signup/phone/verify with the same token first, unless the address " +
             "is this instance's operator or the username starts with \"test-\", both " +
             "exempt. Answers with an agent token for the journal it just created, so the " +
-            "caller can go straight on to creating a trip.",
+            "caller can go straight on to creating a trip. The 201's `next` names that " +
+            "call and links the skill document for it (B311) — a response is not a " +
+            "fetched page, so this is a URL a caller that cannot follow a link found " +
+            "inside a document can still reach.",
           requestBody: {
             required: true,
             content: {
@@ -1950,7 +1958,11 @@ export function openApiDocument() {
                 "nothing was written; the two cases both answer 200 and never collide with " +
                 "the 201 a real write gets.",
             },
-            "201": { description: "Created as a draft" },
+            "201": {
+              description:
+                "Created as a draft. `next` points at the photographs skill document " +
+                "(B311), for a caller that cannot follow a link found inside a document.",
+            },
             "400": {
               description:
                 "Invalid entry. The body carries a `problems` list — every problem at once, " +
