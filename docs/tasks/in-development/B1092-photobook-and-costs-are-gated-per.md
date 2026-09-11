@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: capabilities, config
 found: "2026-09-09T15:59:11Z"
+started: "2026-09-11T11:57:58Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T11:57:58Z"
 ---
 
 # B1092 — Budget is gated per journal when it is the instance's decision

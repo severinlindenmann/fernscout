@@ -105,3 +105,27 @@ B1393 is the evidence that settled it. Adding one tool (`add_contact`) took
 the tool-schema budget to **7,979 of 8,000**, and it only fitted after
 trimming description strings — 21 tokens of headroom for the next tool
 anybody adds. See B1049 for the same argument from the model's side.
+
+## Decision, 2026-09-11 (the shape)
+
+**Two-pass by area.** The model first picks an area, then chooses among that
+area's tools. Chosen over relevance filtering, which is cheaper — no extra round
+trip — and is exactly the failure mode B858 and B1038 already recorded: a
+capability the filter hides is a capability the model will swear does not exist.
+The areas are real rather than invented, since B1042 already split the registry
+into `lib/helper/tools/areas/`.
+
+The cost, stated: one extra round trip per turn.
+
+**Held until a sibling worktree commits.** `.claude/worktrees/helper-cost-probe`
+has an *uncommitted* prompt-caching change to `lib/helper/model.ts` — adding
+`cachedSystem`, still calling `toolSchemas()` inside `rounds()`, which is the
+same function this ticket changes. Building against that is the exact shape
+AGENTS.md warns about: a clean branch silently built on another session's
+half-finished work, discovered at merge.
+
+Verified before deciding: B1042's split is source-file only.
+`toolSchemas()` (`lib/helper/tools/run.ts:23-34`) still flattens the whole
+`TOOLS` array and sends every tool on every turn, and
+`test/helper-thread.test.ts:752` still asserts a flat `CEILING = 8000` against
+the whole prompt rather than a per-turn subset.

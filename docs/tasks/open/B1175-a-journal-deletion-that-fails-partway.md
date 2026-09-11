@@ -89,3 +89,22 @@ Not doing here: the ownership fix on the live box, which is done, or how
   and asserts the second completes rather than answering `409 used`.
 - No path through `confirmDeletion` ends with the journal removed from disk and
   no tombstone naming it.
+
+## Decision, 2026-09-11
+
+**Write the tombstone first**, from `summarise()`, before anything is removed.
+Chosen over keeping it last and making the later steps non-aborting, because it
+fixes the spent-link problem in the same move: every step after the tombstone
+becomes idempotent and re-runnable, so a failure partway is a retry rather than a
+new state to detect.
+
+The cost is stated rather than hidden: a tombstone briefly exists for a journal
+that is still there, so a crash in that window leaves the name reserved and the
+journal still readable. That is the recoverable direction, which is the whole
+reason for the order.
+
+Verified before deciding: `confirmDeletion` (`lib/deletions.ts:499-527`) spends
+`consumed_at` first and calls `deleteJournal` with no try/catch;
+`deleteJournal` (587-620) runs DB deletes, `fs.rmSync`, `dropMediaCache()` and
+`release()` before `writeTombstone` ever runs, so a throw at any of those skips
+the tombstone entirely. `deleteTrip` has the same shape at 672-675.

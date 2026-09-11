@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: invites, contacts
 found: "2026-09-10T11:19:51Z"
+started: "2026-09-11T11:57:57Z"
+session: 13f12910-ff28-4566-894a-9e2b3d055281
+claimed: "2026-09-11T11:57:57Z"
 ---
 
 # B1301 — An approved reader who opens a buddy link is given write access to the trip with no owner decision, and told there is nothing to do
@@ -89,3 +92,42 @@ already-approved reader.
   is told plainly what they have just been given.
 - No screen says "nothing left to do" while a grant is being written.
 - The behaviour and `lib/contacts/invites.ts`'s comment agree.
+
+## Decision, 2026-09-11 — first in the queue, and worse than described
+
+**The invariant is not in question.** Every buddy redemption gets its own
+pending decision; an existing guest grant does not satisfy a buddy link. Both
+`lib/contacts/invites.ts:60-76` and AGENTS.md already assert this ("approveContact
+is still the only thing in the codebase that creates a grant"), so weakening it
+would have to be an argued product decision rather than a side effect of fixing
+a bug.
+
+**The mechanism, traced rather than assumed.** `claimTripPlace` at
+`app/api/contacts/redeem/route.ts:322` is correct on its own — it writes a
+*pending* `trip_people` row with `granted_at: null`. The escalation is two lines
+later, at 362-367: `preapproved` is computed from
+`confirmed.contact.createdVia`, which is the value stamped when the contact row
+was **first** created and is never rewritten by `requestContact`'s update branch
+(`lib/contacts/index.ts:285-299`). `preapprovedEmailFor`
+(`lib/contacts/invites.ts:263-280`) therefore compares her current address
+against the **original** invite's stored key — which matches for anybody
+originally added through a mailed invitation, the ordinary path. On a match,
+`approveContact` runs; it never checks that the contact was pending, and at
+`lib/contacts/index.ts:879` it unconditionally calls `approveTripPlaces`, which
+opens *every* pending row for that contact — including the one written moments
+earlier in the same request.
+
+That also explains both reported symptoms. She is told "You're already in" because
+`status: "in"` is driven purely by `contact.status === "active"`, already true
+from her earlier guest approval and nothing to do with this trip. The owner's
+queue stays empty because the contacts page groups by `contact.status ===
+"pending"`, and only the *trip* request was ever pending — and it is resolved
+before the owner ever sees it.
+
+**So the fix is to stop a decision made about one invite being read as a decision
+about another.** A stale `createdVia` must not drive preapproval for an
+already-active contact.
+
+Not in scope, and captured separately if it matters: whether any contact on the
+live instance currently holds a trip grant that arrived this way. A fix stops it
+recurring and does not undo what has already happened.

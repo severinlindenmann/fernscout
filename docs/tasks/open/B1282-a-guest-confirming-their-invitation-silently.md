@@ -74,3 +74,28 @@ was not.
 - Owner adds a guest with a postal address and postcard consent; guest confirms
   through the invitation; both are still there afterwards.
 - A guest who deliberately clears their address still can.
+
+## Decision, 2026-09-11
+
+**Show her the stored address, prefilled, so she can correct it.** Chosen over
+hiding it and silently preserving it: it is her own postal address, and hiding
+data about somebody from themselves is worse than showing it. The blank form
+claiming no address exists is part of what makes this bug silent in the first
+place.
+
+Verified before deciding — the cause is narrower than the ticket's prose
+suggests. `knownEmail` (`app/[user]/invite/redeemPage.tsx:104`) is set **only**
+from a session cookie for this journal, and is never informed by whether a
+`contacts` row already exists for that address. So a guest opening an invitation
+for the first time, with no prior session, always lands on `step: "form"`
+(`components/InviteRedeem.tsx:137`) however much the journal already holds about
+her. `redeemPage.tsx` passes no `initialAddress` or `initialWantsPostcard` at
+all — only `initialName`. `redeem()` then always sends both fields, blank, and
+`app/api/contacts/redeem/route.ts:257` computes `addressProvided` as true
+because there is no session, so `hasAnyDetail(mergedAddress)` is false in
+`lib/contacts/index.ts:273-283`, `cipher` becomes null, and the encrypted
+address is wiped.
+
+So the server fix is to know about the existing row **without** a session —
+look up by email before deciding `addressProvided` — and the UI fix is the
+prefill. Both halves, not one.
