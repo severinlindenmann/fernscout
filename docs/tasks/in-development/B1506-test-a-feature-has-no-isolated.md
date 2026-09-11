@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: docs-and-skills
 found: "2026-09-11T18:55:59Z"
+started: "2026-09-11T19:42:50Z"
+session: 01ffdab4-e3d9-4d0a-810b-5d15c09d3f77
+claimed: "2026-09-11T19:42:50Z"
 ---
 
 # B1506 — test-a-feature has no isolated CONTENT_DIR, so a local run writes into the tracked demo journal
