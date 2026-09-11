@@ -157,11 +157,13 @@ export default async function PostcardOrderPage({
   // was printing it at a reader ("Vom sierra-smoke"). The day has a title, and
   // a postcard is about a date, so both go in. Drafts included: an order can
   // be made from a day that is not on the site yet.
-  const entry = getEntryBySlug(
-    order.payload.trip,
-    order.payload.day,
-    AS_AUTHOR,
-  );
+  // B1393 — a card from a photograph staged in the inbox belongs to no trip
+  // and no day; `order.payload.trip` says which this is, and nothing below
+  // reads `.day` as a slug unless it does.
+  const entry =
+    order.payload.trip && order.payload.day
+      ? getEntryBySlug(order.payload.trip, order.payload.day, AS_AUTHOR)
+      : null;
   const dayName = entry
     ? t("postcard.page.dayWithTitle", {
         title: entry.title,
@@ -176,6 +178,15 @@ export default async function PostcardOrderPage({
   const print = orderPrintPhoto(order);
   const photo = print ? (print.size ?? dimensionsOf(print.absolute)) : null;
   const resolution = photo ? resolutionNote(photo.width, photo.height) : null;
+  // B1393 — a trip-less order's photograph is in the inbox and reachable by
+  // no ordinary media URL (`lib/inbox.ts`), so the owner-only, cookie-gated
+  // thumbnail route the files pane already uses is what this page asks for
+  // instead. Wide enough for the crop control, not the original: this is a
+  // preview, and `orderPrintPhoto` below is what the card is actually built
+  // from.
+  const photoSrc = order.payload.trip
+    ? mediaUrl(order.payload.trip, order.payload.photo)
+    : `/api/helper/${encodeURIComponent(username)}/inbox/${encodeURIComponent(order.payload.photo)}/thumbnail?w=1600`;
   const back = backLayout();
   // B452. The card's own language, and the journals's — so the picker offers
   // what this journal actually writes in rather than every locale that exists.
@@ -196,7 +207,7 @@ export default async function PostcardOrderPage({
   // no likeness of their own to fall back to. `showFigures` is what the
   // toggle actually controls; `hasParty` is whether there is anything for it
   // to switch on in the first place.
-  const trip = getTrip(order.payload.trip);
+  const trip = order.payload.trip ? getTrip(order.payload.trip) : null;
   const party = trip ? travellerPartyFor(trip) : [];
   const hasParty = party.length > 0;
   const showFigures = order.payload.figures !== false && hasParty;
@@ -228,14 +239,22 @@ export default async function PostcardOrderPage({
               : t("postcard.page.titleSent")}
         </h1>
         <p className="mt-1 text-sm text-navy-600">
-          {isPending(order)
-            ? t("postcard.page.intro", { day: dayName })
-            : order.status === "failed"
-              ? t("postcard.page.introFailed", { day: dayName })
-              : t("postcard.page.introSent", {
-                  day: dayName,
-                  when: formatDigestDate(locale, order.updatedAt.slice(0, 10)),
-                })}
+          {order.payload.trip
+            ? isPending(order)
+              ? t("postcard.page.intro", { day: dayName ?? "" })
+              : order.status === "failed"
+                ? t("postcard.page.introFailed", { day: dayName ?? "" })
+                : t("postcard.page.introSent", {
+                    day: dayName ?? "",
+                    when: formatDigestDate(locale, order.updatedAt.slice(0, 10)),
+                  })
+            : isPending(order)
+              ? t("postcard.page.introFromFile")
+              : order.status === "failed"
+                ? t("postcard.page.introFromFileFailed")
+                : t("postcard.page.introFromFileSent", {
+                    when: formatDigestDate(locale, order.updatedAt.slice(0, 10)),
+                  })}
         </p>
 
         <PostcardSteps
@@ -269,7 +288,7 @@ export default async function PostcardOrderPage({
                 <PostcardCropper
                   username={username}
                   id={id}
-                  src={mediaUrl(order.payload.trip, order.payload.photo)}
+                  src={photoSrc}
                   aspect={back.aspect}
                   initial={order.payload.crop ?? { x: 0.5, y: 0.5 }}
                   editable={isPending(order) && !expired}

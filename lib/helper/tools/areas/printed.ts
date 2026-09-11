@@ -13,6 +13,7 @@ import { postcardCandidates } from "../../../postcard/contacts";
 import { openingOf } from "../../../postcard/opening";
 import { getPhotobookOrder } from "../../../photobook/orders";
 import { BOOK_SIZES, COVER_TYPES, type CoverType } from "../../../photobook/spec";
+import { findInboxFile } from "../../../inbox";
 import { noTrip, resolveDay, resolveTrip, tripIdFor } from "../resolve";
 
 /**
@@ -159,35 +160,33 @@ export const PRINTED_TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "form",
     describe:
-      "Propose real postcards: one photograph and message from a day, to recipients from postcard_recipients. Writes a pending order and hands over their postcards page URL — charges and prints nothing; only their press there spends credits at a printer.",
+      "Propose real postcards: a photo (day or inbox) and message, to recipients from postcard_recipients. A pending order; nothing charged or printed until pressed.",
     properties: {
       ...DAY_ARGS,
       photo: {
         type: "string",
         description:
-          "Which photograph of that day, by its file name as read_day names it. Omit for the first photograph on the day.",
+          "A file name from read_day (on a day), or an inbox id (no day). Omit for what's ticked, or the first photo.",
       },
       message: {
         type: "string",
-        description:
-          "The words on the back of the card, in their own words exactly as they said them. Never invent anything they did not say.",
+        description: "Exactly what they said for the back. Never invent.",
       },
       from: {
         type: "string",
-        description: "The signature on the card — how they sign it, e.g. their own name.",
+        description: "The signature — how they sign it, e.g. their name.",
       },
       recipients: {
         type: "string",
-        description:
-          "Who it goes to: contact ids from postcard_recipients, comma separated. Never a name typed from memory — look the id up first.",
+        description: "Contact ids from postcard_recipients, comma separated. Never a name from memory.",
       },
       locale: {
         type: "string",
-        description: "The language the card is written in, if not the journal's own default.",
+        description: "The card's language, if not the journal's default.",
       },
     },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/postcard`,
-    propose: async (username, args, say) => {
+    propose: async (username, args, say, _today, selected) => {
       // Absent rather than broken (AGENTS.md): the tool stays in the model's
       // list either way — filtering the registry per journal is not
       // structurally possible here (`TOOLS` is built once, with no
@@ -196,7 +195,27 @@ export const PRINTED_TOOLS: readonly Tool[] = [
       // why, alongside the rest of `Proposed`'s required fields so the type
       // stays honest about what a declined proposal still carries.
       const unavailable = !isEnabled("postcards", username) || !isEnabled("contacts", username);
-      const found = resolveDay(username, args);
+
+      /**
+       * B1393 — the day is where a photograph is *found*, never something
+       * the printer needs. When nothing names a day, a photograph staged in
+       * the inbox — ticked in the files pane, or named by its own id — makes
+       * the card instead, and `resolveDay` is never asked to guess one.
+       */
+      const dayNamed = !!(args.trip || args.slug || args.date);
+      const namedInboxId =
+        !dayNamed && args.photo && findInboxFile(username, args.photo)?.entry.kind === "media"
+          ? args.photo
+          : undefined;
+      const tickedInboxId = dayNamed
+        ? undefined
+        : selected
+            .filter((id) => id.startsWith("inbox:"))
+            .map((id) => id.slice("inbox:".length))
+            .find((id) => findInboxFile(username, id)?.entry.kind === "media");
+      const inboxId = namedInboxId ?? tickedInboxId;
+
+      const found = inboxId ? null : resolveDay(username, args);
       const entry = found?.entry;
       const trip = found?.trip;
 
@@ -205,7 +224,7 @@ export const PRINTED_TOOLS: readonly Tool[] = [
           ? entry.gallery.find((item) => relativePhoto(trip!.id, item.src).endsWith(args.photo!))?.src
           : entry.gallery[0]?.src
         : undefined;
-      const photo = entry && trip && photoSrc ? relativePhoto(trip.id, photoSrc) : "";
+      const photo = inboxId ?? (entry && trip && photoSrc ? relativePhoto(trip.id, photoSrc) : "");
 
       const requested = [
         ...new Set(
@@ -238,32 +257,44 @@ export const PRINTED_TOOLS: readonly Tool[] = [
       // button straight from the raw refusal, which nobody reads as a
       // question. Ask for the signature in the room instead — the same shape
       // as the photo/recipient/test-day refusals above.
-      const noSignature = !!entry && !(args.from ?? "").trim();
+      const noSignature = (!!entry || !!inboxId) && !(args.from ?? "").trim();
       const each = POSTCARD_CREDITS;
       const total = each * Math.max(recipients.length, 1);
       const metered = creditsEnabled();
       const balance = metered ? await balanceOf(username) : null;
 
       const count = Math.max(recipients.length, 1);
-      const sentence = !entry
-        ? say("agent.tool.publishNoDay")
-        : metered
-          ? say(count === 1 ? "agent.tool.proposePostcards.one" : "agent.tool.proposePostcards", {
-              count: String(count),
-              date: entry.date,
-              title: entry.title,
-              each: String(each),
-              total: String(total),
-              balance: String(balance ?? 0),
-            })
+      const sentence = inboxId
+        ? metered
+          ? say(
+              count === 1 ? "agent.tool.proposePostcardsFromFile.one" : "agent.tool.proposePostcardsFromFile",
+              { count: String(count), each: String(each), total: String(total), balance: String(balance ?? 0) },
+            )
           : say(
-              count === 1 ? "agent.tool.proposePostcardsFree.one" : "agent.tool.proposePostcardsFree",
-              {
+              count === 1
+                ? "agent.tool.proposePostcardsFromFileFree.one"
+                : "agent.tool.proposePostcardsFromFileFree",
+              { count: String(count) },
+            )
+        : !entry
+          ? say("agent.tool.publishNoDay")
+          : metered
+            ? say(count === 1 ? "agent.tool.proposePostcards.one" : "agent.tool.proposePostcards", {
                 count: String(count),
                 date: entry.date,
                 title: entry.title,
-              },
-            );
+                each: String(each),
+                total: String(total),
+                balance: String(balance ?? 0),
+              })
+            : say(
+                count === 1 ? "agent.tool.proposePostcardsFree.one" : "agent.tool.proposePostcardsFree",
+                {
+                  count: String(count),
+                  date: entry.date,
+                  title: entry.title,
+                },
+              );
 
       // The recipient's own language, when exactly one is known and nobody
       // said otherwise — the same idea `add_cost`'s currency guess is,
@@ -291,10 +322,16 @@ export const PRINTED_TOOLS: readonly Tool[] = [
         sentence,
         accept: say("agent.tool.proposePostcardsAccept"),
         done: say("agent.tool.proposePostcardsDone"),
-        preview: entry ? [entry.date, entry.title, args.message ?? ""].filter((line) => line !== "") : [],
+        preview: entry
+          ? [entry.date, entry.title, args.message ?? ""].filter((line) => line !== "")
+          : inboxId
+            ? [args.message ?? ""].filter((line) => line !== "")
+            : [],
         fields: [
-          { name: "trip", value: tripIdFor(username, args, found), fixed: true },
-          { name: "slug", value: entry?.slug ?? args.slug ?? "", fixed: true },
+          // Empty means "the inbox" — the route resolves `photo` against the
+          // inbox rather than a trip's media whenever both are blank.
+          { name: "trip", value: inboxId ? "" : tripIdFor(username, args, found), fixed: true },
+          { name: "slug", value: inboxId ? "" : (entry?.slug ?? args.slug ?? ""), fixed: true },
           { name: "photo", value: photo },
           { name: "message", value: args.message ?? "", long: true },
           { name: "from", value: args.from ?? "" },
@@ -416,5 +453,30 @@ export const PRINTED_TOOLS: readonly Tool[] = [
       }
       return { found: false, why: "no order of that id in this journal" };
     },
+  },
+  {
+    /**
+     * The owner, added as their own contact — B1393.
+     *
+     * "Add someone else" is out of scope on purpose: it would need an
+     * address, and an address must never reach this conversation
+     * (AGENTS.md). This one needs none — the name comes from `config.json`,
+     * server-side, the same read `addSelfContact` always made, and the
+     * address stays blank until the owner fills it in on their own page.
+     */
+    name: "add_contact",
+    kind: "write",
+    renders: "confirm",
+    describe:
+      "Add the owner as their own contact, from the journal's name. Needs an address still, added on the access page. Nobody else.",
+    properties: {},
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/contacts/add-me`,
+    propose: async (username, _args, say) => ({
+      ...(isEnabled("contacts", username) ? {} : { refuse: "agent.tool.contactsUnavailable" }),
+      sentence: say("agent.tool.addContact"),
+      accept: say("agent.tool.addContactAccept"),
+      done: say("agent.tool.addContactDone"),
+      fields: [],
+    }),
   },
 ];

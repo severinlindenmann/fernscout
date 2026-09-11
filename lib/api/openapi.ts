@@ -1080,7 +1080,9 @@ export function openApiDocument() {
             "spends real money and ends up in somebody's letterbox, which is not a decision to " +
             "take on their behalf. Hand the `url` over and stop; do not report the cards as " +
             "sent, or as being sent. `GET .../postcards/{id}` says later whether they went.\n\n" +
-            "Owner only, and the recipients must be ids from `.../postcards/recipients`.",
+            "Owner only, and the recipients must be ids from `.../postcards/recipients`. A day " +
+            "is where a photograph is *found*, not something the card needs: give both `trip` " +
+            "and `day`, or neither and name a photograph staged in the inbox instead.",
           parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
           requestBody: {
             required: true,
@@ -1088,15 +1090,22 @@ export function openApiDocument() {
               "application/json": {
                 schema: {
                   type: "object",
-                  required: ["trip", "day", "photo", "message", "from", "recipients"],
+                  required: ["photo", "message", "from", "recipients"],
                   properties: {
-                    trip: { type: "string", description: "The trip id." },
-                    day: { type: "string", description: "The slug of the day the card is from." },
+                    trip: {
+                      type: "string",
+                      description: "The trip id. Given together with `day`, or omitted with it.",
+                    },
+                    day: {
+                      type: "string",
+                      description: "The slug of the day the card is from. Given together with `trip`.",
+                    },
                     photo: {
                       type: "string",
                       description:
-                        "A path relative to the trip's media directory. Must already be in the " +
-                        "trip; a photograph the card is printed from is not an upload.",
+                        "With `trip` and `day`: a path relative to the trip's media directory, " +
+                        "already in the trip. Without them: an id `GET .../inbox` answered — a " +
+                        "photograph staged there and no day, so its order belongs to no trip.",
                     },
                     message: {
                       type: "string",

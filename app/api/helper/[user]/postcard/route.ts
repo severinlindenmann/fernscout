@@ -6,6 +6,7 @@ import { POSTCARD_CREDITS } from "@/lib/credits/pricing";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { refused, wrote } from "@/lib/helper/thread";
+import { findInboxFile } from "@/lib/inbox";
 import { resolveMediaFile } from "@/lib/media";
 import { postcardCandidates } from "@/lib/postcard/contacts";
 import { createOrder } from "@/lib/postcard/orders";
@@ -86,29 +87,40 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     ),
   ];
 
-  if (!tripId || !slug) {
-    refused(user, "propose_postcards", "unknown_day");
-    return Response.json({ error: "unknown_day" }, { status: 404 });
-  }
-
-  const ref = tripRef(user, tripId);
-  const trip = getTrip(ref);
-  if (!trip) {
-    refused(user, "propose_postcards", "unknown_trip");
-    return Response.json({ error: "unknown_trip" }, { status: 404 });
-  }
-  const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
-  if (!entry) {
-    refused(user, "propose_postcards", "unknown_day");
-    return Response.json({ error: "unknown_day" }, { status: 404 });
-  }
-  if (isTestContent(trip, entry)) {
-    refused(user, "propose_postcards", "test_content");
-    return Response.json({ error: "test_content" }, { status: 400 });
-  }
-  if (!photo || !resolveMediaFile(user, [tripId, ...photo.split("/").filter(Boolean)])) {
-    refused(user, "propose_postcards", "unknown_photo");
-    return Response.json({ error: "unknown_photo" }, { status: 400 });
+  // B1393 — a day is where a photograph is *found*, not something the
+  // printer needs. Neither given means `photo` names a file staged in the
+  // inbox instead of a path in a trip's own media.
+  let ref: string | null = null;
+  if (tripId || slug) {
+    if (!tripId || !slug) {
+      refused(user, "propose_postcards", "unknown_day");
+      return Response.json({ error: "unknown_day" }, { status: 404 });
+    }
+    ref = tripRef(user, tripId);
+    const trip = getTrip(ref);
+    if (!trip) {
+      refused(user, "propose_postcards", "unknown_trip");
+      return Response.json({ error: "unknown_trip" }, { status: 404 });
+    }
+    const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
+    if (!entry) {
+      refused(user, "propose_postcards", "unknown_day");
+      return Response.json({ error: "unknown_day" }, { status: 404 });
+    }
+    if (isTestContent(trip, entry)) {
+      refused(user, "propose_postcards", "test_content");
+      return Response.json({ error: "test_content" }, { status: 400 });
+    }
+    if (!photo || !resolveMediaFile(user, [tripId, ...photo.split("/").filter(Boolean)])) {
+      refused(user, "propose_postcards", "unknown_photo");
+      return Response.json({ error: "unknown_photo" }, { status: 400 });
+    }
+  } else {
+    const staged = photo ? findInboxFile(user, photo) : null;
+    if (!staged || staged.entry.kind !== "media") {
+      refused(user, "propose_postcards", "unknown_photo");
+      return Response.json({ error: "unknown_photo" }, { status: 400 });
+    }
   }
   if (!message || !from) {
     refused(user, "propose_postcards", "invalid_request");
@@ -141,7 +153,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
 
   const order = await createOrder(user, {
     trip: ref,
-    day: slug,
+    day: ref ? slug : null,
     photo,
     message,
     from,

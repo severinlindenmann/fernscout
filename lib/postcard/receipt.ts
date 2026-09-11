@@ -48,7 +48,9 @@ import type { Locale } from "../types";
 export type ReceiptInput = {
   owner: string;
   orderId: string;
-  day: string;
+  /** `null` for a card built from a photograph staged in the inbox rather
+   *  than found on a day — B1393. */
+  day: string | null;
   /** Names only. Never an address — see above. */
   names: string[];
   /** Cards the printer accepted. */
@@ -79,7 +81,12 @@ export async function sendPostcardReceipt(input: ReceiptInput): Promise<void> {
         ? t("postcard.receipt.titleOne", { name: names })
         : t("postcard.receipt.titleMany", { count: String(input.sent) }),
     blocks: [
-      { kind: "paragraph" as const, text: t("postcard.receipt.body", { names, day: input.day }) },
+      {
+        kind: "paragraph" as const,
+        text: input.day
+          ? t("postcard.receipt.body", { names, day: input.day })
+          : t("postcard.receipt.bodyNoDay", { names }),
+      },
       {
         kind: "paragraph" as const,
         text:
@@ -102,7 +109,7 @@ export async function sendPostcardReceipt(input: ReceiptInput): Promise<void> {
       ? {
           attachments: [
             {
-              filename: `postcard-${input.day}.pdf`,
+              filename: `postcard-${input.day ?? input.orderId}.pdf`,
               contentType: "application/pdf",
               data: input.pdf,
               // Referenced by nothing; the encoder still wants an id, and its

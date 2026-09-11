@@ -8,6 +8,7 @@ import {
   addressAad,
   contactsKey,
   decryptAddress,
+  EMPTY_ADDRESS,
   encryptAddress,
   hasAnyDetail,
   isPostable,
@@ -16,8 +17,9 @@ import {
 } from "./crypto";
 import { countInviteUse, preapprovedEmailFor } from "./invites";
 import { approveTripPlaces, revokeTripPlaces } from "../tripPeople";
-import { parseLocale } from "./locale";
+import { parseLocale, pickLocale } from "./locale";
 import { isMessageable, toE164 } from "../whatsapp/phone";
+import { getUser } from "../users";
 import { whatsappCountryCode } from "../whatsapp/settings";
 
 /**
@@ -883,6 +885,58 @@ export async function approveContact(
   // invariant rather than asserting past it.
   if (!updated) return null;
   return { contact: updated, tripsOpened };
+}
+
+export type AddSelfResult =
+  | { ok: true; contact: ContactRecord }
+  | { ok: false; error: "no_owner_email" | "blocked_contact" | "not_confirmed" };
+
+/**
+ * The owner, added as their own contact — B1393.
+ *
+ * Extracted from `app/api/contacts/admin/route.ts`'s `"self"` action so the
+ * helper's `add_contact` tool can press the same button rather than a second
+ * one beside it. **The name and address come from this journal's own
+ * `config.json`, never from an argument** — the caller (the admin route's own
+ * `isOwner` guard, or the helper's `isHelperOwner`) has already proved the
+ * request is the owner; what they may add is themselves and nobody else.
+ *
+ * No mail here: `confirmContactFromSession` is confirming an address this
+ * journal already knows is the owner's, not one a request is merely
+ * asserting, so the row goes straight to `active` — with `EMPTY_ADDRESS` and
+ * every consent off. That is not "a recipient" by any of `eligible()`'s three
+ * tests (B1399); it is somewhere for the owner to fill in an address and tick
+ * the postcard box on their own page.
+ */
+export async function addSelfContact(owner: string): Promise<AddSelfResult> {
+  const user = getUser(owner);
+  const email = user?.owner.email;
+  if (!user || !email) return { ok: false, error: "no_owner_email" };
+
+  const normalised = normaliseEmail(email);
+  const existing = (await listContacts(owner)).find((c) => c.email === normalised);
+  if (existing) return { ok: true, contact: existing };
+
+  const result = await requestContact(owner, {
+    name: user.owner.nickname || user.owner.name,
+    email,
+    locale: pickLocale(null, user.defaultLocale),
+    address: EMPTY_ADDRESS,
+    wantsEmailDigest: false,
+    wantsPostcard: false,
+    wantsWhatsapp: false,
+    createdVia: "owner-self",
+  });
+  if (result.outcome === "ignored" || !result.contactId) {
+    return { ok: false, error: "blocked_contact" };
+  }
+
+  const confirmed = await confirmContactFromSession(owner, email);
+  if (!confirmed.ok) return { ok: false, error: "not_confirmed" };
+  const approved = await approveContact(owner, confirmed.contact.id);
+  if (!approved) return { ok: false, error: "not_confirmed" };
+
+  return { ok: true, contact: approved.contact };
 }
 
 /**

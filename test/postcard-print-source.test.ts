@@ -9,6 +9,7 @@ import { A6_LANDSCAPE, PRINT_FLOOR_DPI } from "@/lib/postcard/spec";
 import { orderPhotoFile, orderPrintPhoto } from "@/lib/postcard/send";
 import type { PostcardOrder } from "@/lib/postcard/orders";
 import { makeJpeg } from "./support/exif-jpeg";
+import { storeInboxFile } from "@/lib/inbox";
 
 /**
  * B1010 — which copy of the photograph goes on the card, and when that is
@@ -105,6 +106,41 @@ describe("which copy of the photograph is printed", () => {
 
   test("a photograph belonging to no trip is refused", () => {
     expect(orderPrintPhoto(orderFor("pass/01.jpg", "not-a-ref"))).toBeNull();
+  });
+
+  /**
+   * B1393 — a card can start from a photograph staged in the inbox, with no
+   * trip and no day. Confirmed against a real file rather than assumed:
+   * inbox originals keep the bytes they were uploaded with, so the guarded
+   * path (`orderPhotoFile`) is already the best copy there is, and its
+   * dimensions are read the same way a trip original's are.
+   */
+  test("a photograph staged in the inbox, with no trip", async () => {
+    const staged = await storeInboxFile(OWNER, "media", "harbour.jpg", await makeJpeg(1, 3000, 2000), {});
+    const order: PostcardOrder = {
+      id: "order-2",
+      owner: OWNER,
+      status: "draft",
+      provider: "dry-run",
+      createdAt: "2026-07-01T00:00:00.000Z",
+      updatedAt: "2026-07-01T00:00:00.000Z",
+      payload: {
+        trip: null,
+        day: null,
+        photo: staged.entry.id,
+        message: "Hello.",
+        from: "Ana",
+        recipients: [],
+        creditsEach: 20,
+        locale: "en",
+        expiresAt: "2026-07-08T00:00:00.000Z",
+      },
+    };
+    const file = orderPhotoFile(order);
+    expect(file).toContain(path.join("inbox", "media", staged.entry.id));
+    const source = orderPrintPhoto(order);
+    expect(source?.absolute).toBe(file);
+    expect(source?.size).toEqual({ width: 3000, height: 2000 });
   });
 });
 

@@ -5,7 +5,9 @@ import { contentRoot } from "../contentRoot";
 import { isEnabled } from "../capabilities";
 import { loadServerConfig } from "../config";
 import { balanceOf, refund, spend } from "../credits";
+import { findInboxFile } from "../inbox";
 import { resolveMediaFile } from "../media";
+import { readJpeg } from "./pdf.ts";
 import { getTrip, parseTripRef } from "../trips";
 import type { Figure } from "../travellers/vocabulary";
 import { addressesFor } from "./contacts";
@@ -98,8 +100,15 @@ function orderDir(owner: string, id: string): string {
  * directory and answers null rather than throwing. The payload is written by
  * an API call, so this string is attacker-controlled in principle and the
  * traversal guard is not decorative.
+ *
+ * **A `null` trip means the photograph is in the inbox** — B1393. Routed
+ * through `findInboxFile`, whose own guard (`path.basename` on the way in) is
+ * the equivalent traversal check for that folder.
  */
 export function orderPhotoFile(order: PostcardOrder): string | null {
+  if (!order.payload.trip) {
+    return findInboxFile(order.owner, order.payload.photo)?.file ?? null;
+  }
   const parsed = parseTripRef(order.payload.trip);
   if (!parsed) return null;
   return resolveMediaFile(parsed.username, [
@@ -133,8 +142,27 @@ export function orderPrintPhoto(
 ): { absolute: string; size?: { width: number; height: number } } | null {
   const guarded = orderPhotoFile(order);
   if (!guarded) return null;
+  // An inbox file keeps the bytes it was uploaded with — there is no
+  // derivative step for anything staged there — so the guarded path is
+  // already the best copy there is. `printSourceFor` only knows how to look
+  // for a better original beside a trip's own `media/`.
+  if (!order.payload.trip) {
+    return { absolute: guarded, size: dimensionsOf(guarded) ?? undefined };
+  }
   const source = printSourceFor(order.payload.trip, order.payload.photo);
   return { absolute: source.absolute, size: source.size };
+}
+
+/** A JPEG's own dimensions, or none for anything else — the same read
+ *  `lib/photobook/source.ts`'s own (unexported) `dimensionsOf` makes for a
+ *  trip's original. */
+function dimensionsOf(file: string): { width: number; height: number } | null {
+  try {
+    const image = readJpeg(new Uint8Array(fs.readFileSync(file)));
+    return { width: image.width, height: image.height };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -149,6 +177,8 @@ function figuresFor(order: PostcardOrder): Figure[] {
   // Absent means on — see `OrderPayload.figures`. Only an explicit `false`,
   // which is the owner having unticked the box, prints a bare back.
   if (order.payload.figures === false) return [];
+  // No trip, no `travellers:` block to draw the party from — B1393.
+  if (!order.payload.trip) return [];
   const trip = getTrip(order.payload.trip);
   if (!trip) return [];
   return travellerPartyFor(trip);

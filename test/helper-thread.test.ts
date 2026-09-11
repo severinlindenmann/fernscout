@@ -478,6 +478,7 @@ describe("the tools", () => {
         .map((tool) => tool.name)
         .sort(),
     ).toEqual([
+      "add_contact",
       "add_cost",
       "attach_files",
       // B1042 — the journal's own account, read out and now writable too.

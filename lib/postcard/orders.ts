@@ -92,11 +92,21 @@ export type RecipientResult = {
 export type Crop = { x: number; y: number; zoom?: number };
 
 export type OrderPayload = {
-  /** The qualified trip ref, `<username>/<trip-id>`. */
-  trip: string;
-  /** The day this card is from. */
-  day: string;
-  /** A path relative to the trip's media directory. */
+  /**
+   * The qualified trip ref, `<username>/<trip-id>` — or `null` for a card
+   * built from a photograph staged in the inbox rather than found on a day
+   * — B1393. A day is where a photograph is *found*, not something the
+   * printer needs, so an order belongs to no trip whenever its photograph
+   * came from `inbox/media/` instead of a trip's own `media/`.
+   */
+  trip: string | null;
+  /** The day this card is from, or `null` alongside a `null` trip. */
+  day: string | null;
+  /**
+   * A path relative to the trip's media directory — or, when `trip` is
+   * `null`, the inbox id `findInboxFile` resolves (`lib/inbox.ts`). Which one
+   * it means is read off `trip`, never guessed from the string's shape.
+   */
   photo: string;
   /**
    * Where the photograph on the front is cropped from — B627.
@@ -414,7 +424,7 @@ export async function createOrder(owner: string, input: NewOrder): Promise<Postc
       // and this is many, so leaving it null is the honest answer rather than
       // picking the first one.
       contact_id: null,
-      trip_id: input.trip,
+      trip_id: input.trip, // already nullable — B1393
       status: "draft",
       payload: JSON.stringify(payload),
       cost_minor: null,
