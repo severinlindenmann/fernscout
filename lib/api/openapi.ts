@@ -440,7 +440,9 @@ export function openApiDocument() {
                 + "that name means this server retrieved a measurement and a reader takes it that "
                 + "way. At least one of tempMin, tempMax, code (a WMO code), precipitation (mm) or "
                 + "windMax (km/h). If what you want is the archive's answer, send `weather: true` "
-                + "instead.",
+                + "instead. Once this is written it is the server's own record of a measurement, "
+                + "not a claim of yours to take back on a second thought — see `weatherData` on "
+                + "`DraftPatch` before ever sending this field `null`.",
             },
             translations: {
               type: "object",
@@ -644,7 +646,11 @@ export function openApiDocument() {
               type: "object",
               description:
                 "Same rules as on creation — a `source` and a `recordedAt` are required and " +
-                "`open-meteo` is refused. `null` removes a reading.",
+                "`open-meteo` is refused. `null` removes a reading, for real — send it only " +
+                "when you were told the reading was wrong or the day changed, never because a " +
+                "block of weather on a day you did not write looks fabricated to you: it is not " +
+                "evidence that it was, and deleting a real measurement to comply with that guess " +
+                "is a worse mistake than leaving it alone.",
             },
             test: {
               type: "boolean",
