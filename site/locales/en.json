@@ -2346,5 +2346,12 @@
   "agent.follow.undo": "Undo",
   "agent.follow.weather": "Look the weather up",
   "agent.follow.addCost": "+ Add a cost",
-  "agent.follow.share": "Share"
+  "agent.follow.share": "Share",
+  "order.status.waiting": "Waiting for you",
+  "order.status.expired": "Expired",
+  "order.postcards.line": "{each} credits each × {count}",
+  "order.object.cover": "Cover",
+  "order.object.front": "Front",
+  "order.meta.proposed": "Proposed {date} · Reference {id}",
+  "order.meta.sent": "Sent {date} · Reference {id}"
 }

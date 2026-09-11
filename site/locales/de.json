@@ -2346,5 +2346,12 @@
   "agent.follow.undo": "Rückgängig",
   "agent.follow.weather": "Wetter nachschlagen lassen",
   "agent.follow.addCost": "+ Ausgabe",
-  "agent.follow.share": "Teilen"
+  "agent.follow.share": "Teilen",
+  "order.status.waiting": "Wartet auf dich",
+  "order.status.expired": "Abgelaufen",
+  "order.postcards.line": "{each} Credits pro Karte × {count}",
+  "order.object.cover": "Umschlag",
+  "order.object.front": "Vorderseite",
+  "order.meta.proposed": "Vorgeschlagen am {date} · Referenz {id}",
+  "order.meta.sent": "Gesendet am {date} · Referenz {id}"
 }
