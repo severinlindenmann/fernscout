@@ -1,14 +1,17 @@
 # Flow: owner-established-order-photobook
 
 **Persona:** `owner-established` (docs/testing/personas/owner-established.md)
-**Interface:** journal UI (the order button) + agent (the helper's proposal
-step only)
+**Interface:** `ui` — a browser cookie session for both steps. The helper's
+proposal step is also cookie-only, not bearer (confirmed live, B1505,
+2026-09-11 — the whole `app/api/helper/[user]/*` family authenticates via
+`journal.owner.email`'s cookie and refuses every bearer token, including the
+journal's own owner-scoped token).
 **Capabilities exercised:** `photobook`
 **Device/locale:** run at the requested viewport for the book preview and
 order pages.
-**Check type:** technical (an agent can only ever get a link, never place the
-order; a build produces the right PDFs) and graphical (the book preview and
-order confirmation).
+**Check type:** technical (the helper's own route never writes or charges,
+only hands back a link; a build produces the right PDFs) and graphical (the
+book preview and order confirmation).
 
 ## Setup
 
@@ -18,20 +21,20 @@ order confirmation).
    `photobook` is one of `OPERATOR_ONLY_FEATURES` (`lib/config.ts`), so this
    is the server's own switch and `test-owner-established`'s config has
    nothing to say about it either way.
-2. An owner-scoped agent token, for the helper-proposal step, and the
-   owner's own browser cookie session, for the actual order.
+2. The owner's own browser cookie session — for both the helper-proposal
+   step and the actual order. A bearer token has no role in this flow.
 3. An existing trip with enough published photographs to fill a book.
 
 ## Steps
 
-1. As the agent (bearer token), `POST /api/helper/test-owner-established
+1. As the owner, in a browser, `POST /api/helper/test-owner-established
    /photobook` naming a size and cover from `BOOK_SIZES`/`COVER_TYPES`.
    Confirm the response is only a URL to the order page
    (`app/[user]/photobook/order/route.ts`) — the route's own comment: "There
    is nothing to write... this route's whole job is to check the trip and
-   the two choices are real, and hand back the URL of that page." Confirm
-   the same bearer token cannot reach the order route itself (it is outside
-   `/api/v1`, owner-cookie only).
+   the two choices are real, and hand back the URL of that page." As a
+   boundary check, confirm a bearer token gets refused at this same route
+   (see B1505) rather than treated as an equally valid caller.
 2. As the owner, open that URL, review the preview, and press the order
    button.
 3. Confirm the build runs (`buildPhotobook`), a credit spend is recorded

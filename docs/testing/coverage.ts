@@ -35,8 +35,8 @@ export const COVERAGE: Record<FeatureName, CoverageEntry> = {
     interfaces: ["whatsapp"],
   },
   helper: {
-    flows: ["buddy-established-add-day-agent"],
-    interfaces: ["agent"],
+    flows: ["owner-established-use-agent-helper"],
+    interfaces: ["ui"],
   },
   signup: {
     flows: ["guest-invited-signup-see-update"],
@@ -48,7 +48,7 @@ export const COVERAGE: Record<FeatureName, CoverageEntry> = {
   },
   auth: {
     flows: ["guest-invited-signup-see-update", "buddy-established-add-day-agent"],
-    interfaces: ["ui", "agent"],
+    interfaces: ["ui", "api"],
   },
   reactions: {
     flows: ["guest-established-react-to-day"],
@@ -56,7 +56,7 @@ export const COVERAGE: Record<FeatureName, CoverageEntry> = {
   },
   costs: {
     flows: ["owner-established-add-cost-line"],
-    interfaces: ["agent"],
+    interfaces: ["api"],
   },
   push: {
     flows: ["guest-established-push-notification"],
@@ -74,7 +74,7 @@ export const COVERAGE: Record<FeatureName, CoverageEntry> = {
   postcards: { todo: "no flow yet — Stannp has no inbound webhook in production yet, see B1484" },
   photobook: {
     flows: ["owner-established-order-photobook"],
-    interfaces: ["ui", "agent"],
+    interfaces: ["ui", "api"],
   },
   logging: {
     flows: ["operator-check-admin-dashboard"],
@@ -82,7 +82,7 @@ export const COVERAGE: Record<FeatureName, CoverageEntry> = {
   },
   credits: {
     flows: ["owner-established-spend-credits"],
-    interfaces: ["ui", "agent"],
+    interfaces: ["ui", "api"],
   },
   addressLookup: {
     flows: ["owner-established-address-lookup"],
@@ -90,15 +90,15 @@ export const COVERAGE: Record<FeatureName, CoverageEntry> = {
   },
   weather: {
     flows: ["owner-established-weather-lookup"],
-    interfaces: ["agent"],
+    interfaces: ["api"],
   },
   analytics: {
     flows: ["operator-check-admin-dashboard"],
     interfaces: ["admin"],
   },
   transcription: {
-    flows: ["buddy-established-voice-note-transcription"],
-    interfaces: ["agent"],
+    flows: ["owner-established-use-agent-helper"],
+    interfaces: ["ui"],
   },
   fulfilmentRelay: {
     flows: ["operator-fulfilment-webhook-relay"],
