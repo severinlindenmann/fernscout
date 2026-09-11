@@ -153,6 +153,11 @@ no time; `npm ci` in each worktree is minutes each. Then hand the agent the
 and its acceptance criteria — a subagent has none of your context. Elsewhere,
 or if the clone fails, `npm ci --prefer-offline` in the worktree.
 
+That clone is a snapshot: merge `main` into an older worktree and a
+module-not-found for a package the change never mentions means the lockfile
+moved and the clone did not — re-run `cp -Rc`, not a bad-merge hunt. AGENTS.md
+has the full symptom (B1141).
+
 `.claude/worktrees/` is gitignored and already holds worktrees from other
 sessions. Never work in someone else's.
 
