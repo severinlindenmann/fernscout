@@ -241,6 +241,38 @@ describe("submitBuiltBook", () => {
 });
 
 /**
+ * B1439. The address Gelato is handed in `shippingAddress.email` is not a
+ * postal detail — it is a channel the printer can use to mail the owner
+ * directly, so it must never be the journal owner's own address (nor the
+ * reader's, though that one was never sent in the first place).
+ */
+describe("the address Gelato is handed", () => {
+  test("is never the journal owner's, or any contact's — with an admin address set", async () => {
+    process.env.FERNSCOUT_ADMIN_EMAIL = "agent@fernscout.ch";
+    const { submitBuiltBook } = await import("@/lib/photobook/print");
+
+    await submitBuiltBook(OWNER, ID);
+
+    const order = vi.mocked(submitBookPrint).mock.calls[0][0];
+    expect(order.to.email).toBe("agent@fernscout.ch");
+    expect(order.to.email).not.toBe(`${OWNER}@example.test`);
+    expect(order.to.email).not.toBe("reader@example.test");
+    delete process.env.FERNSCOUT_ADMIN_EMAIL;
+  });
+
+  test("falls back to nothing, never to the owner's address, when no admin address is set", async () => {
+    delete process.env.FERNSCOUT_ADMIN_EMAIL;
+    const { submitBuiltBook } = await import("@/lib/photobook/print");
+
+    await submitBuiltBook(OWNER, ID);
+
+    const order = vi.mocked(submitBookPrint).mock.calls[0][0];
+    expect(order.to.email).toBe("");
+    expect(order.to.email).not.toBe(`${OWNER}@example.test`);
+  });
+});
+
+/**
  * B1348. Settling a refused print gives money back, and two things can reach
  * the same order at the same moment: Gelato's webhook and the five-minute
  * sweep, or a webhook Gelato retries. `refund()` is unconditional and does
