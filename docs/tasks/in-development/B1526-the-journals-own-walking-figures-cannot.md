@@ -101,3 +101,8 @@ instead. This part of the fix could only be made here — nothing under
 Verified: `npx vitest run test/journal-features.test.ts test/content-model.test.ts
 test/openapi-contract.test.ts test/api-route-schemas.test.ts` — 124 tests,
 all pass.
+
+Also verified as part of the combined full `npm run verify` for all three
+tickets in this worktree (see B1519's "Done" section for the run): all 5
+stages passed, 539 files / 7058 tests, nothing here regressed anything
+outside this ticket's own files.

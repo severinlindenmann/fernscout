@@ -121,3 +121,7 @@ here and stays B1529's to fix, in its own repository.
 Verified: `npx vitest run test/openapi-contract.test.ts
 test/api-route-schemas.test.ts test/health-content-writable.test.ts
 test/video-absent.test.ts test/docs-links.test.ts` — 138 tests, all pass.
+
+Also verified as part of the combined full `npm run verify` for all three
+tickets in this worktree (see B1519's "Done" section for the run): all 5
+stages passed, 539 files / 7058 tests.

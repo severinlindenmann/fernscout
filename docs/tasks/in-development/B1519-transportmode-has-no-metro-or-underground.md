@@ -97,3 +97,26 @@ test/openapi-contract.test.ts test/content-model.test.ts` — all pass
 confirms every new mode got a drawing; an unknown mode (`"subway"` in a new
 `validate-entry.test.ts` case) is still refused by name, listing `metro` among
 the known ones.
+
+**Follow-up (same commit range, `bac88f5d`): `npm run build`'s `tsc` step
+caught three more copies of a mode→icon/style map** that this ticket's first
+pass missed — `components/GamePath.tsx` and `components/SlideShow.tsx` each
+keep their own `ICON`/`VEHICLE_ICON` record (the sidebar day-path and the
+lightbox slideshow, both drawing a small mode glyph independently of
+`TravelScene.tsx`), and `lib/transport.ts`'s `TRANSPORT_STYLE` drives the trip
+map's route lines and legend. All three are `Record<TransportMode, …>` with
+no index signature, so adding three enum values turned into a real
+`tsc --noEmit` error at every site until each got its own `metro`/`tram`/
+`ferry` entry — a good illustration of AGENTS.md's build-before-typecheck
+note, since `npm run verify -- --quick` would have reported "success" against
+stale `.next/types` and missed nothing here (these are plain `tsc` errors,
+not route-type ones), but running the two together is what actually caught
+it. `lib/transport.ts` needed a distinct `bow` for `ferry` (0.10) rather than
+copying `boat`'s value outright, because `test/transport-style.test.ts`
+already asserts no two modes draw identically.
+
+**Full `npm run verify` (build → tsc → eslint → vitest → knip), run after
+this fix**: all 5 stages passed in 248s — 539 test files, 7058 tests passed,
+4 skipped (the Postgres-only tests, expected with no `POSTGRES_TEST_URL`
+set). `npm run unused` printed only pre-existing `knip.jsonc` configuration
+hints unrelated to this change.
