@@ -978,7 +978,7 @@
   "photobook.excluded.summary": "{included} von {total} Tagen sind in diesem Buch.",
   "photobook.excluded.putBack": "Zurückholen",
   "photobook.noCredits": "Es waren nicht mehr genug Credits für dieses Buch übrig, es wurde nichts abgebucht.",
-  "photobook.noPhotos": "Ein Buch braucht mindestens ein Foto. Nimm eins zurück in die Auswahl, bevor du bezahlst.",
+  "photobook.noPhotos": "Ein Buch braucht mindestens ein Foto, bevor es bestellt werden kann.",
   "photobook.noRoom": "Dieses Journal ist voll, und ein gedrucktes Buch braucht hunderte Megabyte. Lösche etwas oder kaufe auf deiner eigenen Seite 5 GB dazu, und bestelle dann erneut. Es wurde nichts belastet.",
   "photobook.refundFailed": "Das Buch konnte nicht gebaut werden, und die Credits konnten nicht automatisch zurückgebucht werden — das muss sich jemand ansehen, ein erneuter Klick auf Bezahlen hilft nicht.",
   "photobook.stalePreview": "Die Reise hat sich geändert, seit dieser Preis angezeigt wurde. Es wurde nichts belastet — schau dir die Vorschau erneut an, um den aktuellen Preis zu sehen, bevor du bezahlst.",

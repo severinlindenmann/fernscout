@@ -978,7 +978,7 @@
   "photobook.excluded.summary": "{included} of {total} days are in this book.",
   "photobook.excluded.putBack": "Put back",
   "photobook.noCredits": "There were not enough credits left to pay for this book, and nothing was charged.",
-  "photobook.noPhotos": "A book needs at least one photograph. Bring one back into the selection before paying.",
+  "photobook.noPhotos": "A book needs at least one photograph before it can be ordered.",
   "photobook.noRoom": "This journal is full, and a printed book is hundreds of megabytes. Delete something, or add 5 GB from your own page, then order again. Nothing was charged.",
   "photobook.refundFailed": "The book could not be built, and the credits could not be returned automatically — this needs a person to look at it, not another press of Pay.",
   "photobook.stalePreview": "The trip changed since this price was shown. Nothing was charged — look at the preview again to see the current price before paying.",

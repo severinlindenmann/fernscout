@@ -76,6 +76,40 @@ export function mediaUrl(ref: string, relativePath: string): string {
   return `/${parsed.username}${MEDIA_URL_PREFIX}/${parsed.tripId}/${clean}`;
 }
 
+/** `name`, folded the way two spellings of one file are the same file — see
+ * `resolveMediaFile`'s case-insensitive fallback. */
+const foldedName = (name: string) => name.normalize("NFC").toLowerCase();
+
+/**
+ * Walks `rest` under `root` one segment at a time, matching each against the
+ * directory's actual entries case-folded and NFC-normalised, rather than
+ * assuming the filesystem will.
+ *
+ * Exists because a case-sensitive volume (most production Linux disks; a
+ * developer's own Mac is not one) refuses `03.JPG` for a file written as
+ * `03.jpg` — and frontmatter and disk can disagree on case for the same
+ * reason `findOriginal` in `lib/photobook/source.ts` has to: ingest and a
+ * hand-typed `gallery:` entry do not always spell a name the same way. Tried
+ * only after an exact match has already failed, so the common case pays
+ * nothing for it.
+ */
+function foldedWalk(root: string, rest: string[]): string | null {
+  let dir = root;
+  for (const segment of rest) {
+    const wanted = foldedName(segment);
+    let entries: string[];
+    try {
+      entries = fs.readdirSync(dir);
+    } catch {
+      return null;
+    }
+    const match = entries.find((e) => foldedName(e) === wanted);
+    if (!match) return null;
+    dir = path.join(dir, match);
+  }
+  return dir;
+}
+
 /**
  * Resolve a `/media/...` request path to a file on disk, or null.
  *
@@ -92,18 +126,30 @@ export function resolveMediaFile(username: string, segments: string[]): string |
 
   const [tripId, ...rest] = segments;
   const root = path.resolve(tripMediaDir(`${username}/${tripId}`));
-  const target = path.resolve(root, ...rest);
+  let target = path.resolve(root, ...rest);
 
   // Belt and braces: even with the segment check above, confirm the resolved
   // path is still inside the trip's media directory.
   if (target !== root && !target.startsWith(root + path.sep)) return null;
 
-  let stat: fs.Stats;
+  let stat: fs.Stats | undefined;
   try {
     stat = fs.statSync(target);
   } catch {
-    return null;
+    // Fall through to the case-folded walk below.
   }
+
+  if (!stat) {
+    const folded = foldedWalk(root, rest);
+    if (!folded) return null;
+    target = folded;
+    try {
+      stat = fs.statSync(target);
+    } catch {
+      return null;
+    }
+  }
+
   return stat.isFile() ? target : null;
 }
 

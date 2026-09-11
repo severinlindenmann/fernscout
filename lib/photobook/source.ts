@@ -27,7 +27,7 @@ import { contentRoot } from "../contentRoot";
 import { getDays, getPlaces } from "../entries";
 import { getPlan } from "../plan";
 import { getCostSummary } from "../costs";
-import { mediaOriginalsRoot, tripMediaDir, tripOriginalsDir } from "../media";
+import { mediaOriginalsRoot, resolveMediaFile, tripMediaDir, tripOriginalsDir } from "../media";
 import { getTrip, tripDir } from "../trips";
 import { readJpeg } from "../postcard/pdf.ts";
 import { paragraphsOf } from "./text.ts";
@@ -43,7 +43,20 @@ import type {
   RoutePoint,
 } from "./plan.ts";
 
-/** `/media/<trip>/a/b.jpg` → the file on disk inside that trip. */
+/**
+ * `/media/<trip>/a/b.jpg` → the file on disk inside that trip.
+ *
+ * Routed through `resolveMediaFile` — the same function
+ * `app/[user]/media/[...path]/route.ts` serves a browser tab from — so "the
+ * file this src means" is answered once, the same way, for both. Ingest
+ * renames by hash and a hand-typed `gallery:` entry does not always agree
+ * with disk on case, and `resolveMediaFile` is the one place that already
+ * tries a case-folded, NFC-normalised match when the exact spelling misses
+ * (B1279). Falling back to the plain join when that also comes up empty
+ * keeps every existing caller — including a file genuinely gone — behaving
+ * exactly as before: `resolvePrintFile`/`dimensionsOf` still fail the same
+ * way for a truly missing photograph.
+ */
 function mediaFileFor(ref: string, src: string): string {
   // Entry frontmatter keeps media trip-relative; the reader prefixes the
   // username, so a src may arrive either way. Accept both.
@@ -52,7 +65,9 @@ function mediaFileFor(ref: string, src: string): string {
   const prefixes = [`/${owner}/media/${tripId}/`, `/media/${tripId}/`];
   const prefix = prefixes.find((p) => src.startsWith(p)) ?? `/media/${tripId}/`;
   const relative = src.startsWith(prefix) ? src.slice(prefix.length) : src.replace(/^\/+/, "");
-  return path.join(tripDir(ref), "media", relative);
+  const segments = relative.split("/").filter(Boolean);
+  const resolved = owner && segments.length >= 1 ? resolveMediaFile(owner, [tripId, ...segments]) : null;
+  return resolved ?? path.join(tripDir(ref), "media", relative);
 }
 
 /**
@@ -354,6 +369,11 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
   // book rather than once per plate; the per-photograph half rides along on
   // any low-resolution warning, where a reader is already looking.
   const fallbacks = new Map<string, string[]>();
+  // A distinct key in the same map, for the one case that is worse than a
+  // fallback: a photograph dropped from the book outright because nothing
+  // could measure it (B1279). Kept out of `fallbacks`' own vocabulary of
+  // reasons so its warning text can say "left out" instead of "printed".
+  const DROPPED_NO_DIMENSIONS = "\0dropped-no-dimensions";
   const excluded = new Set(options.excludePhotos ?? []);
 
   // B322 — no ReadOptions here, so this reads published days only, and that
@@ -383,7 +403,15 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
           (item.width && item.height
             ? { width: item.width, height: item.height }
             : dimensionsOf(print.absolute));
-        if (!size) continue;
+        if (!size) {
+          // Dropped rather than printed soft — the one case worse than a low-
+          // resolution warning, so it gets its own reason in the same
+          // machinery rather than vanishing without a line anywhere (B1279).
+          const seen = fallbacks.get(DROPPED_NO_DIMENSIONS) ?? [];
+          seen.push(print.file);
+          fallbacks.set(DROPPED_NO_DIMENSIONS, seen);
+          continue;
+        }
         if (options.minPixelWidth && size.width < options.minPixelWidth) continue;
         if (print.fallbackReason) {
           const seen = fallbacks.get(print.fallbackReason) ?? [];
@@ -438,9 +466,12 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
     code: "no-original",
     count: files.length,
     detail:
-      `${files.length} of ${photoCount} photographs printed from the web copy because ` +
-      `${reason}: ${files.slice(0, 3).join(", ")}${files.length > 3 ? ", …" : ""}. ` +
-      "The web copy is capped at 2000px, which is soft on a full page.",
+      reason === DROPPED_NO_DIMENSIONS
+        ? `${files.length} photograph${files.length === 1 ? "" : "s"} left out of the book because ` +
+          `its dimensions could not be read: ${files.slice(0, 3).join(", ")}${files.length > 3 ? ", …" : ""}.`
+        : `${files.length} of ${photoCount} photographs printed from the web copy because ` +
+          `${reason}: ${files.slice(0, 3).join(", ")}${files.length > 3 ? ", …" : ""}. ` +
+          "The web copy is capped at 2000px, which is soft on a full page.",
   }));
 
   return {
