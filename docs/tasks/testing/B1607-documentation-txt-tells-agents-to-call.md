@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: API v2
 found: "2026-09-12T18:03:38Z"
+merged: "2026-09-12T18:32:07Z"
 ---
 
 # B1607 — documentation.txt tells agents to call the eight auth routes that no longer exist
