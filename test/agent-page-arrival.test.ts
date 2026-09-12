@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { arrivalFor } from "@/app/agent/page";
+import { arrivalFor } from "@/lib/helper/pageState";
 
 /**
  * B1242 — the WhatsApp preview link carries both `?c=` (which conversation)

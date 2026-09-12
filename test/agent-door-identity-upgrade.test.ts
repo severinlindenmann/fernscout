@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { shouldUpgradeIdentity } from "@/app/agent/page";
+import { shouldUpgradeIdentity } from "@/lib/helper/pageState";
 
 /**
  * B1492 — an owner signed in on their own journal was shown the code form
