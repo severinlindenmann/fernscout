@@ -7,8 +7,7 @@ complexity: low
 area: agent room
 found: "2026-09-12T07:26:45Z"
 started: "2026-09-12T08:26:57Z"
-session: 5a4744c4-0424-4149-9d23-d8a0bd9dd3b1
-claimed: "2026-09-12T08:26:57Z"
+merged: "2026-09-12T08:43:28Z"
 ---
 
 # B1560 — On mobile, the chat page scrolls the whole document and the tab bar stops sticking
