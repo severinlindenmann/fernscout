@@ -17,11 +17,17 @@ const fullTrip = {
   title: "Alps by rail",
   dates: { from: "2026-09-20", to: "2026-09-27" },
   visibility: "guest",
+  teaser: false,
   people,
   rates: { currencies: ["CHF", "EUR"] },
   costs: { budget: { total: 1800, currency: "CHF" } },
   plan: { route: [{ location: "Grindelwald", lat: 46.62, lng: 8.03 }] },
-  declined: { days: "trip has not started yet" },
+  accent: "green",
+  declined: {
+    days: "trip has not started yet",
+    translations: "owner writes this journal in English only for now",
+    cover: "no photographs uploaded yet — auto-pick the newest",
+  },
 };
 
 const fullDay = {
@@ -48,15 +54,34 @@ describe("required-or-declined", () => {
       title: "Alps by rail",
       dates: { from: "2026-09-20", to: "2026-09-27" },
       visibility: "guest",
+      teaser: false,
       people,
     });
     expect(r.success).toBe(false);
     const missing = r.error!.issues.filter((i) => "params" in i && (i as { params?: { v2?: string } }).params?.v2 === "missing");
-    expect(missing.map((i) => i.path[0]).sort()).toEqual(["costs", "days", "plan", "rates"]);
+    expect(missing.map((i) => i.path[0]).sort()).toEqual([
+      "accent", "costs", "cover", "days", "plan", "rates", "translations",
+    ]);
     // Each carries how to decline, so the refusal is the documentation.
     for (const issue of missing) {
       expect((issue as { params?: { toDecline?: string } }).params?.toDecline).toMatch(/^declined\./);
     }
+  });
+
+  it("rejects the retired status field — derived from the dates, stored nowhere", () => {
+    expect(tripCreate.safeParse({ ...fullTrip, status: "current" }).success).toBe(false);
+  });
+
+  it("demands teaser on a closed trip and refuses it on a public one", () => {
+    const noTeaser = { ...fullTrip } as Record<string, unknown>;
+    delete noTeaser.teaser;
+    expect(tripCreate.safeParse(noTeaser).success).toBe(false);
+    expect(
+      tripCreate.safeParse({ ...fullTrip, visibility: "public", teaser: false, listed: true }).success,
+    ).toBe(false);
+    expect(
+      tripCreate.safeParse({ ...(noTeaser as object), visibility: "public", listed: true }).success,
+    ).toBe(true);
   });
 
   it("refuses a section both brought and declined", () => {

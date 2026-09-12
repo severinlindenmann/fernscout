@@ -4,12 +4,7 @@
 // (/rates, /people, /visibility, /costs, /plan …) is sections of this one
 // schema, each always-required, required-or-declined, or server-owned.
 import { z } from "zod";
-import {
-  ACCENTS,
-  COSTS_VISIBILITIES,
-  STATUSES,
-  VISIBILITIES,
-} from "../../../tripWrite";
+import { ACCENTS, COSTS_VISIBILITIES, STATUSES, VISIBILITIES } from "../../../tripWrite";
 import { MAX_TRIP_PEOPLE } from "../../../trips";
 import { dayDoc, dayWrite } from "./day";
 import {
@@ -66,6 +61,14 @@ const plan = z.strictObject({
   body: z.string().optional(),
 });
 
+/** The trip's card text in the journal's other languages. The route refuses
+ * a locale the journal does not declare, since it would be written and never
+ * rendered — that check needs the journal's config and lives at the door. */
+const translations = z.record(
+  z.string(),
+  z.strictObject({ title: z.string().optional(), tagline: z.string().optional() }),
+);
+
 /** ── the required-or-declined ledger for a trip ──────────────────────── */
 
 export const TRIP_DECLINABLES: readonly Declinable[] = [
@@ -85,12 +88,35 @@ export const TRIP_DECLINABLES: readonly Declinable[] = [
     field: "days",
     whyRequired: "a trip carries its days, or says why there are none yet (e.g. it has not started)",
   },
+  {
+    field: "translations",
+    whyRequired:
+      "a journal that maintains several languages carries each trip's title and tagline in all of them, or says why not (a single-language journal is exempt — the route skips this check)",
+  },
+  {
+    field: "accent",
+    whyRequired: "every trip picks the colour its cards are drawn in, or leaves it to the default with a reason",
+  },
+  {
+    field: "cover",
+    whyRequired:
+      "a trip names the photograph its card shows (a media src), or declines — a declined cover is auto-picked from the newest photograph, and the echo says which",
+  },
 ] as const;
+
+const DECLINABLE_KEYS = ["rates", "costs", "plan", "days", "translations", "accent", "cover"] as const;
 
 /**
  * Creating a trip: the whole document at once. Every declinable section is
  * present or in `declined` — a silent omission answers 422 with the missing
  * list, which is the documentation delivered at the moment it is needed.
+ *
+ * Deliberately absent from the write shape:
+ * - `status` — derived from the dates on every read (calendarStatus), never
+ *   written. v1's manual override is retired; a stored status is how a trip
+ *   stays "current" for a year (decided 2026-09-12).
+ * - v1's `tracks:` — "what this trip keeps track of" is now the same
+ *   declined map as everything else, one mechanism instead of two.
  */
 export const tripCreate = z
   .strictObject({
@@ -104,30 +130,57 @@ export const tripCreate = z
      * refused outright. */
     visibility: z.enum(VISIBILITIES),
     people: z.array(person).min(1).max(MAX_TRIP_PEOPLE),
+    /** Required on a closed trip (guest/private): may the trip's existence
+     * show as a locked card? A boolean is its own answer, so there is no
+     * decline path — bring true or false. Refused on a public trip, where
+     * `listed` is the key that decides. B587. */
+    teaser: z.boolean().optional(),
 
-    // ── required-or-declined ──
+    // ── required-or-declined (see TRIP_DECLINABLES) ──
     rates: rates.optional(),
     costs: costs.optional(),
     plan: plan.optional(),
     days: z.array(dayWrite).optional(),
-    declined: declinedMap(["rates", "costs", "plan", "days"]).optional(),
+    translations: translations.optional(),
+    accent: z.enum(ACCENTS).optional(),
+    /** The media src the trip's card shows. Upload through the media door
+     * first; set or change it here any time. */
+    cover: z.string().optional(),
+    declined: declinedMap(DECLINABLE_KEYS).optional(),
 
     // ── plain optional ──
+    /** One line under the title on the trip card. */
     tagline: z.string().optional(),
+    /** The trip page's opening prose — trip.md's body. */
     intro: z.string().optional(),
-    accent: z.enum(ACCENTS).optional(),
-    /** Absent means derived from the dates (calendarStatus). */
-    status: z.enum(STATUSES).optional(),
-    /** Only ever narrows: false keeps a public trip out of sitemap/feed;
-     * true on a closed trip is refused. */
+    /** Advertised or not: false keeps a public trip out of the sitemap, the
+     * feed and the switcher (still reachable by URL, still readable). Only
+     * ever narrows; true on a closed trip is refused. B51. */
     listed: z.boolean().optional(),
-    /** A closed trip advertising its existence: locked card, title + dates,
-     * nothing else. Refused on a public trip. */
-    teaser: z.boolean().optional(),
     /** Content nobody lived. */
     test: z.boolean().optional(),
   })
-  .superRefine((doc, ctx) => checkRequiredOrDeclined(doc, TRIP_DECLINABLES, ctx));
+  .superRefine((doc, ctx) => {
+    checkRequiredOrDeclined(doc, TRIP_DECLINABLES, ctx);
+    // teaser: mandatory question on a closed trip, meaningless on an open one.
+    if (doc.visibility === "public" && doc.teaser !== undefined) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["teaser"],
+        message: "a public trip has nothing to tease — `listed` is the key that decides. Remove teaser.",
+        params: { v2: "conflict" },
+      });
+    }
+    if (doc.visibility !== "public" && doc.teaser === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["teaser"],
+        message:
+          "a closed trip states whether its existence may show as a locked card: teaser: true or teaser: false",
+        params: { v2: "missing" },
+      });
+    }
+  });
 
 /**
  * What every GET answers: the stored document plus the server-owned truth.
@@ -139,13 +192,18 @@ export const tripDoc = z.object({
   ...tripCreate.def.shape,
   days: z.array(dayDoc),
   // ── server-owned ──
+  /** Derived from the dates on every read; stored nowhere. */
+  status: z.enum(STATUSES),
+  /** The cover actually in effect: the chosen src, or — when cover was
+   * declined — the newest photograph, with `auto: true` so the agent knows
+   * the server picked it. */
+  coverResolved: z.strictObject({ src: z.string(), auto: z.boolean() }).optional(),
   /** The ground actually covered, derived from the gps store, clipped and
    * cleaned. Never writable; the store itself is reachable by no route. */
   track: z.strictObject({ present: z.boolean(), updatedAt: z.string().optional() }).optional(),
   /** Merged write-access list: the people block plus approved buddy rows.
    * The byline stays the file's own people. */
   peopleResolved: z.array(z.strictObject({ name: z.string(), viaBuddyLink: z.boolean() })).optional(),
-  cover: z.string().optional(),
 });
 
 export type TripCreate = z.infer<typeof tripCreate>;
