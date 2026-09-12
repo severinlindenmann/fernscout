@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: deploy/edge
 found: "2026-09-11T23:06:54Z"
+started: "2026-09-12T07:22:47Z"
+session: 5c987a64-dfc0-4ac9-9b57-3804213ba1b8
+claimed: "2026-09-12T07:22:47Z"
 ---
 
 # B1551 — Any route buffers 512 MiB in memory before auth runs; Caddy sets no request_body max_size

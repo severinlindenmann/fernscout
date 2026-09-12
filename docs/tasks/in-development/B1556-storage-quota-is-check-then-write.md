@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: storage/quota
 found: "2026-09-11T23:06:54Z"
+started: "2026-09-12T07:22:50Z"
+session: 5c987a64-dfc0-4ac9-9b57-3804213ba1b8
+claimed: "2026-09-12T07:22:50Z"
 ---
 
 # B1556 — Storage quota is check-then-write — parallel uploads pass the ceiling arbitrarily

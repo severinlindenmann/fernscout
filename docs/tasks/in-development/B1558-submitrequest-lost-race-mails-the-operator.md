@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: payments
 found: "2026-09-11T23:06:54Z"
+started: "2026-09-12T07:22:51Z"
+session: 5c987a64-dfc0-4ac9-9b57-3804213ba1b8
+claimed: "2026-09-12T07:22:51Z"
 ---
 
 # B1558 — submitRequest lost race mails the operator a dead approval link

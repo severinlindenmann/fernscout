@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: auth/mail
 found: "2026-09-11T23:06:54Z"
+started: "2026-09-12T07:22:48Z"
+session: 5c987a64-dfc0-4ac9-9b57-3804213ba1b8
+claimed: "2026-09-12T07:22:48Z"
 ---
 
 # B1552 — Email code endpoints have per-IP limits only — no per-recipient or per-instance cap

@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: postcards/photobook
 found: "2026-09-11T23:06:54Z"
+started: "2026-09-12T07:22:52Z"
+session: 5c987a64-dfc0-4ac9-9b57-3804213ba1b8
+claimed: "2026-09-12T07:22:52Z"
 ---
 
 # B1559 — Paid send routes rely on SameSite=lax alone — no Origin check as second layer
