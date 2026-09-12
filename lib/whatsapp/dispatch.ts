@@ -14,7 +14,8 @@ import { recordTurn } from "../helper/sessions";
 import { MAX_AUDIO_BYTES, MAX_SPEECH_SECONDS, speechLanguageFor } from "../helper/speech";
 import { forget, history, lastTouched, proposed, remember, sessionId } from "../helper/thread";
 import { spendAndTranscribe } from "../helper/transcribeSpend";
-import { kindForExtension, storeInboxFile } from "../inbox";
+import { kindForExtension, moveInboxFileToDay, storeInboxFile } from "../inbox";
+import { writeDayReadiness } from "../dayReadiness";
 import { translateIn } from "../locales";
 import { claimPhoneLink } from "../phoneVerify/inboundLink";
 import { journalForNumber } from "../registry";
@@ -591,7 +592,9 @@ async function handleLocationPin(
   locale: string,
   message: Extract<InboundMessage, { kind: "location" }>,
 ): Promise<void> {
-  storeInboxFile(
+  const receivedAt = new Date((Number(message.timestamp) || Date.now() / 1000) * 1000);
+  const date = receivedAt.toISOString().slice(0, 10);
+  const { entry } = storeInboxFile(
     username,
     "location",
     `location-${message.timestamp}.json`,
@@ -600,9 +603,16 @@ async function handleLocationPin(
       lat: message.latitude,
       lon: message.longitude,
       source: "whatsapp",
-      receivedAt: new Date((Number(message.timestamp) || Date.now() / 1000) * 1000).toISOString(),
+      receivedAt: receivedAt.toISOString(),
     },
   );
+  // A location pin already carries its own date — the message timestamp —
+  // so it files straight into that date's own staging folder rather than
+  // the flat, undated bucket (SDD plan: inbox day-assembly Phase 2, Task 3).
+  moveInboxFileToDay(username, entry.id, date);
+  writeDayReadiness(username, date, {
+    location: { lat: message.latitude, lon: message.longitude, source: "whatsapp" },
+  });
   await sendServiceReply(message.from, translateIn(locale, "wa.locationSaved"), username);
 }
 
