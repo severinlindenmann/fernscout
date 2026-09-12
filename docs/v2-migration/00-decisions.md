@@ -14,7 +14,12 @@ the owner with a recommended default.
    why_required + how to decline. Conditional questions (asked only where
    they apply, refused where they don't). One field write-and-read (no
    *Resolved twins). One fact, one address.
-4. Storage stays markdown; JSON is wire-only.
+4. ~~Storage stays markdown; JSON is wire-only.~~ **Overruled by the owner,
+   2026-09-12 (B1606): storage becomes JSON too.** A day is one
+   `entries/YYYY-MM-DD-slug.json`; a trip's `trip.md` + `costs.md` +
+   `plan.md` collapse into one `trip.json` — no schema changed, only the
+   file format. See `06-contract-deltas.md`'s final section and
+   `05-status.md`.
 5. The per-journal `features` block is instance-only now; `startLocation`
    dropped; `units`/`visibility`/`displayCurrencies` required on the
    journal; `manualRates` lives per-trip inside `rates.manual`; storage is
