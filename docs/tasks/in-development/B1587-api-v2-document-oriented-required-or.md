@@ -69,6 +69,26 @@ visual representation of every schema for the owner's feedback.
 Not doing here: routes, the md↔JSON serializer, openapi generation wiring,
 helper migration — each is its own later ticket once the schemas are blessed.
 
+## Execution status (2026-09-12)
+
+Plan finalised as "the clean cut" (test instance, M1-M4 decided):
+DB dropped fresh, only example must survive the replay migration (owner
+migrates their own journal by hand later), example is the acceptance
+fixture exercising every feature, no overlap — invite-only ALPHA and
+iterative deploys to the one instance.
+Plan: https://claude.ai/code/artifact/c3bee44b-5e2e-476f-af43-8f5a7409bae9
+Contract: https://claude.ai/code/artifact/d03db943-56de-456f-997c-1bfe2d5315bb
+Explorer (openapi): https://claude.ai/code/artifact/76c92f48-7f0e-4c7a-83e3-024dd4e929a7
+
+- Phase 0 (golden contract): DONE on this branch — V/T verdicts folded,
+  dayPatch/tripPatch, 30 schema tests green.
+- Phase 1 (lock the door): DONE on the live instance — signup disabled,
+  ALPHA banner (EN/DE) set in FERNSCOUT_CONFIG, config backed up as
+  config.json.pre-alpha-*, verified: /api/health off:[signup], signup
+  answers signup_disabled, banner renders.
+- Next: phase 2, build v2 area by area (auth first), deleting v1 in the
+  same merges; deploy + validate live per step.
+
 ## Acceptance
 
 - `npx vitest run test/api-v2-schemas.test.ts` passes: valid example documents
