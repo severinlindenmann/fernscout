@@ -6,21 +6,12 @@ priority: medium
 complexity: low
 area: fernscout-helper, publish, config
 found: "2026-09-12T08:21:10Z"
+started: "2026-09-12T09:12:25Z"
+session: 615a7d13-b735-48b0-a399-bf28e199b7bb
+claimed: "2026-09-12T09:12:25Z"
 ---
 
 # B1569 — publish hardcodes nine journal profile keys, so ownerTel and travellers are dropped in silence
-
-## Why
-
-TODO — the problem, not the fix.
-
-## Work
-
-TODO
-
-## Acceptance
-
-TODO
 
 ## Why
 

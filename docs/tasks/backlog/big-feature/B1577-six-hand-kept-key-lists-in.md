@@ -106,6 +106,16 @@ reasons, hints and per-field prose that a schema cannot hold, and rewriting
 them to be schema-driven would cost the thing this codebase is actually good
 at. The aim is one source per *fact*, not one file for everything.
 
+## Decided, 2026-09-12, before any code
+
+**A new top-level `doors` section, not a ninth assert kind.** W41 chose eight
+closed `assert` kinds and said out loud that anything not fitting becomes a
+`NamedCheck` rather than a ninth; widening that vocabulary would change what
+every existing interpreter has to handle, for a fact that is not a rule about
+a file's contents at all — it is a fact about which call writes it. A separate
+section leaves `rules` and `named` byte-identical for a client that does not
+know about doors yet.
+
 ## Acceptance
 
 - Adding a key to `trip.md`'s model without declaring a door fails
