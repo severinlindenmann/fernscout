@@ -1,26 +1,39 @@
-# v2 migration — the eight waves (summary; the full plan is the artifact)
+# v2 migration — the clean cut (supersedes the eight-wave draft below the fold)
 
-Full plan with gates and rollback per wave:
-https://claude.ai/code/artifact/c3bee44b-5e2e-476f-af43-8f5a7409bae9
+Full plan: https://claude.ai/code/artifact/c3bee44b-5e2e-476f-af43-8f5a7409bae9
 
-Principle: v2 shares the domain layer and storage with v1 — one writer per
-file, so every wave until 7 is additive and rollback is "redeploy the
-previous tag". Cross-cutting nets from wave 0: golden corpus (byte-identical
-round trip over every real file, unknown keys preserved), parity suite
-(same write via v1 and v2 → identical file, quirk ledger), import-boundary
-test, B1090 checks on pre-existing content, per-token request logging.
+Context that changed the plan: this is a TEST instance — two journals
+(example + the owner's), no third-party agents, full permission to
+recreate. So: no parallel operation, no aliases, no Deprecation/Sunset
+phase, no parity suite, no dual-read shims. Instead:
 
-| Wave | Ships | Risk | Gate in one line |
-|---|---|---|---|
-| 0 | Frozen schemas (V/T folded), serializer + golden corpus, describeScope, openapi generation | none | verify + corpus green over live-journal copies |
-| 1 | All v2 GETs, /openapi.json, generated docs, request logging; figures dual-read shim | low | read-parity vs v1 on live content |
-| 2 | v2 write core in parallel; v1 untouched; Deprecation headers on v1 | med | parity suite + live B540-style test-journal drive |
-| 3 | Auth merge (old routes stay aliases), invites/contacts, money reads, postcards PUT, journals create; figures migration script runs (backup first) | med | full auth matrix local + live signup drill |
-| 4 | Helper onto v2 via in-process cookie proxy, one tool area per merge, old helper routes deleted as repointed; declined-matcher with the first declining tool | high | persona round per area |
-| 5 | Webapp pages one by one: EditDay proxies, me/*, admin, stragglers die | med | test-in-a-browser per page, 390px, old content |
-| 6 | Soak 2–4 weeks; Sunset date announced only when request logs show no third-party v1 writes | low | testing/ lane empty, logs quiet |
-| 7 | v1 → 410 one release, then deleted (openapi.ts, v1 tree, aliases, parity suite, dual-read shim, doors); AGENTS.md rewritten | high | full verify + persona + live e2e; superseded tickets closed by a person |
+- **Build v2 complete on one branch, deleting v1 area by area as each
+  lands.** The branch deploys only when whole.
+- **Migration = replay through the front door**: a script reads each old
+  journal with v1 readers and re-creates it by calling v2's real HTTP
+  API. No file copying → no legacy key survives; the content tree becomes
+  canonical v2. The replay is also the hardest end-to-end test.
+- **Blue/green**: v2 deploys as a second instance (own dir/DB/port);
+  blue (v1) stays frozen and serving until sign-off; DNS swap is minutes
+  and reversible; blue lives through a two-week overlap, then dies.
+- **Trust = instruments, not agent claims** (the build is agent-run):
+  1. inventory diff — a ~100-line auditable no-model script dumps
+     trips/days/media (incl. content hashes of originals) from both
+     instances; machine diff must show only documented drops;
+  2. migration report — every dropped/mapped field listed; an unlisted
+     transformation fails the gate;
+  3. render diff — crawl both sites (anon + owner), text diff + paired
+     screenshots;
+  4. builder ≠ verifier — fresh agents get only openapi.json + a URL and
+     drive every flow blind; persona rounds on /agent;
+  5. the owner reads their own journal on green — the final gate.
 
-Rules: a wave starts only after the previous wave's tickets left testing/
-through a person; nothing is deleted in the wave that replaces it; surprises
-become tickets, never silent scope.
+Phases: 0 freeze spec (V/T folded; V4 unknown-key-preservation dropped —
+replaced by canonicalise+report; V3 advisory machinery kept but not
+launch-blocking) → 1 build complete + delete v1 + build the migrator and
+diff scripts (different agent than the routes) → 2 green up, replay both
+journals, assemble the sign-off package → 3 swap, two-week overlap, then
+blue and the migrator itself are deleted and AGENTS.md is rewritten.
+
+Owner decisions M1–M4 (DB tables to keep, replay re-publishes?, the
+standard migration decline sentence, overlap length) are in the artifact.
