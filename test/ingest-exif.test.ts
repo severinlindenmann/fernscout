@@ -1,8 +1,9 @@
 import { describe, expect, test } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { fromDate, isoDate, isoTime, readExif, wallClockMs } from "@/lib/ingest/exif";
+import { fromDate, isoDate, isoTime, photoMetaFromExif, readExif, wallClockMs } from "@/lib/ingest/exif";
 import { makeJpeg, withExif } from "./support/exif-jpeg";
+import { paintJpegWithExif } from "./support/pictures";
 
 const FIXTURES = path.join(process.cwd(), "test", "fixtures", "ingest");
 
@@ -91,5 +92,23 @@ describe("wall-clock timestamps", () => {
     const parsed = fromDate(new Date(2026, 7, 14, 7, 20, 31));
     expect(isoDate(parsed)).toBe("2026-08-14");
     expect(isoTime(parsed)).toBe("07:20");
+  });
+});
+
+describe("photoMetaFromExif", () => {
+  test("bytes with no EXIF at all answer null, not a throw", () => {
+    expect(photoMetaFromExif(new Uint8Array(Buffer.from("not an image")))).toBeNull();
+  });
+
+  test("a JPEG with GPS and DateTimeOriginal answers both", async () => {
+    const bytes = await paintJpegWithExif(40, 30, {
+      lat: 46.5,
+      lon: 7.9,
+      takenAt: "2026-05-04T10:00:00.000Z",
+    });
+    const result = photoMetaFromExif(bytes);
+    expect(result?.lat).toBeCloseTo(46.5, 2);
+    expect(result?.lon).toBeCloseTo(7.9, 2);
+    expect(result?.takenAt).toBe("2026-05-04T10:00:00");
   });
 });
