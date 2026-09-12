@@ -129,7 +129,7 @@ describe("the signup wizard", () => {
     root = createRoot(container!);
     act(() => {
       root!.render(
-        withLocale(<SignupWizard locale="en" codeMinutes="20" onSignedIn={() => {}} />),
+        withLocale(<SignupWizard locale="en" codeMinutes="20" onSignedIn={() => {}} onAlreadyOwns={() => {}} />),
       );
     });
 
@@ -191,7 +191,7 @@ describe("the signup wizard", () => {
       // The browser is in English; the person writes in German and wants a
       // Hungarian switcher. Neither answer is guessable from `locale`.
       root!.render(
-        withLocale(<SignupWizard locale="en" codeMinutes="20" onSignedIn={() => {}} />),
+        withLocale(<SignupWizard locale="en" codeMinutes="20" onSignedIn={() => {}} onAlreadyOwns={() => {}} />),
       );
     });
 

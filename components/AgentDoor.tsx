@@ -202,8 +202,19 @@ export default function AgentDoor({
               /* B688: a visitor with no journal completes the whole of signup
                  right here — email, a name, an address, a first trip — and
                  never sees `/welcome`, which was written for somebody who
-                 already knows what this is. */
-              <SignupWizard email={identityEmail ?? undefined} locale={locale} codeMinutes={codeMinutes} onSignedIn={intoTheWizard} />
+                 already knows what this is.
+
+                 `onAlreadyOwns` — B1568: the wizard's own code step now finds
+                 out when the proven address already owns a journal, and the
+                 way forward from there is the sign-in form, the same one the
+                 "yes" answer above shows. */
+              <SignupWizard
+                email={identityEmail ?? undefined}
+                locale={locale}
+                codeMinutes={codeMinutes}
+                onSignedIn={intoTheWizard}
+                onAlreadyOwns={() => setHas(true)}
+              />
             )}
 
             {/* Choosing wrongly costs one tap and no reload — which is what
@@ -223,7 +234,22 @@ export default function AgentDoor({
         {signedIn &&
           (signupEnabled ? (
             <div className="mt-6">
-              <SignupWizard email={identityEmail ?? undefined} locale={locale} codeMinutes={codeMinutes} onSignedIn={intoTheWizard} />
+              {/* `has` doubles as the escape hatch here too — B1568: an
+                  identity whose journal-owning address is a *different* one
+                  still reaches the wizard, and the wizard's code step may
+                  find that address already owns a journal. The way forward
+                  is signing in as it, exactly as in the signed-out branch. */}
+              {has === true ? (
+                <IdentitySignIn codeMinutes={codeMinutes} onDone={() => window.location.reload()} />
+              ) : (
+                <SignupWizard
+                  email={identityEmail ?? undefined}
+                  locale={locale}
+                  codeMinutes={codeMinutes}
+                  onSignedIn={intoTheWizard}
+                  onAlreadyOwns={() => setHas(true)}
+                />
+              )}
             </div>
           ) : (
             <p className="mt-6 rounded-2xl border border-navy-200 bg-cream-50 p-5 text-base leading-7 text-navy-800 sm:p-6">
