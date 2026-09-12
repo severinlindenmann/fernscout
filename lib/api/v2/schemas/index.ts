@@ -3,12 +3,14 @@
 // /v2/openapi.json all come from here.
 export { dayDoc, dayWrite, dayPatch, DAY_DECLINABLES } from "./day";
 export { tripCreate, tripPatch, tripDoc, TRIP_DECLINABLES } from "./trip";
-export { journalDoc, journalWrite, journalPatch } from "./journal";
+export { journalDoc, journalWrite, journalPatch, JOURNAL_DECLINABLES } from "./journal";
 export { mediaIntent, mediaItem, MEDIA_KINDS } from "./media";
 export { instanceStatus, journalStatus } from "./status";
 export { figureDoc, journalFigures, tripFigures } from "./figures";
 export type { FigureDoc } from "./figures";
 export { errorEnvelope, incompleteDetails, declineReason } from "./shared";
+export { geocodeRequest, geocodeResponse, geocodeCandidate } from "./geocode";
+export type { GeocodeRequest } from "./geocode";
 export {
   CREDENTIAL_FOR,
   CREDENTIAL_TO_SESSION_KIND,
