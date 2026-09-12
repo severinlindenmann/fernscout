@@ -29,6 +29,10 @@
     "scripts/*.{ts,mts,mjs}",
     // A skill's own tooling — run by an agent following the SKILL.md beside it.
     ".claude/skills/**/*.mjs",
+    // The v2 contract, phase 0 (B1587): schemas written as the reviewable
+    // spec before the routes that consume them exist. Remove this entry when
+    // the first /api/v2 route imports from it.
+    "lib/api/v2/schemas/index.ts",
     // The suite, and the fixtures it reaches for.
     "test/**/*.test.{ts,tsx}",
     "test/fixtures/**/*.{ts,tsx}",
