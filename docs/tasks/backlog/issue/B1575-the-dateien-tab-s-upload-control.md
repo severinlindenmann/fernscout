@@ -12,12 +12,28 @@ found: "2026-09-12T08:54:29Z"
 
 ## Why
 
-TODO — the problem, not the fix.
+Reported directly: the "Dateien" tab's upload control must be at the top,
+not the bottom — with several files already uploaded, a person has to scroll
+past all of them to find it.
+
+`components/HelperRoom.tsx:2506`, inside `FilesPane`, renders `<UploadPanel
+… />` as the very last element — after the selection count/clear row, the
+inbox groups (`InboxFileGroups`, potentially many rows), and the trip photos
+`Group`. On a phone, with a long inbox, the upload control is scrolled well
+below the fold every time the tab opens.
 
 ## Work
 
-TODO
+- `components/HelperRoom.tsx` — move `<UploadPanel username={username}
+  onInboxAdded={onInboxAdded} />` (line 2506) to render before the inbox
+  groups and trip-photos group, immediately after the selection-count row
+  (around line 2415), so it is visible without scrolling regardless of how
+  many files are already listed.
+- No change to `UploadPanel` itself, or to what it does — this is a render
+  order change only.
 
 ## Acceptance
 
-TODO
+- On a phone-width browser with several inbox files already present, open
+  "Dateien": the upload control is visible without scrolling.
+- `npm run verify` passes.
