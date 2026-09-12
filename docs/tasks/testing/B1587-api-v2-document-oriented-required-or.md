@@ -7,8 +7,7 @@ complexity: high
 area: api
 found: "2026-09-12T13:45:05Z"
 started: "2026-09-12T13:45:48Z"
-session: 35a4360e-ce08-4e73-b635-477f5ac0c864
-claimed: "2026-09-12T13:45:48Z"
+merged: "2026-09-12T16:40:49Z"
 ---
 
 # B1587 — API v2: document-oriented, required-or-declined contract (phase 0: Zod schemas)
