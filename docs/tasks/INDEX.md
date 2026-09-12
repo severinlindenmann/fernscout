@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (238)
+## backlog (237)
 
 ### security (6)
 
@@ -172,13 +172,12 @@ Do not edit them by hand; run the script.
 | [B1531](backlog/small-feature/B1531-the-stored-derivative-is-jpeg-for.md) | The stored derivative is JPEG for a reader that never sees it and a printer that only sometimes needs it | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (11)
+### chore (10)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1146](backlog/chore/B1146-two-branches-in-flight-both-number.md) | Two branches in flight both number their migration 028, so the second to merge has two | CHORE | high | low |
 | [B1612](backlog/chore/B1612-v2-trips-and-days-the-whole.md) | v2 trips and days: the whole-document routes, publish, unpublish and one send door | CHORE | high | high |
-| [B1613](backlog/chore/B1613-v2-media-one-door-per-kind.md) | v2 media: one door, per-kind intents, content-addressed src and day-less trip writes | CHORE | high | high |
 | [B1412](backlog/chore/B1412-the-delete-trip-link-sits-on.md) | the delete-trip link sits on the trip page, where a reader is reading, rather than with the trip's other owner controls | CHORE | medium | low |
 | [B1449](backlog/chore/B1449-the-thread-prompt-is-21-tokens.md) | The thread prompt is 21 tokens from its ceiling, and the ceiling measures a different string than the wire | CHORE | medium | low |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
@@ -352,7 +351,7 @@ _Nothing here._
 | [B1445](in-development/B1445-a-spent-trip-choice-card-stays.md) | A spent trip-choice card stays a pressable button that does nothing | ISSUE | low | low | — |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
-## testing (21)
+## testing (22)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -370,6 +369,7 @@ _Nothing here._
 | [B1607](testing/B1607-documentation-txt-tells-agents-to-call.md) | documentation.txt tells agents to call the eight auth routes that no longer exist | ISSUE | high | medium | — |
 | [B1608](testing/B1608-v2-core-documents-the-shared-write.md) | v2 core documents: the shared write path, journal, status, geocode | CHORE | high | high | — |
 | [B1609](testing/B1609-the-figures-library-walking-figures-become.md) | The figures library: walking figures become journal-level documents with ids | FEATURE | high | high | — |
+| [B1613](testing/B1613-v2-media-one-door-per-kind.md) | v2 media: one door, per-kind intents, content-addressed src and day-less trip writes | CHORE | high | high | — |
 | [B1409](testing/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low | — |
 | [B1520](testing/B1520-two-days-with-the-same-title-collide.md) | Two days with the same title collide at publish with 409, and nothing catches it first | ISSUE | medium | low | — |
 | [B1522](testing/B1522-a-day-that-plainly-moved-and.md) | A day that plainly moved and carries no transportMode draws no leg, and only a tip says so | FEATURE | medium | low | — |
