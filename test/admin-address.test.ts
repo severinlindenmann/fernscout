@@ -77,7 +77,13 @@ function writeJournal(username: string, email: string) {
   );
 }
 
-function writeTrip(username: string, id: string) {
+/**
+ * Writes both stores a v2 day-write has to agree with: `trip.md`, which
+ * `lib/trips.ts`/`lib/tripGate.ts` still read (B1598 — the read layer has not
+ * flipped yet), and `trip.json`, which `PUT .../days/{slug}` reads through
+ * `lib/api/v2/store.ts`.
+ */
+async function writeTrip(username: string, id: string) {
   const root = path.join(dir, username, "trips", id);
   fs.mkdirSync(path.join(root, "entries"), { recursive: true });
   fs.writeFileSync(
@@ -103,6 +109,15 @@ function writeTrip(username: string, id: string) {
       "\n",
     ),
   );
+
+  const { writeTripFile } = await import("@/lib/api/v2/store");
+  writeTripFile(username, id, {
+    id,
+    title: id,
+    dates: { from: "2026-08-25", to: "2026-08-26" },
+    visibility: "private",
+    people: [],
+  });
 }
 
 /** Ask for an agent code the way an agent does — the route is the gate. */
@@ -142,25 +157,55 @@ async function agentToken(username: string, email: string): Promise<string> {
   return body.token!;
 }
 
+/** A slug in the `YYYY-MM-DD-slug` shape the v2 route requires, derived from
+ * the title so each call in this file gets a slug of its own. */
+function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Every declinable this file's day is not actually about, answered rather
+ * than left to fail the v2 completeness contract (B531/DAY_DECLINABLES) —
+ * not this file's subject, exactly as the two declines the v1 route asked
+ * for used to be. */
+function declineTheRest(): Record<string, string> {
+  return {
+    media: "not this file's subject",
+    costs: "not this file's subject",
+    coordinates: "not this file's subject",
+    weather: "not this file's subject",
+    time: "not this file's subject",
+    timezone: "not this file's subject",
+    location: "not this file's subject",
+    country: "not this file's subject",
+    countryCode: "not this file's subject",
+    transportMode: "not this file's subject",
+    tags: "not this file's subject",
+    translations: "not this file's subject",
+    visibility: "not this file's subject",
+  };
+}
+
 /** A day written into one of Ana's trips, over the API. */
 async function writeDay(token: string, trip: string, title: string) {
-  const { POST } = await import("@/app/api/v1/[user]/trips/[trip]/days/route");
-  const response = await POST(
-    new Request(`https://example.test/api/v1/${OWNER}/trips/${trip}/days`, {
-      method: "POST",
+  const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+  const date = "2026-08-25";
+  const slug = `${date}-${slugify(title)}`;
+  const response = await PUT(
+    new Request(`https://example.test/api/v2/${OWNER}/trips/${trip}/days/${slug}`, {
+      method: "PUT",
       headers: headers({ authorization: `Bearer ${token}` }),
       body: JSON.stringify({
-        date: "2026-08-25",
+        date,
         title,
         content: "Something happened.",
-        // Not this file's subject: the two declines satisfy B531's
-        // completeness contract, which every day written into a tracking trip
-        // meets.
-        costs: false,
-        coordinates: false,
+        status: "draft",
+        declined: declineTheRest(),
       }),
     }),
-    { params: Promise.resolve({ user: OWNER, trip }) },
+    { params: Promise.resolve({ user: OWNER, trip, slug }) },
   );
   return { status: response.status, body: (await response.json()) as { error?: string } };
 }
@@ -190,13 +235,13 @@ beforeAll(async () => {
   );
   writeJournal(OWNER, OWNER_EMAIL);
   writeJournal(ADMIN_JOURNAL, ADMIN);
-  writeTrip(OWNER, "honeymoon-2026");
-  writeTrip(OWNER, "alps-2026");
+  await writeTrip(OWNER, "honeymoon-2026");
+  await writeTrip(OWNER, "alps-2026");
   // The operator's own journal has a trip in it too, because a journal with
   // nothing to open is dropped from this list whoever is asking — and a
   // fixture where their own journal is missing for an unrelated reason would
   // prove nothing about the two roles.
-  writeTrip(ADMIN_JOURNAL, "their-own-2026");
+  await writeTrip(ADMIN_JOURNAL, "their-own-2026");
 
   const { clearConfigCache } = await import("@/lib/config");
   const { clearUserCache } = await import("@/lib/users");

@@ -18,6 +18,13 @@ import {
   type Declinable,
 } from "./shared";
 
+/** A day's own slug pattern — `YYYY-MM-DD-slug`, client-chosen, forever.
+ * Exported (D6, 06-contract-deltas.md) so the day route can validate a URL's
+ * slug segment against the exact same pattern the write schema does, rather
+ * than a second regex that could drift from it — a slug is also a filename,
+ * so this is a security boundary as much as a shape check. */
+export const daySlug = /^\d{4}-\d{2}-\d{2}-[a-z0-9]+(-[a-z0-9]+)*$/;
+
 /** ── building blocks ─────────────────────────────────────────────────── */
 
 /** Exported for `trip.ts`'s `costs.items` (B1597) — preparation spend, before
@@ -139,7 +146,14 @@ export const DAY_DECLINABLES: readonly Declinable[] = [
   },
 ] as const;
 
-const DAY_DECLINABLE_KEYS = [
+/**
+ * Exported (D10, 06-contract-deltas.md) so `publishRequest.declineTracked`
+ * can be an enum of the real decline keys rather than free strings. It was
+ * `z.array(z.string())`, which accepted `declineTracked: ["nonsense"]` and
+ * wrote that straight into the day's `declined` map as a key nothing reads —
+ * a decline that looks recorded and answers no question anybody asked.
+ */
+export const DAY_DECLINABLE_KEYS = [
   "media", "costs", "coordinates", "weather", "time", "timezone", "location",
   "country", "countryCode", "transportMode", "tags", "translations",
   "visibility", "status",
@@ -153,7 +167,7 @@ const DAY_DECLINABLE_KEYS = [
 const dayBase = z
   .strictObject({
     /** Client-chosen, forever: YYYY-MM-DD-slug. Retried create → 409. */
-    slug: z.string().regex(/^\d{4}-\d{2}-\d{2}-[a-z0-9]+(-[a-z0-9]+)*$/),
+    slug: z.string().regex(daySlug),
 
     // ── always required ──
     title: z.string().trim().min(1).max(200),
@@ -235,3 +249,18 @@ export const dayDoc = z.object({
 });
 
 export type DayWrite = z.infer<typeof dayWrite>;
+
+/**
+ * `?days=summaries` on `GET .../trips/{trip}` — a day's own row rather than
+ * the whole document, completing a projection the contract already promises
+ * (V12's `?days=`) rather than widening anything new (see
+ * 06-contract-deltas.md).
+ */
+export const daySummary = z.strictObject({
+  slug: z.string(),
+  title: z.string(),
+  date: isoDate,
+  status: z.enum(["draft", "published"]),
+  test: z.boolean().optional(),
+});
+export type DaySummary = z.infer<typeof daySummary>;

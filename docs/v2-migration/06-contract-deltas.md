@@ -76,6 +76,59 @@ beside this one is the same list-in-two-places failure D1 already fixed for
 (`DAY_DECLINABLES`, `TRIP_DECLINABLES`); this was the one left private.
 **Drift:** none. The wire is byte-identical before and after.
 
+### D6 — `daySlug` exported from `day.ts`
+**What:** the slug regex, previously inline in `dayBase`, becomes an exported
+const the schema itself uses. No change to the pattern.
+**Why:** the day route validates a URL's slug segment, and a second regex
+beside the first is a regex that drifts. A slug is also a **filename**, so
+this is a security boundary as much as a shape check — the two must be the
+same expression, not two copies of one.
+**Drift:** none. The accepted set is identical.
+
+### D7 — `daySummary` added to `day.ts`
+**What:** a new `{slug, title, date, status, test?}` object schema.
+**Why:** `GET .../trips/{trip}?days=summaries` is V12, already in the
+decisions; the projection was promised and had no shape. This gives it one
+rather than letting each route invent a row.
+**Authorised:** decided before the parcel was built, as the answer to "what
+does `?days=summaries` return" — which the step-3 reconnaissance had flagged
+as undefined and therefore un-buildable.
+**Drift:** additive, and it describes a **read** projection only. No write
+shape changes.
+
+### D8 — `publishRequest` and `sendRequest` (new file `schemas/publish.ts`)
+**What:** two small request schemas — `{declineTracked?, sendMail?,
+sendWhatsapp?}` and `{channels: ("mail"|"whatsapp")[]}`.
+**Why:** these are decisions *about a publish*, not fields of a day, so they
+are side-schemas rather than additions to `dayDoc`. They replace
+`readPublishFlags`'s hand-rolled `=== true` checks (`lib/api/publishFlags.ts`,
+retired). `sendRequest` is S1: one send door with `channels[]`, where v1 had
+`send-mail` and `send-whatsapp` as separate routes.
+**Drift:** none to any reviewed schema — new files for routes that had no
+schema at all.
+
+### D9 — `DECLINABLE_KEYS` exported from `trip.ts`
+**What:** `const` becomes `export const`. No change to the list.
+**Why:** T6's decline retraction, in the shared write path, must be able to
+clear a stored decline of `listed` or `buddies`. Both are declinable — the
+`declined` map accepts them — but neither is in `TRIP_DECLINABLES`, because
+each is asked by a bespoke `superRefine` rather than by
+`checkRequiredOrDeclined`. Without the full list, retracting those two would
+silently not work.
+**Drift:** none. The wire is byte-identical.
+
+### D10 — `DAY_DECLINABLE_KEYS` exported, and `declineTracked` becomes an enum
+**What:** the const becomes exported, and `publishRequest.declineTracked`
+changes from `z.array(z.string())` to `z.array(z.enum(DAY_DECLINABLE_KEYS))`.
+**Why:** a **correctness bug**, found by the typechecker rather than by a
+test. As free strings, `declineTracked: ["nonsense"]` was accepted and written
+straight into the day's `declined` map as a key nothing reads — a decline that
+looks recorded, satisfies nothing, and answers no question anybody asked. The
+publish route then indexed a typed record with an arbitrary string, which is
+what surfaced it.
+**Drift:** a **narrowing** of a schema written in this same step (D8), not of
+a reviewed one. It refuses input that was never meaningful.
+
 ### D3 — the solo-trip buddies issue moves from `path: ["people"]` to `path: ["buddies"]`
 **What:** the `ctx.addIssue` path in `tripCreate`'s superRefine. No change to
 any field, message or accepted document.

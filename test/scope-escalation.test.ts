@@ -49,7 +49,16 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
   };
 }
 
-function writeTrip(id: string, visibility: string, people: string[]) {
+/**
+ * Writes both stores a v2 day-write has to agree with: `trip.md`, which
+ * `/api/auth/codes` and `mayRequestAgentToken` still read (B1598 — the read
+ * layer has not flipped yet), and `trip.json`, which `PUT .../days/{slug}`
+ * reads through `lib/api/v2/store.ts`. A test that mutates one and not the
+ * other (removing somebody from `people:`, say) would pass for the wrong
+ * reason — the gate this file is about lives in whichever file the route
+ * being called actually reads.
+ */
+async function writeTrip(id: string, visibility: string, people: string[]) {
   const root = path.join(dir, OWNER, "trips", id);
   fs.mkdirSync(path.join(root, "entries"), { recursive: true });
   fs.writeFileSync(
@@ -71,6 +80,15 @@ function writeTrip(id: string, visibility: string, people: string[]) {
       "",
     ].join("\n"),
   );
+
+  const { writeTripFile } = await import("@/lib/api/v2/store");
+  writeTripFile(OWNER, id, {
+    id,
+    title: id,
+    dates: { from: "2026-08-25", to: "2026-08-26" },
+    visibility: visibility as "private" | "guest" | "public",
+    people: people.map((email) => ({ name: "R", email })),
+  });
 }
 
 function writeDraft(tripId: string, slug: string) {
@@ -143,24 +161,54 @@ async function realScope(token: string | undefined): Promise<string | undefined>
   return session?.scope;
 }
 
+/** A slug in the `YYYY-MM-DD-slug` shape the v2 route requires, derived from
+ * the title so each call in this file gets a slug of its own. */
+function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Every declinable this file's day is not actually about, answered rather
+ * than left to fail the v2 completeness contract (B531/DAY_DECLINABLES) —
+ * not this file's subject, exactly as the two declines the v1 route asked
+ * for used to be. */
+function declineTheRest(): Record<string, string> {
+  return {
+    media: "not this file's subject",
+    costs: "not this file's subject",
+    coordinates: "not this file's subject",
+    weather: "not this file's subject",
+    time: "not this file's subject",
+    timezone: "not this file's subject",
+    location: "not this file's subject",
+    country: "not this file's subject",
+    countryCode: "not this file's subject",
+    transportMode: "not this file's subject",
+    tags: "not this file's subject",
+    translations: "not this file's subject",
+    visibility: "not this file's subject",
+  };
+}
+
 async function writeDay(token: string, trip: string, title: string) {
-  const { POST } = await import("@/app/api/v1/[user]/trips/[trip]/days/route");
-  const response = await POST(
-    new Request(`https://example.test/api/v1/${OWNER}/trips/${trip}/days`, {
-      method: "POST",
+  const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+  const date = "2026-08-25";
+  const slug = `${date}-${slugify(title)}`;
+  const response = await PUT(
+    new Request(`https://example.test/api/v2/${OWNER}/trips/${trip}/days/${slug}`, {
+      method: "PUT",
       headers: headers({ authorization: `Bearer ${token}` }),
       body: JSON.stringify({
-        date: "2026-08-25",
+        date,
         title,
         content: "Something happened.",
-        // Not this file's subject: the two declines satisfy B531's
-        // completeness contract, which every day written into a tracking trip
-        // meets.
-        costs: false,
-        coordinates: false,
+        status: "draft",
+        declined: declineTheRest(),
       }),
     }),
-    { params: Promise.resolve({ user: OWNER, trip }) },
+    { params: Promise.resolve({ user: OWNER, trip, slug }) },
   );
   return { status: response.status, body: (await response.json()) as { error?: string } };
 }
@@ -248,8 +296,8 @@ beforeAll(async () => {
   );
 
   // The trip Robin was on, and the one they were not.
-  writeTrip("alps-2026", "private", [ROBIN]);
-  writeTrip("honeymoon-2026", "private", []);
+  await writeTrip("alps-2026", "private", [ROBIN]);
+  await writeTrip("honeymoon-2026", "private", []);
   writeDraft("honeymoon-2026", "the-quiet-week");
 
   const { clearConfigCache } = await import("@/lib/config");

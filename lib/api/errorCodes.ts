@@ -68,7 +68,6 @@ export const ERROR_CODES = {
   invalid_entry: "One or more fields of the day are wrong. `problems` lists every one at once — field, what arrived, what was expected — so fix them all and send once, rather than a round trip each.",
   invalid_trip: "One or more fields of the trip are wrong; `problems` lists them. A field name that is not a field is refused here rather than dropped, and the hint names the field you probably meant.",
   invalid_costs: "The budget or a cost line is not usable; `problems` lists each one.",
-  invalid_plan: "A stop on the route is not usable; `problems` lists each one.",
   invalid_media: "The upload is not usable — a file this server does not take, one too large, or a `day` that is not a day of this trip. /api/health carries the formats and the limits.",
   invalid_email: "That is not an address this server can send to.",
   invalid_listed: "`listed` must be true or false, and it cannot be true on a trip no visibility advertises. A string is refused rather than read as truthy: `\"false\"` would otherwise have advertised the trip.",
@@ -89,12 +88,12 @@ export const ERROR_CODES = {
   invalid_tracks: "A row in `tracks` is not one this server knows, or its value is not true or false. The rows are costs, coordinates and photos.",
   invalid_translations: "A translation names a locale this journal does not declare, or its shape is wrong. Declare the locale first with PATCH .../config, or drop it.",
   trip_exists: "A trip with that id is already here. Ids are the URL, so they are unique within a journal — pick another, or edit the one that exists.",
+  day_exists: "A day with that slug is already here (the `details` carry it). This looks like a retried create — if you meant to replace it, GET it first and PUT again with `If-Match` set to its ETag, or PATCH the fields that changed.",
   figure_referenced: "This figure is still named in the journal's own default figures, or a trip's figures — `message` lists which. Deleting it would leave a dangling reference, so nothing was deleted. Remove it from every set that names it first (PATCH the journal or the trip's figures), then delete it again.",
   trip_unreadable: "The trip was written and could not be read back, which means it would be invisible on the site. Nothing was kept. This is a bug — report it rather than retrying.",
   no_frontmatter: "The file has no frontmatter block, so nothing can be read out of it. This is a fault on disk rather than in your call.",
   invalid_travellers: "A figure in `travellers` has a key or a value this server does not know. `for` is an address out of the trip's `people:`, not a name. GET /api/v2/{user}/figures/presets for the vocabulary.",
   unsupported_field: "A field name this call does not take. The `message` lists the ones it does — send only those, and note that publishing is never a field.",
-  nothing_to_change: "The body names no field this call writes, so there was nothing to do and nothing was written. The `message` lists the ones it takes.",
   mixed_change: "`features` cannot travel with a profile field. Send it in a call of its own, so switching a capability cannot also rename the journal.",
   expected_urls: "The JSON form of this upload needs `urls`. To send bytes instead, use multipart/form-data.",
   expected_src: "DELETE .../media needs `src` — one or more photographs, exactly as GET .../days/<slug> hands them back.",
@@ -117,7 +116,6 @@ export const ERROR_CODES = {
 
   // ── the day is not wrong, it is incomplete ─────────────────────────────
   incomplete_day: "The trip keeps track of something this day says nothing about. `missing` names each one, how to send it, **and how to decline it** — `\"costs\": false` means there was none. Ask the person; never invent a value to get past this.",
-  could_not_record_decline: "The decline could not be written into the day. Nothing was changed; retry.",
 
   // ── publishing, and things already done ────────────────────────────────
   already_published: "This day is already on the site. Nothing was changed.",
@@ -129,7 +127,6 @@ export const ERROR_CODES = {
     "say that it has not been up.",
   not_published: "This day is still a draft. Publish it before sending it to anybody.",
   test_content: "This is content nobody lived — `test: true`. It cannot be sent to real people, which is the point of the flag.",
-  idempotency_key_reused: "That `idempotency_key` was used for a different body. Nothing was written. Reuse a key only to retry the same call; send a new key for a new day.",
   not_created: "The thing was not created. The `message` says why.",
 
   // ── this server cannot do that ─────────────────────────────────────────
@@ -160,6 +157,8 @@ export const ERROR_CODES = {
   helper_unavailable: "This journal has no model-backed features switched on. /api/health says which capabilities are on and why.",
   consent_required: "This journal has not agreed to send photographs to a model. That is asked for on the journal's own page, not by an agent — an owner has to say yes to this themselves.",
   model_failed: "The model call failed. Nothing was written and any credit charged for it was refunded; retrying is reasonable.",
+  weather_disabled:
+    "`weather: true` asks this server to look the day up in a public archive, and the weather capability is off for this journal — no lookup would happen, now or in the nightly sweep. Nothing was written, rather than storing a request nobody will service. Send the day without the field; /api/health says whether this server provides weather at all. A reading somebody actually took goes in `weather` as an object with its own `source` — never one you believe.",
   address_lookup_disabled:
     "This journal does not have place lookup switched on, so this server will not geocode a place name for it. /api/health says whether `addressLookup` is on and why not; ask the person for coordinates directly in the meantime.",
 

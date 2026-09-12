@@ -5,8 +5,6 @@ import { openApiDocument } from "@/lib/api/openapi";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { COST_CATEGORIES } from "@/lib/costFormat";
 import { FEATURE_NAMES } from "@/lib/config";
-import { TRACKS } from "@/lib/tracks";
-import { VISIBILITIES } from "@/lib/tripWrite";
 import { TRANSPORT_MODES, TRAVEL_SCENE_VARIANTS } from "@/lib/validate/entry";
 import { IMAGE_FORMATS, VIDEO_FORMATS } from "@/lib/validate/media";
 
@@ -227,27 +225,13 @@ describe("enums match their source", () => {
     expect(sorted(schemas.Cost.properties!.category.enum ?? [])).toEqual(sorted(COST_CATEGORIES));
   });
 
-  // TRACKS is not offered as an `enum` — it names the rows, so the document
-  // publishes one boolean property per row instead. What must match is the
-  // set of property names, on both the endpoint that turns a row on or off
-  // and the one that sets which rows a brand-new trip starts with.
-  test("PATCH .../trips/{trip}/tracks names exactly TRACKS as tracks.properties", () => {
-    const operation = document.paths["/api/v1/{user}/trips/{trip}/tracks"]?.patch;
-    const body = operation?.requestBody?.content?.["application/json"]?.schema as
-      | { properties?: { tracks?: { properties?: Record<string, unknown> } } }
-      | undefined;
-    const properties = body?.properties?.tracks?.properties ?? {};
-    expect(sorted(Object.keys(properties))).toEqual(sorted(TRACKS));
-  });
-
-  test("POST .../trips names exactly TRACKS as tracks.properties, so a trip can be created with rows already off", () => {
-    const operation = document.paths["/api/v1/{user}/trips"]?.post;
-    const body = operation?.requestBody?.content?.["application/json"]?.schema as
-      | { properties?: { tracks?: { properties?: Record<string, unknown> } } }
-      | undefined;
-    const properties = body?.properties?.tracks?.properties ?? {};
-    expect(sorted(Object.keys(properties))).toEqual(sorted(TRACKS));
-  });
+  // TRACKS's two v1 doors (POST .../trips, PATCH .../trips/{trip}/tracks —
+  // "what this trip keeps track of") are gone: B1612 deleted both under the
+  // v2 migration's decided cut (docs/plans/2026-09-12-api-v2/content.md §4)
+  // — the trip-level toggle is subsumed by each day's own `declined` map.
+  // `TRACKS` itself is unchanged and still used by the surviving v1 day
+  // completeness checks; only these two document assertions retire with
+  // their routes.
 
   // FEATURE_NAMES is not an enum either — `features` is a map from
   // capability name to boolean, so the document names the capabilities the
@@ -303,21 +287,11 @@ describe("enums match their source", () => {
     );
   });
 
-  test("POST .../trips visibility enum equals VISIBILITIES", () => {
-    const operation = document.paths["/api/v1/{user}/trips"]?.post;
-    const body = operation?.requestBody?.content?.["application/json"]?.schema as
-      | { properties?: { visibility?: { enum?: string[] } } }
-      | undefined;
-    expect(sorted(body?.properties?.visibility?.enum ?? [])).toEqual(sorted(VISIBILITIES));
-  });
-
-  test("PATCH .../trips/{trip}/visibility enum equals VISIBILITIES", () => {
-    const operation = document.paths["/api/v1/{user}/trips/{trip}/visibility"]?.patch;
-    const body = operation?.requestBody?.content?.["application/json"]?.schema as
-      | { properties?: { visibility?: { enum?: string[] } } }
-      | undefined;
-    expect(sorted(body?.properties?.visibility?.enum ?? [])).toEqual(sorted(VISIBILITIES));
-  });
+  // POST .../trips and PATCH .../trips/{trip}/visibility are gone (B1612 —
+  // trip creation and editing moved to PUT/PATCH /api/v2/{user}/trips/{trip},
+  // which validates `visibility` against the same `VISIBILITIES` import
+  // directly in lib/api/v2/schemas/trip.ts; that schema file, not this v1
+  // document test, is what would drift if the two ever disagreed).
 });
 
 describe("no empty responses", () => {

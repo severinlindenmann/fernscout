@@ -30,11 +30,14 @@ function currentDoc(user: string) {
 
 export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]">) {
   const { user } = await params;
-  const stored = currentDoc(user);
-  if (!stored) return fail("no_such_journal", ERROR_CODES.no_such_journal, undefined, 404);
-
+  // Authenticate BEFORE resolving the journal — B1615. The other order lets
+  // an anonymous caller tell `404 no_such_journal` from `401 missing_token`
+  // and so enumerate usernames, which v1 never allowed and which `guest`
+  // journals exist specifically to prevent.
   const bearer = await resolveBearer(request);
   if (!bearer.ok) return bearer.response;
+  const stored = currentDoc(user);
+  if (!stored) return fail("no_such_journal", ERROR_CODES.no_such_journal, undefined, 404);
   if (!ownsUser(bearer.session, user)) return outOfScopeRefusal(bearer.session, user);
 
   return ok(stored, { etag: etagFor(stored) });
@@ -42,11 +45,14 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
 
 export async function PATCH(request: Request, { params }: RouteContext<"/api/v2/[user]">) {
   const { user } = await params;
-  const stored = currentDoc(user);
-  if (!stored) return fail("no_such_journal", ERROR_CODES.no_such_journal, undefined, 404);
-
+  // Authenticate BEFORE resolving the journal — B1615. The other order lets
+  // an anonymous caller tell `404 no_such_journal` from `401 missing_token`
+  // and so enumerate usernames, which v1 never allowed and which `guest`
+  // journals exist specifically to prevent.
   const bearer = await resolveBearer(request);
   if (!bearer.ok) return bearer.response;
+  const stored = currentDoc(user);
+  if (!stored) return fail("no_such_journal", ERROR_CODES.no_such_journal, undefined, 404);
   if (!ownsUser(bearer.session, user)) return outOfScopeRefusal(bearer.session, user);
   if (!mayActAsOwner(bearer.session, user)) return ownerOnlyRefusal();
 

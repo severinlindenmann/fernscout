@@ -11,8 +11,7 @@ import { clearIdempotencyStore } from "@/lib/idempotency";
 import { buildStatementPrompt, STATEMENT_SYSTEM_PROMPT } from "@/lib/helper/model";
 import { applyMapping, readTable, statementSample, type ColumnMapping } from "@/importers/costs/mapping";
 import { storeInboxFile } from "@/lib/inbox";
-import { issueCode, verifyCode } from "@/lib/auth";
-import { POST as createTripRoute } from "@/app/api/v1/[user]/trips/route";
+import { createTrip } from "@/lib/tripWrite";
 
 /**
  * Reading a file somebody handed over — B689.
@@ -144,22 +143,8 @@ beforeEach(async () => {
   await migrateToLatest(await getDatabase());
   await grant("owner", 10);
 
-  const { code } = await issueCode("owner", OWNER_EMAIL, "agent");
-  const verified = await verifyCode("owner", OWNER_EMAIL, code, "agent");
-  if (!verified.ok) throw new Error("no token");
-  await createTripRoute(
-    new Request("https://t.test/api/v1/owner/trips", {
-      method: "POST",
-      headers: { authorization: `Bearer ${verified.token}`, "content-type": "application/json" },
-      body: JSON.stringify({
-        id: "the-islands",
-        title: "The islands",
-        start: "2026-03-01",
-        end: "2026-03-31",
-      }),
-    }),
-    params,
-  );
+  const created = createTrip("owner", { id: "the-islands", title: "The islands", start: "2026-03-01", end: "2026-03-31" });
+  if (!created.ok) throw new Error(`trip fixture failed: ${created.message}`);
 });
 
 afterEach(async () => {
