@@ -1,0 +1,22 @@
+{
+  "title": "Hired a car as far as Chiang Rai",
+  "date": "2023-02-10",
+  "timezone": "Asia/Bangkok",
+  "location": "Chiang Rai",
+  "country": "Thailand",
+  "countryCode": "TH",
+  "coordinates": {
+    "lat": 19.9105,
+    "lng": 99.8406
+  },
+  "content": "A fixture day: the road leg the scene needs to draw tarmac, a centre line and a car with its wheels turning.\n\nThree hours of highway, which is the shortest thing in this trip and the fastest thing on this page.",
+  "transportMode": "car",
+  "transportFrom": "Chiang Mai",
+  "transportTo": "Chiang Rai",
+  "tags": [
+    "thailand",
+    "roads"
+  ],
+  "test": true,
+  "status": "published"
+}

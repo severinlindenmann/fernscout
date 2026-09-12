@@ -1,0 +1,103 @@
+{
+  "id": "alps-2024",
+  "title": "Four days round the Alps",
+  "tagline": "A borrowed estate car, three passes, too much cheese",
+  "dates": {
+    "from": "2024-09-12",
+    "to": "2024-09-15"
+  },
+  "visibility": "public",
+  "listed": true,
+  "accent": "green",
+  "cover": "/media/alps-2024/grimsel-and-rain/01.jpg",
+  "people": [
+    {
+      "name": "Alex Berger",
+      "email": "agent@fernscout.ch",
+      "nickname": "Alex"
+    }
+  ],
+  "rates": {
+    "currencies": [
+      "EUR"
+    ]
+  },
+  "figures": {
+    "mode": "custom",
+    "figures": [
+      "alps-2024-1"
+    ]
+  },
+  "translations": {
+    "de": {
+      "title": "Vier Tage rund um die Alpen",
+      "tagline": "Ein geliehener Kombi, drei Pässe, zu viel Käse"
+    },
+    "hu": {
+      "title": "Négy nap az Alpok körül",
+      "tagline": "Egy kölcsönkért kombi, három hágó, túl sok sajt"
+    }
+  },
+  "intro": "Four days, one borrowed car, and a loop over three passes. Short enough that we never unpacked properly, long enough that we stopped talking about work.",
+  "costs": {
+    "budget": {
+      "total": 900,
+      "days": 4,
+      "currency": "CHF"
+    },
+    "items": [
+      {
+        "label": "Vignette and tolls",
+        "amount": 90,
+        "category": "transport"
+      },
+      {
+        "label": "Roof box hire",
+        "amount": 60,
+        "category": "preparation"
+      }
+    ],
+    "note": "Four days is short enough that the preparation is most of what you decide in advance. The rest of it happened at petrol stations.",
+    "visibility": "public"
+  },
+  "plan": {
+    "route": [
+      {
+        "location": "Susten Pass",
+        "country": "Switzerland",
+        "countryCode": "CH",
+        "lat": 46.7297,
+        "lng": 8.4444,
+        "note": "Leave after work, sleep somewhere near the top"
+      },
+      {
+        "location": "Grimsel Pass",
+        "country": "Switzerland",
+        "countryCode": "CH",
+        "lat": 46.5614,
+        "lng": 8.3372,
+        "note": "The only night we booked"
+      },
+      {
+        "location": "Domodossola",
+        "country": "Italy",
+        "countryCode": "IT",
+        "lat": 46.1161,
+        "lng": 8.2939,
+        "note": "Down the Italian side for lunch"
+      },
+      {
+        "location": "Andermatt",
+        "country": "Switzerland",
+        "countryCode": "CH",
+        "lat": 46.6364,
+        "lng": 8.5942,
+        "note": "Home over the Furka"
+      }
+    ],
+    "body": "Three passes and whatever was between them. We booked one guesthouse and left the other three nights open."
+  },
+  "declined": {
+    "buddies": "travelling solo"
+  }
+}

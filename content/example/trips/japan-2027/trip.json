@@ -1,0 +1,144 @@
+{
+  "id": "japan-2027",
+  "title": "Japan, end to end",
+  "tagline": "Six weeks on a rail pass, Kyushu to Hokkaido",
+  "dates": {
+    "from": "2027-03-28",
+    "to": "2027-05-09"
+  },
+  "visibility": "public",
+  "listed": true,
+  "accent": "yellow",
+  "people": [
+    {
+      "name": "Alex Berger",
+      "email": "agent@fernscout.ch",
+      "nickname": "Alex"
+    },
+    {
+      "name": "Priya Fenwick",
+      "email": "priya@example.com",
+      "nickname": "Priya"
+    }
+  ],
+  "rates": {
+    "currencies": [
+      "JPY"
+    ]
+  },
+  "translations": {
+    "de": {
+      "title": "Japan, von einem Ende zum anderen",
+      "tagline": "Sechs Wochen mit dem Bahnpass, von Kyushu nach Hokkaido"
+    },
+    "hu": {
+      "title": "Japán, az egyik végétől a másikig",
+      "tagline": "Hat hét vasúti bérlettel, Kjúsútól Hokkaidóig"
+    }
+  },
+  "intro": "Six weeks from the south end of Kyushu to the north end of Hokkaido, on one rail pass and no car. Nothing has happened yet — this is the plan, the budget, and a countdown.",
+  "costs": {
+    "budget": {
+      "total": 14800,
+      "days": 43,
+      "currency": "CHF"
+    },
+    "items": [
+      {
+        "label": "Flights to Fukuoka, home from Sapporo",
+        "amount": 1240,
+        "category": "flights"
+      },
+      {
+        "label": "Rail pass, 21 days, two people",
+        "amount": 1180,
+        "category": "preparation"
+      },
+      {
+        "label": "Boots, one pair, overdue",
+        "amount": 260,
+        "category": "preparation"
+      },
+      {
+        "label": "IC cards and a data SIM, prepaid",
+        "amount": 9000,
+        "category": "other",
+        "currency": "JPY"
+      }
+    ],
+    "note": "Nothing has been spent on the road yet, so this is preparation and a number we have agreed to argue about later. The rail pass is the decision everything else follows from.",
+    "visibility": "public"
+  },
+  "plan": {
+    "route": [
+      {
+        "location": "Fukuoka",
+        "country": "Japan",
+        "countryCode": "JP",
+        "lat": 33.5904,
+        "lng": 130.4017,
+        "note": "Land here, and do nothing for two days"
+      },
+      {
+        "location": "Nagasaki",
+        "country": "Japan",
+        "countryCode": "JP",
+        "lat": 32.7503,
+        "lng": 129.8779,
+        "note": "The furthest south we go"
+      },
+      {
+        "location": "Hiroshima",
+        "country": "Japan",
+        "countryCode": "JP",
+        "lat": 34.3853,
+        "lng": 132.4553,
+        "note": "Two nights, and the ferry to Miyajima"
+      },
+      {
+        "location": "Kyoto",
+        "country": "Japan",
+        "countryCode": "JP",
+        "lat": 35.0116,
+        "lng": 135.7681,
+        "note": "Early April — the one date we are not moving"
+      },
+      {
+        "location": "Kanazawa",
+        "country": "Japan",
+        "countryCode": "JP",
+        "lat": 36.5613,
+        "lng": 136.6562,
+        "note": "Across to the west coast, out of the crowds"
+      },
+      {
+        "location": "Tokyo",
+        "country": "Japan",
+        "countryCode": "JP",
+        "lat": 35.6762,
+        "lng": 139.6503,
+        "note": "A week, staying put"
+      },
+      {
+        "location": "Sendai",
+        "country": "Japan",
+        "countryCode": "JP",
+        "lat": 38.2682,
+        "lng": 140.8694,
+        "note": "North, and the coast road if it is open"
+      },
+      {
+        "location": "Sapporo",
+        "country": "Japan",
+        "countryCode": "JP",
+        "lat": 43.0618,
+        "lng": 141.3545,
+        "note": "Fly home from here"
+      }
+    ],
+    "body": "South to north, and the rail pass decides most of it. Eight places we mean to sleep in and six weeks to find out what goes between them."
+  },
+  "declined": {
+    "figures": "uses the journal's own default party"
+  }
+}

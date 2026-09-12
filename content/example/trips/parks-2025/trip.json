@@ -1,0 +1,210 @@
+{
+  "id": "parks-2025",
+  "title": "Eighteen days, eleven parks",
+  "tagline": "Las Vegas to Denver the long way round, one night at a time",
+  "dates": {
+    "from": "2025-09-05",
+    "to": "2025-09-22"
+  },
+  "visibility": "public",
+  "listed": true,
+  "accent": "navy",
+  "cover": "/media/parks-2025/bryce-at-six/01.jpg",
+  "people": [
+    {
+      "name": "Alex Berger",
+      "email": "agent@fernscout.ch",
+      "nickname": "Alex"
+    }
+  ],
+  "rates": {
+    "currencies": [
+      "USD"
+    ]
+  },
+  "figures": {
+    "mode": "custom",
+    "figures": [
+      "parks-2025-1",
+      "parks-2025-2",
+      "parks-2025-3",
+      "parks-2025-4"
+    ]
+  },
+  "translations": {
+    "de": {
+      "title": "Achtzehn Tage, elf Parks",
+      "tagline": "Von Las Vegas nach Denver, auf dem längsten Weg, eine Nacht pro Ort"
+    },
+    "hu": {
+      "title": "Tizennyolc nap, tizenegy nemzeti park",
+      "tagline": "Las Vegastól Denverig a hosszabbik úton, éjszakánként új helyen"
+    }
+  },
+  "intro": "A rental sedan, a cooler, and a national parks pass that paid for itself by the fourth gate. Las Vegas to Denver by way of Utah, Colorado and the Dakotas — eighteen nights, and never twice in the same bed.",
+  "costs": {
+    "budget": {
+      "total": 7200,
+      "days": 18,
+      "currency": "CHF"
+    },
+    "items": [
+      {
+        "label": "Flights to Las Vegas",
+        "amount": 1120,
+        "category": "flights"
+      },
+      {
+        "label": "Car hire, eighteen days",
+        "amount": 940,
+        "category": "transport"
+      },
+      {
+        "label": "Annual parks pass",
+        "amount": 72,
+        "category": "activities"
+      },
+      {
+        "label": "Camping gear, borrowed and replaced",
+        "amount": 85,
+        "category": "preparation"
+      }
+    ],
+    "note": "Eighteen nights, and the pass paid for itself by the fourth gate. The two lines that actually decided this trip were both bought before it started.",
+    "visibility": "public"
+  },
+  "plan": {
+    "route": [
+      {
+        "location": "Las Vegas",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 36.1699,
+        "lng": -115.1398
+      },
+      {
+        "location": "Zion National Park",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 37.2982,
+        "lng": -113.0263
+      },
+      {
+        "location": "Bryce Canyon National Park",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 37.593,
+        "lng": -112.1871
+      },
+      {
+        "location": "Escalante",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 37.77,
+        "lng": -111.601
+      },
+      {
+        "location": "Capitol Reef National Park",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 38.2919,
+        "lng": -111.2615
+      },
+      {
+        "location": "Goblin Valley",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 38.5647,
+        "lng": -110.7079
+      },
+      {
+        "location": "Arches National Park",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 38.7331,
+        "lng": -109.5925
+      },
+      {
+        "location": "Canyonlands National Park",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 38.1653,
+        "lng": -109.7859
+      },
+      {
+        "location": "Monument Valley",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 36.998,
+        "lng": -110.0985
+      },
+      {
+        "location": "Mesa Verde National Park",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 37.2309,
+        "lng": -108.4618
+      },
+      {
+        "location": "Great Sand Dunes National Park",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 37.7916,
+        "lng": -105.5943
+      },
+      {
+        "location": "Black Canyon of the Gunnison",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 38.5754,
+        "lng": -107.7416
+      },
+      {
+        "location": "Aspen",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 39.1911,
+        "lng": -106.8175
+      },
+      {
+        "location": "Rocky Mountain National Park",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 40.3428,
+        "lng": -105.6836
+      },
+      {
+        "location": "Laramie",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 41.3114,
+        "lng": -105.5911
+      },
+      {
+        "location": "Badlands National Park",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 43.8554,
+        "lng": -102.3397
+      },
+      {
+        "location": "Wind Cave National Park",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 43.557,
+        "lng": -103.478
+      },
+      {
+        "location": "Denver",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 39.7392,
+        "lng": -104.9903
+      }
+    ],
+    "body": "Booked as a loop because a one-way car hire across four states costs more than the flights. Everything between Las Vegas and Denver was ours to choose."
+  },
+  "declined": {
+    "buddies": "travelling solo"
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "title": "A beach with no sea",
+  "date": "2025-09-15",
+  "timezone": "America/Denver",
+  "location": "Great Sand Dunes National Park",
+  "country": "United States",
+  "countryCode": "US",
+  "coordinates": {
+    "lat": 37.7916,
+    "lng": -105.5943
+  },
+  "content": "Two hundred metres of sand piled against the Sangre de Cristos, with a shallow creek running along the foot of it and children treating the whole thing as a seaside.\n\nWalking up a dune is roughly three steps for every two you keep.",
+  "media": [
+    {
+      "src": "/media/parks-2025/great-sand-dunes/01.jpg",
+      "type": "image",
+      "width": 1600,
+      "height": 1060
+    },
+    {
+      "src": "/media/parks-2025/great-sand-dunes/02.jpg",
+      "type": "image",
+      "width": 1073,
+      "height": 1600
+    }
+  ],
+  "costs": [
+    {
+      "label": "Fuel",
+      "amount": 52,
+      "category": "transport",
+      "currency": "USD"
+    },
+    {
+      "label": "Campground",
+      "amount": 28,
+      "category": "accommodation",
+      "currency": "USD"
+    }
+  ],
+  "transportMode": "car",
+  "transportFrom": "Cortez",
+  "transportTo": "Great Sand Dunes",
+  "tags": [
+    "colorado",
+    "national-parks",
+    "dunes"
+  ],
+  "weather": {
+    "tempMin": 6,
+    "tempMax": 19.7,
+    "code": 2,
+    "precipitation": 0,
+    "windMax": 13,
+    "source": "open-meteo",
+    "recordedAt": "2026-09-06T08:32:19.477Z"
+  },
+  "status": "published"
+}

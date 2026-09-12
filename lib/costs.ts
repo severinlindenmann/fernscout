@@ -1,9 +1,7 @@
 import "server-only";
-import fs from "node:fs";
 import path from "node:path";
-import matter from "gray-matter";
 import { isEnabled } from "./capabilities";
-import { clearMatterCache, getAllEntries, getDays, type ReadOptions } from "./entries";
+import { getAllEntries, getDays, type ReadOptions } from "./entries";
 import { getTrip, getTripIds, tripDir, tripRef } from "./trips";
 import { hasBegun, isOver } from "./tripTime";
 import { loadUserConfig } from "./config";
@@ -56,32 +54,50 @@ export function costsFilePath(tripId: string): string {
 }
 
 /**
- * The file, parsed and un-converted — `null` when there is none, and also
- * when the file exists but its frontmatter will not parse: every caller
- * below already treats `null` as "no costs.md", so a malformed one degrades
- * to that rather than throwing out of the nav, the trip page, the costs API
- * route or the sitemap (B342 — same shape as `readAllEntries`, B236, and
- * `readPlanFile`, B313).
+ * The trip's own declared day count, for a `budget:` that omits `days` — the
+ * wire made it optional (B1606: "absent means the trip's own day count"),
+ * where v1's `costs.md` required it outright. Same arithmetic
+ * `getTripStats` (lib/entries.ts) uses for a trip's actual span.
+ */
+function tripDayCount(trip: { start: string; end: string }): number {
+  return (
+    Math.round(
+      (new Date(`${trip.end}T00:00:00Z`).getTime() - new Date(`${trip.start}T00:00:00Z`).getTime()) /
+        86_400_000,
+    ) + 1
+  );
+}
+
+/**
+ * The `costs` section of `trip.json`, un-converted — `null` when the trip
+ * declined it (or predates it): every caller below already treats `null` as
+ * "no costs" and degrades to that rather than throwing out of the nav, the
+ * trip page, the costs API route or the sitemap (B342 — same shape as
+ * `readAllEntries`, B236, and `readPlanFile`, B313).
+ *
+ * Shaped like the old `costs.md`'s gray-matter parse (`{data, content}`)
+ * rather than `Trip.costsSection` directly, so the v1 API routes still
+ * reading `parsed.data.budget`/`parsed.data.costs`/`parsed.content` keep
+ * working unchanged — B1606 merged the file, not the shape every existing
+ * caller already agrees on.
  *
  * Exported since B295: the costs API's `GET` reads back exactly this, the
  * same object every other reader in this file works from, rather than a
  * second parse of the same file.
  */
-export function readCostsFile(tripId: string) {
-  const file = costsFilePath(tripId);
-  if (!fs.existsSync(file)) return null;
-  try {
-    return matter(fs.readFileSync(file, "utf8"));
-  } catch (err) {
-    // See `clearMatterCache`'s doc comment (lib/matterCache.ts) for why this
-    // call is not optional here: matter() caches a parse by raw content
-    // before it parses, so a throwing call leaves a stale, non-throwing
-    // result under this file's bytes for the next reader to find. B312.
-    clearMatterCache();
-    const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
-    console.warn(`[costs] ${file}: its frontmatter could not be parsed: ${why}`);
-    return null;
-  }
+export function readCostsFile(
+  tripId: string,
+): { data: { budget?: unknown; costs?: unknown }; content: string } | null {
+  const trip = getTrip(tripId);
+  const section = trip?.costsSection;
+  if (!trip || !section) return null;
+  return {
+    data: {
+      budget: { ...section.budget, days: section.budget.days ?? tripDayCount(trip) },
+      costs: section.items,
+    },
+    content: (section.note ?? "").trim(),
+  };
 }
 
 /**

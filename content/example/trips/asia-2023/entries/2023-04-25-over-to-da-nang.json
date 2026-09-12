@@ -1,0 +1,22 @@
+{
+  "title": "Over to Da Nang and back",
+  "date": "2023-04-25",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "location": "Da Nang",
+  "country": "Vietnam",
+  "countryCode": "VN",
+  "coordinates": {
+    "lat": 16.0544,
+    "lng": 108.2022
+  },
+  "content": "A fixture day. The motorbike leg earlier in this trip carries `travelScene: skip`, which is exactly what it says — the pager leaves it out entirely — so there was no way to see the rider drawn.\n\nThis is that leg, played.",
+  "transportMode": "motorbike",
+  "transportFrom": "Hoi An",
+  "transportTo": "Da Nang",
+  "tags": [
+    "vietnam",
+    "motorbikes"
+  ],
+  "test": true,
+  "status": "published"
+}

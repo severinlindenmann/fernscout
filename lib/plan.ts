@@ -1,10 +1,8 @@
 import "server-only";
-import fs from "node:fs";
 import path from "node:path";
-import matter from "gray-matter";
-import { clearMatterCache, getAllEntries, getPlaces, type ReadOptions } from "./entries";
+import { getAllEntries, getPlaces, type ReadOptions } from "./entries";
 import { hasHappened } from "./tripTime";
-import { tripDir } from "./trips";
+import { getTrip, tripDir } from "./trips";
 import type { PlanProgress, PlannedStop } from "./types";
 
 /** How close a real stop has to be to count as having reached a planned one.
@@ -63,54 +61,45 @@ export function getPlan(tripId: string, options: ReadOptions = {}): PlanProgress
   return { stops, reachedCount, next: stops.find((s) => !s.reached) };
 }
 
-/** Where `plan.md` lives for a trip — exported since B909 so the API door
- * that reads and writes it does not carry a second copy of this path. */
+/** Where `plan.md` lived for a trip before B1606 folded it into
+ * `trip.json`'s own `plan` section — kept only for the v1 API door that
+ * still splices this path directly. */
 export function planFilePath(tripId: string): string {
   return path.join(tripDir(tripId), "plan.md");
 }
 
 /**
- * `plan.md`, parsed — `null` when absent or malformed. Exported since B909
- * so the plan API's `GET` reads back exactly this, the same parse
- * `readPlanFile` below already does, rather than a second one — mirrors
- * `readCostsFile` (lib/costs.ts, B295).
+ * The `plan` section of `trip.json` — `null` when the trip declined it (or
+ * predates it). Shaped like the old `plan.md`'s gray-matter parse
+ * (`{data, content}`) rather than `Trip.planSection` directly, so the v1 API
+ * routes still reading `parsed.data.route`/`parsed.content` keep working
+ * unchanged — B1606 merged the file, not the shape every existing caller
+ * already agrees on. Exported since B909 so the plan API's `GET` reads back
+ * exactly this, the same object `readPlanFile` below already works from —
+ * mirrors `readCostsFile` (lib/costs.ts, B295).
  */
-export function readPlanFileRaw(tripId: string): ReturnType<typeof matter> | null {
-  const file = planFilePath(tripId);
-  if (!fs.existsSync(file)) return null;
-  // A plan.md whose frontmatter will not parse must not take the trip page,
-  // the map, or the photobook down with it — the plan is a nice-to-have
-  // layer over them, per getPlan's own doc comment above. Skipped and
-  // logged rather than thrown, same shape as readAllEntries (lib/entries.ts,
-  // B236).
-  try {
-    return matter(fs.readFileSync(file, "utf8"));
-  } catch (err) {
-    // See `clearMatterCache`'s doc comment (lib/matterCache.ts) for why this
-    // call is not optional here: matter() caches a parse by raw content
-    // before it parses, so a throwing call leaves a stale, non-throwing
-    // result under this file's bytes for the next reader to find. B312.
-    clearMatterCache();
-    const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
-    console.warn(`[plan] ${file}: its frontmatter could not be parsed: ${why}`);
-    return null;
-  }
+export function readPlanFileRaw(tripId: string): { data: { route?: unknown }; content: string } | null {
+  const trip = getTrip(tripId);
+  const section = trip?.planSection;
+  if (!section) return null;
+  return { data: { route: section.route }, content: (section.body ?? "").trim() };
 }
 
-/** The hand-written route from plan.md, each stop marked reached or not. */
+/** The hand-written route from `trip.json`'s `plan` section, each stop
+ * marked reached or not. */
 function readPlanFile(tripId: string): PlannedStop[] {
-  const file = planFilePath(tripId);
   const parsed = readPlanFileRaw(tripId);
   if (!parsed) return [];
   const { data } = parsed;
   const raw = Array.isArray(data.route) ? (data.route as RawStop[]) : [];
 
-  // A plan.md that parses to nothing is the failure worth naming: the file
-  // exists, the author believes there is a route, and the map silently draws
-  // none. Wrong key, wrong shape or wrong field names all land here.
+  // A `plan` section that parses to nothing is the failure worth naming: the
+  // trip declared one, the author believes there is a route, and the map
+  // silently draws none. Wrong key, wrong shape or wrong field names all
+  // land here.
   if (raw.length === 0) {
     console.warn(
-      `[plan] ${file} has no usable \`route:\` list — expected ` +
+      `[plan] ${tripId} declared a plan with no usable \`route\` list — expected ` +
         `route: [{ location, lat, lng }]. The planned route will not be drawn.`,
     );
   }

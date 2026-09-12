@@ -1,0 +1,133 @@
+{
+  "id": "usa-2026",
+  "title": "Across and back",
+  "tagline": "A pickup, a tent, and most of the western United States",
+  "dates": {
+    "from": "2026-06-01",
+    "to": "2026-11-20"
+  },
+  "visibility": "public",
+  "listed": true,
+  "accent": "sky",
+  "cover": "/media/usa-2026/utah-red-country/01.jpg",
+  "people": [
+    {
+      "name": "Alex Berger",
+      "email": "agent@fernscout.ch",
+      "nickname": "Alex"
+    },
+    {
+      "name": "Priya Fenwick",
+      "email": "priya@example.com",
+      "nickname": "Priya"
+    }
+  ],
+  "rates": {
+    "currencies": [
+      "USD"
+    ]
+  },
+  "figures": {
+    "mode": "custom",
+    "figures": [
+      "usa-2026-1",
+      "usa-2026-2",
+      "usa-2026-3"
+    ]
+  },
+  "translations": {
+    "de": {
+      "title": "Hin und zurück",
+      "tagline": "Ein Pick-up, ein Zelt und der halbe Westen der USA"
+    },
+    "hu": {
+      "title": "Oda és vissza",
+      "tagline": "Egy pickup, egy sátor és az Egyesült Államok nyugati fele"
+    }
+  },
+  "intro": "Six months and a second-hand pickup, starting in Denver and going wherever the forest roads do. Still out there — this one is being written as it happens.",
+  "costs": {
+    "budget": {
+      "total": 26000,
+      "days": 173,
+      "currency": "CHF"
+    },
+    "items": [
+      {
+        "label": "Flights to Denver",
+        "amount": 980,
+        "category": "flights"
+      },
+      {
+        "label": "The truck",
+        "amount": 9400,
+        "category": "transport"
+      },
+      {
+        "label": "Tent, stove, the rest of it",
+        "amount": 1250,
+        "category": "preparation"
+      },
+      {
+        "label": "Six months of insurance",
+        "amount": 640,
+        "category": "other"
+      }
+    ],
+    "note": "Half of this went before we left the country, and most of that half was the truck. What happens to the other half is the part still being written.",
+    "visibility": "public"
+  },
+  "plan": {
+    "route": [
+      {
+        "location": "Denver",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 39.7392,
+        "lng": -104.9903,
+        "note": "Buy a truck. Two weeks, at the outside."
+      },
+      {
+        "location": "Moab",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 38.5733,
+        "lng": -109.5498,
+        "note": "First proper test of the tent"
+      },
+      {
+        "location": "Bishop",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 37.3614,
+        "lng": -118.3951,
+        "note": "Sierra, if the fires allow it"
+      },
+      {
+        "location": "Cannon Beach",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 45.8918,
+        "lng": -123.9615,
+        "note": "Reach the Pacific by the end of August"
+      },
+      {
+        "location": "Missoula",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 46.8721,
+        "lng": -113.994,
+        "note": "East again, before the passes close"
+      },
+      {
+        "location": "Denver",
+        "country": "United States",
+        "countryCode": "US",
+        "lat": 39.7392,
+        "lng": -104.9903,
+        "note": "Sell the truck, fly home"
+      }
+    ],
+    "body": "Denver, then west until the ocean and back again. Four fixed points and six months to join them up — the rest is forest roads and whoever we meet on them."
+  }
+}

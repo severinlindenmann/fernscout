@@ -1,0 +1,124 @@
+{
+  "id": "asia-2023",
+  "title": "Five months east",
+  "tagline": "Thailand to Vietnam, mostly by train and never in a hurry",
+  "dates": {
+    "from": "2023-01-08",
+    "to": "2023-06-02"
+  },
+  "visibility": "public",
+  "listed": true,
+  "accent": "coral",
+  "cover": "/media/asia-2023/mekong-slow-boat/01.jpg",
+  "people": [
+    {
+      "name": "Alex Berger",
+      "email": "agent@fernscout.ch",
+      "nickname": "Alex"
+    },
+    {
+      "name": "Priya Fenwick",
+      "email": "priya@example.com",
+      "nickname": "Priya"
+    }
+  ],
+  "rates": {
+    "currencies": [
+      "THB",
+      "VND",
+      "EUR"
+    ]
+  },
+  "figures": {
+    "mode": "custom",
+    "figures": [
+      "asia-2023-1",
+      "asia-2023-2",
+      "asia-2023-3",
+      "asia-2023-4",
+      "asia-2023-5"
+    ]
+  },
+  "translations": {
+    "de": {
+      "title": "Fünf Monate im Osten",
+      "tagline": "Thailand bis Vietnam, meist mit dem Zug und nie in Eile"
+    },
+    "hu": {
+      "title": "Öt hónap keleten",
+      "tagline": "Thaiföldtől Vietnamig, jórészt vonattal és soha nem sietve"
+    }
+  },
+  "intro": "Five months from Bangkok to Hanoi, overland the whole way. We had a rough plan for the first fortnight and made the rest up on station platforms.",
+  "costs": {
+    "budget": {
+      "total": 18000,
+      "days": 146,
+      "currency": "CHF"
+    },
+    "items": [
+      {
+        "label": "Flights to Bangkok",
+        "amount": 1120,
+        "category": "flights"
+      },
+      {
+        "label": "Travel insurance, six months",
+        "amount": 480,
+        "category": "other"
+      },
+      {
+        "label": "Visas, two people",
+        "amount": 210,
+        "category": "other"
+      },
+      {
+        "label": "Rucksacks",
+        "amount": 390,
+        "category": "preparation"
+      }
+    ],
+    "note": "Five months of it, and the flight is still the single biggest line. Everything after this was decided a week at a time.",
+    "visibility": "public"
+  },
+  "plan": {
+    "route": [
+      {
+        "location": "Bangkok",
+        "country": "Thailand",
+        "countryCode": "TH",
+        "lat": 13.7563,
+        "lng": 100.5018
+      },
+      {
+        "location": "Chiang Mai",
+        "country": "Thailand",
+        "countryCode": "TH",
+        "lat": 18.7883,
+        "lng": 98.9853
+      },
+      {
+        "location": "Luang Prabang",
+        "country": "Laos",
+        "countryCode": "LA",
+        "lat": 19.8867,
+        "lng": 102.135
+      },
+      {
+        "location": "Hoi An",
+        "country": "Vietnam",
+        "countryCode": "VN",
+        "lat": 15.8801,
+        "lng": 108.338
+      },
+      {
+        "location": "Hanoi",
+        "country": "Vietnam",
+        "countryCode": "VN",
+        "lat": 21.0278,
+        "lng": 105.8342
+      }
+    ],
+    "body": "Bangkok to Hanoi overland. This is the version we drew on a napkin in December; the trip mostly agreed with it, which surprised us both."
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "title": "Arches, once the coaches leave",
+  "date": "2025-09-11",
+  "timezone": "America/Denver",
+  "location": "Arches National Park",
+  "country": "United States",
+  "countryCode": "US",
+  "coordinates": {
+    "lat": 38.7331,
+    "lng": -109.5925
+  },
+  "content": "Went in at six in the evening, which is the trick: the car parks empty, the rock goes the colour it is in the photographs, and the heat drops to something survivable.\n\nDelicate Arch has about eighty people sitting in a semicircle around it, all of them silent, like a small badly attended concert.",
+  "media": [
+    {
+      "src": "/media/parks-2025/arches-at-dusk/01.jpg",
+      "type": "image",
+      "width": 1600,
+      "height": 1074
+    },
+    {
+      "src": "/media/parks-2025/arches-at-dusk/02.jpg",
+      "type": "image",
+      "width": 1600,
+      "height": 1074
+    },
+    {
+      "src": "/media/parks-2025/arches-at-dusk/03.jpg",
+      "type": "image",
+      "width": 1600,
+      "height": 1066
+    }
+  ],
+  "costs": [
+    {
+      "label": "Fuel",
+      "amount": 34,
+      "category": "transport",
+      "currency": "USD"
+    },
+    {
+      "label": "Campground outside Moab",
+      "amount": 35,
+      "category": "accommodation",
+      "currency": "USD"
+    },
+    {
+      "label": "Groceries",
+      "amount": 72,
+      "category": "food",
+      "currency": "USD"
+    }
+  ],
+  "transportMode": "car",
+  "transportFrom": "Green River",
+  "transportTo": "Moab",
+  "tags": [
+    "utah",
+    "national-parks",
+    "sunset"
+  ],
+  "weather": {
+    "tempMin": 20.3,
+    "tempMax": 31.2,
+    "code": 2,
+    "precipitation": 0,
+    "windMax": 29.3,
+    "source": "open-meteo",
+    "recordedAt": "2026-09-06T08:32:19.222Z"
+  },
+  "status": "published"
+}

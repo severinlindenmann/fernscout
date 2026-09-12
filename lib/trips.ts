@@ -1,13 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
-import matter from "gray-matter";
-import { clearMatterCache } from "./matterCache";
 import { contentRoot } from "./contentRoot";
-import { calendarStatus, earliestTodayISO, effectiveStatus } from "./tripTime";
+import { calendarStatus, earliestTodayISO } from "./tripTime";
 import { getUsernames } from "./users";
-import { parseRateTable, type RateTable } from "./currency";
-import { parseTravellers } from "./travellers/parse";
+import { loadUserConfig } from "./config";
+import { crossRate, normalizeCurrency, type RateTable } from "./currency";
+import { loadEcbRates } from "./rates";
 import { parseTracks } from "./tracks";
+import { tripFromJson, type TripFile } from "./api/v2/documents";
+import type { FigureDoc } from "./api/v2/schemas/figures";
+import type { Figure } from "./travellers/vocabulary";
 import type { CostsVisibility, Trip, TripAccent, TripPerson, TripStatus, TripTranslations, TripVisibility } from "./types";
 
 const ACCENTS: readonly TripAccent[] = ["sky", "yellow", "green", "coral", "navy"];
@@ -194,16 +196,20 @@ function parsePeople(raw: unknown, folder: string): TripPerson[] {
 }
 
 /**
- * The word the file declares, before the calendar has its say.
- *
- * Only `current` survives `effectiveStatus` unchanged, so this is really
- * asking one question — is this trip the one the bare `/<user>` URLs serve? —
- * and everything else, including a missing field and a typo, is "no". See
- * `readTrip` for where the other two words come from.
+ * A trip's status, purely from its own dates — v2 retired the manual
+ * `status: current` override (`docs/v2-migration/00-decisions.md`, decision
+ * "status/tracks retired"): `trip.json` carries no status at all any more,
+ * so there is no declared word for the calendar to defer to. `current` is
+ * therefore a calendar fact now, not an editorial one — today falling
+ * within `[start, end]` — where it used to be the one thing an author chose
+ * outright. `loadTrips` below still resolves two trips that both land on
+ * `current` down to one, the same way it always did.
  */
-function parseStatus(raw: unknown): TripStatus {
-  const v = String(raw ?? "past").toLowerCase();
-  return v === "current" || v === "upcoming" ? v : "past";
+function deriveStatus(start: string, end: string, now: Date = new Date()): TripStatus {
+  const today = earliestTodayISO(now);
+  if (today < start) return "upcoming";
+  if (today > end) return "past";
+  return "current";
 }
 
 /**
@@ -410,42 +416,38 @@ function parseVisibility(
 }
 
 /**
- * The frontmatter keys `parseTrip` above consumes. Anything else in a trip.md
- * is reported on the trip as `unknownFields` — see the note on that field.
+ * The top-level keys `readTrip` below consumes. Anything else in a
+ * `trip.json` is reported on the trip as `unknownFields` — see the note on
+ * that field.
  *
  * A typo is the common case and is harmless here; a key the project has
  * *withdrawn* is not, and the boot check is what catches those.
- */
-/**
- * The whole vocabulary of a `trip.md`, and the list B207 was about.
  *
- * Exported so a test can hold `createTrip` to it: every field here is either
- * written by a door or decided against in writing, and a fifteenth added
- * without that decision fails rather than joining the three that were read,
- * rendered and unreachable for a year.
+ * v2's own vocabulary (`lib/api/v2/schemas/trip.ts`'s `tripBase`), not v1's
+ * — `start`/`end` are `dates`, `costsVisibility` is inside `costs`,
+ * `travellers` is `figures`, and `tracks`/`reminder`/`reminderChannel` have
+ * no v2 home at all (retired outright — see `deriveStatus` above for
+ * `status`, dropped the same way).
  */
 export const KNOWN_TRIP_FIELDS = new Set([
   "id",
   "title",
   "tagline",
-  "start",
-  "end",
-  "status",
-  "cover",
-  "accent",
-  "rates",
-  "ratesFrom",
-  "translations",
-  "people",
-  "travellers",
-  "test",
+  "dates",
   "visibility",
   "listed",
   "teaser",
-  "costsVisibility",
-  "tracks",
-  "reminder",
-  "reminderChannel",
+  "people",
+  "rates",
+  "costs",
+  "plan",
+  "translations",
+  "accent",
+  "cover",
+  "figures",
+  "intro",
+  "test",
+  "declined",
 ]);
 
 function unknownFields(data: Record<string, unknown>): string[] | undefined {
@@ -453,81 +455,111 @@ function unknownFields(data: Record<string, unknown>): string[] | undefined {
   return extra.length > 0 ? extra : undefined;
 }
 
-/**
- * `reminder:` / `reminderChannel:` — the evening nudge, B1219.
- *
- * Fails open like every reader here: an unrecognised channel or a
- * `reminder: true` with no channel reads as no reminder at all, rather than
- * guessing which one was meant. The writer, `lib/api/tripReminder.ts`, is
- * the one place a bad value is refused instead of dropped.
- */
-function parseReminder(
-  raw: unknown,
-  rawChannel: unknown,
-  folder: string,
-): { channel: "mail" | "whatsapp" } | undefined {
-  if (raw !== true) return undefined;
-  if (rawChannel === "mail" || rawChannel === "whatsapp") return { channel: rawChannel };
-  console.warn(
-    `[trips] ${folder}/trip.md says reminder: true but reminderChannel is ${JSON.stringify(
-      rawChannel ?? null,
-    )}, which is not "mail" or "whatsapp" — treating the reminder as off.`,
-  );
-  return undefined;
-}
-
 function parseCostsVisibility(raw: unknown, folder: string): CostsVisibility {
   if (raw === undefined || raw === null) return "public";
   const v = String(raw).toLowerCase();
   if (v === "public" || v === "guests") return v;
   console.warn(
-    `[trips] ${folder}/trip.md has costsVisibility "${raw}" — treating it as guests-only.`,
+    `[trips] ${folder}/trip.json has costs.visibility "${raw}" — treating it as guests-only.`,
   );
   return "guests";
 }
 
 /**
- * The `rates:` block — this trip's frozen local→base rates.
+ * This trip's frozen local→base rates, resolved from `rates:` — B1606/V2.
  *
- * ```yaml
- * rates:
- *   THB: 0.0245   # 1 THB = 0.0245 CHF, as it was on this trip
- *   VND: 0.000034
- * ```
- *
- * Kept in `trip.md` rather than a sibling `rates.json` so that a trip stays
- * one metadata file: the "clone it and edit markdown" story gets worse with
- * every extra file a trip needs, and rates are trip metadata in exactly the
- * way `start` and `accent` are. A bad entry is dropped and logged rather than
- * throwing, matching how every other field here behaves — the amounts it
- * would have converted then show up as explicitly unconverted (lib/costs.ts)
- * instead of being counted at face value.
+ * The wire no longer states the rate itself for every currency the way v1's
+ * flat `rates: {EUR: 0.94}` did: `rates.currencies` only *names* which
+ * currencies the trip may use, and `rates.manual` carries a number only for
+ * the ones the ECB does not publish or that the owner wants to override —
+ * both in the ECB's own convention (units of the currency per one euro, the
+ * same as `loadEcbRates()`'s table). So getting to "units of base currency
+ * per one unit of THB" is two hops now rather than one stored number:
+ * `manual` (or the cached ECB snapshot) for THB→EUR, then `crossRate` for
+ * EUR→base. Nothing here fetches anything — `loadEcbRates` only ever reads
+ * the cached file `npm run rates:update` (or the nightly refresh) already
+ * wrote, so a currency the cache does not cover, or a fresh checkout with no
+ * cache at all, drops out of the table exactly the way an unconvertible
+ * currency always has: reported as unconverted rather than counted at face
+ * value (`lib/costs.ts`).
  */
-function parseRates(raw: unknown, folder: string): RateTable {
-  return parseRateTable(raw, (message) =>
-    console.warn(`[trips] ${folder}/trip.md rates: ${message}`),
-  );
+function resolveTripRates(
+  raw: TripFile["rates"],
+  base: string,
+): { rates: RateTable; ratesFrom: Record<string, string> } {
+  if (!raw) return { rates: {}, ratesFrom: {} };
+  const ecb = loadEcbRates();
+  const eurRates: Record<string, number> = { ...(ecb?.rates ?? {}), ...(raw.manual ?? {}) };
+  const rates: Record<string, number> = {};
+  const ratesFrom: Record<string, string> = {};
+  for (const rawCode of raw.currencies) {
+    const code = normalizeCurrency(rawCode);
+    if (!code) continue;
+    const rate = crossRate(code, base, eurRates);
+    if (rate === undefined) continue;
+    rates[code] = rate;
+    ratesFrom[code] =
+      raw.manual?.[code] !== undefined
+        ? "the trip's own rate"
+        : ecb?.date
+          ? `European Central Bank, ${ecb.date}`
+          : "European Central Bank";
+  }
+  return { rates, ratesFrom };
 }
 
 /**
- * `ratesFrom:` — where each looked-up `rates:` entry came from, written by
- * `fillTripRates` (lib/api/tripRates.ts, B543) beside the rate itself. A
- * hand-typed rate carries no entry here, which is exactly right: this is
- * provenance for a measurement, not a place to explain a judgement call.
+ * `figures:` resolved into the render layer's own `Figure[]` — B1609. The
+ * wire names a *mode* and, for `custom`, a list of figure-library ids
+ * (`content/<user>/figures/<id>.json`); this trip's own vocabulary only
+ * knows how to draw a party, not how to look one up by id, so this is the
+ * one place that translation happens.
  *
- * Fails open per entry, like `rates:` above — one bad line here must not cost
- * the page every citation it does have.
+ * ponytail: `{mode: "off"}` and `{mode: "journal"}` both read as `[]` here,
+ * same as an absent `figures:` — `partyFor` (lib/travellers/parse.ts) then
+ * falls back to the journal's own default party for all three, which is
+ * correct for "journal" but means "off" cannot yet ask for *no one drawn at
+ * all*. `Trip.travellers` has no third state to say that in. Upgrade path:
+ * give it one, the day an owner actually wants a party-less trip.
  */
-function parseRatesFrom(raw: unknown): Record<string, string> {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
-  const out: Record<string, string> = {};
-  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
-    const code = key.trim().toUpperCase();
-    if (/^[A-Z]{3}$/.test(code) && typeof value === "string" && value.trim()) {
-      out[code] = value.trim();
-    }
+function resolveTripFigures(raw: TripFile["figures"], username: string): Figure[] {
+  if (!raw || raw.mode !== "custom") return [];
+  return raw.figures
+    .map((id) => readFigureDoc(username, id))
+    .filter((doc): doc is FigureDoc => doc !== null)
+    .map(figureDocToFigure);
+}
+
+/**
+ * `content/<user>/figures/<id>.json`, read directly rather than through
+ * `lib/figures.ts`'s own `getFigureDoc` — that module imports `tripDir`
+ * from this one (for `figureReferences`), so importing it back here would
+ * be a cycle. Both are a plain `JSON.parse` of one small file; duplicating
+ * that is cheaper than restructuring either module to share it.
+ */
+function readFigureDoc(username: string, id: string): FigureDoc | null {
+  const file = path.join(contentRoot(), username, "figures", `${path.basename(id)}.json`);
+  if (!fs.existsSync(file)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8")) as FigureDoc;
+  } catch {
+    return null;
   }
-  return out;
+}
+
+function figureDocToFigure(doc: FigureDoc): Figure {
+  const figure: Figure = {};
+  if (doc.person) figure.for = doc.person.toLowerCase();
+  for (const key of ["skin", "hair", "eyes", "shirt", "pants", "pack", "headscarf"] as const) {
+    const v = doc[key];
+    if (v) figure[key] = v;
+  }
+  if (doc.hairStyle) figure.hairStyle = doc.hairStyle;
+  if (doc.outfit) figure.outfit = doc.outfit;
+  if (doc.build) figure.build = doc.build;
+  if (doc.age) figure.age = doc.age;
+  if (doc.accessories) figure.accessories = doc.accessories;
+  return figure;
 }
 
 /**
@@ -557,7 +589,7 @@ function refuse(folder: string, reason: MalformedTripReason, problem: string): M
 }
 
 /**
- * One trip.md → a Trip, or a MalformedTrip saying why not.
+ * One `trip.json` → a Trip, or a MalformedTrip saying why not.
  *
  * - `Trip` — it parsed and is trustworthy.
  * - `MalformedTrip` — the folder would silently vanish, and this is what to
@@ -566,44 +598,56 @@ function refuse(folder: string, reason: MalformedTripReason, problem: string): M
  *   and returned rather than dropped so the reason reaches the owner and the
  *   agent that wrote the file, not just the server log (B83).
  *
- * A folder with **no `trip.md` at all** is one of those, not a null. It was
+ * A folder with **no `trip.json` at all** is one of those, not a null. It was
  * first read as "a folder that never claimed to be a trip is nothing to
  * report" — but nothing else lives directly under `trips/`, so the only way to
  * make one is to be halfway through creating a trip. That is exactly the agent
  * this task is about: it made the directory, its write of the file failed, and
  * every read afterwards is indistinguishable from never having tried.
  *
+ * `dayFromJson`/`tripFromJson` (`lib/api/v2/documents.ts`) are the one place
+ * that turns a document's bytes into typed fields — this function's own job
+ * is everything downstream of that: validity of `id`/`title`/`dates`, and the
+ * mapping from the wire's `TripFile` onto this render layer's own `Trip`
+ * (B1598). That mapping is deliberate rather than 1:1 — `figures` resolves
+ * against the figure library, `rates` resolves against the cached ECB
+ * table, `costs`/`plan` pass through whole for `lib/costs.ts`/`lib/plan.ts`
+ * to read (see the note on `Trip.costsSection`) — and it happens here, once,
+ * rather than once per reader.
+ *
  * The `[trips]` warnings stay. The server log is still the right place for an
  * operator tailing stdout; it was only ever wrong as the *sole* place.
  */
 function readTrip(username: string, dir: string, folder: string): Trip | MalformedTrip {
-  const file = path.join(dir, "trip.md");
+  const file = path.join(dir, "trip.json");
   if (!fs.existsSync(file)) {
-    return refuse(folder, "no-file", "there is no trip.md in it");
+    return refuse(folder, "no-file", "there is no trip.json in it");
   }
 
+  const raw = fs.readFileSync(file, "utf8");
   let data: Record<string, unknown>;
-  let content: string;
+  let tripFile: TripFile;
   try {
-    const parsed = matter(fs.readFileSync(file, "utf8"));
-    data = parsed.data as Record<string, unknown>;
-    content = parsed.content;
+    // Parsed twice — once by `tripFromJson` for the typed fields, once here
+    // for `unknownFields` — because `tripFromJson` only ever returns the
+    // keys it knows about, and a key it does not know about is exactly what
+    // `unknownFields` exists to notice. Both are one cheap `JSON.parse` of a
+    // small file; a second field-by-field parser would be the thing AGENTS.md
+    // warns against, this is not that.
+    data = JSON.parse(raw) as Record<string, unknown>;
+    tripFile = tripFromJson(raw);
   } catch (err) {
-    // See `clearMatterCache` in lib/matterCache.ts for why this call is here too.
-    clearMatterCache();
-    // First line only: gray-matter quotes the offending source at length, and
-    // a web page is not a terminal.
     const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
-    return refuse(folder, "unparseable", `its frontmatter could not be parsed: ${why}`);
+    return refuse(folder, "unparseable", `it could not be parsed: ${why}`);
   }
 
-  const id = String(data.id ?? "").trim();
-  const title = String(data.title ?? "").trim();
-  const start = String(data.start ?? "").trim();
-  const end = String(data.end ?? "").trim();
+  const id = String(tripFile.id ?? "").trim();
+  const title = String(tripFile.title ?? "").trim();
+  const start = String(tripFile.dates?.from ?? "").trim();
+  const end = String(tripFile.dates?.to ?? "").trim();
 
   if (!id) {
-    return refuse(folder, "missing-id", `it has no id (add \`id: ${folder}\`, matching the folder)`);
+    return refuse(folder, "missing-id", `it has no id (add \`"id": "${folder}"\`, matching the folder)`);
   }
   if (id !== folder) {
     return refuse(
@@ -632,52 +676,50 @@ function readTrip(username: string, dir: string, folder: string): Trip | Malform
     return refuse(
       folder,
       "missing-fields",
-      `it needs a title and ISO start and end dates (YYYY-MM-DD); ` +
+      `it needs a title and ISO dates.from and dates.to (YYYY-MM-DD); ` +
         `${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} missing or malformed`,
     );
   }
 
   // Read before the object below because `teaser:` is only meaningful against
   // the visibility this file ended up with — not against the word it wrote.
-  const visibility = parseVisibility(data.visibility, data.listed, folder);
+  const visibility = parseVisibility(tripFile.visibility, tripFile.listed, folder);
+  const configured = loadUserConfig(username).baseCurrency;
+  const base = normalizeCurrency(configured, configured.toUpperCase());
 
   return {
     id,
     username,
     ref: tripRef(username, id),
     title,
-    tagline: data.tagline ? String(data.tagline) : undefined,
+    tagline: tripFile.tagline ? String(tripFile.tagline) : undefined,
     start,
     end,
-    // Declared or derived, and which is which matters: `current` is the
-    // author's choice and is honoured as written; `past` and `upcoming` are
-    // facts about `start` and today, so they are read off the calendar rather
-    // than off a field nobody has edited since the trip was created. B72.
-    status: effectiveStatus({ start, status: parseStatus(data.status) }),
-    cover: data.cover ? mediaWithOwner(String(data.cover), username) : undefined,
-    accent: parseAccent(data.accent),
-    rates: parseRates(data.rates, folder),
-    ratesFrom: parseRatesFrom(data.ratesFrom),
-    intro: content.trim(),
-    translations: parseTranslations(data.translations),
-    people: parsePeople(data.people, folder),
-    // Its own parser, and it fails open where `parsePeople` fails closed.
-    // See `Trip["travellers"]` in lib/types.ts for why that asymmetry is
-    // the point rather than an inconsistency.
-    travellers: parseTravellers(data.travellers, `${folder}/trip.md`),
+    status: deriveStatus(start, end),
+    cover: tripFile.cover ? mediaWithOwner(String(tripFile.cover), username) : undefined,
+    accent: parseAccent(tripFile.accent),
+    ...resolveTripRates(tripFile.rates, base),
+    intro: (tripFile.intro ?? "").trim(),
+    translations: parseTranslations(tripFile.translations),
+    people: parsePeople(tripFile.people, folder),
+    travellers: resolveTripFigures(tripFile.figures, username),
     // `true` and nothing else. Absent is the overwhelming case, and a flag
     // that quietly accepted "no" or "false" as truthy would put a banner on
     // somebody's actual holiday.
-    test: data.test === true || undefined,
+    test: tripFile.test === true || undefined,
     ...visibility,
-    teaser: parseTeaser(data.teaser, visibility.visibility, folder) || undefined,
-    costsVisibility: parseCostsVisibility(data.costsVisibility, folder),
-    // Absent is "all of them", so a trip written before B531 asks for
-    // everything — which is the default an owner should not have to find, and
-    // the only default that would have caught the run this came from.
-    tracks: parseTracks(data.tracks),
-    reminder: parseReminder(data.reminder, data.reminderChannel, folder),
+    teaser: parseTeaser(tripFile.teaser, visibility.visibility, folder) || undefined,
+    costsVisibility: parseCostsVisibility(tripFile.costs?.visibility, folder),
+    // v2 retired `tracks:` — every day answers every declinable directly now
+    // (`DAY_DECLINABLES`), so there is no trip-level "what to ask for" any
+    // more. `parseTracks(undefined)` is "all of it", which nothing under
+    // `lib/` still enforces against but nothing reads for rendering either.
+    tracks: parseTracks(undefined),
+    // v2 has no wire home for the evening reminder — see `06-contract-deltas`.
+    reminder: undefined,
     unknownFields: unknownFields(data),
+    costsSection: tripFile.costs,
+    planSection: tripFile.plan,
   };
 }
 
@@ -702,7 +744,7 @@ function tripsSignature(root: string, folders: string[]): string {
   return folders
     .map((folder) => {
       try {
-        const { mtimeMs, size } = fs.statSync(path.join(root, folder, "trip.md"));
+        const { mtimeMs, size } = fs.statSync(path.join(root, folder, "trip.json"));
         return `${folder}:${mtimeMs}:${size}`;
       } catch {
         return `${folder}:-`;

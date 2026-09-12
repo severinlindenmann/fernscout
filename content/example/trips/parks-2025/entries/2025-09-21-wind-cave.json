@@ -1,0 +1,65 @@
+{
+  "title": "Underground at Wind Cave",
+  "date": "2025-09-21",
+  "timezone": "America/Denver",
+  "location": "Wind Cave National Park",
+  "country": "United States",
+  "countryCode": "US",
+  "coordinates": {
+    "lat": 43.557,
+    "lng": -103.478
+  },
+  "content": "The cave breathes: air moves in or out of the entrance depending on the pressure outside, hard enough to feel on your hand.\n\nBison on the prairie above it, in a herd big enough that we sat in the car for twenty minutes waiting for the road back.",
+  "media": [
+    {
+      "src": "/media/parks-2025/wind-cave/01.jpg",
+      "type": "image",
+      "width": 1124,
+      "height": 1600
+    },
+    {
+      "src": "/media/parks-2025/wind-cave/02.jpg",
+      "type": "image",
+      "width": 1200,
+      "height": 1600
+    }
+  ],
+  "costs": [
+    {
+      "label": "Fuel",
+      "amount": 33,
+      "category": "transport",
+      "currency": "USD"
+    },
+    {
+      "label": "Cave tour",
+      "amount": 28,
+      "category": "activities",
+      "currency": "USD"
+    },
+    {
+      "label": "Motel in Custer",
+      "amount": 96,
+      "category": "accommodation",
+      "currency": "USD"
+    }
+  ],
+  "transportMode": "car",
+  "transportFrom": "Badlands",
+  "transportTo": "Custer",
+  "tags": [
+    "south-dakota",
+    "national-parks",
+    "caves"
+  ],
+  "weather": {
+    "tempMin": 10.7,
+    "tempMax": 25.8,
+    "code": 3,
+    "precipitation": 0,
+    "windMax": 10.5,
+    "source": "open-meteo",
+    "recordedAt": "2026-09-06T08:32:19.776Z"
+  },
+  "status": "published"
+}

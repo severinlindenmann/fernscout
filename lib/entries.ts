@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import matter from "gray-matter";
 import { clearMatterCache } from "./matterCache";
 import { countryCodeFor } from "./flags";
 import { parseCostItems } from "./costFormat";
@@ -9,6 +8,7 @@ import { normalizeCurrency } from "./currency";
 import { getTrip, mediaWithOwner, parseTripRef, tripDir } from "./trips";
 import { hasHappened } from "./tripTime";
 import { firstSentence } from "./narratedCut";
+import { dayFromJson, type DayFile } from "./api/v2/documents";
 import type {
   Day,
   Entry,
@@ -20,7 +20,7 @@ import type {
 } from "./types";
 import { TRAVEL_SCENE_VARIANTS } from "./validate/entry";
 import { parseWeather } from "./weather";
-import { parseUnrecorded, parseWithout } from "./tracks";
+import type { Track } from "./tracks";
 import { maySeePhoto, parsePhotoVisibility, type ReaderLevel } from "./photos";
 
 // clearMatterCache re-exported from lib/matterCache.ts: lib/costs.ts,
@@ -94,7 +94,7 @@ function entriesDir(ref: string) {
 }
 
 /**
- * `2026-01-11-da-lat.md` → `da-lat`.
+ * `2026-01-11-da-lat.json` → `da-lat`.
  *
  * The file name carries the date so a directory listing sorts chronologically;
  * the slug is what is left, and it is a day's address inside its trip. This is
@@ -104,11 +104,11 @@ function entriesDir(ref: string) {
  * up reachable by one code path and not another.
  */
 export function entrySlugFromFile(file: string): string {
-  return file.replace(/\.md$/, "").replace(/^\d{4}-\d{2}-\d{2}-/, "");
+  return file.replace(/\.json$/, "").replace(/^\d{4}-\d{2}-\d{2}-/, "");
 }
 
 /**
- * `2026-01-11-da-lat.md` → `2026-01-11`, and `about.md` → `null`.
+ * `2026-01-11-da-lat.json` → `2026-01-11`, and `about.md` → `null`.
  *
  * The other half of the same rule, and it lives here for the same reason: the
  * two are one convention read from opposite ends, and splitting them across
@@ -251,6 +251,31 @@ function entriesSignature(dir: string, files: string[]): string {
     .join("|");
 }
 
+/**
+ * v2's `declined` map has one free-text reason per field, not the three-way
+ * `without`/`unrecorded`/has-it v1 used to encode per `Track` (B531/B560) —
+ * decision 4 in `docs/v2-migration/00-decisions.md` collapsed those into one
+ * mechanism everywhere. That reason string is for a person to read, not for
+ * this reader to classify as "nothing happened" versus "figures lost", so a
+ * decline on a trackable field reads as `unrecorded` here — the safer of the
+ * two for `lib/costs.ts`'s averaging (B540): it excludes the day rather than
+ * silently counting it as a $0 day, which is the direction "an empty field
+ * beats a plausible fiction" points on a claim this reader cannot verify.
+ */
+const DECLINABLE_TRACK: Record<string, Track> = {
+  costs: "costs",
+  coordinates: "coordinates",
+  media: "photos",
+};
+
+function declinedTracks(declined: DayFile["declined"]): Track[] {
+  if (!declined) return [];
+  const map = declined as Record<string, string | undefined>;
+  return Object.entries(DECLINABLE_TRACK)
+    .filter(([field]) => map[field] !== undefined)
+    .map(([, track]) => track);
+}
+
 /** Every entry on disk, drafts included. Cached; callers filter. */
 function readAllEntries(ref: string): Entry[] {
   const dir = entriesDir(ref);
@@ -260,7 +285,7 @@ function readAllEntries(ref: string): Entry[] {
     return [];
   }
 
-  const files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith(".json"));
   const signature = entriesSignature(dir, files);
   const hit = cache.get(dir);
   if (hit && hit.signature === signature) return hit.entries;
@@ -273,38 +298,33 @@ function readAllEntries(ref: string): Entry[] {
 
   const entries = files.flatMap((file) => {
     const raw = fs.readFileSync(path.join(dir, file), "utf8");
+    const slug = entrySlugFromFile(file);
 
     // One file that will not parse must not take the rest of the trip down
     // with it — the same failure `readTrip` in lib/trips.ts guards against
-    // for a malformed `trip.md`. Skipped and logged rather than thrown, so
+    // for a malformed `trip.json`. Skipped and logged rather than thrown, so
     // `getAllEntries` and everything built on it (the trip page, the feed,
     // the sitemap, the search index) keep serving every other day. B236.
-    let parsed: ReturnType<typeof matter>;
+    let day: DayFile;
     try {
-      parsed = matter(raw);
+      day = dayFromJson(slug, raw);
     } catch (err) {
-      // See `clearMatterCache` in lib/matterCache.ts for why this call is here too.
-      clearMatterCache();
-      // First line only: gray-matter quotes the offending source at length,
-      // and a server log is not a terminal either.
       const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
-      console.warn(`[entries] ${ref}/entries/${file}: its frontmatter could not be parsed: ${why}`);
+      console.warn(`[entries] ${ref}/entries/${file}: could not be parsed: ${why}`);
       return [];
     }
-    const { data, content } = parsed;
 
-    const slug = entrySlugFromFile(file);
-    const country = data.country ?? "";
+    const country = day.country ?? "";
 
     return [{
       slug,
-      title: data.title ?? slug,
-      date: String(data.date),
-      time: data.time ? String(data.time) : undefined,
-      timezone: data.timezone ? String(data.timezone) : undefined,
-      location: data.location ?? "",
+      title: day.title,
+      date: day.date,
+      time: day.time,
+      timezone: day.timezone,
+      location: day.location ?? "",
       country,
-      countryCode: countryCodeFor(country, data.countryCode),
+      countryCode: countryCodeFor(country, day.countryCode),
       // Missing stays missing rather than becoming `Number(undefined)` —
       // `NaN`, which is what B265 actually found reaching the page: not the
       // `undefined` a missing field ought to produce, but a number that
@@ -314,60 +334,65 @@ function readAllEntries(ref: string): Entry[] {
       // `number` regardless — this file has always been the one place that
       // type is a promise rather than a guarantee, and every reader of it
       // already has to cope with a coordinate that quietly isn't one.
-      lat: (data.lat === undefined ? undefined : Number(data.lat)) as number,
-      lng: (data.lng === undefined ? undefined : Number(data.lng)) as number,
-      transport: data.transportMode
+      lat: (day.coordinates === undefined ? undefined : Number(day.coordinates.lat)) as number,
+      lng: (day.coordinates === undefined ? undefined : Number(day.coordinates.lng)) as number,
+      transport: day.transportMode
         ? {
-            mode: data.transportMode,
-            from: data.transportFrom ?? "",
-            to: data.transportTo ?? "",
+            mode: day.transportMode,
+            from: day.transportFrom ?? "",
+            to: day.transportTo ?? "",
           }
         : undefined,
-      travelScene: parseTravelSceneVariant(data.travelScene),
-      // Trip-relative like everything else under media/ — see mediaWithOwner
-      // in lib/trips.ts for why frontmatter keeps it that way.
-      cover: data.cover ? mediaWithOwner(data.cover, owner) : undefined,
-      gallery: Array.isArray(data.gallery)
-        ? (data.gallery as GalleryItem[]).map((item) => ({
-            ...item,
-            src: mediaWithOwner(item.src, owner),
-            // A video's poster is trip-relative too, and used to be left that
-            // way — the one media path in the file that never got the owner
-            // prefixed onto it, so every ingested clip's still was a 404.
-            poster: item.poster ? mediaWithOwner(item.poster, owner) : undefined,
-            // Fail-closed, like `visibility:` on a trip: a word this code does
-            // not know reads as `private` rather than as no label at all. B596.
-            visibility: parsePhotoVisibility(item.visibility),
-          }))
-        : [],
-      tags: Array.isArray(data.tags) ? data.tags : [],
-      costs: parseCostItems(data.costs, defaultCurrency),
-      content: content.trim(),
+      travelScene: parseTravelSceneVariant(day.travelScene),
+      // v2's `dayWrite` has no per-day `cover:` of its own — only a trip has
+      // one — so this is always absent now. `lib/narratedCut.ts`'s own
+      // fallback (the gallery's first photograph) already covers a day that
+      // never had one, which was already most of them.
+      cover: undefined,
+      gallery: (day.media ?? []).map((item) => ({
+        src: mediaWithOwner(item.src, owner),
+        type: item.type,
+        caption: item.caption,
+        width: item.width,
+        height: item.height,
+        // A video's poster is trip-relative too, and used to be left that
+        // way — the one media path in the file that never got the owner
+        // prefixed onto it, so every ingested clip's still was a 404.
+        poster: item.poster ? mediaWithOwner(item.poster, owner) : undefined,
+        // Fail-closed, like `visibility:` on a trip: a word this code does
+        // not know reads as `private` rather than as no label at all. B596.
+        visibility: parsePhotoVisibility(item.visibility),
+      } satisfies GalleryItem)),
+      tags: day.tags ?? [],
+      costs: parseCostItems(day.costs, defaultCurrency),
+      content: day.content.trim(),
       // Fail-closed, the same rule `item.visibility` gets a few lines up —
       // B632. A word this code does not know is not "no label"; it is a
       // typo, and a typo must not publish something somebody meant held
       // back.
-      visibility: parsePhotoVisibility(data.visibility),
-      translations: parseTranslations(data.translations),
+      visibility: parsePhotoVisibility(day.visibility),
+      translations: parseTranslations(day.translations),
       // Kept rather than dropped: `getAllEntries` filters on the way out, so
       // one cache serves both the public site and the owner's own view.
-      draft: isDraft(data) || undefined,
+      draft: day.status === "draft" || undefined,
       // `true` and nothing else — see the note on `Entry.test`. A day that
       // records something that happened must not be able to acquire a banner
       // saying it did not because somebody wrote `test: no`.
-      test: data.test === true || undefined,
+      test: day.test === true || undefined,
       // B325. `parseWeather` drops anything missing a source or a timestamp,
       // which is the same rule the API applies on the way in — a file edited
       // by hand into a shape the door would have refused must not render as
-      // though the door had accepted it.
-      weather: parseWeather(data.weatherData),
-      weatherAsked: data.weather === true || undefined,
-      // What this day says it deliberately does not have — B531. Parsed the
-      // permissive way round: a word here this code does not know says
-      // nothing it can act on, and dropping it is not a reason to refuse a
-      // day that reads fine otherwise.
-      without: parseWithout(data.without),
-      unrecorded: parseUnrecorded(data.unrecorded),
+      // though the door had accepted it. v2 keeps the pending literal `true`
+      // and the reading in the one `weather:` key; `parseWeather` already
+      // reads `true` as "not an object" and drops it, so it needs no help
+      // telling the two apart.
+      weather: parseWeather(day.weather),
+      weatherAsked: day.weather !== undefined || undefined,
+      // What this day says it deliberately does not have — see
+      // `declinedTracks` above for why every decline on a trackable field
+      // reads as `unrecorded` rather than `without` under v2.
+      without: [],
+      unrecorded: declinedTracks(day.declined),
     } satisfies Entry];
   });
 
