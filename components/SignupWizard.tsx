@@ -46,7 +46,16 @@ function rememberLocale(code: string) {
  * is what actually decides; this never has to be the last word. */
 const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
 
-type Step = "email" | "code" | "phone" | "phone-code" | "phone-wa" | "journal" | "trip" | "signing-in";
+type Step =
+  | "email"
+  | "code"
+  | "owns"
+  | "phone"
+  | "phone-code"
+  | "phone-wa"
+  | "journal"
+  | "trip"
+  | "signing-in";
 
 /**
  * A brand-new visitor's whole way in, without leaving `/agent` — B688.
@@ -94,6 +103,7 @@ export default function SignupWizard({
   locale,
   codeMinutes,
   onSignedIn,
+  onAlreadyOwns,
 }: {
   /** Prefilled when the visitor already carries an identity cookie — they
    * proved this address once already, but a signup token still needs its
@@ -107,6 +117,11 @@ export default function SignupWizard({
   codeMinutes: string;
   /** Called once the browser holds a session for the new journal. */
   onSignedIn: (username: string) => void;
+  /** Called when the verified address turns out to already own a journal —
+   * B1568. The door swaps this wizard for its sign-in form; before this the
+   * person learned it from `createJournal`, after the journal form and a
+   * proven phone number. */
+  onAlreadyOwns: () => void;
 }) {
   const { t } = useI18n();
   const [step, setStep] = useState<Step>("email");
@@ -256,9 +271,17 @@ export default function SignupWizard({
     setCode(value);
     setBusy(true);
     setError(null);
-    const result = await post("/api/auth/signup/verify", { email, code: value });
+    const result = await post("/api/auth/signup/verify", { email, code: value }, undefined, [
+      "too_many_journals",
+    ]);
     setBusy(false);
     if (!result) return;
+    // The address is proven and already owns a journal — B1568. Said here,
+    // where the answer became knowable, not after the phone step.
+    if (result.error === "too_many_journals") {
+      setStep("owns");
+      return;
+    }
     setSignupToken(result.token as string);
     setStep("journal");
   }
@@ -466,7 +489,10 @@ export default function SignupWizard({
           Telefonnummer per WhatsApp") is a confirmation, not a fresh pitch;
           the intro above belongs to the steps that still need to sell the
           idea, not to the one that is only waiting on a tap in WhatsApp. */}
-      {step !== "phone-wa" && step !== "trip" && (
+      {/* The "owns" step is excluded for the same reason "trip" is — the
+          pitch above a sentence saying this address already has a journal
+          would contradict it (B1568). */}
+      {step !== "phone-wa" && step !== "trip" && step !== "owns" && (
         <p className="mt-2 text-base leading-7 text-navy-700">
           {t("agent.startIntro")}
         </p>
@@ -545,6 +571,21 @@ export default function SignupWizard({
             {t("agent.startVerify")}
           </BusyButton>
         </form>
+      )}
+
+      {step === "owns" && (
+        <div>
+          <p className="mt-2 text-base leading-7 text-navy-700">
+            {t("agent.error.too_many_journals")}
+          </p>
+          <button
+            type="button"
+            onClick={onAlreadyOwns}
+            className={`mt-4 w-full ${PRIMARY_BUTTON}`}
+          >
+            {t("agent.haveJournalYes")}
+          </button>
+        </div>
       )}
 
       {step === "phone" && (

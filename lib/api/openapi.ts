@@ -1642,6 +1642,15 @@ export function openApiDocument() {
                 "corrected without another emailed code.",
             },
             "401": { description: "The code is wrong, expired or already used" },
+            "409": {
+              description:
+                "The code was right, and that is the problem: the address it proved " +
+                "already owns as many journals as this server allows (`too_many_journals`, " +
+                "naming them). No token is returned — creating would only be refused the " +
+                "same way later. The `next` field says how to get a write token for the " +
+                "journal it already owns instead. Checked only after the code verifies, so " +
+                "this route stays useless for asking who is on this server. B1568.",
+            },
           },
         },
       },

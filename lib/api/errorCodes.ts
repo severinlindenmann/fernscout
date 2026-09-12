@@ -29,6 +29,7 @@ export const ERROR_CODES: Record<string, string> = {
   no_session: "No session cookie, and this route takes nothing else.",
   invalid_handover: "The 20-minute handover credential is spent, expired or not for this journal. The owner makes a new one from their own page.",
   invalid_code: "The six-digit code is wrong, used, or more than 30 minutes old. Ask for a new one; the newest is the only live one.",
+  too_many_journals: "This address already owns as many journals as this server allows (the refusal names them). Do not sign up again: ask for a write token for the journal it owns, via /api/auth/request and /api/auth/verify with `\"kind\": \"agent\"`.",
   link_spent: "This single-use link has already been followed. It cannot be followed again — ask for a new one.",
 
   // ── what you asked about does not exist ────────────────────────────────

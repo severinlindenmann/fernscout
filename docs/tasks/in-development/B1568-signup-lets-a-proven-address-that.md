@@ -38,17 +38,34 @@ The cost today: a person (the failing tester was the owner themself; the
 filled-in form before learning the answer was known at step two — and an SMS
 send is real money on the live instance.
 
+## Validation (2026-09-12)
+
+Valid at take: `app/api/auth/signup/verify/route.ts` returned a token
+unconditionally after `verifyCode`, and the only cap check was
+`lib/journals.ts:316` / the `reserve()` conflict — reached after the phone
+step, exactly as the report describes.
+
 ## Work
 
 - In `app/api/auth/signup/verify/route.ts`, after `verifyCode` succeeds,
   check `journalsOwnedBy(email)` (`lib/journals.ts:145`); when the address is
   at `MAX_JOURNALS_PER_EMAIL`, answer `too_many_journals` naming the journal,
   instead of returning a signup token that can only fail later.
-- In `components/SignupWizard.tsx`, catch that refusal at the code step and
-  show a sentence with the way in (sign in — the same `IdentitySignIn` the
-  door's "yes" answer shows), not a dead end.
+- In `components/SignupWizard.tsx`, catch that refusal at the code step: a
+  new `owns` step shows the sentence and a "Yes, sign me in" button
+  (`agent.haveJournalYes` — existing key, no new strings), which calls a new
+  required `onAlreadyOwns` prop. `AgentDoor` wires it to `setHas(true)` —
+  the same `IdentitySignIn` the door's "yes" answer shows — in both its
+  branches (the signed-in branch now honours `has` too, for an identity
+  whose *other* address owns the journal).
 - Update `lib/api/openapi.ts` for the new refusal on the verify operation
-  (keep-the-contract).
+  (keep-the-contract), and add `too_many_journals` to
+  `lib/api/errorCodes.ts` — the contract test flagged that the code was
+  never in the published vocabulary at all, because `/api/v1/journals`
+  returns it via `createJournal()` and the scanner only reads literals.
+- Route test: `test/signup-verify-owned.test.ts` — the refusal, its
+  ordering after a correct code (no enumeration oracle), and the untouched
+  no-journal path.
 - Not doing: any change to `/api/auth/signup/request`'s uniform 202 — that
   privacy stance is correct and stays.
 
