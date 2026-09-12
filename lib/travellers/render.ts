@@ -13,7 +13,7 @@ import { arrangeParty } from "./layout";
  * Three things spell it as SVG through here:
  *
  * - `components/Travelers.tsx` wraps it in `motion` for the walk cycle
- * - `GET /api/v1/<user>/travellers/preview` returns it as `image/svg+xml`
+ * - `GET /api/v2/<user>/figures/preview` returns it as `image/svg+xml`
  * - `scripts/travellers.ts` writes a sheet for an agent with no server
  */
 
@@ -141,7 +141,7 @@ export function renderFigure(figure: Figure, options: RenderOptions = {}): strin
 
 /**
  * A whole party, arranged and drawn as one `<svg>` document — the same shape
- * `GET .../travellers/preview` answers, and every caller that has to hand
+ * `GET .../figures/preview` answers, and every caller that has to hand
  * somebody a picture rather than a data structure should reach for this
  * rather than re-arranging and re-serialising a party by hand (B1517).
  */

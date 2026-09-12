@@ -324,11 +324,12 @@ export function openApiDocument() {
             "One walking figure. **`for` is an email address out of the trip's `people:` " +
             "block, not a name** — that is what ties the drawing to a person, and it is the " +
             "single commonest way this call is refused. Every other key is a look, and the " +
-            "values each one takes are published by GET /api/v1/{user}/travellers/presets " +
-            "along with twelve worked examples: ask it rather than guessing, because an " +
-            "unrecognised value is refused and an unrecognised key is refused too. " +
-            "GET …/travellers/preview draws a figure so a person can see themselves before " +
-            "it is written, which is the honest way to settle \"is this you?\".",
+            "values each one takes are published by GET /api/v2/{user}/figures/presets " +
+            "(moved from /api/v1/{user}/travellers/presets, B1609) along with twelve worked " +
+            "examples: ask it rather than guessing, because an unrecognised value is refused " +
+            "and an unrecognised key is refused too. GET …/figures/preview draws a figure so " +
+            "a person can see themselves before it is written, which is the honest way to " +
+            "settle \"is this you?\".",
           additionalProperties: false,
           properties: Object.fromEntries(
             [...FIGURE_FIELDS].sort().map((field) => [
@@ -1079,7 +1080,7 @@ export function openApiDocument() {
             "card. `intro` is the trip's own prose, not a frontmatter line, and any text is " +
             "accepted including empty. `translations` replaces the whole block rather than " +
             "merging into it — send the trip's title and tagline in every language it should " +
-            "keep, and a locale you leave out is dropped; `null` or `{}` clears it " +
+            "keep, including an optional introduction, and a locale you leave out is dropped; `null` or `{}` clears it " +
             "altogether. A locale this journal does not declare is refused in the same words " +
             "`POST .../trips` refuses it in, because it is the same check.\n\n" +
             "**`visibility`, `listed`, `teaser`, `status` and `test` are not here.** The " +
@@ -1148,17 +1149,21 @@ export function openApiDocument() {
                     translations: {
                       type: "object",
                       description:
-                        "The trip's title and tagline in the journal's other languages, keyed " +
-                        'by locale: `{"de": {"title": "…", "tagline": "…"}}`. Replaces the ' +
+                        "The trip's title, tagline and introduction in the journal's other languages, keyed " +
+                        'by locale: `{"de": {"title": "…", "tagline": "…", "intro": "…"}}`. Replaces the ' +
                         "whole block — the same shape, and the same check, as on creation — " +
                         "so a locale left out is dropped. `null` or `{}` clears it. A locale " +
                         "this journal does not declare is refused, and an entry saying " +
-                        "neither a title nor a tagline is refused rather than written, since " +
+                        "neither a title, tagline nor intro is refused rather than written, since " +
                         "the reader drops an empty one and the write would only look like it " +
                         "took.",
                       additionalProperties: {
                         type: "object",
-                        properties: { title: { type: "string" }, tagline: { type: "string" } },
+                        properties: {
+                          title: { type: "string" },
+                          tagline: { type: "string" },
+                          intro: { type: "string" },
+                        },
                       },
                     },
                   },
@@ -1630,9 +1635,9 @@ export function openApiDocument() {
                       description:
                         "How the party is drawn — the walking figures on the trip's map " +
                         "and story. Cosmetic, and therefore not owner-only the way " +
-                        "`people` is. Ask GET /api/v1/{user}/travellers/presets for the " +
+                        "`people` is. Ask GET /api/v2/{user}/figures/presets for the " +
                         "vocabulary and twelve starting points, and " +
-                        "GET …/travellers/preview to show somebody the figure before it " +
+                        "GET …/figures/preview to show somebody the figure before it " +
                         "is written. An unknown key inside a figure is refused with " +
                         "`invalid_travellers` rather than dropped.",
                       items: { $ref: "#/components/schemas/Traveller" },
@@ -1689,12 +1694,16 @@ export function openApiDocument() {
                     translations: {
                       type: "object",
                       description:
-                        "Title and tagline in the journal's other languages, keyed by locale: " +
-                        "`{\"de\": {\"title\": \"Japan\"}}`. A locale the journal does not " +
+                        "Title, tagline and introduction in the journal's other languages, keyed by locale: " +
+                        "`{\"de\": {\"title\": \"Japan\", \"intro\": \"…\"}}`. A locale the journal does not " +
                         "declare is refused rather than written, since nothing would render it.",
                       additionalProperties: {
                         type: "object",
-                        properties: { title: { type: "string" }, tagline: { type: "string" } },
+                        properties: {
+                          title: { type: "string" },
+                          tagline: { type: "string" },
+                          intro: { type: "string" },
+                        },
                       },
                     },
                   },
@@ -3503,8 +3512,10 @@ export function openApiDocument() {
        * The rest of the bearer-token surface — added in B540, because every
        * one of these was reachable, documented nowhere, and therefore
        * invisible to the only reader this document has. Two of them,
-       * `travellers/presets` and `travellers/preview`, are named in AGENTS.md
-       * as doors an agent should use and were still absent here.
+       * `travellers/presets` and `travellers/preview`, were named in
+       * AGENTS.md as doors an agent should use and were still absent here;
+       * both have since moved to `/api/v2/{user}/figures/presets` and
+       * `.../preview` (B1609) and no longer live under this prefix.
        */
       "/api/health": {
         get: {
@@ -3706,8 +3717,8 @@ export function openApiDocument() {
           description:
             "The whole list at once. Cosmetic — it changes the walking figures and nothing " +
             "about who may read or write anything, which is why it is not owner-only the " +
-            "way `people` is. Ask …/travellers/presets for the vocabulary first; an " +
-            "unknown key inside a figure is refused rather than dropped.",
+            "way `people` is. Ask GET /api/v2/{user}/figures/presets for the vocabulary " +
+            "first; an unknown key inside a figure is refused rather than dropped.",
           parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }, { name: "trip", in: "path", required: true, schema: { type: "string" } }],
           requestBody: {
             required: true,
@@ -3746,9 +3757,9 @@ export function openApiDocument() {
             "which it did not (`unanswerable`) — a field the picture cannot show comes back " +
             "absent rather than guessed. `party` is the same figures alone, ready to send " +
             "straight to `PATCH …/travellers` once a person has agreed it looks like them. " +
-            "`preview` is the SVG `GET …/travellers/preview` would draw for that party, so " +
+            "`preview` is the SVG `GET …/figures/preview` would draw for that party, so " +
             "there is something to show before anything is written.\n\n" +
-            "Every value is one of the closed vocabulary `GET …/travellers/presets` " +
+            "Every value is one of the closed vocabulary `GET …/figures/presets` " +
             "publishes — this is classification into a fixed list, not open-ended " +
             "generation — and there is **no `for`**: nothing here names a person or matches " +
             "a face to an address in `people:`.\n\n" +
@@ -3845,53 +3856,11 @@ export function openApiDocument() {
           },
         },
       },
-      "/api/v1/{user}/travellers/presets": {
-        get: {
-          summary: "The vocabulary the walking figures are described in",
-          security: [],
-          description:
-            "Open, because it describes nothing about anybody: it is the list of hair, " +
-            "skin, clothing and pack values a figure may use, and twelve worked starting " +
-            "points. Read it before writing a `travellers` block rather than guessing at " +
-            "value names.",
-          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
-          responses: {
-            "200": { description: "The vocabulary and the presets" },
-            "404": { description: "No such journal" },
-          },
-        },
-      },
-      "/api/v1/{user}/travellers/preview": {
-        get: {
-          summary: "A figure, drawn, so a person can see themselves before it is written",
-          security: [],
-          description:
-            "Answers **SVG**, not JSON. Give it `figure` (one figure as JSON) or `party` " +
-            "(a list), and optionally `size` in pixels. Nothing is stored. This is the " +
-            "call that makes \"is this you?\" a question somebody can answer.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-            {
-              name: "figure",
-              in: "query",
-              schema: { type: "string" },
-              description: "One figure, as JSON.",
-            },
-            {
-              name: "party",
-              in: "query",
-              schema: { type: "string" },
-              description: "A list of figures, as JSON. Wins over `figure`.",
-            },
-            { name: "size", in: "query", schema: { type: "integer", minimum: 24, maximum: 240 } },
-          ],
-          responses: {
-            "200": { description: "image/svg+xml", content: { "image/svg+xml": {} } },
-            "400": { description: "Nothing to draw, or the JSON did not parse" },
-            "404": { description: "No such journal" },
-          },
-        },
-      },
+      // "/api/v1/{user}/travellers/presets" and "/preview" moved to
+      // "/api/v2/{user}/figures/presets" and "/preview" (B1609) — this
+      // document is scoped to /api/v1 and /api/auth (see
+      // test/openapi-contract.test.ts), and the v2 door is documented in the
+      // generated /api/v2/openapi.json instead (phase 2 step 6).
       "/api/auth/{user}/keys": {
         get: {
           summary:
@@ -4489,7 +4458,7 @@ export function openApiDocument() {
                         "figures when it carries no `travellers:` block of its own. Replaced " +
                         "wholesale, the same as `.../trips/{trip}/travellers`: send the whole " +
                         "list, and `[]` to go back to having no default (one neutral figure). " +
-                        "Ask GET /api/v1/{user}/travellers/presets for the vocabulary first; " +
+                        "Ask GET /api/v2/{user}/figures/presets for the vocabulary first; " +
                         "an unknown key inside a figure is `400 invalid_travellers` rather " +
                         "than dropped. Read back with GET /api/v1/{user}/travellers.",
                     },

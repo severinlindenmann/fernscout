@@ -227,7 +227,7 @@ describe("writing the block", () => {
     expect(made.ok).toBe(false);
     if (made.ok) throw new Error("unreachable");
     expect(made.message).toContain("preset");
-    expect(made.message).toContain("travellers/presets");
+    expect(made.message).toContain("figures/presets");
   });
 
   test("refuses more figures than a hero can hold", () => {

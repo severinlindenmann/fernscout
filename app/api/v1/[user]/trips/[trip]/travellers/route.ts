@@ -52,8 +52,8 @@ export async function PATCH(
         error: "invalid_request",
         message:
           'Send {"travellers": [{"skin": "medium", "hair": "black"}]} — the whole party. ' +
-          "GET /api/v1/<user>/travellers/presets lists every word this takes, and " +
-          "/travellers/preview draws one so a person can see themselves before it is written.",
+          "GET /api/v2/<user>/figures/presets lists every word this takes, and " +
+          "/figures/preview draws one so a person can see themselves before it is written.",
       },
       { status: 400 },
     );

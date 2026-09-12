@@ -41,6 +41,8 @@ export type BookStrings = {
 
   /** The heading over the trip's own introduction. */
   intro: string;
+  /** Chapter label when a day names no country. */
+  elsewhere: string;
   chapter: string;
   volume: string;
   continued: string;
@@ -105,6 +107,7 @@ const EN: BookStrings = {
   ],
 
   intro: "The idea",
+  elsewhere: "Elsewhere",
   chapter: "Chapter {index} of {of}",
   volume: "Volume {index} of {of}",
   continued: "(continued on the website)",
@@ -202,6 +205,7 @@ const DE: BookStrings = {
   ],
 
   intro: "Die Idee",
+  elsewhere: "Anderswo",
   chapter: "Kapitel {index} von {of}",
   volume: "Band {index} von {of}",
   continued: "(weiter auf der Website)",
@@ -300,6 +304,7 @@ const HU: BookStrings = {
   ],
 
   intro: "Az ötlet",
+  elsewhere: "Máshol",
   chapter: "{index}. fejezet, összesen {of}",
   volume: "{index}. kötet, összesen {of}",
   continued: "(folytatás a weboldalon)",

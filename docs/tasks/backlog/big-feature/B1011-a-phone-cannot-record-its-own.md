@@ -56,6 +56,14 @@ That makes the native part small and specific:
   `POST /api/v1/<user>/import` with `kind: gps`. The store, the exclusion zones
   and `npm run gps -- enrich` are unchanged — the app is one more importer, on a
   phone.
+- **Research question before choosing that plugin:** Capacitor Background Runner
+  accepts a repeating interval in minutes, so it could take a best-effort
+  snapshot about once an hour. It is not a permanent timer: iOS chooses when it
+  runs (or may not), and Android battery optimisation can delay it. That may be
+  a deliberately low-power optional mode, but it cannot meet the acceptance
+  criterion for a reliable locked-screen walk recording. Compare it with a
+  native, user-started location service that wakes on movement, and record the
+  permission, battery, App Store and Play Store consequences before deciding.
 - Authentication: the app holds a session the way a browser does. Worth deciding
   early whether it is a cookie in the webview or the handover credential
   (`POST /api/v1/<user>/handover`) — an agent token in a phone is a bearer token
