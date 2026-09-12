@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, expect, test } from "vitest";
-import { describeSelection, filesForRoom } from "@/lib/helper/server";
+import { describeSelection, filesForRoom, tripFilesForRoom } from "@/lib/helper/server";
 import { storeInboxFile } from "@/lib/inbox";
 
 /**
@@ -57,12 +57,15 @@ afterEach(() => {
   delete process.env.CONTENT_DIR;
 });
 
-test("the pane holds the inbox and this trip's photographs, and says which trip", () => {
+test("the pane holds the inbox and lists every trip, without loading any trip's photographs", () => {
   journal();
   const stored = storeInboxFile("u", "files", "statement.csv", Buffer.from("date,amount\n"), {});
 
   const files = filesForRoom("u");
-  expect(files.tripTitle).toBe("A Trip");
+  // B1573 — `filesForRoom` lists every trip cheaply (id + title) and loads
+  // no trip's media; a picked trip's photographs are `tripFilesForRoom`'s
+  // own, separate, on-demand read, asserted below.
+  expect(files.trips).toEqual([{ id: "a-trip", title: "A Trip" }]);
   expect(files.inbox.map((file) => file.name)).toEqual(["statement.csv"]);
   expect(files.inbox[0].id).toBe(`inbox:${stored.entry.id}`);
   // A *document* carries no thumbnail — a csv has no picture, and the pane
@@ -71,9 +74,26 @@ test("the pane holds the inbox and this trip's photographs, and says which trip"
   // thumbnail route, which is the only thing under `inbox/` reachable by URL
   // and is owner-gated for it.
   expect(files.inbox[0].src).toBeUndefined();
-  expect(files.trip).toHaveLength(1);
-  expect(files.trip[0].src).toBe("/u/media/a-trip/tuesday/01.jpg");
-  expect(files.trip[0].id).toBe("photo:tuesday:/u/media/a-trip/tuesday/01.jpg");
+});
+
+/**
+ * B1573 — one trip's photographs, loaded only once asked for. This is what
+ * `GET /api/helper/<user>/trip-files?trip=<id>` calls; the room's own page
+ * load (`filesForRoom`, above) never touches a trip's media at all.
+ */
+test("a named trip's own photographs, on demand", () => {
+  journal();
+
+  const found = tripFilesForRoom("u", "a-trip");
+  expect(found?.title).toBe("A Trip");
+  expect(found?.files).toHaveLength(1);
+  expect(found?.files[0].src).toBe("/u/media/a-trip/tuesday/01.jpg");
+  expect(found?.files[0].id).toBe("photo:tuesday:/u/media/a-trip/tuesday/01.jpg");
+});
+
+test("a trip id nothing answers to is told apart from a trip with nothing on it", () => {
+  journal();
+  expect(tripFilesForRoom("u", "no-such-trip")).toBeNull();
 });
 
 test("a selection is described from disk, and an id nothing answers to is dropped", () => {

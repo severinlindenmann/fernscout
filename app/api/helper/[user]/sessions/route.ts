@@ -2,7 +2,7 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { sessionsOf } from "@/lib/helper/sessions";
 import { liveSession } from "@/lib/helper/thread";
 import { AS_AUTHOR, getAllEntries } from "@/lib/entries";
-import { getTrips } from "@/lib/trips";
+import { getTrips, tripRef } from "@/lib/trips";
 
 export const dynamic = "force-dynamic";
 
@@ -26,22 +26,30 @@ export async function GET(
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
   }
-  // `q` filters against the stored words (B1217, D36); `days` is the
-  // newest trip's days for the panel's Tage tab (D44) — the same trip the
-  // files pane already scopes to, read the same way.
+  // `q` filters against the stored words (B1217, D36). `trips` lists every
+  // trip cheaply — B1573 split this from `days` below, which used to
+  // compute the newest trip's days on every open whether or not the Tage
+  // tab was ever opened. A trip's days now load only once the panel's own
+  // picker names one, via `?trip=<id>` — the same on-demand shape
+  // `trip-files` gives the files pane's photographs.
   const q = new URL(request.url).searchParams.get("q") ?? "";
-  const newest = [...getTrips(user)].sort((a, b) => b.start.localeCompare(a.start))[0];
-  const days = newest
-    ? getAllEntries(newest.ref, AS_AUTHOR)
-        .map((entry) => ({
-          trip: newest.id,
-          slug: entry.slug,
-          date: entry.date,
-          title: entry.title,
-          draft: entry.draft === true,
-        }))
-        .sort((a, b) => b.date.localeCompare(a.date))
-    : [];
+  const tripId = new URL(request.url).searchParams.get("trip");
+  const trips = [...getTrips(user)]
+    .sort((a, b) => b.start.localeCompare(a.start))
+    .map((trip) => ({ id: trip.id, title: trip.title }));
+  const named = tripId ? trips.find((trip) => trip.id === tripId) : undefined;
+  const days =
+    tripId && named
+      ? getAllEntries(tripRef(user, tripId), AS_AUTHOR)
+          .map((entry) => ({
+            trip: tripId,
+            slug: entry.slug,
+            date: entry.date,
+            title: entry.title,
+            draft: entry.draft === true,
+          }))
+          .sort((a, b) => b.date.localeCompare(a.date))
+      : [];
   // `live` names the conversation a next sentence would extend, so the
   // panel can say which row is the one you are in — B1168. `null` when
   // nothing is in progress.
@@ -49,7 +57,7 @@ export async function GET(
     ok: true,
     live: await liveSession(user),
     sessions: await sessionsOf(user, 30, q),
-    tripTitle: newest?.title ?? "",
-    days,
+    trips,
+    ...(tripId ? { tripTitle: named?.title ?? "", days } : {}),
   });
 }

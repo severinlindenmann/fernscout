@@ -96,3 +96,29 @@ loaded only once opened, not preloaded for all trips.
   reach that trip's photographs, not only the newest one.
 - `npm run verify` passes, and `keep-the-contract` is run if the sessions or
   files routes changed shape (a new `trip` parameter is a schema change).
+
+## Evidence
+
+Both routes are under `app/api/helper/`, outside `/api/v1` and outside the
+published contract (per AGENTS.md and each route's own doc comment), so
+`keep-the-contract`/`openapi.ts` do not apply here — `test/api-route-schemas.test.ts`
+only scans `app/api/v1`, confirmed by reading the test.
+
+Driven live against the demo journal (`example`, five trips) with a CDP
+network trace counting every `/api/helper/` request:
+
+- Files pane, before picking a trip: `select` lists all five trip titles,
+  zero requests to `/trip-files`.
+- Picking "Japan, end to end": exactly one `/trip-files` request fires; the
+  pane shows "This trip has no photographs yet" (the demo Japan trip has no
+  gallery yet) rather than any other trip's.
+- History panel, Tage tab, before picking: all five trips listed, zero
+  requests to `/sessions?trip=`.
+- Picking "Japan, end to end": exactly one `/sessions?trip=` request fires,
+  and the days shown are Japan's own ("Hakodate, before Sapporo", "The
+  Matsumoto detour") — not the newest trip's (a different trip in this
+  journal).
+
+`test/helper-room-files.test.ts`, `test/helper-sessions-trips.test.ts` and
+`test/helper-trip-files-route.test.ts` cover the same shape at the unit
+level; `test/helper-room.test.tsx` covers the picker's own rendering.

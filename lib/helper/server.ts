@@ -374,18 +374,30 @@ export type RoomFile = {
   uploadedAt?: string;
 };
 
-/** What the left-hand pane holds: what is waiting, and what is already on the
- *  trip a person is most likely talking about. */
+/** One trip the pane can offer photographs from — cheap to list (`getTrips`
+ *  already holds this), unlike loading any of its media. */
+type RoomTrip = { id: string; title: string };
+
+/** What the left-hand pane holds up front: what is waiting, and every trip a
+ *  person could ask to see the photographs of. Loading one trip's actual
+ *  photographs is a separate, on-demand read — `tripFilesForRoom` below —
+ *  because there is no telling in advance which trip, if any, this visit is
+ *  about, and every trip's media is not a "load once and forget" cost the
+ *  way this list is. B1573. */
 export type RoomFiles = {
   inbox: RoomFile[];
-  trip: RoomFile[];
-  /** The trip the photographs come from, named so the pane can say which. */
-  tripTitle: string;
+  trips: RoomTrip[];
 };
 
 /** How many of a trip's photographs the pane offers. A trip of two thousand
  *  is not a picker; the newest are the ones a day being written needs. */
 const TRIP_TILES = 60;
+
+/** Newest first, by start date — the order a trip picker lists in, and the
+ *  same order `filesForRoom` used to pick a single "the" trip from. */
+function tripsNewestFirst(username: string) {
+  return [...getTrips(username)].sort((a, b) => b.start.localeCompare(a.start));
+}
 
 export function filesForRoom(username: string): RoomFiles {
   const staged = listInbox(username);
@@ -407,19 +419,33 @@ export function filesForRoom(username: string): RoomFiles {
       uploadedAt: entry.uploadedAt,
     }));
 
-  const newest = [...getTrips(username)].sort((a, b) => b.start.localeCompare(a.start))[0];
-  const trip: RoomFile[] = newest
-    ? getAllMedia(newest.ref, AS_AUTHOR)
-        .slice(0, TRIP_TILES)
-        .map((tile) => ({
-          id: `photo:${tile.slug}:${tile.src}`,
-          name: tile.caption ?? tile.location ?? tile.date,
-          src: tile.src,
-          detail: tile.date,
-        }))
-    : [];
+  const trips: RoomTrip[] = tripsNewestFirst(username).map((trip) => ({
+    id: trip.id,
+    title: trip.title,
+  }));
 
-  return { inbox, trip, tripTitle: newest?.title ?? "" };
+  return { inbox, trips };
+}
+
+/** One named trip's own photographs, on demand — `GET
+ *  /api/helper/<user>/trip-files?trip=<id>` is the only caller. `null` for a
+ *  trip id that does not resolve, which the route reads as "not found"
+ *  rather than "empty" — the two must not look the same to a caller. */
+export function tripFilesForRoom(
+  username: string,
+  tripId: string,
+): { title: string; files: RoomFile[] } | null {
+  const trip = tripsNewestFirst(username).find((one) => one.id === tripId);
+  if (!trip) return null;
+  const files: RoomFile[] = getAllMedia(trip.ref, AS_AUTHOR)
+    .slice(0, TRIP_TILES)
+    .map((tile) => ({
+      id: `photo:${tile.slug}:${tile.src}`,
+      name: tile.caption ?? tile.location ?? tile.date,
+      src: tile.src,
+      detail: tile.date,
+    }));
+  return { title: trip.title, files };
 }
 
 /** A filename is somebody's own and may say anything at all. It is going into
