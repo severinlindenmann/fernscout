@@ -195,10 +195,25 @@ describe("the guide split by task (B311)", () => {
     );
     expect(withNextPointer.length).toBeGreaterThan(0);
 
+    // `lib/api/openapi.ts` is v1's document and describes v1 and /api/auth
+    // only — v2's contract is the Zod schemas, and its own
+    // `/api/v2/openapi.json` is generated from them in step 6 of the
+    // migration. So a v2 route sending `next` cannot be checked against this
+    // document; it is not a gap in the route, it is the wrong document.
+    //
+    // **The obligation does not disappear, it moves.** The generator that
+    // builds `/api/v2/openapi.json` has to carry this same rule, and this
+    // filter has to come back out when it does. `docs/v2-migration/05-status.md`
+    // records it against step 6 so it is not lost with this comment.
+    const v1WithNextPointer = withNextPointer.filter(
+      (file) => !path.relative(process.cwd(), file).startsWith(path.join("app", "api", "v2")),
+    );
+    expect(v1WithNextPointer.length).toBeGreaterThan(0);
+
     const doc = openApiDocument() as unknown as {
       paths: Record<string, Record<string, { responses?: Record<string, { description?: string }> }>>;
     };
-    for (const file of withNextPointer) {
+    for (const file of v1WithNextPointer) {
       const routePath =
         "/" +
         path
@@ -227,14 +242,19 @@ describe("the guide split by task (B311)", () => {
     );
     expect(journalsSrc).toContain('skillDocPath("add-a-trip")');
 
+    // The trip and day creates moved to v2 (B1612), and the chain moved with
+    // them — it had to be put back, because it had not been (B1621): an agent
+    // that made its first trip through v2 was told nothing about what comes
+    // next. Creating is a PUT to the id now, so the pointer lives on the
+    // single-trip and single-day routes rather than on a collection POST.
     const tripsSrc = fs.readFileSync(
-      path.join(process.cwd(), "app/api/v1/[user]/trips/route.ts"),
+      path.join(process.cwd(), "app/api/v2/[user]/trips/[trip]/route.ts"),
       "utf8",
     );
     expect(tripsSrc).toContain('skillDocPath("add-a-day")');
 
     const daysSrc = fs.readFileSync(
-      path.join(process.cwd(), "app/api/v1/[user]/trips/[trip]/days/route.ts"),
+      path.join(process.cwd(), "app/api/v2/[user]/trips/[trip]/days/[slug]/route.ts"),
       "utf8",
     );
     expect(daysSrc).toContain('skillDocPath("ingest-photos")');

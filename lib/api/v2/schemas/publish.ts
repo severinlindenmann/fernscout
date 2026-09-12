@@ -4,6 +4,7 @@
 // publish or THIS send, never stored, so each is its own small schema rather
 // than living on `dayWrite`/`dayDoc`.
 import { z } from "zod";
+import { DAY_DECLINABLE_KEYS } from "./day";
 
 /**
  * `POST .../days/{slug}/publish` — content.md §1. `declineTracked` names
@@ -13,7 +14,7 @@ import { z } from "zod";
  * never default to fifteen letters.
  */
 export const publishRequest = z.strictObject({
-  declineTracked: z.array(z.string()).optional(),
+  declineTracked: z.array(z.enum(DAY_DECLINABLE_KEYS)).optional(),
   sendMail: z.boolean().optional(),
   sendWhatsapp: z.boolean().optional(),
 });

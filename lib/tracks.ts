@@ -326,7 +326,7 @@ export function missingFrom(
  * value or fail" will invent a value, which is the one outcome worse than the
  * omission this exists to catch.
  */
-export function incompleteMessage(missing: Missing[], published: boolean): string {
+function incompleteMessage(missing: Missing[], published: boolean): string {
   const fields = missing.map((m) => `\`${m.field}\``).join(" and ");
   const say = (pick: (m: Missing) => string) => missing.map((m) => pick(m).split(" — ")[0]).join(", ");
   return (

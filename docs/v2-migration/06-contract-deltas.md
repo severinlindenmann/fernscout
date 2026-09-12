@@ -117,6 +117,18 @@ each is asked by a bespoke `superRefine` rather than by
 silently not work.
 **Drift:** none. The wire is byte-identical.
 
+### D10 — `DAY_DECLINABLE_KEYS` exported, and `declineTracked` becomes an enum
+**What:** the const becomes exported, and `publishRequest.declineTracked`
+changes from `z.array(z.string())` to `z.array(z.enum(DAY_DECLINABLE_KEYS))`.
+**Why:** a **correctness bug**, found by the typechecker rather than by a
+test. As free strings, `declineTracked: ["nonsense"]` was accepted and written
+straight into the day's `declined` map as a key nothing reads — a decline that
+looks recorded, satisfies nothing, and answers no question anybody asked. The
+publish route then indexed a typed record with an arbitrary string, which is
+what surfaced it.
+**Drift:** a **narrowing** of a schema written in this same step (D8), not of
+a reviewed one. It refuses input that was never meaningful.
+
 ### D3 — the solo-trip buddies issue moves from `path: ["people"]` to `path: ["buddies"]`
 **What:** the `ctx.addIssue` path in `tripCreate`'s superRefine. No change to
 any field, message or accepted document.

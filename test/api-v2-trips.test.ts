@@ -511,3 +511,143 @@ describe("DELETE /api/v2/{user}/trips/{trip}", () => {
     expect(readTripFile(OWNER, "delete-me-trip")).toBeTruthy();
   });
 });
+
+/**
+ * B1625 — `translations` refuses a locale this journal does not declare, on
+ * both PUT (create) and PATCH. `OWNER` above declares no `locales` at all
+ * (single-language, so `translations` is exempt), so this needs its own
+ * journal that actually declares two.
+ */
+describe("PUT/PATCH /api/v2/{user}/trips/{trip} — translations refuses an undeclared locale (B1625)", () => {
+  const LOCALE_OWNER = "lena";
+  const LOCALE_EMAIL = "lena@example.test";
+
+  async function localeOwnerToken(): Promise<string> {
+    const { issueCode, verifyCode } = await import("@/lib/auth");
+    const { code } = await issueCode(LOCALE_OWNER, LOCALE_EMAIL, "agent");
+    const result = await verifyCode(LOCALE_OWNER, LOCALE_EMAIL, code, "agent");
+    if (!result.ok) throw new Error("no locale-owner token");
+    return result.token;
+  }
+
+  beforeAll(async () => {
+    const { createJournal } = await import("@/lib/journals");
+    const created = createJournal({
+      username: LOCALE_OWNER,
+      title: "Lena's Journal",
+      ownerEmail: LOCALE_EMAIL,
+      ownerName: "Lena Traveller",
+      ownerNickname: "Lena",
+      defaultLocale: "en",
+      locales: ["en", "de"],
+    });
+    if (!created.ok) throw new Error(created.message);
+  });
+
+  test("a create naming a locale the journal does not declare is refused, naming every offending locale", async () => {
+    const token = await localeOwnerToken();
+    // `translations` is supplied, so its own decline has to go — supplying
+    // AND declining the same field in one body is a separate refusal
+    // (`checkRequiredOrDeclined`), not the one this test is pinning.
+    const declined = { ...(fullTrip("undeclared-locale-create").declined as Record<string, string>) };
+    delete declined.translations;
+    const body = fullTrip("undeclared-locale-create", {
+      declined,
+      translations: { fr: { title: "Quatre jours" }, it: { title: "Quattro giorni" } },
+    });
+
+    const { status, body: resBody } = await putTrip(LOCALE_OWNER, "undeclared-locale-create", body, token);
+    expect(status, JSON.stringify(resBody)).toBe(400);
+    expect(resBody.error).toBe("invalid_translations");
+    const problems = (resBody.details as { field: string }[]) ?? [];
+    const fields = problems.map((p) => p.field).sort();
+    expect(fields).toEqual(["translations.fr", "translations.it"]);
+  });
+
+  test("a patch naming an undeclared locale is refused and nothing is written", async () => {
+    const token = await localeOwnerToken();
+    await putTrip(LOCALE_OWNER, "undeclared-locale-patch", fullTrip("undeclared-locale-patch"), token);
+
+    const { status, body } = await patchTrip(
+      LOCALE_OWNER,
+      "undeclared-locale-patch",
+      { translations: { fr: { title: "Quatre jours" }, it: { title: "Quattro giorni" } } },
+      token,
+    );
+    expect(status, JSON.stringify(body)).toBe(400);
+    expect(body.error).toBe("invalid_translations");
+    const problems = (body.details as { field: string }[]) ?? [];
+    expect(problems.map((p) => p.field).sort()).toEqual(["translations.fr", "translations.it"]);
+
+    const { body: onDisk } = await getTrip(LOCALE_OWNER, "undeclared-locale-patch", token);
+    expect(onDisk.translations).toBeUndefined();
+  });
+
+  test("a locale the journal does declare is accepted", async () => {
+    const token = await localeOwnerToken();
+    await putTrip(LOCALE_OWNER, "declared-locale-trip", fullTrip("declared-locale-trip"), token);
+
+    const { status, body } = await patchTrip(
+      LOCALE_OWNER,
+      "declared-locale-trip",
+      { translations: { de: { title: "Vier Tage" } } },
+      token,
+    );
+    expect(status, JSON.stringify(body)).toBe(200);
+    expect(body.translations).toEqual({ de: { title: "Vier Tage" } });
+  });
+});
+
+/**
+ * B1626 (the immediately-buildable half) — `cover` must name a `src` this
+ * trip's own gallery already carries.
+ */
+describe("PATCH /api/v2/{user}/trips/{trip} — cover is checked against the trip's own media (B1626)", () => {
+  async function setupWithPhoto(tripId: string, token: string): Promise<string> {
+    await putTrip(OWNER, tripId, fullTrip(tripId), token);
+    const photoSrc = `/${OWNER}/media/${tripId}/day-one/01.jpg`;
+    const declined = { ...(fullDayBody("2026-06-01-arrival").declined as Record<string, string>) };
+    delete declined.media;
+    const { PUT: putDay } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+    const dayWritten = await putDay(
+      new Request(`https://example.test/api/v2/${OWNER}/trips/${tripId}/days/2026-06-01-arrival`, {
+        method: "PUT",
+        headers: headers({ authorization: `Bearer ${token}` }),
+        body: JSON.stringify(fullDayBody("2026-06-01-arrival", { media: [{ src: photoSrc }], declined })),
+      }),
+      { params: Promise.resolve({ user: OWNER, trip: tripId, slug: "2026-06-01-arrival" }) },
+    );
+    expect(dayWritten.status, JSON.stringify(await dayWritten.clone().json())).toBe(201);
+    return photoSrc;
+  }
+
+  test("a cover naming a photo the trip does not have is refused, not written", async () => {
+    const token = await ownerToken();
+    const tripId = "cover-nonexistent-trip";
+    await setupWithPhoto(tripId, token);
+
+    const { status, body } = await patchTrip(OWNER, tripId, { cover: `/${OWNER}/media/${tripId}/nowhere/nope.jpg` }, token);
+    expect(status, JSON.stringify(body)).toBe(400);
+    expect(body.error).toBe("invalid_cover");
+
+    // The stored file, not the read-side auto-pick — a trip WITH media but
+    // no explicit `cover` legitimately reads back with `pickCover`'s choice
+    // (lib/api/v2/trips.ts), which is not the same claim as "the bad value
+    // was written".
+    const { readTripFile } = await import("@/lib/api/v2/store");
+    expect(readTripFile(OWNER, tripId)?.cover).toBeUndefined();
+  });
+
+  test("a cover naming a photo the trip actually has is accepted and read back", async () => {
+    const token = await ownerToken();
+    const tripId = "cover-real-trip";
+    const photoSrc = await setupWithPhoto(tripId, token);
+
+    const { status, body } = await patchTrip(OWNER, tripId, { cover: photoSrc }, token);
+    expect(status, JSON.stringify(body)).toBe(200);
+    expect(body.cover).toBe(photoSrc);
+
+    const { body: onDisk } = await getTrip(OWNER, tripId, token);
+    expect(onDisk.cover).toBe(photoSrc);
+  });
+});

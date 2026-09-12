@@ -19,15 +19,15 @@ function tripDirFor(user: string, tripId: string): string {
   return path.join(contentRoot(), user, "trips", tripId);
 }
 
-export function tripJsonPath(user: string, tripId: string): string {
+function tripJsonPath(user: string, tripId: string): string {
   return path.join(tripDirFor(user, tripId), "trip.json");
 }
 
-export function entriesDirFor(user: string, tripId: string): string {
+function entriesDirFor(user: string, tripId: string): string {
   return path.join(tripDirFor(user, tripId), "entries");
 }
 
-export function dayJsonPath(user: string, tripId: string, slug: string): string {
+function dayJsonPath(user: string, tripId: string, slug: string): string {
   return path.join(entriesDirFor(user, tripId), `${slug}.json`);
 }
 

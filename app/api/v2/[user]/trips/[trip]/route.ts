@@ -8,7 +8,15 @@ import { tripCreate, tripPatch, tripDoc, TRIP_DECLINABLE_KEYS } from "@/lib/api/
 import { tripId as tripIdSchema } from "@/lib/api/v2/schemas/shared";
 import { problemsFrom, splitIssues } from "@/lib/api/v2/incomplete";
 import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson } from "@/lib/api/v2/route";
-import { TRIP_IMMUTABLE_FIELDS, retractDeclines, stripEchoedFields } from "@/lib/api/v2/write";
+import {
+  TRIP_IMMUTABLE_FIELDS,
+  checkCover,
+  checkTranslations,
+  reconcileVisibility,
+  retractAnsweredDeclines,
+  retractDeclines,
+  stripEchoedFields,
+} from "@/lib/api/v2/write";
 import {
   mayActAsOwner,
   ownerOnlyRefusal,
@@ -17,6 +25,8 @@ import {
   resolveBearer,
 } from "@/lib/api/v2/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
+import { skillDocPath } from "@/lib/api/skillDocMeta";
+import { serverSite } from "@/lib/site";
 import { readTripFile, writeTripFile, writeDayFile } from "@/lib/api/v2/store";
 import { toStoredMedia } from "@/lib/api/v2/days";
 import { buildTripDoc, notifyNewPeople, tripDays } from "@/lib/api/v2/trips";
@@ -36,10 +46,14 @@ function daysModeOf(request: Request): "full" | "summaries" | "none" {
 
 export async function GET(request: Request, { params }: RouteCtx) {
   const { user, trip } = await params;
-  if (!getUser(user)) return fail("no_such_journal", ERROR_CODES.no_such_journal, undefined, 404);
-
+  // Authenticate BEFORE resolving the journal — B1615. The other order lets
+  // an anonymous caller tell `404 no_such_journal` from `401 missing_token`
+  // and so enumerate usernames, which v1 never allowed and which `guest`
+  // journals exist specifically to prevent: an instance that does not
+  // advertise a journal must not answer for it either.
   const bearer = await resolveBearer(request);
   if (!bearer.ok) return bearer.response;
+  if (!getUser(user)) return fail("no_such_journal", ERROR_CODES.no_such_journal, undefined, 404);
   if (!ownsUser(bearer.session, user)) return outOfScopeRefusal(bearer.session, user);
 
   const stored = readTripFile(user, trip);
@@ -60,10 +74,15 @@ export async function GET(request: Request, { params }: RouteCtx) {
  */
 export async function PUT(request: Request, { params }: RouteCtx) {
   const { user, trip } = await params;
-  if (!getUser(user)) return fail("no_such_journal", ERROR_CODES.no_such_journal, undefined, 404);
-
+  // Authenticate BEFORE resolving the journal — B1615. The other order lets
+  // an anonymous caller tell `404 no_such_journal` from `401 missing_token`
+  // and so enumerate usernames, which v1 never allowed and which `guest`
+  // journals exist specifically to prevent: an instance that does not
+  // advertise a journal must not answer for it either.
   const bearer = await resolveBearer(request);
   if (!bearer.ok) return bearer.response;
+  const journal = getUser(user);
+  if (!journal) return fail("no_such_journal", ERROR_CODES.no_such_journal, undefined, 404);
   if (!ownsUser(bearer.session, user)) return outOfScopeRefusal(bearer.session, user);
   if (!mayActAsOwner(bearer.session, user)) return ownerOnlyRefusal();
 
@@ -156,6 +175,23 @@ export async function PUT(request: Request, { params }: RouteCtx) {
     return fail("invalid_trip", ERROR_CODES.invalid_trip, problems, 400);
   }
 
+  // B1625 — a translation naming a locale this journal does not declare. A
+  // Zod schema cannot see the journal's config, so this check lives at the
+  // door (00-decisions.md), shared with the day route below.
+  const localeProblem = checkTranslations(parsed.data.translations, journal.locales);
+  if (localeProblem) return fail("invalid_translations", localeProblem.message, localeProblem.problems, 400);
+
+  // B1626 — `cover` must name a `src` this trip's own gallery already
+  // carries. On a REPLACE `raw.days` was deleted above (a day changes
+  // through its own route), so the media that counts is what is already on
+  // disk; on a genuine create the only media that can exist yet is what this
+  // same call is writing inline.
+  const coverMediaSrcs = new Set<string>(
+    (stored ? tripDays(user, trip) : (parsed.data.days ?? [])).flatMap((d) => (d.media ?? []).map((m) => m.src)),
+  );
+  const coverProblem = checkCover(parsed.data.cover, coverMediaSrcs);
+  if (coverProblem) return fail("invalid_cover", coverProblem, undefined, 400);
+
   const dryRun = readDryRun(request);
   if (dryRun === null) {
     return fail("invalid_request", `${ERROR_CODES.invalid_request} dryRun must be true, false, or absent.`, undefined, 400);
@@ -189,7 +225,21 @@ export async function PUT(request: Request, { params }: RouteCtx) {
 
   const echo = buildTripDoc(user, trip, toWrite, "full");
   const withNotifications = notifications.length > 0 ? { ...(echo as Record<string, unknown>), notifications } : echo;
-  return ok(withNotifications, { etag: etagFor(echo), status: stored ? 200 : 201 });
+  // A create tells the agent where the next step is written down — B311's
+  // chain, journal → trip → day → photos. v1's own create routes carried this
+  // and v2's did not, so an agent that had just made its first trip was left
+  // to guess; `/documentation.txt` and the /skill guides are the whole product
+  // for anybody not standing in this checkout. Only on a create: a correction
+  // is not somebody's first time. B1621.
+  const echoBody = stored
+    ? withNotifications
+    : {
+        ...withNotifications,
+        next:
+          `PUT /api/v2/${user}/trips/${trip}/days/<slug> to write the first day — ` +
+          `${serverSite().url}${skillDocPath("add-a-day")} is what it takes.`,
+      };
+  return ok(echoBody, { etag: etagFor(echo), status: stored ? 200 : 201 });
 }
 
 /**
@@ -203,10 +253,15 @@ export async function PUT(request: Request, { params }: RouteCtx) {
  */
 export async function PATCH(request: Request, { params }: RouteCtx) {
   const { user, trip } = await params;
-  if (!getUser(user)) return fail("no_such_journal", ERROR_CODES.no_such_journal, undefined, 404);
-
+  // Authenticate BEFORE resolving the journal — B1615. The other order lets
+  // an anonymous caller tell `404 no_such_journal` from `401 missing_token`
+  // and so enumerate usernames, which v1 never allowed and which `guest`
+  // journals exist specifically to prevent: an instance that does not
+  // advertise a journal must not answer for it either.
   const bearer = await resolveBearer(request);
   if (!bearer.ok) return bearer.response;
+  const journal = getUser(user);
+  if (!journal) return fail("no_such_journal", ERROR_CODES.no_such_journal, undefined, 404);
   if (!ownsUser(bearer.session, user)) return outOfScopeRefusal(bearer.session, user);
   if (!mayActAsOwner(bearer.session, user)) return ownerOnlyRefusal();
 
@@ -252,6 +307,17 @@ export async function PATCH(request: Request, { params }: RouteCtx) {
   const merged: Record<string, unknown> = { ...storedWritable, ...patch };
   if (Object.keys(declinedMerged).length > 0) merged.declined = declinedMerged;
   else delete merged.declined;
+
+  // B1616 — two dead ends this merge alone cannot avoid. `buddies` has no
+  // real field of its own for T6 above to key on, so a solo trip's
+  // `declined.buddies` survives a patch that grows `people` past one unless
+  // something else notices; and a stored `listed`/`teaser` survives a patch
+  // that moves `visibility` across the public/closed line, because merge-
+  // patch has no way to un-send a key by omitting it. Both belong here,
+  // after the merge (this is the first point the route holds old-and-new
+  // together) and before `tripCreate` revalidates the result.
+  retractAnsweredDeclines(merged, patch);
+  reconcileVisibility(merged, patch);
 
   /**
    * `days` is never in `merged` here — `tripPatch`'s own `superRefine`
@@ -309,6 +375,16 @@ export async function PATCH(request: Request, { params }: RouteCtx) {
     if (incomplete) return fail("incomplete", ERROR_CODES.incomplete, incomplete, 422);
     return fail("invalid_request", ERROR_CODES.invalid_request, problems, 400);
   }
+
+  // B1625/B1626 — the same two door checks the PUT route runs, against the
+  // merged document a patch produces. Media is whatever the trip already has
+  // on disk: a PATCH never writes `days` (see above).
+  const localeProblem = checkTranslations(finalParsed.data.translations, journal.locales);
+  if (localeProblem) return fail("invalid_translations", localeProblem.message, localeProblem.problems, 400);
+
+  const coverMediaSrcs = new Set<string>(tripDays(user, trip).flatMap((d) => (d.media ?? []).map((m) => m.src)));
+  const coverProblem = checkCover(finalParsed.data.cover, coverMediaSrcs);
+  if (coverProblem) return fail("invalid_cover", coverProblem, undefined, 400);
 
   const dryRun = readDryRun(request);
   if (dryRun === null) {

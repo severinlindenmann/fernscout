@@ -445,3 +445,138 @@ describe("POST .../send — S1, the one send door", () => {
     expect(body.error).toBe("not_published");
   });
 });
+
+/**
+ * B1625 — `translations` refuses a locale this journal does not declare, on
+ * both PUT (create) and PATCH. `OWNER` above declares no `locales` at all
+ * (single-language, so `translations` is exempt), so this needs its own
+ * journal that actually declares two.
+ */
+describe("PUT/PATCH .../days/{slug} — translations refuses an undeclared locale (B1625)", () => {
+  const LOCALE_OWNER = "nadia";
+  const LOCALE_EMAIL = "nadia@example.test";
+  const LOCALE_TRIP = "locale-days-trip";
+
+  async function localeOwnerToken(): Promise<string> {
+    const { issueCode, verifyCode } = await import("@/lib/auth");
+    const { code } = await issueCode(LOCALE_OWNER, LOCALE_EMAIL, "agent");
+    const result = await verifyCode(LOCALE_OWNER, LOCALE_EMAIL, code, "agent");
+    if (!result.ok) throw new Error("no locale-owner token");
+    return result.token;
+  }
+
+  async function putLocaleDay(
+    slug: string,
+    body: unknown,
+    token: string | undefined,
+    opts: { ifMatch?: string } = {},
+  ) {
+    const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+    const response = await PUT(
+      new Request(`https://example.test/api/v2/${LOCALE_OWNER}/trips/${LOCALE_TRIP}/days/${slug}`, {
+        method: "PUT",
+        headers: headers({
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+          ...(opts.ifMatch ? { "if-match": opts.ifMatch } : {}),
+        }),
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ user: LOCALE_OWNER, trip: LOCALE_TRIP, slug }) },
+    );
+    return { status: response.status, etag: response.headers.get("etag"), body: (await response.json()) as Body };
+  }
+
+  async function patchLocaleDay(slug: string, body: unknown, token: string | undefined) {
+    const { PATCH } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+    const response = await PATCH(
+      new Request(`https://example.test/api/v2/${LOCALE_OWNER}/trips/${LOCALE_TRIP}/days/${slug}`, {
+        method: "PATCH",
+        headers: headers(token ? { authorization: `Bearer ${token}` } : {}),
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ user: LOCALE_OWNER, trip: LOCALE_TRIP, slug }) },
+    );
+    return { status: response.status, etag: response.headers.get("etag"), body: (await response.json()) as Body };
+  }
+
+  async function getLocaleDay(slug: string, token?: string) {
+    const { GET } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+    const response = await GET(
+      new Request(`https://example.test/api/v2/${LOCALE_OWNER}/trips/${LOCALE_TRIP}/days/${slug}`, {
+        headers: headers(token ? { authorization: `Bearer ${token}` } : {}),
+      }),
+      { params: Promise.resolve({ user: LOCALE_OWNER, trip: LOCALE_TRIP, slug }) },
+    );
+    return { status: response.status, body: (await response.json()) as Body };
+  }
+
+  beforeAll(async () => {
+    const { createJournal } = await import("@/lib/journals");
+    const created = createJournal({
+      username: LOCALE_OWNER,
+      title: "Nadia's Journal",
+      ownerEmail: LOCALE_EMAIL,
+      ownerName: "Nadia Traveller",
+      ownerNickname: "Nadia",
+      defaultLocale: "en",
+      locales: ["en", "de"],
+    });
+    if (!created.ok) throw new Error(created.message);
+
+    const { writeTripFile } = await import("@/lib/api/v2/store");
+    const { tripCreate } = await import("@/lib/api/v2/schemas");
+    const parsedTrip = tripCreate.parse(fullTrip(LOCALE_TRIP, { people: [{ name: "Nadia Traveller", email: LOCALE_EMAIL }] }));
+    const { days: _ignored, ...tripFields } = parsedTrip;
+    writeTripFile(LOCALE_OWNER, LOCALE_TRIP, tripFields);
+  });
+
+  test("a create naming a locale the journal does not declare is refused, naming every offending locale", async () => {
+    const token = await localeOwnerToken();
+    const declined = { ...(fullDayBody("2026-06-01-undeclared").declined as Record<string, string>) };
+    delete declined.translations;
+    const body = fullDayBody("2026-06-01-undeclared", {
+      declined,
+      translations: { fr: { title: "Arrivée", content: "Réveillé tôt." }, it: { title: "Arrivo", content: "Sveglia presto." } },
+    });
+
+    const { status, body: resBody } = await putLocaleDay("2026-06-01-undeclared", body, token);
+    expect(status, JSON.stringify(resBody)).toBe(400);
+    expect(resBody.error).toBe("invalid_translations");
+    const problems = (resBody.details as { field: string }[]) ?? [];
+    expect(problems.map((p) => p.field).sort()).toEqual(["translations.fr", "translations.it"]);
+
+    const { status: notFound } = await getLocaleDay("2026-06-01-undeclared", token);
+    expect(notFound).toBe(404);
+  });
+
+  test("a patch naming an undeclared locale is refused and nothing is written", async () => {
+    const token = await localeOwnerToken();
+    await putLocaleDay("2026-06-02-patch", fullDayBody("2026-06-02-patch"), token);
+
+    const { status, body } = await patchLocaleDay(
+      "2026-06-02-patch",
+      { translations: { fr: { title: "Arrivée", content: "Réveillé tôt." }, it: { title: "Arrivo", content: "Sveglia presto." } } },
+      token,
+    );
+    expect(status, JSON.stringify(body)).toBe(400);
+    expect(body.error).toBe("invalid_translations");
+    const problems = (body.details as { field: string }[]) ?? [];
+    expect(problems.map((p) => p.field).sort()).toEqual(["translations.fr", "translations.it"]);
+
+    const { body: onDisk } = await getLocaleDay("2026-06-02-patch", token);
+    expect(onDisk.translations).toBeUndefined();
+  });
+
+  test("a locale the journal does declare is accepted", async () => {
+    const token = await localeOwnerToken();
+    await putLocaleDay("2026-06-03-declared", fullDayBody("2026-06-03-declared"), token);
+
+    const { status, body } = await patchLocaleDay(
+      "2026-06-03-declared",
+      { translations: { de: { title: "Ankunft", content: "Wir sind angekommen." } } },
+      token,
+    );
+    expect(status, JSON.stringify(body)).toBe(200);
+    expect(body.translations).toEqual({ de: { title: "Ankunft", content: "Wir sind angekommen." } });
+  });
+});

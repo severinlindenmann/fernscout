@@ -29,7 +29,9 @@ import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { readTripFile, readDayFile, writeDayFile } from "@/lib/api/v2/store";
-import { stripMediaEcho } from "@/lib/api/v2/days";
+import { mailSummary } from "@/lib/api/dayMail";
+import { whatsappSummary } from "@/lib/api/dayWhatsapp";
+import { stripMediaEcho, v1Slug } from "@/lib/api/v2/days";
 import { sendDayLetter, type DayLetterOutcome } from "@/lib/digest/dayLetter";
 import { sendDayWhatsapp, whatsappWouldCost, type DayWhatsappOutcome } from "@/lib/digest/dayWhatsapp";
 import type { Trip } from "@/lib/types";
@@ -38,20 +40,6 @@ export const dynamic = "force-dynamic";
 
 function tripLike(user: string, tripId: string, people: { name: string; email: string }[]): Trip {
   return { username: user, id: tripId, ref: `${user}/${tripId}`, people } as unknown as Trip;
-}
-
-/** The counterpart of `lib/api/dayMail.ts`'s `mailSummary` — not imported
- * because that module sits under `lib/api/` outside the v2 allowlist, and it
- * is route-glue (an outcome-to-response shaping function) rather than the
- * kind of domain logic the allowlist exists for. Same shape, a few lines. */
-function mailSummary(outcome: DayLetterOutcome): Record<string, unknown> {
-  if (!outcome.ok) return { attempted: false, sent: 0, failed: 0, reason: outcome.reason };
-  return { attempted: true, resend: outcome.resend, sent: outcome.sent.length, failed: outcome.failed.length };
-}
-
-function whatsappSummary(outcome: DayWhatsappOutcome): Record<string, unknown> {
-  if (!outcome.ok) return { attempted: false, sent: 0, failed: 0, reason: outcome.reason };
-  return { attempted: true, resend: outcome.resend, sent: outcome.sent.length, failed: outcome.failed.length };
 }
 
 export async function POST(
@@ -140,7 +128,7 @@ export async function POST(
   if (sendWhatsappRequested) {
     const balance = await balanceOf(user);
     if (balance !== null) {
-      const needed = await whatsappWouldCost(user, `${user}/${tripId}`, slug).catch(() => 1);
+      const needed = await whatsappWouldCost(user, `${user}/${tripId}`, v1Slug(slug)).catch(() => 1);
       if (needed > balance) {
         return fail(
           "no_credits",
@@ -160,16 +148,19 @@ export async function POST(
   // shape a v2-native day currently gets from their v1 reader — B1598).
   let mail: Record<string, unknown> | undefined;
   if (sendMailRequested) {
-    mail = mailSummary(await sendDayLetter(user, ref, slug));
+    mail = mailSummary(await sendDayLetter(user, ref, v1Slug(slug)));
   }
   let whatsapp: Record<string, unknown> | undefined;
   if (sendWhatsappRequested) {
-    whatsapp = whatsappSummary(await sendDayWhatsapp(user, ref, slug));
+    whatsapp = whatsappSummary(await sendDayWhatsapp(user, ref, v1Slug(slug)));
   }
 
   const test = isTestContent(tripLike(user, tripId, trip.people), day) || trip.test === true || day.test === true;
+  // Instance-level, like every capability in v2 (decision 5): whether this
+  // server can send mail or WhatsApp at all is the operator's fact, not a
+  // journal's. B1617.
   const channels = (["mail", "whatsapp"] as const)
-    .filter((channel) => isEnabled(channel, user))
+    .filter((channel) => isEnabled(channel))
     .map((channel) => ({
       channel,
       url: `${serverSite().url}/api/v2/${user}/trips/${tripId}/days/${slug}/send`,

@@ -6,14 +6,17 @@ import type { ZodType } from "zod";
 import { dayWrite, dayPatch, dayDoc, daySlug, DAY_DECLINABLES } from "@/lib/api/v2/schemas";
 import { problemsFrom, splitIssues } from "@/lib/api/v2/incomplete";
 import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson } from "@/lib/api/v2/route";
-import { DAY_IMMUTABLE_FIELDS, retractDeclines, stripEchoedFields } from "@/lib/api/v2/write";
+import { DAY_IMMUTABLE_FIELDS, checkTranslations, retractDeclines, stripEchoedFields } from "@/lib/api/v2/write";
 import { resolveBearer, ownsUser, outOfScopeRefusal } from "@/lib/api/v2/auth";
 import { mayWriteTrip, refuseWrite } from "@/lib/api/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
+import { skillDocPath } from "@/lib/api/skillDocMeta";
+import { serverSite } from "@/lib/site";
 import { readTripFile, readDayFile, writeDayFile, deleteDayFile } from "@/lib/api/v2/store";
-import { stripMediaEcho, toStoredMedia, dayEchoInput, resolveStatusEcho } from "@/lib/api/v2/days";
+import { stripMediaEcho, toStoredMedia, dayEchoInput, resolveStatusEcho, weatherLookupRefused } from "@/lib/api/v2/days";
 import type { DayFile, TripFile } from "@/lib/api/v2/documents";
 import type { Trip } from "@/lib/types";
+import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
@@ -126,6 +129,17 @@ export async function PUT(request: Request, { params }: RouteCtx) {
   }
   raw.slug = slug;
 
+  // `weather: true` is the one field on a day that asks the server to *do*
+  // something rather than store what it was sent, so an instance that cannot
+  // do the lookup refuses it rather than accepting a request nobody will ever
+  // service — "absent rather than broken when disabled" (AGENTS.md). Asked of
+  // the INSTANCE, not the journal: a capability is the operator's fact in v2
+  // (decision 5), and an archive this server cannot reach is unreachable for
+  // everybody on it. v1's day route called this; v2's did not, and the
+  // refusal sat with zero callers until B775's suite was repointed. B1617.
+  const weatherOff = weatherLookupRefused(raw as { weather?: unknown });
+  if (weatherOff) return fail("weather_disabled", weatherOff, undefined, 400);
+
   const parsed = dayWrite.safeParse(raw);
   if (!parsed.success) {
     const shape = dayDoc.shape as unknown as Record<string, ZodType>;
@@ -133,6 +147,12 @@ export async function PUT(request: Request, { params }: RouteCtx) {
     if (incomplete) return fail("incomplete", ERROR_CODES.incomplete, incomplete, 422);
     return fail("invalid_entry", ERROR_CODES.invalid_entry, problems, 400);
   }
+
+  // B1625 — a translation naming a locale this journal does not declare. A
+  // Zod schema cannot see the journal's config, so this check lives at the
+  // door (00-decisions.md), shared with the trip route.
+  const localeProblem = checkTranslations(parsed.data.translations, getUser(user)?.locales ?? []);
+  if (localeProblem) return fail("invalid_translations", localeProblem.message, localeProblem.problems, 400);
 
   const dryRun = readDryRun(request);
   if (dryRun === null) {
@@ -152,7 +172,16 @@ export async function PUT(request: Request, { params }: RouteCtx) {
 
   writeDayFile(user, tripId, slug, toWrite);
   const echo = dayDoc.parse(dayEchoInput(toWrite));
-  return ok(echo, { etag: etagFor(echo), status: stored ? 200 : 201 });
+  // The next link in B311's chain — see the trip route's own comment. B1621.
+  const echoBody = stored
+    ? echo
+    : {
+        ...echo,
+        next:
+          `POST /api/v2/${user}/media to attach photographs — ` +
+          `${serverSite().url}${skillDocPath("ingest-photos")} is what it takes.`,
+      };
+  return ok(echoBody, { etag: etagFor(echo), status: stored ? 200 : 201 });
 }
 
 /**
@@ -190,6 +219,11 @@ export async function PATCH(request: Request, { params }: RouteCtx) {
   );
   if (!stripped.ok) return fail("invalid_request", stripped.message, undefined, 400);
 
+  // Same guard on the correction path — a PATCH that adds `weather: true` to
+  // an existing day is asking for the same lookup a create would (B1617).
+  const patchWeatherOff = weatherLookupRefused(stripped.body as { weather?: unknown });
+  if (patchWeatherOff) return fail("weather_disabled", patchWeatherOff, undefined, 400);
+
   const patchParsed = dayPatch.safeParse(stripped.body);
   if (!patchParsed.success) {
     return fail("invalid_request", ERROR_CODES.invalid_request, problemsFrom(patchParsed.error), 400);
@@ -215,6 +249,10 @@ export async function PATCH(request: Request, { params }: RouteCtx) {
     if (incomplete) return fail("incomplete", ERROR_CODES.incomplete, incomplete, 422);
     return fail("invalid_entry", ERROR_CODES.invalid_entry, problems, 400);
   }
+
+  // B1625 — same door check the PUT route runs, against the merged document.
+  const localeProblem = checkTranslations(finalParsed.data.translations, getUser(user)?.locales ?? []);
+  if (localeProblem) return fail("invalid_translations", localeProblem.message, localeProblem.problems, 400);
 
   const dryRun = readDryRun(request);
   if (dryRun === null) {

@@ -146,7 +146,14 @@ export const DAY_DECLINABLES: readonly Declinable[] = [
   },
 ] as const;
 
-const DAY_DECLINABLE_KEYS = [
+/**
+ * Exported (D10, 06-contract-deltas.md) so `publishRequest.declineTracked`
+ * can be an enum of the real decline keys rather than free strings. It was
+ * `z.array(z.string())`, which accepted `declineTracked: ["nonsense"]` and
+ * wrote that straight into the day's `declined` map as a key nothing reads —
+ * a decline that looks recorded and answers no question anybody asked.
+ */
+export const DAY_DECLINABLE_KEYS = [
   "media", "costs", "coordinates", "weather", "time", "timezone", "location",
   "country", "countryCode", "transportMode", "tags", "translations",
   "visibility", "status",

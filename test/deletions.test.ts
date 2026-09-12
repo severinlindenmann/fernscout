@@ -25,7 +25,7 @@ import {
   summarise,
 } from "@/lib/deletions";
 import { DELETE as deleteJournalRoute, PATCH as patchJournalRoute } from "@/app/api/v1/[user]/route";
-import { DELETE as deleteTripRoute, PATCH as patchTripRoute } from "@/app/api/v1/[user]/trips/[trip]/route";
+import { DELETE as deleteTripRoute, PATCH as patchTripRoute } from "@/app/api/v2/[user]/trips/[trip]/route";
 import * as confirmRoute from "@/app/api/v1/[user]/deletions/[token]/route";
 import DeletePage from "@/app/[user]/delete/[token]/page";
 import { GET as deletionExport } from "@/app/[user]/delete/[token]/export.zip/route";
@@ -242,7 +242,7 @@ describe("asking to delete", () => {
     const token = await tokenFor(user, OWNER);
 
     const response = await deleteTripRoute(
-      request(`https://t.test/api/v1/${user}/trips/${trip}`, token),
+      request(`https://t.test/api/v2/${user}/trips/${trip}`, token),
       { params: Promise.resolve({ user, trip }) },
     );
     const body = (await response.json()) as Record<string, unknown>;
@@ -316,13 +316,17 @@ describe("who may ask", () => {
     expect((await journal.json()).error).toBe("out_of_scope");
 
     // Refused on the very trip the token may write days into: writing to a
-    // journey and ending it are different authorities.
+    // journey and ending it are different authorities. v2's owner-only gate
+    // (`lib/api/v2/auth.ts`'s `ownerOnlyRefusal`) answers "forbidden" here
+    // rather than v1's "out_of_scope" — a deliberate rename (this token IS
+    // in scope for the journal; it is the wrong *authority* within it), not
+    // a change to what is refused: still 403, still refused outright.
     const tripResponse = await deleteTripRoute(
-      request(`https://t.test/api/v1/${user}/trips/${trip}`, scoped),
+      request(`https://t.test/api/v2/${user}/trips/${trip}`, scoped),
       { params: Promise.resolve({ user, trip }) },
     );
     expect(tripResponse.status).toBe(403);
-    expect((await tripResponse.json()).error).toBe("out_of_scope");
+    expect((await tripResponse.json()).error).toBe("forbidden");
 
     expect(mails(user)).toHaveLength(0);
     expect(getTrip(tripRef(user, trip))).toBeTruthy();
@@ -862,8 +866,15 @@ describe("a verb these routes do not have", () => {
     // for the four it did not. B622 built those four, so what a caller with
     // no token gets is the ordinary refusal of a real operation.
     // `test/trip-details.test.ts` owns what it does with one.
-    const response = await patchTripRoute(new Request("https://x.test/api/v1/alex/trips/alps"), {
-      params: Promise.resolve({ user: "alex", trip: "alps" }),
+    //
+    // v2's PATCH checks the journal exists (`getUser`) before it looks at
+    // the token, so a username nobody has made would answer 404
+    // `no_such_journal` here rather than the 401 this test is about — a real
+    // journal (`makeJournal`) is what keeps the assertion aimed at "no
+    // token", the thing B622 fixed, rather than "no such user".
+    const user = makeJournal("alex", "alex@example.test");
+    const response = await patchTripRoute(new Request(`https://x.test/api/v2/${user}/trips/alps`), {
+      params: Promise.resolve({ user, trip: "alps" }),
     } as never);
     expect(response.status).toBe(401);
     const body = (await response.json()) as { error: string };

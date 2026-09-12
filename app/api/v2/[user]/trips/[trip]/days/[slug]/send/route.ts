@@ -10,6 +10,14 @@ import { balanceOf } from "@/lib/credits";
 import { formatCredits } from "@/lib/credits/format";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { readTripFile, readDayFile } from "@/lib/api/v2/store";
+// v1's own summaries, not a second copy — B1620. The inline pair this
+// replaces dropped the per-recipient `errors` list, so a publish that failed
+// for one reader reported a count and not which address, which is the half a
+// person can act on. Shared rather than reimplemented for the reason the
+// whole contract layer is shared: two summaries of one outcome disagree.
+import { mailSummary } from "@/lib/api/dayMail";
+import { whatsappSummary } from "@/lib/api/dayWhatsapp";
+import { v1Slug } from "@/lib/api/v2/days";
 import { sendDayLetter, type DayLetterOutcome } from "@/lib/digest/dayLetter";
 import { sendDayWhatsapp, whatsappWouldCost, type DayWhatsappOutcome } from "@/lib/digest/dayWhatsapp";
 import type { Trip } from "@/lib/types";
@@ -18,16 +26,6 @@ export const dynamic = "force-dynamic";
 
 function tripLike(user: string, tripId: string, people: { name: string; email: string }[]): Trip {
   return { username: user, id: tripId, ref: `${user}/${tripId}`, people } as unknown as Trip;
-}
-
-function mailSummary(outcome: DayLetterOutcome): Record<string, unknown> {
-  if (!outcome.ok) return { attempted: false, sent: 0, failed: 0, reason: outcome.reason };
-  return { attempted: true, resend: outcome.resend, sent: outcome.sent.length, failed: outcome.failed.length };
-}
-
-function whatsappSummary(outcome: DayWhatsappOutcome): Record<string, unknown> {
-  if (!outcome.ok) return { attempted: false, sent: 0, failed: 0, reason: outcome.reason };
-  return { attempted: true, resend: outcome.resend, sent: outcome.sent.length, failed: outcome.failed.length };
 }
 
 export async function POST(
@@ -78,7 +76,7 @@ export async function POST(
   if (channels.includes("whatsapp")) {
     const balance = await balanceOf(user);
     if (balance !== null) {
-      const needed = await whatsappWouldCost(user, `${user}/${tripId}`, slug).catch(() => 1);
+      const needed = await whatsappWouldCost(user, `${user}/${tripId}`, v1Slug(slug)).catch(() => 1);
       if (needed > balance) {
         return fail(
           "no_credits",
@@ -93,10 +91,10 @@ export async function POST(
   const ref = `${user}/${tripId}`;
   const result: Record<string, unknown> = { ok: true, slug };
   if (channels.includes("mail")) {
-    result.mail = mailSummary(await sendDayLetter(user, ref, slug, { resend: true }));
+    result.mail = mailSummary(await sendDayLetter(user, ref, v1Slug(slug), { resend: true }));
   }
   if (channels.includes("whatsapp")) {
-    result.whatsapp = whatsappSummary(await sendDayWhatsapp(user, ref, slug, { resend: true }));
+    result.whatsapp = whatsappSummary(await sendDayWhatsapp(user, ref, v1Slug(slug), { resend: true }));
   }
 
   return ok(result);

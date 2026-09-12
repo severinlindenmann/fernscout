@@ -7,14 +7,6 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { issueCode, verifyCode } from "@/lib/auth";
-import { getTrip } from "@/lib/trips";
-import { POST as createTripRoute } from "@/app/api/v1/[user]/trips/route";
-import { POST as createDayRoute } from "@/app/api/v1/[user]/trips/[trip]/days/route";
-
-/** The hints out of a refusal, as one string — asserted rather than the raw
- * JSON, whose escaping is not what anybody is testing. */
-const hints = (body: Record<string, unknown>): string =>
-  ((body.problems ?? []) as { hint?: string }[]).map((p) => p.hint ?? "").join(" | ");
 
 /**
  * A key that is not a field, on the two calls that write content.
@@ -22,18 +14,21 @@ const hints = (body: Record<string, unknown>): string =>
  * B540 watched an agent working only from `/openapi.json` send `visibilty` —
  * one transposed letter — meaning `private`, and get a 201 and a trip
  * advertised in the sitemap, the feed and the switcher. Nothing refused it and
- * nothing mentioned it. The *value* side of that field has always been careful
- * (an unrecognised value reads as private, never as public, so a typo cannot
- * publish somebody's trip); the *key* side had no such care and failed the
- * other way.
+ * nothing mentioned it.
  *
- * These assert the refusal and the suggestion, because a refusal that does not
- * name the field the caller meant sends them back to the documentation to
- * find it — which is where they got it wrong the first time.
+ * B1612 repoint: v1's routes hand-rolled the "did you mean" suggestion this
+ * file used to assert; v2's `z.strictObject` (`lib/api/v2/schemas/*.ts`)
+ * refuses an unrecognised key on sight, with no fuzzy-match hint of its own —
+ * that specific UX (naming the field the caller probably meant) has no v2
+ * equivalent, and this file no longer asserts it. What survives, and is
+ * B540's actual point, is the property underneath: a typo'd field is REFUSED,
+ * loudly, and nothing is written — never silently dropped and never silently
+ * accepted as some other trip going public.
  */
 
 let dir: string;
 const OWNER_EMAIL = "alex@example.test";
+const TRIP = "reise";
 
 async function token(): Promise<string> {
   const { code } = await issueCode("alex", OWNER_EMAIL, "agent");
@@ -42,31 +37,92 @@ async function token(): Promise<string> {
   return verified.token;
 }
 
-async function post(body: unknown) {
-  const response = await createTripRoute(
-    new Request("https://t.test/api/v1/alex/trips", {
-      method: "POST",
+function fullTrip(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    id: TRIP,
+    title: "Reise",
+    dates: { from: "2026-09-01", to: "2026-09-05" },
+    visibility: "private",
+    people: [{ name: "Alex", email: OWNER_EMAIL }],
+    teaser: true,
+    declined: {
+      rates: "no foreign currency tracked on this trip at all",
+      costs: "no budget tracked for this trip currently",
+      plan: "no planned route recorded for this trip",
+      days: "no days written for this trip at create time",
+      translations: "single-language journal, nothing to translate",
+      accent: "default accent left as the renderer's choice",
+      figures: "no walking figures drawn for this trip",
+      tagline: "no one-line subtitle written for this trip",
+      intro: "no opening prose written for this trip yet",
+      buddies: "travelling solo, nobody else was on this trip",
+    },
+    ...overrides,
+  };
+}
+
+function fullDayBody(slug: string, overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    slug,
+    title: "Tag",
+    date: slug.slice(0, 10),
+    content: "Prosa.",
+    status: "draft",
+    declined: {
+      media: "no photographs attached to this day yet",
+      costs: "nothing spent today, tracked elsewhere",
+      coordinates: "no position recorded for this day",
+      weather: "weather was not asked for this day",
+      time: "the exact time of day was not recorded",
+      timezone: "no timezone established for this leg",
+      location: "no specific location named for this day",
+      country: "no country named for this day entry",
+      countryCode: "no country code named for this day",
+      transportMode: "no transport leg happened this day",
+      tags: "no tags applied to this day",
+      translations: "single-language journal, nothing to translate",
+      visibility: "no narrower visibility set for this day",
+    },
+    ...overrides,
+  };
+}
+
+async function putTrip(body: unknown) {
+  const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/route");
+  const response = await PUT(
+    new Request(`https://t.test/api/v2/alex/trips/${TRIP}`, {
+      method: "PUT",
       headers: { authorization: `Bearer ${await token()}`, "content-type": "application/json" },
       body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ user: "alex" }) },
+    { params: Promise.resolve({ user: "alex", trip: TRIP }) },
   );
   return { status: response.status, body: (await response.json()) as Record<string, unknown> };
 }
 
-async function postDay(body: unknown) {
-  const response = await createDayRoute(
-    new Request("https://t.test/api/v1/alex/trips/reise/days", {
-      method: "POST",
-      headers: { authorization: `Bearer ${await token()}`, "content-type": "application/json" },
-      body: JSON.stringify(body),
+async function getTrip() {
+  const { GET } = await import("@/app/api/v2/[user]/trips/[trip]/route");
+  const response = await GET(
+    new Request(`https://t.test/api/v2/alex/trips/${TRIP}`, {
+      headers: { authorization: `Bearer ${await token()}` },
     }),
-    { params: Promise.resolve({ user: "alex", trip: "reise" }) },
+    { params: Promise.resolve({ user: "alex", trip: TRIP }) },
   );
   return { status: response.status, body: (await response.json()) as Record<string, unknown> };
 }
 
-const trip = { id: "reise", title: "Reise", start: "2026-09-01", end: "2026-09-05" };
+async function putDay(slug: string, body: unknown) {
+  const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+  const response = await PUT(
+    new Request(`https://t.test/api/v2/alex/trips/${TRIP}/days/${slug}`, {
+      method: "PUT",
+      headers: { authorization: `Bearer ${await token()}`, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+    { params: Promise.resolve({ user: "alex", trip: TRIP, slug }) },
+  );
+  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+}
 
 beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-unknown-field-"));
@@ -110,54 +166,52 @@ afterEach(async () => {
 
 describe("a misspelled field on trip creation", () => {
   test("is refused, and nothing is written", async () => {
-    const result = await post({ ...trip, visibilty: "private" });
+    const result = await putTrip({ ...fullTrip(), visibilty: "private" });
     expect(result.status, JSON.stringify(result.body)).toBe(400);
-    expect(getTrip("alex/reise")).toBeUndefined();
+    expect(result.body.error).toBe("invalid_trip");
+    const missing = await getTrip();
+    expect(missing.status).toBe(404);
   });
 
-  test("names the field the caller meant", async () => {
-    const result = await post({ ...trip, visibilty: "private" });
-    expect(hints(result.body)).toContain('did you mean "visibility"');
+  test("names the field it does not recognise", async () => {
+    const result = await putTrip({ ...fullTrip(), visibilty: "private" });
+    const problems = (result.body.details ?? []) as { field: string; problem: string }[];
+    expect(problems.some((p) => p.problem.includes("visibilty"))).toBe(true);
   });
 
-  test("catches another API's separator habits", async () => {
-    const result = await post({ ...trip, costs_visibility: "guests" });
-    expect(result.status).toBe(400);
-    expect(hints(result.body)).toContain('did you mean "costsVisibility"');
+  test("catches another API's separator habits too", async () => {
+    const result = await putTrip({ ...fullTrip(), costs_visibility: "guests" });
+    expect(result.status, JSON.stringify(result.body)).toBe(400);
+    const problems = (result.body.details ?? []) as { field: string; problem: string }[];
+    expect(problems.some((p) => p.problem.includes("costs_visibility"))).toBe(true);
   });
 
   test("a body with every field spelled right is still created", async () => {
-    const result = await post({
-      ...trip,
-      visibility: "private",
-      costsVisibility: "guests",
-      accent: "green",
-      listed: false,
-    });
+    const base = fullTrip({ visibility: "public", accent: "green", teaser: undefined, listed: false });
+    const declined = { ...(base.declined as Record<string, string>) };
+    delete declined.accent;
+    const result = await putTrip({ ...base, declined });
     expect(result.status, JSON.stringify(result.body)).toBe(201);
   });
 });
 
 describe("a misspelled field on a day", () => {
   test("is refused alongside whatever else is wrong, in one list", async () => {
-    await post(trip);
-    const result = await postDay({
-      title: "Tag",
-      date: "2026-09-01",
-      content: "Prosa.",
+    await putTrip(fullTrip());
+    const result = await putDay("2026-09-01-tag", {
+      ...fullDayBody("2026-09-01-tag"),
       transport_mode: "car",
-      coordinates: false,
-      costs: false,
-      photos: false,
     });
     expect(result.status, JSON.stringify(result.body)).toBe(400);
-    expect(hints(result.body)).toContain('did you mean "transportMode"');
+    const problems = (result.body.details ?? []) as { field: string; problem: string }[];
+    expect(problems.some((p) => p.problem.includes("transport_mode"))).toBe(true);
   });
 
   test("one mistake is reported once, by the validator that knows the field", async () => {
-    await post(trip);
-    const result = await postDay({ title: "Tag", date: "nonsense", content: "P." });
-    const problems = (result.body.problems ?? []) as { field: string }[];
+    await putTrip(fullTrip());
+    const result = await putDay("2026-09-01-tag", { ...fullDayBody("2026-09-01-tag"), date: "nonsense" });
+    expect(result.status, JSON.stringify(result.body)).toBe(400);
+    const problems = (result.body.details ?? []) as { field: string }[];
     expect(problems.filter((p) => p.field === "date")).toHaveLength(1);
   });
 });

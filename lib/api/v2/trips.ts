@@ -29,7 +29,7 @@ export function tripDays(user: string, tripId: string): DayFile[] {
 /** Newest-day-first pick of whatever photograph exists, for a trip that
  * declined `cover` or never set one. "Newest" is the day with the latest
  * date carrying at least one photograph; ties keep file order. */
-export function pickCover(days: readonly DayFile[]): string | undefined {
+function pickCover(days: readonly DayFile[]): string | undefined {
   const withMedia = days.filter((d) => d.media && d.media.length > 0);
   if (withMedia.length === 0) return undefined;
   const newest = [...withMedia].sort((a, b) => b.date.localeCompare(a.date))[0];
@@ -41,7 +41,7 @@ export function pickCover(days: readonly DayFile[]): string | undefined {
  * from here (`lib/gps/store.ts` is reachable from nothing under `app/`, and
  * this file is domain code a route imports, not a route itself — but the
  * rule holds regardless of who is asking). */
-export function trackPresence(user: string, tripId: string): { present: boolean; updatedAt?: string } {
+function trackPresence(user: string, tripId: string): { present: boolean; updatedAt?: string } {
   const file = path.join(contentRoot(), user, "trips", tripId, "track.json");
   try {
     const stat = fs.statSync(file);
@@ -51,7 +51,7 @@ export function trackPresence(user: string, tripId: string): { present: boolean;
   }
 }
 
-export function deriveStatus(trip: Pick<TripFile, "dates">): "current" | "upcoming" | "past" {
+function deriveStatus(trip: Pick<TripFile, "dates">): "current" | "upcoming" | "past" {
   // v2 has no `status:` to declare — see trip.ts's own comment: a stored
   // "current" is retired, so this is `calendarStatus` alone, always.
   return calendarStatus({ start: trip.dates.from });
