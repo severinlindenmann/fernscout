@@ -36,7 +36,7 @@ vi.mock("next/headers", () => ({
   headers: async () => new Headers(),
 }));
 
-const { POST } = await import("@/app/api/helper/[user]/day/route");
+const { POST, PATCH } = await import("@/app/api/helper/[user]/day/route");
 
 let dir: string;
 const params = { params: Promise.resolve({ user: "alex" }) };
@@ -128,6 +128,17 @@ function entries() {
   return fs.readdirSync(path.join(dir, "alex", "trips", "reise", "entries"));
 }
 
+function patch(body: unknown) {
+  return PATCH(
+    new Request("https://t.test/api/helper/alex/day", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+    params,
+  );
+}
+
 describe("pressing the proposal the conversation offered", () => {
   test("writes a day, with no other call and nothing invented", async () => {
     const proposal = await propose();
@@ -179,14 +190,54 @@ describe("pressing the proposal the conversation offered", () => {
     expect((await post({ ...body, costs: "none" })).status).toBe(201);
 
     // Same trip, same date, again — the second "Diesen Tag beginnen" press
-    // B785 was filed against.
+    // B785 was filed against. 409, since B1567: a collision with a day that
+    // already exists, the same status `already_published` answers with.
     const second = await post({ ...body, costs: "none" });
-    expect(second.status).toBe(400);
+    expect(second.status).toBe(409);
     const answer = (await second.json()) as { error: string };
     // Not `createDraft`'s own English sentence
     // (`an entry already exists at …`), which a person on a German helper
     // screen cannot read — a stable code `failureSentence()` can translate.
     expect(answer.error).toBe("day_exists");
+  });
+
+  test("pressing again after the day got its real title still answers a refusal, not a second entry — B1567", async () => {
+    const proposal = await propose();
+    const body = pressed(proposal);
+    const first = await post({ ...body, costs: "none" });
+    expect(first.status).toBe(201);
+    const firstJson = (await first.json()) as { trip: string; slug: string };
+    expect(entries()).toHaveLength(1);
+
+    // The words step gives the day its real title, and B1276's rename moves
+    // it off the placeholder slug `createDraft`'s own collision check
+    // compares against — this is what a live `start_day` chaining into
+    // `draft_words` does between two presses of the same card.
+    const renamed = await patch({
+      trip: "reise",
+      slug: firstJson.slug,
+      title: "Spaziergang am See",
+    });
+    expect(renamed.status).toBe(200);
+    const fileName = entries()[0];
+    const bytesBeforeSecondPress = fs.readFileSync(
+      path.join(dir, "alex", "trips", "reise", "entries", fileName),
+    );
+
+    // Press the *original* start_day card again — same trip, same date. The
+    // placeholder path is free again, so a route that only compared file
+    // paths would write a second, empty entry for a date that already has
+    // one and call it `ok`, exactly the live bug B1567 was filed against.
+    const second = await post({ ...body, costs: "none" });
+    expect(second.status).toBe(409);
+    expect((await second.json()) as { error: string }).toEqual({ error: "day_exists" });
+
+    // Never a second entry, and the first is untouched byte for byte.
+    expect(entries()).toHaveLength(1);
+    expect(entries()[0]).toBe(fileName);
+    expect(
+      fs.readFileSync(path.join(dir, "alex", "trips", "reise", "entries", fileName)),
+    ).toEqual(bytesBeforeSecondPress);
   });
 
   test("a trip that keeps track of nothing is asked nothing", async () => {
