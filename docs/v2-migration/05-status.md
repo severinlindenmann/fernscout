@@ -55,10 +55,12 @@ The wire document unifies them; splitting them is the serializer's job.
 - `lib/api/v2/route.ts` — the one error envelope (`fail`/`ok`), `etagFor`
   and `ifMatchStale` (V11: absent `If-Match` is never stale, last-write-wins
   is the documented default; a stale write answers 409 with the current
-  document), `isDryRun` (T1 — a **query parameter**, because every v2 write
+  document), `readDryRun` (T1 — a **query parameter**, because every v2 write
   body is a `strictObject` and would refuse an unknown key, and a flag that
   decides whether bytes are written is not part of the document being
-  written), `readJson`, `logV2Request`.
+  written; renamed from `isDryRun` — B1601 — because a `boolean` return could
+  not say "the caller sent something this cannot read", and that case has to
+  refuse rather than guess in either direction), `readJson`, `logV2Request`.
 - `V2_ONLY_CODES = ["incomplete", "stale_document"]` — the contract's IOU.
   Both are deliberately NOT in `lib/api/errorCodes.ts` yet:
   `test/openapi-contract.test.ts` fails on a code no route answers. **The

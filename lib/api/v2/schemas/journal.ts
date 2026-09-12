@@ -28,6 +28,15 @@ const base = z.strictObject({
   title: z.string().trim().min(1).max(200),
   owner: z.strictObject({
     name: z.string().trim().min(1),
+    /** The short form the site actually calls them — `lib/site.ts`'s byline
+     * reaches for this before `name`, and `lib/config.ts` refuses a journal
+     * whose config has no `owner.nickname` at all. It is required here for
+     * that reason and not as v1 drag: a journal document that omitted it
+     * could not be written to disk as a valid config, so the contract would
+     * have been promising a write it cannot perform. Never derived from
+     * `name` — "the first word of your name" is a guess about what somebody
+     * is called (lib/journals.ts). */
+    nickname: z.string().trim().min(1),
     email: z.email(),
   }),
   /** UI languages this journal maintains; the first is the default. */

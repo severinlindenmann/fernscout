@@ -103,7 +103,11 @@ describe("required-or-declined", () => {
     expect(r.success).toBe(false);
     const missing = r.error!.issues.filter((i) => "params" in i && (i as { params?: { v2?: string } }).params?.v2 === "missing");
     expect(missing.map((i) => i.path[0]).sort()).toEqual([
-      "accent", "costs", "days", "figures", "intro", "people", "plan", "rates", "tagline", "translations",
+      // "buddies", not "people": the solo-trip question is answered under
+      // `declined.buddies` (B1601 moderate finding 3 — the row has to name a
+      // real DECLINABLE_KEYS entry, or a caller building `declined.<field>`
+      // from it lands on a field that does not exist).
+      "accent", "buddies", "costs", "days", "figures", "intro", "plan", "rates", "tagline", "translations",
     ]);
     // Each carries how to decline, so the refusal is the documentation.
     for (const issue of missing) {
@@ -161,6 +165,28 @@ describe("required-or-declined", () => {
     expect(tripCreate.safeParse({ ...fullTrip, people: two, declined: decl }).success).toBe(true);
     // …and declining on top of a crew is a conflict.
     expect(tripCreate.safeParse({ ...fullTrip, people: two }).success).toBe(false);
+  });
+
+  it("raises the solo-trip question on path `buddies`, not `people` (B1601)", () => {
+    const decl = { ...fullTrip.declined } as Record<string, string>;
+    delete decl.buddies;
+    const r = tripCreate.safeParse({ ...fullTrip, declined: decl });
+    expect(r.success).toBe(false);
+    const missingIssue = r.error!.issues.find(
+      (i) => "params" in i && (i as { params?: { v2?: string } }).params?.v2 === "missing",
+    )!;
+    // `declined.<field>` built from the row must name a real declinable —
+    // `declined.people` is not one, and would earn an unrelated refusal.
+    expect(missingIssue.path).toEqual(["buddies"]);
+    // Confirm it: `declined.buddies` on top of this same body is accepted…
+    expect(
+      tripCreate.safeParse({ ...fullTrip, declined: { ...decl, buddies: "travelling solo this time" } }).success,
+    ).toBe(true);
+    // …while `declined.people` (the old, wrong field) is not recognised and
+    // the trip is still refused as incomplete.
+    expect(
+      tripCreate.safeParse({ ...fullTrip, declined: { ...decl, people: "travelling solo this time" } }).success,
+    ).toBe(false);
   });
 
   it("refuses a section both brought and declined", () => {
@@ -235,6 +261,24 @@ describe("day", () => {
       weather: { tempMax: 900, source: "own thermometer", recordedAt: "2026-09-21T18:00:00Z" },
     });
     expect(r.success).toBe(false);
+  });
+
+  it("refuses a day translation missing its title (owner review, 2026-09-12) — a translator who leaves the title as it is writes that same string out, rather than omitting it", () => {
+    const declined = { ...fullDay.declined } as Record<string, string>;
+    delete declined.translations;
+    const r = dayWrite.safeParse({
+      ...fullDay,
+      declined,
+      translations: { de: { content: "Wir sind ins rote Land gefahren." } },
+    });
+    expect(r.success).toBe(false);
+    // The honest way to say "the title reads the same in German": write it.
+    const withTitle = dayWrite.safeParse({
+      ...fullDay,
+      declined,
+      translations: { de: { title: fullDay.title, content: "Wir sind ins rote Land gefahren." } },
+    });
+    expect(withTitle.success).toBe(true);
   });
 });
 
@@ -375,10 +419,10 @@ describe("figures", () => {
   });
 });
 
-describe("journal", () => {
-  const fullJournal = {
+function fullJournalFixture() {
+  return {
     title: "An example journal",
-    owner: { name: "Example Owner", email: "owner@example.com" },
+    owner: { name: "Example Owner", nickname: "Ex", email: "owner@example.com" },
     locales: ["en", "de"],
     baseCurrency: "CHF",
     displayCurrencies: ["CHF", "EUR"],
@@ -389,6 +433,10 @@ describe("journal", () => {
       figures: "owner prefers the plain map",
     },
   };
+}
+
+describe("journal", () => {
+  const fullJournal = fullJournalFixture();
 
   it("accepts a complete journal", () => {
     expect(journalWrite.safeParse(fullJournal).success).toBe(true);
@@ -442,5 +490,33 @@ describe("journal", () => {
     expect(
       journalWrite.safeParse({ ...noDecl, tagline: "Two of us, mostly by rail" }).success,
     ).toBe(true);
+  });
+});
+
+describe("nickname — the short form the site actually calls somebody (D4)", () => {
+  /**
+   * Required on the journal owner, optional on a trip's people, because that
+   * is what the code on the other side needs rather than what v1 happened to
+   * carry. `lib/config.ts` refuses a journal config with no
+   * `owner.nickname`, and `lib/site.ts` reaches for it before `name` when it
+   * renders the byline — so a journal document without it could not be
+   * written to disk and the contract would have been promising a write it
+   * cannot perform. `lib/trips.ts` reads a person's nickname as optional and
+   * `lib/tripPeople.ts` falls back to `name`, so there it is optional.
+   */
+  it("refuses a journal whose owner has no nickname", () => {
+    const owner = { name: "Example Owner", email: "owner@example.com" };
+    expect(journalWrite.safeParse({ ...fullJournalFixture(), owner }).success).toBe(false);
+  });
+
+  it("takes a nickname on a person, and does not insist on one", () => {
+    const people = [{ name: "Example Owner", nickname: "Ex", email: "owner@example.com" }];
+    expect(tripCreate.safeParse({ ...fullTrip, people }).success).toBe(true);
+    expect(tripCreate.safeParse(fullTrip).success).toBe(true);
+  });
+
+  it("refuses an empty nickname rather than storing a blank byline", () => {
+    const people = [{ name: "Example Owner", nickname: "   ", email: "owner@example.com" }];
+    expect(tripCreate.safeParse({ ...fullTrip, people }).success).toBe(false);
   });
 });

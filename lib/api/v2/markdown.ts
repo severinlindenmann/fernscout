@@ -78,10 +78,58 @@ function isRetiredCostsDecline(value: unknown): boolean {
   return value === false || value === "unknown";
 }
 
-/** Emit `data[key] = value` unless `value` is `undefined` — gray-matter would
- * otherwise happily write `key: null`, which is not the same absence. */
-function set(data: Record<string, unknown>, key: string, value: unknown): void {
-  if (value !== undefined) data[key] = value;
+/**
+ * Strip every `undefined` property, at every depth, before the object
+ * reaches `matter.stringify` — which throws `unacceptable kind of an object
+ * to dump [object Undefined]` on ANY `undefined` it meets, gray-matter
+ * vendoring its own copy of js-yaml rather than deferring to the one
+ * elsewhere in node_modules. The old `set(data, key, value)` helper only
+ * filtered the top level, by never assigning an undefined value in the first
+ * place; a *nested* `undefined` built into an object literal — a cost item
+ * with `category: undefined`, a media item's `width: undefined`,
+ * `rates.manual: undefined` — reached `matter.stringify` still present and
+ * blew up, which is how three ordinary documents in the v1587 dry run failed
+ * to serialise at all (B1601). One recursive pass here replaces `set()`
+ * everywhere it was used.
+ *
+ * An `undefined` *array element* is a different fact from an absent object
+ * property — the array still has that many slots — so it is not dropped and
+ * the array is not compacted; it becomes `null`, the nearest thing YAML (and
+ * JSON) has to "a slot with nothing in it". Nothing in this codebase's wire
+ * shapes is expected to produce one (every array here is built by mapping
+ * present values, never by a sparse literal), so this is a safety net rather
+ * than an encoding anything relies on.
+ */
+function pruneUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((v) => (v === undefined ? null : pruneUndefined(v))) as T;
+  }
+  if (value !== null && typeof value === "object" && !(value instanceof Date)) {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (v !== undefined) out[k] = pruneUndefined(v);
+    }
+    return out as T;
+  }
+  return value;
+}
+
+/**
+ * `matter.stringify(body, data)` re-parses `body` for frontmatter of its
+ * own before writing — so a body whose first line reads as an opening
+ * delimiter (`str.startsWith("---")`, then the fourth character anything
+ * but a fourth dash: gray-matter's own `open`/`language` check in
+ * `lib/parse.js`) has that "frontmatter" sliced back out and merged into
+ * `data`, silently eating everything up to the next line matching `---`.
+ * A day or a trip whose prose opens with a horizontal rule, a dialogue
+ * separator, or plain three-dash punctuation is ordinary travel writing,
+ * and refusing it is not on the table (AGENTS.md: write what you were
+ * told). The fix is a leading blank line, which is invisible to the
+ * delimiter check and already stripped back off by `content.trim()` on
+ * read — so it changes nothing about what round-trips.
+ */
+function bodySafeForFrontmatter(body: string): string {
+  return body.startsWith("---") ? "\n" + body : body;
 }
 
 /**
@@ -92,31 +140,31 @@ function set(data: Record<string, unknown>, key: string, value: unknown): void {
  * change in this function's mood.
  */
 export function dayToMarkdown(day: DayFile): string {
-  const data: Record<string, unknown> = {};
+  const data: Record<string, unknown> = pruneUndefined({
+    title: day.title,
+    date: day.date,
+    time: day.time,
+    timezone: day.timezone,
+    location: day.location,
+    country: day.country,
+    countryCode: day.countryCode,
+    coordinates: day.coordinates,
+    media: day.media,
+    costs: day.costs,
+    transportMode: day.transportMode,
+    transportFrom: day.transportFrom,
+    transportTo: day.transportTo,
+    tags: day.tags,
+    translations: day.translations,
+    visibility: day.visibility,
+    weather: day.weather,
+    travelScene: day.travelScene,
+    test: day.test,
+    declined: day.declined,
+    status: day.status,
+  });
 
-  set(data, "title", day.title);
-  set(data, "date", day.date);
-  set(data, "time", day.time);
-  set(data, "timezone", day.timezone);
-  set(data, "location", day.location);
-  set(data, "country", day.country);
-  set(data, "countryCode", day.countryCode);
-  set(data, "coordinates", day.coordinates);
-  set(data, "media", day.media);
-  set(data, "costs", day.costs);
-  set(data, "transportMode", day.transportMode);
-  set(data, "transportFrom", day.transportFrom);
-  set(data, "transportTo", day.transportTo);
-  set(data, "tags", day.tags);
-  set(data, "translations", day.translations);
-  set(data, "visibility", day.visibility);
-  set(data, "weather", day.weather);
-  set(data, "travelScene", day.travelScene);
-  set(data, "test", day.test);
-  set(data, "declined", day.declined);
-  set(data, "status", day.status);
-
-  return matter.stringify(day.content, data);
+  return matter.stringify(bodySafeForFrontmatter(day.content), data);
 }
 
 /** A day file's raw bytes → the v2 day document. `slug` comes from the
@@ -188,37 +236,39 @@ export type TripFile = Omit<TripCreateShape, "days">;
  * nothing is synthesised here. Same for `plan`.
  */
 export function tripToMarkdown(trip: TripFile): { "trip.md": string; "costs.md"?: string; "plan.md"?: string } {
-  const data: Record<string, unknown> = {};
-  set(data, "id", trip.id);
-  set(data, "title", trip.title);
-  set(data, "tagline", trip.tagline);
-  if (trip.dates) set(data, "dates", trip.dates);
-  set(data, "visibility", trip.visibility);
-  set(data, "listed", trip.listed);
-  set(data, "teaser", trip.teaser);
-  set(data, "test", trip.test);
-  set(data, "accent", trip.accent);
-  set(data, "cover", trip.cover);
-  set(data, "people", trip.people);
-  set(data, "rates", trip.rates);
-  set(data, "figures", trip.figures);
-  set(data, "translations", trip.translations);
-  set(data, "declined", trip.declined);
+  const data: Record<string, unknown> = pruneUndefined({
+    id: trip.id,
+    title: trip.title,
+    tagline: trip.tagline,
+    dates: trip.dates,
+    visibility: trip.visibility,
+    listed: trip.listed,
+    teaser: trip.teaser,
+    test: trip.test,
+    accent: trip.accent,
+    cover: trip.cover,
+    people: trip.people,
+    rates: trip.rates,
+    figures: trip.figures,
+    translations: trip.translations,
+    declined: trip.declined,
+  });
 
   const files: { "trip.md": string; "costs.md"?: string; "plan.md"?: string } = {
-    "trip.md": matter.stringify(trip.intro ?? "", data),
+    "trip.md": matter.stringify(bodySafeForFrontmatter(trip.intro ?? ""), data),
   };
 
   if (trip.costs) {
-    const costsData: Record<string, unknown> = {};
-    set(costsData, "budget", trip.costs.budget);
-    set(costsData, "items", trip.costs.items);
-    set(costsData, "visibility", trip.costs.visibility);
-    files["costs.md"] = matter.stringify(trip.costs.note ?? "", costsData);
+    const costsData: Record<string, unknown> = pruneUndefined({
+      budget: trip.costs.budget,
+      items: trip.costs.items,
+      visibility: trip.costs.visibility,
+    });
+    files["costs.md"] = matter.stringify(bodySafeForFrontmatter(trip.costs.note ?? ""), costsData);
   }
 
   if (trip.plan) {
-    files["plan.md"] = matter.stringify(trip.plan.body ?? "", { route: trip.plan.route });
+    files["plan.md"] = matter.stringify(bodySafeForFrontmatter(trip.plan.body ?? ""), { route: trip.plan.route });
   }
 
   return files;
