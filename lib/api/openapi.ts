@@ -229,7 +229,7 @@ export function openApiDocument() {
         },
         GeocodeCandidate: {
           type: "object",
-          required: ["displayName", "country", "adminRegion", "lat", "lon"],
+          required: ["displayName", "country", "countryCode", "adminRegion", "lat", "lon"],
           properties: {
             displayName: {
               type: "string",

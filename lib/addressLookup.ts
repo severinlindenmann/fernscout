@@ -188,7 +188,7 @@ export type GeocodeContextCoordinate = { lat: number; lng: number };
 export type GeocodeCandidate = {
   displayName: string;
   country: string;
-  countryCode?: string;
+  countryCode: string;
   adminRegion: string;
   lat: number;
   lon: number;
@@ -244,17 +244,17 @@ function geocodeCandidate(feature: PhotonPlaceFeature): GeocodeCandidate | null 
   const countryCode = (p.countrycode ?? "").trim().toUpperCase();
   const adminRegion = uniqueParts([p.state ?? "", p.county ?? "", p.district ?? "", p.city ?? ""])[0] ?? "";
   const displayName = uniqueParts([p.name ?? "", p.city ?? "", p.district ?? "", adminRegion, country]).join(", ");
-  if (displayName === "" || country === "" || adminRegion === "") return null;
+  if (displayName === "" || country === "" || countryCode === "" || adminRegion === "") return null;
 
   const type = (p.type ?? p.osm_value ?? "").trim();
 
   return {
     displayName,
     country,
+    countryCode,
     adminRegion,
     lat,
     lon,
-    ...(countryCode ? { countryCode } : {}),
     ...(type ? { type } : {}),
   };
 }

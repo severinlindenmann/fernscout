@@ -290,6 +290,10 @@ describe("reverseUrl", () => {
                     geometry: { type: "Point", coordinates: [8.216, 47.463] },
                   },
                   {
+                    properties: { name: "Hausen", state: "Aargau", country: "Switzerland", type: "village" },
+                    geometry: { type: "Point", coordinates: [8.216, 47.463] },
+                  },
+                  {
                     properties: { name: "Hausen", district: "Aargau", country: "Switzerland", countrycode: "ch" },
                     geometry: { type: "Point", coordinates: [8.216, 47.463] },
                   },
