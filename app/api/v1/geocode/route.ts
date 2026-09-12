@@ -93,7 +93,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "address_lookup_disabled" }, { status: 404 });
   }
 
-  const limit = rateLimitFor("place-geocode", clientIp(request), {
+  const limit = rateLimitFor("place-geocode", `${clientIp(request)}:${username}`, {
     max: 1,
     windowMs: 1000,
   });

@@ -12,6 +12,22 @@ import { clearUserCache } from "@/lib/users";
 let dir: string;
 const OWNER = "alex";
 const OWNER_EMAIL = "alex@example.test";
+const SECOND_OWNER = "bea";
+const SECOND_OWNER_EMAIL = "bea@example.test";
+
+function writeUserConfig(username: string, email: string, addressLookup: Record<string, unknown>) {
+  fs.mkdirSync(path.join(dir, username), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, username, "config.json"),
+    JSON.stringify({
+      title: username,
+      tagline: "t",
+      owner: { name: `${username} Example`, nickname: username, email },
+      baseCurrency: "CHF",
+      features: { addressLookup },
+    }),
+  );
+}
 
 function writeConfigs(addressLookup: Record<string, unknown>) {
   fs.writeFileSync(
@@ -24,23 +40,14 @@ function writeConfigs(addressLookup: Record<string, unknown>) {
       },
     }),
   );
-  fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, OWNER, "config.json"),
-    JSON.stringify({
-      title: "Alex",
-      tagline: "t",
-      owner: { name: "Alex Example", nickname: "Alex", email: OWNER_EMAIL },
-      baseCurrency: "CHF",
-      features: { addressLookup },
-    }),
-  );
+  writeUserConfig(OWNER, OWNER_EMAIL, addressLookup);
+  writeUserConfig(SECOND_OWNER, SECOND_OWNER_EMAIL, addressLookup);
   clearConfigCache();
   clearUserCache();
 }
 
-async function token(): Promise<string> {
-  return (await openAgentSession(OWNER, OWNER_EMAIL)).token;
+async function token(username = OWNER, email = OWNER_EMAIL): Promise<string> {
+  return (await openAgentSession(username, email)).token;
 }
 
 async function call(token: string, body: unknown, ip = "203.0.113.90") {
@@ -198,5 +205,13 @@ describe("POST /api/v1/geocode", () => {
     expect(limited.status).toBe(429);
     expect(limited.body.error).toBe("too_many_requests");
     expect(limited.retryAfter).toBeTruthy();
+  });
+
+  test("keeps one journal's rate limit from consuming another's behind the same IP", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ features: [] }))));
+    const first = await token();
+    const second = await token(SECOND_OWNER, SECOND_OWNER_EMAIL);
+    expect((await call(first, { query: "Hausen" }, "203.0.113.95")).status).toBe(200);
+    expect((await call(second, { query: "Hausen" }, "203.0.113.95")).status).toBe(200);
   });
 });

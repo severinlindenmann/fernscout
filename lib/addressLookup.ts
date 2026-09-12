@@ -242,7 +242,7 @@ function geocodeCandidate(feature: PhotonPlaceFeature): GeocodeCandidate | null 
   const p = feature.properties ?? {};
   const country = (p.country ?? "").trim();
   const countryCode = (p.countrycode ?? "").trim().toUpperCase();
-  const adminRegion = (p.state ?? p.county ?? "").trim();
+  const adminRegion = uniqueParts([p.state ?? "", p.county ?? "", p.district ?? "", p.city ?? ""])[0] ?? "";
   const displayName = uniqueParts([p.name ?? "", p.city ?? "", p.district ?? "", adminRegion, country]).join(", ");
   if (displayName === "" || country === "" || adminRegion === "") return null;
 

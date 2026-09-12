@@ -277,7 +277,7 @@ describe("reverseUrl", () => {
       expect(target.searchParams.get("lon")).toBe("8.2");
     });
 
-    test("drops place hits that do not name a country and admin region", async () => {
+    test("uses the best available subdivision for adminRegion and drops hits with none", async () => {
       vi.stubGlobal(
         "fetch",
         vi.fn(
@@ -290,7 +290,7 @@ describe("reverseUrl", () => {
                     geometry: { type: "Point", coordinates: [8.216, 47.463] },
                   },
                   {
-                    properties: { name: "Hausen", state: "Aargau", country: "Switzerland", countrycode: "ch" },
+                    properties: { name: "Hausen", district: "Aargau", country: "Switzerland", countrycode: "ch" },
                     geometry: { type: "Point", coordinates: [8.216, 47.463] },
                   },
                 ],
