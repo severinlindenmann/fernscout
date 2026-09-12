@@ -305,17 +305,17 @@ describe("reverseUrl", () => {
 
       await expect(geocodePlace("Hausen", "de")).resolves.toEqual([
         {
-          displayName: "Hausen, Switzerland",
+          displayName: "Hausen, Aargau, Switzerland",
           country: "Switzerland",
+          countryCode: "CH",
+          adminRegion: "Aargau",
           lat: 47.463,
           lon: 8.216,
           type: "village",
         },
         {
-          displayName: "Hausen, Aargau, Switzerland",
+          displayName: "Hausen, Switzerland",
           country: "Switzerland",
-          countryCode: "CH",
-          adminRegion: "Aargau",
           lat: 47.463,
           lon: 8.216,
           type: "village",

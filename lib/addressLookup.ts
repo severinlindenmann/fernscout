@@ -342,12 +342,13 @@ export async function geocodePlace(
   }
 
   const candidates = [...out.values()];
-  if (!bias) return candidates;
-  return [...candidates].sort((a, b) => {
+  const ranked = [...candidates].sort((a, b) => {
+    if (!bias) return candidateScore(b) - candidateScore(a);
     const byDistance = distanceSquared(a, bias) - distanceSquared(b, bias);
     if (byDistance !== 0) return byDistance;
     return candidateScore(b) - candidateScore(a);
   });
+  return ranked;
 }
 
 /**
