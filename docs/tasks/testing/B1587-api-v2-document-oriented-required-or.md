@@ -20,8 +20,8 @@ are optional-by-default, validation is hand-rolled, and `lib/api/openapi.ts`
 is a 4,851-line hand-kept promise that drifts from the code (the B540 failure
 class: fields accepted, 201 answered, silently thrown away).
 
-The concept — reviewed and decided with the owner on 2026-09-12 — is at
-https://claude.ai/code/artifact/b98c2a46-81b8-48e8-9791-b1302cd6499e
+The concept — reviewed and decided with the owner on 2026-09-12 — is
+recorded in docs/v2-migration/00-decisions.md.
 Summary of the decided direction:
 
 - Zod in Next.js (no FastAPI sidecar). One schema per resource is the
@@ -75,9 +75,9 @@ DB dropped fresh, only example must survive the replay migration (owner
 migrates their own journal by hand later), example is the acceptance
 fixture exercising every feature, no overlap — invite-only ALPHA and
 iterative deploys to the one instance.
-Plan: https://claude.ai/code/artifact/c3bee44b-5e2e-476f-af43-8f5a7409bae9
-Contract: https://claude.ai/code/artifact/d03db943-56de-456f-997c-1bfe2d5315bb
-Explorer (openapi): https://claude.ai/code/artifact/76c92f48-7f0e-4c7a-83e3-024dd4e929a7
+Review artifacts deleted by the owner after commit — the record is
+docs/v2-migration/ (decisions, plan, build order, explorer.html) and
+docs/plans/2026-09-12-api-v2/ (contracts, challenges, openapi.json).
 
 - Phase 0 (golden contract): DONE on this branch — V/T verdicts folded,
   dayPatch/tripPatch, 30 schema tests green.

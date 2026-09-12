@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (226)
+## backlog (231)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (57)
+### issue (58)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -76,6 +76,7 @@ Do not edit them by hand; run the script.
 | [B1498](backlog/issue/B1498-a-guest-or-buddy-who-signs.md) | A guest or buddy who signs up for their own journal is unverified territory | ISSUE | high | medium |
 | [B1539](backlog/issue/B1539-ten-days-on-one-island-shared.md) | Ten days on one island shared one media folder and one slug, and two thirds of the photographs were lost | ISSUE | high | low |
 | [B1586](backlog/issue/B1586-correcting-a-caption-or-a-photograph.md) | Correcting a caption or a photograph's visibility from the day panel is refused, and takes the rest of the save down with it | ISSUE | high | low |
+| [B1597](backlog/issue/B1597-v2-tripdoc-costs-has-no-home.md) | v2 tripDoc.costs has no home for costs.md's preparation cost lines or its prose | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -122,14 +123,16 @@ Do not edit them by hand; run the script.
 | [B1571](backlog/issue/B1571-a-full-journal-refuses-costs-and.md) | A full journal refuses costs and contacts imports though those kinds write nothing | ISSUE | low | low |
 | [B1583](backlog/issue/B1583-a-publish-run-against-an-unreachable.md) | A publish run against an unreachable instance dies with a raw Node stack trace instead of a sentence | ISSUE | low | low |
 
-### big-feature (14)
+### big-feature (16)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B1598](backlog/big-feature/B1598-v2-canonical-files-are-unreadable-by.md) | v2-canonical files are unreadable by lib/entries.ts and lib/trips.ts — the render layer has no step in the build order | FEATURE | high | high |
 | [B1049](backlog/big-feature/B1049-a-model-choosing-among-forty-three.md) | A model choosing among forty-three tools chooses worse than one choosing among seventeen | FEATURE | medium | high |
 | [B1537](backlog/big-feature/B1537-a-journal-can-only-have-one.md) | A journal can only have one owner - couples and families can't share ownership | FEATURE | medium | high |
 | [B1541](backlog/big-feature/B1541-there-is-no-dark-mode-the.md) | There is no dark mode; the whole app is cream and yellow at 2am | FEATURE | medium | high |
 | [B1593](backlog/big-feature/B1593-a-closed-journal-has-no-way.md) | A closed journal has no way to show a public shopfront of the parts its owner would share | FEATURE | medium | high |
+| [B1595](backlog/big-feature/B1595-inbox-day-assembly-land-phases-4.md) | Inbox day-assembly: land Phases 4-5 (statement store, GPS extraction) | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B672](backlog/big-feature/B672-everything-is-served-off-one-vps.md) | Everything is served off one VPS disk by one Node process | FEATURE | medium | high |
@@ -165,11 +168,12 @@ Do not edit them by hand; run the script.
 | [B1531](backlog/small-feature/B1531-the-stored-derivative-is-jpeg-for.md) | The stored derivative is JPEG for a reader that never sees it and a printer that only sometimes needs it | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (9)
+### chore (10)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1146](backlog/chore/B1146-two-branches-in-flight-both-number.md) | Two branches in flight both number their migration 028, so the second to merge has two | CHORE | high | low |
+| [B1596](backlog/chore/B1596-v2-plumbing-route-helper-incomplete-422.md) | v2 plumbing: route helper, incomplete-422, dryRun, ETag, request log, import boundary, md serializer | CHORE | high | medium |
 | [B1412](backlog/chore/B1412-the-delete-trip-link-sits-on.md) | the delete-trip link sits on the trip page, where a reader is reading, rather than with the trip's other owner controls | CHORE | medium | low |
 | [B1449](backlog/chore/B1449-the-thread-prompt-is-21-tokens.md) | The thread prompt is 21 tokens from its ceiling, and the ceiling measures a different string than the wire | CHORE | medium | low |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
@@ -210,7 +214,7 @@ Do not edit them by hand; run the script.
 | [B1547](backlog/docs-and-skills/B1547-documentation-txt-reads-machine-generated-and.md) | documentation.txt reads machine-generated and has drifted from the API | DOCS | medium | low |
 | [B1415](backlog/docs-and-skills/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low |
 
-### superseded (90)
+### superseded (91)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -232,6 +236,7 @@ Do not edit them by hand; run the script.
 | [B1447](backlog/superseded/B1447-an-honest-answer-that-promises-a.md) | An honest answer that promises a button next turn is caught as a claim about this one | ISSUE | high | medium |
 | [B1523](backlog/superseded/B1523-the-photobook-composer-s-switches-do.md) | The photobook composer's switches do not match what they remove, and the cover is never shown | ISSUE | high | medium |
 | [B1588](backlog/superseded/B1588-api-v2-document-oriented-required-or.md) | API v2: document-oriented, required-or-declined contract (phase 0: Zod schemas) | FEATURE | high | high |
+| [B1599](backlog/superseded/B1599-v2-canonical-files-are-unreadable-by.md) | v2-canonical files are unreadable by lib entries and trips — the render layer has no step in the build order | FEATURE | high | high |
 | [B373](backlog/superseded/B373-the-backup-success-marker-vanished-from.md) | The backup success marker vanished from DATA_DIR between two deploys minutes apart | OPS | high | low |
 | [B377](backlog/superseded/B377-the-deploy-reported-a-healthy-backup.md) | The deploy reported a healthy backup this afternoon and none at all this evening | OPS | high | low |
 | [B65](backlog/superseded/B65-the-deployed-server-has-no-backup.md) | Every backup of the deployed server sits on the same machine it is backing up | OPS | high | medium |
