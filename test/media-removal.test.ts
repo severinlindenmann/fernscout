@@ -5,22 +5,25 @@ import sharp from "sharp";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { attachGallery, detachGallery } from "@/lib/api/entries";
 import { storeUploads, deleteMediaFiles } from "@/lib/api/media";
-import { getEntryBySlug, getTripStats, AS_AUTHOR } from "@/lib/entries";
+import { getEntryBySlug, AS_AUTHOR } from "@/lib/entries";
 
 /**
  * B605 — a photograph could be added to a day and never taken away, so the
  * only remedy for a duplicate or a wrong upload was a shell on the server.
  *
- * These drive the real `DELETE /api/v1/<user>/trips/<trip>/media` route, the
- * same way test/media-response-src.test.ts drives the POST — so the auth
- * gate, the request parsing and the response shape are all exercised, not
- * only the library function underneath.
+ * `app/api/v1/[user]/trips/[trip]/media/route.ts` — the route these tests
+ * used to drive end to end — was deleted under B1613 (the v2 media door,
+ * `test/api-v2-media.test.ts`, replaces it and covers the equivalent DELETE
+ * behaviour there). What is left here is `detachGallery` and
+ * `deleteMediaFiles` themselves — the two library functions v1's route sat
+ * on top of, still real, still called by the v1 gallery-editing paths that
+ * remain, and worth their own direct coverage regardless of which route
+ * calls them — in particular the path-traversal refusals, which are
+ * security properties of the function and not of the route glue around it.
  */
 
 const OWNER = "ana";
-const OWNER_EMAIL = "ana@example.test";
 const TRIP = "asia-2026";
-const OTHER_TRIP = "europe-2027";
 const DAY = "lanterns-of-hoi-an";
 const REF = `${OWNER}/${TRIP}`;
 
@@ -32,37 +35,6 @@ async function jpeg(width: number, height: number): Promise<Buffer> {
   return sharp({ create: { width, height, channels: 3, background: { r: 10, g: 90, b: 140 } } })
     .jpeg()
     .toBuffer();
-}
-
-async function ownerToken(): Promise<string> {
-  const { issueCode, verifyCode } = await import("@/lib/auth");
-  const { code } = await issueCode(OWNER, OWNER_EMAIL, "agent");
-  const result = await verifyCode(OWNER, OWNER_EMAIL, code, "agent");
-  if (!result.ok) throw new Error("no owner token");
-  return result.token;
-}
-
-/** A token scoped to a trip other than the one being written to — the
- * refusal `mayWriteTrip` gives when a trip-scoped token tries to widen. */
-async function otherTripToken(): Promise<string> {
-  const { issueCode, verifyCode } = await import("@/lib/auth");
-  const { code } = await issueCode(OWNER, "buddy@example.test", "agent", { trip: `${OWNER}/${OTHER_TRIP}` });
-  const result = await verifyCode(OWNER, "buddy@example.test", code, "agent");
-  if (!result.ok) throw new Error("no scoped token");
-  return result.token;
-}
-
-async function deleteMedia(token: string, body: unknown) {
-  const { DELETE } = await import("@/app/api/v1/[user]/trips/[trip]/media/route");
-  const response = await DELETE(
-    new Request(`https://example.test/api/v1/${OWNER}/trips/${TRIP}/media`, {
-      method: "DELETE",
-      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body: JSON.stringify(body),
-    }),
-    { params: Promise.resolve({ user: OWNER, trip: TRIP }) },
-  );
-  return { status: response.status, body: await response.json() as Record<string, unknown> };
 }
 
 beforeAll(async () => {
@@ -81,13 +53,12 @@ beforeAll(async () => {
     }),
   );
   fs.mkdirSync(path.join(tripPath(), "entries"), { recursive: true });
-  fs.mkdirSync(path.join(dir, OWNER, "trips", OTHER_TRIP, "entries"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, OWNER, "config.json"),
     JSON.stringify({
       title: "Two Backpacks",
       tagline: "t",
-      owner: { name: "A B", nickname: "A", email: OWNER_EMAIL },
+      owner: { name: "A B", nickname: "A", email: "ana@example.test" },
       startLocation: "X",
       defaultLocale: "en",
       locales: ["en"],
@@ -97,27 +68,22 @@ beforeAll(async () => {
       features: { auth: { enabled: true } },
     }),
   );
-  for (const [id, tripPathHere] of [
-    [TRIP, tripPath()],
-    [OTHER_TRIP, path.join(dir, OWNER, "trips", OTHER_TRIP)],
-  ] as const) {
-    fs.writeFileSync(
-      path.join(tripPathHere, "trip.md"),
-      [
-        "---",
-        `id: "${id}"`,
-        'title: "A trip"',
-        'start: "2026-01-01"',
-        'end: "2026-01-05"',
-        'status: "past"',
-        'visibility: "private"',
-        "---",
-        "",
-        "Intro.",
-        "",
-      ].join("\n"),
-    );
-  }
+  fs.writeFileSync(
+    path.join(tripPath(), "trip.md"),
+    [
+      "---",
+      `id: "${TRIP}"`,
+      'title: "A trip"',
+      'start: "2026-01-01"',
+      'end: "2026-01-05"',
+      'status: "past"',
+      'visibility: "private"',
+      "---",
+      "",
+      "Intro.",
+      "",
+    ].join("\n"),
+  );
 
   const { clearConfigCache } = await import("@/lib/config");
   const { clearUserCache } = await import("@/lib/users");
@@ -170,118 +136,6 @@ afterEach(() => {
   for (const file of fs.readdirSync(path.join(tripPath(), "entries"))) {
     fs.rmSync(path.join(tripPath(), "entries", file));
   }
-});
-
-describe("DELETE /api/v1/<user>/trips/<trip>/media", () => {
-  test("removes a photograph: gallery shrinks, totalMedia drops, files gone from disk", async () => {
-    await freshDayWithPhoto(DAY);
-    const before = getTripStats(REF, AS_AUTHOR).totalMedia;
-    expect(before).toBe(1);
-
-    const served = path.join(tripPath(), "media", DAY, "01.jpg");
-    const kept = path.join(tripPath(), "originals", DAY, "01.jpg");
-    expect(fs.existsSync(served)).toBe(true);
-    expect(fs.existsSync(kept)).toBe(true);
-
-    const token = await ownerToken();
-    const { status, body } = await deleteMedia(token, {
-      day: DAY,
-      src: [`/${OWNER}/media/${TRIP}/${DAY}/01.jpg`],
-    });
-
-    expect(status).toBe(200);
-    expect(body.ok).toBe(true);
-    expect(body.removed).toEqual([`/${OWNER}/media/${TRIP}/${DAY}/01.jpg`]);
-
-    expect(getEntryBySlug(REF, DAY, AS_AUTHOR)?.gallery).toHaveLength(0);
-    expect(getTripStats(REF, AS_AUTHOR).totalMedia).toBe(before - 1);
-    expect(fs.existsSync(served)).toBe(false);
-    expect(fs.existsSync(kept)).toBe(false);
-  });
-
-  test("a src the day does not carry is 400, naming it, and nothing is removed", async () => {
-    await freshDayWithPhoto(DAY);
-    const token = await ownerToken();
-    const { status, body } = await deleteMedia(token, {
-      day: DAY,
-      src: [`/${OWNER}/media/${TRIP}/${DAY}/99.jpg`],
-    });
-
-    expect(status).toBe(400);
-    expect(body.error).toBe("unknown_media");
-    const problems = body.problems as { field: string; got: string }[];
-    expect(problems.some((p) => p.got.includes("99.jpg"))).toBe(true);
-
-    // The real photograph is untouched — a batch naming one bad src refuses
-    // the whole call rather than removing the rest.
-    expect(getEntryBySlug(REF, DAY, AS_AUTHOR)?.gallery).toHaveLength(1);
-    expect(fs.existsSync(path.join(tripPath(), "media", DAY, "01.jpg"))).toBe(true);
-  });
-
-  test("a trip-scoped token for a different trip cannot widen into this one", async () => {
-    await freshDayWithPhoto(DAY);
-    const token = await otherTripToken();
-    const { status } = await deleteMedia(token, {
-      day: DAY,
-      src: [`/${OWNER}/media/${TRIP}/${DAY}/01.jpg`],
-    });
-    // Same answer mayWriteTrip gives any trip a scoped token does not name:
-    // unknown_trip, so a probe cannot tell "wrong trip" from "no such trip".
-    expect(status).toBe(404);
-    expect(getEntryBySlug(REF, DAY, AS_AUTHOR)?.gallery).toHaveLength(1);
-  });
-
-  test("an unknown day is 404", async () => {
-    const token = await ownerToken();
-    const { status, body } = await deleteMedia(token, {
-      day: "no-such-day",
-      src: ["/x/media/y/z/01.jpg"],
-    });
-    expect(status).toBe(404);
-    expect(body.error).toBe("unknown_day");
-  });
-
-  test("no src at all is refused rather than a no-op 200", async () => {
-    await freshDayWithPhoto(DAY);
-    const token = await ownerToken();
-    const { status, body } = await deleteMedia(token, { day: DAY, src: [] });
-    expect(status).toBe(400);
-    expect(body.error).toBe("expected_src");
-  });
-
-  test("a video's poster is deleted along with the clip", async () => {
-    const { videoToolsAvailable } = await import("@/lib/ingest/video");
-    if (!videoToolsAvailable()) return; // No ffmpeg on this machine.
-
-    fs.writeFileSync(
-      path.join(tripPath(), "entries", `2026-01-02-day-two.md`),
-      ["---", 'title: "day-two"', 'date: "2026-01-02"', "status: draft", "---", "", "Words.", ""].join("\n"),
-    );
-    const source = path.join(dir, "clip.mp4");
-    const { spawnSync } = await import("node:child_process");
-    const made = spawnSync("ffmpeg", ["-nostdin", "-v", "error", "-f", "lavfi",
-      "-i", "testsrc=size=320x240:rate=10", "-t", "1", "-pix_fmt", "yuv420p", source]);
-    if (made.status !== 0) throw new Error(`could not make a test clip: ${made.stderr}`);
-
-    const uploaded = await storeUploads(REF, "day-two", [
-      { filename: "clip.mp4", bytes: fs.readFileSync(source) },
-    ]);
-    if (!uploaded.ok) throw new Error("expected the clip to land");
-    attachGallery(REF, "day-two", uploaded.items);
-
-    const mediaDir = path.join(tripPath(), "media", "day-two");
-    expect(fs.readdirSync(mediaDir).sort()).toEqual(["01-poster.jpg", "01.mp4"]);
-
-    const token = await ownerToken();
-    const item = uploaded.items[0];
-    const { status } = await deleteMedia(token, {
-      day: "day-two",
-      src: [`/${OWNER}${item.src}`],
-    });
-    expect(status).toBe(200);
-    expect(fs.existsSync(path.join(mediaDir, "01.mp4"))).toBe(false);
-    expect(fs.existsSync(path.join(mediaDir, "01-poster.jpg"))).toBe(false);
-  }, 30_000);
 });
 
 describe("detachGallery: the library function directly", () => {

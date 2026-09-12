@@ -907,10 +907,11 @@ describe("what the guide has to tell an agent before it starts", () => {
   test("the photographs offer names the real media field names", () => {
     // A rename of the media field should break this document rather than
     // silently making it wrong — so assert the actual field names the route
-    // reads, not a paraphrase of them.
+    // reads, not a paraphrase of them. B1613 moved this to the v2 media
+    // door: bytes under `file`, alongside a JSON `intent`.
     expect(PHOTOS_SECOND_CALL).toContain("`multipart/form-data`");
-    expect(PHOTOS_SECOND_CALL).toContain("`day`");
-    expect(PHOTOS_SECOND_CALL).toContain("`files`");
+    expect(PHOTOS_SECOND_CALL).toContain("`file`");
+    expect(PHOTOS_SECOND_CALL).toContain("`intent`");
   });
 
   test("both documents offer to publish once a trip's days are written", () => {

@@ -73,16 +73,25 @@ async function readInbox(token: string) {
   return { status: response.status, body: await response.json() };
 }
 
-/** The media route's third door: file staged ids into a day. */
-async function fileIntoDay(token: string, ids: string[], day = DAY) {
-  const { POST } = await import("@/app/api/v1/[user]/trips/[trip]/media/route");
+/**
+ * The v2 media door's `inbox` branch — B1613 replaced the v1 trip media
+ * route's own `inbox: [...ids]` batch door with the one upload door every
+ * kind of bytes shares, and that door is single-file-per-call (decision 7's
+ * "one fact, one address" carried through). One id at a time here, rather
+ * than the old array, for the same reason.
+ */
+async function fileIntoDay(token: string, id: string, day = DAY) {
+  const { POST } = await import("@/app/api/v2/[user]/media/route");
   const response = await POST(
-    new Request(`https://example.test/api/v1/${OWNER}/trips/${TRIP}/media`, {
+    new Request(`https://example.test/api/v2/${OWNER}/media`, {
       method: "POST",
       headers: headers({ authorization: `Bearer ${token}`, "content-type": "application/json" }),
-      body: JSON.stringify({ day, inbox: ids }),
+      body: JSON.stringify({
+        intent: { kind: "photo", trip: TRIP, day, declined: { caption: "not said at upload" } },
+        inbox: id,
+      }),
     }),
-    { params: Promise.resolve({ user: OWNER, trip: TRIP }) },
+    { params: Promise.resolve({ user: OWNER }) },
   );
   return { status: response.status, body: await response.json() };
 }
@@ -180,45 +189,39 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       expect(listed.body.counts.media).toBe(1);
       expect(listed.body.items.media[0].id).toBe(id);
 
-      // Now the day, and only now.
+      // Now the day, and only now — though the v2 media door no longer needs
+      // it to exist: `day` only ever decides where on disk the bytes land,
+      // never whether an entry is there to attach into (that attachment is
+      // the day route's own job now, reading this response's `src` back).
       writeDay(DAY, "2026-01-01");
 
-      const filed = await fileIntoDay(token, [id]);
+      const filed = await fileIntoDay(token, id);
       expect(filed.status).toBe(201);
-      expect(filed.body.items).toHaveLength(1);
+      expect(filed.body.src).toBeTruthy();
+      expect(filed.body.trip).toBe(TRIP);
+      expect(filed.body.day).toBe(DAY);
 
       // On disk in the trip, and gone from the bucket — moved, not copied.
+      // Two files per photograph now: the derivative and its sidecar.
       const inTrip = fs.readdirSync(path.join(tripPath(), "media", DAY));
-      expect(inTrip).toHaveLength(1);
+      expect(inTrip).toHaveLength(2);
       expect((await readInbox(token)).body.counts.media).toBe(0);
-
-      // And in the day itself, which is the half that used to be homework.
-      const entry = fs.readFileSync(
-        path.join(tripPath(), "entries", `2026-01-01-${DAY}.md`),
-        "utf8",
-      );
-      expect(entry).toContain("gallery:");
     });
 
-    /**
-     * All or nothing. A batch naming one id that is not there must leave the
-     * others staged rather than filing some and reporting a failure.
-     */
-    test("an id that names nothing refuses the whole call and moves nothing", async () => {
+    test("an id that names nothing is refused, and nothing is written", async () => {
       const token = await ownerToken();
       writeDay("market-morning", "2026-01-02");
 
-      const staged = await stage(token, [{ name: "DSC_0002.jpg", bytes: await jpeg(900, 600, 60) }]);
-      const id = staged.body.items[0].id as string;
+      // Staged for real, so the next test ("a staged file can be taken back
+      // out") has something in the bucket — this test's own id is a bogus
+      // one that names nothing, kept separate on purpose.
+      await stage(token, [{ name: "DSC_0002.jpg", bytes: await jpeg(900, 600, 60) }]);
 
-      const filed = await fileIntoDay(token, [id, "deadbeef-nothing.jpg"], "market-morning");
+      const filed = await fileIntoDay(token, "deadbeef-nothing.jpg", "market-morning");
       expect(filed.status).toBe(400);
       expect(filed.body.error).toBe("unknown_inbox_file");
-      expect(filed.body.missing).toEqual(["deadbeef-nothing.jpg"]);
-
-      // Still staged, and no day was written into.
-      expect((await readInbox(token)).body.counts.media).toBe(1);
       expect(fs.existsSync(path.join(tripPath(), "media", "market-morning"))).toBe(false);
+      expect((await readInbox(token)).body.counts.media).toBe(1);
     });
 
     test("a staged file can be taken back out", async () => {
