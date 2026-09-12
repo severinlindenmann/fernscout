@@ -89,6 +89,7 @@ function render(
   files: RoomFiles = FILES,
   journals?: { username: string; title: string }[],
   history?: { created_at: string; said: string | null; answered: string | null; origin?: string | null }[],
+  credits: number | null = null,
 ) {
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -110,6 +111,7 @@ function render(
           siteUrl="https://t.test"
           journals={journals}
           history={history}
+          credits={credits}
         />
       </LocaleProvider>,
     );
@@ -508,6 +510,46 @@ describe("the top bar's two icons", () => {
     );
     expect(named).toContain("New conversation");
   });
+});
+
+/**
+ * B1574 — the keys/tokens list (`agent.room.keysTitle`) used to sit inside
+ * this sheet, above the balance, per B1154's 2026-09-09 decision record. The
+ * person reported it read as out of place in a screen about money, and asked
+ * for it out entirely; `/<user>/me`'s own device list is the one remaining
+ * place for it (`components/AgentKeys.tsx`, unaffected by this).
+ */
+test("the account sheet shows balance, not a list of keys", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url.endsWith("/account")) {
+        return {
+          ok: true,
+          json: async () => ({
+            credits: 42,
+            monthSpent: 3,
+            storage: { usedBytes: 0, ceilingBytes: null },
+          }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({ ok: true, blocks: [] }) } as Response;
+    }),
+  );
+  const box = render(null, FILES, undefined, undefined, 42);
+  const chip = [...box.querySelector("header")!.querySelectorAll("button")].find(
+    (button) => button.getAttribute("aria-label") === "Credits",
+  )!;
+  await act(async () => {
+    chip.click();
+  });
+  const sheet = document.querySelector('dialog[aria-label="Credits"]')!;
+  expect(sheet).not.toBeNull();
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(sheet.textContent).toContain("42");
+  expect(sheet.textContent).not.toMatch(/keys that can write here/i);
 });
 
 /**
