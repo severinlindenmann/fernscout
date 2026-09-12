@@ -12,6 +12,8 @@ import {
   RELAY_LINK_TTL_MS,
   SESSION_SCOPE,
   SESSION_TTL_MS,
+  type Session,
+  describeScope,
   generateCode,
   issueCode,
   issueRelayLink,
@@ -21,6 +23,7 @@ import {
   revokeCodes,
   revokeSession,
   safeDestination,
+  tripWriteScope,
   verifyCode,
   verifyLink,
   signInUrl,
@@ -643,5 +646,49 @@ describe("where the sign-in link lands", () => {
     expect(safeDestination("ana", 42)).toBeNull();
     expect(safeDestination("ana", { toString: () => "/ana" })).toBeNull();
     expect(safeDestination("ana", "/ana/" + "x".repeat(600))).toBeNull();
+  });
+});
+
+describe("describeScope", () => {
+  function session(scope: string): Session {
+    return {
+      id: "s1",
+      userId: "u1",
+      owner: "ana",
+      kind: "agent",
+      scope,
+      expiresAt: "2027-01-01T00:00:00.000Z",
+      email: "ana@example.test",
+      publicId: null,
+      phone: null,
+      phoneProvenAt: null,
+      phoneProvenMethod: null,
+    };
+  }
+
+  test("the journal-wide scope answers owner", () => {
+    expect(describeScope(session("write:content"))).toEqual({
+      scope: "owner",
+      expiresAt: "2027-01-01T00:00:00.000Z",
+    });
+  });
+
+  test("a trip-bound scope names the trip", () => {
+    expect(describeScope(session(tripWriteScope("vietnam-2026")))).toEqual({
+      scope: "trip",
+      trip: "vietnam-2026",
+      expiresAt: "2027-01-01T00:00:00.000Z",
+    });
+  });
+
+  test("an unrecognised scope falls to the wider answer, never a third value", () => {
+    expect(describeScope(session("read:content"))).toEqual({
+      scope: "owner",
+      expiresAt: "2027-01-01T00:00:00.000Z",
+    });
+    expect(describeScope(session(""))).toEqual({
+      scope: "owner",
+      expiresAt: "2027-01-01T00:00:00.000Z",
+    });
   });
 });

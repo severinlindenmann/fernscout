@@ -73,6 +73,24 @@ describe("required-or-declined", () => {
     expect(tripCreate.safeParse(fullTrip).success).toBe(true);
   });
 
+  it("costs.md's own fields — preparation items and its prose — are part of the costs section (B1597)", () => {
+    const withPrep = {
+      ...fullTrip,
+      costs: {
+        budget: { total: 1800, currency: "CHF" },
+        items: [{ label: "Roof box hire", amount: 60, category: "preparation" }],
+        note: "Booked the roof box a month early.",
+      },
+    };
+    expect(tripCreate.safeParse(withPrep).success).toBe(true);
+    // The item is the day's own costItem shape — a bad category still fails.
+    const badCategory = {
+      ...fullTrip,
+      costs: { budget: { total: 1800 }, items: [{ label: "x", amount: 1, category: "not-a-category" }] },
+    };
+    expect(tripCreate.safeParse(badCategory).success).toBe(false);
+  });
+
   it("names every silently omitted section, not just the first", () => {
     const r = tripCreate.safeParse({
       id: "alps-2026",
