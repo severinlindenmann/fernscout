@@ -16,6 +16,11 @@ const LANE_LABEL: Record<string, string> = {
   completed: "Completed",
 };
 
+/** Lanes long enough that a reader scanning for what's being built wants them
+ * closed by default — everything still on disk in `<details>`, one click
+ * away. */
+const COLLAPSED_LANES = new Set(["backlog", "completed"]);
+
 /** Badge classes per priority — reusing the API page's palette rather than
  * inventing a second one. */
 const PRIORITY_STYLE: Record<string, string> = {
@@ -28,16 +33,22 @@ const PRIORITY_STYLE: Record<string, string> = {
  * `/docs/roadmap` — everything `docs/tasks/` currently says, for a reader who
  * has no checkout to open. B675.
  *
- * Metadata only: id, title, type, priority, grouped by lane — `INDEX.md`'s
- * own shape, rendered as HTML. No bodies and no per-task page, because a body
- * names files and several are security findings written in prose. See
- * `lib/roadmap.ts` for how `type: SECURITY` is kept off this page regardless
- * of which lane it has moved to.
+ * Metadata only: id, title, type, priority, area, grouped by lane —
+ * `INDEX.md`'s own shape, rendered as HTML. No bodies and no per-task page,
+ * because a body names files and several are security findings written in
+ * prose. See `lib/roadmap.ts` for how `type: SECURITY` is kept off this page
+ * regardless of which lane it has moved to.
  *
  * Reads `docs/tasks/` fresh on every request, the same as every other page
  * under `/docs` reads `README.md` — an edit reaches this page with no build
  * step. Renders as an empty page rather than failing when `docs/tasks/` is
  * absent, which is every deploy that is not this repository's own checkout.
+ *
+ * Default view is `type: FEATURE` only — what a reader came here for, at
+ * ~1,500 tasks across five lanes. The "show everything" toggle is a plain
+ * checkbox with no JavaScript: `:has()` on the wrapping `<div>` shows the
+ * non-`FEATURE` rows and the `Type` column, which stays a server component
+ * (B1546 — no client-side state for a filter this simple).
  */
 export default async function RoadmapPage() {
   const locale = await requestLocale();
@@ -57,49 +68,84 @@ export default async function RoadmapPage() {
         <DocsNav locale={locale} entries={docsNavEntries()} current="/docs/roadmap" />
       </div>
 
-      <div className="mt-10 space-y-10">
-        {lanes.map(({ lane, tasks }) => (
-          <section key={lane}>
-            <h2 className="font-display text-xl font-semibold text-navy-900">
-              {LANE_LABEL[lane] ?? lane}{" "}
-              <span className="text-base font-normal text-navy-500">({tasks.length})</span>
-            </h2>
-            {tasks.length === 0 ? (
-              <p className="mt-2 text-sm text-navy-500">Nothing here.</p>
-            ) : (
-              <div className="mt-3 overflow-x-auto rounded-2xl border border-navy-200">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-navy-200 bg-cream-100 text-xs font-bold uppercase text-navy-500">
-                      <th className="px-4 py-2">Id</th>
-                      <th className="px-4 py-2">Title</th>
-                      <th className="px-4 py-2">Type</th>
-                      <th className="px-4 py-2">Priority</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tasks.map((task) => (
-                      <tr key={task.id} className="border-b border-navy-100 last:border-0">
-                        <td className="whitespace-nowrap px-4 py-2 font-mono text-navy-500">{task.id}</td>
-                        <td className="px-4 py-2 text-navy-900">{task.title}</td>
-                        <td className="whitespace-nowrap px-4 py-2 text-navy-700">{task.type}</td>
-                        <td className="whitespace-nowrap px-4 py-2">
-                          <span
-                            className={`rounded-md px-2 py-0.5 text-xs font-bold uppercase ${
-                              PRIORITY_STYLE[task.priority] ?? "bg-navy-200 text-navy-900"
-                            }`}
-                          >
-                            {task.priority}
-                          </span>
-                        </td>
+      <div id="roadmap" className="mt-10">
+        <style>{`
+          #roadmap tr[data-type]:not([data-type="FEATURE"]),
+          #roadmap col[data-type-col],
+          #roadmap th[data-type-col],
+          #roadmap td[data-type-col] { display: none; }
+          #roadmap:has(#roadmap-show-all:checked) tr[data-type]:not([data-type="FEATURE"]),
+          #roadmap:has(#roadmap-show-all:checked) col[data-type-col],
+          #roadmap:has(#roadmap-show-all:checked) th[data-type-col],
+          #roadmap:has(#roadmap-show-all:checked) td[data-type-col] { display: revert; }
+          #roadmap [data-context] { display: none; }
+          #roadmap:has(#roadmap-show-all:checked) tr[data-type]:not([data-type="FEATURE"]) [data-context] { display: block; }
+        `}</style>
+
+        <label className="flex w-fit cursor-pointer items-center gap-2 text-sm text-navy-700">
+          <input id="roadmap-show-all" type="checkbox" className="h-4 w-4 accent-coral-600" />
+          Also show issues, chores, ops and docs tasks
+        </label>
+
+        <div className="mt-6 space-y-8">
+          {lanes.map(({ lane, tasks }) => (
+            <details key={lane} open={!COLLAPSED_LANES.has(lane)}>
+              <summary className="cursor-pointer select-none font-display text-xl font-semibold text-navy-900">
+                {LANE_LABEL[lane] ?? lane}{" "}
+                <span className="text-base font-normal text-navy-500">({tasks.length})</span>
+              </summary>
+              {tasks.length === 0 ? (
+                <p className="mt-2 text-sm text-navy-500">Nothing here.</p>
+              ) : (
+                <div className="mt-3 overflow-x-auto rounded-2xl border border-navy-200">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-navy-200 bg-cream-100 font-bold uppercase text-navy-500">
+                        <th className="px-3 py-1.5">Id</th>
+                        <th className="px-3 py-1.5">Title</th>
+                        <th data-type-col className="px-3 py-1.5">
+                          Type
+                        </th>
+                        <th className="px-3 py-1.5">Priority</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-        ))}
+                    </thead>
+                    <tbody>
+                      {tasks.map((task) => (
+                        <tr
+                          key={task.id}
+                          data-type={task.type}
+                          className="border-b border-navy-100 last:border-0"
+                        >
+                          <td className="whitespace-nowrap px-3 py-1 font-mono text-navy-500">{task.id}</td>
+                          <td className="px-3 py-1 text-navy-900">
+                            {task.title}
+                            {task.area && (
+                              <div data-context className="text-navy-500">
+                                {task.area}
+                              </div>
+                            )}
+                          </td>
+                          <td data-type-col className="whitespace-nowrap px-3 py-1 text-navy-700">
+                            {task.type}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-1">
+                            <span
+                              className={`rounded-md px-1.5 py-0.5 text-[0.65rem] font-bold uppercase ${
+                                PRIORITY_STYLE[task.priority] ?? "bg-navy-200 text-navy-900"
+                              }`}
+                            >
+                              {task.priority}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </details>
+          ))}
+        </div>
       </div>
     </main>
   );
