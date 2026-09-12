@@ -327,7 +327,7 @@ Do not edit them by hand; run the script.
 | [B1525](open/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low |
 | [B1534](open/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
 
-## in-development (8)
+## in-development (7)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -337,10 +337,9 @@ Do not edit them by hand; run the script.
 | [B1564](in-development/B1564-attach-files-leaves-photos-listed-as.md) | attach_files leaves photos listed as unrecorded after filling the gallery | ISSUE | medium | low | `47912984` |
 | [B1565](in-development/B1565-a-failed-guard-retry-lands-on.md) | A failed guard retry lands on a dead-end fallback sentence | ISSUE | medium | low | `47912984` |
 | [B1567](in-development/B1567-pressing-start-day-twice-succeeds-twice.md) | Pressing start_day twice succeeds twice | ISSUE | medium | low | `47912984` |
-| [B1578](in-development/B1578-three-day-fields-the-instance-accepts.md) | Three day fields the instance accepts are never sent, so a timezone, a handed-over weather reading and a day's visibility stay on the laptop | ISSUE | medium | low | `615a7d13` |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
-## testing (42)
+## testing (43)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -377,6 +376,7 @@ Do not edit them by hand; run the script.
 | [B1573](testing/B1573-the-room-s-preview-and-verlauf.md) | The room's preview and Verlauf > Tage only ever show the newest trip | FEATURE | medium | medium | — |
 | [B1574](testing/B1574-agent-and-handover-keys-are-listed.md) | Agent and handover keys are listed inside Guthaben, which is not about money | ISSUE | medium | low | — |
 | [B1576](testing/B1576-tapping-a-choose-block-option-fills.md) | Tapping a choose-block option fills the field and raises the keyboard instead of sending | ISSUE | medium | low | — |
+| [B1578](testing/B1578-three-day-fields-the-instance-accepts.md) | Three day fields the instance accepts are never sent, so a timezone, a handed-over weather reading and a day's visibility stay on the laptop | ISSUE | medium | low | — |
 | [B491](testing/B491-there-is-no-way-to-manage.md) | A journal folder can be exported and never pushed back, so writing locally is a one-way trip | FEATURE | medium | high | — |
 | [B1504](testing/B1504-an-up-leg-reports-success-on.md) | An up leg reports success on config fields that can never reach the site | ISSUE | low | low | — |
 | [B1527](testing/B1527-a-figure-whose-shirt-matches-its.md) | A figure whose shirt matches its skin tone renders as nude, and nothing warns | ISSUE | low | low | — |

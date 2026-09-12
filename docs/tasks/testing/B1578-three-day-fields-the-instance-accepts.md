@@ -7,8 +7,7 @@ complexity: low
 area: fernscout-helper, publish, days
 found: "2026-09-12T09:15:15Z"
 started: "2026-09-12T10:07:11Z"
-session: 615a7d13-b735-48b0-a399-bf28e199b7bb
-claimed: "2026-09-12T10:07:11Z"
+merged: "2026-09-12T10:19:30Z"
 ---
 
 # B1578 — Three day fields the instance accepts are never sent, so a timezone, a handed-over weather reading and a day's visibility stay on the laptop
