@@ -7,8 +7,7 @@ complexity: low
 area: lib/weather.ts, contract
 found: "2026-09-12T10:12:12Z"
 started: "2026-09-12T10:25:42Z"
-session: 615a7d13-b735-48b0-a399-bf28e199b7bb
-claimed: "2026-09-12T10:25:42Z"
+merged: "2026-09-12T10:35:26Z"
 ---
 
 # B1580 — RESERVED_SOURCES is enforced but published only as prose, so a client has to hardcode it
@@ -58,3 +57,44 @@ this is one list further down. Worth folding in if B1577 is built first.
 - Adding a second reserved source in `lib/weather.ts` changes that document
   with no second edit.
 - `fernscout-helper` holds no hardcoded copy.
+
+
+## Built, 2026-09-12
+
+`/api/health` serves `weather.reservedSources`, imported from `RESERVED_SOURCES`
+rather than re-typed, and `lib/api/openapi.ts` describes it — also importing
+the constant, so `test/openapi-contract.test.ts`'s drift check applies.
+
+**A deny list, not an `enum` on the field.** Every other source is valid, which
+is the opposite of what an enum says; `weatherData.source` is free text on
+purpose, because it names whatever actually took the reading and no server can
+enumerate that.
+
+**The test that matters is not "it is served".** Each published name is driven
+through `validateEntry` and must come back refused, and the lengths must match.
+A document naming more than the validator enforces sends a client round a bend
+that is not there; naming less is the drift this ticket is about. A third test
+checks an ordinary source is *not* refused — the guard-fires-on-an-honest-run
+case, which for a free-text field is the likelier failure.
+
+`fernscout-helper` reads it now and its hardcoded copy is gone. The fallback is
+not that copy in disguise: an instance too old to publish the list, or one that
+could not be reached, falls back to `open-meteo` **and the run says so, once
+per run rather than once per day**.
+
+### Evidence
+
+- `curl /api/health` unauthenticated → `{"reservedSources": ["open-meteo"]}`.
+- `publish --dry-run` against that instance: four days' readings skipped, zero
+  fallback notes — it used the instance's own answer.
+- Against a doctored pre-B1580 health document: the run still skips correctly
+  and prints the fallback note exactly once.
+
+### Found in passing, captured not absorbed
+
+**B1582** — `health()` and `contentModel()` never create the cache directory;
+only `openapi()` does. Deleting it makes `health()` report *"Could not reach
+…"* about a server that had just answered, and `publish` then loses its upload
+limits **in silence**, falling back to a guessed 64 MB request ceiling. Found
+by deleting the cache to force a fresh fetch during this drive, which is the
+obvious thing to do.

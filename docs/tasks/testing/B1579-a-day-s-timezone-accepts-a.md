@@ -7,8 +7,7 @@ complexity: low
 area: lib/validate/entry.ts, days, time
 found: "2026-09-12T10:12:11Z"
 started: "2026-09-12T10:25:41Z"
-session: 615a7d13-b735-48b0-a399-bf28e199b7bb
-claimed: "2026-09-12T10:25:41Z"
+merged: "2026-09-12T10:35:25Z"
 ---
 
 # B1579 — A day's timezone accepts a fixed offset, which has no daylight saving, while the refusal says it will not
@@ -62,3 +61,39 @@ zone through the same helper and inherits the same widening.
 - A test covers an offset, a region name and a nonsense name, so the next
   change to the platform's own idea of a zone is caught here rather than by a
   reader an hour out.
+
+
+## Built, 2026-09-12
+
+`isUsableZone` (`lib/digest/quiet.ts`) rejects a leading sign before it asks
+`Intl`. That covers every spelling the platform grew — `+02:00`, `+0200`,
+`+02`, `-05:00` and `\u221202:00`, the Unicode minus, which is not the ASCII
+hyphen and is what a naive check misses.
+
+`Etc/GMT+5` and `UTC` stay accepted: real IANA names somebody can deliberately
+choose, unlike an offset that arrived because a phone reported one.
+
+**The allow-list was the other candidate and is worse.**
+`Intl.supportedValuesOf("timeZone")` is case-sensitive where `Intl` itself is
+not, so `europe/zurich` would start being refused; and it holds only canonical
+names, so whether an alias like `Asia/Calcutta` survives would depend on the
+runtime's copy of the tz database rather than on anything this project
+decided. Written down because it is the obvious fix and it is a trap.
+
+Both callers are covered by the one change — the day's own field, and
+`journalTimezone()` reading `DIGEST_TIMEZONE`, which had the same hole for the
+same reason.
+
+### Evidence, driven against the real route
+
+`PATCH .../days/over-the-susten` with each value:
+
+| sent | answer |
+| --- | --- |
+| `+02:00`, `-05:00`, `+0200`, `+02`, `\u221202:00` | `invalid_entry`, field named |
+| `Europe/Zurich`, `Etc/GMT+5`, `UTC` | accepted |
+| `Mars/Olympus` | `invalid_entry` |
+
+`test/validate-entry.test.ts` covers all five offset spellings plus the two
+zones that must keep working, so the next change to the platform's own idea of
+a time zone is caught here rather than by a reader an hour out.
