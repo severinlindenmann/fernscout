@@ -138,14 +138,22 @@ function FileRow({
           )}
         </span>
       </label>
-      <button
-        type="button"
-        onClick={() => onRemove(file.id)}
-        aria-label={t("agent.room.menuDiscard")}
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg text-navy-500 hover:bg-navy-50"
-      >
-        ×
-      </button>
+      {/* A dated row (a day folder's own content, Task 4) has no working ×:
+       *  `findInboxFile` — under `discard_file` and the discard route alike —
+       *  only ever searches the flat bucket, so a press here would either do
+       *  nothing or 404. Phase 3 owns wiring real discard for day-folder
+       *  content; until then the honest thing is to not offer a control this
+       *  branch cannot back. */}
+      {!file.date && (
+        <button
+          type="button"
+          onClick={() => onRemove(file.id)}
+          aria-label={t("agent.room.menuDiscard")}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg text-navy-500 hover:bg-navy-50"
+        >
+          ×
+        </button>
+      )}
     </li>
   );
 }

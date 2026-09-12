@@ -33,8 +33,23 @@ export type DayReadiness = {
 
 const EMPTY: DayReadiness = { without: [], unrecorded: [], weatherAsked: false };
 
+const LOCATION_SOURCES = ["browser", "whatsapp", "gps"];
+
 function readinessPath(username: string, date: string): string {
   return path.join(dayInboxDir(username, date), "day.json");
+}
+
+/** `raw.location`, if it is shaped the way `DayReadiness.location` promises —
+ *  `without`/`unrecorded` go through `parseWithout`/`parseUnrecorded` for the
+ *  same reason: `day.json` is hand-editable, and trusting a malformed
+ *  `source` or a non-numeric coordinate through unchecked would hand a later
+ *  reader a location that looks real and is not. */
+function parseLocation(raw: unknown): DayReadiness["location"] {
+  if (!raw || typeof raw !== "object") return undefined;
+  const { lat, lon, source } = raw as Record<string, unknown>;
+  if (typeof lat !== "number" || typeof lon !== "number") return undefined;
+  if (typeof source !== "string" || !LOCATION_SOURCES.includes(source)) return undefined;
+  return { lat, lon, source: source as "browser" | "whatsapp" | "gps" };
 }
 
 /** What this date folder currently says about itself. A date with no folder
@@ -47,7 +62,7 @@ export function readDayReadiness(username: string, date: string): DayReadiness {
       without: parseWithout(raw.without),
       unrecorded: parseUnrecorded(raw.unrecorded),
       weatherAsked: raw.weatherAsked === true,
-      location: raw.location,
+      location: parseLocation(raw.location),
     };
   } catch {
     return { ...EMPTY };

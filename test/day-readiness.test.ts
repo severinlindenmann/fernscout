@@ -8,6 +8,7 @@ import {
   readWords,
   appendWords,
 } from "@/lib/dayReadiness";
+import { dayInboxDir } from "@/lib/inbox";
 
 const SERVER_CFG =
   '{"site":{"name":"F","url":"https://example.test","defaultUser":"u"},"users":{"reserved":[]},"features":{}}';
@@ -58,6 +59,30 @@ describe("readDayReadiness", () => {
     journal();
     writeDayReadiness("u", "2026-05-04", { location: { lat: 46.02, lon: 7.75, source: "browser" } });
     expect(readDayReadiness("u", "2026-05-04").location?.source).toBe("browser");
+  });
+
+  test("a hand-edited day.json with an unrecognised location.source reads as no location", () => {
+    const dir = journal();
+    const folder = dayInboxDir("u", "2026-05-04");
+    fs.mkdirSync(folder, { recursive: true });
+    fs.writeFileSync(
+      path.join(folder, "day.json"),
+      JSON.stringify({ location: { lat: 46.02, lon: 7.75, source: "made-up" } }),
+    );
+    expect(readDayReadiness("u", "2026-05-04").location).toBeUndefined();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("a hand-edited day.json with a non-numeric lat/lon reads as no location", () => {
+    const dir = journal();
+    const folder = dayInboxDir("u", "2026-05-04");
+    fs.mkdirSync(folder, { recursive: true });
+    fs.writeFileSync(
+      path.join(folder, "day.json"),
+      JSON.stringify({ location: { lat: "46.02", lon: 7.75, source: "gps" } }),
+    );
+    expect(readDayReadiness("u", "2026-05-04").location).toBeUndefined();
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 });
 

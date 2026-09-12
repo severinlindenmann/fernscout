@@ -418,10 +418,15 @@ function toRoomFile(username: string, entry: InboxEntry, date?: string): RoomFil
   return {
     id: `inbox:${entry.id}`,
     name: entry.filename,
-    // Only a photograph has one. The route refuses anything else, so
-    // pointing a document at it would draw a broken frame.
+    // Only a photograph has one, and only in the flat bucket: the thumbnail
+    // route (`app/api/helper/[user]/inbox/[id]/thumbnail`) resolves an id
+    // through `findInboxFile`, which never looks inside a day folder, so a
+    // `src` here for a dated entry would point at a 404 the moment a day
+    // folder holds a photograph rather than only the location pins it holds
+    // today. Full day-folder thumbnails are Phase 3's job; until then a
+    // dated row draws its kind icon like a document does.
     src:
-      entry.kind === "media"
+      entry.kind === "media" && !date
         ? `/api/helper/${encodeURIComponent(username)}/inbox/${encodeURIComponent(entry.id)}/thumbnail`
         : undefined,
     detail: entry.description || entry.caption || undefined,

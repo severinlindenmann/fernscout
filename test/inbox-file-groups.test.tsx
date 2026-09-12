@@ -147,6 +147,33 @@ describe("a day folder's staged content", () => {
     const headings = [...el.querySelectorAll("h3")].filter((h) => h.textContent === "2026-01-01");
     expect(headings.length).toBe(1);
   });
+
+  // Final-review fix: `discard_file` and the discard route both resolve an
+  // id through `findInboxFile`, which only ever searches the flat bucket —
+  // pressed on a dated row it either does nothing or 404s. Full day-folder
+  // discard is Phase 3's job; until then a dated row renders with no ×
+  // rather than one that looks like it works.
+  test("a dated row has no discard button, unlike an undated one", () => {
+    const el = render([
+      { id: "inbox:a", name: "old-undated.csv", kind: "document", bytes: 10, at: OLD },
+      { id: "inbox:b", name: "pin.json", kind: "location", date: "2026-01-01" },
+    ]);
+    const rows = [...el.querySelectorAll("li")];
+    const datedRow = rows.find((li) => li.textContent?.includes("pin.json"));
+    const undatedRow = rows.find((li) => li.textContent?.includes("old-undated.csv"));
+    expect(datedRow?.querySelector("button")).toBeNull();
+    expect(undatedRow?.querySelector("button")).not.toBeNull();
+  });
+
+  // Same fix: the thumbnail route 404s for a dated media item too (latent
+  // today — only location pins are dated so far), so a dated photo must not
+  // carry a `src` even if `kind` says photo.
+  test("a dated photo does not render an <img>, even if it carries a src", () => {
+    const el = render([
+      { id: "inbox:a", name: "harbour.jpg", kind: "photo", date: "2026-01-01", src: "/x/thumb.webp" },
+    ]);
+    expect(el.querySelectorAll("img").length).toBe(0);
+  });
 });
 
 describe("a location or contact item", () => {

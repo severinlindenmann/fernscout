@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, expect, test } from "vitest";
 import { describeSelection, filesForRoom, tripFilesForRoom } from "@/lib/helper/server";
-import { storeInboxFile } from "@/lib/inbox";
+import { moveInboxFileToDay, storeInboxFile } from "@/lib/inbox";
 
 /**
  * The files pane, and what a selection means — B902.
@@ -176,6 +176,37 @@ test("a location item stores its coordinate and place name, and a contact item s
     {},
   );
   expect(contact.entry.kind).toBe("contact");
+});
+
+/**
+ * Final-review fix: `describeSelection`, the discard route and the
+ * thumbnail route all resolve an id through `findInboxFile`, which never
+ * searches a day folder — so a dated photograph carrying a `src` that
+ * points at the (flat-bucket-only) thumbnail route would be a link to a
+ * 404, and a dated file included in a selection would silently vanish from
+ * what the model is told. Both are asserted here, at the data layer full
+ * interactivity for day-folder content is Phase 3's job; this fix is only
+ * about not claiming more than the current action paths can back.
+ */
+test("a photograph staged into a day folder carries no thumbnail src", async () => {
+  journal();
+  const { paintJpeg } = await import("./support/pictures");
+  const stored = storeInboxFile("u", "media", "hafen.jpg", await paintJpeg(40, 30, 1), {});
+  moveInboxFileToDay("u", stored.entry.id, "2026-05-04");
+
+  const files = filesForRoom("u");
+  const photo = files.inbox.find((file) => file.name === "hafen.jpg");
+  expect(photo?.date).toBe("2026-05-04");
+  expect(photo?.src).toBeUndefined();
+});
+
+test("a selection carrying a dated inbox id is silently dropped, same as an unknown id", () => {
+  journal();
+  const stored = storeInboxFile("u", "files", "notes.csv", Buffer.from("x\n"), {});
+  moveInboxFileToDay("u", stored.entry.id, "2026-05-04");
+
+  const said = describeSelection("u", [`inbox:${stored.entry.id}`]);
+  expect(said).toBe("");
 });
 
 test("descriptionAsked and measuredFrom round-trip through the sidecar", () => {
