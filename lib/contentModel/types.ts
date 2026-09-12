@@ -111,6 +111,49 @@ type FileDescription = {
   noTip?: readonly string[];
 };
 
+/**
+ * Which call writes each key of one file — B1577.
+ *
+ * A **new top-level section rather than a ninth `assert` kind**, and for the
+ * same reason `noTip` sits on the file's own entry: this is not a check run
+ * against a value. It never fires, never refuses and reports no problem — it
+ * is a fact about a *key*, the same shape as the `what`/`api` prose. W41
+ * closes the assertion vocabulary at eight and this does not reopen it, so a
+ * client that walks `rules` sees byte-identical input to before.
+ *
+ * `update` maps a key to the call that writes it once the thing exists.
+ * `noUpdate` maps a key to **why it has none** — a key with no door is not
+ * the same as a key nobody has got round to, and only the sentence tells them
+ * apart. A client that cannot send `baseCurrency` has to say why to the person
+ * who just edited it (B1504).
+ *
+ * Every key of the file appears in exactly one of the two, which
+ * `test/content-model-doors.test.ts` enforces. That test is the whole point of
+ * the section: a field added without declaring its door fails the build here,
+ * in the repository where the field was added, rather than being noticed later
+ * by a client that can only warn after the fact.
+ */
+export type FileDoors = {
+  /** The call that brings the file into existence. */
+  create: string;
+  /**
+   * The file's own general update call — the one most of its keys travel on.
+   *
+   * Published so `update` below is **machine-usable and not only prose**: a
+   * client groups the keys whose call equals this one, sends them as that
+   * call's body, and treats the rest as doors of their own. Without it a
+   * client would have to sniff the call strings to work out which group a key
+   * belongs to, which is the sort of guess this whole section exists to
+   * remove.
+   */
+  call: string;
+  /** Key → the call that writes it on something that already exists. Compare
+   * against `call` to tell a plain field from one with a door of its own. */
+  update: Record<string, string>;
+  /** Key → why no call writes it. */
+  noUpdate: Record<string, string>;
+};
+
 export type ContentModelDocument = {
   /** A client that does not understand this major version refuses to
    * validate against the document and says so — it does not guess, and it
@@ -119,4 +162,13 @@ export type ContentModelDocument = {
   files: Record<FileName, FileDescription>;
   rules: Rule[];
   named: NamedCheck[];
+  /**
+   * Optional, and **the version stays `1`** — see B1577. Adding a section is
+   * not an incompatible change: a client that does not know about `doors`
+   * ignores it and validates exactly as before, so bumping the major version
+   * would make every existing client refuse a document it could still use.
+   * Absent therefore means "an instance older than B1577", which is precisely
+   * what a client needs in order to fall back rather than guess.
+   */
+  doors?: Record<FileName, FileDoors>;
 };

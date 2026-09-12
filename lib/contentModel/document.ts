@@ -23,6 +23,7 @@
 // a test that runs both `lib/validate/*` and this document over the same
 // fixtures — see that file for what it actually found.
 import type { ContentModelDocument, FileName, PrimitiveType, Rule } from "./types";
+import { contentModelDoors } from "./doors";
 import { FEATURE_NAMES } from "../config";
 
 /** A regex source is capped well short of anything that could be expensive
@@ -288,6 +289,12 @@ export function contentModel(): ContentModelDocument {
       coordinates: { apiOnly: true, because: "only ever false — this day has no one place" },
       photos: { apiOnly: true, because: "only ever false — this day has no photographs" },
       idempotency_key: { apiOnly: true, because: "names one write, so a retry is safe" },
+      // B1584, found by B1577's gate: both are in `EDITABLE_DAY_FIELDS` and
+      // appeared in no published contract as keys of a day, so a client had no
+      // way to learn they exist. Flat only on the wire — the file keeps the
+      // same two facts inside each `gallery:` entry.
+      captions: { apiOnly: true, because: "the file carries this as gallery[].caption" },
+      photoVisibility: { apiOnly: true, because: "the file carries this as gallery[].visibility" },
       dryRun: { apiOnly: true, because: "checks the body and writes nothing — never a file's own field" },
       // B616: model.mjs never gained a `type` for this one, even though
       // `checkTest` in lib/validate/entry.ts refuses anything but a real
@@ -434,5 +441,6 @@ export function contentModel(): ContentModelDocument {
     },
     rules,
     named,
+    doors: contentModelDoors(),
   };
 }
