@@ -10,7 +10,7 @@ import {
 } from "@/lib/api/entries";
 import { fillDayWeatherQuietly } from "@/lib/api/weather";
 import { isEnabled } from "@/lib/capabilities";
-import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
+import { AS_AUTHOR, getAllEntries, getEntryBySlug } from "@/lib/entries";
 import { NO_PROSE } from "@/lib/helper/draft";
 import { dayForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/helper/server";
 import { stashWords } from "@/lib/helper/undo";
@@ -122,6 +122,26 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   }
 
   const date = text(body.date) ?? "";
+
+  /**
+   * A second press of the same card, honestly refused — B1567.
+   *
+   * `createDraft`'s own collision check compares the *placeholder* file this
+   * route would write (`${date}-${slugify(date)}.md`) against disk, which
+   * misses exactly the case that matters: the first press's day has since
+   * been given a real title (`PATCH` → `renameEntrySlug`), so the placeholder
+   * path is free again and a second press wrote a second, empty entry for a
+   * date that already had one — both presses answering `ok`. So this asks
+   * the honest question directly, the way B1263 already does for a WhatsApp
+   * location pin: does *this trip* already carry *this date*, under whatever
+   * slug it now has. A day already begun stays begun; there is nothing here
+   * to attach, unlike a pin, so the honest answer is a refusal.
+   */
+  if (getAllEntries(ref, AS_AUTHOR).some((entry) => entry.date === date)) {
+    refused(user, "start_day", "day_exists");
+    return Response.json({ error: "day_exists" }, { status: 409 });
+  }
+
   const lat = number(body.lat);
   const lng = number(body.lng);
 
@@ -166,7 +186,12 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     // screen.
     const answer = written.code ?? written.error;
     refused(user, "start_day", answer);
-    return Response.json({ error: answer }, { status: written.bug ? 500 : 400 });
+    // `day_exists`/`slug_taken` are a collision with a day that already
+    // exists, the same shape `already_published` answers with 409 (B1305)
+    // and the same status `POST /api/v1/.../days` already gives this pair —
+    // this route was the one place still answering 400 for it.
+    const status = written.bug ? 500 : answer === "day_exists" || answer === "slug_taken" ? 409 : 400;
+    return Response.json({ error: answer }, { status });
   }
   await fillDayWeatherQuietly(ref, written.slug);
 
