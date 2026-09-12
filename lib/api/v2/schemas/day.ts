@@ -198,8 +198,13 @@ export const dayDoc = z.object({
   ...dayWrite.def.shape,
   // ── server-owned: present in every read, rejected in every write ──
   status: z.enum(["draft", "published"]),
-  /** The server's own lookup (source: open-meteo) when the day asked for it. */
-  weatherResolved: weatherData.optional(),
+  /** One field on read too: still `true` while a requested lookup has no
+   * answer yet, otherwise the reading — whose `source` says whose it is.
+   * "open-meteo" means the server looked it up; anything else is what the
+   * person supplying it called their instrument. A client forwarding a
+   * journal skips open-meteo entries rather than sending them back (B1578) —
+   * the write shape enforces that by refusing the reserved source. */
+  weather: z.union([z.literal(true), weatherData]).optional(),
   /** Derivative URLs per media item, from the media door. */
   mediaResolved: z.array(z.object({ src: z.string(), url: z.string(), caption: z.string().optional() })).optional(),
 });
