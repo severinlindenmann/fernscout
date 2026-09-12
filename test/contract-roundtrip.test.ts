@@ -56,7 +56,7 @@ const TRIP_SAMPLES: Record<string, unknown> = {
   travellers: [{ for: "alex@example.test", hair: "brown" }],
   rates: { EUR: 0.94 },
   tracks: { costs: false, coordinates: false, photos: false },
-  translations: { en: { title: "Round trip", tagline: "One line" } },
+  translations: { en: { title: "Round trip", tagline: "One line", intro: "The introduction." } },
 };
 
 const DAY_SAMPLES: Record<string, unknown> = {

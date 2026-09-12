@@ -345,6 +345,7 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
 
   const config = loadUserConfig(trip.username);
   const locale = options.locale ?? config.defaultLocale;
+  const tripTranslation = locale === config.defaultLocale ? undefined : trip.translations?.[locale];
   const travellers =
     options.includeNames === false
       ? []
@@ -490,11 +491,11 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
   return {
     trip: {
       id: trip.id,
-      title: trip.title,
-      tagline: trip.tagline,
+      title: tripTranslation?.title ?? trip.title,
+      tagline: tripTranslation?.tagline ?? trip.tagline,
       start: trip.start,
       end: trip.end,
-      intro: trip.intro,
+      intro: tripTranslation?.intro ?? trip.intro,
     },
     travellers,
     figures,

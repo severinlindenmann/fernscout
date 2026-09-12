@@ -620,8 +620,8 @@ export function ratesBlock(raw: unknown): BlockResult {
 }
 
 /**
- * The `translations:` block — the trip's title and tagline in the journal's
- * other languages.
+ * The `translations:` block — the trip's title, tagline and introduction in
+ * the journal's other languages.
  *
  * Refused for a locale the journal does not declare, rather than written. A
  * translation into a language nothing renders is exactly the inert write B182
@@ -643,7 +643,7 @@ export function translationsBlock(raw: unknown, locales: string[]): BlockResult 
       error: "invalid_translations",
       message:
         'translations must be an object keyed by locale, e.g. ' +
-        '{"de": {"title": "Japan", "tagline": "Sechs Wochen mit dem Zug"}}.',
+        '{"de": {"title": "Japan", "tagline": "Sechs Wochen mit dem Zug", "intro": "…"}}.',
     };
   }
 
@@ -673,12 +673,12 @@ export function translationsBlock(raw: unknown, locales: string[]): BlockResult 
       return {
         ok: false,
         error: "invalid_translations",
-        message: `translations.${locale} must be an object with a title, a tagline, or both.`,
+        message: `translations.${locale} must be an object with a title, a tagline, an intro, or a combination of them.`,
       };
     }
     const entry = value as Record<string, unknown>;
     const out: string[] = [];
-    for (const field of ["title", "tagline"] as const) {
+    for (const field of ["title", "tagline", "intro"] as const) {
       const v = entry[field];
       if (v === undefined || v === null) continue;
       if (typeof v !== "string") {
@@ -690,8 +690,10 @@ export function translationsBlock(raw: unknown, locales: string[]): BlockResult 
       }
       const trimmed = v.trim();
       if (!trimmed) continue;
-      const problem = singleLineProblem(`translations.${locale}.${field}`, trimmed);
-      if (problem) return { ok: false, error: "invalid_translations", message: problem };
+      if (field !== "intro") {
+        const problem = singleLineProblem(`translations.${locale}.${field}`, trimmed);
+        if (problem) return { ok: false, error: "invalid_translations", message: problem };
+      }
       out.push(`    ${field}: ${quoteScalar(trimmed)}`);
     }
     if (out.length === 0) {
@@ -699,7 +701,7 @@ export function translationsBlock(raw: unknown, locales: string[]): BlockResult 
         ok: false,
         error: "invalid_translations",
         message:
-          `translations.${locale} says nothing — give it a title, a tagline, or both. The ` +
+          `translations.${locale} says nothing — give it a title, a tagline, an intro, or a combination. The ` +
           `reader drops an empty one, so writing it would look like it took.`,
       };
     }

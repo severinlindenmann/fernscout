@@ -417,6 +417,45 @@ describe("originals kept outside the content root", () => {
 });
 
 describe("entry language", () => {
+  test("uses saved trip translations on the title, intro and back cover source", () => {
+    write(
+      path.join(tripPath(), "trip.md"),
+      [
+        "---",
+        "id: asia-2026",
+        'title: "Asia"',
+        'tagline: "Five days"',
+        'start: "2026-01-01"',
+        'end: "2026-01-05"',
+        "status: past",
+        "visibility: public",
+        "translations:",
+        "  hu:",
+        '    title: "Ázsia"',
+        '    intro: "A magyar bevezető."',
+        "---",
+        "",
+        "Intro.",
+        "",
+      ].join("\n"),
+    );
+
+    const source = buildBookSource(REF, { locale: "hu" });
+    expect(source.trip).toMatchObject({
+      title: "Ázsia",
+      tagline: "Five days",
+      intro: "A magyar bevezető.",
+    });
+
+    const book = planFor(REF, { ...DEFAULT_OPTIONS, locale: "hu" });
+    expect(book.volumes[0].cover.title).toBe("Ázsia");
+    expect(book.volumes[0].cover.backLines.join(" ")).toContain("A magyar bevezető.");
+    const intro = book.volumes.flatMap((volume) => volume.pages).find((page) => page.kind === "intro");
+    expect(intro?.kind).toBe("intro");
+    if (intro?.kind !== "intro") throw new Error("The translated introduction was not planned");
+    expect(intro.lines.join(" ")).toContain("A magyar bevezető.");
+  });
+
   test("uses saved entry translations in the book locale and falls back per entry", () => {
     writeDay("translated", "2026-01-01", [], {
       locale: "hu",
