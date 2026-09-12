@@ -1077,14 +1077,15 @@ export function dayQuestions(): FirstQuestion[] {
  * belief about a Tuesday in August is not a source, however confident it is.
  */
 const WEATHER_QUESTION =
-  "Optional. `weather: true` asks this server to look up what the weather actually was, " +
-  "from Open-Meteo, using the day's own `lat`/`lng` and `date` — so it needs coordinates, " +
-  "and a day without them gets nothing rather than a guess. **Do not write weather values " +
-  "from your own knowledge.** If the person has a reading they took themselves, send it as " +
-  "`weatherData` with a `source` naming where it came from and a `recordedAt`; a reading " +
-  "with no source is refused, and no caller may claim `open-meteo` as its source. That " +
-  "field is the only reason a measurement can sit beside somebody's prose without " +
-  "eroding the rule above it.";
+  "Optional, two routes. `weather: true` asks this server to look it up from Open-Meteo, " +
+  "using the day's own `lat`/`lng` and `date` — a day without coordinates gets nothing " +
+  "rather than a guess. Or send the reading yourself as `weatherData`, with a " +
+  "`source` naming where it came from and a `recordedAt` — an instrument, a station, a " +
+  "weather service. That route is there so somebody's own tools can produce their own " +
+  "data; using it is normal. A reading with no source is refused, and `open-meteo` is " +
+  "refused as one — that name means this server fetched it. **Forbidden is weather from " +
+  "your own knowledge**: your confidence is not a source, and neither is an instrument you " +
+  "invented to satisfy the check.";
 
 /**
  * The note a day script owes and a question list cannot carry: photographs
