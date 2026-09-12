@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (222)
+## backlog (221)
 
 ### security (4)
 
@@ -120,11 +120,10 @@ Do not edit them by hand; run the script.
 | [B1571](backlog/issue/B1571-a-full-journal-refuses-costs-and.md) | A full journal refuses costs and contacts imports though those kinds write nothing | ISSUE | low | low |
 | [B1583](backlog/issue/B1583-a-publish-run-against-an-unreachable.md) | A publish run against an unreachable instance dies with a raw Node stack trace instead of a sentence | ISSUE | low | low |
 
-### big-feature (14)
+### big-feature (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1585](backlog/big-feature/B1585-nothing-on-a-trip-a-day.md) | Nothing on a trip, a day, a photograph or the journal says who may read it, and changing that means knowing where the control hides | FEATURE | high | high |
 | [B1049](backlog/big-feature/B1049-a-model-choosing-among-forty-three.md) | A model choosing among forty-three tools chooses worse than one choosing among seventeen | FEATURE | medium | high |
 | [B1537](backlog/big-feature/B1537-a-journal-can-only-have-one.md) | A journal can only have one owner - couples and families can't share ownership | FEATURE | medium | high |
 | [B1541](backlog/big-feature/B1541-there-is-no-dark-mode-the.md) | There is no dark mode; the whole app is cream and yellow at 2am | FEATURE | medium | high |
@@ -318,9 +317,11 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (0)
+## open (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity |
+| --- | --- | --- | --- | --- |
+| [B1585](open/B1585-nothing-on-a-trip-a-day.md) | Nothing on a trip, a day, a photograph or the journal says who may read it, and changing that means knowing where the control hides | FEATURE | high | high |
 
 ## in-development (8)
 
