@@ -67,10 +67,9 @@ the browser reported `:open` only for the latter state.
 `/private/tmp/b1409-browser/docs-branding-travellers-{1280,390}.png` and its
 JSON record show the real workbench at both target widths, with status 200 and
 no console errors or failed requests. `npx tsc --noEmit`, `npx eslint .`,
-`npx vitest run test/contrast.test.ts`, and `npm run unused` pass. `npm run
-verify` remains blocked before its typecheck by Turbopack failing to bind an
-internal process port; the same error persisted with the isolated dev server
-stopped, so this task remains in development pending a clean build.
+`npx vitest run test/contrast.test.ts`, the full `npx vitest run`, and `npm run
+unused` pass. The worktree's copied dependencies had become stale; refreshing
+them from `main` allowed the full Turbopack build to pass too.
 
 ## Acceptance
 
