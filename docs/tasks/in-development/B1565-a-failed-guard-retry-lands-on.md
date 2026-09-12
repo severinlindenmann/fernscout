@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: helper
 found: "2026-09-12T07:31:50Z"
+started: "2026-09-12T07:38:19Z"
+session: 47912984-b51b-4d11-b25e-5b026ba593de
+claimed: "2026-09-12T07:38:19Z"
 ---
 
 # B1565 — A failed guard retry lands on a dead-end fallback sentence

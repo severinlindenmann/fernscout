@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: helper
 found: "2026-09-12T07:31:30Z"
+started: "2026-09-12T07:38:13Z"
+session: 47912984-b51b-4d11-b25e-5b026ba593de
+claimed: "2026-09-12T07:38:13Z"
 ---
 
 # B1561 — A day publishes empty while its draft_words proposal is still unpressed

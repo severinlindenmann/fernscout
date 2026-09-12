@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: helper
 found: "2026-09-12T07:31:40Z"
+started: "2026-09-12T07:38:17Z"
+session: 47912984-b51b-4d11-b25e-5b026ba593de
+claimed: "2026-09-12T07:38:17Z"
 ---
 
 # B1563 — The helper claims descriptions and locations are on the page when the day carries none

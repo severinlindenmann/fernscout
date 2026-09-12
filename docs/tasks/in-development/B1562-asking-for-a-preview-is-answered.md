@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: helper
 found: "2026-09-12T07:31:35Z"
+started: "2026-09-12T07:38:15Z"
+session: 47912984-b51b-4d11-b25e-5b026ba593de
+claimed: "2026-09-12T07:38:15Z"
 ---
 
 # B1562 — Asking for a preview is answered with a publish_day proposal
