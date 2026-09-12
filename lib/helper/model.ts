@@ -2232,6 +2232,7 @@ export async function answerInThread(
           say,
           today,
           selected,
+          said,
         );
         if (proposal) roundHasProposal = true;
         /**

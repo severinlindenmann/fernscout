@@ -1,6 +1,7 @@
 import "server-only";
 import type { Block, Proposal, ProposalField, Say, Shape, Tool } from "./types";
 import { TOOLS } from "./registry";
+import { isPreviewOnly } from "../intents";
 
 /**
  * Running one tool, and building the proposal a press posts — B898, B900.
@@ -78,6 +79,11 @@ export async function proposalFor(
   say: Say,
   today: string,
   selected: string[] = [],
+  /** The sentence that led here, when there is one to check — B1562. Only
+   *  `publish_day` reads it, and only to refuse being offered from a
+   *  preview-only sentence; every other tool ignores it, so a caller that
+   *  never passes one (the proposal-chain route) behaves exactly as before. */
+  said = "",
 ): Promise<{ proposal?: Proposal; blocks: Block[]; refused?: boolean }> {
   const made = await tool.propose(username, args, say, today, selected);
 
@@ -118,6 +124,25 @@ export async function proposalFor(
         : "";
   if (missing !== "") {
     return { blocks: [{ shape: "say", text: say(missing) }] };
+  }
+
+  /**
+   * **A preview request is not a publish button** — B1562. "vorschau" drew a
+   * `publish_day` card whose button publishes; the person read the sentence
+   * "read this the way your readers will" as consent to see it, and pressed.
+   *
+   * The day it would have shown is what `made.preview` already carries, so it
+   * is drawn here — under `read_day`'s own caption, never `made.sentence`,
+   * which is written to sit above a button ("Pressing puts it on the site")
+   * that this card does not have. No proposal is what tells `runTool` there
+   * is nothing to press.
+   */
+  if (tool.name === "publish_day" && isPreviewOnly(said)) {
+    const blocks: Block[] = [];
+    if (made.preview && made.preview.length > 0) {
+      blocks.push({ shape: "preview", text: say("agent.block.day"), lines: made.preview });
+    }
+    return { blocks };
   }
 
   const proposal: Proposal = {
@@ -204,6 +229,9 @@ export async function runTool(
   /** What is ticked in the files pane — B925, resolved by the tool that needs
    *  it rather than read out to the model by a person. */
   selected: string[] = [],
+  /** The sentence that led here — B1562. Threaded through to `proposalFor`,
+   *  which is the only thing that reads it. */
+  said = "",
 ): Promise<Ran> {
   const tool = TOOLS.find((one) => one.name === name);
   if (!tool) {
@@ -215,7 +243,7 @@ export async function runTool(
     // Nothing is executed. `propose` may read this journal to fill a field in
     // or to draw the day; there is no `run` on a write tool to call, and the
     // press is what posts to `endpoint`.
-    const { proposal, blocks, refused } = await proposalFor(username, tool, strings, say, today, selected);
+    const { proposal, blocks, refused } = await proposalFor(username, tool, strings, say, today, selected, said);
     if (!proposal) {
       // Nothing resolved, so there is nothing to press — and the model is told
       // so in the same words the person is, rather than being left to say a
@@ -229,7 +257,10 @@ export async function runTool(
           proposed: false,
           wrote: false,
           tool: tool.name,
-          why: "nothing was proposed and there is no button on their screen: say so, and ask which trip or which day they mean",
+          why:
+            tool.name === "publish_day" && isPreviewOnly(said)
+              ? "they asked to see the day, not to publish it, so nothing was proposed — describe what the preview block shows and say publishing needs asking for by name"
+              : "nothing was proposed and there is no button on their screen: say so, and ask which trip or which day they mean",
         },
         blocks,
         refused,

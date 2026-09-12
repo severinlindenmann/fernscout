@@ -168,6 +168,10 @@ const REMOVABLE = String.raw`\b(photo|photos|photograph|photographs|picture|pict
  */
 const KEPT = String.raw`\b(day|days|trip|trips|journal|account|entry|entries|yesterday)\b|\btage?\b|reise|tagebuch|konto|\bnapot?\b|napló|\bútat?\b|fiók`;
 
+/** The publish-word alternation, pulled out so B1562's preview check can
+ *  mirror it exactly rather than typing its own copy beside it. */
+const PUBLISH_WORD = String.raw`\bpublish|veröffentlich|publizier|közzé|publikál|\b(put|stell)[\s\S]*\bonline\b`;
+
 const REFUSALS: readonly Refusal[] = [
   {
     /**
@@ -226,11 +230,31 @@ const REFUSALS: readonly Refusal[] = [
      * exactly the moment B783 was about.
      */
     name: "publish_all",
-    match:
-      /^(?=[\s\S]*(\bpublish|veröffentlich|publizier|közzé|publikál|\b(put|stell)[\s\S]*\bonline\b))(?=[\s\S]*(\b(all|everything|the lot|the whole (lot|journal|trip))\b|\balles?\b|sämtlich|\bmindet\b|\bmindent\b|\bmindegyik\b|összes))/i,
+    match: new RegExp(
+      `^(?=[\\s\\S]*(${PUBLISH_WORD}))(?=[\\s\\S]*(\\b(all|everything|the lot|the whole (lot|journal|trip))\\b|\\balles?\\b|sämtlich|\\bmindet\\b|\\bmindent\\b|\\bmindegyik\\b|összes))`,
+      "i",
+    ),
     key: "agent.askRefusePublishAll",
   },
 ];
+
+/**
+ * A sentence that only asks to *see* a day, never to put it on the site —
+ * B1562.
+ *
+ * "vorschau" proposed `publish_day` — a card whose only button publishes —
+ * and the owner pressed it, because the card does show the day and looks
+ * exactly like consent. The read path already has the right shape
+ * (`read_day`'s own `preview` block, no button at all); this is what keeps
+ * `publish_day` from being offered instead of it. `\bpreview` alone would
+ * also catch "preview and publish", which is why the same publish-word
+ * alternation the refusal above uses is checked and required *absent*: a
+ * sentence naming both keeps the card, because that is a request to publish,
+ * said in a sentence that also happens to use the word "preview".
+ */
+export function isPreviewOnly(said: string): boolean {
+  return /\bpreview(s|ing)?\b|vorschau|előnézet/i.test(said) && !new RegExp(PUBLISH_WORD, "i").test(said);
+}
 
 /**
  * The refusal a sentence has earned, or null.
