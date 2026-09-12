@@ -425,6 +425,28 @@ describe("every error code a route answers with is published", () => {
     for (const match of source.matchAll(/"([a-z_]+)"/g)) spoken.add(match[1]);
   }
 
+  /**
+   * The cookie-only doors, for the dead-code direction ONLY — B1613.
+   *
+   * `/api/helper/**` and the owner's own page routes under `app/[user]/` are
+   * browser internals outside the published contract, so they are deliberately
+   * NOT held to "every code you answer with must be documented" — that is what
+   * `answered` is for, and widening it here would demand an `ERROR_CODES` entry
+   * for every refusal in forty files nobody outside ever reads.
+   *
+   * But they do answer with published codes, and that makes them load-bearing
+   * for the OTHER direction. `expected_src` was deleted from `ERROR_CODES`
+   * during this migration because the v1 media route that spoke it was
+   * removed, and the scan could not see the three cookie-only routes still
+   * answering with it — so "documented and never returned" was true of the
+   * window and false of the codebase. A published word vanished while live
+   * routes still said it.
+   */
+  for (const file of [...routeFiles("app/api/helper"), ...routeFiles("app/[user]")]) {
+    const source = readFileSync(file, "utf8");
+    for (const match of source.matchAll(/"([a-z_]+)"/g)) spoken.add(match[1]);
+  }
+
   test("the walk found codes at all", () => {
     expect(answered.size).toBeGreaterThan(30);
   });

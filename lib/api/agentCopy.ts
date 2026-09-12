@@ -97,8 +97,13 @@ export const TITLE_COLLISION_EXAMPLE =
  * Where photographs actually go, named rather than left as "the media
  * endpoint" for an agent to guess at — it guessed `.../days/{slug}/photos`,
  * got a 404, and went hunting. B292.
+ *
+ * B1613 moved this door: `app/api/v1/[user]/trips/[trip]/media/route.ts` is
+ * deleted, folded into the one v2 upload door every kind of bytes shares
+ * (`lib/api/v2/schemas/media.ts`). The path changes here rather than the day
+ * script quietly pointing an agent at something gone.
  */
-export const MEDIA_ENDPOINT_PATH = "/api/v1/<user>/trips/<trip-id>/media";
+export const MEDIA_ENDPOINT_PATH = "/api/v2/<user>/media";
 
 /**
  * The question nothing asked before B267: whether this trip accounts for its
@@ -405,17 +410,17 @@ export const FRONTMATTER_TO_API: { key: string; api: string; note: string }[] = 
     key: "gallery",
     api: "— does not cross —",
     note:
-      "Photographs are their own call: `POST .../media` with the day's slug and the files, " +
-      "and `DELETE .../media` with the day's slug and one or more `src` to take a photograph " +
-      "off again — the derivative, the poster and the kept original are actually deleted, not " +
-      "merely detached, and a `src` the day does not have refuses the whole call rather than " +
-      "quietly skipping it. Sending `gallery` in the day body writes nothing. Captions travel " +
-      "with the files, or later as `captions` on a `PATCH` — and so does `visibility`, the " +
-      "one photograph held back from readers the trip otherwise lets in.",
+      `Photographs are their own call: ${MEDIA_ENDPOINT_PATH} with an \`intent\` naming the ` +
+      "trip and day, the bytes under `file`, one per call. `DELETE` the same path with the " +
+      "`src` it answered with to take one off — derivative, poster and kept original all " +
+      "go, not merely detached, and an unknown `src` refuses rather than quietly doing " +
+      "nothing. Sending `gallery` in the day body writes nothing. A caption travels in the " +
+      "same `intent`, or later as `captions` on a `PATCH` — and so does `visibility`, one " +
+      "photograph held back from readers the trip lets in.",
   },
   {
     key: "gallery[].visibility",
-    api: '"visibility": ["", "private"] on the media call, or "photoVisibility" on a PATCH',
+    api: '"photoVisibility" on a PATCH — not yet a field the media call\'s own intent takes',
     note:
       "One picture, seen by fewer people than the rest of the day. `guest` is everybody the " +
       "owner has let into the journal plus the people who were on the trip; `private` is the " +
@@ -1095,21 +1100,27 @@ const WEATHER_QUESTION =
  *
  * B317 added the second sentence. A day script that only named the endpoint
  * still left an agent to fetch the guide for the field names before it could
- * act — `multipart/form-data`, `day`, `files`, all one line away in
- * `app/api/v1/[user]/trips/[trip]/media/route.ts` — and the transcripts this
- * ticket came from show an agent that had just written a day with photos
- * described to it, and did not think to ask for them. The coordinates clause
- * beside it is the same gap: `COORDINATES_QUESTION` asks before the day is
- * written, but an owner who answered "I don't know" or was never asked — an
- * older flow, a day imported some other way — still has a real place sitting
- * in the prose with nothing on the map for it.
+ * act, and the transcripts this ticket came from show an agent that had just
+ * written a day with photos described to it, and did not think to ask for
+ * them. The coordinates clause beside it is the same gap: `COORDINATES_
+ * QUESTION` asks before the day is written, but an owner who answered "I
+ * don't know" or was never asked — an older flow, a day imported some other
+ * way — still has a real place sitting in the prose with nothing on the map
+ * for it.
+ *
+ * B1613 reshaped the call itself: `multipart/form-data` with a single `file`
+ * and an `intent` (JSON) naming `kind: "photo"`, `trip` and `day`, rather
+ * than the old `day`/`files` pair — one photograph per call now, not a
+ * batch, which is what let the same door take a bank statement or a GPS
+ * export as easily as a picture.
  */
 export const PHOTOS_SECOND_CALL =
   "Photographs are never part of this call. They are a second one, once the day exists — " +
   `offer it, naming the call: ${MEDIA_ENDPOINT_PATH}, sent as \`multipart/form-data\` with ` +
-  "`day` (the slug) and `files` (the bytes). There is nothing to paste into the entry " +
-  "itself. Offer coordinates too, if the day names a real place and carries no `lat`/`lng` " +
-  "yet — the same `PATCH` the day itself takes, not a new call.";
+  "the bytes under `file` and an `intent` (JSON) naming `kind`, `trip` and `day`. One per " +
+  "call, nothing to paste into the day. Offer coordinates too, if the day names a " +
+  "real place and carries no `lat`/`lng` yet — the same `PATCH` the day itself takes, not " +
+  "a new call.";
 
 /**
  * Greedy wrap to a column, for the documents that are assembled as arrays of

@@ -49,6 +49,12 @@ const LIB_API_ALLOWLIST = [
   // does; v1's own aggregator around it is not reused because its shape
   // (`{count, items}`, `next`, `malformed`) is not v2's.
   "lib/api/entries",
+  // B1613, phase 2 step 3, parcel C. `fetchMedia` is the SSRF-guarded
+  // URL-fetch transport (https-only, pinned to a re-checked address at every
+  // redirect hop) — a domain function with no request/response shaping of
+  // its own, reused verbatim by the v2 media door for its `url` upload path
+  // rather than reimplemented a second time.
+  "lib/api/fetchMedia",
 ];
 
 const ROOT = process.cwd();

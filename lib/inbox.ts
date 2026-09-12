@@ -122,6 +122,30 @@ export type InboxMeta = {
    * own note on why that is a documented scope cut rather than an oversight).
    */
   receivedAt?: string;
+  /**
+   * Which trip a v2 media-door upload named, when it named one — B1613. The
+   * media door still lands the file in this flat, journal-wide bucket (a
+   * declined `trip`/`day` means "not yet sorted", the same as v1's inbox
+   * always meant), but a caller that DID say which trip should not have that
+   * fact thrown away: step 4's importer reads it to scope a bank statement or
+   * a GPS export to the right trip without asking again.
+   */
+  trip?: string;
+  /**
+   * Which `MEDIA_KINDS` value this arrived as — `"bank_export"`,
+   * `"gps_history"` or `"document"` — set only by the v2 media door, never by
+   * the older upload paths this file already served. `files/` holds every
+   * kind side by side, so this is what tells step 4's importer a `.csv` here
+   * is a bank statement rather than a GPS export.
+   */
+  importKind?: "bank_export" | "gps_history" | "document";
+  /**
+   * The importer format the caller named at upload (`intent.format` — see
+   * `lib/api/v2/schemas/media.ts`'s `ASKED` table), or absent for "let the
+   * server detect it". Step 4's business, not this file's; kept here only so
+   * it survives from upload to parse.
+   */
+  importFormat?: string;
 };
 
 /** A sidecar as it sits on disk: what was measured, plus what was said. */

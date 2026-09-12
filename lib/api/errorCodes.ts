@@ -48,7 +48,6 @@ export const ERROR_CODES = {
     "One of the `inbox` ids names nothing staged in this journal — or names something that is not a photograph. Nothing was written and nothing was taken out of the inbox; GET the inbox and send the ids it lists.",
   unknown_trip: "No trip of that id in this journal — or none this token may write to. The two answer alike on purpose, so this cannot be used to ask which trips exist. GET the trips list first.",
   unknown_day: "No day of that slug in this trip. The slug is made from the title and is in the answer to the call that wrote it; GET the days list to see them.",
-  missing_day: "The day this call names does not exist yet. Write the day first, then send this.",
   unknown_invite: "No invite of that id, or it has been revoked.",
   unknown_key: "No credential of that id. GET the keys list for the ids this journal has.",
   unknown_order: "No order of that id — a postcard order or a photobook order, whichever this route deals in.",
