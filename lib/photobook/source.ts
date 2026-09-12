@@ -317,6 +317,8 @@ function routeFor(tripId: string): RoutePoint[] {
 export type SourceOptions = {
   /** Printed in the colophon. Defaults to today; passed in by tests. */
   madeOn?: string;
+  /** The language chosen for this book's saved entry translations. */
+  locale?: string;
   /** Skip photographs below this pixel width entirely rather than printing
    * them soft. Off by default — a soft photo of something that happened once
    * still beats a gap. */
@@ -342,6 +344,7 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
   if (!trip) throw new Error(`No trip "${tripId}" in ${tripDir(tripId)}`);
 
   const config = loadUserConfig(trip.username);
+  const locale = options.locale ?? config.defaultLocale;
   const travellers =
     options.includeNames === false
       ? []
@@ -429,17 +432,27 @@ export function buildBookSource(tripId: string, options: SourceOptions = {}): Bo
       }
     }
 
+    const translated = (entry: (typeof day.entries)[number]) => {
+      const saved = locale === config.defaultLocale ? undefined : entry.translations?.[locale];
+      return {
+        title: saved?.title ?? entry.title,
+        content: saved?.content ?? entry.content,
+      };
+    };
+    const lead = translated(day.lead);
+
     // Several updates in one day become one page of prose, each introduced by
     // its own title so the reader can tell them apart.
-    const paragraphs = day.entries.flatMap((entry, i) =>
-      day.entries.length > 1 && i > 0
-        ? [`${entry.title} — ${paragraphsOf(entry.content).join(" ")}`]
-        : paragraphsOf(entry.content),
-    );
+    const paragraphs = day.entries.flatMap((entry, i) => {
+      const text = translated(entry);
+      return day.entries.length > 1 && i > 0
+        ? [`${text.title} — ${paragraphsOf(text.content).join(" ")}`]
+        : paragraphsOf(text.content);
+    });
 
     return {
       date: day.date,
-      title: day.lead.title,
+      title: lead.title,
       location: day.lead.location,
       country: day.lead.country,
       countryCode: day.lead.countryCode,

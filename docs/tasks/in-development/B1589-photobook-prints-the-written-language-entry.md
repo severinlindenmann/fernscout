@@ -61,6 +61,12 @@ locale when they call `buildBookSource`.
   entry for the chosen locale, print what's there (written language) rather
   than inventing a translation — same rule as everywhere else in this repo.
 
+Implemented by making the selected locale part of `SourceOptions` and passing
+it from both the preview planner and the order builder. Entry title and content
+fall back independently, so a partial saved translation cannot erase either
+field; direct source callers that omit a locale retain the written-language
+behaviour.
+
 ## Acceptance
 
 - A trip with an entry carrying `translations.hu.content` (and one entry
@@ -69,3 +75,24 @@ locale when they call `buildBookSource`.
   text for the untranslated one — not the written-language text for both.
 - `npm run verify` passes; a test in `test/photobook-*.test.ts` (or a new
   file) covers the locale-resolution behavior in `buildBookSource`.
+
+## Verification
+
+- `test/photobook-source.test.ts`: 21 tests pass, including source fallback
+  and the `planFor` locale path.
+- After syncing current `main`, `npx next build --webpack` compiles, passes
+  generated route types, generates all 91 static pages, and completes.
+  `npm run verify -- --quick` then passes TypeScript, ESLint, 7,230 tests, and
+  knip. One test file and 41 tests are skipped; ESLint reports the existing 71
+  warnings and no errors. The suite reports that restic and Postgres are not
+  available in this environment.
+- Browser evidence on the existing `alps-2024` demo trip is in
+  `/tmp/b1589-browser/`: the Hungarian preview contains “Át a Susten-hágón”
+  and its Hungarian prose, while the untranslated “We stayed for dinner”
+  update remains in English. Both widths returned 200 with no console errors
+  or failed requests.
+- B1590 removed the invalid App Router helper exports that had blocked the
+  generated route typecheck. The default Turbopack build still cannot bind its
+  internal worker port in this sandbox, so the successful webpack production
+  build plus the official quick gate cover the same build, type, lint, test,
+  and unused-code stages here.
