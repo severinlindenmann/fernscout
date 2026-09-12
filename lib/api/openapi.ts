@@ -188,6 +188,74 @@ export function openApiDocument() {
       },
       schemas: {
         Error: errorSchema,
+        GeocodeCoordinate: {
+          type: "object",
+          required: ["lat", "lng"],
+          properties: {
+            lat: { type: "number", description: "Decimal degrees, -90 to 90." },
+            lng: { type: "number", description: "Decimal degrees, -180 to 180." },
+          },
+        },
+        GeocodeRequest: {
+          type: "object",
+          required: ["query"],
+          properties: {
+            query: {
+              type: "string",
+              description:
+                "The place name to look up — `Bangkok`, `Hausen`, `Hoi An old town`. The answer is " +
+                "a shortlist of candidates, not a silent best guess.",
+            },
+            countryHint: {
+              type: "string",
+              description:
+                "Optional extra context — a country name or code, if the person gave one. It " +
+                "helps the ranking and narrows collisions like `Hausen`.",
+            },
+            regionHint: {
+              type: "string",
+              description:
+                "Optional province/state/canton hint, again only if the person gave one. Sent to " +
+                "the provider as part of the search text, not written anywhere itself.",
+            },
+            contextCoordinates: {
+              type: "array",
+              description:
+                "Optional nearby days' coordinates — what the surrounding trip already knows. " +
+                "Used only to bias ranking towards the same area; an ambiguous name still comes " +
+                "back as several candidates.",
+              items: { $ref: "#/components/schemas/GeocodeCoordinate" },
+            },
+          },
+        },
+        GeocodeCandidate: {
+          type: "object",
+          required: ["displayName", "country", "lat", "lon"],
+          properties: {
+            displayName: {
+              type: "string",
+              description:
+                "A human-readable label for disambiguation — the string to read back to the " +
+                "person when several places share a name.",
+            },
+            country: { type: "string" },
+            countryCode: {
+              type: "string",
+              description: "ISO-3166 alpha-2 country code, when the provider supplies one.",
+            },
+            adminRegion: {
+              type: "string",
+              description: "State, canton, province, county or closest named subdivision, when the provider has one.",
+            },
+            lat: { type: "number" },
+            lon: { type: "number" },
+            type: {
+              type: "string",
+              description:
+                "What kind of place the provider thinks this is — city, village, hamlet, suburb, and so on. Omitted when the provider named no place kind.",
+            },
+          },
+        },
         Trip: {
           type: "object",
           properties: {
@@ -1823,6 +1891,55 @@ export function openApiDocument() {
             "401": { description: "The code is wrong, expired or already used, or the token is invalid" },
             "404": { description: "Signing up is not enabled on this server" },
             "429": { description: "Too many attempts" },
+          },
+        },
+      },
+      "/api/v1/geocode": {
+        post: {
+          summary: "Turn a place name into candidate coordinates",
+          description:
+            "A helper for writing a day's `lat`/`lng` when the person named a place but did not " +
+            "know the numbers. **Returns a shortlist, never one silent answer**: if several " +
+            "candidates fit, ask which one they meant rather than picking one on their behalf. " +
+            "A `200` with `results: []` means the provider found nothing; it is not an error.\n\n" +
+            "Needs the journal's `addressLookup` capability. `countryHint` and `regionHint` " +
+            "narrow the search when the person gave them, and `contextCoordinates` biases the " +
+            "ranking towards where the surrounding days already were.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/GeocodeRequest" },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Ranked candidates. Empty `results` is a genuine no-match; read non-empty ones back to the person and ask which they meant.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["results"],
+                    properties: {
+                      results: {
+                        type: "array",
+                        items: { $ref: "#/components/schemas/GeocodeCandidate" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": {
+              description:
+                "The request body is not usable — most often `query` missing, too short, too long, or `contextCoordinates` not an array of `{lat,lng}` objects",
+            },
+            "401": { description: "Missing or invalid token" },
+            "404": { description: "This journal does not have place lookup switched on" },
+            "429": { description: "Too many lookups too quickly — wait `Retry-After` seconds" },
+            "502": { description: "The upstream geocoder could not be reached or answered something unusable" },
           },
         },
       },

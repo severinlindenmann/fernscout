@@ -212,6 +212,13 @@ export function instanceDocumentation(): string {
     ),
     "",
     ...wrap(
+      "If somebody names a place and not coordinates, `POST /api/v1/geocode` " +
+        "returns ranked candidates for `lat`/`lng`. Read them back and ask which " +
+        "one they meant; several matches are a question, not a reason to pick.",
+      78,
+    ),
+    "",
+    ...wrap(
       "**No call returns the owner's email address**, and none will: it is a " +
         "contact detail rather than a setting. If your token has expired, ask the " +
         "person which address owns the journal rather than looking for an endpoint " +
@@ -1652,7 +1659,7 @@ one. The full schema, with the shape of each nested item, is in
 | \`time\` | \`"16:45"\`, local to where the day happened. Orders several days sharing a date. |
 | \`timezone\` | The IANA name \`time\` is local to — \`"Asia/Bangkok"\`, never a numeric offset. Send it when you know it; absent, the RSS feed and the on-page dual clock fall back to the journal's own zone rather than guessing one from \`lat\`/\`lng\`. A name \`Intl\` does not recognise is refused. |
 | \`location\`, \`country\` | The country's name, not its code. |
-| \`lat\`, \`lng\` | Decimal degrees, as numbers and not strings — \`15.8801\`, never \`"15.8801"\` and never \`15° 52' 48" N\`. **A pair or nothing**: half a coordinate is refused, since it is not a place. \`lat\` is -90 to 90, \`lng\` is -180 to 180; getting them the wrong way round puts the day in the sea, so check that the smaller-ranged number is the one in \`lat\`. Four decimal places is about eleven metres and is plenty — this marks where the day happened, not where a photograph was taken. Do not geocode and write in one breath: propose what you looked up, and let them confirm it. |
+| \`lat\`, \`lng\` | Decimal degrees, as numbers and not strings — \`15.8801\`, never \`"15.8801"\` and never \`15° 52' 48" N\`. **A pair or nothing**: half a coordinate is refused, since it is not a place. \`lat\` is -90 to 90, \`lng\` is -180 to 180; getting them the wrong way round puts the day in the sea, so check that the smaller-ranged number is the one in \`lat\`. Four decimal places is about eleven metres and is plenty — this marks where the day happened, not where a photograph was taken. \`POST /api/v1/geocode\` can turn a place name into a shortlist of candidates; if it offers several, ask which one they meant rather than picking. |
 | \`tags\` | Lowercase letters, digits and single hyphens. |
 | \`costs\` | What the day cost, one entry per thing rather than one total: \`[{"label": "Coffee", "amount": 4.5, "currency": "EUR", "category": "food"}]\`. \`label\` and \`amount\` are required, and the amount must be greater than zero — a zero or negative one is refused rather than stored and silently dropped when the page renders. \`currency\` is the one the money was actually spent in, as an ISO-4217 code (\`VND\`, not \`₫\`); no \`currency\` means the journal's base currency, so leave it out only when that is true. Nothing is converted on the way in — see below. \`category\` is one of ${COST_CATEGORIES.join(", ")}; anything else is refused by name. |
 | \`transportMode\`, \`transportFrom\`, \`transportTo\` | How this day was reached, on the day it was reached — \`{"transportMode": "car", "transportFrom": "Susten Pass", "transportTo": "Grimsel Pass"}\`. \`transportMode\` is what makes the leg exist: without it there is no arrival scene between the day before and this one, and no icon on the map, whatever the other two say. One of ${TRANSPORT_MODES.join(", ")}, and only these — an unlisted mode is refused rather than shown. \`transportFrom\` and \`transportTo\` are free text and are printed exactly as sent (\`Susten Pass → Grimsel Pass\`), so write the places the way the person says them rather than as coordinates or airport codes; they are not geocoded, and \`lat\`/\`lng\` remain what puts the day on the map. Leave the whole group out on a day nobody travelled — a rest day with a mode on it draws a leg from a place to itself. |

@@ -151,4 +151,6 @@ export const ERROR_CODES: Record<string, string> = {
   helper_unavailable: "This journal has no model-backed features switched on. /api/health says which capabilities are on and why.",
   consent_required: "This journal has not agreed to send photographs to a model. That is asked for on the journal's own page, not by an agent — an owner has to say yes to this themselves.",
   model_failed: "The model call failed. Nothing was written and any credit charged for it was refunded; retrying is reasonable.",
+  address_lookup_disabled:
+    "This journal does not have place lookup switched on, so this server will not geocode a place name for it. /api/health says whether `addressLookup` is on and why not; ask the person for coordinates directly in the meantime.",
 };

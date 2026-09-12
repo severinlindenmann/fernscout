@@ -763,11 +763,11 @@ const DAY_MONEY_QUESTION =
   "usually cost is not.";
 
 export const COORDINATES_QUESTION =
-  "A day is expected to carry `lat` and `lng` — they are what puts it on the map, and a " +
-  "day written without them is a day the map cannot show. Ask for them, and where the " +
-  "prose you are working from names a real place, propose coordinates for the person to " +
-  "confirm rather than leaving the field empty. An unconfirmed guess is never written: an " +
-  "empty field beats an invented location.";
+  "A day is expected to carry `lat` and `lng` — they are what puts it on the map. Ask " +
+  "for them, and where the prose names a real place, `POST /api/v1/geocode` can return " +
+  "ranked candidates to read back. If it returns several plausible matches, ask which one " +
+  "they meant rather than picking. An unconfirmed guess is never written: an empty field " +
+  "beats an invented location.";
 
 /**
  * What follows a trip's days, once they exist — B317.
