@@ -88,6 +88,30 @@ describe("timezone", () => {
   test("absent is fine — the reader falls back to the journal's zone", () => {
     expect(validateEntry({ ...ok, time: "09:15" })).toEqual([]);
   });
+
+  /**
+   * B1579 — the refusal above promised "not an offset" and had quietly
+   * stopped delivering it. `Intl` grew offset time zones, so the platform
+   * this check delegates to began accepting `+02:00` as readily as
+   * `Europe/Zurich`, and a day stamped that way rendered an hour out for half
+   * the year because an offset carries no daylight saving.
+   *
+   * Every spelling, because they are not one shape: the Unicode minus in the
+   * last one is not the ASCII hyphen and is what a naive check misses.
+   */
+  test.each(["+02:00", "-05:00", "+0200", "+02", "\u221202:00"])(
+    "an offset is refused, however it is spelled: %s",
+    (offset) => {
+      expect(only({ timezone: offset })).toMatchObject({ field: "timezone" });
+    },
+  );
+
+  test("a real zone with no daylight saving of its own is still a zone", () => {
+    // `Etc/GMT+5` is an IANA name somebody can deliberately choose, unlike an
+    // offset that arrived because a phone reported one.
+    expect(validateEntry({ ...ok, time: "09:15", timezone: "Etc/GMT+5" })).toEqual([]);
+    expect(validateEntry({ ...ok, time: "09:15", timezone: "UTC" })).toEqual([]);
+  });
 });
 
 describe("coordinates", () => {
