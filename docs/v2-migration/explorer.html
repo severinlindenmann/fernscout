@@ -1,0 +1,228 @@
+<title>Fernscout v2 API Explorer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --bg:#FAFAF6; --card:#FFFFFF; --ink:#161B17; --muted:#5A675E; --line:#E3E7E0;
+    --accent:#3E7A4E; --accent-ink:#2C5A39; --accent-soft:#EAF2EB; --code-bg:#F3F5F1;
+    --get:#2A6FB8; --get-soft:#E8F0F9; --post:#3E7A4E; --post-soft:#EAF2EB;
+    --put:#8A6D1E; --put-soft:#F6F1E1; --patch:#7A3E8E; --patch-soft:#F2EAF6;
+    --del:#A4442E; --del-soft:#F7ECE8; --req:#A4442E;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg:#141815; --card:#1B211C; --ink:#E7ECE7; --muted:#9AA79D; --line:#2C342D;
+    --accent:#82C393; --accent-ink:#A3D6B0; --accent-soft:#223228; --code-bg:#10140F;
+    --get:#7FB3E8; --get-soft:#1C2733; --post:#82C393; --post-soft:#223228;
+    --put:#D9BC6B; --put-soft:#2E2916; --patch:#C79AD6; --patch-soft:#2C2231;
+    --del:#E0937D; --del-soft:#33231E; --req:#E0937D; } }
+  :root[data-theme="dark"] {
+    --bg:#141815; --card:#1B211C; --ink:#E7ECE7; --muted:#9AA79D; --line:#2C342D;
+    --accent:#82C393; --accent-ink:#A3D6B0; --accent-soft:#223228; --code-bg:#10140F;
+    --get:#7FB3E8; --get-soft:#1C2733; --post:#82C393; --post-soft:#223228;
+    --put:#D9BC6B; --put-soft:#2E2916; --patch:#C79AD6; --patch-soft:#2C2231;
+    --del:#E0937D; --del-soft:#33231E; --req:#E0937D; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Public Sans",-apple-system,"Segoe UI",sans-serif; font-size:15px; line-height:1.55; }
+  .layout { display:grid; grid-template-columns: 15rem 1fr; max-width:80rem; margin:0 auto; gap:0; }
+  @media (max-width:880px){ .layout{ grid-template-columns:1fr; } .side{ position:static !important; height:auto !important; border-right:none !important; } }
+  .side { position:sticky; top:0; height:100vh; overflow-y:auto; padding:1.6rem 1rem;
+    border-right:1px solid var(--line); }
+  .side h1 { font-family:"Bricolage Grotesque",serif; font-size:1.15rem; margin:0 0 0.2rem; }
+  .side .sub { font-size:0.72rem; color:var(--muted); margin-bottom:1rem; }
+  .side a.tag { display:block; padding:0.28rem 0.55rem; border-radius:6px; font-size:0.82rem;
+    text-decoration:none; color:var(--ink); }
+  .side a.tag:hover { background:var(--accent-soft); }
+  .side .cnt { color:var(--muted); font-size:0.7rem; font-variant-numeric:tabular-nums; float:right; }
+  .side .raw { margin-top:1.2rem; font-size:0.76rem; }
+  .side .raw a { color:var(--accent-ink); }
+  .main { padding:1.6rem 1.6rem 6rem; min-width:0; }
+  .search { width:100%; padding:0.55rem 0.8rem; border:1px solid var(--line); border-radius:8px;
+    background:var(--card); color:var(--ink); font:inherit; font-size:0.9rem; margin-bottom:1.4rem; }
+  h2.tag-h { font-family:"Bricolage Grotesque",serif; font-size:1.35rem; margin:2.2rem 0 0.2rem; }
+  .tag-d { color:var(--muted); font-size:0.86rem; max-width:46rem; margin:0 0 0.8rem; }
+  .op { border:1px solid var(--line); border-radius:9px; background:var(--card); margin:0.45rem 0; overflow:hidden; }
+  .op-h { display:flex; align-items:center; gap:0.7rem; padding:0.5rem 0.8rem; cursor:pointer; }
+  .op-h:hover { background:var(--code-bg); }
+  .m { font-family:"JetBrains Mono",monospace; font-size:0.68rem; font-weight:600; width:4.2rem;
+    text-align:center; padding:0.22rem 0; border-radius:5px; flex-shrink:0; text-transform:uppercase; }
+  .m.get{background:var(--get-soft);color:var(--get);} .m.post{background:var(--post-soft);color:var(--post);}
+  .m.put{background:var(--put-soft);color:var(--put);} .m.patch{background:var(--patch-soft);color:var(--patch);}
+  .m.delete{background:var(--del-soft);color:var(--del);}
+  .op-p { font-family:"JetBrains Mono",monospace; font-size:0.8rem; word-break:break-all; }
+  .op-s { color:var(--muted); font-size:0.8rem; margin-left:auto; text-align:right; }
+  .lock { font-size:0.7rem; flex-shrink:0; }
+  .op-b { display:none; border-top:1px solid var(--line); padding:0.9rem 1rem 1.1rem; }
+  .op.open .op-b { display:block; }
+  .op-b .desc { color:var(--ink); font-size:0.86rem; max-width:46rem; margin:0 0 0.8rem; }
+  .sec-lbl { font-size:0.66rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted);
+    font-weight:600; margin:1rem 0 0.35rem; }
+  table.mini { border-collapse:collapse; width:100%; font-size:0.8rem; }
+  table.mini td, table.mini th { text-align:left; padding:0.3rem 0.55rem; border-top:1px solid var(--line); vertical-align:top; }
+  table.mini thead th { border-top:none; font-size:0.64rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }
+  .mono { font-family:"JetBrains Mono",monospace; font-size:0.76rem; }
+  .code { background:var(--code-bg); padding:0.05em 0.3em; border-radius:4px; font-family:"JetBrains Mono",monospace; font-size:0.74rem; }
+  .schema { font-family:"JetBrains Mono",monospace; font-size:0.75rem; line-height:1.6;
+    background:var(--code-bg); border:1px solid var(--line); border-radius:8px; padding:0.7rem 0.9rem;
+    overflow-x:auto; }
+  .schema details { margin-left:1rem; }
+  .schema summary { cursor:pointer; list-style:none; }
+  .schema summary::before { content:"▸ "; color:var(--muted); }
+  .schema details[open] > summary::before { content:"▾ "; }
+  .k { color:var(--accent-ink); } .t { color:var(--muted); }
+  .req { color:var(--req); font-weight:600; }
+  .enum { color:var(--put); }
+  .note { color:var(--muted); font-style:italic; }
+  .status-pill { font-family:"JetBrains Mono",monospace; font-size:0.72rem; font-weight:600; }
+  .s2 { color:var(--post); } .s4 { color:var(--del); } .s3 { color:var(--put); }
+  .err { padding:2rem; color:var(--del); }
+</style>
+
+<div class="layout">
+  <nav class="side">
+    <h1>Fernscout v2</h1>
+    <div class="sub">API explorer · concept 2026-09-12</div>
+    <div id="nav"></div>
+    <div class="raw"><a href="../plans/2026-09-12-api-v2/openapi.json">openapi.json (raw)</a></div>
+  </nav>
+  <main class="main">
+    <input class="search" id="q" type="search" placeholder="Filter by path, summary, or field name…" aria-label="Filter operations">
+    <div id="content"><div class="err" id="loading" style="color:var(--muted)">Loading spec…</div></div>
+  </main>
+</div>
+
+<script>
+(async function () {
+  let spec;
+  try {
+    spec = await (await fetch("../plans/2026-09-12-api-v2/openapi.json")).json();
+  } catch (e) {
+    document.getElementById("loading").textContent = "Could not load openapi.json: " + e;
+    document.getElementById("loading").className = "err";
+    return;
+  }
+  const S = spec.components?.schemas || {};
+  const P = spec.components?.parameters || {};
+  const esc = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+  function deref(node, seen) {
+    if (node && node.$ref) {
+      const name = node.$ref.split("/").pop();
+      return { name, node: S[name] || P[name] || null };
+    }
+    return { name: null, node };
+  }
+
+  function renderSchema(node, depth, seen) {
+    seen = seen || new Set(); depth = depth || 0;
+    if (!node) return '<span class="note">unspecified</span>';
+    const d = deref(node);
+    if (d.name) {
+      if (seen.has(d.name) || depth > 7) return '<span class="k">' + esc(d.name) + '</span> <span class="note">(recursive)</span>';
+      const inner = renderSchema(d.node, depth, new Set([...seen, d.name]));
+      return '<details' + (depth < 1 ? " open" : "") + '><summary><span class="k">' + esc(d.name) + '</span></summary>' + inner + '</details>';
+    }
+    node = d.node;
+    if (!node) return '<span class="note">unresolved ref</span>';
+    if (node.anyOf || node.oneOf) {
+      const arr = node.anyOf || node.oneOf;
+      return arr.map((x,i) => '<div>' + (i ? '<span class="t">| </span>' : '<span class="t">one of </span>') + renderSchema(x, depth+1, seen) + '</div>').join("");
+    }
+    if (node.enum) return '<span class="enum">' + node.enum.map(v => JSON.stringify(v)).map(esc).join(" | ") + '</span>';
+    if (node.const !== undefined) return '<span class="enum">' + esc(JSON.stringify(node.const)) + '</span>';
+    if (node.type === "array") return '<span class="t">array of</span> ' + renderSchema(node.items, depth+1, seen);
+    if (node.type === "object" || node.properties) {
+      const req = new Set(node.required || []);
+      const props = node.properties || {};
+      let rows = Object.entries(props).map(([k, v]) => {
+        const meta = [];
+        if (v && v.type && !v.properties && !v.items && !v.anyOf && !v.enum && v.const === undefined && !v.$ref) meta.push(v.type);
+        if (v && v.format) meta.push(v.format);
+        if (v && v.pattern) meta.push("~" + v.pattern.slice(0, 30));
+        if (v && (v.minLength != null || v.maxLength != null)) meta.push([v.minLength, v.maxLength].filter(x=>x!=null).join("–") + " chars");
+        if (v && (v.minimum != null || v.maximum != null)) meta.push([v.minimum, v.maximum].filter(x=>x!=null).join("–"));
+        const complex = v && (v.properties || v.items || v.anyOf || v.oneOf || v.enum || v.$ref || (v.type === "object"));
+        const label = '<span class="k">' + esc(k) + '</span>' + (req.has(k) ? '<span class="req">*</span>' : "") +
+          (meta.length ? ' <span class="t">' + esc(meta.join(", ")) + '</span>' : "");
+        const descr = v && v.description ? ' <span class="note">— ' + esc(v.description) + '</span>' : "";
+        if (complex) {
+          return '<details' + (depth < 1 ? "" : "") + '><summary>' + label + descr + '</summary>' + renderSchema(v, depth+1, seen) + '</details>';
+        }
+        return '<div>' + label + descr + '</div>';
+      });
+      if (node.additionalProperties && typeof node.additionalProperties === "object") {
+        rows.push('<div><span class="k">{key}</span> <span class="t">→</span> ' + renderSchema(node.additionalProperties, depth+1, seen) + '</div>');
+      }
+      if (!rows.length) return '<span class="t">object</span>';
+      return rows.join("");
+    }
+    let s = '<span class="t">' + esc(node.type || "any") + '</span>';
+    if (node.format) s += ' <span class="t">(' + esc(node.format) + ')</span>';
+    return s;
+  }
+
+  function renderOp(path, verb, op) {
+    const sec = op.security && op.security.length ? (JSON.stringify(op.security).includes("cookie") ? "🍪" : "🔑") : "";
+    const params = (op.parameters || []).map(p => deref(p).node).filter(Boolean);
+    let body = "";
+    if (op.description) body += '<p class="desc">' + esc(op.description) + '</p>';
+    if (params.length) {
+      body += '<div class="sec-lbl">Parameters</div><table class="mini"><thead><tr><th>name</th><th>in</th><th></th></tr></thead><tbody>' +
+        params.map(p => '<tr><td class="mono">' + esc(p.name) + (p.required ? '<span class="req">*</span>' : "") + '</td><td>' + esc(p.in) + '</td><td>' + esc(p.description || "") + '</td></tr>').join("") +
+        '</tbody></table>';
+    }
+    const rb = op.requestBody && op.requestBody.content;
+    if (rb) {
+      const [ctype, media] = Object.entries(rb)[0];
+      body += '<div class="sec-lbl">Request body <span class="code">' + esc(ctype) + '</span></div><div class="schema">' + renderSchema(media.schema, 0) + '</div>';
+    }
+    if (op.responses) {
+      body += '<div class="sec-lbl">Responses</div>';
+      for (const [code, resp] of Object.entries(op.responses)) {
+        const cls = code[0] === "2" ? "s2" : code[0] === "4" ? "s4" : "s3";
+        body += '<div style="margin:0.5rem 0"><span class="status-pill ' + cls + '">' + esc(code) + '</span> <span style="font-size:0.82rem">' + esc(resp.description || "") + '</span>';
+        const c = resp.content && Object.values(resp.content)[0];
+        if (c && c.schema) {
+          const dd = deref(c.schema);
+          if (dd.name === "ErrorEnvelope") body += ' <span class="code">ErrorEnvelope</span>';
+          else body += '<div class="schema" style="margin-top:0.3rem">' + renderSchema(c.schema, 0) + '</div>';
+        }
+        body += '</div>';
+      }
+    }
+    const hay = (path + " " + (op.summary||"") + " " + JSON.stringify(op.requestBody||"") ).toLowerCase();
+    return '<div class="op" data-hay="' + esc(hay) + '"><div class="op-h" onclick="this.parentElement.classList.toggle(\'open\')">' +
+      '<span class="m ' + verb + '">' + verb + '</span><span class="lock">' + sec + '</span>' +
+      '<span class="op-p">' + esc(path) + '</span><span class="op-s">' + esc(op.summary || "") + '</span></div>' +
+      '<div class="op-b">' + body + '</div></div>';
+  }
+
+  const byTag = {};
+  const tagOrder = (spec.tags || []).map(t => t.name);
+  for (const [path, ops] of Object.entries(spec.paths || {})) {
+    for (const [verb, op] of Object.entries(ops)) {
+      if (!["get","post","put","patch","delete"].includes(verb)) continue;
+      const tag = (op.tags && op.tags[0]) || "Other";
+      (byTag[tag] = byTag[tag] || []).push([path, verb, op]);
+      if (!tagOrder.includes(tag)) tagOrder.push(tag);
+    }
+  }
+  const tagDesc = {}; (spec.tags||[]).forEach(t => tagDesc[t.name] = t.description || "");
+  let html = "", nav = "";
+  for (const tag of tagOrder) {
+    const ops = byTag[tag]; if (!ops) continue;
+    ops.sort((a,b) => a[0].localeCompare(b[0]));
+    const id = "t-" + tag.replace(/\W+/g,"-");
+    nav += '<a class="tag" href="#' + id + '">' + esc(tag) + '<span class="cnt">' + ops.length + '</span></a>';
+    html += '<h2 class="tag-h" id="' + id + '">' + esc(tag) + '</h2><p class="tag-d">' + esc(tagDesc[tag]||"") + '</p>' +
+      ops.map(([p,v,o]) => renderOp(p,v,o)).join("");
+  }
+  document.getElementById("content").innerHTML = html;
+  document.getElementById("nav").innerHTML = nav;
+  document.getElementById("q").addEventListener("input", (e) => {
+    const q = e.target.value.toLowerCase().trim();
+    document.querySelectorAll(".op").forEach(el => {
+      el.style.display = !q || el.dataset.hay.includes(q) ? "" : "none";
+    });
+  });
+})();
+</script>
