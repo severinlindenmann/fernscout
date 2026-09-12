@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (220)
+## backlog (221)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (53)
+### issue (54)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -117,6 +117,7 @@ Do not edit them by hand; run the script.
 | [B1514](backlog/issue/B1514-publish-stops-a-whole-run-on-a-transient-502.md) | publish stops a whole run on a transient 502 from a media upload | ISSUE | low | low |
 | [B1532](backlog/issue/B1532-a-card-stannp-cancels-after-acceptance.md) | A card Stannp cancels after acceptance is never refunded | ISSUE | low | medium |
 | [B1571](backlog/issue/B1571-a-full-journal-refuses-costs-and.md) | A full journal refuses costs and contacts imports though those kinds write nothing | ISSUE | low | low |
+| [B1583](backlog/issue/B1583-a-publish-run-against-an-unreachable.md) | A publish run against an unreachable instance dies with a raw Node stack trace instead of a sentence | ISSUE | low | low |
 
 ### big-feature (14)
 
