@@ -201,3 +201,31 @@ export function clientIp(req: Request | Headers): string {
   if (fwd) return fwd.split(",")[0].trim();
   return headers.get("x-real-ip") ?? "unknown";
 }
+
+/**
+ * The two ceilings the per-IP bucket on every mailed-code route (auth,
+ * identity, signup) cannot enforce, mirroring the ones the WhatsApp channel
+ * already has (`whatsapp-code-number`, `whatsapp-code-instance`) — B1552. The
+ * per-IP bucket is no ceiling against a distributed caller: a botnet or an
+ * IPv6 /64 rotating addresses can still mail codes to one victim address, or
+ * across many addresses, without bound.
+ *
+ * Per address, 10/day, matching the WhatsApp per-number bucket. Per
+ * instance, 500/day, **shared across all three routes** under one bucket
+ * name — one address' worth of spend and one instance's worth are the same
+ * concern regardless of which door a caller used to reach it.
+ *
+ * Quietly `false` when exceeded, never a distinguishable status: every one of
+ * these routes answers a uniform 202 regardless, so a caller must not be able
+ * to tell a rate-limited request from a sent one.
+ */
+export function emailCodeAllowed(email: string): boolean {
+  const day = 24 * 60 * 60 * 1000;
+  const perAddress = rateLimitFor("email-code-address", email.trim().toLowerCase(), {
+    max: 10,
+    windowMs: day,
+  });
+  if (!perAddress.ok) return false;
+  const perInstance = rateLimitFor("email-code-instance", "*", { max: 500, windowMs: day });
+  return perInstance.ok;
+}
