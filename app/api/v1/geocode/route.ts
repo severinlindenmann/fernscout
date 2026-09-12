@@ -137,7 +137,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid_request", problems }, { status: 400 });
   }
 
-  const limit = rateLimitFor("place-geocode", username, {
+  const limit = rateLimitFor("place-geocode", `${username}:${auth.session.id}`, {
     max: 1,
     windowMs: 1000,
   });

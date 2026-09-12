@@ -221,6 +221,14 @@ describe("POST /api/v1/geocode", () => {
     expect(limited.retryAfter).toBeTruthy();
   });
 
+  test("separate agent sessions on one journal do not block each other", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ features: [] }))));
+    const first = await token();
+    const second = await token();
+    expect((await call(first, { query: "Hausen" }, "203.0.113.97")).status).toBe(200);
+    expect((await call(second, { query: "Hausen" }, "203.0.113.97")).status).toBe(200);
+  });
+
   test("keeps one journal's rate limit from consuming another's behind the same IP", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ features: [] }))));
     const first = await token();
