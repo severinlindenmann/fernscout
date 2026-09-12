@@ -1817,6 +1817,8 @@
   "agent.room.title": "Beszéljük meg",
   "agent.room.roomLink": "Vagy beszéljük meg",
   "agent.room.files": "Fájlok",
+  "agent.room.shareLocation": "Jelenlegi hely megosztása",
+  "agent.room.locationFailed": "A hely nem volt lekérhető. Ellenőrizd a böngésző helymeghatározási engedélyét, és próbáld újra.",
   "agent.room.filesHint": "Válassz ki néhányat, aztán mondd meg, mi legyen velük — „ezek kerüljenek a tegnapi napra”.",
   "agent.open.days": "{count} nap még nincs kész.",
   "agent.open.oneDay": "Egy nap még nincs kész.",

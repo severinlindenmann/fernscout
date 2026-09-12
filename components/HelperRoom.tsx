@@ -646,7 +646,18 @@ export default function HelperRoom({
    *  appear at once with a ring, replaced by the stored tiles when the
    *  route answers. (The picker path keeps its own status line.) */
   const [pending, setPending] = useState<{ key: string; url: string | null }[]>([]);
-  async function sendToInbox(files: File[]) {
+  async function sendToInbox(
+    files: File[],
+    /** Overrides the extension-derived kind — e.g. `location` for the
+     *  composer's own share-my-position button, where the file is a `.json`
+     *  that would otherwise land among plain documents. Applied to every
+     *  file in the call, which is fine because every caller here sends one
+     *  file at a time when it needs one. */
+    kind?: string,
+    /** The same claim `POST .../inbox` already accepts from any caller —
+     *  `lat`/`lon` here, said rather than guessed (AGENTS.md). */
+    meta?: Record<string, unknown>,
+  ) {
     if (files.length === 0) return;
     const stamp = Date.now();
     setPending(
@@ -656,7 +667,11 @@ export default function HelperRoom({
       })),
     );
     const form = new FormData();
-    for (const file of files) form.append("files", file);
+    for (const file of files) {
+      form.append("files", file);
+      if (kind) form.append("kind", kind);
+      if (meta) form.append("meta", JSON.stringify(meta));
+    }
     const response = await fetch(`/api/helper/${encodeURIComponent(username)}/inbox`, {
       method: "POST",
       body: form,
@@ -684,6 +699,27 @@ export default function HelperRoom({
       })),
       ...was,
     ]);
+  }
+  /** The composer's own "share my current location" press. Captures the
+   *  browser's position and uploads it through the same door every other
+   *  inbox file uses (`sendToInbox`), tagged `kind: "location"` so it lands
+   *  beside the trip's other location exports rather than among plain
+   *  documents — B663's `location` bucket, not a new one. Denied, or no
+   *  `navigator.geolocation` at all: nothing here invents a reading, so it
+   *  quietly does nothing (the OS permission prompt already said why).
+   */
+  function shareLocation() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const file = new File([JSON.stringify({ lat: latitude, lon: longitude })], "location.json", {
+          type: "application/json",
+        });
+        void sendToInbox([file], "location", { lat: latitude, lon: longitude });
+      },
+      () => {},
+    );
   }
   useEffect(() => {
     // Whole-window handlers: the room is the drop target (D29), and ⌘V
@@ -1264,6 +1300,7 @@ export default function HelperRoom({
               ) : undefined
             }
             onOpenFiles={() => setTab("files")}
+            onShareLocation={shareLocation}
             onFieldFocusChange={setFieldFocused}
           />
 

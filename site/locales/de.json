@@ -1817,6 +1817,8 @@
   "agent.room.title": "Im Gespräch schreiben",
   "agent.room.roomLink": "Oder im Gespräch schreiben",
   "agent.room.files": "Dateien",
+  "agent.room.shareLocation": "Aktuellen Standort teilen",
+  "agent.room.locationFailed": "Standort konnte nicht ermittelt werden. Prüfe die Standortfreigabe deines Browsers und versuche es erneut.",
   "agent.room.filesHint": "Wähl ein paar aus und sag dann, was damit passieren soll — «die hier auf gestern».",
   "agent.open.days": "{count} Tage sind noch nicht fertig.",
   "agent.open.oneDay": "Ein Tag ist noch nicht fertig.",

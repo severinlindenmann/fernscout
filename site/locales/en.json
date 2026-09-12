@@ -1817,6 +1817,8 @@
   "agent.room.title": "Talk it through",
   "agent.room.roomLink": "Or talk it through",
   "agent.room.files": "Files",
+  "agent.room.shareLocation": "Share your current location",
+  "agent.room.locationFailed": "Could not get your location. Check your browser's location permission and try again.",
   "agent.room.filesHint": "Pick a few, then say what to do with them — “put these on yesterday”.",
   "agent.open.days": "{count} days are not finished yet.",
   "agent.open.oneDay": "One day is not finished yet.",

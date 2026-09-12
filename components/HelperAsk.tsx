@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
 import Image from "next/image";
-import { Paperclip } from "lucide-react";
+import { MapPin, Paperclip } from "lucide-react";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import RecordButton from "@/components/RecordButton";
@@ -332,6 +332,7 @@ export default function HelperAsk({
   filesStrip,
   notice,
   onOpenFiles,
+  onShareLocation,
   aboutOffer = false,
   aboutDraft = null,
   injected = null,
@@ -415,6 +416,10 @@ export default function HelperAsk({
    * the always-present way in; absent everywhere there is no pane.
    */
   onOpenFiles?: () => void;
+  /** The composer's own "share my current location" press — captures the
+   *  browser's position and uploads it into the inbox. Absent means the
+   *  room has nothing to do with it yet. */
+  onShareLocation?: () => void;
   /**
    * The room was opened from a particular day (`?about=`) — B994. The
    * conversation already carries a note naming it, so this draws a local
@@ -1372,6 +1377,16 @@ export default function HelperAsk({
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-navy-50 hover:text-navy-900 lg:hidden"
               >
                 <Paperclip className="h-5 w-5" aria-hidden />
+              </button>
+            )}
+            {onShareLocation && (
+              <button
+                type="button"
+                onClick={onShareLocation}
+                aria-label={t("agent.room.shareLocation")}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-navy-50 hover:text-navy-900"
+              >
+                <MapPin className="h-5 w-5" aria-hidden />
               </button>
             )}
             {speech && (

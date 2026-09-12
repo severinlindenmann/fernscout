@@ -416,6 +416,40 @@ describe("adding a file from the files pane", () => {
   });
 });
 
+test("the share-location button uploads the browser's own coordinate into the inbox", async () => {
+  const getCurrentPosition = vi.fn((success: PositionCallback) => {
+    success({ coords: { latitude: 46.02, longitude: 7.75 } } as GeolocationPosition);
+  });
+  vi.stubGlobal("navigator", { ...navigator, geolocation: { getCurrentPosition } });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url.endsWith("/inbox")) {
+        return {
+          ok: true,
+          json: async () => ({
+            items: [{ id: "location:abc", kind: "location", filename: "location.json", lat: 46.02, lon: 7.75 }],
+          }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({ ok: true, blocks: [] }) } as Response;
+    }),
+  );
+  const box = render();
+  const button = [...box.querySelectorAll("button")].find(
+    (one) => one.getAttribute("aria-label") === "Share your current location",
+  )!;
+  expect(button).toBeDefined();
+  await act(async () => {
+    button.click();
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+  expect(getCurrentPosition).toHaveBeenCalled();
+  const call = (fetch as ReturnType<typeof vi.fn>).mock.calls.find(([url]: [string]) => url.endsWith("/inbox"));
+  expect(call).toBeDefined();
+});
+
 /**
  * What is kept, said once before anything is said to it — B976.
  *
