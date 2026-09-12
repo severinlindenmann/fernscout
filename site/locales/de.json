@@ -1650,6 +1650,7 @@
   "agent.error.no_credits": "Dafür reichen die Credits nicht. Lade auf deiner eigenen Seite welche auf und drücke dann noch einmal.",
   "agent.noCredits": "Das würde {cost} Credits kosten, und der Kontostand ist {balance} — aufladen unter {url}.",
   "agent.error.already_published": "Dieser Tag steht schon auf der Seite, es gab also nichts zu veröffentlichen.",
+  "agent.error.empty_day": "Auf dem Tag ist noch nichts — keine Worte und keine Fotos. Erzähl mir zuerst vom Tag oder häng Fotos an, dann veröffentliche.",
   "agent.error.no_day_on_date": "An diesem Datum gibt es noch keinen Tag. Lege ihn zuerst an, dann gibt es hier etwas zu ändern.",
   "agent.error.invalid_trip": "Eine Reise braucht einen Namen und beide Daten. Füll das leere Feld aus und drück noch einmal.",
   "agent.error.unknown_trip": "Diese Reise gibt es in diesem Journal nicht. Sag mir, welche du meinst.",
