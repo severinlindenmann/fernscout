@@ -1,4 +1,4 @@
-import { describeScope, listSessions, resolveSession, revokeSession, type Session } from "@/lib/auth";
+import { describeScope, listSessions, resolveSession, revokeSession, SESSION_SCOPE, type Session } from "@/lib/auth";
 import { resolveAccess } from "@/lib/auth/handshake";
 import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
@@ -129,8 +129,13 @@ function live(row: { kind: string; revokedAt: string | null; expiresAt: string }
 /** `describeScope` takes a full `Session`; `listSessions` only selects the
  * two fields it actually reads (`scope`, `expiresAt`). The smallest adapter,
  * rather than a second copy of the `write:trip:` prefix parsing. */
-function scopeOf(row: { scope: string; expiresAt: string }): { scope: "owner" | "trip"; trip?: string } {
-  const described = describeScope({ scope: row.scope, expiresAt: row.expiresAt } as Session);
+function scopeOf(row: { scope: string | null; expiresAt: string }): { scope: "owner" | "trip"; trip?: string } {
+  // A null `scope` on disk is a row minted before sessions carried one.
+  // `lookUpSession` reads that as the kind's own default (`row.scope ??
+  // SESSION_SCOPE[expected]`), so this must read it the same way — a listing
+  // that described a key differently from the way the key actually behaves
+  // would be worse than no listing.
+  const described = describeScope({ scope: row.scope ?? SESSION_SCOPE.agent, expiresAt: row.expiresAt } as Session);
   return described.trip !== undefined ? { scope: described.scope, trip: described.trip } : { scope: described.scope };
 }
 
