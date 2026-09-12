@@ -646,11 +646,19 @@ export default function HelperAsk({
       proposal.current?.focus();
       // `start`, not `nearest` (B1253): the card can be taller than the
       // viewport, and the sentence explaining it sits above the buttons —
-      // `scroll-mt-24` on the turn's own top matches the sticky page header
-      // so that top lands below it rather than under it. Scrolling the whole
-      // turn rather than only the card (B1258) is what keeps a preview block
-      // rendered ahead of the card on screen instead of scrolled past.
-      turnTop.current?.scrollIntoView?.({ block: "start" });
+      // scrolling the whole turn rather than only the card (B1258) is what
+      // keeps a preview block rendered ahead of the card on screen instead of
+      // scrolled past.
+      //
+      // Not `scrollIntoView` (B1560): `turnTop` sits inside `log`, and
+      // `scrollIntoView` walks every scrollable ancestor to satisfy the
+      // request — including the window itself, in the room where nothing
+      // outside `log` is meant to scroll at all. `GamePath.tsx` already
+      // carries the same fix for the same reason. Scroll `log` alone.
+      if (turnTop.current && log.current) {
+        const delta = turnTop.current.getBoundingClientRect().top - log.current.getBoundingClientRect().top;
+        log.current.scrollTop += delta;
+      }
     } else {
       silentFocus.current = true;
       box.current?.focus();

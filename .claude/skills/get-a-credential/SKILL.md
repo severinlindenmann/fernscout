@@ -110,6 +110,43 @@ so replacing `.local-dev.db` alone leaves the old rows live — this cost a roun
 of "the migration did not run" when the truth was that the previous run's table
 was still being served out of `.local-dev.db-wal`.
 
+**Signing in to `example` as `agent@fernscout.ch` with `FERNSCOUT_ADMIN_EMAIL`
+set to that same address opens `/admin`, and opens `AgentDoor` instead of the
+`/agent` room — not the room for that journal** (B1560). `journalsFor` in
+`lib/home.ts` gives every address exactly one role per journal, strongest
+first: `admin` beats `named` even when both are true for the same address, so
+the role comes back `"admin"`, not `"owner"`. `/agent`'s own page filters
+`journalsFor(...).filter(j => j.role === "owner")`, so an `admin` role is
+invisible to it and the page falls through to the signed-out door — which
+looks exactly like "not signed in" and is not. To drive the room itself
+locally, either leave `FERNSCOUT_ADMIN_EMAIL` unset for that run, or sign in
+with an address that is not the admin address.
+
+**The room needs the `helper` capability on, and that needs a real
+`ANTHROPIC_API_KEY` — there is no dry-run backend for the model, unlike mail,
+print or transcription.** `lib/capabilities.ts`'s `assertCapabilities` refuses
+to boot at all with `helper` on and no key: *"features.helper is enabled but
+ANTHROPIC_API_KEY is not set"*. So a live browser session against the actual
+room, sending a message and getting a real turn back, costs a real model call;
+testing the turn logic itself (which scroll target fires, which block a
+proposal renders as) is what `test/helper-chat.test.tsx` and
+`test/helper-room.test.tsx` mock the model for instead — reach for those
+first, and drop to a paid live session only for something a mock cannot
+answer (an actual layout question CSS and DOM structure alone decide, for
+instance, is already answerable without a model turn at all: the room mounts
+and lays out the same whether or not a message is ever sent).
+
+**`site/config.json`'s feature flags can be overridden for one dev run without
+editing the tracked file** — set `FERNSCOUT_CONFIG=/path/to/a/copy.json`
+(the same variable a deployed instance uses) pointing at a JSON file with the
+flags you need flipped. It is read fresh per request, so changing the file
+takes effect without a restart. This is the difference between a per-user
+`config.json` (`content/<user>/config.json`, which only ever *narrows* the
+instance defaults) and the instance's own `site/config.json` (which
+`FERNSCOUT_CONFIG` replaces wholesale) — flipping a feature on for a journal
+whose own config does not mention it means widening the instance file, not
+narrowing the journal's.
+
 ## On the live instance
 
 `features.mail.keepCopy` is on, so **every message this server sends is also on

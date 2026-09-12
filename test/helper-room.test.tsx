@@ -680,10 +680,12 @@ test("pressing the preview's publish button twice quickly fires one proposal", a
  * only ever POSTs to `/proposal` and injects the card that names the real
  * route, exactly like every other proposal in this conversation. Two things
  * worth locking down: the label says what pressing it actually does, and
- * the card it opens is the one the person actually sees — scrolled to, not
- * merely present in a hidden tab.
+ * the card it opens is the one the person actually sees — present in the
+ * thread, not merely present in a hidden tab. (Since B1560 that card is
+ * scrolled into view within the log's own box, never with `scrollIntoView`
+ * — see `test/helper-chat.test.tsx`'s B1253 block for why.)
  */
-test("the header's publish button opens the real confirmation card, scrolled into view", async () => {
+test("the header's publish button opens the real confirmation card", async () => {
   const proposal = {
     tool: "publish_day",
     arguments: { trip: "a-trip", slug: "tuesday" },
@@ -752,9 +754,6 @@ test("the header's publish button opens the real confirmation card, scrolled int
   expect(header).toBeDefined();
   expect(header.textContent).not.toBe(dictionary["agent.about.publish"]);
 
-  const scrollIntoView = vi.fn();
-  HTMLElement.prototype.scrollIntoView = scrollIntoView;
-
   await act(async () => {
     header.click();
   });
@@ -763,7 +762,6 @@ test("the header's publish button opens the real confirmation card, scrolled int
     await Promise.resolve();
   });
 
-  expect(scrollIntoView).toHaveBeenCalled();
   const chat = box.querySelector(`section[aria-label="${dictionary["agent.chat.title"]}"]`)!;
   expect(chat.textContent).toContain(proposal.sentence);
 });
