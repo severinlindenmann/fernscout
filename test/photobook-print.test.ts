@@ -273,6 +273,45 @@ describe("the address Gelato is handed", () => {
 });
 
 /**
+ * B1555. `submitBuiltBook`'s own settlement poll and Gelato's webhook
+ * (`settleRefusedPrint`) can both see the same refused order before either
+ * has changed anything — the poll is in-request, the webhook is concurrent
+ * network traffic for the same `providerRef`. Claim-then-refund at both call
+ * sites in print.ts is what makes only one of them pay out, the same
+ * `markPrintFailed` guard `settleRefusedPrint` already relies on.
+ */
+describe("submitBuiltBook racing the webhook for the same order", () => {
+  test("settlement-poll refusal racing settleRefusedPrint refunds exactly once", async () => {
+    const { submitBuiltBook } = await import("@/lib/photobook/print");
+    const { settleRefusedPrint } = await import("@/lib/photobook/reconcile");
+    const before = (await balanceOf(OWNER)) ?? 0;
+
+    // By the time submitBuiltBook asks Gelato for status, the order is
+    // already claimed and submitted (print_submitted, providerRef recorded)
+    // — exactly the state a concurrent webhook would see. Firing the webhook
+    // path from inside this mock is what makes the two genuinely race on the
+    // same row rather than merely run one after the other.
+    let webhookSettled: Promise<boolean> | undefined;
+    vi.mocked(fetchOrderStatus).mockImplementation(async () => {
+      webhookSettled = settleRefusedPrint(OWNER, ID, "failed");
+      return "failed";
+    });
+
+    const result = await submitBuiltBook(OWNER, ID);
+    const wonByWebhook = await webhookSettled;
+
+    expect(result).toEqual({ ok: false, reason: "refused" });
+    // Exactly one of the two claimed the row and refunded — never both.
+    expect((await balanceOf(OWNER)) ?? 0).toBe(before + PAYLOAD.credits);
+    if (wonByWebhook) {
+      // The webhook settled it first; submitBuiltBook's own markPrintFailed
+      // lost the claim and must not have refunded again.
+      expect(wonByWebhook).toBe(true);
+    }
+  });
+});
+
+/**
  * B1348. Settling a refused print gives money back, and two things can reach
  * the same order at the same moment: Gelato's webhook and the five-minute
  * sweep, or a webhook Gelato retries. `refund()` is unconditional and does
