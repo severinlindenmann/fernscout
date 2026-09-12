@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: fernscout-helper, shared/api.mjs
 found: "2026-09-12T10:33:49Z"
+started: "2026-09-12T11:13:17Z"
+session: 615a7d13-b735-48b0-a399-bf28e199b7bb
+claimed: "2026-09-12T11:13:17Z"
 ---
 
 # B1582 — health and contentModel never create their cache directory, so a missing one reads as an unreachable server
