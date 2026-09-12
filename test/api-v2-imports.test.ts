@@ -33,6 +33,22 @@ const LIB_API_ALLOWLIST = [
   // The one error vocabulary — every route, v1 or v2, answers refusals from
   // the same set of codes rather than inventing its own strings.
   "lib/api/errorCodes",
+  // B1608, phase 2 step 3. `ownsUser`, `mayActAsOwner`, `mayWriteTrip` and
+  // `writableTrips` are the domain question "who is this token and what may
+  // it touch" — real access-control logic, already built and already
+  // tested, and reimplementing it in v2 would duplicate exactly the kind of
+  // thing `claude-security` exists to catch drifting apart. `errorResponse`,
+  // `outOfScope` and `refuseWrite` in the same file build v1-shaped Response
+  // bodies (route glue) and are deliberately NOT what v2 imports this for —
+  // see `lib/api/v2/auth.ts`, which reshapes those same refusals through
+  // `fail()` instead.
+  "lib/api/auth",
+  // `listDrafts` — a real read of what is on disk (which entries are still
+  // `status: draft`), not response shaping. v2's own `journalStatus` domain
+  // function (`lib/api/v2/status.ts`) needs the same list v1's `draftQueue`
+  // does; v1's own aggregator around it is not reused because its shape
+  // (`{count, items}`, `next`, `malformed`) is not v2's.
+  "lib/api/entries",
 ];
 
 const ROOT = process.cwd();
@@ -163,15 +179,13 @@ describe("the v2 import boundary", () => {
     ).toEqual([]);
   });
 
-  /**
-   * `app/api/v2` was empty through B1596 (the plumbing, built before any
-   * route landed) and the first real routes arrived in phase 2 step 3
-   * (B1609: the figure library). The synthetic test above is what proves the
-   * boundary rule works even when this directory is empty — this one no
-   * longer asserts emptiness, since asserting it forever would make this
-   * suite fail the moment the very routes it protects are added.
-   */
-  test("the walk finds real files under app/api/v2 once routes exist", () => {
+  /** `app/api/v2` was empty through B1596, which built the plumbing before
+   * any route landed under it. B1608 (phase 2 step 3) is the first route,
+   * so the walk finding something is now the expected state — an empty
+   * result here would mean the walk itself stopped working, which the
+   * "nothing under app/api/v2 …" test above has nothing to say about a
+   * directory with no files to check. */
+  test("app/api/v2 has routes in it, now that the first ones have landed", () => {
     const appV2Files = walk(path.join(ROOT, "app/api/v2"));
     expect(appV2Files.length).toBeGreaterThan(0);
   });

@@ -8,6 +8,7 @@ import {
   normalizeJournalVisibility,
   OPERATOR_ONLY_FEATURES,
   type FeatureName,
+  type JournalFigureSelection,
   type JournalVisibility,
   type UserConfig,
 } from "./config";
@@ -1372,4 +1373,114 @@ export function setJournalProfile(
 
   const now = getUser(username) ?? user;
   return { ok: true, username, journal: journalProfile(now), changed };
+}
+
+/**
+ * v2's journal document — B1608, phase 2 step 3.
+ *
+ * A smaller, differently-shaped read of the same `config.json` that
+ * `journalProfile` above reads: v2 asks for `owner.name`/`owner.nickname`/
+ * `owner.email` (never for `owner.tel`, which stays a v1-only field), for
+ * `baseCurrency` (read-only — see `JOURNAL_V2_IMMUTABLE_FIELDS` in
+ * `lib/api/v2/write.ts`), and for the new `figures`/`declined` blocks
+ * `lib/config.ts` now parses; it drops `startLocation` and `manualRates`
+ * entirely (decision 5, `docs/v2-migration/00-decisions.md`) and folds
+ * `defaultLocale` into "the first entry of `locales`" rather than carrying it
+ * as a field of its own.
+ *
+ * Deliberately not built by bending `journalProfile`'s field list to fit:
+ * that function's shape is v1's and is used by a still-live v1 route: adding
+ * `owner`/`figures`/`declined` to it and removing `startLocation`/
+ * `manualRates` would change what that route reads and writes, for a
+ * document nothing there has a schema for. `JournalDoc` (the wire type) is
+ * intentionally not imported here — this file stays under `lib/`, and the
+ * wire type lives one layer up in `lib/api/v2/schemas/`; the caller composes
+ * this bare object into a validated `journalDoc` with `username` attached.
+ */
+export type JournalV2Fields = {
+  title: string;
+  owner: { name: string; nickname: string; email: string };
+  locales: string[];
+  baseCurrency: string;
+  displayCurrencies: string[];
+  units: "metric" | "imperial";
+  visibility: JournalVisibility;
+  tagline?: string;
+  figures?: JournalFigureSelection;
+  declined?: Record<string, string>;
+};
+
+export function journalV2Fields(user: UserConfig): JournalV2Fields {
+  return {
+    title: user.title,
+    owner: { name: user.owner.name, nickname: user.owner.nickname, email: user.owner.email ?? "" },
+    locales: user.locales,
+    baseCurrency: user.baseCurrency,
+    displayCurrencies: user.displayCurrencies,
+    units: user.units,
+    visibility: user.visibility,
+    ...(user.tagline ? { tagline: user.tagline } : {}),
+    ...(user.figures ? { figures: user.figures } : {}),
+    ...(user.declined && Object.keys(user.declined).length > 0 ? { declined: user.declined } : {}),
+  };
+}
+
+export type SetJournalV2Result =
+  | { ok: true; username: string; journal: JournalV2Fields }
+  | { ok: false; error: string; message: string };
+
+/**
+ * Writes the v2 journal document onto `content/<user>/config.json` — an
+ * edit, not a regeneration, so `ownerTel`, `startLocation`, `manualRates`,
+ * `features`, `media` and everything else v1 still owns survive untouched.
+ *
+ * The caller (the v2 route, through the shared write path in
+ * `lib/api/v2/write.ts`) has already validated the FULL merged document
+ * against `journalWrite` — asked-or-declined, `displayCurrencies` including
+ * `baseCurrency`, byte-identical-or-refused on `baseCurrency` and
+ * `owner.email` — so this function's only job is to put the bytes on disk.
+ */
+export function setJournalV2Fields(username: string, doc: JournalV2Fields): SetJournalV2Result {
+  const written = editUserConfigFile(username, (raw) => {
+    const next: Record<string, unknown> = { ...raw };
+    next.title = doc.title;
+    next.owner = {
+      ...(typeof raw.owner === "object" && raw.owner !== null ? (raw.owner as Record<string, unknown>) : {}),
+      name: doc.owner.name,
+      nickname: doc.owner.nickname,
+      email: doc.owner.email,
+    };
+    next.locales = doc.locales;
+    // v2 has no `defaultLocale` field of its own — "the first is the
+    // default" (lib/api/v2/schemas/journal.ts) — so every write here keeps
+    // `lib/config.ts`'s own invariant (`defaultLocale` must be one of
+    // `locales`) true by construction rather than by hoping the caller sends
+    // a consistent pair.
+    next.defaultLocale = doc.locales[0];
+    next.baseCurrency = doc.baseCurrency;
+    next.displayCurrencies = doc.displayCurrencies;
+    next.units = doc.units;
+    next.visibility = doc.visibility;
+    if (doc.tagline) next.tagline = doc.tagline;
+    else delete next.tagline;
+    if (doc.figures) next.figures = doc.figures;
+    else delete next.figures;
+    if (doc.declined && Object.keys(doc.declined).length > 0) next.declined = doc.declined;
+    else delete next.declined;
+    return next;
+  });
+  if (!written.ok) return written;
+
+  const now = getUser(username);
+  if (!now) {
+    // editUserConfigFile already restores the previous bytes and refuses
+    // when a write does not read back — this is defence in depth, not a
+    // path this should ever actually reach.
+    return {
+      ok: false,
+      error: "write_failed",
+      message: `content/${username}/config.json was written and could not be read back.`,
+    };
+  }
+  return { ok: true, username, journal: journalV2Fields(now) };
 }

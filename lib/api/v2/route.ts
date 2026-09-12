@@ -8,25 +8,15 @@ import { ERROR_CODES } from "../errorCodes";
 import { formatV2RequestLine } from "../../requestLog";
 
 /**
- * ponytail: `incomplete` is not yet in `ERROR_CODES` (lib/api/errorCodes.ts).
- * `test/openapi-contract.test.ts` fails on a code that is here and answered
- * by no route; the figures resource (B1609, phase 2 step 3) has no
- * declinable sections at all, so it is not the route to pay this one off —
- * add it to `ERROR_CODES` in whichever step 3 route first has a real 422
- * (day, trip or journal, all of which do). Until then this is the contract's
- * IOU for that one code: what `fail()` below may still send ahead of what
- * the published vocabulary allows.
- *
- * `stale_document` paid off its own IOU here, in this ticket:
- * `lib/api/errorCodes.ts` now carries it for real, because
- * `app/api/v2/{user}/figures/{id}/route.ts` is a genuine answerer — both for
- * V11's `If-Match` mismatch, and for a PUT to a client-chosen id that
- * already exists with no `If-Match` at all (S2's "retried create", which
- * this reuses rather than inventing a second `*_exists` code for: both cases
- * are "the write assumed something about the current state that does not
- * hold, and here is what actually is").
+ * The IOU paid — B1608, phase 2 step 3. `incomplete` and `stale_document`
+ * were deliberately absent from `lib/api/errorCodes.ts` until a route
+ * existed to answer them (`test/openapi-contract.test.ts` fails on a code
+ * that is here and answered by no route); `app/api/v2/[user]/route.ts`'s
+ * `PATCH` is the first, so both are in `ERROR_CODES` now and this list is
+ * empty. `test/api-v2-route.test.ts`'s `V2_ONLY_CODES` suite asserts the
+ * emptiness rather than only leaving the comment to say so.
  */
-export const V2_ONLY_CODES = ["incomplete"] as const;
+export const V2_ONLY_CODES = [] as const;
 
 export type V2ErrorCode = keyof typeof ERROR_CODES | (typeof V2_ONLY_CODES)[number];
 
