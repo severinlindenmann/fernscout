@@ -291,17 +291,17 @@ export function instanceDocumentation(): string {
     ),
     "",
     "```http",
-    `POST ${base()}/api/auth/signup/request`,
+    `POST ${base()}/api/auth/codes`,
     "Content-Type: application/json",
     "",
-    '{"email": "them@example.com"}',
+    '{"email": "them@example.com", "for": "signup"}',
     "```",
     "",
     "```http",
-    `POST ${base()}/api/auth/signup/verify`,
+    `POST ${base()}/api/auth/codes/redeem`,
     "Content-Type: application/json",
     "",
-    '{"email": "them@example.com", "code": "123456"}',
+    '{"email": "them@example.com", "code": "123456", "for": "signup"}',
     "```",
     "",
     ...wrap(
@@ -339,9 +339,9 @@ export function instanceDocumentation(): string {
     "",
     ...wrap(
       "If they already have a journal, request a code for the address that owns " +
-        `it instead: POST ${base()}/api/auth/request with {"user": "<username>", ` +
-        '"email": "…", "kind": "agent"}, then exchange it the same way, at ' +
-        "/api/auth/verify.",
+        `it instead: POST ${base()}/api/auth/codes with {"user": "<username>", ` +
+        '"email": "…", "for": "write"}, then exchange it the same way, at ' +
+        "/api/auth/codes/redeem.",
       78,
     ),
     "",
@@ -578,14 +578,14 @@ export function userDocumentation(username: string): string | null {
     "## Writing to this journal",
     "",
     "```",
-    `POST ${base()}/api/auth/request`,
-    `     {"user": "${username}", "email": "<the owner's address>", "kind": "agent"}`,
+    `POST ${base()}/api/auth/codes`,
+    `     {"user": "${username}", "email": "<the owner's address>", "for": "write"}`,
     "     -> 202 when a code is on its way; 403 not_authorised if that address does",
     "        not own this journal and is not on the trip you named.",
     "",
-    `POST ${base()}/api/auth/verify`,
-    `     {"user": "${username}", "email": "…", "code": "123456", "kind": "agent"}`,
-    '     -> {"token": "fs_agent_…", "expires": "…", "scope": ["write:content"]}',
+    `POST ${base()}/api/auth/codes/redeem`,
+    `     {"user": "${username}", "email": "…", "code": "123456", "for": "write"}`,
+    '     -> {"token": "fs_agent_…", "expires": "…", "scope": "write"}',
     "",
     "Then send `Authorization: Bearer <token>` with every call below.",
     "```",
@@ -827,10 +827,10 @@ If the person you are working for has no journal yet, make one. Three calls,
 and the first two exist only to prove they can read their own email.
 
 \`\`\`http
-POST ${site.url}/api/auth/signup/request
+POST ${site.url}/api/auth/codes
 Content-Type: application/json
 
-{"email": "them@example.com"}
+{"email": "them@example.com", "for": "signup"}
 \`\`\`
 
 **There is no journal yet, so there is nowhere to read a language from** —
@@ -838,16 +838,16 @@ this mail, the first thing the software ever says to this address, otherwise
 falls back to the request's own \`Accept-Language\` header, which is a
 browser's setting and not necessarily the person's. If you already know which
 language they speak — because you are the one talking to them, not their
-browser — send \`{"email": "…", "locale": "hu"}\` and it wins outright, no
-header involved. The same \`locale\` field works the same way on
-\`POST /api/auth/identity/request\`, the other code an address can be asked
-for before any journal exists.
+browser — send \`{"email": "…", "for": "signup", "locale": "hu"}\` and it wins
+outright, no header involved. The same \`locale\` field works the same way
+with \`"for": "identity"\`, the other code an address can be asked for before
+any journal exists.
 
 \`\`\`http
-POST ${site.url}/api/auth/signup/verify
+POST ${site.url}/api/auth/codes/redeem
 Content-Type: application/json
 
-{"email": "them@example.com", "code": "123456"}
+{"email": "them@example.com", "code": "123456", "for": "signup"}
 \`\`\`
 
 That returns a token which creates **exactly one journal** and is spent by doing
@@ -1037,10 +1037,10 @@ the existing journal is theirs, and if it is, take the other path: they need a
 write token for it, not a new journal.
 
 \`\`\`http
-POST ${site.url}/api/auth/request
+POST ${site.url}/api/auth/codes
 Content-Type: application/json
 
-{"user": "their-existing-journal", "email": "them@example.com", "kind": "agent"}
+{"user": "their-existing-journal", "email": "them@example.com", "for": "write"}
 \`\`\`
 
 The 409 says this too. It cannot say whether the journal is *theirs* — this
@@ -1101,10 +1101,10 @@ Two calls. The token is never sent by email — only a short-lived code is, and
 you exchange it over HTTPS.
 
 \`\`\`http
-POST ${site.url}/api/auth/request
+POST ${site.url}/api/auth/codes
 Content-Type: application/json
 
-{"user": "${example}", "email": "owner@example.com", "kind": "agent"}
+{"user": "${example}", "email": "owner@example.com", "for": "write"}
 \`\`\`
 
 Answers \`202\` when a code is on its way, and **\`403 not_authorised\` when that
@@ -1139,7 +1139,7 @@ A \`503 whatsapp_disabled\` means this server cannot send WhatsApp at all.
 the trip when you ask for the code:
 
 \`\`\`json
-{"user": "${example}", "email": "robin@example.com", "kind": "agent", "trip": "asia-2026"}
+{"user": "${example}", "email": "robin@example.com", "for": "write", "scope": {"trip": "asia-2026"}}
 \`\`\`
 
 **The trip is decided there and travels on the code.** Verifying takes it from
@@ -1160,17 +1160,17 @@ approves whoever follows it.
 The journal's **owner** may name a trip at either call, and gets a token for
 that trip alone — a deliberately limited credential to hand to somebody, or to
 bound what you yourself can reach. Naming no trip is what produces the
-unqualified \`write:content\` below.
+unqualified \`"scope": "write"\` below.
 
 \`\`\`http
-POST ${site.url}/api/auth/verify
+POST ${site.url}/api/auth/codes/redeem
 Content-Type: application/json
 
-{"user": "${example}", "email": "owner@example.com", "code": "123456", "kind": "agent"}
+{"user": "${example}", "email": "owner@example.com", "code": "123456", "for": "write"}
 \`\`\`
 
 \`\`\`json
-{"ok": true, "token": "fs_agent_…", "expires": "…", "scope": ["write:content"]}
+{"ok": true, "token": "fs_agent_…", "expires": "…", "scope": "write", "user": "${example}"}
 \`\`\`
 
 The token writes for **seven days** and is scoped to that one journal. Send it
@@ -1180,7 +1180,7 @@ can revoke it.
 
 **Seven days is a floor, not a ceiling, and the owner should know which you are
 doing.** Holding an owner's live token, \`POST
-${site.url}/api/v1/<user>/handover\` accepts that token — cookie *or* bearer —
+${site.url}/api/auth/<user>/handover\` accepts that token — cookie *or* bearer —
 and hands back a credential you spend for a fresh seven-day one. An agent that
 keeps working can therefore keep itself alive with the person never seeing
 another code. That is deliberate, and every renewal is a new row on the owner's
@@ -1194,8 +1194,8 @@ widening a buddy's reach is exactly what it refuses.
 **And you can end your own key, without asking anybody.**
 
 \`\`\`http
-GET  ${site.url}/api/v1/<user>/keys
-POST ${site.url}/api/v1/<user>/keys      {"revoke": "<id>"}
+GET  ${site.url}/api/auth/<user>/keys
+POST ${site.url}/api/auth/<user>/keys      {"revoke": "<id>"}
 \`\`\`
 
 The \`GET\` lists the live keys you may see — the owner's token sees all of
