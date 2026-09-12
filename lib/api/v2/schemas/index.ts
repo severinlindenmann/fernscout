@@ -6,6 +6,8 @@ export { tripCreate, tripDoc, TRIP_DECLINABLES } from "./trip";
 export { journalDoc, journalWrite, journalPatch } from "./journal";
 export { mediaIntent, mediaItem, MEDIA_KINDS } from "./media";
 export { statusDoc } from "./status";
+export { figureDoc, journalFigures, tripFigures } from "./figures";
+export type { FigureDoc } from "./figures";
 export { errorEnvelope, incompleteDetails, declineReason } from "./shared";
 export type { DayWrite } from "./day";
 export type { TripCreate } from "./trip";

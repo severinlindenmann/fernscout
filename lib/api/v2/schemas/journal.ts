@@ -9,12 +9,18 @@
 //   nothing. v1 keeps parsing it from old files; it joins v2 if a feature
 //   ever wants it.
 import { z } from "zod";
+import { journalFigures } from "./figures";
 import { checkRequiredOrDeclined, declinedMap, type Declinable } from "./shared";
 
 const JOURNAL_DECLINABLES: readonly Declinable[] = [
   {
     field: "tagline",
     whyRequired: "the line under the journal's title on its landing page, or a reason it has none",
+  },
+  {
+    field: "figures",
+    whyRequired:
+      'the journal\'s default walking figures: {mode: "off"}, or {mode: "set", figures: [ids]} pointing into /figures — create them there first',
   },
 ] as const;
 
@@ -37,7 +43,9 @@ const base = z.strictObject({
    * is still the trip's own gate. Required and explicit in v2. */
   visibility: z.enum(["public", "guest"]),
   tagline: z.string().optional(),
-  declined: declinedMap(["tagline"]).optional(),
+  /** The default figure set trips inherit (figures: {mode: "journal"}). */
+  figures: journalFigures.optional(),
+  declined: declinedMap(["tagline", "figures"]).optional(),
 });
 
 /** What the owner (or their agent) may edit. */

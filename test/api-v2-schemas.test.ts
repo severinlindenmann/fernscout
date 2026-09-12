@@ -5,11 +5,18 @@
 import { describe, expect, it } from "vitest";
 import {
   dayWrite,
+  figureDoc,
   journalDoc,
   journalWrite,
   mediaIntent,
   tripCreate,
 } from "../lib/api/v2/schemas";
+
+function withoutDecline(doc: typeof fullTrip, key: string) {
+  const declined = { ...doc.declined } as Record<string, string>;
+  delete declined[key];
+  return { ...doc, declined };
+}
 
 const people = [{ name: "Example Owner", email: "owner@example.com" }];
 
@@ -28,6 +35,7 @@ const fullTrip = {
   intro: "A week on the narrow-gauge lines.",
   declined: {
     buddies: "travelling solo this time",
+    figures: "owner has not designed figures yet",
     days: "trip has not started yet",
     translations: "owner writes this journal in English only for now",
     cover: "no photographs uploaded yet — auto-pick the newest",
@@ -74,7 +82,7 @@ describe("required-or-declined", () => {
     expect(r.success).toBe(false);
     const missing = r.error!.issues.filter((i) => "params" in i && (i as { params?: { v2?: string } }).params?.v2 === "missing");
     expect(missing.map((i) => i.path[0]).sort()).toEqual([
-      "accent", "costs", "cover", "days", "intro", "people", "plan", "rates", "tagline", "translations",
+      "accent", "costs", "cover", "days", "figures", "intro", "people", "plan", "rates", "tagline", "translations",
     ]);
     // Each carries how to decline, so the refusal is the documentation.
     for (const issue of missing) {
@@ -210,15 +218,80 @@ describe("day", () => {
 });
 
 describe("media intent", () => {
-  it("requires a trip or a reason there is none", () => {
+  it("asks each kind its own questions", () => {
+    // bank_export: trip + format.
     expect(mediaIntent.safeParse({ kind: "bank_export" }).success).toBe(false);
     expect(
       mediaIntent.safeParse({
         kind: "bank_export",
-        declined: { trip: "statement covers the whole year, spans several trips" },
+        declined: {
+          trip: "statement covers the whole year, spans several trips",
+          format: "let the server detect the export format",
+        },
       }).success,
     ).toBe(true);
-    expect(mediaIntent.safeParse({ kind: "photo", trip: "alps-2026", day: "2026-09-21-grindelwald" }).success).toBe(true);
+    // photo: trip + day + caption.
+    expect(
+      mediaIntent.safeParse({
+        kind: "photo",
+        trip: "alps-2026",
+        day: "2026-09-21-grindelwald",
+        caption: "First light over the valley",
+      }).success,
+    ).toBe(true);
+    expect(
+      mediaIntent.safeParse({ kind: "photo", trip: "alps-2026", day: "2026-09-21-grindelwald" }).success,
+    ).toBe(false);
+  });
+
+  it("refuses a question the kind is not asked", () => {
+    expect(
+      mediaIntent.safeParse({
+        kind: "gps_history",
+        caption: "my hike",
+        declined: { trip: "whole-archive import spanning years", format: "let the server detect it" },
+      }).success,
+    ).toBe(false);
+    expect(
+      mediaIntent.safeParse({
+        kind: "photo",
+        trip: "alps-2026",
+        format: "gpx",
+        declined: { day: "not attached to a day yet", caption: "no caption for this one" },
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("figures", () => {
+  it("accepts a figure from the real vocabulary and refuses outside it", () => {
+    expect(
+      figureDoc.safeParse({
+        id: "anna-summer",
+        name: "Anna",
+        person: "anna@example.com",
+        hairStyle: "ponytail",
+        outfit: "shorts",
+        age: "adult",
+        skin: "#eec39a",
+        accessories: ["sunglasses", "hat"],
+      }).success,
+    ).toBe(true);
+    expect(figureDoc.safeParse({ id: "x", hairStyle: "mohawk" }).success).toBe(false);
+    expect(figureDoc.safeParse({ id: "x", preset: "hiker" }).success).toBe(false);
+  });
+
+  it("trip figures: off, journal, or a custom set", () => {
+    expect(tripCreate.safeParse({ ...withoutDecline(fullTrip, "figures"), figures: { mode: "journal" } }).success).toBe(true);
+    expect(
+      tripCreate.safeParse({
+        ...withoutDecline(fullTrip, "figures"),
+        figures: { mode: "custom", figures: ["anna-summer"] },
+      }).success,
+    ).toBe(true);
+    expect(
+      tripCreate.safeParse({ ...withoutDecline(fullTrip, "figures"), figures: { mode: "custom" } }).success,
+    ).toBe(false);
   });
 });
 
@@ -231,7 +304,10 @@ describe("journal", () => {
     displayCurrencies: ["CHF", "EUR"],
     units: "metric",
     visibility: "public",
-    declined: { tagline: "the title says it all already" },
+    declined: {
+      tagline: "the title says it all already",
+      figures: "owner prefers the plain map",
+    },
   };
 
   it("accepts a complete journal", () => {
@@ -287,8 +363,10 @@ describe("journal", () => {
   });
 
   it("asks the tagline question", () => {
-    const noDecl = { ...fullJournal } as Record<string, unknown>;
-    delete noDecl.declined;
+    const noDecl = {
+      ...fullJournal,
+      declined: { figures: "owner prefers the plain map" },
+    } as Record<string, unknown>;
     expect(journalWrite.safeParse(noDecl).success).toBe(false);
     expect(
       journalWrite.safeParse({ ...noDecl, tagline: "Two of us, mostly by rail" }).success,

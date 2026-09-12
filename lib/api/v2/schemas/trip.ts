@@ -7,6 +7,7 @@ import { z } from "zod";
 import { ACCENTS, COSTS_VISIBILITIES, STATUSES, VISIBILITIES } from "../../../tripWrite";
 import { MAX_TRIP_PEOPLE } from "../../../trips";
 import { dayDoc, dayWrite } from "./day";
+import { tripFigures } from "./figures";
 import {
   checkRequiredOrDeclined,
   declinedMap,
@@ -107,6 +108,11 @@ export const TRIP_DECLINABLES: readonly Declinable[] = [
       "a trip names the photograph its card shows (a media src), or declines — a declined cover is auto-picked from the newest photograph, and the echo says which",
   },
   {
+    field: "figures",
+    whyRequired:
+      'how the party is drawn as walking figures: {mode: "off"}, {mode: "journal"} (the journal\'s default set), or {mode: "custom", figures: [ids]} — create figures at /figures first',
+  },
+  {
     field: "tagline",
     whyRequired: "every trip card carries its one-line subtitle, or a reason it has none",
   },
@@ -125,7 +131,7 @@ const LISTED_DECLINABLE: Declinable = {
     "a public trip states whether it is advertised (sitemap, feed, switcher): listed true or false, or declined",
 };
 
-const DECLINABLE_KEYS = ["rates", "costs", "plan", "days", "translations", "accent", "cover", "tagline", "intro", "listed", "buddies"] as const;
+const DECLINABLE_KEYS = ["rates", "costs", "plan", "days", "translations", "accent", "cover", "figures", "tagline", "intro", "listed", "buddies"] as const;
 
 /**
  * Creating a trip: the whole document at once. Every declinable section is
@@ -175,6 +181,8 @@ export const tripCreate = z
     /** The media src the trip's card shows. Upload through the media door
      * first; set or change it here any time. */
     cover: z.string().optional(),
+    /** Which figures walk this trip's animation — see ./figures.ts. */
+    figures: tripFigures.optional(),
     /** One line under the title on the trip card. */
     tagline: z.string().optional(),
     /** The trip page's opening prose — trip.md's body. */
