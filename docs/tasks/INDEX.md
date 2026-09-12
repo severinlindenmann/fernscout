@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (241)
+## backlog (240)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (63)
+### issue (62)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -77,7 +77,6 @@ Do not edit them by hand; run the script.
 | [B1586](backlog/issue/B1586-correcting-a-caption-or-a-photograph.md) | Correcting a caption or a photograph's visibility from the day panel is refused, and takes the rest of the save down with it | ISSUE | high | low |
 | [B1601](backlog/issue/B1601-day-translations-demand-both-title-and.md) | Day translations demand both title and content; nine real days translate only the body | ISSUE | high | low |
 | [B1603](backlog/issue/B1603-journal-and-trip-exports-drop-the.md) | Journal and trip exports drop the original photo/video files | ISSUE | high | medium |
-| [B1628](backlog/issue/B1628-day-translations-accept-a-duplicated-written.md) | Day translations accept a duplicated written language and a partial locale set | ISSUE | high | medium |
 | [B1631](backlog/issue/B1631-a-section-that-already-has-a.md) | A section that already has a value can never be declined — T6 has no symmetric rule | ISSUE | high | medium |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
@@ -355,7 +354,7 @@ _Nothing here._
 | [B1445](in-development/B1445-a-spent-trip-choice-card-stays.md) | A spent trip-choice card stays a pressable button that does nothing | ISSUE | low | low | — |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
-## testing (31)
+## testing (32)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -381,6 +380,7 @@ _Nothing here._
 | [B1618](testing/B1618-v2-publish-send-routes-call-senddayletter.md) | v2 publish/send routes call sendDayLetter/sendDayWhatsapp with the wrong slug shape, so a requested send always answers unknown_day | ISSUE | high | medium | — |
 | [B1621](testing/B1621-v2-creates-stopped-telling-an-agent.md) | v2 creates stopped telling an agent what comes next — B311's chain was broken by the migration | ISSUE | high | low | — |
 | [B1625](testing/B1625-a-trip-or-day-accepts-translations.md) | A trip or day accepts translations in a locale the journal does not declare — the schema says the route refuses it and no route does | ISSUE | high | low | — |
+| [B1628](testing/B1628-day-translations-accept-a-duplicated-written.md) | Day translations accept a duplicated written language and a partial locale set | ISSUE | high | medium | — |
 | [B1629](testing/B1629-b560-s-zero-spend-day-reads.md) | B560's zero-spend day reads as unrecorded, overstating the costs average | ISSUE | high | low | — |
 | [B1409](testing/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low | — |
 | [B1520](testing/B1520-two-days-with-the-same-title-collide.md) | Two days with the same title collide at publish with 409, and nothing catches it first | ISSUE | medium | low | — |
