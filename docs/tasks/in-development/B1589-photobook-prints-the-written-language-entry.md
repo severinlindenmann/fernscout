@@ -1,16 +1,15 @@
 ---
 id: B1589
-title: Photobook prints the written-language entry text, ignoring the book's own language and the entry's translations
+title: Photobook language leaves trip text and fallback labels untranslated
 type: ISSUE
 priority: medium
-complexity: low
+complexity: medium
 area: photobook, i18n
 found: "2026-09-12T13:52:51Z"
-started: "2026-09-12T14:17:03Z"
-merged: "2026-09-12T15:08:50Z"
+started: "2026-09-12T15:27:43Z"
 ---
 
-# B1589 — Photobook prints the written-language entry text, ignoring the book's own language and the entry's translations
+# B1589 — Photobook language leaves trip text and fallback labels untranslated
 
 ## Why
 
@@ -45,6 +44,17 @@ day title and paragraphs directly from `day.lead.title`, `entry.title` and
 `entry.content`; both callers in `lib/photobook/build.ts` still omit the book
 locale when they call `buildBookSource`.
 
+Live testing after the first merge found the scope was incomplete. On
+`severin/ungarn-2026`, a Hungarian book renders Hungarian day translations and
+book labels but leaves the trip title, introduction and back-cover blurb in
+German, and renders a chapter with no country as English “Elsewhere”. The live
+trip has no `translations` block, and the current `TripTranslations` contract
+can store only `title` and `tagline`; there is no supported place to save a
+translated introduction. `buildBookSource` also copies `trip.title`,
+`trip.tagline` and `trip.intro` without resolving the chosen locale, while
+`chaptersOf` hard-codes “Elsewhere” before the selected `BookStrings` reaches
+the chapter page.
+
 ## Work
 
 - Thread the book's chosen locale (`options.locale`, already on `BookOptions`
@@ -61,6 +71,14 @@ locale when they call `buildBookSource`.
 - Not doing: any new translation step. If an entry has no `translations`
   entry for the chosen locale, print what's there (written language) rather
   than inventing a translation — same rule as everywhere else in this repo.
+- Extend `TripTranslations` and the trip create/correction API contract so a
+  saved translation may include the trip introduction as well as title and
+  tagline, and return it on readback.
+- Resolve the trip title, tagline and introduction independently against the
+  book locale in `buildBookSource`, falling back field by field to the written
+  trip text.
+- Make the no-country chapter label part of `BookStrings` and supply English,
+  German and Hungarian text instead of hard-coding English in `chaptersOf`.
 
 Implemented by making the selected locale part of `SourceOptions` and passing
 it from both the preview planner and the order builder. Entry title and content
@@ -74,6 +92,13 @@ behaviour.
   deliberately left untranslated), ordered as a Hungarian-locale photobook,
   prints the Hungarian text for the translated entry and the written-language
   text for the untranslated one — not the written-language text for both.
+- A Hungarian book uses saved Hungarian trip title and introduction text on
+  the title, introduction and back-cover pages, while missing translated fields
+  fall back independently to the written trip.
+- A chapter whose day has no country uses a Hungarian fallback label in a
+  Hungarian book.
+- The trip translations API accepts, persists and reads back `intro` and its
+  OpenAPI/agent documentation names the field.
 - `npm run verify` passes; a test in `test/photobook-*.test.ts` (or a new
   file) covers the locale-resolution behavior in `buildBookSource`.
 
