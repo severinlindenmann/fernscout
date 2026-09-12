@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: agent room
 found: "2026-09-12T08:54:28Z"
+started: "2026-09-12T09:10:34Z"
+session: 5a4744c4-0424-4149-9d23-d8a0bd9dd3b1
+claimed: "2026-09-12T09:10:34Z"
 ---
 
 # B1574 — Agent and handover keys are listed inside Guthaben, which is not about money
