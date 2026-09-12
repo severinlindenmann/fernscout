@@ -306,6 +306,28 @@ describe("the files pane's count", () => {
 });
 
 /**
+ * B1575 — the upload control used to render after every inbox file and
+ * after the trip photos group, so a long list on a phone pushed it below
+ * the fold every time the tab opened. It renders first now.
+ */
+describe("the upload control's place in the files pane", () => {
+  test("sits above the inbox files rather than below them", () => {
+    const box = render();
+    const panel = box.querySelector('section[aria-label="Files"]')!;
+    const heading = [...panel.querySelectorAll("h2")].find(
+      (h2) => h2.textContent === "Add photographs or files",
+    )!;
+    const inboxFile = [...panel.querySelectorAll("span")].find(
+      (span) => span.textContent === "statement.csv",
+    )!;
+    expect(heading).toBeDefined();
+    expect(inboxFile).toBeDefined();
+    // DOCUMENT_POSITION_FOLLOWING (4): the inbox file comes after the heading.
+    expect(heading.compareDocumentPosition(inboxFile) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
+/**
  * The column that held nothing — B947.
  *
  * A designer on a laptop, asked which one thing she would cut: the files

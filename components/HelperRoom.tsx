@@ -2297,6 +2297,11 @@ function FilesPane({
 
       {empty && <p className="mt-3 text-sm leading-6 text-navy-700">{t("agent.room.noFiles")}</p>}
 
+      {/* Above every file rather than below them — B1575. With a long inbox
+          already listed, the control used to sit after all of it, out of
+          reach without a scroll every time the tab opened. */}
+      <UploadPanel username={username} onInboxAdded={onInboxAdded} />
+
       {/**
        * What is *waiting*, grouped by kind and newest first — B1123.
        *
@@ -2383,8 +2388,6 @@ function FilesPane({
           ))}
         </Group>
       )}
-
-      <UploadPanel username={username} onInboxAdded={onInboxAdded} />
     </div>
   );
 }
