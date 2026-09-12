@@ -49,18 +49,20 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (236)
+## backlog (238)
 
-### security (4)
+### security (6)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | high | low |
+| [B1615](backlog/security/B1615-v2-trip-routes-answer-no-such.md) | v2 trip routes answer no_such_journal before authenticating, so an anonymous caller can enumerate usernames | SECURITY | high | low |
+| [B1617](backlog/security/B1617-the-v2-day-route-never-checked.md) | The v2 day route never checked the weather capability, so a journal with it off stored the request anyway | SECURITY | high | low |
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (62)
+### issue (60)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -69,7 +71,6 @@ Do not edit them by hand; run the script.
 | [B1369](backlog/issue/B1369-whatsapp-confirm-step-still-shows-the.md) | WhatsApp confirm step still shows the intro text above it | ISSUE | high | low |
 | [B1410](backlog/issue/B1410-a-returning-identity-holder-s-buddy.md) | A returning identity-holder's buddy invite looks redeemed but the confirm step is never submitted | ISSUE | high | low |
 | [B1411](backlog/issue/B1411-a-payment-abandoned-at-stripe-leaves.md) | a payment abandoned at Stripe leaves the checkout page with no way to pay again | ISSUE | high | low |
-| [B1423](backlog/issue/B1423-the-build-charge-is-labelled-as.md) | The build charge is labelled as the print, so the panel names 40 credits for something that costs 165 | ISSUE | high | low |
 | [B1442](backlog/issue/B1442-a-day-started-in-the-room.md) | A day started in the room is titled with its own date, so every surface shows an ISO date | ISSUE | high | low |
 | [B1448](backlog/issue/B1448-an-honest-answer-that-promises-a.md) | An honest answer that promises a button next turn is caught as a claim about this one | ISSUE | high | medium |
 | [B1472](backlog/issue/B1472-the-dangling-reference-guard-matches-two.md) | The dangling-reference guard matches two and three digit ids, and every id since B1000 has four | ISSUE | high | low |
@@ -78,17 +79,16 @@ Do not edit them by hand; run the script.
 | [B1586](backlog/issue/B1586-correcting-a-caption-or-a-photograph.md) | Correcting a caption or a photograph's visibility from the day panel is refused, and takes the rest of the save down with it | ISSUE | high | low |
 | [B1601](backlog/issue/B1601-day-translations-demand-both-title-and.md) | Day translations demand both title and content; nine real days translate only the body | ISSUE | high | low |
 | [B1603](backlog/issue/B1603-journal-and-trip-exports-drop-the.md) | Journal and trip exports drop the original photo/video files | ISSUE | high | medium |
+| [B1616](backlog/issue/B1616-a-solo-trip-that-declined-buddies.md) | A solo trip that declined buddies can never add people, and a public trip can never be narrowed | ISSUE | high | medium |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
 | [B1265](backlog/issue/B1265-the-model-asserted-a-false-trip.md) | The model asserted a false trip date window and no check caught the arithmetic | ISSUE | medium | low |
 | [B1307](backlog/issue/B1307-the-model-misstates-a-date-its.md) | The model misstates a date its own tool returned, and the error compounds into the next press | ISSUE | medium | low |
 | [B1308](backlog/issue/B1308-a-retry-s-blocks-accumulate-onto.md) | A retry's blocks accumulate onto the first, wrong attempt's own blocks | ISSUE | medium | medium |
-| [B1409](backlog/issue/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low |
 | [B1416](backlog/issue/B1416-the-files-rail-chip-downloads-uncapped.md) | The files-rail chip downloads uncapped photographs for a 42px avatar | ISSUE | medium | low |
 | [B1417](backlog/issue/B1417-inbox-file-thumbnails-download-uncapped-photographs.md) | Inbox file thumbnails download uncapped photographs for a 96px tile | ISSUE | medium | low |
 | [B1431](backlog/issue/B1431-a-model-turn-that-throws-says.md) | A model turn that throws says nothing, on every ordinary WhatsApp reply | ISSUE | medium | low |
-| [B1443](backlog/issue/B1443-the-files-pane-still-quotes-a.md) | The files pane still quotes a label that is not on it, and PhotoPicker's override for it is never passed | ISSUE | medium | low |
 | [B1444](backlog/issue/B1444-an-honesty-guard-s-replacement-sentence.md) | An honesty guard's replacement sentence is rendered twice around the card it replaces | ISSUE | medium | low |
 | [B1456](backlog/issue/B1456-the-landing-page-still-pastes-people.md) | The landing page still pastes people at the full guide, which is now a redirect to an index | ISSUE | medium | low |
 | [B1471](backlog/issue/B1471-the-messenger-number-is-printed-for.md) | The messenger number is printed for a person to dial in a form only a machine can use | ISSUE | medium | low |
@@ -107,6 +107,7 @@ Do not edit them by hand; run the script.
 | [B1602](backlog/issue/B1602-every-trip-in-example-must-decline.md) | Every trip in example must decline figures — inline travellers have no path into the figure library | ISSUE | medium | low |
 | [B1610](backlog/issue/B1610-analytics-visitors-asserts-a-hash-does.md) | analytics-visitors asserts a hash does not contain a substring — it fails by chance | ISSUE | medium | low |
 | [B1611](backlog/issue/B1611-journalstatus-shows-the-credit-balance-to.md) | journalStatus shows the credit balance to a trip-scoped token where v1 hid it | ISSUE | medium | low |
+| [B1614](backlog/issue/B1614-the-contract-test-s-scan-window.md) | The contract test's scan window could not see cookie-only doors, so a live error code read as dead | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
@@ -120,7 +121,6 @@ Do not edit them by hand; run the script.
 | [B1433](backlog/issue/B1433-the-main-checkout-guard-matches-a.md) | The main-checkout guard matches a path pattern, so it blocks edits in a different repository entirely | ISSUE | low | low |
 | [B1435](backlog/issue/B1435-day-media-s-two-phase-original.md) | day/media's two-phase original upload may have no live caller since the wizard retired | ISSUE | low | low |
 | [B1436](backlog/issue/B1436-deleting-the-wizard-s-tests-dropped.md) | deleting the wizard's tests dropped the only coverage for PhotoPicker's localized label and sr-only clip | ISSUE | low | low |
-| [B1445](backlog/issue/B1445-a-spent-trip-choice-card-stays.md) | A spent trip-choice card stays a pressable button that does nothing | ISSUE | low | low |
 | [B1475](backlog/issue/B1475-the-map-s-aria-label-derives.md) | The map's aria-label derives its own tense and never learns the trip is over | ISSUE | low | low |
 | [B1514](backlog/issue/B1514-publish-stops-a-whole-run-on-a-transient-502.md) | publish stops a whole run on a transient 502 from a media upload | ISSUE | low | low |
 | [B1532](backlog/issue/B1532-a-card-stannp-cancels-after-acceptance.md) | A card Stannp cancels after acceptance is never refunded | ISSUE | low | medium |
@@ -219,7 +219,7 @@ Do not edit them by hand; run the script.
 | [B1547](backlog/docs-and-skills/B1547-documentation-txt-reads-machine-generated-and.md) | documentation.txt reads machine-generated and has drifted from the API | DOCS | medium | low |
 | [B1415](backlog/docs-and-skills/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low |
 
-### superseded (91)
+### superseded (93)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -238,6 +238,7 @@ Do not edit them by hand; run the script.
 | [B1324](backlog/superseded/B1324-a-failed-card-press-disables-the.md) | A failed card press disables the composer for good, and the only way out wipes the conversation | ISSUE | high | low |
 | [B1414](backlog/superseded/B1414-docs-testing-md-s-privacy-section.md) | docs/TESTING.md's privacy section never mentions buddy links or per-photo visibility | DOCS | high | low |
 | [B1422](backlog/superseded/B1422-the-build-charge-is-labelled-as.md) | The build charge is labelled as the print, so the panel names 40 credits for something that costs 165 | ISSUE | high | low |
+| [B1423](backlog/superseded/B1423-the-build-charge-is-labelled-as.md) | The build charge is labelled as the print, so the panel names 40 credits for something that costs 165 | ISSUE | high | low |
 | [B1447](backlog/superseded/B1447-an-honest-answer-that-promises-a.md) | An honest answer that promises a button next turn is caught as a claim about this one | ISSUE | high | medium |
 | [B1523](backlog/superseded/B1523-the-photobook-composer-s-switches-do.md) | The photobook composer's switches do not match what they remove, and the cover is never shown | ISSUE | high | medium |
 | [B1588](backlog/superseded/B1588-api-v2-document-oriented-required-or.md) | API v2: document-oriented, required-or-declined contract (phase 0: Zod schemas) | FEATURE | high | high |
@@ -265,6 +266,7 @@ Do not edit them by hand; run the script.
 | [B14](backlog/superseded/B14-postcards-cannot-address-themselves-from-the.md) | Postcards cannot address themselves from the contacts that hold the addresses | FEATURE | medium | medium |
 | [B1419](backlog/superseded/B1419-the-open-mobile-menu-gives-no.md) | The open mobile menu gives no sign that it scrolls | ISSUE | medium | low |
 | [B1420](backlog/superseded/B1420-x.md) | x | ISSUE | medium | medium |
+| [B1443](backlog/superseded/B1443-the-files-pane-still-quotes-a.md) | The files pane still quotes a label that is not on it, and PhotoPicker's override for it is never passed | ISSUE | medium | low |
 | [B1477](backlog/superseded/B1477-the-print-bench-shows-one-postcard.md) | The print bench shows one postcard and one book; it should show every format and what Gelato actually requires | DOCS | medium | medium |
 | [B260](backlog/superseded/B260-the-mcp-resource-advertises-no-authorization.md) | The MCP resource advertises no authorization server, so a connector cannot get a token by itself | FEATURE | medium | high |
 | [B275](backlog/superseded/B275-a-day-cannot-be-held-back.md) | A day cannot be held back from a public trip, so one private afternoon makes the whole trip guests-only | FEATURE | medium | high |
@@ -336,21 +338,22 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (9)
+## in-development (10)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1561](in-development/B1561-a-day-publishes-empty-while-its.md) | A day publishes empty while its draft_words proposal is still unpressed | ISSUE | high | medium | `47912984` |
 | [B1562](in-development/B1562-asking-for-a-preview-is-answered.md) | Asking for a preview is answered with a publish_day proposal | ISSUE | high | low | `47912984` |
 | [B1563](in-development/B1563-the-helper-claims-descriptions-and-locations.md) | The helper claims descriptions and locations are on the page when the day carries none | ISSUE | high | medium | `47912984` |
+| [B1409](in-development/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low | — |
 | [B1564](in-development/B1564-attach-files-leaves-photos-listed-as.md) | attach_files leaves photos listed as unrecorded after filling the gallery | ISSUE | medium | low | `47912984` |
 | [B1565](in-development/B1565-a-failed-guard-retry-lands-on.md) | A failed guard retry lands on a dead-end fallback sentence | ISSUE | medium | low | `47912984` |
 | [B1567](in-development/B1567-pressing-start-day-twice-succeeds-twice.md) | Pressing start_day twice succeeds twice | ISSUE | medium | low | `47912984` |
 | [B1582](in-development/B1582-health-and-contentmodel-never-create-their.md) | health and contentModel never create their cache directory, so a missing one reads as an unreachable server | ISSUE | medium | low | `615a7d13` |
-| [B1589](in-development/B1589-photobook-prints-the-written-language-entry.md) | Photobook language leaves trip text and fallback labels untranslated | ISSUE | medium | medium | — |
+| [B1445](in-development/B1445-a-spent-trip-choice-card-stays.md) | A spent trip-choice card stays a pressable button that does nothing | ISSUE | low | low | — |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
-## testing (19)
+## testing (20)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -372,6 +375,7 @@ _Nothing here._
 | [B1522](testing/B1522-a-day-that-plainly-moved-and.md) | A day that plainly moved and carries no transportMode draws no leg, and only a tip says so | FEATURE | medium | low | — |
 | [B1525](testing/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low | — |
 | [B1534](testing/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low | — |
+| [B1589](testing/B1589-photobook-prints-the-written-language-entry.md) | Photobook language leaves trip text and fallback labels untranslated | ISSUE | medium | medium | — |
 | [B1591](testing/B1591-the-visibility-badge-s-explainer-and.md) | The visibility badge's explainer and its chooser both push the page open instead of floating above it | FEATURE | medium | medium | — |
 
 ## completed (1306)

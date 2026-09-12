@@ -6,9 +6,18 @@ priority: medium
 complexity: low
 area: helper, room
 found: "2026-09-11T11:11:04Z"
+superseded: "6b25b198"
 ---
 
 # B1443 — The files pane still quotes a label that is not on it, and PhotoPicker's override for it is never passed
+
+## Revalidation
+
+Already fixed by `6b25b198` ("B1443: wire the files pane's own note through
+its own key"). `components/HelperRoom.tsx:2799-2804` renders
+`agent.room.pickAnyFile`, whose text quotes the room's actual “Photographs”
+and “Documents” headings. `test/helper-room.test.tsx:1074-1117` guards that
+every quoted label is present in the pane.
 
 ## Why
 

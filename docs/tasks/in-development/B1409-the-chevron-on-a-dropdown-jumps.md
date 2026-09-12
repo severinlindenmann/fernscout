@@ -6,9 +6,18 @@ priority: medium
 complexity: low
 area: UI / dropdowns
 found: "2026-09-10T19:54:30Z"
+started: "2026-09-12T19:43:29Z"
 ---
 
 # B1409 — The chevron on a dropdown jumps from under the label to the right edge when the picker opens
+
+## Revalidation
+
+Valid on `main`: `app/globals.css:437-449` enables `appearance: base-select`
+and styles `::picker-icon`, but does not give the select button a one-line
+layout or keep the icon from shrinking or wrapping. The non-`base-select`
+branch positions its background chevron at the right edge, so the reported
+difference remains isolated to the Chromium path.
 
 ## Why
 

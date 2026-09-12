@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: photobook, the ordering panel, pricing
 found: "2026-09-11T07:33:26Z"
+superseded: B1425
 ---
 
 # B1423 — The build charge is labelled as the print, so the panel names 40 credits for something that costs 165
@@ -13,6 +14,15 @@ found: "2026-09-11T07:33:26Z"
 ## Why
 
 TODO — the problem, not the fix.
+
+## Revalidation
+
+Superseded by B1425. `app/[user]/(trip)/photobook/BookLevelView.tsx:24-27`
+now makes `credits` null until a recipient exists and documents that no
+build-only fallback figure is honest. The order panel only renders its ledger
+when that value is non-null (`BookLevelView.tsx:531-546`), so it cannot call
+the former 40-credit build fee the print price before a recipient has supplied
+the actual quote.
 
 ## Work
 

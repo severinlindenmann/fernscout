@@ -6,9 +6,17 @@ priority: low
 complexity: low
 area: helper, room
 found: "2026-09-11T11:11:06Z"
+started: "2026-09-12T19:53:32Z"
 ---
 
 # B1445 — A spent trip-choice card stays a pressable button that does nothing
+
+## Revalidation
+
+Valid on `main`: `components/HelperAsk.tsx:1568-1639` renders every non-link
+`choose` option as a button and holds only its expanded state. Pressing one
+sends a turn through `onChoose`, but no state records that the choice was
+spent, so the same old rows remain focusable buttons after the answer arrives.
 
 ## Why
 

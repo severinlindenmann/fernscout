@@ -7,6 +7,7 @@ complexity: medium
 area: photobook, i18n
 found: "2026-09-12T13:52:51Z"
 started: "2026-09-12T15:27:43Z"
+merged: "2026-09-12T19:34:36Z"
 ---
 
 # B1589 — Photobook language leaves trip text and fallback labels untranslated
@@ -122,6 +123,13 @@ behaviour.
 
 ## Verification
 
+- Exact `npm run verify` after merging current main: build, TypeScript,
+  ESLint, 7,505 tests (one file / 41 tests skipped), and knip all passed.
+- Deployed commit `9d525550a322` is healthy at `fernscout.ch/api/health`.
+  The live owner preview for `severin/ungarn-2026`, with Magyar selected,
+  renders the saved Hungarian cover title, back-cover and introduction text,
+  and `Máshol` for the no-country chapter. The desktop and 390px browser
+  captures returned 200 with no console errors or failed requests.
 - `test/photobook-source.test.ts`: 21 tests pass, including source fallback
   and the `planFor` locale path.
 - After syncing current `main`, `npx next build --webpack` compiles, passes
