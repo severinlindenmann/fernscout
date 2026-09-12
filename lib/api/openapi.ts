@@ -3054,9 +3054,17 @@ export function openApiDocument() {
           description:
             "The journal's inbox: files that have been uploaded and belong to no day yet. " +
             "Grouped by kind — " +
-            `${INBOX_KINDS.join(", ")} — with each file's id, the name it arrived under, its ` +
-            "size, and whatever the uploader said about it (`description`, `caption`, `lat`, " +
-            "`lon`, `takenAt`, `tags`; absent means nobody said).\n\n" +
+            `${INBOX_KINDS.join(", ")}. \`location\` is a WhatsApp location pin waiting to be ` +
+            "put on a day; `contact` is a shared WhatsApp contact card, staged as a vCard, " +
+            "waiting to be invited as a guest or discarded.\n\n" +
+            "Each file carries its id, the name it arrived under, its size, and what is known " +
+            "about it (`description`, `caption`, `lat`, `lon`, `takenAt`, `tags`, `location`, " +
+            "`country`, `countryCode`; absent means nothing is known). **Not all of it is what " +
+            "the uploader said.** `measuredFrom: \"exif\"` marks `lat`/`lon`/`takenAt` as read " +
+            "from a photograph's own embedded metadata rather than typed by anyone; `location`/" +
+            "`country`/`countryCode` on a `location`-kind item come from a reverse-geocode " +
+            "lookup, never from a person. Everything else is exactly what somebody said, never " +
+            "a guess.\n\n" +
             "Make this call before writing days for a trip somebody has just come back from: " +
             "the pictures are usually here already. Filing one into a day is " +
             "`POST /api/v1/{user}/trips/{trip}/media` with `inbox`.\n\n" +
