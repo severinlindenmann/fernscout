@@ -99,7 +99,13 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body || typeof body !== "object" || Array.isArray(body)) {
-    return Response.json({ error: "invalid_json" }, { status: 400 });
+    return Response.json(
+      {
+        error: "invalid_json",
+        message: `${ERROR_CODES.invalid_json} This route expects a JSON object with at least \`query\`.`,
+      },
+      { status: 400 },
+    );
   }
 
   const shape = checkAgainstContract(PATH, "post", body);

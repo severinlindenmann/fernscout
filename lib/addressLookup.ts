@@ -343,7 +343,11 @@ export async function geocodePlace(
 
   const candidates = [...out.values()];
   if (!bias) return candidates;
-  return [...candidates].sort((a, b) => distanceSquared(a, bias) - distanceSquared(b, bias));
+  return [...candidates].sort((a, b) => {
+    const byDistance = distanceSquared(a, bias) - distanceSquared(b, bias);
+    if (byDistance !== 0) return byDistance;
+    return candidateScore(b) - candidateScore(a);
+  });
 }
 
 /**
