@@ -6,11 +6,19 @@ priority: high
 complexity: high
 area: owner tools, visibility, trip page, day page, gallery, /me
 found: "2026-09-12T13:19:11Z"
+started: "2026-09-12T13:35:34Z"
+session: 8ab36c58-f1c6-4425-bad2-8726044a90c9
+claimed: "2026-09-12T13:35:34Z"
 ---
 
 # B1585 — Nothing on a trip, a day, a photograph or the journal says who may read it, and changing that means knowing where the control hides
 
 ## Why
+
+**Validity, 2026-09-12: valid.** Not a revalidation of an old ticket — every
+file:line in the table below was read on the day this was captured, from the
+checkout at `200af881`, which is what the table is. Nothing here is inherited
+from an earlier reading.
 
 Asked for by the author, in these words: *"where can I see and change the
 status of an object? I would like as owner of the page see per trip, per day
