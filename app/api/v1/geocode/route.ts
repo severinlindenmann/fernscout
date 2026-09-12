@@ -7,7 +7,7 @@ import {
   type GeocodeContextCoordinate,
 } from "@/lib/addressLookup";
 import { isEnabled } from "@/lib/capabilities";
-import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { rateLimitFor } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -127,7 +127,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid_request", problems }, { status: 400 });
   }
 
-  const limit = rateLimitFor("place-geocode", `${clientIp(request)}:${username}`, {
+  const limit = rateLimitFor("place-geocode", username, {
     max: 1,
     windowMs: 1000,
   });

@@ -10,10 +10,10 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { clearUserCache } from "@/lib/users";
 
 let dir: string;
-const OWNER = "alex";
-const OWNER_EMAIL = "alex@example.test";
-const SECOND_OWNER = "bea";
-const SECOND_OWNER_EMAIL = "bea@example.test";
+let OWNER: string;
+let OWNER_EMAIL: string;
+let SECOND_OWNER: string;
+let SECOND_OWNER_EMAIL: string;
 
 function writeUserConfig(username: string, email: string, addressLookup: Record<string, unknown>) {
   fs.mkdirSync(path.join(dir, username), { recursive: true });
@@ -70,6 +70,11 @@ async function call(token: string, body: unknown, ip = "203.0.113.90") {
 
 beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-geocode-route-"));
+  const suffix = path.basename(dir).toLowerCase().slice(-6);
+  OWNER = `alex-${suffix}`;
+  OWNER_EMAIL = `alex-${suffix}@example.test`;
+  SECOND_OWNER = `bea-${suffix}`;
+  SECOND_OWNER_EMAIL = `bea-${suffix}@example.test`;
   process.env.CONTENT_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "test.db")}`;
   process.env.SESSION_SECRET = "geocode-route-test-secret-geocode-route";
